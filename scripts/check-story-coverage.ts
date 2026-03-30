@@ -1,8 +1,8 @@
 /**
  * Story Coverage Checker
  *
- * Scans packages/shared/src/components/ for .tsx component files and checks
- * whether each has a sibling .stories.tsx file.
+ * Scans shared component files plus a curated set of admin shell components and
+ * checks whether each has a sibling .stories.tsx file.
  *
  * Excludes: index.ts(x), *.stories.tsx, *.test.tsx, *.service.tsx, and
  * type-only files (files exporting only types/interfaces).
@@ -11,7 +11,7 @@
  */
 
 import { readFileSync, existsSync } from "node:fs";
-import { basename, dirname, join, relative } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { Glob } from "bun";
 
 const COMPONENTS_DIR = join(
@@ -22,6 +22,26 @@ const COMPONENTS_DIR = join(
   "src",
   "components",
 );
+
+const ADMIN_COMPONENTS_DIR = join(
+  import.meta.dir,
+  "..",
+  "packages",
+  "admin",
+  "src",
+  "components",
+);
+
+const ADMIN_SYSTEM_COMPONENTS = [
+  "Layout/Breadcrumbs.tsx",
+  "Layout/CommandPalette.tsx",
+  "Layout/DashboardLayout.tsx",
+  "Layout/Header.tsx",
+  "Layout/PageHeader.tsx",
+  "Layout/Sidebar.tsx",
+  "Layout/UserProfile.tsx",
+  "ui/PageTransition.tsx",
+] as const;
 
 // Files to skip entirely
 const SKIP_PATTERNS = [
@@ -76,7 +96,7 @@ function isTypeOnlyFile(filePath: string): boolean {
 
 async function main() {
   const glob = new Glob("**/*.tsx");
-  const componentFiles: string[] = [];
+  const componentFiles: Array<{ cwd: string; relativePath: string; label: string }> = [];
   const coveredFiles: string[] = [];
   const uncoveredFiles: string[] = [];
 
@@ -96,28 +116,47 @@ async function main() {
       continue;
     }
 
-    componentFiles.push(match);
+    componentFiles.push({
+      cwd: COMPONENTS_DIR,
+      relativePath: match,
+      label: `shared/${match}`,
+    });
+  }
+
+  for (const match of ADMIN_SYSTEM_COMPONENTS) {
+    const fullPath = join(ADMIN_COMPONENTS_DIR, match);
+    if (!existsSync(fullPath)) {
+      throw new Error(`Admin system component missing: ${match}`);
+    }
+
+    componentFiles.push({
+      cwd: ADMIN_COMPONENTS_DIR,
+      relativePath: match,
+      label: `admin/${match}`,
+    });
   }
 
   // Sort for consistent output
-  componentFiles.sort();
+  const normalizedFiles = componentFiles;
+
+  normalizedFiles.sort((a, b) => a.label.localeCompare(b.label));
 
   // Check each component for a sibling story
-  for (const componentPath of componentFiles) {
-    const dir = dirname(componentPath);
-    const fileName = basename(componentPath, ".tsx");
+  for (const component of normalizedFiles) {
+    const dir = dirname(component.relativePath);
+    const fileName = basename(component.relativePath, ".tsx");
     const storyPath = join(dir, `${fileName}.stories.tsx`);
-    const fullStoryPath = join(COMPONENTS_DIR, storyPath);
+    const fullStoryPath = join(component.cwd, storyPath);
 
     if (existsSync(fullStoryPath)) {
-      coveredFiles.push(componentPath);
+      coveredFiles.push(component.label);
     } else {
-      uncoveredFiles.push(componentPath);
+      uncoveredFiles.push(component.label);
     }
   }
 
   // Print report
-  const total = componentFiles.length;
+  const total = normalizedFiles.length;
   const covered = coveredFiles.length;
   const percentage = total > 0 ? Math.round((covered / total) * 100) : 100;
 

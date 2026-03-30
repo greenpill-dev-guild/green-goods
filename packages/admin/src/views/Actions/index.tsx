@@ -17,6 +17,7 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
@@ -247,51 +248,53 @@ export default function Actions() {
         {!isLoading && filteredActions.length > 0 && (
           <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {filteredActions.map((action) => (
-              <Link
+              <Card
                 key={action.id}
-                to={`/actions/${action.id}`}
-                data-testid="action-card"
-                className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-primary-base hover:shadow-md"
+                variant="interactive"
+                className="overflow-hidden"
+                padding="none"
               >
-                <ActionCardMedia
-                  src={action.media[0]}
-                  alt={action.title}
-                  domain={action.domain}
-                  title={action.title}
-                />
-
-                <div className="p-6">
-                  <h3
-                    className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-dark line-clamp-1"
+                <Link to={`/actions/${action.id}`} data-testid="action-card" className="group block h-full">
+                  <ActionCardMedia
+                    src={action.media[0]}
+                    alt={action.title}
+                    domain={action.domain}
                     title={action.title}
-                  >
-                    {action.title}
-                  </h3>
+                  />
 
-                  <p
-                    className="text-sm text-text-sub mb-4 line-clamp-2"
-                    title={action.description || undefined}
-                  >
-                    {action.description ||
-                      intl.formatMessage({
-                        id: "admin.actions.noDescription",
-                        defaultMessage: "No description",
-                      })}
-                  </p>
+                  <div className="p-6">
+                    <h3
+                      className="mb-2 line-clamp-1 text-xl font-semibold text-text-strong group-hover:text-primary-dark"
+                      title={action.title}
+                    >
+                      {action.title}
+                    </h3>
 
-                  <div className="flex items-center text-xs text-text-soft">
-                    <div className="flex items-center gap-1">
-                      <RiCalendarLine className="h-4 w-4 shrink-0" />
-                      <span
-                        className="truncate"
-                        title={`${formatDate(action.startTime)} - ${formatDate(action.endTime)}`}
-                      >
-                        {formatDate(action.startTime)} - {formatDate(action.endTime)}
-                      </span>
+                    <p
+                      className="mb-4 line-clamp-2 text-sm text-text-sub"
+                      title={action.description || undefined}
+                    >
+                      {action.description ||
+                        intl.formatMessage({
+                          id: "admin.actions.noDescription",
+                          defaultMessage: "No description",
+                        })}
+                    </p>
+
+                    <div className="flex items-center text-xs text-text-soft">
+                      <div className="flex items-center gap-1">
+                        <RiCalendarLine className="h-4 w-4 shrink-0" />
+                        <span
+                          className="truncate"
+                          title={`${formatDate(action.startTime)} - ${formatDate(action.endTime)}`}
+                        >
+                          {formatDate(action.startTime)} - {formatDate(action.endTime)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </Card>
             ))}
           </div>
         )}

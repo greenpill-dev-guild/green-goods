@@ -18,11 +18,17 @@ export {
   AudioRecorder,
   type AudioRecorderProps,
 } from "./Audio";
+// Admin / Shared foundation primitives
+export { Alert, type AlertProps, type AlertVariant } from "./Alert";
 // Badge Component
 export { Badge, type BadgeProps, type BadgeVariantProps, badgeVariants } from "./Badge";
+export { Button, type ButtonProps, buttonVariants } from "./Button";
 // Card Components
 export {
+  Card,
+  type CardProps,
   CardBase,
+  CardBody,
   type CardBaseProps,
   CardContent,
   CardDescription,
@@ -31,6 +37,7 @@ export {
   CardTitle,
   type CardVariantProps,
   cardVariants,
+  surfaceCardVariants,
   GardenCard,
   type GardenCardData,
   type GardenCardLabels,
@@ -75,6 +82,7 @@ export {
 } from "./DatePicker";
 // Dialog Components
 export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
+export { DialogShell, type DialogShellProps } from "./Dialog";
 export { ImagePreviewDialog, type ImagePreviewDialogProps } from "./Dialog";
 // Display Components
 export {
@@ -99,7 +107,8 @@ export type {
 export { CheckboxGroup, FormCheckbox } from "./Form/FormCheckbox";
 // Form Components
 export type { FormFieldWrapperProps } from "./Form/FormFieldWrapper";
-export { FormFieldWrapper } from "./Form/FormFieldWrapper";
+export type { FormFieldProps } from "./Form/FormFieldWrapper";
+export { FormField, FormFieldWrapper } from "./Form/FormFieldWrapper";
 export type { FormInputProps } from "./Form/FormInput";
 export { FormInput } from "./Form/FormInput";
 export type { FormLayoutProps } from "./Form/FormLayout";
@@ -110,6 +119,15 @@ export type { MethodSelectorProps } from "./Form/MethodSelector";
 export { MethodSelector } from "./Form/MethodSelector";
 // Select Components
 export type { FormSelectOption, FormSelectProps } from "./Form/Select";
+export {
+  EmptyState,
+  type EmptyStateProps,
+  ListToolbar,
+  type ListToolbarProps,
+  SortSelect,
+  type SortOption,
+  type SortSelectProps,
+} from "./ListPrimitives";
 export {
   FormSelect,
   Select,

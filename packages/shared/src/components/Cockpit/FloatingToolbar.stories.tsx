@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "@storybook/test";
 import { RiClipboardLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
-import { FloatingToolbar } from "./FloatingToolbar";
-import type { ToolbarSlot } from "./FloatingToolbar";
+import { FloatingToolbar, type ToolbarSlot } from "./FloatingToolbar";
 
 // ---------------------------------------------------------------------------
 // Shared mock data

@@ -4,8 +4,34 @@ Use this guide when editing `packages/admin/**`.
 
 ## Role
 
-The admin package is the operator and deployer dashboard. It depends on shared hooks,
-permissions, and contract interaction helpers.
+The admin package is the operator cockpit for Green Goods stewards and deployers. It
+depends on shared hooks, permissions, contract interaction helpers, and shared UI
+foundations.
+
+## UI Contract
+
+- Read `DESIGN_SYSTEM.md` before changing routes, layouts, or page structure.
+- The canonical shell is `CockpitLayout`.
+- Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
+- Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
+- Use admin `SettingsSheet` for cockpit settings flows; otherwise prefer shared `SideSheet`.
+
+## Preferred Primitives
+
+- `TopContextBar`
+- `FloatingToolbar`
+- `GardenChip`
+- `CommandPalette`
+- `SettingsSheet`
+- `SideSheet`
+- `PageHeader`
+- `ListToolbar`
+- `SortSelect`
+- `Card`
+- `Alert`
+- `StatusBadge`
+- `FormField`
+- `DialogShell`
 
 ## Commands
 
@@ -17,10 +43,11 @@ permissions, and contract interaction helpers.
 ## Non-Negotiables
 
 - Do not add local hooks or providers when the logic belongs in `@green-goods/shared`.
+- Reach for shared/admin primitives before adding one-off layout wrappers or duplicated UI.
 - Every privileged action must flow through permission checks such as `useRole` or
   `useGardenPermissions`.
 - Wrap user-visible write actions in the shared toast workflow instead of ad-hoc transaction UI.
-- Use Radix dialog patterns for modal forms and multi-step flows.
+- Use `DialogShell`, `SettingsSheet`, or `SideSheet` for modal and sheet flows instead of ad-hoc shells.
 - New user-facing strings must be translated in all three locale files.
 
 ## Codex Notes

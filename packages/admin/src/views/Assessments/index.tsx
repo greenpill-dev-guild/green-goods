@@ -23,6 +23,7 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Alert } from "@/components/ui/Alert";
+import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
@@ -265,62 +266,60 @@ function AssessmentCard({
   const badgeStyle = DOMAIN_BADGE_STYLES[assessment.domain] ?? "bg-bg-soft text-text-sub";
 
   return (
-    <a
-      href={getEASExplorerUrl(chainId, assessment.id)}
-      target="_blank"
-      rel="noopener noreferrer"
-      data-testid="assessment-card"
-      className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
-      aria-label={`${title} — ${intl.formatMessage({ id: "admin.assessments.opensInNewTab", defaultMessage: "Opens in new tab" })}`}
-    >
-      {/* Domain-colored gradient header */}
-      <div className="relative h-32 overflow-hidden">
-        <ActionBannerFallback domain={domainEnum} title={title} />
-      </div>
-
-      {/* Card content */}
-      <div className="p-5">
-        <div className="mb-3 flex items-start justify-between gap-2">
-          <h3
-            className="text-lg font-medium text-text-strong group-hover:text-primary-dark line-clamp-2"
-            title={title}
-          >
-            {title}
-          </h3>
-          <RiExternalLinkLine className="mt-0.5 h-4 w-4 shrink-0 text-text-soft group-hover:text-primary-dark transition-colors" />
+    <Card variant="interactive" className="overflow-hidden" padding="none">
+      <a
+        href={getEASExplorerUrl(chainId, assessment.id)}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="assessment-card"
+        className="group block h-full"
+        aria-label={`${title} — ${intl.formatMessage({ id: "admin.assessments.opensInNewTab", defaultMessage: "Opens in new tab" })}`}
+      >
+        <div className="relative h-32 overflow-hidden">
+          <ActionBannerFallback domain={domainEnum} title={title} />
         </div>
 
-        {assessment.description && (
-          <p className="mb-3 text-sm text-text-sub line-clamp-2">{assessment.description}</p>
-        )}
-
-        {/* Domain badge */}
-        <span
-          className={`mb-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
-        >
-          {domainLabel}
-        </span>
-
-        {/* Metadata */}
-        <div className="mt-3 flex flex-col gap-1.5 text-xs text-text-soft">
-          <div className="flex items-center gap-1.5">
-            <RiPlantLine className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{gardenName}</span>
+        <div className="p-5">
+          <div className="mb-3 flex items-start justify-between gap-2">
+            <h3
+              className="line-clamp-2 text-lg font-medium text-text-strong group-hover:text-primary-dark"
+              title={title}
+            >
+              {title}
+            </h3>
+            <RiExternalLinkLine className="mt-0.5 h-4 w-4 shrink-0 text-text-soft transition-colors group-hover:text-primary-dark" />
           </div>
-          {(assessment.startDate || assessment.endDate) && (
-            <div className="flex items-center gap-1.5">
-              <RiCalendarLine className="h-3.5 w-3.5 shrink-0" />
-              <span>{formatDateRange(assessment.startDate, assessment.endDate)}</span>
-            </div>
+
+          {assessment.description && (
+            <p className="mb-3 line-clamp-2 text-sm text-text-sub">{assessment.description}</p>
           )}
-          {assessment.location && (
+
+          <span
+            className={`mb-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
+          >
+            {domainLabel}
+          </span>
+
+          <div className="mt-3 flex flex-col gap-1.5 text-xs text-text-soft">
             <div className="flex items-center gap-1.5">
-              <RiMapPinLine className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{assessment.location}</span>
+              <RiPlantLine className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{gardenName}</span>
             </div>
-          )}
+            {(assessment.startDate || assessment.endDate) && (
+              <div className="flex items-center gap-1.5">
+                <RiCalendarLine className="h-3.5 w-3.5 shrink-0" />
+                <span>{formatDateRange(assessment.startDate, assessment.endDate)}</span>
+              </div>
+            )}
+            {assessment.location && (
+              <div className="flex items-center gap-1.5">
+                <RiMapPinLine className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{assessment.location}</span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </a>
+      </a>
+    </Card>
   );
 }

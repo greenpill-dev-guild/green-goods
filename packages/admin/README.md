@@ -1,308 +1,220 @@
-# Green Goods Admin Dashboard
+# Green Goods Admin Cockpit
 
-Administrative dashboard for managing the Green Goods platform, including gardens, operators, gardeners, and smart contract deployments.
+Administrative cockpit for Green Goods operators and deployers.
 
 ## Quick Start
 
+From the monorepo root:
+
 ```bash
-# Install dependencies (from project root)
 bun install
-
-# Configure environment variables in root .env file
-# See "Environment Variables" section below
-
-# Start the admin dashboard
 bun --filter admin dev
 ```
 
-The admin dashboard will be available at `http://localhost:3002`
+The admin app runs on `http://localhost:3002`.
+
+## Design System Contract
+
+- Design-system baseline: [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)
+- Shared foundations and tokens live in `packages/shared`
+- Admin owns shell composition and domain workflows
+- Canonical shell: `CockpitLayout`
+- Legacy for new work: `DashboardLayout`, `Sidebar`, `Header`
+- Preferred building blocks: `TopContextBar`, `FloatingToolbar`, `GardenChip`, `CommandPalette`, `SettingsSheet`, `SideSheet`, `PageHeader`, `ListToolbar`, `SortSelect`, `Card`, `Alert`, `StatusBadge`, `FormField`, `DialogShell`
+
+The admin is intentionally `Material 3 grounded` and `Green Goods distinct`:
+
+- Material 3 defines structure, hierarchy, surfaces, forms, dialogs, and states
+- Apple HIG influences restraint, density, and motion polish only
+- Green Goods shows up in brand tone, garden hero treatments, impact framing, and treasury transparency
 
 ## Features
 
-### Admin Features (Allow List)
-- **Garden Management**: Create, view, and remove gardens
-- **Contract Management**: Deploy and upgrade smart contracts
-- **Global Operations**: View all gardens, operators, and gardeners across the platform
-- **Deployment Registry**: Manage contract deployments across networks
+### Admin Features
 
-### Operator Features (Indexer Query)
-- **Garden Access**: View and manage assigned gardens only
-- **Member Management**: Add/remove gardeners and operators within assigned gardens
-- **Impact Reports**: View Karma GAP attestations for assigned gardens
-- **Limited Scope**: Cannot create new gardens or manage contracts
+- Garden management
+- Contract and deployment operations
+- Global operator workflows across gardens
+- Deployment registry and status surfaces
 
-### Impact Reporting (Planned Feature)
-- **Karma GAP Integration**: Query impact attestations via Karma GAP SDK
-- **Three-Level Tracking**: Projects (gardens), impacts (approved work)
-- **Export Functionality**: Download impact data as CSV/JSON for reporting
-- **EAS Explorer Links**: Direct links to verify attestations on-chain
-- **Filter by Garden**: View impact data for specific gardens
+### Operator Features
 
-**Note:** Impact data is queried via Karma GAP SDK, not Green Goods indexer. See [Reporting & GAP](https://docs.greengoods.app/operator/reporting-and-gap) for details.
+- Garden-scoped management for assigned gardens
+- Member and role management within permitted gardens
+- Impact and operations visibility for assigned gardens
+- Limited scope compared with global admin access
+
+### Reporting Notes
+
+- Impact data is queried via Karma GAP SDK, not the Green Goods indexer.
+- Use the cockpit list, detail, and operational page families before inventing new reporting layouts.
 
 ## Access Control
 
 ### Admin Access
-Users in the admin allow list (configured in `src/config.ts`):
-- `0x2aa64E6d80390F5C017F0313cB908051BE2FD35e`
-- `0x04D60647836bcA09c37B379550038BdaaFD82503`
+
+- Admin access is allow-list driven and configured in `src/config.ts`.
 
 ### Operator Access
-Users returned by the indexer query for gardens where they are listed as operators.
+
+- Operator access is derived from garden membership returned by the indexer.
 
 ### Role Detection
-The `useRole` hook automatically detects user permissions:
-1. Checks admin allow list first
-2. Queries indexer for operator gardens
-3. Returns `unauthorized` if neither condition is met
 
-## Architecture
+The `useRole` hook resolves permissions by:
 
-### Technology Stack
-- **Frontend**: React 19 + TypeScript + Vite
-- **Styling**: Tailwind CSS v4 + Radix UI
-- **State Management**: Zustand + XState workflows
-- **Data Fetching**: TanStack Query + graphql-request
-- **Blockchain**: Viem + Reown AppKit authentication
-- **Routing**: React Router v7
-- **Notifications**: React Hot Toast
+1. Checking the admin allow list.
+2. Querying operator gardens from the indexer.
+3. Falling back to `unauthorized` when neither path applies.
 
-### Project Structure
-```
+## Current Architecture
+
+### Ownership
+
+- `packages/shared`
+  - semantic tokens and theme aliases
+  - reusable UI foundations
+  - hooks, data access, auth, and shared utilities
+  - Storybook documentation
+- `packages/admin`
+  - admin shell and cockpit composition
+  - page-specific workflows and feature views
+  - route wiring and admin-only feature modules
+
+### Package Structure
+
+```text
 packages/admin/
 ├── src/
-│   ├── components/          # Reusable UI components
-│   │   ├── Garden/         # Garden-specific components
-│   │   ├── Layout/         # Navigation and layout
-│   │   └── UI/             # Generic UI components
-│   ├── hooks/              # Custom React hooks
-│   ├── providers/          # React context providers
-│   ├── stores/             # Zustand state stores
-│   ├── types/              # TypeScript type definitions
-│   ├── utils/              # Utility functions
-│   ├── views/              # Main application views
-│   ├── workflows/          # XState state machines
-│   └── config.ts           # Configuration constants
-├── public/                 # Static assets
-└── README.md               # This file
+│   ├── components/
+│   │   ├── Action/
+│   │   ├── Assessment/
+│   │   ├── Dashboard/
+│   │   ├── Form/
+│   │   ├── Garden/
+│   │   ├── Layout/
+│   │   ├── Vault/
+│   │   ├── Work/
+│   │   └── ui/                # admin import shims over shared foundations
+│   ├── config/
+│   ├── routes/
+│   ├── styles/
+│   ├── utils/
+│   └── views/
+└── README.md
 ```
 
-## Key Components
+Notably, admin no longer owns package-local `hooks/`, `providers/`, `stores/`, or `workflows/` directories as first-class architecture layers. Those concerns now live primarily in `packages/shared`, with admin consuming them through the shared barrel.
 
-### Hooks
+### Technology Stack
 
-#### `useRole`
-Detects user role (admin/operator/unauthorized) based on:
-- Admin allow list check
-- Indexer query for operator gardens
+- React 19 + TypeScript + Vite
+- Tailwind CSS v4 + Radix UI
+- Zustand + XState workflows
+- TanStack Query + GraphQL clients
+- Viem + Reown AppKit authentication
+- React Router v7
+- React Hot Toast
 
-```typescript
-const { role, isAdmin, isOperator, operatorGardens, loading } = useRole();
-```
+## Page Families
 
-#### `useChainSync`
-Manages chain switching with toast feedback:
+- List pages use `PageHeader + ListToolbar + filters/sort + loading/empty/error + results`.
+- Detail/workbench pages use `PageHeader` or a garden hero plus `main / rail` composition.
+- Operational pages use `PageHeader + tabs + status workspace cards`.
 
-```typescript
-const { currentChain, switchChain, isSwitching } = useChainSync();
-```
+If a new screen does not fit one of those patterns, document the reason before introducing a new layout model.
 
-#### `useToastAction`
-Wraps blockchain transactions with standardized toast notifications:
+## Development Notes
 
-```typescript
-const { executeWithToast } = useToastAction();
-
-await executeWithToast(
-  () => contractWrite(),
-  {
-    loadingMessage: "Processing...",
-    successMessage: "Success!",
-    errorMessage: "Failed"
-  }
-);
-```
-
-### State Management
-
-#### Zustand Store (`useAdminStore`)
-- Selected chain ID
-- Selected garden
-- Pending transactions tracking
-- UI state (sidebar open/closed)
-
-#### XState Workflows
-- Garden creation workflow with validation and retry logic
-- Contract deployment workflows (future)
-
-### GraphQL Integration
-
-#### Queries
-- `GetDashboardStats`: Dashboard overview data
-- `GetGardens`: All gardens or operator-specific gardens
-- `GetGardenDetail`: Individual garden details
-
-**Note:** GAP attestations (projects, impacts) are queried via Karma GAP SDK, not Green Goods indexer.
-
-#### Subscriptions
-- `GardenCreated`: Real-time garden creation events
-- `OperatorAdded`: Real-time operator addition events
-- `GardenerAdded`: Real-time gardener addition events
-
-## Blockchain Integration
-
-### Supported Networks
-- **Arbitrum One** (42161) - Production
-- **Celo** (42220) - Production
-- **Sepolia** (11155111) - Testnet
-
-### Contract Interactions
-
-#### Garden Management (Admin Only)
-```typescript
-// Create garden
-const { createGarden } = useCreateGarden();
-await createGarden({
-  communityToken: "0x...",
-  name: "Garden Name",
-  description: "Description",
-  location: "Location",
-  bannerImage: "https://...",
-  gardeners: ["0x..."],
-  gardenOperators: ["0x..."]
-});
-```
-
-#### Member Management (Admin + Operators)
-```typescript
-// Add/remove gardeners and operators
-const { addGardener, removeGardener, addOperator, removeOperator } = useGardenOperations(gardenId);
-
-await addGardener("0x...");
-await removeOperator("0x...");
-```
+- Use `bun` only.
+- Run validation with `bun run test`, `bun lint`, and `bun build` from the repo root.
+- Add all new user-facing runtime strings to `packages/shared/src/i18n/{en,es,pt}.json`.
+- Prefer `@green-goods/shared` barrel imports over deep shared paths.
+- Keep generic UI primitives in `packages/shared`; keep admin-only composites in `packages/admin`.
 
 ## Development Workflow
 
 ### Local Development
+
 ```bash
-# Start admin dashboard only
 bun --filter admin dev
-
-# Start all services (includes indexer)
 bun dev
-
-# Run tests
 bun --filter admin test
-
-# Build for production
 bun --filter admin build
 ```
 
 ### Environment Variables
 
-**All environment variables are configured in the root `.env` file** (at the monorepo root, not in this package).
+- Use the root `.env` only.
+- The root `.env` is loaded by Vite, builds, and package scripts.
+- Admin-relevant variables typically include `VITE_WALLETCONNECT_PROJECT_ID`, `VITE_CHAIN_ID`, `VITE_ALCHEMY_API_KEY`, and `VITE_ENVIO_INDEXER_URL`.
 
-The root `.env` file is automatically loaded by:
-- Vite development server (via `vite.config.ts`)
-- Build scripts
-- All package scripts
+### Testing
 
-**Admin-relevant environment variables:**
+- Unit loop: `bun --filter admin test`
+- Watch loop: `bun --filter admin test:watch`
+- Repo validation: `bun run test`, `bun lint`, and `bun build`
+
+### Deployment
+
+- Production build: `bun --filter admin build`
+- Before production deploys, verify environment variables, deployment registry state, and target-network contract availability.
+
+## Storybook
+
+Shared Storybook is the design-system source of truth. It includes shared foundations and curated admin shell stories:
 
 ```bash
-VITE_WALLETCONNECT_PROJECT_ID=your_walletconnect_project_id
-VITE_CHAIN_ID=42161
-VITE_ALCHEMY_API_KEY=your_alchemy_key
-VITE_ENVIO_INDEXER_URL=http://localhost:8080/v1/graphql
+bun --filter shared storybook
 ```
 
-**Setup:**
-1. Create or edit `.env` at the project root (not in `packages/admin/`)
-2. Add the required environment variables listed above
-3. Variables are automatically loaded when running `bun dev` from root or package directory
-
-## Testing
-
-### Unit Tests
-```bash
-bun --filter admin test
-bun --filter admin test:watch
-```
-
-### Integration Testing
-The admin dashboard integrates with:
-- **Indexer**: Real-time GraphQL queries and subscriptions
-- **Smart Contracts**: Direct blockchain interactions
-- **Reown AppKit**: Wallet authentication and management
-
-## Deployment
-
-### Production Build
-```bash
-bun --filter admin build
-```
-
-### Environment Setup
-1. Configure production environment variables
-2. Ensure proper contract deployments on target networks
-3. Update admin allow list addresses
-4. Configure indexer endpoint
+Coverage is enforced by `scripts/check-story-coverage.ts`.
 
 ## Security Considerations
 
 ### Access Control
-- Admin functions are restricted to allow list addresses
-- Operator functions are restricted to gardens where user is an operator
-- All blockchain transactions require wallet signature
-- Role detection happens on every route change
+
+- Admin functions are restricted to allow-listed addresses.
+- Operator functions are restricted to permitted gardens.
+- All blockchain transactions require wallet signature.
+- Role detection should remain consistent with route and action gating.
 
 ### Transaction Safety
-- All contract interactions use `useToastAction` for error handling
-- Transaction status tracking prevents double-spending
-- Clear error messages for failed transactions
-- Retry mechanisms for network issues
 
-## Contributing
-
-1. Follow the project's coding standards (Biome formatting, oxlint)
-2. Add tests for new functionality
-3. Update this README for new features
-4. Ensure all blockchain transactions use toast notifications
+- Use shared toast workflows for contract interactions.
+- Track pending transaction state to avoid duplicate submissions.
+- Keep failure states explicit and actionable.
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### "Unauthorized" Error
-- Verify your wallet address is in the admin allow list
-- Check if you're an operator for any gardens via the indexer
-- Ensure you're connected to the correct network
+#### Unauthorized State
+
+- Verify the wallet is allow-listed or assigned to at least one operator garden.
+- Confirm the expected network is selected.
 
 #### Contract Interaction Failures
-- Verify contract addresses are deployed on the selected network
-- Check wallet has sufficient gas
-- Ensure you have the correct permissions for the operation
 
-#### GraphQL/Indexer Issues
-- Verify indexer URL is correct in environment variables
-- Check network connectivity
-- Ensure indexer is running and accessible
+- Verify contract deployments on the active network.
+- Check wallet gas and permissions.
+- Confirm the current role is allowed to perform the action.
+
+#### GraphQL or Indexer Issues
+
+- Verify `VITE_ENVIO_INDEXER_URL`.
+- Check network connectivity and indexer health.
 
 ### Debug Mode
-Use browser DevTools and React DevTools for debugging. TanStack Query DevTools are available in development for inspecting server state.
+
+- Use browser DevTools, React DevTools, and TanStack Query DevTools in development.
 
 ## Documentation
 
-📖 **[Admin Dashboard Documentation](https://docs.greengoods.app/developer/architecture/admin-package)** — Complete admin architecture guide
-
-**Essential Guides:**
-- 🏗️ [System Architecture](https://docs.greengoods.app/developer/architecture) — Package relationships and data flow
-- 🎯 [Operator Quickstart](https://docs.greengoods.app/welcome/quickstart-operator) — Get started as an operator
-- 📋 [Managing Gardens Guide](https://docs.greengoods.app/guides/operators/managing-gardens) — Garden management workflows
-
-**Package-Specific Documentation:**
-- **[Architecture](https://docs.greengoods.app/developers/architecture)** — System design and package relationships
+- [Admin Package Documentation](https://docs.greengoods.app/developer/architecture/admin-package)
+- [System Architecture](https://docs.greengoods.app/developer/architecture)
+- [Operator Quickstart](https://docs.greengoods.app/welcome/quickstart-operator)
+- [Managing Gardens Guide](https://docs.greengoods.app/guides/operators/managing-gardens)
 
 ## Related Resources
 

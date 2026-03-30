@@ -209,9 +209,81 @@ function validatePackageGuides() {
   }
 }
 
+function validateGuideTerms(relPath, requiredTerms) {
+  const guide = read(relPath);
+
+  for (const term of requiredTerms) {
+    if (!guide.includes(term)) {
+      fail(`${relPath}: missing required design-system reference ${term}`);
+    }
+  }
+}
+
+function validateGuideReferences() {
+  const guideExpectations = [
+    {
+      relPath: "AGENTS.md",
+      requiredTerms: [
+        "packages/admin/DESIGN_SYSTEM.md",
+        "CockpitLayout",
+        "DashboardLayout",
+        "Sidebar",
+        "Header",
+      ],
+    },
+    {
+      relPath: "packages/admin/AGENTS.md",
+      requiredTerms: [
+        "DESIGN_SYSTEM.md",
+        "CockpitLayout",
+        "DashboardLayout",
+        "Sidebar",
+        "Header",
+        "TopContextBar",
+        "FloatingToolbar",
+        "GardenChip",
+        "CommandPalette",
+        "SettingsSheet",
+        "SideSheet",
+        "PageHeader",
+        "ListToolbar",
+        "SortSelect",
+        "Card",
+        "Alert",
+        "StatusBadge",
+        "FormField",
+        "DialogShell",
+      ],
+    },
+    {
+      relPath: "packages/shared/AGENTS.md",
+      requiredTerms: [
+        "packages/admin/DESIGN_SYSTEM.md",
+        "Storybook",
+        "TopContextBar",
+        "FloatingToolbar",
+        "GardenChip",
+        "SideSheet",
+        "Alert",
+        "Card",
+        "DialogShell",
+        "FormField",
+        "ListToolbar",
+        "SortSelect",
+        "StatusBadge",
+      ],
+    },
+  ];
+
+  for (const { relPath, requiredTerms } of guideExpectations) {
+    validateGuideTerms(relPath, requiredTerms);
+  }
+}
+
 validateActions();
 validateRootGuide();
 validatePackageGuides();
+validateGuideReferences();
 
 if (failures.length > 0) {
   console.error("Codex consistency check failed:");

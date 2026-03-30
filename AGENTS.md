@@ -9,7 +9,7 @@ their subtree.
 - `packages/contracts` — Solidity contracts, deploy/upgrade wrappers, Foundry tests
 - `packages/shared` — Shared hooks, providers, stores, modules, types, i18n, UI primitives
 - `packages/client` — End-user web app
-- `packages/admin` — Admin dashboard
+- `packages/admin` — Admin cockpit
 - `packages/agent` — Bot/webhook service
 - `packages/indexer` — Envio indexer
 
@@ -33,6 +33,13 @@ their subtree.
 2. Keep the change inside the smallest sensible package boundary.
 3. Run the lightest validation loop that still proves the change.
 4. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
+
+## Admin UI Defaults
+
+- For `packages/admin`, read `packages/admin/DESIGN_SYSTEM.md` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
+- The canonical admin shell is `CockpitLayout`.
+- New admin UI should not start from `DashboardLayout`, `Sidebar`, or `Header`; treat them as legacy migration references only.
+- Default to the preferred admin primitives in `packages/admin/AGENTS.md` and shared Storybook-backed foundations from `packages/shared`.
 
 ## Validation Ladder
 

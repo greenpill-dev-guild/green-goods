@@ -20,6 +20,7 @@ import { Link } from "react-router-dom";
 import { CreateGardenAction } from "@/components/Garden/CreateGardenAction";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Alert } from "@/components/ui/Alert";
+import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
@@ -252,101 +253,107 @@ export default function Gardens() {
               const canManage = gardenPermissions.canManageGarden(garden);
 
               return (
-                <Link
+                <Card
                   key={garden.id}
-                  to={`/gardens/${garden.id}`}
-                  data-testid="garden-card"
-                  className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
+                  variant="interactive"
+                  className="overflow-hidden"
+                  padding="none"
                 >
-                  <GardenCardBanner name={garden.name} bannerImage={garden.bannerImage}>
-                    {(() => {
-                      const pending = pendingByGarden.get(garden.id.toLowerCase()) ?? 0;
-                      return pending > 0 && gardenPermissions.canManageGarden(garden) ? (
-                        <span className="absolute top-2 left-2 z-[2] rounded-full bg-warning-lighter px-2 py-0.5 text-xs font-semibold text-warning-dark shadow-sm ring-1 ring-warning-light/50">
-                          {intl.formatMessage(
-                            { id: "admin.gardens.pendingBadge", defaultMessage: "{count} pending" },
-                            { count: pending }
-                          )}
-                        </span>
-                      ) : null;
-                    })()}
-                    {canManage && (
-                      <div className="absolute top-2 right-2 z-[2] flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark shadow-sm ring-1 ring-success-light/50">
-                        <RiShieldCheckLine className="mr-1 h-3 w-3" />
-                        {intl.formatMessage({
-                          id: "admin.gardens.operatorBadge",
-                          defaultMessage: "Operator",
-                        })}
+                  <Link
+                    to={`/gardens/${garden.id}`}
+                    data-testid="garden-card"
+                    className="group block h-full"
+                  >
+                    <GardenCardBanner name={garden.name} bannerImage={garden.bannerImage}>
+                      {(() => {
+                        const pending = pendingByGarden.get(garden.id.toLowerCase()) ?? 0;
+                        return pending > 0 && gardenPermissions.canManageGarden(garden) ? (
+                          <span className="absolute top-2 left-2 z-[2] rounded-full bg-warning-lighter px-2 py-0.5 text-xs font-semibold text-warning-dark shadow-sm ring-1 ring-warning-light/50">
+                            {intl.formatMessage(
+                              { id: "admin.gardens.pendingBadge", defaultMessage: "{count} pending" },
+                              { count: pending }
+                            )}
+                          </span>
+                        ) : null;
+                      })()}
+                      {canManage && (
+                        <div className="absolute top-2 right-2 z-[2] flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark shadow-sm ring-1 ring-success-light/50">
+                          <RiShieldCheckLine className="mr-1 h-3 w-3" />
+                          {intl.formatMessage({
+                            id: "admin.gardens.operatorBadge",
+                            defaultMessage: "Operator",
+                          })}
+                        </div>
+                      )}
+                    </GardenCardBanner>
+                    <div className="p-6">
+                      <div className="mb-2">
+                        <h3
+                          className="mb-1 truncate text-lg font-medium text-text-strong group-hover:text-primary-dark"
+                          title={garden.name}
+                        >
+                          {garden.name}
+                        </h3>
+                        <p className="text-sm text-text-soft">{garden.location}</p>
                       </div>
-                    )}
-                  </GardenCardBanner>
-                  <div className="p-6">
-                    <div className="mb-2">
-                      <h3
-                        className="mb-1 text-lg font-medium text-text-strong group-hover:text-primary-dark truncate"
-                        title={garden.name}
+                      <p
+                        className="mb-4 line-clamp-2 text-sm text-text-sub"
+                        title={garden.description}
                       >
-                        {garden.name}
-                      </h3>
-                      <p className="text-sm text-text-soft">{garden.location}</p>
-                    </div>
-                    <p
-                      className="mb-4 line-clamp-2 text-sm text-text-sub"
-                      title={garden.description}
-                    >
-                      {garden.description}
-                    </p>
+                        {garden.description}
+                      </p>
 
-                    <div className="flex items-center gap-4 text-sm text-text-soft">
-                      <div
-                        className="flex items-center"
-                        title={intl.formatMessage(
-                          {
-                            id: "admin.gardens.totalMembersTooltip",
-                            defaultMessage:
-                              "{operators} operators, {gardeners} gardeners, {evaluators} evaluators",
-                          },
-                          {
-                            operators: garden.operators?.length ?? 0,
-                            gardeners: garden.gardeners?.length ?? 0,
-                            evaluators: garden.evaluators?.length ?? 0,
-                          }
-                        )}
-                      >
-                        <RiGroupLine className="mr-1 h-4 w-4" />
-                        <span>
-                          {intl.formatMessage(
+                      <div className="flex items-center gap-4 text-sm text-text-soft">
+                        <div
+                          className="flex items-center"
+                          title={intl.formatMessage(
                             {
-                              id: "admin.gardens.totalMembers",
-                              defaultMessage: "{count, plural, one {# member} other {# members}}",
+                              id: "admin.gardens.totalMembersTooltip",
+                              defaultMessage:
+                                "{operators} operators, {gardeners} gardeners, {evaluators} evaluators",
                             },
                             {
-                              count: new Set([
-                                ...(garden.operators ?? []),
-                                ...(garden.gardeners ?? []),
-                                ...(garden.evaluators ?? []),
-                              ]).size,
+                              operators: garden.operators?.length ?? 0,
+                              gardeners: garden.gardeners?.length ?? 0,
+                              evaluators: garden.evaluators?.length ?? 0,
                             }
                           )}
-                        </span>
-                      </div>
-                      {garden.openJoining && (
-                        <span
-                          className="inline-flex items-center text-xs text-success-dark"
-                          title={intl.formatMessage({
-                            id: "admin.gardens.openJoiningTooltip",
-                            defaultMessage: "Anyone can join this garden as a gardener",
-                          })}
                         >
-                          {intl.formatMessage({
-                            id: "admin.gardens.openJoining",
-                            defaultMessage: "Open to join",
-                          })}
-                        </span>
-                      )}
+                          <RiGroupLine className="mr-1 h-4 w-4" />
+                          <span>
+                            {intl.formatMessage(
+                              {
+                                id: "admin.gardens.totalMembers",
+                                defaultMessage: "{count, plural, one {# member} other {# members}}",
+                              },
+                              {
+                                count: new Set([
+                                  ...(garden.operators ?? []),
+                                  ...(garden.gardeners ?? []),
+                                  ...(garden.evaluators ?? []),
+                                ]).size,
+                              }
+                            )}
+                          </span>
+                        </div>
+                        {garden.openJoining && (
+                          <span
+                            className="inline-flex items-center text-xs text-success-dark"
+                            title={intl.formatMessage({
+                              id: "admin.gardens.openJoiningTooltip",
+                              defaultMessage: "Anyone can join this garden as a gardener",
+                            })}
+                          >
+                            {intl.formatMessage({
+                              id: "admin.gardens.openJoining",
+                              defaultMessage: "Open to join",
+                            })}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Link>
+                  </Link>
+                </Card>
               );
             })}
           </div>

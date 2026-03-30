@@ -1,14 +1,18 @@
 // Card Base Components
 export {
   CardBase,
+  Card,
+  type CardProps,
   type CardBaseProps,
   CardContent,
+  CardBody,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
   type CardVariantProps,
   cardVariants,
+  surfaceCardVariants,
 } from "./CardBase";
 // GardenCard
 export {

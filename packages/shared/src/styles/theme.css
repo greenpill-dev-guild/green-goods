@@ -403,6 +403,30 @@
   --stable-base: var(--teal-500);
   --stable-light: var(--teal-200);
   --stable-lighter: var(--teal-50);
+
+  /* Material 3 role aliases - documentation layer only
+   * Green Goods semantic tokens remain canonical for component authors.
+   * These aliases make the Material relationship explicit for admin governance.
+   */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-container-lowest: var(--bg-white-0);
+  --m3-surface-container-low: var(--bg-weak-50);
+  --m3-surface-container: var(--bg-soft-200);
+  --m3-surface-container-high: var(--bg-sub-300);
+  --m3-surface-container-highest: var(--bg-surface-800);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
+  --m3-primary: var(--primary-base);
+  --m3-on-primary: var(--primary-foreground);
+  --m3-primary-container: var(--green-100);
+  --m3-on-primary-container: var(--green-950);
+  --m3-error: var(--error-base);
+  --m3-on-error: var(--neutral-0);
+  --m3-state-hover: var(--primary-alpha-10);
+  --m3-state-focus: var(--primary-alpha-16);
+  --m3-state-pressed: var(--primary-alpha-24);
 }
 
 /* Dark theme overrides using data-theme attribute */
@@ -491,6 +515,27 @@
   --stable-base: var(--teal-600);
   --stable-light: var(--teal-alpha-24);
   --stable-lighter: var(--teal-alpha-16);
+
+  /* Material 3 role aliases - documentation layer only */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-container-lowest: var(--bg-white-0);
+  --m3-surface-container-low: var(--bg-weak-50);
+  --m3-surface-container: var(--bg-soft-200);
+  --m3-surface-container-high: var(--bg-sub-300);
+  --m3-surface-container-highest: var(--bg-surface-800);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
+  --m3-primary: var(--primary-base);
+  --m3-on-primary: var(--primary-foreground);
+  --m3-primary-container: var(--green-alpha-24);
+  --m3-on-primary-container: var(--green-300);
+  --m3-error: var(--error-base);
+  --m3-on-error: var(--neutral-950);
+  --m3-state-hover: var(--primary-alpha-10);
+  --m3-state-focus: var(--primary-alpha-16);
+  --m3-state-pressed: var(--primary-alpha-24);
 
   /* Overlays - darker in dark mode */
   --overlay-gray: 51 51 51 / 56%;

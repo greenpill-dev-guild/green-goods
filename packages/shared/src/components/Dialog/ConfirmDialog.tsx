@@ -30,6 +30,109 @@ export interface ConfirmDialogProps {
   icon?: ReactNode;
 }
 
+export interface DialogShellProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: ReactNode;
+  description?: ReactNode;
+  icon?: ReactNode;
+  iconContainerClassName?: string;
+  children: ReactNode;
+  size?: "md" | "lg" | "xl" | "2xl";
+  className?: string;
+  bodyClassName?: string;
+  headerClassName?: string;
+  hideCloseButton?: boolean;
+}
+
+const dialogShellSizeClasses: Record<NonNullable<DialogShellProps["size"]>, string> = {
+  md: "sm:max-w-md",
+  lg: "sm:max-w-lg",
+  xl: "sm:max-w-2xl",
+  "2xl": "sm:max-w-4xl lg:max-w-5xl",
+};
+
+export function DialogShell({
+  open,
+  onOpenChange,
+  title,
+  description,
+  icon,
+  iconContainerClassName,
+  children,
+  size = "md",
+  className,
+  bodyClassName,
+  headerClassName,
+  hideCloseButton = false,
+}: DialogShellProps) {
+  const { formatMessage } = useIntl();
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
+        <Dialog.Content
+          className={cn(
+            "fixed z-50 w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden bg-bg-white shadow-2xl focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300",
+            dialogShellSizeClasses[size],
+            className
+          )}
+        >
+          <div
+            className={cn(
+              "sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4",
+              headerClassName
+            )}
+          >
+            <div className="flex min-w-0 flex-1 items-start gap-3">
+              {icon && (
+                <div
+                  className={cn(
+                    "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bg-soft text-text-sub sm:h-10 sm:w-10",
+                    iconContainerClassName
+                  )}
+                >
+                  {icon}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <Dialog.Title className="truncate text-lg font-semibold text-text-strong sm:text-xl">
+                  {title}
+                </Dialog.Title>
+                {description && (
+                  <Dialog.Description className="text-xs text-text-soft sm:text-sm">
+                    {description}
+                  </Dialog.Description>
+                )}
+              </div>
+            </div>
+            {!hideCloseButton && (
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-soft transition hover:bg-bg-soft active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+                  aria-label={formatMessage({ id: "app.common.close" })}
+                >
+                  <RiCloseLine className="h-5 w-5" />
+                </button>
+              </Dialog.Close>
+            )}
+          </div>
+
+          <div className={cn("max-h-[calc(90vh-80px)] overflow-y-auto p-4 sm:p-6", bodyClassName)}>
+            {children}
+          </div>
+
+          <div className="flex justify-center pb-2 pt-1 sm:hidden" aria-hidden="true">
+            <div className="h-1 w-12 rounded-full bg-stroke-sub" />
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
 /**
  * A confirmation dialog using Radix Dialog for accessibility.
  * Centered on desktop, slides up from bottom on mobile.
