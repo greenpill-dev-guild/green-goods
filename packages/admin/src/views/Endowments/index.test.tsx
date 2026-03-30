@@ -1,20 +1,27 @@
 import React from "react";
+import { within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "@/__tests__/test-utils";
 
 const TEST_WETH = "0x7b79995e5f793a07bc00c21412e50ecae098e7f9";
+const TEST_DAI = "0x68194a729c2450ad26072b3d33adacbcef39d574";
 
 const mockUseGardens = vi.fn();
 const mockUseGardenVaults = vi.fn();
+const mockUseHarvestableYield = vi.fn();
 const mockUseMyVaultDeposits = vi.fn();
 const mockUseVaultPreview = vi.fn();
+const mockUseProtocolYieldSummary = vi.fn();
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
     formatAddress: (value: string) => value.slice(0, 6),
-    formatTokenAmount: (value: bigint) => (value === 0n ? "0" : `${Number(value) / 10 ** 18}`),
+    formatTokenAmount: (value: bigint, decimals = 18, precision = 2) => {
+      const amount = Number(value) / 10 ** decimals;
+      return amount.toFixed(precision).replace(/\.?0+$/, "");
+    },
     getNetDeposited: (deposited: bigint, withdrawn: bigint) => deposited - withdrawn,
     getVaultAssetSymbol: (asset: string) => (asset.toLowerCase() === TEST_WETH ? "WETH" : "DAI"),
     ImageWithFallback: ({ alt }: { alt: string }) => React.createElement("div", null, alt),
@@ -24,7 +31,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useUser: () => ({ primaryAddress: "0x1111111111111111111111111111111111111111" }),
     useStrategyRate: () => ({ apy: 2.5, isLoading: false, isError: false, unsupported: false }),
     formatApy: (apy: number) => `${apy.toFixed(2)}%`,
-    useHarvestableYield: () => ({ entries: [], total: 0n, isLoading: false, isError: false }),
+    useHarvestableYield: (...args: unknown[]) => mockUseHarvestableYield(...args),
     usePendingYield: () => ({ entries: [], totalPending: 0n, isLoading: false, isError: false }),
     useSplitConfig: () => ({
       config: { cookieJarBps: 4865, fractionsBps: 4865, juiceboxBps: 270 },
@@ -32,6 +39,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isError: false,
     }),
     useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
+    useProtocolYieldSummary: (...args: unknown[]) => mockUseProtocolYieldSummary(...args),
   };
 });
 
@@ -104,8 +112,35 @@ describe("EndowmentsOverview", () => {
           totalWithdrawn: 0n,
           totalHarvestCount: 3,
         },
+        {
+          id: "vault-2",
+          chainId: 11155111,
+          garden: "garden-1",
+          asset: TEST_DAI,
+          vaultAddress: "0x5555555555555555555555555555555555555555",
+          totalDeposited: 2_000_000_000_000_000_000n,
+          totalWithdrawn: 0n,
+          totalHarvestCount: 1,
+        },
       ],
       isLoading: false,
+    });
+    mockUseHarvestableYield.mockReturnValue({
+      entries: [
+        {
+          vaultAddress: "0x4444444444444444444444444444444444444444",
+          assetAddress: TEST_WETH,
+          harvestable: 3_000_000_000_000_000_000n,
+        },
+        {
+          vaultAddress: "0x5555555555555555555555555555555555555555",
+          assetAddress: TEST_DAI,
+          harvestable: 2_000_000_000_000_000_000n,
+        },
+      ],
+      total: 5_000_000_000_000_000_000n,
+      isLoading: false,
+      isError: false,
     });
     mockUseMyVaultDeposits.mockReturnValue({
       deposits: [],
@@ -113,6 +148,34 @@ describe("EndowmentsOverview", () => {
     });
     mockUseVaultPreview.mockReturnValue({
       preview: { previewAssets: 1_000_000_000_000_000_000n },
+      isLoading: false,
+    });
+    mockUseProtocolYieldSummary.mockReturnValue({
+      summary: {
+        totalYield: 5_000_000_000_000_000_000n,
+        totalCookieJar: 1_000_000_000_000_000_000n,
+        totalFractions: 2_000_000_000_000_000_000n,
+        totalJuicebox: 2_000_000_000_000_000_000n,
+        allocationCount: 2,
+        assets: [
+          {
+            assetAddress: TEST_WETH,
+            totalYield: 3_000_000_000_000_000_000n,
+            totalCookieJar: 1_000_000_000_000_000_000n,
+            totalFractions: 1_000_000_000_000_000_000n,
+            totalJuicebox: 1_000_000_000_000_000_000n,
+            allocationCount: 1,
+          },
+          {
+            assetAddress: TEST_DAI,
+            totalYield: 2_000_000_000_000_000_000n,
+            totalCookieJar: 0n,
+            totalFractions: 1_000_000_000_000_000_000n,
+            totalJuicebox: 1_000_000_000_000_000_000n,
+            allocationCount: 1,
+          },
+        ],
+      },
       isLoading: false,
     });
   });
@@ -124,5 +187,54 @@ describe("EndowmentsOverview", () => {
       "data-state",
       JSON.stringify({ returnTo: "/endowments", returnLabelId: "app.admin.nav.treasury" })
     );
+  });
+
+  it("renders total yield generated for WETH and DAI", () => {
+    renderWithProviders(<EndowmentsOverview />);
+
+    const totalYieldCard = screen.getByText("Total yield generated").parentElement;
+
+    expect(totalYieldCard).not.toBeNull();
+    expect(within(totalYieldCard as HTMLElement).getByText("3 WETH")).toBeInTheDocument();
+    expect(within(totalYieldCard as HTMLElement).getByText("2 DAI")).toBeInTheDocument();
+  });
+
+  it("renders per-garden yield generated by asset", () => {
+    renderWithProviders(<EndowmentsOverview />);
+
+    const gardenCard = screen.getByText("Alpha Garden").closest("div");
+
+    expect(gardenCard).not.toBeNull();
+    expect(screen.getByText("Yield generated")).toBeInTheDocument();
+    expect(screen.getByText("+3 WETH")).toBeInTheDocument();
+    expect(screen.getByText("+2 DAI")).toBeInTheDocument();
+  });
+
+  it("shows extra precision for small non-zero yield values", () => {
+    mockUseHarvestableYield.mockReturnValue({
+      entries: [
+        {
+          vaultAddress: "0x4444444444444444444444444444444444444444",
+          assetAddress: TEST_WETH,
+          harvestable: 2_202_696_766_662_230n,
+        },
+        {
+          vaultAddress: "0x5555555555555555555555555555555555555555",
+          assetAddress: TEST_DAI,
+          harvestable: 194_765_311_042_911_914n,
+        },
+      ],
+      total: 196_968_007_809_574_144n,
+      isLoading: false,
+      isError: false,
+    });
+
+    renderWithProviders(<EndowmentsOverview />);
+
+    const totalYieldCard = screen.getByText("Total yield generated").parentElement;
+
+    expect(totalYieldCard).not.toBeNull();
+    expect(within(totalYieldCard as HTMLElement).getByText("0.002203 WETH")).toBeInTheDocument();
+    expect(within(totalYieldCard as HTMLElement).getByText("0.19 DAI")).toBeInTheDocument();
   });
 });

@@ -2060,6 +2060,8 @@
   "app.endowments.myPositions.currentValue": "Current claim value",
   "app.endowments.myPositions.yieldGenerated": "Depositor value delta",
   "app.endowments.myPositions.flatPpsHelper": "Flat by design: harvest moves yield to gardens, not into depositor PPS.",
+  "app.endowments.gardenYieldGenerated": "Yield generated",
+  "app.endowments.totalYieldGenerated": "Total yield generated",
   "app.update.button": "Refresh",
   "app.update.offline": "You're offline",
   "app.update.offlineMessage": "Connect to the internet to update the app.",

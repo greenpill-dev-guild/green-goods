@@ -2060,6 +2060,8 @@
   "app.endowments.myPositions.currentValue": "Valor actual reclamable",
   "app.endowments.myPositions.yieldGenerated": "Delta de valor del depositante",
   "app.endowments.myPositions.flatPpsHelper": "Plano por diseño: harvest mueve el rendimiento a los jardines, no al PPS del depositante.",
+  "app.endowments.gardenYieldGenerated": "Rendimiento generado",
+  "app.endowments.totalYieldGenerated": "Rendimiento total generado",
   "app.update.button": "Actualizar",
   "app.update.offline": "Estás sin conexión",
   "app.update.offlineMessage": "Conéctate a internet para actualizar la app.",

@@ -8,7 +8,6 @@ import {
   getNetDeposited,
   getNetworkContracts,
   getVaultAssetSymbol,
-  type GardenVault,
   ImageWithFallback,
   isZeroAddress,
   useCurrentChain,
@@ -23,7 +22,6 @@ import {
   useUrlFilters,
   useUser,
   useVaultPreview,
-  ZERO_ADDRESS,
 } from "@green-goods/shared";
 import {
   RiArrowRightLine,
@@ -86,6 +84,18 @@ interface MyTrackedPosition {
   vaultAddress: Address;
   shares: bigint;
   netDeposited: bigint;
+}
+
+type HarvestableYieldEntry = {
+  vaultAddress: Address;
+  assetAddress: Address;
+  harvestable: bigint;
+};
+
+const SMALL_YIELD_THRESHOLD = 10n ** 16n;
+
+function formatYieldAmount(amount: bigint) {
+  return formatTokenAmount(amount, 18, amount > 0n && amount < SMALL_YIELD_THRESHOLD ? 6 : 2);
 }
 
 function MyTrackedPositionCard({
@@ -193,37 +203,56 @@ function MyTrackedPositionCard({
  * to `vault.totalDebt()` (stale, from last harvest). The delta is yield that
  * will become garden shares when `harvest()` is called.
  */
-function GardenHarvestableYield({ vaults }: { vaults: GardenVault[] }) {
+function GardenHarvestableYield({
+  entries,
+  isLoading,
+}: {
+  entries: HarvestableYieldEntry[];
+  isLoading: boolean;
+}) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
-  const { entries, total, isLoading } = useHarvestableYield(vaults);
+  const assetTotals = useMemo(() => {
+    const totals = new Map<string, { symbol: string; total: bigint }>();
 
-  if (isLoading || total === 0n) return null;
+    for (const entry of entries) {
+      if (entry.harvestable <= 0n) continue;
+
+      const symbol = getVaultAssetSymbol(entry.assetAddress, chainId).toUpperCase();
+      const existing = totals.get(symbol);
+
+      totals.set(symbol, {
+        symbol,
+        total: (existing?.total ?? 0n) + entry.harvestable,
+      });
+    }
+
+    return Array.from(totals.values()).sort((a, b) => {
+      if (a.symbol === "WETH" || a.symbol === "ETH") return -1;
+      if (b.symbol === "WETH" || b.symbol === "ETH") return 1;
+      return a.symbol.localeCompare(b.symbol);
+    });
+  }, [entries, chainId]);
+
+  if (isLoading || assetTotals.length === 0) return null;
 
   return (
-    <div className="mt-1 space-y-1">
-      {entries
-        .filter((e) => e.harvestable > 0n)
-        .map((e) => {
-          const symbol = getVaultAssetSymbol(e.assetAddress, chainId);
-          return (
-            <div
-              key={e.vaultAddress}
-              className="flex items-center justify-between rounded-md border border-success-light bg-success-lighter px-3 py-1.5 text-xs"
-            >
-              <span className="text-success-dark">
-                {formatMessage({
-                  id: "app.endowments.harvestableYield",
-                  defaultMessage: "Harvestable yield",
-                })}{" "}
-                ({symbol})
-              </span>
-              <span className="font-medium tabular-nums text-success-dark">
-                +{formatTokenAmount(e.harvestable, 18, 2)} {symbol}
-              </span>
-            </div>
-          );
-        })}
+    <div className="mt-3 rounded-md border border-success-light bg-success-lighter px-3 py-2 text-xs">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-success-dark">
+          {formatMessage({
+            id: "app.endowments.gardenYieldGenerated",
+            defaultMessage: "Yield generated",
+          })}
+        </span>
+      </div>
+      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+        {assetTotals.map(({ symbol, total }) => (
+          <span key={symbol} className="font-medium tabular-nums text-success-dark">
+            +{formatYieldAmount(total)} {symbol}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -328,6 +357,11 @@ export default function EndowmentsOverview() {
   });
 
   const { summary: yieldSummary, isLoading: yieldLoading } = useProtocolYieldSummary();
+  const {
+    entries: harvestableEntries,
+    isLoading: harvestableLoading,
+    isError: harvestableError,
+  } = useHarvestableYield(vaults, { enabled: vaults.length > 0 });
   const endowmentsChainId = useCurrentChain();
   const contracts = getNetworkContracts(endowmentsChainId);
   const aavePool = AAVE_V3_POOL[endowmentsChainId];
@@ -407,6 +441,29 @@ export default function EndowmentsOverview() {
 
     return { totalEth, totalDai };
   }, [vaults]);
+  const harvestableByVault = useMemo(() => {
+    const map = new Map<string, HarvestableYieldEntry>();
+    for (const entry of harvestableEntries) {
+      map.set(entry.vaultAddress.toLowerCase(), entry);
+    }
+    return map;
+  }, [harvestableEntries]);
+  const harvestableByAsset = useMemo(() => {
+    let totalWeth = 0n;
+    let totalDai = 0n;
+
+    for (const entry of harvestableEntries) {
+      const assetSymbol = getVaultAssetSymbol(entry.assetAddress, endowmentsChainId).toUpperCase();
+      if (assetSymbol === "ETH" || assetSymbol === "WETH") {
+        totalWeth += entry.harvestable;
+      }
+      if (assetSymbol === "DAI") {
+        totalDai += entry.harvestable;
+      }
+    }
+
+    return { totalWeth, totalDai };
+  }, [harvestableEntries, endowmentsChainId]);
   const uniqueAssetAddresses = useMemo(() => {
     const seen = new Set<string>();
     const result: Address[] = [];
@@ -523,6 +580,27 @@ export default function EndowmentsOverview() {
                 </span>
               }
               colorScheme="info"
+            />
+            <StatCard
+              icon={<RiPlantLine className="h-5 w-5" />}
+              label={formatMessage({
+                id: "app.endowments.totalYieldGenerated",
+                defaultMessage: "Total yield generated",
+              })}
+              value={
+                harvestableLoading ? (
+                  "--"
+                ) : harvestableError ? (
+                  formatMessage({ id: "app.status.notAvailable", defaultMessage: "Unavailable" })
+                ) : (
+                  <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <span>{formatYieldAmount(harvestableByAsset.totalWeth)} WETH</span>
+                    <span className="text-text-soft">·</span>
+                    <span>{formatYieldAmount(harvestableByAsset.totalDai)} DAI</span>
+                  </span>
+                )
+              }
+              colorScheme={harvestableError ? "warning" : "success"}
             />
             {uniqueAssetAddresses.map((assetAddress) => (
               <AssetApyCard
@@ -827,7 +905,12 @@ export default function EndowmentsOverview() {
                         ))}
                     </div>
 
-                    <GardenHarvestableYield vaults={item.vaults} />
+                    <GardenHarvestableYield
+                      entries={item.vaults
+                        .map((vault) => harvestableByVault.get(vault.vaultAddress.toLowerCase()))
+                        .filter((entry): entry is HarvestableYieldEntry => Boolean(entry))}
+                      isLoading={harvestableLoading}
+                    />
 
                     <GardenPendingYield
                       gardenAddress={item.gardenAddress as Address}

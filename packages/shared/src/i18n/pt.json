@@ -2060,6 +2060,8 @@
   "app.endowments.myPositions.currentValue": "Valor atual resgatável",
   "app.endowments.myPositions.yieldGenerated": "Variação de valor do depositante",
   "app.endowments.myPositions.flatPpsHelper": "Estável por design: harvest move o rendimento para os jardins, não para o PPS do depositante.",
+  "app.endowments.gardenYieldGenerated": "Rendimento gerado",
+  "app.endowments.totalYieldGenerated": "Rendimento total gerado",
   "app.update.button": "Atualizar",
   "app.update.offline": "Você está offline",
   "app.update.offlineMessage": "Conecte-se à internet para atualizar o app.",

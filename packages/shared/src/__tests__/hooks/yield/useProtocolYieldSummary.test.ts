@@ -78,6 +78,10 @@ describe("useProtocolYieldSummary", () => {
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.summary).toEqual({
+      totalYield: 0n,
+      totalCookieJar: 0n,
+      totalFractions: 0n,
+      totalJuicebox: 0n,
       assets: [],
       allocationCount: 0,
     });
@@ -110,5 +114,10 @@ describe("useProtocolYieldSummary", () => {
         allocationCount: 1,
       },
     ]);
+    expect(result.current.summary.totalYield).toBe(600n);
+    expect(result.current.summary.totalCookieJar).toBe(100n);
+    expect(result.current.summary.totalFractions).toBe(200n);
+    expect(result.current.summary.totalJuicebox).toBe(300n);
+    expect(result.current.summary.allocationCount).toBe(1);
   });
 });

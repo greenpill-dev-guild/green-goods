@@ -4,9 +4,14 @@ import { logger } from "../../modules/app/logger";
 import { getAllYieldAllocations } from "../../modules/data/yield-allocations";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import {
+  EMPTY_YIELD_SUMMARY,
+  type AggregateYieldSummary,
+  summarizeYieldAllocations,
+} from "./summary";
 
 /** Aggregated protocol-wide yield summary */
-export interface ProtocolYieldSummary {
+export interface ProtocolYieldSummary extends AggregateYieldSummary {
   /** Total yield allocated across all gardens */
   totalYield: bigint;
   /** Total sent to Cookie Jars */
@@ -15,16 +20,14 @@ export interface ProtocolYieldSummary {
   totalFractions: bigint;
   /** Total sent to Juicebox treasury */
   totalJuicebox: bigint;
-  /** Number of yield allocation events */
-  allocationCount: number;
 }
 
 const EMPTY_SUMMARY: ProtocolYieldSummary = {
+  ...EMPTY_YIELD_SUMMARY,
   totalYield: 0n,
   totalCookieJar: 0n,
   totalFractions: 0n,
   totalJuicebox: 0n,
-  allocationCount: 0,
 };
 
 interface UseProtocolYieldSummaryOptions {
@@ -53,13 +56,13 @@ export function useProtocolYieldSummary(options: UseProtocolYieldSummaryOptions 
     },
     enabled,
     staleTime: STALE_TIME_MEDIUM,
-    placeholderData: [],
   });
 
   const summary = useMemo((): ProtocolYieldSummary => {
     const allocations = query.data;
     if (!allocations || allocations.length === 0) return EMPTY_SUMMARY;
 
+    const assetSummary = summarizeYieldAllocations(allocations);
     let totalYield = 0n;
     let totalCookieJar = 0n;
     let totalFractions = 0n;
@@ -73,11 +76,11 @@ export function useProtocolYieldSummary(options: UseProtocolYieldSummaryOptions 
     }
 
     return {
+      ...assetSummary,
       totalYield,
       totalCookieJar,
       totalFractions,
       totalJuicebox,
-      allocationCount: allocations.length,
     };
   }, [query.data]);
 
