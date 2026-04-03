@@ -1,6 +1,6 @@
 ---
 name: plan
-description: Planning & Execution - create structured implementation plans, check progress, execute in batches, manage lifecycle. Use when the user says 'plan this', asks to break down a feature into steps, or needs a phased implementation strategy before coding.
+description: Planning & Execution - create structured implementation plans, check progress, execute in batches, manage lifecycle, and coordinate agent teams. Use when the user says 'plan this', asks to break down a feature into steps, needs a phased implementation strategy, or wants to coordinate multiple agents.
 argument-hint: "[feature-name]"
 version: "1.0.0"
 status: active
@@ -26,8 +26,8 @@ Planning lifecycle for Green Goods: create plans, check progress, execute in bat
 | `/plan --mode check` | Audit progress against plan |
 | `/plan --mode execute` | Execute plan in batches |
 | `/plan --mode cleanup` | Audit `.plans/` — archive implemented, flag stale |
-| `/plan --mode teams*` | Team-lane orchestration modes |
-| `/teams*` | Legacy alias routed to `/plan --mode teams*` |
+| `/plan --mode teams` | Team coordination — see [teams.md](./teams.md) |
+| `/teams` | Legacy alias — routes to `/plan --mode teams` |
 | Starting new feature | Create plan before coding |
 
 ## Progress Tracking (REQUIRED)
@@ -350,4 +350,4 @@ bun format && bun lint && bun run test && bun build
 - `testing` — TDD strategy included in implementation plans
 - `ui` (mermaid sub-file) — Visualizing plan architecture and dependencies
 - `debug` — Investigate root cause before planning a fix
-- `migration` — Cross-package migration plans need blast radius analysis
+- `ops` (migration sub-file) — Cross-package migration plans need blast radius analysis

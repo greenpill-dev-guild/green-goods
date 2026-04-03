@@ -2,6 +2,8 @@
 
 Loaded when working in `docs/`. Extends CLAUDE.md.
 
+**All personas apply**: Match voice register to the target audience. See `.claude/context/product.md` § Persona & Tone Quick-Reference.
+
 ## Quick Reference
 
 | Command | Purpose |

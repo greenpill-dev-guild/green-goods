@@ -4,14 +4,13 @@ pragma solidity ^0.8.25;
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { ZeroAddress, NotGardenOperator } from "../errors/CommonErrors.sol";
 
 error NotActionOwner();
 error EndTimeBeforeStartTime();
 error StartTimeAfterEndTime();
-error NotGardenOperator();
 error InvalidDomainMask();
 error NotGardenToken();
-error ZeroAddress();
 
 // ENUMS
 enum Capital {

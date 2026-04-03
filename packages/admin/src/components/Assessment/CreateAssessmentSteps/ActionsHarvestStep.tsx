@@ -1,7 +1,6 @@
 import {
   cn,
   DatePicker,
-  Domain,
   useActions,
   useCreateAssessmentStore,
   useCurrentChain,

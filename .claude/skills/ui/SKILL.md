@@ -37,20 +37,7 @@ When invoked:
 
 ## Part 1: Design Thinking
 
-Before coding, understand the context and commit to a **BOLD** aesthetic direction:
-
-- **Purpose**: What problem does this interface solve? Who uses it?
-- **Tone**: Pick an extreme -- brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian. Use these for inspiration but design one that is true to the aesthetic direction.
-- **Constraints**: Technical requirements (framework, performance, accessibility).
-- **Differentiation**: What makes this UNFORGETTABLE? What is the one thing someone will remember?
-
-**CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work -- the key is intentionality, not intensity.
-
-Then implement working code that is:
-- Production-grade and functional
-- Visually striking and memorable
-- Cohesive with a clear aesthetic point-of-view
-- Meticulously refined in every detail
+> For design direction, paradigm selection, spatial patterns, and material language, see the **`design`** skill. This section covers execution-level aesthetic guidelines.
 
 ### Frontend Aesthetics Guidelines
 
@@ -86,174 +73,13 @@ NEVER use generic AI-generated aesthetics: overused fonts (Inter, Roboto, Arial,
 
 ## Part 3: Implementation Patterns
 
-### Component Composition with Radix UI + Tailwind
+All UI patterns use **Radix UI primitives** + **tailwind-variants** (`tv()`). See [radix-ui.md](./radix-ui.md) for Dialog, Select, Popover composition examples.
 
-```typescript
-// Compound component pattern with Radix primitives
-import * as Dialog from "@radix-ui/react-dialog";
-import { tv, type VariantProps } from "tailwind-variants";
-
-const overlay = tv({
-  base: "fixed inset-0 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-});
-
-const content = tv({
-  base: "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-background p-6 shadow-2xl border border-border/50",
-  variants: {
-    size: {
-      sm: "w-[90vw] max-w-sm",
-      md: "w-[90vw] max-w-lg",
-      lg: "w-[90vw] max-w-2xl",
-    },
-  },
-  defaultVariants: { size: "md" },
-});
-
-export function ConfirmDialog({ children, size, ...props }: DialogProps) {
-  return (
-    <Dialog.Root {...props}>
-      <Dialog.Portal>
-        <Dialog.Overlay className={overlay()} />
-        <Dialog.Content className={content({ size })}>
-          {children}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-```
-
-### Tailwind Variants for Consistent Component APIs
-
-```typescript
-import { tv } from "tailwind-variants";
-
-const badge = tv({
-  base: "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset transition-colors",
-  variants: {
-    status: {
-      active: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400",
-      pending: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400",
-      failed: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400",
-      offline: "bg-zinc-100 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400",
-    },
-  },
-});
-
-export function StatusBadge({ status, label }: StatusBadgeProps) {
-  return <span className={badge({ status })}>{label}</span>;
-}
-```
-
-### Animation Recipes
-
-```typescript
-// Staggered list reveal -- organic feel for garden/work lists
-function StaggeredList({ items, renderItem }: StaggeredListProps) {
-  return (
-    <ul className="space-y-3">
-      {items.map((item, i) => (
-        <li
-          key={item.id}
-          className="animate-in fade-in-0 slide-in-from-bottom-2"
-          style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}
-        >
-          {renderItem(item)}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-// Skeleton pulse -- loading states that feel alive
-function CardSkeleton() {
-  return (
-    <div className="rounded-xl border border-border/50 p-4 space-y-3">
-      <div className="h-4 w-2/3 rounded-md bg-muted animate-pulse" />
-      <div className="h-3 w-full rounded-md bg-muted/70 animate-pulse [animation-delay:150ms]" />
-      <div className="h-3 w-4/5 rounded-md bg-muted/50 animate-pulse [animation-delay:300ms]" />
-    </div>
-  );
-}
-
-// Page transition -- smooth view changes
-function PageTransition({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300 ease-out">
-      {children}
-    </div>
-  );
-}
-```
-
-### Card Composition Pattern (Green Goods)
-
-```typescript
-// Compound card -- used for GardenCard, WorkCard, ActionCard
-const card = tv({
-  base: "group relative overflow-hidden rounded-xl border bg-card transition-all",
-  variants: {
-    interactive: {
-      true: "cursor-pointer hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 active:scale-[0.98]",
-      false: "",
-    },
-    elevated: {
-      true: "shadow-sm",
-      false: "",
-    },
-  },
-  defaultVariants: { interactive: true, elevated: false },
-});
-
-function Card({ children, className, interactive, elevated, ...props }) {
-  return (
-    <div className={card({ interactive, elevated, className })} {...props}>
-      {children}
-    </div>
-  );
-}
-
-Card.Header = ({ children, className }) => (
-  <div className={cn("flex items-start justify-between p-4 pb-2", className)}>
-    {children}
-  </div>
-);
-
-Card.Body = ({ children, className }) => (
-  <div className={cn("px-4 pb-4", className)}>{children}</div>
-);
-
-Card.Footer = ({ children, className }) => (
-  <div className={cn("flex items-center gap-2 border-t px-4 py-3 bg-muted/30", className)}>
-    {children}
-  </div>
-);
-```
-
-### Responsive Layout Patterns
-
-```typescript
-// Responsive grid that adapts to content
-function ResponsiveGrid({ children, minWidth = "280px" }: GridProps) {
-  return (
-    <div
-      className="grid gap-4"
-      style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${minWidth}, 1fr))` }}
-    >
-      {children}
-    </div>
-  );
-}
-
-// Mobile-first stack to row layout
-function AdaptiveRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      {children}
-    </div>
-  );
-}
-```
+- **Dialogs**: Radix `Dialog.*` namespace imports + `tv()` for overlay/content size variants (see [radix-ui.md](./radix-ui.md))
+- **StatusBadge**: `tv()` with `status` variants (active, pending, failed, offline) mapping to semantic colors with dark mode
+- **Cards**: Compound pattern (`Card`, `Card.Header`, `Card.Body`, `Card.Footer`) with `tv()` variants for `interactive` and `elevated` -- used for GardenCard, WorkCard, ActionCard
+- **Animations**: CSS animations (transform, opacity) via `animate-in`/`fade-in`/`slide-in` utilities. Staggered reveals with `animationDelay` for list items. Skeletons with `animate-pulse`.
+- **Responsive layouts**: Mobile-first (`flex-col` -> `sm:flex-row`), `auto-fill` grids with `minmax()`
 
 ---
 
@@ -350,7 +176,7 @@ What kind of UI work?
 |    --> mermaid.md (diagram type selection)
 |
 +--> Animation / motion?
-|    --> This file, Part 3 (Animation Recipes)
+|    --> This file, Part 3 (Implementation Patterns)
 |    --> compliance.md Part 4 (reduced motion)
 ```
 

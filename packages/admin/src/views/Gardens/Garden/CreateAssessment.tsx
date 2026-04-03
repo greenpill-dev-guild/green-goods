@@ -29,6 +29,7 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import type { Step } from "@/components/Form/StepIndicator";
 import { Alert } from "@/components/ui/Alert";
 
+// Exception to hook boundary: view-specific i18n config, non-exported, single-use
 function useStepConfigs(): Step[] {
   const { formatMessage } = useIntl();
   return [

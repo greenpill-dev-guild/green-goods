@@ -17,7 +17,6 @@
     "preview": "APP_ENV=production bun --bun vite preview"
   },
   "dependencies": {
-    "@ethereum-attestation-service/eas-sdk": "2.7.0",
     "@green-goods/shared": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dialog": "^1.1.15",

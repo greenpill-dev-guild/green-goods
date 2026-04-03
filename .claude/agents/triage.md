@@ -57,7 +57,7 @@ Fast read-only classifier for deterministic routing.
 
 ## Routing Rules
 
-- Frontend/UI work -> `/plan` with react, frontend-design skills
+- Frontend/UI work -> `/plan` with react, design skills
 - Shared hooks/state -> `/plan` with react, tanstack-query skills
 - Solidity/deploy -> `/plan` with contracts, security skills
 - Indexer schema/handler -> `/plan` with indexer skill

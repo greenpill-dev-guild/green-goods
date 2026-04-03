@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
+import { UnauthorizedCaller } from "../errors/CommonErrors.sol";
 
 /// @title Deployment
 /// @notice A governance-controlled registry for managing contract deployments across networks
@@ -74,9 +75,6 @@ contract Deployment is OwnableUpgradeable, UUPSUpgradeable {
 
     /// @notice Error thrown when trying to access unconfigured network
     error NetworkNotConfigured(uint256 chainId);
-
-    /// @notice Error thrown when caller is not authorized
-    error UnauthorizedCaller(address caller);
 
     /// @notice Error thrown when contract is emergency paused
     error EmergencyPaused();

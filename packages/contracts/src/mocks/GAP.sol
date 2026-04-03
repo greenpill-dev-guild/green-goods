@@ -3,6 +3,7 @@ pragma solidity ^0.8.25;
 
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 import { IGap, IProjectResolver } from "../interfaces/IKarma.sol";
+import { ZeroAddress } from "../errors/CommonErrors.sol";
 
 /// @title MockGAP
 /// @notice Enhanced mock implementation of Karma GAP protocol for testing
@@ -17,7 +18,6 @@ contract MockGAP is IGap, IProjectResolver {
     error ProjectNotFound();
     error AlreadyAdmin();
     error NotAdmin();
-    error ZeroAddress();
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Events

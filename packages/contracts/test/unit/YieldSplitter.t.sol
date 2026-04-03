@@ -6,6 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../../src/errors/CommonErrors.sol";
 import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
 import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
 import { MockHypercertExchange } from "../../src/mocks/HypercertExchange.sol";
@@ -106,7 +107,7 @@ contract YieldResolverTest is Test {
         YieldResolver impl = new YieldResolver();
         bytes memory initData =
             abi.encodeWithSelector(YieldResolver.initialize.selector, address(0), octantModule, address(hatsModule), 0);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         new ERC1967Proxy(address(impl), initData);
     }
 
@@ -166,7 +167,7 @@ contract YieldResolverTest is Test {
 
     function test_setSplitRatio_revertsForUnauthorized() public {
         vm.prank(address(0x999));
-        vm.expectRevert(abi.encodeWithSelector(YieldResolver.UnauthorizedCaller.selector, address(0x999)));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, address(0x999)));
         yieldSplitter.setSplitRatio(garden, 4865, 4865, 270);
     }
 
@@ -405,7 +406,7 @@ contract YieldResolverTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_splitYield_revertsWithZeroGarden() public {
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.splitYield(address(0), address(weth), address(vault));
     }
 
@@ -508,13 +509,13 @@ contract YieldResolverTest is Test {
 
     function test_rescueTokens_revertsWithZeroTokenAddress() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.rescueTokens(address(0), address(0x400), 1000);
     }
 
     function test_rescueTokens_revertsWithZeroRecipient() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.rescueTokens(address(weth), address(0), 1000);
     }
 
@@ -592,7 +593,7 @@ contract YieldResolverTest is Test {
     function test_setGardenVault_onlyOwnerOrOctantModule() public {
         // Unauthorized caller should be rejected
         vm.prank(address(0x999));
-        vm.expectRevert(abi.encodeWithSelector(YieldResolver.UnauthorizedCaller.selector, address(0x999)));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, address(0x999)));
         yieldSplitter.setGardenVault(garden, address(weth), address(0x42));
 
         // OctantModule should be allowed
@@ -1158,21 +1159,21 @@ contract YieldResolverTest is Test {
     /// @notice Revert on zero garden address
     function test_withdrawEscrowedFractions_zeroGarden_reverts() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.withdrawEscrowedFractions(address(0), address(weth), 1000, treasury);
     }
 
     /// @notice Revert on zero asset address
     function test_withdrawEscrowedFractions_zeroAsset_reverts() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.withdrawEscrowedFractions(garden, address(0), 1000, treasury);
     }
 
     /// @notice Revert on zero recipient address
     function test_withdrawEscrowedFractions_zeroTo_reverts() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.withdrawEscrowedFractions(garden, address(weth), 1000, address(0));
     }
 

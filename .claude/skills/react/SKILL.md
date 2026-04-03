@@ -27,92 +27,30 @@ When invoked:
 
 ### State Categories
 
-| Type | Description | Solutions |
-|------|-------------|-----------|
-| **Local State** | Component-specific UI | useState, useReducer |
-| **Global State** | Shared across components | Zustand (Green Goods default) |
-| **Server State** | Remote data, caching | TanStack Query |
-| **URL State** | Route params, search | React Router |
-| **Form State** | Input values, validation | React Hook Form + Zod |
-| **Complex Flows** | Multi-step workflows, state machines | XState (Green Goods workflows/) |
+| Type | Green Goods Solution |
+|------|---------------------|
+| **Local State** | useState, useReducer |
+| **Global State** | Zustand |
+| **Server State** | TanStack Query |
+| **URL State** | React Router |
+| **Form State** | React Hook Form + Zod |
+| **Complex Flows** | XState (workflows/) |
 
 **Green Goods uses:** Zustand + XState + TanStack Query
 
 ### Zustand Patterns
 
-#### Basic Store
+**Selector rule:** Never subscribe to entire store. Always use granular selectors or export selector hooks.
 
 ```typescript
-// packages/shared/src/stores/appStore.ts
-import { create } from "zustand";
-import { devtools, persist } from "zustand/middleware";
-
-interface AppState {
-  user: User | null;
-  theme: "light" | "dark";
-  setUser: (user: User | null) => void;
-  toggleTheme: () => void;
-}
-
-export const useAppStore = create<AppState>()(
-  devtools(
-    persist(
-      (set) => ({
-        user: null,
-        theme: "light",
-        setUser: (user) => set({ user }),
-        toggleTheme: () =>
-          set((state) => ({
-            theme: state.theme === "light" ? "dark" : "light",
-          })),
-      }),
-      { name: "app-storage" }
-    )
-  )
-);
-```
-
-#### Granular Selectors (Prevent Re-renders)
-
-```typescript
-// Bad: Subscribes to entire store, re-renders on any change
+// Bad: re-renders on any store change
 const state = useAppStore();
 
-// Good: Subscribes only to what's needed
+// Good: granular selector
 const user = useAppStore((state) => state.user);
-const theme = useAppStore((state) => state.theme);
 
-// Better: Export selector hooks
+// Better: exported selector hook (in shared)
 export const useUser = () => useAppStore((state) => state.user);
-export const useTheme = () => useAppStore((state) => state.theme);
-```
-
-#### Slice Pattern (Scalable)
-
-```typescript
-import { StateCreator } from "zustand";
-
-export interface UserSlice {
-  user: User | null;
-  isAuthenticated: boolean;
-  login: (credentials: Credentials) => Promise<void>;
-  logout: () => void;
-}
-
-export const createUserSlice: StateCreator<
-  UserSlice & UiSlice,
-  [],
-  [],
-  UserSlice
-> = (set, get) => ({
-  user: null,
-  isAuthenticated: false,
-  login: async (credentials) => {
-    const user = await authApi.login(credentials);
-    set({ user, isAuthenticated: true });
-  },
-  logout: () => set({ user: null, isAuthenticated: false }),
-});
 ```
 
 ### Combining Client + Server State
@@ -121,34 +59,9 @@ Use Zustand for UI state (sidebar, modals, preferences) and TanStack Query for s
 
 ### Advanced Zustand Patterns
 
-#### Persist Middleware
+**Persist middleware:** Green Goods stores use `persist` for offline state survival. Always use `partialize` to persist only specific fields -- without it, transient UI state (modals, banners) gets restored on refresh, causing stale UI.
 
-Green Goods stores use `persist` for offline state survival:
-
-```typescript
-import { create } from "zustand";
-import { persist } from "zustand/middleware";
-
-export const useUIStore = create<UIState>()(
-  persist(
-    (set) => ({
-      debugMode: false,
-      isOfflineBannerVisible: false,
-      toggleDebug: () => set((s) => ({ debugMode: !s.debugMode })),
-    }),
-    {
-      name: "green-goods:debug-mode", // localStorage key
-      partialize: (state) => ({ debugMode: state.debugMode }), // Only persist specific fields
-    }
-  )
-);
-```
-
-**`partialize` is critical** — without it, transient UI state (modals, banners) gets persisted and restored on refresh, causing stale UI.
-
-#### Multi-Step Form Store
-
-Wizard stores (like `useCreateGardenStore`) combine `persist` with step progression and derived validation via `get()`. Key patterns: `setField` for individual updates, `isStepValid` computed from state (not stored), `reset()` for cleanup.
+**Multi-step form stores** (like `useCreateGardenStore`) combine `persist` with step progression and derived validation via `get()`. Key patterns: `setField` for individual updates, `isStepValid` computed from state (not stored), `reset()` for cleanup.
 
 #### Store Testing
 
@@ -190,43 +103,9 @@ export function useLocalState() { /* ... */ }
 
 ## Part 2: Component Composition
 
-### Core Principle
+**Core principle:** Composition over configuration. Compose from smaller pieces, use explicit variants (not boolean props), use providers to avoid prop drilling.
 
-> **Composition over configuration** — Instead of adding props to customize behavior, compose smaller specialized components.
-
-### Avoid Boolean Prop Explosion
-
-```typescript
-// Bad: Boolean prop explosion
-<Button primary large withIcon loading disabled outlined />
-
-// Good: Composition + explicit variants
-<Button variant="primary" size="lg">
-  <Button.Icon name="save" />
-  <Button.Text>Save</Button.Text>
-</Button>
-```
-
-### Compound Components
-
-```typescript
-// Good: Compound component pattern
-<Card>
-  <Card.Header>
-    <Card.Title>Garden Details</Card.Title>
-  </Card.Header>
-  <Card.Content>
-    {/* Content */}
-  </Card.Content>
-  <Card.Footer>
-    <Card.Actions>
-      <Button>Edit</Button>
-    </Card.Actions>
-  </Card.Footer>
-</Card>
-```
-
-### State Encapsulation in Providers
+### State Encapsulation in Providers (Green Goods Pattern)
 
 ```typescript
 // Bad: State leaked to consumers
@@ -254,74 +133,9 @@ function ItemListProvider({ children }) {
 }
 ```
 
-### Explicit Variants Over Boolean Modes
+### React 19 — When to Use vs Existing Patterns
 
-```typescript
-// Bad: Boolean mode
-<Input error={true} />
-<Input success={true} />
-
-// Good: Explicit variant
-<Input variant="error" />
-<Input variant="success" />
-```
-
-### React 19 Patterns
-
-Green Goods runs **React 19**. Use these new APIs:
-
-#### `use()` for Context and Promises
-
-```typescript
-import { Suspense, use, useMemo } from "react";
-
-// Replace useContext
-const value = use(MyContext);
-
-// Read a promise (suspends until resolved)
-function GardenDetails({ gardenPromise }: { gardenPromise: Promise<Garden> }) {
-  const garden = use(gardenPromise); // Suspends component
-  return <h1>{garden.name}</h1>;
-}
-
-// Create the promise once per id, outside JSX
-function GardenDetailsContainer({ id }: { id: string }) {
-  const gardenPromise = useMemo(() => fetchGarden(id), [id]);
-
-  return (
-    <Suspense fallback={<Skeleton />}>
-      <GardenDetails gardenPromise={gardenPromise} />
-    </Suspense>
-  );
-}
-```
-
-#### `useOptimistic()` for Instant UI Feedback
-
-```typescript
-import { useOptimistic } from "react";
-
-function WorkApprovalList({ approvals }: { approvals: WorkApproval[] }) {
-  const [optimisticApprovals, addOptimistic] = useOptimistic(
-    approvals,
-    (current, newApproval: WorkApproval) => [...current, newApproval]
-  );
-
-  const handleApprove = async (work: Work) => {
-    addOptimistic({ ...work, status: "approved", approvedAt: Date.now() });
-    await addJob({ kind: JobKind.APPROVAL, payload: { workUID: work.uid } });
-  };
-
-  return optimisticApprovals.map((a) => <ApprovalCard key={a.uid} approval={a} />);
-}
-```
-
-#### Other React 19 APIs
-
-- **`useActionState()`** -- form actions with `[state, submitAction, isPending]`. Green Goods prefers React Hook Form + Zod for validation-heavy forms.
-- **Ref cleanup** -- ref callbacks can return a cleanup function (replaces `useEffect` cleanup for ref-scoped listeners).
-
-#### When to Use React 19 vs Existing Patterns
+Green Goods runs **React 19**.
 
 | Task | React 19 | Existing |
 |------|----------|----------|
@@ -331,7 +145,7 @@ function WorkApprovalList({ approvals }: { approvals: WorkApproval[] }) {
 | Async data | `use(promise)` + Suspense | TanStack Query (preferred for caching) |
 | Ref cleanup | Return cleanup from ref callback | `useEffect` cleanup |
 
-**Note:** For Green Goods, TanStack Query remains the primary data fetching solution (caching, invalidation, offline). Use `use()` for simple one-shot reads where Query is overkill.
+**Note:** TanStack Query remains the primary data fetching solution (caching, invalidation, offline). Use `use()` for simple one-shot reads where Query is overkill.
 
 ---
 

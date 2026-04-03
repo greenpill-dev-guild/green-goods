@@ -72,6 +72,11 @@ export interface EmergencyPauseParams {
   assetAddress: Address;
 }
 
+export interface EnableAutoAllocateParams {
+  gardenAddress: Address;
+  assetAddress: Address;
+}
+
 export interface FunderPosition {
   garden: Address;
   asset: Address;

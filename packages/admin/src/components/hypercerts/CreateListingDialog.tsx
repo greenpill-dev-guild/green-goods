@@ -1,7 +1,6 @@
 import {
   type Address,
   type CreateListingParams,
-  DEFAULT_CHAIN_ID,
   LISTING_DEFAULTS,
   type ListingStep,
   logger,

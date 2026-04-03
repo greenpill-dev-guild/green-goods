@@ -9,6 +9,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { ZeroAddress, NotGardenOperator } from "../errors/CommonErrors.sol";
 import {
     IRegistryFactory,
     IRegistryCommunity,
@@ -59,9 +60,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
 
-    error ZeroAddress();
     error NotGardenToken(address caller);
-    error NotGardenOperator();
     error GardenAlreadyInitialized(address garden);
     error GardenNotInitialized(address garden);
     error PoolsAlreadyExist(address garden);

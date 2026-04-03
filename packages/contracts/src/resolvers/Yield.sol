@@ -14,6 +14,7 @@ import { IJBMultiTerminal } from "../interfaces/IJuicebox.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
 import { IAccountant } from "@octant/interfaces/IAccountant.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../errors/CommonErrors.sol";
 
 /// @title YieldResolver
 /// @notice Splits yield from Octant ERC-4626 vaults into three configurable destinations:
@@ -87,9 +88,7 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
 
-    error ZeroAddress();
     error InvalidSplitRatio();
-    error UnauthorizedCaller(address caller);
     error NoVaultShares(address garden, address asset);
     error InvalidVault(address garden, address asset, address expected, address provided);
     error NoEscrowedFractions(address garden, address asset);

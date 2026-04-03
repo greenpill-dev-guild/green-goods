@@ -29,7 +29,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-import SettingsSheet from "@/components/Layout/SettingsSheet";
+import { SettingsSheet } from "@/components/Layout/SettingsSheet";
 import userEvent from "@testing-library/user-event";
 
 describe("SettingsSheet", () => {

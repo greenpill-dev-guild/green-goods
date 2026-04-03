@@ -26,8 +26,15 @@ import type { P256Credential } from "viem/account-abstraction";
 import { type AuthMode } from "../../modules/auth/session";
 import { useAuthContext } from "../../providers/Auth";
 
-// Export auth context hook and type
-export { type AuthContextType, useAuthContext } from "../../providers/Auth";
+// Export auth context hooks and types
+export {
+  type AuthActionsValue,
+  type AuthContextType,
+  type AuthStateValue,
+  useAuthActions,
+  useAuthContext,
+  useAuthState,
+} from "../../providers/Auth";
 
 /**
  * Unified auth context returned by useAuth.

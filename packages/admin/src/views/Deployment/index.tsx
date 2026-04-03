@@ -8,12 +8,11 @@ import {
   useOpsDeployPlan,
   useOpsFinalizeDeploy,
   useOpsJobLogs,
-  useOpsRunnerAuth,
+  useOpsRunnerConnect,
   useOpsRunnerHealth,
   useOpsRunnerJob,
   useOpsRunnerJobs,
   useOpsRunnerScripts,
-  useOpsRunnerSession,
   useOpsRunScript,
   useSetOpenMinting,
 } from "@green-goods/shared";
@@ -34,8 +33,10 @@ export default function Deployment() {
   const network = chainIdToOpsNetwork(selectedChainId);
   const { address: walletAddress } = useAccount();
   const { signMessageAsync } = useSignMessage();
-  const { session, isAuthenticated, clearSession } = useOpsRunnerSession();
-  const opsAuth = useOpsRunnerAuth();
+  const { connect, disconnect, isConnecting, isAuthenticated, session } = useOpsRunnerConnect({
+    walletAddress,
+    signMessageAsync,
+  });
   const opsHealth = useOpsRunnerHealth();
   const jobsQuery = useOpsRunnerJobs({
     enabled: permissions.canDeploy && isAuthenticated,
@@ -68,8 +69,8 @@ export default function Deployment() {
   const recentJobs = jobsQuery.data ?? [];
   const currentJob = useMemo(() => {
     if (selectedJobQuery.data) return selectedJobQuery.data;
-    return recentJobs.find((job) => job.id === selectedJobId) ?? null;
-  }, [recentJobs, selectedJobId, selectedJobQuery.data]);
+    return (jobsQuery.data ?? []).find((job) => job.id === selectedJobId) ?? null;
+  }, [jobsQuery.data, selectedJobId, selectedJobQuery.data]);
   useEffect(() => {
     if (!currentJob || currentJob.status !== "succeeded" || currentJob.id === trackedSuccessJobId)
       return;
@@ -113,17 +114,12 @@ export default function Deployment() {
           selectedChainId={selectedChainId}
           network={network}
           permissions={permissions}
-          walletAddress={walletAddress as Address | undefined}
-          signMessageAsync={signMessageAsync}
           isAuthenticated={isAuthenticated}
           sessionAddress={(session?.address as Address | null | undefined) ?? null}
-          clearSession={clearSession}
+          connect={connect}
+          disconnect={disconnect}
+          isConnecting={isConnecting}
           runnerOnline={!!opsHealth.data?.ok}
-          authLoading={opsAuth.requestChallenge.isPending || opsAuth.verifySignature.isPending}
-          requestChallenge={(address) => opsAuth.requestChallenge.mutateAsync({ address })}
-          verifySignature={(address, signature) =>
-            opsAuth.verifySignature.mutateAsync({ address, signature })
-          }
           scripts={scriptsQuery.data ?? []}
           scriptsLoading={scriptsQuery.isLoading}
           runScriptPending={runScriptMutation.isPending}

@@ -57,51 +57,46 @@ import {
 import { type AuthActor, getAuthActor } from "../workflows/authActor";
 
 // ============================================================================
-// CONTEXT TYPE
+// CONTEXT TYPES
 // ============================================================================
 
-export interface AuthContextType {
-  // State
+/**
+ * Read-only auth state — changes on every auth event.
+ * Use `useAuthState()` for components that only read state (avoids re-renders from action ref changes).
+ */
+export interface AuthStateValue {
   authMode: AuthMode;
   isReady: boolean;
   isAuthenticated: boolean;
   isAuthenticating: boolean;
   error: Error | null;
-
-  // Passkey state
   credential: P256Credential | null;
   smartAccountAddress: Hex | null;
   smartAccountClient: SmartAccountClient | null;
   userName: string | null;
   hasStoredCredential: boolean;
-
-  // Wallet state (when wallet is the primary auth)
   walletAddress: Hex | null;
   eoaAddress: Hex | undefined;
-
-  // Embedded wallet state (AppKit email/social)
   embeddedAddress: Hex | null;
-
-  // External wallet state (always available, even in passkey mode)
   externalWalletConnected: boolean;
   externalWalletAddress: Hex | null;
+}
 
-  // Actions - Primary flow
+/**
+ * Mutation functions — stable references via useCallback.
+ * Use `useAuthActions()` for components that only trigger actions (avoids re-renders from state changes).
+ */
+export interface AuthActionsValue {
   createAccount: (userName: string) => Promise<void>;
   loginWithPasskey: (userName?: string) => Promise<void>;
   loginWithWallet: () => void;
   loginWithEmbedded: () => void;
   signOut: () => Promise<void>;
-
-  // Actions - Switching auth methods
   switchToWallet: () => void;
   switchToPasskey: (userName?: string) => void;
-
-  // Actions - Additional
   retry: () => void;
   dismissError: () => void;
-
-  // Legacy aliases (kept for backwards compatibility)
+  // Legacy aliases
   signInWithPasskey: (userName?: string) => Promise<void>;
   createPasskey: (userName: string) => Promise<void>;
   clearPasskey: () => void;
@@ -110,12 +105,38 @@ export interface AuthContextType {
   setPasskeySession?: (session: unknown) => void;
 }
 
+/**
+ * Combined auth context — full backward compatibility.
+ */
+export interface AuthContextType extends AuthStateValue, AuthActionsValue {}
+
+const AuthStateContext = createContext<AuthStateValue | undefined>(undefined);
+const AuthActionsContext = createContext<AuthActionsValue | undefined>(undefined);
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ============================================================================
 // HOOKS
 // ============================================================================
 
+/** Read-only auth state. Use for components that only display auth info. */
+export function useAuthState(): AuthStateValue {
+  const context = useContext(AuthStateContext);
+  if (!context) {
+    throw new Error("useAuthState must be used within AuthProvider");
+  }
+  return context;
+}
+
+/** Auth mutation actions. Use for components that only trigger auth flows. */
+export function useAuthActions(): AuthActionsValue {
+  const context = useContext(AuthActionsContext);
+  if (!context) {
+    throw new Error("useAuthActions must be used within AuthProvider");
+  }
+  return context;
+}
+
+/** Combined auth context (backward compatible). */
 export function useAuthContext(): AuthContextType {
   const context = useContext(AuthContext);
   if (!context) {
@@ -542,52 +563,43 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [snapshot, isConnecting, isConnected, walletHydrationTimedOut]);
 
   // ============================================================
-  // CONTEXT VALUE
+  // CONTEXT VALUES
   // ============================================================
 
-  const contextValue: AuthContextType = useMemo(
+  // State value — changes on auth events
+  const stateValue: AuthStateValue = useMemo(
     () => ({
-      // State
       authMode: computedValues.authMode,
       isReady: computedValues.isReady,
       isAuthenticated: computedValues.isAuthenticated,
       isAuthenticating: computedValues.isAuthenticating,
       error: computedValues.error,
-
-      // Passkey state
       credential: computedValues.credential,
       smartAccountAddress: computedValues.smartAccountAddress,
       smartAccountClient: computedValues.smartAccountClient,
       userName: computedValues.userName,
       hasStoredCredential: computedValues.hasStoredCredential,
-
-      // Wallet state (when wallet is PRIMARY auth)
       walletAddress: computedValues.walletAddress,
       eoaAddress: computedValues.walletAddress ?? undefined,
-
-      // Embedded wallet state
       embeddedAddress: computedValues.embeddedAddress,
-
-      // External wallet state (always available)
       externalWalletConnected: computedValues.externalWalletConnected,
       externalWalletAddress: computedValues.externalWalletAddress,
+    }),
+    [computedValues]
+  );
 
-      // Actions - Primary flow
+  // Actions value — stable references, only changes when actor/disconnectWallet change
+  const actionsValue: AuthActionsValue = useMemo(
+    () => ({
       createAccount,
       loginWithPasskey,
       loginWithWallet,
       loginWithEmbedded,
       signOut,
-
-      // Actions - Switching
       switchToWallet,
       switchToPasskey,
-
-      // Actions - Additional
       retry,
       dismissError,
-
-      // Legacy aliases
       signInWithPasskey: loginWithPasskey,
       createPasskey: createAccount,
       clearPasskey,
@@ -595,7 +607,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       disconnectWallet,
     }),
     [
-      computedValues,
       createAccount,
       loginWithPasskey,
       loginWithWallet,
@@ -610,7 +621,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
     ]
   );
 
-  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+  // Combined value for backward compatibility
+  const contextValue: AuthContextType = useMemo(
+    () => ({ ...stateValue, ...actionsValue }),
+    [stateValue, actionsValue]
+  );
+
+  return (
+    <AuthActionsContext.Provider value={actionsValue}>
+      <AuthStateContext.Provider value={stateValue}>
+        <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
+      </AuthStateContext.Provider>
+    </AuthActionsContext.Provider>
+  );
 }
 
 // ============================================================================

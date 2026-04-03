@@ -45,7 +45,7 @@ This is P3/P4 because:
 5. **Location data gap** — existing `location` field is a free-text string, not geocoded coordinates, adding migration complexity
 
 ### Expected Route
-- Entry point: `/plan` with `react`, `frontend-design` skills
+- Entry point: `/plan` with `react`, `design` skills
 - This needs a design spec and architecture plan before any implementation
 - Should consider: map library bundle size impact (Mapbox GL JS is ~200KB gzipped — may blow the 400KB JS budget), geocoding API costs, privacy implications of device geolocation
 

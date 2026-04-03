@@ -9,7 +9,6 @@ import {
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { Alert } from "@/components/ui/Alert";
 
 interface MintStep {
   id: string;

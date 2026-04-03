@@ -11,7 +11,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/ui/Button";
 
 const DOMAINS = [
   {

@@ -3,14 +3,9 @@ import {
   cn,
   compareAddresses,
   convertJobsToWorks,
-  createPublicClientForChain,
   DEFAULT_CHAIN_ID,
-  DEFAULT_RETRY_COUNT,
-  getWorkApprovals as fetchWorkApprovals,
+  fetchApprovalsByRecipients,
   filterByTimeRange,
-  GardenAccountABI,
-  getGardens,
-  getWorks,
   hapticLight,
   type Job,
   jobQueue,
@@ -19,29 +14,31 @@ import {
   queryKeys,
   STALE_TIME_FAST,
   STALE_TIME_MEDIUM,
-  STALE_TIME_SLOW,
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
   toastService,
   useDrafts,
+  useFocusTrap,
   useMyOnlineWorks,
+  useReviewerGardenIds,
+  useReviewerWorks,
   useTimeout,
   useUser,
   useWorkApprovals,
   type Work,
   type WorkJobPayload,
+  DEFAULT_RETRY_COUNT,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { CompletedTab } from "./Completed";
 import { DraftsTab } from "./Drafts";
-import { PendingTab } from "./Pending";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { UploadingTab } from "./Uploading";
+import { WorkListTab } from "./WorkListTab";
 
 // Component-specific props (not a domain type)
 export interface WorkDashboardProps {
@@ -58,29 +55,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Helper to check if an address matches the current user (wrapping shared util)
   const isUserAddress = (address: Address | undefined): boolean =>
     sharedIsUserAddress(address, activeAddress);
-
-  const fetchApprovalsByRecipients = useCallback(async (recipients: string[]) => {
-    if (recipients.length === 0) return [];
-
-    const uniqueRecipients = Array.from(
-      new Map(
-        recipients.filter(Boolean).map((recipient) => [recipient.toLowerCase(), recipient])
-      ).values()
-    );
-
-    const approvalGroups = await Promise.all(
-      uniqueRecipients.map((recipient) => fetchWorkApprovals(recipient))
-    );
-    const approvalById = new Map<string, (typeof approvalGroups)[number][number]>();
-
-    for (const approvals of approvalGroups) {
-      for (const approval of approvals) {
-        approvalById.set(approval.id, approval);
-      }
-    }
-
-    return Array.from(approvalById.values());
-  }, []);
 
   // Use the new hook for work approvals
   const {
@@ -122,155 +96,17 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   }, []);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
+  useFocusTrap(dialogRef);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-
-      const focusable = dialog.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    dialog.addEventListener("keydown", handleKeyDown);
-    // Auto-focus the close button on mount for keyboard users
-    const closeBtn = dialog.querySelector<HTMLElement>('[data-testid="modal-drawer-close"]');
-    closeBtn?.focus();
-
-    return () => dialog.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  // Fetch gardens and determine operator gardens
-  const { data: gardens = [] } = useQuery({
-    queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID),
-    queryFn: getGardens,
-    staleTime: STALE_TIME_SLOW,
-    retry: DEFAULT_RETRY_COUNT,
-  });
-
-  const operatorGardenIds = useMemo(
-    () =>
-      (gardens || [])
-        .filter((g) => {
-          if (!activeAddress) return false;
-          const operators = (g.operators || []).map((op: string) => op.toLowerCase());
-          return operators.includes(activeAddress.toLowerCase());
-        })
-        .map((g) => g.id),
-    [gardens, activeAddress]
-  );
-
-  const { data: evaluatorGardenIds = [] } = useQuery({
-    queryKey: queryKeys.role.evaluatorGardens(
-      activeAddress || undefined,
-      (gardens || []).map((g) => g.id)
-    ),
-    queryFn: async () => {
-      if (!activeAddress || !gardens?.length) return [];
-      const publicClient = createPublicClientForChain(DEFAULT_CHAIN_ID);
-
-      // Batch all evaluator checks into a single multicall RPC request
-      // instead of N parallel readContract calls (one per garden)
-      const results = await publicClient.multicall({
-        contracts: gardens.map((garden) => ({
-          address: garden.id as Address,
-          abi: GardenAccountABI,
-          functionName: "isEvaluator" as const,
-          args: [activeAddress as Address],
-        })),
-        allowFailure: true,
-      });
-
-      return gardens
-        .filter((_, index) => results[index].status === "success" && Boolean(results[index].result))
-        .map((garden) => garden.id);
-    },
-    enabled: !!activeAddress && (gardens?.length ?? 0) > 0,
-    staleTime: STALE_TIME_MEDIUM,
-  });
-
-  const reviewerGardenIds = useMemo(() => {
-    const combined = new Set<string>();
-    operatorGardenIds.forEach((id) => combined.add(id));
-    evaluatorGardenIds.forEach((id) => combined.add(id));
-    return Array.from(combined);
-  }, [operatorGardenIds, evaluatorGardenIds]);
-
-  // Fetch works for gardens the user operates (online + offline merged)
+  // Use shared hooks for reviewer garden detection and works fetching
+  const { reviewerGardenIds } = useReviewerGardenIds(activeAddress);
   const {
     data: operatorWorks = [],
     isLoading: isLoadingOperatorWorks,
     isFetching: isFetchingOperatorWorks,
     isError: isErrorOperatorWorks,
     refetch: refetchOperatorWorks,
-  } = useQuery({
-    queryKey: queryKeys.operatorWorks.byAddress(activeAddress, reviewerGardenIds),
-    queryFn: async () => {
-      if (!activeAddress) return [];
-      const allWorks: Work[] = [];
-
-      for (const gardenId of reviewerGardenIds) {
-        // Fetch online works from EAS - gracefully handle per-garden failures
-        let online: Work[] = [];
-        try {
-          online = await getWorks([gardenId], DEFAULT_CHAIN_ID);
-        } catch (err) {
-          logger.warn(`[WorkDashboard] Failed to fetch works for garden ${gardenId}:`, {
-            error: err,
-          });
-          // Continue with offline works for this garden and other gardens
-        }
-
-        // Fetch offline works from job queue (scoped to current user)
-        const offlineJobs = activeAddress
-          ? await jobQueue.getJobs(activeAddress, { kind: "work", synced: false })
-          : [];
-        const gardenOfflineJobs = offlineJobs.filter(
-          (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
-        );
-
-        // Convert offline jobs to Work format using utility
-        const offline = await convertJobsToWorks(
-          gardenOfflineJobs as Job<WorkJobPayload>[],
-          activeAddress
-        );
-
-        // Merge and deduplicate (prefer online, exclude duplicates)
-        const workMap = new Map<string, Work>();
-        online.forEach((w) => workMap.set(w.id, { ...w, status: "pending" as const }));
-        offline.forEach((w) => {
-          const isDuplicate = online.some((onlineWork) => {
-            const timeDiff = Math.abs(onlineWork.createdAt - w.createdAt);
-            return onlineWork.actionUID === w.actionUID && timeDiff < 5 * 60 * 1000;
-          });
-          if (!isDuplicate) {
-            workMap.set(w.id, w);
-          }
-        });
-
-        allWorks.push(...Array.from(workMap.values()));
-      }
-
-      return allWorks.sort((a, b) => b.createdAt - a.createdAt);
-    },
-    enabled: reviewerGardenIds.length > 0 && !!activeAddress,
-    staleTime: STALE_TIME_MEDIUM,
-    retry: DEFAULT_RETRY_COUNT,
-  });
+  } = useReviewerWorks(reviewerGardenIds, activeAddress);
 
   // Use new hooks for user's works
   const {
@@ -416,7 +252,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   );
 
   // Fetch approvals scoped to gardens where the user has submitted work.
-  // This avoids loading the entire approval set and keeps the query bounded.
   const {
     data: allApprovals = [],
     isLoading: isLoadingMyApprovals,
@@ -424,7 +259,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     isError: isErrorMyApprovals,
     refetch: refetchMyApprovals,
   } = useQuery({
-    queryKey: ["approvals", "byMyWorkGardens", activeAddress, [...myWorkGardenIds].sort()],
+    queryKey: queryKeys.approvals.byMyWorkGardens(activeAddress, myWorkGardenIds),
     queryFn: () => fetchApprovalsByRecipients(myWorkGardenIds),
     enabled: !!activeAddress && myWorkGardenIds.length > 0,
     staleTime: STALE_TIME_MEDIUM,
@@ -592,14 +427,12 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
 
   // Combined refresh functions for each tab
   const handleRefreshRecent = () => {
-    // Provide haptic feedback when refresh is triggered
     hapticLight();
     refetchOfflineQueue();
     refetchRecentOnline();
   };
 
   const handleRefreshPending = () => {
-    // Provide haptic feedback when refresh is triggered
     hapticLight();
     refetchOperatorWorks();
     refetchMyWorks();
@@ -607,7 +440,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   const handleRefreshCompleted = () => {
-    // Provide haptic feedback when refresh is triggered
     hapticLight();
     refetchApprovals();
     refetchMyApprovals();
@@ -666,6 +498,36 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     }, 300);
   };
 
+  // i18n message descriptors for WorkListTab
+  const pendingMessages = {
+    itemCount: {
+      id: "app.workDashboard.pending.itemsPending",
+      defaultMessage: "{count} items pending review",
+    },
+    loading: { id: "app.workDashboard.loading", defaultMessage: "Loading pending work..." },
+    emptyTitle: { id: "app.workDashboard.pending.noPending", defaultMessage: "No pending work" },
+    emptyDescription: {
+      id: "app.workDashboard.pending.description",
+      defaultMessage: "Work awaiting review will appear here",
+    },
+  };
+
+  const completedMessages = {
+    itemCount: {
+      id: "app.workDashboard.completed.itemsCompleted",
+      defaultMessage: "{count} items completed",
+    },
+    loading: { id: "app.workDashboard.loading", defaultMessage: "Loading completed work..." },
+    emptyTitle: {
+      id: "app.workDashboard.completed.noCompleted",
+      defaultMessage: "No completed work",
+    },
+    emptyDescription: {
+      id: "app.workDashboard.completed.description",
+      defaultMessage: "Approved and rejected work will appear here",
+    },
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "drafts":
@@ -684,8 +546,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         );
       case "pending":
         return (
-          <PendingTab
-            pendingWork={filteredPending}
+          <WorkListTab
+            items={filteredPending}
             isLoading={isLoading || isLoadingOperatorWorks || isLoadingMyOnlineWorks}
             isFetching={isFetchingPending}
             hasError={hasPendingError}
@@ -693,6 +555,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
             onWorkClick={handleWorkClick}
             onRefresh={handleRefreshPending}
             renderBadges={renderWorkBadges}
+            messages={pendingMessages}
+            emptyIcon="⏳"
             headerContent={
               <div className="flex items-center gap-2">
                 <select
@@ -726,8 +590,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         );
       case "completed":
         return (
-          <CompletedTab
-            completedWork={filteredCompleted}
+          <WorkListTab
+            items={filteredCompleted}
             isLoading={isLoading || (completedFilter === "myWorkReviewed" && isLoadingMyApprovals)}
             isFetching={isFetchingCompleted}
             hasError={hasCompletedError}
@@ -739,6 +603,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
                 ? renderApprovalBadges
                 : renderMyWorkReviewedBadges
             }
+            messages={completedMessages}
+            emptyIcon="📝"
             headerContent={
               <div className="flex items-center gap-2">
                 <select
@@ -836,7 +702,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
               onClick={handleClose}
               className="btn-icon"
               data-testid="modal-drawer-close"
-              aria-label="Close modal"
+              aria-label={intl.formatMessage({
+                id: "app.workDashboard.closeModal",
+                defaultMessage: "Close modal",
+              })}
             >
               <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" />
             </button>

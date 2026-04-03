@@ -4,6 +4,8 @@
  * React hook for minting hypercerts with XState state machine orchestration.
  * Handles metadata upload, allowlist validation, and transaction submission.
  *
+ * Service actors are defined in ./services/ and wired to the machine here.
+ *
  * @module hooks/hypercerts/useMintHypercert
  */
 
@@ -11,21 +13,16 @@ import { validateAllowlist as sdkValidateAllowlist } from "@hypercerts-org/sdk";
 import { useMachine } from "@xstate/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-import { encodeFunctionData, type Hex, isAddress } from "viem";
+import { type Hex, isAddress } from "viem";
 import { useWalletClient } from "wagmi";
-import { fromPromise } from "xstate";
 
 import { toastService } from "../../components/toast";
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
 import {
-  encodeCreateAllowlist,
-  generateMerkleTree,
   TOTAL_UNITS,
-  TransferRestrictions,
   validateAllowlist as validateAllowlistEntries,
-  validateMetadata,
 } from "../../lib/hypercerts";
-import { getIpfsInitStatus, uploadJSONToIPFS } from "../../modules";
+import { getIpfsInitStatus } from "../../modules";
 import { logger } from "../../modules/app/logger";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useHypercertWizardStore } from "../../stores/useHypercertWizardStore";
@@ -36,31 +33,25 @@ import type {
   HypercertDraft,
   HypercertMetadata,
 } from "../../types/hypercerts";
-import { GARDENS_MODULE_ABI, HYPERCERT_SIGNAL_POOL_ABI } from "../../utils/blockchain/abis";
-import { GardenAccountABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import {
   classifyTxError,
   isMeaningfulTxErrorMessage,
 } from "../../utils/errors/tx-error-classifier";
 import {
   type MintHypercertInput,
-  type MintHypercertReceiptInput,
-  type MintHypercertSigningInput,
   mintHypercertMachine,
-  type RegisterInSignalPoolInput,
 } from "../../workflows/mintHypercert";
 import { useAuth } from "../auth/useAuth";
-// Import from extracted modules
-import { CREATE_ALLOWLIST_ABI } from "./hypercert-abis";
 import { resolveHypercertContracts } from "./hypercert-contracts";
-import { isZeroAddress } from "../../utils/blockchain/address";
+import { TimeoutError } from "./hypercert-utils";
 import {
-  extractHypercertIdFromLogs,
-  RECEIPT_POLLING_TIMEOUT_MS,
-  serializeAllowlistTree,
-  TimeoutError,
-  withTimeout,
-} from "./hypercert-utils";
+  createUploadMetadataActor,
+  createUploadAllowlistActor,
+  createBuildAndSignActor,
+  createPollForReceiptActor,
+  createRegisterInSignalPoolActor,
+} from "./services";
 
 // Re-export TimeoutError for consumers
 export { TimeoutError };
@@ -154,309 +145,25 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
   }, [chainId]);
 
   const machine = useMemo(() => {
-    const providedMachine = mintHypercertMachine.provide({
+    const deps = { walletClientRef, smartAccountClientRef, eoaAddressRef, authModeRef, chainIdRef };
+
+    return mintHypercertMachine.provide({
       actors: {
         // Note: XState automatically stops actors if the machine transitions away (e.g., on CANCEL).
         // Full cancellation of in-flight IPFS uploads would require Storacha library support
         // for AbortSignal, which is not currently available.
-        uploadMetadata: fromPromise(async ({ input }: { input: MintHypercertInput }) => {
-          logger.debug("[useMintHypercert] uploadMetadata actor starting", { hasInput: !!input });
-          const validation = validateMetadata(input.metadata);
-          if (!validation.valid) {
-            const message = Object.values(validation.errors ?? {}).join(", ") || "Invalid metadata";
-            throw new Error(message);
-          }
-
-          const result = await uploadJSONToIPFS(
-            input.metadata as unknown as Record<string, unknown>,
-            {
-              source: "hypercert-minting-metadata",
-              gardenAddress: input.gardenAddress,
-              authMode: authModeRef.current,
-              metadataType: "hypercert",
-            }
-          );
-
-          return { cid: result.cid };
-        }),
-        uploadAllowlist: fromPromise(async ({ input }: { input: MintHypercertInput }) => {
-          const validation = sdkValidateAllowlist(input.allowlist, input.totalUnits);
-          if (!validation.valid) {
-            const message =
-              Object.values(validation.errors ?? {}).join(", ") || "Invalid allowlist";
-            throw new Error(message);
-          }
-
-          const tree = generateMerkleTree(input.allowlist);
-          const payload = serializeAllowlistTree(tree.tree);
-
-          const result = await uploadJSONToIPFS(payload as unknown as Record<string, unknown>, {
-            source: "hypercert-minting-allowlist",
-            gardenAddress: input.gardenAddress,
-            authMode: authModeRef.current,
-            metadataType: "hypercert-allowlist",
-          });
-
-          return { cid: result.cid, merkleRoot: tree.root };
-        }),
-        buildAndSignUserOp: fromPromise(async ({ input }: { input: MintHypercertSigningInput }) => {
-          if (!input.metadataCid) {
-            throw new Error("Missing metadata CID");
-          }
-          if (!input.merkleRoot) {
-            throw new Error("Missing merkle root");
-          }
-
-          const currentSmartAccountClient = smartAccountClientRef.current;
-          const currentEoaAddress = eoaAddressRef.current;
-          const currentWalletClient = walletClientRef.current;
-          const currentChainId = chainIdRef.current;
-
-          const contracts = await resolveHypercertContracts(currentChainId);
-          const callData = encodeCreateAllowlist({
-            account: currentSmartAccountClient?.account?.address || (currentEoaAddress as Address),
-            totalUnits: input.totalUnits,
-            merkleRoot: input.merkleRoot,
-            metadataUri: `ipfs://${input.metadataCid}`,
-            transferRestrictions: TransferRestrictions.AllowAll,
-          });
-
-          if (currentSmartAccountClient) {
-            const userOpHash = await currentSmartAccountClient.sendUserOperation({
-              account: currentSmartAccountClient.account,
-              calls: [
-                {
-                  to: contracts.hypercertMinter,
-                  data: callData,
-                  value: 0n,
-                },
-              ],
-            });
-
-            return { hash: userOpHash };
-          }
-
-          if (!currentWalletClient || !currentEoaAddress) {
-            throw new Error("Connect a wallet to mint the hypercert");
-          }
-
-          const txHash = await currentWalletClient.writeContract({
-            address: contracts.hypercertMinter,
-            abi: CREATE_ALLOWLIST_ABI,
-            functionName: "createAllowlist",
-            args: [
-              currentEoaAddress as Address,
-              input.totalUnits,
-              input.merkleRoot,
-              `ipfs://${input.metadataCid}`,
-              TransferRestrictions.AllowAll,
-            ],
-            account: currentEoaAddress as Address,
-          });
-
-          return { hash: txHash };
-        }),
-        pollForReceipt: fromPromise(async ({ input }: { input: MintHypercertReceiptInput }) => {
-          const currentSmartAccountClient = smartAccountClientRef.current;
-          const currentChainId = chainIdRef.current;
-
-          const contracts = await resolveHypercertContracts(currentChainId);
-          const publicClient = createPublicClientForChain(currentChainId);
-
-          if (currentSmartAccountClient) {
-            const receipt = await withTimeout(
-              currentSmartAccountClient.getUserOperationReceipt({
-                hash: input.hash,
-              }),
-              RECEIPT_POLLING_TIMEOUT_MS,
-              "Transaction confirmation"
-            );
-
-            const txHash = receipt.receipt.transactionHash as Hex;
-            const hypercertId = extractHypercertIdFromLogs(
-              receipt.logs.filter(
-                (log) => log.address.toLowerCase() === contracts.hypercertMinter.toLowerCase()
-              ) as Array<{ address: Address } & Record<string, unknown>>,
-              currentChainId
-            );
-
-            if (hypercertId === null) {
-              logger.warn("[useMintHypercert] Failed to extract hypercertId from logs", {
-                txHash,
-                logsCount: receipt.logs.length,
-              });
-              throw new Error(
-                "Failed to extract hypercert ID from transaction logs. The mint transaction succeeded but the hypercert ID could not be determined."
-              );
-            }
-
-            return {
-              txHash,
-              hypercertId,
-            };
-          }
-
-          const receipt = await withTimeout(
-            publicClient.waitForTransactionReceipt({ hash: input.hash }),
-            RECEIPT_POLLING_TIMEOUT_MS,
-            "Transaction confirmation"
-          );
-          const hypercertId = extractHypercertIdFromLogs(
-            receipt.logs.filter(
-              (log) => log.address.toLowerCase() === contracts.hypercertMinter.toLowerCase()
-            ) as Array<{ address: Address } & Record<string, unknown>>,
-            currentChainId
-          );
-
-          if (hypercertId === null) {
-            logger.warn("[useMintHypercert] Failed to extract hypercertId from logs", {
-              txHash: receipt.transactionHash,
-              logsCount: receipt.logs.length,
-            });
-            throw new Error(
-              "Failed to extract hypercert ID from transaction logs. The mint transaction succeeded but the hypercert ID could not be determined."
-            );
-          }
-
-          return {
-            txHash: receipt.transactionHash,
-            hypercertId,
-          };
-        }),
-        registerInSignalPool: fromPromise(
-          async ({ input }: { input: RegisterInSignalPoolInput }) => {
-            const currentSmartAccountClient = smartAccountClientRef.current;
-            const currentWalletClient = walletClientRef.current;
-            const currentEoaAddress = eoaAddressRef.current;
-            const currentChainId = chainIdRef.current;
-
-            const { gardenAddress, hypercertId } = input;
-
-            if (!hypercertId) {
-              logger.warn("[useMintHypercert] No hypercertId, skipping pool registration");
-              return { registered: false, poolAddress: null };
-            }
-
-            // Resolve GardensModule address from deployment config
-            const contracts = getNetworkContracts(currentChainId);
-            const gardensModuleAddr = contracts.gardensModule as Address;
-
-            if (!gardensModuleAddr || isZeroAddress(gardensModuleAddr)) {
-              logger.info(
-                "[useMintHypercert] No GardensModule deployed, skipping pool registration",
-                { chainId: currentChainId }
-              );
-              return { registered: false, poolAddress: null };
-            }
-
-            const publicClient = createPublicClientForChain(currentChainId);
-
-            // Read signal pools for this garden (index 1 = HypercertSignalPool)
-            const pools = (await publicClient.readContract({
-              address: gardensModuleAddr,
-              abi: GARDENS_MODULE_ABI,
-              functionName: "getGardenSignalPools",
-              args: [gardenAddress],
-            })) as Address[];
-
-            if (!pools || pools.length === 0) {
-              logger.info("[useMintHypercert] No signal pools for garden, skipping registration", {
-                gardenAddress,
-                chainId: currentChainId,
-              });
-              return { registered: false, poolAddress: null };
-            }
-
-            if (pools.length < 2) {
-              logger.info(
-                "[useMintHypercert] HypercertSignalPool missing (action-only pool set), skipping registration",
-                {
-                  gardenAddress,
-                  poolsCount: pools.length,
-                }
-              );
-              return { registered: false, poolAddress: null };
-            }
-
-            const hypercertPoolAddress = pools[1];
-
-            if (!hypercertPoolAddress || isZeroAddress(hypercertPoolAddress)) {
-              logger.warn("[useMintHypercert] HypercertSignalPool is zero address", {
-                gardenAddress,
-                poolsCount: pools.length,
-              });
-              return { registered: false, poolAddress: null };
-            }
-
-            const hypercertIdBigInt = BigInt(hypercertId);
-
-            logger.info("[useMintHypercert] Registering hypercert in signal pool", {
-              hypercertId,
-              poolAddress: hypercertPoolAddress,
-              gardenAddress,
-            });
-
-            // Send registration transaction
-            if (currentSmartAccountClient) {
-              const regOpHash = await currentSmartAccountClient.sendUserOperation({
-                account: currentSmartAccountClient.account,
-                calls: [
-                  {
-                    to: hypercertPoolAddress,
-                    data: encodeFunctionData({
-                      abi: HYPERCERT_SIGNAL_POOL_ABI,
-                      functionName: "registerHypercert",
-                      args: [hypercertIdBigInt],
-                    }),
-                    value: 0n,
-                  },
-                ],
-              });
-
-              // Wait for registration confirmation
-              await withTimeout(
-                currentSmartAccountClient.getUserOperationReceipt({ hash: regOpHash }),
-                RECEIPT_POLLING_TIMEOUT_MS,
-                "Signal pool registration"
-              );
-            } else if (currentWalletClient && currentEoaAddress) {
-              const regTxHash = await currentWalletClient.writeContract({
-                address: hypercertPoolAddress,
-                abi: HYPERCERT_SIGNAL_POOL_ABI,
-                functionName: "registerHypercert",
-                args: [hypercertIdBigInt],
-                account: currentEoaAddress as Address,
-              });
-
-              await withTimeout(
-                publicClient.waitForTransactionReceipt({ hash: regTxHash }),
-                RECEIPT_POLLING_TIMEOUT_MS,
-                "Signal pool registration"
-              );
-            } else {
-              logger.warn("[useMintHypercert] No wallet available for pool registration");
-              return { registered: false, poolAddress: hypercertPoolAddress };
-            }
-
-            logger.info("[useMintHypercert] Hypercert registered in signal pool", {
-              hypercertId,
-              poolAddress: hypercertPoolAddress,
-              gardenAddress,
-            });
-
-            return { registered: true, poolAddress: hypercertPoolAddress };
-          }
-        ),
+        uploadMetadata: createUploadMetadataActor(deps),
+        uploadAllowlist: createUploadAllowlistActor(deps),
+        buildAndSignUserOp: createBuildAndSignActor(deps),
+        pollForReceipt: createPollForReceiptActor(deps),
+        registerInSignalPool: createRegisterInSignalPoolActor(deps),
       },
       // XState's strict typing for provide() expects exact type matches for actors.
       // The runtime implementation is type-safe, but TypeScript cannot infer the
       // correct types through the provide() boundary. We use 'as unknown as typeof'
-      // to maintain some type safety while satisfying the compiler. The actual actor
-      // implementations are verified at runtime.
+      // to maintain some type safety while satisfying the compiler.
       // See: https://stately.ai/docs/actors#fromPromise
     } as unknown as typeof mintHypercertMachine.implementations);
-
-    return providedMachine;
   }, []); // Machine created once — actors read current values from refs
 
   const [state, send] = useMachine(machine);

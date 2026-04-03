@@ -8,6 +8,7 @@
  */
 
 import { type Address, getAddress, isAddress } from "viem";
+import { CONSTANTS } from "@hypercerts-org/sdk";
 
 import { createPublicClientForChain } from "../../config";
 
@@ -36,35 +37,23 @@ import { DEPLOYMENT_REGISTRY_ABI } from "./hypercert-abis";
 import { isZeroAddress } from "../../utils/blockchain/address";
 
 /**
- * Chain-specific Hypercert Minter contract addresses.
- * Used as fallback when the deployment registry is unavailable.
+ * Get the Hypercert Minter address for a chain from the SDK deployment map.
+ * Falls back to Sepolia if the chain is not in the SDK's supported set.
  *
  * @see https://github.com/hypercerts-org/hypercerts/blob/main/contracts/deployments
  */
-export const HYPERCERT_MINTER_BY_CHAIN: Record<number, Address> = {
-  // Testnets
-  11155111: "0xa16DFb32Eb140a6f3F2AC68f41dAd8c7e83C4941", // Sepolia
-
-  // Mainnets
-  10: "0xC2d179166bc9dbB00A03686a5b17eBe2224c2704", // Optimism
-  42161: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07", // Arbitrum (per protocol config)
-  42220: "0x16bA53B74c234C870c61EFC04cD418B8f2865959", // Celo
-};
-
-/**
- * Get the Hypercert Minter address for a chain.
- * Falls back to Sepolia if chain is not supported.
- */
 export function getHypercertMinterFallback(chainId: number): Address {
-  const address = HYPERCERT_MINTER_BY_CHAIN[chainId];
-  if (!address) {
-    logger.warn("[hypercert-contracts] No Hypercert Minter fallback for chain, using Sepolia", {
-      chainId,
-      fallbackChainId: 11155111,
-    });
-    return HYPERCERT_MINTER_BY_CHAIN[11155111];
+  const deployment = CONSTANTS.DEPLOYMENTS[chainId as keyof typeof CONSTANTS.DEPLOYMENTS];
+  const address = deployment?.addresses?.HypercertMinterUUPS as Address | undefined;
+  if (address && isAddress(address)) {
+    return getAddress(address);
   }
-  return address;
+  logger.warn("[hypercert-contracts] No SDK deployment for chain, using Sepolia fallback", {
+    chainId,
+    fallbackChainId: 11155111,
+  });
+  const sepolia = CONSTANTS.DEPLOYMENTS[11155111];
+  return getAddress(sepolia.addresses.HypercertMinterUUPS as Address);
 }
 
 /**

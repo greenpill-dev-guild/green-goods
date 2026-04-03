@@ -8,6 +8,7 @@ import type { Address } from "../../types/domain";
 import type {
   DepositParams,
   EmergencyPauseParams,
+  EnableAutoAllocateParams,
   HarvestParams,
   WithdrawParams,
 } from "../../types/vaults";
@@ -16,65 +17,22 @@ import {
   OCTANT_MODULE_ABI,
   OCTANT_VAULT_ABI,
 } from "../../utils/blockchain/abis";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
-import { VAULT_MAX_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
+import { VAULT_MAX_BPS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
-import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
-import { useMutationLock } from "../utils/useMutationLock";
-import { useDelayedInvalidation } from "../utils/useTimeout";
-
-function getOctantModuleAddress(chainId: number): Address {
-  const moduleAddress = getNetworkContracts(chainId).octantModule;
-  if (!moduleAddress || moduleAddress.toLowerCase() === ZERO_ADDRESS) {
-    throw new Error("OctantModule is not configured for the current chain");
-  }
-  return moduleAddress as Address;
-}
-
-function isRecoverableAllowanceReadError(error: unknown): boolean {
-  const message =
-    error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  return (
-    message.includes("revert") ||
-    message.includes("execution reverted") ||
-    message.includes("contractfunctionexecutionerror") ||
-    message.includes("call_exception")
-  );
-}
-
-type VaultDepositStage = "approval" | "deposit";
-type VaultDepositFailureReason =
-  | "vaultShutdown"
-  | "depositLimitZero"
-  | "depositLimitReached"
-  | "vaultUnavailable"
-  | "slippage";
-type TxErrorMode = "toast" | "inline" | "auto";
-
-interface VaultMutationOptions {
-  errorMode?: TxErrorMode;
-}
-
-function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
-  return mode !== "inline";
-}
-
-class VaultDepositStageError extends Error {
-  stage: VaultDepositStage;
-  reason?: VaultDepositFailureReason;
-  diagnostics?: Record<string, string>;
-
-  constructor(stage: VaultDepositStage, message: string, reason?: VaultDepositFailureReason) {
-    super(message);
-    this.name = "VaultDepositStageError";
-    this.stage = stage;
-    this.reason = reason;
-  }
-}
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../query-keys";
+import { useSafeMutation } from "../utils/useSafeMutation";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
+import {
+  getOctantModuleAddress,
+  isRecoverableAllowanceReadError,
+  shouldShowErrorToast,
+  VaultDepositStageError,
+  type VaultDepositFailureReason,
+  type VaultMutationOptions,
+} from "./vault-helpers";
 
 export function useVaultDeposit(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
@@ -87,14 +45,12 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
     source: "useVaultDeposit",
     toastContext: "vault deposit",
   });
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
-
   const activeToastId = useRef<string | undefined>(undefined);
   const lastParamsRef = useRef<{ gardenAddress: string; userAddress: string | undefined }>({
     gardenAddress: "",
     userAddress: undefined,
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress) {
         queryInvalidation
@@ -106,7 +62,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   const mutation = useMutation({
@@ -393,23 +349,7 @@ export function useVaultDeposit(options: VaultMutationOptions = {}) {
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
+  return useSafeMutation(mutation);
 }
 
 export function useVaultWithdraw(options: VaultMutationOptions = {}) {
@@ -423,13 +363,11 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
     source: "useVaultWithdraw",
     toastContext: "vault withdraw",
   });
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
-
   const lastParamsRef = useRef<{ gardenAddress: string; userAddress: string | undefined }>({
     gardenAddress: "",
     userAddress: undefined,
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress) {
         queryInvalidation
@@ -441,7 +379,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   const mutation = useMutation({
@@ -513,23 +451,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
+  return useSafeMutation(mutation);
 }
 
 export function useHarvest() {
@@ -541,10 +463,8 @@ export function useHarvest() {
     source: "useHarvest",
     toastContext: "vault harvest",
   });
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
-
   const lastGardenRef = useRef<string>("");
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastGardenRef.current) {
         queryInvalidation
@@ -552,7 +472,7 @@ export function useHarvest() {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   const mutation = useMutation({
@@ -598,23 +518,7 @@ export function useHarvest() {
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
+  return useSafeMutation(mutation);
 }
 
 export function useEmergencyPause() {
@@ -626,10 +530,8 @@ export function useEmergencyPause() {
     source: "useEmergencyPause",
     toastContext: "vault emergency pause",
   });
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
-
   const lastGardenRef = useRef<string>("");
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastGardenRef.current) {
         queryInvalidation
@@ -637,7 +539,7 @@ export function useEmergencyPause() {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   const mutation = useMutation({
@@ -682,28 +584,7 @@ export function useEmergencyPause() {
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
-}
-
-interface EnableAutoAllocateParams {
-  gardenAddress: Address;
-  assetAddress: Address;
+  return useSafeMutation(mutation);
 }
 
 export function useEnableAutoAllocate() {
@@ -716,8 +597,6 @@ export function useEnableAutoAllocate() {
     source: "useEnableAutoAllocate",
     toastContext: "vault configure",
   });
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
-
   const mutation = useMutation({
     mutationFn: async (params: EnableAutoAllocateParams) => {
       if (!sender) throw new Error("TransactionSender not available — auth not initialized");
@@ -781,21 +660,5 @@ export function useEnableAutoAllocate() {
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
+  return useSafeMutation(mutation);
 }

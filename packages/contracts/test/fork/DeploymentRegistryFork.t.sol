@@ -5,6 +5,7 @@ import { ForkTestBase } from "./helpers/ForkTestBase.sol";
 import { Deployment } from "../../src/registries/Deployment.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { UnauthorizedCaller } from "../../src/errors/CommonErrors.sol";
 
 /// @title DeploymentRegistryForkTest
 /// @notice Fork tests for the Deployment (governance registry) contract.
@@ -166,7 +167,7 @@ contract DeploymentRegistryForkTest is ForkTestBase {
 
         // Now unauthorized
         vm.prank(forkOperator);
-        vm.expectRevert(abi.encodeWithSelector(Deployment.UnauthorizedCaller.selector, forkOperator));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, forkOperator));
         deploymentRegistry.setNetworkConfig(12_345, config);
     }
 
@@ -317,10 +318,10 @@ contract DeploymentRegistryForkTest is ForkTestBase {
         // forkNonMember is not owner or allowlisted
         vm.startPrank(forkNonMember);
 
-        vm.expectRevert(abi.encodeWithSelector(Deployment.UnauthorizedCaller.selector, forkNonMember));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, forkNonMember));
         deploymentRegistry.setNetworkConfig(block.chainid, config);
 
-        vm.expectRevert(abi.encodeWithSelector(Deployment.UnauthorizedCaller.selector, forkNonMember));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, forkNonMember));
         deploymentRegistry.updateActionRegistry(address(0x123));
 
         vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", forkNonMember));

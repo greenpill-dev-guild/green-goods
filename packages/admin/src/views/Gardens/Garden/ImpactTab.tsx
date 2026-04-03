@@ -32,7 +32,7 @@ export function ImpactTab({
   garden,
   gardenId,
   canManage,
-  canReview,
+  canReview: _canReview,
   section,
   selectedItem,
   clearSection,

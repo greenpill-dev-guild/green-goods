@@ -12,10 +12,9 @@ import { createMutationErrorHandler } from "../../utils/errors/mutation-error-ha
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
-import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
-import { useMutationLock } from "../utils/useMutationLock";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../query-keys";
+import { useSafeMutation } from "../utils/useSafeMutation";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 const ERC20_BALANCE_ABI = [
   {
@@ -51,14 +50,12 @@ export function useCookieJarDeposit(
     source: "useCookieJarDeposit",
     toastContext: "cookie jar deposit",
   });
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
-
   const activeToastId = useRef<string | undefined>(undefined);
   const lastParamsRef = useRef<{ gardenAddress: string; jarAddress: string }>({
     gardenAddress,
     jarAddress: "",
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress && lastParamsRef.current.jarAddress) {
         queryInvalidation
@@ -70,7 +67,7 @@ export function useCookieJarDeposit(
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   const mutation = useMutation({
@@ -174,21 +171,5 @@ export function useCookieJarDeposit(
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
+  return useSafeMutation(mutation);
 }

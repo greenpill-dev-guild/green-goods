@@ -46,15 +46,12 @@ interface DeploymentRunnerPanelProps {
   selectedChainId: number;
   network: string;
   permissions: DeploymentPermissions;
-  walletAddress?: Address;
-  signMessageAsync: ({ message }: { message: string }) => Promise<string>;
   isAuthenticated: boolean;
   sessionAddress?: Address | null;
-  clearSession: () => void;
+  connect: () => Promise<void>;
+  disconnect: () => void;
+  isConnecting: boolean;
   runnerOnline: boolean;
-  authLoading: boolean;
-  requestChallenge: (address: Address) => Promise<{ message: string }>;
-  verifySignature: (address: Address, signature: string) => Promise<unknown>;
   scripts: OpsScript[];
   scriptsLoading: boolean;
   runScriptPending: boolean;
@@ -87,15 +84,12 @@ export function DeploymentRunnerPanel({
   selectedChainId,
   network,
   permissions,
-  walletAddress,
-  signMessageAsync,
   isAuthenticated,
   sessionAddress,
-  clearSession,
+  connect,
+  disconnect,
+  isConnecting,
   runnerOnline,
-  authLoading,
-  requestChallenge,
-  verifySignature,
   scripts,
   scriptsLoading,
   runScriptPending,
@@ -122,29 +116,6 @@ export function DeploymentRunnerPanel({
   setOpenMintingPending,
   setOpenMinting,
 }: DeploymentRunnerPanelProps) {
-  const handleConnectRunner = async () => {
-    if (!walletAddress) {
-      toastService.error({
-        title: formatMessage({ id: "app.deployment.ops.connectWalletFirst" }),
-      });
-      return;
-    }
-
-    try {
-      const challenge = await requestChallenge(walletAddress);
-      const signature = await signMessageAsync({ message: challenge.message });
-      await verifySignature(walletAddress, signature);
-      toastService.success({ title: formatMessage({ id: "app.deployment.ops.authSuccess" }) });
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : formatMessage({ id: "app.error.unknown" });
-      toastService.error({
-        title: formatMessage({ id: "app.deployment.ops.authFailed" }),
-        description: message,
-      });
-    }
-  };
-
   const runScriptAndTrack = async (scriptId: string) => {
     if (!isAuthenticated) {
       toastService.error({ title: formatMessage({ id: "app.ops.authRequired" }) });
@@ -262,11 +233,11 @@ export function DeploymentRunnerPanel({
           </span>
 
           {!isAuthenticated ? (
-            <Button type="button" onClick={handleConnectRunner} loading={authLoading}>
+            <Button type="button" onClick={connect} loading={isConnecting}>
               {formatMessage({ id: "app.deployment.ops.authenticate" })}
             </Button>
           ) : (
-            <Button type="button" variant="secondary" onClick={clearSession}>
+            <Button type="button" variant="secondary" onClick={disconnect}>
               {formatMessage({ id: "app.deployment.ops.disconnect" })}
             </Button>
           )}

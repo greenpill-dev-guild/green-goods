@@ -8,6 +8,7 @@ import { HypercertsModule, IMarketplaceAdapter } from "../../src/modules/Hyperce
 import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
 import { MockHypercertMinter } from "../../src/mocks/HypercertExchange.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
+import { ArrayLengthMismatch } from "../../src/errors/CommonErrors.sol";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Test Mocks
@@ -275,7 +276,7 @@ contract HypercertsModuleTest is Test {
         sigs[0] = "sig1";
 
         vm.prank(operator);
-        vm.expectRevert(HypercertsModule.ArrayLengthMismatch.selector);
+        vm.expectRevert(ArrayLengthMismatch.selector);
         hypercertsModule.batchListForYield(garden, ids, asks, sigs);
     }
 

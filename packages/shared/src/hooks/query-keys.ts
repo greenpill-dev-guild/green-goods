@@ -45,8 +45,25 @@ export const STALE_TIME_RARE = 300_000; // 5 minutes
 export const DEFAULT_RETRY_COUNT = 3;
 export const DEFAULT_RETRY_DELAY = 1000; // 1 second
 
-/** Delay for follow-up query invalidation to handle indexer lag */
+/** @deprecated Use INDEXER_LAG_SCHEDULE_MS and scheduleProgressiveInvalidation instead */
 export const INDEXER_LAG_FOLLOWUP_MS = 2000 as const;
+
+/** Progressive invalidation delays to handle variable indexer lag */
+export const INDEXER_LAG_SCHEDULE_MS = [2_000, 5_000, 15_000] as const;
+
+/**
+ * Schedule progressive query invalidations to handle indexer lag.
+ * Fires invalidation at 2s, 5s, and 15s after mutation success.
+ *
+ * @param invalidateFn - The function to call at each interval
+ * @returns A cleanup function that cancels pending timeouts
+ */
+export function scheduleProgressiveInvalidation(invalidateFn: () => void): () => void {
+  const timeoutIds = INDEXER_LAG_SCHEDULE_MS.map((delay) =>
+    window.setTimeout(invalidateFn, delay)
+  );
+  return () => timeoutIds.forEach((id) => window.clearTimeout(id));
+}
 
 // Base query key factory
 export const queryKeys = {
@@ -109,6 +126,14 @@ export const queryKeys = {
         "greengoods",
         "approvals",
         "byOperatorGardens",
+        JSON.stringify([...gardenIds].sort()),
+      ] as const,
+    byMyWorkGardens: (address?: string, gardenIds: string[] = []) =>
+      [
+        "greengoods",
+        "approvals",
+        "byMyWorkGardens",
+        address,
         JSON.stringify([...gardenIds].sort()),
       ] as const,
   },
@@ -704,7 +729,8 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.marketplace.preview>
   | ReturnType<typeof queryKeys.marketplace.tradeHistory>
   | ReturnType<typeof queryKeys.marketplace.approvals>
-  | ReturnType<typeof queryKeys.role.allowlist>;
+  | ReturnType<typeof queryKeys.role.allowlist>
+  | ReturnType<typeof queryKeys.approvals.byMyWorkGardens>;
 
 export type WorksQueryKey =
   | typeof queryKeys.works.all

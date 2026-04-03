@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { UnifiedPowerRegistry } from "../../src/registries/Power.sol";
+import { ZeroAddress } from "../../src/errors/CommonErrors.sol";
 import { NFTPowerSource, NFTType } from "../../src/interfaces/IGardensV2.sol";
 
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -110,7 +111,7 @@ contract UnifiedPowerRegistryTest is Test {
             address(hats),
             gardensModule
         );
-        vm.expectRevert(UnifiedPowerRegistry.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         new ERC1967Proxy(address(impl), initData);
     }
 
@@ -386,7 +387,7 @@ contract UnifiedPowerRegistryTest is Test {
         NFTPowerSource[] memory sources = _buildSources();
 
         vm.prank(gardensModule);
-        vm.expectRevert(UnifiedPowerRegistry.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         registry.registerGarden(address(0), sources);
     }
 
@@ -400,13 +401,13 @@ contract UnifiedPowerRegistryTest is Test {
 
     function test_registerPool_revertsWithZeroPool() public {
         vm.prank(gardensModule);
-        vm.expectRevert(UnifiedPowerRegistry.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         registry.registerPool(address(0), garden1);
     }
 
     function test_registerPool_revertsWithZeroGarden() public {
         vm.prank(gardensModule);
-        vm.expectRevert(UnifiedPowerRegistry.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         registry.registerPool(pool1, address(0));
     }
 
@@ -746,7 +747,7 @@ contract UnifiedPowerRegistryTest is Test {
 
     function test_setGardensModule_revertsWithZero() public {
         vm.prank(owner);
-        vm.expectRevert(UnifiedPowerRegistry.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         registry.setGardensModule(address(0));
     }
 
@@ -765,7 +766,7 @@ contract UnifiedPowerRegistryTest is Test {
 
     function test_setHatsProtocol_revertsWithZero() public {
         vm.prank(owner);
-        vm.expectRevert(UnifiedPowerRegistry.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         registry.setHatsProtocol(address(0));
     }
 

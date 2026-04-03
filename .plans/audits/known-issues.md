@@ -1,7 +1,7 @@
 # Known Issues Registry
 
-_Last updated: 2026-03-17_
-_Source: Seeded from 2026-03-17-audit.md (v2)_
+_Last updated: 2026-04-02_
+_Source: Updated from 2026-04-02-audit.md_
 
 This registry tracks chronic, accepted, deferred, and monitored audit findings across cycles.
 It is the single source of truth for long-lived findings that would otherwise bloat each audit report.
@@ -29,103 +29,83 @@ It is the single source of truth for long-lived findings that would otherwise bl
 
 ### KI-001: Hardcoded Hypercert Minter Addresses
 
-- **Audit ID**: H1
-- **First seen**: ~2026-02-18 (7 cycles)
-- **Current status**: CHRONIC
-- **Risk score**: 3 (impact) x 1 (likelihood) x 2.0 (staleness) = **6.0**
+- **Audit ID**: C1 (escalated from H1)
+- **First seen**: ~2026-02-18 (10 cycles)
+- **Current status**: CHRONIC -- **ESCALATED TO CRITICAL**
+- **Risk score**: 3 (impact) x 1.5 (likelihood) x 3.0 (staleness) = **13.5**
 - **File**: `packages/shared/src/hooks/hypercerts/hypercert-contracts.ts:44-52`
 - **Description**: Chain-specific contract addresses hardcoded as fallback map. Silent staleness risk if Hypercerts protocol redeploys. No automated health check or registry comparison exists.
-- **Decision needed**: ACCEPT, DEFER, or add CI health check
-- **Last verified**: 2026-03-17
+- **Decision needed**: ACCEPT, DEFER, or add CI health check. **10th cycle without decision.**
+- **Last verified**: 2026-04-02
 
-### KI-002: God Object — WorkDashboard (861 lines)
+### KI-002: God Object -- WorkDashboard (838 lines)
 
 - **Audit ID**: H2 (client)
-- **First seen**: ~2026-02-01 (9 cycles)
+- **First seen**: ~2026-02-01 (12 cycles)
 - **Current status**: CHRONIC
 - **Risk score**: 2 (impact) x 2 (likelihood) x 2.0 (staleness) = **8.0**
 - **File**: `packages/client/src/views/Home/WorkDashboard/index.tsx`
-- **Description**: 861 lines with 6+ queries, complex state, tab logic. Escalated from MEDIUM to HIGH at cycle 3.
-- **Last verified**: 2026-03-17
+- **Description**: 838 lines (down from 861) with 6+ queries, complex state, tab logic. Escalated from MEDIUM to HIGH at cycle 3.
+- **Last verified**: 2026-04-02
 
-### KI-003: God Object — GardenWork (873 lines)
-
-- **Audit ID**: H3 (client)
-- **First seen**: ~2026-02-01 (9 cycles)
-- **Current status**: CHRONIC
-- **Risk score**: 2 (impact) x 2 (likelihood) x 2.0 (staleness) = **8.0**
-- **File**: `packages/client/src/views/Home/Garden/Work.tsx`
-- **Description**: 873 lines mixing data fetching, approval flow, optimistic updates, and rendering.
-- **Last verified**: 2026-03-17
-
-### KI-004: God Object — Deployment View (958 lines)
+### KI-005: God Object -- useVaultOperations (801 lines)
 
 - **Audit ID**: Architectural Anti-Patterns
-- **First seen**: ~2026-02-18 (5 cycles)
-- **Current status**: CHRONIC
-- **Risk score**: 2 (impact) x 2 (likelihood) x 2.0 (staleness) = **8.0**
-- **File**: `packages/admin/src/views/Deployment/index.tsx`
-- **Description**: Largest file in codebase at 958 lines. Admin deployment view with complex multi-step deploy flow.
-- **Last verified**: 2026-03-17
-
-### KI-005: God Object — useVaultOperations (801 lines)
-
-- **Audit ID**: Architectural Anti-Patterns
-- **First seen**: ~2026-02-18 (5 cycles)
+- **First seen**: ~2026-02-18 (8 cycles)
 - **Current status**: CHRONIC
 - **Risk score**: 2 (impact) x 2 (likelihood) x 2.0 (staleness) = **8.0**
 - **File**: `packages/shared/src/hooks/vault/useVaultOperations.ts`
 - **Description**: 801-line hook handling multiple vault operations (deposit, withdraw, strategy management).
-- **Last verified**: 2026-03-17
+- **Last verified**: 2026-04-02
 
-### KI-006: God Object — error-tracking (753 lines)
+### KI-006: God Object -- error-tracking (753 lines)
 
 - **Audit ID**: Architectural Anti-Patterns
-- **First seen**: ~2026-02-18 (5 cycles)
+- **First seen**: ~2026-02-18 (8 cycles)
 - **Current status**: CHRONIC
 - **Risk score**: 2 (impact) x 1 (likelihood) x 2.0 (staleness) = **4.0**
 - **File**: `packages/shared/src/modules/app/error-tracking.ts`
-- **Description**: Error tracking module with many error type handlers. Lower likelihood since it's mostly additive (new error types append, don't interleave).
-- **Last verified**: 2026-03-17
+- **Description**: Error tracking module with many error type handlers. Lower likelihood since it's mostly additive.
+- **Last verified**: 2026-04-02
 
-### KI-007: God Object — TreasuryDrawer (728 lines)
+### KI-007: God Object -- TreasuryDrawer (728 lines)
 
 - **Audit ID**: Architectural Anti-Patterns
-- **First seen**: ~2026-02-18 (5 cycles)
+- **First seen**: ~2026-02-18 (8 cycles)
 - **Current status**: CHRONIC
 - **Risk score**: 2 (impact) x 2 (likelihood) x 2.0 (staleness) = **8.0**
 - **File**: `packages/client/src/components/Dialogs/TreasuryDrawer.tsx`
 - **Description**: Complex drawer component mixing treasury display, transaction history, and vault interactions.
-- **Last verified**: 2026-03-17
+- **Last verified**: 2026-04-02
 
 ### KI-008: setInterval Singleton Leak in Job Queue
 
 - **Audit ID**: M1
-- **First seen**: ~2026-02-18 (7 cycles)
+- **First seen**: ~2026-02-18 (10 cycles)
 - **Current status**: CHRONIC
-- **Risk score**: 2 (impact) x 1 (likelihood) x 2.0 (staleness) = **4.0**
-- **File**: `packages/shared/src/modules/job-queue/index.ts:872`
-- **Description**: `startCleanupScheduler()` guards against double-start but lacks AbortSignal integration. If hot-reloaded during development, old interval leaks. Production risk is minimal (singleton).
+- **Risk score**: 2 (impact) x 1 (likelihood) x 3.0 (staleness) = **6.0**
+- **File**: `packages/shared/src/modules/job-queue/index.ts`
+- **Description**: Cleanup scheduler guards against double-start but lacks AbortSignal integration. Dev-only risk (production singleton).
 - **Recommendation**: DEFER (production singleton, dev-only risk) or add AbortSignal.
-- **Last verified**: 2026-03-17
+- **Last verified**: 2026-04-02
 
 ---
 
 ## Accepted Findings
 
-_(none yet — populate as user marks findings ACCEPTED)_
+_(none yet -- populate as user marks findings ACCEPTED)_
 
 ---
 
 ## Deferred Findings
 
-_(none yet — populate as user marks findings DEFERRED)_
+_(none yet -- populate as user marks findings DEFERRED)_
 
 ---
 
 ## Monitored Findings
 
-_(none yet — populate as user marks findings MONITORED)_
+_(none yet -- populate as user marks findings MONITORED)_
 
 ---
 
@@ -133,4 +113,5 @@ _(none yet — populate as user marks findings MONITORED)_
 
 | KI-ID | Finding | Resolved Date | Resolved In |
 |-------|---------|---------------|-------------|
-| _(none yet)_ | | | |
+| KI-003 | God Object -- GardenWork (873 -> 646 lines) | 2026-04-02 | Refactored below 700-line threshold |
+| KI-004 | God Object -- Deployment (958 -> 167 lines) | 2026-04-02 | Decomposed into 4 files (max 582) |

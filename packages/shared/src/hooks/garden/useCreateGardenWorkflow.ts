@@ -34,10 +34,10 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useGardenDraft } from "./useGardenDraft";
 
 export type { GardenDraft } from "./useGardenDraft";
@@ -127,14 +127,14 @@ export function useCreateGardenWorkflow() {
     scheduleGardenRefresh: () => {},
   });
 
-  const { start: scheduleGardenRefresh } = useDelayedInvalidation(
+  const { start: scheduleGardenRefresh } = useProgressiveInvalidation(
     useCallback(() => {
       const { chainId, queryClient: latestQueryClient } = dependenciesRef.current;
       queryInvalidation
         .invalidateGardens(chainId)
         .forEach((queryKey) => latestQueryClient.invalidateQueries({ queryKey }));
     }, []),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   useEffect(() => {

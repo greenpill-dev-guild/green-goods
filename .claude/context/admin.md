@@ -2,6 +2,8 @@
 
 Loaded when working in `packages/admin/`. Extends CLAUDE.md.
 
+**Primary persona**: David (Operator). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
+
 ## Quick Reference
 
 | Command | Purpose |

@@ -6,6 +6,9 @@ audience: all
 owner: docs
 last_verified: 2026-03-25
 feature_status: Live
+source_of_truth:
+  - docs/docs/builders/glossary.mdx
+  - docs/docs/community/welcome.mdx
 ---
 
 # Glossary

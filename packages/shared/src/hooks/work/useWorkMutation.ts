@@ -8,7 +8,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import {
   showWalletProgress,
   toastService,
@@ -38,11 +38,10 @@ import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
-import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../query-keys";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
-import { useMutationLock } from "../utils/useMutationLock";
-import { useTimeout } from "../utils/useTimeout";
+import { useSafeMutation } from "../utils/useSafeMutation";
+import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
 
 interface UseWorkMutationOptions {
   authMode: "wallet" | "passkey" | "embedded" | null;
@@ -98,12 +97,24 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
-  const { runWithLock, isPending: isLockPending } = useMutationLock();
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
-  // Separate timeout for indexer lag follow-up invalidation
-  const { set: scheduleInvalidation } = useTimeout();
+  // Progressive invalidation for indexer lag follow-up
+  const lastGardenRef = useRef<string | null>(gardenAddress);
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
+    useCallback(() => {
+      if (lastGardenRef.current) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.online(lastGardenRef.current, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.merged(lastGardenRef.current, chainId),
+        });
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_SCHEDULE_MS
+  );
 
   const mutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
@@ -444,15 +455,9 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           queryKey: queryKeys.works.merged(gardenAddress, chainId),
         });
 
-        // Schedule a follow-up invalidation for indexer lag
-        scheduleInvalidation(() => {
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.works.online(gardenAddress, chainId),
-          });
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.works.merged(gardenAddress, chainId),
-          });
-        }, INDEXER_LAG_FOLLOWUP_MS);
+        // Schedule progressive follow-up invalidations for indexer lag
+        lastGardenRef.current = gardenAddress;
+        scheduleFollowUp();
       }
 
       // Open work dashboard immediately - navigation will follow from Garden view
@@ -601,23 +606,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
+  return useSafeMutation(mutation);
 }
 
 export type UseWorkMutationReturn = ReturnType<typeof useWorkMutation>;

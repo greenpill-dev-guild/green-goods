@@ -120,5 +120,3 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     </SideSheet>
   );
 }
-
-export default SettingsSheet;

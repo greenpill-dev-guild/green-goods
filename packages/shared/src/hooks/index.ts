@@ -86,8 +86,8 @@ export { useGardenAssessments } from "./assessment/useGardenAssessments";
 // ============================================================================
 // AUTH
 // ============================================================================
-export type { AuthContextType, AuthMode } from "./auth/useAuth";
-export { useAuth, useAuthContext } from "./auth/useAuth";
+export type { AuthActionsValue, AuthContextType, AuthMode, AuthStateValue } from "./auth/useAuth";
+export { useAuth, useAuthActions, useAuthContext, useAuthState } from "./auth/useAuth";
 export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";
 export { useUser } from "./auth/useUser";
 // ============================================================================
@@ -272,6 +272,7 @@ export { useTradeHistory } from "./hypercerts/useTradeHistory";
 // ============================================================================
 // OPS RUNNER (Local deploy/upgrade/script orchestration)
 // ============================================================================
+export { useOpsJobRunner } from "./ops/useOpsJobRunner";
 export {
   getOpsRunnerBaseUrl,
   useOpsDeployPlan,
@@ -287,6 +288,7 @@ export {
   useOpsRunScript,
   useOpsUpgradePlan,
 } from "./ops/useOpsRunner";
+export { useOpsRunnerConnect } from "./ops/useOpsRunnerConnect";
 // ============================================================================
 // QUERY KEYS
 // ============================================================================
@@ -297,8 +299,10 @@ export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
 export {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
+  INDEXER_LAG_SCHEDULE_MS,
   queryInvalidation,
   queryKeys,
+  scheduleProgressiveInvalidation,
   STALE_TIME_FAST,
   STALE_TIME_MEDIUM,
   STALE_TIME_RARE,
@@ -336,11 +340,17 @@ export type {
 export { useCopyToClipboard } from "./utils/useCopyToClipboard";
 export { useDebouncedValue } from "./utils/useDebouncedValue";
 // ============================================================================
+// UI (General-purpose UI utilities)
+// ============================================================================
+export { useIsDarkMode } from "./ui/useIsDarkMode";
+// ============================================================================
 // UTILS (Low-level hooks for common patterns)
 // ============================================================================
+export { useFocusTrap } from "./utils/useFocusTrap";
 export { useDocumentEvent, useEventListener, useWindowEvent } from "./utils/useEventListener";
 export { useMutationLock } from "./utils/useMutationLock";
-export { useDelayedInvalidation, useTimeout } from "./utils/useTimeout";
+export { useSafeMutation } from "./utils/useSafeMutation";
+export { useDelayedInvalidation, useProgressiveInvalidation, useTimeout } from "./utils/useTimeout";
 export type { UseDepositFormResult } from "./vault/useDepositForm";
 export { useDepositForm } from "./vault/useDepositForm";
 // ============================================================================
@@ -362,6 +372,7 @@ export {
 } from "./vault/useVaultOperations";
 export { useVaultPreview } from "./vault/useVaultPreview";
 export { useStrategyRate } from "./vault/useStrategyRate";
+export { fetchApprovalsByRecipients } from "./work/useAggregatedApprovals";
 export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
 export { useBatchWorkSync } from "./work/useBatchWorkSync";
 
@@ -373,6 +384,11 @@ export { useGardenUrlSync } from "./navigation/useGardenUrlSync";
 // ============================================================================
 // WORK
 // ============================================================================
+export type {
+  UseWorkApprovalActionsParams,
+  UseWorkApprovalActionsResult,
+} from "./work/useWorkApprovalActions";
+export { useWorkApprovalActions } from "./work/useWorkApprovalActions";
 export type { UseCrossGardenQueueResult } from "./work/useCrossGardenQueue";
 export { useCrossGardenQueue } from "./work/useCrossGardenQueue";
 export { useDraftAutoSave } from "./work/useDraftAutoSave";
@@ -382,6 +398,8 @@ export { useDraftResume } from "./work/useDraftResume";
 export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
+export { useReviewerGardenIds } from "./work/useReviewerGardenIds";
+export { useReviewerWorks } from "./work/useReviewerWorks";
 export type {
   SubmissionProgressState,
   SubmissionStage,
@@ -394,6 +412,8 @@ export { useWorkApprovals } from "./work/useWorkApprovals";
 export type { WorkFormData } from "./work/useWorkForm";
 export { buildWorkFormSchema, useWorkForm, workFormSchema } from "./work/useWorkForm";
 export { useWorkImages } from "./work/useWorkImages";
+export type { UseWorkMetadataResult, WorkMetadataStatus } from "./work/useWorkMetadata";
+export { useWorkMetadata } from "./work/useWorkMetadata";
 export { useWorkMutation } from "./work/useWorkMutation";
 export type { UseWorkMutationWithProgressReturn } from "./work/useWorkMutationWithProgress";
 export { useWorkMutationWithProgress } from "./work/useWorkMutationWithProgress";

@@ -12,6 +12,7 @@ import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IRegistryCommunity, IUnifiedPowerRegistry, PointSystem, NFTPowerSource } from "../../src/interfaces/IGardensV2.sol";
 import { MockRegistryFactory, MockRegistryCommunity, MockUnifiedPowerRegistry } from "../../src/mocks/GardensV2.sol";
+import { ZeroAddress, NotGardenOperator } from "../../src/errors/CommonErrors.sol";
 
 /// @title MockGOODSToken
 /// @notice Simple ERC20 mock for GOODS token with mint
@@ -304,7 +305,7 @@ contract GardensModuleTest is Test {
             hatsProtocol,
             address(hatsModule)
         );
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         new ERC1967Proxy(address(impl), initData);
     }
 
@@ -320,7 +321,7 @@ contract GardensModuleTest is Test {
 
     function test_onGardenMinted_revertsIfZeroGarden() public {
         vm.prank(gardenToken);
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         gardensModule.onGardenMinted(address(0), IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
     }
 
@@ -539,7 +540,7 @@ contract GardensModuleTest is Test {
         gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.prank(address(0x999)); // not an operator
-        vm.expectRevert(GardensModule.NotGardenOperator.selector);
+        vm.expectRevert(NotGardenOperator.selector);
         gardensModule.createGardenPools(garden1);
     }
 
@@ -571,7 +572,7 @@ contract GardensModuleTest is Test {
         module2.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
 
         vm.prank(owner);
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         module2.createGardenPools(garden1);
     }
 
@@ -694,7 +695,7 @@ contract GardensModuleTest is Test {
 
     function test_setGardenToken_revertsWithZero() public {
         vm.prank(owner);
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         gardensModule.setGardenToken(address(0));
     }
 
@@ -1346,31 +1347,31 @@ contract GardensModuleTest is Test {
 
     function test_setRegistryFactory_revertsWithZero() public {
         vm.prank(owner);
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         gardensModule.setRegistryFactory(address(0));
     }
 
     function test_setPowerRegistry_revertsWithZero() public {
         vm.prank(owner);
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         gardensModule.setPowerRegistry(address(0));
     }
 
     function test_setGoodsToken_revertsWithZero() public {
         vm.prank(owner);
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         gardensModule.setGoodsToken(address(0));
     }
 
     function test_setHatsProtocol_revertsWithZero() public {
         vm.prank(owner);
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         gardensModule.setHatsProtocol(address(0));
     }
 
     function test_setHatsModule_revertsWithZero() public {
         vm.prank(owner);
-        vm.expectRevert(GardensModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         gardensModule.setHatsModule(address(0));
     }
 

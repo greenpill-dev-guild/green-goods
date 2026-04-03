@@ -32,7 +32,7 @@ graph TB
     Sandbox -->|output| PR["Draft PR\nmax 20 files"]
 ```
 
-OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. It runs in a sandboxed cloud environment with pre-built dependencies and no network access during execution.
+OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. It runs in a sandboxed environment with no network access during agent execution, while setup and maintenance scripts retain network access for dependency installation.
 
 ## Configuration
 
@@ -47,7 +47,8 @@ project_doc_fallback_filenames = ["CLAUDE.md"]
 project_doc_max_bytes = 40960
 
 # Default model for automated tasks
-model = "gpt-5.3-codex"
+model = "gpt-5.4"
+model_reasoning_effort = "xhigh"
 
 # Sandbox: no network access during agent execution
 [sandbox_workspace_write]
@@ -56,7 +57,8 @@ network_access = false
 
 Key settings:
 - **`project_doc_fallback_filenames`** -- Codex reads the nearest `AGENTS.md` by default and only falls back to `CLAUDE.md` for directories without local Codex guidance
-- **`model`** -- `gpt-5.3-codex` is the default for judgment tasks. Individual automations can override with `-m gpt-5.2` for simple transforms.
+- **`model`** -- `gpt-5.4` is the default model for repository tasks.
+- **`model_reasoning_effort`** -- `xhigh` is the default reasoning level.
 - **`network_access = false`** -- The agent sandbox has no internet access, improving safety for automated tasks. Setup scripts retain network access for dependency installation.
 
 ### Environment Setup (`environment.toml`)
@@ -69,6 +71,9 @@ script = """
 # Install Bun (primary runtime)
 curl -fsSL https://bun.sh/install | bash
 
+# Install Node.js because repo scripts invoke `node` and `npx` directly
+# ...
+
 # Install Foundry (Solidity toolchain)
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
@@ -76,12 +81,16 @@ foundryup
 # Initialize submodules, install deps, build foundation
 git submodule update --init --recursive
 bun install
-VITE_CHAIN_ID=11155111 bun run build:contracts
-VITE_CHAIN_ID=11155111 bun run build:shared
+VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:contracts
+VITE_CHAIN_ID=${VITE_CHAIN_ID:-11155111} bun run build:shared
+
+# Create skills symlink for Codex discovery
+mkdir -p .agents
+[ -L .agents/skills ] || ln -s ../.claude/skills .agents/skills
 """
 ```
 
-The setup installs Bun and Foundry, initializes git submodules, installs npm dependencies, and builds the foundation packages (contracts -> shared) in the correct dependency order. This is cached for up to 12 hours.
+The setup installs Bun, Node.js, and Foundry, initializes git submodules, installs dependencies with Bun, builds the foundation packages (`contracts -> shared`), and creates the `.agents/skills` symlink. This is cached for up to 12 hours.
 
 ### Predefined Actions
 
@@ -150,7 +159,7 @@ Codex and Claude Code serve complementary roles:
 | Context source | `CLAUDE.md` + `.claude/` | `AGENTS.md` + `.codex/` |
 | Execution | Local machine | Cloud sandbox |
 | Network | Full access | None (agent phase) |
-| Model | Claude Opus/Sonnet | GPT-5.4 |
+| Model | Claude Opus/Sonnet | GPT-5.4 (`xhigh` default reasoning) |
 | Best for | Interactive development, UI, multi-file refactors | Hooks, stores, tests, mechanical transforms |
 | Memory | Persistent per-agent | Per-session |
 

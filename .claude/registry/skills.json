@@ -1,350 +1,252 @@
 {
+  "source": ".claude/skills/*/SKILL.md",
+  "canonical_commands": ["plan", "debug", "review", "audit", "principles"],
   "skills": [
     {
       "name": "plan",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Create structured implementation plans with specs, coordinate agent teams",
+      "entry_file": ".claude/skills/plan/SKILL.md",
+      "owned_skills": ["architecture", "testing"],
+      "modes": ["default", "check", "execute", "cleanup", "teams"],
       "triggers": ["/plan", "plan this", "create implementation plan"],
-      "dependencies": []
+      "dependencies": [],
+      "sub_files": ["teams.md"]
     },
     {
       "name": "debug",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Root cause investigation and systematic debugging",
+      "entry_file": ".claude/skills/debug/SKILL.md",
+      "owned_skills": ["testing"],
+      "modes": ["default", "incident_hotfix", "tdd_bugfix"],
       "triggers": ["/debug", "debug this", "investigate this bug"],
-      "dependencies": []
+      "dependencies": [],
+      "sub_files": ["monitoring.md", "posthog.md", "health-diagnostics.md"]
     },
     {
       "name": "review",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "6-pass systematic code review with structured findings",
+      "entry_file": ".claude/skills/review/SKILL.md",
+      "owned_skills": ["architecture", "testing"],
+      "modes": ["report_only", "apply_fixes", "iterate", "verify_only"],
       "triggers": ["/review", "review this PR", "code review"],
-      "dependencies": []
+      "dependencies": [],
+      "sub_files": ["apply-fixes.md", "cross-package-verify.md"]
     },
     {
       "name": "audit",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Dead code detection, architectural anti-patterns, and codebase health",
+      "entry_file": ".claude/skills/audit/SKILL.md",
+      "owned_skills": ["review", "contracts", "testing"],
+      "modes": ["default", "loop", "team"],
       "triggers": ["/audit", "audit the codebase", "health check"],
-      "dependencies": ["review", "security"]
-    },
-    {
-      "name": "agent-teams",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": false,
-      "default_mode": "interactive",
-      "triggers": ["/teams", "create agent team"],
-      "dependencies": ["plan"]
-    },
-    {
-      "name": "autonomous-review",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "interactive",
-      "triggers": ["review and fix", "auto-fix"],
-      "dependencies": ["review", "testing"]
-    },
-    {
-      "name": "cross-package-verify",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "interactive",
-      "triggers": ["verify whole repo", "cross-package check"],
       "dependencies": ["review"]
     },
     {
-      "name": "tdd-bugfix",
+      "name": "principles",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "interactive",
-      "triggers": ["bugfix with TDD", "test-first fix"],
-      "dependencies": ["debug", "testing"]
-    },
-    {
-      "name": "testing",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["write tests", "TDD", "unit test", "e2e test"],
+      "user_invocable": true,
+      "intent": "Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4",
+      "entry_file": ".claude/skills/principles/SKILL.md",
+      "owned_skills": ["architecture"],
+      "modes": ["default", "team", "execute"],
+      "triggers": ["/principles", "principles audit", "SOLID", "DRY"],
       "dependencies": []
     },
     {
       "name": "react",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["React component", "state management", "hooks"],
-      "dependencies": []
+      "triggers": ["React component", "state management", "hooks", "TanStack Query", "XState", "error boundary", "performance profiling"],
+      "dependencies": [],
+      "sub_files": ["tanstack-query.md", "error-handling.md", "xstate.md", "performance.md", "compiler.md"]
+    },
+    {
+      "name": "ui",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "passive",
+      "triggers": ["TailwindCSS", "Radix", "dialog", "accessibility", "Storybook", "i18n", "diagram", "mermaid"],
+      "dependencies": [],
+      "sub_files": ["tailwindcss.md", "radix-ui.md", "compliance.md", "storybook.md", "storybook-addons.md", "storybook-testing.md", "i18n.md", "mermaid.md"]
+    },
+    {
+      "name": "design",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "passive",
+      "triggers": ["design direction", "spatial UI", "adaptive surface", "glass", "material", "depth", "ecosystem", "inclusive design"],
+      "dependencies": ["ui"],
+      "sub_files": ["spatial.md", "interaction.md", "materials.md", "implementation.md", "ecosystem.md", "references.md"]
     },
     {
       "name": "web3",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["wallet", "transaction", "Wagmi", "contract call"],
-      "dependencies": []
-    },
-    {
-      "name": "tanstack-query",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["data fetching", "query", "mutation", "cache"],
-      "dependencies": []
-    },
-    {
-      "name": "error-handling-patterns",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["error handling", "try/catch", "error boundary"],
-      "dependencies": []
-    },
-    {
-      "name": "data-layer",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["offline", "PWA", "job queue", "sync", "IndexedDB"],
-      "dependencies": []
-    },
-    {
-      "name": "i18n",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["translation", "i18n", "locale"],
-      "dependencies": []
-    },
-    {
-      "name": "xstate",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["state machine", "workflow", "XState", "actor"],
-      "dependencies": []
-    },
-    {
-      "name": "vite",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["build config", "bundle", "env vars", "plugins"],
+      "triggers": ["wallet", "transaction", "Wagmi", "passkey", "contract call"],
       "dependencies": []
     },
     {
       "name": "contracts",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["Solidity", "smart contract", "Foundry"],
-      "dependencies": []
+      "triggers": ["Solidity", "smart contract", "Foundry", "security audit", "vulnerability", "Slither"],
+      "dependencies": [],
+      "sub_files": ["security.md"]
     },
     {
       "name": "indexer",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["indexer", "event handler", "schema.graphql"],
-      "dependencies": ["contracts"]
+      "triggers": ["indexer", "event handler", "schema.graphql", "Docker", "container", "compose"],
+      "dependencies": ["contracts"],
+      "sub_files": ["docker.md"]
     },
     {
-      "name": "agent",
+      "name": "data-layer",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["bot", "Telegram", "handler", "platform adapter"],
-      "dependencies": []
+      "triggers": ["offline", "PWA", "job queue", "sync", "IndexedDB"],
+      "dependencies": [],
+      "sub_files": ["service-worker.md", "storage-lifecycle.md"]
     },
     {
-      "name": "deployment",
+      "name": "ops",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["deploy", "release", "Railway", "Vercel", "mainnet"],
-      "dependencies": ["contracts"]
+      "triggers": ["deploy", "CI", "GitHub Actions", "git", "branch", "commit", "dependency", "format", "Biome", "Vite", "build config", "migration", "breaking change", "upgrade"],
+      "dependencies": ["contracts"],
+      "sub_files": ["deployment.md", "ci-cd.md", "git-workflow.md", "dependency-management.md", "biome.md", "vite.md", "migration.md"]
     },
     {
-      "name": "security",
+      "name": "testing",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["security audit", "vulnerability", "access control", "Slither"],
-      "dependencies": ["contracts"]
-    },
-    {
-      "name": "migration",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["migration", "upgrade", "breaking change"],
-      "dependencies": ["testing"]
-    },
-    {
-      "name": "docker",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["Docker", "container", "compose"],
-      "dependencies": []
-    },
-    {
-      "name": "git-workflow",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["branch", "commit", "merge conflict", "release"],
-      "dependencies": []
-    },
-    {
-      "name": "ci-cd",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["CI", "GitHub Actions", "pipeline", "workflow"],
-      "dependencies": []
-    },
-    {
-      "name": "dependency-management",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["dependency", "lockfile", "bun install", "upgrade package"],
-      "dependencies": []
-    },
-    {
-      "name": "frontend-design",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["design UI", "build page", "frontend", "visual design"],
-      "dependencies": ["tailwindcss", "radix-ui"]
-    },
-    {
-      "name": "tailwindcss",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["TailwindCSS", "@theme", "design tokens", "dark mode"],
-      "dependencies": []
-    },
-    {
-      "name": "radix-ui",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["dialog", "select", "accordion", "Radix", "popover"],
-      "dependencies": ["tailwindcss"]
-    },
-    {
-      "name": "ui-compliance",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["accessibility", "a11y", "responsive", "forms", "WCAG"],
-      "dependencies": ["i18n"]
-    },
-    {
-      "name": "storybook",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["story", "Storybook", "component docs", "visual test"],
-      "dependencies": ["react"]
-    },
-    {
-      "name": "mermaid-diagrams",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["diagram", "flowchart", "mermaid"],
-      "dependencies": []
+      "triggers": ["write tests", "TDD", "unit test", "e2e test", "Vitest", "Playwright"],
+      "dependencies": [],
+      "sub_files": ["vitest-patterns.md"]
     },
     {
       "name": "architecture",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["architecture", "refactor", "clean code", "reduce complexity"],
+      "triggers": ["architecture", "refactor", "clean code", "reduce complexity", "entropy"],
       "dependencies": []
     },
     {
-      "name": "biome",
+      "name": "bot",
       "status": "active",
-      "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["format", "Biome", "import sorting"],
-      "dependencies": []
-    },
-    {
-      "name": "performance",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["performance", "bundle size", "profiling", "memory leak"],
-      "dependencies": []
-    },
-    {
-      "name": "monitoring",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["monitoring", "health check", "observability"],
-      "dependencies": []
-    },
-    {
-      "name": "meeting-notes",
-      "status": "active",
-      "deprecated_replacement": null,
-      "listed_in_index": true,
-      "default_mode": "interactive",
-      "triggers": ["meeting notes", "transcript", "extract issues", "product sync"],
+      "triggers": ["bot", "Telegram", "handler", "platform adapter"],
       "dependencies": []
     }
   ],
   "aliases": {
+    "agent": "bot",
     "offline": "data-layer",
-    "storage": "data-layer"
+    "storage": "data-layer",
+    "vite": "ops",
+    "migration": "ops",
+    "teams": "plan",
+    "agent-teams": "plan",
+    "docker": "indexer",
+    "monitoring": "debug",
+    "security": "contracts",
+    "biome": "ops",
+    "format": "ops",
+    "performance": "react",
+    "tanstack-query": "react",
+    "xstate": "react",
+    "error-handling": "react",
+    "tailwindcss": "ui",
+    "radix-ui": "ui",
+    "storybook": "ui",
+    "i18n": "ui",
+    "a11y": "ui",
+    "mermaid": "ui",
+    "autonomous-review": "review",
+    "cross-package-verify": "review",
+    "tdd-bugfix": "debug",
+    "/teams": "/plan --mode teams",
+    "cross-package-verify-mode": "/review --mode verify_only --scope cross-package",
+    "autonomous review": "/review --mode apply_fixes",
+    "tdd bugfix": "/debug --mode tdd_bugfix"
+  },
+  "bundles": {
+    "frontend-change": {
+      "entrypoint": "/plan",
+      "default_mode": "interactive",
+      "skills": ["react", "ui", "design", "testing"],
+      "user_facing": true,
+      "contract_touching": false
+    },
+    "shared-domain-change": {
+      "entrypoint": "/plan",
+      "default_mode": "interactive",
+      "skills": ["react", "web3", "testing"],
+      "user_facing": false,
+      "contract_touching": false
+    },
+    "contracts-change": {
+      "entrypoint": "/plan",
+      "default_mode": "interactive",
+      "skills": ["contracts", "ops", "testing"],
+      "user_facing": false,
+      "contract_touching": true
+    },
+    "indexer-change": {
+      "entrypoint": "/plan",
+      "default_mode": "interactive",
+      "skills": ["indexer", "testing"],
+      "user_facing": false,
+      "contract_touching": false
+    },
+    "agent-change": {
+      "entrypoint": "/plan",
+      "default_mode": "interactive",
+      "skills": ["bot", "testing"],
+      "user_facing": false,
+      "contract_touching": false
+    },
+    "cross-package-change": {
+      "entrypoint": "/review --mode verify_only --scope cross-package",
+      "default_mode": "verify_only",
+      "skills": ["review", "testing"],
+      "user_facing": false,
+      "contract_touching": false
+    },
+    "incident-hotfix": {
+      "entrypoint": "/debug --mode incident_hotfix",
+      "default_mode": "apply_fixes",
+      "skills": ["debug", "testing"],
+      "user_facing": false,
+      "contract_touching": false
+    }
   }
 }

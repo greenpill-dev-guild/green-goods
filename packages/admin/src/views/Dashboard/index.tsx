@@ -19,7 +19,8 @@ import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
 
-function useDashboardHeader(intl: ReturnType<typeof useIntl>, role: string, gardenCount: number) {
+// Exception to hook boundary: pure function (no hook calls), view-specific config
+function getDashboardHeader(intl: ReturnType<typeof useIntl>, role: string, gardenCount: number) {
   const roleLabel =
     role === "deployer"
       ? intl.formatMessage({ id: "admin.dashboard.role.deployer", defaultMessage: "Deployer" })
@@ -61,7 +62,7 @@ export default function Dashboard() {
   const { role, operatorGardens } = useRole();
   const { data: gardens = [], isLoading, error } = useGardens();
   const { data: actions = [] } = useActions();
-  const { title: welcomeTitle, description: welcomeDescription } = useDashboardHeader(
+  const { title: welcomeTitle, description: welcomeDescription } = getDashboardHeader(
     intl,
     role,
     operatorGardens.length

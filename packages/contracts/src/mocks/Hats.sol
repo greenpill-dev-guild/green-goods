@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { IHats } from "../interfaces/IHats.sol";
+import { ArrayLengthMismatch } from "../errors/CommonErrors.sol";
 
 /// @title MockHats
 /// @notice Enhanced mock implementation of Hats Protocol for testing
@@ -16,7 +17,6 @@ contract MockHats is IHats {
     error AlreadyWearingHat();
     error NotEligible();
     error MaxSupplyReached();
-    error ArrayLengthMismatch();
     error HatNotMutable();
     error MaxLevelReached();
 

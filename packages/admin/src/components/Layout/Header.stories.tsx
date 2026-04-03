@@ -1,4 +1,3 @@
-import { cn } from "@green-goods/shared";
 import { RiArrowRightSLine, RiMenuLine, RiSearchLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";

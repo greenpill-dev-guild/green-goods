@@ -1,7 +1,6 @@
 import {
   type Address,
   DEFAULT_CHAIN_ID,
-  type FractionTrade,
   getNetworkConfig,
   useTradeHistory,
 } from "@green-goods/shared";

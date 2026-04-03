@@ -110,7 +110,6 @@ function EditableField({
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
           className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-          autoFocus
         />
       ) : (
         <input
@@ -119,7 +118,6 @@ function EditableField({
           onChange={(e) => setDraft(e.target.value)}
           maxLength={maxLength}
           className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-          autoFocus
         />
       )}
       {maxLength && (

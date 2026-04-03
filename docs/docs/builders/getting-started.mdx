@@ -96,9 +96,9 @@ For CI workflows or local service-account usage, set `OP_SERVICE_ACCOUNT_TOKEN`,
 | PM2 process | Package | Default port |
 | --- | --- | --- |
 | `client` | `packages/client` | 3001 |
-| `admin` | `packages/admin` | 3000 |
+| `admin` | `packages/admin` | 3002 |
 | `docs` | `docs` | 3003 |
-| `indexer` | `packages/indexer` (Docker) | 8081 |
+| `indexer` | `packages/indexer` (Docker / GraphQL) | 8080 |
 | `agent` | `packages/agent` | -- |
 | `tunnel` | cloudflared HTTPS tunnel | -- |
 | `storybook` | `packages/shared` | 6006 |
@@ -183,7 +183,7 @@ bun format
 | `forge: command not found` | Foundry not installed | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
 | Indexer fails to start | Docker not running | Start Docker Desktop, then retry `bun dev:indexer` |
 | `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `bun setup` or run `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env` |
-| Port 3000/3001 in use | Another dev server running | Kill the process or change the port in the package's Vite config |
+| Port 3001/3002 in use | Another dev server running | Kill the process or change the port in the package's Vite config |
 | `bun install` hangs | Stale lockfile | Delete `node_modules` and `bun.lockb`, then `bun install` |
 | No QR code on landing page | cloudflared not installed | `brew install cloudflared`, then restart `bun dev` |
 | Tunnel URL not appearing | Client not ready yet | The tunnel waits up to 60s for port 3001 — check PM2 logs with `npx pm2 logs tunnel` |

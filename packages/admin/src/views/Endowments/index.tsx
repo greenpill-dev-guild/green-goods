@@ -2,13 +2,11 @@ import {
   AAVE_V3_POOL,
   type Address,
   formatAddress,
-  formatApy,
   formatTokenAmount,
   getBlockExplorerAddressUrl,
   getNetDeposited,
   getNetworkContracts,
   getVaultAssetSymbol,
-  type GardenVault,
   ImageWithFallback,
   isZeroAddress,
   useCurrentChain,
@@ -16,11 +14,8 @@ import {
   useGardenVaults,
   useMyVaultDeposits,
   useProtocolYieldSummary,
-  useStrategyRate,
   useUrlFilters,
   useUser,
-  useVaultPreview,
-  ZERO_ADDRESS,
 } from "@green-goods/shared";
 import {
   RiArrowRightLine,
@@ -42,150 +37,11 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
-
-function AssetApyCard({ assetAddress, chainId }: { assetAddress: Address; chainId: number }) {
-  const { formatMessage } = useIntl();
-  const { apy, isLoading } = useStrategyRate(assetAddress, { chainId });
-  const symbol = getVaultAssetSymbol(assetAddress, chainId);
-
-  return (
-    <StatCard
-      icon={<RiLeafLine className="h-5 w-5" />}
-      label={formatMessage({ id: "app.funders.strategyApy" }, { asset: symbol })}
-      value={isLoading ? "--" : apy !== undefined ? formatApy(apy) : "--"}
-      colorScheme="success"
-    />
-  );
-}
+import { AssetApyCard } from "./AssetApyCard";
+import { MyTrackedPositionCard, type MyTrackedPosition, type TrackedAsset } from "./MyTrackedPositionCard";
+import { VaultUnharvestedYield } from "./VaultUnharvestedYield";
 
 type EndowmentsSortOrder = "name" | "tvl";
-type TrackedAsset = "WETH" | "DAI";
-
-interface MyTrackedPosition {
-  id: string;
-  assetSymbol: TrackedAsset;
-  gardenAddress: Address;
-  gardenName: string;
-  gardenLocation: string;
-  vaultAddress: Address;
-  shares: bigint;
-  netDeposited: bigint;
-}
-
-function MyTrackedPositionCard({
-  position,
-  userAddress,
-}: {
-  position: MyTrackedPosition;
-  userAddress: Address;
-}) {
-  const { formatMessage } = useIntl();
-  const chainId = useCurrentChain();
-  const { preview, isLoading } = useVaultPreview({
-    vaultAddress: position.vaultAddress,
-    shares: position.shares,
-    userAddress,
-    enabled: Boolean(userAddress),
-  });
-
-  const currentValue = preview?.previewAssets;
-  const rawDelta = typeof currentValue === "bigint" ? currentValue - position.netDeposited : null;
-
-  // Clamp negative deltas to zero — these vaults deploy to Aave V3 lending where
-  // genuine losses are extremely unlikely. Negatives are ERC-4626 rounding artifacts
-  // or profit unlock timing. Showing red/negative values creates false alarm.
-  const positionDelta = rawDelta !== null && rawDelta < 0n ? 0n : rawDelta;
-
-  const yieldToneClass =
-    positionDelta === null
-      ? "text-text-soft"
-      : positionDelta > 0n
-        ? "text-success-dark"
-        : "text-text-strong";
-  const yieldDisplay =
-    positionDelta === null
-      ? "--"
-      : positionDelta === 0n
-        ? `0 ${position.assetSymbol}`
-        : `+${formatTokenAmount(positionDelta)} ${position.assetSymbol}`;
-
-  return (
-    <Card padding="compact" className="sm:p-4">
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate font-heading text-base font-semibold text-text-strong">
-            {position.gardenName}
-          </p>
-          <p className="truncate text-xs text-text-sub">{position.gardenLocation}</p>
-          <a
-            href={getBlockExplorerAddressUrl(chainId, position.vaultAddress)}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 inline-block text-xs text-primary-base hover:underline"
-          >
-            {formatMessage({ id: "app.endowments.myPositions.vault" })}:{" "}
-            {formatAddress(position.vaultAddress, { variant: "card" })}
-          </a>
-        </div>
-        <span className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-1 text-xs font-semibold text-primary-dark">
-          {position.assetSymbol}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-        <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
-          <p className="text-xs text-text-soft">
-            {formatMessage({ id: "app.endowments.myPositions.netDeposited" })}
-          </p>
-          <p className="mt-1 font-medium text-text-strong">
-            {formatTokenAmount(position.netDeposited)} {position.assetSymbol}
-          </p>
-        </div>
-        <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
-          <p className="text-xs text-text-soft">
-            {formatMessage({ id: "app.endowments.myPositions.currentValue" })}
-          </p>
-          <p className="mt-1 font-medium text-text-strong">
-            {isLoading ? "--" : `${formatTokenAmount(currentValue ?? 0n)} ${position.assetSymbol}`}
-          </p>
-        </div>
-        <div className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
-          <p className="text-xs text-text-soft">
-            {formatMessage({ id: "app.endowments.myPositions.yieldGenerated" })}
-          </p>
-          <p className={`mt-1 font-medium ${yieldToneClass}`}>{yieldDisplay}</p>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-/** Displays unharvested yield for a single vault inline */
-function VaultUnharvestedYield({ vault }: { vault: GardenVault }) {
-  const { formatMessage } = useIntl();
-  const netDeposited = getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
-  const { preview, isLoading } = useVaultPreview({
-    vaultAddress: vault.vaultAddress,
-    userAddress: ZERO_ADDRESS as Address,
-    enabled: netDeposited > 0n,
-  });
-  const totalAssets = preview?.totalAssets ?? netDeposited;
-  const unharvested = totalAssets > netDeposited ? totalAssets - netDeposited : 0n;
-  const assetSymbol = getVaultAssetSymbol(vault.asset, vault.chainId);
-
-  if (isLoading || unharvested === 0n) return null;
-
-  return (
-    <div className="flex items-center justify-between rounded-md border border-success-light bg-success-lighter px-3 py-1.5 text-xs">
-      <span className="text-success-dark">
-        {formatMessage({ id: "app.endowments.unharvestedYield" })} ({assetSymbol})
-      </span>
-      <span className="font-medium tabular-nums text-success-dark">
-        +{formatTokenAmount(unharvested)} {assetSymbol}
-      </span>
-    </div>
-  );
-}
 
 const ENDOWMENT_FILTER_DEFAULTS: Record<string, string | undefined> = {
   search: undefined,

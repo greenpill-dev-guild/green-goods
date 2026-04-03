@@ -11,7 +11,7 @@ import {
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useIntl } from "react-intl";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, within } from "storybook/test";
 
 // ─── Mock Sidebar ────────────────────────────────────────────────────
 // The real Sidebar uses useAuth, useRole, useUIStore, useLocation, and

@@ -9,6 +9,7 @@ import { IHypercertMinter } from "../interfaces/IHypercertExchange.sol";
 import { OrderStructs } from "../interfaces/IHypercertExchange.sol";
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { ArrayLengthMismatch } from "../errors/CommonErrors.sol";
 
 /// @notice Minimal interface for HypercertMarketplaceAdapter (avoids circular import)
 interface IMarketplaceAdapter {
@@ -53,7 +54,6 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
     error Unauthorized(address caller);
     error NotActive();
     error InvalidHypercert(uint256 hypercertId);
-    error ArrayLengthMismatch();
     error ZeroAddress(string paramName);
 
     // ═══════════════════════════════════════════════════════════════════════════
