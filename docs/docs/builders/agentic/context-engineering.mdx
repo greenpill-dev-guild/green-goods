@@ -4,7 +4,7 @@ sidebar_label: Context Engineering
 slug: /builders/agentic/context-engineering
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-03
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -18,7 +18,7 @@ graph TB
         L2["Layer 2: AGENTS.md\nAlways loaded — invariants, scope constraints"]
         L3["Layer 3: context/*.md\nPer-package — shared, contracts, client, etc."]
         L4["Layer 4: rules/*.md\nPath-scoped — typescript, contracts, frontend"]
-        L5["Layer 5: skills/*\nPer-agent — 40+ domain skill sets"]
+        L5["Layer 5: skills/*\nPer-agent — active skills + archived refs"]
     end
 
     L1 --> L2 --> L3 --> L4 --> L5
@@ -37,13 +37,12 @@ The `.claude/` directory is the central context store for all agent tooling:
   agents/          # Agent specifications (6 agents)
   context/         # Package and domain context files
   rules/           # Path-scoped coding rules
-  skills/          # Modular instruction sets (40+ skills)
+  skills/          # 19 active top-level skill dirs + _archived references
   plans/           # Saved plans from agent PLAN phases
   registry/        # Skill bundles and activation configs
   scripts/         # Guidance consistency checks
   specs/           # Detailed feature specifications
   standards/       # Code standards documentation
-  agent-memory/    # Persistent agent memory (per-agent)
   evals/           # Agent evaluation criteria
   hooks.json       # Tool execution hooks
   settings.json    # Global agent settings
@@ -92,14 +91,11 @@ Each agent's specification lists the skills it needs. Skills provide detailed ho
 
 ## Session Continuity
 
-### Agent Memory
+### Repository Memory Surfaces
 
-Each agent has persistent memory at `.claude/agent-memory/{agent-name}/`. The `MEMORY.md` file in each directory is loaded into the agent's system prompt on every session, providing cross-session learning.
+This repository does not currently commit a `.claude/agent-memory/` tree. In-repo continuity currently comes from checkpoint artifacts such as `session-state.md`, `tests.json`, `.plans/`, and automation memory files outside the repo.
 
-Memory guidelines:
-- Save stable patterns confirmed across multiple interactions
-- Save solutions to recurring problems
-- Do not save session-specific context or speculative conclusions
+Treat any tool-local memory store as environment-specific unless it is explicitly checked into the repository.
 
 ### Session State
 

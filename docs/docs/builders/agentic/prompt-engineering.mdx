@@ -4,7 +4,7 @@ sidebar_label: Prompt Engineering
 slug: /builders/agentic/prompt-engineering
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-03
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -21,7 +21,7 @@ graph TB
         S1["testing"]
         S2["react"]
         S3["contracts"]
-        S4["40+ more..."]
+        S4["ui, ops,\nweb3, data-layer..."]
     end
 
     Spec -->|loads| Skills
@@ -54,7 +54,7 @@ description: Implements complex features using strict TDD workflow.
 model: opus
 tools: [Read, Glob, Grep, Edit, Write, Bash, Task]
 memory: project
-skills: [testing, react, contracts, error-handling-patterns]
+skills: [testing, react, contracts]
 maxTurns: 50
 ---
 ```
@@ -67,14 +67,14 @@ The specification includes:
 
 ## Skill System
 
-Skills are modular instruction sets in `.claude/skills/`. Each skill provides domain-specific patterns and constraints. The project has 40+ skills covering areas like:
+Skills are modular instruction sets in `.claude/skills/`. Each skill provides domain-specific patterns and constraints. The current repo has 19 active top-level skill directories, plus historical wrappers in `_archived/`, covering areas like:
 
 - `testing` -- TDD workflow, test adequacy checklist
 - `react` -- Hook patterns, component conventions
 - `contracts` -- Solidity patterns, deployment scripts
-- `error-handling-patterns` -- Error parsing, user-friendly messages
-- `storybook` -- CSF3 format, story organization
-- `tailwindcss` -- Theme tokens, responsive patterns
+- `ui` -- Storybook, Radix, Tailwind, accessibility, i18n, Mermaid guidance
+- `ops` -- Deployment pipeline, CI/CD, git workflow, dependency management
+- `data-layer` -- Offline storage, sync, service worker patterns
 
 Skills are activated by listing them in an agent's `skills` array. Multiple skills compose additively.
 
