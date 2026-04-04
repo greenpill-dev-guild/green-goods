@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "APP_ENV=development varlock run --path ../../.env.schema -- bun --watch src/index.ts",
     "start": "APP_ENV=development varlock run --path ../../.env.schema -- bun src/index.ts",
+    "test": "vitest run",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "bun --bun run oxlint src"
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.2.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }
