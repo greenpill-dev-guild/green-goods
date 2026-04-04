@@ -12,7 +12,7 @@ describe("JobQueue", () => {
 
   beforeEach(() => {
     executeFn = vi.fn().mockResolvedValue({ ok: true });
-    queue = new JobQueue(executeFn);
+    queue = new JobQueue(executeFn as (job: OpsJob, logger: JobLogger) => Promise<Record<string, unknown>>);
   });
 
   describe("create", () => {

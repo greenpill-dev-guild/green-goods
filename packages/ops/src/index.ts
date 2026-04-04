@@ -12,6 +12,8 @@ import {
   PORT,
   SCRIPT_DEFINITIONS,
   allowedOrigins,
+  type OpsJob,
+  type JobLogger,
 } from "./types";
 import { JobQueue } from "./job-queue";
 import {
