@@ -37,3 +37,6 @@ export const DEFAULT_RETRY_DELAY = 1000; // 1 second
 
 /** Delay for follow-up query invalidation to handle indexer lag */
 export const INDEXER_LAG_FOLLOWUP_MS = 2000 as const;
+
+/** Progressive invalidation delays for indexer lag (strictly increasing) */
+export const INDEXER_LAG_SCHEDULE_MS = [2_000, 5_000, 15_000] as const;
