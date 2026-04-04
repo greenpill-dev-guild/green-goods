@@ -3,7 +3,7 @@ import React from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ActionDetail from "@/views/Actions/ActionDetail";
-import enMessages from "../../../../shared/src/i18n/en.json";
+import { en as enMessages } from "@green-goods/shared";
 
 const mockUseActions = vi.fn();
 

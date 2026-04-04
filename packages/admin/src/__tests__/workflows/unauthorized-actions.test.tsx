@@ -3,7 +3,7 @@ import React from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Gardens from "@/views/Gardens";
-import enMessages from "../../../../shared/src/i18n/en.json";
+import { en as enMessages } from "@green-goods/shared";
 
 // Mock the shared barrel — Gardens imports from @green-goods/shared directly
 const mockUseGardens = vi.fn();

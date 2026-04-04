@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import enMessages from "@green-goods/shared/i18n/en";
+import { en as enMessages } from "@green-goods/shared";
 
 import { GardenStatsGrid } from "../../../components/Garden/GardenStatsGrid";
 

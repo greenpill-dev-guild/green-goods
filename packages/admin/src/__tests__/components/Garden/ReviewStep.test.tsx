@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import enMessages from "@green-goods/shared/i18n/en";
+import { en as enMessages } from "@green-goods/shared";
 
 import { resetCreateGardenStore, useCreateGardenStore } from "@green-goods/shared";
 import { ReviewStep } from "../../../components/Garden/CreateGardenSteps/ReviewStep";

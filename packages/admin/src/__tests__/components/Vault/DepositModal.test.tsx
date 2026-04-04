@@ -70,8 +70,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       mutate: vi.fn(),
       reset: vi.fn(),
     }),
-    TxInlineFeedback: () => null,
-    getDepositLimitLabel: () => "Unlimited",
     useVaultPreview: () => ({
       preview: {
         maxDeposit: 10_000_000_000_000_000_000n,
@@ -85,6 +83,10 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 
 vi.mock("@/components/ConnectButton", () => ({
   ConnectButton: () => <div />,
+}));
+
+vi.mock("@/components/feedback/TxInlineFeedback", () => ({
+  TxInlineFeedback: () => null,
 }));
 
 vi.mock("@/components/ui/Button", () => ({
@@ -103,7 +105,11 @@ vi.mock("@/components/ui/Alert", () => ({
   ),
 }));
 
-import { DepositModal } from "./DepositModal";
+vi.mock("@/components/Vault/depositLimit", () => ({
+  getDepositLimitLabel: () => "Unlimited",
+}));
+
+import { DepositModal } from "../../../components/Vault/DepositModal";
 
 describe("DepositModal", () => {
   it("pins wallet balance and gas reads to the selected vault chain", () => {
@@ -185,9 +191,11 @@ describe("DepositModal", () => {
   it("renders deposit guidance info alert", () => {
     renderOpenModal();
 
-    expect(
-      screen.getByText(/Deposits earn yield through Aave lending\. Yield is automatically split/i)
-    ).toBeTruthy();
+    const alert = screen.getByTestId("alert");
+    expect(alert).toBeTruthy();
+    expect(alert.getAttribute("data-variant")).toBe("info");
+    expect(alert.textContent).toContain("Aave");
+    expect(alert.textContent).toContain("yield");
   });
 
   it("renders network hint with selected asset symbol", () => {
