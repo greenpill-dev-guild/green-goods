@@ -138,7 +138,7 @@
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vite": "^7.3.1",
+    "vite": "^7.3.2",
     "vite-plugin-mkcert": "^1.17.9",
     "vitest": "^4.0.18",
     "wait-port": "1.1.0"
