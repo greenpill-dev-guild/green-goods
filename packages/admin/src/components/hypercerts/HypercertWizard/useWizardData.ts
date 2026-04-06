@@ -6,7 +6,6 @@ import {
   type HypercertAttestation,
   logger,
   prefillMetadataFromAssessment,
-  TOTAL_UNITS,
   toastService,
   useAdminStore,
   useAuth,

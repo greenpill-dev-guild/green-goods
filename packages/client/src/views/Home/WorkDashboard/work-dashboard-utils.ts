@@ -1,5 +1,4 @@
-import type { Address, Work } from "@green-goods/shared";
-import { compareAddresses } from "@green-goods/shared";
+import { type Address, type Work, compareAddresses } from "@green-goods/shared";
 
 /**
  * Combine offline queue work with recent online work, deduplicate, and sort.

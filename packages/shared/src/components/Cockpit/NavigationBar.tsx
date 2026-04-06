@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
 import { useEventListener } from "../../hooks/utils/useEventListener";
@@ -100,7 +100,6 @@ export function NavigationBar({
 
   return (
     <nav
-      role="navigation"
       aria-label={navLabel}
       className={cn(
         // Base — always floating, z-30
