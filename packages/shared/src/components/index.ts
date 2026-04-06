@@ -61,8 +61,6 @@ export { TxInlineFeedback } from "./feedback/TxInlineFeedback";
 export {
   BottomSheet,
   type BottomSheetProps,
-  FloatingToolbar,
-  type FloatingToolbarProps,
   type ToolbarSlot,
   GardenChip,
   type GardenChipProps,

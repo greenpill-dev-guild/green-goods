@@ -12,17 +12,25 @@ foundations.
 
 - Read `DESIGN_SYSTEM.md` before changing routes, layouts, or page structure.
 - The canonical shell is `CockpitLayout`.
+- Wave 3 shell is a 3-region layout: `TopContextBar` at the top, `.workspace-canvas` as the main workspace, and a bottom-floating `NavigationBar`.
+- `TopContextBar` is the sticky `z-40 h-14` context region: `GardenChip` on the left; desktop search, settings, and `UserAvatar` on the right.
+- `NavigationBar` is pure navigation only. Use the canonical items `Work`, `Garden`, `Community`, and `Actions`; do not add leading or trailing slots.
+- `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
+- Shared owns `TopContextBar`, `NavigationBar`, `GardenChip`, `SideSheet`, `BottomSheet`, and `SheetErrorBoundary`. Admin owns `CockpitLayout`, `SettingsSheet`, `UserAvatar`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
 - Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
+- Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
 - Use admin `SettingsSheet` for cockpit settings flows; otherwise prefer shared `SideSheet`.
 
 ## Preferred Primitives
 
 - `TopContextBar`
-- `FloatingToolbar`
+- `NavigationBar`
 - `GardenChip`
 - `CommandPalette`
 - `SettingsSheet`
+- `UserAvatar`
+- `ConnectShell`
 - `SideSheet`
 - `PageHeader`
 - `ListToolbar`

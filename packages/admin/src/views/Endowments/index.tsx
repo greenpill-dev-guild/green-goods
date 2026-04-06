@@ -292,7 +292,7 @@ export default function EndowmentsOverview() {
         </section>
 
         {!yieldLoading && yieldSummary.allocationCount > 0 && (
-          <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+          <section className="surface-section">
             <h2 className="font-heading text-lg font-semibold text-text-strong">
               {formatMessage({ id: "app.yield.protocolBreakdown" })}
             </h2>
@@ -374,7 +374,7 @@ export default function EndowmentsOverview() {
         </h2>
         <ImpactFunders />
 
-        <section className="space-y-3 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+        <section className="space-y-3 surface-section">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="font-heading text-lg font-semibold text-text-strong">

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
 import { useEventListener } from "../../hooks/utils/useEventListener";
@@ -12,10 +12,6 @@ export interface NavigationBarProps {
   slots: ToolbarSlot[];
   activePath: string;
   onNavigate: (path: string) => void;
-  /** Optional leading content (e.g., GardenChip) — visible on desktop only */
-  leading?: React.ReactNode;
-  /** Optional trailing content (e.g., UserMenu) — visible on desktop only */
-  trailing?: React.ReactNode;
 }
 
 // ----------------------------------------------------------------------------
@@ -66,7 +62,7 @@ function NavItem({ slot, isActive, onNavigate, label }: NavItemProps) {
 /**
  * MD3-style floating navigation bar.
  *
- * - Desktop (>=600px): Centered floating pill at bottom with leading/trailing slots
+ * - Desktop (>=600px): Centered floating pill at bottom
  * - Mobile (<600px): Full-width bar at bottom with safe-area inset
  * - Always shows icon + label (no tooltip-only pattern)
  * - Single DOM tree — no separate desktop/mobile navs
@@ -74,13 +70,7 @@ function NavItem({ slot, isActive, onNavigate, label }: NavItemProps) {
  *
  * Replaces FloatingToolbar (deprecated).
  */
-export function NavigationBar({
-  slots,
-  activePath,
-  onNavigate,
-  leading,
-  trailing,
-}: NavigationBarProps) {
+export function NavigationBar({ slots, activePath, onNavigate }: NavigationBarProps) {
   const { formatMessage } = useIntl();
   const visibleSlots = slots.filter((s) => s.visible);
 
@@ -123,13 +113,6 @@ export function NavigationBar({
         keyboardOpen && "max-[599px]:hidden"
       )}
     >
-      {/* Leading slot — desktop only */}
-      {leading && (
-        <div className="hidden min-[600px]:flex items-center pr-1 border-r border-stroke-soft mr-1">
-          {leading}
-        </div>
-      )}
-
       {/* Nav items — always visible */}
       {visibleSlots.map((slot) => (
         <NavItem
@@ -140,13 +123,6 @@ export function NavigationBar({
           label={formatMessage({ id: slot.labelId })}
         />
       ))}
-
-      {/* Trailing slot — desktop only */}
-      {trailing && (
-        <div className="hidden min-[600px]:flex items-center pl-1 border-l border-stroke-soft ml-1">
-          {trailing}
-        </div>
-      )}
     </nav>
   );
 }

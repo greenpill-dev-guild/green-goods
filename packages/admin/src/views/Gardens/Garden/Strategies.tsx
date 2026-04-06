@@ -108,7 +108,7 @@ export default function GardenStrategiesView() {
       <div className="mx-auto mt-6 max-w-4xl space-y-6 px-4 sm:px-6">
         {/* Stats */}
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+          <div className="surface-inset">
             <p className="text-xs text-text-soft">
               {formatMessage({ id: "app.conviction.strategies" })}
             </p>
@@ -128,7 +128,7 @@ export default function GardenStrategiesView() {
         )}
 
         {/* Strategy list */}
-        <section className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
+        <section className="surface-inset p-0">
           <div className="border-b border-stroke-soft p-4 sm:p-6">
             <h3 className="text-base font-medium text-text-strong sm:text-lg">
               {formatMessage({ id: "app.conviction.strategies" })}

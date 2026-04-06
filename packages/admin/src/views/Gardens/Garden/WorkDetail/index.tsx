@@ -148,7 +148,7 @@ export default function WorkDetail() {
           {/* ─── Left column: Evidence + Details (scrollable) ─── */}
           <div className="space-y-4 lg:col-span-3">
             {/* Media Evidence */}
-            <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+            <section className="surface-inset sm:p-6">
               <MediaEvidence
                 media={work.media}
                 audioNoteCids={audioNoteCids}

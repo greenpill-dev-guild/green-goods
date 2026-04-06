@@ -221,7 +221,7 @@ export default function GardenSignalPoolView() {
           <>
             {/* Stats */}
             <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+              <div className="surface-inset">
                 <p className="text-xs text-text-soft">
                   {formatMessage({ id: "app.conviction.poolAddress" })}
                 </p>
@@ -229,7 +229,7 @@ export default function GardenSignalPoolView() {
                   {formatAddress(poolAddress, { variant: "card" })}
                 </p>
               </div>
-              <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+              <div className="surface-inset">
                 <p className="text-xs text-text-soft">
                   {formatMessage({ id: countKey }, { count: 0 }).replace(/^0\s*/, "")}
                 </p>
@@ -239,7 +239,7 @@ export default function GardenSignalPoolView() {
                     : registeredIds.length}
                 </p>
               </div>
-              <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+              <div className="surface-inset">
                 <p className="text-xs text-text-soft">
                   {formatMessage({ id: "app.signal.conviction" })}
                 </p>
@@ -254,7 +254,7 @@ export default function GardenSignalPoolView() {
             </section>
 
             {/* Conviction weights */}
-            <section className="rounded-lg border border-stroke-soft bg-bg-white shadow-sm">
+            <section className="surface-inset p-0">
               <div className="border-b border-stroke-soft p-4 sm:p-6">
                 <h3 className="text-base font-medium text-text-strong sm:text-lg">
                   {formatMessage({ id: "app.signal.conviction" })}

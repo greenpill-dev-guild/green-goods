@@ -1,10 +1,8 @@
-export { Breadcrumbs } from "./Breadcrumbs";
 export { CockpitLayout } from "./CockpitLayout";
 export { CockpitWorkspaceSelectionState } from "./CockpitWorkspaceSelectionState";
 export { CommandPalette } from "./CommandPalette";
-export { DashboardLayout } from "./DashboardLayout";
-export { Header } from "./Header";
+export { ConnectShell } from "./ConnectShell";
 export { PageHeader } from "./PageHeader";
 export { SettingsSheet } from "./SettingsSheet";
-export { Sidebar } from "./Sidebar";
-export { UserProfile } from "./UserProfile";
+export { UserAvatar } from "./UserAvatar";
+export { UserMenu } from "./UserMenu";

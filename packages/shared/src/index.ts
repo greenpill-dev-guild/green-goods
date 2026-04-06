@@ -13,7 +13,6 @@ export type {
   BadgeProps,
   BadgeVariantProps,
   BottomSheetProps,
-  FloatingToolbarProps,
   GardenChipProps,
   NavigationBarProps,
   ConfidenceSelectorProps,
@@ -71,7 +70,6 @@ export {
   BottomSheet,
   Card,
   surfaceCardVariants,
-  FloatingToolbar,
   GardenChip,
   NavigationBar,
   ConfidenceSelector,
@@ -553,6 +551,7 @@ export {
   AppKitProvider,
   AppProvider,
   // Unified auth provider (supports both passkey and wallet)
+  AuthGate,
   AuthProvider,
   // Job Queue & Work
   JobQueueProvider,

@@ -242,7 +242,7 @@ export default function GardenDetail() {
         />
         <div className="mt-6 px-6" role="status" aria-live="polite">
           <span className="sr-only">{formatMessage({ id: "app.garden.admin.loadingGarden" })}</span>
-          <div className="space-y-4 rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+          <div className="space-y-4 surface-inset p-6">
             <div className="h-8 w-1/4 rounded skeleton-shimmer" />
             <div className="h-44 rounded skeleton-shimmer" style={{ animationDelay: "0.1s" }} />
             <div className="grid grid-cols-1 gap-3 xs:grid-cols-2 md:grid-cols-4">

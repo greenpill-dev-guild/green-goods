@@ -1,7 +1,7 @@
 import {
   AppKitProvider,
   AppProvider,
-  AuthProvider,
+  AuthGate,
   DEFAULT_CHAIN_ID,
   ErrorBoundary,
   initGlobalErrorHandlers,
@@ -61,12 +61,12 @@ export const Root = () => (
         }}
         defaultChainId={DEFAULT_CHAIN_ID}
       >
-        {/* Single AuthProvider handles both passkey and wallet auth */}
-        <AuthProvider>
+        {/* AuthGate: uses DevAuthProvider when ?mockAuth= param is present in dev, else real AuthProvider */}
+        <AuthGate>
           <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}>
             <App />
           </AppProvider>
-        </AuthProvider>
+        </AuthGate>
       </AppKitProvider>
     </ErrorBoundary>
   </PersistQueryClientProvider>

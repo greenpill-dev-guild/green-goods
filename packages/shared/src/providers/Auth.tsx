@@ -110,9 +110,9 @@ export interface AuthActionsValue {
  */
 export interface AuthContextType extends AuthStateValue, AuthActionsValue {}
 
-const AuthStateContext = createContext<AuthStateValue | undefined>(undefined);
-const AuthActionsContext = createContext<AuthActionsValue | undefined>(undefined);
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthStateContext = createContext<AuthStateValue | undefined>(undefined);
+export const AuthActionsContext = createContext<AuthActionsValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ============================================================================
 // HOOKS

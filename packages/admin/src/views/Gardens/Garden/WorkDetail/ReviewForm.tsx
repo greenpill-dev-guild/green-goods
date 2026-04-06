@@ -180,7 +180,7 @@ export function ReviewForm({
     <div className="lg:col-span-2">
       <div className="lg:sticky lg:top-24">
         <ErrorBoundary context="WorkDetail.ReviewForm">
-          <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+          <section className="surface-inset sm:p-6">
             <h3 className="text-base font-semibold text-text-strong">
               {isReviewed
                 ? formatMessage({ id: "app.work.detail.reviewSummary" })

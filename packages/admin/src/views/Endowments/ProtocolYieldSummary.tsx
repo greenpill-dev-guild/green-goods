@@ -31,7 +31,7 @@ export function ProtocolYieldSummary({
   const { formatMessage } = useIntl();
 
   return (
-    <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+    <section className="surface-section">
       <h2 className="font-heading text-lg font-semibold text-text-strong">
         {formatMessage({ id: "app.yield.protocolBreakdown" })}
       </h2>

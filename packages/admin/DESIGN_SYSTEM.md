@@ -15,10 +15,10 @@ This document is the contract for the admin cockpit UI.
   - form fields and selects
   - buttons, alerts, empty states, status badges
   - reusable cards and dialog shells
-  - cockpit foundations such as `TopContextBar`, `FloatingToolbar`, `GardenChip`, and `SideSheet`
+  - cockpit foundations such as `TopContextBar`, `NavigationBar`, `GardenChip`, `SideSheet`, `BottomSheet`, and `SheetErrorBoundary`
   - Storybook documentation for foundations
 - `packages/admin` owns admin-specific composites:
-  - `CockpitLayout`, `CommandPalette`, and `SettingsSheet`
+  - `CockpitLayout`, `SettingsSheet`, `UserAvatar`, `ConnectShell`, `CommandPalette`, and `PageHeader`
   - page headers and shell composition
   - garden-detail hero, rails, and workbench compositions
   - domain workflows and feature-specific screens
@@ -28,16 +28,19 @@ If a pattern appears across multiple admin page families, it belongs in `shared`
 ## Codex Defaults
 
 - Canonical shell: `CockpitLayout`
+- Wave 3 shell contract: `TopContextBar + .workspace-canvas + NavigationBar`
 - Legacy for new work: `DashboardLayout`, `Sidebar`, `Header`
 - Prefer shared/admin primitives before inventing new shell or surface patterns.
 
 ## Preferred Primitives
 
 - `TopContextBar`
-- `FloatingToolbar`
+- `NavigationBar`
 - `GardenChip`
 - `CommandPalette`
 - `SettingsSheet`
+- `UserAvatar`
+- `ConnectShell`
 - `SideSheet`
 - `PageHeader`
 - `ListToolbar`
@@ -47,6 +50,13 @@ If a pattern appears across multiple admin page families, it belongs in `shared`
 - `StatusBadge`
 - `FormField`
 - `DialogShell`
+
+## Surface Primitives
+
+- `.surface-section` creates a rounded-xl, full-width page grouping with responsive padding.
+- `.surface-inset` creates rounded-lg nested panels inside a section.
+- `.surface-card` creates rounded-lg interactive tiles with hover elevation.
+- `.workspace-canvas` is the main workspace background treatment with the cockpit dot-grid canvas.
 
 ## Page Families
 
@@ -107,9 +117,14 @@ Green Goods should not fork Material primitives. It should infuse the system thr
 
 ## Shell Contract
 
-- `CockpitLayout` is the canonical shell: `TopContextBar` for context, `FloatingToolbar` for primary navigation, and route content in the main workspace.
-- `CommandPalette` and `SettingsSheet` or `SideSheet` handle global search, settings, and secondary flows.
+- `CockpitLayout` is the canonical Wave 3 shell with three regions: sticky `TopContextBar` (`z-40`, `h-14`) at the top, `.workspace-canvas` for the main workspace, and bottom-floating `NavigationBar` (`z-30`).
+- `TopContextBar` renders `GardenChip` on the left and desktop search, settings, and `UserAvatar` on the right.
+- `NavigationBar` is pure navigation only. It accepts `slots`, `activePath`, and `onNavigate`; it does not take leading or trailing slots. The canonical items are `Work`, `Garden`, `Community`, and `Actions`.
+- `UserAvatar` is a 40px circular button that shows the role initial (`D`, `O`, or `U`) and opens `SettingsSheet`.
+- `ConnectShell` is the disconnected full-screen shell with a centered connect prompt and no navigation.
+- `CommandPalette` and `SettingsSheet` handle global search and cockpit settings; shared sheets such as `SideSheet` support secondary flows.
 - Sticky headers are allowed where they improve task continuity.
+- Sticky `PageHeader` variants use `backdrop-blur-lg` and `shadow-elevation-1`.
 - Chain, role, and status context must stay legible without relying on color alone.
 - Top-level pages should feel like members of one system, not bespoke one-off compositions.
 

@@ -1,6 +1,7 @@
 import {
   GardenChip,
   NavigationBar,
+  TopContextBar,
   useAdminStore,
   useAuth,
   useEffectiveToolbarPermissions,
@@ -9,27 +10,21 @@ import {
   useStaleGardenGuard,
   type ToolbarSlot,
 } from "@green-goods/shared";
-import {
-  RiClipboardLine,
-  RiHammerFill,
-  RiSearchLine,
-  RiSeedlingLine,
-  RiTeamLine,
-} from "@remixicon/react";
+import { RiClipboardLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CommandPalette } from "./CommandPalette";
 import { SettingsSheet } from "./SettingsSheet";
-import { UserMenu } from "./UserMenu";
+import { UserAvatar } from "./UserAvatar";
 import { PageTransition } from "../ui/PageTransition";
 
 /**
- * Cockpit layout — floating navigation bar at bottom, no header.
+ * Cockpit layout — top context bar above the main workspace and floating navigation below.
  *
- * - Desktop: Centered floating nav pill with GardenChip (leading) + UserMenu (trailing)
- * - Mobile: Full-width bottom bar; GardenChip and search float at top
- * - No sidebar, no header, no layout shift
+ * - TopContextBar renders garden context, search, settings, and avatar
+ * - NavigationBar stays focused on route navigation only
+ * - No sidebar, no legacy header, no layout shift
  *
  * Paradigm: Command Surface — thick material, controls visible and ready.
  */
@@ -131,6 +126,8 @@ export function CockpitLayout() {
     />
   );
 
+  const userAvatarNode = <UserAvatar onOpenSettings={() => setSettingsOpen(true)} />;
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg-weak">
       {/* Skip to content */}
@@ -144,28 +141,18 @@ export function CockpitLayout() {
         })}
       </a>
 
-      {/* Mobile floating controls — GardenChip (top-left) + Search (top-right) */}
-      <div className="fixed top-3 left-3 z-30 min-[600px]:hidden">{gardenChipNode}</div>
-      <button
-        type="button"
-        onClick={handleOpenSearch}
-        aria-label={intl.formatMessage({
-          id: "cockpit.topBar.openSearch",
-          defaultMessage: "Search",
-        })}
-        className="fixed top-3 right-3 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-bg-soft/95 shadow-sm backdrop-blur min-[600px]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-      >
-        <RiSearchLine className="h-5 w-5 text-text-sub" />
-      </button>
-
-      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
-      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <TopContextBar
+        gardenChip={gardenChipNode}
+        onOpenSearch={handleOpenSearch}
+        onOpenSettings={() => setSettingsOpen(true)}
+        userAvatar={userAvatarNode}
+      />
 
       {/* Main content — no left padding offset, bottom padding for nav clearance */}
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 overflow-y-auto pb-24 max-[599px]:pb-20 main-scroll-area"
+        className="flex-1 overflow-y-auto pb-24 max-[599px]:pb-20 main-scroll-area workspace-canvas"
         style={{
           overscrollBehaviorY: "contain",
           WebkitOverflowScrolling: "touch",
@@ -174,14 +161,15 @@ export function CockpitLayout() {
         <PageTransition />
       </main>
 
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+      <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
       {/* Floating navigation bar */}
       {isAuthenticated && (
         <NavigationBar
           slots={slots}
           activePath={activePath}
           onNavigate={(path) => navigate(path)}
-          leading={gardenChipNode}
-          trailing={<UserMenu onOpenSettings={() => setSettingsOpen(true)} />}
         />
       )}
     </div>

@@ -175,7 +175,7 @@ export default function HypercertDetail() {
               </div>
             )}
 
-            <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+            <section className="surface-inset p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-3">
@@ -240,7 +240,7 @@ export default function HypercertDetail() {
             </section>
 
             {hypercert.imageUri && (
-              <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+              <section className="surface-inset p-6">
                 <h3 className="text-sm font-semibold text-text-strong">
                   {formatMessage({ id: "app.hypercerts.detail.image" })}
                 </h3>
@@ -255,7 +255,7 @@ export default function HypercertDetail() {
             )}
 
             {hypercert.workScopes?.length ? (
-              <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+              <section className="surface-inset p-6">
                 <h3 className="text-sm font-semibold text-text-strong">
                   {formatMessage({ id: "app.hypercerts.detail.workScopes" })}
                 </h3>
@@ -275,7 +275,7 @@ export default function HypercertDetail() {
             )}
 
             {hypercert.attestations && hypercert.attestations.length > 0 && (
-              <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+              <section className="surface-inset p-6">
                 <h3 className="text-sm font-semibold text-text-strong">
                   {formatMessage({ id: "app.hypercerts.detail.attestationRefs" })}
                 </h3>
@@ -296,7 +296,7 @@ export default function HypercertDetail() {
             )}
 
             {hypercert.allowlistEntries && hypercert.allowlistEntries.length > 0 && (
-              <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+              <section className="surface-inset p-6">
                 <h3 className="text-sm font-semibold text-text-strong">
                   {formatMessage({ id: "app.hypercerts.detail.claims" })}
                 </h3>
@@ -327,7 +327,7 @@ export default function HypercertDetail() {
             )}
 
             {!hypercert.allowlistEntries?.length && (
-              <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm text-sm text-text-sub">
+              <section className="surface-inset p-6 text-sm text-text-sub">
                 {formatMessage({ id: "app.hypercerts.detail.noClaims" })}
               </section>
             )}
@@ -366,7 +366,7 @@ function MarketplaceSection({
 
   return (
     <>
-      <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+      <section className="surface-inset p-6">
         <div className="flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-text-strong">
             <RiExchangeDollarLine className="h-4 w-4 text-primary-base" />
@@ -440,7 +440,7 @@ function MarketplaceSection({
 
       {/* Trade History */}
       {hypercertId > 0n && (
-        <section className="rounded-lg border border-stroke-soft bg-bg-white p-6 shadow-sm">
+        <section className="surface-inset p-6">
           <h3 className="mb-4 text-sm font-semibold text-text-strong">
             {formatMessage({ id: "app.hypercerts.marketplace.tradeHistory" })}
           </h3>

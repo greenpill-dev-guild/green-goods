@@ -22,7 +22,7 @@ export function SubmissionDetails({
   const { formatMessage } = useIntl();
 
   return (
-    <section className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-6">
+    <section className="surface-inset sm:p-6">
       <h3 className="text-sm font-semibold text-text-strong">
         {formatMessage({ id: "app.work.detail.submissionDetails" })}
       </h3>

@@ -143,10 +143,7 @@ export default function Hypercerts() {
                 ? formatDate(record.mintedAt * 1000, { dateStyle: "medium" })
                 : formatMessage({ id: "app.hypercerts.list.dateUnknown" });
               return (
-                <div
-                  key={record.id}
-                  className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm"
-                >
+                <div key={record.id} className="surface-inset">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
                       <h3 className="text-base font-semibold text-text-strong">

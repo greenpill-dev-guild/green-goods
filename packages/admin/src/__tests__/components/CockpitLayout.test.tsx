@@ -8,10 +8,16 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
-const { mockUseGardenUrlSync, mockUseStaleGardenGuard, mockSetSelectedGarden } = vi.hoisted(() => ({
+const {
+  mockUseGardenUrlSync,
+  mockUseStaleGardenGuard,
+  mockSetSelectedGarden,
+  mockTopContextBarProps,
+} = vi.hoisted(() => ({
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
+  mockTopContextBarProps: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
@@ -21,18 +27,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     NavigationBar: ({
       slots,
       activePath,
-      leading,
-      trailing,
     }: {
       slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
       activePath: string;
-      leading?: React.ReactNode;
-      trailing?: React.ReactNode;
     }) => (
       <div data-testid="navigation-bar">
         <div data-testid="active-path">{activePath}</div>
-        {leading && <div data-testid="nav-leading">{leading}</div>}
-        {trailing && <div data-testid="nav-trailing">{trailing}</div>}
         <ul>
           {slots
             .filter((slot) => slot.visible)
@@ -43,8 +43,20 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       </div>
     ),
     GardenChip: () => <div>Garden Chip</div>,
-    // Keep TopContextBar mock as no-op in case anything still references it
-    TopContextBar: () => null,
+    TopContextBar: (props: {
+      gardenChip: React.ReactNode;
+      onOpenSearch?: () => void;
+      onOpenSettings?: () => void;
+      userAvatar?: React.ReactNode;
+    }) => {
+      mockTopContextBarProps(props);
+      return (
+        <div data-testid="top-context-bar">
+          <div data-testid="top-context-garden">{props.gardenChip}</div>
+          <div data-testid="top-context-avatar">{props.userAvatar}</div>
+        </div>
+      );
+    },
     useAdminStore: (
       selector: (state: {
         selectedGarden: null;
@@ -83,10 +95,6 @@ vi.mock("@/components/Layout/SettingsSheet", () => ({
   SettingsSheet: () => null,
 }));
 
-vi.mock("@/components/Layout/UserMenu", () => ({
-  UserMenu: () => <div data-testid="user-menu">User Menu</div>,
-}));
-
 vi.mock("@/components/ui/PageTransition", () => ({
   PageTransition: () => <div>Page Transition</div>,
 }));
@@ -111,16 +119,23 @@ describe("CockpitLayout", () => {
     expect(screen.getByTestId("active-path")).toHaveTextContent("/actions");
   });
 
-  it("renders NavigationBar with leading and trailing slots", () => {
+  it("renders TopContextBar above the main workspace and keeps NavigationBar pure", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/work"]}>
         <CockpitLayout />
       </MemoryRouter>
     );
 
+    expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("top-context-garden")).toHaveTextContent("Garden Chip");
+    expect(screen.getByTestId("top-context-avatar")).toHaveTextContent("O");
     expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
-    expect(screen.getByTestId("nav-leading")).toBeInTheDocument();
-    expect(screen.getByTestId("nav-trailing")).toBeInTheDocument();
+    expect(mockTopContextBarProps.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        onOpenSearch: expect.any(Function),
+        onOpenSettings: expect.any(Function),
+      })
+    );
   });
 
   it("does not apply pl-20 padding on main content", () => {

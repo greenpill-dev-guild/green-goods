@@ -268,7 +268,7 @@ export default function Gardens() {
                       {(() => {
                         const pending = pendingByGarden.get(garden.id.toLowerCase()) ?? 0;
                         return pending > 0 && gardenPermissions.canManageGarden(garden) ? (
-                          <span className="absolute top-2 left-2 z-[2] rounded-full bg-warning-lighter px-2 py-0.5 text-xs font-semibold text-warning-dark shadow-sm ring-1 ring-warning-light/50">
+                          <span className="absolute top-2 left-2 z-[2] badge-pill-amber">
                             {intl.formatMessage(
                               {
                                 id: "admin.gardens.pendingBadge",
@@ -280,7 +280,7 @@ export default function Gardens() {
                         ) : null;
                       })()}
                       {canManage && (
-                        <div className="absolute top-2 right-2 z-[2] flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark shadow-sm ring-1 ring-success-light/50">
+                        <div className="absolute top-2 right-2 z-[2] flex items-center badge-pill-green">
                           <RiShieldCheckLine className="mr-1 h-3 w-3" />
                           {intl.formatMessage({
                             id: "admin.gardens.operatorBadge",

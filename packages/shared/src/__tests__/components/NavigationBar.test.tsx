@@ -152,21 +152,6 @@ describe("NavigationBar", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("renders leading and trailing slots", () => {
-    render(
-      <NavigationBar
-        slots={createSlots()}
-        activePath="/dashboard"
-        onNavigate={() => {}}
-        leading={<div data-testid="leading-content">Garden Chip</div>}
-        trailing={<div data-testid="trailing-content">User Menu</div>}
-      />
-    );
-
-    expect(screen.getByTestId("leading-content")).toBeInTheDocument();
-    expect(screen.getByTestId("trailing-content")).toBeInTheDocument();
-  });
-
   it("uses aria-label from formatMessage on nav element", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 

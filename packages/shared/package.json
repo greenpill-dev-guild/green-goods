@@ -24,6 +24,8 @@
     "./providers": "./src/providers/index.ts",
     "./stores": "./src/stores/index.ts",
     "./styles": "./src/styles/theme.css",
+    "./styles/theme.css": "./src/styles/theme.css",
+    "./styles/utilities.css": "./src/styles/utilities.css",
     "./toast": "./src/components/toast.ts",
     "./types": "./src/types/index.ts",
     "./utils": "./src/utils/index.ts",

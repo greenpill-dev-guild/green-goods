@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap");
 @import "tailwindcss";
 @import "@green-goods/shared/styles/theme.css";
+@import "@green-goods/shared/styles/utilities.css";
 
 /* Configure dark mode to use data-theme attribute */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -257,16 +258,8 @@
 }
 
 /* ============================================================================
- * SKELETON LOADING - Shimmer Animation
+ * SKELETON LOADING - Uses shared shimmer keyframe from utilities.css
  * ============================================================================ */
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
 
 @keyframes fade-in-up {
   from {
@@ -478,9 +471,54 @@
   .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
   .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
   .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+  /* ── Surface Primitives ── */
+
+  /** Full-width section: page-level grouping */
+  .surface-section {
+    @apply rounded-xl border border-stroke-soft bg-bg-white shadow-sm;
+    @apply p-4 sm:p-5;
+  }
+
+  /** Inset panel: nested inside a section or grid cell */
+  .surface-inset {
+    @apply rounded-lg border border-stroke-soft bg-bg-white shadow-sm;
+    @apply p-4;
+  }
+
+  /** Compact card: metric tile, stat block */
+  .surface-card {
+    @apply rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm;
+    @apply transition-shadow duration-200 hover:shadow-md;
+  }
+}
+
+/* ============================================================================
+ * WORKSPACE CANVAS - Dot-grid treatment for cockpit main area
+ * ============================================================================ */
+.workspace-canvas {
+  background-color: rgb(var(--bg-weak-50));
+  background-image: radial-gradient(
+    circle,
+    rgb(var(--stroke-soft-200) / 0.4) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+
+[data-theme="dark"] .workspace-canvas {
+  background-image: radial-gradient(
+    circle,
+    rgb(var(--stroke-soft-200) / 0.15) 1px,
+    transparent 1px
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .workspace-canvas {
+    background-image: none;
+  }
+
   .skeleton-shimmer,
   .animate-pulse,
   .animate-spin,
@@ -500,69 +538,3 @@
   }
 }
 
-/* ============================================================================
- * NATIVE POPOVER STYLES
- * Per web.dev/learn/css/popover-and-dialog
- * Styles for hint, auto, and manual popovers
- * ============================================================================ */
-@layer utilities {
-  /* Base popover styles - hidden by default */
-  [popover] {
-    border: none;
-    padding: 0;
-    box-shadow: 0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
-  }
-
-  /* Popover open state with animation */
-  [popover]:popover-open {
-    opacity: 1;
-    transform: scale(1);
-    
-    /* Enable discrete animation for display property */
-    transition: 
-      opacity 0.2s ease-out,
-      transform 0.2s ease-out,
-      overlay 0.2s allow-discrete,
-      display 0.2s allow-discrete;
-  }
-
-  /* Starting styles for popover animation */
-  @starting-style {
-    [popover]:popover-open {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-  }
-
-  /* Closing animation */
-  [popover] {
-    opacity: 0;
-    transform: scale(0.95);
-    
-    transition: 
-      opacity 0.2s ease-in,
-      transform 0.2s ease-in,
-      overlay 0.2s allow-discrete,
-      display 0.2s allow-discrete;
-  }
-
-  /* Backdrop styles for auto popovers */
-  [popover]::backdrop {
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(4px);
-  }
-
-  [popover]:popover-open::backdrop {
-    opacity: 1;
-    transition: 
-      opacity 0.2s ease-out,
-      overlay 0.2s allow-discrete,
-      display 0.2s allow-discrete;
-  }
-
-  @starting-style {
-    [popover]:popover-open::backdrop {
-      opacity: 0;
-    }
-  }
-}

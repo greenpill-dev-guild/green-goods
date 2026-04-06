@@ -189,7 +189,7 @@ export default function GardenVaultView() {
 
       <div className="mx-auto mt-6 max-w-6xl space-y-6 px-4 sm:px-6">
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+          <div className="surface-inset">
             <p className="text-xs text-text-soft">
               {formatMessage({ id: "app.treasury.totalValueLocked" })}
             </p>
@@ -197,13 +197,13 @@ export default function GardenVaultView() {
               {formatTokenAmount(totalNetDeposited)} {tvlDenomination}
             </p>
           </div>
-          <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+          <div className="surface-inset">
             <p className="text-xs text-text-soft">
               {formatMessage({ id: "app.treasury.totalHarvests" })}
             </p>
             <p className="mt-1 text-xl font-semibold text-text-strong">{totalHarvestCount}</p>
           </div>
-          <div className="rounded-lg border border-stroke-soft bg-bg-white p-4 shadow-sm">
+          <div className="surface-inset">
             <p className="text-xs text-text-soft">
               {formatMessage({ id: "app.treasury.depositorCount" })}
             </p>
@@ -271,7 +271,7 @@ export default function GardenVaultView() {
         {!vaultsLoading && vaults.length > 0 && <GardenSupporters gardenAddress={gardenAddress} />}
 
         {!vaultsLoading && vaults.length > 0 && (
-          <section className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5">
+          <section className="surface-section">
             <h3 className="label-sm text-text-strong">
               {formatMessage({ id: "app.explorer.contractDetails" })}
             </h3>

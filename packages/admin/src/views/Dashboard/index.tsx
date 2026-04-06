@@ -149,7 +149,7 @@ export default function Dashboard() {
         <div className="mt-8">
           <PageHeader title={welcomeTitle} description={welcomeDescription} />
 
-          <div className="bg-bg-white rounded-lg shadow-sm transition-shadow duration-200 hover:shadow-md border border-stroke-soft p-6">
+          <div className="surface-card p-6">
             <h2 className="text-lg font-medium text-text-strong mb-4">
               {intl.formatMessage({
                 id: "admin.dashboard.quickActions",
