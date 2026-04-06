@@ -17,7 +17,7 @@ import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/c
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { type ToastActionOptions, useToastAction } from "../app/useToastAction";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /** Delay before refetching after transaction to allow indexer sync */

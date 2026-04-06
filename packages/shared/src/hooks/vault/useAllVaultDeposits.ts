@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getAllVaultDeposits } from "../../modules/data/vaults";
 import type { VaultDeposit } from "../../types/vaults";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 /** Stable empty array to avoid referential instability in downstream hooks. */
 const EMPTY_DEPOSITS: VaultDeposit[] = [];

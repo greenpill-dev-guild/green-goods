@@ -18,10 +18,7 @@ import { useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
-import {
-  TOTAL_UNITS,
-  validateAllowlist as validateAllowlistEntries,
-} from "../../lib/hypercerts";
+import { TOTAL_UNITS, validateAllowlist as validateAllowlistEntries } from "../../lib/hypercerts";
 import { getIpfsInitStatus } from "../../modules";
 import { logger } from "../../modules/app/logger";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
@@ -38,10 +35,7 @@ import {
   classifyTxError,
   isMeaningfulTxErrorMessage,
 } from "../../utils/errors/tx-error-classifier";
-import {
-  type MintHypercertInput,
-  mintHypercertMachine,
-} from "../../workflows/mintHypercert";
+import { type MintHypercertInput, mintHypercertMachine } from "../../workflows/mintHypercert";
 import { useAuth } from "../auth/useAuth";
 import { resolveHypercertContracts } from "./hypercert-contracts";
 import { TimeoutError } from "./hypercert-utils";

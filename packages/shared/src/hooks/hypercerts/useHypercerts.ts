@@ -11,7 +11,7 @@ import {
 import type { HypercertRecord, HypercertStatus } from "../../types/hypercerts";
 import { ValidationError } from "../../utils/errors/validation-error";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 /**
  * Sync status for newly minted hypercerts.

@@ -66,6 +66,8 @@ export {
   type ToolbarSlot,
   GardenChip,
   type GardenChipProps,
+  NavigationBar,
+  type NavigationBarProps,
   SheetErrorBoundary,
   type SheetErrorBoundaryProps,
   SideSheet,

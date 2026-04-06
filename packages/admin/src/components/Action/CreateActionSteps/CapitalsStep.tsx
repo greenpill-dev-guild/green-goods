@@ -85,10 +85,7 @@ export function CapitalsStep({ form }: CapitalsStepProps) {
         })}
         error={form.formState.errors.capitals?.message}
       >
-        <fieldset
-          id="create-action-capitals"
-          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-        >
+        <fieldset id="create-action-capitals" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {CAPITALS_OPTIONS.map((capital) => {
             const isChecked = capitals.includes(capital.value);
             return (

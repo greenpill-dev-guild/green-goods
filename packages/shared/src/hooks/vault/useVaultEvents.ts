@@ -3,7 +3,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getVaultEvents } from "../../modules/data/vaults";
 import type { Address } from "../../types/domain";
 import type { VaultEvent } from "../../types/vaults";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 interface UseVaultEventsOptions {
   chainId?: number;

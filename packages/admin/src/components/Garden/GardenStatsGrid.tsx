@@ -45,7 +45,7 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
     : null;
 
   return (
-    <section className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+    <section className="grid grid-cols-1 gap-3 xs:grid-cols-2 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
       <StatCard
         icon={<RiUserLine className="h-5 w-5" />}
         label={formatMessage({ id: "app.roles.gardener.plural" })}
@@ -110,7 +110,9 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
             <span className="inline-block h-6 w-20 rounded skeleton-shimmer align-middle" />
           ) : communityName ? (
             <span className="block">
-              <span className="block truncate text-base sm:text-lg">{communityName}</span>
+              <span className="block truncate text-base sm:text-lg" title={communityName}>
+                {communityName}
+              </span>
               {translatedCommunityLabel ? (
                 <span className="mt-1 block text-xs font-medium text-text-soft">
                   {translatedCommunityLabel}

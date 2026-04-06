@@ -10,7 +10,7 @@ import { logger } from "../../modules/app/logger";
 import { getRegisteredOrders } from "../../modules/data/marketplace";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { RegisteredOrderView } from "../../types/hypercerts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 export interface UseHypercertListingsResult {
   listings: RegisteredOrderView[];

@@ -1,27 +1,135 @@
 ---
 name: architecture
-user-invocable: false
-description: Architecture patterns (Clean, Hexagonal, DDD), entropy reduction, and module boundary design. Use when restructuring modules, reducing codebase complexity, making cross-cutting architectural decisions, or the user asks about system design.
-version: "1.0.0"
+user-invocable: true
+description: Analyze software architecture — map current structure, identify gaps, and provide actionable suggestions. Also serves as a patterns reference for Clean Architecture, DDD, and entropy reduction.
+version: "2.0.0"
 status: active
-packages: ["contracts", "shared", "client", "admin"]
+packages: ["contracts", "shared", "client", "admin", "indexer"]
 dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
+last_updated: "2026-04-03"
+last_verified: "2026-04-03"
 ---
 
 # Architecture Skill
 
-System design patterns and entropy reduction philosophy for maintainable codebases.
+Analyze the Green Goods codebase architecture: map current state, identify structural gaps, and provide actionable improvement suggestions. Also a reference for design patterns and entropy reduction.
 
 ---
 
-## Activation
+## Invocation
 
-When invoked:
-- Identify the smallest end-state codebase that solves the problem.
-- Look for deletion opportunities before adding new abstractions.
-- Validate against Green Goods core rules in `CLAUDE.md`.
+```
+/architecture                          # Full analysis (all packages)
+/architecture shared                   # Scope to one package
+/architecture --focus boundaries       # Focus on a specific lens
+/architecture --focus dependencies     # Dependency health only
+/architecture --focus complexity       # Complexity hotspots only
+```
+
+---
+
+## Analysis Workflow
+
+When invoked as `/architecture`, execute these phases in order. Output findings as chat — do NOT edit files (read-only session).
+
+### Phase 1: Structure Map
+
+Build a current-state map of the codebase. For each package in scope:
+
+1. **Module inventory** — list top-level modules/directories with a one-line purpose
+2. **Export surface** — count public exports vs internal modules (barrel health)
+3. **Dependency graph** — map which packages import from which, flag circular deps
+4. **Size profile** — approximate line counts per module to spot bloat
+
+Output as a table per package:
+
+```
+| Module | Purpose | Exports | Lines | Imports From |
+|--------|---------|---------|-------|-------------|
+```
+
+### Phase 2: Boundary Analysis
+
+Check module boundaries against Green Goods architecture principles:
+
+1. **Import discipline** — flag any deep imports bypassing `@green-goods/shared` barrels
+2. **Layer violations** — flag UI code in shared, business logic in components, framework code in domain
+3. **Bounded context bleed** — flag modules reaching into other modules' internals
+4. **Shared surface health** — are shared exports well-organized or becoming a junk drawer?
+
+Severity: `violation` (must fix) | `smell` (should investigate) | `note` (worth knowing)
+
+### Phase 3: Gap Analysis
+
+Identify structural gaps — things that are missing or misaligned:
+
+1. **Missing abstractions** — concrete dependencies where ports/adapters should exist
+2. **Orphaned code** — modules with no importers or unclear purpose
+3. **Inconsistent patterns** — same problem solved differently in different places
+4. **Missing boundaries** — logic that should be separated but isn't
+5. **Test coverage gaps** — modules with complex logic but no tests
+6. **Documentation gaps** — public APIs without clear contracts
+
+### Phase 4: Complexity Hotspots
+
+Find the areas most likely to cause problems:
+
+1. **High fan-in files** — files imported by many others (fragile change points)
+2. **High fan-out files** — files importing many others (coupling magnets)
+3. **Deep nesting** — modules with deep directory trees or call chains
+4. **God modules** — files over 500 lines or modules doing too many things
+5. **Churn candidates** — areas where the same patterns repeat (abstraction opportunities)
+
+### Phase 5: Recommendations
+
+Synthesize findings into prioritized, actionable suggestions:
+
+| Priority | Category | Suggestion | Effort | Impact |
+|----------|----------|-----------|--------|--------|
+| P1 | ... | ... | S/M/L | ... |
+
+Categories: `boundary`, `abstraction`, `deletion`, `consistency`, `testing`, `performance`
+
+Effort: `S` (< 1 hour), `M` (half day), `L` (multi-day)
+
+Group by theme. Lead with high-impact, low-effort wins. End with strategic suggestions that require planning.
+
+### Phase 6: Architecture Scorecard
+
+Rate the overall architecture health (1-5) across these dimensions:
+
+| Dimension | Score | Trend | Notes |
+|-----------|-------|-------|-------|
+| **Modularity** | ?/5 | ↑↓→ | Are boundaries clean? |
+| **Cohesion** | ?/5 | ↑↓→ | Do modules have single responsibilities? |
+| **Coupling** | ?/5 | ↑↓→ | Can modules change independently? |
+| **Simplicity** | ?/5 | ↑↓→ | Is complexity justified? |
+| **Consistency** | ?/5 | ↑↓→ | Same patterns everywhere? |
+| **Testability** | ?/5 | ↑↓→ | Can you test without infrastructure? |
+
+---
+
+## Focus Modes
+
+When `--focus` is specified, run only the relevant phase(s):
+
+| Focus | Phases |
+|-------|--------|
+| `boundaries` | Phase 2 + Phase 6 (modularity, cohesion, coupling) |
+| `dependencies` | Phase 1 (dependency graph) + Phase 2 (import discipline) |
+| `complexity` | Phase 4 + Phase 5 (hotspots → recommendations) |
+| `gaps` | Phase 3 + Phase 5 (gaps → recommendations) |
+| `scorecard` | Phase 6 only (quick health check) |
+
+---
+
+## Execution Notes
+
+- **Read-only**: This skill analyzes — it never edits files. Findings go to chat output.
+- **Use subagents**: For full analysis across all packages, spawn Explore agents in parallel per package.
+- **Respect scope**: When scoped to a package, only analyze that package and its immediate dependencies.
+- **Be specific**: Every finding must reference a file path and line range. No vague observations.
+- **Green Goods context**: Validate against the architecture defined in CLAUDE.md (offline-first, single-chain, barrel imports, shared hook boundary, deployment artifacts).
 
 ## Part 1: Reducing Entropy
 
@@ -307,3 +415,4 @@ class WorkSubmission {
 - `testing` — TDD workflow that drives architectural decisions
 - `react` (performance sub-file) — Bundle analysis and optimization that validate architecture
 - `migration` — Cross-package migration when architecture evolves
+- `principles` — SOLID/DRY/KISS/YAGNI audit that complements architecture analysis

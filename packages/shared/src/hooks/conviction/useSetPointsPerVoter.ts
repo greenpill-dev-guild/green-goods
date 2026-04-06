@@ -8,7 +8,7 @@ import { normalizeAddress } from "../../utils/blockchain/address";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 export function useSetPointsPerVoter() {

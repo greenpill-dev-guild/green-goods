@@ -9,7 +9,7 @@ import { createMutationErrorHandler } from "../../utils/errors/mutation-error-ha
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 type TxErrorMode = "toast" | "inline" | "auto";

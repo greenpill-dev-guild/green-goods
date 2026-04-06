@@ -19,7 +19,7 @@ import {
   STALE_TIME_MEDIUM,
   STALE_TIME_RARE,
   STALE_TIME_SLOW,
-} from "../../hooks/query-keys";
+} from "../../config/query-keys";
 import type { Address } from "../../types/domain";
 
 // ============================================

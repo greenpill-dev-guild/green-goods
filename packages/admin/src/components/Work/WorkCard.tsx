@@ -55,36 +55,50 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
         closePreview: intl.formatMessage({ id: "app.admin.work.closePreview" }),
       }}
       renderActions={() => (
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           {work.status === "pending" && canReview && (
             <>
               <Link
                 to={`/gardens/${work.gardenAddress}/work/${work.id}?action=approve`}
-                className="inline-flex items-center gap-0.5 rounded-md px-2 py-1 text-xs font-medium text-success-dark bg-success-lighter hover:bg-success-light transition-colors"
-                aria-label={intl.formatMessage({
-                  id: "app.admin.work.quickApprove",
-                  defaultMessage: "Quick approve",
-                })}
+                className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-success-dark bg-success-lighter hover:bg-success-light transition-colors"
+                aria-label={intl.formatMessage(
+                  {
+                    id: "app.admin.work.approveFor",
+                    defaultMessage: "Review and approve {gardener}'s work",
+                  },
+                  { gardener: workData.gardenerDisplayName }
+                )}
                 onClick={(e) => e.stopPropagation()}
               >
                 <RiCheckboxCircleLine className="h-3.5 w-3.5" />
+                {intl.formatMessage({
+                  id: "app.admin.work.approve",
+                  defaultMessage: "Approve",
+                })}
               </Link>
               <Link
                 to={`/gardens/${work.gardenAddress}/work/${work.id}?action=reject`}
-                className="inline-flex items-center gap-0.5 rounded-md px-2 py-1 text-xs font-medium text-error-dark bg-error-lighter hover:bg-error-light transition-colors"
-                aria-label={intl.formatMessage({
-                  id: "app.admin.work.quickReject",
-                  defaultMessage: "Quick reject",
-                })}
+                className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-error-dark bg-error-lighter hover:bg-error-light transition-colors"
+                aria-label={intl.formatMessage(
+                  {
+                    id: "app.admin.work.rejectFor",
+                    defaultMessage: "Review and reject {gardener}'s work",
+                  },
+                  { gardener: workData.gardenerDisplayName }
+                )}
                 onClick={(e) => e.stopPropagation()}
               >
                 <RiCloseLine className="h-3.5 w-3.5" />
+                {intl.formatMessage({
+                  id: "app.admin.work.reject",
+                  defaultMessage: "Reject",
+                })}
               </Link>
             </>
           )}
           <Link
             to={`/gardens/${work.gardenAddress}/work/${work.id}`}
-            className="inline-flex items-center text-xs font-medium text-primary-base hover:text-primary-darker transition-colors ml-auto"
+            className="inline-flex min-h-9 items-center text-xs font-medium text-primary-base hover:text-primary-darker transition-colors ml-auto"
           >
             {intl.formatMessage({
               id: "app.admin.work.viewDetails",

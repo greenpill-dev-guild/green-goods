@@ -48,7 +48,14 @@ export function useOpsJobRunner(options: UseOpsJobRunnerOptions = {}) {
         return null;
       }
     },
-    [isAuthenticated, formatMessage, onJobStarted, successMessageId, failedMessageId, authRequiredMessageId]
+    [
+      isAuthenticated,
+      formatMessage,
+      onJobStarted,
+      successMessageId,
+      failedMessageId,
+      authRequiredMessageId,
+    ]
   );
 
   return { runJob, isAuthenticated };

@@ -33,7 +33,7 @@ import { useMutationLock } from "./useMutationLock";
  */
 export function useSafeMutation<TData, TError, TVariables, TContext>(
   mutation: UseMutationResult<TData, TError, TVariables, TContext>,
-  lockKey?: string,
+  lockKey?: string
 ) {
   const { runWithLock, isPending: isLockPending } = useMutationLock(lockKey);
   const isPending = mutation.isPending || isLockPending;
@@ -42,14 +42,14 @@ export function useSafeMutation<TData, TError, TVariables, TContext>(
   const mutateAsync = useCallback(
     (...args: Parameters<typeof mutation.mutateAsync>) =>
       runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock],
+    [mutation, runWithLock]
   );
 
   const mutate = useCallback(
     (...args: Parameters<typeof mutation.mutate>) => {
       void mutateAsync(...args).catch(() => undefined);
     },
-    [mutateAsync],
+    [mutateAsync]
   );
 
   return { ...mutation, mutate, mutateAsync, isPending };

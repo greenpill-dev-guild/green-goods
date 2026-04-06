@@ -270,7 +270,10 @@ export default function Gardens() {
                         return pending > 0 && gardenPermissions.canManageGarden(garden) ? (
                           <span className="absolute top-2 left-2 z-[2] rounded-full bg-warning-lighter px-2 py-0.5 text-xs font-semibold text-warning-dark shadow-sm ring-1 ring-warning-light/50">
                             {intl.formatMessage(
-                              { id: "admin.gardens.pendingBadge", defaultMessage: "{count} pending" },
+                              {
+                                id: "admin.gardens.pendingBadge",
+                                defaultMessage: "{count} pending",
+                              },
                               { count: pending }
                             )}
                           </span>

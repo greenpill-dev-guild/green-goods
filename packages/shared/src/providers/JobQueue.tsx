@@ -5,7 +5,7 @@ import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
-import { queryInvalidation, queryKeys } from "../hooks/query-keys";
+import { queryInvalidation, queryKeys } from "../config/query-keys";
 import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
 import { useUIStore } from "../stores/useUIStore";
 import type {

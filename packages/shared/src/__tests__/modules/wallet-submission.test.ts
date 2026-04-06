@@ -60,7 +60,7 @@ vi.mock("../../utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
-vi.mock("../../hooks/query-keys", () => ({
+vi.mock("../../config/query-keys", () => ({
   queryKeys: {
     works: {
       all: ["greengoods", "works"],

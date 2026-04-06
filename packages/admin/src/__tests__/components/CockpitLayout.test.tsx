@@ -18,29 +18,33 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
   return {
     ...actual,
-    FloatingToolbar: ({
+    NavigationBar: ({
       slots,
       activePath,
+      leading,
+      trailing,
     }: {
       slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
       activePath: string;
+      leading?: React.ReactNode;
+      trailing?: React.ReactNode;
     }) => (
-      <div>
+      <div data-testid="navigation-bar">
         <div data-testid="active-path">{activePath}</div>
+        {leading && <div data-testid="nav-leading">{leading}</div>}
+        {trailing && <div data-testid="nav-trailing">{trailing}</div>}
         <ul>
-          {slots.filter((slot) => slot.visible).map((slot) => (
-            <li key={slot.id}>{slot.label}</li>
-          ))}
+          {slots
+            .filter((slot) => slot.visible)
+            .map((slot) => (
+              <li key={slot.id}>{slot.label}</li>
+            ))}
         </ul>
       </div>
     ),
     GardenChip: () => <div>Garden Chip</div>,
-    TopContextBar: ({ userAvatar }: { userAvatar?: React.ReactNode }) => (
-      <div>
-        <span>Top Context</span>
-        {userAvatar}
-      </div>
-    ),
+    // Keep TopContextBar mock as no-op in case anything still references it
+    TopContextBar: () => null,
     useAdminStore: (
       selector: (state: {
         selectedGarden: null;
@@ -79,6 +83,10 @@ vi.mock("@/components/Layout/SettingsSheet", () => ({
   SettingsSheet: () => null,
 }));
 
+vi.mock("@/components/Layout/UserMenu", () => ({
+  UserMenu: () => <div data-testid="user-menu">User Menu</div>,
+}));
+
 vi.mock("@/components/ui/PageTransition", () => ({
   PageTransition: () => <div>Page Transition</div>,
 }));
@@ -101,5 +109,40 @@ describe("CockpitLayout", () => {
     expect(mockUseStaleGardenGuard).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByTestId("active-path")).toHaveTextContent("/actions");
+  });
+
+  it("renders NavigationBar with leading and trailing slots", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/work"]}>
+        <CockpitLayout />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-leading")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-trailing")).toBeInTheDocument();
+  });
+
+  it("does not apply pl-20 padding on main content", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/work"]}>
+        <CockpitLayout />
+      </MemoryRouter>
+    );
+
+    const main = document.getElementById("main-content");
+    expect(main).toBeTruthy();
+    expect(main?.className).not.toContain("pl-20");
+  });
+
+  it("applies bottom padding for nav clearance", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/work"]}>
+        <CockpitLayout />
+      </MemoryRouter>
+    );
+
+    const main = document.getElementById("main-content");
+    expect(main?.className).toContain("pb-24");
   });
 });

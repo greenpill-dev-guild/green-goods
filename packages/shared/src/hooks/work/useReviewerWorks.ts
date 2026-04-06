@@ -16,7 +16,7 @@ import type { Address, Work } from "../../types/domain";
 import type { EASWork } from "../../types/eas-responses";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { convertJobsToWorks } from "../../utils/work/offline";
-import { queryKeys, STALE_TIME_MEDIUM, DEFAULT_RETRY_COUNT } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM, DEFAULT_RETRY_COUNT } from "../../config/query-keys";
 
 interface UseReviewerWorksResult {
   /** Merged and deduplicated works from reviewer gardens */
@@ -34,7 +34,7 @@ interface UseReviewerWorksResult {
  */
 export function useReviewerWorks(
   reviewerGardenIds: string[],
-  address: Address | undefined,
+  address: Address | undefined
 ): UseReviewerWorksResult {
   const {
     data = [],
@@ -62,12 +62,12 @@ export function useReviewerWorks(
         // Fetch offline works from job queue (scoped to current user)
         const offlineJobs = await jobQueue.getJobs(address, { kind: "work", synced: false });
         const gardenOfflineJobs = offlineJobs.filter(
-          (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId,
+          (job) => (job.payload as WorkJobPayload).gardenAddress === gardenId
         );
 
         const offline = await convertJobsToWorks(
           gardenOfflineJobs as Job<WorkJobPayload>[],
-          address,
+          address
         );
 
         // Merge and deduplicate (prefer online, exclude time-proximate duplicates)

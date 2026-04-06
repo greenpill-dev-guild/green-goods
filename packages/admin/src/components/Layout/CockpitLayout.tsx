@@ -1,38 +1,43 @@
 import {
-  FloatingToolbar,
   GardenChip,
-  TopContextBar,
+  NavigationBar,
   useAdminStore,
   useAuth,
   useEffectiveToolbarPermissions,
   useGardenUrlSync,
   useGardens,
-  useRole,
   useStaleGardenGuard,
   type ToolbarSlot,
 } from "@green-goods/shared";
-import { RiClipboardLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
+import {
+  RiClipboardLine,
+  RiHammerFill,
+  RiSearchLine,
+  RiSeedlingLine,
+  RiTeamLine,
+} from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CommandPalette } from "./CommandPalette";
 import { SettingsSheet } from "./SettingsSheet";
+import { UserMenu } from "./UserMenu";
 import { PageTransition } from "../ui/PageTransition";
 
 /**
- * Cockpit layout — replaces DashboardLayout (sidebar + header) with
- * a floating toolbar + top context bar for the operator cockpit.
+ * Cockpit layout — floating navigation bar at bottom, no header.
  *
- * - Desktop: Vertical floating toolbar on left, content scrolls independently
- * - Mobile: Bottom nav bar, top context bar stays sticky
- * - No sidebar, no header
+ * - Desktop: Centered floating nav pill with GardenChip (leading) + UserMenu (trailing)
+ * - Mobile: Full-width bottom bar; GardenChip and search float at top
+ * - No sidebar, no header, no layout shift
+ *
+ * Paradigm: Command Surface — thick material, controls visible and ready.
  */
 export function CockpitLayout() {
   const intl = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, eoaAddress } = useAuth();
-  const { role } = useRole();
+  const { isAuthenticated } = useAuth();
   const { data: gardens = [] } = useGardens();
 
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
@@ -88,7 +93,12 @@ export function CockpitLayout() {
         visible: permissions.showActions,
       },
     ],
-    [permissions.showActions, permissions.showCommunity, permissions.showGarden, permissions.showWork]
+    [
+      permissions.showActions,
+      permissions.showCommunity,
+      permissions.showGarden,
+      permissions.showWork,
+    ]
   );
 
   // Determine active path from current route
@@ -103,25 +113,23 @@ export function CockpitLayout() {
 
   // Map gardens for GardenChip
   const gardenList = useMemo(() => gardens.map((g) => ({ id: g.id, name: g.name })), [gardens]);
-
   const chipGarden = selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null;
 
-  // User avatar — role initial in circle
-  const roleInitial = role === "deployer" ? "D" : role === "operator" ? "O" : "U";
-  const userAvatar =
-    isAuthenticated && eoaAddress ? (
-      <button
-        type="button"
-        onClick={() => setSettingsOpen(true)}
-        className="flex h-8 w-8 items-center justify-center rounded-full bg-bg-soft text-sm font-medium text-text-sub transition-colors hover:bg-bg-weak focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-        aria-label={intl.formatMessage({
-          id: "cockpit.topBar.userProfile",
-          defaultMessage: "User profile",
-        })}
-      >
-        {roleInitial}
-      </button>
-    ) : null;
+  const gardenChipNode = (
+    <GardenChip
+      gardens={gardenList}
+      selectedGarden={chipGarden}
+      onSelectGarden={(g) => {
+        if (g) {
+          const full = gardens.find((gd) => gd.id === g.id);
+          setSelectedGarden(full ?? null);
+        } else {
+          setSelectedGarden(null);
+        }
+      }}
+      onCreateGarden={() => navigate("/gardens/create")}
+    />
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg-weak">
@@ -136,50 +144,46 @@ export function CockpitLayout() {
         })}
       </a>
 
-      <TopContextBar
-        gardenChip={
-          <GardenChip
-            gardens={gardenList}
-            selectedGarden={chipGarden}
-            onSelectGarden={(g) => {
-              if (g) {
-                const full = gardens.find((gd) => gd.id === g.id);
-                setSelectedGarden(full ?? null);
-              } else {
-                setSelectedGarden(null);
-              }
-            }}
-            onCreateGarden={() => navigate("/gardens/create")}
-          />
-        }
-        onOpenSearch={handleOpenSearch}
-        onOpenSettings={() => setSettingsOpen(true)}
-        userAvatar={userAvatar}
-      />
+      {/* Mobile floating controls — GardenChip (top-left) + Search (top-right) */}
+      <div className="fixed top-3 left-3 z-30 min-[600px]:hidden">{gardenChipNode}</div>
+      <button
+        type="button"
+        onClick={handleOpenSearch}
+        aria-label={intl.formatMessage({
+          id: "cockpit.topBar.openSearch",
+          defaultMessage: "Search",
+        })}
+        className="fixed top-3 right-3 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-bg-soft/95 shadow-sm backdrop-blur min-[600px]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+      >
+        <RiSearchLine className="h-5 w-5 text-text-sub" />
+      </button>
 
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       <SettingsSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
-      <div className="flex flex-1 min-h-0">
-        <FloatingToolbar
+      {/* Main content — no left padding offset, bottom padding for nav clearance */}
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 overflow-y-auto pb-24 max-[599px]:pb-20 main-scroll-area"
+        style={{
+          overscrollBehaviorY: "contain",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        <PageTransition />
+      </main>
+
+      {/* Floating navigation bar */}
+      {isAuthenticated && (
+        <NavigationBar
           slots={slots}
           activePath={activePath}
           onNavigate={(path) => navigate(path)}
+          leading={gardenChipNode}
+          trailing={<UserMenu onOpenSettings={() => setSettingsOpen(true)} />}
         />
-
-        {/* Main content — offset for desktop toolbar */}
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="flex-1 overflow-y-auto min-[600px]:pl-20 main-scroll-area"
-          style={{
-            overscrollBehaviorY: "contain",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
-          <PageTransition />
-        </main>
-      </div>
+      )}
     </div>
   );
 }

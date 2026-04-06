@@ -185,7 +185,11 @@ export const Gallery: Story = {
         />
       </FormFieldWrapper>
 
-      <FormField label="Compact Admin Field" htmlFor="gallery-admin" hint="Shared wrapper for admin forms">
+      <FormField
+        label="Compact Admin Field"
+        htmlFor="gallery-admin"
+        hint="Shared wrapper for admin forms"
+      >
         <input
           id="gallery-admin"
           type="text"

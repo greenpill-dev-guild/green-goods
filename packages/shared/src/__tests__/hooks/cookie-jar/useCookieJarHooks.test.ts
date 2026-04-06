@@ -64,7 +64,7 @@ vi.mock("../../../utils/blockchain/abis", () => ({
   ERC20_DECIMALS_ABI: [],
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryInvalidation: {
     onCookieJarAdminAction: () => [["greengoods", "cookieJar"]],
     onCookieJarDeposit: () => [["greengoods", "cookieJar"]],

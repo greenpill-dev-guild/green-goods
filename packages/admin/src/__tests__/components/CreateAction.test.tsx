@@ -142,9 +142,7 @@ vi.mock("@green-goods/shared/utils", () => ({
 import CreateAction from "../../views/Actions/CreateAction";
 
 function renderWithIntl(ui: React.ReactElement) {
-  return render(
-    React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui)
-  );
+  return render(React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui));
 }
 
 describe("views/Actions/CreateAction", () => {

@@ -34,7 +34,7 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
-import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
 import { useProgressiveInvalidation } from "../utils/useTimeout";

@@ -71,10 +71,7 @@ export default function CommunityView() {
   } = useGardenDetailData(selectedGarden?.id);
 
   const updateSearch = useCallback(
-    (
-      updates: Partial<Record<"garden" | "card" | "pool", string | undefined>>,
-      replace = true
-    ) => {
+    (updates: Partial<Record<"garden" | "card" | "pool", string | undefined>>, replace = true) => {
       setSearchParams(
         (previous) => {
           const next = new URLSearchParams(previous);
@@ -94,11 +91,7 @@ export default function CommunityView() {
   );
 
   const openSection = useCallback(
-    (
-      tab: "overview" | "impact" | "work" | "community",
-      section: string,
-      itemId?: string
-    ) => {
+    (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
       if (!selectedGarden) return;
 
       if (tab === "community") {
@@ -115,9 +108,7 @@ export default function CommunityView() {
       }
 
       if (tab === "work") {
-        navigate(
-          `/work?garden=${selectedGarden.id}&view=queue${itemId ? `&item=${itemId}` : ""}`
-        );
+        navigate(`/work?garden=${selectedGarden.id}&view=queue${itemId ? `&item=${itemId}` : ""}`);
         return;
       }
 
@@ -216,7 +207,10 @@ export default function CommunityView() {
                   role="tab"
                   aria-selected={active}
                   onClick={() =>
-                    updateSearch({ card: option.id, pool: option.id === "pools" ? pool : undefined })
+                    updateSearch({
+                      card: option.id,
+                      pool: option.id === "pools" ? pool : undefined,
+                    })
                   }
                   className={cn(
                     "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
@@ -307,7 +301,11 @@ export default function CommunityView() {
                   })}
                 </span>
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button size="sm" variant={pool === "hypercert" ? "primary" : "secondary"} asChild>
+                  <Button
+                    size="sm"
+                    variant={pool === "hypercert" ? "primary" : "secondary"}
+                    asChild
+                  >
                     <Link to={`/gardens/${garden.id}/signal-pool/hypercert`}>
                       {formatMessage({ id: "app.signal.viewHypercertPool" })}
                     </Link>
@@ -354,7 +352,9 @@ export default function CommunityView() {
               community: RiGroupLine,
             }}
             filteredDirectory={derived.filteredDirectory}
-            visibleDirectory={card === "members" ? derived.filteredDirectory : derived.visibleDirectory}
+            visibleDirectory={
+              card === "members" ? derived.filteredDirectory : derived.visibleDirectory
+            }
             memberSearch={memberSearch}
             setMemberSearch={setMemberSearch}
             openMembersModal={() => {

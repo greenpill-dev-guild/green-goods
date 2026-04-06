@@ -38,7 +38,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ListToolbar } from "@/components/ui/ListToolbar";
 import { SortSelect } from "@/components/ui/SortSelect";
 import { AssetApyCard } from "./AssetApyCard";
-import { MyTrackedPositionCard, type MyTrackedPosition, type TrackedAsset } from "./MyTrackedPositionCard";
+import {
+  MyTrackedPositionCard,
+  type MyTrackedPosition,
+  type TrackedAsset,
+} from "./MyTrackedPositionCard";
 import { VaultUnharvestedYield } from "./VaultUnharvestedYield";
 
 type EndowmentsSortOrder = "name" | "tvl";

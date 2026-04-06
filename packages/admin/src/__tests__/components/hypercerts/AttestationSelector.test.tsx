@@ -18,11 +18,7 @@ vi.mock("@green-goods/shared", () => ({
   formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
   ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon"],
   filterAttestationsByAssessment: (attestations: any[]) => attestations,
-  Alert: ({
-    children,
-  }: {
-    children?: React.ReactNode;
-  }) => {
+  Alert: ({ children }: { children?: React.ReactNode }) => {
     const React = require("react");
     return React.createElement("div", { role: "alert" }, children);
   },

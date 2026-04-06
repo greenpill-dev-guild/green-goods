@@ -345,9 +345,7 @@ describe("ActionRegistry.GardenDomainsUpdated", () => {
     });
 
     const result = await ActionRegistry.GardenDomainsUpdated.processEvent({ event, mockDb });
-    const domains = result.entities.GardenDomains.get(
-      `${CHAIN_ID}-${gardenAddress.toLowerCase()}`
-    );
+    const domains = result.entities.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
 
     assert.ok(domains);
     assert.equal(domains.domainMask, 0x0f);
@@ -367,9 +365,7 @@ describe("ActionRegistry.GardenDomainsUpdated", () => {
     });
 
     const result = await ActionRegistry.GardenDomainsUpdated.processEvent({ event, mockDb });
-    const domains = result.entities.GardenDomains.get(
-      `${CHAIN_ID}-${gardenAddress.toLowerCase()}`
-    );
+    const domains = result.entities.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
 
     assert.ok(domains);
     assert.equal(domains.domainMask, 0x04);
@@ -394,9 +390,7 @@ describe("ActionRegistry.GardenDomainsUpdated", () => {
     });
     mockDb = await ActionRegistry.GardenDomainsUpdated.processEvent({ event: event2, mockDb });
 
-    const domains = mockDb.entities.GardenDomains.get(
-      `${CHAIN_ID}-${gardenAddress.toLowerCase()}`
-    );
+    const domains = mockDb.entities.GardenDomains.get(`${CHAIN_ID}-${gardenAddress.toLowerCase()}`);
 
     assert.ok(domains);
     assert.equal(domains.domainMask, 0x01);

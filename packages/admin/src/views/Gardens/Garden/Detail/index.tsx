@@ -1,16 +1,11 @@
 import {
   type ActivityFilter,
   type Address,
-  ConfirmDialog,
-  formatAddress,
   formatTokenAmount,
-  GARDEN_ROLE_COLORS,
   type GardenDetailTab,
   type GardenRole,
-  getRoleLabel,
   parseGardenDetailTab,
   parseGardenRange,
-  toastService,
   useGardenDerivedState,
   useGardenDetailData,
 } from "@green-goods/shared";
@@ -18,30 +13,25 @@ import * as Tabs from "@radix-ui/react-tabs";
 import {
   RiCheckboxCircleLine,
   RiErrorWarningLine,
-  RiFileList3Line,
   RiGroupLine,
   RiShieldCheckLine,
-  RiUploadCloudLine,
   RiUserLine,
 } from "@remixicon/react";
 import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { AddMemberModal } from "@/components/Garden/AddMemberModal";
-import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
-import { GardenProfileModal } from "@/components/Garden/GardenProfileModal";
-import { ManageRolesModal } from "@/components/Garden/ManageRolesModal";
-import { MembersModal } from "@/components/Garden/MembersModal";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { CommunityTab } from "./CommunityTab";
-import { GardenHeroBanner, TabBadge } from "./GardenDetailHelpers";
-import { TAB_SECTIONS, TAB_TRIGGER_BASE } from "./gardenDetail.constants";
-import { ImpactTab } from "./ImpactTab";
-import { OverviewTab } from "./OverviewTab";
-import { WorkTab } from "./WorkTab";
-import "./GardenDetailLayout.css";
+import { CommunityTab } from "../CommunityTab";
+import { GardenHeroBanner, TabBadge } from "../GardenDetailHelpers";
+import { TAB_SECTIONS, TAB_TRIGGER_BASE } from "../gardenDetail.constants";
+import { ImpactTab } from "../ImpactTab";
+import { OverviewTab } from "../OverviewTab";
+import { WorkTab } from "../WorkTab";
+import "../GardenDetailLayout.css";
+import { GardenModals } from "./GardenModals";
+import { TabActions } from "./TabActions";
 
 export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
@@ -219,9 +209,6 @@ export default function GardenDetail() {
     community: RiGroupLine,
   } as const;
 
-  const activeRole = membersModalType;
-  const ActiveRoleIcon = roleIcons[activeRole];
-
   const baseHeaderProps = {
     backLink: { to: "/gardens", label: formatMessage({ id: "app.garden.admin.backToGardens" }) },
     sticky: true,
@@ -303,64 +290,6 @@ export default function GardenDetail() {
     );
   }
 
-  const tabActions: Record<GardenDetailTab, React.ReactNode> = {
-    overview: canManage ? (
-      <Button size="sm" onClick={() => setProfileModalOpen(true)}>
-        {formatMessage({ id: "app.garden.detail.action.manageProfile" })}
-      </Button>
-    ) : null,
-    impact: canReview ? (
-      <Button size="sm" asChild>
-        <Link to={`/gardens/${gardenId}/assessments/create`}>
-          <RiFileList3Line className="h-4 w-4" />
-          {formatMessage({ id: "app.garden.admin.newAssessment" })}
-        </Link>
-      </Button>
-    ) : (
-      <Button size="sm" variant="secondary" asChild>
-        <Link to={`/gardens/${gardenId}/assessments`}>
-          {formatMessage({ id: "app.garden.admin.viewAssessments" })}
-        </Link>
-      </Button>
-    ),
-    work: (
-      <div className="flex flex-wrap items-center gap-1.5">
-        {canManage && (
-          <Button size="sm" asChild>
-            <Link to={`/gardens/${gardenId}/submit-work`}>
-              <RiUploadCloudLine className="h-4 w-4" />
-              {formatMessage({ id: "app.admin.work.submitWork" })}
-            </Link>
-          </Button>
-        )}
-        <Button
-          size="sm"
-          variant={canManage ? "secondary" : "primary"}
-          onClick={() => openSection("work", "queue")}
-        >
-          {formatMessage({ id: "app.garden.detail.action.reviewPending" })}
-        </Button>
-        <Button size="sm" variant="secondary" onClick={() => openSection("work", "decisions")}>
-          {formatMessage({ id: "app.garden.detail.action.openDecisions" })}
-        </Button>
-      </div>
-    ),
-    community: (
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Button size="sm" asChild>
-          <Link to={`/gardens/${gardenId}/vault`}>
-            {formatMessage({ id: "app.treasury.manageVault" })}
-          </Link>
-        </Button>
-        {canManageRoles ? (
-          <Button size="sm" variant="secondary" onClick={() => setRolesModalOpen(true)}>
-            {formatMessage({ id: "app.garden.detail.action.manageRoles" })}
-          </Button>
-        ) : null}
-      </div>
-    ),
-  };
-
   return (
     <Tabs.Root
       value={activeTab}
@@ -403,11 +332,16 @@ export default function GardenDetail() {
 
       <div className="px-4 sm:px-6">
         {/* Tab actions — unified bar below tabs on all screen sizes */}
-        {tabActions[activeTab] && (
-          <div className="flex flex-wrap items-center gap-1.5 pt-3 pb-1">
-            {tabActions[activeTab]}
-          </div>
-        )}
+        <TabActions
+          gardenId={gardenId}
+          activeTab={activeTab}
+          canManage={canManage}
+          canReview={canReview}
+          canManageRoles={canManageRoles}
+          onManageProfile={() => setProfileModalOpen(true)}
+          onManageRoles={() => setRolesModalOpen(true)}
+          openSection={openSection}
+        />
 
         <Tabs.Content
           value="overview"
@@ -524,114 +458,32 @@ export default function GardenDetail() {
         </Tabs.Content>
       </div>
 
-      <GardenProfileModal
-        isOpen={profileModalOpen}
-        onClose={() => setProfileModalOpen(false)}
-        gardenAddress={garden.id as Address}
+      <GardenModals
         garden={garden}
         canManage={canManage}
-        isOwner={isOwner}
-      />
-
-      <ManageRolesModal
-        isOpen={rolesModalOpen}
-        onClose={() => setRolesModalOpen(false)}
-        roleMembers={roleMembers}
         canManageRoles={canManageRoles}
-        isLoading={isOperationLoading}
-        onOpenAddMember={openAddMemberModal}
-        onOpenMembersModal={openMembersModal}
-        onRemoveMember={(address, role) => setMemberToRemove({ address, role })}
-      />
-
-      <GardenDomainModal
-        isOpen={domainModalOpen}
-        onClose={() => setDomainModalOpen(false)}
-        gardenAddress={garden.id as Address}
-      />
-
-      <AddMemberModal
-        isOpen={addMemberModalOpen}
-        onClose={() => setAddMemberModalOpen(false)}
+        isOwner={isOwner}
+        isOperationLoading={isOperationLoading}
+        roleMembers={roleMembers}
+        roleActions={roleActions}
+        scheduleBackgroundRefetch={scheduleBackgroundRefetch}
+        profileModalOpen={profileModalOpen}
+        setProfileModalOpen={setProfileModalOpen}
+        rolesModalOpen={rolesModalOpen}
+        setRolesModalOpen={setRolesModalOpen}
+        domainModalOpen={domainModalOpen}
+        setDomainModalOpen={setDomainModalOpen}
+        addMemberModalOpen={addMemberModalOpen}
+        setAddMemberModalOpen={setAddMemberModalOpen}
         memberType={memberType}
-        onAdd={async (address: Address) => {
-          const result = await roleActions[memberType].add(address);
-          if (result.success) {
-            scheduleBackgroundRefetch();
-          }
-        }}
-        isLoading={isOperationLoading}
-      />
-
-      <MembersModal
-        isOpen={membersModalOpen}
-        onClose={() => setMembersModalOpen(false)}
-        title={formatMessage(
-          { id: "app.admin.roles.all" },
-          { role: getRoleLabel(activeRole, formatMessage).plural }
-        )}
-        members={roleMembers[activeRole]}
-        canManage={canManageRoles}
-        onRemove={async (member: string) => {
-          const result = await roleActions[activeRole].remove(member);
-          if (result.success) {
-            scheduleBackgroundRefetch();
-          } else {
-            toastService.error({
-              title: formatMessage(
-                { id: "app.admin.roles.removeFailed" },
-                { role: getRoleLabel(activeRole, formatMessage).singular }
-              ),
-              message:
-                result.error?.message ??
-                formatMessage(
-                  { id: "app.admin.roles.removeFailed" },
-                  { role: getRoleLabel(activeRole, formatMessage).singular }
-                ),
-            });
-          }
-        }}
-        isLoading={isOperationLoading}
-        icon={<ActiveRoleIcon className="h-5 w-5" />}
-        colorScheme={GARDEN_ROLE_COLORS[activeRole]}
-      />
-
-      <ConfirmDialog
-        isOpen={memberToRemove !== null}
-        onClose={() => setMemberToRemove(null)}
-        title={formatMessage({ id: "app.admin.roles.confirmRemoveTitle" })}
-        description={formatMessage(
-          { id: "app.admin.roles.confirmRemoveDescription" },
-          {
-            address: formatAddress(memberToRemove?.address),
-            role: memberToRemove ? getRoleLabel(memberToRemove.role, formatMessage).singular : "",
-          }
-        )}
-        confirmLabel={formatMessage({ id: "app.admin.roles.confirmRemoveAction" })}
-        variant="danger"
-        isLoading={isOperationLoading}
-        onConfirm={async () => {
-          if (!memberToRemove) return;
-          const removeMemberRole = memberToRemove.role;
-          const removeMemberAddress = memberToRemove.address;
-          const roleLabel = getRoleLabel(removeMemberRole, formatMessage);
-          setMemberToRemove(null);
-
-          const result = await roleActions[removeMemberRole].remove(removeMemberAddress);
-          if (result.success) {
-            scheduleBackgroundRefetch();
-          } else {
-            toastService.error({
-              title: formatMessage(
-                { id: "app.admin.roles.removeFailed" },
-                { role: roleLabel.singular }
-              ),
-              message:
-                result.error?.message ??
-                formatMessage({ id: "app.admin.roles.removeFailed" }, { role: roleLabel.singular }),
-            });
-          }
-        }}
+        openAddMemberModal={openAddMemberModal}
+        membersModalOpen={membersModalOpen}
+        setMembersModalOpen={setMembersModalOpen}
+        membersModalType={membersModalType}
+        openMembersModal={openMembersModal}
+        memberToRemove={memberToRemove}
+        setMemberToRemove={setMemberToRemove}
+        roleIcons={roleIcons}
       />
     </Tabs.Root>
   );

@@ -301,18 +301,18 @@ export default defineConfig(async () => {
       port: 3001,
       strictPort: true,
       host: true,
-      open: true,
+      open: false,
       hmr: { overlay: true },
       watch: { usePolling: true, interval: 100 },
       proxy: {
-        "/indexer": {
+        "/api/graphql": {
           target:
             process.env.NODE_ENV === "development"
               ? "http://localhost:8080/v1/graphql"
               : (ENV.VITE_ENVIO_INDEXER_URL ?? "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql"),
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/indexer/, ""),
+          rewrite: (path) => path.replace(/^\/api\/graphql/, ""),
         },
       },
     },

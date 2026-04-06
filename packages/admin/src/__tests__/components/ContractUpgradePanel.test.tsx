@@ -85,13 +85,8 @@ vi.mock("@green-goods/shared", () => ({
       loading ? "Loading..." : children
     ),
   Card: Object.assign(
-    ({
-      children,
-      colorAccent,
-    }: {
-      children: React.ReactNode;
-      colorAccent?: string;
-    }) => React.createElement("div", { "data-testid": "card", "data-accent": colorAccent }, children),
+    ({ children, colorAccent }: { children: React.ReactNode; colorAccent?: string }) =>
+      React.createElement("div", { "data-testid": "card", "data-accent": colorAccent }, children),
     {
       Header: ({ children, className }: { children: React.ReactNode; className?: string }) =>
         React.createElement("div", { "data-testid": "card-header", className }, children),
@@ -162,9 +157,7 @@ vi.mock("@remixicon/react", () => {
 import { ContractUpgradePanel } from "../../views/Contracts/ContractUpgradePanel";
 
 function renderWithIntl(ui: React.ReactElement) {
-  return render(
-    React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui)
-  );
+  return render(React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui));
 }
 
 describe("views/Contracts/ContractUpgradePanel", () => {
@@ -189,9 +182,7 @@ describe("views/Contracts/ContractUpgradePanel", () => {
       );
 
       expect(screen.getByText("Upgrade Contracts")).toBeInTheDocument();
-      expect(
-        screen.getByText("Upgrade existing contracts on Sepolia.")
-      ).toBeInTheDocument();
+      expect(screen.getByText("Upgrade existing contracts on Sepolia.")).toBeInTheDocument();
     });
 
     it("renders contract target selector with all options", () => {
@@ -308,9 +299,7 @@ describe("views/Contracts/ContractUpgradePanel", () => {
       );
 
       expect(
-        screen.getByText(
-          "Authenticate with Ops Runner before submitting upgrades."
-        )
+        screen.getByText("Authenticate with Ops Runner before submitting upgrades.")
       ).toBeInTheDocument();
     });
 
@@ -325,9 +314,7 @@ describe("views/Contracts/ContractUpgradePanel", () => {
       );
 
       expect(
-        screen.queryByText(
-          "Authenticate with Ops Runner before submitting upgrades."
-        )
+        screen.queryByText("Authenticate with Ops Runner before submitting upgrades.")
       ).not.toBeInTheDocument();
     });
 
@@ -342,9 +329,7 @@ describe("views/Contracts/ContractUpgradePanel", () => {
         })
       );
 
-      expect(
-        screen.getByText("0xABCDEF1234567890ABCDEF1234567890ABCDEF12")
-      ).toBeInTheDocument();
+      expect(screen.getByText("0xABCDEF1234567890ABCDEF1234567890ABCDEF12")).toBeInTheDocument();
     });
   });
 

@@ -75,27 +75,75 @@
       "status": "active",
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["React component", "state management", "hooks", "TanStack Query", "XState", "error boundary", "performance profiling"],
+      "triggers": [
+        "React component",
+        "state management",
+        "hooks",
+        "TanStack Query",
+        "XState",
+        "error boundary",
+        "performance profiling"
+      ],
       "dependencies": [],
-      "sub_files": ["tanstack-query.md", "error-handling.md", "xstate.md", "performance.md", "compiler.md"]
+      "sub_files": [
+        "tanstack-query.md",
+        "error-handling.md",
+        "xstate.md",
+        "performance.md",
+        "compiler.md"
+      ]
     },
     {
       "name": "ui",
       "status": "active",
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["TailwindCSS", "Radix", "dialog", "accessibility", "Storybook", "i18n", "diagram", "mermaid"],
+      "triggers": [
+        "TailwindCSS",
+        "Radix",
+        "dialog",
+        "accessibility",
+        "Storybook",
+        "i18n",
+        "diagram",
+        "mermaid"
+      ],
       "dependencies": [],
-      "sub_files": ["tailwindcss.md", "radix-ui.md", "compliance.md", "storybook.md", "storybook-addons.md", "storybook-testing.md", "i18n.md", "mermaid.md"]
+      "sub_files": [
+        "tailwindcss.md",
+        "radix-ui.md",
+        "compliance.md",
+        "storybook.md",
+        "storybook-addons.md",
+        "storybook-testing.md",
+        "i18n.md",
+        "mermaid.md"
+      ]
     },
     {
       "name": "design",
       "status": "active",
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["design direction", "spatial UI", "adaptive surface", "glass", "material", "depth", "ecosystem", "inclusive design"],
+      "triggers": [
+        "design direction",
+        "spatial UI",
+        "adaptive surface",
+        "glass",
+        "material",
+        "depth",
+        "ecosystem",
+        "inclusive design"
+      ],
       "dependencies": ["ui"],
-      "sub_files": ["spatial.md", "interaction.md", "materials.md", "implementation.md", "ecosystem.md", "references.md"]
+      "sub_files": [
+        "spatial.md",
+        "interaction.md",
+        "materials.md",
+        "implementation.md",
+        "ecosystem.md",
+        "references.md"
+      ]
     },
     {
       "name": "web3",
@@ -110,7 +158,14 @@
       "status": "active",
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["Solidity", "smart contract", "Foundry", "security audit", "vulnerability", "Slither"],
+      "triggers": [
+        "Solidity",
+        "smart contract",
+        "Foundry",
+        "security audit",
+        "vulnerability",
+        "Slither"
+      ],
       "dependencies": [],
       "sub_files": ["security.md"]
     },
@@ -137,9 +192,32 @@
       "status": "active",
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["deploy", "CI", "GitHub Actions", "git", "branch", "commit", "dependency", "format", "Biome", "Vite", "build config", "migration", "breaking change", "upgrade"],
+      "triggers": [
+        "deploy",
+        "CI",
+        "GitHub Actions",
+        "git",
+        "branch",
+        "commit",
+        "dependency",
+        "format",
+        "Biome",
+        "Vite",
+        "build config",
+        "migration",
+        "breaking change",
+        "upgrade"
+      ],
       "dependencies": ["contracts"],
-      "sub_files": ["deployment.md", "ci-cd.md", "git-workflow.md", "dependency-management.md", "biome.md", "vite.md", "migration.md"]
+      "sub_files": [
+        "deployment.md",
+        "ci-cd.md",
+        "git-workflow.md",
+        "dependency-management.md",
+        "biome.md",
+        "vite.md",
+        "migration.md"
+      ]
     },
     {
       "name": "testing",
@@ -154,8 +232,21 @@
       "name": "architecture",
       "status": "active",
       "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["architecture", "refactor", "clean code", "reduce complexity", "entropy"],
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Analyze software architecture — map structure, identify gaps, provide actionable suggestions",
+      "entry_file": ".claude/skills/architecture/SKILL.md",
+      "modes": ["default", "boundaries", "dependencies", "complexity", "gaps", "scorecard"],
+      "triggers": [
+        "/architecture",
+        "architecture analysis",
+        "analyze architecture",
+        "codebase structure",
+        "refactor",
+        "clean code",
+        "reduce complexity",
+        "entropy"
+      ],
       "dependencies": []
     },
     {

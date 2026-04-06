@@ -254,7 +254,11 @@ export default function Actions() {
                 className="overflow-hidden"
                 padding="none"
               >
-                <Link to={`/actions/${action.id}`} data-testid="action-card" className="group block h-full">
+                <Link
+                  to={`/actions/${action.id}`}
+                  data-testid="action-card"
+                  className="group block h-full"
+                >
                   <ActionCardMedia
                     src={action.media[0]}
                     alt={action.title}

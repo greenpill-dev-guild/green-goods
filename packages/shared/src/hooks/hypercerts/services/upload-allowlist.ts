@@ -26,8 +26,7 @@ export function createUploadAllowlistActor(deps: MintServiceDeps) {
   return fromPromise(async ({ input }: { input: MintHypercertInput }) => {
     const validation = sdkValidateAllowlist(input.allowlist, input.totalUnits);
     if (!validation.valid) {
-      const message =
-        Object.values(validation.errors ?? {}).join(", ") || "Invalid allowlist";
+      const message = Object.values(validation.errors ?? {}).join(", ") || "Invalid allowlist";
       throw new Error(message);
     }
 

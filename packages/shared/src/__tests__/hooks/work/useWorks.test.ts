@@ -79,7 +79,7 @@ vi.mock("../../../modules/app/logger", () => ({
   logger: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryKeys: {
     works: {
       online: (gardenId: string, chainId: number) => ["works", "online", gardenId, chainId],

@@ -28,15 +28,12 @@ export function createUploadMetadataActor(deps: MintServiceDeps) {
       throw new Error(message);
     }
 
-    const result = await uploadJSONToIPFS(
-      input.metadata as unknown as Record<string, unknown>,
-      {
-        source: "hypercert-minting-metadata",
-        gardenAddress: input.gardenAddress,
-        authMode: deps.authModeRef.current,
-        metadataType: "hypercert",
-      }
-    );
+    const result = await uploadJSONToIPFS(input.metadata as unknown as Record<string, unknown>, {
+      source: "hypercert-minting-metadata",
+      gardenAddress: input.gardenAddress,
+      authMode: deps.authModeRef.current,
+      metadataType: "hypercert",
+    });
 
     return { cid: result.cid };
   });

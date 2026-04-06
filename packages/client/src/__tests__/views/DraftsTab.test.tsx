@@ -63,7 +63,11 @@ vi.mock("@green-goods/shared", () => ({
           { "data-testid": "confirm-dialog" },
           createElement("span", null, title),
           createElement("span", null, description),
-          createElement("button", { "data-testid": "confirm-delete", onClick: onConfirm }, "Delete"),
+          createElement(
+            "button",
+            { "data-testid": "confirm-delete", onClick: onConfirm },
+            "Delete"
+          ),
           createElement("button", { "data-testid": "cancel-delete", onClick: onClose }, "Cancel")
         )
       : null,
@@ -114,7 +118,11 @@ vi.mock("@/components/Cards", () => ({
 import { DraftsTab } from "../../views/Home/WorkDashboard/Drafts";
 
 const wrap = (el: React.ReactElement) =>
-  createElement(MemoryRouter, null, createElement(IntlProvider, { locale: "en", messages: {} }, el));
+  createElement(
+    MemoryRouter,
+    null,
+    createElement(IntlProvider, { locale: "en", messages: {} }, el)
+  );
 
 describe("DraftsTab", () => {
   beforeEach(() => {

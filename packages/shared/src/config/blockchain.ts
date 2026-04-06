@@ -237,6 +237,11 @@ export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: b
   }
 
   if (isDev) {
+    // In HTTPS browser contexts, use the Vite proxy to avoid mixed content
+    // (both admin and client configure /api/graphql → localhost:8080)
+    if (typeof window !== "undefined" && window.location.protocol === "https:") {
+      return "/api/graphql";
+    }
     return "http://localhost:8080/v1/graphql";
   }
 

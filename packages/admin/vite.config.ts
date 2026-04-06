@@ -86,7 +86,7 @@ export default defineConfig(async () => {
       port: 3002,
       strictPort: true,
       host: true,
-      open: true,
+      open: false,
       hmr: { overlay: true },
       watch: { usePolling: true, interval: 100 },
       proxy: {

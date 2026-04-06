@@ -3,7 +3,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { GC_TIMES, STALE_TIMES } from "../../config/react-query";
 import { getActions, getGardeners, getGardens } from "../../modules/data/greengoods";
 import type { Action, Garden, GardenerCard } from "../../types/domain";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 /**
  * Factory function for creating base list hooks with consistent caching behavior.

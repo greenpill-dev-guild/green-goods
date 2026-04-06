@@ -5,6 +5,8 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
+// Paradigm: Ritual — single-purpose garden selection, focused attention.
+
 interface WorkspaceGarden {
   id: string;
   name: string;

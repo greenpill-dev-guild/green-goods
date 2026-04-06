@@ -472,9 +472,7 @@ export default function CreateAssessment() {
           sticky
         />
         <div className="mt-6 px-4 sm:px-6">
-          <Alert variant="warning">
-            {formatMessage({ id: "app.admin.auth.noPermission" })}
-          </Alert>
+          <Alert variant="warning">{formatMessage({ id: "app.admin.auth.noPermission" })}</Alert>
         </div>
       </div>
     );

@@ -1,0 +1,884 @@
+/* ─── Shell & custom properties ─── */
+.shell {
+  --explorer-ink: #14281d;
+  --explorer-muted: color-mix(in srgb, var(--explorer-ink) 62%, white);
+  --explorer-accent: #2f8f5b;
+  --explorer-accent-soft: rgba(47, 143, 91, 0.16);
+  --explorer-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(243, 247, 243, 0.95));
+  margin: 1.5rem 0 2rem;
+}
+
+/* ─── Inline summary card (Glance layer) ─── */
+.inlineCard {
+  border-radius: 20px;
+  padding: 1.25rem;
+  background:
+    radial-gradient(circle at top right, rgba(47, 143, 91, 0.12), transparent 40%),
+    var(--explorer-surface);
+  border: 1px solid color-mix(in srgb, var(--explorer-accent) 16%, var(--ifm-color-emphasis-200));
+  box-shadow: 0 12px 36px rgba(15, 31, 21, 0.06);
+}
+
+.inlineTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.inlineBody {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.inlineHero {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.stageBadgeInline {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--explorer-accent);
+  background: var(--explorer-accent-soft);
+  margin-bottom: 0.3rem;
+}
+
+.inlineRevenue {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--explorer-ink);
+}
+
+.inlineRevenueLabel {
+  font-size: 0.75rem;
+  color: var(--explorer-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.inlineKpis {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: 1.2rem;
+}
+
+.inlineKpi {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+}
+
+.inlineKpiLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--explorer-muted);
+}
+
+.inlineKpiValue {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--explorer-ink);
+}
+
+.inlineLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.75rem;
+  margin-top: 0.55rem;
+  font-size: 0.74rem;
+  color: var(--explorer-muted);
+}
+
+/* ─── Preset pills ─── */
+.presetPills {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.pill {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--explorer-accent) 18%, var(--ifm-color-emphasis-300));
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--explorer-ink);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+  white-space: nowrap;
+}
+
+.pill:hover {
+  border-color: color-mix(in srgb, var(--explorer-accent) 40%, white);
+}
+
+.pillActive {
+  background: var(--explorer-accent-soft);
+  border-color: var(--explorer-accent);
+  color: var(--explorer-accent);
+}
+
+.openButton {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 0.45rem 1.1rem;
+  background: var(--explorer-accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  white-space: nowrap;
+}
+
+.openButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(47, 143, 91, 0.22);
+}
+
+/* ─── Full-viewport dialog (Z4 Deep Dive layer) ─── */
+.dialog {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  background: var(--ifm-background-color, #fff);
+  color: var(--ifm-font-color-base, #1c1e21);
+  overflow: hidden;
+  z-index: 999;
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.dialogShell {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.dialogToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.toolbarBtn {
+  appearance: none;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  background: transparent;
+  color: var(--ifm-font-color-base);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+  white-space: nowrap;
+}
+
+.toolbarBtn:hover {
+  border-color: var(--explorer-accent);
+  background: var(--explorer-accent-soft);
+}
+
+.closeBtn {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--ifm-font-color-secondary);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+  margin-left: 0.25rem;
+}
+
+.closeBtn:hover {
+  background: var(--ifm-color-emphasis-200);
+  color: var(--ifm-font-color-base);
+}
+
+.dialogBody {
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, 420px);
+  gap: 1.25rem;
+  padding: 1.25rem;
+  overflow-y: auto;
+  align-items: start;
+}
+
+/* ─── Compact inputs (dialog) ─── */
+.inputPane {
+  display: grid;
+  gap: 1rem;
+}
+
+.inputSection {
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  background: var(--explorer-surface);
+  border: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.inputSectionTitle {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+}
+
+.compactGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+}
+
+.compactField {
+  display: grid;
+  gap: 0.15rem;
+  cursor: help;
+}
+
+.compactLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--explorer-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compactControl {
+  position: relative;
+}
+
+.compactInput {
+  width: 100%;
+  height: 2.1rem;
+  border-radius: 10px;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--explorer-ink);
+  font-size: 0.88rem;
+  padding: 0 0.6rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.compactInput:hover,
+.compactInput:focus {
+  border-color: color-mix(in srgb, var(--explorer-accent) 45%, white);
+  box-shadow: 0 0 0 3px rgba(47, 143, 91, 0.1);
+  outline: none;
+  background: #fff;
+}
+
+.hasPrefix {
+  padding-left: 1.6rem;
+}
+
+.hasSuffix {
+  padding-right: 2.2rem;
+}
+
+.compactAffix {
+  position: absolute;
+  top: 50%;
+  left: 0.5rem;
+  transform: translateY(-50%);
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+
+.compactSuffix {
+  left: auto;
+  right: 0.55rem;
+}
+
+/* ─── Results panel (dialog) ─── */
+.resultPane {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.summaryPanel {
+  border-radius: 18px;
+  padding: 1rem 1.1rem;
+  color: #f9fdf9;
+  background:
+    linear-gradient(160deg, rgba(21, 39, 28, 0.96), rgba(29, 70, 46, 0.9)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent);
+  box-shadow: 0 16px 36px rgba(10, 24, 16, 0.16);
+}
+
+.stageBadge {
+  display: inline-flex;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #effaf2;
+  background: rgba(255, 255, 255, 0.14);
+  margin-bottom: 0.5rem;
+}
+
+.summaryHeading {
+  margin: 0;
+  font-size: clamp(1.5rem, 3.5vw, 2rem);
+  line-height: 1;
+}
+
+.summarySubhead {
+  margin: 0.35rem 0 0;
+  color: rgba(245, 250, 247, 0.78);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.kpiGrid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(2, 1fr);
+  margin-top: 0.8rem;
+}
+
+.kpi {
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.kpiLabel {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(240, 247, 243, 0.6);
+}
+
+.kpiValue {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f9fdf9;
+}
+
+.panel {
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.panelTitle {
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+  cursor: default;
+}
+
+details.panel > .panelTitle {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ─── Display toggle ─── */
+.displayToggle {
+  display: flex;
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.toggleBtn {
+  appearance: none;
+  border: none;
+  padding: 0.3rem 0.65rem;
+  background: transparent;
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.toggleActive {
+  background: var(--explorer-accent);
+  color: #fff;
+}
+
+/* ─── Break-even callout ─── */
+.breakeven {
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: rgba(245, 250, 247, 0.82);
+}
+
+.summaryPeriod {
+  font-size: 0.65em;
+  font-weight: 500;
+  opacity: 0.7;
+  margin-left: 0.35rem;
+}
+
+/* ─── Preset comparison ─── */
+.comparisonGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+}
+
+.comparisonCell {
+  appearance: none;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 12px;
+  padding: 0.55rem;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.comparisonCell:hover {
+  border-color: color-mix(in srgb, var(--explorer-accent) 40%, white);
+}
+
+.comparisonActive {
+  border-color: var(--explorer-accent);
+  background: var(--explorer-accent-soft);
+}
+
+.comparisonLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--explorer-accent);
+}
+
+.comparisonRevenue {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--explorer-ink);
+}
+
+.comparisonMeta {
+  font-size: 0.72rem;
+  color: var(--ifm-font-color-secondary);
+}
+
+/* ─── Sensitivity slider ─── */
+.slider {
+  width: 100%;
+  height: 4px;
+  margin-top: 0.2rem;
+  appearance: none;
+  background: var(--ifm-color-emphasis-200);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--explorer-accent);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  cursor: grab;
+}
+
+.slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--explorer-accent);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  cursor: grab;
+}
+
+/* ─── Runway panel ─── */
+.runwayGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.runwayItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.runwayLabel {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ifm-font-color-secondary);
+}
+
+.runwayValue {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.marginPositive {
+  color: #2f8f5b;
+}
+
+.marginNegative {
+  color: #c46358;
+}
+
+/* ─── Token upside grid ─── */
+.upsideGrid {
+  display: grid;
+  grid-template-columns: auto repeat(3, 1fr);
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.upsideHeader {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--explorer-accent);
+  text-align: center;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+}
+
+.upsideRowLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--explorer-ink);
+  display: flex;
+  align-items: center;
+}
+
+.upsideCell {
+  text-align: center;
+  font-weight: 700;
+  padding: 0.3rem 0.15rem;
+  border-radius: 8px;
+  background: rgba(47, 143, 91, 0.06);
+  color: var(--explorer-ink);
+}
+
+/* ─── Projection chart ─── */
+.projectionControls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.chartContainer {
+  margin-top: 0.25rem;
+}
+
+/* ─── Shared: mix bar, legend, streams ─── */
+.mixBar {
+  display: flex;
+  min-height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(20, 40, 29, 0.08);
+}
+
+.mixSegment {
+  min-width: 0;
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legendDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.streamList {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.streamRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.streamLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--explorer-ink);
+}
+
+.streamValue {
+  font-weight: 700;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.splitList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.splitRow {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.splitMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.splitTrack {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(20, 40, 29, 0.08);
+}
+
+.splitFill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.insightList {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.insightCompact {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ifm-font-color-secondary);
+}
+
+.emptyRow {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--ifm-font-color-secondary);
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .dialogBody {
+    grid-template-columns: 1fr;
+  }
+
+  .resultPane {
+    position: static;
+  }
+
+  .inlineBody {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inlineKpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .inlineKpi {
+    align-items: flex-start;
+  }
+
+  .inlineTop {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .openButton {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .compactGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Dark mode ─── */
+:global([data-theme="dark"]) .shell {
+  --explorer-ink: #f1f8f1;
+  --explorer-muted: rgba(236, 243, 236, 0.72);
+  --explorer-accent: #7ad7a3;
+  --explorer-accent-soft: rgba(122, 215, 163, 0.22);
+  --explorer-surface: linear-gradient(180deg, rgba(22, 28, 24, 0.92), rgba(19, 24, 21, 0.94));
+}
+
+:global([data-theme="dark"]) .inlineCard,
+:global([data-theme="dark"]) .inputSection,
+:global([data-theme="dark"]) .panel {
+  border-color: rgba(122, 215, 163, 0.16);
+}
+
+:global([data-theme="dark"]) .compactInput,
+:global([data-theme="dark"]) .pill,
+:global([data-theme="dark"]) .toolbarBtn {
+  background: rgba(17, 22, 19, 0.9);
+  color: var(--explorer-ink);
+}
+
+:global([data-theme="dark"]) .dialog {
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+}
+
+:global([data-theme="dark"]) .dialogToolbar {
+  border-color: rgba(122, 215, 163, 0.16);
+}
+
+:global([data-theme="dark"]) .mixBar,
+:global([data-theme="dark"]) .splitTrack {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme="dark"]) .openButton {
+  background: var(--explorer-accent);
+  color: #14281d;
+}
+
+:global([data-theme="dark"]) .toggleActive {
+  background: var(--explorer-accent);
+  color: #14281d;
+}
+
+:global([data-theme="dark"]) .comparisonCell {
+  border-color: rgba(122, 215, 163, 0.16);
+}
+
+:global([data-theme="dark"]) .comparisonActive {
+  border-color: var(--explorer-accent);
+  background: var(--explorer-accent-soft);
+}
+
+:global([data-theme="dark"]) .slider {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:global([data-theme="dark"]) .slider::-webkit-slider-thumb {
+  border-color: #1a1a1a;
+}
+
+:global([data-theme="dark"]) .displayToggle {
+  border-color: rgba(122, 215, 163, 0.16);
+}
+
+:global([data-theme="dark"]) .runwayItem {
+  border-color: rgba(122, 215, 163, 0.12);
+}
+
+:global([data-theme="dark"]) .marginPositive {
+  color: #7ad7a3;
+}
+
+:global([data-theme="dark"]) .marginNegative {
+  color: #e87b6f;
+}
+
+:global([data-theme="dark"]) .upsideHeader {
+  border-color: rgba(122, 215, 163, 0.12);
+  color: var(--explorer-accent);
+}
+
+:global([data-theme="dark"]) .upsideCell {
+  background: rgba(122, 215, 163, 0.08);
+}
+
+/* ─── Animation ─── */
+@media (prefers-reduced-motion: no-preference) {
+  .inlineCard,
+  .inputSection,
+  .panel,
+  .summaryPanel {
+    animation: riseIn 320ms ease both;
+  }
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -131,9 +131,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           id: "app.admin.nav.quickAction.pendingReviews",
           defaultMessage: "Go to Pending Reviews",
         }),
-        href: selectedGardenId
-          ? `/work?garden=${selectedGardenId}&view=queue`
-          : "/work?view=queue",
+        href: selectedGardenId ? `/work?garden=${selectedGardenId}&view=queue` : "/work?view=queue",
         roles: ["deployer", "operator"],
       },
       {

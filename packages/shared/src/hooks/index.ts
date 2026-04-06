@@ -292,7 +292,7 @@ export { useOpsRunnerConnect } from "./ops/useOpsRunnerConnect";
 // ============================================================================
 // QUERY KEYS
 // ============================================================================
-export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
+export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-keys";
 // ============================================================================
 // STORAGE
 // ============================================================================
@@ -302,12 +302,12 @@ export {
   INDEXER_LAG_SCHEDULE_MS,
   queryInvalidation,
   queryKeys,
-  scheduleProgressiveInvalidation,
   STALE_TIME_FAST,
   STALE_TIME_MEDIUM,
   STALE_TIME_RARE,
   STALE_TIME_SLOW,
-} from "./query-keys";
+} from "../config/query-keys";
+export { scheduleProgressiveInvalidation } from "../utils/query-invalidation";
 // ============================================================================
 // ROLES
 // ============================================================================
@@ -379,6 +379,8 @@ export { useBatchWorkSync } from "./work/useBatchWorkSync";
 // ============================================================================
 // NAVIGATION
 // ============================================================================
+export type { CockpitSearchParamsResult } from "./navigation/useCockpitSearchParams";
+export { useCockpitSearchParams } from "./navigation/useCockpitSearchParams";
 export type { GardenUrlSyncResult } from "./navigation/useGardenUrlSync";
 export { useGardenUrlSync } from "./navigation/useGardenUrlSync";
 // ============================================================================

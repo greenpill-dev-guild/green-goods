@@ -20,7 +20,7 @@ import {
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
-import { queryKeys, STALE_TIME_FAST } from "../query-keys";
+import { queryKeys, STALE_TIME_FAST } from "../../config/query-keys";
 import { useDebouncedValue } from "../utils/useDebouncedValue";
 import { slugSchema } from "./useSlugForm";
 

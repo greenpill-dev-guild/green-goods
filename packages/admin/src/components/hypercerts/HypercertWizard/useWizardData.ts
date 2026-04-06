@@ -1,10 +1,6 @@
 import {
-  type CategorizedError,
-  ConfirmDialog,
   categorizeError,
   DEFAULT_CHAIN_ID,
-  ErrorBoundary,
-  type ErrorCategory,
   formatHypercertMetadata,
   getSDGLabel,
   type HypercertAttestation,
@@ -29,58 +25,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { type Blocker, useBlocker } from "react-router-dom";
 import { zeroAddress } from "viem";
-import { FormWizard } from "@/components/Form/FormWizard";
-import type { Step } from "@/components/Form/StepIndicator";
-import { MintingDialog } from "@/components/hypercerts/MintingDialog";
-import { AttestationSelector } from "@/components/hypercerts/steps/AttestationSelector";
-import { DistributionConfig } from "@/components/hypercerts/steps/DistributionConfig";
-import { HypercertPreview } from "@/components/hypercerts/steps/HypercertPreview";
-import { MetadataEditor } from "@/components/hypercerts/steps/MetadataEditor";
+import { getErrorMessageKey, type HypercertCompletionData } from "./types";
+import { useValidationMessage, useWizardSteps } from "./wizardSteps";
 
-/** Maps error categories to i18n message keys for user-facing error display */
-const ERROR_CATEGORY_KEYS: Record<ErrorCategory, string> = {
-  network: "app.errors.network",
-  blockchain: "app.errors.blockchain",
-  auth: "app.errors.auth",
-  validation: "app.errors.validation",
-  permission: "app.errors.permission",
-  storage: "app.errors.storage",
-  unknown: "app.hypercerts.mint.error.generic.message",
-};
-
-/** Get the i18n message key for a categorized error */
-function getErrorMessageKey(categorized: CategorizedError): string {
-  return ERROR_CATEGORY_KEYS[categorized.category];
-}
-
-/**
- * Data passed to onComplete for optimistic UI rendering.
- * Allows the detail page to show content immediately while indexer syncs.
- */
-export interface HypercertCompletionData {
-  hypercertId: string;
-  title: string;
-  description: string;
-  workScopes: string[];
-  imageUri?: string;
-  attestationCount: number;
-  mintedAt: number;
-  txHash?: `0x${string}`;
-}
-
-interface HypercertWizardProps {
+interface UseWizardDataOptions {
   gardenId: string;
   gardenName: string;
   onComplete: (data: HypercertCompletionData) => void;
-  onCancel: () => void;
 }
 
-export function HypercertWizard({
-  gardenId,
-  gardenName,
-  onComplete,
-  onCancel,
-}: HypercertWizardProps) {
+export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDataOptions) {
   const { formatMessage } = useIntl();
   const { smartAccountAddress, eoaAddress } = useAuth();
   const operatorAddress = smartAccountAddress ?? eoaAddress ?? undefined;
@@ -382,34 +336,7 @@ export function HypercertWizard({
     selectedAttestations,
   ]);
 
-  // 4-step wizard: attestations, metadata, distribution, preview+mint
-  const steps: Step[] = useMemo(
-    () => [
-      {
-        id: "attestations",
-        title: formatMessage({ id: "app.hypercerts.wizard.step.attestations.title" }),
-        description: formatMessage({
-          id: "app.hypercerts.wizard.step.attestations.description",
-        }),
-      },
-      {
-        id: "metadata",
-        title: formatMessage({ id: "app.hypercerts.wizard.step.metadata.title" }),
-        description: formatMessage({ id: "app.hypercerts.wizard.step.metadata.description" }),
-      },
-      {
-        id: "distribution",
-        title: formatMessage({ id: "app.hypercerts.wizard.step.distribution.title" }),
-        description: formatMessage({ id: "app.hypercerts.wizard.step.distribution.description" }),
-      },
-      {
-        id: "preview",
-        title: formatMessage({ id: "app.hypercerts.wizard.step.preview.title" }),
-        description: formatMessage({ id: "app.hypercerts.wizard.step.preview.description" }),
-      },
-    ],
-    [formatMessage]
-  );
+  const steps = useWizardSteps(formatMessage);
 
   const isSubmitting = [
     "uploading_metadata",
@@ -424,53 +351,16 @@ export function HypercertWizard({
       ? formatMessage({ id: "app.hypercerts.mint.retry" })
       : formatMessage({ id: "app.hypercerts.mint.submit" });
 
-  // Generate validation message based on current step (4-step wizard)
-  const validationMessage = useMemo(() => {
-    if (!nextDisabled) return undefined;
-
-    switch (currentStep) {
-      case 1: // Attestation selection
-        return selectedAttestationIds.length === 0
-          ? formatMessage({ id: "app.hypercerts.wizard.validation.selectAttestation" })
-          : undefined;
-      case 2: {
-        // Metadata - check all required fields
-        const missingFields: string[] = [];
-        if (!wizardTitle?.trim()) {
-          missingFields.push(formatMessage({ id: "app.hypercerts.metadata.title" }));
-        }
-        if (!wizardWorkScopes?.length) {
-          missingFields.push(formatMessage({ id: "app.hypercerts.metadata.workScope" }));
-        }
-        if (!wizardWorkTimeframeStart) {
-          missingFields.push(formatMessage({ id: "app.hypercerts.metadata.workTimeframeStart" }));
-        }
-        if (!wizardWorkTimeframeEnd) {
-          missingFields.push(formatMessage({ id: "app.hypercerts.metadata.workTimeframeEnd" }));
-        }
-        if (missingFields.length > 0) {
-          return formatMessage(
-            { id: "app.hypercerts.wizard.validation.missingFields" },
-            { fields: missingFields.join(", ") }
-          );
-        }
-        return undefined;
-      }
-      case 3: // Distribution - validation handled by canProceed via allowlistValidation
-        return formatMessage({ id: "app.hypercerts.wizard.validation.distribution" });
-      default:
-        return undefined;
-    }
-  }, [
+  const validationMessage = useValidationMessage({
     currentStep,
     nextDisabled,
-    selectedAttestationIds.length,
+    selectedAttestationIds,
     wizardTitle,
     wizardWorkScopes,
     wizardWorkTimeframeStart,
     wizardWorkTimeframeEnd,
     formatMessage,
-  ]);
+  });
 
   // Handle clicking on completed steps in the step indicator
   // stepIndex is 0-based (from FormWizard), workflow uses 1-based steps
@@ -503,130 +393,68 @@ export function HypercertWizard({
     [currentStep, formatMessage, steps]
   );
 
-  return (
-    <>
-      <ConfirmDialog
-        isOpen={showLeaveConfirm}
-        onClose={handleCancelLeave}
-        onConfirm={handleConfirmLeave}
-        title={formatMessage({ id: "app.hypercerts.wizard.leaveConfirm.title" })}
-        description={formatMessage({ id: "app.hypercerts.wizard.unsavedChanges" })}
-        confirmLabel={formatMessage({ id: "app.hypercerts.wizard.leaveConfirm.confirm" })}
-        cancelLabel={formatMessage({ id: "app.hypercerts.wizard.leaveConfirm.cancel" })}
-        variant="warning"
-      />
-      <ConfirmDialog
-        isOpen={showRestoreDraft}
-        onClose={() => setShowRestoreDraft(false)}
-        onConfirm={async () => {
-          setRestoreDraftPending(true);
-          await loadDraft();
-          setRestoreDraftPending(false);
-          setShowRestoreDraft(false);
-        }}
-        onError={() => {
-          setRestoreDraftPending(false);
-          setShowRestoreDraft(false);
-        }}
-        title={formatMessage({ id: "app.hypercerts.wizard.restore.title" })}
-        description={formatMessage({ id: "app.hypercerts.wizard.restore.description" })}
-        confirmLabel={formatMessage({ id: "app.hypercerts.wizard.restore.confirm" })}
-        cancelLabel={formatMessage({ id: "app.hypercerts.wizard.restore.cancel" })}
-        onCancel={async () => {
-          try {
-            await clearDraft();
-          } catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            logger.error("[HypercertWizard] Failed to clear draft on cancel", {
-              error: err.message,
-              stack: err.stack,
-              draftId: wizardDraftId,
-            });
-            // Inform user but don't block dialog close
-            toastService.show({
-              status: "info",
-              message: formatMessage({ id: "app.hypercerts.wizard.draft.clear.failed" }),
-              duration: 3000,
-            });
-          }
-          setShowRestoreDraft(false);
-        }}
-        variant="warning"
-        isLoading={restoreDraftPending}
-      />
-      <FormWizard
-        steps={steps}
-        currentStep={currentStep - 1}
-        onNext={nextStep}
-        onBack={previousStep}
-        onCancel={onCancel}
-        onSubmit={handleMint}
-        onStepClick={handleStepClick}
-        nextDisabled={nextDisabled}
-        validationMessage={validationMessage}
-        isSubmitting={isSubmitting}
-        nextLabel={formatMessage({ id: "app.hypercerts.wizard.next" })}
-        submitLabel={submitLabel}
-      >
-        <ErrorBoundary context={`HypercertWizard.Step${currentStep}`} onError={handleStepError}>
-          {currentStep === 1 && (
-            <AttestationSelector
-              attestations={attestations}
-              selectedIds={selectedAttestationIds}
-              onToggle={toggleAttestation}
-              isLoading={isLoading}
-              hasError={hasError}
-              bundledInfo={bundledAttestations}
-              assessments={assessments}
-              selectedAssessmentId={selectedAssessmentId}
-              onAssessmentChange={setSelectedAssessmentId}
-            />
-          )}
+  return {
+    // Workflow navigation
+    currentStep,
+    nextStep,
+    previousStep,
+    setStep,
+    steps,
+    handleStepClick,
+    handleStepError,
+    handleMint,
 
-          {currentStep === 2 && (
-            <MetadataEditor
-              draft={draft}
-              onUpdate={(updates) => updateMetadata(updates)}
-              suggestedWorkScopes={suggestedScopes}
-              suggestedStart={suggestedTimeframe.start}
-              suggestedEnd={suggestedTimeframe.end}
-              selectedAssessment={selectedAssessment}
-            />
-          )}
+    // Attestation data
+    attestations,
+    isLoading,
+    hasError,
+    selectedAttestationIds,
+    selectedAttestations,
+    toggleAttestation,
+    bundledAttestations,
 
-          {currentStep === 3 && (
-            <DistributionConfig
-              mode={distributionMode}
-              allowlist={allowlist}
-              totalUnits={TOTAL_UNITS}
-              onModeChange={setDistributionMode}
-              onAllowlistChange={setAllowlist}
-            />
-          )}
+    // Assessment data
+    assessments,
+    selectedAssessmentId,
+    setSelectedAssessmentId,
+    selectedAssessment,
 
-          {currentStep === 4 && (
-            <HypercertPreview
-              metadata={previewMetadata}
-              gardenName={gardenName}
-              gardenId={gardenId}
-              attestationCount={selectedAttestations.length}
-              totalUnits={TOTAL_UNITS}
-              allowlist={allowlist}
-              mintingState={mintingState}
-              chainId={chainId}
-              selectedAssessment={selectedAssessment}
-              onEditMetadata={() => setStep(2)}
-              onEditDistribution={() => setStep(3)}
-            />
-          )}
-        </ErrorBoundary>
-      </FormWizard>
-      <MintingDialog
-        mintingState={mintingState}
-        chainId={chainId}
-        onCancel={cancel}
-        onRetry={retry}
-      />
-    </>
-  );
+    // Metadata and draft
+    draft,
+    updateMetadata,
+    suggestedScopes,
+    suggestedTimeframe,
+    previewMetadata,
+
+    // Distribution
+    distributionMode,
+    allowlist,
+    setDistributionMode,
+    setAllowlist,
+
+    // Minting state
+    mintingState,
+    chainId,
+    cancel,
+    retry,
+    isSubmitting,
+    nextDisabled,
+    submitLabel,
+    validationMessage,
+
+    // Navigation guards
+    showLeaveConfirm,
+    handleConfirmLeave,
+    handleCancelLeave,
+
+    // Draft restore
+    showRestoreDraft,
+    setShowRestoreDraft,
+    restoreDraftPending,
+    setRestoreDraftPending,
+    loadDraft,
+    clearDraft,
+    wizardDraftId,
+    reset,
+  };
 }

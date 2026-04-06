@@ -7,7 +7,7 @@ import { greenGoodsIndexer } from "../../modules/data/graphql-client";
 import { useAuthContext } from "../../providers/Auth";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 const GET_OPERATOR_GARDENS = greenGoodsGraphQL(/* GraphQL */ `
   query GetOperatorGardens($operator: [String!]!, $chainId: Int!) {

@@ -97,7 +97,11 @@ vi.mock("../../views/Profile/Help", () => ({
 import Profile from "../../views/Profile";
 
 const wrap = (el: React.ReactElement) =>
-  createElement(MemoryRouter, null, createElement(IntlProvider, { locale: "en", messages: {} }, el));
+  createElement(
+    MemoryRouter,
+    null,
+    createElement(IntlProvider, { locale: "en", messages: {} }, el)
+  );
 
 describe("Profile View", () => {
   beforeEach(() => {

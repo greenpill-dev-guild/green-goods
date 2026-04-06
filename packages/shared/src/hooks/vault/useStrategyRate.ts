@@ -4,7 +4,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import { AAVE_V3_POOL_ABI, rayToApy } from "../../utils/blockchain/aave";
 import { AAVE_V3_POOL } from "../../utils/blockchain/vaults";
-import { STALE_TIME_SLOW } from "../query-keys";
+import { STALE_TIME_SLOW } from "../../config/query-keys";
 
 interface UseStrategyRateOptions {
   chainId?: number;

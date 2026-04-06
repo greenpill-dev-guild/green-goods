@@ -11,13 +11,18 @@
 
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Confidence, VerificationMethod, type Work, type WorkApprovalDraft } from "../../types/domain";
+import {
+  Confidence,
+  VerificationMethod,
+  type Work,
+  type WorkApprovalDraft,
+} from "../../types/domain";
 import type { ApprovalJobPayload } from "../../types/job-queue";
 import { toastService } from "../../components/toast";
 import { useJobQueueEvents } from "../../modules/job-queue";
 import { useTimeout } from "../utils/useTimeout";
 import { useWorkApproval } from "./useWorkApproval";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 export interface UseWorkApprovalActionsParams {
   work: Work | undefined;

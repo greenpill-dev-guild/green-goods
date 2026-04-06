@@ -84,6 +84,18 @@ export default defineConfig({
         replacement: resolve(__dirname, "../shared/src/components"),
       },
       {
+        find: "@green-goods/shared/i18n",
+        replacement: resolve(__dirname, "../shared/src/i18n"),
+      },
+      {
+        find: "@green-goods/shared/workflows",
+        replacement: resolve(__dirname, "../shared/src/workflows"),
+      },
+      {
+        find: "@green-goods/shared/constants",
+        replacement: resolve(__dirname, "../shared/src/constants"),
+      },
+      {
         find: "@green-goods/shared/testing",
         replacement: resolve(__dirname, "../shared/src/__tests__/test-utils"),
       },

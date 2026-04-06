@@ -51,8 +51,7 @@ vi.mock("@/components/Actions", () => ({
     size?: string;
     className?: string;
     leadingIcon?: React.ReactNode;
-  }) =>
-    createElement("button", { onClick, "data-testid": `btn-${label}` }, label),
+  }) => createElement("button", { onClick, "data-testid": `btn-${label}` }, label),
 }));
 
 vi.mock("@/components/Cards", () => ({
@@ -61,20 +60,17 @@ vi.mock("@/components/Cards", () => ({
 }));
 
 vi.mock("@/components/Display", () => ({
-  Avatar: ({ children }: { children: React.ReactNode }) =>
-    createElement("div", null, children),
+  Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
 }));
 
 vi.mock("@/components/Inputs", () => ({
   Select: ({ children, value, onValueChange }: any) =>
     createElement("div", { "data-testid": "select", "data-value": value }, children),
   SelectContent: ({ children }: any) => createElement("div", null, children),
-  SelectItem: ({ children, value }: any) =>
-    createElement("option", { value }, children),
+  SelectItem: ({ children, value }: any) => createElement("option", { value }, children),
   SelectTrigger: ({ children }: any) =>
     createElement("div", { "data-testid": "select-trigger" }, children),
-  SelectValue: ({ placeholder }: any) =>
-    createElement("span", null, placeholder),
+  SelectValue: ({ placeholder }: any) => createElement("span", null, placeholder),
 }));
 
 import { AppSettings } from "../../views/Profile/AppSettings";

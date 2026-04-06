@@ -49,14 +49,7 @@ vi.mock("@remixicon/react", () => ({
 
 // Mock client components
 vi.mock("@/components/Actions", () => ({
-  Button: ({
-    label,
-    onClick,
-  }: {
-    label: string;
-    onClick?: () => void;
-    [key: string]: unknown;
-  }) =>
+  Button: ({ label, onClick }: { label: string; onClick?: () => void; [key: string]: unknown }) =>
     createElement("button", { onClick, "data-testid": `btn-${label}` }, label),
 }));
 
@@ -66,8 +59,7 @@ vi.mock("@/components/Cards", () => ({
 }));
 
 vi.mock("@/components/Display", () => ({
-  Avatar: ({ children }: { children: React.ReactNode }) =>
-    createElement("div", null, children),
+  Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
 }));
 
 import { InstallCta } from "../../views/Profile/InstallCta";

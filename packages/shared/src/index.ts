@@ -15,6 +15,7 @@ export type {
   BottomSheetProps,
   FloatingToolbarProps,
   GardenChipProps,
+  NavigationBarProps,
   ConfidenceSelectorProps,
   ConfirmDialogProps,
   DialogShellProps,
@@ -72,6 +73,7 @@ export {
   surfaceCardVariants,
   FloatingToolbar,
   GardenChip,
+  NavigationBar,
   ConfidenceSelector,
   ConfirmDialog,
   DialogShell,
@@ -228,6 +230,7 @@ export type {
   WorkFormData,
   WorkMetadataStatus,
   WorksQueryKey,
+  CockpitSearchParamsResult,
 } from "./hooks/index";
 export {
   assessmentFormSchema,
@@ -436,6 +439,7 @@ export {
   useWorkMutation,
   useWorks,
   useCrossGardenQueue,
+  useCockpitSearchParams,
   useGardenUrlSync,
   useYieldAllocations,
   useProtocolYieldSummary,

@@ -9,7 +9,7 @@ import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
 import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 /**

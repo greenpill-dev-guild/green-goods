@@ -287,11 +287,7 @@ class JobQueue {
       // Store clientWorkId mapping for instant deduplication
       if (job.kind === "work" && job.meta?.clientWorkId) {
         try {
-          await jobQueueDB.storeClientWorkIdMapping(
-            job.meta.clientWorkId as string,
-            txHash,
-            jobId
-          );
+          await jobQueueDB.storeClientWorkIdMapping(job.meta.clientWorkId as string, txHash, jobId);
         } catch (error) {
           logger.warn("[JobQueue] Failed to store clientWorkId mapping", { error });
         }

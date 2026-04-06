@@ -15,7 +15,12 @@ import { createPublicClientForChain } from "../../config/pimlico";
 import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { getGardens } from "../../modules/data/greengoods";
-import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_SLOW, DEFAULT_RETRY_COUNT } from "../query-keys";
+import {
+  queryKeys,
+  STALE_TIME_MEDIUM,
+  STALE_TIME_SLOW,
+  DEFAULT_RETRY_COUNT,
+} from "../../config/query-keys";
 
 interface UseReviewerGardenIdsResult {
   /** All garden IDs the user can review (operator + evaluator union) */
@@ -50,13 +55,13 @@ export function useReviewerGardenIds(address: Address | undefined): UseReviewerG
           return operators.includes(address.toLowerCase());
         })
         .map((g) => g.id),
-    [gardens, address],
+    [gardens, address]
   );
 
   const { data: evaluatorGardenIds = [], isLoading: isLoadingEvaluator } = useQuery({
     queryKey: queryKeys.role.evaluatorGardens(
       address || undefined,
-      (gardens || []).map((g) => g.id),
+      (gardens || []).map((g) => g.id)
     ),
     queryFn: async () => {
       if (!address || !gardens?.length) return [];

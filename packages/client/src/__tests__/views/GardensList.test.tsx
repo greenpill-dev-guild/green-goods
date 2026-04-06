@@ -107,8 +107,7 @@ vi.mock("@/components/Actions", () => ({
     size?: string;
     className?: string;
     leadingIcon?: React.ReactNode;
-  }) =>
-    createElement("button", { onClick, disabled, "data-testid": `btn-${label}` }, label),
+  }) => createElement("button", { onClick, disabled, "data-testid": `btn-${label}` }, label),
 }));
 
 vi.mock("@/components/Cards", () => ({
@@ -117,14 +116,17 @@ vi.mock("@/components/Cards", () => ({
 }));
 
 vi.mock("@/components/Display", () => ({
-  Avatar: ({ children }: { children: React.ReactNode }) =>
-    createElement("div", null, children),
+  Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
 }));
 
 import { GardensList } from "../../views/Profile/GardensList";
 
 const wrap = (el: React.ReactElement) =>
-  createElement(MemoryRouter, null, createElement(IntlProvider, { locale: "en", messages: {} }, el));
+  createElement(
+    MemoryRouter,
+    null,
+    createElement(IntlProvider, { locale: "en", messages: {} }, el)
+  );
 
 const MOCK_ADDRESS = "0x1234567890abcdef1234567890abcdef12345678";
 
@@ -143,9 +145,7 @@ describe("GardensList", () => {
   });
 
   it("returns null when no primaryAddress", () => {
-    const { container } = render(
-      wrap(createElement(GardensList, { primaryAddress: undefined }))
-    );
+    const { container } = render(wrap(createElement(GardensList, { primaryAddress: undefined })));
 
     expect(container.innerHTML).toBe("");
   });

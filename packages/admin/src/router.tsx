@@ -84,7 +84,9 @@ export const router = createRouter([
               },
               {
                 path: "actions/create",
-                lazy: async () => ({ Component: (await import("@/routes/RequireDeployer")).default }),
+                lazy: async () => ({
+                  Component: (await import("@/routes/RequireDeployer")).default,
+                }),
                 children: [
                   {
                     index: true,
@@ -102,7 +104,9 @@ export const router = createRouter([
               },
               {
                 path: "actions/:id/edit",
-                lazy: async () => ({ Component: (await import("@/routes/RequireDeployer")).default }),
+                lazy: async () => ({
+                  Component: (await import("@/routes/RequireDeployer")).default,
+                }),
                 children: [
                   {
                     index: true,
@@ -116,7 +120,9 @@ export const router = createRouter([
               // ── Garden secondary routes ──
               {
                 path: "gardens/create",
-                lazy: async () => ({ Component: (await import("@/routes/RequireDeployer")).default }),
+                lazy: async () => ({
+                  Component: (await import("@/routes/RequireDeployer")).default,
+                }),
                 children: [
                   {
                     index: true,

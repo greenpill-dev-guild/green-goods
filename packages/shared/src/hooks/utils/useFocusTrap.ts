@@ -36,7 +36,7 @@ interface UseFocusTrapOptions {
  */
 export function useFocusTrap(
   ref: RefObject<HTMLElement | null>,
-  options: UseFocusTrapOptions = {},
+  options: UseFocusTrapOptions = {}
 ): void {
   const { enabled = true, autoFocusSelector = '[data-testid="modal-drawer-close"]' } = options;
 

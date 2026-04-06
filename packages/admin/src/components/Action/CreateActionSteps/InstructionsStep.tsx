@@ -27,8 +27,7 @@ export function InstructionsStep({ form }: InstructionsStepProps) {
           onChange={(e) => {
             const selectedTemplateSlug = e.target.value;
             if (selectedTemplateSlug) {
-              const templateSelection =
-                resolveCreateActionTemplateSelection(selectedTemplateSlug);
+              const templateSelection = resolveCreateActionTemplateSelection(selectedTemplateSlug);
               if (!templateSelection) return;
 
               form.setValue("instructionConfig", templateSelection.instructionConfig, {

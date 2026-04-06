@@ -50,9 +50,7 @@ vi.mock("@remixicon/react", () => {
 import { StrategyKernelStep } from "../../../components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 
 function renderWithIntl(ui: React.ReactElement) {
-  return render(
-    React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui)
-  );
+  return render(React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui));
 }
 
 describe("components/Assessment/CreateAssessmentSteps/StrategyKernelStep", () => {

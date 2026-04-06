@@ -3,7 +3,7 @@
  *
  * Contract ABIs used for hypercert minting operations.
  *
- * @module hooks/hypercerts/hypercert-abis
+ * @module utils/blockchain/hypercert-abis
  */
 
 /**

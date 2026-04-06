@@ -123,9 +123,7 @@ export function ContractUpgradePanel({ selectedChainId, chainName }: ContractUpg
             </Button>
           )}
 
-          {session?.address && (
-            <span className="text-xs text-text-soft">{session.address}</span>
-          )}
+          {session?.address && <span className="text-xs text-text-soft">{session.address}</span>}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -140,9 +138,7 @@ export function ContractUpgradePanel({ selectedChainId, chainName }: ContractUpg
               id="upgradeTarget"
               value={upgradeTarget}
               onChange={(event) =>
-                setUpgradeTarget(
-                  event.target.value as (typeof UPGRADE_CONTRACT_OPTIONS)[number]
-                )
+                setUpgradeTarget(event.target.value as (typeof UPGRADE_CONTRACT_OPTIONS)[number])
               }
               className="w-full px-3 py-2 border border-stroke-sub bg-bg-white text-text-strong rounded-lg"
             >
@@ -220,9 +216,7 @@ export function ContractUpgradePanel({ selectedChainId, chainName }: ContractUpg
               onChange={(event) => setSelectedJobId(event.target.value || null)}
               className="border border-stroke-sub rounded-lg px-2 py-1 text-sm bg-bg-white"
             >
-              <option value="">
-                {formatMessage({ id: "app.contracts.upgrade.selectJob" })}
-              </option>
+              <option value="">{formatMessage({ id: "app.contracts.upgrade.selectJob" })}</option>
               {jobs.map((job) => (
                 <option key={job.id} value={job.id}>
                   {job.type} · {job.id.slice(0, 8)}

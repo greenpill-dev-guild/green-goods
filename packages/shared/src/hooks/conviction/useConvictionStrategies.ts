@@ -7,7 +7,7 @@ import { HATS_MODULE_CONVICTION_ABI } from "../../utils/blockchain/abis";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
+import { queryKeys, STALE_TIME_SLOW } from "../../config/query-keys";
 
 interface UseConvictionStrategiesOptions {
   enabled?: boolean;

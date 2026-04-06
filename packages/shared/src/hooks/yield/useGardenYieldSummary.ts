@@ -5,7 +5,7 @@ import { getGardenYieldAllocations } from "../../modules/data/yield-allocations"
 import type { Address } from "../../types/domain";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 import {
   type AggregateYieldSummary,
   EMPTY_YIELD_SUMMARY,

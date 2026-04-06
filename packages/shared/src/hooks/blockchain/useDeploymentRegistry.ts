@@ -9,7 +9,7 @@ import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 // DeploymentRegistry ABI - read + write functions needed by hooks and views
 export const DEPLOYMENT_REGISTRY_ABI = [

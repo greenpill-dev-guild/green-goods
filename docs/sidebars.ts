@@ -185,12 +185,13 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         description:
-          'Product specifications from v0.1 through v1.0.',
+          'Product specifications and strategy tools for Green Goods.',
       },
       items: [
         {type: 'doc', id: 'builders/specs/v0-1', label: 'v0.1 — Privy, EAS, Pimlico, Tokenbound'},
         {type: 'doc', id: 'builders/specs/v0-4', label: 'v0.4 — Passkey, EAS, Pimlico, Tokenbound, Karma'},
         {type: 'doc', id: 'builders/specs/v1-0', label: 'v1.0 — Hypercerts, Octant, Gardens, Cookie Jar'},
+        {type: 'doc', id: 'builders/specs/revenue-explorer', label: 'Protocol Revenue Explorer'},
       ],
     },
 

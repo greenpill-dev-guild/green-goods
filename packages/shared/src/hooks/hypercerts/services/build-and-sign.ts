@@ -13,7 +13,7 @@ import { getChain } from "../../../config/chains";
 import { encodeCreateAllowlist, TransferRestrictions } from "../../../lib/hypercerts";
 import type { Address } from "../../../types/domain";
 import type { MintHypercertSigningInput } from "../../../workflows/mintHypercert";
-import { CREATE_ALLOWLIST_ABI } from "../hypercert-abis";
+import { CREATE_ALLOWLIST_ABI } from "../../../utils/blockchain/hypercert-abis";
 import { resolveHypercertContracts } from "../hypercert-contracts";
 import type { MintServiceDeps } from "./types";
 

@@ -41,7 +41,11 @@ export function Alert({ variant, title, children, action, className, onDismiss }
   return (
     <div
       role={role}
-      className={cn("flex items-start gap-3 rounded-lg border p-4", variantStyles[variant], className)}
+      className={cn(
+        "flex items-start gap-3 rounded-lg border p-4",
+        variantStyles[variant],
+        className
+      )}
     >
       {variantIcons[variant]}
       <div className="flex-1 text-sm">

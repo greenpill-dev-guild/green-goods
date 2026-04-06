@@ -7,7 +7,7 @@ import { logger } from "../../modules/app/logger";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { USER_FRIENDLY_ERRORS } from "../../utils/errors/user-messages";
 import { useAuth } from "../auth/useAuth";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 // GardenerAccount ABI (minimal - just the functions we need)
 const GARDENER_ACCOUNT_ABI = [

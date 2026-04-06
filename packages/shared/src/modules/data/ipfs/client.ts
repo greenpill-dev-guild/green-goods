@@ -21,7 +21,12 @@ export interface IpfsConfig {
   pinataApiBaseUrl?: string;
 }
 
-export type IpfsInitStatus = "not_started" | "in_progress" | "success" | "failed" | "skipped_no_config";
+export type IpfsInitStatus =
+  | "not_started"
+  | "in_progress"
+  | "success"
+  | "failed"
+  | "skipped_no_config";
 
 // ============================================================================
 // MODULE-LEVEL STATE

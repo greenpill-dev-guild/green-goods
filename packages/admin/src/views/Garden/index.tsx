@@ -4,13 +4,14 @@ import {
   parseGardenRange,
   type Address,
   useAdminStore,
+  useCockpitSearchParams,
   useGardenDerivedState,
   useGardenDetailData,
   useGardens,
 } from "@green-goods/shared";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CockpitWorkspaceSelectionState } from "@/components/Layout/CockpitWorkspaceSelectionState";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
@@ -21,6 +22,8 @@ import { Card } from "@/components/ui/Card";
 import { ImpactTab } from "@/views/Gardens/Garden/ImpactTab";
 import { OverviewTab } from "@/views/Gardens/Garden/OverviewTab";
 import "../Gardens/Garden/GardenDetailLayout.css";
+
+// Paradigm: Mixed — overview = Data Landscape, impact = Data Landscape, settings = Command Surface.
 
 type GardenWorkspaceView = "overview" | "impact" | "settings";
 
@@ -34,7 +37,7 @@ function parseGardenView(value: string | null): GardenWorkspaceView {
 export default function GardenView() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { searchParams, updateSearch } = useCockpitSearchParams();
   const { data: gardens = [] } = useGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
@@ -70,41 +73,12 @@ export default function GardenView() {
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
-  const updateSearch = useCallback(
-    (
-      updates: Partial<Record<"garden" | "view" | "range" | "item", string | undefined>>,
-      replace = true
-    ) => {
-      setSearchParams(
-        (previous) => {
-          const next = new URLSearchParams(previous);
-          for (const [key, value] of Object.entries(updates)) {
-            if (!value) {
-              next.delete(key);
-            } else {
-              next.set(key, value);
-            }
-          }
-          return next;
-        },
-        { replace }
-      );
-    },
-    [setSearchParams]
-  );
-
   const openSection = useCallback(
-    (
-      tab: "overview" | "impact" | "work" | "community",
-      section: string,
-      itemId?: string
-    ) => {
+    (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
       if (!selectedGarden) return;
 
       if (tab === "work") {
-        navigate(
-          `/work?garden=${selectedGarden.id}&view=queue${itemId ? `&item=${itemId}` : ""}`
-        );
+        navigate(`/work?garden=${selectedGarden.id}&view=queue${itemId ? `&item=${itemId}` : ""}`);
         return;
       }
 
@@ -417,7 +391,7 @@ export default function GardenView() {
                   aria-selected={active}
                   onClick={() => updateSearch({ view: option.id, item: undefined })}
                   className={cn(
-                    "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+                    "min-h-11 rounded-full px-4 py-2 text-sm font-medium transition-colors",
                     active
                       ? "bg-primary-alpha-16 text-primary-darker"
                       : "bg-bg-soft text-text-sub hover:bg-bg-weak"

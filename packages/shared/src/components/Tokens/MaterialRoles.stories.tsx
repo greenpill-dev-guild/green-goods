@@ -38,7 +38,10 @@ export const RoleMap: Story = {
     <div className="space-y-6">
       <div className="grid gap-3 md:grid-cols-3">
         {roles.slice(0, 6).map(([label, cssVar]) => (
-          <div key={label} className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm">
+          <div
+            key={label}
+            className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm"
+          >
             <div
               className="h-16 rounded-lg border border-stroke-soft"
               style={{ backgroundColor: `rgb(var(${cssVar}))` }}

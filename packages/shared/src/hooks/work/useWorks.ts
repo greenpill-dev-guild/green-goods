@@ -9,7 +9,17 @@ import type { Work, WorkCard, WorkDisplayStatus } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { useMerged } from "../app/useMerged";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
+
+// Throttle approval-fetch warnings to avoid console spam (at most once per 10s)
+let _lastApprovalWarnAt = 0;
+function warnApprovalFetchOnce(error: unknown) {
+  const now = Date.now();
+  if (now - _lastApprovalWarnAt > 10_000) {
+    _lastApprovalWarnAt = now;
+    warnApprovalFetchOnce(error);
+  }
+}
 
 /** Options for the useWorks hook */
 export interface UseWorksOptions {
@@ -59,7 +69,7 @@ async function computeWorksWithStatus(
   try {
     approvals = await getWorkApprovals(undefined, chainId);
   } catch (error) {
-    logger.warn("Failed to fetch approvals, status may be stale", { source: "useWorks", error });
+    warnApprovalFetchOnce(error);
   }
   const approvalMap = new Map(approvals.map((approval) => [approval.workUID, approval]));
 
@@ -122,6 +132,7 @@ export function useWorks(gardenId: string, options: UseWorksOptions = {}) {
     onlineKey: queryKeys.works.online(gardenId, chainId),
     offlineKey: queryKeys.works.offline(gardenId),
     mergedKey: queryKeys.works.merged(gardenId, chainId),
+    enabled: offline && !!gardenId,
     fetchOnline: () => getWorks(gardenId, chainId),
     fetchOffline: async () => {
       if (!primaryAddress) return [];

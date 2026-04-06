@@ -31,7 +31,7 @@ import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
 
@@ -92,8 +92,12 @@ export function useWorkApproval() {
   const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastGardenRef.current) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(lastGardenRef.current, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(lastGardenRef.current, chainId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.online(lastGardenRef.current, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.merged(lastGardenRef.current, chainId),
+        });
       }
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS

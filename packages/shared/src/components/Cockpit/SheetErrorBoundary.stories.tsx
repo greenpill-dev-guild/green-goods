@@ -17,7 +17,11 @@ type Story = StoryObj<typeof SheetErrorBoundary>;
 
 export const Healthy: Story = {
   args: {
-    children: <div className="rounded-lg border border-stroke-soft bg-bg-white p-4">Sheet content loaded normally.</div>,
+    children: (
+      <div className="rounded-lg border border-stroke-soft bg-bg-white p-4">
+        Sheet content loaded normally.
+      </div>
+    ),
   },
 };
 
