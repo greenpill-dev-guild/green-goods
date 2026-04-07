@@ -7,6 +7,7 @@ import {
   useEffectiveToolbarPermissions,
   useGardenUrlSync,
   useGardens,
+  useRole,
   useStaleGardenGuard,
   type ToolbarSlot,
 } from "@green-goods/shared";
@@ -34,6 +35,7 @@ export function CockpitLayout() {
   const location = useLocation();
   const { isAuthenticated } = useAuth();
   const { data: gardens = [] } = useGardens();
+  const { role } = useRole();
 
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const setSelectedGarden = useAdminStore((s) => s.setSelectedGarden);
@@ -128,6 +130,11 @@ export function CockpitLayout() {
 
   const userAvatarNode = <UserAvatar onOpenSettings={() => setSettingsOpen(true)} />;
 
+  // Show empty state CTA for operators/deployers who have no gardens
+  const hasNoGardens = gardens.length === 0 && !selectedGarden;
+  const canCreateGarden = role === "operator" || role === "deployer";
+  const showEmptyState = hasNoGardens && canCreateGarden;
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg-weak">
       {/* Skip to content */}
@@ -158,7 +165,37 @@ export function CockpitLayout() {
           WebkitOverflowScrolling: "touch",
         }}
       >
-        <PageTransition />
+        {showEmptyState ? (
+          <div className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-soft text-text-soft">
+              <RiSeedlingLine className="h-7 w-7" />
+            </div>
+            <h2 className="mt-4 text-lg font-semibold text-text-strong">
+              {intl.formatMessage({
+                id: "cockpit.workspace.noGardens",
+                defaultMessage: "No gardens yet",
+              })}
+            </h2>
+            <p className="mt-2 max-w-md text-sm text-text-sub">
+              {intl.formatMessage({
+                id: "cockpit.workspace.noGardensDescription",
+                defaultMessage: "Create your first garden to start using the cockpit workspaces.",
+              })}
+            </p>
+            <button
+              type="button"
+              className="mt-6 inline-flex items-center justify-center rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-static-white transition hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+              onClick={() => navigate("/gardens/create")}
+            >
+              {intl.formatMessage({
+                id: "cockpit.workspace.createGarden",
+                defaultMessage: "Create Garden",
+              })}
+            </button>
+          </div>
+        ) : (
+          <PageTransition />
+        )}
       </main>
 
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />

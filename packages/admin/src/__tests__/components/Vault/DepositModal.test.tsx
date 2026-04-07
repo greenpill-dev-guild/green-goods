@@ -85,10 +85,6 @@ vi.mock("@/components/ConnectButton", () => ({
   ConnectButton: () => <div />,
 }));
 
-vi.mock("@/components/feedback/TxInlineFeedback", () => ({
-  TxInlineFeedback: () => null,
-}));
-
 vi.mock("@/components/ui/Button", () => ({
   Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
 }));
@@ -103,10 +99,6 @@ vi.mock("@/components/ui/Alert", () => ({
       {children}
     </div>
   ),
-}));
-
-vi.mock("@/components/Vault/depositLimit", () => ({
-  getDepositLimitLabel: () => "Unlimited",
 }));
 
 import { DepositModal } from "../../../components/Vault/DepositModal";

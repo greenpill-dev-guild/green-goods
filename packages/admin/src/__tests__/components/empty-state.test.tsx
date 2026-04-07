@@ -19,56 +19,53 @@ const { mockUseGardens, mockUseRole, mockNavigate } = vi.hoisted(() => ({
   mockNavigate: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  return {
-    ...actual,
-    NavigationBar: ({
-      slots,
-      activePath,
-    }: {
-      slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
-      activePath: string;
-    }) => (
-      <nav data-testid="navigation-bar">
-        <ul>
-          {slots
-            .filter((slot) => slot.visible)
-            .map((slot) => (
-              <li key={slot.id}>{slot.label}</li>
-            ))}
-        </ul>
-      </nav>
-    ),
-    GardenChip: () => <div>Garden Chip</div>,
-    TopContextBar: (props: {
-      gardenChip: React.ReactNode;
-      onOpenSearch?: () => void;
-      onOpenSettings?: () => void;
-      userAvatar?: React.ReactNode;
-    }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
-    useAdminStore: (selector: (state: any) => unknown) =>
-      selector({
-        selectedGarden: null,
-        setSelectedGarden: vi.fn(),
-      }),
-    useAuth: () => ({
-      isAuthenticated: true,
-      eoaAddress: "0x1234567890123456789012345678901234567890",
+vi.mock("@green-goods/shared", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  NavigationBar: ({
+    slots,
+    activePath,
+  }: {
+    slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
+    activePath: string;
+  }) => (
+    <nav data-testid="navigation-bar">
+      <ul>
+        {slots
+          .filter((slot) => slot.visible)
+          .map((slot) => (
+            <li key={slot.id}>{slot.label}</li>
+          ))}
+      </ul>
+    </nav>
+  ),
+  GardenChip: () => <div>Garden Chip</div>,
+  TopContextBar: (props: {
+    gardenChip: React.ReactNode;
+    onOpenSearch?: () => void;
+    onOpenSettings?: () => void;
+    userAvatar?: React.ReactNode;
+  }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
+  useAdminStore: (selector: (state: any) => unknown) =>
+    selector({
+      selectedGarden: null,
+      setSelectedGarden: vi.fn(),
     }),
-    useEffectiveToolbarPermissions: () => ({
-      showWork: true,
-      showGarden: true,
-      showCommunity: true,
-      showActions: true,
-      isLoading: false,
-    }),
-    useGardens: mockUseGardens,
-    useRole: mockUseRole,
-    useGardenUrlSync: vi.fn(),
-    useStaleGardenGuard: vi.fn(),
-  };
-});
+  useAuth: () => ({
+    isAuthenticated: true,
+    eoaAddress: "0x1234567890123456789012345678901234567890",
+  }),
+  useEffectiveToolbarPermissions: () => ({
+    showWork: true,
+    showGarden: true,
+    showCommunity: true,
+    showActions: true,
+    isLoading: false,
+  }),
+  useGardens: mockUseGardens,
+  useRole: mockUseRole,
+  useGardenUrlSync: vi.fn(),
+  useStaleGardenGuard: vi.fn(),
+}));
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();

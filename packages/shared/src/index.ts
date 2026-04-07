@@ -441,6 +441,8 @@ export {
   useCockpitSearchParams,
   useGardenUrlSync,
   useYieldAllocations,
+  useGardenYieldSummary,
+  type GardenYieldSummary,
   useProtocolYieldSummary,
   useFocusTrap,
   useReviewerGardenIds,

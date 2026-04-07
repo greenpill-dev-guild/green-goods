@@ -431,6 +431,10 @@ export {
 // ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
 export {
+  useGardenYieldSummary,
+  type GardenYieldSummary,
+} from "./yield/useGardenYieldSummary";
+export {
   useProtocolYieldSummary,
   type ProtocolYieldSummary,
 } from "./yield/useProtocolYieldSummary";
