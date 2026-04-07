@@ -58,15 +58,17 @@ function makeGarden(id: string, overrides: Record<string, unknown> = {}) {
   };
 }
 
-function setupDefaults(overrides: {
-  address?: string;
-  selectedGarden?: { id: string } | null;
-  roleLoading?: boolean;
-  gardensLoading?: boolean;
-  isDeployer?: boolean;
-  isOperator?: boolean;
-  gardens?: ReturnType<typeof makeGarden>[];
-} = {}) {
+function setupDefaults(
+  overrides: {
+    address?: string;
+    selectedGarden?: { id: string } | null;
+    roleLoading?: boolean;
+    gardensLoading?: boolean;
+    isDeployer?: boolean;
+    isOperator?: boolean;
+    gardens?: ReturnType<typeof makeGarden>[];
+  } = {}
+) {
   const {
     address = ADDR_USER,
     selectedGarden = null,
@@ -78,8 +80,9 @@ function setupDefaults(overrides: {
   } = overrides;
 
   mockUseAccount.mockReturnValue({ address });
-  mockUseAdminStore.mockImplementation((selector: (state: { selectedGarden: typeof selectedGarden }) => unknown) =>
-    selector({ selectedGarden })
+  mockUseAdminStore.mockImplementation(
+    (selector: (state: { selectedGarden: typeof selectedGarden }) => unknown) =>
+      selector({ selectedGarden })
   );
   mockUseRole.mockReturnValue({
     isDeployer,

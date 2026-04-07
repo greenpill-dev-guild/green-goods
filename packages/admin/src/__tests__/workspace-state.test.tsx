@@ -156,7 +156,9 @@ describe("Workspace State Integration", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work?garden=garden-x", "/work?garden=garden-x&item=item-open"]}>
+      <MemoryRouter
+        initialEntries={["/work?garden=garden-x", "/work?garden=garden-x&item=item-open"]}
+      >
         <CockpitLayout />
       </MemoryRouter>
     );

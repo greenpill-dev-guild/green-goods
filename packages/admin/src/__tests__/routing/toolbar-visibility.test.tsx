@@ -23,11 +23,7 @@ const mockPermissions = vi.hoisted(() => ({
   },
 }));
 
-const {
-  mockUseGardenUrlSync,
-  mockUseStaleGardenGuard,
-  mockSetSelectedGarden,
-} = vi.hoisted(() => ({
+const { mockUseGardenUrlSync, mockUseStaleGardenGuard, mockSetSelectedGarden } = vi.hoisted(() => ({
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
@@ -60,11 +56,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       onOpenSearch?: () => void;
       onOpenSettings?: () => void;
       userAvatar?: React.ReactNode;
-    }) => (
-      <div data-testid="top-context-bar">
-        {props.gardenChip}
-      </div>
-    ),
+    }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
     useAdminStore: (
       selector: (state: {
         selectedGarden: null;

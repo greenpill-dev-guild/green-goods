@@ -60,10 +60,7 @@ describe("Deployment view decomposition", () => {
 
     for (const file of files) {
       const lines = lineCount(file);
-      expect(
-        lines,
-        `${file} has ${lines} lines (max 400)`
-      ).toBeLessThan(400);
+      expect(lines, `${file} has ${lines} lines (max 400)`).toBeLessThan(400);
     }
   });
 });

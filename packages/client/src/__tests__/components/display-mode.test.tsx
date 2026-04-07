@@ -58,11 +58,7 @@ function renderAppBar(initialRoute = "/home") {
     createElement(
       MemoryRouter,
       { initialEntries: [initialRoute] },
-      createElement(
-        IntlProvider,
-        { locale: "en", messages: appBarMessages },
-        createElement(AppBar)
-      )
+      createElement(IntlProvider, { locale: "en", messages: appBarMessages }, createElement(AppBar))
     )
   );
 }

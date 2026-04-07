@@ -52,7 +52,7 @@ export function DevAuthProvider({ children }: { children: ReactNode }) {
       externalWalletConnected: isAuth,
       externalWalletAddress: address,
     }),
-    [role, isAuth, address],
+    [role, isAuth, address]
   );
 
   const noop = useMemo(() => async () => {}, []);
@@ -83,7 +83,7 @@ export function DevAuthProvider({ children }: { children: ReactNode }) {
         window.location.href = url.toString();
       },
     }),
-    [noop, noopSync],
+    [noop, noopSync]
   );
 
   const combined = useMemo<AuthContextType>(() => ({ ...state, ...actions }), [state, actions]);

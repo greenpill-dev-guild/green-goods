@@ -23,9 +23,7 @@ const mockHasFetchedGardens = { current: true };
 vi.mock("../../../stores/useAdminStore", () => ({
   useAdminStore: (selector: (state: any) => any) =>
     selector({
-      selectedGarden: mockSelectedGardenId.current
-        ? { id: mockSelectedGardenId.current }
-        : null,
+      selectedGarden: mockSelectedGardenId.current ? { id: mockSelectedGardenId.current } : null,
       setSelectedGarden: mockSetSelectedGarden,
     }),
 }));
@@ -51,11 +49,7 @@ function createRouterWrapper(initialEntries: string[]) {
       createElement(
         QueryClientProvider,
         { client: queryClient },
-        createElement(
-          IntlProvider,
-          { locale: "en", messages: {} },
-          children
-        )
+        createElement(IntlProvider, { locale: "en", messages: {} }, children)
       )
     );
   };

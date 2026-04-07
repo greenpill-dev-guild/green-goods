@@ -2,6 +2,7 @@ import {
   formatDate,
   formatRelativeTime,
   type GardenDetailTab,
+  getStatusBorderClass,
   getStatusColors,
 } from "@green-goods/shared";
 import { RiCloseLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
@@ -125,7 +126,7 @@ export function WorkTab({
                     {reviewedWorks.slice(0, section === "decisions" ? 12 : 5).map((work) => (
                       <div
                         key={work.id}
-                        className={`flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 ${
+                        className={`flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 ${getStatusBorderClass(work.status)} ${
                           selectedItem && work.id === selectedItem ? "ring-1 ring-primary-base" : ""
                         }`}
                       >

@@ -35,7 +35,12 @@ vi.mock("@green-goods/shared", () => ({
  */
 function LocationDisplay() {
   const location = useLocation();
-  return <div data-testid="location">{location.pathname}{location.search}</div>;
+  return (
+    <div data-testid="location">
+      {location.pathname}
+      {location.search}
+    </div>
+  );
 }
 
 function renderWithRouter(initialPath: string, routes: React.ReactElement) {
@@ -96,12 +101,13 @@ describe("Legacy Route Redirect Map", () => {
         "/deployment": <DeploymentRedirect />,
       };
 
-      renderWithRouter(from, (
+      renderWithRouter(
+        from,
         <Routes>
           <Route path={from} element={routeMap[from]} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toContain(to);
@@ -110,132 +116,143 @@ describe("Legacy Route Redirect Map", () => {
 
   describe("complex param-mapping redirects", () => {
     it("redirects /gardens/:id?tab=work to /work?garden=:id", () => {
-      renderWithRouter("/gardens/garden-42?tab=work", (
+      renderWithRouter(
+        "/gardens/garden-42?tab=work",
         <Routes>
           <Route path="gardens/:id" element={<GardenDetailRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/work?garden=garden-42");
     });
 
     it("redirects /gardens/:id?tab=community to /community?garden=:id", () => {
-      renderWithRouter("/gardens/garden-42?tab=community", (
+      renderWithRouter(
+        "/gardens/garden-42?tab=community",
         <Routes>
           <Route path="gardens/:id" element={<GardenDetailRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/community?garden=garden-42");
     });
 
     it("redirects /gardens/:id/work/:workId to /work?garden=:id&item=:workId", () => {
-      renderWithRouter("/gardens/garden-42/work/work-7", (
+      renderWithRouter(
+        "/gardens/garden-42/work/work-7",
         <Routes>
           <Route path="gardens/:id/work/:workId" element={<GardenWorkDetailRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/work?garden=garden-42&item=work-7");
     });
 
     it("redirects /gardens/:id/vault to /community?garden=:id&card=treasury", () => {
-      renderWithRouter("/gardens/garden-42/vault", (
+      renderWithRouter(
+        "/gardens/garden-42/vault",
         <Routes>
           <Route path="gardens/:id/vault" element={<GardenVaultRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/community?garden=garden-42&card=treasury");
     });
 
     it("redirects /gardens/:id/strategies to /community?garden=:id&card=treasury", () => {
-      renderWithRouter("/gardens/garden-42/strategies", (
+      renderWithRouter(
+        "/gardens/garden-42/strategies",
         <Routes>
           <Route path="gardens/:id/strategies" element={<GardenStrategiesRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/community?garden=garden-42&card=treasury");
     });
 
     it("redirects /gardens/:id/assessments to /work?garden=:id&view=assessments", () => {
-      renderWithRouter("/gardens/garden-42/assessments", (
+      renderWithRouter(
+        "/gardens/garden-42/assessments",
         <Routes>
           <Route path="gardens/:id/assessments" element={<GardenAssessmentsRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/work?garden=garden-42&view=assessments");
     });
 
     it("redirects /gardens/:id/hypercerts to /work?garden=:id&view=hypercerts", () => {
-      renderWithRouter("/gardens/garden-42/hypercerts", (
+      renderWithRouter(
+        "/gardens/garden-42/hypercerts",
         <Routes>
           <Route path="gardens/:id/hypercerts" element={<GardenHypercertsRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/work?garden=garden-42&view=hypercerts");
     });
 
     it("redirects /gardens/:id/submit-work to /work?garden=:id&action=submit", () => {
-      renderWithRouter("/gardens/garden-42/submit-work", (
+      renderWithRouter(
+        "/gardens/garden-42/submit-work",
         <Routes>
           <Route path="gardens/:id/submit-work" element={<GardenSubmitWorkRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/work?garden=garden-42&action=submit");
     });
 
     it("redirects /actions/:id to /actions?item=:id", () => {
-      renderWithRouter("/actions/action-99", (
+      renderWithRouter(
+        "/actions/action-99",
         <Routes>
           <Route path="actions/:id" element={<ActionDetailRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/actions?item=action-99");
     });
 
     it("redirects /actions/create to /actions?action=create", () => {
-      renderWithRouter("/actions/create", (
+      renderWithRouter(
+        "/actions/create",
         <Routes>
           <Route path="actions/create" element={<ActionCreateRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/actions?action=create");
     });
 
     it("redirects /actions/:id/edit to /actions?item=:id&action=edit", () => {
-      renderWithRouter("/actions/action-99/edit", (
+      renderWithRouter(
+        "/actions/action-99/edit",
         <Routes>
           <Route path="actions/:id/edit" element={<ActionEditRedirect />} />
           <Route path="*" element={null} />
         </Routes>
-      ));
+      );
 
       const location = screen.getByTestId("location");
       expect(location.textContent).toBe("/actions?item=action-99&action=edit");
