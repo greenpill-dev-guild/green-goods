@@ -9,8 +9,8 @@
 
 import React from "react";
 import { MemoryRouter, useLocation } from "react-router-dom";
-import { act, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, fireEvent, waitFor } from "../test-utils";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { act, renderWithProviders, screen, fireEvent, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
@@ -83,9 +83,12 @@ describe("CommandPalette Routes", () => {
     await userEvent.type(input, "Settings");
 
     // Wait for debounce (300ms) + results to filter
-    await waitFor(() => {
-      expect(screen.getByText("Settings")).toBeInTheDocument();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(screen.getByText("Settings")).toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
 
     // Click the Settings result
     const settingsButton = screen.getByText("Settings").closest("button");

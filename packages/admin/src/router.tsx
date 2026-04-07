@@ -2,11 +2,9 @@ import { HydrationFallback } from "@green-goods/shared";
 import { createBrowserRouter, createHashRouter, Navigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import {
-  AssessmentsRedirect,
   ContractsRedirect,
   DashboardRedirect,
   DeploymentRedirect,
-  EndowmentsRedirect,
   GardensListRedirect,
 } from "@/routes/LegacyRedirects";
 
@@ -204,10 +202,10 @@ export const router = createRouter([
               },
 
               // ── Legacy compatibility redirects ──
+              // Note: /assessments and /endowments paths removed (folded into /work and /community).
+              // Their redirect components remain in LegacyRedirects.tsx for reuse.
               { path: "dashboard", element: <DashboardRedirect /> },
               { path: "gardens", element: <GardensListRedirect /> },
-              { path: "assessments", element: <AssessmentsRedirect /> },
-              { path: "endowments", element: <EndowmentsRedirect /> },
               { path: "contracts", element: <ContractsRedirect /> },
               { path: "deployment", element: <DeploymentRedirect /> },
             ],

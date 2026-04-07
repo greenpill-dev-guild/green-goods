@@ -10,11 +10,11 @@ export function DashboardRedirect() {
 }
 
 export function GardensListRedirect() {
-  return <Navigate to="/garden" replace />;
+  return <Navigate to="/work" replace />;
 }
 
 export function AssessmentsRedirect() {
-  return <Navigate to="/garden?view=impact" replace />;
+  return <Navigate to="/work" replace />;
 }
 
 export function EndowmentsRedirect() {

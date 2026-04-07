@@ -38,8 +38,8 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   const { data: gardens, isLoading: gardensLoading } = useGardens();
 
   return useMemo(() => {
-    // Fail-open while loading
-    if (roleLoading || gardensLoading || !address) {
+    // Fail-open while loading or on error (gardens data undefined)
+    if (roleLoading || gardensLoading || !address || !gardens) {
       return FAIL_OPEN;
     }
 

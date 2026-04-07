@@ -5,32 +5,16 @@ import {
   trackAdminDeployFailed,
   trackAdminDeployStarted,
 } from "@green-goods/shared";
-import {
-  RiCodeBoxLine,
-  RiErrorWarningLine,
-  RiGitBranchLine,
-  RiPlayCircleLine,
-  RiSettings3Line,
-  RiShieldCheckLine,
-  RiUploadLine,
-} from "@remixicon/react";
+import { RiCodeBoxLine, RiErrorWarningLine, RiUploadLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import type { useIntl } from "react-intl";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { DeploymentMintingCard } from "./DeploymentMintingCard";
+import { DeploymentPermissionsCard, type DeploymentPermissions } from "./DeploymentPermissionsCard";
+import { DeploymentScriptsCard, type OpsScript } from "./DeploymentScriptsCard";
 
 type FormatMessage = ReturnType<typeof useIntl>["formatMessage"];
-
-interface DeploymentPermissions {
-  isOwner: boolean;
-  isInAllowlist: boolean;
-  canDeploy: boolean;
-}
-
-interface OpsScript {
-  id: string;
-  description: string;
-}
 
 interface DeployPayload {
   network: string;
@@ -253,175 +237,27 @@ export function DeploymentRunnerPanel({
         </div>
       </Card>
 
-      <Card padding="feature">
-        <div className="flex items-center mb-4">
-          <RiPlayCircleLine className="h-5 w-5 text-feature-dark mr-2" />
-          <h2 className="text-lg font-medium text-text-strong">
-            {formatMessage({ id: "app.ops.scriptsTitle" })}
-          </h2>
-        </div>
+      <DeploymentScriptsCard
+        formatMessage={formatMessage}
+        isAuthenticated={isAuthenticated}
+        scriptsLoading={scriptsLoading}
+        scripts={scripts}
+        runScriptPending={runScriptPending}
+        runScriptAndTrack={runScriptAndTrack}
+      />
 
-        {!isAuthenticated ? (
-          <p className="text-sm text-error-base">{formatMessage({ id: "app.ops.authRequired" })}</p>
-        ) : scriptsLoading ? (
-          <p className="text-sm text-text-soft">
-            {formatMessage({ id: "app.ops.loadingScripts" })}
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {scripts.map((script) => (
-              <div
-                key={script.id}
-                className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between rounded-lg border border-stroke-soft p-3"
-              >
-                <div>
-                  <p className="text-sm font-medium text-text-strong">{script.id}</p>
-                  <p className="text-xs text-text-soft">{script.description}</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => runScriptAndTrack(script.id)}
-                  loading={runScriptPending}
-                >
-                  {formatMessage({ id: "app.ops.runScript" })}
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <Card padding="feature">
-        <div className="flex items-center mb-4">
-          <RiShieldCheckLine className="h-5 w-5 text-information-base mr-2" />
-          <h2 className="text-lg font-medium text-text-strong">
-            {formatMessage({ id: "app.deployment.permissions" })}
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div
-              className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
-                permissions.isOwner
-                  ? "bg-success-lighter text-success-base"
-                  : "bg-bg-weak text-text-disabled"
-              }`}
-            >
-              <RiSettings3Line className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.deployment.role.owner" })}
-            </p>
-            <p
-              className={`text-xs ${permissions.isOwner ? "text-success-base" : "text-text-soft"}`}
-            >
-              {permissions.isOwner
-                ? formatMessage({ id: "app.deployment.enabled" })
-                : formatMessage({ id: "app.deployment.notAuthorized" })}
-            </p>
-          </div>
-          <div className="text-center">
-            <div
-              className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
-                permissions.isInAllowlist
-                  ? "bg-information-lighter text-information-base"
-                  : "bg-bg-weak text-text-disabled"
-              }`}
-            >
-              <RiCodeBoxLine className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.deployment.role.allowlisted" })}
-            </p>
-            <p
-              className={`text-xs ${permissions.isInAllowlist ? "text-information-base" : "text-text-soft"}`}
-            >
-              {permissions.isInAllowlist
-                ? formatMessage({ id: "app.deployment.enabled" })
-                : formatMessage({ id: "app.deployment.notAuthorized" })}
-            </p>
-          </div>
-          <div className="text-center">
-            <div
-              className={`inline-flex items-center justify-center w-12 h-12 rounded-full mb-2 ${
-                permissions.canDeploy
-                  ? "bg-feature-lighter text-feature-dark"
-                  : "bg-bg-weak text-text-disabled"
-              }`}
-            >
-              <RiGitBranchLine className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-medium text-text-strong">
-              {formatMessage({ id: "app.deployment.role.canDeploy" })}
-            </p>
-            <p
-              className={`text-xs ${permissions.canDeploy ? "text-feature-dark" : "text-text-soft"}`}
-            >
-              {permissions.canDeploy
-                ? formatMessage({ id: "app.deployment.authorized" })
-                : formatMessage({ id: "app.deployment.notAuthorized" })}
-            </p>
-          </div>
-        </div>
-      </Card>
+      <DeploymentPermissionsCard formatMessage={formatMessage} permissions={permissions} />
 
       {permissions.isOwner && allowlistManager}
 
       {permissions.isOwner && (
-        <Card padding="feature">
-          <div className="flex items-center mb-4">
-            <RiShieldCheckLine className="h-5 w-5 text-primary-base mr-2" />
-            <h2 className="text-lg font-medium text-text-strong">
-              {formatMessage({
-                id: "app.deployment.openMinting.title",
-                defaultMessage: "Garden Minting Access",
-              })}
-            </h2>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm text-text-strong">
-                {formatMessage({
-                  id: "app.deployment.openMinting.label",
-                  defaultMessage: "Open minting",
-                })}
-              </p>
-              <p className="text-xs text-text-sub">
-                {isOpenMinting
-                  ? formatMessage({
-                      id: "app.deployment.openMinting.openDescription",
-                      defaultMessage: "Anyone can create a garden",
-                    })
-                  : formatMessage({
-                      id: "app.deployment.openMinting.restrictedDescription",
-                      defaultMessage: "Only allowlisted addresses and the owner can create gardens",
-                    })}
-              </p>
-            </div>
-            <button
-              type="button"
-              disabled={openMintingLoading || setOpenMintingPending}
-              onClick={() => setOpenMinting(!isOpenMinting)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
-                isOpenMinting ? "bg-primary-base" : "bg-bg-strong"
-              }`}
-              role="switch"
-              aria-checked={!!isOpenMinting}
-              aria-label={formatMessage({
-                id: "app.deployment.openMinting.toggle",
-                defaultMessage: "Toggle open minting",
-              })}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  isOpenMinting ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
-        </Card>
+        <DeploymentMintingCard
+          formatMessage={formatMessage}
+          isOpenMinting={isOpenMinting}
+          openMintingLoading={openMintingLoading}
+          setOpenMintingPending={setOpenMintingPending}
+          setOpenMinting={setOpenMinting}
+        />
       )}
 
       <Card padding="feature">
