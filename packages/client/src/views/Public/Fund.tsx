@@ -1,5 +1,5 @@
 import { logger, useGardens } from "@green-goods/shared";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
 /**
@@ -26,6 +26,18 @@ export default function FundPage() {
   const handleCookieJar = (gardenId: string) => {
     logger.info("Cookie Jar action triggered", { gardenId });
   };
+
+  // Escape key closes deposit dialog
+  useEffect(() => {
+    if (!dialogOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleCloseDialog();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [dialogOpen, handleCloseDialog]);
+
+  const depositGarden = depositGardenId ? gardens.find((g) => g.id === depositGardenId) : null;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -90,7 +102,7 @@ export default function FundPage() {
                 <button
                   type="button"
                   onClick={() => handleDeposit(garden.id)}
-                  className="flex-1 rounded-lg bg-primary-base px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dark active:scale-95"
+                  className="flex-1 rounded-lg bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
                 >
                   {formatMessage({
                     id: "public.fund.deposit",
@@ -100,7 +112,7 @@ export default function FundPage() {
                 <button
                   type="button"
                   onClick={() => handleCookieJar(garden.id)}
-                  className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 text-sm font-medium text-text-strong transition-colors hover:bg-bg-weak active:scale-95"
+                  className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 text-sm font-medium text-text-strong transition-colors hover:bg-bg-weak active:scale-[0.98]"
                 >
                   {formatMessage({
                     id: "public.fund.cookieJar",
@@ -117,7 +129,7 @@ export default function FundPage() {
       <div className="mt-8 text-center">
         <button
           type="button"
-          className="rounded-lg bg-primary-base px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-dark active:scale-95"
+          className="rounded-lg bg-primary-base px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
         >
           {formatMessage({
             id: "public.fund.connectWallet",
@@ -136,14 +148,23 @@ export default function FundPage() {
             if (e.target === e.currentTarget) handleCloseDialog();
           }}
         >
-          <div className="space-y-4">
+          <div className="rounded-2xl border border-stroke-soft bg-bg-white p-6 shadow-lg max-w-[calc(100vw-2rem)] sm:max-w-lg space-y-4">
             <h2 className="text-lg font-semibold text-text-strong">
               {formatMessage({ id: "public.fund.deposit", defaultMessage: "Deposit" })}
             </h2>
             <p className="text-sm text-text-sub">
-              {depositGardenId
-                ? `Depositing to garden ${depositGardenId}`
-                : "Select a garden to deposit"}
+              {depositGarden
+                ? formatMessage(
+                    {
+                      id: "public.fund.depositingTo",
+                      defaultMessage: "Deposit to {garden}",
+                    },
+                    { garden: depositGarden.name }
+                  )
+                : formatMessage({
+                    id: "public.fund.selectGarden",
+                    defaultMessage: "Select a garden to deposit",
+                  })}
             </p>
             <button
               type="button"

@@ -74,9 +74,7 @@ export default function ImpactGallery() {
               key={assessment.id}
               className="rounded-xl border border-stroke-soft bg-bg-white p-4"
             >
-              <div className="h-32 rounded-lg bg-primary-alpha-10 flex items-center justify-center">
-                <span className="text-2xl">🌱</span>
-              </div>
+              <div className="h-32 rounded-lg bg-primary-alpha-10" />
               <p className="mt-3 text-sm font-medium text-text-strong truncate" title={g.name}>
                 {g.name}
               </p>

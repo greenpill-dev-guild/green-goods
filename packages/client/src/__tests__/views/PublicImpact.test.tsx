@@ -99,9 +99,12 @@ describe("ImpactGallery", () => {
     expect(within(card).getByText("3")).toBeInTheDocument();
   });
 
-  it("renders hypercert gallery placeholder", () => {
+  it("renders hypercert gallery grid", () => {
     renderView();
-    expect(screen.getByText(/hypercert gallery coming soon/i)).toBeInTheDocument();
+    const gallery = document.querySelector("[data-testid='hypercert-gallery']");
+    expect(gallery).toBeInTheDocument();
+    // Phase 3: actual gallery replaces placeholder
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
   });
 
   it("shows loading state", () => {

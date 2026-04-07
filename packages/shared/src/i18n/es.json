@@ -2325,5 +2325,19 @@
   "public.nav.fund": "Financiar",
   "public.nav.gardens": "Jardines",
   "public.nav.impact": "Impacto",
-  "public.nav.openMenu": "Abrir menú"
+  "public.nav.openMenu": "Abrir menú",
+  "public.fund.title": "Fund",
+  "public.fund.description": "Support regenerative gardens by funding their vaults",
+  "public.fund.deposit": "Deposit",
+  "public.fund.cookieJar": "Cookie Jar",
+  "public.fund.totalGardens": "Total Gardens",
+  "public.fund.totalGardeners": "Total Gardeners",
+  "public.fund.connectWallet": "Connect Wallet",
+  "public.fund.depositingTo": "Deposit to {garden}",
+  "public.fund.selectGarden": "Select a garden to deposit",
+  "public.impact.title": "Impact",
+  "public.impact.description": "Protocol-wide regenerative impact metrics",
+  "public.impact.totalAssessments": "Total Assessments",
+  "public.impact.totalGardens": "Total Gardens",
+  "public.impact.totalGardeners": "Total Gardeners"
 }
