@@ -103,6 +103,25 @@ export interface WorkCardProps extends WorkCardVariantProps {
   labels?: WorkCardLabels;
 }
 
+/** Maps work status to a left-border accent color class. */
+export function getStatusBorderClass(status: WorkDisplayStatus | string): string {
+  switch (status) {
+    case "approved":
+      return "border-l-2 border-l-success-base";
+    case "pending":
+      return "border-l-2 border-l-warning-base";
+    case "rejected":
+    case "sync_failed":
+      return "border-l-2 border-l-error-base";
+    case "syncing":
+    case "uploading":
+      return "border-l-2 border-l-information-base";
+    case "offline":
+    default:
+      return "border-l-2 border-l-stroke-soft";
+  }
+}
+
 export const WorkCard: React.FC<WorkCardProps> = ({
   work,
   variant = "auto",
@@ -156,7 +175,11 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   return (
     <>
       <Wrapper
-        className={cn(workCardVariants({ variant, interactive }), className)}
+        className={cn(
+          workCardVariants({ variant, interactive }),
+          getStatusBorderClass(work.status),
+          className
+        )}
         {...wrapperProps}
       >
         <div className="relative w-full overflow-hidden bg-bg-weak-50 aspect-video @[480px]:w-56 @[480px]:flex-shrink-0">

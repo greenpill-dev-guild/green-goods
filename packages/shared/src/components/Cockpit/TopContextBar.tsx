@@ -43,7 +43,8 @@ export function TopContextBar({
     <header
       className={cn(
         "sticky top-0 z-40 flex h-14 w-full items-center justify-between",
-        "border-b border-stroke-sub bg-bg-soft px-4"
+        "border-b border-stroke-sub bg-bg-soft px-4",
+        "bg-gradient-to-r from-primary-alpha-10/30 via-bg-soft to-bg-soft"
       )}
     >
       {/* Left side */}

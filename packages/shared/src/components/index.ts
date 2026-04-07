@@ -46,6 +46,7 @@ export {
   gardenCardVariants,
   VaultPositionCard,
   type VaultPositionCardProps,
+  getStatusBorderClass,
   WorkCard,
   type WorkCardData,
   type WorkCardLabels,

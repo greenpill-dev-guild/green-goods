@@ -498,20 +498,33 @@
  * ============================================================================ */
 .workspace-canvas {
   background-color: rgb(var(--bg-weak-50));
-  background-image: radial-gradient(
-    circle,
-    rgb(var(--stroke-soft-200) / 0.4) 1px,
-    transparent 1px
-  );
-  background-size: 24px 24px;
+  background-image:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgb(var(--primary-base) / 0.03) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      circle,
+      rgb(var(--stroke-soft-200) / 0.4) 1px,
+      transparent 1px
+    );
+  background-size: 100% 100%, 24px 24px;
 }
 
 [data-theme="dark"] .workspace-canvas {
-  background-image: radial-gradient(
-    circle,
-    rgb(var(--stroke-soft-200) / 0.15) 1px,
-    transparent 1px
-  );
+  background-image:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgb(var(--primary-base) / 0.02) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      circle,
+      rgb(var(--stroke-soft-200) / 0.15) 1px,
+      transparent 1px
+    );
+  background-size: 100% 100%, 24px 24px;
 }
 
 @media (prefers-reduced-motion: reduce) {

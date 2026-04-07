@@ -87,6 +87,7 @@ export {
   FormSelect,
   FormTextarea,
   GardenBannerFallback,
+  getStatusBorderClass,
   getStatusColors,
   HydrationFallback,
   ImageWithFallback,

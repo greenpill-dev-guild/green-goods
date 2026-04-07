@@ -94,9 +94,10 @@ export function NavigationBar({ slots, activePath, onNavigate }: NavigationBarPr
       className={cn(
         // Base — always floating, z-30
         "fixed z-30 flex items-center",
-        // Surface material — frosted glass
-        "bg-bg-soft/95 shadow-md",
-        "backdrop-blur supports-[backdrop-filter]:bg-bg-soft/80",
+        // Surface material — frosted glass with float conviction
+        "bg-bg-soft/95 shadow-[--shadow-float] ring-1 ring-black/[0.04]",
+        "backdrop-blur-lg supports-[backdrop-filter]:bg-bg-soft/80",
+        "dark:bg-bg-sub/95 dark:supports-[backdrop-filter]:bg-bg-sub/80 dark:ring-white/[0.06]",
         // Desktop (>=600px): centered floating pill
         "min-[600px]:bottom-4 min-[600px]:left-1/2 min-[600px]:-translate-x-1/2",
         "min-[600px]:gap-1 min-[600px]:rounded-2xl min-[600px]:px-2 min-[600px]:py-1.5",

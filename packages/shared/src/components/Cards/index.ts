@@ -27,6 +27,7 @@ export {
 export { VaultPositionCard, type VaultPositionCardProps } from "./VaultPositionCard";
 // WorkCard
 export {
+  getStatusBorderClass,
   WorkCard,
   type WorkCardData,
   type WorkCardLabels,

@@ -80,6 +80,94 @@
     @apply bg-success-lighter text-success-dark border-success-light;
   }
 
+  /* ── Type Roles — MD3-aligned semantic typography ── */
+  .type-display {
+    font-size: var(--text-title-h5);
+    line-height: var(--text-title-h5--line-height);
+    letter-spacing: var(--text-title-h5--letter-spacing);
+    font-weight: 600;
+    color: rgb(var(--text-strong-950));
+  }
+
+  .type-headline {
+    font-size: var(--text-title-h6);
+    line-height: var(--text-title-h6--line-height);
+    letter-spacing: var(--text-title-h6--letter-spacing);
+    font-weight: 600;
+    color: rgb(var(--text-strong-950));
+  }
+
+  .type-title {
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+    letter-spacing: var(--text-label-md--letter-spacing);
+    font-weight: 500;
+    color: rgb(var(--text-strong-950));
+  }
+
+  .type-body {
+    font-size: var(--text-paragraph-sm);
+    line-height: var(--text-paragraph-sm--line-height);
+    letter-spacing: var(--text-paragraph-sm--letter-spacing);
+    font-weight: 400;
+    color: rgb(var(--text-sub-600));
+  }
+
+  .type-label {
+    font-size: var(--text-subheading-xs);
+    line-height: var(--text-subheading-xs--line-height);
+    letter-spacing: var(--text-subheading-xs--letter-spacing);
+    font-weight: 500;
+    text-transform: uppercase;
+    color: rgb(var(--text-soft-400));
+  }
+
+  .type-caption {
+    font-size: var(--text-subheading-2xs);
+    line-height: var(--text-subheading-2xs--line-height);
+    letter-spacing: var(--text-subheading-2xs--letter-spacing);
+    font-weight: 500;
+    color: rgb(var(--text-soft-400));
+  }
+
+  /* ── Stagger Fade-In — list items entrance ── */
+  @keyframes stagger-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-stagger-in {
+    animation: var(--animate-stagger-fade-in);
+  }
+
+  .animate-stagger-in > * {
+    opacity: 0;
+    animation: stagger-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-stagger-in > *:nth-child(1) { animation-delay: 0ms; }
+  .animate-stagger-in > *:nth-child(2) { animation-delay: 40ms; }
+  .animate-stagger-in > *:nth-child(3) { animation-delay: 80ms; }
+  .animate-stagger-in > *:nth-child(4) { animation-delay: 120ms; }
+  .animate-stagger-in > *:nth-child(5) { animation-delay: 160ms; }
+  .animate-stagger-in > *:nth-child(6) { animation-delay: 200ms; }
+  .animate-stagger-in > *:nth-child(7) { animation-delay: 240ms; }
+  .animate-stagger-in > *:nth-child(8) { animation-delay: 280ms; }
+  .animate-stagger-in > *:nth-child(n+9) { animation-delay: 320ms; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-stagger-in > * {
+      animation: none;
+      opacity: 1;
+    }
+  }
+
   /* ── Content Visibility — Skip rendering off-screen items ── */
   .cv-auto {
     content-visibility: auto;

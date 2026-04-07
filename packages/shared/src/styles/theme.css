@@ -1070,6 +1070,14 @@
 
   /* ── Shadows ── */
 
+  /* Elevation scale — progressive depth for surface hierarchy */
+  --shadow-elevation-1: 0 1px 3px 0 rgba(14, 18, 27, 0.04), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
+  --shadow-elevation-2: 0 4px 12px 0 rgba(14, 18, 27, 0.06), 0 1px 3px 0 rgba(14, 18, 27, 0.04);
+  --shadow-elevation-3: 0 8px 24px 0 rgba(14, 18, 27, 0.08), 0 2px 4px 0 rgba(14, 18, 27, 0.04);
+  --shadow-float: 0 12px 40px 0 rgba(14, 18, 27, 0.12), 0 4px 8px 0 rgba(14, 18, 27, 0.06);
+  --shadow-primary-glow: 0 4px 16px 0 rgba(31, 193, 107, 0.12), 0 1px 3px 0 rgba(14, 18, 27, 0.04);
+
+  /* Legacy aliases */
   --shadow-regular-xs: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
   --shadow-regular-sm: 0 2px 4px rgba(27, 28, 29, 0.04);
   --shadow-regular-md: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
@@ -1101,6 +1109,7 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-spring-bump: spring-bump 0.56s ease-in-out;
+  --animate-stagger-fade-in: stagger-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ============================================================================

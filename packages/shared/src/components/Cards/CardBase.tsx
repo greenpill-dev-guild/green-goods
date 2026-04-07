@@ -97,7 +97,7 @@ const surfaceCardVariants = tv({
     variant: {
       default: "",
       interactive:
-        "transition-[border-color,box-shadow] duration-200 hover:border-primary-base hover:shadow-md",
+        "cursor-pointer transition-[border-color,box-shadow,transform] duration-200 hover:border-primary-base hover:shadow-[--shadow-primary-glow] hover:-translate-y-px active:translate-y-0 active:shadow-sm",
     },
     padding: {
       compact: "p-4",

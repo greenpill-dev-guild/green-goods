@@ -1,4 +1,5 @@
 export {
+  getStatusBorderClass,
   WorkCard,
   type WorkCardData,
   type WorkCardLabels,
