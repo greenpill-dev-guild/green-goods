@@ -63,14 +63,27 @@ export default function ImpactGallery() {
         </div>
       )}
 
-      {/* Hypercert Gallery Placeholder */}
-      <div className="mt-8 rounded-xl border border-dashed border-stroke-soft bg-bg-weak p-8 text-center">
-        <p className="text-sm text-text-soft">
-          {formatMessage({
-            id: "public.impact.hypercertsPlaceholder",
-            defaultMessage: "Hypercert gallery coming soon",
-          })}
-        </p>
+      {/* Hypercert Gallery — responsive grid per frontend-design Rule 11 */}
+      <div
+        data-testid="hypercert-gallery"
+        className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
+        {gardens.flatMap((g) =>
+          (g.assessments ?? []).map((assessment) => (
+            <div
+              key={assessment.id}
+              className="rounded-xl border border-stroke-soft bg-bg-white p-4"
+            >
+              <div className="h-32 rounded-lg bg-primary-alpha-10 flex items-center justify-center">
+                <span className="text-2xl">🌱</span>
+              </div>
+              <p className="mt-3 text-sm font-medium text-text-strong truncate" title={g.name}>
+                {g.name}
+              </p>
+              <p className="mt-1 text-xs text-text-sub">Assessment {assessment.id}</p>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

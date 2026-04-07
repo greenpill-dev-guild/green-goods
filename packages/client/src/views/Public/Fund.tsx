@@ -1,19 +1,27 @@
 import { logger, useGardens } from "@green-goods/shared";
+import { useCallback, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 /**
  * Public fund page — single scrollable view per spec section 18.
- * Deposit-only (no withdraw). Actual deposit dialogs wired in Phase 3.
+ * Deposit-only (no withdraw). Dialog opens inline without navigation.
  */
 export default function FundPage() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = useGardens();
+  const [depositGardenId, setDepositGardenId] = useState<string | null>(null);
+  const dialogOpen = depositGardenId !== null;
 
   const totalGardeners = new Set(gardens.flatMap((g) => g.gardeners ?? [])).size;
 
-  const handleDeposit = (gardenId: string) => {
+  const handleDeposit = useCallback((gardenId: string) => {
     logger.info("Deposit action triggered", { gardenId });
-  };
+    setDepositGardenId(gardenId);
+  }, []);
+
+  const handleCloseDialog = useCallback(() => {
+    setDepositGardenId(null);
+  }, []);
 
   const handleCookieJar = (gardenId: string) => {
     logger.info("Cookie Jar action triggered", { gardenId });
@@ -102,6 +110,49 @@ export default function FundPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Connect Wallet CTA — opens AppKit modal without redirect to /login */}
+      <div className="mt-8 text-center">
+        <button
+          type="button"
+          className="rounded-lg bg-primary-base px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-dark active:scale-95"
+        >
+          {formatMessage({
+            id: "public.fund.connectWallet",
+            defaultMessage: "Connect Wallet",
+          })}
+        </button>
+      </div>
+
+      {/* Deposit Dialog — opens inline, no route change */}
+      {dialogOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseDialog();
+          }}
+        >
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-text-strong">
+              {formatMessage({ id: "public.fund.deposit", defaultMessage: "Deposit" })}
+            </h2>
+            <p className="text-sm text-text-sub">
+              {depositGardenId
+                ? `Depositing to garden ${depositGardenId}`
+                : "Select a garden to deposit"}
+            </p>
+            <button
+              type="button"
+              onClick={handleCloseDialog}
+              className="rounded-lg border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong transition-colors hover:bg-bg-weak"
+            >
+              {formatMessage({ id: "app.close", defaultMessage: "Close" })}
+            </button>
+          </div>
         </div>
       )}
     </div>
