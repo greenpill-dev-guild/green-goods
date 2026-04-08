@@ -13,6 +13,7 @@
 | **review** | `/review` | `--mode report_only`, `--mode apply_fixes`, `--mode iterate`, `--mode verify_only` | 6-pass systematic code review with structured findings |
 | **audit** | `/audit` | `--mode loop`, `--mode team` | Dead code detection, architectural anti-patterns, and codebase health |
 | **principles** | `/principles` | `--mode team`, `--mode execute` | Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4 |
+| **status** | `/status` | `--quick`, `--full`, `--focus pipeline\|health\|journeys\|git\|onchain` | Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse |
 
 ---
 
@@ -66,6 +67,7 @@ What do you need?
 ├─► 6-pass systematic code review with structured findings? ──► /review
 ├─► Dead code detection, architectural anti-patterns, and codebase health? ──► /audit
 ├─► Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4? ──► /principles
+├─► Morning briefing, lay of the land, session start? ──► /status
 │
 ├─► React component? ──► react
 ├─► TailwindCSS? ──► ui

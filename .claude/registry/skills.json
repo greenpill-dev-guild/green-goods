@@ -1,6 +1,6 @@
 {
   "source": ".claude/skills/*/SKILL.md",
-  "canonical_commands": ["plan", "debug", "review", "audit", "principles"],
+  "canonical_commands": ["plan", "debug", "review", "audit", "principles", "status"],
   "skills": [
     {
       "name": "plan",
@@ -247,6 +247,19 @@
         "reduce complexity",
         "entropy"
       ],
+      "dependencies": []
+    },
+    {
+      "name": "status",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus",
+      "entry_file": ".claude/skills/status/SKILL.md",
+      "owned_skills": [],
+      "modes": ["default", "quick", "full", "focus"],
+      "triggers": ["/status", "morning briefing", "status check", "lay of the land"],
       "dependencies": []
     },
     {
