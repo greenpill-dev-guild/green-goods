@@ -10,8 +10,14 @@
  * Tree-shaken from production builds via the AuthGate DEV guard.
  */
 import { type ReactNode, useMemo } from "react";
-import { AuthActionsContext, AuthContext, AuthStateContext } from "./Auth";
-import type { AuthActionsValue, AuthContextType, AuthStateValue } from "./Auth";
+import {
+  AuthActionsContext,
+  AuthContext,
+  AuthStateContext,
+  type AuthActionsValue,
+  type AuthContextType,
+  type AuthStateValue,
+} from "./Auth";
 
 type MockRole = "deployer" | "operator" | "user" | "disconnected";
 

@@ -96,7 +96,7 @@ export function ActionsHarvestStep({ showValidation, isSubmitting }: ActionsHarv
         return null;
       })(),
     }),
-    [form.reportingPeriodStart, form.reportingPeriodEnd, formatMessage]
+    [form, formatMessage]
   );
 
   return (

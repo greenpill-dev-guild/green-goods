@@ -217,6 +217,36 @@ export default function CreateAssessment() {
     };
   }, [loadDraft, setField]);
 
+  const buildWorkflowPayload = useCallback(
+    (formData: CreateAssessmentFormData): WorkflowAssessmentForm | null => {
+      if (!gardenId || !isAddress(gardenId)) return null;
+
+      return {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        assessmentType: `domain-${formData.domain}`,
+        capitals: [],
+        metrics: {
+          diagnosis: formData.diagnosis,
+          smartOutcomes: formData.smartOutcomes,
+          cynefinPhase: formData.cynefinPhase,
+          domain: formData.domain,
+          selectedActionUIDs: formData.selectedActionUIDs,
+          sdgTargets: formData.sdgTargets,
+        },
+        evidenceMedia: formData.attachments ?? [],
+        reportDocuments: [],
+        impactAttestations: [],
+        startDate: toUnixSeconds(formData.reportingPeriodStart),
+        endDate: toUnixSeconds(formData.reportingPeriodEnd),
+        location: formData.location.trim(),
+        tags: formData.sdgTargets.map((id) => `sdg-${id}`),
+        gardenId: gardenId as Address,
+      };
+    },
+    [gardenId]
+  );
+
   // ── Save draft on store changes ────────────────────────
   const prevFormRef = useRef(form);
   useEffect(() => {
@@ -254,37 +284,7 @@ export default function CreateAssessment() {
     }, 600);
 
     return () => clearTimeout(timeoutId);
-  }, [form, saveDraft, draftKey, formatMessage]);
-
-  const buildWorkflowPayload = useCallback(
-    (formData: CreateAssessmentFormData): WorkflowAssessmentForm | null => {
-      if (!gardenId || !isAddress(gardenId)) return null;
-
-      return {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        assessmentType: `domain-${formData.domain}`,
-        capitals: [],
-        metrics: {
-          diagnosis: formData.diagnosis,
-          smartOutcomes: formData.smartOutcomes,
-          cynefinPhase: formData.cynefinPhase,
-          domain: formData.domain,
-          selectedActionUIDs: formData.selectedActionUIDs,
-          sdgTargets: formData.sdgTargets,
-        },
-        evidenceMedia: formData.attachments ?? [],
-        reportDocuments: [],
-        impactAttestations: [],
-        startDate: toUnixSeconds(formData.reportingPeriodStart),
-        endDate: toUnixSeconds(formData.reportingPeriodEnd),
-        location: formData.location.trim(),
-        tags: formData.sdgTargets.map((id) => `sdg-${id}`),
-        gardenId: gardenId as Address,
-      };
-    },
-    [gardenId]
-  );
+  }, [form, buildWorkflowPayload, saveDraft, draftKey, formatMessage]);
 
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
