@@ -49,11 +49,20 @@ export function GardenChip({
       <span
         className={cn(
           "inline-flex max-w-[200px] items-center gap-1.5 rounded-full",
-          "border border-stroke-soft bg-bg-white px-3 py-1.5",
+          "border border-stroke-soft/60 px-3 py-1.5",
+          "bg-bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-bg-white/60",
+          "shadow-sm",
           "text-sm font-medium text-text-main"
         )}
       >
-        <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
+        {selectedGarden ? (
+          <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+            <RiSeedlingLine className="h-4 w-4 text-success-base" />
+            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-success-base ring-2 ring-bg-white" />
+          </span>
+        ) : (
+          <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
+        )}
         <span className="truncate" title={displayName}>
           {displayName}
         </span>
@@ -69,15 +78,24 @@ export function GardenChip({
           type="button"
           className={cn(
             "inline-flex max-w-[200px] cursor-pointer items-center gap-1.5 rounded-full",
-            "border border-stroke-soft bg-bg-white px-3 py-1.5",
+            "border border-stroke-soft/60 px-3 py-1.5",
+            "bg-bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-bg-white/60",
+            "shadow-sm",
             "text-sm font-medium text-text-main",
-            "transition-colors duration-150",
+            "transition-all duration-150",
             "motion-reduce:transition-none",
-            "hover:bg-bg-weak",
+            "hover:bg-bg-weak hover:shadow-md",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
           )}
         >
-          <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
+          {selectedGarden ? (
+            <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
+              <RiSeedlingLine className="h-4 w-4 text-success-base" />
+              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-success-base ring-2 ring-bg-white" />
+            </span>
+          ) : (
+            <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
+          )}
           <span className="truncate" title={displayName}>
             {displayName}
           </span>

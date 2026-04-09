@@ -4,8 +4,8 @@
  */
 
 import { render, screen } from "@testing-library/react";
+import { FormField } from "@green-goods/shared";
 import { describe, expect, it } from "vitest";
-import { FormField } from "../../components/ui/FormField";
 
 describe("FormField", () => {
   it("renders label and children", () => {

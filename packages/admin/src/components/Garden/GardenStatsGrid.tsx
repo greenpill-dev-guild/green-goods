@@ -1,4 +1,4 @@
-import { formatTokenAmount } from "@green-goods/shared";
+import { formatTokenAmount, StatCard } from "@green-goods/shared";
 import {
   RiBankLine,
   RiCheckboxCircleLine,
@@ -8,13 +8,15 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { StatCard } from "@/components/StatCard";
+import { TrendIndicator } from "@/components/TrendIndicator";
 
 interface GardenStatsGridProps {
   gardenerCount: number;
   operatorCount: number;
   workCount: number;
   assessmentCount: number;
+  /** Impact velocity delta (approved work trend vs previous period) */
+  impactVelocityDelta?: number;
   hasVaults: boolean;
   vaultNetDeposited: bigint;
   vaultHarvestCount: number;
@@ -29,6 +31,7 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
   operatorCount,
   workCount,
   assessmentCount,
+  impactVelocityDelta,
   hasVaults,
   vaultNetDeposited,
   vaultHarvestCount,
@@ -51,6 +54,7 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
         label={formatMessage({ id: "app.roles.gardener.plural" })}
         value={gardenerCount}
         colorScheme="success"
+        hero
       />
       <StatCard
         icon={<RiShieldCheckLine className="h-5 w-5" />}
@@ -63,6 +67,17 @@ export const GardenStatsGrid: React.FC<GardenStatsGridProps> = ({
         label={formatMessage({ id: "app.garden.admin.statWork" })}
         value={workCount}
         colorScheme="warning"
+        trend={
+          impactVelocityDelta !== undefined && impactVelocityDelta !== 0 ? (
+            <TrendIndicator
+              value={impactVelocityDelta}
+              label={formatMessage({
+                id: "app.garden.detail.metric.vsLastPeriod",
+                defaultMessage: "vs last period",
+              })}
+            />
+          ) : undefined
+        }
       />
       <StatCard
         icon={<RiFileList3Line className="h-5 w-5" />}

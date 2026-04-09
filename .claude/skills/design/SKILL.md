@@ -13,12 +13,13 @@ last_verified: "2026-04-02"
 
 Design philosophy and visual direction for building spatial-ready, AI-driven interfaces. This skill shapes *what* to build and *why* — the `ui` skill handles *how* (tooling, tokens, compliance).
 
-> **Paradigm**: The Adaptive Surface. Not pages, not screens — control surfaces. Floating panes of information that respond to context, reveal on intent, and dissolve when irrelevant.
+> **Paradigm**: The Adaptive Surface, expressed through **Warm Glass** — Material's warmth of color, shape morphing, and spring physics wrapped in Liquid Glass's structural precision, concentricity, and content-forward hierarchy. Not pages, not screens — living control surfaces that breathe with spring physics and shift material as engagement deepens. See [language.md](./language.md) for the full design language spec.
 
 ## Activation
 
 | Domain | Keywords / Triggers | Sub-file |
 |--------|-------------------|----------|
+| **Design Language** | Warm Glass, shape system, motion tokens, color direction, components, hero moments | [language.md](./language.md) |
 | **Design Philosophy** | design direction, paradigm, adaptive surface, spatial, vision | This file |
 | **Depth & Space** | Z-axis, depth, layers, glass pane, elevation, scroll depth | [spatial.md](./spatial.md) |
 | **Interaction** | adaptive density, progressive disclosure, multimodal, hover-to-gaze | [interaction.md](./interaction.md) |
@@ -92,7 +93,7 @@ Pick a material that carries the entire surface:
 
 | Material | Visual Language | Best For |
 |----------|----------------|----------|
-| **Liquid Glass** | Refracted light, variable blur, chromatic edges | Command surfaces, active workspaces |
+| **Liquid Glass** | Refracted light, variable blur, chromatic edges | Command surfaces, active workspaces (**default Warm Glass material**) |
 | **Obsidian** | Dark, reflective, warm accent glows on interaction | Data landscapes, operator tools |
 | **Vellum** | Warm, tactile, paper-like grain texture | Conversational surfaces, documentation |
 | **Holographic** | Iridescent edges, gradient shifts, spectral accents | Ritual moments, celebrations, onboarding |

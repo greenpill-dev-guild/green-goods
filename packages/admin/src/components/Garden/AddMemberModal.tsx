@@ -1,6 +1,7 @@
 import {
   type Address,
   cn,
+  FormField,
   formatAddress,
   type GardenRole,
   logger,
@@ -14,7 +15,6 @@ import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { FormField } from "@/components/ui/FormField";
 
 interface AddMemberModalProps {
   isOpen: boolean;

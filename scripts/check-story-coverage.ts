@@ -33,14 +33,9 @@ const ADMIN_COMPONENTS_DIR = join(
 );
 
 const ADMIN_SYSTEM_COMPONENTS = [
-  "Layout/Breadcrumbs.tsx",
   "Layout/CommandPalette.tsx",
-  "Layout/DashboardLayout.tsx",
-  "Layout/Header.tsx",
   "Layout/PageHeader.tsx",
-  "Layout/Sidebar.tsx",
-  "Layout/UserProfile.tsx",
-  "ui/PageTransition.tsx",
+  "Layout/PageTransition.tsx",
 ] as const;
 
 // Files to skip entirely

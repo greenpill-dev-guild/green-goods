@@ -1,25 +1,30 @@
 import {
-  cn,
-  DEFAULT_CHAIN_ID,
-  expandDomainMask,
   type Action,
   type Address,
+  Alert,
+  Button,
+  Card,
+  cn,
+  DEFAULT_CHAIN_ID,
   type Domain,
-  type WorkInput,
+  expandDomainMask,
+  FileUploadField,
+  FormField,
   findActionByUID,
   getActionTitle,
+  logger,
   parseActionUID,
   parseAndFormatError,
+  queryKeys,
   submitWorkDirectly,
   toastService,
   useActions,
   useAuth,
+  useBeforeUnloadWhilePending,
   useGardenPermissions,
   useGardens,
-  useBeforeUnloadWhilePending,
   useWorkForm,
-  queryKeys,
-  logger,
+  type WorkInput,
 } from "@green-goods/shared";
 import { RiUploadCloudLine } from "@remixicon/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,12 +32,7 @@ import { useCallback, useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
-import { FileUploadField } from "@/components/FileUploadField";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { FormField } from "@/components/ui/FormField";
 
 // ─────────────────────────────────────────────────────────────
 // Input class — matches admin form pattern (CreateGardenSteps)

@@ -32,10 +32,6 @@
       "path": "../docs"
     },
     {
-      "name": "gardens",
-      "path": "../../gardens"
-    },
-    {
       "path": "../../coop"
     }
   ],

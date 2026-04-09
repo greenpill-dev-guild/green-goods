@@ -1,13 +1,14 @@
 import {
   type Address,
+  Button,
   classifyTxError,
   formatTokenAmount,
   getVaultAssetSymbol,
   isMeaningfulTxErrorMessage,
+  TxInlineFeedback,
   useCookieJarDeposit,
   useGardenCookieJars,
   useUser,
-  TxInlineFeedback,
   validateDecimalInput,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -16,7 +17,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
 import { useBalance } from "wagmi";
-import { Button } from "@/components/ui/Button";
 
 interface CookieJarDepositModalProps {
   isOpen: boolean;

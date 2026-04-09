@@ -34,6 +34,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   return {
     ...actual,
     AssetSelector: () => <div data-testid="asset-selector" />,
+    Alert: ({ children, ...props }: any) => (
+      <div data-testid="alert" data-variant={props.variant}>
+        {children}
+      </div>
+    ),
+    Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
     classifyTxError: () => ({
       severity: "error",
       titleKey: "app.status.error",
@@ -41,6 +47,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       kind: "failed",
       rawMessage: "",
     }),
+    FormField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     formatTokenAmount: (value: bigint) => value.toString(),
     getVaultAssetDecimals: () => 18,
     getVaultAssetSymbol: () => "WETH",
@@ -83,22 +90,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 
 vi.mock("@/components/ConnectButton", () => ({
   ConnectButton: () => <div />,
-}));
-
-vi.mock("@/components/ui/Button", () => ({
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
-}));
-
-vi.mock("@/components/ui/FormField", () => ({
-  FormField: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
-vi.mock("@/components/ui/Alert", () => ({
-  Alert: ({ children, ...props }: any) => (
-    <div data-testid="alert" data-variant={props.variant}>
-      {children}
-    </div>
-  ),
 }));
 
 import { DepositModal } from "../../../components/Vault/DepositModal";

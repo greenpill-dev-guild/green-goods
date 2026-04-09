@@ -1,4 +1,5 @@
 import {
+  AddressDisplay,
   cn,
   DEFAULT_CHAIN_ID,
   getChainName,
@@ -15,7 +16,6 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AddressDisplay } from "../AddressDisplay";
 
 interface SettingsSheetProps {
   open: boolean;

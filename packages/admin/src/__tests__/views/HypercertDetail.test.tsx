@@ -53,16 +53,16 @@ vi.mock("@/components/Layout/PageHeader", () => ({
     ),
 }));
 
-vi.mock("@/components/hypercerts/MarketplaceApprovalGate", () => ({
+vi.mock("@/components/Hypercerts/MarketplaceApprovalGate", () => ({
   MarketplaceApprovalGate: ({ children }: { children: React.ReactNode }) =>
     React.createElement("div", { "data-testid": "marketplace-gate" }, children),
 }));
 
-vi.mock("@/components/hypercerts/CreateListingDialog", () => ({
+vi.mock("@/components/Hypercerts/CreateListingDialog", () => ({
   CreateListingDialog: () => React.createElement("div", { "data-testid": "listing-dialog" }),
 }));
 
-vi.mock("@/components/hypercerts/TradeHistoryTable", () => ({
+vi.mock("@/components/Hypercerts/TradeHistoryTable", () => ({
   TradeHistoryTable: () => React.createElement("div", { "data-testid": "trade-history" }),
 }));
 

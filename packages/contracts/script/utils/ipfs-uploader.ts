@@ -8,7 +8,7 @@
  * Called by Deploy.s.sol via FFI during deployment.
  *
  * Inputs: Reads config/actions.json
- * Side-effects: Uploads to IPFS, creates .ipfs-cache.json
+ * Side-effects: Uploads to IPFS, creates .generated/runtime/ipfs-cache.json
  * Outputs: JSON array of IPFS hashes to stdout
  *
  * IMPORTANT: This script must output ONLY valid JSON to stdout.
@@ -19,6 +19,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CONFIG_ROOT, IPFS_CACHE_PATH, ensureParentDir } from "./paths";
 import {
   ensureHybridCidAvailability,
   loadPinataConfigFromEnv,
@@ -82,8 +83,8 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 // Load environment variables silently
 loadEnvFile(path.join(SCRIPT_DIR, "../../../../", ".env"));
 
-const CACHE_FILE = path.join(process.cwd(), ".ipfs-cache.json");
-const ACTIONS_FILE = path.join(process.cwd(), "config", "actions.json");
+const CACHE_FILE = IPFS_CACHE_PATH;
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
 
 // Types
 interface ActionTemplate {
@@ -214,7 +215,7 @@ function loadCache(): Cache {
  */
 function saveCache(cache: Cache): void {
   try {
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+    fs.writeFileSync(ensureParentDir(CACHE_FILE), JSON.stringify(cache, null, 2));
   } catch (error) {
     console.error("IPFS uploader: unable to persist cache to disk.", error);
   }

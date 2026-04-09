@@ -4,7 +4,7 @@ sidebar_label: "Joining A Garden"
 slug: /community/gardener-guide/joining-a-garden
 audience: all
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-07
 feature_status: Live
 goal: "Help gardeners find, join, and begin working in a garden community."
 difficulty: "quickstart"
@@ -36,7 +36,7 @@ import {
 
 ## Overview
 
-Gardens are community hubs for regenerative work, each focused on a specific bioregion or initiative. As a gardener, you join a garden to access its actions, document your work, and earn on-chain recognition. Every new user is automatically added to the Community Garden on signup, so you can start immediately.
+Gardens are community hubs for regenerative work, each focused on a specific bioregion or initiative. As a gardener, you join a garden to access its actions, document your work, and build a verifiable contribution history. On first sign-in, Green Goods prompts you to join the Community Garden so you can get moving quickly, but you can also skip that prompt and join later from your profile.
 
 <div style={{maxWidth: '280px', margin: '1rem auto'}}>
   <img src="/img/screenshots/client-passkey-login.png" alt="Green Goods login — sign in with passkey or wallet" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
@@ -50,10 +50,10 @@ Gardens are community hubs for regenerative work, each focused on a specific bio
 
 <StepFlow
   steps={[
-    {title: "Sign in", detail: "Open greengoods.app and sign in with your device biometrics (Face ID, Touch ID, or fingerprint). No passwords or seed phrases needed — a passkey-based smart account is created for you automatically."},
-    {title: "Explore the Community Garden", detail: "You are auto-joined to the Community Garden on first login. Browse available actions to see what regenerative work is needed in your area."},
-    {title: "Find additional gardens", detail: "Browse the gardens list to find communities matching your interests or bioregion. Open gardens let you join instantly; restricted gardens require an operator invitation."},
-    {title: "Start working", detail: "Once you have joined a garden, open an active action and begin documenting your regenerative work using the MDR workflow (Media, Details, Review)."},
+    {title: "Sign in", detail: "Open greengoods.app and sign in with a passkey or connect a wallet. Passkeys create a smart account automatically; wallet users keep using their existing address."},
+    {title: "Join the Community Garden prompt", detail: "On first login, Green Goods asks whether you want to join the Community Garden. Accept if you want an immediate place to start, or skip and join later from your profile."},
+    {title: "Find additional gardens", detail: "Browse the gardens list to find communities matching your interests or bioregion. Open gardens let you join directly. Restricted gardens do not show a join path until an operator invites you."},
+    {title: "Start working", detail: "Once you are in a garden, open an active action and begin documenting your work with the MDR workflow (Media, Details, Review)."},
   ]}
 />
 
@@ -76,7 +76,7 @@ Gardens are community hubs for regenerative work, each focused on a specific bio
     },
     {
       when: "You are not sure which garden to join",
-      do: "Start with the Community Garden — it is open to everyone and has general-purpose actions.",
+      do: "Start with the Community Garden if you were offered it during onboarding, or join it later from your profile.",
       next: "Explore other gardens as you get comfortable with the workflow.",
     },
   ]}

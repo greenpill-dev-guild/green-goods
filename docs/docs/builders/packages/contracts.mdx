@@ -4,7 +4,7 @@ sidebar_label: Contracts
 slug: /builders/packages/contracts
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-08
 feature_status: Live
 keywords: [solidity, smart contracts, foundry, EAS resolvers, deployment, UUPS, CREATE2, hats protocol]
 ---
@@ -53,7 +53,7 @@ graph TB
     C2 -->|addresses| Resolvers
 ```
 
-Solidity smart contracts for the Green Goods protocol: resolver contracts for on-chain attestation validation, garden NFTs with tokenbound accounts, an action registry, and role-based access via Hats Protocol. Includes TypeScript deploy scripts that orchestrate CREATE2 deterministic deployment across multiple chains.
+Solidity smart contracts for the Green Goods protocol: resolver contracts for on-chain attestation validation, garden NFTs with tokenbound accounts, an action registry, and role-based access via Hats Protocol. Includes TypeScript deploy scripts that orchestrate CREATE2-based deployment across the supported networks in this repo.
 
 ## Overview
 
@@ -86,7 +86,7 @@ packages/contracts/
 
 - **CREATE2 deterministic deployment** -- contracts deploy to the same address across chains. Existing addresses are skipped via `_isDeployed()` check.
 - **Hub-and-spoke modules** -- GardenToken uses typed module slots. Optional modules degrade gracefully with `if (address != 0)` + `try/catch` guards.
-- **`via_ir=true`** only for GardenAccount and GardenToken (complex multi-module contracts). All other contracts compile without the Yul IR pipeline.
+- **Selective `via_ir`** -- local builds stay mostly non-IR, while `foundry.toml` enables `via_ir` selectively for stack-heavy contracts and uses `via_ir=true` in the `test`, `ci`, `fork`, and `production` profiles.
 - **Adaptive build system** -- `bun build` defaults to fast mode (~2s cached), detecting what changed. Only `bun build:full` triggers the slow full build (~180-400s).
 - **Two-layer deploy** -- TypeScript CLI (`deploy/core.ts`) orchestrates environment and parameters, then shells out to Solidity (`Deploy.s.sol`) for on-chain execution.
 

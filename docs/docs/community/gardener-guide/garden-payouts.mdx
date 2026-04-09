@@ -4,8 +4,8 @@ sidebar_label: "Garden Payouts"
 slug: /community/gardener-guide/garden-payouts
 audience: all
 owner: docs
-last_verified: 2026-03-11
-feature_status: Implemented (activation pending deployment)
+last_verified: 2026-04-07
+feature_status: Live
 goal: "Help gardeners understand how they receive compensation from garden vaults and cookie jars."
 difficulty: "standard"
 estimated_time: "5-10 minutes."
@@ -13,9 +13,10 @@ prereqs: "Membership in at least one garden with an active endowment."
 next_steps: "/community/gardener-guide/voting-governance"
 persona_context: "Gardeners seeking to understand compensation mechanisms for verified regenerative work."
 source_of_truth:
-  - packages/client/src/views/Home/WalletDrawer/CookieJarTab.tsx
-  - packages/shared/src/hooks/cookie-jar/useUserCookieJars.ts
-  - packages/shared/src/hooks/vault/useVaultOperations.ts
+  - packages/client/src/components/Dialogs/TreasuryDrawer/CookieJarCard.tsx
+  - packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts
+  - packages/shared/src/hooks/cookie-jar/useCookieJarWithdraw.ts
+  - packages/shared/src/hooks/vault/useVaultWithdraw.ts
 keywords:
   - payouts
   - cookie jar
@@ -34,7 +35,7 @@ import {
 
 # Garden Payouts
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Live" />
 
 ## Overview
 
@@ -42,8 +43,8 @@ Gardens can compensate gardeners for verified regenerative work through two mech
 
 <FeatureState
   title="Payout system"
-  status="Implemented (activation pending deployment)"
-  summary="Cookie jar and vault withdrawal hooks are implemented. Activation is pending non-zero module addresses in deployment artifacts."
+  status="Live"
+  summary="Garden payouts are available when a garden has an active vault or cookie jar configured on a supported chain. What you see depends on your garden's setup, not just your account."
 />
 
 ## How It Works

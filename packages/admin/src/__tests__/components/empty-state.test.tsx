@@ -83,7 +83,7 @@ vi.mock("@/components/Layout/SettingsSheet", () => ({
   SettingsSheet: () => null,
 }));
 
-vi.mock("@/components/ui/PageTransition", () => ({
+vi.mock("@/components/Layout/PageTransition", () => ({
   PageTransition: () => <div data-testid="page-content">Page Transition</div>,
 }));
 

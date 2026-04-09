@@ -224,7 +224,7 @@ function validateGuideReferences() {
     {
       relPath: "AGENTS.md",
       requiredTerms: [
-        "packages/admin/DESIGN_SYSTEM.md",
+        "docs/docs/builders/packages/admin.mdx",
         "CockpitLayout",
         "DashboardLayout",
         "Sidebar",
@@ -234,13 +234,13 @@ function validateGuideReferences() {
     {
       relPath: "packages/admin/AGENTS.md",
       requiredTerms: [
-        "DESIGN_SYSTEM.md",
+        "docs/docs/builders/packages/admin.mdx",
         "CockpitLayout",
         "DashboardLayout",
         "Sidebar",
         "Header",
         "TopContextBar",
-        "FloatingToolbar",
+        "NavigationBar",
         "GardenChip",
         "CommandPalette",
         "SettingsSheet",
@@ -258,10 +258,10 @@ function validateGuideReferences() {
     {
       relPath: "packages/shared/AGENTS.md",
       requiredTerms: [
-        "packages/admin/DESIGN_SYSTEM.md",
+        "docs/docs/builders/packages/admin.mdx",
         "Storybook",
         "TopContextBar",
-        "FloatingToolbar",
+        "NavigationBar",
         "GardenChip",
         "SideSheet",
         "Alert",

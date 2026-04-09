@@ -28,6 +28,14 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import {
+  CONFIG_ROOT,
+  CONTRACTS_ROOT,
+  DEPLOYMENTS_ROOT,
+  IPFS_CACHE_PATH,
+  IPFS_MEDIA_CACHE_PATH,
+  ensureParentDir,
+} from "./paths";
 
 // ---------------------------------------------------------------------------
 // Env loading (same approach as ipfs-uploader.ts)
@@ -66,12 +74,11 @@ loadEnvFile(path.join(__dirname, "../../../../", ".env"));
 // Constants
 // ---------------------------------------------------------------------------
 const CHAIN_ID = 42161; // Arbitrum One
-const CONTRACTS_DIR = path.resolve(__dirname, "../..");
-const DEPLOYMENT_FILE = path.join(CONTRACTS_DIR, `deployments/${CHAIN_ID}-latest.json`);
-const INSTRUCTIONS_CACHE = path.join(CONTRACTS_DIR, ".ipfs-cache.json");
-const MEDIA_CACHE = path.join(CONTRACTS_DIR, ".ipfs-media-cache.json");
-const ACTIONS_FILE = path.join(CONTRACTS_DIR, "config", "actions.json");
-const IMAGES_DIR = path.join(CONTRACTS_DIR, "config", "action-images");
+const DEPLOYMENT_FILE = path.join(DEPLOYMENTS_ROOT, `${CHAIN_ID}-latest.json`);
+const INSTRUCTIONS_CACHE = IPFS_CACHE_PATH;
+const MEDIA_CACHE = IPFS_MEDIA_CACHE_PATH;
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
+const IMAGES_DIR = path.join(CONFIG_ROOT, "action-images");
 const TEMP_DIR = path.join(__dirname, "../temp");
 
 // ---------------------------------------------------------------------------
@@ -305,7 +312,7 @@ async function uploadImages(
   }
 
   // Save cache
-  fs.writeFileSync(MEDIA_CACHE, JSON.stringify(mediaCache, null, 2));
+  fs.writeFileSync(ensureParentDir(MEDIA_CACHE), JSON.stringify(mediaCache, null, 2));
   console.log(
     `\n  Uploaded: ${uploaded}/${toUpload.length} (${failed} failed), Total cached: ${mediaCids.size}/${actions.length}`,
   );
@@ -331,7 +338,7 @@ function loadInstructionCids(actions: ActionConfig[]): Map<number, string> {
       instructionCids.set(i, entry.hash);
       found++;
     } else {
-      console.log(`  [${i}] ${actions[i].title} — MISSING from .ipfs-cache.json`);
+      console.log(`  [${i}] ${actions[i].title} — MISSING from ${path.relative(CONTRACTS_ROOT, INSTRUCTIONS_CACHE)}`);
       missing++;
     }
   }

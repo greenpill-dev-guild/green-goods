@@ -16,6 +16,7 @@ import { en as enMessages } from "@green-goods/shared";
 
 const mockRegisterAction = vi.fn();
 const mockNavigate = vi.fn();
+let capturedProps: Record<string, unknown> = {};
 
 vi.mock("@green-goods/shared", () => ({
   DEFAULT_CHAIN_ID: 42161,
@@ -42,36 +43,6 @@ vi.mock("@green-goods/shared", () => ({
     registerAction: mockRegisterAction,
     isLoading: false,
   }),
-}));
-
-vi.mock("@hookform/resolvers/zod", () => ({
-  zodResolver: () => async () => ({ values: {}, errors: {} }),
-}));
-
-vi.mock("react-router-dom", async () => {
-  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) =>
-      React.createElement("a", { href: to, ...props }, children),
-  };
-});
-
-// Mock step components to keep tests lightweight
-vi.mock("@/components/Action/CreateActionSteps", () => ({
-  BasicsStep: () => React.createElement("div", { "data-testid": "basics-step" }, "Basics Step"),
-  CapitalsStep: () =>
-    React.createElement("div", { "data-testid": "capitals-step" }, "Capitals Step"),
-  InstructionsStep: () =>
-    React.createElement("div", { "data-testid": "instructions-step" }, "Instructions Step"),
-  ReviewStep: () => React.createElement("div", { "data-testid": "review-step" }, "Review Step"),
-}));
-
-// Mock FormWizard to expose step navigation
-let capturedProps: Record<string, unknown> = {};
-
-vi.mock("@/components/Form/FormWizard", () => ({
   FormWizard: (props: {
     steps: Array<{ id: string; title: string }>;
     currentStep: number;
@@ -124,10 +95,31 @@ vi.mock("@/components/Form/FormWizard", () => ({
       )
     );
   },
+  StepIndicator: () => null,
 }));
 
-vi.mock("@/components/Form/StepIndicator", () => ({
-  StepIndicator: () => null,
+vi.mock("@hookform/resolvers/zod", () => ({
+  zodResolver: () => async () => ({ values: {}, errors: {} }),
+}));
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    Link: ({ to, children, ...props }: { to: string; children: React.ReactNode }) =>
+      React.createElement("a", { href: to, ...props }, children),
+  };
+});
+
+// Mock step components to keep tests lightweight
+vi.mock("@/components/Action/CreateActionSteps", () => ({
+  BasicsStep: () => React.createElement("div", { "data-testid": "basics-step" }, "Basics Step"),
+  CapitalsStep: () =>
+    React.createElement("div", { "data-testid": "capitals-step" }, "Capitals Step"),
+  InstructionsStep: () =>
+    React.createElement("div", { "data-testid": "instructions-step" }, "Instructions Step"),
+  ReviewStep: () => React.createElement("div", { "data-testid": "review-step" }, "Review Step"),
 }));
 
 vi.mock("@remixicon/react", () => {

@@ -1,8 +1,7 @@
-import type { GardenDetailTab } from "@green-goods/shared";
+import { Button, type GardenDetailTab } from "@green-goods/shared";
 import { RiFileList3Line, RiUploadCloudLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/Button";
 
 interface TabActionsProps {
   gardenId: string;

@@ -11,14 +11,15 @@ import {
   useStaleGardenGuard,
   type ToolbarSlot,
 } from "@green-goods/shared";
-import { RiClipboardLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
+import { RiAppsLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CommandPalette } from "./CommandPalette";
+import { PageTransition } from "./PageTransition";
 import { SettingsSheet } from "./SettingsSheet";
 import { UserAvatar } from "./UserAvatar";
-import { PageTransition } from "../ui/PageTransition";
+import { SeedlingIllustration } from "./SeedlingIllustration";
 
 /**
  * Cockpit layout — top context bar above the main workspace and floating navigation below.
@@ -59,9 +60,9 @@ export function CockpitLayout() {
     () => [
       {
         id: "work",
-        label: "Work",
-        labelId: "cockpit.nav.work",
-        icon: RiClipboardLine,
+        label: "Hub",
+        labelId: "cockpit.nav.hub",
+        icon: RiAppsLine,
         path: "/work",
         visible: permissions.showWork,
       },
@@ -98,14 +99,17 @@ export function CockpitLayout() {
     ]
   );
 
-  // Determine active path from current route
-  const activePath = useMemo(() => {
+  // Determine active path and workspace identity from current route
+  const { activePath, workspaceId } = useMemo(() => {
     const path = location.pathname;
-    if (path.startsWith("/work")) return "/work";
-    if (path.startsWith("/garden")) return "/garden";
-    if (path.startsWith("/community")) return "/community";
-    if (path.startsWith("/actions")) return "/actions";
-    return "/work";
+    if (path.startsWith("/work")) return { activePath: "/work", workspaceId: "work" } as const;
+    if (path.startsWith("/garden"))
+      return { activePath: "/garden", workspaceId: "garden" } as const;
+    if (path.startsWith("/community"))
+      return { activePath: "/community", workspaceId: "community" } as const;
+    if (path.startsWith("/actions"))
+      return { activePath: "/actions", workspaceId: "actions" } as const;
+    return { activePath: "/work", workspaceId: "work" } as const;
   }, [location.pathname]);
 
   // Map gardens for GardenChip
@@ -159,6 +163,7 @@ export function CockpitLayout() {
       <main
         id="main-content"
         tabIndex={-1}
+        data-workspace={workspaceId}
         className="flex-1 overflow-y-auto pb-24 max-[599px]:pb-20 main-scroll-area workspace-canvas"
         style={{
           overscrollBehaviorY: "contain",
@@ -167,9 +172,7 @@ export function CockpitLayout() {
       >
         {showEmptyState ? (
           <div className="flex flex-1 flex-col items-center justify-center px-4 py-16 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-soft text-text-soft">
-              <RiSeedlingLine className="h-7 w-7" />
-            </div>
+            <SeedlingIllustration className="h-28 w-28" />
             <h2 className="mt-4 text-lg font-semibold text-text-strong">
               {intl.formatMessage({
                 id: "cockpit.workspace.noGardens",

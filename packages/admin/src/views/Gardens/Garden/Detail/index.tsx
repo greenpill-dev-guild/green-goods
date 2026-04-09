@@ -1,6 +1,8 @@
 import {
   type ActivityFilter,
   type Address,
+  Button,
+  Card,
   formatTokenAmount,
   type GardenDetailTab,
   type GardenRole,
@@ -21,15 +23,12 @@ import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { CommunityTab } from "../CommunityTab";
 import { GardenHeroBanner, TabBadge } from "../GardenDetailHelpers";
 import { TAB_SECTIONS, TAB_TRIGGER_BASE } from "../gardenDetail.constants";
 import { ImpactTab } from "../ImpactTab";
 import { OverviewTab } from "../OverviewTab";
 import { WorkTab } from "../WorkTab";
-import "../GardenDetailLayout.css";
 import { GardenModals } from "./GardenModals";
 import { TabActions } from "./TabActions";
 
@@ -210,7 +209,10 @@ export default function GardenDetail() {
   } as const;
 
   const baseHeaderProps = {
-    backLink: { to: "/gardens", label: formatMessage({ id: "app.garden.admin.backToGardens" }) },
+    backLink: {
+      to: gardenId ? `/garden?garden=${gardenId}` : "/garden",
+      label: formatMessage({ id: "app.garden.admin.backToGardens" }),
+    },
     sticky: true,
   } as const;
 
@@ -281,7 +283,9 @@ export default function GardenDetail() {
                 {error?.message ?? formatMessage({ id: "app.garden.admin.unableToLoad" })}
               </p>
               <Button variant="secondary" className="mt-6" asChild>
-                <Link to="/gardens">{formatMessage({ id: "app.garden.admin.backToGardens" })}</Link>
+                <Link to={gardenId ? `/garden?garden=${gardenId}` : "/garden"}>
+                  {formatMessage({ id: "app.garden.admin.backToGardens" })}
+                </Link>
               </Button>
             </Card.Body>
           </Card>
@@ -303,7 +307,7 @@ export default function GardenDetail() {
         description={garden.description}
         bannerImage={garden.bannerImage}
         domainMask={garden.domainMask}
-        backTo="/gardens"
+        backTo={`/garden?garden=${garden.id}`}
         backLabel={formatMessage({ id: "app.garden.admin.backToGardens" })}
         canManage={canManage}
         onEditDomains={() => setDomainModalOpen(true)}

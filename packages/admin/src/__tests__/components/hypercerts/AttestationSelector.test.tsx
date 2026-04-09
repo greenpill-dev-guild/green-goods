@@ -54,7 +54,7 @@ vi.mock("@green-goods/shared", () => ({
   },
 }));
 
-import { AttestationSelector } from "../../../components/hypercerts/steps/AttestationSelector";
+import { AttestationSelector } from "../../../components/Hypercerts/Steps/AttestationSelector";
 
 // ============================================
 // Test Fixtures
@@ -105,7 +105,7 @@ const mockAttestations: HypercertAttestation[] = [
   }),
 ];
 
-describe("components/hypercerts/AttestationSelector", () => {
+describe("components/Hypercerts/AttestationSelector", () => {
   const defaultProps = {
     attestations: mockAttestations,
     selectedIds: [] as string[],

@@ -1,5 +1,8 @@
 import {
   type Address,
+  AddressDisplay,
+  Button,
+  Card,
   logger,
   PoolType,
   toastService,
@@ -9,9 +12,6 @@ import {
 import { RiAddLine, RiGroupLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AddressDisplay } from "@/components/AddressDisplay";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 interface GardenPool {
   poolType: PoolType;

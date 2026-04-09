@@ -49,7 +49,7 @@ const CATEGORY_ICONS: Record<
 };
 
 const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
-  { id: "page-work", labelId: "cockpit.nav.work", defaultLabel: "Work", href: "/work" },
+  { id: "page-work", labelId: "cockpit.nav.hub", defaultLabel: "Hub", href: "/work" },
   { id: "page-garden", labelId: "cockpit.nav.garden", defaultLabel: "Garden", href: "/garden" },
   {
     id: "page-community",

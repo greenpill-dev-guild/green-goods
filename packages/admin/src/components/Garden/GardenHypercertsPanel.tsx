@@ -1,10 +1,14 @@
-import { type Address, formatDate, type HypercertRecord } from "@green-goods/shared";
+import {
+  type Address,
+  Card,
+  EmptyState,
+  formatDate,
+  type HypercertRecord,
+} from "@green-goods/shared";
 import { RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { ActiveListingsTable } from "@/components/hypercerts/ActiveListingsTable";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { ActiveListingsTable } from "@/components/Hypercerts/ActiveListingsTable";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 

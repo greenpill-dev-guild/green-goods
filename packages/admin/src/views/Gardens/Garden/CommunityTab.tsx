@@ -1,5 +1,9 @@
 import {
   type Address,
+  AddressDisplay,
+  Button,
+  Card,
+  EmptyState,
   ErrorBoundary,
   formatAddress,
   formatTokenAmount,
@@ -10,13 +14,9 @@ import {
 } from "@green-goods/shared";
 import { RiArrowRightSLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AddressDisplay } from "@/components/AddressDisplay";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { CookieJarPayoutPanel } from "@/components/Work/CookieJarPayoutPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
 

@@ -19,6 +19,10 @@ export {
   type AudioRecorderProps,
 } from "./Audio";
 // Admin / Shared foundation primitives
+export {
+  AddressDisplay,
+  type AddressDisplayProps,
+} from "./AddressDisplay";
 export { Alert, type AlertProps, type AlertVariant } from "./Alert";
 // Badge Component
 export { Badge, type BadgeProps, type BadgeVariantProps, badgeVariants } from "./Badge";
@@ -97,6 +101,10 @@ export {
 export { ImageWithFallback, type ImageWithFallbackProps } from "./Display";
 // Error Boundary
 export { ErrorBoundary, type ErrorBoundaryProps } from "./ErrorBoundary";
+export {
+  FileUploadField,
+  type FileUploadFieldProps,
+} from "./FileUploadField";
 // Confidence & Verification Selectors
 export type { ConfidenceSelectorProps } from "./Form/ConfidenceSelector";
 export { ConfidenceSelector } from "./Form/ConfidenceSelector";
@@ -116,8 +124,14 @@ export type { FormLayoutProps } from "./Form/FormLayout";
 export { FormLayout } from "./Form/FormLayout";
 export type { FormTextareaProps } from "./Form/FormTextarea";
 export { FormTextarea } from "./Form/FormTextarea";
+export {
+  FormWizard,
+  type FormWizardProps,
+} from "./Form/FormWizard";
 export type { MethodSelectorProps } from "./Form/MethodSelector";
 export { MethodSelector } from "./Form/MethodSelector";
+export type { Step } from "./Form/StepIndicator";
+export { StepIndicator } from "./Form/StepIndicator";
 // Select Components
 export type { FormSelectOption, FormSelectProps } from "./Form/Select";
 export {
@@ -152,9 +166,23 @@ export { SyncIndicator } from "./Progress/SyncIndicator";
 // Spinner
 export type { CenteredSpinnerProps, SpinnerProps } from "./Spinner";
 export { CenteredSpinner, Spinner } from "./Spinner";
+export type {
+  SkeletonCardProps,
+  SkeletonGridProps,
+  SkeletonTextProps,
+} from "./Skeleton";
+export {
+  SkeletonCard,
+  SkeletonGrid,
+  SkeletonText,
+} from "./Skeleton";
 // Status Badge
 export type { StatusBadgeProps } from "./StatusBadge";
 export { getStatusColors, StatusBadge } from "./StatusBadge";
+export {
+  StatCard,
+  type StatCardProps,
+} from "./StatCard";
 export { SyncStatusBar } from "./SyncStatusBar";
 // Toast Preset i18n Factory Functions
 export type { FormatMessageFn } from "./Toast/presets";

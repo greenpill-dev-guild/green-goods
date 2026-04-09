@@ -1,5 +1,6 @@
 import {
   type Address,
+  Alert,
   DEFAULT_CHAIN_ID,
   formatDate,
   getNetworkConfig,
@@ -20,11 +21,10 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
 import { formatEther } from "viem";
-import { CreateListingDialog } from "@/components/hypercerts/CreateListingDialog";
-import { MarketplaceApprovalGate } from "@/components/hypercerts/MarketplaceApprovalGate";
-import { TradeHistoryTable } from "@/components/hypercerts/TradeHistoryTable";
+import { CreateListingDialog } from "@/components/Hypercerts/CreateListingDialog";
+import { MarketplaceApprovalGate } from "@/components/Hypercerts/MarketplaceApprovalGate";
+import { TradeHistoryTable } from "@/components/Hypercerts/TradeHistoryTable";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { Alert } from "@/components/ui/Alert";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -103,7 +103,7 @@ export default function HypercertDetail() {
           title={formatMessage({ id: "app.hypercerts.detail.title" })}
           description={formatMessage({ id: "app.hypercerts.detail.notFound" })}
           backLink={{
-            to: "/gardens",
+            to: "/garden",
             label: formatMessage({ id: "app.hypercerts.backToGardens" }),
           }}
         />

@@ -250,6 +250,12 @@ export function renderWithQuery(
   return render(ui, { wrapper: QueryTestWrapper, ...options });
 }
 
+/**
+ * Backward-compatible alias used across admin/shared tests for the standard
+ * query + intl render wrapper.
+ */
+export const renderWithProviders = renderWithQuery;
+
 import type React from "react";
 // Import vi for mock utilities
 import { vi } from "vitest";

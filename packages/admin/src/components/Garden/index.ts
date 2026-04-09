@@ -1,5 +1,4 @@
 export { AddMemberModal } from "./AddMemberModal";
-export { CreateGardenAction } from "./CreateGardenAction";
 export { GardenAssessmentsPanel } from "./GardenAssessmentsPanel";
 export { GardenCommunityCard } from "./GardenCommunityCard";
 export { GardenDomainModal } from "./GardenDomainEditor";

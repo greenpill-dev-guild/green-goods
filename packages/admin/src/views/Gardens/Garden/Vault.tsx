@@ -1,6 +1,7 @@
 import {
   AAVE_V3_POOL,
   type Address,
+  Alert,
   formatAddress,
   formatTokenAmount,
   getBlockExplorerAddressUrl,
@@ -21,7 +22,6 @@ import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { Alert } from "@/components/ui/Alert";
 import {
   DepositModal,
   GardenSupporters,
@@ -111,18 +111,8 @@ export default function GardenVaultView() {
         to: routeState.returnTo,
         label: formatMessage({
           id: routeState.returnLabelId,
-          defaultMessage:
-            routeState.returnTo === "/endowments"
-              ? "Endowments"
-              : formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
+          defaultMessage: formatMessage({ id: "app.common.back", defaultMessage: "Back" }),
         }),
-      };
-    }
-
-    if (routeState.returnTo === "/endowments") {
-      return {
-        to: routeState.returnTo,
-        label: formatMessage({ id: "app.admin.nav.treasury", defaultMessage: "Endowments" }),
       };
     }
 
@@ -140,8 +130,8 @@ export default function GardenVaultView() {
           description={formatMessage({ id: "app.treasury.loadingGarden" })}
           backLink={
             contextualBackLink ?? {
-              to: "/gardens",
-              label: formatMessage({ id: "app.hypercerts.backToGardens" }),
+              to: "/community?card=treasury",
+              label: formatMessage({ id: "app.admin.nav.treasury" }),
             }
           }
         />
@@ -157,8 +147,8 @@ export default function GardenVaultView() {
           description={formatMessage({ id: "app.treasury.gardenNotFound" })}
           backLink={
             contextualBackLink ?? {
-              to: "/gardens",
-              label: formatMessage({ id: "app.hypercerts.backToGardens" }),
+              to: "/community?card=treasury",
+              label: formatMessage({ id: "app.admin.nav.treasury" }),
             }
           }
         />
@@ -180,8 +170,8 @@ export default function GardenVaultView() {
         )}
         backLink={
           contextualBackLink ?? {
-            to: `/gardens/${garden.id}`,
-            label: formatMessage({ id: "app.hypercerts.backToGarden" }),
+            to: `/community?garden=${garden.id}&card=treasury`,
+            label: formatMessage({ id: "app.admin.nav.treasury" }),
           }
         }
         sticky

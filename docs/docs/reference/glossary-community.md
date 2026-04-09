@@ -4,7 +4,7 @@ slug: /glossary
 sidebar_label: Glossary
 audience: all
 owner: docs
-last_verified: 2026-03-25
+last_verified: 2026-04-08
 feature_status: Live
 source_of_truth:
   - docs/docs/builders/glossary.mdx
@@ -69,7 +69,7 @@ A token representing verified impact work that can be traded, funded, or used to
 A distributed file storage system. Green Goods stores work photos, metadata, and action instructions in IPFS via Storacha, with content identifiers (CIDs) referenced in on-chain attestations.
 
 ### Karma GAP (Grantee Accountability Protocol)
-A standardized protocol for on-chain impact reporting across multiple chains. When operators approve work in Green Goods, the system automatically creates GAP project and impact attestations, enabling transparent impact tracking. Gardens become GAP projects automatically upon creation.
+A standardized protocol for on-chain impact reporting. In Green Goods, Karma GAP integration is module-driven and deployment-dependent rather than something to assume on every chain by default. When that module is active, operators can sync approved work and garden/project state into GAP-compatible attestations.
 
 ### MDR (Media-Details-Review)
 The three-step workflow for submitting work in the Green Goods PWA:

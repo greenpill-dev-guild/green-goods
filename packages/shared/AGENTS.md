@@ -9,9 +9,9 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 ## UI Foundations
 
-- `packages/admin/DESIGN_SYSTEM.md` is the consumer contract for admin UI.
+- `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` is the consumer contract for admin UI.
 - Reusable admin UI foundations belong here before they become package-local copies.
-- Prefer extending shared `TopContextBar`, `FloatingToolbar`, `GardenChip`, `SideSheet`, `Alert`, `Card`, `DialogShell`, `FormField`, `ListToolbar`, `SortSelect`, and `StatusBadge`.
+- Prefer extending shared `TopContextBar`, `NavigationBar`, `GardenChip`, `SideSheet`, `Alert`, `Card`, `DialogShell`, `FormField`, `ListToolbar`, `SortSelect`, and `StatusBadge`.
 - New shared primitives and major variants need barrel exports, tests, and Storybook coverage in the same change.
 
 ## Commands
@@ -24,7 +24,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 ## Non-Negotiables
 
 - All reusable hooks live here. Do not create parallel hooks in `client`, `admin`, or `agent`.
-- Shared UI primitives should be consumed through `@green-goods/shared` or admin shims, not recreated in app packages.
+- Shared UI primitives should be consumed through `@green-goods/shared`, not recreated in app packages.
 - Export public APIs through package barrels. Do not teach consumers deep import paths.
 - Use centralized query keys from `queryKeys`; do not invent ad-hoc query arrays.
 - Use `useCurrentChain()` or `DEFAULT_CHAIN_ID`, not wallet chain state, for application defaults.

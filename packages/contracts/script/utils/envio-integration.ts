@@ -2,6 +2,7 @@ import { type ChildProcess, execSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as yaml from "js-yaml";
+import { getFoundryBroadcastPath } from "./paths";
 
 interface EnvioContract {
   name: string;
@@ -384,7 +385,7 @@ export class EnvioIntegration {
    */
   getStartBlockFromBroadcast(chainId: string): number | null {
     try {
-      const broadcastPath = path.join(__dirname, "../../broadcast/Deploy.s.sol", chainId, "run-latest.json");
+      const broadcastPath = getFoundryBroadcastPath("Deploy.s.sol", chainId, "run-latest.json");
       if (!fs.existsSync(broadcastPath)) {
         return null;
       }

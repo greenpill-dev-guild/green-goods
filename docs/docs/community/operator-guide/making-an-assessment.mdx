@@ -4,9 +4,9 @@ sidebar_label: Making An Assessment
 slug: /community/operator-guide/making-an-assessment
 audience: operator
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-07
 feature_status: Live
-goal: "Complete Create Assessments with clear, role-specific next actions."
+goal: "Help operators create assessments using the current three-step assessment wizard, without promising fields that are not actually in the form."
 difficulty: "standard"
 estimated_time: "15-30 minutes."
 prereqs: "Garden with active members and clear evaluation goals."
@@ -15,11 +15,14 @@ persona_context: "Operators coordinating gardens, approvals, and governance/endo
 source_of_truth:
   - packages/admin/src/views/Gardens/Garden/Assessment.tsx
   - packages/admin/src/views/Gardens/Garden/CreateAssessment.tsx
-  - packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.tsx
 keywords:
   - assessments
   - strategy
   - operator
+  - smart outcomes
 ---
 
 import {DecisionGuide, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
@@ -30,13 +33,13 @@ import {DecisionGuide, NextBestAction, StatusBadge, StepFlow} from "@site/src/co
 
 ## Overview
 
-Assessments are garden-level evaluations that document impact across the Eight Forms of Capital (Living, Material, Financial, Social, Intellectual, Experiential, Spiritual, Cultural). They aggregate individual work into a broader picture of your garden's regenerative contribution and create on-chain attestation records via EAS.
+Assessments are garden-level impact statements that turn a set of approved work into something legible: a reporting window, a domain, a diagnosis, a strategy kernel, and a selected group of actions. In the current admin flow, the assessment wizard is organized into **Domain & Context**, **Strategy Kernel**, and **Actions & Harvest**.
 
 ```mermaid
 graph LR
-    Define["Define Assessment\ntitle, timeline"] --> Capital["Select Capital Forms\nEight Forms evaluation"]
-    Capital --> Strategy["Configure Strategy\nconviction parameters"]
-    Strategy --> Submit["Submit Assessment\non-chain attestation"]
+    Context["Domain & Context\ntitle, description,\nlocation"] --> Kernel["Strategy Kernel\ndiagnosis, SMART outcomes,\nCynefin phase, SDGs"]
+    Kernel --> Harvest["Actions & Harvest\nselected actions,\nreporting period"]
+    Harvest --> Submit["Submit Assessment\non-chain attestation"]
 ```
 
 Use assessments when you need to formally evaluate your garden's progress, prepare for funding rounds, or create a baseline for comparing impact over time.
@@ -47,10 +50,10 @@ Use assessments when you need to formally evaluate your garden's progress, prepa
 
 <StepFlow
   steps={[
-    {title: "Open assessments", detail: "Navigate to your garden's Assessments tab in the admin dashboard."},
-    {title: "Create new assessment", detail: "Set the title, description, timeline, and evaluation domain. Choose which forms of capital you are evaluating."},
-    {title: "Attach strategy config", detail: "Include diagnosis, target outcomes, and supporting references. Document your assumptions and methodology."},
-    {title: "Publish", detail: "Submit the assessment on-chain. Confirm it is visible in the garden's assessment list."},
+    {title: "Open assessments", detail: "Navigate to your garden's Assessments view in admin and start a new assessment."},
+    {title: "Fill Domain & Context", detail: "Set the title, description, location, and domain. Keep the title stable enough that your team can reference it later."},
+    {title: "Build the strategy kernel", detail: "Add the diagnosis, SMART outcomes, Cynefin phase, and SDG targets. This is where you explain what changed and why it matters."},
+    {title: "Choose actions and reporting period", detail: "Select the actions that belong in this assessment and define the reporting window. Then submit and verify the assessment appears in the garden list and EAS view."},
   ]}
 />
 
@@ -58,13 +61,13 @@ Use assessments when you need to formally evaluate your garden's progress, prepa
   title="When to create assessments"
   items={[
     {
-      when: "You have accumulated a body of approved work and want to measure overall impact",
-      do: "Create a comprehensive assessment covering the relevant forms of capital.",
+      when: "You have accumulated a body of approved work and want one coherent impact story",
+      do: "Create an assessment with a clear reporting period and only the actions that genuinely belong together.",
       next: "Use the assessment as a basis for hypercert minting or funding reports.",
     },
     {
       when: "You are entering a funding round or grant cycle",
-      do: "Create a time-bounded assessment matching the grant period.",
+      do: "Create a time-bounded assessment matching that reporting period.",
       next: "Export the assessment data for inclusion in grant applications.",
     },
     {
@@ -77,11 +80,11 @@ Use assessments when you need to formally evaluate your garden's progress, prepa
 
 ## Best Practices
 
-- Keep assessment names stable and date ranges explicit so they can be referenced consistently
-- Document assumptions in attached config references — future evaluators need to understand your methodology
+- Keep assessment names stable and reporting dates explicit so they can be referenced consistently
+- Use diagnoses and SMART outcomes that a reviewer can understand quickly, not abstract strategy language
 - Use follow-on assessments for major scope changes rather than editing existing assessments
 - Align assessment timelines with your garden's natural work cycles (seasonal, quarterly, etc.)
-- Review approved work in the garden before creating an assessment to ensure the data is complete
+- Review approved work first so you are selecting actions from a complete set instead of a half-reviewed queue
 
 ## What's Next
 

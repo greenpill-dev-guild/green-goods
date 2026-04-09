@@ -1,18 +1,21 @@
 import {
   type Address,
+  Alert,
   assessmentStepFields,
   type CreateAssessmentFormData,
   classifyTxError,
   ErrorBoundary,
+  FormWizard,
   isMeaningfulTxErrorMessage,
+  type Step,
+  TxInlineFeedback,
   toastService,
   useCreateAssessmentForm,
   useCreateAssessmentStore,
   useCreateAssessmentWorkflow,
+  useGardenDomains,
   useGardenPermissions,
   useGardens,
-  useGardenDomains,
-  TxInlineFeedback,
   type CreateAssessmentForm as WorkflowAssessmentForm,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,10 +27,7 @@ import { useShallow } from "zustand/react/shallow";
 import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
-import { FormWizard } from "@/components/Form/FormWizard";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import type { Step } from "@/components/Form/StepIndicator";
-import { Alert } from "@/components/ui/Alert";
 
 // Exception to hook boundary: view-specific i18n config, non-exported, single-use
 function useStepConfigs(): Step[] {

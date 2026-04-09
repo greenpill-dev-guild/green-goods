@@ -9,7 +9,7 @@ import {
 import { RiAddLine, RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
-import { ActiveListingsTable } from "@/components/hypercerts/ActiveListingsTable";
+import { ActiveListingsTable } from "@/components/Hypercerts/ActiveListingsTable";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
@@ -38,7 +38,7 @@ export default function Hypercerts() {
           title={formatMessage({ id: "app.hypercerts.list.title" })}
           description={formatMessage({ id: "app.hypercerts.list.notFound" })}
           backLink={{
-            to: "/gardens",
+            to: "/garden",
             label: formatMessage({ id: "app.hypercerts.backToGardens" }),
           }}
         />

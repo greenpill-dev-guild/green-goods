@@ -2,10 +2,10 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { en as enMessages } from "@green-goods/shared";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import { en as enMessages } from "@green-goods/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockUseAddressInput } = vi.hoisted(() => ({
   mockUseAddressInput: vi.fn(),

@@ -1,6 +1,9 @@
 import {
+  Alert,
+  Button,
   cn,
   formatTokenAmount,
+  StatCard,
   useAdminStore,
   useGardenDerivedState,
   useGardenDetailData,
@@ -19,11 +22,7 @@ import { useIntl } from "react-intl";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CockpitWorkspaceSelectionState } from "@/components/Layout/CockpitWorkspaceSelectionState";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { StatCard } from "@/components/StatCard";
-import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
 import { CommunityTab } from "@/views/Gardens/Garden/CommunityTab";
-import "../Gardens/Garden/GardenDetailLayout.css";
 
 type CommunityWorkspaceCard = "treasury" | "members" | "pools" | "yield";
 

@@ -29,7 +29,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-import { RequireSpecificGarden } from "@/components/guards/RequireSpecificGarden";
+import { RequireSpecificGarden } from "@/routes/RequireSpecificGarden";
 
 describe("RequireSpecificGarden", () => {
   beforeEach(() => {

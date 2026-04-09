@@ -33,90 +33,65 @@ const sidebars: SidebarsConfig = {
       id: 'community/where-were-headed',
       label: "Where We're Headed",
     },
-    // ── Gardener Guide (5 items) ──
+    // ── Gardener Guide ──
     {
       type: 'category',
       label: 'Gardener Guide',
       link: {
         type: 'generated-index',
         description:
-          'Gardeners document real-world conservation and regenerative work using the Green Goods mobile app. Follow these guides to join a garden, submit work, earn payouts, and build your on-chain reputation. Learn how the MDR workflow captures evidence and how verified work builds your on-chain reputation.',
+          'Gardeners document real-world conservation and regenerative work using the Green Goods app. Start with joining a garden, then move through submitting work, tracking status, payouts, governance, and reputation-building without guessing what comes next.',
       },
       items: [
         {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Joining A Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Uploading Your Work'},
+        {type: 'doc', id: 'community/gardener-guide/track-status-and-attestations', label: 'Track Status & Attestations'},
         {type: 'doc', id: 'community/gardener-guide/garden-payouts', label: 'Garden Payouts'},
         {type: 'doc', id: 'community/gardener-guide/voting-governance', label: 'Voting & Governance'},
         {type: 'doc', id: 'community/gardener-guide/earning-badges', label: 'Earning Badges & Rewards'},
+        {type: 'doc', id: 'community/gardener-guide/common-errors', label: 'Common Errors'},
       ],
     },
 
-    // ── Operator Guide (9 items) ──
+    // ── Operator Guide ──
     {
       type: 'category',
       label: 'Operator Guide',
       link: {
         type: 'generated-index',
         description:
-          'Operators create and manage gardens — defining conservation actions, reviewing submitted work, minting impact certificates, and overseeing endowments and payouts. From garden setup to Hypercert minting and endowment management, these guides cover the full operator lifecycle.',
+          "Operators run the day-to-day garden workflow: garden setup, action readiness, work review, assessments, Hypercert creation, treasury operations, and governance. Where a flow also needs deployer access, the guide now calls that out directly.",
       },
       items: [
         {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Creating A Garden'},
-        {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Making An Assessment'},
+        {type: 'doc', id: 'community/operator-guide/managing-actions', label: 'Managing Actions'},
         {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Reviewing Work'},
+        {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Making An Assessment'},
         {type: 'doc', id: 'community/operator-guide/creating-impact-certificates', label: 'Creating Impact Certificates'},
-        {type: 'doc', id: 'community/operator-guide/managing-certificates', label: 'Managing Certificates & Work'},
         {type: 'doc', id: 'community/operator-guide/managing-endowments', label: 'Managing Endowments'},
         {type: 'doc', id: 'community/operator-guide/managing-payouts', label: 'Managing Payouts'},
         {type: 'doc', id: 'community/operator-guide/managing-governance', label: 'Managing Governance'},
+        {type: 'doc', id: 'community/operator-guide/reporting-and-gap', label: 'Reporting & GAP'},
+        {type: 'doc', id: 'community/operator-guide/troubleshooting', label: 'Troubleshooting'},
+        {type: 'doc', id: 'community/operator-guide/managing-certificates', label: 'Managing Certificates & Work'},
         {type: 'doc', id: 'community/operator-guide/earning-recognition', label: 'Earning Recognition'},
       ],
     },
 
-    // ── Evaluator Guide (4 items) ──
-    {
-      type: 'category',
-      label: 'Evaluator Guide',
-      link: {
-        type: 'generated-index',
-        description:
-          'Evaluators verify conservation work and assess impact certificates. Learn how to join a garden as an evaluator, conduct assessments, and earn recognition for your expertise. Includes querying the indexer, exporting data for analysis, and understanding the attestation chain.',
-      },
-      items: [
-        {type: 'doc', id: 'community/evaluator-guide/joining-a-garden', label: 'Joining A Garden'},
-        {type: 'doc', id: 'community/evaluator-guide/making-assessments', label: 'Making Assessments'},
-        {type: 'doc', id: 'community/evaluator-guide/evaluating-certificates', label: 'Evaluating Impact Certificates'},
-        {type: 'doc', id: 'community/evaluator-guide/earning-badges', label: 'Earning Recognition'},
-      ],
-    },
-
-    // ── Funder Guide (2 items) ──
+    // ── Funder Guide ──
     {
       type: 'category',
       label: 'Funder Guide',
       link: {
         type: 'generated-index',
         description:
-          'Funders support conservation gardens by depositing into endowment vaults and purchasing impact certificates. Discover how to fund a garden and track your impact. Understand how Octant Vaults generate yield for garden operations and how Hypercert purchases directly fund verified impact.',
+          'Funders support gardens through treasury deposits and, where available, Hypercert-backed impact opportunities. These guides focus on the clearest current flow first, then explain the more advanced certificate path without overpromising.',
       },
       items: [
+        {type: 'doc', id: 'community/funder-guide/getting-started', label: 'Getting Started'},
         {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Funding A Garden'},
+        {type: 'doc', id: 'community/funder-guide/vaults-and-hypercerts', label: 'Vaults & Hypercerts'},
         {type: 'doc', id: 'community/funder-guide/earning-recognition', label: 'Earning Recognition'},
-      ],
-    },
-
-    // ── Community Guide (2 items) ──
-    {
-      type: 'category',
-      label: 'Community Guide',
-      link: {
-        type: 'generated-index',
-        description:
-          'Community members participate in garden governance through conviction voting and earn rewards for their engagement. Get started with voting and community participation. Conviction voting lets your support grow over time, prioritizing the work your community values most.',
-      },
-      items: [
-        {type: 'doc', id: 'community/community-member-guide/getting-involved', label: 'Voting In Gardens'},
-        {type: 'doc', id: 'community/community-member-guide/conviction-voting', label: 'Earning Rewards'},
       ],
     },
 

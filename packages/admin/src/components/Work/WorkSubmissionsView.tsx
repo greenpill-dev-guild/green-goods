@@ -1,4 +1,4 @@
-import { cn, formatRelativeTime, useWorks, type Work } from "@green-goods/shared";
+import { Card, cn, EmptyState, formatRelativeTime, useWorks, type Work } from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
   RiCloseLine,
@@ -8,8 +8,6 @@ import {
 } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { WorkCard } from "./WorkCard";
 
 interface WorkSubmissionsViewProps {

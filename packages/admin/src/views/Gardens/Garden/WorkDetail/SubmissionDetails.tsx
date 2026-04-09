@@ -1,7 +1,6 @@
-import { formatDate, type Work, type WorkMetadata } from "@green-goods/shared";
+import { AddressDisplay, formatDate, type Work, type WorkMetadata } from "@green-goods/shared";
 import { RiFileList3Line, RiTimeLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AddressDisplay } from "@/components/AddressDisplay";
 import { DetailRow, renderMetadataDetails } from "./helpers";
 
 interface SubmissionDetailsProps {

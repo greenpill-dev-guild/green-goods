@@ -16,10 +16,14 @@ vi.mock("@green-goods/shared", () => ({
     EDU: 2,
     WASTE: 3,
   },
+  EmptyState: ({ title }: { title: string }) => React.createElement("div", {}, title),
   formatDate: () => "Jan 1",
   useFilteredActions: (...args: unknown[]) => mockUseFilteredActions(...args),
   ImageWithFallback: ({ src, alt }: { src: string; alt: string }) =>
     React.createElement("img", { src, alt, "data-testid": "image-with-fallback" }),
+  ListToolbar: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement("div", {}, children),
+  SortSelect: () => React.createElement("div", {}, "Sort"),
 }));
 
 vi.mock("@green-goods/shared/hooks", () => ({
@@ -50,19 +54,6 @@ vi.mock("@/components/Layout/PageHeader", () => ({
       React.createElement("div", {}, actions),
       React.createElement("div", {}, toolbar)
     ),
-}));
-
-vi.mock("@/components/ui/EmptyState", () => ({
-  EmptyState: ({ title }: { title: string }) => React.createElement("div", {}, title),
-}));
-
-vi.mock("@/components/ui/ListToolbar", () => ({
-  ListToolbar: ({ children }: { children?: React.ReactNode }) =>
-    React.createElement("div", {}, children),
-}));
-
-vi.mock("@/components/ui/SortSelect", () => ({
-  SortSelect: () => React.createElement("div", {}, "Sort"),
 }));
 
 vi.mock("@remixicon/react", () => {

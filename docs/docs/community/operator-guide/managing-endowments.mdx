@@ -4,18 +4,18 @@ sidebar_label: Managing Endowments
 slug: /community/operator-guide/managing-endowments
 audience: operator
 owner: docs
-last_verified: 2026-03-11
-feature_status: Implemented (activation pending deployment)
-goal: "Complete Vault Deposit and Endowment Operations with clear, role-specific next actions."
+last_verified: 2026-04-07
+feature_status: Live
+goal: "Guide operators through the current live vault workflow, with honest notes about chain availability and role boundaries."
 difficulty: "standard"
-estimated_time: "15-30 minutes per operation after activation."
+estimated_time: "15-30 minutes per operation."
 prereqs: "Endowment policy and signer permissions."
 next_steps: "./cookie-jars"
 persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Gardens/Garden/Vault.tsx
-  - packages/admin/src/views/Treasury/index.tsx
-  - packages/shared/src/hooks/vault/useVaultOperations.ts
+  - packages/shared/src/hooks/vault/useVaultDeposit.ts
+  - packages/shared/src/hooks/vault/useVaultWithdraw.ts
   - packages/contracts/deployments/42161-latest.json
 keywords:
   - vault
@@ -36,7 +36,7 @@ import {
 
 # Managing Endowments
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Live" />
 
 ## Overview
 
@@ -59,14 +59,14 @@ graph TB
 
 <FeatureState
   title="Operator UI"
-  status="Implemented (activation pending deployment)"
-  summary="Vault and endowment surfaces exist in admin routes."
+  status="Live"
+  summary="Vault and endowment surfaces are live in admin. What an operator can do depends on wallet permissions, selected chain, and the vaults configured for that garden."
 />
 
 <FeatureState
-  title="On-chain activation"
-  status="Implemented (activation pending deployment)"
-  summary="octantModule, octantFactory, and related vault modules are zero-address in latest deployment artifacts."
+  title="Chain readiness"
+  status="Live"
+  summary="Current Arbitrum and Sepolia deployment artifacts include non-zero vault-related module addresses. Verify the selected chain before assuming the same on every network."
 />
 
 ## How It Works

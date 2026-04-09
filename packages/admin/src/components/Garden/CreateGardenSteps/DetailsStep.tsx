@@ -10,13 +10,13 @@ import {
   toastService,
   uploadFileToIPFS,
   useCreateGardenStore,
+  FileUploadField,
   useSlugAvailability,
   validateSlug,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { FileUploadField } from "../../FileUploadField";
 
 type DetailField = "name" | "slug" | "description" | "location";
 

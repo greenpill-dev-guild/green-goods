@@ -1,4 +1,4 @@
-import type { ActionInstructionConfig, WorkInput } from "@green-goods/shared";
+import { type ActionInstructionConfig, FormField, type WorkInput } from "@green-goods/shared";
 import {
   RiAddLine,
   RiArrowDownLine,
@@ -8,7 +8,6 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { FormField } from "@/components/ui/FormField";
 
 interface DetailsConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["details"];

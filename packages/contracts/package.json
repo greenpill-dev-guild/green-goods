@@ -9,7 +9,7 @@
   },
   "scripts": {
     "predev": "lsof -ti:8545 | xargs kill -9 2>/dev/null || true",
-    "dev": "anvil --config-out localhost.json",
+    "dev": "mkdir -p .generated/runtime && anvil --config-out .generated/runtime/localhost.json",
     "format": "forge fmt",
     "lint": "forge fmt && solhint --config ./.solhint.json 'src/**/*.sol' --ignore-path .solhintignore",
     "lint:fix": "forge fmt && solhint --config ./.solhint.json 'src/**/*.sol' --ignore-path .solhintignore --fix",
@@ -19,8 +19,8 @@
     "build:abis": "bun script/build-abis.ts",
     "build:fast": "GG_CONTRACTS_BUILD_MODE=fast bun run build",
     "build:full": "GG_CONTRACTS_BUILD_MODE=full bun run build",
-    "clean:artifacts": "rm -rf out out-* cache cache-*",
-    "clean:test-cache": "rm -rf out-test cache-test",
+    "clean:artifacts": "rm -rf .generated/foundry/out .generated/foundry/cache out out-* cache cache-*",
+    "clean:test-cache": "rm -rf .generated/foundry/out/test .generated/foundry/cache/test out-test cache-test",
     "build:fresh": "bun run clean:artifacts && forge build",
     "build:core": "forge build --skip test --skip script",
     "test": "FOUNDRY_PROFILE=test forge test --no-match-contract 'E2E' --no-match-path 'test/fork/**'",
@@ -91,10 +91,10 @@
     "upgrade:arbitrum": "bun script/upgrade.ts all --network arbitrum --broadcast",
     "upgrade:celo": "bun script/upgrade.ts all --network celo --broadcast",
     "status": "bun script/deploy.ts status",
-    "envio:local": "bun script/utils/envio-integration.ts enable-local",
-    "envio:cleanup": "bun script/utils/envio-integration.ts cleanup",
+    "envio:local": "bun script/utils/envio-integration.ts update 31337",
+    "envio:cleanup": "bun script/utils/envio-integration.ts restore",
     "ipfs:upload": "bun script/utils/ipfs-uploader.ts",
-    "ipfs:cache": "cat .ipfs-cache.json"
+    "ipfs:cache": "cat .generated/runtime/ipfs-cache.json"
   },
   "dependencies": {
     "@chainlink/contracts-ccip": "^1.6.4",

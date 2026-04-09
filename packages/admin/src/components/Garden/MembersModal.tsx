@@ -1,9 +1,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
+import { AddressDisplay, EmptyState } from "@green-goods/shared";
 import { RiCloseLine, RiDeleteBinLine, RiUserLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { AddressDisplay } from "../AddressDisplay";
 
 type MembersModalProps = {
   isOpen: boolean;

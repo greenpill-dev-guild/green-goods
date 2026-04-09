@@ -10,7 +10,7 @@ foundations.
 
 ## UI Contract
 
-- Read `DESIGN_SYSTEM.md` before changing routes, layouts, or page structure.
+- Read `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` before changing routes, layouts, or page structure.
 - The canonical shell is `CockpitLayout`.
 - Wave 3 shell is a 3-region layout: `TopContextBar` at the top, `.workspace-canvas` as the main workspace, and a bottom-floating `NavigationBar`.
 - `TopContextBar` is the sticky `z-40 h-14` context region: `GardenChip` on the left; desktop search, settings, and `UserAvatar` on the right.
@@ -60,9 +60,10 @@ foundations.
 
 ## Codex Notes
 
-- The default admin Vitest run excludes `src/__tests__/views/**` and a few heavy tests. Treat
-  `bun run build` as a required validation step for route and view work until a dedicated view
-  test runner exists.
+- Use `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` as the single admin UI contract; do not recreate a package-local design doc.
+- Keep reusable components and config helpers in `@green-goods/shared`. Admin owns only cockpit shell and admin-only workflows.
+- Keep admin routes canonical: `/work`, `/garden`, `/community`, `/actions`, plus secondary garden flows under `/gardens/create` and `/gardens/:id/...`.
+- The default admin Vitest run excludes `src/__tests__/views/**` and a few heavy tests. Treat `bun run build` as a required validation step for route and view work until a dedicated view test runner exists.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
 

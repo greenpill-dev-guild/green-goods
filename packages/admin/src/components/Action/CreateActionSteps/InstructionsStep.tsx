@@ -1,8 +1,7 @@
-import type { CreateActionFormData } from "@green-goods/shared";
+import { type CreateActionFormData, FormField } from "@green-goods/shared";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
-import { FormField } from "@/components/ui/FormField";
 import { resolveCreateActionTemplateSelection } from "@/views/Actions/createActionTemplateSelection";
 
 interface InstructionsStepProps {

@@ -1,4 +1,6 @@
 import {
+  Button,
+  Card,
   DOMAIN_COLORS,
   DOMAIN_LABEL_IDS,
   type Domain,
@@ -19,8 +21,6 @@ import {
 import { type ReactNode, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { ALERT_LABEL_CLASSES, BADGE_TONE_CLASSES } from "./gardenDetail.constants";
 
 export function TabBadge({ badge }: { badge: TabBadgeState }) {

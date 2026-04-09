@@ -1,7 +1,6 @@
-import type { CreateActionFormData } from "@green-goods/shared";
+import { type CreateActionFormData, FormField } from "@green-goods/shared";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { FormField } from "@/components/ui/FormField";
 
 interface DomainOption {
   value: number;

@@ -7,8 +7,8 @@ import * as path from "node:path";
 import * as dotenv from "dotenv";
 import { Interface } from "ethers";
 import { NetworkManager } from "./utils/network";
+import { CONTRACTS_ROOT, DEPLOYMENTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
 
-const CONTRACTS_ROOT = path.join(__dirname, "..");
 const PROJECT_ROOT = path.join(CONTRACTS_ROOT, "..", "..");
 const DEFAULT_MIGRATION_INPUT_PATHS = [
   path.join(PROJECT_ROOT, "reports", "ens-registrations.json"),
@@ -18,8 +18,15 @@ const ENS_RECEIVER_INTERFACE = new Interface([
   "event NameRegistered(string slug, address indexed owner, uint8 nameType, bytes32 indexed messageId)",
   "event NameReleased(string slug, address indexed previousOwner, bytes32 indexed messageId)",
 ]);
-const NAME_REGISTERED_TOPIC = ENS_RECEIVER_INTERFACE.getEvent("NameRegistered").topicHash.toLowerCase();
-const NAME_RELEASED_TOPIC = ENS_RECEIVER_INTERFACE.getEvent("NameReleased").topicHash.toLowerCase();
+const NAME_REGISTERED_EVENT = ENS_RECEIVER_INTERFACE.getEvent("NameRegistered");
+const NAME_RELEASED_EVENT = ENS_RECEIVER_INTERFACE.getEvent("NameReleased");
+
+if (!NAME_REGISTERED_EVENT || !NAME_RELEASED_EVENT) {
+  throw new Error("ENS receiver interface is missing expected event fragments");
+}
+
+const NAME_REGISTERED_TOPIC = NAME_REGISTERED_EVENT.topicHash.toLowerCase();
+const NAME_RELEASED_TOPIC = NAME_RELEASED_EVENT.topicHash.toLowerCase();
 const HISTORICAL_MAINNET_LOG_PROVIDERS = [
   { name: "publicnode", url: "https://ethereum-rpc.publicnode.com", maxBlockRange: 50_000 },
   { name: "drpc", url: "https://eth.drpc.org", maxBlockRange: 10_000 },
@@ -78,7 +85,7 @@ interface JsonRpcLog {
 }
 
 function getDeploymentPath(chainId: number): string {
-  return path.join(CONTRACTS_ROOT, "deployments", `${chainId}-latest.json`);
+  return path.join(DEPLOYMENTS_ROOT, `${chainId}-latest.json`);
 }
 
 function resolveExistingPath(filePath: string): string | undefined {
@@ -144,17 +151,11 @@ function readJsonFile<T>(filePath: string): T | undefined {
 function getMainnetDeployBroadcastPath(command: Command): string {
   switch (command) {
     case "deploy-mainnet":
-      return path.join(CONTRACTS_ROOT, "broadcast", "UpgradeENSReceiver.s.sol", "1", "deployMainnet-latest.json");
+      return getFoundryBroadcastPath("UpgradeENSReceiver.s.sol", "1", "deployMainnet-latest.json");
     case "deploy-sepolia":
-      return path.join(
-        CONTRACTS_ROOT,
-        "broadcast",
-        "UpgradeENSReceiver.s.sol",
-        "11155111",
-        "deploySepolia-latest.json",
-      );
+      return getFoundryBroadcastPath("UpgradeENSReceiver.s.sol", "11155111", "deploySepolia-latest.json");
     default:
-      return path.join(CONTRACTS_ROOT, "broadcast", "UpgradeENSReceiver.s.sol", "1", "run-latest.json");
+      return getFoundryBroadcastPath("UpgradeENSReceiver.s.sol", "1", "run-latest.json");
   }
 }
 
@@ -193,7 +194,7 @@ function resolveLegacyEnsReceiverAddress(): string | undefined {
   }
 
   const initialDeploy = readCreatedContractFromBroadcastArtifact(
-    path.join(CONTRACTS_ROOT, "broadcast", "Deploy.s.sol", "1", "run-latest.json"),
+    getFoundryBroadcastPath("Deploy.s.sol", "1", "run-latest.json"),
     "GreenGoodsENSReceiver",
   );
 
@@ -303,7 +304,7 @@ async function prepareMigrationInputFromHistory(options: Options): Promise<Prepa
 
   const provider = await resolveHistoricalMainnetProvider();
   const initialDeployArtifact = readCreatedContractFromBroadcastArtifact(
-    path.join(CONTRACTS_ROOT, "broadcast", "Deploy.s.sol", "1", "run-latest.json"),
+    getFoundryBroadcastPath("Deploy.s.sol", "1", "run-latest.json"),
     "GreenGoodsENSReceiver",
   );
   const oldReceiverDeployedAt =
@@ -608,7 +609,7 @@ async function prepareMigrationInput(options: Options): Promise<PreparedMigratio
 function validateInputs(options: Options, chainId: number, preparedMigration: PreparedMigrationInput | null): void {
   const deploymentPath = getDeploymentPath(chainId);
   const mainnetDeploymentPath = getDeploymentPath(1);
-  const networksPath = path.join(CONTRACTS_ROOT, "deployments", "networks.json");
+  const networksPath = path.join(DEPLOYMENTS_ROOT, "networks.json");
 
   switch (options.command) {
     case "deploy-sepolia":
@@ -806,7 +807,7 @@ async function main(): Promise<void> {
     if (options.broadcast && (options.command === "deploy-sepolia" || options.command === "deploy-mainnet")) {
       const candidatePaths = [
         getMainnetDeployBroadcastPath(options.command),
-        path.join(CONTRACTS_ROOT, "broadcast", "UpgradeENSReceiver.s.sol", chainId.toString(), "run-latest.json"),
+        getFoundryBroadcastPath("UpgradeENSReceiver.s.sol", chainId.toString(), "run-latest.json"),
       ];
 
       let updated = false;

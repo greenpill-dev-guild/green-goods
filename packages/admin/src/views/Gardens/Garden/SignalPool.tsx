@@ -1,5 +1,6 @@
 import {
   type Address,
+  Alert,
   ConfirmDialog,
   formatAddress,
   PoolType,
@@ -16,7 +17,6 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { Alert } from "@/components/ui/Alert";
 
 /**
  * Unified signal pool management view.
@@ -98,7 +98,7 @@ export default function GardenSignalPoolView() {
           title={formatMessage({ id: titleKey })}
           description={formatMessage({ id: "app.signal.loading" })}
           backLink={{
-            to: "/gardens",
+            to: "/garden",
             label: formatMessage({ id: "app.conviction.backToGarden" }),
           }}
         />
@@ -113,7 +113,7 @@ export default function GardenSignalPoolView() {
           title={formatMessage({ id: titleKey })}
           description={formatMessage({ id: "app.conviction.gardenNotFound" })}
           backLink={{
-            to: "/gardens",
+            to: "/garden",
             label: formatMessage({ id: "app.conviction.backToGarden" }),
           }}
         />

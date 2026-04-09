@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
+import { ABI_ROOT, CONTRACTS_ROOT, getFoundryOutDir } from "./utils/paths";
 
 type ArtifactWithAbi = {
   abi?: unknown;
@@ -34,10 +34,8 @@ const ABI_SOURCES = [
 ] as const;
 
 function main(): void {
-  const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-  const contractsDir = path.resolve(scriptDir, "..");
-  const outDir = path.join(contractsDir, "out");
-  const abiDir = path.join(contractsDir, "abis");
+  const outDir = getFoundryOutDir("default");
+  const abiDir = ABI_ROOT;
 
   fs.mkdirSync(abiDir, { recursive: true });
 
@@ -58,9 +56,9 @@ function main(): void {
 
     if (prevContent !== nextContent) {
       fs.writeFileSync(targetPath, nextContent);
-      console.log(`updated ${path.relative(contractsDir, targetPath)}`);
+      console.log(`updated ${path.relative(CONTRACTS_ROOT, targetPath)}`);
     } else {
-      console.log(`unchanged ${path.relative(contractsDir, targetPath)}`);
+      console.log(`unchanged ${path.relative(CONTRACTS_ROOT, targetPath)}`);
     }
   }
 }

@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   type HypercertCompletionData,
   HypercertWizard,
-} from "@/components/hypercerts/HypercertWizard";
+} from "@/components/Hypercerts/HypercertWizard";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function CreateHypercert() {
@@ -45,7 +45,7 @@ export default function CreateHypercert() {
           title={formatMessage({ id: "app.hypercerts.create.title" })}
           description={formatMessage({ id: "app.hypercerts.create.notFound" })}
           backLink={{
-            to: "/gardens",
+            to: "/garden",
             label: formatMessage({ id: "app.hypercerts.backToGardens" }),
           }}
         />

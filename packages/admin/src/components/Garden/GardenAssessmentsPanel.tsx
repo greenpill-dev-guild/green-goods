@@ -1,10 +1,7 @@
-import { formatDate, getEASExplorerUrl } from "@green-goods/shared";
+import { Button, Card, EmptyState, formatDate, getEASExplorerUrl } from "@green-goods/shared";
 import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Assessment {
   id: string;

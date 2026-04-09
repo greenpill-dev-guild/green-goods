@@ -44,14 +44,14 @@ type Story = StoryObj<typeof PageHeader>;
 
 export const Default: Story = {
   args: {
-    title: "Dashboard",
+    title: "Work",
   },
 };
 
 export const WithDescription: Story = {
   args: {
-    title: "Gardens",
-    description: "Manage your community gardens and track regenerative impact.",
+    title: "Garden",
+    description: "Manage your selected garden and track regenerative impact.",
   },
 };
 
@@ -115,7 +115,7 @@ export const WithBackLink: Story = {
   args: {
     title: "Garden Detail",
     description: "View and manage this garden's configuration and members.",
-    backLink: { to: "/gardens", label: "Back to gardens" },
+    backLink: { to: "/garden", label: "Back to garden workspace" },
   },
 };
 
@@ -123,7 +123,7 @@ export const WithTabs: Story = {
   args: {
     title: "Comunidad Verde",
     description: "A regenerative garden in Costa Rica.",
-    backLink: { to: "/gardens", label: "Back to gardens" },
+    backLink: { to: "/garden", label: "Back to garden workspace" },
     children: (
       <div className="flex gap-4 border-b border-stroke-soft -mb-px">
         <button
@@ -157,8 +157,8 @@ export const WithTabs: Story = {
 
 export const Sticky: Story = {
   args: {
-    title: "Contracts",
-    description: "View and manage deployed contracts.",
+    title: "Community",
+    description: "View treasury, members, and signal pools.",
     sticky: true,
   },
   decorators: [
@@ -189,7 +189,7 @@ export const FullFeatured: Story = {
         <span>3 active actions</span>
       </div>
     ),
-    backLink: { to: "/gardens", label: "Back to gardens" },
+    backLink: { to: "/garden", label: "Back to garden workspace" },
     toolbar: (
       <div className="flex items-center gap-2 rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 text-sm text-text-sub">
         <RiSearchLine className="h-4 w-4" />

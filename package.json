@@ -176,7 +176,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "bash -c 'files=\"$@\"; filtered=$(echo \"$files\" | tr \" \" \"\\n\" | grep -v \"packages/contracts/out/\"); [ -n \"$filtered\" ] && echo \"$filtered\" | xargs npx @biomejs/biome format --write || true' --"
+      "bash -c 'files=\"$@\"; filtered=$(echo \"$files\" | tr \" \" \"\\n\" | grep -Ev \"packages/contracts/(\\\\.generated|out)/\"); [ -n \"$filtered\" ] && echo \"$filtered\" | xargs npx @biomejs/biome format --write || true' --"
     ]
   },
   "workspaces": [

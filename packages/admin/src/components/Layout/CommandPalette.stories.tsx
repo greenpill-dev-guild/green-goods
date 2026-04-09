@@ -34,12 +34,10 @@ interface MockCommandPaletteProps {
 }
 
 const STATIC_ROUTES: Omit<SearchResult, "category">[] = [
-  { id: "page-dashboard", label: "Dashboard", href: "/dashboard" },
-  { id: "page-gardens", label: "Gardens", href: "/gardens" },
-  { id: "page-endowments", label: "Endowments", href: "/endowments" },
+  { id: "page-work", label: "Work", href: "/work" },
+  { id: "page-garden", label: "Garden", href: "/garden" },
+  { id: "page-community", label: "Community", href: "/community" },
   { id: "page-actions", label: "Actions", href: "/actions" },
-  { id: "page-contracts", label: "Contracts", href: "/contracts" },
-  { id: "page-deployment", label: "Deployment", href: "/deployment" },
 ];
 
 function MockCommandPalette({

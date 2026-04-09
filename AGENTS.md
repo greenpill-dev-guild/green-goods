@@ -36,7 +36,7 @@ their subtree.
 
 ## Admin UI Defaults
 
-- For `packages/admin`, read `packages/admin/DESIGN_SYSTEM.md` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
+- For `packages/admin`, read `docs/docs/builders/packages/admin.mdx` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
 - The canonical admin shell is `CockpitLayout`.
 - New admin UI should not start from `DashboardLayout`, `Sidebar`, or `Header`; treat them as legacy migration references only.
 - Default to the preferred admin primitives in `packages/admin/AGENTS.md` and shared Storybook-backed foundations from `packages/shared`.

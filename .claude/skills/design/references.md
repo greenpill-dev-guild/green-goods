@@ -50,6 +50,8 @@
 | **Growth.Design** | Interactive case studies on product psychology |
 | **Baymard Institute** | E-commerce UX benchmarks |
 | **Material Design 3** | Adaptive tokens, dynamic color, motion |
+| **Material 3 Expressive** (Google I/O 2025) | Spring-based motion tokens, shape morphing, component flexibility (5 button sizes, button groups, split button, FAB menu), expressive color (higher chroma, brighter on-container), hero moments, wavy progress indicators |
+| **Liquid Glass** (Apple WWDC 2025) | Concentricity (3 shape types: fixed, capsule, concentric), functional glass layers, source-anchored interaction, scroll edge effects (soft/hard), symbol-first navigation, background extension, material focus variation, content-forward hierarchy |
 | **Microsoft Inclusive Design** | [inclusive.microsoft.design](https://inclusive.microsoft.design/) — Persona Spectrum, cognitive inclusion |
 | **Inclusive Design for Cognition** | Cognitive load management, neurodiversity, motivation-first design |
 | **Inclusive Design for Mental Health** | Emotional state awareness, stress-responsive patterns |
@@ -101,8 +103,32 @@ Spatial Readiness Check
 │      Every action reachable via keyboard + voice fallback
 │      (Persona Spectrum: permanent/temporary/situational exclusion)
 │
-└─ [ ] Cognitive load appropriate?
-       Material thickness matches content density
-       Glass blur doesn't reduce readability for text-heavy surfaces
-       Progressive disclosure reduces overwhelm for neurodiverse users
+├─ [ ] Cognitive load appropriate?
+│      Material thickness matches content density
+│      Glass blur doesn't reduce readability for text-heavy surfaces
+│      Progressive disclosure reduces overwhelm for neurodiverse users
+│
+├─ [ ] Concentric shapes?  (Warm Glass)
+│      Nested containers use parent_radius - padding for child radius
+│      Three types: Fixed (constant), Capsule (half-height), Concentric (derived)
+│
+├─ [ ] Source-anchored interactions?  (Warm Glass)
+│      Menus, sheets, confirmations spring from their trigger element
+│      Not from screen edges or arbitrary positions
+│
+├─ [ ] Spring-based motion?  (Warm Glass)
+│      All transitions use named spring tokens (--spring-spatial, --spring-effects)
+│      Not hardcoded cubic-bezier + duration values
+│
+├─ [ ] Scroll edge effects?  (Warm Glass)
+│      Glass/content boundaries use soft blur, not hard dividers
+│      One per view, not decorative, only where glass overlaps content
+│
+├─ [ ] Symbol-first navigation?  (Warm Glass)
+│      Persistent nav uses symbols, text only for ambiguous actions
+│      Related actions grouped on shared glass background
+│
+└─ [ ] Hero moments identified?  (Warm Glass)
+       Key celebrations use expressive motion + shape + color combined
+       Succession-aware: pioneer=simple, intermediate=moderate, climax=full
 ```

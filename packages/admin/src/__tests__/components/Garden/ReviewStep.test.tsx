@@ -2,12 +2,14 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import {
+  en as enMessages,
+  resetCreateGardenStore,
+  useCreateGardenStore,
+} from "@green-goods/shared";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import { en as enMessages } from "@green-goods/shared";
-
-import { resetCreateGardenStore, useCreateGardenStore } from "@green-goods/shared";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ReviewStep } from "../../../components/Garden/CreateGardenSteps/ReviewStep";
 
 const OPERATOR_AND_GARDENER = "0x1234567890123456789012345678901234567890";

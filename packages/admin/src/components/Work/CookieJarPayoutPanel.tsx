@@ -1,5 +1,7 @@
 import {
   type Address,
+  Button,
+  Card,
   formatTokenAmount,
   getVaultAssetSymbol,
   useGardenCookieJars,
@@ -7,8 +9,6 @@ import {
 import { RiCupLine, RiHandCoinLine, RiSettings3Line, RiWalletLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
 import { CookieJarManageModal } from "./CookieJarManageModal";
 import { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";

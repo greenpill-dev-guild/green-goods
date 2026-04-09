@@ -82,16 +82,71 @@ const pane = tv({
 
 ---
 
-## Corner Philosophy — Squircles
+## Corner Philosophy — Squircles & Concentricity
 
-Sharp corners feel jagged in spatial contexts. Aggressive rounding creates objects that feel safe and physical. Scale rounding with element size:
+Sharp corners feel jagged in spatial contexts. Aggressive rounding creates objects that feel safe and physical. In Warm Glass ([language.md](./language.md)), corners follow a mathematical concentricity system.
 
-| Element Size | Border Radius | Examples |
-|-------------|---------------|----------|
-| Small (chips, tags) | `rounded-xl` (12px) | StatusBadge, MetricChip |
-| Medium (cards, inputs) | `rounded-2xl` (16px) | Cards, form fields |
-| Large (panels, dialogs) | `rounded-[1.25rem]` (20px) | Panels, sheets |
-| Full-screen (sheets) | `rounded-3xl` (24px) | Bottom sheets, full modals |
+### Three Shape Types
+
+| Type | Behavior | When to Use |
+|------|----------|-------------|
+| **Fixed** | Constant radius regardless of context | Small elements that don't nest (avatars, badges, status dots) |
+| **Capsule** | Radius = half container height (`rounded-full`) | Elements signaling emphasis or interactivity (primary buttons, pills, active indicators) |
+| **Concentric** | Radius = parent radius - padding | Elements nested inside containers (cards in panels, content in cards) |
+
+### Concentricity — Shape Nesting
+
+When an element lives inside a container, its corner radius derives from the parent's radius minus the padding between them:
+
+```
+child_radius = parent_radius - padding
+
+┌─────────────────────────────────┐  Viewport/page edge: ∞ (or 24px reference)
+│ margin: 4px                     │
+│  ┌───────────────────────────┐  │  Panel: 24px - 4px = 20px
+│  │ padding: 4px              │  │
+│  │  ┌─────────────────────┐  │  │  Card: 20px - 4px = 16px
+│  │  │ padding: 4px        │  │  │
+│  │  │  ┌───────────────┐  │  │  │  Content: 16px - 4px = 12px
+│  │  │  │               │  │  │  │
+│  │  │  └───────────────┘  │  │  │
+│  │  └─────────────────────┘  │  │
+│  └───────────────────────────┘  │
+└─────────────────────────────────┘
+```
+
+This eliminates "pinched" or "flared" corners. The eye perceives geometric harmony without conscious awareness.
+
+### Radius Scale (updated)
+
+| Element | Radius | Tailwind Token | Shape Type | Concentric Parent |
+|---------|--------|----------------|------------|-------------------|
+| Status dots, tiny badges | 4px | `rounded` | Fixed | — |
+| Chips, tags | 8px | `rounded-lg` | Fixed | — |
+| Content inside cards | 12px | `rounded-xl` | Concentric | Card (16px) - 4px |
+| Cards, form inputs | 16px | `rounded-2xl` | Concentric | Panel (20px) - 4px |
+| Panels, sheets | 20px | `rounded-[1.25rem]` | Concentric | Page (24px) - 4px |
+| Modals, dialogs, bottom sheets | 24px | `rounded-3xl` | Concentric | Viewport edge |
+| Primary buttons, icon buttons | half-height | `rounded-full` | Capsule | — |
+| Secondary buttons | 12px | `rounded-xl` | Fixed | — |
+
+### Concentric Fallback Pattern
+
+Components that work both inside a container AND standalone use a fallback radius:
+
+```typescript
+// Adapts when nested, uses fallback when standalone
+const cardRadius = isInsidePanel
+  ? parentRadius - padding   // concentric: 20px - 4px = 16px
+  : 16;                      // fallback: standalone default
+```
+
+### Common Pitfalls
+
+1. **Pinched corners** — Inner element radius too small relative to outer. Fix: make it concentric.
+2. **Flared corners** — Inner radius larger than outer minus padding. Fix: reduce inner radius or increase padding.
+3. **Near device edges** — On phone, use capsule + extra margin near screen edge for breathing room. On tablet/desktop, use concentric shape aligned to window edge.
+4. **Mixing shape types** — Don't put a capsule inside a fixed-radius container if the radii clash. The capsule's inherent geometry naturally supports concentricity.
 
 ---
 
@@ -127,6 +182,93 @@ As content scrolls, it moves along the Z-axis — approaching the user or recedi
     animation: none;
     /* Fallback: opacity-only depth cue via intersection observer */
   }
+}
+```
+
+---
+
+## Source-Anchored Interactions
+
+Actions originate from their trigger element, not from screen edges or arbitrary positions. This creates spatial continuity — the user sees *where* the action came from and *where* it returns to.
+
+| Interaction | Source | Motion |
+|-------------|--------|--------|
+| Dropdown menus | The button that opened them | Spring from button position using `--spring-spatial` |
+| Detail panels | The card that was clicked | View transition morph (card → detail via `viewTransitionName`) |
+| Side/bottom sheets | The action button | Sheet slides from the button's side of the screen |
+| Confirmation dialogs | The action button | Scale from button center using `--spring-spatial` |
+| Toast notifications | The action that caused them | Slide from the action's position |
+| Tooltips | The element being described | Scale + fade from trigger using `--spring-effects-fast` |
+
+This extends the spatial architecture's "Spatial Origin Rule" (sheets open from the side where triggered) to all interactive surfaces — menus, confirmations, toasts, tooltips.
+
+---
+
+## Scroll Edge Effects
+
+Replace hard dividers at glass/content boundaries with soft blur transitions. These clarify where UI ends and content begins without adding visual clutter.
+
+| Style | Use | Appearance |
+|-------|-----|------------|
+| **Soft** | Default on mobile/tablet. Interactive elements using glass. | Subtle blur transition at boundary |
+| **Hard** | Desktop, admin, text-heavy. Controls without backgrounds, pinned headers. | Stronger, more opaque boundary |
+
+**Rules**:
+- Scroll edge effects are NOT decorative — only appear where floating UI overlaps scrollable content
+- Don't mix or stack soft and hard on the same view
+- One scroll edge effect per scroll view. In split layouts, each pane can have its own.
+
+```css
+/* Soft scroll edge — subtle boundary */
+.scroll-edge-soft {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0px,
+    black 12px,
+    black calc(100% - 12px),
+    transparent 100%
+  );
+}
+
+/* Hard scroll edge — stronger boundary for desktop/admin */
+.scroll-edge-hard {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0px,
+    black 4px,
+    black calc(100% - 4px),
+    transparent 100%
+  );
+}
+```
+
+---
+
+## Background Extension
+
+Content extends behind glass surfaces for immersion. The glass layer floats above content — content should feel continuous, not cropped by UI elements.
+
+| Pattern | Where |
+|---------|-------|
+| Hero images extend behind sidebar glass | Admin garden detail — banner flows behind nav rail |
+| Garden banners extend behind nav bar | Client PWA — banner visible through top glass |
+| Ambient color wash behind glass layers | Workspace atmospheres visible in margins around canvas |
+
+**Rule**: Text and controls must always layer above the extended background. Glass material provides the separation — content behind glass is visible but not interactive. Use `z-index` to keep interactive elements above the extension.
+
+```css
+/* Content extends behind inset sidebar */
+.content-extended {
+  margin-left: calc(-1 * var(--sidebar-width));
+  padding-left: var(--sidebar-width);
+}
+
+/* Sidebar glass floats above */
+.sidebar-glass {
+  position: fixed;
+  backdrop-filter: blur(var(--blur-material-regular));
+  background: var(--color-material-regular);
+  z-index: var(--z-chrome);
 }
 ```
 

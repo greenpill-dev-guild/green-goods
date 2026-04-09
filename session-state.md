@@ -1,0 +1,21 @@
+## Session State
+- **Current task**: Admin UI Revamp — Phase 2 execution
+- **Progress**:
+  - Phase 1b: COMPLETE (43/43 tests GREEN, committed 3f05e164)
+  - Design Polish: COMPLETE (committed 95781571)
+  - Phase 2 TDD: 39/39 shared tests GREEN, admin tests pending (agents)
+  - Phase 2A: gardenSummary query key + barrel export — DONE
+  - Phase 2B+C: Component promotions — agent working
+  - Phase 2D: Empty state — agent working
+  - Phase 2E: i18n — DONE (5 keys added to en/es/pt)
+  - Phase 2F: Bundle verification + gate — pending
+- **Files modified this session (Phase 2)**:
+  - `packages/shared/src/config/query-keys/vault.ts` — added gardenSummary key
+  - `packages/shared/src/hooks/index.ts` — exported useGardenYieldSummary
+  - `packages/shared/src/index.ts` — barrel export
+  - `packages/shared/src/i18n/{en,es,pt}.json` — 5 Phase 2 i18n keys
+  - Agent: TxInlineFeedback + getDepositLimitLabel promotions (in progress)
+  - Agent: Empty state component (in progress)
+- **Tests**: Phase 2 shared 39/39 GREEN
+- **Next steps**: Agents complete → gate check → commit
+- **Branch**: `feature/admin-ui-revamp`

@@ -69,22 +69,25 @@ describe("GardenVaultView", () => {
     });
   });
 
-  it("links back to endowments when opened from the endowments overview", () => {
-    mockUseLocation.mockReturnValue({ state: { from: "endowments" } });
+  it("links back to community treasury when opened from the treasury card", () => {
+    mockUseLocation.mockReturnValue({ state: { returnTo: "/community?card=treasury" } });
 
     renderWithProviders(<GardenVaultView />);
 
-    expect(screen.getByTestId("page-header")).toHaveAttribute("data-back-link", "/endowments");
+    expect(screen.getByTestId("page-header")).toHaveAttribute(
+      "data-back-link",
+      "/community?card=treasury"
+    );
   });
 
-  it("defaults back to the garden detail page without endowments context", () => {
+  it("defaults back to the selected garden treasury card without explicit return state", () => {
     mockUseLocation.mockReturnValue({ state: null });
 
     renderWithProviders(<GardenVaultView />);
 
     expect(screen.getByTestId("page-header")).toHaveAttribute(
       "data-back-link",
-      "/gardens/garden-1"
+      "/community?garden=garden-1&card=treasury"
     );
   });
 });

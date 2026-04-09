@@ -26,6 +26,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = resolve(__dirname, "..");
 
+const ABI_EXPORT_SOURCES = {
+  "ActionRegistry.json": "Action.sol/ActionRegistry.json",
+  "GardenAccount.json": "Garden.sol/GardenAccount.json",
+  "GardenToken.json": "Garden.sol/GardenToken.json",
+  "GreenGoodsENS.json": "ENS.sol/GreenGoodsENS.json",
+  "IHats.json": "IHats.sol/IHats.json",
+  "MockEAS.json": "EAS.sol/MockEAS.json",
+};
+
 // ANSI color codes
 const colors = {
   reset: "\x1b[0m",
@@ -286,24 +295,29 @@ async function main() {
   // ============================================================================
   // Pre-flight: Contract ABI Artifact Tracking
   // ============================================================================
-  // Shared imports ABIs directly from contracts/out/. CI doesn't build contracts
+  // Shared imports ABIs from packages/contracts/abis/. CI doesn't build contracts
   // first — it relies on these files being committed. If a new ABI import is added
-  // but the .gitignore isn't updated, ALL downstream builds fail (13+ checks).
+  // but the ABI export step is skipped, downstream builds fail.
   printSection("Contract ABI Artifact Tracking");
   {
     const contractsTs = resolve(projectRoot, "packages/shared/src/utils/blockchain/contracts.ts");
     if (existsSync(contractsTs)) {
       const content = readFileSync(contractsTs, "utf8");
-      const importPattern = /from\s+["']\.\.\/\.\.\/\.\.\/\.\.\/contracts\/out\/(.+?)["']/g;
+      const importPattern = /from\s+["']@green-goods\/contracts\/abis\/(.+?\.json)["']/g;
       let match;
       const missingArtifacts = [];
+      const staleArtifacts = [];
 
       while ((match = importPattern.exec(content)) !== null) {
-        const artifactRelPath = `packages/contracts/out/${match[1]}`;
+        const abiFileName = match[1];
+        const artifactRelPath = `packages/contracts/abis/${abiFileName}`;
         const artifactAbsPath = resolve(projectRoot, artifactRelPath);
 
         if (!existsSync(artifactAbsPath)) {
-          missingArtifacts.push({ path: artifactRelPath, reason: "file does not exist — run contract build" });
+          missingArtifacts.push({
+            path: artifactRelPath,
+            reason: "file does not exist — run `cd packages/contracts && bun run build:abis`",
+          });
           continue;
         }
 
@@ -321,17 +335,49 @@ async function main() {
         } catch {
           // git check-ignore not available, skip
         }
+
+        const sourceArtifactRelPath = ABI_EXPORT_SOURCES[abiFileName];
+        if (!sourceArtifactRelPath) continue;
+
+        const compiledArtifactAbsPath = resolve(
+          projectRoot,
+          `packages/contracts/.generated/foundry/out/default/${sourceArtifactRelPath}`,
+        );
+        if (!existsSync(compiledArtifactAbsPath)) continue;
+
+        try {
+          const compiledArtifact = JSON.parse(readFileSync(compiledArtifactAbsPath, "utf8"));
+          const committedArtifact = readFileSync(artifactAbsPath, "utf8");
+          const expectedArtifact = `${JSON.stringify(compiledArtifact.abi ?? [], null, 2)}\n`;
+          if (committedArtifact !== expectedArtifact) {
+            staleArtifacts.push({
+              path: artifactRelPath,
+              reason: "stale versus current contracts build output — run `cd packages/contracts && bun run build:abis`",
+            });
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          staleArtifacts.push({
+            path: artifactRelPath,
+            reason: `unable to validate against build artifact: ${message}`,
+          });
+        }
       }
 
-      if (missingArtifacts.length > 0) {
-        printError("Contract ABI artifacts imported by shared but not available in git:");
+      if (missingArtifacts.length > 0 || staleArtifacts.length > 0) {
+        printError("Contract ABI artifacts imported by shared are missing or stale:");
         for (const { path, reason } of missingArtifacts) {
           console.log(`  ${colors.red}✗ ${path}${colors.reset}`);
           console.log(`    ${colors.yellow}→ ${reason}${colors.reset}`);
         }
+        for (const { path, reason } of staleArtifacts) {
+          console.log(`  ${colors.red}✗ ${path}${colors.reset}`);
+          console.log(`    ${colors.yellow}→ ${reason}${colors.reset}`);
+        }
         console.log("");
-        console.log(`${colors.yellow}Fix: Update .gitignore to un-ignore these paths, then git add the files.${colors.reset}`);
-        console.log(`${colors.yellow}See the .gitignore "Keep only the specific ABIs" section for the pattern.${colors.reset}`);
+        console.log(
+          `${colors.yellow}Fix: Regenerate and commit packages/contracts/abis/*.json via \`cd packages/contracts && bun run build:abis\`.${colors.reset}`,
+        );
         failures.push("ABI artifact tracking");
       } else {
         printSuccess("All contract ABI imports are tracked in git");

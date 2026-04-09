@@ -4,7 +4,7 @@ sidebar_label: Contracts
 slug: /builders/deployments/contracts-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-08
 feature_status: Live
 keywords: [contracts, deployment, CREATE2, Foundry, Solidity, EAS, IPFS]
 ---
@@ -38,7 +38,7 @@ Smart contract deployment uses a two-layer system: a TypeScript CLI (`deploy.ts`
 ## Deployment Checklist
 
 1. Ensure all environment variables are set in the root `.env` (see [Build Environments](#build-environments))
-2. Run `bun run test` and `bun build:full` in `packages/contracts` to verify tests pass and contracts compile
+2. Run `bun run test` and `bun run build:full` in `packages/contracts` to verify tests pass and contracts compile
 3. Run a dry-run simulation against the target chain: `bun script/deploy.ts core --network sepolia`
 4. Broadcast the deployment: `bun run deploy:sepolia` (or the appropriate chain target)
 5. If schema definitions changed, deploy with `--update-schemas` to register EAS schemas on-chain
@@ -74,13 +74,13 @@ cd packages/contracts && bun run ipfs:upload
 SKIP_IPFS_UPLOAD=true bun run deploy:sepolia
 ```
 
-The IPFS cache at `packages/contracts/.ipfs-cache.json` prevents re-uploading unchanged metadata.
+The IPFS cache at `packages/contracts/.generated/runtime/ipfs-cache.json` prevents re-uploading unchanged metadata.
 
 ## Making A Deployment
 
 ### Deployment Architecture
 
-#### CLI Layer (`deploy/cli.ts`)
+#### CLI Layer (`script/deploy.ts` -> `script/deploy/cli.ts`)
 
 The `DeploymentCLI` class parses arguments and delegates to specialized deployers:
 
@@ -107,7 +107,7 @@ Key behaviors:
 cd packages/contracts
 bun script/deploy.ts core --network sepolia
 
-# Pure simulation (no RPC state mutation)
+# Pure simulation (compile + validation, no RPC calls)
 bun run deploy:preflight:sepolia
 ```
 
@@ -134,7 +134,7 @@ This registers EAS schemas on-chain after contract deployment. Required when sch
 
 ### CREATE2 Determinism
 
-All core contracts use CREATE2 for deterministic addresses across chains. This means:
+Core deployments use CREATE2 for deterministic addresses on the supported deployment targets. This means:
 
 - The same contract gets the same address on every chain (given the same salt and bytecode)
 - Re-running deployment skips already-deployed contracts

@@ -1,8 +1,6 @@
-import { type CreateActionFormData, cn } from "@green-goods/shared";
+import { type CreateActionFormData, cn, FileUploadField, FormField } from "@green-goods/shared";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { FileUploadField } from "@/components/FileUploadField";
-import { FormField } from "@/components/ui/FormField";
 
 interface CapitalsStepProps {
   form: UseFormReturn<CreateActionFormData>;

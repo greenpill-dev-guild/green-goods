@@ -1,12 +1,9 @@
-import type { Address, GardenDetailTab } from "@green-goods/shared";
+import { type Address, Button, Card, EmptyState, type GardenDetailTab } from "@green-goods/shared";
 import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { SectionStateCard } from "./GardenDetailHelpers";
 import { SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
 

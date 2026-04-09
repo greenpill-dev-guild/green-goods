@@ -1,8 +1,7 @@
-import { logger, trackErrorBoundary } from "@green-goods/shared";
+import { Button, logger, trackErrorBoundary } from "@green-goods/shared";
 import { RiAlertLine, RiArrowLeftLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
 import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-dom";
-import { Button } from "@/components/ui/Button";
 
 /**
  * Route-level error boundary for React Router.

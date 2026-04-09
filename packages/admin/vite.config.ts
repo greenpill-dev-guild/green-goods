@@ -3,10 +3,10 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
-import { defineConfig } from "vite";
+import { defineConfig, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
-export default defineConfig(async () => {
+export default defineConfig(async (): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve env schema from monorepo root even when this package script runs with a package cwd.
   process.chdir(rootDir);
@@ -38,6 +38,18 @@ export default defineConfig(async () => {
       },
     }),
   ];
+
+  const graphqlProxy: ProxyOptions = {
+    target:
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:8080/v1/graphql"
+        : (ENV.VITE_ENVIO_INDEXER_URL ?? ""),
+    changeOrigin: true,
+    rewrite: (path: string) => path.replace(/^\/api\/graphql/, ''),
+    configure: (proxy) => {
+      proxy.on('error', () => {});
+    }
+  };
 
   return {
     root: __dirname,
@@ -91,17 +103,7 @@ export default defineConfig(async () => {
       watch: { usePolling: true, interval: 100 },
       proxy: {
         // Proxy indexer requests to avoid CORS issues in development
-        '/api/graphql': {
-          target:
-            process.env.NODE_ENV === "development"
-              ? "http://localhost:8080/v1/graphql"
-              : (ENV.VITE_ENVIO_INDEXER_URL ?? ""),
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api\/graphql/, ''),
-          configure: (proxy) => {
-            proxy.on('error', () => {});
-          }
-        }
+        '/api/graphql': graphqlProxy,
       }
     },
   };

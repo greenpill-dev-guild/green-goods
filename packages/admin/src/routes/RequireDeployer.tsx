@@ -1,4 +1,4 @@
-import { SkeletonGrid } from "@/components/ui/Skeleton";
+import { SkeletonGrid } from "@green-goods/shared";
 import RequireRole from "./RequireRole";
 
 export default function RequireDeployer() {

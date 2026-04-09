@@ -81,19 +81,19 @@ const config: Config = {
           },
           {from: ['/operators/managing-actions'], to: '/community/operator-guide/creating-a-garden'},
           {from: ['/operators/reviewing-work'], to: '/community/operator-guide/reviewing-work'},
-          {from: ['/operators/reporting-impact'], to: '/community/evaluator-guide/reporting-analytics'},
+          {from: ['/operators/reporting-impact'], to: '/community/operator-guide/reporting-and-gap'},
           {
             from: ['/welcome/quickstart-evaluator', '/evaluators/accessing-data'],
-            to: '/community/evaluator-guide/joining-a-garden',
+            to: '/community/how-it-works',
           },
-          {from: ['/evaluators/exploring-gardens'], to: '/community/evaluator-guide/making-assessments'},
+          {from: ['/evaluators/exploring-gardens'], to: '/community/how-it-works'},
           {
             from: ['/evaluators/using-attestation-data'],
-            to: '/community/evaluator-guide/making-assessments',
+            to: '/builders/integrations/eas',
           },
           {
             from: ['/evaluators/external-frameworks'],
-            to: '/community/evaluator-guide/making-assessments',
+            to: '/community/operator-guide/reporting-and-gap',
           },
           {
             from: [
@@ -162,7 +162,7 @@ const config: Config = {
           },
           {
             from: ['/concepts/attestations'],
-            to: '/community/evaluator-guide/making-assessments',
+            to: '/community/how-it-works',
           },
           {
             from: ['/concepts/hypercerts'],
@@ -286,14 +286,14 @@ const config: Config = {
           {from: ['/gardener/offline-sync-and-drafts'], to: '/community/gardener-guide/offline-sync-and-drafts'},
           {from: ['/gardener/track-status-and-attestations'], to: '/community/gardener-guide/track-status-and-attestations'},
 
-          // evaluator/ → community/evaluator-guide/
-          {from: ['/evaluator/verify-attestation-chains'], to: '/community/evaluator-guide/making-assessments'},
-          {from: ['/evaluator/get-started'], to: '/community/evaluator-guide/joining-a-garden'},
-          {from: ['/evaluator/cross-framework-mapping'], to: '/community/evaluator-guide/cross-framework-mapping'},
-          {from: ['/evaluator/export-and-analysis'], to: '/community/evaluator-guide/export-and-analysis'},
-          {from: ['/evaluator/query-eas'], to: '/community/evaluator-guide/query-eas'},
-          {from: ['/evaluator/query-indexer'], to: '/community/evaluator-guide/query-indexer'},
-          {from: ['/evaluator/troubleshooting'], to: '/community/evaluator-guide/troubleshooting'},
+          // evaluator/ legacy routes now point to visible docs until evaluator flows return
+          {from: ['/evaluator/verify-attestation-chains'], to: '/builders/integrations/eas'},
+          {from: ['/evaluator/get-started'], to: '/community/how-it-works'},
+          {from: ['/evaluator/cross-framework-mapping'], to: '/community/operator-guide/reporting-and-gap'},
+          {from: ['/evaluator/export-and-analysis'], to: '/community/operator-guide/reporting-and-gap'},
+          {from: ['/evaluator/query-eas'], to: '/builders/integrations/eas'},
+          {from: ['/evaluator/query-indexer'], to: '/builders/packages/api-index'},
+          {from: ['/evaluator/troubleshooting'], to: '/community/operator-guide/troubleshooting'},
         ],
       },
     ],
@@ -312,6 +312,10 @@ const config: Config = {
         language: ['en'],
         highlightSearchTermsOnTargetPage: true,
         explicitSearchResultPath: true,
+        ignoreFiles: [
+          /^community\/evaluator-guide(?:\/.*)?$/,
+          /^community\/community-member-guide(?:\/.*)?$/,
+        ],
       },
     ],
   ],

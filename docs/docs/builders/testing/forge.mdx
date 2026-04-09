@@ -4,7 +4,7 @@ sidebar_label: Forge
 slug: /builders/testing/forge
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-07
 feature_status: Live
 keywords:
   - forge
@@ -51,7 +51,7 @@ The `foundry.toml` in `packages/contracts/` defines multiple profiles, each targ
 | Profile | `via_ir` | Purpose |
 |---------|----------|---------|
 | `default` | `false` (selective) | Local iteration; fastest builds via `sparse_mode = true` |
-| `test` | `true` | Unit tests; separate `out-test` artifacts avoid stale cache |
+| `test` | `true` | Unit tests; separate `.generated/foundry/out/test` artifacts avoid stale cache |
 | `ci` | `true` | GitHub Actions; 10,000 fuzz runs for thorough coverage |
 | `fork` | `true` | Fork tests against live chains; 32 fuzz runs, 30M gas limit |
 | `production` | `true` | Deploy builds; `optimizer_runs = 1` for smallest bytecode |

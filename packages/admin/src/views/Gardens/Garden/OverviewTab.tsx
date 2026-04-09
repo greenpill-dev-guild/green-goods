@@ -1,5 +1,7 @@
 import {
   type ActivityFilter,
+  Card,
+  EmptyState,
   formatRelativeTime,
   type GardenActivityEvent,
   type GardenDetailTab,
@@ -9,9 +11,6 @@ import {
 import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
 
 import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
 import { RANGE_OPTIONS, SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
@@ -253,52 +252,60 @@ export function OverviewTab({
                     <div className="space-y-3">
                       {filteredActivityEvents
                         .slice(0, section === "activity" ? 14 : 8)
-                        .map((event) => (
-                          <div
-                            key={event.id}
-                            className={`rounded-lg border border-stroke-soft bg-bg-weak p-3 ${
-                              selectedItem && event.itemId === selectedItem
-                                ? "ring-1 ring-primary-base"
-                                : ""
-                            }`}
-                          >
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                              <div className="min-w-0 flex-1">
-                                <p
-                                  className="truncate text-sm font-medium text-text-strong"
-                                  title={event.title}
-                                >
-                                  {event.title}
-                                </p>
-                                <p className="mt-1 max-w-prose text-xs text-text-soft">
-                                  {event.description}
-                                </p>
+                        .map((event) => {
+                          const categoryBorder =
+                            event.category === "work"
+                              ? "border-l-success-base"
+                              : event.category === "impact"
+                                ? "border-l-information-base"
+                                : "border-l-warning-base";
+                          return (
+                            <div
+                              key={event.id}
+                              className={`rounded-lg border border-stroke-soft border-l-4 ${categoryBorder} bg-bg-weak p-3 ${
+                                selectedItem && event.itemId === selectedItem
+                                  ? "ring-1 ring-primary-base"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <p
+                                    className="truncate text-sm font-medium text-text-strong"
+                                    title={event.title}
+                                  >
+                                    {event.title}
+                                  </p>
+                                  <p className="mt-1 max-w-prose text-xs text-text-soft">
+                                    {event.description}
+                                  </p>
+                                </div>
+                                <span className="text-xs text-text-soft">
+                                  {formatRelativeTime(event.timestamp)}
+                                </span>
                               </div>
-                              <span className="text-xs text-text-soft">
-                                {formatRelativeTime(event.timestamp)}
-                              </span>
+                              {event.href ? (
+                                <div className="mt-2">
+                                  <Link
+                                    to={event.href}
+                                    onClick={() => {
+                                      if (
+                                        event.category === "work" &&
+                                        (!event.href || event.href.startsWith("/gardens/"))
+                                      ) {
+                                        openSection("work", "queue", event.itemId);
+                                      }
+                                    }}
+                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
+                                  >
+                                    {formatMessage({ id: "app.garden.detail.activity.view" })}
+                                    <RiArrowRightSLine className="h-4 w-4" />
+                                  </Link>
+                                </div>
+                              ) : null}
                             </div>
-                            {event.href ? (
-                              <div className="mt-2">
-                                <Link
-                                  to={event.href}
-                                  onClick={() => {
-                                    if (
-                                      event.category === "work" &&
-                                      (!event.href || event.href.startsWith("/gardens/"))
-                                    ) {
-                                      openSection("work", "queue", event.itemId);
-                                    }
-                                  }}
-                                  className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
-                                >
-                                  {formatMessage({ id: "app.garden.detail.activity.view" })}
-                                  <RiArrowRightSLine className="h-4 w-4" />
-                                </Link>
-                              </div>
-                            ) : null}
-                          </div>
-                        ))}
+                          );
+                        })}
                     </div>
                     {filteredActivityEvents.length > (section === "activity" ? 14 : 8) && (
                       <button

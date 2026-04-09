@@ -2,6 +2,7 @@ import {
   type ActionInstructionConfig,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
+  FormField,
   fromDateTimeLocalValue,
   getFileByHash,
   instructionTemplates,
@@ -22,7 +23,6 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { FormField } from "@/components/ui/FormField";
 
 const editActionSchema = z.object({
   title: z.string().min(1, "Title is required"),

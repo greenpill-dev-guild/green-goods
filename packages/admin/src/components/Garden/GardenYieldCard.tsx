@@ -1,4 +1,5 @@
 import {
+  Button,
   DEFAULT_SPLIT_CONFIG,
   formatDate,
   formatTokenAmount,
@@ -8,7 +9,6 @@ import {
 import { RiPieChart2Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/ui/Button";
 
 interface GardenYieldCardProps {
   allocations: YieldAllocation[];

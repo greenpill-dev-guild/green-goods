@@ -36,7 +36,7 @@ vi.mock("@green-goods/shared", () => ({
   isMeaningfulTxErrorMessage: (msg: string | null | undefined) => Boolean(msg?.trim()),
 }));
 
-import { MintProgress } from "../../../components/hypercerts/steps/MintProgress";
+import { MintProgress } from "../../../components/Hypercerts/Steps/MintProgress";
 
 // ============================================
 // Test Fixtures
@@ -58,7 +58,7 @@ function createMockMintingState(overrides: Partial<MintingState> = {}): MintingS
   };
 }
 
-describe("components/hypercerts/MintProgress", () => {
+describe("components/Hypercerts/MintProgress", () => {
   const defaultProps = {
     state: createMockMintingState(),
     chainId: 11155111,

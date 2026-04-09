@@ -109,7 +109,7 @@ vi.mock("@green-goods/shared", () => ({
     ]),
 }));
 
-import { MetadataEditor } from "../../../components/hypercerts/steps/MetadataEditor";
+import { MetadataEditor } from "../../../components/Hypercerts/Steps/MetadataEditor";
 
 // ============================================
 // Test Fixtures
@@ -133,7 +133,7 @@ function createMockDraft(overrides: Partial<HypercertDraft> = {}): HypercertDraf
   };
 }
 
-describe("components/hypercerts/MetadataEditor", () => {
+describe("components/Hypercerts/MetadataEditor", () => {
   const defaultProps = {
     draft: createMockDraft(),
     onUpdate: vi.fn(),

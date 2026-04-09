@@ -1,19 +1,21 @@
 import {
   type Address,
   AssetSelector,
+  Button,
   classifyTxError,
+  FormField,
   formatTokenAmount,
   type GardenVault,
+  getDepositLimitLabel,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
   isMeaningfulTxErrorMessage,
+  TxInlineFeedback,
   useDebouncedValue,
   useDepositForm,
   useUser,
   useVaultDeposit,
-  getDepositLimitLabel,
-  TxInlineFeedback,
   useVaultPreview,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -23,8 +25,6 @@ import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
-import { Button } from "@/components/ui/Button";
-import { FormField } from "@/components/ui/FormField";
 
 const VAULT_DEPOSIT_ABI = [
   {

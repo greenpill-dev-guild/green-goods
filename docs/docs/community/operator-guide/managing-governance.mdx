@@ -4,11 +4,11 @@ sidebar_label: Managing Governance
 slug: /community/operator-guide/managing-governance
 audience: operator
 owner: docs
-last_verified: 2026-03-01
-feature_status: Implemented (activation pending deployment)
-goal: "Complete Conviction and Signal Pools with clear, role-specific next actions."
+last_verified: 2026-04-07
+feature_status: Live
+goal: "Explain the current governance flow without outdated 'pending deployment' language."
 difficulty: "standard"
-estimated_time: "20-40 minutes once module deployment is active."
+estimated_time: "20-40 minutes for setup and first pass."
 prereqs: "Governance policy and role model."
 next_steps: "./reporting-and-gap"
 persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
@@ -33,7 +33,7 @@ import {
 
 # Managing Governance
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Live" />
 
 ## Overview
 
@@ -50,14 +50,14 @@ graph LR
 
 <FeatureState
   title="Routes and hooks"
-  status="Implemented (activation pending deployment)"
-  summary="Strategy and signal-pool routes are present in admin and supported by conviction hooks in shared."
+  status="Live"
+  summary="Strategy and signal-pool routes are live in admin and supported by conviction hooks in shared."
 />
 
 <FeatureState
-  title="On-chain modules"
-  status="Implemented (activation pending deployment)"
-  summary="gardensModule and unifiedPowerRegistry addresses are zero in latest deployment artifacts."
+  title="Chain readiness"
+  status="Live"
+  summary="Current Arbitrum and Sepolia deployment artifacts include non-zero governance module addresses. Verify the selected chain before assuming the same on every network."
 />
 
 ## How It Works

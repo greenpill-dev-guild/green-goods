@@ -1,5 +1,6 @@
 import {
   AudioPlayer,
+  EmptyState,
   ImagePreviewDialog,
   ImageWithFallback,
   resolveIPFSUrl,
@@ -7,7 +8,6 @@ import {
 import { RiImageLine, RiZoomInLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { EmptyState } from "@/components/ui/EmptyState";
 
 interface MediaEvidenceProps {
   /** IPFS CIDs for photo/video media */

@@ -13,20 +13,27 @@ export interface SideSheetProps {
   children: React.ReactNode;
   /** Width in px, default 400 */
   width?: number;
+  /** Which edge the sheet opens from, default "right" */
+  side?: "left" | "right";
 }
 
 /**
- * M3-style side sheet that opens from the right edge on desktop.
+ * M3-style side sheet that opens from the left or right edge on desktop.
  *
  * Built on Radix Dialog for accessible focus trapping, Escape-to-close,
  * and overlay click dismiss. Content is wrapped in a SheetErrorBoundary
  * so errors never propagate to the parent toolbar.
  *
+ * Use `side="left"` for creation flows (work submission, assessments).
+ * Use `side="right"` (default) for detail/review panels.
+ *
  * Animations use spring easing and respect `prefers-reduced-motion`.
  */
-export function SideSheet({ open, onClose, title, children, width = 400 }: SideSheetProps) {
+export function SideSheet({ open, onClose, title, children, width = 400, side = "right" }: SideSheetProps) {
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
+
+  const isLeft = side === "left";
 
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
@@ -51,12 +58,16 @@ export function SideSheet({ open, onClose, title, children, width = 400 }: SideS
           aria-modal="true"
           aria-label={title}
           className={cn(
-            "fixed right-0 top-0 z-50 flex h-full flex-col",
-            "rounded-l-2xl bg-bg-white shadow-2xl",
+            "fixed top-0 z-50 flex h-full flex-col",
+            "bg-bg-white shadow-2xl",
             "focus:outline-none",
-            // Slide-in from right
+            // Position + rounding
+            isLeft ? "left-0 rounded-r-2xl" : "right-0 rounded-l-2xl",
+            // Slide animation direction
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+            isLeft
+              ? "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
+              : "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "duration-300",
             // Reduce motion: disable animations
@@ -71,7 +82,10 @@ export function SideSheet({ open, onClose, title, children, width = 400 }: SideS
         >
           {/* Header */}
           {title && (
-            <div className="flex items-center justify-between border-b border-stroke-soft px-4 py-3">
+            <div className={cn(
+              "flex items-center justify-between border-b border-stroke-soft px-4 py-3",
+              isLeft && "flex-row-reverse"
+            )}>
               <Dialog.Title className="text-lg font-semibold text-text-strong">
                 {title}
               </Dialog.Title>
@@ -94,7 +108,7 @@ export function SideSheet({ open, onClose, title, children, width = 400 }: SideS
 
           {/* Close button when no title */}
           {!title && (
-            <div className="flex justify-end px-4 pt-3">
+            <div className={cn("flex px-4 pt-3", isLeft ? "justify-start" : "justify-end")}>
               <Dialog.Close asChild>
                 <button
                   type="button"

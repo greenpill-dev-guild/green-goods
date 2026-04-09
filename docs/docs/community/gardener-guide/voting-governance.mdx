@@ -4,8 +4,8 @@ sidebar_label: "Voting & Governance"
 slug: /community/gardener-guide/voting-governance
 audience: all
 owner: docs
-last_verified: 2026-03-01
-feature_status: Implemented (activation pending deployment)
+last_verified: 2026-04-07
+feature_status: Live
 goal: "Help gardeners understand and participate in garden governance through conviction voting and signal pools."
 difficulty: "standard"
 estimated_time: "10 minutes."
@@ -35,7 +35,7 @@ import {
 
 # Voting & Governance
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Live" />
 
 ## Overview
 
@@ -43,15 +43,15 @@ Garden governance lets you influence how community resources are allocated. Thro
 
 <FeatureState
   title="Conviction voting"
-  status="Implemented (activation pending deployment)"
-  summary="Signal pool and conviction voting hooks are implemented. Activation is pending non-zero module addresses in deployment artifacts."
+  status="Live"
+  summary="Conviction and signal-pool flows are live on supported deployments, but you only see them in gardens that have an active strategy and registered proposals."
 />
 
 ## How It Works
 
 <StepFlow
   steps={[
-    {title: "Open signal pools", detail: "Navigate to your garden and find the active signal pools. Each pool targets a specific allocation decision — such as which hypercerts should receive funding."},
+    {title: "Open governance", detail: "Navigate to a garden with governance enabled and open the governance drawer or signal-pool view."},
     {title: "Review candidates", detail: "Browse the registered hypercerts or initiatives available for voting. Read descriptions and impact claims before committing your support."},
     {title: "Allocate your support", detail: "Stake your voting power on the candidates you believe deserve funding. You can split your support across multiple candidates."},
     {title: "Watch conviction build", detail: "Conviction accumulates over time as you keep your support allocated. The longer you maintain support, the stronger your signal becomes."},

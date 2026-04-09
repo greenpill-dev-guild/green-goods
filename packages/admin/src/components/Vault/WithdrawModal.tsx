@@ -1,18 +1,21 @@
 import {
   type Address,
+  Alert,
   AssetSelector,
+  Button,
   classifyTxError,
+  FormField,
   formatTokenAmount,
   type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   isMeaningfulTxErrorMessage,
+  TxInlineFeedback,
   useDebouncedValue,
   useUser,
   useVaultDeposits,
   useVaultPreview,
   useVaultWithdraw,
-  TxInlineFeedback,
   validateDecimalInput,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -20,9 +23,6 @@ import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
-import { FormField } from "@/components/ui/FormField";
 
 interface WithdrawModalProps {
   isOpen: boolean;

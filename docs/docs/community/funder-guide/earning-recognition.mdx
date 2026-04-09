@@ -2,11 +2,19 @@
 title: Earning Recognition
 sidebar_label: Earning Recognition
 slug: /community/funder-guide/earning-recognition
-sidebar_position: 3
 audience: funder
 owner: docs
-last_verified: 2026-03-07
+last_verified: 2026-04-07
 feature_status: Planned
+goal: "Set expectations honestly: raw on-chain funding history exists today, while richer recognition layers are still being designed."
+difficulty: "standard"
+estimated_time: "5-10 minutes."
+prereqs: "At least one funding action or a plan to make one."
+next_steps: "/community/how-it-works"
+persona_context: "Funders who want to understand what their support history means today and what is still coming later."
+source_of_truth:
+  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
+  - packages/shared/src/types/domain.ts
 keywords:
   - recognition
   - reputation
@@ -19,7 +27,7 @@ import {NextBestAction} from "@site/src/components/docs";
 
 # Earning Recognition
 
-As a funder, your contributions to regenerative communities are tracked on-chain and build a **verifiable reputation** across the Green Goods ecosystem.
+As a funder, you already create an **on-chain funding history** when you deposit or participate in certificate-backed flows. What is still evolving is the product layer that turns that history into clearer recognition, badges, or portable reputation views.
 
 ## How Recognition Works
 
@@ -31,17 +39,18 @@ Every vault deposit and Hypercert purchase creates a permanent, verifiable on-ch
 - **Portable** — Your reputation travels across gardens and platforms
 - **Cumulative** — Consistent funding builds a stronger track record
 
-### Funder Role
+### What Exists Today
 
-When you deposit into a garden vault, you receive the **Funder hat** via Hats Protocol. This role:
+- **Permanent funding records** — Deposits and related transactions are visible on-chain
+- **Garden-level attribution** — Your support can be tied back to a specific garden and its treasury activity
+- **Certificate-linked history** — Where Hypercert flows are in use, support can be linked to a more specific impact bundle
 
-- Identifies you as a garden supporter
-- Grants access to funder-specific dashboards and analytics
-- Enables participation in governance decisions about fund allocation
+### What Is Still Taking Shape
 
-### Impact Attribution
-
-Hypercert fractions provide direct attribution to specific impact claims. When you hold a fraction of a Hypercert, you're recognized as a backer of that verified impact — from the field work photos to the final assessment.
+- Dedicated funder badges
+- Cross-garden reputation views
+- Cleaner public profiles for capital allocators
+- Opinionated leaderboards or milestone systems
 
 ## Future Recognition Features
 
@@ -53,7 +62,7 @@ Hypercert fractions provide direct attribution to specific impact claims. When y
 
 <NextBestAction
   title="Next: How It Works"
-  why="Learn more about the complete impact cycle that your funding supports."
+  why="Trace the full chain from documented work to verification to funding so your support decisions stay grounded."
   actionLabel="How It Works"
   actionHref="/community/how-it-works"
   alternatives={[

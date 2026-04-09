@@ -18,14 +18,10 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
     ...actual,
+    SkeletonGrid: () => createElement("div", { "data-testid": "skeleton-grid" }, "Loading grid..."),
     useRole: () => mockUseRole(),
   };
 });
-
-// Mock the Skeleton components (used by RequireDeployer content-only fallback)
-vi.mock("@/components/ui/Skeleton", () => ({
-  SkeletonGrid: () => createElement("div", { "data-testid": "skeleton-grid" }, "Loading grid..."),
-}));
 
 import RequireDeployer from "../../routes/RequireDeployer";
 

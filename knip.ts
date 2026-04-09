@@ -69,6 +69,7 @@ const config: KnipConfig = {
     "packages/contracts/lib/**",
     // Build outputs
     "packages/*/dist/**",
+    "packages/contracts/.generated/**",
     "packages/contracts/out/**",
     // Envio generated code
     "packages/indexer/generated/**",

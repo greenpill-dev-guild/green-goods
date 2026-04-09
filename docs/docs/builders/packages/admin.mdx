@@ -4,38 +4,72 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-07
+feature_status: Active
 ---
 
 # Admin Dashboard
 
-```mermaid
-graph TB
-    subgraph Admin["Admin Dashboard"]
-        Views["Views\nDashboard, Gardens,\nActions, Work Queue"]
-        Components["Components\nUI primitives, forms"]
-        RBA["Role-Based Access\nHats Protocol"]
-    end
+The admin package is the Green Goods operator cockpit. This page is the single UI contract for `packages/admin`.
 
-    Shared["@green-goods/shared\nhooks, types, modules"] --> Admin
-    Admin -->|read/write| GQL["Envio GraphQL"]
-    Admin -->|transactions| Chain["Blockchain"]
-    Admin -->|auth| WC["WalletConnect"]
-```
+## Purpose
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+- `packages/admin` owns cockpit shell composition and admin-only workflows.
+- `@green-goods/shared` owns reusable UI primitives, shared config helpers, hooks, providers, stores, and Storybook-backed foundations.
+- If a pattern is reusable across admin surfaces, move it to shared instead of creating a package-local copy.
 
-## Overview
-React admin dashboard for operators and evaluators to manage gardens.
+## Canonical Routes
 
-<img src="/img/screenshots/admin-dashboard.png" alt="Admin dashboard — garden stats, recent gardens, and activity feed" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)', marginBottom: '1rem'}} />
+- Primary cockpit surfaces: `/work`, `/garden`, `/community`, `/actions`
+- Secondary garden flows: `/gardens/create`, `/gardens/:id`, `/gardens/:id/work/:workId`, `/gardens/:id/assessments`, `/gardens/:id/assessments/create`, `/gardens/:id/hypercerts`, `/gardens/:id/hypercerts/:hypercertId`, `/gardens/:id/hypercerts/create`, `/gardens/:id/vault`, `/gardens/:id/strategies`, `/gardens/:id/signal-pool/:poolType`, `/gardens/:id/submit-work`
+- Do not preserve compatibility redirects for removed top-level routes.
 
-<img src="/img/screenshots/admin-actions.png" alt="Actions registry — browse and manage regenerative work categories" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+## Shell Contract
 
-## What to Expect
-- Dashboard architecture
-- Component library and patterns
-- State management with TanStack Query
+- `CockpitLayout` is the canonical shell.
+- The shell is `TopContextBar + .workspace-canvas + NavigationBar`.
+- `TopContextBar` is the sticky `z-40 h-14` context region with `GardenChip` on the left and search, settings, and `UserAvatar` on the right.
+- `NavigationBar` is navigation only. The canonical items are `Work`, `Garden`, `Community`, and `Actions`.
+- `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
+- Admin owns `CockpitLayout`, `CommandPalette`, `SettingsSheet`, `UserAvatar`, `ConnectShell`, and `PageHeader`.
+- Shared owns `TopContextBar`, `NavigationBar`, `GardenChip`, `SideSheet`, `BottomSheet`, and `SheetErrorBoundary`.
+
+## Preferred Primitives
+
+- `TopContextBar`
+- `NavigationBar`
+- `GardenChip`
+- `CommandPalette`
+- `SettingsSheet`
+- `UserAvatar`
+- `ConnectShell`
+- `SideSheet`
+- `PageHeader`
+- `ListToolbar`
+- `SortSelect`
+- `Card`
+- `Alert`
+- `StatusBadge`
+- `FormField`
+- `DialogShell`
+
+## Surface Primitives
+
+- `.workspace-canvas` is the default cockpit workspace treatment.
+- `.surface-section` creates a rounded full-width section wrapper.
+- `.surface-inset` creates nested panels inside a section.
+- `.surface-card` creates interactive tiles.
+
+## Page Families
+
+- List pages: `PageHeader + ListToolbar + filters/sort + loading/empty/error + results`
+- Detail and workbench pages: `PageHeader` or garden hero plus main/rail composition
+- Operational pages: `PageHeader + tabs + status workspace cards`
+
+## Migration Rules
+
+- `DashboardLayout`, `Sidebar`, and `Header` are legacy references, not starting points for new work.
+- Do not add admin-local primitive shims such as `components/ui`.
+- Do not add admin-local config helpers when the behavior belongs beside shared React Query or other shared config.
+- Do not introduce package-local `utils/` for logic that should live in shared.
+- Keep reusable components consumed through the `@green-goods/shared` barrel.

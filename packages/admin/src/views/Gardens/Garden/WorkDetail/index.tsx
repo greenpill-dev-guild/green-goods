@@ -1,4 +1,5 @@
 import {
+  Alert,
   DEFAULT_CHAIN_ID,
   useActions,
   useGardenPermissions,
@@ -10,7 +11,6 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { Alert } from "@/components/ui/Alert";
 import { MediaEvidence } from "@/components/Work/MediaEvidence";
 import { parseWorkMetadata } from "./helpers";
 import { ReviewForm } from "./ReviewForm";

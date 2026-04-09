@@ -1,7 +1,20 @@
-import { RiArrowLeftLine, RiSearchLine, RiSettings3Line } from "@remixicon/react";
+import { RiArrowLeftLine, RiNotification3Line, RiSearchLine, RiSettings3Line } from "@remixicon/react";
+import * as Popover from "@radix-ui/react-popover";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
+
+// ----------------------------------------------------------------------------
+// Shared icon button styles — consistent across all right-side icons
+// ----------------------------------------------------------------------------
+
+const ICON_BTN = cn(
+  "flex h-10 w-10 items-center justify-center rounded-lg",
+  "text-text-sub hover:bg-bg-weak active:bg-bg-sub active:scale-95",
+  "transition-all duration-150",
+  "motion-reduce:transition-none motion-reduce:active:scale-100",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+);
 
 // ----------------------------------------------------------------------------
 // Types
@@ -24,11 +37,11 @@ export interface TopContextBarProps {
  * Sticky top bar for the admin cockpit layout.
  *
  * - Left side: GardenChip (or sheetContext back-arrow + label when a sheet is open)
- * - Right side: Search icon, Settings icon, user avatar
+ * - Right side: Search, Notifications, Settings, User avatar — all with identical styling
  * - z-index 40 per D49
  * - h-14 (56px)
  *
- * On mobile, search icon is hidden to save space (settings + avatar remain).
+ * On mobile, search icon is hidden to save space (notifications + settings + avatar remain).
  */
 export function TopContextBar({
   gardenChip,
@@ -55,13 +68,7 @@ export function TopContextBar({
               type="button"
               onClick={sheetContext.onBack}
               aria-label={formatMessage({ id: "cockpit.topBar.back" })}
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg",
-                "text-text-sub hover:bg-bg-weak",
-                "transition-colors duration-150",
-                "motion-reduce:transition-none",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-              )}
+              className={ICON_BTN}
             >
               <RiArrowLeftLine className="h-5 w-5" />
             </button>
@@ -74,44 +81,62 @@ export function TopContextBar({
         )}
       </div>
 
-      {/* Right side */}
+      {/* Right side — all icons share ICON_BTN styling */}
       <div className="flex items-center gap-1">
+        {/* Search — hidden on mobile */}
         {onOpenSearch && (
           <button
             type="button"
             onClick={onOpenSearch}
             aria-label={formatMessage({ id: "cockpit.topBar.openSearch" })}
-            className={cn(
-              "hidden h-10 w-10 items-center justify-center rounded-lg",
-              "text-text-sub hover:bg-bg-weak",
-              "transition-colors duration-150",
-              "motion-reduce:transition-none",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
-              // Visible only on desktop (>=600px)
-              "min-[600px]:flex"
-            )}
+            className={cn(ICON_BTN, "hidden min-[600px]:flex")}
           >
             <RiSearchLine className="h-5 w-5" />
           </button>
         )}
 
+        {/* Notification bell — placeholder with popover */}
+        <Popover.Root>
+          <Popover.Trigger asChild>
+            <button
+              type="button"
+              aria-label={formatMessage({ id: "cockpit.topBar.notifications", defaultMessage: "Notifications" })}
+              className={ICON_BTN}
+            >
+              <RiNotification3Line className="h-5 w-5" />
+            </button>
+          </Popover.Trigger>
+          <Popover.Portal>
+            <Popover.Content
+              side="bottom"
+              align="end"
+              sideOffset={4}
+              className={cn(
+                "z-50 rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
+                "border border-stroke-soft",
+                "text-sm text-text-sub",
+                "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
+                "duration-200"
+              )}
+            >
+              {formatMessage({ id: "cockpit.topBar.noNotifications", defaultMessage: "No notifications yet" })}
+            </Popover.Content>
+          </Popover.Portal>
+        </Popover.Root>
+
+        {/* Settings */}
         {onOpenSettings && (
           <button
             type="button"
             onClick={onOpenSettings}
             aria-label={formatMessage({ id: "cockpit.topBar.openSettings" })}
-            className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-lg",
-              "text-text-sub hover:bg-bg-weak",
-              "transition-colors duration-150",
-              "motion-reduce:transition-none",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-            )}
+            className={ICON_BTN}
           >
             <RiSettings3Line className="h-5 w-5" />
           </button>
         )}
 
+        {/* User avatar */}
         {userAvatar && <div className="ml-1 flex items-center">{userAvatar}</div>}
       </div>
     </header>

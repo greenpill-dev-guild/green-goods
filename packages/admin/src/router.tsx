@@ -1,12 +1,6 @@
 import { HydrationFallback } from "@green-goods/shared";
 import { createBrowserRouter, createHashRouter, Navigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
-import {
-  ContractsRedirect,
-  DashboardRedirect,
-  DeploymentRedirect,
-  GardensListRedirect,
-} from "@/routes/LegacyRedirects";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
 const createRouter =
@@ -62,8 +56,7 @@ export const router = createRouter([
               {
                 path: "community",
                 lazy: async () => ({
-                  Component: (await import("@/components/guards/RequireSpecificGarden"))
-                    .RequireSpecificGarden,
+                  Component: (await import("@/routes/RequireSpecificGarden")).RequireSpecificGarden,
                 }),
                 children: [
                   {
@@ -200,14 +193,6 @@ export const router = createRouter([
                   Component: (await import("@/views/Gardens/Garden/SubmitWork")).default,
                 }),
               },
-
-              // ── Legacy compatibility redirects ──
-              // Note: /assessments and /endowments paths removed (folded into /work and /community).
-              // Their redirect components remain in LegacyRedirects.tsx for reuse.
-              { path: "dashboard", element: <DashboardRedirect /> },
-              { path: "gardens", element: <GardensListRedirect /> },
-              { path: "contracts", element: <ContractsRedirect /> },
-              { path: "deployment", element: <DeploymentRedirect /> },
             ],
           },
         ],

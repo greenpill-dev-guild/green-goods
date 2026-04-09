@@ -29,6 +29,12 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+	ACTION_IMAGES_CACHE_PATH,
+	CONFIG_ROOT,
+	CONTRACTS_ROOT,
+	ensureParentDir,
+} from "../packages/contracts/script/utils/paths";
+import {
 	loadPinataConfigFromEnv,
 	uploadBufferWithPinata,
 	verifyGatewayAvailability,
@@ -38,10 +44,9 @@ import {
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(SCRIPT_DIR, "..");
-const CONTRACTS_DIR = path.join(ROOT_DIR, "packages", "contracts");
-const IMAGES_DIR = path.join(CONTRACTS_DIR, "config", "action-images");
-const ACTIONS_FILE = path.join(CONTRACTS_DIR, "config", "actions.json");
-const CACHE_FILE = path.join(CONTRACTS_DIR, ".action-images-cache.json");
+const IMAGES_DIR = path.join(CONFIG_ROOT, "action-images");
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
+const CACHE_FILE = ACTION_IMAGES_CACHE_PATH;
 // --- Filename overrides for mismatches between slug and actual filename ---
 // The canonical slug is in actions.json; the filename on disk may differ.
 
@@ -146,7 +151,7 @@ function loadCache(): Cache {
 
 function saveCache(cache: Cache): void {
 	try {
-		fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2) + "\n");
+		fs.writeFileSync(ensureParentDir(CACHE_FILE), JSON.stringify(cache, null, 2) + "\n");
 	} catch (error) {
 		console.error("Warning: Unable to save cache.", error);
 	}
@@ -446,7 +451,7 @@ async function main(): Promise<void> {
 	// Save cache
 	saveCache(cache);
 	console.error(
-		`Cache saved to ${path.relative(process.cwd(), CACHE_FILE)}\n`,
+		`Cache saved to ${path.relative(CONTRACTS_ROOT, CACHE_FILE)}\n`,
 	);
 
 	// Summary output

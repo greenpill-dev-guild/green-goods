@@ -4,12 +4,12 @@ sidebar_label: Creating Impact Certificates
 slug: /community/operator-guide/creating-impact-certificates
 audience: operator
 owner: docs
-last_verified: 2026-03-01
-feature_status: Implemented (activation pending deployment)
-goal: "Complete Mint Hypercerts and List on Marketplace with clear, role-specific next actions."
+last_verified: 2026-04-07
+feature_status: Live
+goal: "Explain the real Hypercert flow today: prepare attestations, mint through the wizard, and optionally list when the selected chain and garden support it."
 difficulty: "standard"
-estimated_time: "20-40 minutes once activation is complete."
-prereqs: "Assessment/work history prepared; deployment status reviewed."
+estimated_time: "20-40 minutes for a prepared claim."
+prereqs: "Assessment/work history prepared, plus a supported deployment on the chain you are using."
 next_steps: "./managing-endowments"
 persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
@@ -31,7 +31,7 @@ import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/com
 
 # Creating Impact Certificates
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Live" />
 
 ## Overview
 
@@ -48,25 +48,19 @@ graph LR
 <img src="/img/screenshots/admin-garden-impact.png" alt="Impact tab — hypercert highlights and recent assessments" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 <FeatureState
-  title="UI and hooks"
-  status="Implemented (activation pending deployment)"
-  summary="Admin routes and shared hooks for mint/list/approvals are implemented."
-/>
-
-<FeatureState
-  title="Marketplace activation"
-  status="Implemented (activation pending deployment)"
-  summary="marketplaceAdapter remains zero-address in latest deployment artifacts, so public listing is not fully active."
+  title="Wizard and listing flow"
+  status="Live"
+  summary="Admin minting, listing, and marketplace approval flows are live on supported deployments. Verify the chain you are operating on before promising a marketplace path to contributors or funders."
 />
 
 ## How It Works
 
 <StepFlow
   steps={[
-    {title: "Prepare claim", detail: "Aggregate verified work and assessment scope for the hypercert claim. Select which approved work to include and define the impact scope."},
-    {title: "Mint hypercert", detail: "Use the create/mint flow in your garden's Hypercerts tab. Configure metadata, allowlist of contributor addresses, and transfer restrictions. Confirm and sign the minting transaction."},
-    {title: "Approve marketplace", detail: "Grant the marketplace adapter permissions to manage your hypercert for listing."},
-    {title: "Create listing", detail: "Set pricing, number of units, and expiration strategy. Publish the listing."},
+    {title: "Prepare the claim", detail: "Collect the approved work, the assessment window, contributor addresses, and the metadata you want embedded in the Hypercert."},
+    {title: "Mint in the Hypercert wizard", detail: "Open your garden's Hypercerts view, start the wizard, upload metadata, confirm allowlist entries, and sign the mint transaction."},
+    {title: "Check the detail page", detail: "After minting, confirm the Hypercert detail page shows the expected title, attestations, contributors, and minted record."},
+    {title: "List if the garden needs a marketplace path", detail: "If your garden wants secondary distribution, use the marketplace approval and listing flow from the Hypercert detail page."},
   ]}
 />
 
@@ -75,14 +69,15 @@ graph LR
 - Verify all included work is approved and attestation chains are intact before minting
 - Set clear contributor allowlists so that fractions go to the gardeners who did the work
 - Review transfer restriction settings carefully — they cannot be changed after minting
-- Confirm non-zero module/adapter addresses in `deployments/*-latest.json` before attempting marketplace operations
-- Run an end-to-end mint/list test on a testnet before going live on production chains
+- Confirm the target chain has active Hypercert and marketplace module addresses before promising a listing workflow
+- Run an end-to-end mint/list test on Sepolia or your current test environment before going live on production chains
 
-**Activation checklist:**
+**Operator checklist:**
 
-1. Non-zero module/adapter addresses in `deployments/*-latest.json`
-2. Indexer config updated with those addresses
-3. End-to-end mint/list test passes on target chain
+1. Approved work and assessment scope are clean
+2. Contributor allowlist is correct
+3. Metadata reflects the claim you actually want to defend publicly
+4. The selected chain supports the listing path you want to use
 
 ## What's Next
 

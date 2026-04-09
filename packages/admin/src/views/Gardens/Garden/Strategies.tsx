@@ -1,5 +1,7 @@
 import {
   type Address,
+  AddressDisplay,
+  Alert,
   ConfirmDialog,
   useConvictionStrategies,
   useGardenPermissions,
@@ -11,9 +13,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { isAddress } from "viem";
-import { AddressDisplay } from "@/components/AddressDisplay";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { Alert } from "@/components/ui/Alert";
 
 export default function GardenStrategiesView() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +41,7 @@ export default function GardenStrategiesView() {
           title={formatMessage({ id: "app.conviction.title" })}
           description={formatMessage({ id: "app.conviction.loadingStrategies" })}
           backLink={{
-            to: "/gardens",
+            to: "/garden",
             label: formatMessage({ id: "app.conviction.backToGarden" }),
           }}
         />
@@ -56,7 +56,7 @@ export default function GardenStrategiesView() {
           title={formatMessage({ id: "app.conviction.title" })}
           description={formatMessage({ id: "app.conviction.gardenNotFound" })}
           backLink={{
-            to: "/gardens",
+            to: "/garden",
             label: formatMessage({ id: "app.conviction.backToGarden" }),
           }}
         />

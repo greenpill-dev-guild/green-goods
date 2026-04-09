@@ -1,12 +1,13 @@
 import {
   type Address,
+  Button,
   classifyTxError,
   formatTokenAmount,
   getVaultAssetSymbol,
   isMeaningfulTxErrorMessage,
+  TxInlineFeedback,
   useCookieJarWithdraw,
   useGardenCookieJars,
-  TxInlineFeedback,
   validateDecimalInput,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -14,7 +15,6 @@ import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { Button } from "@/components/ui/Button";
 
 interface CookieJarWithdrawModalProps {
   isOpen: boolean;

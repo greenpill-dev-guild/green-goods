@@ -16,36 +16,18 @@ const ROLE_PATHS = [
     href: "/community/operator-guide/creating-a-garden",
     icon: "\u2699\uFE0F",
     audience: "Garden managers",
-    time: "15 min setup",
+    time: "15 min operator setup",
     description:
       "Create and manage your garden community, approve work, and configure actions.",
-  },
-  {
-    title: "Evaluator",
-    href: "/community/evaluator-guide/joining-a-garden",
-    icon: "\uD83D\uDCCA",
-    audience: "Impact assessors",
-    time: "10 min overview",
-    description:
-      "Verify impact claims, create assessments, and certify work into Hypercerts.",
   },
   {
     title: "Funder",
     href: "/community/funder-guide/getting-started",
     icon: "\uD83D\uDCB0",
     audience: "Capital allocators",
-    time: "10 min overview",
+    time: "10 min first deposit",
     description:
-      "Deposit into impact vaults that route harvested yield to garden funding flows, and purchase Hypercerts to fund verified impact.",
-  },
-  {
-    title: "Community",
-    href: "/community/community-member-guide/getting-involved",
-    icon: "\uD83E\uDD1D",
-    audience: "Community members",
-    time: "5 min overview",
-    description:
-      "Participate in garden governance through conviction voting and signal support for regenerative work.",
+      "Fund gardens through treasury deposits, inspect attestation-backed impact, and understand where Hypercerts fit today.",
   },
   {
     title: "Builder",

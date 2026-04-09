@@ -1,9 +1,8 @@
-import { RiArrowRightSLine, RiSeedlingLine } from "@remixicon/react";
+import { Alert, Button, Card } from "@green-goods/shared";
+import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { SeedlingIllustration } from "./SeedlingIllustration";
 
 // Paradigm: Ritual — single-purpose garden selection, focused attention.
 
@@ -31,9 +30,7 @@ export function CockpitWorkspaceSelectionState({
       <div className="px-4 py-8 sm:px-6">
         <Card className="mx-auto max-w-xl">
           <Card.Body className="flex flex-col items-center py-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-bg-soft text-text-soft">
-              <RiSeedlingLine className="h-7 w-7" />
-            </div>
+            <SeedlingIllustration className="h-24 w-24" />
             <h2 className="mt-4 text-lg font-semibold text-text-strong">
               {formatMessage({
                 id: "cockpit.workspace.noGardens",

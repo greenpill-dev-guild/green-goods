@@ -1,8 +1,11 @@
 import {
+  type Address,
+  Alert,
+  Button,
+  Card,
   cn,
   formatTokenAmount,
   parseGardenRange,
-  type Address,
   useAdminStore,
   useCockpitSearchParams,
   useGardenDerivedState,
@@ -12,16 +15,12 @@ import {
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate } from "react-router-dom";
-import { CockpitWorkspaceSelectionState } from "@/components/Layout/CockpitWorkspaceSelectionState";
-import { PageHeader } from "@/components/Layout/PageHeader";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
 import { GardenStatsGrid } from "@/components/Garden/GardenStatsGrid";
-import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { CockpitWorkspaceSelectionState } from "@/components/Layout/CockpitWorkspaceSelectionState";
+import { PageHeader } from "@/components/Layout/PageHeader";
 import { ImpactTab } from "@/views/Gardens/Garden/ImpactTab";
 import { OverviewTab } from "@/views/Gardens/Garden/OverviewTab";
-import "../Gardens/Garden/GardenDetailLayout.css";
 
 // Paradigm: Mixed — overview = Data Landscape, impact = Data Landscape, settings = Command Surface.
 
@@ -218,6 +217,7 @@ export default function GardenView() {
           operatorCount={garden.operators.length}
           workCount={works.length}
           assessmentCount={assessments.length}
+          impactVelocityDelta={derived.impactVelocityDelta}
           hasVaults={derived.hasVaults}
           vaultNetDeposited={vaultNetDeposited}
           vaultHarvestCount={vaultHarvestCount}
@@ -383,6 +383,7 @@ export default function GardenView() {
               ] as const
             ).map((option) => {
               const active = view === option.id;
+              const count = option.id === "overview" ? derived.overviewAlerts.length : undefined;
               return (
                 <button
                   key={option.id}
@@ -391,13 +392,25 @@ export default function GardenView() {
                   aria-selected={active}
                   onClick={() => updateSearch({ view: option.id, item: undefined })}
                   className={cn(
-                    "min-h-11 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    "inline-flex items-center gap-1.5 min-h-11 rounded-full px-4 py-2 text-sm font-medium transition-colors",
                     active
                       ? "bg-primary-alpha-16 text-primary-darker"
                       : "bg-bg-soft text-text-sub hover:bg-bg-weak"
                   )}
                 >
                   {formatMessage({ id: option.labelId, defaultMessage: option.defaultMessage })}
+                  {count !== undefined && count > 0 && (
+                    <span
+                      className={cn(
+                        "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-semibold tabular-nums",
+                        active
+                          ? "bg-warning-base text-static-white"
+                          : "bg-warning-lighter text-warning-dark"
+                      )}
+                    >
+                      {count > 99 ? "99+" : count}
+                    </span>
+                  )}
                 </button>
               );
             })}

@@ -2,9 +2,11 @@ import {
   type CreateActionFormData,
   createActionSchema,
   DEFAULT_CHAIN_ID,
-  defaultTemplate,
   Domain,
+  defaultTemplate,
+  FormWizard,
   logger,
+  type Step,
   toastService,
   uploadFileToIPFS,
   useActionOperations,
@@ -20,8 +22,6 @@ import {
   InstructionsStep,
   ReviewStep,
 } from "@/components/Action/CreateActionSteps";
-import { FormWizard } from "@/components/Form/FormWizard";
-import type { Step } from "@/components/Form/StepIndicator";
 
 export default function CreateAction() {
   const navigate = useNavigate();

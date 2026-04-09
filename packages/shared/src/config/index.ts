@@ -59,6 +59,13 @@ export {
 } from "./pimlico";
 // From react-query.ts
 export { GC_TIMES, queryClient, STALE_TIMES } from "./react-query";
+export {
+  createQueryPersister,
+  createShouldDehydrateQuery,
+  PERSIST_MAX_AGE,
+  type CreateQueryPersisterOptions,
+  type CreateShouldDehydrateQueryOptions,
+} from "./query-persistence";
 
 // From sdg.ts
 export type { SDGGoalId, SDGTarget } from "./sdg";

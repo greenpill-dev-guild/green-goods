@@ -1,5 +1,7 @@
 import {
   type Address,
+  Button,
+  Card,
   cn,
   GARDEN_NAME_MAX_LENGTH,
   useSetMaxGardeners,
@@ -12,8 +14,6 @@ import {
 import { RiEditLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 interface GardenSettingsEditorProps {
   gardenAddress: Address;

@@ -1,6 +1,5 @@
-import type { ActionInstructionConfig } from "@green-goods/shared";
+import { type ActionInstructionConfig, FormField } from "@green-goods/shared";
 import { useIntl } from "react-intl";
-import { FormField } from "@/components/ui/FormField";
 
 interface ReviewConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["review"];

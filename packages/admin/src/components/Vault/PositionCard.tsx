@@ -1,16 +1,18 @@
 import {
   type Address,
+  Button,
+  Card,
   formatAddress,
   formatTokenAmount,
-  getBlockExplorerAddressUrl,
   type GardenVault,
+  getBlockExplorerAddressUrl,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   OCTANT_VAULT_ABI,
   useCurrentChain,
-  useEnableAutoAllocate,
   useEmergencyPause,
+  useEnableAutoAllocate,
   useHarvest,
   useUser,
   useVaultPreview,
@@ -20,8 +22,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 interface PositionCardProps {
   gardenAddress: Address;

@@ -147,6 +147,158 @@ function FloatingNav({ items }: { items: NavItem[] }) {
 
 ---
 
+## Spring Motion System
+
+All animation uses named spring tokens — no hardcoded `cubic-bezier` or `duration` values in component code. See [language.md](./language.md) § Motion System for the full spec.
+
+### Spring Tokens
+
+| Token | CSS Value | Duration | Use |
+|-------|-----------|----------|-----|
+| `--spring-spatial` | `cubic-bezier(0.16, 1, 0.3, 1)` | 300ms | Layout shifts, nav, expand/collapse, sheets |
+| `--spring-spatial-fast` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | 200ms | Button press, toggles, micro-interactions |
+| `--spring-spatial-slow` | `cubic-bezier(0.16, 1, 0.3, 1)` | 400ms | Hero transitions, page morphs, view transitions |
+| `--spring-effects` | `cubic-bezier(0.2, 0, 0, 1)` | 250ms | Opacity, color, blur, material transitions |
+| `--spring-effects-fast` | `cubic-bezier(0.2, 0, 0, 1)` | 150ms | Hover states, focus rings, tooltip appearance |
+| `--spring-effects-slow` | `cubic-bezier(0.2, 0, 0, 1)` | 500ms | Loading indicators, progress bars, ambient pulse |
+
+### Motion Schemes
+
+| Scheme | When | Spring Character |
+|--------|------|-----------------|
+| **Standard** | Productivity, data-dense, operator cockpit | Tokens as defined — efficient, minimal overshoot |
+| **Expressive** | Hero moments, celebrations, onboarding | +50% duration, higher overshoot — playful, bouncy |
+
+Set at the surface level, not per-component. A "Ritual" paradigm surface uses Expressive; a "Command Surface" uses Standard.
+
+### Reduced Motion
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+Shape morphing, focus variation, and scroll effects are visual polish — fully functional with instant transitions.
+
+---
+
+## Shape Morphing
+
+Interactive elements shift shape on engagement, creating tactile feedback. Shape morphing *complements* the existing lift-and-press pattern (§ Adaptive Card in Progressive Disclosure) — cards get scale transforms, buttons get radius shifts, interactive cards get both.
+
+### Interaction Model
+
+| Element Type | Hover | Press | Release |
+|-------------|-------|-------|---------|
+| **Capsule button** (primary) | Shadow glow | Pill → squircle (`rounded-full` → `rounded-xl`) | Springs back to pill |
+| **Squircle button** (secondary) | Shadow glow | Radius tightens (`rounded-xl` → `rounded-lg`) | Springs back |
+| **Icon button** | Background appears | Circle → squished square | Springs back to circle |
+| **Card** (combines with lift-and-press) | scale(1.008) + shadow | scale(0.985) + radius tightens 2-4px | Springs back |
+
+All morph transitions use `--spring-spatial-fast` (200ms with overshoot).
+
+### CSS Approach
+
+```css
+/* Capsule button — morph toward squircle on press */
+.btn-primary {
+  border-radius: 9999px;
+  transition: border-radius var(--spring-spatial-fast),
+              transform var(--spring-spatial-fast);
+}
+.btn-primary:active {
+  border-radius: var(--radius-xl);
+}
+
+/* Squircle button — tighten further on press */
+.btn-secondary {
+  border-radius: var(--radius-xl);
+  transition: border-radius var(--spring-spatial-fast);
+}
+.btn-secondary:active {
+  border-radius: var(--radius-lg);
+}
+
+/* Card — lift-and-press + shape morph complement */
+.card-interactive {
+  transition: transform var(--spring-spatial-fast),
+              border-radius var(--spring-spatial-fast),
+              box-shadow var(--spring-effects-fast);
+}
+.card-interactive:hover {
+  transform: scale(1.008);
+  box-shadow: 0 4px 16px rgba(31,193,107,0.10);
+}
+.card-interactive:active {
+  transform: scale(0.985);
+  border-radius: calc(var(--radius-2xl) - 2px);
+}
+```
+
+### Inclusive Design Note
+
+Shape morphing is visual polish, not information. Keyboard focus uses a focus ring (`--spring-effects-fast` fade-in), not a shape morph. Screen readers receive no morph feedback — the interaction outcome (button pressed, card selected) is communicated through standard ARIA.
+
+---
+
+## Hero Moments
+
+Designated places where all Warm Glass style dimensions amplify simultaneously. They celebrate special functionality and frame content in a delightful way.
+
+### The Five Dimensions
+
+| Dimension | Standard Surface | Hero Moment |
+|-----------|-----------------|-------------|
+| **Shape** | Functional squircles and capsules | Expressive/organic shapes |
+| **Color** | Balanced accent triad | Full chroma, vibrant primary |
+| **Motion** | Standard spring scheme | Expressive spring scheme (bouncy overshoot) |
+| **Typography** | Body/label weights | Display weight, variable fonts |
+| **Material** | Regular glass | Dramatic (ultrathin glass over vivid background) |
+
+### Green Goods Hero Moments
+
+| Moment | Expression Level | Why |
+|--------|-----------------|-----|
+| Garden creation | Full | The birth of a new community space — celebrate with growth animation |
+| First work submission | High | Gardener's first contribution — affirm with value chain lighting up |
+| Hypercert minting | Full | Impact permanently recorded on-chain — certificate reveal |
+| Vault deposit | High | Resources committed — flow visualization |
+| Seasonal transitions | Medium | Garden enters new season — ambient color shift |
+| Assessment completion | Medium | Evaluator publishes — impact chain advancement |
+| Role milestone | Medium | Capability badge earned — organic unfurl |
+
+### Succession-Aware Expression
+
+Match expressiveness to garden maturity (see [regenerative.md](./regenerative.md)):
+
+| Stage | Hero Level | Why |
+|-------|-----------|-----|
+| **Pioneer** | Simple, encouraging | New communities need clarity, not spectacle |
+| **Intermediate** | Moderate expression | Established — celebrate milestones with spring + color |
+| **Climax** | Full expression | Mature community earns the full Warm Glass treatment |
+
+---
+
+## Symbol-First Navigation
+
+From Apple's Liquid Glass: persistent navigation should rely on symbols (icons) over text. This reduces visual noise and scales across screen sizes.
+
+### Rules
+
+1. **Persistent nav** (bar, rail, toolbar) uses symbols. Text labels are secondary.
+2. **Text only when ambiguous** — if a pencil could mean "annotate" or "edit", use text.
+3. **Don't pair symbol with text** as a single button — it can be misread as one tappable element. If you need text, let it sit on its own container.
+4. **Group related actions** on a shared glass background. Related actions together, unrelated actions separate.
+5. **Primary action stays tinted** — "Done" or "Create" stands apart with accent color, often as a tinted symbol rather than a text button.
+
+The admin cockpit already follows this — the floating toolbar uses RiClipboardLine (Hub), RiSeedlingLine (Garden), RiTeamLine (Community) with delayed tooltips.
+
+---
+
 ## Container Queries as Adaptive Surfaces
 
 In spatial computing, each pane is its own viewport. Container queries already model this — components adapt to their container, not the screen.
