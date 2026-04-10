@@ -560,7 +560,7 @@ const Work: React.FC = () => {
         <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
           {renderTabContent()}
         </div>
-        <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-[10000] bg-bg-white-0 border-t border-stroke-soft-200">
+        <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-modal bg-bg-white-0 border-t border-stroke-soft-200">
           <div className="flex flex-col gap-2 w-full padded">
             {queueStatusMessage && (
               <p className="text-xs text-text-sub-600 px-1" role="status" aria-live="polite">

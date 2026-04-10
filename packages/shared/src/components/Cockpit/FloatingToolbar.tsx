@@ -20,6 +20,8 @@ export interface ToolbarSlot {
   icon: React.ComponentType<{ className?: string }>;
   path: string;
   visible: boolean;
+  mobileOnly?: boolean;
+  desktopOnly?: boolean;
 }
 
 export interface FloatingToolbarProps {

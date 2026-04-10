@@ -1,6 +1,7 @@
 import {
   type Address,
   type AllowlistEntry,
+  adminRoutes,
   cn,
   type GardenAssessment,
   getSDGLabel,
@@ -252,7 +253,7 @@ export function HypercertPreview({
               )}
               {gardenId && (
                 <Link
-                  to={`/gardens/${gardenId}/assessments`}
+                  to={adminRoutes.garden({ view: "impact", section: "assessments" })}
                   className="mt-1 inline-block text-xs text-primary-base hover:underline"
                 >
                   {formatMessage({ id: "app.hypercerts.preview.assessment.viewAll" })}

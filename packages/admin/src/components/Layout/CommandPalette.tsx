@@ -1,8 +1,9 @@
 import {
+  adminRoutes,
   cn,
   DEFAULT_CHAIN_ID,
-  useAdminStore,
   useActions,
+  useAdminStore,
   useAllAssessments,
   useGardens,
   useRole,
@@ -19,15 +20,21 @@ import {
   RiHammerFill,
   RiPlantLine,
   RiSearchLine,
+  RiSettings3Line,
+  RiUserLine,
 } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { dispatchOpenAccountSheet } from "./accountSheet.events";
 
 interface SearchResult {
   id: string;
   label: string;
   href?: string;
+  onSelect?: () => void;
+  actionId?: "open-profile-sheet" | "open-settings-sheet";
+  icon?: React.ComponentType<{ className?: string }>;
   category: "quick-actions" | "pages" | "gardens" | "actions" | "assessments";
   subtitle?: string;
 }
@@ -49,19 +56,24 @@ const CATEGORY_ICONS: Record<
 };
 
 const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
-  { id: "page-work", labelId: "cockpit.nav.hub", defaultLabel: "Hub", href: "/work" },
-  { id: "page-garden", labelId: "cockpit.nav.garden", defaultLabel: "Garden", href: "/garden" },
+  { id: "page-work", labelId: "cockpit.nav.hub", defaultLabel: "Hub", href: adminRoutes.work() },
+  {
+    id: "page-garden",
+    labelId: "cockpit.nav.garden",
+    defaultLabel: "Garden",
+    href: adminRoutes.garden(),
+  },
   {
     id: "page-community",
     labelId: "cockpit.nav.community",
     defaultLabel: "Community",
-    href: "/community",
+    href: adminRoutes.community(),
   },
   {
     id: "page-actions",
     labelId: "app.admin.nav.actions",
     defaultLabel: "Actions",
-    href: "/actions",
+    href: adminRoutes.actions(),
   },
 ];
 
@@ -98,7 +110,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
-  const selectedGardenId = useAdminStore((state) => state.selectedGarden?.id ?? null);
+  const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
 
   // Global keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
@@ -123,6 +135,8 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
       id: string;
       label: string;
       href?: string;
+      actionId?: SearchResult["actionId"];
+      icon?: React.ComponentType<{ className?: string }>;
       roles: UserRole[];
     }> = [
       {
@@ -131,7 +145,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           id: "app.admin.nav.quickAction.pendingReviews",
           defaultMessage: "Go to Pending Reviews",
         }),
-        href: selectedGardenId ? `/work?garden=${selectedGardenId}&view=queue` : "/work?view=queue",
+        href: adminRoutes.work(),
         roles: ["deployer", "operator"],
       },
       {
@@ -140,15 +154,27 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           id: "app.admin.nav.quickAction.createGarden",
           defaultMessage: "Create Garden",
         }),
-        href: "/gardens/create",
+        href: adminRoutes.gardenCreate(),
         roles: ["deployer"],
       },
       {
-        id: "open-settings",
+        id: "open-profile-sheet",
+        label: formatMessage({
+          id: "cockpit.nav.profile",
+          defaultMessage: "Profile",
+        }),
+        actionId: "open-profile-sheet",
+        icon: RiUserLine,
+        roles: ["deployer", "operator", "user"],
+      },
+      {
+        id: "open-settings-sheet",
         label: formatMessage({
           id: "cockpit.settings.title",
           defaultMessage: "Settings",
         }),
+        actionId: "open-settings-sheet",
+        icon: RiSettings3Line,
         roles: ["deployer", "operator", "user"],
       },
     ];
@@ -160,6 +186,8 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
             id: qa.id,
             label: qa.label,
             href: qa.href,
+            actionId: qa.actionId,
+            icon: qa.icon,
             category: "quick-actions",
           });
         }
@@ -181,7 +209,8 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           items.push({
             id: `garden-${garden.id}`,
             label: garden.name,
-            href: `/garden?garden=${garden.id}`,
+            href: adminRoutes.garden(),
+            onSelect: () => setSelectedGarden(garden),
             category: "gardens",
             subtitle: garden.location || undefined,
           });
@@ -196,7 +225,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           items.push({
             id: `action-${action.id}`,
             label: action.title,
-            href: `/actions/${action.id}`,
+            href: adminRoutes.actionDetail(action.id),
             category: "actions",
             subtitle: action.startTime
               ? new Date(action.startTime * 1000).toLocaleDateString()
@@ -218,9 +247,12 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           items.push({
             id: `assessment-${assessment.id}`,
             label: title,
-            href: matchedGarden
-              ? `/garden?garden=${matchedGarden.id}&view=impact&item=${assessment.id}`
-              : "/garden?view=impact",
+            href: adminRoutes.garden({
+              view: "impact",
+              section: "assessments",
+              item: assessment.id,
+            }),
+            onSelect: matchedGarden ? () => setSelectedGarden(matchedGarden) : undefined,
             category: "assessments",
             subtitle: gardenName ? gardenName : `Garden ${assessment.gardenAddress.slice(0, 8)}...`,
           });
@@ -229,7 +261,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
     }
 
     return items;
-  }, [actions, assessments, debouncedQuery, formatMessage, gardens, role, selectedGardenId]);
+  }, [actions, assessments, debouncedQuery, formatMessage, gardens, role, setSelectedGarden]);
 
   // Group results by category
   const grouped = useMemo(() => {
@@ -274,14 +306,33 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
     [setOpen]
   );
 
-  // Navigate to a result or dispatch a custom event for non-navigation actions
+  // Navigate to a result or dispatch a sheet-opening action
   const selectResult = useCallback(
     (result: SearchResult) => {
       setOpen(false);
-      if (result.id === "open-settings") {
-        window.dispatchEvent(new CustomEvent("open-settings-sheet"));
+
+      if (result.actionId) {
+        const isDesktop =
+          typeof window !== "undefined"
+            ? (window.matchMedia?.("(min-width: 600px)").matches ?? false)
+            : false;
+
+        if (isDesktop) {
+          const nextTab = result.actionId === "open-settings-sheet" ? "settings" : "profile";
+          dispatchOpenAccountSheet(nextTab);
+          return;
+        }
+
+        navigate(
+          result.actionId === "open-settings-sheet"
+            ? adminRoutes.profile({ tab: "settings" })
+            : adminRoutes.profile()
+        );
         return;
       }
+
+      result.onSelect?.();
+
       if (result.href) {
         navigate(result.href);
       }
@@ -327,16 +378,25 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay" />
           <Dialog.Content
             className="fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-stroke-sub bg-bg-white shadow-xl animate-fade-in-up"
-            aria-label={formatMessage({
-              id: "app.admin.nav.commandPalette",
-              defaultMessage: "Command palette",
-            })}
             onKeyDown={handleKeyDown}
             onOpenAutoFocus={(e) => {
               e.preventDefault();
               inputRef.current?.focus();
             }}
           >
+            <Dialog.Title className="sr-only">
+              {formatMessage({
+                id: "app.admin.nav.commandPalette",
+                defaultMessage: "Command palette",
+              })}
+            </Dialog.Title>
+            <Dialog.Description className="sr-only">
+              {formatMessage({
+                id: "app.admin.nav.searchPlaceholder",
+                defaultMessage: "Search pages, gardens, actions...",
+              })}
+            </Dialog.Description>
+
             {/* Search input */}
             <div className="flex items-center gap-3 border-b border-stroke-soft px-4">
               <RiSearchLine className="h-5 w-5 shrink-0 text-text-soft" aria-hidden="true" />
@@ -370,7 +430,11 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                     {group.items.map((result) => {
                       const index = flatIndex++;
                       const isActive = index === activeIndex;
-                      const Icon = CATEGORY_ICONS[result.category];
+                      const Icon =
+                        result.icon ??
+                        (result.category === "pages"
+                          ? CATEGORY_ICONS.pages
+                          : CATEGORY_ICONS[result.category]);
                       return (
                         <button
                           key={result.id}

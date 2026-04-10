@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/user_prompt_submit_normalize.py\"",
+            "statusMessage": "Normalizing prompt contract..."
+          }
+        ]
+      }
+    ]
+  }
+}

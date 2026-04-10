@@ -1,5 +1,6 @@
 import {
   type Address,
+  adminRoutes,
   formatDate,
   type HypercertRecord,
   useGardenPermissions,
@@ -55,13 +56,13 @@ export default function Hypercerts() {
           { gardenName: garden.name }
         )}
         backLink={{
-          to: `/gardens/${garden.id}`,
-          label: formatMessage({ id: "app.hypercerts.backToGarden" }),
+          to: adminRoutes.garden({ view: "impact", section: "hypercerts" }),
+          label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
         }}
         actions={
           canManage ? (
             <Link
-              to={`/gardens/${garden.id}/hypercerts/create`}
+              to={adminRoutes.gardenHypercertCreate()}
               className="flex items-center gap-1.5 rounded-md bg-primary-base px-3 py-2 text-xs font-medium text-primary-foreground transition hover:bg-primary-darker"
             >
               <RiAddLine className="h-4 w-4" />
@@ -116,7 +117,7 @@ export default function Hypercerts() {
             </p>
             {canManage && (
               <Link
-                to={`/gardens/${garden.id}/hypercerts/create`}
+                to={adminRoutes.gardenHypercertCreate()}
                 className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-primary-base px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
               >
                 <RiAddLine className="h-4 w-4" />
@@ -161,7 +162,7 @@ export default function Hypercerts() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
-                        to={`/gardens/${garden.id}/hypercerts/${record.id}`}
+                        to={adminRoutes.gardenHypercertDetail(record.id)}
                         className="min-h-[44px] inline-flex items-center rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
                       >
                         {formatMessage({ id: "app.hypercerts.list.viewDetails" })}

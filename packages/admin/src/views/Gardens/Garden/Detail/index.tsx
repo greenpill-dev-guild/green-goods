@@ -3,6 +3,7 @@ import {
   type Address,
   Button,
   Card,
+  adminRoutes,
   formatTokenAmount,
   type GardenDetailTab,
   type GardenRole,
@@ -23,11 +24,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { CommunityTab } from "../CommunityTab";
-import { GardenHeroBanner, TabBadge } from "../GardenDetailHelpers";
-import { TAB_SECTIONS, TAB_TRIGGER_BASE } from "../gardenDetail.constants";
-import { ImpactTab } from "../ImpactTab";
-import { OverviewTab } from "../OverviewTab";
+import { CommunityTab } from "@/views/CockpitGarden/CommunityTab";
+import { GardenHeroBanner, TabBadge } from "@/views/CockpitGarden/GardenDetailHelpers";
+import { TAB_SECTIONS, TAB_TRIGGER_BASE } from "@/views/CockpitGarden/gardenDetail.constants";
+import { ImpactTab } from "@/views/CockpitGarden/ImpactTab";
+import { OverviewTab } from "@/views/CockpitGarden/OverviewTab";
 import { WorkTab } from "../WorkTab";
 import { GardenModals } from "./GardenModals";
 import { TabActions } from "./TabActions";
@@ -210,7 +211,7 @@ export default function GardenDetail() {
 
   const baseHeaderProps = {
     backLink: {
-      to: gardenId ? `/garden?garden=${gardenId}` : "/garden",
+      to: adminRoutes.garden(),
       label: formatMessage({ id: "app.garden.admin.backToGardens" }),
     },
     sticky: true,
@@ -283,7 +284,7 @@ export default function GardenDetail() {
                 {error?.message ?? formatMessage({ id: "app.garden.admin.unableToLoad" })}
               </p>
               <Button variant="secondary" className="mt-6" asChild>
-                <Link to={gardenId ? `/garden?garden=${gardenId}` : "/garden"}>
+                <Link to={adminRoutes.garden()}>
                   {formatMessage({ id: "app.garden.admin.backToGardens" })}
                 </Link>
               </Button>
@@ -307,7 +308,7 @@ export default function GardenDetail() {
         description={garden.description}
         bannerImage={garden.bannerImage}
         domainMask={garden.domainMask}
-        backTo={`/garden?garden=${garden.id}`}
+        backTo={adminRoutes.garden()}
         backLabel={formatMessage({ id: "app.garden.admin.backToGardens" })}
         canManage={canManage}
         onEditDomains={() => setDomainModalOpen(true)}

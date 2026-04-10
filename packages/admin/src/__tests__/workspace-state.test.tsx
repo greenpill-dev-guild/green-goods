@@ -19,11 +19,25 @@ const {
   mockUseStaleGardenGuard,
   mockSetSelectedGarden,
   mockUseGardenStateStore,
+  mockEligibleAdminGardens,
 } = vi.hoisted(() => ({
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
   mockUseGardenStateStore: vi.fn(),
+  mockEligibleAdminGardens: {
+    current: {
+      eligibleGardens: [
+        { id: "garden-x", name: "Garden X", location: "Quito" },
+        { id: "garden-y", name: "Garden Y", location: "Bogota" },
+      ],
+      resolvedDefaultGarden: { id: "garden-x", name: "Garden X", location: "Quito" },
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    },
+  },
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
@@ -67,7 +81,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useAuth: () => ({
       isAuthenticated: true,
       eoaAddress: "0x1234567890123456789012345678901234567890",
+      isReady: true,
+      authMode: "wallet",
+      signOut: vi.fn(),
     }),
+    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
     useEffectiveToolbarPermissions: () => ({
       showWork: true,
       showGarden: true,
@@ -75,13 +93,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       showActions: true,
       isLoading: false,
     }),
-    useGardens: () => ({
-      data: [
-        { id: "garden-x", name: "Garden X", location: "Quito" },
-        { id: "garden-y", name: "Garden Y", location: "Bogota" },
-      ],
-    }),
-    useRole: () => ({ role: "operator" }),
     useGardenUrlSync: mockUseGardenUrlSync,
     useStaleGardenGuard: mockUseStaleGardenGuard,
     useGardenStateStore: mockUseGardenStateStore,
@@ -92,8 +103,8 @@ vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,
 }));
 
-vi.mock("@/components/Layout/SettingsSheet", () => ({
-  SettingsSheet: () => null,
+vi.mock("@/components/Layout/AccountSheet", () => ({
+  AccountSheet: () => null,
 }));
 
 vi.mock("@/components/Layout/PageTransition", () => ({
@@ -107,6 +118,17 @@ import { CockpitLayout } from "@/components/Layout/CockpitLayout";
 describe("Workspace State Integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEligibleAdminGardens.current = {
+      eligibleGardens: [
+        { id: "garden-x", name: "Garden X", location: "Quito" },
+        { id: "garden-y", name: "Garden Y", location: "Bogota" },
+      ],
+      resolvedDefaultGarden: { id: "garden-x", name: "Garden X", location: "Quito" },
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    };
     mockUseGardenUrlSync.mockReturnValue({
       gardenId: null,
       tab: null,
@@ -118,7 +140,7 @@ describe("Workspace State Integration", () => {
     });
   });
 
-  it("deep URL /work?garden=X&item=Y opens correct state", () => {
+  it("deep URL /work?gardenAddress=X&item=Y opens correct state", () => {
     mockUseGardenUrlSync.mockReturnValue({
       gardenId: "garden-x",
       tab: null,
@@ -130,7 +152,7 @@ describe("Workspace State Integration", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work?garden=garden-x&item=item-y"]}>
+      <MemoryRouter initialEntries={["/work?gardenAddress=0xgardenx&item=item-y"]}>
         <CockpitLayout />
       </MemoryRouter>
     );
@@ -157,7 +179,10 @@ describe("Workspace State Integration", () => {
 
     renderWithProviders(
       <MemoryRouter
-        initialEntries={["/work?garden=garden-x", "/work?garden=garden-x&item=item-open"]}
+        initialEntries={[
+          "/work?gardenAddress=0xgardenx",
+          "/work?gardenAddress=0xgardenx&item=item-open",
+        ]}
       >
         <CockpitLayout />
       </MemoryRouter>
@@ -184,7 +209,7 @@ describe("Workspace State Integration", () => {
     });
 
     const { rerender } = renderWithProviders(
-      <MemoryRouter initialEntries={["/work?garden=garden-x&tab=community"]}>
+      <MemoryRouter initialEntries={["/work?gardenAddress=0xgardenx&tab=community"]}>
         <CockpitLayout />
       </MemoryRouter>
     );
@@ -201,7 +226,7 @@ describe("Workspace State Integration", () => {
     });
 
     rerender(
-      <MemoryRouter initialEntries={["/work?garden=garden-y&tab=actions"]}>
+      <MemoryRouter initialEntries={["/work?gardenAddress=0xgardeny&tab=actions"]}>
         <CockpitLayout />
       </MemoryRouter>
     );

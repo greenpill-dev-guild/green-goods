@@ -1,9 +1,6 @@
 /**
  * Mobile Navigation Tests
  * @vitest-environment jsdom
- *
- * Tests the mobile-specific bottom navigation behavior of CockpitLayout.
- * These will be RED until mobile nav adaptations are implemented.
  */
 
 import type React from "react";
@@ -11,11 +8,18 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen } from "../test-utils";
 
-// ── Hoisted mocks ──────────────────────────────────────────────────────────
-
-const { mockUseEffectiveToolbarPermissions, mockMatchMedia } = vi.hoisted(() => ({
+const { mockUseEffectiveToolbarPermissions, mockEligibleAdminGardens } = vi.hoisted(() => ({
   mockUseEffectiveToolbarPermissions: vi.fn(),
-  mockMatchMedia: vi.fn(),
+  mockEligibleAdminGardens: {
+    current: {
+      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
+      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    },
+  },
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
@@ -57,12 +61,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useAuth: () => ({
       isAuthenticated: true,
       eoaAddress: "0x1234567890123456789012345678901234567890",
+      isReady: true,
+      authMode: "wallet",
+      signOut: vi.fn(),
     }),
+    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
     useEffectiveToolbarPermissions: mockUseEffectiveToolbarPermissions,
-    useGardens: () => ({
-      data: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-    }),
-    useRole: () => ({ role: "operator" }),
     useGardenUrlSync: vi.fn(),
     useStaleGardenGuard: vi.fn(),
   };
@@ -72,8 +76,8 @@ vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,
 }));
 
-vi.mock("@/components/Layout/SettingsSheet", () => ({
-  SettingsSheet: () => null,
+vi.mock("@/components/Layout/AccountSheet", () => ({
+  AccountSheet: () => null,
 }));
 
 vi.mock("@/components/Layout/PageTransition", () => ({
@@ -82,11 +86,30 @@ vi.mock("@/components/Layout/PageTransition", () => ({
 
 import { CockpitLayout } from "@/components/Layout/CockpitLayout";
 
-// ── Tests ──────────────────────────────────────────────────────────────────
-
 describe("Mobile Navigation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+    mockEligibleAdminGardens.current = {
+      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
+      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    };
     mockUseEffectiveToolbarPermissions.mockReturnValue({
       showWork: true,
       showGarden: true,
@@ -97,7 +120,6 @@ describe("Mobile Navigation", () => {
   });
 
   afterEach(() => {
-    // Restore matchMedia default
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -113,20 +135,20 @@ describe("Mobile Navigation", () => {
     });
   });
 
-  it("renders Work, Garden, Community nav items on mobile viewport", () => {
+  it("renders Profile as a real mobile navigation item", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/work"]}>
         <CockpitLayout />
       </MemoryRouter>
     );
 
-    // The navigation bar should render with Work, Garden, and Community slots visible
-    expect(screen.getByTestId("nav-item-work")).toHaveTextContent("Work");
+    expect(screen.getByTestId("nav-item-work")).toHaveTextContent("Hub");
     expect(screen.getByTestId("nav-item-garden")).toHaveTextContent("Garden");
     expect(screen.getByTestId("nav-item-community")).toHaveTextContent("Community");
+    expect(screen.getByTestId("nav-item-profile")).toHaveTextContent("Profile");
   });
 
-  it("hides nav items when only single slot visible (showWork only)", () => {
+  it("keeps Profile visible when only a single primary workspace slot is visible", () => {
     mockUseEffectiveToolbarPermissions.mockReturnValue({
       showWork: true,
       showGarden: false,
@@ -141,28 +163,32 @@ describe("Mobile Navigation", () => {
       </MemoryRouter>
     );
 
-    // Only Work should be visible, Garden/Community/Actions should not render
     expect(screen.getByTestId("nav-item-work")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-item-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-item-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-item-community")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-item-actions")).not.toBeInTheDocument();
   });
 
-  it("hides when virtual keyboard is open", () => {
-    // Simulate virtual keyboard by changing visualViewport height
-    // This test defines the contract: when keyboard is detected,
-    // the mobile nav should hide to avoid covering input fields.
-    // Currently RED — the keyboard detection logic isn't implemented yet.
-    const mockVisualViewport = {
-      height: 300, // Significantly less than window.innerHeight (typically 800+)
-      width: 375,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
-    };
+  it("marks /profile as the active mobile navigation path", () => {
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/profile"]}>
+        <CockpitLayout />
+      </MemoryRouter>
+    );
 
+    expect(screen.getByTestId("active-path")).toHaveTextContent("/profile");
+  });
+
+  it("keeps the navigation mounted when the virtual keyboard shrinks the viewport", () => {
     Object.defineProperty(window, "visualViewport", {
       configurable: true,
-      value: mockVisualViewport,
+      value: {
+        height: 300,
+        width: 375,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      },
     });
 
     renderWithProviders(
@@ -171,34 +197,21 @@ describe("Mobile Navigation", () => {
       </MemoryRouter>
     );
 
-    // When keyboard is open, the navigation bar should still exist in DOM
-    // but the cockpit should detect the viewport change.
-    // This is a contract test — the actual hide behavior depends on
-    // a mobile-nav wrapper component that doesn't exist yet.
-    const navBar = screen.getByTestId("navigation-bar");
-    expect(navBar).toBeInTheDocument();
+    expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
 
-    // Clean up
     Object.defineProperty(window, "visualViewport", {
       configurable: true,
       value: undefined,
     });
   });
 
-  it("does not render navigation for unauthenticated users", () => {
-    // Override useAuth for this test
-    // Note: This tests the existing conditional rendering in CockpitLayout
-    // where NavigationBar only renders when isAuthenticated is true.
-    // Since our mock always returns isAuthenticated: true, we verify
-    // the nav renders. The inverse case is covered by the component's
-    // conditional: {isAuthenticated && <NavigationBar />}
+  it("keeps navigation visible for authenticated users", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/work"]}>
         <CockpitLayout />
       </MemoryRouter>
     );
 
-    // Navigation bar is present when authenticated
     expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
   });
 });

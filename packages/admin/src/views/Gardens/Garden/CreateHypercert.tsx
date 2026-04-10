@@ -1,7 +1,7 @@
-import { useGardenPermissions, useGardens } from "@green-goods/shared";
+import { adminRoutes, useAdminStore, useGardenPermissions, useGardens } from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   type HypercertCompletionData,
   HypercertWizard,
@@ -9,18 +9,21 @@ import {
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function CreateHypercert() {
-  const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
+  const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const { data: gardens = [] } = useGardens();
-  const garden = useMemo(() => gardens.find((item) => item.id === id), [gardens, id]);
+  const garden = useMemo(
+    () => gardens.find((item) => item.id === selectedGarden?.id),
+    [gardens, selectedGarden?.id]
+  );
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
 
   const handleComplete = useCallback(
     (data: HypercertCompletionData) => {
       // Navigate to detail page with optimistic data for immediate rendering
-      navigate(`/gardens/${garden?.id}/hypercerts/${data.hypercertId}`, {
+      navigate(adminRoutes.gardenHypercertDetail(data.hypercertId), {
         state: {
           optimisticData: {
             id: data.hypercertId,
@@ -45,7 +48,7 @@ export default function CreateHypercert() {
           title={formatMessage({ id: "app.hypercerts.create.title" })}
           description={formatMessage({ id: "app.hypercerts.create.notFound" })}
           backLink={{
-            to: "/garden",
+            to: adminRoutes.garden(),
             label: formatMessage({ id: "app.hypercerts.backToGardens" }),
           }}
         />
@@ -60,8 +63,8 @@ export default function CreateHypercert() {
           title={formatMessage({ id: "app.hypercerts.create.title" })}
           description={formatMessage({ id: "app.hypercerts.create.unauthorized" })}
           backLink={{
-            to: `/gardens/${garden.id}`,
-            label: formatMessage({ id: "app.hypercerts.backToGarden" }),
+            to: adminRoutes.garden({ view: "impact", section: "hypercerts" }),
+            label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
           }}
         />
       </div>
@@ -77,7 +80,7 @@ export default function CreateHypercert() {
           { gardenName: garden.name }
         )}
         backLink={{
-          to: `/gardens/${garden.id}/hypercerts`,
+          to: adminRoutes.garden({ view: "impact", section: "hypercerts" }),
           label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
         }}
         sticky
@@ -85,7 +88,7 @@ export default function CreateHypercert() {
       <HypercertWizard
         gardenId={garden.id}
         gardenName={garden.name}
-        onCancel={() => navigate(`/gardens/${garden.id}/hypercerts`)}
+        onCancel={() => navigate(adminRoutes.garden({ view: "impact", section: "hypercerts" }))}
         onComplete={handleComplete}
       />
     </div>

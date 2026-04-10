@@ -5,9 +5,9 @@ import { NavigationBar } from "./NavigationBar";
 import type { ToolbarSlot } from "./FloatingToolbar";
 
 const workSlot: ToolbarSlot = {
-  id: "work",
-  label: "Work",
-  labelId: "cockpit.nav.work",
+  id: "hub",
+  label: "Hub",
+  labelId: "cockpit.nav.hub",
   icon: RiClipboardLine,
   path: "/work",
   visible: true,
@@ -116,7 +116,7 @@ export const Gallery: Story = {
   render: () => (
     <div className="flex min-h-screen flex-col gap-12 p-8">
       <section>
-        <h3 className="mb-4 text-sm font-semibold text-text-sub">Four slots, Work active</h3>
+        <h3 className="mb-4 text-sm font-semibold text-text-sub">Four slots, Hub active</h3>
         <NavigationBar slots={primarySlots} activePath="/work" onNavigate={fn()} />
       </section>
       <section>

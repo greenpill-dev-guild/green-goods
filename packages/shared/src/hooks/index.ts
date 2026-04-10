@@ -201,6 +201,8 @@ export { useFilteredGardens } from "./garden/useFilteredGardens";
 export { useGardenDerivedState } from "./garden/useGardenDerivedState";
 export { useGardenDetailData } from "./garden/useGardenDetailData";
 export { useGardenDomains } from "./garden/useGardenDomains";
+export type { EligibleAdminGardensResult } from "./garden/useEligibleAdminGardens";
+export { useEligibleAdminGardens } from "./garden/useEligibleAdminGardens";
 export type { GardenDraft, UseGardenDraftResult } from "./garden/useGardenDraft";
 export { useGardenDraft } from "./garden/useGardenDraft";
 export type { GardenInvite } from "./garden/useGardenInvites";
@@ -383,6 +385,8 @@ export type { CockpitSearchParamsResult } from "./navigation/useCockpitSearchPar
 export { useCockpitSearchParams } from "./navigation/useCockpitSearchParams";
 export type { GardenUrlSyncResult } from "./navigation/useGardenUrlSync";
 export { useGardenUrlSync } from "./navigation/useGardenUrlSync";
+export type { UseSheetOrchestratorReturn } from "./navigation/useSheetOrchestrator";
+export { useSheetOrchestrator } from "./navigation/useSheetOrchestrator";
 // ============================================================================
 // WORK
 // ============================================================================

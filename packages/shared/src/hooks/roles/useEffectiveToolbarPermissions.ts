@@ -9,10 +9,10 @@
  */
 
 import { useMemo } from "react";
-import { useAccount } from "wagmi";
 import { isAddressInList } from "../../utils/blockchain/address";
 import { useAdminStore } from "../../stores/useAdminStore";
 import { useGardens } from "../blockchain/useBaseLists";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useRole } from "../gardener/useRole";
 
 export interface ToolbarPermissions {
@@ -32,7 +32,7 @@ const FAIL_OPEN: ToolbarPermissions = {
 };
 
 export function useEffectiveToolbarPermissions(): ToolbarPermissions {
-  const { address } = useAccount();
+  const address = usePrimaryAddress();
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const { isDeployer, isOperator: isPlatformOperator, loading: roleLoading } = useRole();
   const { data: gardens, isLoading: gardensLoading } = useGardens();

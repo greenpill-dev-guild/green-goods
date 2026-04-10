@@ -1,5 +1,6 @@
 import {
   type EASWork,
+  adminRoutes,
   formatAddress,
   resolveIPFSUrl,
   WorkCardComponent as SharedWorkCard,
@@ -59,7 +60,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
           {work.status === "pending" && canReview && (
             <>
               <Link
-                to={`/gardens/${work.gardenAddress}/work/${work.id}?action=approve`}
+                to={adminRoutes.workDetail(work.id, { action: "approve" })}
                 className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-success-dark bg-success-lighter hover:bg-success-light transition-colors"
                 aria-label={intl.formatMessage(
                   {
@@ -77,7 +78,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
                 })}
               </Link>
               <Link
-                to={`/gardens/${work.gardenAddress}/work/${work.id}?action=reject`}
+                to={adminRoutes.workDetail(work.id, { action: "reject" })}
                 className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-error-dark bg-error-lighter hover:bg-error-light transition-colors"
                 aria-label={intl.formatMessage(
                   {
@@ -97,7 +98,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
             </>
           )}
           <Link
-            to={`/gardens/${work.gardenAddress}/work/${work.id}`}
+            to={adminRoutes.workDetail(work.id)}
             className="inline-flex min-h-9 items-center text-xs font-medium text-primary-base hover:text-primary-darker transition-colors ml-auto"
           >
             {intl.formatMessage({

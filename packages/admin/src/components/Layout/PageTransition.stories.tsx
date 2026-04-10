@@ -3,11 +3,15 @@ import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { PageTransition } from "./PageTransition";
 
 /**
- * PageTransition wraps `<Outlet />` with a CSS animation keyed on `location.pathname`.
- * Each route change triggers the `animate-page-slide-in` animation.
+ * PageTransition wraps `<Outlet />` with close-then-navigate sheet orchestration.
  *
- * Because the component depends on react-router (useLocation + Outlet),
- * stories must be wrapped in a MemoryRouter with mock routes.
+ * On route change:
+ * 1. If a sheet is open, calls `onNavigateAway` to save state and close it (300ms)
+ * 2. Triggers `document.startViewTransition()` for a cross-fade
+ * 3. Calls `onNavigateArrive` to restore any saved sheet state
+ *
+ * The CSS view-transition keyframes (`view-fade-out` / `view-fade-in`) are
+ * defined in `index.css` and applied automatically via `::view-transition-*`.
  */
 
 const meta: Meta<typeof PageTransition> = {
@@ -32,7 +36,7 @@ function MockPage({ title, color }: { title: string; color: string }) {
     <div className={`rounded-xl border border-stroke-soft p-8 ${color}`}>
       <h2 className="text-lg font-bold text-text-strong">{title}</h2>
       <p className="mt-2 text-sm text-text-sub">
-        This page content slides in via the animate-page-slide-in animation.
+        This page uses the View Transitions API for cross-fade animations.
       </p>
     </div>
   );
@@ -84,32 +88,14 @@ export const Default: Story = {
   decorators: [],
 };
 
-export const AnimationPreview: Story = {
-  render: () => (
-    <div className="space-y-4">
-      <p className="text-sm text-text-sub">
-        The animation below shows the slide-in effect that fires on each route change. Click the
-        buttons above in the Default story to see it in action.
-      </p>
-      <div className="animate-page-slide-in rounded-xl border border-stroke-soft bg-bg-weak p-8">
-        <h2 className="text-lg font-bold text-text-strong">Animated Content</h2>
-        <p className="mt-2 text-sm text-text-sub">
-          This block uses the same animate-page-slide-in class directly.
-        </p>
-      </div>
-    </div>
-  ),
-  decorators: [],
-};
-
 export const Gallery: Story = {
   render: () => (
     <div className="space-y-6">
       <section>
         <h3 className="mb-3 text-sm font-medium text-text-sub">Interactive Route Transition</h3>
         <p className="mb-4 text-xs text-text-soft">
-          Click buttons to navigate between routes. Each navigation triggers a fresh slide-in
-          animation keyed on the pathname.
+          Click buttons to navigate between routes. Each navigation triggers a View Transitions API
+          cross-fade. If a sheet is open, it closes first (300ms), then the view fades.
         </p>
         <MemoryRouter initialEntries={["/page-a"]}>
           <NavControls />
@@ -130,15 +116,6 @@ export const Gallery: Story = {
             </Route>
           </Routes>
         </MemoryRouter>
-      </section>
-
-      <section>
-        <h3 className="mb-3 text-sm font-medium text-text-sub">Animation Class Preview</h3>
-        <div className="animate-page-slide-in rounded-xl border border-stroke-soft bg-bg-weak p-6">
-          <p className="text-sm text-text-strong">
-            Static preview of the animate-page-slide-in class
-          </p>
-        </div>
       </section>
     </div>
   ),

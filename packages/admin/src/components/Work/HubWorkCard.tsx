@@ -6,12 +6,7 @@ import {
   resolveIPFSUrl,
   type Work,
 } from "@green-goods/shared";
-import {
-  RiBookOpenLine,
-  RiPlantLine,
-  RiRecycleLine,
-  RiSunLine,
-} from "@remixicon/react";
+import { RiBookOpenLine, RiPlantLine, RiRecycleLine, RiSunLine } from "@remixicon/react";
 import { type ComponentType, type SVGProps, useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -29,7 +24,11 @@ const DOMAIN_BADGE_STYLES: Record<number, DomainBadgeStyle> = {
   0: { bg: "bg-warning-lighter", text: "text-warning-dark", Icon: RiSunLine }, // SOLAR
   1: { bg: "bg-success-lighter", text: "text-success-dark", Icon: RiPlantLine }, // AGRO
   2: { bg: "bg-information-lighter", text: "text-information-dark", Icon: RiBookOpenLine }, // EDU
-  3: { bg: "bg-[rgb(var(--orange-100))]", text: "text-[rgb(var(--orange-700))]", Icon: RiRecycleLine }, // WASTE
+  3: {
+    bg: "bg-[rgb(var(--orange-100))]",
+    text: "text-[rgb(var(--orange-700))]",
+    Icon: RiRecycleLine,
+  }, // WASTE
 };
 
 // ---------------------------------------------------------------------------
@@ -99,16 +98,11 @@ function ImageCell({
 // DomainGradientFallback — shown when no images or image load fails
 // ---------------------------------------------------------------------------
 
-function DomainGradientFallback({
-  domain,
-  className,
-}: {
-  domain?: Domain;
-  className?: string;
-}) {
-  const gradientClasses = domain !== undefined
-    ? DOMAIN_GRADIENT_STYLES[domain] ?? "from-gray-100 to-gray-50"
-    : "from-gray-100 to-gray-50";
+function DomainGradientFallback({ domain, className }: { domain?: Domain; className?: string }) {
+  const gradientClasses =
+    domain !== undefined
+      ? (DOMAIN_GRADIENT_STYLES[domain] ?? "from-gray-100 to-gray-50")
+      : "from-gray-100 to-gray-50";
 
   const badgeStyle = domain !== undefined ? DOMAIN_BADGE_STYLES[domain] : undefined;
 
@@ -152,60 +146,79 @@ export function HubWorkCard({
       type="button"
       onClick={onClick}
       className={cn(
-        // Shape — Warm Glass concentric: outer 2xl
-        "rounded-2xl bg-bg-white shadow-elevation-1 overflow-hidden cursor-pointer w-full text-left",
-        // Hover lift (Warm Glass spec)
-        "hover:scale-[1.008] hover:shadow-elevation-2",
-        // Press
-        "active:scale-[0.985]",
-        // Transition
-        "transition-all duration-150",
-        // Reduced motion
-        "motion-reduce:hover:scale-100 motion-reduce:active:scale-100 motion-reduce:transition-none",
-        // Focus
+        "group w-full cursor-pointer overflow-hidden rounded-[1.65rem] text-left",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,247,242,0.95)_100%)]",
+        "shadow-[var(--edge-rest),0_18px_38px_rgba(133,109,70,0.08)]",
+        "transition-[transform,box-shadow,background-color] duration-200",
+        "hover:-translate-y-1 hover:shadow-[var(--edge-hover),0_26px_48px_rgba(133,109,70,0.14)]",
+        "active:translate-y-0 active:scale-[0.992]",
+        "motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 motion-reduce:transition-none",
         "outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
       )}
     >
-      {/* Image gallery — 4:3 aspect, inner rounded-xl (concentric) */}
-      <div className="relative">
+      <div className="relative overflow-hidden border-b border-black/5">
         {totalMedia === 0 ? (
-          <DomainGradientFallback
-            domain={actionDomain}
-            className="aspect-[4/3] rounded-t-xl"
-          />
+          <DomainGradientFallback domain={actionDomain} className="aspect-[16/9]" />
         ) : totalMedia === 1 ? (
           <ImageCell
             src={mediaUrls[0]}
             alt={title}
             eager={eagerImages}
             domain={actionDomain}
-            className="aspect-[4/3]"
+            className="aspect-[16/9]"
           />
-        ) : (
-          <div className="grid grid-cols-2 gap-0.5">
+        ) : totalMedia === 2 ? (
+          <div className="grid aspect-[16/9] grid-cols-2 gap-0.5">
             <ImageCell
               src={mediaUrls[0]}
               alt={`${title} — 1`}
               eager={eagerImages}
               domain={actionDomain}
-              className="aspect-[4/3]"
+              className="h-full"
             />
             <ImageCell
               src={mediaUrls[1]}
               alt={`${title} — 2`}
               eager={eagerImages}
               domain={actionDomain}
-              className="aspect-[4/3]"
+              className="h-full"
             />
+          </div>
+        ) : (
+          <div className="grid aspect-[16/9] grid-cols-[1.35fr_1fr] gap-0.5">
+            <ImageCell
+              src={mediaUrls[0]}
+              alt={`${title} — 1`}
+              eager={eagerImages}
+              domain={actionDomain}
+              className="h-full"
+            />
+            <div className="grid h-full gap-0.5">
+              <ImageCell
+                src={mediaUrls[1]}
+                alt={`${title} — 2`}
+                eager={eagerImages}
+                domain={actionDomain}
+                className="h-full"
+              />
+              <ImageCell
+                src={mediaUrls[2]}
+                alt={`${title} — 3`}
+                eager={eagerImages}
+                domain={actionDomain}
+                className="h-full"
+              />
+            </div>
           </div>
         )}
 
-        {/* Domain badge — bottom-left of image area */}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/8 via-transparent to-white/10 opacity-80" />
+
         {badgeStyle && (
           <span
             className={cn(
               "absolute bottom-2 left-2 inline-flex items-center gap-1",
-              "rounded-full px-2 py-0.5 text-[11px] font-medium backdrop-blur-sm",
+              "rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-md",
               badgeStyle.bg,
               badgeStyle.text
             )}
@@ -217,25 +230,38 @@ export function HubWorkCard({
           </span>
         )}
 
-        {/* Media count badge — bottom-right of image area */}
         {totalMedia > 1 && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-black/50 px-1.5 py-0.5 text-[11px] text-white backdrop-blur-sm">
+          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-black/45 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md">
             1 / {totalMedia}
           </span>
         )}
       </div>
 
-      {/* Text area — compact p-3 */}
-      <div className="p-3">
-        <h3
-          className="font-semibold text-sm text-text-strong line-clamp-2"
-          title={title}
+      <div className="space-y-3 p-4 sm:p-[1.125rem]">
+        <div className="flex items-start justify-between gap-3">
+          <h3
+            className="min-w-0 flex-1 text-sm font-semibold leading-5 text-text-strong line-clamp-2 sm:text-[0.95rem]"
+            title={title}
+          >
+            {title}
+          </h3>
+          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.08em] text-text-soft">
+            {formatRelativeTime(work.createdAt)}
+          </span>
+        </div>
+
+        <div
+          className="flex items-center justify-between gap-3 text-xs text-text-sub"
+          title={`${gardenerDisplayName} · ${gardenName}`}
         >
-          {title}
-        </h3>
-        <p className="mt-1 text-xs text-text-sub truncate" title={`${gardenerDisplayName} · ${gardenName}`}>
-          {gardenerDisplayName} · {gardenName} · {formatRelativeTime(work.createdAt)}
-        </p>
+          <div className="min-w-0">
+            <p className="truncate font-medium text-text-sub">{gardenerDisplayName}</p>
+            <p className="truncate text-text-soft">{gardenName}</p>
+          </div>
+          <span className="rounded-full bg-bg-soft/90 px-2.5 py-1 text-[11px] font-medium text-text-soft shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)] transition-colors group-hover:bg-bg-weak">
+            {formatMessage({ id: "cockpit.hub.tab.review", defaultMessage: "Review" })}
+          </span>
+        </div>
       </div>
     </button>
   );

@@ -1,6 +1,7 @@
 import {
   type Address,
   Alert,
+  adminRoutes,
   assessmentStepFields,
   type CreateAssessmentFormData,
   classifyTxError,
@@ -13,6 +14,7 @@ import {
   useCreateAssessmentForm,
   useCreateAssessmentStore,
   useCreateAssessmentWorkflow,
+  useAdminStore,
   useGardenDomains,
   useGardenPermissions,
   useGardens,
@@ -20,7 +22,7 @@ import {
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useShallow } from "zustand/react/shallow";
@@ -96,11 +98,12 @@ export default function CreateAssessment() {
   const intl = useIntl();
   const { formatMessage } = intl;
   const stepConfigs = useStepConfigs();
-  const { id: gardenId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { address } = useAccount();
+  const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const { data: gardens = [] } = useGardens();
   const permissions = useGardenPermissions();
+  const gardenId = selectedGarden?.id ?? null;
   const garden = useMemo(() => gardens.find((item) => item.id === gardenId), [gardens, gardenId]);
   const canReview = garden ? permissions.canReviewGarden(garden) : false;
 
@@ -117,7 +120,7 @@ export default function CreateAssessment() {
 
   const [showValidation, setShowValidation] = useState(false);
 
-  const { data: gardenDomainMask } = useGardenDomains(gardenId);
+  const { data: gardenDomainMask } = useGardenDomains((gardenId ?? undefined) as Address | undefined);
   const normalizedGardenDomainMask =
     typeof gardenDomainMask === "bigint"
       ? Number(gardenDomainMask)
@@ -133,7 +136,7 @@ export default function CreateAssessment() {
     reset: resetWorkflow,
     canRetry,
     draft,
-  } = useCreateAssessmentWorkflow({ gardenId });
+  } = useCreateAssessmentWorkflow({ gardenId: gardenId ?? undefined });
   const { loadDraft, saveDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
 
@@ -324,7 +327,7 @@ export default function CreateAssessment() {
         suppressLogging: true,
       });
       resetStore();
-      navigate(`/gardens/${gardenId}/assessments`);
+      navigate(adminRoutes.garden({ view: "impact", section: "assessments" }));
     }
   }, [isSuccess, navigate, gardenId, formatMessage, resetStore]);
 
@@ -354,7 +357,7 @@ export default function CreateAssessment() {
   };
 
   const handleCancel = () => {
-    navigate(`/gardens/${gardenId}/assessments`);
+    navigate(adminRoutes.garden({ view: "impact", section: "assessments" }));
   };
 
   // ── Final submission (validate all fields) ─────────────
@@ -466,8 +469,8 @@ export default function CreateAssessment() {
           })}
           description={formatMessage({ id: "app.admin.auth.noPermission" })}
           backLink={{
-            to: `/gardens/${garden.id}`,
-            label: formatMessage({ id: "app.garden.admin.backToGarden" }),
+            to: adminRoutes.garden(),
+            label: formatMessage({ id: "app.garden.admin.backToGardens" }),
           }}
           sticky
         />

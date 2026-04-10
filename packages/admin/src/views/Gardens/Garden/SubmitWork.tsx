@@ -2,6 +2,7 @@ import {
   type Action,
   type Address,
   Alert,
+  adminRoutes,
   Button,
   Card,
   cn,
@@ -18,6 +19,7 @@ import {
   queryKeys,
   submitWorkDirectly,
   toastService,
+  useAdminStore,
   useActions,
   useAuth,
   useBeforeUnloadWhilePending,
@@ -31,7 +33,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 // ─────────────────────────────────────────────────────────────
@@ -211,10 +213,11 @@ function DynamicWorkFields({
 // ─────────────────────────────────────────────────────────────
 
 export default function SubmitWork() {
-  const { id: gardenId } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const gardenId = selectedGarden?.id ?? null;
 
   // Data hooks
   const { data: gardens = [] } = useGardens();
@@ -265,8 +268,8 @@ export default function SubmitWork() {
 
   // Navigate back to garden detail work tab
   const goBack = useCallback(() => {
-    navigate(`/gardens/${gardenId}?tab=work`);
-  }, [navigate, gardenId]);
+    navigate(adminRoutes.work());
+  }, [navigate]);
 
   // Submission mutation
   const chainId = DEFAULT_CHAIN_ID;
@@ -365,7 +368,7 @@ export default function SubmitWork() {
   // ── Render ───────────────────────────────────────────────
   const baseHeaderProps = {
     backLink: {
-      to: `/gardens/${gardenId}?tab=work`,
+      to: adminRoutes.work(),
       label: formatMessage({ id: "app.admin.work.submit.backToGarden" }),
     },
     sticky: true,

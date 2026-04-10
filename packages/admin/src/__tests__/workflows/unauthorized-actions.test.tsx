@@ -63,7 +63,7 @@ describe("Unauthorized Actions", () => {
     // Create garden button should always be visible (authorization handled at route level)
     const createButton = screen.getByText("Create Garden");
     expect(createButton).toBeInTheDocument();
-    expect(createButton.closest("a")).toHaveAttribute("href", "/gardens/create");
+    expect(createButton.closest("a")).toHaveAttribute("href", "/garden/create");
   });
 
   it("should handle network errors gracefully", () => {

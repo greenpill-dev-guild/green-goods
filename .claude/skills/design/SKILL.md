@@ -101,6 +101,15 @@ Pick a material that carries the entire surface:
 
 Then enforce it — every element speaks the same material language.
 
+### Admin Cockpit Carve-Out
+
+For `packages/admin` and operator dashboards, do not treat Warm Glass as permission to make the cockpit theatrical.
+
+- Default to **Command Surface** with restrained material, strong typography, and calm workspace hierarchy.
+- Use subtle atmosphere and tint, not decorative spectacle.
+- Prefer utility copy, visible task flow, and inspector patterns over immersive scenes or brand moments.
+- If a design move would be inappropriate for Linear, GitHub, or Stripe Dashboard, it is probably inappropriate for Green Goods admin unless explicitly requested.
+
 ---
 
 ## Anti-Patterns
@@ -122,6 +131,7 @@ Then enforce it — every element speaks the same material language.
 10. **Generic AI slop** — Inter + purple gradient + white bg + predictable grid = forgettable.
 11. **Sharp corners at scale** — Squircles for panes. Sharp only for inline text elements.
 12. **Motion without meaning** — Every animation communicates state change, not decoration.
+13. **Client styling in the cockpit** — Do not import landing-page or public-brand composition rules into operator surfaces.
 
 ---
 

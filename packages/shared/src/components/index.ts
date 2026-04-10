@@ -59,18 +59,30 @@ export {
   type WorkStatus,
   workCardVariants,
 } from "./Cards";
+// Surface Component (unified surface primitive — preferred over Card/CardBase for new code)
+export { Surface, surfaceVariants } from "./Surface";
+export type { SurfaceProps, SurfaceVariantProps } from "./Surface";
 // Feedback Components
 export type { TxInlineFeedbackProps, TxInlineFeedbackSeverity } from "./feedback/TxInlineFeedback";
 export { TxInlineFeedback } from "./feedback/TxInlineFeedback";
-// Cockpit Components (Sheets + Navigation)
+// Cockpit Components (Sheets + Navigation + Canvas)
 export {
   BottomSheet,
   type BottomSheetProps,
+  Canvas,
+  type CanvasProps,
+  FabProvider,
+  useCanvasPortal,
+  useFabConfig,
+  useFabConfigValue,
   type ToolbarSlot,
   GardenChip,
   type GardenChipProps,
   NavigationBar,
   type NavigationBarProps,
+  type FabAction,
+  type FabConfig,
+  NotificationPanel,
   SheetErrorBoundary,
   type SheetErrorBoundaryProps,
   SideSheet,

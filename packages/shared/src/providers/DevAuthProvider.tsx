@@ -20,6 +20,7 @@ import {
 } from "./Auth";
 
 type MockRole = "deployer" | "operator" | "user" | "disconnected";
+const DEV_MOCK_AUTH_STORAGE_KEY = "greengoods_dev_mock_auth";
 
 const MOCK_ADDRESSES: Record<Exclude<MockRole, "disconnected">, `0x${string}`> = {
   deployer: "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
@@ -27,12 +28,34 @@ const MOCK_ADDRESSES: Record<Exclude<MockRole, "disconnected">, `0x${string}`> =
   user: "0x1234567890123456789012345678901234567890",
 };
 
+function isMockRole(value: string | null): value is MockRole {
+  return value === "disconnected" || (value !== null && value in MOCK_ADDRESSES);
+}
+
+function readPersistedMockRole(): MockRole | null {
+  const stored = window.sessionStorage.getItem(DEV_MOCK_AUTH_STORAGE_KEY);
+  return isMockRole(stored) ? stored : null;
+}
+
+function persistMockRole(role: MockRole) {
+  window.sessionStorage.setItem(DEV_MOCK_AUTH_STORAGE_KEY, role);
+}
+
+export function hasMockAuthOverride(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  const roleFromUrl = params.get("mockAuth");
+  return isMockRole(roleFromUrl) || readPersistedMockRole() !== null;
+}
+
 export function getMockRole(): MockRole {
   const params = new URLSearchParams(window.location.search);
-  const role = params.get("mockAuth");
-  if (role === "disconnected") return "disconnected";
-  if (role && role in MOCK_ADDRESSES) return role as MockRole;
-  return "operator";
+  const roleFromUrl = params.get("mockAuth");
+  if (isMockRole(roleFromUrl)) {
+    persistMockRole(roleFromUrl);
+    return roleFromUrl;
+  }
+
+  return readPersistedMockRole() ?? "operator";
 }
 
 export function DevAuthProvider({ children }: { children: ReactNode }) {
@@ -71,6 +94,7 @@ export function DevAuthProvider({ children }: { children: ReactNode }) {
       loginWithWallet: noopSync,
       loginWithEmbedded: noopSync,
       signOut: async () => {
+        persistMockRole("disconnected");
         const url = new URL(window.location.href);
         url.searchParams.set("mockAuth", "disconnected");
         window.location.href = url.toString();
@@ -84,6 +108,7 @@ export function DevAuthProvider({ children }: { children: ReactNode }) {
       clearPasskey: noopSync,
       connectWallet: noopSync,
       disconnectWallet: async () => {
+        persistMockRole("disconnected");
         const url = new URL(window.location.href);
         url.searchParams.set("mockAuth", "disconnected");
         window.location.href = url.toString();

@@ -404,6 +404,26 @@
   --stable-light: var(--teal-200);
   --stable-lighter: var(--teal-50);
 
+  /* ── Z-Index Scale ── Semantic stacking order for layout layers
+   * Use Tailwind classes: z-base, z-raised, z-sticky, z-nav, z-overlay, z-modal, z-toast
+   */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-nav: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* ── Glass Material ── Blur + transparency tokens for navigation-tier surfaces
+   * Applied via .glass-surface utility or per-component backdrop-filter.
+   * @media (prefers-contrast: more) forces solid fallback — see utilities.
+   */
+  --glass-blur: 16px;
+  --glass-bg: 255 255 255 / 80%;
+  --glass-ring: 0 0 0 / 4%;
+  --glass-overlay-bg: 0 0 0 / 40%;
+
   /* Material 3 role aliases - documentation layer only
    * Green Goods semantic tokens remain canonical for component authors.
    * These aliases make the Material relationship explicit for admin governance.
@@ -541,6 +561,10 @@
   --overlay-gray: 51 51 51 / 56%;
   --overlay-slate: 43 48 59 / 56%;
   --overlay: var(--overlay-gray);
+
+  /* Glass material - dark mode overrides */
+  --glass-bg: 23 23 23 / 80%;
+  --glass-ring: 255 255 255 / 6%;
 
   /* Social colors - invert for dark mode */
   --social-apple: 255 255 255;
@@ -1104,6 +1128,15 @@
   --shadow-switch-thumb: 0 4px 8px 0 rgba(27, 28, 29, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.08);
   --shadow-tooltip: 0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
 
+  /* ── Z-Index Scale ── Generates: z-base, z-raised, z-sticky, z-nav, z-overlay, z-modal, z-toast */
+  --z-index-base: var(--z-base);
+  --z-index-raised: var(--z-raised);
+  --z-index-sticky: var(--z-sticky);
+  --z-index-nav: var(--z-nav);
+  --z-index-overlay: var(--z-overlay);
+  --z-index-modal: var(--z-modal);
+  --z-index-toast: var(--z-toast);
+
   /* ── Animations ── */
 
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -1118,6 +1151,30 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries
  * ============================================================================ */
 @layer utilities {
+  .cockpit-canvas-frame {
+    margin: 0.5rem 1.5rem;
+  }
+
+  .cockpit-navigation-bar {
+    left: 50%;
+    right: auto;
+    bottom: 1rem;
+    translate: -50% 0;
+  }
+
+  @media (max-width: 599px) {
+    .cockpit-canvas-frame {
+      margin-inline: 0.75rem;
+    }
+
+    .cockpit-navigation-bar {
+      left: 0;
+      right: 0;
+      bottom: 0;
+      translate: 0 0;
+    }
+  }
+
   /* Container query contexts - apply to parent elements to enable @[width] queries on children */
   .container-inline {
     container-type: inline-size;

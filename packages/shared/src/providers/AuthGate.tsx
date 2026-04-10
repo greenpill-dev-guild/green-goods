@@ -7,14 +7,11 @@
  */
 import type { ReactNode } from "react";
 import { AuthProvider } from "./Auth";
-import { DevAuthProvider } from "./DevAuthProvider";
+import { DevAuthProvider, hasMockAuthOverride } from "./DevAuthProvider";
 
 export function AuthGate({ children }: { children: ReactNode }) {
-  if (import.meta.env.DEV) {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("mockAuth")) {
-      return <DevAuthProvider>{children}</DevAuthProvider>;
-    }
+  if (import.meta.env.DEV && hasMockAuthOverride()) {
+    return <DevAuthProvider>{children}</DevAuthProvider>;
   }
   return <AuthProvider>{children}</AuthProvider>;
 }

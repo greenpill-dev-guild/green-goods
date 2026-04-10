@@ -1,4 +1,11 @@
-import { type Address, Button, Card, EmptyState, type GardenDetailTab } from "@green-goods/shared";
+import {
+  type Address,
+  Button,
+  Card,
+  EmptyState,
+  adminRoutes,
+  type GardenDetailTab,
+} from "@green-goods/shared";
 import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -76,7 +83,7 @@ export function ImpactTab({
                   </p>
                 </div>
                 <Button size="sm" variant="secondary" asChild>
-                  <Link to={`/gardens/${gardenId}/hypercerts`}>
+                  <Link to={adminRoutes.garden({ view: "impact", section: "hypercerts" })}>
                     {formatMessage({ id: "app.garden.admin.viewAll" })}
                   </Link>
                 </Button>
@@ -126,7 +133,7 @@ export function ImpactTab({
                           </p>
                         </div>
                         <Link
-                          to={`/gardens/${gardenId}/hypercerts/${record.id}`}
+                          to={adminRoutes.gardenHypercertDetail(record.id)}
                           className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
                         >
                           {formatMessage({ id: "app.actions.view" })}
@@ -169,7 +176,7 @@ export function ImpactTab({
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
                 </h3>
                 <Button size="sm" variant="secondary" asChild>
-                  <Link to={`/gardens/${gardenId}/assessments`}>
+                  <Link to={adminRoutes.garden({ view: "impact", section: "assessments" })}>
                     {formatMessage({ id: "app.garden.admin.viewAll" })}
                   </Link>
                 </Button>

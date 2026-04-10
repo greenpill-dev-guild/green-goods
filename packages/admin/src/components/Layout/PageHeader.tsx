@@ -44,7 +44,7 @@ export function PageHeader({
       className={cn(
         "border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4",
         sticky &&
-          "sticky top-14 z-30 bg-bg-white/90 supports-[backdrop-filter]:bg-bg-white/60 backdrop-blur-lg shadow-[--shadow-elevation-1]",
+          "sticky top-14 z-sticky bg-bg-white/90 supports-[backdrop-filter]:bg-bg-white/70 backdrop-blur-lg shadow-[var(--edge-rest)]",
         className
       )}
     >

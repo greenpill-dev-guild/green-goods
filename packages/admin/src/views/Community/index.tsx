@@ -4,12 +4,15 @@ import {
   cn,
   formatTokenAmount,
   StatCard,
+  adminRoutes,
   useAdminStore,
+  useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
-  useGardens,
+  useEligibleAdminGardens,
 } from "@green-goods/shared";
 import {
+  RiAddLine,
   RiCheckboxCircleLine,
   RiGroupLine,
   RiMoneyDollarCircleLine,
@@ -17,12 +20,12 @@ import {
   RiShieldCheckLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CockpitWorkspaceSelectionState } from "@/components/Layout/CockpitWorkspaceSelectionState";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { CommunityTab } from "@/views/Gardens/Garden/CommunityTab";
+import { CommunityTab } from "@/views/CockpitGarden/CommunityTab";
 
 type CommunityWorkspaceCard = "treasury" | "members" | "pools" | "yield";
 
@@ -37,7 +40,7 @@ export default function CommunityView() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { data: gardens = [] } = useGardens();
+  const { eligibleGardens } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
   const [memberSearch, setMemberSearch] = useState("");
@@ -69,8 +72,36 @@ export default function CommunityView() {
     scheduleBackgroundRefetch,
   } = useGardenDetailData(selectedGarden?.id);
 
+  // FAB: Community management actions (operators only)
+  const communityFabConfig = useMemo(() => {
+    if (!selectedGarden || !canManage) return null;
+    return {
+      icon: RiAddLine,
+      label: "Community Actions",
+      actions: [
+        {
+          id: "add-member",
+          icon: RiUserLine,
+          label: "Add Member",
+          labelId: "cockpit.community.fab.addMember",
+        },
+        {
+          id: "manage-vault",
+          icon: RiMoneyDollarCircleLine,
+          label: "Manage Vault",
+          labelId: "cockpit.community.fab.manageVault",
+        },
+      ],
+      onAction: (actionId: string) => {
+        if (actionId === "add-member") navigate(adminRoutes.garden({ view: "settings" }));
+        else if (actionId === "manage-vault") navigate(adminRoutes.communityVault());
+      },
+    };
+  }, [selectedGarden, canManage, navigate]);
+  useFabConfig(communityFabConfig);
+
   const updateSearch = useCallback(
-    (updates: Partial<Record<"garden" | "card" | "pool", string | undefined>>, replace = true) => {
+    (updates: Partial<Record<"card" | "pool", string | undefined>>, replace = true) => {
       setSearchParams(
         (previous) => {
           const next = new URLSearchParams(previous);
@@ -107,14 +138,15 @@ export default function CommunityView() {
       }
 
       if (tab === "work") {
-        navigate(`/work?garden=${selectedGarden.id}&view=queue${itemId ? `&item=${itemId}` : ""}`);
+        navigate(adminRoutes.work({ item: itemId }));
         return;
       }
 
       navigate(
-        `/garden?garden=${selectedGarden.id}&view=${tab === "impact" ? "impact" : "overview"}${
-          itemId ? `&item=${itemId}` : ""
-        }`
+        adminRoutes.garden({
+          view: tab === "impact" ? "impact" : "overview",
+          item: itemId,
+        })
       );
     },
     [navigate, selectedGarden, updateSearch]
@@ -153,13 +185,13 @@ export default function CommunityView() {
           selectedGarden ? (
             <div className="flex flex-wrap items-center gap-2">
               <Button size="sm" variant="secondary" asChild>
-                <Link to={`/gardens/${selectedGarden.id}/vault`}>
+                <Link to={adminRoutes.communityVault()}>
                   {formatMessage({ id: "app.treasury.manageVault" })}
                 </Link>
               </Button>
               {card === "pools" ? (
                 <Button size="sm" asChild>
-                  <Link to={`/gardens/${selectedGarden.id}/signal-pool/${pool}`}>
+                  <Link to={adminRoutes.communitySignalPool(pool === "action" ? "action" : "hypercert")}>
                     {pool === "action"
                       ? formatMessage({ id: "app.signal.viewActionPool" })
                       : formatMessage({ id: "app.signal.viewHypercertPool" })}
@@ -232,13 +264,13 @@ export default function CommunityView() {
             id: "cockpit.nav.community",
             defaultMessage: "Community",
           })}
-          gardens={gardens.map((gardenItem) => ({
+          gardens={eligibleGardens.map((gardenItem) => ({
             id: gardenItem.id,
             name: gardenItem.name,
             location: gardenItem.location,
           }))}
           onSelectGarden={(gardenItem) => {
-            const fullGarden = gardens.find((entry) => entry.id === gardenItem.id);
+            const fullGarden = eligibleGardens.find((entry) => entry.id === gardenItem.id);
             setSelectedGarden(fullGarden ?? null);
           }}
         />
@@ -305,12 +337,12 @@ export default function CommunityView() {
                     variant={pool === "hypercert" ? "primary" : "secondary"}
                     asChild
                   >
-                    <Link to={`/gardens/${garden.id}/signal-pool/hypercert`}>
+                    <Link to={adminRoutes.communitySignalPool("hypercert")}>
                       {formatMessage({ id: "app.signal.viewHypercertPool" })}
                     </Link>
                   </Button>
                   <Button size="sm" variant={pool === "action" ? "primary" : "secondary"} asChild>
-                    <Link to={`/gardens/${garden.id}/signal-pool/action`}>
+                    <Link to={adminRoutes.communitySignalPool("action")}>
                       {formatMessage({ id: "app.signal.viewActionPool" })}
                     </Link>
                   </Button>

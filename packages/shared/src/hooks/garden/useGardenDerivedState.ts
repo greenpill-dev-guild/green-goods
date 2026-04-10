@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Address } from "../../types/domain";
+import { adminRoutes } from "../../utils/admin-routes";
 import {
   type GardenRole,
   GARDEN_ROLE_ORDER,
@@ -236,7 +237,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(work.createdAt),
-      href: `/gardens/${garden.id}/work/${work.id}`,
+      href: adminRoutes.workDetail(work.id),
       itemId: work.id,
     })),
     ...assessments.map((assessment) => ({
@@ -251,7 +252,11 @@ export function useGardenDerivedState({
         { date: formatDate(assessment.createdAt, { dateStyle: "medium" }) }
       ),
       timestamp: toMs(assessment.createdAt),
-      href: `/gardens/${garden.id}/assessments`,
+      href: adminRoutes.garden({
+        view: "impact",
+        section: "assessments",
+        item: assessment.id,
+      }),
       itemId: assessment.id,
     })),
     ...hypercerts.map((hypercert) => ({
@@ -267,7 +272,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
-      href: `/gardens/${garden.id}/hypercerts/${hypercert.id}`,
+      href: adminRoutes.gardenHypercertDetail(hypercert.id),
       itemId: hypercert.id,
     })),
     ...allocations.map((allocation) => ({
@@ -283,7 +288,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: `/gardens/${garden.id}?tab=community&section=yield`,
+      href: adminRoutes.community({ card: "yield", item: allocation.txHash }),
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);

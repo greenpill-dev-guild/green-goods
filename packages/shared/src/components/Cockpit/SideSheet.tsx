@@ -10,11 +10,21 @@ export interface SideSheetProps {
   open: boolean;
   onClose: () => void;
   title?: string;
+  description?: string;
   children: React.ReactNode;
   /** Width in px, default 400 */
   width?: number;
   /** Which edge the sheet opens from, default "right" */
   side?: "left" | "right";
+  /**
+   * Portal container element. When provided, the sheet portals into this
+   * element instead of document.body, and uses absolute positioning
+   * (bounded to the container). Used by the Three-Body System to scope
+   * sheets within the Canvas content zone.
+   *
+   * When null/undefined, falls back to default Radix behavior (body portal).
+   */
+  container?: HTMLElement | null;
 }
 
 /**
@@ -29,7 +39,17 @@ export interface SideSheetProps {
  *
  * Animations use spring easing and respect `prefers-reduced-motion`.
  */
-export function SideSheet({ open, onClose, title, children, width = 400, side = "right" }: SideSheetProps) {
+export function SideSheet({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  width = 400,
+  side = "right",
+  container,
+}: SideSheetProps) {
+  const isBounded = container !== undefined && container !== null;
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
 
@@ -37,14 +57,16 @@ export function SideSheet({ open, onClose, title, children, width = 400, side = 
 
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
-      <Dialog.Portal>
-        {/* Overlay */}
+      <Dialog.Portal container={container ?? undefined}>
+        {/* Overlay — no dark scrim in bounded mode (depth from canvas recession) */}
         <Dialog.Overlay
           className={cn(
-            "fixed inset-0 z-50 bg-black/40",
+            isBounded ? "absolute inset-0" : "fixed inset-0",
+            isBounded ? "z-[45] bg-transparent" : "z-overlay bg-black/28 backdrop-blur-[2px]",
+            isBounded && "pointer-events-auto",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "duration-300"
+            "duration-[360ms]"
           )}
           style={{
             animationTimingFunction: SPRING_EASING,
@@ -58,34 +80,48 @@ export function SideSheet({ open, onClose, title, children, width = 400, side = 
           aria-modal="true"
           aria-label={title}
           className={cn(
-            "fixed top-0 z-50 flex h-full flex-col",
-            "bg-bg-white shadow-2xl",
-            "focus:outline-none",
-            // Position + rounding
-            isLeft ? "left-0 rounded-r-2xl" : "right-0 rounded-l-2xl",
+            isBounded ? "absolute top-0" : "fixed top-0",
+            isBounded ? "z-[46]" : "z-modal",
+            "flex h-full flex-col",
+            "bg-bg-white/94 backdrop-blur-xl supports-[backdrop-filter]:bg-bg-white/78 focus:outline-none",
+            "border border-white/60",
+            isBounded && "pointer-events-auto",
+            // Position + rounding per spec: 20px concentric radius
+            isLeft
+              ? "left-0 rounded-r-[1.5rem] border-l-0"
+              : "right-0 rounded-l-[1.5rem] border-r-0",
             // Slide animation direction
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             isLeft
               ? "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
               : "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "duration-300",
+            "duration-[380ms]",
             // Reduce motion: disable animations
             "motion-reduce:duration-0"
           )}
           style={{
             width: `min(${width}px, 100vw)`,
             animationTimingFunction: SPRING_EASING,
-            paddingBottom: "env(safe-area-inset-bottom)",
+            paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
+            left: isLeft ? 0 : undefined,
+            right: isLeft ? undefined : 0,
+            boxShadow: isLeft
+              ? "14px 0 34px rgba(38, 28, 18, 0.12), var(--edge-rest)"
+              : "-14px 0 34px rgba(38, 28, 18, 0.12), var(--edge-rest)",
           }}
           data-testid="side-sheet"
         >
+          {description ? <Dialog.Description className="sr-only">{description}</Dialog.Description> : null}
+
           {/* Header */}
           {title && (
-            <div className={cn(
-              "flex items-center justify-between border-b border-stroke-soft px-4 py-3",
-              isLeft && "flex-row-reverse"
-            )}>
+            <div
+              className={cn(
+                "flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3",
+                isLeft && "flex-row-reverse"
+              )}
+            >
               <Dialog.Title className="text-lg font-semibold text-text-strong">
                 {title}
               </Dialog.Title>

@@ -46,12 +46,12 @@ describe("TopContextBar", () => {
     expect(screen.getByText("My Garden")).toBeTruthy();
   });
 
-  it("renders as a sticky header with z-40", () => {
+  it("renders as a sticky header with z-sticky", () => {
     render(<TopContextBar gardenChip={<span>Chip</span>} />);
 
     const header = screen.getByRole("banner");
     expect(header.className).toContain("sticky");
-    expect(header.className).toContain("z-40");
+    expect(header.className).toContain("z-sticky");
   });
 
   it("has h-14 height class", () => {

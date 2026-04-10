@@ -56,18 +56,31 @@ NEVER use generic AI-generated aesthetics: overused fonts (Inter, Roboto, Arial,
 - **Tokens**: Semantic tokens from `packages/shared/src/styles/theme.css`
 - **Typography**: `packages/client/src/styles/typography.css` for existing hierarchy
 - **Animation**: `packages/client/src/styles/animation.css` for existing motions
-- **Consistency**: Same design language whether gardener (client) or operator (admin)
+- **Consistency**: Shared tokens across client and admin, but admin surfaces should be quieter, denser, and more utility-led than public/client surfaces
+
+### Admin Cockpit Mode
+
+When the package is `admin` or the surface is an operator dashboard, cockpit, or workbench:
+
+- Use utility copy, status language, and task framing. Do not write homepage, campaign, or executive-summary copy.
+- Default layout is `PageHeader`, then one primary workspace, then optional secondary context in a sheet or rail.
+- Start from layout and flow before reaching for `Card`.
+- Cards and elevated surfaces are for records or bounded interactions, not the default page structure.
+- Prefer one dominant workspace surface per route. Avoid nested stacks of rounded bordered panels.
+- Use shared semantic tokens and one workspace accent. Do not introduce decorative gradients behind routine product UI.
+- Use the admin `/work` route as the reference composition for new cockpit surfaces.
 
 ---
 
 ## Part 2: Component Development Workflow
 
-1. **Check existing patterns** (GardenCard, WorkCard, StatusBadge, Button, Card, Alert, FormField)
-2. **Develop in Storybook first** (`bun run storybook` in packages/shared)
+1. **Check existing patterns** (`CockpitLayout`, `PageHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
+2. **Develop reusable components in Storybook first** (`bun run storybook` in packages/shared)
 3. **Follow Radix UI + tailwind-variants patterns** (see [radix-ui.md](./radix-ui.md))
 4. **Run compliance checklist** before integration (see [compliance.md](./compliance.md))
 5. **Test light/dark mode** via Storybook toolbar
-6. **Add i18n** for all user-facing strings (see [i18n.md](./i18n.md))
+6. **Verify admin routes in a real browser** for desktop and mobile when changing page-level composition
+7. **Add i18n** for all user-facing strings (see [i18n.md](./i18n.md))
 
 ---
 

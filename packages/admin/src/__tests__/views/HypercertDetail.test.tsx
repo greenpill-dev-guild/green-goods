@@ -16,6 +16,16 @@ const mockUseHypercertListings = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
+  adminRoutes: {
+    garden: (search?: Record<string, string>) => {
+      const query = search ? new URLSearchParams(search).toString() : "";
+      return query ? `/garden?${query}` : "/garden";
+    },
+  },
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({
+      selectedGarden: { id: "garden-1", name: "Test Garden" },
+    }),
   useGardens: () => mockUseGardens(),
   useHypercerts: (opts: any) => mockUseHypercerts(opts),
   useHypercertListings: () => mockUseHypercertListings(),
@@ -32,7 +42,7 @@ vi.mock("viem", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
-  useParams: () => ({ id: "garden-1", hypercertId: "hc-123" }),
+  useParams: () => ({ hypercertId: "hc-123" }),
   useLocation: () => ({ state: null }),
   Link: ({ to, children, ...props }: any) =>
     React.createElement("a", { href: to, ...props }, children),

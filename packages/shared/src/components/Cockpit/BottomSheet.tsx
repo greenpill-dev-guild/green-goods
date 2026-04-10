@@ -15,6 +15,13 @@ export interface BottomSheetProps {
   children: React.ReactNode;
   /** Max height as percentage, default 85 */
   maxHeight?: number;
+  /**
+   * Portal container element. When provided, the sheet portals into this
+   * element instead of document.body, and uses absolute positioning
+   * (bounded to the container). Used by the Three-Body System to scope
+   * sheets within the Canvas content zone.
+   */
+  container?: HTMLElement | null;
 }
 
 /**
@@ -27,7 +34,15 @@ export interface BottomSheetProps {
  *
  * Animations use spring easing and respect `prefers-reduced-motion`.
  */
-export function BottomSheet({ open, onClose, title, children, maxHeight = 85 }: BottomSheetProps) {
+export function BottomSheet({
+  open,
+  onClose,
+  title,
+  children,
+  maxHeight = 85,
+  container,
+}: BottomSheetProps) {
+  const isBounded = container !== undefined && container !== null;
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
 
@@ -65,14 +80,16 @@ export function BottomSheet({ open, onClose, title, children, maxHeight = 85 }: 
 
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
-      <Dialog.Portal>
-        {/* Overlay */}
+      <Dialog.Portal container={container ?? undefined}>
+        {/* Overlay — no dark scrim in bounded mode (depth from canvas recession) */}
         <Dialog.Overlay
           className={cn(
-            "fixed inset-0 z-50 bg-black/40",
+            isBounded ? "absolute inset-0" : "fixed inset-0",
+            isBounded ? "z-[45] bg-transparent" : "z-overlay bg-black/28 backdrop-blur-[2px]",
+            isBounded && "pointer-events-auto",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "duration-300"
+            "duration-[360ms]"
           )}
           style={{
             animationTimingFunction: SPRING_EASING,
@@ -87,21 +104,26 @@ export function BottomSheet({ open, onClose, title, children, maxHeight = 85 }: 
           aria-modal="true"
           aria-label={title}
           className={cn(
-            "fixed bottom-0 left-0 right-0 z-50 flex flex-col",
-            "rounded-t-2xl bg-bg-white shadow-2xl",
+            isBounded ? "absolute bottom-0 left-0 right-0" : "fixed bottom-0 left-0 right-0",
+            isBounded ? "z-[46]" : "z-modal",
+            "flex flex-col",
+            "rounded-t-[1.5rem] bg-bg-white/92 backdrop-blur-xl supports-[backdrop-filter]:bg-bg-white/78",
             "focus:outline-none",
+            "border border-white/60 border-b-0",
+            isBounded && "pointer-events-auto",
             // Slide-in from bottom
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "duration-300",
+            "duration-[380ms]",
             // Reduce motion: disable animations
             "motion-reduce:duration-0"
           )}
           style={{
-            maxHeight: `${maxHeight}vh`,
+            maxHeight: isBounded ? "70%" : `${maxHeight}vh`,
             animationTimingFunction: SPRING_EASING,
-            paddingBottom: "env(safe-area-inset-bottom)",
+            paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
+            boxShadow: "0 -22px 48px rgba(38, 28, 18, 0.12), var(--edge-rest)",
           }}
           data-testid="bottom-sheet"
         >
@@ -118,7 +140,7 @@ export function BottomSheet({ open, onClose, title, children, maxHeight = 85 }: 
 
           {/* Header */}
           {title && (
-            <div className="flex items-center justify-between border-b border-stroke-soft px-4 pb-3">
+            <div className="flex items-center justify-between border-b border-stroke-soft/80 px-4 pb-3">
               <Dialog.Title className="text-lg font-semibold text-text-strong">
                 {title}
               </Dialog.Title>

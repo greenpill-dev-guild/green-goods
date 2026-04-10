@@ -1,4 +1,9 @@
-import { RiArrowLeftLine, RiNotification3Line, RiSearchLine, RiSettings3Line } from "@remixicon/react";
+import {
+  RiArrowLeftLine,
+  RiNotification3Line,
+  RiSearchLine,
+  RiSettings3Line,
+} from "@remixicon/react";
 import * as Popover from "@radix-ui/react-popover";
 import type React from "react";
 import { useIntl } from "react-intl";
@@ -26,6 +31,8 @@ export interface TopContextBarProps {
   sheetContext?: { label: string; onBack: () => void };
   onOpenSearch?: () => void;
   onOpenSettings?: () => void;
+  /** Open notifications in right sheet (desktop) — bell icon triggers this */
+  onOpenNotifications?: () => void;
   userAvatar?: React.ReactNode;
 }
 
@@ -48,6 +55,7 @@ export function TopContextBar({
   sheetContext,
   onOpenSearch,
   onOpenSettings,
+  onOpenNotifications,
   userAvatar,
 }: TopContextBarProps) {
   const { formatMessage } = useIntl();
@@ -55,9 +63,8 @@ export function TopContextBar({
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 flex h-14 w-full items-center justify-between",
-        "border-b border-stroke-sub bg-bg-soft px-4",
-        "bg-gradient-to-r from-primary-alpha-10/30 via-bg-soft to-bg-soft"
+        "sticky top-0 z-sticky flex h-14 w-full items-center justify-between",
+        "bg-transparent px-4"
       )}
     >
       {/* Left side */}
@@ -95,34 +102,54 @@ export function TopContextBar({
           </button>
         )}
 
-        {/* Notification bell — placeholder with popover */}
-        <Popover.Root>
-          <Popover.Trigger asChild>
-            <button
-              type="button"
-              aria-label={formatMessage({ id: "cockpit.topBar.notifications", defaultMessage: "Notifications" })}
-              className={ICON_BTN}
-            >
-              <RiNotification3Line className="h-5 w-5" />
-            </button>
-          </Popover.Trigger>
-          <Popover.Portal>
-            <Popover.Content
-              side="bottom"
-              align="end"
-              sideOffset={4}
-              className={cn(
-                "z-50 rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
-                "border border-stroke-soft",
-                "text-sm text-text-sub",
-                "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
-                "duration-200"
-              )}
-            >
-              {formatMessage({ id: "cockpit.topBar.noNotifications", defaultMessage: "No notifications yet" })}
-            </Popover.Content>
-          </Popover.Portal>
-        </Popover.Root>
+        {/* Notification bell — desktop: opens right sheet, mobile: popover fallback */}
+        {onOpenNotifications ? (
+          <button
+            type="button"
+            onClick={onOpenNotifications}
+            aria-label={formatMessage({
+              id: "cockpit.topBar.notifications",
+              defaultMessage: "Notifications",
+            })}
+            className={ICON_BTN}
+          >
+            <RiNotification3Line className="h-5 w-5" />
+          </button>
+        ) : (
+          <Popover.Root>
+            <Popover.Trigger asChild>
+              <button
+                type="button"
+                aria-label={formatMessage({
+                  id: "cockpit.topBar.notifications",
+                  defaultMessage: "Notifications",
+                })}
+                className={ICON_BTN}
+              >
+                <RiNotification3Line className="h-5 w-5" />
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                side="bottom"
+                align="end"
+                sideOffset={4}
+                className={cn(
+                  "z-50 rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
+                  "text-sm text-text-sub",
+                  "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
+                  "duration-200"
+                )}
+                style={{ boxShadow: "var(--edge-rest), var(--elevation-3)" }}
+              >
+                {formatMessage({
+                  id: "cockpit.topBar.noNotifications",
+                  defaultMessage: "No notifications yet",
+                })}
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+        )}
 
         {/* Settings */}
         {onOpenSettings && (

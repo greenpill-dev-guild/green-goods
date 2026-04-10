@@ -2,10 +2,12 @@ import {
   type Address,
   Alert,
   DEFAULT_CHAIN_ID,
+  adminRoutes,
   formatDate,
   getNetworkConfig,
   ImageWithFallback,
   type OptimisticHypercertData,
+  useAdminStore,
   useGardenPermissions,
   useGardens,
   useHypercertListings,
@@ -73,11 +75,12 @@ function SyncStatusIndicator({
 }
 
 export default function HypercertDetail() {
-  const { id, hypercertId } = useParams<{ id: string; hypercertId: string }>();
+  const { hypercertId } = useParams<{ hypercertId: string }>();
   const { formatMessage } = useIntl();
   const location = useLocation();
+  const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const { data: gardens = [] } = useGardens();
-  const garden = gardens.find((item) => item.id === id);
+  const garden = gardens.find((item) => item.id === selectedGarden?.id);
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
   const [listingDialogOpen, setListingDialogOpen] = useState(false);
@@ -120,7 +123,7 @@ export default function HypercertDetail() {
           { gardenName: garden.name }
         )}
         backLink={{
-          to: `/gardens/${garden.id}/hypercerts`,
+          to: adminRoutes.garden({ view: "impact", section: "hypercerts" }),
           label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
         }}
         sticky

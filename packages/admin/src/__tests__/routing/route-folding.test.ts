@@ -3,7 +3,7 @@
  *
  * RED phase — static file analysis verifying that routes have been
  * folded into cockpit surfaces:
- *   /assessments -> folded into /work
+ *   /assessments -> folded into /hub
  *   /endowments  -> folded into /community
  *   /strategies  -> folded into /community
  *
@@ -19,23 +19,24 @@ const srcDir = resolve(__dirname, "../../");
 const routerPath = resolve(srcDir, "router.tsx");
 const workViewPath = resolve(srcDir, "views/Work/index.tsx");
 const communityViewPath = resolve(srcDir, "views/Community/index.tsx");
+const profileViewPath = resolve(srcDir, "views/Profile/index.tsx");
 
 function readSource(path: string): string {
   return readFileSync(path, "utf-8");
 }
 
 describe("route folding", () => {
-  it("router has no top-level /assessments path (folded into /work)", () => {
+  it("router has no top-level /assessments path (folded into /hub)", () => {
     const router = readSource(routerPath);
 
     // The router should NOT have a separate /assessments route at the top level.
-    // Assessment functionality should be accessible via /work?view=assessments.
+    // Assessment functionality should be accessible via /hub?view=assess.
     // Current router still has: { path: "assessments", element: <AssessmentsRedirect /> }
     // After folding, there should be no "assessments" path definition at all —
     // only legacy redirects referencing the string.
     const pathDefinitions = router.match(/path:\s*["']assessments["']/g) ?? [];
     // After folding, we expect exactly 0 top-level /assessments path definitions
-    // (the redirect is removed; folded into the /work view)
+    // (the redirect is removed; folded into the /hub view)
     expect(pathDefinitions.length).toBe(0);
   });
 
@@ -65,14 +66,25 @@ describe("route folding", () => {
     expect(communityView).toMatch(/endowment|treasury|vault/i);
   });
 
-  it("router has no top-level /strategies path (folded into /community)", () => {
+  it("router exposes strategies only as a /community nested route", () => {
     const router = readSource(routerPath);
 
-    // The router should NOT have a separate /strategies route.
-    // Strategy display should be within /community.
-    // Current router has: gardens/:id/strategies as a secondary route.
-    // After folding, there should be no standalone /strategies path.
-    const topLevelStrategies = router.match(/^\s*\{\s*path:\s*["']strategies["']/gm) ?? [];
-    expect(topLevelStrategies.length).toBe(0);
+    // Strategy display belongs to the Community surface.
+    // We should keep the nested /community/strategies route and avoid
+    // any legacy /gardens/:id/strategies route family.
+    expect(router).toMatch(/path:\s*["']community["']/);
+    expect(router).toMatch(/path:\s*["']strategies["']/);
+    expect(router).not.toMatch(/path:\s*["']gardens["']/);
+  });
+
+  it("router exposes a /profile route for the mobile account workspace", () => {
+    const router = readSource(routerPath);
+
+    const pathDefinitions = router.match(/path:\s*["']profile["']/g) ?? [];
+    expect(pathDefinitions.length).toBe(1);
+  });
+
+  it("profile page source exists for the route-backed mobile account workspace", () => {
+    expect(existsSync(profileViewPath)).toBe(true);
   });
 });

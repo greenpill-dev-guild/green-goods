@@ -171,7 +171,7 @@ describe("BottomSheet", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("has z-50 class on content", () => {
+  it("has z-modal class on content (unbounded mode)", () => {
     render(
       <BottomSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
@@ -179,10 +179,10 @@ describe("BottomSheet", () => {
     );
 
     const dialog = screen.getByTestId("bottom-sheet");
-    expect(dialog.className).toContain("z-50");
+    expect(dialog.className).toContain("z-modal");
   });
 
-  it("has rounded-t-2xl class for top edge rounding", () => {
+  it("has concentric 20px radius for top edge rounding", () => {
     render(
       <BottomSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
@@ -190,6 +190,26 @@ describe("BottomSheet", () => {
     );
 
     const dialog = screen.getByTestId("bottom-sheet");
-    expect(dialog.className).toContain("rounded-t-2xl");
+    expect(dialog.className).toContain("rounded-t-[1.25rem]");
+  });
+
+  it("uses bounded absolute positioning and re-enables pointer events when portaled into a container", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    render(
+      <BottomSheet open={true} onClose={() => {}} title="Bounded" container={container}>
+        <p>Content</p>
+      </BottomSheet>
+    );
+
+    const overlay = screen.getByTestId("bottom-sheet-overlay");
+    const dialog = screen.getByTestId("bottom-sheet");
+
+    expect(container.querySelector("[data-testid='bottom-sheet']")).toBe(dialog);
+    expect(overlay.className).toContain("absolute");
+    expect(overlay.className).toContain("pointer-events-auto");
+    expect(dialog.className).toContain("pointer-events-auto");
+    expect(dialog.className).toContain("z-[46]");
   });
 });

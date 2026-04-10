@@ -181,7 +181,7 @@ describe("SideSheet", () => {
     expect(screen.getByTestId("side-sheet-close")).toBeTruthy();
   });
 
-  it("has z-50 class on content", () => {
+  it("has z-modal class on content (unbounded mode)", () => {
     render(
       <SideSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
@@ -189,10 +189,10 @@ describe("SideSheet", () => {
     );
 
     const dialog = screen.getByTestId("side-sheet");
-    expect(dialog.className).toContain("z-50");
+    expect(dialog.className).toContain("z-modal");
   });
 
-  it("has rounded-l-2xl class for left edge rounding", () => {
+  it("has concentric 20px radius for left edge rounding", () => {
     render(
       <SideSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
@@ -200,6 +200,50 @@ describe("SideSheet", () => {
     );
 
     const dialog = screen.getByTestId("side-sheet");
-    expect(dialog.className).toContain("rounded-l-2xl");
+    expect(dialog.className).toContain("rounded-l-[1.25rem]");
+  });
+
+  it("pins the default sheet to the right edge via inline style", () => {
+    render(
+      <SideSheet open={true} onClose={() => {}} title="Test">
+        <p>Content</p>
+      </SideSheet>
+    );
+
+    const dialog = screen.getByTestId("side-sheet");
+    expect(dialog.style.right).toBe("0px");
+    expect(dialog.style.left).toBe("");
+  });
+
+  it("pins a left sheet to the left edge via inline style", () => {
+    render(
+      <SideSheet open={true} onClose={() => {}} title="Test" side="left">
+        <p>Content</p>
+      </SideSheet>
+    );
+
+    const dialog = screen.getByTestId("side-sheet");
+    expect(dialog.style.left).toBe("0px");
+    expect(dialog.style.right).toBe("");
+  });
+
+  it("uses bounded absolute positioning and re-enables pointer events when portaled into a container", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+
+    render(
+      <SideSheet open={true} onClose={() => {}} title="Bounded" container={container}>
+        <p>Content</p>
+      </SideSheet>
+    );
+
+    const overlay = screen.getByTestId("side-sheet-overlay");
+    const dialog = screen.getByTestId("side-sheet");
+
+    expect(container.querySelector("[data-testid='side-sheet']")).toBe(dialog);
+    expect(overlay.className).toContain("absolute");
+    expect(overlay.className).toContain("pointer-events-auto");
+    expect(dialog.className).toContain("pointer-events-auto");
+    expect(dialog.className).toContain("z-[46]");
   });
 });

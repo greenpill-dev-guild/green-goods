@@ -6,12 +6,15 @@ import {
   cn,
   formatTokenAmount,
   parseGardenRange,
+  adminRoutes,
   useAdminStore,
   useCockpitSearchParams,
+  useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
-  useGardens,
+  useEligibleAdminGardens,
 } from "@green-goods/shared";
+import { RiAddLine, RiSettings3Line } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate } from "react-router-dom";
@@ -19,8 +22,8 @@ import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
 import { GardenStatsGrid } from "@/components/Garden/GardenStatsGrid";
 import { CockpitWorkspaceSelectionState } from "@/components/Layout/CockpitWorkspaceSelectionState";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { ImpactTab } from "@/views/Gardens/Garden/ImpactTab";
-import { OverviewTab } from "@/views/Gardens/Garden/OverviewTab";
+import { ImpactTab } from "@/views/CockpitGarden/ImpactTab";
+import { OverviewTab } from "@/views/CockpitGarden/OverviewTab";
 
 // Paradigm: Mixed — overview = Data Landscape, impact = Data Landscape, settings = Command Surface.
 
@@ -37,7 +40,7 @@ export default function GardenView() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const { searchParams, updateSearch } = useCockpitSearchParams();
-  const { data: gardens = [] } = useGardens();
+  const { eligibleGardens } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
   const [activityFilter, setActivityFilter] = useState<"all" | "work" | "impact" | "community">(
@@ -72,12 +75,40 @@ export default function GardenView() {
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
+  // FAB: Garden management actions (operators only, hidden on settings tab)
+  const gardenFabConfig = useMemo(() => {
+    if (!selectedGarden || !canManage || view === "settings") return null;
+    return {
+      icon: RiAddLine,
+      label: "Garden Actions",
+      actions: [
+        {
+          id: "edit-garden",
+          icon: RiSettings3Line,
+          label: "Edit Garden",
+          labelId: "cockpit.garden.fab.editGarden",
+        },
+        {
+          id: "new-assessment",
+          icon: RiAddLine,
+          label: "New Assessment",
+          labelId: "cockpit.garden.fab.newAssessment",
+        },
+      ],
+      onAction: (actionId: string) => {
+        if (actionId === "edit-garden") navigate(adminRoutes.garden({ view: "settings" }));
+        else if (actionId === "new-assessment") navigate(adminRoutes.gardenAssessmentsCreate());
+      },
+    };
+  }, [selectedGarden, canManage, view, navigate]);
+  useFabConfig(gardenFabConfig);
+
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
       if (!selectedGarden) return;
 
       if (tab === "work") {
-        navigate(`/work?garden=${selectedGarden.id}&view=queue${itemId ? `&item=${itemId}` : ""}`);
+        navigate(adminRoutes.work({ item: itemId }));
         return;
       }
 
@@ -90,9 +121,7 @@ export default function GardenView() {
               : section === "pools"
                 ? "pools"
                 : "treasury";
-        navigate(
-          `/community?garden=${selectedGarden.id}&card=${card}${itemId ? `&item=${itemId}` : ""}`
-        );
+        navigate(adminRoutes.community({ card, item: itemId }));
         return;
       }
 
@@ -131,24 +160,20 @@ export default function GardenView() {
       if (event.category === "work") {
         return {
           ...event,
-          href: `/work?garden=${selectedGarden.id}&view=queue${
-            event.itemId ? `&item=${event.itemId}` : ""
-          }`,
+          href: adminRoutes.work({ item: event.itemId }),
         };
       }
 
       if (event.category === "impact") {
         return {
           ...event,
-          href: `/garden?garden=${selectedGarden.id}&view=impact${
-            event.itemId ? `&item=${event.itemId}` : ""
-          }`,
+          href: adminRoutes.garden({ view: "impact", item: event.itemId }),
         };
       }
 
       return {
         ...event,
-        href: `/community?garden=${selectedGarden.id}&card=yield`,
+        href: adminRoutes.community({ card: "yield" }),
       };
     });
   }, [derived.filteredActivityEvents, selectedGarden]);
@@ -158,13 +183,13 @@ export default function GardenView() {
       return (
         <CockpitWorkspaceSelectionState
           workspaceLabel={formatMessage({ id: "cockpit.nav.garden", defaultMessage: "Garden" })}
-          gardens={gardens.map((gardenItem) => ({
+          gardens={eligibleGardens.map((gardenItem) => ({
             id: gardenItem.id,
             name: gardenItem.name,
             location: gardenItem.location,
           }))}
           onSelectGarden={(gardenItem) => {
-            const fullGarden = gardens.find((entry) => entry.id === gardenItem.id);
+            const fullGarden = eligibleGardens.find((entry) => entry.id === gardenItem.id);
             setSelectedGarden(fullGarden ?? null);
           }}
         />
@@ -352,7 +377,7 @@ export default function GardenView() {
         actions={
           selectedGarden && view === "impact" && canReview ? (
             <Button size="sm" asChild>
-              <Link to={`/gardens/${selectedGarden.id}/assessments/create`}>
+              <Link to={adminRoutes.gardenAssessmentsCreate()}>
                 {formatMessage({ id: "app.garden.admin.newAssessment" })}
               </Link>
             </Button>

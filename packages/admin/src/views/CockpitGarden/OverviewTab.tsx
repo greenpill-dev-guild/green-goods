@@ -291,9 +291,9 @@ export function OverviewTab({
                                     onClick={() => {
                                       if (
                                         event.category === "work" &&
-                                        (!event.href || event.href.startsWith("/gardens/"))
+                                        (!event.href || event.href.startsWith("/work/"))
                                       ) {
-                                        openSection("work", "queue", event.itemId);
+                                        openSection("work", "work", event.itemId);
                                       }
                                     }}
                                     className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"

@@ -2,6 +2,7 @@ import {
   AAVE_V3_POOL,
   type Address,
   Alert,
+  adminRoutes,
   formatAddress,
   formatTokenAmount,
   getBlockExplorerAddressUrl,
@@ -170,7 +171,7 @@ export default function GardenVaultView() {
         )}
         backLink={
           contextualBackLink ?? {
-            to: `/community?garden=${garden.id}&card=treasury`,
+            to: adminRoutes.community({ card: "treasury" }),
             label: formatMessage({ id: "app.admin.nav.treasury" }),
           }
         }

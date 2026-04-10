@@ -1,4 +1,11 @@
-import { Button, Card, EmptyState, formatDate, getEASExplorerUrl } from "@green-goods/shared";
+import {
+  Button,
+  Card,
+  EmptyState,
+  adminRoutes,
+  formatDate,
+  getEASExplorerUrl,
+} from "@green-goods/shared";
 import { RiExternalLinkLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -35,7 +42,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
         </h3>
         <Button variant="secondary" size="sm" asChild>
           <Link
-            to={`/gardens/${gardenId}/assessments`}
+            to={adminRoutes.garden({ view: "impact", section: "assessments" })}
             aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
           >
             {formatMessage({ id: "app.garden.admin.viewAll" })}

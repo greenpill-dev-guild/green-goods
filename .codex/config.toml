@@ -12,6 +12,9 @@ project_doc_max_bytes = 40960
 model = "gpt-5.4"
 model_reasoning_effort = "xhigh"
 
+[features]
+codex_hooks = true
+
 # Agent sandbox: no network access during execution (safer for automated tasks).
 # Setup scripts still get network access for dependency installation.
 [sandbox_workspace_write]

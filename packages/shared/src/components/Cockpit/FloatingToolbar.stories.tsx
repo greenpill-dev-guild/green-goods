@@ -8,9 +8,9 @@ import { FloatingToolbar, type ToolbarSlot } from "./FloatingToolbar";
 // ---------------------------------------------------------------------------
 
 const workSlot: ToolbarSlot = {
-  id: "work",
-  label: "Work",
-  labelId: "cockpit.nav.work",
+  id: "hub",
+  label: "Hub",
+  labelId: "cockpit.nav.hub",
   icon: RiClipboardLine,
   path: "/work",
   visible: true,
@@ -69,7 +69,7 @@ type Story = StoryObj<typeof meta>;
 // Stories
 // ---------------------------------------------------------------------------
 
-/** Three visible slots with Work as the active tab. */
+/** Three visible slots with Hub as the active tab. */
 export const Default: Story = {
   args: {
     slots: threeSlots,
@@ -110,7 +110,7 @@ export const Gallery: Story = {
   render: () => (
     <div className="flex flex-col gap-12 p-8">
       <section>
-        <h3 className="mb-4 text-sm font-semibold text-text-sub">3 Slots — Work Active</h3>
+        <h3 className="mb-4 text-sm font-semibold text-text-sub">3 Slots — Hub Active</h3>
         <div className="relative h-64">
           <FloatingToolbar slots={threeSlots} activePath="/work" onNavigate={fn()} />
         </div>

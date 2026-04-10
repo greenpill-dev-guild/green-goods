@@ -19,7 +19,7 @@ import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 
 interface UserMenuProps {
-  /** Opens the full SettingsSheet for advanced settings */
+  /** Opens the account sheet on the settings tab */
   onOpenSettings?: () => void;
 }
 

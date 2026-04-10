@@ -1,9 +1,8 @@
 /**
  * NavigationBar Tests
  *
- * Verifies the MD3-style floating navigation bar renders visible slots with
- * icon + label, marks active slot with aria-current, handles navigation,
- * and uses a single <nav> element (no two-DOM-tree breakpoint switching).
+ * Verifies the MD3-style floating navigation bar renders desktop + mobile
+ * navigation surfaces with visible slots, active state, and navigation events.
  *
  * @vitest-environment jsdom
  */
@@ -21,7 +20,7 @@ vi.mock("react-intl", () => ({
         "nav.dashboard": "Dashboard",
         "nav.actions": "Actions",
         "nav.gardens": "Gardens",
-        "nav.settings": "Settings",
+        "cockpit.nav.profile": "Profile",
       };
       return messages[id] ?? id;
     },
@@ -73,6 +72,10 @@ function createSlots(overrides?: Partial<ToolbarSlot>[]): ToolbarSlot[] {
 describe("NavigationBar", () => {
   const user = userEvent.setup();
 
+  function getNavs() {
+    return screen.getAllByRole("navigation");
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -81,46 +84,45 @@ describe("NavigationBar", () => {
     cleanup();
   });
 
-  it("renders a single nav element (no two-DOM-tree pattern)", () => {
+  it("renders desktop and mobile navigation surfaces", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 
-    const navElements = screen.getAllByRole("navigation");
-    expect(navElements).toHaveLength(1);
+    const navElements = getNavs();
+    expect(navElements).toHaveLength(2);
   });
 
   it("renders all visible slots with labels", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 
-    const nav = screen.getByRole("navigation");
-    const buttons = within(nav).getAllByRole("button");
-    expect(buttons).toHaveLength(3);
+    const buttons = getNavs().flatMap((nav) => within(nav).getAllByRole("button"));
+    expect(buttons).toHaveLength(6);
 
     // Labels are visible text (not just aria-label)
-    expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByText("Actions")).toBeInTheDocument();
-    expect(screen.getByText("Gardens")).toBeInTheDocument();
+    expect(screen.getAllByText("Dashboard")).toHaveLength(2);
+    expect(screen.getAllByText("Actions")).toHaveLength(2);
+    expect(screen.getAllByText("Gardens")).toHaveLength(2);
   });
 
   it("marks active slot with aria-current=page", () => {
     render(<NavigationBar slots={createSlots()} activePath="/actions" onNavigate={() => {}} />);
 
     const activeButtons = screen.getAllByRole("button", { current: "page" });
-    expect(activeButtons).toHaveLength(1);
+    expect(activeButtons).toHaveLength(2);
   });
 
   it("does not set aria-current on inactive slots", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 
-    const allButtons = within(screen.getByRole("navigation")).getAllByRole("button");
+    const allButtons = getNavs().flatMap((nav) => within(nav).getAllByRole("button"));
     const inactiveButtons = allButtons.filter((btn) => btn.getAttribute("aria-current") !== "page");
-    expect(inactiveButtons).toHaveLength(2);
+    expect(inactiveButtons).toHaveLength(4);
   });
 
   it("calls onNavigate with the slot path when clicked", async () => {
     const onNavigate = vi.fn();
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={onNavigate} />);
 
-    const actionsBtn = screen.getByRole("button", { name: /Actions/i });
+    const [actionsBtn] = screen.getAllByRole("button", { name: /Actions/i });
     await user.click(actionsBtn);
 
     expect(onNavigate).toHaveBeenCalledWith("/actions");
@@ -135,9 +137,8 @@ describe("NavigationBar", () => {
       />
     );
 
-    const nav = screen.getByRole("navigation");
-    const buttons = within(nav).getAllByRole("button");
-    expect(buttons).toHaveLength(2);
+    const buttons = getNavs().flatMap((nav) => within(nav).getAllByRole("button"));
+    expect(buttons).toHaveLength(4);
   });
 
   it("returns null when no slots are visible", () => {
@@ -155,7 +156,61 @@ describe("NavigationBar", () => {
   it("uses aria-label from formatMessage on nav element", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 
-    const nav = screen.getByRole("navigation");
-    expect(nav.getAttribute("aria-label")).toBe("Main navigation");
+    for (const nav of getNavs()) {
+      expect(nav.getAttribute("aria-label")).toBe("Main navigation");
+    }
+  });
+
+  it("uses the shared cockpit shell class for both nav surfaces", () => {
+    render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
+
+    for (const nav of getNavs()) {
+      expect(nav.className).toContain("cockpit-navigation-bar");
+    }
+  });
+
+  it("renders mobile-only slots only in the mobile navigation surface", () => {
+    const slots = [
+      ...createSlots(),
+      {
+        id: "profile",
+        label: "Profile",
+        labelId: "cockpit.nav.profile",
+        icon: StubIcon,
+        path: "/profile",
+        visible: true,
+        mobileOnly: true,
+      } satisfies ToolbarSlot,
+    ];
+
+    render(<NavigationBar slots={slots} activePath="/profile" onNavigate={() => {}} />);
+
+    expect(screen.getByText("Profile")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /profile/i })).toHaveLength(1);
+  });
+
+  it("stays mounted when a mobile-only profile tab makes the mobile nav actionable", () => {
+    render(
+      <NavigationBar
+        slots={[
+          ...createSlots([{ visible: true }, { visible: false }, { visible: false }]),
+          {
+            id: "profile",
+            label: "Profile",
+            labelId: "cockpit.nav.profile",
+            icon: StubIcon,
+            path: "/profile",
+            visible: true,
+            mobileOnly: true,
+          },
+        ]}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+      />
+    );
+
+    expect(screen.getAllByRole("navigation")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /dashboard/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /profile/i })).toBeInTheDocument();
   });
 });

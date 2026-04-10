@@ -23,10 +23,25 @@ const mockPermissions = vi.hoisted(() => ({
   },
 }));
 
-const { mockUseGardenUrlSync, mockUseStaleGardenGuard, mockSetSelectedGarden } = vi.hoisted(() => ({
+const {
+  mockUseGardenUrlSync,
+  mockUseStaleGardenGuard,
+  mockSetSelectedGarden,
+  mockEligibleAdminGardens,
+} = vi.hoisted(() => ({
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
+  mockEligibleAdminGardens: {
+    current: {
+      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
+      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    },
+  },
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
@@ -70,12 +85,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useAuth: () => ({
       isAuthenticated: true,
       eoaAddress: "0x1234567890123456789012345678901234567890",
+      isReady: true,
+      authMode: "wallet",
+      signOut: vi.fn(),
     }),
+    useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
     useEffectiveToolbarPermissions: () => mockPermissions.current,
-    useGardens: () => ({
-      data: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
-    }),
-    useRole: () => ({ role: "operator" }),
     useGardenUrlSync: mockUseGardenUrlSync,
     useStaleGardenGuard: mockUseStaleGardenGuard,
   };
@@ -85,8 +100,8 @@ vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,
 }));
 
-vi.mock("@/components/Layout/SettingsSheet", () => ({
-  SettingsSheet: () => null,
+vi.mock("@/components/Layout/AccountSheet", () => ({
+  AccountSheet: () => null,
 }));
 
 vi.mock("@/components/Layout/PageTransition", () => ({
@@ -100,6 +115,14 @@ import { CockpitLayout } from "@/components/Layout/CockpitLayout";
 describe("Toolbar Visibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEligibleAdminGardens.current = {
+      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
+      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    };
     // Reset to all-visible default
     mockPermissions.current = {
       showWork: true,
@@ -110,7 +133,7 @@ describe("Toolbar Visibility", () => {
     };
   });
 
-  it("evaluator sees only Work nav item", () => {
+  it("evaluator sees only Hub plus the mobile Profile route", () => {
     mockPermissions.current = {
       showWork: true,
       showGarden: false,
@@ -126,12 +149,13 @@ describe("Toolbar Visibility", () => {
     );
 
     expect(screen.getByTestId("nav-work")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-community")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-actions")).not.toBeInTheDocument();
   });
 
-  it("operator sees Work + Garden + Community", () => {
+  it("operator sees Hub + Garden + Community", () => {
     mockPermissions.current = {
       showWork: true,
       showGarden: true,
@@ -149,6 +173,7 @@ describe("Toolbar Visibility", () => {
     expect(screen.getByTestId("nav-work")).toBeInTheDocument();
     expect(screen.getByTestId("nav-garden")).toBeInTheDocument();
     expect(screen.getByTestId("nav-community")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-actions")).not.toBeInTheDocument();
   });
 
@@ -186,6 +211,7 @@ describe("Toolbar Visibility", () => {
     );
 
     expect(screen.getByTestId("nav-work")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-community")).not.toBeInTheDocument();
   });
@@ -206,10 +232,10 @@ describe("Toolbar Visibility", () => {
     );
 
     const nav = screen.getByTestId("navigation-bar");
-    // Should only have 2 children (Work + Actions), no empty placeholders
     const navLinks = nav.querySelectorAll("a");
-    expect(navLinks).toHaveLength(2);
-    expect(navLinks[0]).toHaveTextContent("Work");
+    expect(navLinks).toHaveLength(3);
+    expect(navLinks[0]).toHaveTextContent("Hub");
     expect(navLinks[1]).toHaveTextContent("Actions");
+    expect(navLinks[2]).toHaveTextContent("Profile");
   });
 });

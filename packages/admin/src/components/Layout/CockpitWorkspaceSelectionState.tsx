@@ -1,4 +1,4 @@
-import { Alert, Button, Card } from "@green-goods/shared";
+import { Alert, Button, Card, adminRoutes } from "@green-goods/shared";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -44,7 +44,7 @@ export function CockpitWorkspaceSelectionState({
               })}
             </p>
             <Button className="mt-6" asChild>
-              <Link to="/gardens/create">
+              <Link to={adminRoutes.gardenCreate()}>
                 {formatMessage({
                   id: "cockpit.workspace.createGarden",
                   defaultMessage: "Create Garden",

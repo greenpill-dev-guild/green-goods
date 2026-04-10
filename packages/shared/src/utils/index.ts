@@ -30,6 +30,16 @@ export {
   gardenHasMember,
   resolveGardenMemberKey,
 } from "./app/garden";
+export type { AdminSearchValue, AdminSignalPoolType, AdminWorkspaceId } from "./admin-routes";
+export {
+  ADMIN_GARDEN_LEGACY_PARAM,
+  ADMIN_GARDEN_SHARE_PARAM,
+  ADMIN_WORKSPACE_ROOTS,
+  adminRoutes,
+  buildAdminHref,
+  getAdminWorkspaceForPath,
+  getAdminWorkspaceRoot,
+} from "./admin-routes";
 // ============================================================================
 // HAPTIC FEEDBACK (Vibration API)
 // ============================================================================

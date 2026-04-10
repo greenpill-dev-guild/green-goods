@@ -1,233 +1,249 @@
 /**
- * Admin Dashboard Smoke Tests
+ * Admin Cockpit Smoke Tests
  *
- * Minimal tests for the admin dashboard:
- * - Unauthenticated redirect to login
- * - Wallet connect UI displayed
- * - View gardens/dashboard data (with injected auth)
+ * Deterministic browser checks for the current admin cockpit routes.
  *
- * Uses storage injection for "light" wallet auth (no actual wallet needed).
+ * Strategy:
+ * - Use the app's dev-only `mockAuth` seam instead of brittle wagmi storage injection
+ * - Mock indexer gardens/actions queries so cockpit routes have stable data
+ * - Mock EAS GraphQL with empty attestations so `/hub` renders predictable empty/loading states
  */
-import { expect, test } from "@playwright/test";
-import { AdminTestHelper, hasGardens, TEST_URLS } from "../helpers/test-utils";
+import { expect, test, type Page, type Route } from "@playwright/test";
+import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 
-test.describe("Admin Dashboard", () => {
+const MOCK_OPERATOR_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
+const MOCK_GARDENS = [
+  {
+    id: "0x1234567890123456789012345678901234567890",
+    chainId: 11155111,
+    tokenAddress: "0xabcd1234567890123456789012345678901234ef",
+    tokenID: "1",
+    name: "Mock Operator Garden",
+    description: "Fixture garden for admin cockpit verification",
+    location: "Nairobi",
+    bannerImage: "",
+    gardeners: ["0x2aa64E6d80390F5C017F0313cB908051BE2FD35e"],
+    operators: [MOCK_OPERATOR_ADDRESS],
+    evaluators: [],
+    owners: [MOCK_OPERATOR_ADDRESS],
+    funders: [],
+    communities: [],
+    openJoining: false,
+    createdAt: Math.floor(Date.now() / 1000),
+  },
+];
+const MOCK_GARDEN_DOMAINS = MOCK_GARDENS.map((garden) => ({
+  garden: garden.id,
+  domainMask: 1,
+}));
+
+const GRAPHQL_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
+  "content-type": "application/json",
+};
+
+function getGraphQLQueryText(request: { postData(): string | null }): string {
+  const body = request.postData();
+  if (!body) return "";
+
+  try {
+    const parsed = JSON.parse(body) as { query?: unknown; operationName?: unknown };
+    if (typeof parsed.query === "string") return parsed.query;
+    if (typeof parsed.operationName === "string") return parsed.operationName;
+  } catch {
+    return body;
+  }
+
+  return "";
+}
+
+async function mockAdminCockpitBackend(page: Page) {
+  const handleIndexerRoute = async (route: Route) => {
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({
+        status: 204,
+        headers: GRAPHQL_HEADERS,
+      });
+    }
+
+    const query = getGraphQLQueryText(route.request());
+
+    if (query.includes("query Gardens")) {
+      return route.fulfill({
+        status: 200,
+        headers: GRAPHQL_HEADERS,
+        body: JSON.stringify({
+          data: {
+            Garden: MOCK_GARDENS,
+            GardenDomains: MOCK_GARDEN_DOMAINS,
+          },
+        }),
+      });
+    }
+
+    if (query.includes("query GetOperatorGardens")) {
+      return route.fulfill({
+        status: 200,
+        headers: GRAPHQL_HEADERS,
+        body: JSON.stringify({
+          data: {
+            Garden: MOCK_GARDENS.map(({ id, name }) => ({ id, name })),
+          },
+        }),
+      });
+    }
+
+    if (query.includes("query Actions")) {
+      return route.fulfill({
+        status: 200,
+        headers: GRAPHQL_HEADERS,
+        body: JSON.stringify({
+          data: {
+            Action: [],
+          },
+        }),
+      });
+    }
+
+    if (query.includes("query Gardeners")) {
+      return route.fulfill({
+        status: 200,
+        headers: GRAPHQL_HEADERS,
+        body: JSON.stringify({
+          data: {
+            Gardener: [],
+          },
+        }),
+      });
+    }
+
+    return route.fulfill({
+      status: 200,
+      headers: GRAPHQL_HEADERS,
+      body: JSON.stringify({ data: {} }),
+    });
+  };
+
+  await page.route("**/api/graphql", handleIndexerRoute);
+  await page.route("**/v1/graphql", handleIndexerRoute);
+
+  await page.route("https://sepolia.easscan.org/graphql", async (route) => {
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({
+        status: 204,
+        headers: GRAPHQL_HEADERS,
+      });
+    }
+
+    await route.fulfill({
+      status: 200,
+      headers: GRAPHQL_HEADERS,
+      body: JSON.stringify({
+        data: {
+          attestations: [],
+        },
+      }),
+    });
+  });
+}
+
+async function setupMockOperator(page: Page) {
+  const helper = new AdminTestHelper(page);
+  await helper.enableMockAuth("operator");
+  await mockAdminCockpitBackend(page);
+  return helper;
+}
+
+test.describe("Admin Cockpit", () => {
   test.use({ baseURL: ADMIN_URL });
 
-  test.describe("Authentication", () => {
-    test("redirects unauthenticated /dashboard -> /login", async ({ page }) => {
-      await page.goto("/dashboard");
+  test("shows the connect shell when unauthenticated", async ({ page }) => {
+    await page.goto("/hub");
+    await page.waitForLoadState("domcontentloaded");
 
-      // Should redirect to login
-      await page.waitForURL(/\/login/);
-      expect(page.url()).toContain("/login");
+    await expect(page.getByText("Connect to continue")).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
+  });
 
-      // Should show wallet connect button
-      await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible({
-        timeout: 10000,
-      });
+  test("renders the work cockpit for a mocked operator", async ({ page }) => {
+    const helper = await setupMockOperator(page);
+
+    await page.goto("/hub");
+    await helper.waitForPageLoad();
+
+    await expect(page.getByText("Connect to continue")).toHaveCount(0);
+    await expect(page.getByText("Mock Operator Garden", { exact: true })).toBeVisible({
+      timeout: 15000,
     });
+    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /review/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /assess/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /certify/i })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /history/i })).toBeVisible();
+    await expect(page.getByPlaceholder("Search submissions")).toBeVisible();
+  });
 
-    test("shows login page with correct branding", async ({ page }) => {
-      await page.goto("/login");
-      await page.waitForLoadState("domcontentloaded");
+  test("keeps mock auth active across full reloads on other cockpit routes", async ({ page }) => {
+    const helper = await setupMockOperator(page);
 
-      // Wait for page to fully render
-      await page.waitForTimeout(1000);
+    await page.goto("/hub");
+    await helper.waitForPageLoad();
 
-      // Should have Green Goods branding (flexible selectors)
-      const brandingSelectors = [
-        'text="Green Goods"',
-        'h1:has-text("Green Goods")',
-        'h2:has-text("Green Goods")',
-        'img[alt*="Green Goods"]',
-        '[data-testid="app-logo"]',
-      ];
+    await page.goto("/actions");
+    await helper.waitForPageLoad();
 
-      let brandingFound = false;
-      for (const selector of brandingSelectors) {
-        if (
-          await page
-            .locator(selector)
-            .isVisible({ timeout: 2000 })
-            .catch(() => false)
-        ) {
-          brandingFound = true;
-          break;
-        }
-      }
-      expect(brandingFound).toBeTruthy();
-
-      // Should mention garden management or similar
-      const managementText = page.locator("text=/garden|manage|operator|admin/i");
-      await expect(managementText.first()).toBeVisible({ timeout: 5000 });
-
-      // Should have connect wallet button
-      await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible({
-        timeout: 5000,
-      });
-    });
-
-    test("root redirects to /dashboard", async ({ page }) => {
-      await page.goto("/");
-
-      // Should redirect to dashboard (which then redirects to login if not auth'd)
-      await page.waitForURL(/\/(dashboard|login)/);
+    await expect(page.getByText("Connect to continue")).toHaveCount(0);
+    await expect(page).toHaveURL(/\/actions(?:\?.*)?$/);
+    await expect(page.getByRole("heading", { name: "Actions", exact: true })).toBeVisible({
+      timeout: 15000,
     });
   });
 
-  test.describe("Dashboard Data (with injected auth)", () => {
-    test.beforeEach(async ({ page }) => {
-      const helper = new AdminTestHelper(page);
-      // Inject wallet auth before navigating
-      await helper.injectWalletAuth();
-    });
+  test("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const helper = await setupMockOperator(page);
 
-    test("can access dashboard when authenticated", async ({ page }) => {
-      await page.goto("/dashboard");
-      await page.waitForLoadState("domcontentloaded");
+    await page.goto(helper.buildMockAuthPath("/profile"));
+    await helper.waitForPageLoad();
 
-      // Wait for page to settle
-      await page.waitForTimeout(1000);
+    await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("tab", { name: "Profile" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
 
-      // Should either show dashboard or redirect to login (if auth injection didn't work)
-      const url = page.url();
+    await page.getByRole("tab", { name: "Settings" }).click();
+    await expect(page.getByText("Disconnect", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("tab"))
+      .toBe("settings");
 
-      if (url.includes("/dashboard")) {
-        // Auth worked - verify dashboard content
-        await expect(page.locator("body")).toBeVisible();
-
-        // Check for dashboard elements (sidebar, content)
-        const sidebarOrNav = page.locator(
-          'nav, aside, [data-testid="sidebar"], [role="navigation"]'
-        );
-        await expect(sidebarOrNav.first()).toBeVisible({ timeout: 10000 });
-      } else {
-        // Auth injection didn't persist - this is expected in some cases
-        console.log("Auth injection not persisted - wallet flow would be needed");
-        expect(url).toContain("/login");
-      }
-    });
-
-    test("can access gardens page when authenticated", async ({ page }) => {
-      await page.goto("/gardens");
-      await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(1000);
-
-      const url = page.url();
-
-      if (url.includes("/gardens")) {
-        // Check if gardens exist in indexer
-        const gardensExist = await hasGardens(page);
-
-        if (gardensExist) {
-          // Should show garden cards/list
-          const gardenElements = page.locator(
-            '[data-testid="garden-card"], .garden-card, a[href*="/gardens/"]'
-          );
-          // In CI, injected auth may not fully persist (wagmi needs a real connector),
-          // so garden data might not render even though the indexer has gardens
-          const cardsVisible = await gardenElements
-            .first()
-            .isVisible({ timeout: 15000 })
-            .catch(() => false);
-          if (!cardsVisible) {
-            // Page loaded but cards not rendered — acceptable with injected auth
-            await expect(page.locator("body")).toBeVisible();
-          }
-        } else {
-          // No gardens - should show empty state or create button
-          await expect(page.locator("body")).toBeVisible();
-        }
-      } else {
-        // Redirected to login
-        expect(url).toContain("/login");
-      }
-    });
-
-    test("can access actions page when authenticated", async ({ page }) => {
-      await page.goto("/actions");
-      await page.waitForLoadState("domcontentloaded");
-      await page.waitForTimeout(1000);
-
-      const url = page.url();
-
-      if (url.includes("/actions")) {
-        // Should show actions list or empty state
-        await expect(page.locator("body")).toBeVisible();
-
-        // Check for action elements
-        const actionElements = page.locator(
-          '[data-testid="action-card"], .action-card, a[href*="/actions/"]'
-        );
-        const createButton = page.locator('a[href*="/actions/create"], button:has-text("Create")');
-
-        // Either actions exist or create button shown
-        const hasActions = await actionElements
-          .first()
-          .isVisible({ timeout: 5000 })
-          .catch(() => false);
-        const hasCreate = await createButton
-          .first()
-          .isVisible({ timeout: 5000 })
-          .catch(() => false);
-
-        expect(hasActions || hasCreate || true).toBe(true); // At least page loaded
-      } else {
-        expect(url).toContain("/login");
-      }
-    });
+    await page.getByRole("tab", { name: "Profile" }).click();
+    await expect(page.getByText("Disconnect", { exact: true })).toHaveCount(0);
+    await expect
+      .poll(() => new URL(page.url()).searchParams.get("tab"))
+      .toBe(null);
   });
 
-  test.describe("Service Health", () => {
-    test("admin responds with valid HTML", async ({ request }) => {
-      // Allow retries for service startup
-      let response;
-      let attempts = 0;
-      const maxAttempts = 3;
+  test("redirects desktop profile deep links back to hub while opening the settings sheet", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const helper = await setupMockOperator(page);
 
-      while (attempts < maxAttempts) {
-        try {
-          response = await request.get("/", { timeout: 10000 });
-          if (response.status() < 500) break;
-        } catch (error) {
-          // Ignore timeout/connection errors on retry
-        }
-        attempts++;
-        if (attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-        }
-      }
+    await page.goto(helper.buildMockAuthPath("/profile?tab=settings"));
+    await helper.waitForPageLoad();
 
-      expect(response).toBeDefined();
-      expect(response!.status()).toBeLessThan(500);
-
-      const html = await response!.text();
-      expect(html.toLowerCase()).toContain("<!doctype html>");
-      // Also check for React root or app container
-      expect(html).toMatch(/<div[^>]*id="root"|<div[^>]*id="app"|<body[^>]*>/);
-    });
-
-    test("login page loads without errors", async ({ page }) => {
-      await page.goto("/login");
-      await page.waitForLoadState("domcontentloaded");
-
-      // No JS errors
-      const errors: string[] = [];
-      page.on("pageerror", (err) => errors.push(err.message));
-
-      await page.waitForTimeout(1000);
-
-      // Filter out expected/benign errors
-      const criticalErrors = errors.filter(
-        (e) =>
-          !e.includes("ResizeObserver") && // Browser resize observer warning
-          !e.includes("Non-Error") // React dev mode warnings
-      );
-
-      expect(criticalErrors).toHaveLength(0);
-    });
+    await expect
+      .poll(() => new URL(page.url()).pathname, { timeout: 15000 })
+      .toBe("/hub");
+    await expect(page.getByText("Disconnect", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Profile" })).toHaveCount(0);
   });
 });

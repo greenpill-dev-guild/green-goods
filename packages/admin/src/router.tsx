@@ -1,5 +1,11 @@
 import { HydrationFallback } from "@green-goods/shared";
-import { createBrowserRouter, createHashRouter, Navigate, useLocation } from "react-router-dom";
+import {
+  createBrowserRouter,
+  createHashRouter,
+  Navigate,
+  useLocation,
+  useParams,
+} from "react-router-dom";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
@@ -14,6 +20,22 @@ const LoginRedirect = () => {
   const location = useLocation();
   const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/work";
   return <Navigate to={redirectTo} replace />;
+};
+
+const LegacyHubRedirect = () => {
+  const location = useLocation();
+  return <Navigate to={`/work${location.search}`} replace />;
+};
+
+const LegacyHubWorkDetailRedirect = () => {
+  const location = useLocation();
+  const { workId } = useParams<{ workId: string }>();
+  return <Navigate to={`/work/${encodeURIComponent(workId ?? "")}${location.search}`} replace />;
+};
+
+const LegacyHubWorkSubmitRedirect = () => {
+  const location = useLocation();
+  return <Navigate to={`/work/submit${location.search}`} replace />;
 };
 
 export const router = createRouter([
@@ -46,12 +68,78 @@ export const router = createRouter([
             children: [
               // ── Cockpit primary routes ──
               {
+                path: "hub",
+                element: <LegacyHubRedirect />,
+              },
+              {
+                path: "hub/work/submit",
+                element: <LegacyHubWorkSubmitRedirect />,
+              },
+              {
+                path: "hub/work/:workId",
+                element: <LegacyHubWorkDetailRedirect />,
+              },
+              {
                 path: "work",
-                lazy: async () => ({ Component: (await import("@/views/Work")).default }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({ Component: (await import("@/views/Work")).default }),
+                  },
+                  {
+                    path: ":workId",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/WorkDetail")).default,
+                    }),
+                  },
+                  {
+                    path: "submit",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/SubmitWork")).default,
+                    }),
+                  },
+                ],
               },
               {
                 path: "garden",
-                lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+                children: [
+                  {
+                    index: true,
+                    lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+                  },
+                  {
+                    path: "create",
+                    lazy: async () => ({
+                      Component: (await import("@/routes/RequireDeployer")).default,
+                    }),
+                    children: [
+                      {
+                        index: true,
+                        lazy: async () => ({
+                          Component: (await import("@/views/Gardens/CreateGarden")).default,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    path: "assessments/create",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/CreateAssessment")).default,
+                    }),
+                  },
+                  {
+                    path: "hypercerts/create",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/CreateHypercert")).default,
+                    }),
+                  },
+                  {
+                    path: "hypercerts/:hypercertId",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/HypercertDetail")).default,
+                    }),
+                  },
+                ],
               },
               {
                 path: "community",
@@ -65,6 +153,24 @@ export const router = createRouter([
                       Component: (await import("@/views/Community")).default,
                     }),
                   },
+                  {
+                    path: "vault",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/Vault")).default,
+                    }),
+                  },
+                  {
+                    path: "strategies",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/Strategies")).default,
+                    }),
+                  },
+                  {
+                    path: "signal-pool/:poolType",
+                    lazy: async () => ({
+                      Component: (await import("@/views/Gardens/Garden/SignalPool")).default,
+                    }),
+                  },
                 ],
               },
 
@@ -74,9 +180,13 @@ export const router = createRouter([
                 lazy: async () => ({ Component: (await import("@/views/Actions")).default }),
               },
               {
+                path: "profile",
+                lazy: async () => ({ Component: (await import("@/views/Profile")).default }),
+              },
+              {
                 path: "actions/create",
                 lazy: async () => ({
-                  Component: (await import("@/routes/RequireDeployer")).default,
+                  Component: (await import("@/routes/RequireActionManager")).default,
                 }),
                 children: [
                   {
@@ -96,7 +206,7 @@ export const router = createRouter([
               {
                 path: "actions/:id/edit",
                 lazy: async () => ({
-                  Component: (await import("@/routes/RequireDeployer")).default,
+                  Component: (await import("@/routes/RequireActionManager")).default,
                 }),
                 children: [
                   {
@@ -106,92 +216,6 @@ export const router = createRouter([
                     }),
                   },
                 ],
-              },
-
-              // ── Garden secondary routes ──
-              {
-                path: "gardens/create",
-                lazy: async () => ({
-                  Component: (await import("@/routes/RequireDeployer")).default,
-                }),
-                children: [
-                  {
-                    index: true,
-                    lazy: async () => ({
-                      Component: (await import("@/views/Gardens/CreateGarden")).default,
-                    }),
-                  },
-                ],
-              },
-              {
-                path: "gardens/:id",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/Detail")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/work/:workId",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/WorkDetail")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/assessments",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/Assessment")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/assessments/create",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/CreateAssessment")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/hypercerts",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/Hypercerts")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/hypercerts/:hypercertId",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/HypercertDetail")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/hypercerts/create",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/CreateHypercert")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/vault",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/Vault")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/strategies",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/Strategies")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/signal-pool",
-                element: <Navigate to="../signal-pool/hypercert" replace relative="path" />,
-              },
-              {
-                path: "gardens/:id/signal-pool/:poolType",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/SignalPool")).default,
-                }),
-              },
-              {
-                path: "gardens/:id/submit-work",
-                lazy: async () => ({
-                  Component: (await import("@/views/Gardens/Garden/SubmitWork")).default,
-                }),
               },
             ],
           },

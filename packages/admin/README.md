@@ -6,7 +6,7 @@ Operator cockpit for Green Goods stewards and deployers.
 
 - Admin UI contract: [/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx](/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx)
 - Canonical shell: `CockpitLayout`
-- Canonical routes: `/work`, `/garden`, `/community`, `/actions`
+- Canonical routes: `/hub`, `/garden`, `/community`, `/actions`
 - Secondary garden flows stay under `/gardens/create` and `/gardens/:id/...`
 
 ## Ownership

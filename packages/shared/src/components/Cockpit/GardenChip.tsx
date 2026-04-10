@@ -49,9 +49,9 @@ export function GardenChip({
       <span
         className={cn(
           "inline-flex max-w-[200px] items-center gap-1.5 rounded-full",
-          "border border-stroke-soft/60 px-3 py-1.5",
+          "px-3 py-1.5",
           "bg-bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-bg-white/60",
-          "shadow-sm",
+          "shadow-[var(--edge-rest),_var(--elevation-1)]",
           "text-sm font-medium text-text-main"
         )}
       >
@@ -78,14 +78,14 @@ export function GardenChip({
           type="button"
           className={cn(
             "inline-flex max-w-[200px] cursor-pointer items-center gap-1.5 rounded-full",
-            "border border-stroke-soft/60 px-3 py-1.5",
+            "px-3 py-1.5",
             "bg-bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-bg-white/60",
-            "shadow-sm",
+            "shadow-[var(--edge-rest),_var(--elevation-1)]",
             "text-sm font-medium text-text-main",
             "transition-all duration-150",
             "motion-reduce:transition-none",
-            "hover:bg-bg-weak hover:shadow-md",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+            "hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-3)]",
+            "focus-visible:outline-none focus-visible:shadow-[var(--edge-focus),_var(--elevation-1)]"
           )}
         >
           {selectedGarden ? (
@@ -107,7 +107,7 @@ export function GardenChip({
           align="start"
           sideOffset={8}
           className={cn(
-            "z-50 w-56 rounded-xl border border-stroke-soft bg-bg-white p-1 shadow-lg",
+            "z-50 w-56 rounded-xl bg-bg-white p-1 shadow-[var(--edge-rest),_var(--elevation-4)]",
             "animate-in fade-in-0 zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
             "motion-reduce:animate-none"

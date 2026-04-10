@@ -1,4 +1,4 @@
-import { Button, type GardenDetailTab } from "@green-goods/shared";
+import { Button, adminRoutes, type GardenDetailTab } from "@green-goods/shared";
 import { RiFileList3Line, RiUploadCloudLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
@@ -34,14 +34,14 @@ export function TabActions({
     ) : null,
     impact: canReview ? (
       <Button size="sm" asChild>
-        <Link to={`/gardens/${gardenId}/assessments/create`}>
+        <Link to={adminRoutes.gardenAssessmentsCreate()}>
           <RiFileList3Line className="h-4 w-4" />
           {formatMessage({ id: "app.garden.admin.newAssessment" })}
         </Link>
       </Button>
     ) : (
       <Button size="sm" variant="secondary" asChild>
-        <Link to={`/gardens/${gardenId}/assessments`}>
+        <Link to={adminRoutes.garden({ view: "impact", section: "assessments" })}>
           {formatMessage({ id: "app.garden.admin.viewAssessments" })}
         </Link>
       </Button>
@@ -50,7 +50,7 @@ export function TabActions({
       <div className="flex flex-wrap items-center gap-1.5">
         {canManage && (
           <Button size="sm" asChild>
-            <Link to={`/gardens/${gardenId}/submit-work`}>
+            <Link to={adminRoutes.workSubmit()}>
               <RiUploadCloudLine className="h-4 w-4" />
               {formatMessage({ id: "app.admin.work.submitWork" })}
             </Link>
@@ -59,7 +59,7 @@ export function TabActions({
         <Button
           size="sm"
           variant={canManage ? "secondary" : "primary"}
-          onClick={() => openSection("work", "queue")}
+          onClick={() => openSection("work", "work")}
         >
           {formatMessage({ id: "app.garden.detail.action.reviewPending" })}
         </Button>
@@ -71,7 +71,7 @@ export function TabActions({
     community: (
       <div className="flex flex-wrap items-center gap-1.5">
         <Button size="sm" asChild>
-          <Link to={`/gardens/${gardenId}/vault`}>
+          <Link to={adminRoutes.communityVault()}>
             {formatMessage({ id: "app.treasury.manageVault" })}
           </Link>
         </Button>

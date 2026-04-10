@@ -8,6 +8,12 @@ const mockUseGardenPermissions = vi.fn();
 const mockUseLocation = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
+  adminRoutes: {
+    community: (search?: Record<string, string>) => {
+      const query = search ? new URLSearchParams(search).toString() : "";
+      return query ? `/community?${query}` : "/community";
+    },
+  },
   useGardens: () => mockUseGardens(),
   useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
   useGardenPermissions: () => mockUseGardenPermissions(),
@@ -87,7 +93,7 @@ describe("GardenVaultView", () => {
 
     expect(screen.getByTestId("page-header")).toHaveAttribute(
       "data-back-link",
-      "/community?garden=garden-1&card=treasury"
+      "/community?card=treasury"
     );
   });
 });

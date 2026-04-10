@@ -109,9 +109,9 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
-    // Tests that import real view/heavy components trigger full dependency tree
-    // resolution (viem, wagmi, etc.) and hang indefinitely. Run them separately
-    // with `bun run test:views` once module mocking is fixed.
+    // Heavy view tests stay out of the default loop so package test runs remain fast.
+    // Run targeted view regressions through `vitest.views.config.ts` via
+    // `bun run test:views:work-detail` or `bun run test:hub`.
     exclude: [
       "**/node_modules/**",
       "src/__tests__/views/**",

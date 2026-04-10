@@ -1,9 +1,11 @@
 import {
   type Address,
   Alert,
+  adminRoutes,
   ConfirmDialog,
   formatAddress,
   PoolType,
+  useAdminStore,
   useDeregisterHypercert,
   useGardenPermissions,
   useGardenPools,
@@ -29,22 +31,24 @@ import { PageHeader } from "@/components/Layout/PageHeader";
  * because "hypercertId" at the contract level is a generic proposal identifier.
  */
 export default function GardenSignalPoolView() {
-  const { id, poolType: poolTypeParam } = useParams<{ id: string; poolType: string }>();
+  const { poolType: poolTypeParam } = useParams<{ poolType: string }>();
   const { formatMessage } = useIntl();
   const [newItemId, setNewItemId] = useState("");
   const [inputError, setInputError] = useState("");
   const [confirmDeregister, setConfirmDeregister] = useState<bigint | null>(null);
+  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const gardenId = selectedGarden?.id ?? null;
 
   const isActionPool = poolTypeParam === "action";
   const targetPoolType = isActionPool ? PoolType.Action : PoolType.Hypercert;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const garden = gardens.find((item) => item.id === id);
+  const garden = gardens.find((item) => item.id === gardenId);
   const permissions = useGardenPermissions();
 
   // Load pools from GardensModule — typed with PoolType
-  const { pools } = useGardenPools(id as Address | undefined, {
-    enabled: Boolean(id),
+  const { pools } = useGardenPools((gardenId as Address | null) ?? undefined, {
+    enabled: Boolean(gardenId),
   });
 
   const pool = pools.find((p) => p.poolType === targetPoolType);
@@ -173,8 +177,8 @@ export default function GardenSignalPoolView() {
         title={formatMessage({ id: titleKey })}
         description={formatMessage({ id: descriptionKey }, { gardenName: garden.name })}
         backLink={{
-          to: `/gardens/${garden.id}`,
-          label: formatMessage({ id: "app.conviction.backToGarden" }),
+          to: adminRoutes.community({ card: "pools", pool: poolTypeParam ?? "hypercert" }),
+          label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
         }}
         sticky
       />
@@ -183,7 +187,7 @@ export default function GardenSignalPoolView() {
         {/* Pool type switcher */}
         <nav className="flex gap-2" aria-label={formatMessage({ id: "app.community.pools" })}>
           <Link
-            to={`/gardens/${id}/signal-pool/hypercert`}
+            to={adminRoutes.communitySignalPool("hypercert")}
             aria-current={!isActionPool ? "page" : undefined}
             className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium transition ${
               !isActionPool
@@ -194,7 +198,7 @@ export default function GardenSignalPoolView() {
             {formatMessage({ id: "app.signal.viewHypercertPool" })}
           </Link>
           <Link
-            to={`/gardens/${id}/signal-pool/action`}
+            to={adminRoutes.communitySignalPool("action")}
             aria-current={isActionPool ? "page" : undefined}
             className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium transition ${
               isActionPool

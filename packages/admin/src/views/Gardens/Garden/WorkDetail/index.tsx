@@ -1,13 +1,15 @@
 import {
   Alert,
   DEFAULT_CHAIN_ID,
+  adminRoutes,
+  useAdminStore,
   useActions,
   useGardenPermissions,
   useGardens,
   useWorks,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -21,16 +23,31 @@ import { SubmissionDetails } from "./SubmissionDetails";
 // ─────────────────────────────────────────────────────────────
 
 export default function WorkDetail() {
-  const { id: gardenId, workId } = useParams<{ id: string; workId: string }>();
+  const { workId } = useParams<{ workId: string }>();
   const { formatMessage } = useIntl();
   const gardenPermissions = useGardenPermissions();
+  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
+  const selectedGardenId = selectedGarden?.id ?? null;
 
   // Fetch garden, work, and actions data
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const garden = gardens.find((g) => g.id === gardenId);
+  const matchedGarden = useMemo(
+    () =>
+      workId
+        ? (gardens.find(
+            (garden) => garden.works?.some((candidateWork) => candidateWork.id === workId)
+          ) ?? null)
+        : null,
+    [gardens, workId]
+  );
+  const gardenId = matchedGarden?.id ?? selectedGardenId;
+  const garden = gardens.find((candidateGarden) => candidateGarden.id === gardenId) ?? matchedGarden;
 
   const { works, isLoading: worksLoading } = useWorks(gardenId ?? "");
-  const work = works.find((w) => w.id === workId);
+  const work =
+    works.find((candidateWork) => candidateWork.id === workId) ??
+    matchedGarden?.works?.find((candidateWork) => candidateWork.id === workId);
 
   const { data: actions = [] } = useActions(DEFAULT_CHAIN_ID);
   const action = useMemo(
@@ -40,6 +57,12 @@ export default function WorkDetail() {
 
   const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
+
+  useEffect(() => {
+    if (matchedGarden && matchedGarden.id !== selectedGardenId) {
+      setSelectedGarden(matchedGarden);
+    }
+  }, [matchedGarden, selectedGardenId, setSelectedGarden]);
 
   // Parse metadata for additional details
   const metadata = useMemo(
@@ -54,12 +77,12 @@ export default function WorkDetail() {
   // Loading / Error states
   // ─────────────────────────────────────────────────────────────
 
-  const isLoading = gardensLoading || worksLoading;
+  const isLoading = gardensLoading || (gardenId ? worksLoading : false);
 
   const baseHeaderProps = {
     backLink: {
-      to: `/gardens/${gardenId}`,
-      label: formatMessage({ id: "app.garden.admin.backToGarden" }),
+      to: adminRoutes.work(),
+      label: formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" }),
     },
     sticky: true,
   } as const;
@@ -169,7 +192,7 @@ export default function WorkDetail() {
           {/* ─── Right column: Review Form (sticky on desktop) ─── */}
           <ReviewForm
             work={work}
-            gardenId={gardenId!}
+            gardenId={gardenId ?? ""}
             gardenName={garden.name}
             actionSlug={action?.slug}
             canReview={canReview}

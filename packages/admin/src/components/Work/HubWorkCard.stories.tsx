@@ -10,11 +10,7 @@ const BASE_WORK: Work = {
   gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
   feedback: "Good quality work with clear photos",
   metadata: "{}",
-  media: [
-    "ipfs://QmExamplePhoto1",
-    "ipfs://QmExamplePhoto2",
-    "ipfs://QmExamplePhoto3",
-  ],
+  media: ["ipfs://QmExamplePhoto1", "ipfs://QmExamplePhoto2", "ipfs://QmExamplePhoto3"],
   createdAt: Math.floor(Date.now() / 1000) - 7200, // 2 hours ago
   status: "pending",
 };

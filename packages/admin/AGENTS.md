@@ -22,6 +22,17 @@ foundations.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
 - Use admin `SettingsSheet` for cockpit settings flows; otherwise prefer shared `SideSheet`.
 
+## Cockpit UI Mode
+
+- Admin is an operator cockpit, not a marketing surface. Default to utility copy, not brand or campaign copy.
+- Default route composition is `PageHeader` -> primary workspace -> optional secondary inspector (`SideSheet` or `BottomSheet`).
+- Start from task flow and information hierarchy, not from `Card`.
+- Use cards or elevated surfaces only when they represent a discrete record, action target, or bounded interactive unit.
+- Prefer one dominant workspace surface per route. Avoid nested stacks of bordered panels that turn the page into a card mosaic.
+- Avoid hero sections, decorative promo banners, decorative gradients behind routine UI, and ornamental icon rows.
+- Keep color restrained: shared semantic tokens, one workspace accent, strong typography, minimal chrome.
+- Treat `/work` as the reference cockpit surface for new admin page composition.
+
 ## Preferred Primitives
 
 - `TopContextBar`
@@ -35,6 +46,7 @@ foundations.
 - `PageHeader`
 - `ListToolbar`
 - `SortSelect`
+- `Surface`
 - `Card`
 - `Alert`
 - `StatusBadge`

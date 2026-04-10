@@ -7,9 +7,30 @@ const mockUseGardens = vi.fn();
 const mockUseWorks = vi.fn();
 const mockUseActions = vi.fn();
 const mockUseGardenPermissions = vi.fn();
+const mockSetSelectedGarden = vi.fn();
+let mockSelectedGarden: { id: string; name: string } | null = {
+  id: "0xGarden",
+  name: "Demo Garden",
+};
 
 vi.mock("@green-goods/shared", () => ({
+  adminRoutes: {
+    hub: (search?: Record<string, string>) => {
+      const query = search ? new URLSearchParams(search).toString() : "";
+      return query ? `/hub?${query}` : "/hub";
+    },
+  },
+  Confidence: {
+    LOW: "LOW",
+    MEDIUM: "MEDIUM",
+    HIGH: "HIGH",
+  },
   DEFAULT_CHAIN_ID: 11155111,
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({
+      selectedGarden: mockSelectedGarden,
+      setSelectedGarden: mockSetSelectedGarden,
+    }),
   useActions: () => mockUseActions(),
   useGardenPermissions: () => mockUseGardenPermissions(),
   useGardens: () => mockUseGardens(),
@@ -17,7 +38,7 @@ vi.mock("@green-goods/shared", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
-  useParams: () => ({ id: "0xGarden", workId: "0xWork" }),
+  useParams: () => ({ workId: "0xWork" }),
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({
@@ -43,6 +64,50 @@ vi.mock("@/components/Work/WorkSubmissionDetails", () => ({
     React.createElement("div", { "data-testid": "work-submission-details" }),
 }));
 
+vi.mock("@/views/Gardens/Garden/WorkDetail/ReviewForm", () => ({
+  ReviewForm: ({
+    canReview,
+    actionSlug,
+  }: {
+    canReview: boolean;
+    actionSlug?: string;
+  }) => {
+    const actions = mockUseActions.mock.results.at(-1)?.value?.data ?? [];
+    const permissions = mockUseGardenPermissions.mock.results.at(-1)?.value;
+    const matchedAction = actions.find((action: { slug?: string }) => action.slug === actionSlug);
+    const isExpired =
+      typeof matchedAction?.endTime === "number" && matchedAction.endTime < Date.now();
+    const isOperator = permissions?.isOperatorOfGarden?.() ?? false;
+    const isOwner = permissions?.isOwnerOfGarden?.() ?? false;
+
+    if (isExpired) {
+      return React.createElement(
+        React.Fragment,
+        null,
+        React.createElement("div", null, "Action expired"),
+        React.createElement("div", null, "approval decisions are blocked")
+      );
+    }
+
+    if (canReview && !isOperator && !isOwner) {
+      return React.createElement(
+        React.Fragment,
+        null,
+        React.createElement("div", null, "Owner or operator access required"),
+        React.createElement("div", null, "Only garden owners or operators can approve or reject work")
+      );
+    }
+
+    return canReview
+      ? React.createElement("div", { "data-testid": "work-review-panel" })
+      : React.createElement("div", null, "Review blocked");
+  },
+}));
+
+vi.mock("@/views/Gardens/Garden/WorkDetail/SubmissionDetails", () => ({
+  SubmissionDetails: () => React.createElement("div", { "data-testid": "submission-details" }),
+}));
+
 import WorkDetail from "@/views/Gardens/Garden/WorkDetail";
 
 const messages = {
@@ -61,6 +126,9 @@ const messages = {
   "app.work.detail.reviewBlocked.expiredTitle": "Action expired",
   "app.work.detail.reviewBlocked.expiredMessage":
     "This action is no longer active, so new approval decisions are blocked.",
+  "app.work.status.pending": "Pending",
+  "app.work.status.approved": "Approved",
+  "app.work.status.rejected": "Rejected",
 } satisfies Record<string, string>;
 
 function renderWithIntl() {
@@ -76,6 +144,10 @@ function renderWithIntl() {
 describe("WorkDetail view", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSelectedGarden = {
+      id: "0xGarden",
+      name: "Demo Garden",
+    };
 
     mockUseGardens.mockReturnValue({
       data: [
@@ -83,6 +155,24 @@ describe("WorkDetail view", () => {
           id: "0xGarden",
           name: "Demo Garden",
           operators: ["0xoperator"],
+          works: [
+            {
+              id: "0xWork",
+              title: "Mulch beds",
+              actionUID: 1,
+              gardenAddress: "0xGarden",
+              gardenerAddress: "0xgardener",
+              metadata: "{}",
+              media: [],
+              status: "pending",
+            },
+          ],
+        },
+        {
+          id: "0xAltGarden",
+          name: "Alt Garden",
+          operators: ["0xoperator"],
+          works: [],
         },
       ],
       isLoading: false,
@@ -168,5 +258,65 @@ describe("WorkDetail view", () => {
 
     expect(screen.getByTestId("work-review-panel")).toBeInTheDocument();
     expect(screen.queryByText("Owner or operator access required")).not.toBeInTheDocument();
+  });
+
+  it("recovers the matched garden when the selected garden does not own the work", () => {
+    mockSelectedGarden = {
+      id: "0xGarden",
+      name: "Demo Garden",
+    };
+
+    mockUseGardens.mockReturnValue({
+      data: [
+        {
+          id: "0xGarden",
+          name: "Demo Garden",
+          operators: ["0xoperator"],
+          works: [],
+        },
+        {
+          id: "0xAltGarden",
+          name: "Alt Garden",
+          operators: ["0xoperator"],
+          works: [
+            {
+              id: "0xWork",
+              title: "Mulch beds",
+              actionUID: 1,
+              gardenAddress: "0xAltGarden",
+              gardenerAddress: "0xgardener",
+              metadata: "{}",
+              media: [],
+              status: "pending",
+            },
+          ],
+        },
+      ],
+      isLoading: false,
+    });
+
+    mockUseWorks.mockReturnValue({
+      works: [
+        {
+          id: "0xWork",
+          title: "Mulch beds",
+          actionUID: 1,
+          gardenAddress: "0xAltGarden",
+          gardenerAddress: "0xgardener",
+          metadata: "{}",
+          media: [],
+          status: "pending",
+        },
+      ],
+      isLoading: false,
+    });
+
+    renderWithIntl();
+
+    expect(screen.getByText("Mulching")).toBeInTheDocument();
+    expect(mockSetSelectedGarden).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "0xAltGarden", name: "Alt Garden" })
+    );
+    expect(screen.queryByText("Work not found")).not.toBeInTheDocument();
   });
 });

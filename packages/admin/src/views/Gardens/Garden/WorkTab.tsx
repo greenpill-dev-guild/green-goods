@@ -11,7 +11,7 @@ import {
 import { RiCloseLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
-import { SectionStateCard } from "./GardenDetailHelpers";
+import { SectionStateCard } from "@/views/CockpitGarden/GardenDetailHelpers";
 
 export interface WorkTabProps {
   garden: { id: string };

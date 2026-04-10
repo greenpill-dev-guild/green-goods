@@ -14,13 +14,15 @@ import {
   SkeletonGrid,
   SortSelect,
   useActions,
+  useFabConfig,
   useFilteredActions,
   useRole,
   useUrlFilters,
 } from "@green-goods/shared";
 import { RiAddLine, RiCalendarLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 interface ActionCardMediaProps {
@@ -75,9 +77,31 @@ const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
 
 export default function Actions() {
   const intl = useIntl();
+  const navigate = useNavigate();
   const { role } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
   const canManageActions = role === "deployer";
+
+  // FAB: Create Action (deployers only)
+  const actionsFabConfig = useMemo(() => {
+    if (!canManageActions) return null;
+    return {
+      icon: RiAddLine,
+      label: "Create Action",
+      actions: [
+        {
+          id: "create-action",
+          icon: RiAddLine,
+          label: "Create Action",
+          labelId: "cockpit.actions.fab.createAction",
+        },
+      ],
+      onAction: (actionId: string) => {
+        if (actionId === "create-action") navigate("/actions/create");
+      },
+    };
+  }, [canManageActions, navigate]);
+  useFabConfig(actionsFabConfig);
   const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(ACTION_FILTER_DEFAULTS);
   const filters: ActionFiltersState = {
     sort: (urlFilters.sort as ActionSortOrder) ?? "default",

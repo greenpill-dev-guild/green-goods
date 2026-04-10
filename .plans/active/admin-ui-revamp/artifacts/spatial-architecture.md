@@ -4,6 +4,7 @@
 > Material expression through spatial structure.
 
 **Created**: 2026-04-07
+**Updated**: 2026-04-09 — FAB-in-nav, shadow-as-border, role-based nav, sheet state persistence, view transition behavior
 **Status**: Wireframing in Figma Make (Phase 1: spatial states, Phase 2: content fill)
 **Complements**: `plan.todo.md` Phase 2 (View Transitions, M3 tonal elevation)
 
@@ -24,6 +25,13 @@
 - Mobile (<600px): full-width bottom bar with safe-area inset
 - Z-index: 30
 - Non-modal: content scrolls behind it
+- **FAB lives in the nav bar row**, far-right. Not floating above — part of the same strip.
+- **Speed dial**: Views with multiple actions → FAB opens upward with staggered action items (50ms per item)
+
+**Role-based nav visibility:**
+- 1 accessible view → no nav bar, route directly to that view
+- 2+ accessible views → show nav bar with only the views the user's role grants
+- Example: evaluator with Hub + Garden → 2-tab nav bar. Deployer → all 4 tabs.
 
 ### 2. Canvas (Z2, main content surface)
 
@@ -104,6 +112,35 @@ Uses Warm Glass named spring tokens (see `language.md` § Motion System) instead
 
 All source-anchored: sheets open from the side where triggered. This extends to menus, toasts, and confirmations (see `language.md` § Source-Anchored Interactions).
 
+### View Transition + Sheet Behavior
+
+**Rule: Canvas is always focused when entering a new view.** Sheets close on navigation.
+
+```
+Navigate away:
+  1. Sheet slides out (--spring-spatial, 300ms)
+  2. Canvas restores: scale(1), opacity(1), filter(none)
+  3. Cross-fade to new view (--spring-spatial-slow, 400ms)
+
+Navigate back:
+  1. Cross-fade in to previous view
+  2. Sheet re-opens with preserved state (if it was open)
+  3. Canvas recedes again
+```
+
+**Sheet state persistence**: Each nav section stores its sheet state in Zustand:
+```typescript
+interface ViewSheetState {
+  sheetOpen: "left" | "right" | null;
+  sheetContentId: string | null;  // which form/panel was open
+  formState: Record<string, unknown>;  // unsaved form inputs
+  scrollPosition: number;
+}
+// Keyed by view path: { "/work": ViewSheetState, "/garden": ViewSheetState, ... }
+```
+
+State survives unmount. Navigating back restores the exact state — open sheet, scroll position, form progress. This enables "leave to check something, come back and continue" without data loss.
+
 ---
 
 ## Z-Index Stack (updated from D49)
@@ -129,9 +166,10 @@ The current `CockpitLayout.tsx` renders `<main>` as flex-1 with no distinct surf
   transition: 'all var(--spring-spatial)',
   borderRadius: '20px',
   background: '#FFFFFF',
-  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+  boxShadow: '0 0 0 1px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)',
 }}>
 ```
+Note: edge expressed as shadow-border (`0 0 0 1px ...`), not CSS `border`.
 
 ### Top Axis Transparency
 Remove from `TopContextBar.tsx`:
@@ -143,11 +181,58 @@ Replace with: transparent background, floating elements only.
 Current: `fixed inset-0 z-50` (full viewport)
 New: bounded to content zone (`top: 56px`, `bottom: ~80px`, `left/right: 24px`)
 
+### Shadow-as-Border Migration
+All CSS `border` and `ring` declarations across admin components → combined shadow declarations:
+- `border border-stroke-sub` → `shadow-[0_0_0_1px_rgba(0,0,0,0.06)]`
+- `border-primary/20` → `shadow-[0_0_0_1px_rgba(31,193,107,0.20)]`
+- `ring-2 ring-primary/20` → `shadow-[0_0_0_3px_rgba(31,193,107,0.20)]` (focus)
+Compound shadows combine edge + depth: `shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.04)]`
+
 ### Canvas Transform Orchestration
-Shared state (Zustand or context) tracking `isAnySheetOpen`. Canvas subscribes and applies transforms. Consider `useSheetOrchestrator` hook.
+Shared state (Zustand) tracking sheet state per view. Canvas subscribes and applies transforms.
+
+```typescript
+// useSheetOrchestrator — in @green-goods/shared
+interface SheetOrchestrator {
+  // Per-view state (persists across navigation)
+  viewStates: Record<string, ViewSheetState>;
+  
+  // Current view's active sheet
+  activeSheet: "left" | "right" | null;
+  
+  // Actions
+  openSheet(side: "left" | "right", contentId: string): void;
+  closeSheet(): void;
+  saveViewState(path: string): void;
+  restoreViewState(path: string): ViewSheetState | null;
+}
+```
+
+### FAB in NavigationBar
+The FAB is a slot within `NavigationBar`, not a separate component overlaid on top. NavigationBar accepts:
+```typescript
+interface NavigationBarProps {
+  slots: ToolbarSlot[];
+  activePath: string;
+  onNavigate: (path: string) => void;
+  fab?: {
+    icon: LucideIcon;
+    label: string;
+    actions: FabAction[];  // 1 action = direct, 2+ = speed dial
+    onAction: (actionId: string) => void;
+  } | null;
+}
+```
 
 ### View Transitions for Workspace Switching
 The existing `view-transitions.css` has directional slides (`vt-slide-in-right`, `vt-slide-out-left`). The cross-fade + scale morph pattern replaces directional slides for workspace switching. Detail navigation uses the same pattern.
+
+**Navigation sequence with open sheet:**
+1. `saveViewState(currentPath)` → serialize sheet + form + scroll to Zustand
+2. Close sheet with `--spring-spatial` (300ms)
+3. Canvas restores to resting state
+4. Cross-fade to new view with `--spring-spatial-slow` (400ms)
+5. On arrival: check `restoreViewState(newPath)` — if it has a saved sheet, re-open it
 
 ---
 
@@ -184,15 +269,27 @@ The atmosphere is visible in the 24px margins around the canvas — the spatial 
 
 Every interactive element follows this spatial interaction language. **Warm Glass complement**: cards use lift-and-press (scale), buttons use shape morph (radius). Interactive cards get both. See `language.md` § Shape Morphing.
 
+### Shadow-as-Border Principle
+
+**All edges are expressed through shadow, never CSS `border` or `ring`.** A 1px inset shadow (`shadow-[0_0_0_1px_...]`) replaces `border`. This creates edges that participate in the depth system — they respond to elevation, glow on hover, and fade on recession. CSS borders are flat; shadow-borders live in the same dimension as the rest of the depth language.
+
+```css
+/* Shadow-border equivalents */
+--edge-rest:    0 0 0 1px rgba(0,0,0,0.06);           /* replaces border-stroke-sub */
+--edge-hover:   0 0 0 1px rgba(31,193,107,0.20);      /* replaces border-primary/20 */
+--edge-active:  0 0 0 1px rgba(31,193,107,0.30);      /* replaces border-primary/30 */
+--edge-disabled: 0 0 0 1px rgba(0,0,0,0.03);          /* replaces border-stroke-soft */
+```
+
 **Cards** (lift-and-press + shape morph complement):
 
-| State | Scale | Shadow | Border | Radius | Spring Token |
-|-------|-------|--------|--------|--------|-------------|
-| Rest | `1.0` | `0 1px 3px rgba(0,0,0,0.04)` | `1px solid #E5E5E5` | `rounded-2xl` (16px, concentric) | — |
-| Hover | `1.008` | `0 4px 16px rgba(31,193,107,0.10)` | `1px solid rgba(31,193,107,0.20)` | unchanged | `--spring-spatial-fast` |
-| Focus | `1.0` | `0 0 0 3px rgba(31,193,107,0.20)` (ring) | same as rest | unchanged | `--spring-effects-fast` |
-| Active | `0.985` | `0 1px 2px rgba(0,0,0,0.06)` | `1px solid rgba(31,193,107,0.30)` | tightens 2px (14px) | `--spring-spatial-fast` |
-| Disabled | `1.0` | none | `1px solid #F0F0F0` | unchanged | — |
+| State | Scale | Shadow (depth + edge combined) | Radius | Spring Token |
+|-------|-------|-------------------------------|--------|-------------|
+| Rest | `1.0` | `0 0 0 1px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04)` | `rounded-2xl` (16px, concentric) | — |
+| Hover | `1.008` | `0 0 0 1px rgba(31,193,107,0.20), 0 4px 16px rgba(31,193,107,0.10)` | unchanged | `--spring-spatial-fast` |
+| Focus | `1.0` | `0 0 0 3px rgba(31,193,107,0.20), 0 1px 3px rgba(0,0,0,0.04)` | unchanged | `--spring-effects-fast` |
+| Active | `0.985` | `0 0 0 1px rgba(31,193,107,0.30), 0 1px 2px rgba(0,0,0,0.06)` | tightens 2px (14px) | `--spring-spatial-fast` |
+| Disabled | `1.0` | `0 0 0 1px rgba(0,0,0,0.03)` | unchanged | — |
 
 **Buttons** (shape morph, no scale):
 
@@ -302,9 +399,11 @@ Images are first-class at every disclosure layer:
 
 ## Workspace Structure
 
-### Nav Bar Tabs
+### Nav Bar Tabs (role-based visibility)
 
 Renamed "Work" → **"Hub"** to avoid collision with "work" domain concept.
+
+**Rule: Only show tabs the user's role grants access to. If only 1 tab → no nav bar.**
 
 | Tab | Operator | Evaluator | Deployer |
 |-----|----------|-----------|----------|
@@ -312,6 +411,14 @@ Renamed "Work" → **"Hub"** to avoid collision with "work" domain concept.
 | Garden | ✓ Settings, profile, bento | ✓ Garden context | ✓ |
 | Community | ✓ Treasury, cookie jars, members | ✗ | ✓ |
 | Actions | ✗ | ✗ | ✓ Platform-level |
+
+**Resulting nav bar configurations:**
+| Role | Visible Tabs | Nav Bar? |
+|------|-------------|----------|
+| Operator | Hub, Garden, Community | Yes (3 tabs + FAB) |
+| Evaluator | Hub, Garden | Yes (2 tabs + FAB) |
+| Deployer | Hub, Garden, Community, Actions | Yes (4 tabs + FAB) |
+| User (no role) | — | No — shows onboarding/connect state |
 
 ### Hub — Pipeline Tabs
 
@@ -322,14 +429,36 @@ Renamed "Work" → **"Hub"** to avoid collision with "work" domain concept.
 | Certify | Assessed work ready for minting | Read-only | ✓ Primary | Count |
 | History | Completed + rejected (audit trail) | ✓ | ✓ | — |
 
-### Context-Aware FAB
+### Context-Aware FAB (in nav bar row)
 
-| Tab | FAB Action | Who Sees It |
-|-----|-----------|-------------|
-| Review | Submit Work (on behalf) | Operators |
-| Assess | Create Assessment | Evaluators |
-| Certify | Mint Hypercert | Evaluators |
-| History | — (hidden) | — |
+The FAB sits in the NavigationBar row, far-right — same elevation and glass material as the nav bar. It is NOT a separate floating element.
+
+| Tab | FAB Action(s) | Who Sees It | Speed Dial? |
+|-----|--------------|-------------|-------------|
+| Review | Submit Work (primary), Flag for Review | Operators | Yes (2 actions) |
+| Assess | Create Assessment | Evaluators | No (single) |
+| Certify | Mint Hypercert | Evaluators | No (single) |
+| History | — (hidden) | — | — |
+| Garden | Edit Garden, Add Domain | Operators | Yes (2 actions) |
+| Community | Add Member, Create Pool | Operators | Yes (2 actions) |
+| Actions | Create Action | Deployers | No (single) |
+
+**Speed dial behavior:**
+- Single action: tap FAB → executes action (opens left sheet with form)
+- Multiple actions: tap FAB → speed dial opens upward, staggered 50ms per item
+- Speed dial items are capsule-shaped, `shadow-lg`, spring-in from FAB position
+- Backdrop dims canvas slightly when speed dial is open
+- FAB icon rotates from `+` to `×` when speed dial is open
+- `prefers-reduced-motion`: items appear instantly, no stagger
+
+### Notification Panel (right sheet)
+
+Triggered by bell icon in top axis → opens right sheet with notification list.
+- Desktop: right sheet (~45% content zone width)
+- Mobile: popover from bell icon (lightweight, max 5 recent items + "View all" link)
+- "View all" on mobile opens full bottom drawer
+- Notifications grouped by type: work submissions, assessments, system alerts
+- Unread indicator: amber dot on bell icon (same as sync pulse language)
 
 ### Garden Workspace — Bento Layout
 

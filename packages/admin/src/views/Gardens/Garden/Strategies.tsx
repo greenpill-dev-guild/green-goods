@@ -2,7 +2,9 @@ import {
   type Address,
   AddressDisplay,
   Alert,
+  adminRoutes,
   ConfirmDialog,
+  useAdminStore,
   useConvictionStrategies,
   useGardenPermissions,
   useGardens,
@@ -11,26 +13,28 @@ import {
 import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function GardenStrategiesView() {
-  const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
   const [newAddress, setNewAddress] = useState("");
   const [addressError, setAddressError] = useState("");
   const [confirmRemoveIndex, setConfirmRemoveIndex] = useState<number | null>(null);
+  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const gardenId = selectedGarden?.id ?? null;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const garden = gardens.find((item) => item.id === id);
+  const garden = gardens.find((item) => item.id === gardenId);
   const permissions = useGardenPermissions();
 
   const {
     strategies,
     isLoading: strategiesLoading,
     isError: strategiesError,
-  } = useConvictionStrategies((id as Address) ?? undefined, { enabled: Boolean(id) });
+  } = useConvictionStrategies((gardenId as Address | null) ?? undefined, {
+    enabled: Boolean(gardenId),
+  });
 
   const { mutate: setStrategies, isPending: isSaving } = useSetConvictionStrategies();
 
@@ -80,14 +84,14 @@ export default function GardenStrategiesView() {
     setAddressError("");
     const updated = [...strategies, trimmed as Address];
     setStrategies(
-      { gardenAddress: id as Address, strategies: updated },
+      { gardenAddress: gardenId as Address, strategies: updated },
       { onSuccess: () => setNewAddress("") }
     );
   };
 
   const handleRemoveStrategy = (index: number, onSettled?: () => void) => {
     const updated = strategies.filter((_, i) => i !== index);
-    setStrategies({ gardenAddress: id as Address, strategies: updated }, { onSettled });
+    setStrategies({ gardenAddress: gardenId as Address, strategies: updated }, { onSettled });
   };
 
   return (
@@ -99,8 +103,8 @@ export default function GardenStrategiesView() {
           { gardenName: garden.name }
         )}
         backLink={{
-          to: `/gardens/${garden.id}`,
-          label: formatMessage({ id: "app.conviction.backToGarden" }),
+          to: adminRoutes.community(),
+          label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
         }}
         sticky
       />

@@ -2,7 +2,7 @@ import { cn, type UserRole, useRole } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 
 interface UserAvatarProps {
-  onOpenSettings: () => void;
+  onOpenProfile: () => void;
 }
 
 const ROLE_INITIALS: Record<UserRole, string> = {
@@ -26,7 +26,7 @@ const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string
   },
 };
 
-export function UserAvatar({ onOpenSettings }: UserAvatarProps) {
+export function UserAvatar({ onOpenProfile }: UserAvatarProps) {
   const { formatMessage } = useIntl();
   const { role } = useRole();
 
@@ -35,7 +35,7 @@ export function UserAvatar({ onOpenSettings }: UserAvatarProps) {
   return (
     <button
       type="button"
-      onClick={onOpenSettings}
+      onClick={onOpenProfile}
       className={cn(
         "inline-flex h-10 w-10 items-center justify-center rounded-full",
         "bg-primary-alpha-10 text-primary-dark text-sm font-semibold",
@@ -43,8 +43,8 @@ export function UserAvatar({ onOpenSettings }: UserAvatarProps) {
       )}
       aria-label={formatMessage(
         {
-          id: "cockpit.nav.openRoleSettings",
-          defaultMessage: "Open {role} settings",
+          id: "cockpit.nav.openRoleProfile",
+          defaultMessage: "Open {role} profile",
         },
         { role: roleLabel }
       )}

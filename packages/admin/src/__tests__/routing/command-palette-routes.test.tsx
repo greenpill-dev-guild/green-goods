@@ -3,19 +3,21 @@
  * @vitest-environment jsdom
  *
  * RED phase — verifies that CommandPalette has the correct static
- * routes, handles Settings action via custom event, navigates on
+ * routes, handles account sheet actions via custom event, navigates on
  * garden selection, and toggles with Cmd+K.
  */
 
 import React from "react";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, fireEvent, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
+import { OPEN_ACCOUNT_SHEET_EVENT } from "@/components/Layout/accountSheet.events";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
 const mockNavigate = vi.fn();
+const mockSetSelectedGarden = vi.fn();
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
@@ -31,8 +33,9 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ...actual,
     cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
     DEFAULT_CHAIN_ID: 11155111,
-    useAdminStore: (selector: (state: { selectedGarden: null }) => unknown) =>
-      selector({ selectedGarden: null }),
+    useAdminStore: (
+      selector: (state: { selectedGarden: null; setSelectedGarden: typeof mockSetSelectedGarden }) => unknown
+    ) => selector({ selectedGarden: null, setSelectedGarden: mockSetSelectedGarden }),
     useActions: () => ({ data: [] }),
     useAllAssessments: () => ({ data: [] }),
     useGardens: () => ({
@@ -52,9 +55,22 @@ import { CommandPalette } from "@/components/Layout/CommandPalette";
 describe("CommandPalette Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
   });
 
-  it("STATIC_ROUTES includes /work, /garden, /community, /actions", () => {
+  it("STATIC_ROUTES includes /hub, /garden, /community, /actions", () => {
     renderWithProviders(
       <MemoryRouter>
         <CommandPalette open={true} />
@@ -62,15 +78,15 @@ describe("CommandPalette Routes", () => {
     );
 
     // The palette renders static page items when open with empty query
-    expect(screen.getByText("Work")).toBeInTheDocument();
+    expect(screen.getByText("Hub")).toBeInTheDocument();
     expect(screen.getByText("Garden")).toBeInTheDocument();
     expect(screen.getByText("Community")).toBeInTheDocument();
     expect(screen.getByText("Actions")).toBeInTheDocument();
   });
 
-  it("typing 'Settings' triggers open-settings-sheet custom event", async () => {
-    const settingsHandler = vi.fn();
-    window.addEventListener("open-settings-sheet", settingsHandler);
+  it("typing 'Profile' navigates to /profile on mobile", async () => {
+    const profileHandler = vi.fn();
+    window.addEventListener(OPEN_ACCOUNT_SHEET_EVENT, profileHandler as EventListener);
 
     renderWithProviders(
       <MemoryRouter>
@@ -78,11 +94,39 @@ describe("CommandPalette Routes", () => {
       </MemoryRouter>
     );
 
-    // Type "Settings" into the search input
+    const input = screen.getByPlaceholderText(/search/i);
+    await userEvent.type(input, "Profile");
+
+    await waitFor(
+      () => {
+        expect(screen.getByText("Profile")).toBeInTheDocument();
+      },
+      { timeout: 1000 }
+    );
+
+    const profileButton = screen.getByText("Profile").closest("button");
+    expect(profileButton).toBeTruthy();
+    await userEvent.click(profileButton!);
+
+    expect(profileHandler).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/profile");
+
+    window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, profileHandler as EventListener);
+  });
+
+  it("typing 'Settings' navigates to the settings tab route on mobile", async () => {
+    const settingsHandler = vi.fn();
+    window.addEventListener(OPEN_ACCOUNT_SHEET_EVENT, settingsHandler as EventListener);
+
+    renderWithProviders(
+      <MemoryRouter>
+        <CommandPalette open={true} />
+      </MemoryRouter>
+    );
+
     const input = screen.getByPlaceholderText(/search/i);
     await userEvent.type(input, "Settings");
 
-    // Wait for debounce (300ms) + results to filter
     await waitFor(
       () => {
         expect(screen.getByText("Settings")).toBeInTheDocument();
@@ -90,17 +134,105 @@ describe("CommandPalette Routes", () => {
       { timeout: 1000 }
     );
 
-    // Click the Settings result
+    const settingsButton = screen.getByText("Settings").closest("button");
+    expect(settingsButton).toBeTruthy();
+    await userEvent.click(settingsButton!);
+
+    expect(settingsHandler).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/profile?tab=settings");
+
+    window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, settingsHandler as EventListener);
+  });
+
+  it("typing 'Profile' opens the account sheet on desktop instead of navigating", async () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(min-width: 600px)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    const profileHandler = vi.fn();
+    window.addEventListener(OPEN_ACCOUNT_SHEET_EVENT, profileHandler as EventListener);
+
+    renderWithProviders(
+      <MemoryRouter>
+        <CommandPalette open={true} />
+      </MemoryRouter>
+    );
+
+    const input = screen.getByPlaceholderText(/search/i);
+    await userEvent.type(input, "Profile");
+
+    await waitFor(() => {
+      expect(screen.getByText("Profile")).toBeInTheDocument();
+    });
+
+    const profileButton = screen.getByText("Profile").closest("button");
+    expect(profileButton).toBeTruthy();
+    await userEvent.click(profileButton!);
+
+    expect(profileHandler).toHaveBeenCalledTimes(1);
+    expect(
+      (profileHandler.mock.calls[0]?.[0] as CustomEvent<{ tab: "profile" | "settings" }>).detail
+    ).toEqual({ tab: "profile" });
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, profileHandler as EventListener);
+  });
+
+  it("typing 'Settings' opens the settings tab sheet on desktop instead of navigating", async () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(min-width: 600px)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    const settingsHandler = vi.fn();
+    window.addEventListener(OPEN_ACCOUNT_SHEET_EVENT, settingsHandler as EventListener);
+
+    renderWithProviders(
+      <MemoryRouter>
+        <CommandPalette open={true} />
+      </MemoryRouter>
+    );
+
+    const input = screen.getByPlaceholderText(/search/i);
+    await userEvent.type(input, "Settings");
+
+    await waitFor(() => {
+      expect(screen.getByText("Settings")).toBeInTheDocument();
+    });
+
     const settingsButton = screen.getByText("Settings").closest("button");
     expect(settingsButton).toBeTruthy();
     await userEvent.click(settingsButton!);
 
     expect(settingsHandler).toHaveBeenCalledTimes(1);
+    expect(
+      (settingsHandler.mock.calls[0]?.[0] as CustomEvent<{ tab: "profile" | "settings" }>).detail
+    ).toEqual({ tab: "settings" });
+    expect(mockNavigate).not.toHaveBeenCalled();
 
-    window.removeEventListener("open-settings-sheet", settingsHandler);
+    window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, settingsHandler as EventListener);
   });
 
-  it("selecting a garden navigates to /garden?garden=:id", async () => {
+  it("selecting a garden preserves the chosen garden context", async () => {
     renderWithProviders(
       <MemoryRouter>
         <CommandPalette open={true} />
@@ -116,7 +248,10 @@ describe("CommandPalette Routes", () => {
     expect(gardenButton).toBeTruthy();
     await userEvent.click(gardenButton!);
 
-    expect(mockNavigate).toHaveBeenCalledWith("/garden?garden=garden-1");
+    expect(mockSetSelectedGarden).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "garden-1", tokenAddress: "0xAAA" })
+    );
+    expect(mockNavigate).toHaveBeenCalledWith("/garden");
   });
 
   it("Cmd+K toggles palette open/closed", async () => {

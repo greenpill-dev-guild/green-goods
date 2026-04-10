@@ -1,5 +1,6 @@
 import {
   AudioRecorder,
+  adminRoutes,
   Confidence,
   ConfidenceSelector,
   ErrorBoundary,
@@ -145,8 +146,8 @@ export function ReviewForm({
 
       await approvalMutation.mutateAsync({ draft, work });
 
-      // Navigate back to garden detail on success
-      navigate(`/gardens/${gardenId}`);
+      // Navigate back to the Hub work queue on success
+      navigate(adminRoutes.work());
     } catch (error) {
       const parsed = parseContractError(error);
       const normalizedName = parsed.name.toLowerCase();
