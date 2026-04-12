@@ -85,6 +85,23 @@
   --color-green-200: rgb(var(--green-200));
   --color-green-100: rgb(var(--green-100));
   --color-green-50: rgb(var(--green-50));
+
+  /* M3 Type Scale — Tailwind aliases */
+  --text-display-lg: var(--type-display-lg);
+  --text-display-md: var(--type-display-md);
+  --text-display-sm: var(--type-display-sm);
+  --text-headline-lg: var(--type-headline-lg);
+  --text-headline-md: var(--type-headline-md);
+  --text-headline-sm: var(--type-headline-sm);
+  --text-title-lg: var(--type-title-lg);
+  --text-title-md: var(--type-title-md);
+  --text-title-sm: var(--type-title-sm);
+  --text-body-lg: var(--type-body-lg);
+  --text-body-md: var(--type-body-md);
+  --text-body-sm: var(--type-body-sm);
+  --text-label-lg: var(--type-label-lg);
+  --text-label-md: var(--type-label-md);
+  --text-label-sm: var(--type-label-sm);
 }
 
 /* Base layer: Admin-specific element resets */

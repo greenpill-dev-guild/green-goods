@@ -80,52 +80,52 @@
     @apply bg-success-lighter text-success-dark border-success-light;
   }
 
-  /* ── Type Roles — MD3-aligned semantic typography ── */
+  /* ── Type Roles — M3 Type Scale ── */
   .type-display {
-    font-size: var(--text-title-h5);
-    line-height: var(--text-title-h5--line-height);
-    letter-spacing: var(--text-title-h5--letter-spacing);
+    font-size: var(--type-display-sm);
+    line-height: var(--type-display-sm-lh);
+    letter-spacing: var(--type-display-sm-ls);
     font-weight: 600;
     color: rgb(var(--text-strong-950));
   }
 
   .type-headline {
-    font-size: var(--text-title-h6);
-    line-height: var(--text-title-h6--line-height);
-    letter-spacing: var(--text-title-h6--letter-spacing);
+    font-size: var(--type-headline-lg);
+    line-height: var(--type-headline-lg-lh);
+    letter-spacing: var(--type-headline-lg-ls);
     font-weight: 600;
     color: rgb(var(--text-strong-950));
   }
 
   .type-title {
-    font-size: var(--text-label-md);
-    line-height: var(--text-label-md--line-height);
-    letter-spacing: var(--text-label-md--letter-spacing);
-    font-weight: 500;
+    font-size: var(--type-title-md);
+    line-height: var(--type-title-md-lh);
+    letter-spacing: var(--type-title-md-ls);
+    font-weight: 600;
     color: rgb(var(--text-strong-950));
   }
 
   .type-body {
-    font-size: var(--text-paragraph-sm);
-    line-height: var(--text-paragraph-sm--line-height);
-    letter-spacing: var(--text-paragraph-sm--letter-spacing);
+    font-size: var(--type-body-md);
+    line-height: var(--type-body-md-lh);
+    letter-spacing: var(--type-body-md-ls);
     font-weight: 400;
     color: rgb(var(--text-sub-600));
   }
 
   .type-label {
-    font-size: var(--text-subheading-xs);
-    line-height: var(--text-subheading-xs--line-height);
-    letter-spacing: var(--text-subheading-xs--letter-spacing);
+    font-size: var(--type-label-md);
+    line-height: var(--type-label-md-lh);
+    letter-spacing: var(--type-label-md-ls);
     font-weight: 500;
     text-transform: uppercase;
     color: rgb(var(--text-soft-400));
   }
 
   .type-caption {
-    font-size: var(--text-subheading-2xs);
-    line-height: var(--text-subheading-2xs--line-height);
-    letter-spacing: var(--text-subheading-2xs--letter-spacing);
+    font-size: var(--type-label-sm);
+    line-height: var(--type-label-sm-lh);
+    letter-spacing: var(--type-label-sm-ls);
     font-weight: 500;
     color: rgb(var(--text-soft-400));
   }

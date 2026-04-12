@@ -447,6 +447,53 @@
   --m3-state-hover: var(--primary-alpha-10);
   --m3-state-focus: var(--primary-alpha-16);
   --m3-state-pressed: var(--primary-alpha-24);
+
+  /* ── M3 Type Scale ── */
+  --type-display-lg: 57px;
+  --type-display-lg-lh: 64px;
+  --type-display-lg-ls: -0.25px;
+  --type-display-md: 45px;
+  --type-display-md-lh: 52px;
+  --type-display-md-ls: 0px;
+  --type-display-sm: 36px;
+  --type-display-sm-lh: 44px;
+  --type-display-sm-ls: 0px;
+  --type-headline-lg: 32px;
+  --type-headline-lg-lh: 40px;
+  --type-headline-lg-ls: 0px;
+  --type-headline-md: 28px;
+  --type-headline-md-lh: 36px;
+  --type-headline-md-ls: 0px;
+  --type-headline-sm: 24px;
+  --type-headline-sm-lh: 32px;
+  --type-headline-sm-ls: 0px;
+  --type-title-lg: 22px;
+  --type-title-lg-lh: 28px;
+  --type-title-lg-ls: 0px;
+  --type-title-md: 16px;
+  --type-title-md-lh: 24px;
+  --type-title-md-ls: 0.15px;
+  --type-title-sm: 14px;
+  --type-title-sm-lh: 20px;
+  --type-title-sm-ls: 0.1px;
+  --type-body-lg: 16px;
+  --type-body-lg-lh: 24px;
+  --type-body-lg-ls: 0.5px;
+  --type-body-md: 14px;
+  --type-body-md-lh: 20px;
+  --type-body-md-ls: 0.25px;
+  --type-body-sm: 12px;
+  --type-body-sm-lh: 16px;
+  --type-body-sm-ls: 0.4px;
+  --type-label-lg: 14px;
+  --type-label-lg-lh: 20px;
+  --type-label-lg-ls: 0.1px;
+  --type-label-md: 12px;
+  --type-label-md-lh: 16px;
+  --type-label-md-ls: 0.5px;
+  --type-label-sm: 11px;
+  --type-label-sm-lh: 16px;
+  --type-label-sm-ls: 0.5px;
 }
 
 /* Dark theme overrides using data-theme attribute */
