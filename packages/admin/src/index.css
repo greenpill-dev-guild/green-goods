@@ -205,6 +205,105 @@
 }
 
 /* ============================================================================
+ * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
+ * hub=blue, garden=green, community=orange, actions=red
+ * Each defines 8 tonal roles consumed by --ws-* utilities across the admin UI
+ * ============================================================================ */
+
+/* Hub — Blue */
+[data-workspace="hub"] {
+  --ws-primary: var(--blue-500);
+  --ws-on-primary: 255 255 255;
+  --ws-primary-container: var(--blue-100);
+  --ws-on-primary-container: var(--blue-900);
+  --ws-secondary: var(--blue-300);
+  --ws-surface-tint: var(--blue-500) / 8%;
+  --ws-outline: var(--blue-200);
+  --ws-surface-variant: var(--blue-50);
+}
+
+/* Garden — Green */
+[data-workspace="garden"] {
+  --ws-primary: var(--green-500);
+  --ws-on-primary: 255 255 255;
+  --ws-primary-container: var(--green-100);
+  --ws-on-primary-container: var(--green-900);
+  --ws-secondary: var(--green-300);
+  --ws-surface-tint: var(--green-500) / 8%;
+  --ws-outline: var(--green-200);
+  --ws-surface-variant: var(--green-50);
+}
+
+/* Community — Orange */
+[data-workspace="community"] {
+  --ws-primary: var(--orange-500);
+  --ws-on-primary: 255 255 255;
+  --ws-primary-container: var(--orange-100);
+  --ws-on-primary-container: var(--orange-900);
+  --ws-secondary: var(--orange-300);
+  --ws-surface-tint: var(--orange-500) / 8%;
+  --ws-outline: var(--orange-200);
+  --ws-surface-variant: var(--orange-50);
+}
+
+/* Actions — Red */
+[data-workspace="actions"] {
+  --ws-primary: var(--red-500);
+  --ws-on-primary: 255 255 255;
+  --ws-primary-container: var(--red-100);
+  --ws-on-primary-container: var(--red-900);
+  --ws-secondary: var(--red-300);
+  --ws-surface-tint: var(--red-500) / 8%;
+  --ws-outline: var(--red-200);
+  --ws-surface-variant: var(--red-50);
+}
+
+/* Dark mode workspace overrides */
+[data-theme="dark"] [data-workspace="hub"] {
+  --ws-primary: var(--blue-200);
+  --ws-on-primary: var(--blue-900);
+  --ws-primary-container: var(--blue-900);
+  --ws-on-primary-container: var(--blue-100);
+  --ws-secondary: var(--blue-400);
+  --ws-surface-tint: var(--blue-200) / 10%;
+  --ws-outline: var(--blue-700);
+  --ws-surface-variant: var(--blue-900);
+}
+
+[data-theme="dark"] [data-workspace="garden"] {
+  --ws-primary: var(--green-200);
+  --ws-on-primary: var(--green-900);
+  --ws-primary-container: var(--green-900);
+  --ws-on-primary-container: var(--green-100);
+  --ws-secondary: var(--green-400);
+  --ws-surface-tint: var(--green-200) / 10%;
+  --ws-outline: var(--green-700);
+  --ws-surface-variant: var(--green-900);
+}
+
+[data-theme="dark"] [data-workspace="community"] {
+  --ws-primary: var(--orange-200);
+  --ws-on-primary: var(--orange-900);
+  --ws-primary-container: var(--orange-900);
+  --ws-on-primary-container: var(--orange-100);
+  --ws-secondary: var(--orange-400);
+  --ws-surface-tint: var(--orange-200) / 10%;
+  --ws-outline: var(--orange-700);
+  --ws-surface-variant: var(--orange-900);
+}
+
+[data-theme="dark"] [data-workspace="actions"] {
+  --ws-primary: var(--red-200);
+  --ws-on-primary: var(--red-900);
+  --ws-primary-container: var(--red-900);
+  --ws-on-primary-container: var(--red-100);
+  --ws-secondary: var(--red-400);
+  --ws-surface-tint: var(--red-200) / 10%;
+  --ws-outline: var(--red-700);
+  --ws-surface-variant: var(--red-900);
+}
+
+/* ============================================================================
  * TONAL ELEVATION - 6-level elevation system with dark-mode green tinting
  * ============================================================================ */
 :root {

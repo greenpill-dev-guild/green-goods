@@ -122,20 +122,20 @@
   --slate-alpha-16: 153 160 174 / 16%;
   --slate-alpha-10: 153 160 174 / 10%;
 
-  /* Neutral (alias to gray with added 850 for card elevation) */
-  --neutral-950: var(--gray-950);
-  --neutral-900: var(--gray-900);
-  --neutral-850: 35 35 35;  /* Custom intermediate for card elevation */
-  --neutral-800: var(--gray-800);
-  --neutral-700: var(--gray-700);
-  --neutral-600: var(--gray-600);
-  --neutral-500: var(--gray-500);
-  --neutral-400: var(--gray-400);
-  --neutral-300: var(--gray-300);
-  --neutral-200: var(--gray-200);
-  --neutral-100: var(--gray-100);
-  --neutral-50: var(--gray-50);
-  --neutral-0: var(--gray-0);
+  /* Neutral — Stone (warm gray with earthy undertone) */
+  --neutral-950: 12 10 9;
+  --neutral-900: 28 25 23;
+  --neutral-850: 35 32 30;
+  --neutral-800: 41 37 36;
+  --neutral-700: 68 64 60;
+  --neutral-600: 87 83 78;
+  --neutral-500: 120 113 108;
+  --neutral-400: 168 162 158;
+  --neutral-300: 214 211 209;
+  --neutral-200: 231 229 228;
+  --neutral-100: 245 245 244;
+  --neutral-50: 250 250 249;
+  --neutral-0: 255 255 255;
 
   --neutral-alpha-24: var(--gray-alpha-24);
   --neutral-alpha-16: var(--gray-alpha-16);
