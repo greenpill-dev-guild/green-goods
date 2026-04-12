@@ -242,6 +242,13 @@
   --edge-focus: 0 0 0 3px rgba(31, 193, 107, 0.30);
 }
 
+/* Animatable workspace tint — enables color cross-dissolve between views */
+@property --ws-surface-tint-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
 /* ============================================================================
  * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
  * hub=blue, garden=green, community=orange, actions=red
@@ -258,6 +265,7 @@
   --ws-surface-tint: var(--blue-500) / 8%;
   --ws-outline: var(--blue-200);
   --ws-surface-variant: var(--blue-50);
+  --ws-surface-tint-color: rgb(var(--blue-500) / 8%);
 }
 
 /* Garden — Green */
@@ -270,6 +278,7 @@
   --ws-surface-tint: var(--green-500) / 8%;
   --ws-outline: var(--green-200);
   --ws-surface-variant: var(--green-50);
+  --ws-surface-tint-color: rgb(var(--green-500) / 8%);
 }
 
 /* Community — Orange */
@@ -282,6 +291,7 @@
   --ws-surface-tint: var(--orange-500) / 8%;
   --ws-outline: var(--orange-200);
   --ws-surface-variant: var(--orange-50);
+  --ws-surface-tint-color: rgb(var(--orange-500) / 8%);
 }
 
 /* Actions — Red */
@@ -294,6 +304,7 @@
   --ws-surface-tint: var(--red-500) / 8%;
   --ws-outline: var(--red-200);
   --ws-surface-variant: var(--red-50);
+  --ws-surface-tint-color: rgb(var(--red-500) / 8%);
 }
 
 /* Dark mode workspace overrides */
@@ -306,6 +317,7 @@
   --ws-surface-tint: var(--blue-200) / 10%;
   --ws-outline: var(--blue-700);
   --ws-surface-variant: var(--blue-900);
+  --ws-surface-tint-color: rgb(var(--blue-200) / 10%);
 }
 
 [data-theme="dark"] [data-workspace="garden"] {
@@ -317,6 +329,7 @@
   --ws-surface-tint: var(--green-200) / 10%;
   --ws-outline: var(--green-700);
   --ws-surface-variant: var(--green-900);
+  --ws-surface-tint-color: rgb(var(--green-200) / 10%);
 }
 
 [data-theme="dark"] [data-workspace="community"] {
@@ -328,6 +341,7 @@
   --ws-surface-tint: var(--orange-200) / 10%;
   --ws-outline: var(--orange-700);
   --ws-surface-variant: var(--orange-900);
+  --ws-surface-tint-color: rgb(var(--orange-200) / 10%);
 }
 
 [data-theme="dark"] [data-workspace="actions"] {
@@ -339,6 +353,7 @@
   --ws-surface-tint: var(--red-200) / 10%;
   --ws-outline: var(--red-700);
   --ws-surface-variant: var(--red-900);
+  --ws-surface-tint-color: rgb(var(--red-200) / 10%);
 }
 
 /* ============================================================================
@@ -362,6 +377,11 @@
 [data-workspace="actions"] .glass-raised,
 [data-workspace="actions"] .glass-floating {
   background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--red-500)) 4%);
+}
+
+/* Workspace color cross-dissolve when switching views */
+[data-workspace] {
+  transition: --ws-surface-tint-color var(--spring-dramatic-duration, 500ms) var(--spring-dramatic-easing, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
 /* ============================================================================
