@@ -381,7 +381,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay" />
           <Dialog.Content
-            className="fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-stroke-sub bg-bg-white shadow-xl animate-fade-in-up"
+            className="glass-overlay fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-stroke-sub shadow-xl animate-fade-in-up"
             onKeyDown={handleKeyDown}
             onOpenAutoFocus={(e) => {
               e.preventDefault();
@@ -412,7 +412,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                   id: "app.admin.nav.searchPlaceholder",
                   defaultMessage: "Search pages, gardens, actions...",
                 })}
-                className="flex-1 bg-transparent py-3 text-sm text-text-strong placeholder:text-text-soft outline-none"
+                className="flex-1 h-10 bg-transparent rounded-sm py-3 text-body-lg text-text-strong placeholder:text-text-soft shadow-[var(--edge-rest)] focus:shadow-[var(--edge-focus)] transition-shadow duration-[var(--spring-micro-duration,150ms)] outline-none"
               />
             </div>
 
@@ -428,7 +428,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
               ) : (
                 grouped.map((group) => (
                   <div key={group.category} role="group" aria-label={group.label}>
-                    <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-text-soft">
+                    <div className="px-2 py-1.5 text-label-sm text-text-soft">
                       {group.label}
                     </div>
                     {group.items.map((result) => {
@@ -448,10 +448,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                           onClick={() => selectResult(result)}
                           onMouseMove={() => setActiveIndex(index)}
                           className={cn(
-                            "flex w-full items-center rounded-lg px-3 py-2 text-sm text-left transition-colors",
+                            "flex w-full items-center rounded-sm px-3 py-2 text-body-md text-left transition-colors",
                             isActive
                               ? "bg-primary-alpha-16 text-primary-darker"
-                              : "text-text-sub hover:bg-bg-weak"
+                              : "text-text-sub hover:glass-raised"
                           )}
                         >
                           {Icon && <Icon className="h-4 w-4 mr-2 flex-shrink-0 text-text-soft" />}
