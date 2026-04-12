@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 import { TopContextBar } from "./TopContextBar";
 import { GardenChip } from "./GardenChip";
 
@@ -104,6 +104,12 @@ export const MinimalMobile: Story = {
 
 /** All variants side-by-side for visual comparison. */
 export const Gallery: Story = {
+  args: {
+    gardenChip: gardenChipElement,
+    onOpenSearch: fn(),
+    onOpenSettings: fn(),
+    userAvatar: sampleAvatar,
+  },
   render: () => (
     <div className="flex flex-col gap-8">
       <section>

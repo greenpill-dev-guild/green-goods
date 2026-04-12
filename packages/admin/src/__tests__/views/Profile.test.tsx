@@ -19,6 +19,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       signOut: mockSignOut,
       eoaAddress: "0x1234567890123456789012345678901234567890",
     }),
+    useAuthState: () => ({
+      eoaAddress: "0x1234567890123456789012345678901234567890",
+    }),
+    useAuthActions: () => ({
+      signOut: mockSignOut,
+    }),
     useEnsAvatar: () => ({ data: null }),
     useEnsName: () => ({ data: null }),
     useRole: () => ({ role: "operator" }),
@@ -97,10 +103,7 @@ describe("ProfileView", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByRole("tab", { name: "Settings" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
+    expect(screen.getByRole("tab", { name: "Settings" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Theme")).toBeInTheDocument();
     expect(screen.getByTestId("location")).toHaveTextContent("/profile?tab=settings");
   });

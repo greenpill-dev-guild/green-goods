@@ -38,9 +38,11 @@ export { JobQueueProvider, useJobQueue, useQueueFlush, useQueueStats } from "./J
 // Work Provider
 export type { WorkDataProps, WorkFormValue, WorkSelectionValue } from "./Work";
 export {
-  useWork,
   useWorkFormContext,
   useWorkSelection,
   WorkProvider,
   WorkTab,
 } from "./Work";
+// Compatibility exports
+// Prefer useWorkSelection/useWorkFormContext in new code.
+export { useWork } from "./Work";

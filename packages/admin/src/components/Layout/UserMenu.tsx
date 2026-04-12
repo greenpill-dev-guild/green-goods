@@ -2,7 +2,8 @@ import {
   cn,
   DEFAULT_CHAIN_ID,
   getChainName,
-  useAuth,
+  useAuthActions,
+  useAuthState,
   useRole,
   useTheme,
 } from "@green-goods/shared";
@@ -31,7 +32,8 @@ const THEME_OPTIONS = [
 
 export function UserMenu({ onOpenSettings }: UserMenuProps) {
   const { formatMessage } = useIntl();
-  const { signOut, eoaAddress } = useAuth();
+  const { eoaAddress } = useAuthState();
+  const { signOut } = useAuthActions();
   const { role } = useRole();
   const { theme, setTheme } = useTheme();
   const [copied, setCopied] = useState(false);
@@ -169,7 +171,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
 
           {/* Disconnect */}
           <DropdownMenu.Item
-            onSelect={() => signOut?.()}
+            onSelect={() => signOut()}
             className={cn(
               "flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium",
               "cursor-pointer outline-none",

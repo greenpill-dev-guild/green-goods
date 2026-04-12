@@ -21,7 +21,7 @@ import {
   toastService,
   useAdminStore,
   useActions,
-  useAuth,
+  useAuthState,
   useBeforeUnloadWhilePending,
   useGardenPermissions,
   useGardens,
@@ -223,11 +223,7 @@ export interface SubmitWorkPanelProps {
   onCancel?: () => void;
 }
 
-export function SubmitWorkPanel({
-  layout = "page",
-  onSuccess,
-  onCancel,
-}: SubmitWorkPanelProps) {
+export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: SubmitWorkPanelProps) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
@@ -235,10 +231,13 @@ export function SubmitWorkPanel({
 
   const { data: gardens = [] } = useGardens();
   const { data: actions = [] } = useActions();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthState();
   const { canManageGarden } = useGardenPermissions();
 
-  const garden = useMemo(() => gardens.find((candidate) => candidate.id === gardenId), [gardens, gardenId]);
+  const garden = useMemo(
+    () => gardens.find((candidate) => candidate.id === gardenId),
+    [gardens, gardenId]
+  );
   const gardenDomains = useMemo<Set<Domain>>(
     () => new Set(garden?.domainMask ? expandDomainMask(garden.domainMask) : []),
     [garden?.domainMask]

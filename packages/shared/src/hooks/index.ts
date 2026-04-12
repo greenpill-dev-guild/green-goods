@@ -79,15 +79,20 @@ export {
 // ============================================================================
 // ASSESSMENT
 // ============================================================================
-export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkflow";
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useAllAssessments } from "./assessment/useAllAssessments";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
+// Compatibility type aliases
+// Prefer AssessmentWorkflowParams from @green-goods/shared/types in new code.
+export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkflow";
 // ============================================================================
 // AUTH
 // ============================================================================
 export type { AuthActionsValue, AuthContextType, AuthMode, AuthStateValue } from "./auth/useAuth";
-export { useAuth, useAuthActions, useAuthContext, useAuthState } from "./auth/useAuth";
+export { useAuthActions, useAuthContext, useAuthState } from "./auth/useAuth";
+// Compatibility exports
+// Prefer useAuthState/useAuthActions in new code.
+export { useAuth } from "./auth/useAuth";
 export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";
 export { useUser } from "./auth/useUser";
 // ============================================================================
@@ -309,7 +314,7 @@ export {
   STALE_TIME_RARE,
   STALE_TIME_SLOW,
 } from "../config/query-keys";
-export { scheduleProgressiveInvalidation } from "../utils/query-invalidation";
+export { scheduleProgressiveInvalidation } from "../config/query-keys/schedule";
 // ============================================================================
 // ROLES
 // ============================================================================

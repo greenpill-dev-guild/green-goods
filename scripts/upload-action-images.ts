@@ -163,7 +163,7 @@ function formatSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-// --- Storacha client (ephemeral principal pattern from storacha-upload.js) ---
+// --- Storacha client (ephemeral principal pattern) ---
 
 interface StorachaClient {
 	uploadFile: (file: File) => Promise<{ toString(): string }>;
@@ -185,7 +185,7 @@ async function initStoracha(): Promise<StorachaClient> {
 	const { Signer } = await import("@storacha/client/principal/ed25519");
 	const { parse: parseProof } = await import("@storacha/client/proof");
 
-	// Use explicit principal + ephemeral memory store (matches storacha-upload.js)
+	// Use explicit principal + ephemeral memory store for one-off uploads.
 	const principal = Signer.parse(storachaKey);
 	const memoryStore = {
 		data: null as Uint8Array | null,

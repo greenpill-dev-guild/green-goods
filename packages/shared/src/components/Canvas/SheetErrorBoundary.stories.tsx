@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
 
-function ThrowOnRender() {
+function ThrowOnRender(): never {
   throw new Error("Storybook sheet content failed");
 }
 

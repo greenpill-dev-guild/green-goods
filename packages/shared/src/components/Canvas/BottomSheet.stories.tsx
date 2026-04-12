@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 import { BottomSheet } from "./BottomSheet";
 
 // ---------------------------------------------------------------------------
@@ -89,6 +89,12 @@ export const NoTitle: Story = {
 
 /** All variants shown for visual comparison. */
 export const Gallery: Story = {
+  args: {
+    open: true,
+    onClose: fn(),
+    title: "Work Detail",
+    children: sampleContent,
+  },
   render: () => (
     <div className="relative min-h-screen bg-bg-white-0">
       <div className="p-6">

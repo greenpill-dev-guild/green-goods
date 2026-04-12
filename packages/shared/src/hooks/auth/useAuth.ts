@@ -90,6 +90,8 @@ interface UseAuthReturn {
  *
  * Requires AuthProvider to be present in the component tree.
  * Works with both passkey and wallet authentication modes.
+ *
+ * @deprecated Prefer useAuthState() for reads and useAuthActions() for mutations in new code.
  */
 export function useAuth(): UseAuthReturn {
   const auth = useAuthContext();

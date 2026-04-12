@@ -640,4 +640,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
 // RE-EXPORTS for backwards compatibility
 // ============================================================================
 
-export { AUTH_MODE_STORAGE_KEY, type AuthMode } from "../modules/auth/session";
+export type { AuthMode } from "../modules/auth/session";

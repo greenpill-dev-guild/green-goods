@@ -30,7 +30,11 @@ export {
   gardenHasMember,
   resolveGardenMemberKey,
 } from "./app/garden";
-export type { AdminSearchValue, AdminSignalPoolType, AdminWorkspaceId } from "./admin-routes";
+export type {
+  AdminSearchValue,
+  AdminSignalPoolType,
+  AdminWorkspaceId,
+} from "./navigation/admin-routes";
 export {
   ADMIN_GARDEN_SHARE_PARAM,
   ADMIN_WORKSPACE_ROOTS,
@@ -38,7 +42,7 @@ export {
   buildAdminHref,
   getAdminWorkspaceForPath,
   getAdminWorkspaceRoot,
-} from "./admin-routes";
+} from "./navigation/admin-routes";
 // ============================================================================
 // HAPTIC FEEDBACK (Vibration API)
 // ============================================================================
@@ -284,7 +288,7 @@ export {
   scheduleInvalidation,
   scheduleInvalidationForKey,
   scheduleProgressiveInvalidation,
-} from "./query-invalidation";
+} from "../config/query-keys/schedule";
 // ============================================================================
 // SCHEDULER (Native Scheduler API for cooperative multitasking)
 // ============================================================================

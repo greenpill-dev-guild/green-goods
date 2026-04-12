@@ -3,7 +3,7 @@ import {
   DEFAULT_CHAIN_ID,
   Surface,
   getChainName,
-  useAuth,
+  useAuthActions,
   useTheme,
 } from "@green-goods/shared";
 import { RiComputerLine, RiLogoutBoxLine, RiMoonLine, RiSunLine } from "@remixicon/react";
@@ -21,7 +21,7 @@ interface AccountSettingsPanelProps {
 
 export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
   const { formatMessage } = useIntl();
-  const { signOut } = useAuth();
+  const { signOut } = useAuthActions();
   const { theme, setTheme } = useTheme();
 
   return (
@@ -76,7 +76,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
       <Surface elevation="raised" padding="compact">
         <button
           type="button"
-          onClick={() => signOut?.()}
+          onClick={() => signOut()}
           className={cn(
             "flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3",
             "text-sm font-medium text-error-base transition-colors hover:bg-error-lighter"

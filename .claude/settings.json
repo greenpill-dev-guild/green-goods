@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
@@ -9,7 +10,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if cat | jq -r '.tool_input.file_path // empty' | grep -qE 'packages/(client|admin)/src/hooks/'; then echo 'BLOCKED: All hooks must be in packages/shared/src/hooks/' >&2; exit 2; fi",
+            "if": "Write|Edit(**/packages/client/src/hooks/**)",
+            "command": "echo 'BLOCKED: All hooks must be in packages/shared/src/hooks/' >&2; exit 2",
+            "statusMessage": "Checking hook location..."
+          },
+          {
+            "type": "command",
+            "if": "Write|Edit(**/packages/admin/src/hooks/**)",
+            "command": "echo 'BLOCKED: All hooks must be in packages/shared/src/hooks/' >&2; exit 2",
             "statusMessage": "Checking hook location..."
           }
         ]
@@ -19,7 +27,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if cat | jq -r '.tool_input.file_path // empty' | grep -qE 'packages/[^/]+/\\.env'; then echo 'BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2; fi",
+            "if": "Write(**/packages/*/.env*)",
+            "command": "echo 'BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2",
             "statusMessage": "Checking env file location..."
           }
         ]
@@ -148,17 +157,20 @@
           },
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -q 'packages/shared/src/'; then cd /Users/afo/Code/greenpill/green-goods/packages/shared && bunx tsc --noEmit 2>&1 | head -10; fi; exit 0",
+            "if": "Edit|Write(**/packages/shared/src/**)",
+            "command": "cd /Users/afo/Code/greenpill/green-goods/packages/shared && bunx tsc --noEmit 2>&1 | head -10; exit 0",
             "statusMessage": "Type-checking shared..."
           },
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/resolvers/.*\\.sol$' && [ -f \"$FILE\" ]; then GAP=$(grep -oE 'uint256\\[[0-9]+\\].*__gap' \"$FILE\" 2>/dev/null | grep -oE '\\[[0-9]+\\]' | tr -d '[]'); if [ -n \"$GAP\" ]; then VARS=$(grep -E '^\\s+(uint|int|bool|address|bytes32|bytes|string|mapping|I[A-Z])\\S*\\s+(public|private|internal)\\s' \"$FILE\" 2>/dev/null | grep -cv '__gap\\|immutable' || echo 0); TOTAL=$((GAP + VARS)); if [ \"$TOTAL\" -ne 50 ]; then echo \"STORAGE GAP WARNING: $FILE has $VARS state vars + $GAP gap slots = $TOTAL (expected 50)\"; fi; fi; fi; exit 0",
+            "if": "Edit|Write(**/packages/contracts/src/resolvers/*.sol)",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -f \"$FILE\" ]; then GAP=$(grep -oE 'uint256\\[[0-9]+\\].*__gap' \"$FILE\" 2>/dev/null | grep -oE '\\[[0-9]+\\]' | tr -d '[]'); if [ -n \"$GAP\" ]; then VARS=$(grep -E '^\\s+(uint|int|bool|address|bytes32|bytes|string|mapping|I[A-Z])\\S*\\s+(public|private|internal)\\s' \"$FILE\" 2>/dev/null | grep -cv '__gap\\|immutable' || echo 0); TOTAL=$((GAP + VARS)); if [ \"$TOTAL\" -ne 50 ]; then echo \"STORAGE GAP WARNING: $FILE has $VARS state vars + $GAP gap slots = $TOTAL (expected 50)\"; fi; fi; fi; exit 0",
             "statusMessage": "Checking storage gaps..."
           },
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/resolvers/.*\\.sol$'; then RESOLVER=$(basename \"$FILE\" .sol); CHANGED_TESTS=$(cd /Users/afo/Code/greenpill/green-goods && git diff --name-only 2>/dev/null | grep -c \"test/.*${RESOLVER}Resolver\\.t\\.sol\" || true); if [ \"$CHANGED_TESTS\" -eq 0 ]; then echo \"RESOLVER WITHOUT TESTS: Modified $RESOLVER but no corresponding test file changed yet.\"; echo \"  Resolver changes should include test updates.\"; fi; fi; exit 0",
+            "if": "Edit|Write(**/packages/contracts/src/resolvers/*.sol)",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); RESOLVER=$(basename \"$FILE\" .sol); CHANGED_TESTS=$(cd /Users/afo/Code/greenpill/green-goods && git diff --name-only 2>/dev/null | grep -c \"test/.*${RESOLVER}Resolver\\.t\\.sol\" || true); if [ \"$CHANGED_TESTS\" -eq 0 ]; then echo \"RESOLVER WITHOUT TESTS: Modified $RESOLVER but no corresponding test file changed yet.\"; echo \"  Resolver changes should include test updates.\"; fi; exit 0",
             "statusMessage": "Checking resolver test coverage..."
           }
         ]
@@ -174,6 +186,16 @@
         ]
       }
     ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/afo/Code/greenpill/green-goods && for f in session-state.md tests.json stories-state.json; do [ -f \"$f\" ] && rm \"$f\" && echo \"Cleaned up $f\"; done; find tmp/ -maxdepth 1 -name '*.png' -o -name '*.json' 2>/dev/null | head -20 | xargs rm -f 2>/dev/null; exit 0"
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "matcher": "",
@@ -185,6 +207,9 @@
         ]
       }
     ]
+  },
+  "worktree": {
+    "symlinkDirectories": ["node_modules", ".turbo"]
   },
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": true,

@@ -60,7 +60,7 @@
 - `packages/shared/src/components/Cockpit/SideSheet.tsx` — z-50 → z-overlay
 - `packages/shared/src/components/Cockpit/BottomSheet.tsx` — z-50 → z-overlay
 - `packages/shared/src/components/Layout/PageHeader.tsx` — z-30 → z-sticky
-- `packages/admin/src/components/Layout/CockpitLayout.tsx` — z-[9999] → z-toast (skip-link), z-40 → z-sticky (TopContextBar ref)
+- `packages/admin/src/components/Layout/CanvasLayout.tsx` — z-[9999] → z-toast (skip-link), z-40 → z-sticky (TopContextBar ref)
 - `packages/admin/src/components/Vault/PositionCard.tsx` — z-[9999]/z-[10000] → z-overlay/z-modal
 - `packages/admin/src/components/Vault/DepositModal.tsx` — z-[9999]/z-[10000] → z-overlay/z-modal
 - `packages/admin/src/components/Vault/WithdrawModal.tsx` — z-[9999]/z-[10000] → z-overlay/z-modal
@@ -71,7 +71,7 @@
 ### Files to Modify (Glass)
 - `packages/shared/src/components/Cockpit/SideSheet.tsx` — glass overlay treatment
 - `packages/shared/src/components/Layout/PageHeader.tsx` — consistent glass when sticky
-- `packages/admin/src/components/Layout/CockpitLayout.tsx` — TopContextBar glass ref
+- `packages/admin/src/components/Layout/CanvasLayout.tsx` — TopContextBar glass ref
 
 ### Files to Modify (Modal Migration)
 - `packages/admin/src/components/Garden/AddMemberModal.tsx`
@@ -245,11 +245,11 @@ Replace all arbitrary z-index values with named tokens:
 | Current | New | Files |
 |---------|-----|-------|
 | `z-30` (NavigationBar) | `z-nav` | NavigationBar.tsx |
-| `z-40` (TopContextBar) | `z-sticky` | CockpitLayout.tsx |
+| `z-40` (TopContextBar) | `z-sticky` | CanvasLayout.tsx |
 | `z-30` (PageHeader sticky) | `z-sticky` | PageHeader.tsx |
 | `z-50` (SideSheet, BottomSheet) | `z-overlay` | SideSheet.tsx, BottomSheet.tsx |
 | `z-60` (AddMemberModal) | `z-modal` | AddMemberModal.tsx |
-| `z-[9999]` (skip-links) | `z-toast` | CockpitLayout.tsx, LandingHeader.tsx, TopNav.tsx |
+| `z-[9999]` (skip-links) | `z-toast` | CanvasLayout.tsx, LandingHeader.tsx, TopNav.tsx |
 | `z-[9999]` / `z-[10000]` (Vault modals) | `z-overlay` / `z-modal` | PositionCard.tsx, DepositModal.tsx, WithdrawModal.tsx |
 | `z-[10000]` (client footer) | `z-modal` | client Garden/index.tsx |
 | `z-20` (FAB) | `z-raised` | Work/index.tsx (if FAB still exists) |
@@ -257,12 +257,12 @@ Replace all arbitrary z-index values with named tokens:
 **Verify**: `bun build` succeeds. No visual stacking regressions — overlays above nav, modals above overlays, toasts above everything.
 
 ### Step 5: Glass Language Extension
-**Files**: `PageHeader.tsx`, `SideSheet.tsx`, `CockpitLayout.tsx` (TopContextBar section)
+**Files**: `PageHeader.tsx`, `SideSheet.tsx`, `CanvasLayout.tsx` (TopContextBar section)
 **Details**:
 
 Apply consistent glass treatment to navigation-tier surfaces:
 
-**TopContextBar** (in CockpitLayout or wherever it renders):
+**TopContextBar** (in CanvasLayout or wherever it renders):
 - Current: `bg-bg-soft`
 - New: `bg-bg-soft/90 supports-[backdrop-filter]:bg-bg-soft/70 backdrop-blur-lg ring-1 ring-black/[0.04] dark:ring-white/[0.06]`
 - Matches NavigationBar's existing glass pattern

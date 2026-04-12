@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Address } from "../../types/domain";
-import { adminRoutes } from "../../utils/admin-routes";
+import { adminRoutes } from "../../utils/navigation/admin-routes";
 import {
   type GardenRole,
   GARDEN_ROLE_ORDER,

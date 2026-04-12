@@ -243,13 +243,11 @@ This is the first official release of Green Goods — an offline-first platform 
 **Scripts:**
 - `scripts/ci-local.js` — local CI simulation
 - `scripts/fix-multiformats.js` — dependency patching
-- `scripts/storacha-upload.js` — IPFS deployment helper
 - `scripts/test-e2e.js` — E2E test runner with filtering
 
 **CI/CD:**
 - `.github/workflows/e2e-tests.yml` — comprehensive E2E pipeline
 - `.github/workflows/deploy-docs.yml` — Docusaurus deployment
-- `.github/workflows/deploy-ipfs.yml` — Storacha integration
 - Shared Bun setup action
 
 **Tooling:**

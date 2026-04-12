@@ -3,6 +3,7 @@ name: audit
 description: Codebase Audit - dead code detection, unused exports, architectural anti-patterns, dependency health, and security integration. Use when the user asks for a codebase health check, wants to find dead code, or says 'audit the codebase'.
 argument-hint: "[package-name] [--full] [--team]"
 context: fork
+effort: high
 version: "2.0.0"
 status: active
 packages: ["all"]

@@ -1,8 +1,8 @@
-import { useAuth } from "@green-goods/shared";
+import { useAuthState } from "@green-goods/shared";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 export default function RequireAuth() {
-  const { isReady, isAuthenticated } = useAuth();
+  const { isReady, isAuthenticated } = useAuthState();
   const location = useLocation();
 
   // Wait for auth provider to finish initialization

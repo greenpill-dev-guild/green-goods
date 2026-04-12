@@ -3,6 +3,7 @@ name: principles
 description: Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4, ACID, BASE, CAP. Use when the user wants to check adherence to industry best practices or says 'principles audit'.
 argument-hint: "[package-name | --team]"
 context: fork
+effort: high
 version: "1.1.0"
 status: active
 packages: ["all"]
@@ -196,7 +197,7 @@ When user replies with `fix [IDs]`, `fix critical`, or `fix all`:
 | SOC extraction | `cracked-coder` | `react`, `testing` | `worktree` |
 | EDA/ACID/BASE/CAP fix | `cracked-coder` | `data-layer`, `testing` | `worktree` |
 | ADR/C4 documentation | `oracle` | `architecture` | none |
-| ISP refactor (exports) | `migration` | `architecture`, `testing` | `worktree` |
+| ISP refactor (exports) | `cracked-coder` | `ops`, `architecture`, `testing` | `worktree` |
 
 ### Parallel Rules
 

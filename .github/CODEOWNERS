@@ -1,0 +1,26 @@
+# High-risk and governance-sensitive paths stay human-governed.
+
+/.github/CODEOWNERS @greenpill-dev-guild/engineering-leads
+/.github/copilot-instructions.md @greenpill-dev-guild/engineering-leads
+/.github/instructions/** @greenpill-dev-guild/engineering-leads
+/.github/dependabot.yml @greenpill-dev-guild/engineering-leads
+/.github/workflows/** @greenpill-dev-guild/engineering-leads
+/.github/codeql/** @greenpill-dev-guild/engineering-leads
+
+/AGENTS.md @greenpill-dev-guild/engineering-leads
+/packages/*/AGENTS.md @greenpill-dev-guild/engineering-leads
+/CLAUDE.md @greenpill-dev-guild/engineering-leads
+/.codex/** @greenpill-dev-guild/engineering-leads
+/.claude/** @greenpill-dev-guild/engineering-leads
+
+/.env* @greenpill-dev-guild/engineering-leads
+/scripts/verify-production.sh @greenpill-dev-guild/engineering-leads
+
+/packages/contracts/src/** @greenpill-dev-guild/engineering-leads
+/packages/contracts/test/** @greenpill-dev-guild/engineering-leads
+/packages/contracts/script/** @greenpill-dev-guild/engineering-leads
+/packages/contracts/deployments/** @greenpill-dev-guild/engineering-leads
+/packages/contracts/config/** @greenpill-dev-guild/engineering-leads
+
+/packages/indexer/schema.graphql @greenpill-dev-guild/engineering-leads
+/packages/indexer/config.yaml @greenpill-dev-guild/engineering-leads

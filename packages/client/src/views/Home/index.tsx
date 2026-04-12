@@ -2,8 +2,8 @@ import {
   cn,
   queryKeys,
   toastService,
-  useAuth,
   useBrowserNavigation,
+  useAuthState,
   useFilteredGardens,
   useGardens,
   useLoadingWithMinDuration,
@@ -72,7 +72,7 @@ const Home: React.FC = () => {
   useBrowserNavigation();
 
   // Auth state for welcome message
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthState();
   const hasShownWelcomeRef = useRef(false);
   const { set: scheduleWelcome } = useTimeout();
 

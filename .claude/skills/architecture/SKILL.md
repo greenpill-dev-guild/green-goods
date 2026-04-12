@@ -2,6 +2,7 @@
 name: architecture
 user-invocable: true
 description: Analyze software architecture — map current structure, identify gaps, and provide actionable suggestions. Also serves as a patterns reference for Clean Architecture, DDD, and entropy reduction.
+effort: high
 version: "2.0.0"
 status: active
 packages: ["contracts", "shared", "client", "admin", "indexer"]
@@ -421,5 +422,5 @@ class WorkSubmission {
 - `react` — Component composition and state management patterns
 - `testing` — TDD workflow that drives architectural decisions
 - `react` (performance sub-file) — Bundle analysis and optimization that validate architecture
-- `migration` — Cross-package migration when architecture evolves
+- `ops` (migration sub-file) — Cross-package migration when architecture evolves
 - `principles` — SOLID/DRY/KISS/YAGNI audit that complements architecture analysis

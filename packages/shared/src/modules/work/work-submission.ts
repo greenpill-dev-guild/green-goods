@@ -1,4 +1,3 @@
-import { v4 as uuidv4 } from "uuid";
 import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { serviceWorkerManager } from "../app/service-worker";
@@ -39,7 +38,7 @@ export async function submitWorkToQueue(
 
   const actionTitle = getActionTitle(actions, actionUID);
 
-  const clientWorkId = uuidv4();
+  const clientWorkId = crypto.randomUUID();
 
   // Add job to queue - this handles both offline and online scenarios
   const jobId = await jobQueue.addJob(

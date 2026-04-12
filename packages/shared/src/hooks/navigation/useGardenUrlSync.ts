@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useEligibleAdminGardens } from "../garden/useEligibleAdminGardens";
 import { useAdminStore } from "../../stores/useAdminStore";
 import { compareAddresses } from "../../utils/blockchain/address";
-import { ADMIN_GARDEN_SHARE_PARAM } from "../../utils/admin-routes";
+import { ADMIN_GARDEN_SHARE_PARAM } from "../../utils/navigation/admin-routes";
 
 type UrlParamValue = string | null | undefined;
 

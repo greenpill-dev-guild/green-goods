@@ -38,7 +38,6 @@ import {
 import { type MintHypercertInput, mintHypercertMachine } from "../../workflows/mintHypercert";
 import { useAuth } from "../auth/useAuth";
 import { resolveHypercertContracts } from "./hypercert-contracts";
-import { TimeoutError } from "./hypercert-utils";
 import {
   createUploadMetadataActor,
   createUploadAllowlistActor,
@@ -46,9 +45,6 @@ import {
   createPollForReceiptActor,
   createRegisterInSignalPoolActor,
 } from "./services";
-
-// Re-export TimeoutError for consumers
-export { TimeoutError };
 
 /** Maps XState machine states to public status values */
 const MINT_STATUS_MAP: Record<string, UseMintHypercertResult["status"]> = {

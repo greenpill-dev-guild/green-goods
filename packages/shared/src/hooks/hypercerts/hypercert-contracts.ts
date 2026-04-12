@@ -42,7 +42,7 @@ import { isZeroAddress } from "../../utils/blockchain/address";
  *
  * @see https://github.com/hypercerts-org/hypercerts/blob/main/contracts/deployments
  */
-export function getHypercertMinterFallback(chainId: number): Address {
+function getHypercertMinterFallback(chainId: number): Address {
   const deployment = CONSTANTS.DEPLOYMENTS[chainId as keyof typeof CONSTANTS.DEPLOYMENTS];
   const address = deployment?.addresses?.HypercertMinterUUPS as Address | undefined;
   if (address && isAddress(address)) {

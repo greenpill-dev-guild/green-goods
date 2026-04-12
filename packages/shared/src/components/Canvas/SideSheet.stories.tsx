@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 import { SideSheet } from "./SideSheet";
 
 // ---------------------------------------------------------------------------
@@ -99,6 +99,12 @@ export const CustomWidth: Story = {
 
 /** All variants shown in sequence for visual comparison. */
 export const Gallery: Story = {
+  args: {
+    open: true,
+    onClose: fn(),
+    title: "Work Detail",
+    children: sampleContent,
+  },
   render: () => (
     <div className="relative min-h-screen bg-bg-white-0">
       <div className="p-8">

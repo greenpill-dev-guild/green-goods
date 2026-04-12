@@ -31,7 +31,7 @@ interface AttestationRequest {
 /**
  * Build an EAS attestation request
  */
-export function buildAttestationRequest(
+function buildAttestationRequest(
   recipient: `0x${string}`,
   schemaUID: Hex,
   attestationData: Hex

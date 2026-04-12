@@ -3,7 +3,7 @@ import {
   Surface,
   cn,
   type Address,
-  useAuth,
+  useAuthState,
   useEnsAvatar,
   useEnsName,
   useRole,
@@ -34,7 +34,10 @@ interface AccountProfilePanelProps {
 function getInitials(value: string | null | undefined): string {
   if (!value) return "GG";
 
-  const sanitized = value.replace(/\.eth$/i, "").replace(/^0x/i, "").trim();
+  const sanitized = value
+    .replace(/\.eth$/i, "")
+    .replace(/^0x/i, "")
+    .trim();
   const parts = sanitized.split(/[\s._-]+/).filter(Boolean);
 
   if (parts.length >= 2) {
@@ -46,7 +49,7 @@ function getInitials(value: string | null | undefined): string {
 
 export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
   const { formatMessage } = useIntl();
-  const { eoaAddress } = useAuth();
+  const { eoaAddress } = useAuthState();
   const { role } = useRole();
   const { data: ensName } = useEnsName(eoaAddress as Address | null | undefined);
   const { data: avatarUrl } = useEnsAvatar(eoaAddress as Address | null | undefined);
@@ -75,11 +78,12 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-soft">
               {formatMessage({ id: "cockpit.settings.userProfile", defaultMessage: "Profile" })}
             </p>
-            <p className="text-base font-semibold capitalize text-text-strong">
-              {roleLabel}
-            </p>
+            <p className="text-base font-semibold capitalize text-text-strong">{roleLabel}</p>
             <p className="mt-1 text-sm text-text-sub">
-              {ensName ?? (eoaAddress ? formatMessage({ id: "app.account.wallet", defaultMessage: "Wallet" }) : "")}
+              {ensName ??
+                (eoaAddress
+                  ? formatMessage({ id: "app.account.wallet", defaultMessage: "Wallet" })
+                  : "")}
             </p>
           </div>
         </div>

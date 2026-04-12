@@ -27,6 +27,95 @@ vi.mock("@green-goods/shared", () => ({
   getStatusColors: (status: string) => ({
     combined: `status-${status}`,
   }),
+  gardenCardVariants: () => "",
+  GardenCard: ({
+    garden,
+    selected,
+    onClick,
+    showDescription = true,
+  }: {
+    garden: {
+      name: string;
+      location?: string;
+      description?: string;
+      gardeners?: string[];
+      operators?: string[];
+    };
+    selected?: boolean;
+    onClick?: () => void;
+    showDescription?: boolean;
+  }) =>
+    createElement(
+      "button",
+      { type: "button", onClick, "data-selected": selected ? "true" : "false" },
+      createElement("span", null, garden.name),
+      garden.location ? createElement("span", null, garden.location) : null,
+      createElement(
+        "span",
+        null,
+        String(new Set([...(garden.gardeners ?? []), ...(garden.operators ?? [])]).size)
+      ),
+      garden.operators?.length
+        ? createElement("span", null, String(garden.operators.length))
+        : null,
+      showDescription && garden.description ? createElement("p", null, garden.description) : null
+    ),
+  WorkCard: ({
+    work,
+    onClick,
+    showGardener,
+    showMediaCount,
+    showFeedbackBadge,
+    showErrorBadge,
+    showRetryBadge,
+    badges,
+    labels,
+  }: {
+    work: {
+      title: string;
+      status: string;
+      gardenName?: string;
+      gardenerDisplayName?: string;
+      imageCount?: number;
+      feedback?: string;
+      error?: string;
+      retryCount?: number;
+    };
+    onClick?: () => void;
+    showGardener?: boolean;
+    showMediaCount?: boolean;
+    showFeedbackBadge?: boolean;
+    showErrorBadge?: boolean;
+    showRetryBadge?: boolean;
+    badges?: ReactNode[];
+    labels?: {
+      error?: string;
+      feedback?: string;
+      status?: Record<string, string>;
+    };
+  }) =>
+    createElement(
+      "button",
+      { type: "button", onClick },
+      createElement("span", null, work.title),
+      createElement("span", null, labels?.status?.[work.status] ?? work.status),
+      showGardener && work.gardenerDisplayName
+        ? createElement("span", null, work.gardenerDisplayName)
+        : null,
+      !showGardener && work.gardenName ? createElement("span", null, work.gardenName) : null,
+      createElement("span", null, "2 hours ago"),
+      showMediaCount && work.imageCount
+        ? createElement("span", null, String(work.imageCount))
+        : null,
+      showFeedbackBadge && work.feedback
+        ? createElement("span", null, labels?.feedback ?? "Feedback")
+        : null,
+      showErrorBadge && work.error ? createElement("span", null, labels?.error ?? "Error") : null,
+      showRetryBadge && work.retryCount
+        ? createElement("span", null, String(work.retryCount))
+        : null,
+      ...(badges ?? [])
+    ),
   StatusBadge: ({ status }: { status: string }) =>
     createElement("span", { "data-testid": "status-badge", "data-status": status }, status),
   ActionBannerFallback: (props: any) =>
@@ -39,6 +128,98 @@ vi.mock("@green-goods/shared", () => ({
     error: vi.fn(),
     debug: vi.fn(),
   },
+}));
+
+vi.mock("@green-goods/shared/components", () => ({
+  gardenCardVariants: () => "",
+  GardenCard: ({
+    garden,
+    selected,
+    onClick,
+    showDescription = true,
+  }: {
+    garden: {
+      name: string;
+      location?: string;
+      description?: string;
+      gardeners?: string[];
+      operators?: string[];
+    };
+    selected?: boolean;
+    onClick?: () => void;
+    showDescription?: boolean;
+  }) =>
+    createElement(
+      "button",
+      { type: "button", onClick, "data-selected": selected ? "true" : "false" },
+      createElement("span", null, garden.name),
+      garden.location ? createElement("span", null, garden.location) : null,
+      createElement(
+        "span",
+        null,
+        String(new Set([...(garden.gardeners ?? []), ...(garden.operators ?? [])]).size)
+      ),
+      garden.operators?.length
+        ? createElement("span", null, String(garden.operators.length))
+        : null,
+      showDescription && garden.description ? createElement("p", null, garden.description) : null
+    ),
+  WorkCard: ({
+    work,
+    onClick,
+    showGardener,
+    showMediaCount,
+    showFeedbackBadge,
+    showErrorBadge,
+    showRetryBadge,
+    badges,
+    labels,
+  }: {
+    work: {
+      title: string;
+      status: string;
+      gardenName?: string;
+      gardenerDisplayName?: string;
+      imageCount?: number;
+      feedback?: string;
+      error?: string;
+      retryCount?: number;
+    };
+    onClick?: () => void;
+    showGardener?: boolean;
+    showMediaCount?: boolean;
+    showFeedbackBadge?: boolean;
+    showErrorBadge?: boolean;
+    showRetryBadge?: boolean;
+    badges?: ReactNode[];
+    labels?: {
+      error?: string;
+      feedback?: string;
+      status?: Record<string, string>;
+    };
+  }) =>
+    createElement(
+      "button",
+      { type: "button", onClick },
+      createElement("span", null, work.title),
+      createElement("span", null, labels?.status?.[work.status] ?? work.status),
+      showGardener && work.gardenerDisplayName
+        ? createElement("span", null, work.gardenerDisplayName)
+        : null,
+      !showGardener && work.gardenName ? createElement("span", null, work.gardenName) : null,
+      createElement("span", null, "2 hours ago"),
+      showMediaCount && work.imageCount
+        ? createElement("span", null, String(work.imageCount))
+        : null,
+      showFeedbackBadge && work.feedback
+        ? createElement("span", null, labels?.feedback ?? "Feedback")
+        : null,
+      showErrorBadge && work.error ? createElement("span", null, labels?.error ?? "Error") : null,
+      showRetryBadge && work.retryCount
+        ? createElement("span", null, String(work.retryCount))
+        : null,
+      ...(badges ?? [])
+    ),
 }));
 
 // Mock @/components/Display — resolves via the @ alias to src/components/Display.
@@ -70,15 +251,12 @@ vi.mock("tailwind-variants", () => ({
 // Mock @remixicon/react — Card components import various icons
 vi.mock("@remixicon/react", () => {
   const Icon = (props: any) => createElement("span", { "data-testid": "icon", ...props });
-  return {
-    RiCamera3Line: Icon,
-    RiMapPinFill: Icon,
-    RiMapPinUserFill: Icon,
-    RiGroupFill: Icon,
-    RiImageLine: Icon,
-    RiFileTextLine: Icon,
-    RiRefreshLine: Icon,
-  };
+  return new Proxy(
+    {},
+    {
+      get: () => Icon,
+    }
+  );
 });
 
 // Mock react-intl

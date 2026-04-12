@@ -40,6 +40,13 @@ export interface ButtonProps
   loading?: boolean;
 }
 
+type SlottableChildProps = {
+  className?: string;
+  children?: React.ReactNode;
+  ref?: React.Ref<HTMLButtonElement>;
+  [key: string]: unknown;
+};
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
     { className, variant, size, asChild = false, loading = false, disabled, children, ...props },
@@ -55,10 +62,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     );
 
     if (asChild && React.isValidElement(children)) {
-      const childProps = children.props as { className?: string; children?: React.ReactNode };
+      const child = children as React.ReactElement<SlottableChildProps>;
+      const childProps = child.props;
 
-      return React.cloneElement(children, {
-        ...props,
+      return React.cloneElement(child, {
+        ...(props as SlottableChildProps),
         ref,
         className: cn(buttonVariants({ variant, size }), childProps.className, className),
         "aria-busy": loading || undefined,

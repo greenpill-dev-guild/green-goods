@@ -142,6 +142,8 @@ dev-dist
 .yarn/install-state.gz
 .pnp.*
 .vercel
+.codex-artifacts/
+tmp/
 
 # Playwright test results
 test-results/

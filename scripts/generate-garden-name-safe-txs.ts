@@ -223,7 +223,7 @@ function usage(): never {
       "Options:",
       "  --chain          Chain ID (11155111, 42161, 42220)",
       "  --suffix         Community name suffix (default: \" Community\")",
-      "  --out            Output path (default: reports/garden-name-safe-batch-<chainId>-<ts>.json)",
+      "  --out            Output path (default: output/reports/garden-name-safe-batch-<chainId>-<ts>.json)",
       "  --batch-name     Custom batch name for Safe TX Builder",
       "  --rpc-url        Override RPC URL",
       "  --dry-run        Only print discovered gardens and exit",
@@ -853,7 +853,7 @@ async function main() {
   // 5. Write output
   const outPath = path.resolve(
     values.out ??
-      `reports/garden-name-safe-batch-${chainId}-${Date.now()}.json`
+      `output/reports/garden-name-safe-batch-${chainId}-${Date.now()}.json`
   );
   await mkdir(path.dirname(outPath), { recursive: true });
   await writeFile(outPath, JSON.stringify(safeTransactionBuilder, null, 2));

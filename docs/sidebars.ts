@@ -287,6 +287,16 @@ const sidebars: SidebarsConfig = {
     {type: 'doc', id: 'builders/glossary', label: 'Builder Glossary'},
     {type: 'doc', id: 'reference/changelog', label: 'Changelog'},
     {type: 'doc', id: 'reference/design-research', label: 'Design & Research'},
+    {
+      type: 'doc',
+      id: 'reference/proposals/octant-green-goods-proposal-pack-2026-04-01',
+      label: 'Octant Proposal Pack',
+    },
+    {
+      type: 'doc',
+      id: 'reference/proposals/urban-greening-comment-package-2026-04-03',
+      label: 'Urban Greening Comment Pack',
+    },
     {type: 'doc', id: 'reference/credits', label: 'Credits & Licenses'},
   ],
 };

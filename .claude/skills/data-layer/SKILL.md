@@ -302,6 +302,6 @@ What data layer work?
 - `react` (error-handling sub-file) — Categorizing sync failures
 - `react` — State management for offline indicators
 - `debug` (monitoring sub-file) — Storage quota monitoring and alerting
-- `migration` — Cross-package migrations that may include IndexedDB schema changes
+- `ops` (migration sub-file) — Cross-package migrations that may include IndexedDB schema changes
 - `testing` — Mock patterns for IndexedDB in Vitest
 - `react` (performance sub-file) — Storage performance and memory management

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 import { GardenChip } from "./GardenChip";
 
 // ---------------------------------------------------------------------------
@@ -99,6 +99,12 @@ export const LongName: Story = {
 
 /** All variants side-by-side for visual comparison. */
 export const Gallery: Story = {
+  args: {
+    gardens: multipleGardens,
+    selectedGarden: multipleGardens[0],
+    onSelectGarden: fn(),
+    onCreateGarden: fn(),
+  },
   render: () => (
     <div className="flex flex-col gap-8 p-4">
       <section>

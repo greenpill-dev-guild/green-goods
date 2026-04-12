@@ -97,7 +97,6 @@ export type {
   AssessmentAttachment,
   AssessmentDraft,
   AssessmentWorkflowParams,
-  CreateAssessmentForm, // @deprecated - use AssessmentWorkflowParams
   ENSRegistrationData,
   Garden,
   GardenAssessment,
@@ -110,12 +109,13 @@ export type {
   WorkApprovalDraft,
   WorkCard,
   WorkDisplayStatus,
-  WorkDraft, // @deprecated - use WorkSubmission
   WorkInput,
   WorkMetadata,
-  WorkMetadataV1,
   WorkSubmission,
 } from "./domain";
+// Compatibility type aliases
+// Prefer AssessmentWorkflowParams / WorkSubmission / WorkMetadata in new code.
+export type { CreateAssessmentForm, WorkDraft, WorkMetadataV1 } from "./domain";
 // Re-export enums (value exports, not type)
 export {
   Capital,
@@ -216,10 +216,12 @@ export type {
   QueueStats,
   QueueSubscriber,
   SerializedFileData,
-  WorkDraft as WorkDraftDB, // @deprecated - use WorkDraftRecord
   WorkDraftRecord,
   WorkJobPayload,
 } from "./job-queue";
+// Compatibility type aliases
+// Prefer WorkDraftRecord in new code.
+export type { WorkDraft as WorkDraftDB } from "./job-queue";
 // ============================================
 // Offline Types
 // ============================================

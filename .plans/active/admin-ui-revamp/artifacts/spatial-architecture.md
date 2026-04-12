@@ -157,7 +157,7 @@ Z4: Sheets         — side/bottom sheets, command palette (z-50)
 ## Implementation Notes
 
 ### Canvas as a Physical Surface
-The current `CockpitLayout.tsx` renders `<main>` as flex-1 with no distinct surface treatment. To achieve the spatial model, wrap content in a Canvas component:
+The current `CanvasLayout.tsx` renders `<main>` as flex-1 with no distinct surface treatment. To achieve the spatial model, wrap content in a Canvas component:
 ```
 <div className="canvas" style={{
   transform: `scale(${isSheetOpen ? 0.97 : 1})`,

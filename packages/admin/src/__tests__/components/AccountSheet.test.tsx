@@ -19,6 +19,12 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       signOut: mockSignOut,
       eoaAddress: "0x1234567890123456789012345678901234567890",
     }),
+    useAuthState: () => ({
+      eoaAddress: "0x1234567890123456789012345678901234567890",
+    }),
+    useAuthActions: () => ({
+      signOut: mockSignOut,
+    }),
     useEnsAvatar: () => ({ data: null }),
     useEnsName: () => ({ data: null }),
     useRole: () => ({ role: "operator" }),
@@ -40,10 +46,7 @@ interface AccountSheetHarnessProps {
   open?: boolean;
 }
 
-function AccountSheetHarness({
-  initialTab = "profile",
-  open = true,
-}: AccountSheetHarnessProps) {
+function AccountSheetHarness({ initialTab = "profile", open = true }: AccountSheetHarnessProps) {
   const [tab, setTab] = useState(initialTab);
 
   return <AccountSheet open={open} activeTab={tab} onTabChange={setTab} onClose={() => {}} />;

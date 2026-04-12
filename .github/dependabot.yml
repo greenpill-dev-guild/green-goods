@@ -1,7 +1,6 @@
-# Dependabot effectively disabled — repo uses bun.lock as primary lockfile.
-# Dependabot targets pnpm-lock.yaml and regenerates it entirely on each PR,
-# sneaking in unintended major version bumps. Dependency upgrades are handled
-# manually via controlled PRs. open-pull-requests-limit: 0 prevents new PRs.
+# Bun remains the source of truth for application dependencies, so npm package
+# update PRs stay disabled. Keep GitHub Actions updates conservative but on so
+# security and workflow patching do not depend on ad hoc maintenance alone.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -9,3 +8,15 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 2
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      github-actions:
+        patterns:
+          - "*"

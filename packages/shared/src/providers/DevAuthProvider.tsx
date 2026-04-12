@@ -47,7 +47,7 @@ export function hasMockAuthOverride(): boolean {
   return isMockRole(roleFromUrl) || readPersistedMockRole() !== null;
 }
 
-export function getMockRole(): MockRole {
+function getMockRole(): MockRole {
   const params = new URLSearchParams(window.location.search);
   const roleFromUrl = params.get("mockAuth");
   if (isMockRole(roleFromUrl)) {

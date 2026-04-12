@@ -20,7 +20,7 @@ const routerPath = resolve(srcDir, "router.tsx");
 const workViewPath = resolve(srcDir, "views/Hub/index.tsx");
 const communityViewPath = resolve(srcDir, "views/Community/index.tsx");
 const profileViewPath = resolve(srcDir, "views/Profile/index.tsx");
-const sharedAdminRoutesPath = resolve(srcDir, "../../shared/src/utils/admin-routes.ts");
+const sharedAdminRoutesPath = resolve(srcDir, "../../shared/src/utils/navigation/admin-routes.ts");
 
 function readSource(path: string): string {
   return readFileSync(path, "utf-8");
@@ -82,8 +82,8 @@ describe("route folding", () => {
     expect(contextBlock).toContain("gardenAddress?: Address | string;");
     expect(contextBlock).toContain("sort?: AdminHubSort;");
     expect(contextBlock).toContain("item?: string;");
-    expect(adminRoutesSource).toContain('hubMode(mode: AdminHubMode');
-    expect(adminRoutesSource).toContain('return this.hubWork(context);');
+    expect(adminRoutesSource).toContain("hubMode(mode: AdminHubMode");
+    expect(adminRoutesSource).toContain("return this.hubWork(context);");
     expect(adminRoutesSource).toContain(
       "return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));"
     );
@@ -125,8 +125,7 @@ describe("route folding", () => {
     const gardenBlock =
       router.match(/path:\s*"garden"[\s\S]*?(?=\n\s*\{\s*path:\s*"community")/)?.[0] ?? "";
     const communityBlock =
-      router.match(/path:\s*"community"[\s\S]*?(?=\n\s*\/\/ ── Actions canvas surface)/)?.[0] ??
-      "";
+      router.match(/path:\s*"community"[\s\S]*?(?=\n\s*\/\/ ── Actions canvas surface)/)?.[0] ?? "";
 
     expect(gardenBlock).toContain('path: "hypercerts/:hypercertId"');
     expect(gardenBlock).toContain('import("@/views/Garden")');
@@ -135,7 +134,9 @@ describe("route folding", () => {
     expect(communityBlock).toContain('path: "vault"');
     expect(communityBlock).toContain('path: "strategies"');
     expect(communityBlock).toContain('path: "signal-pool/:poolType"');
-    expect(communityBlock.match(/import\("@\/views\/Community"\)/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(communityBlock.match(/import\("@\/views\/Community"\)/g)?.length).toBeGreaterThanOrEqual(
+      4
+    );
     expect(communityBlock).not.toContain('import("@/views/Gardens/Garden/Vault")');
     expect(communityBlock).not.toContain('import("@/views/Gardens/Garden/Strategies")');
     expect(communityBlock).not.toContain('import("@/views/Gardens/Garden/SignalPool")');

@@ -499,7 +499,7 @@ const crackedCoder = read(".claude/agents/cracked-coder.md");
 if (!/bundle_id/.test(crackedCoder)) {
   fail(`.claude/agents/cracked-coder.md: missing required bundle_id intake guidance`);
 }
-if (!/\.claude\/registry\/skills\.json/.test(crackedCoder) && !/\.claude\/registry\/skill-bundles\.json/.test(crackedCoder)) {
+if (!/\.claude\/registry\/skills\.json/.test(crackedCoder)) {
   fail(`.claude/agents/cracked-coder.md: missing skills registry reference (bundles are in skills.json)`);
 }
 

@@ -12,7 +12,7 @@ import {
   useGardenTranslation,
   useOffline,
   useTimeout,
-  useWork,
+  useWorkFormContext,
   useWorkFlowStore,
   useWorkSelection,
   WorkTab,
@@ -91,8 +91,17 @@ const Work: React.FC = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const chainId = DEFAULT_CHAIN_ID;
-  const { form, activeTab, setActiveTab, actions, gardens, isLoading, workMutation } = useWork();
-  const { selectedDomain, setSelectedDomain } = useWorkSelection();
+  const {
+    actions,
+    gardens,
+    isLoading,
+    activeTab,
+    setActiveTab,
+    selectedDomain,
+    setSelectedDomain,
+  } = useWorkSelection();
+  const form = useWorkFormContext();
+  const { workMutation } = form;
 
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);

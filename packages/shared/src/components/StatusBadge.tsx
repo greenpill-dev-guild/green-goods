@@ -310,7 +310,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   }
 
   const genericProps = props as GenericStatusBadgeProps;
-  const genericVariant = variant ?? "neutral";
+  const genericVariant = genericProps.variant ?? "neutral";
   const genericConfig = getGenericStatusConfig(genericVariant);
   const { icon, children, ...spanProps } = genericProps;
   const resolvedIcon = icon ?? genericConfig.icon;

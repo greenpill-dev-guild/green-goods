@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "@storybook/test";
+import { fn } from "storybook/test";
 import { RiClipboardLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import { FloatingToolbar, type ToolbarSlot } from "./FloatingToolbar";
 
@@ -107,6 +107,11 @@ export const AllHidden: Story = {
 
 /** All variants side-by-side for visual comparison. */
 export const Gallery: Story = {
+  args: {
+    slots: threeSlots,
+    activePath: "/hub",
+    onNavigate: fn(),
+  },
   render: () => (
     <div className="flex flex-col gap-12 p-8">
       <section>

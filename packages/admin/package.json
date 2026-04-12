@@ -32,7 +32,7 @@
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.85.3",
     "@tanstack/react-query-persist-client": "^5.85.3",
-    "@xstate/react": "^6.0.0",
+    "@xstate/react": "^6.1.0",
     "idb-keyval": "^6.2.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -45,7 +45,7 @@
     "tailwind-variants": "3.2.2",
     "viem": "^2.43.4",
     "wagmi": "^2.19.5",
-    "xstate": "^5.25.0",
+    "xstate": "^5.30.0",
     "zod": "^4.3.5",
     "zustand": "^5.0.6"
   },

@@ -327,6 +327,7 @@ export {
   useAsyncEffect,
   useAsyncSetup,
   useAudioRecording,
+  // Compatibility hook - prefer useAuthState/useAuthActions in new code.
   useAuth,
   useAuthActions,
   useAuthState,
@@ -545,8 +546,6 @@ export type {
 } from "./modules/index";
 export {
   type AssessmentMetadataPrefill,
-  // Session management
-  AUTH_MODE_STORAGE_KEY,
   browserTranslator,
   clearAllAuth,
   filterAttestationsByAssessment,
@@ -599,7 +598,7 @@ export {
   WalletSender,
 } from "./modules/index";
 // ============================================================================
-// PROVIDERS (re-export via subpath import recommended: @green-goods/shared/providers)
+// PROVIDERS
 // ============================================================================
 export type { Locale } from "./providers/index";
 export {
@@ -614,13 +613,14 @@ export {
   useAppKit,
   useJobQueue,
   useQueueFlush,
+  // Compatibility hook - prefer useWorkSelection/useWorkFormContext in new code.
   useWork,
   useWorkFormContext,
   useWorkSelection,
   WorkProvider,
 } from "./providers/index";
 // ============================================================================
-// STORES (re-export via subpath import recommended: @green-goods/shared/stores)
+// STORES
 // ============================================================================
 export {
   type AdminState,
@@ -994,7 +994,7 @@ export {
 } from "./utils/index";
 
 // ============================================================================
-// WORKFLOWS (re-export via subpath import recommended: @green-goods/shared/workflows)
+// WORKFLOWS
 // ============================================================================
 export type { CreateGardenFormStatus } from "./workflows/index";
 export { createGardenMachine } from "./workflows/index";

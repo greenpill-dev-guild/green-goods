@@ -142,7 +142,10 @@
         "materials.md",
         "implementation.md",
         "ecosystem.md",
-        "references.md"
+        "references.md",
+        "language.md",
+        "regenerative.md",
+        "review-checklist.md"
       ]
     },
     {
@@ -226,7 +229,7 @@
       "default_mode": "passive",
       "triggers": ["write tests", "TDD", "unit test", "e2e test", "Vitest", "Playwright"],
       "dependencies": [],
-      "sub_files": ["vitest-patterns.md"]
+      "sub_files": ["vitest-patterns.md", "references/playwright.md", "references/vitest.md"]
     },
     {
       "name": "architecture",

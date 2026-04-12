@@ -254,4 +254,4 @@ testE2E_        // Multi-contract flows
 - `architecture` — For system-level contract design decisions
 - `security` — For the full security audit toolkit, see [security.md](./security.md). This skill's Security Checklist (Part 6) is a development-time quick check; the security sub-file provides detection depth, static analysis tooling, threat modeling, and pre-deployment review
 - `ops` (deployment sub-file) — For deploy.ts workflow and pre-deployment gates
-- `migration` — For cross-package changes when contract ABIs change
+- `ops` (migration sub-file) — For cross-package changes when contract ABIs change

@@ -186,5 +186,3 @@ export function ToastViewport({
     />
   );
 }
-
-export const defaultToastOptions = BASE_TOAST_OPTIONS;
