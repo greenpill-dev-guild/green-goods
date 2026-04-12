@@ -176,6 +176,16 @@
     box-shadow: inset 0 0 0 1px rgb(255 255 255 / 5%);
   }
 
+  /* ── Reduced Motion — disable non-essential animation on glass ── */
+  @media (prefers-reduced-motion: reduce) {
+    .glass-ground,
+    .glass-raised,
+    .glass-floating,
+    .glass-overlay {
+      transition: none;
+    }
+  }
+
   /* ── Stagger Fade-In — list items entrance ── */
   @keyframes stagger-fade-in {
     from {

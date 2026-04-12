@@ -191,6 +191,29 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  /* Disable view transition animations */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  /* Disable workspace color dissolve */
+  [data-workspace] {
+    transition: none;
+  }
+
+  /* Disable speed dial stagger */
+  @keyframes speed-dial-in {
+    from { opacity: 1; transform: none; }
+  }
+
+  /* Disable hub tab crossfade */
+  @keyframes hub-fade-in {
+    from { opacity: 1; }
+  }
+}
+
 /* ============================================================================
  * SPATIAL DESIGN TOKENS — Warm Glass design language
  * Spring tokens, canvas recession, shadow-border edges
