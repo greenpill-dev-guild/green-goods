@@ -70,8 +70,8 @@ export const StatCard: React.FC<StatCardProps> = ({
   );
 
   const cardClass = cn(
-    "block rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 sm:p-4",
-    hero && "sm:col-span-2 sm:p-5 bg-gradient-to-br from-bg-white to-success-lighter/20",
+    "block rounded-lg glass-raised p-3 transition-all duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)] hover:shadow-[var(--edge-hover),_var(--elevation-2)] hover:-translate-y-0.5 sm:p-4",
+    hero && "sm:col-span-2 sm:p-5",
     to && "cursor-pointer group",
     className
   );

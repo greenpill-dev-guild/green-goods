@@ -92,12 +92,16 @@ const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
 CardFooter.displayName = "CardFooter";
 
 const surfaceCardVariants = tv({
-  base: "rounded-xl border border-stroke-soft bg-bg-white shadow-sm",
+  base: "rounded-lg glass-raised",
   variants: {
     variant: {
       default: "",
-      interactive:
-        "cursor-pointer transition-[border-color,box-shadow,transform] duration-200 hover:border-primary-base hover:shadow-[--shadow-primary-glow] hover:-translate-y-px active:translate-y-0 active:shadow-sm",
+      interactive: [
+        "cursor-pointer",
+        "transition-[box-shadow,transform] duration-[var(--spring-fast-duration,200ms)] ease-[var(--spring-fast-easing)]",
+        "hover:shadow-[var(--edge-hover),_var(--elevation-2)] hover:-translate-y-0.5",
+        "active:translate-y-0 active:scale-[0.992]",
+      ].join(" "),
     },
     padding: {
       compact: "p-4",

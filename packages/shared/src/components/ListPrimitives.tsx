@@ -14,11 +14,11 @@ export interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-bg-soft text-text-soft">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full glass-raised text-text-soft">
         {icon}
       </div>
-      <h3 className="text-base font-semibold text-text-strong">{title}</h3>
-      {description && <p className="mt-1 max-w-sm text-sm text-text-sub">{description}</p>}
+      <h3 className="text-title-md text-text-strong">{title}</h3>
+      {description && <p className="mt-1 max-w-sm text-body-md text-text-sub">{description}</p>}
       {action && (
         <Button className="mt-4" size="sm" {...action}>
           {action.label}
@@ -61,7 +61,7 @@ export function ListToolbar({
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="h-9 w-full rounded-lg border border-stroke-soft bg-bg-white pl-9 pr-8 text-sm text-text-strong placeholder:text-text-disabled focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
+          className="h-9 w-full rounded-sm bg-bg-white pl-9 pr-8 text-body-md text-text-strong shadow-[var(--edge-rest)] placeholder:text-text-disabled transition-shadow duration-[var(--spring-micro-duration)] focus:shadow-[var(--edge-focus)] focus:outline-none"
         />
         {search && (
           <button
