@@ -24,10 +24,16 @@ export const surfaceVariants = tv({
   base: "rounded-xl",
   variants: {
     elevation: {
-      ground: "bg-bg-weak shadow-[var(--edge-rest)]",
-      raised: "bg-bg-white shadow-[var(--edge-rest),_var(--elevation-1)]",
-      floating: "bg-bg-white shadow-[var(--edge-rest),_var(--elevation-3)]",
-      overlay: "bg-bg-white shadow-elevation-5",
+      // Glass tiers (M3 + Liquid)
+      ground: "glass-ground",
+      raised: "glass-raised",
+      floating: "glass-floating",
+      overlay: "glass-overlay",
+      // Solid variants (for non-glass contexts: form content, data tables)
+      "solid-ground": "bg-bg-weak shadow-[var(--edge-rest)]",
+      "solid-raised": "bg-bg-white shadow-[var(--edge-rest),_var(--elevation-1)]",
+      "solid-floating": "bg-bg-white shadow-[var(--edge-rest),_var(--elevation-3)]",
+      "solid-overlay": "bg-bg-white shadow-elevation-5",
     },
     padding: {
       none: "",
@@ -36,12 +42,18 @@ export const surfaceVariants = tv({
       spacious: "p-6 sm:p-8",
     },
     radius: {
-      md: "rounded-lg",
-      lg: "rounded-xl",
-      xl: "rounded-2xl",
+      sm: "rounded-sm",
+      md: "rounded-md",
+      lg: "rounded-lg",
+      xl: "rounded-xl",
     },
     interactive: {
-      true: "cursor-pointer transition-[box-shadow,transform] duration-200 hover:-translate-y-px active:translate-y-0",
+      true: [
+        "cursor-pointer",
+        "transition-[box-shadow,transform] duration-[var(--spring-fast-duration,200ms)] ease-[var(--spring-fast-easing,ease-out)]",
+        "hover:-translate-y-0.5 hover:shadow-[var(--edge-hover),_var(--elevation-2)]",
+        "active:translate-y-0 active:scale-[0.992]",
+      ].join(" "),
       false: "",
     },
   },
