@@ -11,6 +11,7 @@ import {
   useGardenDerivedState,
   useGardenDetailData,
   useEligibleAdminGardens,
+  useSheetWidth,
 } from "@green-goods/shared";
 import {
   RiAddLine,
@@ -21,7 +22,7 @@ import {
   RiShieldCheckLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
@@ -40,21 +41,6 @@ function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
   return "treasury";
 }
 
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(
-    () => typeof window !== "undefined" && window.matchMedia(query).matches
-  );
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(query);
-    const handleChange = (event: MediaQueryListEvent) => setMatches(event.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [query]);
-
-  return matches;
-}
-
 export default function CommunityView() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
@@ -64,12 +50,10 @@ export default function CommunityView() {
   const { eligibleGardens } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
-  const isDesktop = useMediaQuery("(min-width: 600px)");
+  const { containerRef, sheetWidth, isDesktop } = useSheetWidth();
   const [memberSearch, setMemberSearch] = useState("");
 
   const mode = resolveCommunityMode(location.pathname);
-  const desktopSheetWidth =
-    typeof window === "undefined" ? 560 : Math.min(Math.max(440, window.innerWidth * 0.38), 660);
   const isVaultRoute = location.pathname.startsWith("/community/treasury/vault");
   const isStrategiesRoute = location.pathname.startsWith("/community/governance/strategies");
   const isSignalPoolRoute = location.pathname.startsWith("/community/governance/signal-pool/");
@@ -169,8 +153,7 @@ export default function CommunityView() {
     selectedRange: "30d",
     activityFilter: "all",
     memberSearch,
-    section:
-      mode === "governance" ? "governance" : mode === "payouts" ? "cookie-jars" : mode,
+    section: mode === "governance" ? "governance" : mode === "payouts" ? "cookie-jars" : mode,
     formatMessage,
     openSection,
   });
@@ -207,17 +190,10 @@ export default function CommunityView() {
     }
 
     return null;
-  }, [
-    formatMessage,
-    isSignalPoolRoute,
-    isStrategiesRoute,
-    isVaultRoute,
-    navigate,
-    poolType,
-  ]);
+  }, [formatMessage, isSignalPoolRoute, isStrategiesRoute, isVaultRoute, navigate, poolType]);
 
   return (
-    <div className="pb-6">
+    <div ref={containerRef} className="pb-6">
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
         <PageHeader
           title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
@@ -307,12 +283,12 @@ export default function CommunityView() {
       ) : fetching ? (
         <div className="mt-6 px-4 sm:px-6">
           <div className="mx-auto w-full max-w-[1400px]">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" role="status" aria-live="polite">
-              <div className="h-40 rounded-lg skeleton-shimmer" />
-              <div className="h-40 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.08s" }} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" role="status" aria-live="polite">
+              <div className="h-36 rounded-lg skeleton-shimmer" />
+              <div className="h-36 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.05s" }} />
               <div
-                className="h-72 rounded-lg skeleton-shimmer lg:col-span-2"
-                style={{ animationDelay: "0.16s" }}
+                className="h-64 rounded-lg skeleton-shimmer sm:col-span-2"
+                style={{ animationDelay: "0.1s" }}
               />
             </div>
           </div>
@@ -388,7 +364,7 @@ export default function CommunityView() {
             open
             onClose={communitySheet.onClose}
             title={communitySheet.title}
-            width={desktopSheetWidth}
+            width={sheetWidth}
             side="left"
             container={portalTarget}
           >

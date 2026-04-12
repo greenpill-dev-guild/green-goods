@@ -16,9 +16,10 @@ import {
   useGardenDerivedState,
   useGardenDetailData,
   useEligibleAdminGardens,
+  useSheetWidth,
 } from "@green-goods/shared";
 import { RiAddLine, RiSettings3Line } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
@@ -38,21 +39,6 @@ function resolveGardenView(pathname: string): GardenWorkspaceView {
   return "overview";
 }
 
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(
-    () => typeof window !== "undefined" && window.matchMedia(query).matches
-  );
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(query);
-    const handleChange = (event: MediaQueryListEvent) => setMatches(event.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [query]);
-
-  return matches;
-}
-
 export default function GardenView() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
@@ -63,7 +49,7 @@ export default function GardenView() {
   const { eligibleGardens } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
-  const isDesktop = useMediaQuery("(min-width: 600px)");
+  const { containerRef, sheetWidth, isDesktop } = useSheetWidth();
   const [activityFilter, setActivityFilter] = useState<"all" | "work" | "impact" | "community">(
     "all"
   );
@@ -72,8 +58,6 @@ export default function GardenView() {
   const range = parseGardenRange(searchParams.get("range"));
   const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
-  const desktopSheetWidth =
-    typeof window === "undefined" ? 560 : Math.min(Math.max(440, window.innerWidth * 0.38), 660);
   const showHypercertSheet = view === "impact" && Boolean(hypercertId);
 
   const {
@@ -211,12 +195,12 @@ export default function GardenView() {
       return (
         <div className="mt-6 px-4 sm:px-6">
           <div className="mx-auto w-full max-w-[1400px]">
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" role="status" aria-live="polite">
-              <div className="h-40 rounded-lg skeleton-shimmer" />
-              <div className="h-40 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.08s" }} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" role="status" aria-live="polite">
+              <div className="h-36 rounded-lg skeleton-shimmer" />
+              <div className="h-36 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.05s" }} />
               <div
-                className="h-72 rounded-lg skeleton-shimmer lg:col-span-2"
-                style={{ animationDelay: "0.16s" }}
+                className="h-64 rounded-lg skeleton-shimmer sm:col-span-2"
+                style={{ animationDelay: "0.1s" }}
               />
             </div>
           </div>
@@ -320,14 +304,18 @@ export default function GardenView() {
 
                 <div className="space-y-4">
                   <Alert variant="info">
-                      {formatMessage({
-                        id: "cockpit.garden.settingsHint",
-                        defaultMessage:
-                          "Profile, joining rules, and membership limits now live in the canvas garden workspace.",
-                      })}
+                    {formatMessage({
+                      id: "cockpit.garden.settingsHint",
+                      defaultMessage:
+                        "Profile, joining rules, and membership limits now live in the canvas garden workspace.",
+                    })}
                   </Alert>
 
-                  <Surface elevation="ground" padding="default" className="space-y-2 text-sm text-text-sub">
+                  <Surface
+                    elevation="ground"
+                    padding="default"
+                    className="space-y-2 text-sm text-text-sub"
+                  >
                     <h3 className="label-md text-text-strong">
                       {formatMessage({
                         id: "cockpit.garden.contextCard",
@@ -366,7 +354,7 @@ export default function GardenView() {
   }, [navigate, range, section]);
 
   return (
-    <div className="pb-6">
+    <div ref={containerRef} className="pb-6">
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
         <PageHeader
           title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
@@ -434,7 +422,7 @@ export default function GardenView() {
             open
             onClose={handleCloseHypercertSheet}
             title={formatMessage({ id: "app.hypercerts.detail.title" })}
-            width={desktopSheetWidth}
+            width={sheetWidth}
             side="left"
             container={portalTarget}
           >
