@@ -117,13 +117,8 @@ vi.mock("@/components/ConnectButton", () => ({
 }));
 
 vi.mock("@/components/Layout/AccountSheet", () => ({
-  AccountSheet: ({
-    open,
-    activeTab,
-  }: {
-    open: boolean;
-    activeTab: "profile" | "settings";
-  }) => (open ? <div data-testid="account-sheet">{activeTab}</div> : null),
+  AccountSheet: ({ open, activeTab }: { open: boolean; activeTab: "profile" | "settings" }) =>
+    open ? <div data-testid="account-sheet">{activeTab}</div> : null,
 }));
 
 vi.mock("@/components/Layout/PageTransition", () => ({

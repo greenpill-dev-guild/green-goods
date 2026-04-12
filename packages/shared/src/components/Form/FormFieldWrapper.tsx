@@ -37,7 +37,10 @@ export function FormFieldWrapper({
         <p
           id={id ? `${id}-helper-text` : undefined}
           role={error ? "alert" : undefined}
-          className={cn("text-body-sm min-h-[1rem]", error ? "text-error-dark" : "text-text-sub-600")}
+          className={cn(
+            "text-body-sm min-h-[1rem]",
+            error ? "text-error-dark" : "text-text-sub-600"
+          )}
         >
           {error || helperText}
         </p>

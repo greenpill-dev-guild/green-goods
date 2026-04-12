@@ -23,7 +23,7 @@ export function DomainBadge({ domain, size = "sm", className }: DomainBadgeProps
         config.colors.bg,
         config.colors.text,
         size === "sm" ? "px-2.5 py-1 text-label-sm" : "px-3 py-1.5 text-label-md",
-        className,
+        className
       )}
     >
       <Icon className={size === "sm" ? "h-3 w-3" : "h-3.5 w-3.5"} />

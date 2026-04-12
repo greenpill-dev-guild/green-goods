@@ -65,13 +65,7 @@ vi.mock("@/views/Hub/components/WorkSubmissionDetails", () => ({
 }));
 
 vi.mock("@/views/Gardens/Garden/WorkDetail/ReviewForm", () => ({
-  ReviewForm: ({
-    canReview,
-    actionSlug,
-  }: {
-    canReview: boolean;
-    actionSlug?: string;
-  }) => {
+  ReviewForm: ({ canReview, actionSlug }: { canReview: boolean; actionSlug?: string }) => {
     const actions = mockUseActions.mock.results.at(-1)?.value?.data ?? [];
     const permissions = mockUseGardenPermissions.mock.results.at(-1)?.value;
     const matchedAction = actions.find((action: { slug?: string }) => action.slug === actionSlug);
@@ -94,7 +88,11 @@ vi.mock("@/views/Gardens/Garden/WorkDetail/ReviewForm", () => ({
         React.Fragment,
         null,
         React.createElement("div", null, "Owner or operator access required"),
-        React.createElement("div", null, "Only garden owners or operators can approve or reject work")
+        React.createElement(
+          "div",
+          null,
+          "Only garden owners or operators can approve or reject work"
+        )
       );
     }
 

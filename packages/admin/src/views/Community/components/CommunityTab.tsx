@@ -152,12 +152,10 @@ export function CommunityTab({
           ) : null}
 
           <ErrorBoundary context="GardenDetail.CommunityRevamp">
-            {(
-              section === undefined ||
+            {(section === undefined ||
               section === "treasury" ||
               section === "pools" ||
-              section === "governance"
-            ) && (
+              section === "governance") && (
               <GardenCommunityCard
                 community={community}
                 communityLoading={communityLoading}

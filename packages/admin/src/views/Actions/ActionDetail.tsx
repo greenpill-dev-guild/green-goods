@@ -80,7 +80,8 @@ export default function ActionDetail() {
             title={formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
             description={formatMessage({
               id: "cockpit.actions.detailDescription",
-              defaultMessage: "Review lifecycle details and the submission requirements for this action.",
+              defaultMessage:
+                "Review lifecycle details and the submission requirements for this action.",
             })}
             variant="canvas"
             sticky
@@ -106,7 +107,8 @@ export default function ActionDetail() {
             title={formatMessage({ id: "app.actions.notFound" })}
             description={formatMessage({
               id: "cockpit.actions.detailDescription",
-              defaultMessage: "Review lifecycle details and the submission requirements for this action.",
+              defaultMessage:
+                "Review lifecycle details and the submission requirements for this action.",
             })}
             variant="canvas"
             backLink={{
@@ -188,9 +190,14 @@ export default function ActionDetail() {
                 <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
                     <dt className="text-xs text-text-soft">
-                      {formatMessage({ id: "cockpit.actions.lifecycle", defaultMessage: "Lifecycle" })}
+                      {formatMessage({
+                        id: "cockpit.actions.lifecycle",
+                        defaultMessage: "Lifecycle",
+                      })}
                     </dt>
-                    <dd className="mt-1 text-sm font-semibold text-text-strong">{lifecycleLabel}</dd>
+                    <dd className="mt-1 text-sm font-semibold text-text-strong">
+                      {lifecycleLabel}
+                    </dd>
                   </div>
                   <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
                     <dt className="text-xs text-text-soft">
@@ -297,7 +304,10 @@ export default function ActionDetail() {
                       key={`${url}-${index}`}
                       src={url}
                       alt={formatMessage(
-                        { id: "app.actions.detail.mediaAlt", defaultMessage: "Action media {index}" },
+                        {
+                          id: "app.actions.detail.mediaAlt",
+                          defaultMessage: "Action media {index}",
+                        },
                         { index: index + 1 }
                       )}
                       domain={action.domain}

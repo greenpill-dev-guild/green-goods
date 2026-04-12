@@ -20,9 +20,7 @@ interface GardenStrategiesViewProps {
   layout?: "page" | "sheet";
 }
 
-export default function GardenStrategiesView({
-  layout = "page",
-}: GardenStrategiesViewProps = {}) {
+export default function GardenStrategiesView({ layout = "page" }: GardenStrategiesViewProps = {}) {
   const { formatMessage } = useIntl();
   const [newAddress, setNewAddress] = useState("");
   const [addressError, setAddressError] = useState("");
@@ -46,7 +44,9 @@ export default function GardenStrategiesView({
 
   if (gardensLoading) {
     if (layout === "sheet") {
-      return <Alert variant="info">{formatMessage({ id: "app.conviction.loadingStrategies" })}</Alert>;
+      return (
+        <Alert variant="info">{formatMessage({ id: "app.conviction.loadingStrategies" })}</Alert>
+      );
     }
 
     return (
@@ -65,7 +65,9 @@ export default function GardenStrategiesView({
 
   if (!garden) {
     if (layout === "sheet") {
-      return <Alert variant="error">{formatMessage({ id: "app.conviction.gardenNotFound" })}</Alert>;
+      return (
+        <Alert variant="error">{formatMessage({ id: "app.conviction.gardenNotFound" })}</Alert>
+      );
     }
 
     return (

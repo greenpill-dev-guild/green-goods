@@ -237,7 +237,10 @@ export default function EditAction() {
         />
       </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="mx-auto mt-4 max-w-5xl space-y-4 px-4 sm:px-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="mx-auto mt-4 max-w-5xl space-y-4 px-4 sm:px-6"
+      >
         <Surface elevation="raised" padding="default" className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold text-text-strong">
@@ -246,7 +249,8 @@ export default function EditAction() {
             <p className="mt-1 text-sm text-text-sub">
               {formatMessage({
                 id: "cockpit.actions.detailDescription",
-                defaultMessage: "Review lifecycle details and the submission requirements for this action.",
+                defaultMessage:
+                  "Review lifecycle details and the submission requirements for this action.",
               })}
             </p>
           </div>
@@ -327,7 +331,11 @@ export default function EditAction() {
           )}
         </Surface>
 
-        <Surface elevation="raised" padding="default" className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <Surface
+          elevation="raised"
+          padding="default"
+          className="flex flex-col gap-3 sm:flex-row sm:justify-end"
+        >
           <button
             type="submit"
             disabled={isLoading}

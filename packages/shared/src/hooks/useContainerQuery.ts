@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
  * Use instead of useMediaQuery when layout depends on container width, not viewport.
  */
 export function useContainerQuery<T extends HTMLElement = HTMLDivElement>(
-  breakpoint: number,
+  breakpoint: number
 ): { ref: React.RefObject<T | null>; matches: boolean; width: number } {
   const ref = useRef<T | null>(null);
   const [width, setWidth] = useState(0);

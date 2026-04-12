@@ -39,7 +39,9 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         {children}
       </div>
     ),
-    Button: ({ children, loading: _loading, ...props }: any) => <button {...props}>{children}</button>,
+    Button: ({ children, loading: _loading, ...props }: any) => (
+      <button {...props}>{children}</button>
+    ),
     classifyTxError: () => ({
       severity: "error",
       titleKey: "app.status.error",
@@ -175,9 +177,7 @@ describe("DepositModal", () => {
     renderOpenModal();
 
     expect(screen.getByText(/Deposits earn yield through Aave lending/i)).toBeTruthy();
-    expect(
-      screen.getByText(/Yield is automatically split between gardener rewards/i)
-    ).toBeTruthy();
+    expect(screen.getByText(/Yield is automatically split between gardener rewards/i)).toBeTruthy();
   });
 
   it("renders network hint with selected asset symbol", () => {

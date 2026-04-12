@@ -45,14 +45,15 @@ function useResolvedWorkDetail(workId: string | undefined) {
   const matchedGarden = useMemo(
     () =>
       workId
-        ? (gardens.find(
-            (garden) => garden.works?.some((candidateWork) => candidateWork.id === workId)
+        ? (gardens.find((garden) =>
+            garden.works?.some((candidateWork) => candidateWork.id === workId)
           ) ?? null)
         : null,
     [gardens, workId]
   );
   const gardenId = matchedGarden?.id ?? selectedGardenId;
-  const garden = gardens.find((candidateGarden) => candidateGarden.id === gardenId) ?? matchedGarden;
+  const garden =
+    gardens.find((candidateGarden) => candidateGarden.id === gardenId) ?? matchedGarden;
 
   const { works, isLoading: worksLoading } = useWorks(gardenId ?? "");
   const work =
@@ -136,11 +137,7 @@ export interface WorkDetailPanelProps {
   onSuccess?: () => void;
 }
 
-export function WorkDetailPanel({
-  workId,
-  layout = "page",
-  onSuccess,
-}: WorkDetailPanelProps) {
+export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDetailPanelProps) {
   const { formatMessage } = useIntl();
   const resolved = useResolvedWorkDetail(workId);
   const { garden, work, action, canReview, canApproveOrReject, isReviewed, metadata } = resolved;
@@ -201,7 +198,11 @@ export function WorkDetailPanel({
       <div className="flex flex-col gap-4 p-1">
         {sheetTopline}
         <section className="surface-inset sm:p-6">
-          <MediaEvidence media={work.media} audioNoteCids={resolved.audioNoteCids} actionTitle={action?.title} />
+          <MediaEvidence
+            media={work.media}
+            audioNoteCids={resolved.audioNoteCids}
+            actionTitle={action?.title}
+          />
         </section>
         <SubmissionDetails
           work={work}
@@ -230,7 +231,11 @@ export function WorkDetailPanel({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
           <section className="surface-inset sm:p-6">
-            <MediaEvidence media={work.media} audioNoteCids={resolved.audioNoteCids} actionTitle={action?.title} />
+            <MediaEvidence
+              media={work.media}
+              audioNoteCids={resolved.audioNoteCids}
+              actionTitle={action?.title}
+            />
           </section>
 
           <SubmissionDetails
@@ -302,10 +307,7 @@ export default function WorkDetail() {
         }
         {...baseHeaderProps}
       />
-      <WorkDetailPanel
-        workId={workId}
-        layout="page"
-      />
+      <WorkDetailPanel workId={workId} layout="page" />
     </div>
   );
 }

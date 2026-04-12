@@ -197,7 +197,10 @@ export default function GardenView() {
           <div className="mx-auto w-full max-w-[1400px]">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" role="status" aria-live="polite">
               <div className="h-36 rounded-lg skeleton-shimmer" />
-              <div className="h-36 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.05s" }} />
+              <div
+                className="h-36 rounded-lg skeleton-shimmer"
+                style={{ animationDelay: "0.05s" }}
+              />
               <div
                 className="h-64 rounded-lg skeleton-shimmer sm:col-span-2"
                 style={{ animationDelay: "0.1s" }}

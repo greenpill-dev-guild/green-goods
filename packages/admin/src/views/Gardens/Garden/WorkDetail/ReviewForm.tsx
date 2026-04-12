@@ -180,16 +180,15 @@ export function ReviewForm({
     }
   };
 
-  const blockedState =
-    isReviewed
-      ? "reviewed"
-      : isActionExpired
-        ? "expired"
-        : canReview && !canApproveOrReject
-          ? "role-blocked"
-          : canReview
-            ? "actionable"
-            : "no-permission";
+  const blockedState = isReviewed
+    ? "reviewed"
+    : isActionExpired
+      ? "expired"
+      : canReview && !canApproveOrReject
+        ? "role-blocked"
+        : canReview
+          ? "actionable"
+          : "no-permission";
 
   return (
     <div className={layout === "page" ? "lg:col-span-2" : undefined}>
@@ -215,7 +214,8 @@ export function ReviewForm({
                 <p className="mt-1 text-sm text-warning-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.expiredMessage",
-                    defaultMessage: "This action is no longer active, so new approval decisions are blocked.",
+                    defaultMessage:
+                      "This action is no longer active, so new approval decisions are blocked.",
                   })}
                 </p>
               </div>

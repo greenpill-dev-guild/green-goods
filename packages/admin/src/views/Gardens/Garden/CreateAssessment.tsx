@@ -120,7 +120,9 @@ export default function CreateAssessment() {
 
   const [showValidation, setShowValidation] = useState(false);
 
-  const { data: gardenDomainMask } = useGardenDomains((gardenId ?? undefined) as Address | undefined);
+  const { data: gardenDomainMask } = useGardenDomains(
+    (gardenId ?? undefined) as Address | undefined
+  );
   const normalizedGardenDomainMask =
     typeof gardenDomainMask === "bigint"
       ? Number(gardenDomainMask)

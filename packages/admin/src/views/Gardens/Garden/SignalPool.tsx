@@ -35,9 +35,7 @@ interface GardenSignalPoolViewProps {
   layout?: "page" | "sheet";
 }
 
-export default function GardenSignalPoolView({
-  layout = "page",
-}: GardenSignalPoolViewProps = {}) {
+export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPoolViewProps = {}) {
   const { poolType: poolTypeParam } = useParams<{ poolType: string }>();
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
@@ -124,7 +122,9 @@ export default function GardenSignalPoolView({
 
   if (!garden) {
     if (layout === "sheet") {
-      return <Alert variant="error">{formatMessage({ id: "app.conviction.gardenNotFound" })}</Alert>;
+      return (
+        <Alert variant="error">{formatMessage({ id: "app.conviction.gardenNotFound" })}</Alert>
+      );
     }
 
     return (

@@ -339,7 +339,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             </div>
             {/* Visually hidden title for accessibility */}
             <Dialog.Title className="sr-only">{resolvedLabels.title}</Dialog.Title>
-            <Dialog.Description className="sr-only">{resolvedLabels.description}</Dialog.Description>
+            <Dialog.Description className="sr-only">
+              {resolvedLabels.description}
+            </Dialog.Description>
 
             {/* Image Container */}
             <div

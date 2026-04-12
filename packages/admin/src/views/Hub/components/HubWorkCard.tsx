@@ -77,7 +77,7 @@ function DomainGradientFallback({ domain, className }: { domain?: Domain; classN
       className={cn(
         "flex items-center justify-center bg-gradient-to-br",
         gradientClasses,
-        className,
+        className
       )}
     >
       {config && <config.icon className="h-8 w-8 opacity-30" />}
@@ -117,7 +117,7 @@ export function HubWorkCard({
         "hover:-translate-y-0.5 hover:shadow-[var(--edge-hover),_var(--elevation-2)]",
         "active:translate-y-0 active:scale-[0.992]",
         "motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 motion-reduce:transition-none",
-        "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))] focus-visible:ring-offset-2",
+        "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))] focus-visible:ring-offset-2"
       )}
     >
       <div className="relative overflow-hidden border-b border-black/5">

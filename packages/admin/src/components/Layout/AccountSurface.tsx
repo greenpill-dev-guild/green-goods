@@ -23,11 +23,7 @@ interface AccountTabPanelsProps {
   className?: string;
 }
 
-export function AccountTabList({
-  activeTab,
-  onTabChange,
-  className,
-}: AccountTabListProps) {
+export function AccountTabList({ activeTab, onTabChange, className }: AccountTabListProps) {
   const { formatMessage } = useIntl();
 
   return (
@@ -64,11 +60,7 @@ export function AccountTabPanels({ activeTab, className }: AccountTabPanelsProps
   );
 }
 
-export function AccountSurface({
-  activeTab,
-  onTabChange,
-  className,
-}: AccountSurfaceProps) {
+export function AccountSurface({ activeTab, onTabChange, className }: AccountSurfaceProps) {
   return (
     <div className={cn("flex flex-col gap-4 p-4 sm:p-5", className)}>
       <AccountTabList activeTab={activeTab} onTabChange={onTabChange} />

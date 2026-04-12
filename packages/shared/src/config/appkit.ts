@@ -34,7 +34,7 @@ type AppKitInitOptions = {
 
 function normalizeOptionalProjectId(value?: string): string {
   const normalized = value?.trim();
-  if (!normalized || normalized === "''" || normalized === "\"\"") {
+  if (!normalized || normalized === "''" || normalized === '""') {
     return "";
   }
   return normalized;

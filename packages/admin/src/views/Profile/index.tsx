@@ -22,11 +22,14 @@ export default function ProfileView() {
       return;
     }
 
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-      next.delete(ACCOUNT_TAB_SEARCH_PARAM);
-      return next;
-    }, { replace: true });
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.delete(ACCOUNT_TAB_SEARCH_PARAM);
+        return next;
+      },
+      { replace: true }
+    );
   }, [requestedTab, setSearchParams]);
 
   const handleTabChange = (tab: AccountSheetTab) => {

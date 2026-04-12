@@ -232,7 +232,7 @@ export default function Actions() {
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))]",
                             isActive
                               ? "bg-[rgb(var(--ws-primary-container,var(--red-100)))] text-[rgb(var(--ws-on-primary-container,var(--red-900)))]"
-                              : "glass-ground text-text-sub hover:bg-bg-soft",
+                              : "glass-ground text-text-sub hover:bg-bg-soft"
                           )}
                           aria-pressed={isActive}
                         >

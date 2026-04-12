@@ -233,9 +233,7 @@ export function CanvasWorkbenchRow({
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-label-sm text-text-soft">
-            {eyebrow}
-          </span>
+          <span className="text-label-sm text-text-soft">{eyebrow}</span>
           <span
             className={cn(
               "inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em]",
@@ -245,12 +243,8 @@ export function CanvasWorkbenchRow({
             {statusLabel}
           </span>
         </div>
-        <h3 className="mt-[0.32rem] text-title-md text-text-strong">
-          {title}
-        </h3>
-        <p className="mt-[0.2rem] max-w-[60ch] text-body-md text-text-sub">
-          {description}
-        </p>
+        <h3 className="mt-[0.32rem] text-title-md text-text-strong">{title}</h3>
+        <p className="mt-[0.2rem] max-w-[60ch] text-body-md text-text-sub">{description}</p>
         <div className="mt-[0.55rem] flex flex-wrap gap-[0.45rem]">
           {meta.map((value) => (
             <span

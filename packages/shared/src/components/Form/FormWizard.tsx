@@ -68,9 +68,7 @@ export function FormWizard({
       <div className="pointer-events-auto mx-auto max-w-6xl">
         <div className="rounded-[1.35rem] border border-white/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,246,241,0.9)_100%)] px-4 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.76),0_18px_38px_rgba(38,28,18,0.12)] supports-[backdrop-filter]:backdrop-blur-xl sm:px-6 sm:py-4">
           {showValidationMessage && (
-            <p className="mb-3 text-sm text-warning-dark sm:mb-0 sm:mr-4">
-              {validationMessage}
-            </p>
+            <p className="mb-3 text-sm text-warning-dark sm:mb-0 sm:mr-4">{validationMessage}</p>
           )}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
             {!isFirstStep && onBack && (

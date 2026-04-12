@@ -1,10 +1,5 @@
 import { HydrationFallback, SkeletonGrid, adminRoutes } from "@green-goods/shared";
-import {
-  createBrowserRouter,
-  createHashRouter,
-  Navigate,
-  useLocation,
-} from "react-router-dom";
+import { createBrowserRouter, createHashRouter, Navigate, useLocation } from "react-router-dom";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import RequireRole from "@/routes/RequireRole";
 
@@ -133,7 +128,8 @@ export const router = createRouter([
                       {
                         path: "create",
                         lazy: async () => ({
-                          Component: (await import("@/views/Gardens/Garden/CreateAssessment")).default,
+                          Component: (await import("@/views/Gardens/Garden/CreateAssessment"))
+                            .default,
                         }),
                       },
                     ],
@@ -152,7 +148,8 @@ export const router = createRouter([
                       {
                         path: "create",
                         lazy: async () => ({
-                          Component: (await import("@/views/Gardens/Garden/CreateHypercert")).default,
+                          Component: (await import("@/views/Gardens/Garden/CreateHypercert"))
+                            .default,
                         }),
                       },
                     ],

@@ -132,13 +132,7 @@ vi.mock("@remixicon/react", () => {
 });
 
 vi.mock("@/components/Layout/PageHeader", () => ({
-  PageHeader: ({
-    title,
-    description,
-  }: {
-    title: string;
-    description?: React.ReactNode;
-  }) =>
+  PageHeader: ({ title, description }: { title: string; description?: React.ReactNode }) =>
     React.createElement(
       "div",
       {},

@@ -13,7 +13,8 @@ vi.mock("@green-goods/shared", () => ({
   DEFAULT_CHAIN_ID: 42161,
   StatusBadge: ({ children }: { children: React.ReactNode }) =>
     React.createElement("span", {}, children),
-  Surface: ({ children }: { children: React.ReactNode }) => React.createElement("div", {}, children),
+  Surface: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", {}, children),
   en: {},
   formatDateTime: () => "Jan 1",
   useActions: () => mockUseActions(),

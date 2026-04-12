@@ -34,7 +34,10 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
     DEFAULT_CHAIN_ID: 11155111,
     useAdminStore: (
-      selector: (state: { selectedGarden: null; setSelectedGarden: typeof mockSetSelectedGarden }) => unknown
+      selector: (state: {
+        selectedGarden: null;
+        setSelectedGarden: typeof mockSetSelectedGarden;
+      }) => unknown
     ) => selector({ selectedGarden: null, setSelectedGarden: mockSetSelectedGarden }),
     useActions: () => ({ data: [] }),
     useAllAssessments: () => ({ data: [] }),

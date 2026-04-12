@@ -192,7 +192,8 @@ export function useAccessibleCookieJars() {
 
         if (currency === undefined || balance === undefined) return null;
 
-        const tokenDecimals = (decimalsResults?.[decimalsIndex]?.result as number | undefined) ?? 18;
+        const tokenDecimals =
+          (decimalsResults?.[decimalsIndex]?.result as number | undefined) ?? 18;
         decimalsIndex++;
 
         return {
@@ -214,8 +215,7 @@ export function useAccessibleCookieJars() {
 
   return {
     jars,
-    isLoading:
-      isLoadingEligibility || isLoadingAddresses || isLoadingDetails || isLoadingDecimals,
+    isLoading: isLoadingEligibility || isLoadingAddresses || isLoadingDetails || isLoadingDecimals,
     moduleConfigured,
     eligibleGardenCount: eligibleGardens.length,
     confirmedGardenCount: accessibleGardens.filter((check) => check.confirmed).length,

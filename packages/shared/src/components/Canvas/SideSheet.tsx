@@ -62,9 +62,7 @@ export function SideSheet({
         <Dialog.Overlay
           className={cn(
             isBounded ? "absolute inset-0" : "fixed inset-0",
-            isBounded
-              ? "z-[45] bg-transparent"
-              : "z-overlay bg-neutral-950/18 backdrop-blur-sm",
+            isBounded ? "z-[45] bg-transparent" : "z-overlay bg-neutral-950/18 backdrop-blur-sm",
             isBounded && "pointer-events-auto",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -89,9 +87,7 @@ export function SideSheet({
             "will-change-transform",
             isBounded && "pointer-events-auto",
             // Position + rounding per spec: 20px concentric radius
-            isLeft
-              ? "left-0 rounded-r-xl border-l-0"
-              : "right-0 rounded-l-xl border-r-0",
+            isLeft ? "left-0 rounded-r-xl border-l-0" : "right-0 rounded-l-xl border-r-0",
             // Slide animation direction
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             isLeft

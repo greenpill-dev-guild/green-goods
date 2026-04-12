@@ -428,9 +428,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
               ) : (
                 grouped.map((group) => (
                   <div key={group.category} role="group" aria-label={group.label}>
-                    <div className="px-2 py-1.5 text-label-sm text-text-soft">
-                      {group.label}
-                    </div>
+                    <div className="px-2 py-1.5 text-label-sm text-text-soft">{group.label}</div>
                     {group.items.map((result) => {
                       const index = flatIndex++;
                       const isActive = index === activeIndex;

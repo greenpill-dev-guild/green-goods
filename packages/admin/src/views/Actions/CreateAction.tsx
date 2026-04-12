@@ -206,7 +206,10 @@ export default function CreateAction() {
     <div className="pb-6">
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
         <PageHeader
-          title={formatMessage({ id: "admin.actions.createAction", defaultMessage: "Create action" })}
+          title={formatMessage({
+            id: "admin.actions.createAction",
+            defaultMessage: "Create action",
+          })}
           description={formatMessage({
             id: "cockpit.actions.createDescription",
             defaultMessage:

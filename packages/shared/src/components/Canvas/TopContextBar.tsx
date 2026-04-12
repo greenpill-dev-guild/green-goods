@@ -79,9 +79,7 @@ export function TopContextBar({
             >
               <RiArrowLeftLine className="h-5 w-5" />
             </button>
-            <span className="truncate text-title-md text-text-main">
-              {sheetContext.label}
-            </span>
+            <span className="truncate text-title-md text-text-main">{sheetContext.label}</span>
           </>
         ) : (
           gardenChip

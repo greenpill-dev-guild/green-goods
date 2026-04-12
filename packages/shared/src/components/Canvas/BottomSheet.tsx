@@ -99,9 +99,7 @@ export function BottomSheet({
         <Dialog.Overlay
           className={cn(
             isBounded ? "absolute inset-0" : "fixed inset-0",
-            isBounded
-              ? "z-[45] bg-transparent"
-              : "z-overlay bg-neutral-950/18 backdrop-blur-sm",
+            isBounded ? "z-[45] bg-transparent" : "z-overlay bg-neutral-950/18 backdrop-blur-sm",
             isBounded && "pointer-events-auto",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
