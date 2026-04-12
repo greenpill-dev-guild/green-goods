@@ -19,20 +19,18 @@ vi.mock("@green-goods/shared", () => ({
     EDU: 2,
     WASTE: 3,
   },
-  Button: ({
-    children,
-    onClick,
-  }: {
-    children: React.ReactNode;
-    onClick?: () => void;
-  }) => React.createElement("button", { onClick }, children),
+  DOMAIN_CONFIG: {
+    0: { labelId: "app.domain.tab.solar", colors: { bg: "", text: "", border: "" } },
+    1: { labelId: "app.domain.tab.agro", colors: { bg: "", text: "", border: "" } },
+    2: { labelId: "app.domain.tab.education", colors: { bg: "", text: "", border: "" } },
+    3: { labelId: "app.domain.tab.waste", colors: { bg: "", text: "", border: "" } },
+  },
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) =>
+    React.createElement("button", { onClick }, children),
   CanvasStageTabRail: () => React.createElement("div", { "data-testid": "stage-rail" }),
-  CanvasWorkbenchList: ({
-    children,
-    ...props
-  }: {
-    children?: React.ReactNode;
-  }) => React.createElement("div", props, children),
+  CanvasWorkbenchList: ({ children, ...props }: { children?: React.ReactNode }) =>
+    React.createElement("div", props, children),
   CanvasWorkbenchRow: ({
     title,
     description,
@@ -74,10 +72,6 @@ vi.mock("@green-goods/shared", () => ({
     setFilter: mockSetFilter,
     resetFilters: mockResetFilters,
   }),
-}));
-
-vi.mock("@green-goods/shared/utils", () => ({
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({

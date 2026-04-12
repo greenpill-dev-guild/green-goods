@@ -10,8 +10,10 @@ import {
   ListToolbar,
   SortSelect,
   DEFAULT_CHAIN_ID,
+  DOMAIN_CONFIG,
   Domain,
   adminRoutes,
+  cn,
   useActions,
   useFabConfig,
   useFilteredActions,
@@ -25,28 +27,13 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
-const DOMAIN_TAGS: { value: Domain; labelId: string; activeClass: string }[] = [
-  {
-    value: Domain.SOLAR,
-    labelId: "app.domain.tab.solar",
-    activeClass: "bg-away-lighter text-away-dark border-away-light",
-  },
-  {
-    value: Domain.AGRO,
-    labelId: "app.domain.tab.agro",
-    activeClass: "bg-success-lighter text-success-dark border-success-light",
-  },
-  {
-    value: Domain.EDU,
-    labelId: "app.domain.tab.education",
-    activeClass: "bg-information-lighter text-information-dark border-information-light",
-  },
-  {
-    value: Domain.WASTE,
-    labelId: "app.domain.tab.waste",
-    activeClass: "bg-warning-lighter text-warning-dark border-warning-light",
-  },
-];
+const DOMAIN_FILTER_OPTIONS = (
+  Object.entries(DOMAIN_CONFIG) as [string, (typeof DOMAIN_CONFIG)[Domain]][]
+).map(([key, config]) => ({
+  value: Number(key) as Domain,
+  labelId: config.labelId,
+  colors: config.colors,
+}));
 
 const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
   sort: "default",
@@ -204,7 +191,10 @@ export default function Actions() {
                   onChange={(next) => setFilter("lifecycle", next === "all" ? undefined : next)}
                   tabs={LIFECYCLE_TABS.map((tab) => ({
                     id: tab.id,
-                    label: intl.formatMessage({ id: tab.labelId, defaultMessage: tab.defaultLabel }),
+                    label: intl.formatMessage({
+                      id: tab.labelId,
+                      defaultMessage: tab.defaultLabel,
+                    }),
                     count: lifecycleCounts[tab.id] || undefined,
                   }))}
                 />
@@ -229,25 +219,24 @@ export default function Actions() {
                       defaultMessage: "Filter by domain",
                     })}
                   >
-                    {DOMAIN_TAGS.map((tag) => {
+                    {DOMAIN_FILTER_OPTIONS.map((tag) => {
                       const isActive = filters.domain === tag.value;
                       return (
                         <button
                           key={tag.value}
                           type="button"
                           onClick={() => toggleDomain(tag.value)}
-                          className={[
-                            "group inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint))]",
+                          className={cn(
+                            "group inline-flex items-center gap-1 rounded-sm px-3 py-1.5 text-label-lg font-medium",
+                            "transition-colors duration-[var(--spring-micro-duration,150ms)]",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))]",
                             isActive
-                              ? tag.activeClass
-                              : "border-stroke-soft bg-bg-white text-text-sub hover:bg-bg-soft",
-                          ].join(" ")}
+                              ? "bg-[rgb(var(--ws-primary-container,var(--red-100)))] text-[rgb(var(--ws-on-primary-container,var(--red-900)))]"
+                              : "glass-ground text-text-sub hover:bg-bg-soft",
+                          )}
                           aria-pressed={isActive}
                         >
-                          {isActive ? (
-                            <RiCheckLine className="h-3.5 w-3.5" aria-hidden="true" />
-                          ) : null}
+                          {isActive && <RiCheckLine className="h-3.5 w-3.5" aria-hidden="true" />}
                           {intl.formatMessage({ id: tag.labelId })}
                         </button>
                       );
@@ -270,8 +259,8 @@ export default function Actions() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div
                 key={`action-skeleton-${index}`}
-                className="h-24 rounded-xl skeleton-shimmer"
-                style={{ animationDelay: `${index * 0.06}s` }}
+                className="h-20 rounded-sm skeleton-shimmer"
+                style={{ animationDelay: `${index * 0.05}s` }}
               />
             ))}
           </div>
@@ -328,9 +317,7 @@ export default function Actions() {
             {stageFilteredActions.map((action) => {
               const stage = getActionLifecycleState(action);
               const domainLabel = intl.formatMessage({
-                id:
-                  DOMAIN_TAGS.find((tag) => tag.value === action.domain)?.labelId ??
-                  "app.admin.nav.actions",
+                id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
               });
 
               return (
