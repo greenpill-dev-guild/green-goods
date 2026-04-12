@@ -147,7 +147,7 @@ export function HubWorkCard({
       onClick={onClick}
       className={cn(
         "group w-full cursor-pointer overflow-hidden rounded-[1.65rem] text-left",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,247,242,0.95)_100%)]",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,247,242,0.95)_100%)] dark:bg-bg-soft",
         "shadow-[var(--edge-rest),0_18px_38px_rgba(133,109,70,0.08)]",
         "transition-[transform,box-shadow,background-color] duration-200",
         "hover:-translate-y-1 hover:shadow-[var(--edge-hover),0_26px_48px_rgba(133,109,70,0.14)]",

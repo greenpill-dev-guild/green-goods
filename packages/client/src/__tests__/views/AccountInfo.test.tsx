@@ -15,13 +15,14 @@ let mockEmbeddedAddress: string | null = null;
 const mockSignOut = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
-  useAuth: () => ({
+  useAuthState: () => ({
     authMode: mockAuthMode,
-    signOut: mockSignOut,
-    smartAccountAddress: mockSmartAccountAddress,
+    credential: { id: "test-cred" },
     walletAddress: mockWalletAddress,
     embeddedAddress: mockEmbeddedAddress,
-    credential: { id: "test-cred" },
+  }),
+  useAuthActions: () => ({
+    signOut: mockSignOut,
   }),
   usePrimaryAddress: () => mockSmartAccountAddress || mockWalletAddress || mockEmbeddedAddress,
   useEnsName: () => ({ data: null }),

@@ -17,12 +17,45 @@ import React, {
 import { cn } from "../../utils/styles/cn";
 import { ImageWithFallback } from "../Display/ImageWithFallback";
 
+export interface ImagePreviewDialogLabels {
+  dialogLabel: string;
+  title: string;
+  description: string;
+  zoomOut: string;
+  resetZoom: string;
+  zoomIn: string;
+  downloadImage: string;
+  closePreview: string;
+  previousImage: string;
+  nextImage: string;
+  previewAlt: (index: number) => string;
+  thumbnailAlt: (index: number) => string;
+  goToImage: (index: number) => string;
+}
+
+const defaultLabels: ImagePreviewDialogLabels = {
+  dialogLabel: "Image preview",
+  title: "Image preview",
+  description: "Zoom, browse, or download this image.",
+  zoomOut: "Zoom out",
+  resetZoom: "Reset zoom",
+  zoomIn: "Zoom in",
+  downloadImage: "Download image",
+  closePreview: "Close preview",
+  previousImage: "Previous image",
+  nextImage: "Next image",
+  previewAlt: (index) => `Preview ${index}`,
+  thumbnailAlt: (index) => `Thumbnail ${index}`,
+  goToImage: (index) => `Go to image ${index}`,
+};
+
 export interface ImagePreviewDialogProps {
   isOpen: boolean;
   onClose: () => void;
   images: string[];
   initialIndex?: number;
   className?: string;
+  labels?: Partial<ImagePreviewDialogLabels>;
 }
 
 export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
@@ -31,7 +64,9 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
   images,
   initialIndex = 0,
   className,
+  labels,
 }) => {
+  const resolvedLabels = { ...defaultLabels, ...labels };
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -239,7 +274,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         />
         <Dialog.Content
           className="fixed inset-0 z-[10003] flex items-center justify-center focus:outline-none"
-          aria-label="Image preview"
+          aria-label={resolvedLabels.dialogLabel}
           onPointerDownOutside={(e) => e.preventDefault()}
         >
           <div className="relative w-full h-full max-w-4xl max-h-4xl m-4">
@@ -256,7 +291,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 <button
                   onClick={zoomOut}
                   className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
-                  aria-label="Zoom out"
+                  aria-label={resolvedLabels.zoomOut}
                   type="button"
                 >
                   <RiZoomOutLine className="w-5 h-5" />
@@ -264,7 +299,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 <button
                   onClick={resetZoom}
                   className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
-                  aria-label="Reset zoom"
+                  aria-label={resolvedLabels.resetZoom}
                   type="button"
                 >
                   <RiFocus3Line className="w-5 h-5" />
@@ -272,7 +307,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 <button
                   onClick={zoomIn}
                   className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
-                  aria-label="Zoom in"
+                  aria-label={resolvedLabels.zoomIn}
                   type="button"
                 >
                   <RiZoomInLine className="w-5 h-5" />
@@ -282,7 +317,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 <button
                   onClick={handleDownload}
                   className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full ml-2"
-                  aria-label="Download image"
+                  aria-label={resolvedLabels.downloadImage}
                   type="button"
                   data-testid="image-preview-download"
                 >
@@ -293,7 +328,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 <Dialog.Close asChild>
                   <button
                     className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full ml-4"
-                    aria-label="Close preview"
+                    aria-label={resolvedLabels.closePreview}
                     data-testid="image-preview-close"
                     type="button"
                   >
@@ -303,7 +338,8 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               </div>
             </div>
             {/* Visually hidden title for accessibility */}
-            <Dialog.Title className="sr-only">Image preview</Dialog.Title>
+            <Dialog.Title className="sr-only">{resolvedLabels.title}</Dialog.Title>
+            <Dialog.Description className="sr-only">{resolvedLabels.description}</Dialog.Description>
 
             {/* Image Container */}
             <div
@@ -322,7 +358,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             >
               <ImageWithFallback
                 src={images[currentIndex]}
-                alt={`Preview ${currentIndex + 1}`}
+                alt={resolvedLabels.previewAlt(currentIndex + 1)}
                 className="max-w-full max-h-full object-contain select-none"
                 fallbackClassName="w-64 h-64"
                 decoding="async"
@@ -342,7 +378,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                   <button
                     onClick={navigatePrev}
                     className="absolute left-4 top-1/2 -translate-y-1/2 btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
-                    aria-label="Previous image"
+                    aria-label={resolvedLabels.previousImage}
                     type="button"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,7 +396,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                   <button
                     onClick={navigateNext}
                     className="absolute right-4 top-1/2 -translate-y-1/2 btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
-                    aria-label="Next image"
+                    aria-label={resolvedLabels.nextImage}
                     type="button"
                   >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,11 +427,11 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                           : "border-white/30 tap-feedback"
                       )}
                       type="button"
-                      aria-label={`Go to image ${index + 1}`}
+                      aria-label={resolvedLabels.goToImage(index + 1)}
                     >
                       <ImageWithFallback
                         src={image}
-                        alt={`Thumbnail ${index + 1}`}
+                        alt={resolvedLabels.thumbnailAlt(index + 1)}
                         className="w-full h-full object-cover"
                         fallbackClassName="w-16 h-16"
                       />

@@ -243,7 +243,7 @@ export default function GardenView() {
     return (
       <div className="mt-4 px-4 sm:px-6">
         <div className="mx-auto w-full max-w-[1400px]">
-          <Surface elevation="raised" padding="default" className="overflow-hidden">
+          <div className="canvas-route-shell overflow-hidden">
             {view === "overview" ? (
               <OverviewTab
                 section={section}
@@ -350,7 +350,7 @@ export default function GardenView() {
                 </div>
               </div>
             ) : null}
-          </Surface>
+          </div>
         </div>
       </div>
     );

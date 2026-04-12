@@ -7,10 +7,10 @@
  *
  * Phase 3 requirements:
  * - Aggregate stats section (exists)
- * - Garden gallery with deposit buttons (exists)
- * - Deposit button opens dialog, not a route change (NEW — currently logs)
+ * - Garden gallery with funding buttons (exists)
+ * - Broken funding CTAs are disabled inline instead of opening dead ends
  * - Deposit-only: no withdraw actions in DOM (exists)
- * - Connect Wallet works without redirect to /login (NEW)
+ * - Connect Wallet opens the wallet modal inline
  *
  * @vitest-environment jsdom
  */
@@ -48,11 +48,17 @@ const mockGardens = [
 ];
 
 const mockUseGardens = vi.fn();
+const mockOpenWalletModal = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  useGardens: (...args: unknown[]) => mockUseGardens(...args),
-  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-}));
+vi.mock("@green-goods/shared", async () => {
+  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+
+  return {
+    ...actual,
+    useAppKit: () => ({ open: mockOpenWalletModal }),
+    useGardens: (...args: unknown[]) => mockUseGardens(...args),
+  };
+});
 
 import FundPage from "../../views/Public/Fund";
 
@@ -61,6 +67,7 @@ const messages: Record<string, string> = {
   "public.fund.description": "Support regenerative gardens by funding their vaults",
   "public.fund.deposit": "Deposit",
   "public.fund.cookieJar": "Cookie Jar",
+  "public.fund.actionsUnavailable": "Public funding opens in a later update.",
   "public.fund.totalGardens": "Total Gardens",
   "public.fund.totalGardeners": "Total Gardeners",
   "public.fund.connectWallet": "Connect Wallet",
@@ -91,29 +98,26 @@ describe("FundPage — Phase 3 contract", () => {
     expect(screen.getByText("2")).toBeInTheDocument(); // 2 gardens
   });
 
-  it("renders garden gallery with deposit buttons per garden", () => {
+  it("renders garden gallery with disabled funding buttons per garden", () => {
     renderView();
 
-    // Each garden should have a Deposit button
     const depositButtons = screen.getAllByRole("button", { name: /deposit/i });
     expect(depositButtons).toHaveLength(2);
+    depositButtons.forEach((button) => expect(button).toBeDisabled());
 
-    // Garden names should be visible
     expect(screen.getByText("Solar Community Garden")).toBeInTheDocument();
     expect(screen.getByText("Urban Composting Hub")).toBeInTheDocument();
   });
 
-  it("deposit button opens dialog (not a route change)", async () => {
+  it("broken funding buttons are disabled in place", async () => {
     const user = userEvent.setup();
     renderView();
 
     const depositButtons = screen.getAllByRole("button", { name: /deposit/i });
     await user.click(depositButtons[0]);
 
-    // Phase 3: clicking Deposit should open a dialog/modal
-    // Look for a dialog role element
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Public funding opens in a later update.")).toHaveLength(2);
   });
 
   it("/fund is deposit-only — no withdraw actions in DOM", () => {
@@ -124,12 +128,12 @@ describe("FundPage — Phase 3 contract", () => {
     expect(screen.queryByText(/withdraw/i)).not.toBeInTheDocument();
   });
 
-  it("Connect Wallet works without redirect to /login", () => {
+  it("Connect Wallet opens the wallet modal inline", async () => {
+    const user = userEvent.setup();
     renderView();
 
-    // Phase 3: Fund page should have its own Connect Wallet affordance
-    // that does NOT redirect to /login — it opens a wallet modal inline
-    const connectButtons = screen.getAllByRole("button", { name: /connect wallet/i });
-    expect(connectButtons.length).toBeGreaterThanOrEqual(1);
+    await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
+
+    expect(mockOpenWalletModal).toHaveBeenCalledTimes(1);
   });
 });

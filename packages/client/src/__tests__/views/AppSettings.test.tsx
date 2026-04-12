@@ -67,7 +67,8 @@ vi.mock("@/components/Inputs", () => ({
   Select: ({ children, value, onValueChange }: any) =>
     createElement("div", { "data-testid": "select", "data-value": value }, children),
   SelectContent: ({ children }: any) => createElement("div", null, children),
-  SelectItem: ({ children, value }: any) => createElement("option", { value }, children),
+  SelectItem: ({ children, value }: any) =>
+    createElement("div", { role: "option", "data-value": value }, children),
   SelectTrigger: ({ children }: any) =>
     createElement("div", { "data-testid": "select-trigger" }, children),
   SelectValue: ({ placeholder }: any) => createElement("span", null, placeholder),

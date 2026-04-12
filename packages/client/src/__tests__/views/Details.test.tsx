@@ -10,11 +10,6 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
-  return { ...actual };
-});
-
 // Mock form input components to expose label and key props
 vi.mock("@/components/Cards", () => ({
   FormInfo: ({ title }: { title: string }) =>
@@ -22,7 +17,7 @@ vi.mock("@/components/Cards", () => ({
 }));
 
 vi.mock("@/components/Inputs", () => ({
-  FormInput: ({ label, type, name, ...rest }: any) =>
+  FormInput: ({ label, type, name, helperText, ...rest }: any) =>
     createElement("div", { "data-testid": `form-input-${name || label}` }, [
       createElement("label", { key: "label" }, label),
       createElement("input", {
@@ -32,6 +27,7 @@ vi.mock("@/components/Inputs", () => ({
         "data-testid": `input-${name || label}`,
         ...rest,
       }),
+      helperText ? createElement("div", { key: "helper-text" }, helperText) : null,
     ]),
   FormSelect: ({ label, name, options }: any) =>
     createElement("div", { "data-testid": `form-select-${name}` }, [

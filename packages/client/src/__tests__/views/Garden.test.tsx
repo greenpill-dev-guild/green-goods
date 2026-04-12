@@ -36,8 +36,37 @@ const mockWorkFlowState = {
   submissionCompleted: false,
   audioNotes: [] as File[],
   setAudioNotes: vi.fn(),
+  setGardenAddress: vi.fn(),
   reset: vi.fn(),
 };
+
+const mockSetActiveTab = vi.fn();
+const mockSetSelectedDomain = vi.fn();
+const mockActions = [
+  {
+    id: "action-1",
+    title: "Test Action",
+    description: "Test description",
+    startTime: Date.now() - 86400000,
+    endTime: Date.now() + 86400000,
+    capitals: [],
+    media: ["/test.jpg"],
+    createdAt: Date.now(),
+    inputs: [],
+    mediaInfo: { required: false, maxImageCount: 5 },
+  },
+];
+const mockGardens = [
+  {
+    id: "garden-1",
+    name: "Test Garden",
+    location: "Test Location",
+    bannerImage: "",
+    gardeners: [],
+    operators: [],
+    createdAt: Date.now(),
+  },
+];
 
 // The component imports everything from @green-goods/shared barrel.
 // Must mock the barrel directly — deep-path mocks don't intercept barrel imports.
@@ -63,41 +92,18 @@ vi.mock("@green-goods/shared", () => ({
   }),
   useGardenTranslation: () => ({ translatedGarden: null }),
   // providers
-  useWork: () => ({
-    form: mockForm,
-    activeTab: "Intro",
-    setActiveTab: vi.fn(),
-    actions: [
-      {
-        id: "action-1",
-        title: "Test Action",
-        description: "Test description",
-        startTime: Date.now() - 86400000,
-        endTime: Date.now() + 86400000,
-        capitals: [],
-        media: ["/test.jpg"],
-        createdAt: Date.now(),
-        inputs: [],
-        mediaInfo: { required: false, maxImageCount: 5 },
-      },
-    ],
-    gardens: [
-      {
-        id: "garden-1",
-        name: "Test Garden",
-        location: "Test Location",
-        bannerImage: "",
-        gardeners: [],
-        operators: [],
-        createdAt: Date.now(),
-      },
-    ],
-    isLoading: false,
+  useWorkFormContext: () => ({
+    ...mockForm,
     workMutation: { isPending: false, isError: false },
   }),
   useWorkSelection: () => ({
+    actions: mockActions,
+    gardens: mockGardens,
+    isLoading: false,
+    activeTab: "Intro",
+    setActiveTab: mockSetActiveTab,
     selectedDomain: null,
-    setSelectedDomain: vi.fn(),
+    setSelectedDomain: mockSetSelectedDomain,
   }),
   WorkTab: {
     Intro: "Intro",
@@ -225,6 +231,8 @@ const renderWithProviders = (initialRoute = "/garden") => {
 describe("Garden (Work) View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockForm.actionUID = null;
+    mockForm.gardenAddress = null;
   });
 
   afterEach(() => {

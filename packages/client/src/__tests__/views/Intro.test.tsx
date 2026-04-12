@@ -10,32 +10,59 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock shared barrel — use importActual to keep Domain enum and util functions real
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+// Mock only the runtime helpers WorkIntro needs.
+vi.mock("@green-goods/shared", () => {
+  const Domain = {
+    SOLAR: 0,
+    AGRO: 1,
+    EDU: 2,
+    WASTE: 3,
+  } as const;
+
   return {
-    ...actual,
+    Domain,
+    expandDomainMask: (mask: number) => {
+      const domains: Domain[] = [];
+      if (mask & 1) domains.push(Domain.SOLAR);
+      if (mask & 2) domains.push(Domain.AGRO);
+      if (mask & 4) domains.push(Domain.EDU);
+      if (mask & 8) domains.push(Domain.WASTE);
+      return domains;
+    },
+    hasDomain: (mask: number, domain: Domain) => (mask & (1 << domain)) !== 0,
     hapticSelection: vi.fn(),
   };
 });
 
 // Mock child components used by WorkIntro
-vi.mock("@/components/Cards", () => ({
+vi.mock("@/components/Cards/Action/ActionCard", () => ({
   ActionCard: ({ action, selected }: { action: { title: string }; selected: boolean }) =>
     createElement(
       "div",
       { "data-testid": `action-card-${action.title}`, "data-selected": String(selected) },
       action.title
     ),
+}));
+
+vi.mock("@/components/Cards/Action/ActionCardSkeleton", () => ({
   ActionCardSkeleton: () => createElement("div", { "data-testid": "action-skeleton" }),
+}));
+
+vi.mock("@/components/Cards/Form/FormInfo", () => ({
   FormInfo: ({ title }: { title: string }) =>
     createElement("div", { "data-testid": "form-info" }, title),
+}));
+
+vi.mock("@/components/Cards/Garden/GardenCard", () => ({
   GardenCard: ({ garden, selected }: { garden: { name: string }; selected: boolean }) =>
     createElement(
       "div",
       { "data-testid": `garden-card-${garden.name}`, "data-selected": String(selected) },
       garden.name
     ),
+}));
+
+vi.mock("@/components/Cards/Garden/GardenCardSkeleton", () => ({
   GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-skeleton" }),
 }));
 
@@ -77,8 +104,7 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 // Import after mocks
-import { Domain } from "@green-goods/shared";
-import type { Action, Address, Garden } from "@green-goods/shared";
+import { Domain, type Action, type Address, type Garden } from "@green-goods/shared";
 import { WorkIntro } from "../../views/Garden/Intro";
 
 const messages: Record<string, string> = {

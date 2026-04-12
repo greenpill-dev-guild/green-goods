@@ -7,7 +7,7 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement, type ReactNode } from "react";
+import { createElement, Fragment, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 
@@ -260,11 +260,10 @@ vi.mock("@remixicon/react", () => {
 });
 
 // Mock react-intl
-vi.mock("react-intl", async () => {
-  const React = await import("react");
+vi.mock("react-intl", () => {
   return {
-    IntlProvider: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, children),
+    IntlProvider: ({ children }: { children: ReactNode }) =>
+      createElement(Fragment, null, children),
     useIntl: () => ({
       formatMessage: ({ defaultMessage }: { defaultMessage: string }) => defaultMessage,
       formatDate: (date: number | Date) => new Date(date).toLocaleDateString(),
@@ -272,7 +271,7 @@ vi.mock("react-intl", async () => {
       formatNumber: (num: number) => num.toString(),
     }),
     FormattedMessage: ({ defaultMessage }: { defaultMessage: string }) =>
-      React.createElement(React.Fragment, null, defaultMessage),
+      createElement(Fragment, null, defaultMessage),
   };
 });
 

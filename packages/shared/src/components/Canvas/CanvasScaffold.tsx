@@ -27,7 +27,7 @@ export function CanvasMetaStrip({ items, className }: CanvasMetaStripProps) {
       {items.map((item, index) => (
         <span
           key={item.id ?? `meta-${index}`}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white/75 px-3 py-2 text-[0.72rem] font-semibold tracking-[0.01em] text-text-sub shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]"
+          className="inline-flex items-center gap-1.5 rounded-full bg-bg-soft px-3 py-2 text-[0.72rem] font-semibold tracking-[0.01em] text-text-sub shadow-[var(--edge-rest)]"
         >
           {item.value ? <span className="font-bold text-text-strong">{item.value}</span> : null}
           <span>{item.label}</span>
@@ -73,12 +73,11 @@ export function CanvasStageTabRail({
       aria-label={ariaLabel}
       className={cn(
         "relative isolate flex w-full rounded-[1.35rem] px-[var(--canvas-stage-pad-x)] py-[var(--canvas-stage-pad-y)] [--canvas-stage-pad-x:0.25rem] [--canvas-stage-pad-y:0.25rem] max-[599px]:rounded-none max-[599px]:[--canvas-stage-pad-x:0.75rem] max-[599px]:[--canvas-stage-pad-y:0.35rem]",
+        "bg-[linear-gradient(180deg,rgb(244_242_236/0.9)_0%,rgb(238_235_229/0.7)_100%)] dark:bg-bg-sub/80",
         className
       )}
       style={{
-        background:
-          "linear-gradient(180deg, rgb(244 242 236 / 0.9) 0%, rgb(238 235 229 / 0.7) 100%)",
-        boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.72), inset 0 -1px 2px rgb(0 0 0 / 0.04)",
+        boxShadow: "var(--edge-rest), inset 0 -1px 2px rgb(0 0 0 / 0.04)",
       }}
     >
       <div
@@ -93,12 +92,9 @@ export function CanvasStageTabRail({
         }}
       >
         <div
-          className="h-full rounded-[1.05rem] max-[599px]:rounded-[0.95rem]"
+          className="h-full rounded-[1.05rem] max-[599px]:rounded-[0.95rem] bg-[linear-gradient(180deg,rgb(255_255_255/0.94)_0%,rgb(255_249_240/0.88)_100%)] dark:bg-bg-soft"
           style={{
-            background:
-              "linear-gradient(180deg, rgb(255 255 255 / 0.94) 0%, rgb(255 249 240 / 0.88) 100%)",
-            boxShadow:
-              "inset 0 0 0 1px rgb(255 255 255 / 0.82), 0 8px 20px rgba(133, 109, 70, 0.1)",
+            boxShadow: "var(--edge-rest), 0 8px 20px rgba(133, 109, 70, 0.1)",
           }}
         />
       </div>
@@ -160,11 +156,13 @@ export function CanvasWorkbenchList({
   return (
     <div
       {...props}
-      className={cn("overflow-hidden rounded-[1.35rem] divide-y divide-black/5", className)}
+      className={cn(
+        "overflow-hidden rounded-[1.35rem] divide-y divide-black/5 dark:divide-white/5",
+        "bg-[linear-gradient(180deg,rgb(255_255_255/0.9)_0%,rgb(249_247_242/0.88)_100%)] dark:bg-[linear-gradient(180deg,rgb(22_25_33/0.88)_0%,rgb(17_19_27/0.78)_100%)]",
+        className
+      )}
       style={{
-        background:
-          "linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(249 247 242 / 0.88) 100%)",
-        boxShadow: "inset 0 0 0 1px rgb(255 255 255 / 0.82), 0 8px 22px rgba(133, 109, 70, 0.08)",
+        boxShadow: "var(--edge-rest), 0 8px 22px rgba(133, 109, 70, 0.08)",
         ...style,
       }}
     >
@@ -194,7 +192,7 @@ function getStatusToneClasses(tone: CanvasWorkbenchTone) {
   if (tone === "pending") return "bg-warning-lighter/95 text-warning-dark";
   if (tone === "approved") return "bg-success-lighter/95 text-success-dark";
   if (tone === "certify") return "bg-primary-alpha-10 text-text-strong";
-  return "bg-white/85 text-text-sub shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]";
+  return "bg-bg-soft text-text-sub shadow-[var(--edge-rest)]";
 }
 
 export function CanvasWorkbenchRow({
@@ -226,7 +224,7 @@ export function CanvasWorkbenchRow({
             className="h-14 w-14 rounded-2xl object-cover shadow-[var(--edge-rest),0_10px_18px_rgba(38,28,18,0.08)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]"
           />
         ) : (
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(247,243,236,0.94)_100%)] text-primary-base shadow-[inset_0_0_0_1px_rgba(255,255,255,0.88),0_10px_18px_rgba(38,28,18,0.05)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-soft dark:bg-bg-sub text-primary-base shadow-[var(--edge-rest),0_10px_18px_rgba(38,28,18,0.05)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]">
             <LeadingIcon className="h-5 w-5" />
           </div>
         )}
@@ -256,7 +254,7 @@ export function CanvasWorkbenchRow({
           {meta.map((value) => (
             <span
               key={`${title}-${value}`}
-              className="inline-flex items-center rounded-full bg-white/80 px-2.5 py-[0.34rem] text-[0.74rem] font-semibold text-text-sub shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]"
+              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-[0.34rem] text-[0.74rem] font-semibold text-text-sub shadow-[var(--edge-rest)]"
             >
               {value}
             </span>
@@ -265,7 +263,7 @@ export function CanvasWorkbenchRow({
       </div>
 
       <div
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/85 text-text-sub shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)] max-[599px]:hidden"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-bg-soft text-text-sub shadow-[var(--edge-rest)] max-[599px]:hidden"
         aria-hidden="true"
       >
         <RiArrowRightLine className="h-4 w-4" />
@@ -277,11 +275,11 @@ export function CanvasWorkbenchRow({
     "relative grid w-full items-center gap-[0.875rem] px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-200 ease-out motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]",
     "grid-cols-[auto_minmax(0,1fr)_auto]",
     selected &&
-      "bg-[linear-gradient(180deg,rgba(var(--workspace-tint),0.11)_0%,rgba(255,255,255,0.82)_100%)] shadow-[inset_0_0_0_1px_rgba(var(--workspace-tint),0.2),0_10px_24px_rgba(38,28,18,0.05)]",
+      "bg-[linear-gradient(180deg,rgba(var(--workspace-tint),0.11)_0%,rgba(255,255,255,0.82)_100%)] dark:bg-[linear-gradient(180deg,rgba(var(--workspace-tint),0.16)_0%,rgb(var(--bg-sub-300)/0.5)_100%)] shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.22),0_10px_24px_rgba(38,28,18,0.05)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&
       !disabled &&
-      "cursor-pointer hover:-translate-y-[1px] hover:bg-white/72 hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.86),0_8px_18px_rgba(38,28,18,0.05)] active:translate-y-0 active:scale-[0.998] active:bg-[#fff8ec] active:shadow-[inset_0_0_0_1px_rgba(var(--workspace-tint),0.12),0_4px_10px_rgba(38,28,18,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+      "cursor-pointer hover:-translate-y-[1px] hover:bg-bg-weak dark:hover:bg-bg-sub/60 hover:shadow-[var(--edge-rest),0_8px_18px_rgba(38,28,18,0.05)] active:translate-y-0 active:scale-[0.998] active:bg-[#fff8ec] dark:active:bg-bg-sub active:shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.14),0_4px_10px_rgba(38,28,18,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
     className
   );
 
@@ -322,12 +320,14 @@ export function CanvasEmptyStateShell({
     <Surface
       elevation="ground"
       radius="xl"
-      className={cn("flex items-center justify-center p-6", className)}
+      className={cn(
+        "flex items-center justify-center p-6",
+        "bg-[linear-gradient(180deg,rgb(255_255_255/0.62)_0%,rgb(249_247_242/0.82)_100%)] dark:bg-bg-soft/60",
+        className
+      )}
       style={{
         minHeight: "min(24rem, 48vh)",
-        background:
-          "linear-gradient(180deg, rgb(255 255 255 / 0.62) 0%, rgb(249 247 242 / 0.82) 100%)",
-        boxShadow: "inset 0 0 0 1px rgb(0 0 0 / 0.05)",
+        boxShadow: "var(--edge-rest)",
       }}
     >
       {children}

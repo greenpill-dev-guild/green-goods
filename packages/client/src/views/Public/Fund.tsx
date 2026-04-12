@@ -1,43 +1,22 @@
-import { logger, useGardens } from "@green-goods/shared";
-import { useCallback, useEffect, useState } from "react";
+import { useAppKit, useGardens } from "@green-goods/shared";
+import { useCallback } from "react";
 import { useIntl } from "react-intl";
+import { ImageWithFallback } from "@/components/Display";
 
 /**
- * Public fund page — single scrollable view per spec section 18.
- * Deposit-only (no withdraw). Dialog opens inline without navigation.
+ * Public fund page — public-facing funding overview.
+ * Public finance actions fail closed until the full flow is shipped.
  */
 export default function FundPage() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = useGardens();
-  const [depositGardenId, setDepositGardenId] = useState<string | null>(null);
-  const dialogOpen = depositGardenId !== null;
+  const { open: openWalletModal } = useAppKit();
 
   const totalGardeners = new Set(gardens.flatMap((g) => g.gardeners ?? [])).size;
 
-  const handleDeposit = useCallback((gardenId: string) => {
-    logger.info("Deposit action triggered", { gardenId });
-    setDepositGardenId(gardenId);
-  }, []);
-
-  const handleCloseDialog = useCallback(() => {
-    setDepositGardenId(null);
-  }, []);
-
-  const handleCookieJar = (gardenId: string) => {
-    logger.info("Cookie Jar action triggered", { gardenId });
-  };
-
-  // Escape key closes deposit dialog
-  useEffect(() => {
-    if (!dialogOpen) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleCloseDialog();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [dialogOpen, handleCloseDialog]);
-
-  const depositGarden = depositGardenId ? gardens.find((g) => g.id === depositGardenId) : null;
+  const handleConnectWallet = useCallback(() => {
+    openWalletModal();
+  }, [openWalletModal]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -80,14 +59,21 @@ export default function FundPage() {
             <div key={i} className="h-48 rounded-xl bg-bg-weak animate-pulse" />
           ))}
         </div>
+      ) : gardens.length === 0 ? (
+        <div className="mt-8 rounded-xl border border-dashed border-stroke-soft bg-bg-white p-6 text-sm text-text-sub">
+          {formatMessage({
+            id: "public.fund.empty",
+            defaultMessage: "Funding destinations will appear here as gardens enable them.",
+          })}
+        </div>
       ) : (
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {gardens.map((garden) => (
             <div key={garden.id} className="rounded-xl border border-stroke-soft bg-bg-white p-4">
               {garden.bannerImage && (
-                <img
+                <ImageWithFallback
                   src={garden.bannerImage}
-                  alt=""
+                  alt={garden.name}
                   className="h-32 w-full rounded-lg object-cover"
                 />
               )}
@@ -101,7 +87,8 @@ export default function FundPage() {
               <div className="mt-4 flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => handleDeposit(garden.id)}
+                  disabled
+                  aria-disabled="true"
                   className="flex-1 rounded-lg bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
                 >
                   {formatMessage({
@@ -111,7 +98,8 @@ export default function FundPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleCookieJar(garden.id)}
+                  disabled
+                  aria-disabled="true"
                   className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 text-sm font-medium text-text-strong transition-colors hover:bg-bg-weak active:scale-[0.98]"
                 >
                   {formatMessage({
@@ -120,6 +108,12 @@ export default function FundPage() {
                   })}
                 </button>
               </div>
+              <p className="mt-2 text-xs text-text-soft">
+                {formatMessage({
+                  id: "public.fund.actionsUnavailable",
+                  defaultMessage: "Public funding opens in a later update.",
+                })}
+              </p>
             </div>
           ))}
         </div>
@@ -129,6 +123,7 @@ export default function FundPage() {
       <div className="mt-8 text-center">
         <button
           type="button"
+          onClick={handleConnectWallet}
           className="rounded-lg bg-primary-base px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
         >
           {formatMessage({
@@ -137,45 +132,6 @@ export default function FundPage() {
           })}
         </button>
       </div>
-
-      {/* Deposit Dialog — opens inline, no route change */}
-      {dialogOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseDialog();
-          }}
-        >
-          <div className="rounded-2xl border border-stroke-soft bg-bg-white p-6 shadow-lg max-w-[calc(100vw-2rem)] sm:max-w-lg space-y-4">
-            <h2 className="text-lg font-semibold text-text-strong">
-              {formatMessage({ id: "public.fund.deposit", defaultMessage: "Deposit" })}
-            </h2>
-            <p className="text-sm text-text-sub">
-              {depositGarden
-                ? formatMessage(
-                    {
-                      id: "public.fund.depositingTo",
-                      defaultMessage: "Deposit to {garden}",
-                    },
-                    { garden: depositGarden.name }
-                  )
-                : formatMessage({
-                    id: "public.fund.selectGarden",
-                    defaultMessage: "Select a garden to deposit",
-                  })}
-            </p>
-            <button
-              type="button"
-              onClick={handleCloseDialog}
-              className="rounded-lg border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong transition-colors hover:bg-bg-weak"
-            >
-              {formatMessage({ id: "app.close", defaultMessage: "Close" })}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

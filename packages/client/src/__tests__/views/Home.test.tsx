@@ -15,9 +15,7 @@ vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   queryKeys: { gardens: { all: ["gardens"] } },
   toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
-  useAuth: () => ({
-    smartAccountAddress: "0x1234567890abcdef1234567890abcdef12345678",
-    walletAddress: null,
+  useAuthState: () => ({
     isAuthenticated: true,
   }),
   useBrowserNavigation: vi.fn(),

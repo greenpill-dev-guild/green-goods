@@ -3,6 +3,7 @@ import {
   type ActionFiltersState,
   type ActionSortOrder,
   Button,
+  CanvasStageTabRail,
   CanvasWorkbenchList,
   CanvasWorkbenchRow,
   EmptyState,
@@ -18,7 +19,7 @@ import {
   useUrlFilters,
   formatDate,
 } from "@green-goods/shared";
-import { RiAddLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
+import { RiAddLine, RiCheckLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -51,7 +52,17 @@ const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
   sort: "default",
   domain: undefined,
   search: undefined,
+  lifecycle: "all",
 };
+
+type LifecycleStage = "all" | "active" | "upcoming" | "completed";
+
+const LIFECYCLE_TABS: { id: LifecycleStage; labelId: string; defaultLabel: string }[] = [
+  { id: "all", labelId: "cockpit.actions.stage.all", defaultLabel: "All" },
+  { id: "active", labelId: "cockpit.actions.stage.active", defaultLabel: "Active" },
+  { id: "upcoming", labelId: "cockpit.actions.stage.upcoming", defaultLabel: "Upcoming" },
+  { id: "completed", labelId: "cockpit.actions.stage.completed", defaultLabel: "Completed" },
+];
 
 function normalizeTimestamp(value: number): number {
   return value > 10_000_000_000 ? value : value * 1000;
@@ -115,9 +126,23 @@ export default function Actions() {
     domain: urlFilters.domain ? (Number(urlFilters.domain) as Domain) : undefined,
     search: urlFilters.search,
   };
+  const lifecycle = (urlFilters.lifecycle as LifecycleStage) ?? "all";
   const isRefreshing = isFetching && !isLoading;
 
   const { filteredActions } = useFilteredActions(actions, filters);
+
+  const lifecycleCounts = useMemo(() => {
+    const counts = { all: actions.length, active: 0, upcoming: 0, completed: 0 };
+    for (const action of actions) {
+      counts[getActionLifecycleState(action)] += 1;
+    }
+    return counts;
+  }, [actions]);
+
+  const stageFilteredActions = useMemo(() => {
+    if (lifecycle === "all") return filteredActions;
+    return filteredActions.filter((action) => getActionLifecycleState(action) === lifecycle);
+  }, [filteredActions, lifecycle]);
 
   const toggleDomain = (domain: Domain) => {
     setFilter("domain", filters.domain === domain ? undefined : String(domain));
@@ -169,58 +194,73 @@ export default function Actions() {
           }
           toolbar={
             showToolbar ? (
-              <ListToolbar
-                search={filters.search ?? ""}
-                onSearchChange={(value) => setFilter("search", value || undefined)}
-                searchPlaceholder={intl.formatMessage({
-                  id: "admin.actions.searchPlaceholder",
-                  defaultMessage: "Search actions...",
-                })}
-              >
-                <SortSelect
-                  value={filters.sort}
-                  onChange={(value) => setFilter("sort", value)}
-                  options={sortOptions}
+              <div className="flex flex-col gap-3">
+                <CanvasStageTabRail
+                  ariaLabel={intl.formatMessage({
+                    id: "cockpit.actions.lifecycleSwitcher",
+                    defaultMessage: "Filter actions by lifecycle",
+                  })}
+                  activeId={lifecycle}
+                  onChange={(next) => setFilter("lifecycle", next === "all" ? undefined : next)}
+                  tabs={LIFECYCLE_TABS.map((tab) => ({
+                    id: tab.id,
+                    label: intl.formatMessage({ id: tab.labelId, defaultMessage: tab.defaultLabel }),
+                    count: lifecycleCounts[tab.id] || undefined,
+                  }))}
                 />
-                <div
-                  className="flex flex-wrap items-center gap-1.5"
-                  role="group"
-                  aria-label={intl.formatMessage({
-                    id: "admin.actions.filterByDomain",
-                    defaultMessage: "Filter by domain",
+                <ListToolbar
+                  search={filters.search ?? ""}
+                  onSearchChange={(value) => setFilter("search", value || undefined)}
+                  searchPlaceholder={intl.formatMessage({
+                    id: "admin.actions.searchPlaceholder",
+                    defaultMessage: "Search actions...",
                   })}
                 >
-                  {DOMAIN_TAGS.map((tag) => {
-                    const isActive = filters.domain === tag.value;
-                    return (
-                      <button
-                        key={tag.value}
-                        type="button"
-                        onClick={() => toggleDomain(tag.value)}
-                        className={[
-                          "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                          isActive
-                            ? tag.activeClass
-                            : "border-stroke-soft bg-bg-white text-text-sub hover:bg-bg-soft",
-                        ].join(" ")}
-                        aria-pressed={isActive}
-                      >
-                        {intl.formatMessage({ id: tag.labelId })}
-                      </button>
-                    );
-                  })}
-                </div>
-              </ListToolbar>
+                  <SortSelect
+                    value={filters.sort}
+                    onChange={(value) => setFilter("sort", value)}
+                    options={sortOptions}
+                  />
+                  <div
+                    className="flex flex-wrap items-center gap-1.5"
+                    role="group"
+                    aria-label={intl.formatMessage({
+                      id: "admin.actions.filterByDomain",
+                      defaultMessage: "Filter by domain",
+                    })}
+                  >
+                    {DOMAIN_TAGS.map((tag) => {
+                      const isActive = filters.domain === tag.value;
+                      return (
+                        <button
+                          key={tag.value}
+                          type="button"
+                          onClick={() => toggleDomain(tag.value)}
+                          className={[
+                            "group inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint))]",
+                            isActive
+                              ? tag.activeClass
+                              : "border-stroke-soft bg-bg-white text-text-sub hover:bg-bg-soft",
+                          ].join(" ")}
+                          aria-pressed={isActive}
+                        >
+                          {isActive ? (
+                            <RiCheckLine className="h-3.5 w-3.5" aria-hidden="true" />
+                          ) : null}
+                          {intl.formatMessage({ id: tag.labelId })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </ListToolbar>
+              </div>
             ) : undefined
           }
         />
 
         {isLoading ? (
-          <div
-            className="space-y-3 rounded-[1.6rem] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,246,241,0.92)_100%)] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.74),0_18px_38px_rgba(38,28,18,0.08)] sm:p-5"
-            role="status"
-            aria-live="polite"
-          >
+          <div className="canvas-route-shell space-y-3" role="status" aria-live="polite">
             <span className="sr-only">
               {intl.formatMessage({
                 id: "admin.actions.loadingMessage",
@@ -238,7 +278,7 @@ export default function Actions() {
         ) : null}
 
         {!isLoading && actions.length === 0 ? (
-          <div className="rounded-[1.6rem] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,246,241,0.92)_100%)] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.74),0_18px_38px_rgba(38,28,18,0.08)] sm:p-5">
+          <div className="canvas-route-shell">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
               title={intl.formatMessage({
@@ -264,8 +304,8 @@ export default function Actions() {
           </div>
         ) : null}
 
-        {!isLoading && actions.length > 0 && filteredActions.length === 0 ? (
-          <div className="rounded-[1.6rem] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,246,241,0.92)_100%)] p-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.74),0_18px_38px_rgba(38,28,18,0.08)] sm:p-5">
+        {!isLoading && actions.length > 0 && stageFilteredActions.length === 0 ? (
+          <div className="canvas-route-shell">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
               title={intl.formatMessage({
@@ -283,10 +323,10 @@ export default function Actions() {
           </div>
         ) : null}
 
-        {!isLoading && filteredActions.length > 0 ? (
+        {!isLoading && stageFilteredActions.length > 0 ? (
           <CanvasWorkbenchList aria-label={intl.formatMessage({ id: "app.admin.nav.actions" })}>
-            {filteredActions.map((action) => {
-              const lifecycle = getActionLifecycleState(action);
+            {stageFilteredActions.map((action) => {
+              const stage = getActionLifecycleState(action);
               const domainLabel = intl.formatMessage({
                 id:
                   DOMAIN_TAGS.find((tag) => tag.value === action.domain)?.labelId ??
@@ -323,11 +363,11 @@ export default function Actions() {
                     ),
                   ]}
                   statusLabel={intl.formatMessage({
-                    id: `cockpit.actions.status.${lifecycle}`,
+                    id: `cockpit.actions.status.${stage}`,
                     defaultMessage:
-                      lifecycle === "active"
+                      stage === "active"
                         ? "Active"
-                        : lifecycle === "upcoming"
+                        : stage === "upcoming"
                           ? "Upcoming"
                           : "Completed",
                   })}

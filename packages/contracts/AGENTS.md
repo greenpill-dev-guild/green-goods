@@ -403,6 +403,43 @@ deployments/
 }
 ```
 
+## Deployment Readiness
+
+### Pre-Flight Checks
+
+```bash
+bun run test                                              # >= 80% pass (testnet), 100% (mainnet)
+bun build                                                 # Clean compilation, no errors
+bun script/deploy.ts core --network sepolia               # Dry run (omit --broadcast)
+```
+
+### Gas Benchmarks
+
+| Operation | Target |
+|---|---|
+| mintGarden | < 500,000 gas |
+| registerAction | < 200,000 gas |
+| Work submission | < 150,000 gas |
+| Work approval | < 100,000 gas |
+
+### Red Flags (Block Deployment)
+
+- Test pass rate < 80% (testnet) or < 100% (mainnet)
+- Compiler errors or warnings
+- Zero or missing addresses in `deployments/{chainId}-latest.json`
+- Missing schema UIDs in deployment artifact
+- Deployer wallet unfunded
+
+### Mainnet Additional Requirements (All Blocking)
+
+- External security audit completed — no unresolved critical/high findings
+- Multisig ownership configured (Gnosis Safe, 3-of-5 minimum)
+- Timelock delay: 48h mainnet, 24h testnet
+- Minimum 2 weeks testnet operation before mainnet
+- Rollback procedures documented and tested
+
+---
+
 ## Testing
 
 ### Running Tests

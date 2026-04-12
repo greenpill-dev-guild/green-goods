@@ -323,6 +323,7 @@ export {
   // Assessment hooks
   useAssessmentDraft,
   useAssessmentForm,
+  useAccessibleCookieJars,
   // Utility hooks (documented API patterns — keep even with low external usage)
   useAsyncEffect,
   useAsyncSetup,

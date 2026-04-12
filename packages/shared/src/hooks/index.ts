@@ -156,6 +156,7 @@ export {
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
 } from "./cookie-jar/useCookieJarAdmin";
+export { useAccessibleCookieJars } from "./cookie-jar/useAccessibleCookieJars";
 export { useCookieJarDeposit } from "./cookie-jar/useCookieJarDeposit";
 export { useCookieJarWithdraw } from "./cookie-jar/useCookieJarWithdraw";
 // ============================================================================

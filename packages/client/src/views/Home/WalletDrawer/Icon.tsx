@@ -1,4 +1,4 @@
-import { cn, useUserCookieJars } from "@green-goods/shared";
+import { cn, useAccessibleCookieJars } from "@green-goods/shared";
 import { RiWallet3Line } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -10,9 +10,22 @@ interface WalletDrawerIconProps {
 
 export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, className }) => {
   const intl = useIntl();
-  const { jars } = useUserCookieJars();
-
-  const hasJarBalance = jars.some((jar) => jar.balance > 0n);
+  const { jars } = useAccessibleCookieJars();
+  const accessibleJarCount = jars.length;
+  const label =
+    accessibleJarCount > 0
+      ? intl.formatMessage(
+          {
+            id: "app.cookieJar.walletWithCount",
+            defaultMessage:
+              "Wallet, {count, plural, one {# accessible cookie jar} other {# accessible cookie jars}}",
+          },
+          { count: accessibleJarCount }
+        )
+      : intl.formatMessage({
+          id: "app.cookieJar.wallet",
+          defaultMessage: "Wallet",
+        });
 
   return (
     <button
@@ -26,17 +39,17 @@ export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, cla
         "border-stroke-soft-200 text-text-sub-600",
         className
       )}
-      aria-label={intl.formatMessage({
-        id: "app.cookieJar.wallet",
-        defaultMessage: "Wallet",
-      })}
+      aria-label={label}
     >
       <RiWallet3Line className="h-4 w-4" />
-      {hasJarBalance && (
+      {accessibleJarCount > 0 && (
         <span
-          className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-white"
+          className="absolute -top-1.5 -right-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-emerald-500 px-1 text-[10px] font-semibold leading-none text-white"
+          data-testid="wallet-badge"
           aria-hidden="true"
-        />
+        >
+          {accessibleJarCount > 9 ? "9+" : accessibleJarCount}
+        </span>
       )}
     </button>
   );

@@ -779,6 +779,54 @@
 
   /* ── Surface Primitives ── */
 
+  /**
+   * M3 shape scale — tokenized radii so routes stop inlining ad-hoc `rounded-[1.6rem]` values.
+   * Values kept large-biased to preserve the warm-glass aesthetic already shipped.
+   */
+  :root {
+    --shape-xs: 0.5rem;   /* 8px — inline tags, chips */
+    --shape-sm: 0.75rem;  /* 12px — inputs, small buttons */
+    --shape-md: 1rem;     /* 16px — compact cards */
+    --shape-lg: 1.25rem;  /* 20px — panels, inspectors */
+    --shape-xl: 1.6rem;   /* 25.6px — route shells */
+    --shape-2xl: 1.9rem;  /* 30.4px — navigation dock */
+  }
+
+  /**
+   * Canvas route shell — the warm-glass container used by operator routes
+   * (list loading/empty/error states, workbench frames). Replaces repeated inline
+   * `rounded-[1.6rem] border border-white/70 bg-[linear-gradient(...)]` copies.
+   */
+  .canvas-route-shell {
+    border-radius: var(--shape-xl);
+    background: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.94) 0%,
+      rgb(248 246 241 / 0.92) 100%
+    );
+    padding: 1rem;
+    box-shadow:
+      var(--edge-rest),
+      0 18px 38px rgba(38, 28, 18, 0.08);
+  }
+
+  @media (min-width: 640px) {
+    .canvas-route-shell {
+      padding: 1.25rem;
+    }
+  }
+
+  [data-theme="dark"] .canvas-route-shell {
+    background: linear-gradient(
+      180deg,
+      rgb(22 25 33 / 0.88) 0%,
+      rgb(17 19 27 / 0.78) 100%
+    );
+    box-shadow:
+      var(--edge-rest),
+      0 18px 38px rgba(0, 0, 0, 0.30);
+  }
+
   /** Full-width section: page-level grouping */
   .surface-section {
     @apply rounded-xl bg-bg-white;
@@ -853,7 +901,13 @@
   .hub-shell-panel {
     background:
       linear-gradient(180deg, rgb(255 255 255 / 0.94) 0%, rgb(251 249 244 / 0.98) 100%);
-    border: 1px solid rgb(255 255 255 / 0.72);
+    box-shadow: var(--edge-rest);
+  }
+
+  [data-theme="dark"] .hub-shell-panel {
+    background:
+      linear-gradient(180deg, rgb(22 25 33 / 0.88) 0%, rgb(17 19 27 / 0.78) 100%);
+    box-shadow: var(--edge-rest);
   }
 
   .hub-route-shell {

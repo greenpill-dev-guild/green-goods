@@ -26,6 +26,7 @@ vi.mock("@green-goods/shared", () => ({
     children: React.ReactNode;
     onClick?: () => void;
   }) => React.createElement("button", { onClick }, children),
+  CanvasStageTabRail: () => React.createElement("div", { "data-testid": "stage-rail" }),
   CanvasWorkbenchList: ({
     children,
     ...props

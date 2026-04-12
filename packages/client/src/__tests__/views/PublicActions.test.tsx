@@ -41,16 +41,27 @@ const mockActions = [
 
 const mockUseActions = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  useActions: (...args: unknown[]) => mockUseActions(...args),
-  Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
-}));
+vi.mock("@green-goods/shared", async () => {
+  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+
+  return {
+    ...actual,
+    useActions: (...args: unknown[]) => mockUseActions(...args),
+    Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+  };
+});
 
 import ActionsGallery from "../../views/Public/Actions";
 
 const messages: Record<string, string> = {
+  "app.domain.tab.agro": "Agro",
+  "app.domain.tab.education": "Education",
+  "app.domain.tab.solar": "Solar",
+  "app.domain.tab.waste": "Waste",
   "public.actions.title": "Actions",
   "public.actions.description": "Browse available regenerative action templates",
+  "public.actions.domain.unknown": "Unknown",
+  "public.actions.empty": "Action templates will appear here as they are published.",
 };
 
 function renderView() {
@@ -93,9 +104,7 @@ describe("ActionsGallery", () => {
 
   it("renders action media when available", () => {
     renderView();
-    // Image has alt="" so its accessible role is "presentation", not "img"
-    const imgs = screen.getAllByRole("presentation");
-    expect(imgs).toHaveLength(1); // Only action-1 has media
+    expect(screen.getByRole("img", { name: "Tree Planting" })).toBeInTheDocument();
   });
 
   it("shows loading skeletons", () => {
@@ -109,5 +118,13 @@ describe("ActionsGallery", () => {
     renderView();
     expect(screen.queryByRole("button", { name: /create/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /edit/i })).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state when no actions are available", () => {
+    mockUseActions.mockReturnValue({ data: [], isLoading: false });
+    renderView();
+    expect(
+      screen.getByText("Action templates will appear here as they are published.")
+    ).toBeInTheDocument();
   });
 });

@@ -115,18 +115,27 @@ const Home: React.FC = () => {
     // Small delay to let page render first
     scheduleWelcome(() => {
       toastService.info({
-        title: "Welcome to Green Goods! 🌱",
-        message: "Visit your Profile to discover and join gardens.",
+        title: intl.formatMessage({
+          id: "app.home.welcome.title",
+          defaultMessage: "Welcome to Green Goods!",
+        }),
+        message: intl.formatMessage({
+          id: "app.home.welcome.message",
+          defaultMessage: "Visit your Profile to discover and join gardens.",
+        }),
         duration: 6000,
         action: {
-          label: "Go to Profile",
+          label: intl.formatMessage({
+            id: "app.home.welcome.action",
+            defaultMessage: "Go to Profile",
+          }),
           onClick: () => navigate("/profile"),
           dismissOnClick: true,
         },
         suppressLogging: true,
       });
     }, 800);
-  }, [isAuthenticated, location.pathname, navigate, scheduleWelcome]);
+  }, [intl, isAuthenticated, location.pathname, navigate, scheduleWelcome]);
 
   // Handlers
   const handleRetry = () => {

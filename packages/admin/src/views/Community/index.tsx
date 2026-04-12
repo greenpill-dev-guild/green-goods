@@ -3,7 +3,6 @@ import {
   BottomSheet,
   CanvasMetaStrip,
   CanvasStageTabRail,
-  Surface,
   SideSheet,
   adminRoutes,
   useAdminStore,
@@ -333,7 +332,7 @@ export default function CommunityView() {
       ) : (
         <div className="mt-4 px-4 sm:px-6">
           <div className="mx-auto w-full max-w-[1400px]">
-            <Surface elevation="raised" padding="default" className="overflow-hidden">
+            <div className="canvas-route-shell overflow-hidden">
               <CommunityTab
                 garden={{ id: garden.id, name: garden.name }}
                 gardenId={gardenId}
@@ -378,7 +377,7 @@ export default function CommunityView() {
                 }}
                 scheduleBackgroundRefetch={scheduleBackgroundRefetch}
               />
-            </Surface>
+            </div>
           </div>
         </div>
       )}

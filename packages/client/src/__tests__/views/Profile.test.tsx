@@ -11,6 +11,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import messages from "../../../../shared/src/i18n/en.json";
 
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared", () => ({
@@ -18,7 +19,7 @@ vi.mock("@green-goods/shared", () => ({
   formatAddress: (addr: string, opts?: { ensName?: string }) =>
     opts?.ensName || `${addr.slice(0, 6)}...${addr.slice(-4)}`,
   resolveAvatarUrl: (url: string) => url,
-  useAuth: () => ({ userName: "alice" }),
+  useAuthState: () => ({ userName: "alice" }),
   useEnsAvatar: () => ({ data: null, isLoading: false }),
   useEnsName: () => ({ data: null }),
   useGardenerProfile: () => ({
@@ -100,7 +101,7 @@ const wrap = (el: React.ReactElement) =>
   createElement(
     MemoryRouter,
     null,
-    createElement(IntlProvider, { locale: "en", messages: {} }, el)
+    createElement(IntlProvider, { locale: "en", messages }, el)
   );
 
 describe("Profile View", () => {

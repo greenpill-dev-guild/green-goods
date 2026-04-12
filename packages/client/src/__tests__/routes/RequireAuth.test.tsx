@@ -9,11 +9,11 @@ import { createElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock the useAuth hook
-const mockUseAuth = vi.fn();
+// Mock the current shared auth state hook
+const mockUseAuthState = vi.fn();
 
-vi.mock("@green-goods/shared/hooks", () => ({
-  useAuth: () => mockUseAuth(),
+vi.mock("@green-goods/shared", () => ({
+  useAuthState: () => mockUseAuthState(),
 }));
 
 // Import after mocks
@@ -51,7 +51,7 @@ describe("RequireAuth", () => {
   });
 
   it("renders loading spinner when auth is not ready", () => {
-    mockUseAuth.mockReturnValue({
+    mockUseAuthState.mockReturnValue({
       isReady: false,
       isAuthenticated: false,
     });
@@ -66,7 +66,7 @@ describe("RequireAuth", () => {
   });
 
   it("redirects to login when not authenticated", () => {
-    mockUseAuth.mockReturnValue({
+    mockUseAuthState.mockReturnValue({
       isReady: true,
       isAuthenticated: false,
     });
@@ -78,7 +78,7 @@ describe("RequireAuth", () => {
   });
 
   it("renders protected content when authenticated", () => {
-    mockUseAuth.mockReturnValue({
+    mockUseAuthState.mockReturnValue({
       isReady: true,
       isAuthenticated: true,
     });
@@ -90,7 +90,7 @@ describe("RequireAuth", () => {
   });
 
   it("preserves redirect path in login URL", () => {
-    mockUseAuth.mockReturnValue({
+    mockUseAuthState.mockReturnValue({
       isReady: true,
       isAuthenticated: false,
     });

@@ -42,6 +42,7 @@ import ImpactGallery from "../../views/Public/Impact";
 const messages: Record<string, string> = {
   "public.impact.title": "Impact",
   "public.impact.description": "Protocol-wide regenerative impact metrics",
+  "public.impact.empty": "Impact assessments will appear here once gardens publish them.",
   "public.impact.totalAssessments": "Total Assessments",
   "public.impact.totalGardens": "Total Gardens",
   "public.impact.totalGardeners": "Total Gardeners",
@@ -112,5 +113,18 @@ describe("ImpactGallery", () => {
     const { container } = renderView();
     const pulsingElements = container.querySelectorAll(".animate-pulse");
     expect(pulsingElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows the empty impact state when there are no assessments", () => {
+    mockUseGardens.mockReturnValue({
+      data: [{ id: "garden-1", name: "Solar Garden", gardeners: [], assessments: [], works: [] }],
+      isLoading: false,
+    });
+
+    renderView();
+
+    expect(
+      screen.getByText("Impact assessments will appear here once gardens publish them.")
+    ).toBeInTheDocument();
   });
 });

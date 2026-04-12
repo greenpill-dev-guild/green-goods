@@ -36,11 +36,17 @@ const mockGardens = [
 ];
 
 const mockUseGardens = vi.fn();
+const mockOpenWalletModal = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  useGardens: (...args: unknown[]) => mockUseGardens(...args),
-  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
-}));
+vi.mock("@green-goods/shared", async () => {
+  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+
+  return {
+    ...actual,
+    useAppKit: () => ({ open: mockOpenWalletModal }),
+    useGardens: (...args: unknown[]) => mockUseGardens(...args),
+  };
+});
 
 import FundPage from "../../views/Public/Fund";
 
@@ -49,6 +55,9 @@ const messages: Record<string, string> = {
   "public.fund.description": "Support regenerative gardens by funding their vaults",
   "public.fund.deposit": "Deposit",
   "public.fund.cookieJar": "Cookie Jar",
+  "public.fund.actionsUnavailable": "Public funding opens in a later update.",
+  "public.fund.connectWallet": "Connect Wallet",
+  "public.fund.empty": "Funding destinations will appear here as gardens enable them.",
   "public.fund.totalGardens": "Total Gardens",
   "public.fund.totalGardeners": "Total Gardeners",
 };
@@ -91,16 +100,23 @@ describe("FundPage", () => {
     expect(screen.getByText("Urban Composting Hub")).toBeInTheDocument();
   });
 
-  it("renders Deposit button for each garden", () => {
+  it("renders disabled Deposit button for each garden", () => {
     renderView();
     const depositButtons = screen.getAllByRole("button", { name: /deposit/i });
     expect(depositButtons).toHaveLength(2);
+    depositButtons.forEach((button) => expect(button).toBeDisabled());
   });
 
-  it("renders Cookie Jar button for each garden", () => {
+  it("renders disabled Cookie Jar button for each garden", () => {
     renderView();
     const cookieButtons = screen.getAllByRole("button", { name: /cookie jar/i });
     expect(cookieButtons).toHaveLength(2);
+    cookieButtons.forEach((button) => expect(button).toBeDisabled());
+  });
+
+  it("shows an inline unavailable message for each garden card", () => {
+    renderView();
+    expect(screen.getAllByText("Public funding opens in a later update.")).toHaveLength(2);
   });
 
   it("shows loading skeletons when fetching", () => {
@@ -108,5 +124,13 @@ describe("FundPage", () => {
     const { container } = renderView();
     const pulsingElements = container.querySelectorAll(".animate-pulse");
     expect(pulsingElements.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("shows an empty state when there are no gardens", () => {
+    mockUseGardens.mockReturnValue({ data: [], isLoading: false });
+    renderView();
+    expect(
+      screen.getByText("Funding destinations will appear here as gardens enable them.")
+    ).toBeInTheDocument();
   });
 });

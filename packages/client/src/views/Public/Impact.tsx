@@ -68,19 +68,28 @@ export default function ImpactGallery() {
         data-testid="hypercert-gallery"
         className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
       >
-        {gardens.flatMap((g) =>
-          (g.assessments ?? []).map((assessment) => (
-            <div
-              key={assessment.id}
-              className="rounded-xl border border-stroke-soft bg-bg-white p-4"
-            >
-              <div className="h-32 rounded-lg bg-primary-alpha-10" />
-              <p className="mt-3 text-sm font-medium text-text-strong truncate" title={g.name}>
-                {g.name}
-              </p>
-              <p className="mt-1 text-xs text-text-sub">Assessment {assessment.id}</p>
-            </div>
-          ))
+        {totalAssessments === 0 && !isLoading ? (
+          <div className="rounded-xl border border-dashed border-stroke-soft bg-bg-white p-6 text-sm text-text-sub">
+            {formatMessage({
+              id: "public.impact.empty",
+              defaultMessage: "Impact assessments will appear here once gardens publish them.",
+            })}
+          </div>
+        ) : (
+          gardens.flatMap((g) =>
+            (g.assessments ?? []).map((assessment) => (
+              <div
+                key={assessment.id}
+                className="rounded-xl border border-stroke-soft bg-bg-white p-4"
+              >
+                <div className="h-32 rounded-lg bg-primary-alpha-10" />
+                <p className="mt-3 text-sm font-medium text-text-strong truncate" title={g.name}>
+                  {g.name}
+                </p>
+                <p className="mt-1 text-xs text-text-sub">Assessment {assessment.id}</p>
+              </div>
+            ))
+          )
         )}
       </div>
     </div>

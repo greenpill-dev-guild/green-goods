@@ -38,9 +38,14 @@ const mockGardens = [
 
 const mockUseGardens = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  useGardens: (...args: unknown[]) => mockUseGardens(...args),
-}));
+vi.mock("@green-goods/shared", async () => {
+  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+
+  return {
+    ...actual,
+    useGardens: (...args: unknown[]) => mockUseGardens(...args),
+  };
+});
 
 // Import after mocks
 import GardensGallery from "../../views/Public/Gardens";
@@ -48,6 +53,7 @@ import GardensGallery from "../../views/Public/Gardens";
 const messages: Record<string, string> = {
   "public.gardens.title": "Gardens",
   "public.gardens.description": "Explore regenerative gardens documenting impact on-chain",
+  "public.gardens.empty": "Gardens will appear here as they come online.",
   "public.gardens.gardeners": "{count} gardeners",
   "public.gardens.works": "{count} works",
 };
@@ -116,6 +122,12 @@ describe("GardensGallery", () => {
     const { container } = renderView();
     const pulsingElements = container.querySelectorAll(".animate-pulse");
     expect(pulsingElements.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("shows an empty state when no gardens are available", () => {
+    mockUseGardens.mockReturnValue({ data: [], isLoading: false });
+    renderView();
+    expect(screen.getByText("Gardens will appear here as they come online.")).toBeInTheDocument();
   });
 
   it("shows truncated garden names with title attribute", () => {
