@@ -204,6 +204,8 @@ export {
   SkeletonGrid,
   SkeletonText,
 } from "./Skeleton";
+// Domain Badge
+export { DomainBadge } from "./DomainBadge";
 // Status Badge
 export type { StatusBadgeProps } from "./StatusBadge";
 export { getStatusColors, StatusBadge } from "./StatusBadge";

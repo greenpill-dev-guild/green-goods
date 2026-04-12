@@ -70,3 +70,7 @@ export {
 // From sdg.ts
 export type { SDGGoalId, SDGTarget } from "./sdg";
 export { getSDGLabel, SDG_TARGETS } from "./sdg";
+
+// From domain.ts
+export type { DomainStyle } from "./domain";
+export { DOMAIN_CONFIG } from "./domain";
