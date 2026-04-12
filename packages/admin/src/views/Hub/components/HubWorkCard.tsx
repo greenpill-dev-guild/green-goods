@@ -1,46 +1,14 @@
 import {
   type Domain,
-  DOMAIN_LABEL_IDS,
+  DOMAIN_CONFIG,
+  DomainBadge,
   cn,
   formatRelativeTime,
   resolveIPFSUrl,
   type Work,
 } from "@green-goods/shared";
-import { RiBookOpenLine, RiPlantLine, RiRecycleLine, RiSunLine } from "@remixicon/react";
-import { type ComponentType, type SVGProps, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
-
-// ---------------------------------------------------------------------------
-// Domain badge styles
-// ---------------------------------------------------------------------------
-
-interface DomainBadgeStyle {
-  bg: string;
-  text: string;
-  Icon: ComponentType<SVGProps<SVGSVGElement> & { className?: string }>;
-}
-
-const DOMAIN_BADGE_STYLES: Record<number, DomainBadgeStyle> = {
-  0: { bg: "bg-warning-lighter", text: "text-warning-dark", Icon: RiSunLine }, // SOLAR
-  1: { bg: "bg-success-lighter", text: "text-success-dark", Icon: RiPlantLine }, // AGRO
-  2: { bg: "bg-information-lighter", text: "text-information-dark", Icon: RiBookOpenLine }, // EDU
-  3: {
-    bg: "bg-[rgb(var(--orange-100))]",
-    text: "text-[rgb(var(--orange-700))]",
-    Icon: RiRecycleLine,
-  }, // WASTE
-};
-
-// ---------------------------------------------------------------------------
-// Domain gradient fallbacks (when no images available)
-// ---------------------------------------------------------------------------
-
-const DOMAIN_GRADIENT_STYLES: Record<number, string> = {
-  0: "from-yellow-100 to-yellow-50",
-  1: "from-green-100 to-green-50",
-  2: "from-blue-100 to-blue-50",
-  3: "from-orange-100 to-orange-50",
-};
 
 // ---------------------------------------------------------------------------
 // Props
@@ -99,22 +67,20 @@ function ImageCell({
 // ---------------------------------------------------------------------------
 
 function DomainGradientFallback({ domain, className }: { domain?: Domain; className?: string }) {
-  const gradientClasses =
-    domain !== undefined
-      ? (DOMAIN_GRADIENT_STYLES[domain] ?? "from-gray-100 to-gray-50")
-      : "from-gray-100 to-gray-50";
-
-  const badgeStyle = domain !== undefined ? DOMAIN_BADGE_STYLES[domain] : undefined;
+  const config = domain !== undefined ? DOMAIN_CONFIG[domain] : undefined;
+  const gradientClasses = config
+    ? `${config.gradient.from} ${config.gradient.to}`
+    : "from-gray-100 to-gray-50";
 
   return (
     <div
       className={cn(
         "flex items-center justify-center bg-gradient-to-br",
         gradientClasses,
-        className
+        className,
       )}
     >
-      {badgeStyle && <badgeStyle.Icon className="h-8 w-8 opacity-30" />}
+      {config && <config.icon className="h-8 w-8 opacity-30" />}
     </div>
   );
 }
@@ -139,21 +105,19 @@ export function HubWorkCard({
     work.title ||
     formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" });
 
-  const badgeStyle = actionDomain !== undefined ? DOMAIN_BADGE_STYLES[actionDomain] : undefined;
-
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "group w-full cursor-pointer overflow-hidden rounded-[1.65rem] text-left",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(249,247,242,0.95)_100%)] dark:bg-bg-soft",
-        "shadow-[var(--edge-rest),0_18px_38px_rgba(133,109,70,0.08)]",
-        "transition-[transform,box-shadow,background-color] duration-200",
-        "hover:-translate-y-1 hover:shadow-[var(--edge-hover),0_26px_48px_rgba(133,109,70,0.14)]",
+        "group w-full cursor-pointer overflow-hidden rounded-xl text-left",
+        "glass-raised",
+        "shadow-[var(--edge-rest),_var(--elevation-1)]",
+        "transition-[transform,box-shadow] duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
+        "hover:-translate-y-0.5 hover:shadow-[var(--edge-hover),_var(--elevation-2)]",
         "active:translate-y-0 active:scale-[0.992]",
         "motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 motion-reduce:transition-none",
-        "outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+        "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))] focus-visible:ring-offset-2",
       )}
     >
       <div className="relative overflow-hidden border-b border-black/5">
@@ -214,20 +178,8 @@ export function HubWorkCard({
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/8 via-transparent to-white/10 opacity-80" />
 
-        {badgeStyle && (
-          <span
-            className={cn(
-              "absolute bottom-2 left-2 inline-flex items-center gap-1",
-              "rounded-full px-2.5 py-1 text-[11px] font-medium backdrop-blur-md",
-              badgeStyle.bg,
-              badgeStyle.text
-            )}
-          >
-            <badgeStyle.Icon className="h-3 w-3" />
-            {formatMessage({
-              id: DOMAIN_LABEL_IDS[actionDomain!],
-            })}
-          </span>
+        {actionDomain !== undefined && (
+          <DomainBadge domain={actionDomain} size="sm" className="absolute bottom-2 left-2" />
         )}
 
         {totalMedia > 1 && (
@@ -240,25 +192,25 @@ export function HubWorkCard({
       <div className="space-y-3 p-4 sm:p-[1.125rem]">
         <div className="flex items-start justify-between gap-3">
           <h3
-            className="min-w-0 flex-1 text-sm font-semibold leading-5 text-text-strong line-clamp-2 sm:text-[0.95rem]"
+            className="min-w-0 flex-1 text-title-sm font-semibold leading-5 text-text-strong line-clamp-2"
             title={title}
           >
             {title}
           </h3>
-          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.08em] text-text-soft">
+          <span className="shrink-0 text-label-sm font-medium uppercase text-text-soft">
             {formatRelativeTime(work.createdAt)}
           </span>
         </div>
 
         <div
-          className="flex items-center justify-between gap-3 text-xs text-text-sub"
+          className="flex items-center justify-between gap-3 text-body-sm text-text-sub"
           title={`${gardenerDisplayName} · ${gardenName}`}
         >
           <div className="min-w-0">
-            <p className="truncate font-medium text-text-sub">{gardenerDisplayName}</p>
-            <p className="truncate text-text-soft">{gardenName}</p>
+            <p className="truncate text-body-sm font-medium text-text-sub">{gardenerDisplayName}</p>
+            <p className="truncate text-body-sm text-text-soft">{gardenName}</p>
           </div>
-          <span className="rounded-full bg-bg-soft/90 px-2.5 py-1 text-[11px] font-medium text-text-soft shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)] transition-colors group-hover:bg-bg-weak">
+          <span className="rounded-full bg-bg-soft/90 px-2.5 py-1 text-label-sm font-medium text-text-soft shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)] transition-colors group-hover:bg-bg-weak">
             {formatMessage({ id: "cockpit.hub.tab.review", defaultMessage: "Review" })}
           </span>
         </div>
