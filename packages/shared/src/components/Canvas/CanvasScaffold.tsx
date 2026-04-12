@@ -72,7 +72,7 @@ export function CanvasStageTabRail({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        "relative isolate flex w-full rounded-[1.35rem] px-[var(--canvas-stage-pad-x)] py-[var(--canvas-stage-pad-y)] [--canvas-stage-pad-x:0.25rem] [--canvas-stage-pad-y:0.25rem] max-[599px]:rounded-none max-[599px]:[--canvas-stage-pad-x:0.75rem] max-[599px]:[--canvas-stage-pad-y:0.35rem]",
+        "relative isolate flex w-full rounded-lg px-[var(--canvas-stage-pad-x)] py-[var(--canvas-stage-pad-y)] [--canvas-stage-pad-x:0.25rem] [--canvas-stage-pad-y:0.25rem] max-[599px]:rounded-none max-[599px]:[--canvas-stage-pad-x:0.75rem] max-[599px]:[--canvas-stage-pad-y:0.35rem]",
         "bg-[linear-gradient(180deg,rgb(244_242_236/0.9)_0%,rgb(238_235_229/0.7)_100%)] dark:bg-bg-sub/80",
         className
       )}
@@ -82,17 +82,18 @@ export function CanvasStageTabRail({
     >
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute z-0 transition-transform duration-[260ms] ease-[cubic-bezier(0.2,0.9,0.2,1)] motion-reduce:transition-none"
+        className="pointer-events-none absolute z-0 motion-reduce:transition-none"
         style={{
           top: "var(--canvas-stage-pad-y)",
           bottom: "var(--canvas-stage-pad-y)",
           left: "var(--canvas-stage-pad-x)",
           width: `calc((100% - (var(--canvas-stage-pad-x) * 2)) / ${Math.max(tabs.length, 1)})`,
           transform: `translateX(${activeIndex * 100}%)`,
+          transition: `transform var(--spring-medium-duration,300ms) var(--spring-medium-easing,cubic-bezier(0.16,1,0.3,1))`,
         }}
       >
         <div
-          className="h-full rounded-[1.05rem] max-[599px]:rounded-[0.95rem] bg-[linear-gradient(180deg,rgb(255_255_255/0.94)_0%,rgb(255_249_240/0.88)_100%)] dark:bg-bg-soft"
+          className="h-full rounded-md bg-[rgb(var(--ws-primary-container,var(--blue-100)))] dark:bg-bg-soft"
           style={{
             boxShadow: "var(--edge-rest), 0 8px 20px rgba(133, 109, 70, 0.1)",
           }}
@@ -118,10 +119,10 @@ export function CanvasStageTabRail({
               if (!tab.disabled) onChange(tab.id);
             }}
             className={cn(
-              "relative z-[1] inline-flex min-h-[3.25rem] flex-1 items-center justify-center gap-2 rounded-[1.1rem] px-4 py-3 text-[0.92rem] font-semibold text-text-sub transition-[transform,color,opacity] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base motion-reduce:transition-none max-[599px]:min-h-[3.4rem] max-[599px]:min-w-0 max-[599px]:flex-col max-[599px]:gap-1 max-[599px]:px-[0.35rem] max-[599px]:py-[0.55rem] max-[599px]:text-[0.78rem] max-[599px]:leading-[1.05]",
+              "relative z-[1] inline-flex min-h-[3.25rem] flex-1 items-center justify-center gap-2 rounded-md px-4 py-3 text-[0.92rem] font-semibold text-text-sub transition-[transform,color,opacity] duration-200 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base motion-reduce:transition-none max-[599px]:min-h-[3.4rem] max-[599px]:min-w-0 max-[599px]:flex-col max-[599px]:gap-1 max-[599px]:px-[0.35rem] max-[599px]:py-[0.55rem] max-[599px]:text-[0.78rem] max-[599px]:leading-[1.05]",
               active
-                ? "-translate-y-[1px] text-text-strong"
-                : "hover:text-text-strong active:translate-y-[1px]",
+                ? "-translate-y-[1px] text-[rgb(var(--ws-on-primary-container,var(--blue-900)))]"
+                : "text-text-sub hover:text-text-strong active:translate-y-[1px]",
               tab.disabled && "cursor-not-allowed opacity-45 shadow-none"
             )}
           >
@@ -157,12 +158,12 @@ export function CanvasWorkbenchList({
     <div
       {...props}
       className={cn(
-        "overflow-hidden rounded-[1.35rem] divide-y divide-black/5 dark:divide-white/5",
-        "bg-[linear-gradient(180deg,rgb(255_255_255/0.9)_0%,rgb(249_247_242/0.88)_100%)] dark:bg-[linear-gradient(180deg,rgb(22_25_33/0.88)_0%,rgb(17_19_27/0.78)_100%)]",
+        "overflow-hidden rounded-xl divide-y divide-black/5 dark:divide-white/5",
+        "glass-raised",
         className
       )}
       style={{
-        boxShadow: "var(--edge-rest), 0 8px 22px rgba(133, 109, 70, 0.08)",
+        boxShadow: "var(--edge-rest), var(--elevation-1)",
         ...style,
       }}
     >
@@ -232,7 +233,7 @@ export function CanvasWorkbenchRow({
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[0.72rem] font-bold uppercase tracking-[0.08em] text-text-soft">
+          <span className="text-label-sm text-text-soft">
             {eyebrow}
           </span>
           <span
@@ -244,17 +245,17 @@ export function CanvasWorkbenchRow({
             {statusLabel}
           </span>
         </div>
-        <h3 className="mt-[0.32rem] text-[clamp(0.98rem,0.92rem+0.24vw,1.15rem)] font-bold tracking-[-0.02em] text-text-strong">
+        <h3 className="mt-[0.32rem] text-title-md text-text-strong">
           {title}
         </h3>
-        <p className="mt-[0.2rem] max-w-[60ch] text-[0.9rem] leading-[1.45] text-text-sub max-[599px]:text-[0.88rem]">
+        <p className="mt-[0.2rem] max-w-[60ch] text-body-md text-text-sub">
           {description}
         </p>
         <div className="mt-[0.55rem] flex flex-wrap gap-[0.45rem]">
           {meta.map((value) => (
             <span
               key={`${title}-${value}`}
-              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-[0.34rem] text-[0.74rem] font-semibold text-text-sub shadow-[var(--edge-rest)]"
+              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-[0.34rem] text-body-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
             >
               {value}
             </span>
@@ -275,11 +276,11 @@ export function CanvasWorkbenchRow({
     "relative grid w-full items-center gap-[0.875rem] px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-200 ease-out motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]",
     "grid-cols-[auto_minmax(0,1fr)_auto]",
     selected &&
-      "bg-[linear-gradient(180deg,rgba(var(--workspace-tint),0.11)_0%,rgba(255,255,255,0.82)_100%)] dark:bg-[linear-gradient(180deg,rgba(var(--workspace-tint),0.16)_0%,rgb(var(--bg-sub-300)/0.5)_100%)] shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.22),0_10px_24px_rgba(38,28,18,0.05)]",
+      "bg-[rgb(var(--ws-primary-container)/0.12)] shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.22),0_10px_24px_rgba(38,28,18,0.05)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&
       !disabled &&
-      "cursor-pointer hover:-translate-y-[1px] hover:bg-bg-weak dark:hover:bg-bg-sub/60 hover:shadow-[var(--edge-rest),0_8px_18px_rgba(38,28,18,0.05)] active:translate-y-0 active:scale-[0.998] active:bg-[#fff8ec] dark:active:bg-bg-sub active:shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.14),0_4px_10px_rgba(38,28,18,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+      "cursor-pointer hover:-translate-y-0.5 transition duration-[var(--spring-fast-duration)] hover:bg-bg-weak dark:hover:bg-bg-sub/60 hover:shadow-[var(--edge-rest),0_8px_18px_rgba(38,28,18,0.05)] active:translate-y-0 active:scale-[0.998] active:bg-[#fff8ec] dark:active:bg-bg-sub active:shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.14),0_4px_10px_rgba(38,28,18,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
     className
   );
 
