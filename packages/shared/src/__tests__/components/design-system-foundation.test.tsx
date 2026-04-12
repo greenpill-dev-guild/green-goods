@@ -17,8 +17,8 @@ describe("design system foundation", () => {
     const input = screen.getByLabelText("Name");
 
     expect(input).toHaveClass("w-full");
-    expect(input).toHaveClass("text-base");
-    expect(input).toHaveClass("rounded-lg");
+    expect(input).toHaveClass("text-body-lg");
+    expect(input).toHaveClass("rounded-sm");
     expect(input).toHaveClass("px-4");
   });
 

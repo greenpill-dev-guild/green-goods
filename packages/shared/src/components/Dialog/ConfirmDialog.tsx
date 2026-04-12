@@ -71,17 +71,17 @@ export function DialogShell({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-overlay bg-overlay backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
+        <Dialog.Overlay className="fixed inset-0 z-overlay bg-neutral-950/18 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
         <Dialog.Content
           className={cn(
-            "fixed z-modal w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden bg-bg-white shadow-elevation-5 focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300",
+            "fixed z-modal w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden glass-floating focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300",
             dialogShellSizeClasses[size],
             className
           )}
         >
           <div
             className={cn(
-              "sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4",
+              "sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
               headerClassName
             )}
           >
@@ -97,11 +97,11 @@ export function DialogShell({
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <Dialog.Title className="truncate text-lg font-semibold text-text-strong sm:text-xl">
+                <Dialog.Title className="truncate text-title-lg font-semibold text-text-strong">
                   {title}
                 </Dialog.Title>
                 {description && (
-                  <Dialog.Description className="text-xs text-text-soft sm:text-sm">
+                  <Dialog.Description className="text-body-lg text-text-soft">
                     {description}
                   </Dialog.Description>
                 )}
@@ -227,12 +227,12 @@ export function ConfirmDialog({
     <Dialog.Root open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className="fixed inset-0 z-overlay bg-black/30 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150"
+          className="fixed inset-0 z-overlay bg-neutral-950/18 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150"
           data-testid="confirm-dialog-overlay"
         />
         <Dialog.Content
           role={isDestructive ? "alertdialog" : undefined}
-          className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden bg-bg-white shadow-elevation-5 focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300"
+          className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden glass-floating focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300"
           data-testid="confirm-dialog"
           onPointerDownOutside={(e: Event) => {
             if (isLoading) e.preventDefault();
@@ -255,11 +255,11 @@ export function ConfirmDialog({
                 </div>
               )}
               <div className="min-w-0 flex-1 pt-1">
-                <Dialog.Title className="text-lg font-semibold text-text-strong">
+                <Dialog.Title className="text-title-lg font-semibold text-text-strong">
                   {title}
                 </Dialog.Title>
                 {description && (
-                  <Dialog.Description className="mt-1 text-sm text-text-sub">
+                  <Dialog.Description className="mt-1 text-body-lg text-text-sub">
                     {description}
                   </Dialog.Description>
                 )}

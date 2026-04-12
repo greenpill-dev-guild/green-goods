@@ -50,9 +50,9 @@ export function GardenChip({
         className={cn(
           "inline-flex max-w-[200px] items-center gap-1.5 rounded-full",
           "px-3 py-1.5",
-          "bg-bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-bg-white/60",
+          "glass-raised",
           "shadow-[var(--edge-rest),_var(--elevation-1)]",
-          "text-sm font-medium text-text-main"
+          "text-label-lg font-medium text-text-main"
         )}
       >
         {selectedGarden ? (
@@ -79,10 +79,10 @@ export function GardenChip({
           className={cn(
             "inline-flex max-w-[200px] cursor-pointer items-center gap-1.5 rounded-full",
             "px-3 py-1.5",
-            "bg-bg-white/80 backdrop-blur-sm supports-[backdrop-filter]:bg-bg-white/60",
+            "glass-raised",
             "shadow-[var(--edge-rest),_var(--elevation-1)]",
-            "text-sm font-medium text-text-main",
-            "transition-all duration-150",
+            "text-label-lg font-medium text-text-main",
+            "transition-all duration-[var(--spring-micro-duration,150ms)]",
             "motion-reduce:transition-none",
             "hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-3)]",
             "focus-visible:outline-none focus-visible:shadow-[var(--edge-focus),_var(--elevation-1)]"
@@ -107,7 +107,7 @@ export function GardenChip({
           align="start"
           sideOffset={8}
           className={cn(
-            "z-50 w-56 rounded-xl bg-bg-white p-1 shadow-[var(--edge-rest),_var(--elevation-4)]",
+            "z-50 w-56 rounded-xl glass-floating p-1 shadow-[var(--edge-rest),_var(--elevation-4)]",
             "animate-in fade-in-0 zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
             "motion-reduce:animate-none"
@@ -147,9 +147,9 @@ export function GardenChip({
                   setOpen(false);
                 }}
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm",
+                  "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-md",
                   "text-primary-base hover:bg-bg-weak",
-                  "transition-colors duration-150",
+                  "transition-colors duration-[var(--spring-micro-duration,150ms)]",
                   "motion-reduce:transition-none",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
                 )}
@@ -181,8 +181,8 @@ function GardenDropdownItem({ label, isSelected, onClick }: GardenDropdownItemPr
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm",
-        "transition-colors duration-150",
+        "flex w-full items-center justify-between rounded-lg px-3 py-2 text-body-md",
+        "transition-colors duration-[var(--spring-micro-duration,150ms)]",
         "motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
         isSelected

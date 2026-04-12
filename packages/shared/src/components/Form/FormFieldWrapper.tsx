@@ -28,7 +28,7 @@ export function FormFieldWrapper({
 }: FormFieldWrapperProps) {
   return (
     <div className={cn("flex flex-col gap-1", error && "shake-error", className)}>
-      <label className="font-semibold text-text-strong-950 text-label-sm" htmlFor={id}>
+      <label className="font-medium text-text-strong-950 text-label-lg" htmlFor={id}>
         {label}
         {required && <span className="ml-0.5 text-error-base">*</span>}
       </label>
@@ -37,7 +37,7 @@ export function FormFieldWrapper({
         <p
           id={id ? `${id}-helper-text` : undefined}
           role={error ? "alert" : undefined}
-          className={cn("text-xs min-h-[1rem]", error ? "text-error-dark" : "text-text-sub-600")}
+          className={cn("text-body-sm min-h-[1rem]", error ? "text-error-dark" : "text-text-sub-600")}
         >
           {error || helperText}
         </p>
