@@ -186,7 +186,7 @@ describe("TopContextBar", () => {
     const buttons = screen.getAllByRole("button");
     for (const btn of buttons) {
       expect(btn.className).toContain("focus-visible:ring-2");
-      expect(btn.className).toContain("focus-visible:ring-primary-base");
+      expect(btn.className).toContain("focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))]");
     }
   });
 });

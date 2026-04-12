@@ -14,11 +14,11 @@ import { cn } from "../../utils/styles/cn";
 // ----------------------------------------------------------------------------
 
 const ICON_BTN = cn(
-  "flex h-10 w-10 items-center justify-center rounded-lg",
+  "flex h-10 w-10 items-center justify-center rounded-sm",
   "text-text-sub hover:bg-bg-weak active:bg-bg-sub active:scale-95",
-  "transition-all duration-150",
+  "transition-all duration-[var(--spring-micro-duration,150ms)]",
   "motion-reduce:transition-none motion-reduce:active:scale-100",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))]"
 );
 
 // ----------------------------------------------------------------------------
@@ -79,7 +79,7 @@ export function TopContextBar({
             >
               <RiArrowLeftLine className="h-5 w-5" />
             </button>
-            <span className="truncate text-sm font-medium text-text-main">
+            <span className="truncate text-title-md text-text-main">
               {sheetContext.label}
             </span>
           </>

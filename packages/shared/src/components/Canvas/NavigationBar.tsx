@@ -59,7 +59,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
         "motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))]",
         isActive
-          ? "bg-[rgb(var(--workspace-tint,59_130_246)/0.14)] text-[rgb(var(--workspace-accent,37_99_235))] shadow-[inset_0_0_0_1px_rgb(var(--workspace-tint,59_130_246)/0.18),0_16px_30px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
+          ? "bg-[rgb(var(--ws-primary-container,var(--blue-100)))] text-[rgb(var(--ws-on-primary-container,var(--blue-900)))] shadow-[inset_0_0_0_1px_rgb(var(--workspace-tint,59_130_246)/0.18),0_16px_30px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
           : "text-text-sub hover:bg-white/60 hover:text-text-strong"
       )}
     >
@@ -78,7 +78,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
         className={cn(
           "text-[11px] font-medium leading-tight",
           mobile && "truncate",
-          isActive ? "text-[rgb(var(--workspace-accent,37_99_235))]" : "text-text-soft"
+          isActive ? "text-[rgb(var(--ws-on-primary-container,var(--blue-900)))]" : "text-text-soft"
         )}
       >
         {label}
@@ -164,9 +164,10 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         className={cn(
           "flex items-center justify-center rounded-full border border-white/35",
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
-          "bg-[linear-gradient(135deg,rgba(var(--workspace-accent,37_99_235),1)_0%,rgba(var(--workspace-tint,59_130_246),0.92)_100%)] text-static-white shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
+          "bg-[rgb(var(--ws-primary,var(--primary-base)))] text-[rgb(var(--ws-on-primary,255_255_255))] shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "transition-all hover:shadow-[0_24px_40px_rgba(15,23,42,0.28),inset_0_0_0_1px_rgba(255,255,255,0.28)]",
-          mobileFloating && "shadow-[0_24px_44px_rgb(var(--workspace-tint,59_130_246)/0.32),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
+          mobileFloating &&
+            "shadow-[0_24px_44px_rgb(var(--workspace-tint,59_130_246)/0.32),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "active:scale-95",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))] focus-visible:ring-offset-2",
           "motion-reduce:transition-none"
@@ -265,11 +266,11 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           aria-label={navLabel}
           className={cn(
             "canvas-navigation-bar fixed bottom-4 left-1/2 z-nav flex -translate-x-1/2 items-center",
-            "gap-1.5 rounded-[1.9rem] px-2.5 py-2",
-            "border border-white/64 bg-[linear-gradient(180deg,rgba(255,255,255,0.78)_0%,rgba(245,248,252,0.66)_100%)] backdrop-blur-xl",
+            "gap-1.5 rounded-2xl px-2.5 py-2",
+            "glass-ground",
             "dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(20,24,33,0.88)_0%,rgba(17,19,27,0.76)_100%)]",
             fab && "pr-2.5",
-            "animate-[nav-bar-enter_300ms_cubic-bezier(0.16,1,0.3,1)_both]",
+            "animate-[nav-bar-enter_var(--spring-medium-duration,300ms)_cubic-bezier(0.16,1,0.3,1)_both]",
             "motion-reduce:animate-none"
           )}
           style={{
@@ -293,10 +294,9 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         <nav
           aria-label={navLabel}
           className={cn(
-            "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-[1.6rem] border border-white/62 px-2 py-2",
-            "bg-[linear-gradient(180deg,rgba(255,255,255,0.82)_0%,rgba(245,248,252,0.72)_100%)] supports-[backdrop-filter]:bg-[linear-gradient(180deg,rgba(255,255,255,0.74)_0%,rgba(245,248,252,0.62)_100%)] backdrop-blur-xl",
-            "dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(20,24,33,0.9)_0%,rgba(17,19,27,0.8)_100%)]",
-            "animate-[nav-bar-enter_300ms_cubic-bezier(0.16,1,0.3,1)_both]",
+            "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-2xl px-2 py-2",
+            "glass-ground",
+            "animate-[nav-bar-enter_var(--spring-medium-duration,300ms)_cubic-bezier(0.16,1,0.3,1)_both]",
             "motion-reduce:animate-none"
           )}
           style={{
