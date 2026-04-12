@@ -102,6 +102,15 @@
   --text-label-lg: var(--type-label-lg);
   --text-label-md: var(--type-label-md);
   --text-label-sm: var(--type-label-sm);
+
+  /* M3 Shape Scale — adapted rounder aesthetic */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+  --radius-full: 9999px;
 }
 
 /* Base layer: Admin-specific element resets */
@@ -188,17 +197,29 @@
  * Spec: .plans/active/admin-ui-revamp/artifacts/spatial-architecture.md
  * ============================================================================ */
 :root {
-  /* Spring animation tokens (easing + duration pairs) */
-  --spring-spatial-easing: cubic-bezier(0.16, 1, 0.3, 1);
-  --spring-spatial-duration: 300ms;
-  --spring-spatial-fast-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --spring-spatial-fast-duration: 200ms;
-  --spring-spatial-slow-easing: cubic-bezier(0.16, 1, 0.3, 1);
-  --spring-spatial-slow-duration: 400ms;
-  --spring-effects-easing: cubic-bezier(0.2, 0, 0, 1);
-  --spring-effects-duration: 250ms;
-  --spring-effects-fast-easing: cubic-bezier(0.2, 0, 0, 1);
-  --spring-effects-fast-duration: 150ms;
+  /* Spring animation tokens — full M3+Liquid library */
+  --spring-micro-easing: cubic-bezier(0.2, 0, 0, 1);
+  --spring-micro-duration: 150ms;
+  --spring-fast-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-fast-duration: 200ms;
+  --spring-medium-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring-medium-duration: 300ms;
+  --spring-slow-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring-slow-duration: 400ms;
+  --spring-dramatic-easing: cubic-bezier(0.16, 1, 0.3, 1);
+  --spring-dramatic-duration: 500ms;
+
+  /* Backward-compatible aliases */
+  --spring-spatial-easing: var(--spring-medium-easing);
+  --spring-spatial-duration: var(--spring-medium-duration);
+  --spring-spatial-fast-easing: var(--spring-fast-easing);
+  --spring-spatial-fast-duration: var(--spring-fast-duration);
+  --spring-spatial-slow-easing: var(--spring-slow-easing);
+  --spring-spatial-slow-duration: var(--spring-slow-duration);
+  --spring-effects-easing: var(--spring-micro-easing);
+  --spring-effects-duration: var(--spring-micro-duration);
+  --spring-effects-fast-easing: var(--spring-micro-easing);
+  --spring-effects-fast-duration: var(--spring-micro-duration);
 
   /* Canvas recession — material focus variation */
   --canvas-scale-receded: 0.992;
@@ -318,6 +339,29 @@
   --ws-surface-tint: var(--red-200) / 10%;
   --ws-outline: var(--red-700);
   --ws-surface-variant: var(--red-900);
+}
+
+/* ============================================================================
+ * WORKSPACE GLASS TINTING — subtle color bleed into glass surfaces
+ * ============================================================================ */
+[data-workspace="hub"] .glass-raised,
+[data-workspace="hub"] .glass-floating {
+  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--blue-500)) 4%);
+}
+
+[data-workspace="garden"] .glass-raised,
+[data-workspace="garden"] .glass-floating {
+  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--green-500)) 4%);
+}
+
+[data-workspace="community"] .glass-raised,
+[data-workspace="community"] .glass-floating {
+  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--orange-500)) 4%);
+}
+
+[data-workspace="actions"] .glass-raised,
+[data-workspace="actions"] .glass-floating {
+  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--red-500)) 4%);
 }
 
 /* ============================================================================
