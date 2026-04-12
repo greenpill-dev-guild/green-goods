@@ -2,16 +2,25 @@
 
 **Slug**: `signal-pool-yield-wiring`
 **Stage**: `backlog`
-**Imported**: `2026-03-26T23:09:03.406Z`
+**Priority**: `p1`
+**Created**: `2026-03-16`
 
-## Legacy Migration Note
+## Problem
 
-This hub was generated from an existing legacy plan artifact so the operational workspace lives in one place.
+Yield routing to fractions is incomplete. Once vault yield starts flowing, `splitYield()` can escrow the fractions leg indefinitely because `gardenHypercertPools[garden]` is unset for deployed gardens, and some treasury paths still strand yield when no treasury mapping exists. The mint flow creates pools after the vault wiring step, so auto-wiring never happens without follow-up work.
 
-## Source Files
+## Desired Outcome
 
-- `.plans/signal-pool-yield-wiring.todo.md`
+- New and repaired gardens auto-wire hypercert pools into `YieldResolver`
+- Operators can verify or recover wiring without an owner-only manual step
+- Treasury fallbacks route safely to the garden TBA instead of stranding funds
+- Existing deployed gardens have a clear migration and backfill path
 
-## Next Step
+## Scope Notes
 
-Review `status.json` and classify the lanes before letting automations act on this hub.
+- In scope: contract changes, shared/admin fallback wiring verification, migration/backfill
+- Out of scope: redesigning conviction pools, new indexer schema, yield split UI polish beyond wiring status
+
+## Success Signal
+
+After the upgrade, a garden can create pools and route yield to conviction/fraction paths without a separate owner-run wiring step.

@@ -1,9 +1,0 @@
-{
-  "feature": { "slug": "protocol-economics-simulator", "stage": "active" },
-  "lanes": {
-    "model": { "owner": "claude", "status": "done", "branch": "feature/admin-ui-revamp" },
-    "ui": { "owner": "claude", "status": "done", "depends_on": ["model"] },
-    "tests": { "owner": "claude", "status": "done", "depends_on": ["model"] },
-    "verification": { "owner": "claude", "status": "done", "depends_on": ["model", "ui", "tests"] }
-  }
-}

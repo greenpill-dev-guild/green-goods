@@ -8,8 +8,7 @@ parent: ops
 
 Thin wrapper around the canonical migration protocol.
 
-- Canonical migration protocol: `.claude/agents/migration.md`
-- Canonical output contract: `.claude/standards/output-contracts.md`
+- Canonical migration protocol: this file + `/plan` feature hub lifecycle
 
 ## Activation
 
@@ -25,7 +24,7 @@ Use when:
 2. Produce a blast-radius map before editing:
 
 ```bash
-grep -rn "ChangedType\|ChangedFunction" packages/ --include="*.ts" --include="*.tsx" --include="*.sol"
+rg -n "ChangedType|ChangedFunction" packages/ -g "*.ts" -g "*.tsx" -g "*.sol"
 ```
 
 3. Classify per-package impact: `breaking | behavioral | compatible`
@@ -63,9 +62,29 @@ bun run verify:contracts:fast
 
 Rule: never use raw Foundry build/test commands in migration workflows; use bun wrappers.
 
+## Backward Compatibility
+
+When a migration needs a compatibility window, apply these rules explicitly:
+
+1. **API signature stability**: adding optional parameters is acceptable; removing parameters, reordering them, or changing existing parameter types is breaking.
+2. **Persisted data versioning**: IndexedDB schemas, localStorage keys, and cache shapes need an explicit version bump when their structure changes.
+3. **Deprecation protocol**: deprecated exports should carry `@deprecated` guidance plus the replacement and remain re-exported for at least one release cycle.
+4. **Type export stability**: renaming or removing a type exported from `@green-goods/shared` is breaking unless an alias preserves the old contract during transition.
+
 ## Part 3: Handoff and Output
 
-Write migration notes to `.plans/migrations/[date]-[name].md` with:
+Use `/plan` to create or update the owning feature hub before execution if one does not already exist.
+
+This file is the canonical migration output contract. Use this section order:
+
+1. `Summary`
+2. `Blast Radius`
+3. `Execution Order`
+4. `Validation Results`
+5. `Risks / Rollback`
+6. `Completion Checklist`
+
+Write migration notes to the owning feature hub at `.plans/{backlog|active}/<feature-slug>/reports/migration.md` with:
 - Summary
 - Blast Radius
 - Execution Order
@@ -73,7 +92,7 @@ Write migration notes to `.plans/migrations/[date]-[name].md` with:
 - Risks / Rollback
 - Completion Checklist
 
-When using the migration agent, pass a concise handoff with:
+When handing migration work between people or tools, pass a concise brief with:
 - bundle ID
 - affected packages
 - highest-risk package boundary
@@ -81,8 +100,10 @@ When using the migration agent, pass a concise handoff with:
 
 ## Anti-Patterns
 
-- Maintaining a second migration protocol that diverges from `.claude/agents/migration.md`
+- Maintaining a second migration protocol outside this file and `/plan`
 - Skipping blast-radius mapping before edits
 - Migrating packages out of dependency order
 - Claiming completion without cross-package validation evidence
 - Using raw Foundry build/test commands in migration steps
+- Removing compatibility shims before the downstream surface has been migrated
+- Returning migration handoff output that omits the required section order above

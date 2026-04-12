@@ -7,6 +7,7 @@ import {
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
+import { CanvasStageTabRail } from "@green-goods/shared";
 import { PageHeader } from "./PageHeader";
 
 const meta: Meta<typeof PageHeader> = {
@@ -23,6 +24,11 @@ const meta: Meta<typeof PageHeader> = {
   argTypes: {
     title: { control: "text", description: "Main heading text" },
     description: { control: "text", description: "Subtitle below the title" },
+    variant: {
+      control: "select",
+      options: ["default", "canvas"],
+      description: "Header visual treatment",
+    },
     metadata: { control: false, description: "Additional metadata below the description" },
     actions: {
       control: false,
@@ -159,6 +165,7 @@ export const Sticky: Story = {
   args: {
     title: "Community",
     description: "View treasury, members, and signal pools.",
+    variant: "canvas",
     sticky: true,
   },
   decorators: [
@@ -173,6 +180,28 @@ export const Sticky: Story = {
       </div>
     ),
   ],
+};
+
+export const CanvasRoute: Story = {
+  args: {
+    title: "Garden",
+    description: "Manage your garden overview, impact metrics, and settings.",
+    variant: "canvas",
+    metadata: <span>Selected garden</span>,
+    sticky: true,
+    children: (
+      <CanvasStageTabRail
+        ariaLabel="Garden views"
+        activeId="overview"
+        onChange={() => {}}
+        tabs={[
+          { id: "overview", label: "Overview", count: 2 },
+          { id: "impact", label: "Impact", count: 6 },
+          { id: "settings", label: "Settings" },
+        ]}
+      />
+    ),
+  },
 };
 
 export const FullFeatured: Story = {

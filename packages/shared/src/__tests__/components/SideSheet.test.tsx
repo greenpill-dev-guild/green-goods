@@ -37,7 +37,7 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import { SideSheet } from "../../components/Cockpit/SideSheet";
+import { SideSheet } from "../../components/Canvas/SideSheet";
 
 describe("SideSheet", () => {
   const user = userEvent.setup();
@@ -192,7 +192,7 @@ describe("SideSheet", () => {
     expect(dialog.className).toContain("z-modal");
   });
 
-  it("has concentric 20px radius for left edge rounding", () => {
+  it("has the shared 1.5rem radius for left edge rounding", () => {
     render(
       <SideSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
@@ -200,7 +200,7 @@ describe("SideSheet", () => {
     );
 
     const dialog = screen.getByTestId("side-sheet");
-    expect(dialog.className).toContain("rounded-l-[1.25rem]");
+    expect(dialog.className).toContain("rounded-l-[1.5rem]");
   });
 
   it("pins the default sheet to the right edge via inline style", () => {

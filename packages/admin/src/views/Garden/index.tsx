@@ -1,55 +1,80 @@
 import {
   type Address,
   Alert,
-  Button,
-  Card,
-  cn,
+  BottomSheet,
+  CanvasMetaStrip,
+  CanvasStageTabRail,
+  Surface,
   formatTokenAmount,
   parseGardenRange,
+  SideSheet,
   adminRoutes,
   useAdminStore,
-  useCockpitSearchParams,
+  useCanvasPortal,
+  useCanvasSearchParams,
   useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
   useEligibleAdminGardens,
 } from "@green-goods/shared";
 import { RiAddLine, RiSettings3Line } from "@remixicon/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Link, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
-import { GardenStatsGrid } from "@/components/Garden/GardenStatsGrid";
-import { CockpitWorkspaceSelectionState } from "@/components/Layout/CockpitWorkspaceSelectionState";
+import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { ImpactTab } from "@/views/CockpitGarden/ImpactTab";
-import { OverviewTab } from "@/views/CockpitGarden/OverviewTab";
+import { ImpactTab } from "@/views/Garden/components/ImpactTab";
+import { OverviewTab } from "@/views/Garden/components/OverviewTab";
+import HypercertDetail from "@/views/Gardens/Garden/HypercertDetail";
 
 // Paradigm: Mixed — overview = Data Landscape, impact = Data Landscape, settings = Command Surface.
 
 type GardenWorkspaceView = "overview" | "impact" | "settings";
 
-function parseGardenView(value: string | null): GardenWorkspaceView {
-  if (value === "impact" || value === "settings") {
-    return value;
-  }
+function resolveGardenView(pathname: string): GardenWorkspaceView {
+  if (pathname.startsWith("/garden/impact")) return "impact";
+  if (pathname.startsWith("/garden/settings")) return "settings";
   return "overview";
+}
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = (event: MediaQueryListEvent) => setMatches(event.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
 }
 
 export default function GardenView() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
-  const { searchParams, updateSearch } = useCockpitSearchParams();
+  const location = useLocation();
+  const { hypercertId } = useParams<{ hypercertId?: string }>();
+  const { searchParams, updateSearch } = useCanvasSearchParams();
+  const { portalTarget } = useCanvasPortal();
   const { eligibleGardens } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
+  const isDesktop = useMediaQuery("(min-width: 600px)");
   const [activityFilter, setActivityFilter] = useState<"all" | "work" | "impact" | "community">(
     "all"
   );
 
-  const view = parseGardenView(searchParams.get("view"));
+  const view = resolveGardenView(location.pathname);
   const range = parseGardenRange(searchParams.get("range"));
+  const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
+  const desktopSheetWidth =
+    typeof window === "undefined" ? 560 : Math.min(Math.max(440, window.innerWidth * 0.38), 660);
+  const showHypercertSheet = view === "impact" && Boolean(hypercertId);
 
   const {
     garden,
@@ -62,13 +87,8 @@ export default function GardenView() {
     fetchingAssessments,
     assessmentsError,
     community,
-    communityLoading,
-    weightSchemeLabel,
     gardenVaults,
-    vaultsLoading,
     vaultNetDeposited,
-    vaultHarvestCount,
-    vaultDepositorCount,
     allocations,
     works,
     hypercerts,
@@ -88,16 +108,9 @@ export default function GardenView() {
           label: "Edit Garden",
           labelId: "cockpit.garden.fab.editGarden",
         },
-        {
-          id: "new-assessment",
-          icon: RiAddLine,
-          label: "New Assessment",
-          labelId: "cockpit.garden.fab.newAssessment",
-        },
       ],
       onAction: (actionId: string) => {
-        if (actionId === "edit-garden") navigate(adminRoutes.garden({ view: "settings" }));
-        else if (actionId === "new-assessment") navigate(adminRoutes.gardenAssessmentsCreate());
+        if (actionId === "edit-garden") navigate(adminRoutes.gardenSettings());
       },
     };
   }, [selectedGarden, canManage, view, navigate]);
@@ -108,32 +121,30 @@ export default function GardenView() {
       if (!selectedGarden) return;
 
       if (tab === "work") {
-        navigate(adminRoutes.work({ item: itemId }));
+        navigate(adminRoutes.hubWork({ item: itemId }));
         return;
       }
 
       if (tab === "community") {
-        const card =
+        const destination =
           section === "members"
-            ? "members"
-            : section === "yield"
-              ? "yield"
-              : section === "pools"
-                ? "pools"
-                : "treasury";
-        navigate(adminRoutes.community({ card, item: itemId }));
+            ? adminRoutes.communityMembers({ item: itemId })
+            : section === "cookie-jars" || section === "payouts"
+              ? adminRoutes.communityPayouts({ item: itemId })
+              : section === "pools" || section === "governance"
+                ? adminRoutes.communityGovernance({ item: itemId })
+                : adminRoutes.communityTreasury({ item: itemId });
+        navigate(destination);
         return;
       }
 
-      updateSearch(
-        {
-          view: tab === "impact" ? "impact" : "overview",
-          item: itemId,
-        },
-        false
+      navigate(
+        tab === "impact"
+          ? adminRoutes.gardenImpact({ item: itemId, section })
+          : adminRoutes.gardenOverview({ item: itemId, section })
       );
     },
-    [navigate, selectedGarden, updateSearch]
+    [navigate, section, selectedGarden]
   );
 
   const derived = useGardenDerivedState({
@@ -153,27 +164,27 @@ export default function GardenView() {
     openSection,
   });
 
-  const cockpitActivityEvents = useMemo(() => {
+  const canvasActivityEvents = useMemo(() => {
     if (!selectedGarden) return derived.filteredActivityEvents;
 
     return derived.filteredActivityEvents.map((event) => {
       if (event.category === "work") {
         return {
           ...event,
-          href: adminRoutes.work({ item: event.itemId }),
+          href: adminRoutes.hubWork({ item: event.itemId }),
         };
       }
 
       if (event.category === "impact") {
         return {
           ...event,
-          href: adminRoutes.garden({ view: "impact", item: event.itemId }),
+          href: adminRoutes.gardenImpact({ item: event.itemId }),
         };
       }
 
       return {
         ...event,
-        href: adminRoutes.community({ card: "yield" }),
+        href: adminRoutes.communityTreasury(),
       };
     });
   }, [derived.filteredActivityEvents, selectedGarden]);
@@ -181,7 +192,7 @@ export default function GardenView() {
   const renderContent = () => {
     if (!selectedGarden) {
       return (
-        <CockpitWorkspaceSelectionState
+        <CanvasWorkspaceSelectionState
           workspaceLabel={formatMessage({ id: "cockpit.nav.garden", defaultMessage: "Garden" })}
           gardens={eligibleGardens.map((gardenItem) => ({
             id: gardenItem.id,
@@ -199,13 +210,15 @@ export default function GardenView() {
     if (fetching) {
       return (
         <div className="mt-6 px-4 sm:px-6">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" role="status" aria-live="polite">
-            <div className="h-40 rounded-lg skeleton-shimmer" />
-            <div className="h-40 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.08s" }} />
-            <div
-              className="h-72 rounded-lg skeleton-shimmer lg:col-span-2"
-              style={{ animationDelay: "0.16s" }}
-            />
+          <div className="mx-auto w-full max-w-[1400px]">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" role="status" aria-live="polite">
+              <div className="h-40 rounded-lg skeleton-shimmer" />
+              <div className="h-40 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.08s" }} />
+              <div
+                className="h-72 rounded-lg skeleton-shimmer lg:col-span-2"
+                style={{ animationDelay: "0.16s" }}
+              />
+            </div>
           </div>
         </div>
       );
@@ -214,236 +227,230 @@ export default function GardenView() {
     if (!garden || error) {
       return (
         <div className="mt-6 px-4 sm:px-6">
-          <Card role="alert">
-            <Card.Body className="py-10 text-center">
-              <h2 className="text-lg font-semibold text-text-strong">
-                {formatMessage({
-                  id: "cockpit.garden.loadFailed",
-                  defaultMessage: "Unable to load this garden",
+          <div className="mx-auto w-full max-w-[1400px]">
+            <Alert variant="error">
+              {error?.message ??
+                formatMessage({
+                  id: "cockpit.garden.loadFailedDescription",
+                  defaultMessage: "Try choosing a different garden or refreshing the page.",
                 })}
-              </h2>
-              <p className="mt-2 text-sm text-text-sub">
-                {error?.message ??
-                  formatMessage({
-                    id: "cockpit.garden.loadFailedDescription",
-                    defaultMessage: "Try choosing a different garden or refreshing the page.",
-                  })}
-              </p>
-            </Card.Body>
-          </Card>
+            </Alert>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="mt-6 space-y-6 px-4 sm:px-6">
-        <GardenStatsGrid
-          gardenerCount={garden.gardeners.length}
-          operatorCount={garden.operators.length}
-          workCount={works.length}
-          assessmentCount={assessments.length}
-          impactVelocityDelta={derived.impactVelocityDelta}
-          hasVaults={derived.hasVaults}
-          vaultNetDeposited={vaultNetDeposited}
-          vaultHarvestCount={vaultHarvestCount}
-          vaultDepositorCount={vaultDepositorCount}
-          communityLoading={communityLoading || vaultsLoading}
-          communityLabel={weightSchemeLabel}
-        />
+      <div className="mt-4 px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-[1400px]">
+          <Surface elevation="raised" padding="default" className="overflow-hidden">
+            {view === "overview" ? (
+              <OverviewTab
+                section={section}
+                selectedItem={selectedItem}
+                selectedRange={range}
+                clearSection={() => updateSearch({ section: undefined, item: undefined }, false)}
+                openSection={openSection}
+                updateQueryState={(updates, replace) => {
+                  if (updates.tab) {
+                    openSection(updates.tab, updates.section ?? "", updates.item);
+                    return;
+                  }
+                  updateSearch(
+                    {
+                      range: updates.range,
+                      section: updates.section,
+                      item: updates.item,
+                    },
+                    replace ?? true
+                  );
+                }}
+                setTab={(tab) => openSection(tab, tab === "community" ? "treasury" : "queue")}
+                overviewAlerts={derived.overviewAlerts}
+                gardenHealthLabel={derived.gardenHealthLabel}
+                approvedInRangeCount={derived.approvedInRangeCount}
+                impactVelocityDelta={derived.impactVelocityDelta}
+                medianReviewAgeHours={derived.medianReviewAgeHours}
+                activityFilter={activityFilter}
+                setActivityFilter={setActivityFilter}
+                filteredActivityEvents={canvasActivityEvents}
+                isLoading={fetching}
+                pendingWorkCount={derived.pendingWorks.length}
+                assessmentCount30d={assessments.length}
+                gardenerCount={garden.gardeners.length}
+                treasuryBalance={formatTokenAmount(vaultNetDeposited)}
+              />
+            ) : null}
 
-        {view === "overview" ? (
-          <OverviewTab
-            section={undefined}
-            selectedItem={selectedItem}
-            selectedRange={range}
-            clearSection={() => updateSearch({ item: undefined }, false)}
-            openSection={openSection}
-            updateQueryState={(updates, replace) => {
-              if (updates.tab) {
-                openSection(updates.tab, updates.section ?? "", updates.item);
-                return;
-              }
-              updateSearch(
-                {
-                  range: updates.range,
-                  item: updates.item,
-                },
-                replace ?? true
-              );
-            }}
-            setTab={(tab) => openSection(tab, tab === "community" ? "treasury" : "queue")}
-            overviewAlerts={derived.overviewAlerts}
-            gardenHealthLabel={derived.gardenHealthLabel}
-            approvedInRangeCount={derived.approvedInRangeCount}
-            impactVelocityDelta={derived.impactVelocityDelta}
-            medianReviewAgeHours={derived.medianReviewAgeHours}
-            activityFilter={activityFilter}
-            setActivityFilter={setActivityFilter}
-            filteredActivityEvents={cockpitActivityEvents}
-            isLoading={fetching}
-            pendingWorkCount={derived.pendingWorks.length}
-            assessmentCount30d={assessments.length}
-            gardenerCount={garden.gardeners.length}
-            treasuryBalance={formatTokenAmount(vaultNetDeposited)}
-          />
-        ) : null}
+            {view === "impact" ? (
+              <ImpactTab
+                garden={{ id: garden.id, chainId: garden.chainId }}
+                gardenId={garden.id}
+                canManage={canManage}
+                canReview={canReview}
+                section={section}
+                selectedItem={selectedItem}
+                clearSection={() => updateSearch({ section: undefined, item: undefined }, false)}
+                openSection={openSection}
+                assessments={assessments}
+                fetchingAssessments={fetchingAssessments}
+                assessmentsError={assessmentsError}
+                hypercerts={hypercerts}
+                hypercertsLoading={fetching}
+                domainLabels={derived.domainLabels}
+                approvedInLastThirtyDays={derived.approvedInLastThirtyDays}
+              />
+            ) : null}
 
-        {view === "impact" ? (
-          <ImpactTab
-            garden={{ id: garden.id, chainId: garden.chainId }}
-            gardenId={garden.id}
-            canManage={canManage}
-            canReview={canReview}
-            section={undefined}
-            selectedItem={selectedItem}
-            clearSection={() => updateSearch({ item: undefined }, false)}
-            openSection={openSection}
-            assessments={assessments}
-            fetchingAssessments={fetchingAssessments}
-            assessmentsError={assessmentsError}
-            hypercerts={hypercerts}
-            hypercertsLoading={fetching}
-            domainLabels={derived.domainLabels}
-            approvedInLastThirtyDays={derived.approvedInLastThirtyDays}
-          />
-        ) : null}
+            {view === "settings" ? (
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
+                <GardenSettingsEditor
+                  gardenAddress={garden.id as Address}
+                  garden={{
+                    name: garden.name,
+                    description: garden.description,
+                    location: garden.location,
+                    bannerImage: garden.bannerImage,
+                    openJoining: garden.openJoining,
+                    maxGardeners: garden.maxGardeners,
+                  }}
+                  canManage={canManage}
+                  isOwner={isOwner}
+                />
 
-        {view === "settings" ? (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-            <GardenSettingsEditor
-              gardenAddress={garden.id as Address}
-              garden={{
-                name: garden.name,
-                description: garden.description,
-                location: garden.location,
-                bannerImage: garden.bannerImage,
-                openJoining: garden.openJoining,
-                maxGardeners: garden.maxGardeners,
-              }}
-              canManage={canManage}
-              isOwner={isOwner}
-            />
-
-            <div className="space-y-4">
-              <Alert variant="info">
-                {formatMessage({
-                  id: "cockpit.garden.settingsHint",
-                  defaultMessage:
-                    "Profile, joining rules, and membership limits now live in the cockpit garden workspace.",
-                })}
-              </Alert>
-
-              <Card>
-                <Card.Header>
-                  <h3 className="label-md text-text-strong">
-                    {formatMessage({
-                      id: "cockpit.garden.contextCard",
-                      defaultMessage: "Garden context",
-                    })}
-                  </h3>
-                </Card.Header>
-                <Card.Body className="space-y-2 text-sm text-text-sub">
-                  <p>
-                    <span className="font-medium text-text-strong">{garden.name}</span>
-                  </p>
-                  {garden.location ? <p>{garden.location}</p> : null}
-                  {community ? (
-                    <p>
+                <div className="space-y-4">
+                  <Alert variant="info">
                       {formatMessage({
-                        id: "cockpit.garden.communityConnected",
-                        defaultMessage: "Community connected",
+                        id: "cockpit.garden.settingsHint",
+                        defaultMessage:
+                          "Profile, joining rules, and membership limits now live in the canvas garden workspace.",
                       })}
+                  </Alert>
+
+                  <Surface elevation="ground" padding="default" className="space-y-2 text-sm text-text-sub">
+                    <h3 className="label-md text-text-strong">
+                      {formatMessage({
+                        id: "cockpit.garden.contextCard",
+                        defaultMessage: "Garden context",
+                      })}
+                    </h3>
+                    <p>
+                      <span className="font-medium text-text-strong">{garden.name}</span>
                     </p>
-                  ) : null}
-                </Card.Body>
-              </Card>
-            </div>
-          </div>
-        ) : null}
+                    {garden.location ? <p>{garden.location}</p> : null}
+                    {community ? (
+                      <p>
+                        {formatMessage({
+                          id: "cockpit.garden.communityConnected",
+                          defaultMessage: "Community connected",
+                        })}
+                      </p>
+                    ) : null}
+                  </Surface>
+                </div>
+              </div>
+            ) : null}
+          </Surface>
+        </div>
       </div>
     );
   };
 
+  const handleCloseHypercertSheet = useCallback(() => {
+    navigate(
+      adminRoutes.gardenImpact({
+        range,
+        section: section ?? "hypercerts",
+      })
+    );
+  }, [navigate, range, section]);
+
   return (
     <div className="pb-6">
-      <PageHeader
-        title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
-        description={formatMessage({
-          id: "cockpit.garden.description",
-          defaultMessage: "Manage your garden overview, impact metrics, and settings",
-        })}
-        metadata={selectedGarden?.name}
-        sticky
-        actions={
-          selectedGarden && view === "impact" && canReview ? (
-            <Button size="sm" asChild>
-              <Link to={adminRoutes.gardenAssessmentsCreate()}>
-                {formatMessage({ id: "app.garden.admin.newAssessment" })}
-              </Link>
-            </Button>
-          ) : undefined
-        }
-        toolbar={
-          <div
-            className="flex flex-wrap items-center gap-2"
-            role="tablist"
-            aria-label={formatMessage({
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
+        <PageHeader
+          title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
+          description={formatMessage({
+            id: "cockpit.garden.description",
+            defaultMessage: "Manage your garden overview, impact metrics, and settings",
+          })}
+          variant="canvas"
+          metadata={
+            selectedGarden ? (
+              <CanvasMetaStrip items={[{ id: "garden", label: selectedGarden.name }]} />
+            ) : undefined
+          }
+          sticky
+        >
+          <CanvasStageTabRail
+            ariaLabel={formatMessage({
               id: "cockpit.garden.viewSwitcher",
               defaultMessage: "Garden views",
             })}
-          >
-            {(
-              [
-                {
-                  id: "overview",
-                  labelId: "cockpit.garden.overview",
+            activeId={view}
+            onChange={(nextView) =>
+              navigate(
+                nextView === "impact"
+                  ? adminRoutes.gardenImpact({ range })
+                  : nextView === "settings"
+                    ? adminRoutes.gardenSettings()
+                    : adminRoutes.gardenOverview({ range })
+              )
+            }
+            tabs={[
+              {
+                id: "overview",
+                label: formatMessage({
+                  id: "cockpit.garden.overview",
                   defaultMessage: "Overview",
-                },
-                { id: "impact", labelId: "cockpit.garden.impact", defaultMessage: "Impact" },
-                {
-                  id: "settings",
-                  labelId: "cockpit.garden.settings",
+                }),
+                count: derived.overviewAlerts.length || undefined,
+              },
+              {
+                id: "impact",
+                label: formatMessage({
+                  id: "cockpit.garden.impact",
+                  defaultMessage: "Impact",
+                }),
+                count: hypercerts.length || undefined,
+              },
+              {
+                id: "settings",
+                label: formatMessage({
+                  id: "cockpit.garden.settings",
                   defaultMessage: "Settings",
-                },
-              ] as const
-            ).map((option) => {
-              const active = view === option.id;
-              const count = option.id === "overview" ? derived.overviewAlerts.length : undefined;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => updateSearch({ view: option.id, item: undefined })}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 min-h-11 rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-primary-alpha-16 text-primary-darker"
-                      : "bg-bg-soft text-text-sub hover:bg-bg-weak"
-                  )}
-                >
-                  {formatMessage({ id: option.labelId, defaultMessage: option.defaultMessage })}
-                  {count !== undefined && count > 0 && (
-                    <span
-                      className={cn(
-                        "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-semibold tabular-nums",
-                        active
-                          ? "bg-warning-base text-static-white"
-                          : "bg-warning-lighter text-warning-dark"
-                      )}
-                    >
-                      {count > 99 ? "99+" : count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        }
-      />
+                }),
+              },
+            ]}
+          />
+        </PageHeader>
+      </div>
 
       {renderContent()}
+
+      {showHypercertSheet ? (
+        isDesktop ? (
+          <SideSheet
+            open
+            onClose={handleCloseHypercertSheet}
+            title={formatMessage({ id: "app.hypercerts.detail.title" })}
+            width={desktopSheetWidth}
+            side="left"
+            container={portalTarget}
+          >
+            <HypercertDetail layout="sheet" hypercertId={hypercertId} />
+          </SideSheet>
+        ) : (
+          <BottomSheet
+            open
+            onClose={handleCloseHypercertSheet}
+            title={formatMessage({ id: "app.hypercerts.detail.title" })}
+            maxHeight={92}
+          >
+            <HypercertDetail layout="sheet" hypercertId={hypercertId} />
+          </BottomSheet>
+        )
+      ) : null}
     </div>
   );
 }

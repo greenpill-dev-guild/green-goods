@@ -4,7 +4,7 @@
  *
  * Tests URL sync + garden state persistence integration.
  * These test the integration between useGardenUrlSync and useGardenStateStore
- * for the cockpit workspace — will be RED until the integration wiring is implemented.
+ * for the canvas workspace — will be RED until the integration wiring is implemented.
  */
 
 import type React from "react";
@@ -111,7 +111,7 @@ vi.mock("@/components/Layout/PageTransition", () => ({
   PageTransition: () => <div data-testid="page-content">Page Transition</div>,
 }));
 
-import { CockpitLayout } from "@/components/Layout/CockpitLayout";
+import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 
 // ── Tests ──────────────────────────────────────────────────────────────────
 
@@ -140,7 +140,7 @@ describe("Workspace State Integration", () => {
     });
   });
 
-  it("deep URL /work?gardenAddress=X&item=Y opens correct state", () => {
+  it("deep URL /hub?gardenAddress=X&item=Y opens correct state", () => {
     mockUseGardenUrlSync.mockReturnValue({
       gardenId: "garden-x",
       tab: null,
@@ -152,12 +152,12 @@ describe("Workspace State Integration", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work?gardenAddress=0xgardenx&item=item-y"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub?gardenAddress=0xgardenx&item=item-y"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    // CockpitLayout must call useGardenUrlSync which parses the URL state
+    // CanvasLayout must call useGardenUrlSync which parses the URL state
     expect(mockUseGardenUrlSync).toHaveBeenCalledTimes(1);
 
     // The layout should render without errors when deep-linked
@@ -180,11 +180,11 @@ describe("Workspace State Integration", () => {
     renderWithProviders(
       <MemoryRouter
         initialEntries={[
-          "/work?gardenAddress=0xgardenx",
-          "/work?gardenAddress=0xgardenx&item=item-open",
+          "/hub?gardenAddress=0xgardenx",
+          "/hub?gardenAddress=0xgardenx&item=item-open",
         ]}
       >
-        <CockpitLayout />
+        <CanvasLayout />
       </MemoryRouter>
     );
 
@@ -209,8 +209,8 @@ describe("Workspace State Integration", () => {
     });
 
     const { rerender } = renderWithProviders(
-      <MemoryRouter initialEntries={["/work?gardenAddress=0xgardenx&tab=community"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub?gardenAddress=0xgardenx&tab=community"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
@@ -226,8 +226,8 @@ describe("Workspace State Integration", () => {
     });
 
     rerender(
-      <MemoryRouter initialEntries={["/work?gardenAddress=0xgardeny&tab=actions"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub?gardenAddress=0xgardeny&tab=actions"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 

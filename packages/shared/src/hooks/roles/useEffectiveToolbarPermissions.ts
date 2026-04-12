@@ -1,7 +1,7 @@
 /**
  * Effective Toolbar Permissions Hook
  *
- * Computes which cockpit toolbar slots are visible based on
+ * Computes which canvas toolbar slots are visible based on
  * the user's garden-level roles, aggregated across all managed
  * gardens or scoped to the selected garden.
  *

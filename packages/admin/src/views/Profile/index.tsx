@@ -48,7 +48,7 @@ export default function ProfileView() {
     () =>
       formatMessage({
         id: "cockpit.profile.description",
-        defaultMessage: "Manage your cockpit identity, appearance, and operator preferences.",
+        defaultMessage: "Manage your canvas identity, appearance, and operator preferences.",
       }),
     [formatMessage]
   );
@@ -62,6 +62,7 @@ export default function ProfileView() {
       <PageHeader
         title={formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" })}
         description={description}
+        variant="canvas"
         sticky
       >
         <AccountTabList activeTab={activeTab} onTabChange={handleTabChange} />

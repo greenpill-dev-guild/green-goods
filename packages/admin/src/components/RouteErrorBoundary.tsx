@@ -11,7 +11,7 @@ import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-d
  * - Thrown responses from loaders/actions
  * - Any unhandled error during route resolution
  *
- * Placed on a pathless wrapper inside DashboardShell's children so the
+ * Placed on a pathless wrapper inside CanvasShell's children so the
  * sidebar/header stay visible when a child route errors.
  * Also placed on the root route as a full-page fallback.
  */

@@ -1,6 +1,5 @@
 import {
   AudioRecorder,
-  adminRoutes,
   Confidence,
   ConfidenceSelector,
   ErrorBoundary,
@@ -20,7 +19,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
 import {
   getDefaultMethodForDomain,
   ReviewSummary,
@@ -30,25 +28,31 @@ import {
 
 interface ReviewFormProps {
   work: Work;
-  gardenId: string;
   gardenName: string;
   actionSlug?: string;
+  actionEndTime?: number;
   canReview: boolean;
+  canApproveOrReject: boolean;
   isReviewed: boolean;
+  layout?: "page" | "sheet";
+  onSuccess?: () => void;
 }
 
 export function ReviewForm({
   work,
-  gardenId,
   gardenName,
   actionSlug,
+  actionEndTime,
   canReview,
+  canApproveOrReject,
   isReviewed,
+  layout = "page",
+  onSuccess,
 }: ReviewFormProps) {
   const { formatMessage } = useIntl();
-  const navigate = useNavigate();
 
   const defaultMethod = getDefaultMethodForDomain(actionSlug);
+  const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
 
   const { control, watch, getValues } = useForm<WorkApprovalFormData>({
     resolver: zodResolver(workApprovalSchema),
@@ -146,8 +150,7 @@ export function ReviewForm({
 
       await approvalMutation.mutateAsync({ draft, work });
 
-      // Navigate back to the Hub work queue on success
-      navigate(adminRoutes.work());
+      onSuccess?.();
     } catch (error) {
       const parsed = parseContractError(error);
       const normalizedName = parsed.name.toLowerCase();
@@ -177,20 +180,62 @@ export function ReviewForm({
     }
   };
 
+  const blockedState =
+    isReviewed
+      ? "reviewed"
+      : isActionExpired
+        ? "expired"
+        : canReview && !canApproveOrReject
+          ? "role-blocked"
+          : canReview
+            ? "actionable"
+            : "no-permission";
+
   return (
-    <div className="lg:col-span-2">
-      <div className="lg:sticky lg:top-24">
+    <div className={layout === "page" ? "lg:col-span-2" : undefined}>
+      <div className={layout === "page" ? "lg:sticky lg:top-24" : undefined}>
         <ErrorBoundary context="WorkDetail.ReviewForm">
           <section className="surface-inset sm:p-6">
             <h3 className="text-base font-semibold text-text-strong">
-              {isReviewed
+              {blockedState === "reviewed"
                 ? formatMessage({ id: "app.work.detail.reviewSummary" })
                 : formatMessage({ id: "app.work.detail.operatorReview" })}
             </h3>
 
-            {isReviewed ? (
+            {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
-            ) : canReview ? (
+            ) : blockedState === "expired" ? (
+              <div className="mt-4 rounded-xl border border-warning-light bg-warning-lighter/70 p-4">
+                <p className="text-sm font-medium text-warning-dark">
+                  {formatMessage({
+                    id: "app.work.detail.reviewBlocked.expiredTitle",
+                    defaultMessage: "Action expired",
+                  })}
+                </p>
+                <p className="mt-1 text-sm text-warning-dark">
+                  {formatMessage({
+                    id: "app.work.detail.reviewBlocked.expiredMessage",
+                    defaultMessage: "This action is no longer active, so new approval decisions are blocked.",
+                  })}
+                </p>
+              </div>
+            ) : blockedState === "role-blocked" ? (
+              <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
+                <p className="text-sm font-medium text-information-dark">
+                  {formatMessage({
+                    id: "app.work.detail.reviewBlocked.operatorTitle",
+                    defaultMessage: "Owner or operator access required",
+                  })}
+                </p>
+                <p className="mt-1 text-sm text-information-dark">
+                  {formatMessage({
+                    id: "app.work.detail.reviewBlocked.operatorMessage",
+                    defaultMessage:
+                      "Only garden owners or operators can approve or reject work for this garden.",
+                  })}
+                </p>
+              </div>
+            ) : blockedState === "actionable" ? (
               <form onSubmit={(e) => e.preventDefault()} className="mt-4 space-y-5">
                 {/* Confidence Selector */}
                 <div>

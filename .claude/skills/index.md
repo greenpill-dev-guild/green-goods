@@ -13,7 +13,8 @@
 | **review** | `/review` | `--mode report_only`, `--mode apply_fixes`, `--mode iterate`, `--mode verify_only` | 6-pass systematic code review with structured findings |
 | **audit** | `/audit` | `--mode loop`, `--mode team` | Dead code detection, architectural anti-patterns, and codebase health |
 | **principles** | `/principles` | `--mode team`, `--mode execute` | Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4 |
-| **status** | `/status` | `--quick`, `--full`, `--focus pipeline\|health\|journeys\|git\|onchain` | Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse |
+| **architecture** | `/architecture` | `--mode boundaries`, `--mode dependencies`, `--mode complexity`, `--mode gaps`, `--mode scorecard` | Analyze software architecture — map structure, identify gaps, provide actionable suggestions |
+| **status** | `/status` | `--mode quick`, `--mode full`, `--mode focus` | Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus |
 
 ---
 
@@ -30,7 +31,6 @@
 | **data-layer** | offline, PWA, job queue, sync, IndexedDB | service-worker, storage-lifecycle |
 | **ops** | deploy, CI, GitHub Actions, git, branch | deployment, ci-cd, git-workflow, dependency-management, biome, vite, migration |
 | **testing** | write tests, TDD, unit test, e2e test, Vitest | vitest-patterns |
-| **architecture** | architecture, refactor, clean code, reduce complexity, entropy | — |
 | **bot** | bot, Telegram, handler, platform adapter | — |
 
 ---
@@ -52,7 +52,6 @@
 | **oracle** | Deep research requiring 3+ sources |
 | **cracked-coder** | Complex implementation with TDD |
 | **code-reviewer** | Systematic 6-pass PR review |
-| **migration** | Cross-package migration orchestration |
 | **triage** | Issue classification and routing |
 
 ---
@@ -67,7 +66,8 @@ What do you need?
 ├─► 6-pass systematic code review with structured findings? ──► /review
 ├─► Dead code detection, architectural anti-patterns, and codebase health? ──► /audit
 ├─► Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4? ──► /principles
-├─► Morning briefing, lay of the land, session start? ──► /status
+├─► Analyze software architecture — map structure, identify gaps, provide actionable suggestions? ──► /architecture
+├─► Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus? ──► /status
 │
 ├─► React component? ──► react
 ├─► TailwindCSS? ──► ui
@@ -78,7 +78,6 @@ What do you need?
 ├─► offline? ──► data-layer
 ├─► deploy? ──► ops
 ├─► write tests? ──► testing
-├─► architecture? ──► architecture
 ├─► bot? ──► bot
 │
 └─► Simple change? ──► Direct Claude (no skill needed)

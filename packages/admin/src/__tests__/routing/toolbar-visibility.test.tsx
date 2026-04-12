@@ -2,7 +2,7 @@
  * Toolbar Visibility Tests
  * @vitest-environment jsdom
  *
- * RED phase — verifies that CockpitLayout correctly filters NavigationBar
+ * RED phase — verifies that CanvasLayout correctly filters NavigationBar
  * slots based on useEffectiveToolbarPermissions return values.
  */
 
@@ -108,7 +108,7 @@ vi.mock("@/components/Layout/PageTransition", () => ({
   PageTransition: () => <div>Page Transition</div>,
 }));
 
-import { CockpitLayout } from "@/components/Layout/CockpitLayout";
+import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 
 // ── Tests ──────────────────────────────────────────────────────────────────
 
@@ -143,12 +143,12 @@ describe("Toolbar Visibility", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-work")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-hub")).toBeInTheDocument();
     expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-community")).not.toBeInTheDocument();
@@ -165,12 +165,12 @@ describe("Toolbar Visibility", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-work")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-hub")).toBeInTheDocument();
     expect(screen.getByTestId("nav-garden")).toBeInTheDocument();
     expect(screen.getByTestId("nav-community")).toBeInTheDocument();
     expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
@@ -188,8 +188,8 @@ describe("Toolbar Visibility", () => {
     };
 
     const { rerender } = renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
@@ -205,12 +205,12 @@ describe("Toolbar Visibility", () => {
     };
 
     rerender(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-work")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-hub")).toBeInTheDocument();
     expect(screen.getByTestId("nav-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-community")).not.toBeInTheDocument();
@@ -226,8 +226,8 @@ describe("Toolbar Visibility", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 

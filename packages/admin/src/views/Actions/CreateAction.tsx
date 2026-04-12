@@ -1,5 +1,6 @@
 import {
   type CreateActionFormData,
+  adminRoutes,
   createActionSchema,
   DEFAULT_CHAIN_ID,
   Domain,
@@ -22,6 +23,7 @@ import {
   InstructionsStep,
   ReviewStep,
 } from "@/components/Action/CreateActionSteps";
+import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function CreateAction() {
   const navigate = useNavigate();
@@ -140,7 +142,7 @@ export default function CreateAction() {
         instructions: instructionsCID,
       });
 
-      navigate("/actions");
+      navigate(adminRoutes.actions());
     } catch (error) {
       logger.error("Failed to create action", {
         source: "CreateAction.onSubmit",
@@ -197,20 +199,41 @@ export default function CreateAction() {
   };
 
   const handleCancel = () => {
-    navigate("/actions");
+    navigate(adminRoutes.actions());
   };
 
   return (
-    <FormWizard
-      steps={stepConfigs}
-      currentStep={currentStep}
-      onNext={handleNext}
-      onBack={handleBack}
-      onCancel={handleCancel}
-      onSubmit={form.handleSubmit(onSubmit)}
-      isSubmitting={isLoading}
-    >
-      {renderStep()}
-    </FormWizard>
+    <div className="pb-6">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <PageHeader
+          title={formatMessage({ id: "admin.actions.createAction", defaultMessage: "Create action" })}
+          description={formatMessage({
+            id: "cockpit.actions.createDescription",
+            defaultMessage:
+              "Define the registry record, timeline, and submission requirements for a new action.",
+          })}
+          variant="canvas"
+          backLink={{
+            to: adminRoutes.actions(),
+            label: formatMessage({
+              id: "app.actions.backToActions",
+              defaultMessage: "Back to actions",
+            }),
+          }}
+          sticky
+        />
+      </div>
+      <FormWizard
+        steps={stepConfigs}
+        currentStep={currentStep}
+        onNext={handleNext}
+        onBack={handleBack}
+        onCancel={handleCancel}
+        onSubmit={form.handleSubmit(onSubmit)}
+        isSubmitting={isLoading}
+      >
+        {renderStep()}
+      </FormWizard>
+    </div>
   );
 }

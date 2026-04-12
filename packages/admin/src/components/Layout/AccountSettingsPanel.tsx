@@ -1,6 +1,7 @@
 import {
   cn,
   DEFAULT_CHAIN_ID,
+  Surface,
   getChainName,
   useAuth,
   useTheme,
@@ -25,7 +26,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      <section className="surface-inset space-y-4 p-4 sm:p-5">
+      <Surface elevation="raised" padding="default" className="space-y-4">
         <div>
           <h2 className="text-sm font-semibold text-text-strong">
             {formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
@@ -34,7 +35,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
             {formatMessage({
               id: "cockpit.profile.theme.description",
               defaultMessage:
-                "Choose the cockpit atmosphere that feels best for long review sessions.",
+                "Choose the canvas atmosphere that feels best for long review sessions.",
             })}
           </p>
         </div>
@@ -49,10 +50,10 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
                 onClick={() => setTheme(value)}
                 className={cn(
                   "flex items-center justify-between rounded-2xl px-4 py-3 text-left transition-all duration-200",
-                  "shadow-[var(--edge-rest)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0",
+                  "shadow-[var(--edge-rest),0_10px_20px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0",
                   isActive
-                    ? "bg-primary-alpha-10 text-primary-dark shadow-[var(--edge-hover),0_12px_24px_rgba(31,193,107,0.12)]"
-                    : "bg-bg-white text-text-sub hover:bg-bg-soft"
+                    ? "bg-[rgb(var(--workspace-tint,59_130_246)/0.14)] text-[rgb(var(--workspace-accent,37_99_235))] shadow-[inset_0_0_0_1px_rgb(var(--workspace-tint,59_130_246)/0.18),0_18px_32px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
+                    : "bg-bg-white text-text-sub hover:bg-[rgb(var(--workspace-tint,59_130_246)/0.06)]"
                 )}
               >
                 <span className="text-sm font-medium">{formatMessage({ id: labelId })}</span>
@@ -61,18 +62,18 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
             );
           })}
         </div>
-      </section>
+      </Surface>
 
-      <section className="surface-inset space-y-3 p-4 sm:p-5">
+      <Surface elevation="raised" padding="default" className="space-y-3">
         <h2 className="text-sm font-semibold text-text-strong">
           {formatMessage({ id: "cockpit.settings.chainInfo", defaultMessage: "Network" })}
         </h2>
         <div className="rounded-2xl bg-bg-soft/80 px-4 py-3 shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)]">
           <p className="text-sm font-medium text-text-strong">{getChainName(DEFAULT_CHAIN_ID)}</p>
         </div>
-      </section>
+      </Surface>
 
-      <section className="surface-inset p-2">
+      <Surface elevation="raised" padding="compact">
         <button
           type="button"
           onClick={() => signOut?.()}
@@ -86,7 +87,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           </span>
           <RiLogoutBoxLine className="h-4 w-4" />
         </button>
-      </section>
+      </Surface>
     </div>
   );
 }

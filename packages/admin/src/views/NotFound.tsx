@@ -21,7 +21,7 @@ export default function NotFound() {
         </p>
         <div className="mt-6">
           <Button asChild>
-            <Link to="/work">
+            <Link to="/hub">
               {formatMessage({
                 id: "app.admin.nav.backToDashboard",
                 defaultMessage: "Back to Hub",

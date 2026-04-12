@@ -28,8 +28,8 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import type { ToolbarSlot } from "../../components/Cockpit/FloatingToolbar";
-import { FloatingToolbar } from "../../components/Cockpit/FloatingToolbar";
+import type { ToolbarSlot } from "../../components/Canvas/FloatingToolbar";
+import { FloatingToolbar } from "../../components/Canvas/FloatingToolbar";
 
 // Stub icon component
 function StubIcon({ className }: { className?: string }) {

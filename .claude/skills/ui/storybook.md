@@ -2,6 +2,8 @@
 
 > Sub-file of the [ui skill](./SKILL.md). Writing stories (CSF3), play functions, decorators, global configuration, and story organization.
 
+Dedicated story authoring routes through the `ui` skill. The old `storybook-author` agent has been retired.
+
 ---
 
 ## Project Setup
@@ -36,7 +38,62 @@ packages/shared/
 - Check `packages/shared/` for existing stories and component patterns.
 - Storybook runs on port 6006.
 - All shared components should have stories.
+- Package-local components in `packages/admin` and `packages/client` may keep package-local stories when that is the established pattern.
 - Load `.claude/context/shared.md` for component patterns.
+
+## Green Goods Story Conventions
+
+### Required Exports
+
+Every story file includes at minimum:
+
+1. `Default`
+2. `DarkMode`
+3. `Gallery`
+
+Interactive components also include:
+
+4. `Interactive` with a `play()` function
+
+### Title Hierarchy
+
+Use the established title families already present in the repo:
+
+| Prefix | Typical Scope |
+|---|---|
+| `Primitives/` | Basic shared UI foundations |
+| `Form Controls/` | Inputs, selectors, wrappers, field helpers |
+| `Cards/` | Reusable card patterns and domain cards |
+| `Feedback/` | Toasts, dialogs, boundaries, status states |
+| `Media/` | Image, audio, upload, capture surfaces |
+| `Progress/` | Sync, submission, timeline, progress indicators |
+| `Admin/...` | Admin-only or admin-framed stories |
+| `Client/...` | Client-only or client-framed stories |
+| `Design Tokens/` | Colors, typography, spacing, animation docs |
+
+Match the closest existing category before inventing a new one.
+
+### Project-Specific Rules
+
+- Use Remixicon (`@remixicon/react`), not lucide.
+- Dark mode uses `data-theme="dark"`, not class toggles.
+- Use semantic tokens from `theme.css`, not hardcoded colors.
+- Do not duplicate global Storybook decorators already configured in preview.
+- Give public props useful `argTypes` with controls and descriptions.
+- For wizard or multi-step UI, add a story per meaningful step plus a full-flow story when interaction coverage matters.
+- Client-facing components are mobile-first. Add viewport coverage when layout meaningfully changes on small screens.
+
+## Story Definition of Done
+
+Treat a story task as complete only when all of these are true:
+
+1. The story file is co-located with the component.
+2. The meta block uses CSF3 plus `tags: ["autodocs"]`.
+3. Minimum exports are present: `Default`, `DarkMode`, and `Gallery`.
+4. Interactive components add an `Interactive` story with a `play()` function.
+5. Public props have useful `argTypes` with controls and descriptions.
+6. Mock data is realistic and uses project factories or domain-shaped objects, not placeholders.
+7. `cd packages/shared && bun run build-storybook` passes before completion.
 
 ## Writing Stories (CSF3)
 
@@ -223,7 +280,7 @@ For detailed addon configuration, design system documentation, and testing patte
 - **Never skip `tags: ["autodocs"]`** -- all components need auto-generated docs
 - **Never hardcode data in stories** -- use mock factories from test-utils
 - **Never skip a11y addon checks** -- accessibility is mandatory
-- **Never put stories in client/admin** -- all stories in shared package
+- **Never invent a new title family when an existing one fits** -- keep Storybook navigation stable
 - **Never forget loading/error/empty states** -- cover all UI states
 - **Never inline styles in stories** -- use Tailwind classes matching production
 
@@ -233,6 +290,7 @@ For detailed addon configuration, design system documentation, and testing patte
 
 - [ ] Story file co-located with component
 - [ ] `tags: ["autodocs"]` for auto-documentation
+- [ ] Default, DarkMode, and Gallery exports present
 - [ ] All variants shown as separate stories
 - [ ] Loading, error, empty states covered
 - [ ] Play function for key interactions

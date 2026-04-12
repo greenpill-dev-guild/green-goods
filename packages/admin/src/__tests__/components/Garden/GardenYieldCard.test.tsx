@@ -29,7 +29,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 import { GardenYieldCard } from "../../../components/Garden/GardenYieldCard";
 
 describe("GardenYieldCard", () => {
-  it("falls back to allocation history while the unlimited summary is still loading", () => {
+  it("derives cumulative totals from allocation history", () => {
     renderWithProviders(
       <GardenYieldCard
         allocations={[
@@ -45,12 +45,11 @@ describe("GardenYieldCard", () => {
           },
         ]}
         allocationsLoading={false}
-        summary={{ assets: [], allocationCount: 0 }}
-        summaryLoading
       />
     );
 
-    expect(screen.getAllByText("600 WETH")).toHaveLength(2);
-    expect(screen.queryByText(/^0 WETH$/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("600")).toHaveLength(2);
+    expect(screen.getByText("date-1700000000")).toBeInTheDocument();
+    expect(screen.queryByText(/^0$/)).not.toBeInTheDocument();
   });
 });

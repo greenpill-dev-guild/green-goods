@@ -10,8 +10,8 @@ import {
 } from "@green-goods/shared";
 import { RiCloseLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { WorkSubmissionsView } from "@/components/Work/WorkSubmissionsView";
-import { SectionStateCard } from "@/views/CockpitGarden/GardenDetailHelpers";
+import { WorkSubmissionsView } from "@/views/Hub/components/WorkSubmissionsView";
+import { SectionStateCard } from "@/views/Garden/components/GardenDetailHelpers";
 
 export interface WorkTabProps {
   garden: { id: string };

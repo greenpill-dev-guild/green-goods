@@ -56,13 +56,13 @@ export default function Hypercerts() {
           { gardenName: garden.name }
         )}
         backLink={{
-          to: adminRoutes.garden({ view: "impact", section: "hypercerts" }),
+          to: adminRoutes.gardenImpact({ section: "hypercerts" }),
           label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
         }}
         actions={
           canManage ? (
             <Link
-              to={adminRoutes.gardenHypercertCreate()}
+              to={adminRoutes.hubCertifyCreate()}
               className="flex items-center gap-1.5 rounded-md bg-primary-base px-3 py-2 text-xs font-medium text-primary-foreground transition hover:bg-primary-darker"
             >
               <RiAddLine className="h-4 w-4" />
@@ -117,7 +117,7 @@ export default function Hypercerts() {
             </p>
             {canManage && (
               <Link
-                to={adminRoutes.gardenHypercertCreate()}
+                to={adminRoutes.hubCertifyCreate()}
                 className="mt-6 inline-flex items-center gap-1.5 rounded-md bg-primary-base px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
               >
                 <RiAddLine className="h-4 w-4" />

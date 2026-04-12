@@ -22,7 +22,7 @@ interface GardenHypercertsPanelProps {
 }
 
 export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
-  gardenId,
+  gardenId: _gardenId,
   gardenAddress,
   hypercerts,
   isLoading,
@@ -37,7 +37,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
           {formatMessage({ id: "app.hypercerts.list.title" })}
         </h3>
         <Link
-          to={adminRoutes.garden({ view: "impact", section: "hypercerts" })}
+          to={adminRoutes.gardenImpact({ section: "hypercerts" })}
           className="inline-flex items-center rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
         >
           {formatMessage({ id: "app.garden.admin.viewAll" })}

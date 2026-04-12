@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "protocol-economics-simulator",
+    "title": "Protocol Economics Simulator",
+    "kind": "feature",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "archived",
+    "priority": "p3",
+    "created_at": "2026-04-11T00:00:00Z",
+    "updated_at": "2026-04-12T00:00:00Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Archived during plan-surface cleanup.",
+    "All recorded lanes were already complete.",
+    "Legacy lane model/tests/verification was normalized to the standard plan-hub lane contract during archive."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "claude/ui/protocol-economics-simulator",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/protocol-economics-simulator",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "data-layer"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/protocol-economics-simulator",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "completed",
+      "depends_on": [
+        "ui",
+        "state_api",
+        "contracts"
+      ],
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/protocol-economics-simulator",
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "completed",
+      "depends_on": [
+        "qa_pass_1"
+      ],
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/protocol-economics-simulator",
+      "branch_trigger": "claude/qa-pass-1/protocol-economics-simulator",
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-12T00:00:00Z",
+      "actor": "cleanup",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Archived after all recorded lanes were complete."
+    }
+  ]
+}

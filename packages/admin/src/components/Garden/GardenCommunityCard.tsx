@@ -38,7 +38,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   community,
   communityLoading,
   pools,
-  gardenId,
+  gardenId: _gardenId,
   canManage,
   isCreatingPools,
   onCreatePools,
@@ -154,7 +154,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             {canManage && (
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Link
-                  to={adminRoutes.communitySignalPool("hypercert")}
+                  to={adminRoutes.communityGovernanceSignalPool("hypercert")}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewHypercertPool" })}
@@ -163,7 +163,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={adminRoutes.communitySignalPool("action")}
+                  to={adminRoutes.communityGovernanceSignalPool("action")}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewActionPool" })}
@@ -172,7 +172,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={adminRoutes.communityStrategies()}
+                  to={adminRoutes.communityGovernanceStrategies()}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.conviction.manageStrategies" })}

@@ -40,7 +40,7 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import { SheetErrorBoundary } from "../../components/Cockpit/SheetErrorBoundary";
+import { SheetErrorBoundary } from "../../components/Canvas/SheetErrorBoundary";
 
 function ThrowingChild({ shouldThrow }: { shouldThrow: boolean }) {
   if (shouldThrow) throw new Error("Test explosion");

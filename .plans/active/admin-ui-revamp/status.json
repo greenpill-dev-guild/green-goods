@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "ready",
+    "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-03-26",
-    "updated_at": "2026-03-27"
+    "updated_at": "2026-04-12T02:12:11Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,7 +27,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "ready",
       "branch": "claude/ui/admin-ui-revamp",
       "depends_on": [],
       "handoff": "handoffs/orchestration.md",
@@ -36,7 +36,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "ready",
       "branch": "codex/state-api/admin-ui-revamp",
       "depends_on": [],
       "coordination_note": "Phase 1a: state_api (extend useAdminStore, useEffectiveToolbarPermissions, offlineFirst) and ui (components, layout) run in parallel. ui consumes the permissions hook — coordinate via interface contract (hook return type). ui lane reads scope via `useAdminStore(s => s.selectedGarden?.id)` (Garden object, not plain Address). Phase 2+: state_api depends on ui lane completion.",
@@ -47,9 +47,9 @@
     "contracts": {
       "owner": "codex",
       "status": "n/a",
-      "branch": "",
+      "branch": "codex/contracts/admin-ui-revamp",
       "depends_on": [],
-      "handoff": "",
+      "handoff": "handoffs/codex-contracts.md",
       "skill_tags": []
     },
     "qa_pass_1": {

@@ -1151,11 +1151,11 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries
  * ============================================================================ */
 @layer utilities {
-  .cockpit-canvas-frame {
+  .canvas-main-sheet-frame {
     margin: 0.5rem 1.5rem;
   }
 
-  .cockpit-navigation-bar {
+  .canvas-navigation-bar {
     left: 50%;
     right: auto;
     bottom: 1rem;
@@ -1163,11 +1163,11 @@
   }
 
   @media (max-width: 599px) {
-    .cockpit-canvas-frame {
+    .canvas-main-sheet-frame {
       margin-inline: 0.75rem;
     }
 
-    .cockpit-navigation-bar {
+    .canvas-navigation-bar {
       left: 0;
       right: 0;
       bottom: 0;

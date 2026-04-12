@@ -42,8 +42,8 @@
     "test": "vitest run",
     "test:watch": "vitest --standalone",
     "coverage": "vitest run --coverage",
-    "storybook": "storybook dev -p 6006 --ci",
-    "build-storybook": "storybook build -o storybook-static",
+    "storybook": "bun --bun ./node_modules/.bin/storybook dev -p 6006 --ci",
+    "build-storybook": "bun --bun ./node_modules/.bin/storybook build -o storybook-static",
     "check:stories": "bun run ../../scripts/check-story-coverage.ts"
   },
   "dependencies": {

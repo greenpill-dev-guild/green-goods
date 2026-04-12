@@ -70,7 +70,7 @@ describe("CommandPalette Routes", () => {
     });
   });
 
-  it("STATIC_ROUTES includes /hub, /garden, /community, /actions", () => {
+  it("STATIC_ROUTES includes canonical admin surfaces", () => {
     renderWithProviders(
       <MemoryRouter>
         <CommandPalette open={true} />
@@ -232,7 +232,7 @@ describe("CommandPalette Routes", () => {
     window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, settingsHandler as EventListener);
   });
 
-  it("selecting a garden preserves the chosen garden context", async () => {
+  it("selecting a garden preserves the chosen garden context without forcing a share param", async () => {
     renderWithProviders(
       <MemoryRouter>
         <CommandPalette open={true} />
@@ -251,7 +251,7 @@ describe("CommandPalette Routes", () => {
     expect(mockSetSelectedGarden).toHaveBeenCalledWith(
       expect.objectContaining({ id: "garden-1", tokenAddress: "0xAAA" })
     );
-    expect(mockNavigate).toHaveBeenCalledWith("/garden");
+    expect(mockNavigate).toHaveBeenCalledWith("/garden/overview");
   });
 
   it("Cmd+K toggles palette open/closed", async () => {

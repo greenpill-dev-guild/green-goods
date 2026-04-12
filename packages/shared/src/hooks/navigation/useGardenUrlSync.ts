@@ -3,10 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useEligibleAdminGardens } from "../garden/useEligibleAdminGardens";
 import { useAdminStore } from "../../stores/useAdminStore";
 import { compareAddresses } from "../../utils/blockchain/address";
-import {
-  ADMIN_GARDEN_LEGACY_PARAM,
-  ADMIN_GARDEN_SHARE_PARAM,
-} from "../../utils/admin-routes";
+import { ADMIN_GARDEN_SHARE_PARAM } from "../../utils/admin-routes";
 
 type UrlParamValue = string | null | undefined;
 
@@ -21,9 +18,9 @@ export interface GardenUrlSyncResult {
 }
 
 /**
- * Keeps cockpit URL params and admin selected garden aligned.
+ * Keeps canvas URL params and the admin selected garden aligned.
  *
- * - URL -> store: reads `?gardenAddress=<address>` and legacy `?garden=<id>`.
+ * - URL -> store: reads `?gardenAddress=<address>`.
  * - Store -> URL: does not mirror garden selection during normal browsing.
  * - Tab/filter updates use replace to avoid history pollution.
  * - Item open/close uses push so browser back closes the side sheet first.
@@ -37,7 +34,6 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
   const { eligibleGardens, resolvedDefaultGarden, scopeKey, isLoaded } = useEligibleAdminGardens();
 
   const requestedGardenAddress = searchParams.get(ADMIN_GARDEN_SHARE_PARAM);
-  const legacyGardenId = searchParams.get(ADMIN_GARDEN_LEGACY_PARAM);
   const tab = searchParams.get("tab");
   const item = searchParams.get("item");
 
@@ -73,15 +69,7 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
             compareAddresses(garden.tokenAddress, requestedGardenAddress) ||
             compareAddresses(garden.id, requestedGardenAddress)
         ) ?? null)
-      : legacyGardenId !== null
-        ? (eligibleGardens.find((garden) => garden.id === legacyGardenId) ??
-          eligibleGardens.find(
-            (garden) =>
-              compareAddresses(garden.tokenAddress, legacyGardenId) ||
-              compareAddresses(garden.id, legacyGardenId)
-          ) ??
-          null)
-        : null;
+      : null;
 
   // URL -> store sync with default resolution.
   useEffect(() => {

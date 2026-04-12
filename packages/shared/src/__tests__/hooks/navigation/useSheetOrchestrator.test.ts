@@ -151,7 +151,7 @@ describe("hooks/navigation/useSheetOrchestrator", () => {
       useSheetOrchestratorStore.getState().openSheet("right", "work-detail");
     });
     act(() => {
-      useSheetOrchestratorStore.getState().saveViewState("/work");
+      useSheetOrchestratorStore.getState().saveViewState("/hub");
     });
     act(() => {
       useSheetOrchestratorStore.getState().closeSheet();
@@ -161,7 +161,7 @@ describe("hooks/navigation/useSheetOrchestrator", () => {
 
     let restored: ReturnType<typeof result.current.onNavigateArrive>;
     act(() => {
-      restored = result.current.onNavigateArrive("/work");
+      restored = result.current.onNavigateArrive("/hub");
     });
 
     // Should return saved state

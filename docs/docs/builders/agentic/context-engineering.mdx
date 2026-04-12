@@ -4,7 +4,7 @@ sidebar_label: Context Engineering
 slug: /builders/agentic/context-engineering
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-11
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -18,7 +18,7 @@ graph TB
         L2["Layer 2: AGENTS.md\nAlways loaded — invariants, scope constraints"]
         L3["Layer 3: context/*.md\nPer-package — shared, contracts, client, etc."]
         L4["Layer 4: rules/*.md\nPath-scoped — typescript, contracts, frontend"]
-        L5["Layer 5: skills/*\nPer-agent — 40+ domain skill sets"]
+        L5["Layer 5: skills/*\nRepo-local skill packs"]
     end
 
     L1 --> L2 --> L3 --> L4 --> L5
@@ -34,20 +34,18 @@ The `.claude/` directory is the central context store for all agent tooling:
 
 ```
 .claude/
-  agents/          # Agent specifications (6 agents)
+  agents/          # Agent specifications (4 custom agents)
   context/         # Package and domain context files
-  rules/           # Path-scoped coding rules
-  skills/          # Modular instruction sets (40+ skills)
-  plans/           # Saved plans from agent PLAN phases
+  evals/           # Runnable agent evals plus acceptance QA companion
   registry/        # Skill bundles and activation configs
-  scripts/         # Guidance consistency checks
-  specs/           # Detailed feature specifications
-  standards/       # Code standards documentation
-  agent-memory/    # Persistent agent memory (per-agent)
-  evals/           # Agent evaluation criteria
-  hooks.json       # Tool execution hooks
-  settings.json    # Global agent settings
+  rules/           # Path-scoped coding rules
+  scripts/         # Guidance consistency and workflow checks
+  settings.json    # Canonical Claude Code settings, hooks, and env flags
+  skills/          # Repo-local instruction packs
+  specs/           # Reusable task templates
 ```
+
+Live planning no longer lives under `.claude/`; use `.plans/` for active and backlog plan hubs.
 
 ## Context Layers
 
@@ -88,18 +86,13 @@ Path-scoped rules loaded conditionally based on the files being edited:
 
 ### Layer 5: Skills (Loaded Per-Agent)
 
-Each agent's specification lists the skills it needs. Skills provide detailed how-to instructions for specific domains.
+Each agent's specification lists the skills it needs. Repo-local skills live in `.claude/skills/`; plugin and system skills load from their own surfaces at runtime. Skills provide detailed how-to instructions for specific domains.
 
 ## Session Continuity
 
-### Agent Memory
+### Local Memory
 
-Each agent has persistent memory at `.claude/agent-memory/{agent-name}/`. The `MEMORY.md` file in each directory is loaded into the agent's system prompt on every session, providing cross-session learning.
-
-Memory guidelines:
-- Save stable patterns confirmed across multiple interactions
-- Save solutions to recurring problems
-- Do not save session-specific context or speculative conclusions
+Claude-local project memory is not part of the tracked repo guidance surface. Treat any `.claude/projects/` state as local and unversioned, not as canonical documentation for future agents.
 
 ### Session State
 
@@ -114,7 +107,7 @@ For long sessions, agents checkpoint their progress to `session-state.md`:
 - **Next steps**: [immediate actions]
 ```
 
-This enables context recovery after compaction or session handoff.
+This enables context recovery after compaction or session handoff without relying on local memory.
 
 ## Guidance Governance
 
@@ -131,7 +124,7 @@ This runs in CI to catch drift between `CLAUDE.md`, `AGENTS.md`, agent specs, an
 1. **Layered loading** -- Only load what is relevant to the current task
 2. **Single source of truth** -- Each fact lives in one place, referenced from others
 3. **Machine-readable structure** -- Use frontmatter, tables, and consistent headers
-4. **Version controlled** -- All context files are committed to the repository
+4. **Tracked guidance is version controlled** -- Repo guidance is committed; local memory is not
 5. **Testable consistency** -- CI validates that guidance files do not contradict
 
 <NextBestAction

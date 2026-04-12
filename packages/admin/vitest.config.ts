@@ -109,12 +109,8 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
-    // Heavy view tests stay out of the default loop so package test runs remain fast.
-    // Run targeted view regressions through `vitest.views.config.ts` via
-    // `bun run test:views:work-detail` or `bun run test:hub`.
     exclude: [
       "**/node_modules/**",
-      "src/__tests__/views/**",
       "src/__tests__/workflows/unauthorized-actions.test.tsx",
       "src/__tests__/components/WithdrawModal.test.tsx",
     ],

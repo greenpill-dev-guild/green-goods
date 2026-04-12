@@ -56,7 +56,7 @@ const CATEGORY_ICONS: Record<
 };
 
 const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
-  { id: "page-work", labelId: "cockpit.nav.hub", defaultLabel: "Hub", href: adminRoutes.work() },
+  { id: "page-hub", labelId: "cockpit.nav.hub", defaultLabel: "Hub", href: adminRoutes.hub() },
   {
     id: "page-garden",
     labelId: "cockpit.nav.garden",
@@ -145,7 +145,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           id: "app.admin.nav.quickAction.pendingReviews",
           defaultMessage: "Go to Pending Reviews",
         }),
-        href: adminRoutes.work(),
+        href: adminRoutes.hubWork(),
         roles: ["deployer", "operator"],
       },
       {
@@ -247,11 +247,15 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
           items.push({
             id: `assessment-${assessment.id}`,
             label: title,
-            href: adminRoutes.garden({
-              view: "impact",
-              section: "assessments",
-              item: assessment.id,
-            }),
+            href: matchedGarden
+              ? adminRoutes.share(adminRoutes.gardenImpact(), matchedGarden.tokenAddress, {
+                  section: "assessments",
+                  item: assessment.id,
+                })
+              : adminRoutes.gardenImpact({
+                  section: "assessments",
+                  item: assessment.id,
+                }),
             onSelect: matchedGarden ? () => setSelectedGarden(matchedGarden) : undefined,
             category: "assessments",
             subtitle: gardenName ? gardenName : `Garden ${assessment.gardenAddress.slice(0, 8)}...`,

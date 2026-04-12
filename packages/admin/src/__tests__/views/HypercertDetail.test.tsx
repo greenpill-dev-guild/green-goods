@@ -17,9 +17,9 @@ const mockUseGardenPermissions = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   adminRoutes: {
-    garden: (search?: Record<string, string>) => {
+    gardenImpact: (search?: Record<string, string>) => {
       const query = search ? new URLSearchParams(search).toString() : "";
-      return query ? `/garden?${query}` : "/garden";
+      return query ? `/garden/impact?${query}` : "/garden/impact";
     },
   },
   useAdminStore: (selector: (state: any) => any) =>

@@ -65,14 +65,29 @@ export type { SurfaceProps, SurfaceVariantProps } from "./Surface";
 // Feedback Components
 export type { TxInlineFeedbackProps, TxInlineFeedbackSeverity } from "./feedback/TxInlineFeedback";
 export { TxInlineFeedback } from "./feedback/TxInlineFeedback";
-// Cockpit Components (Sheets + Navigation + Canvas)
+// Canvas Components (Sheets + Navigation + MainSheet)
 export {
   BottomSheet,
   type BottomSheetProps,
-  Canvas,
-  type CanvasProps,
+  MainSheet,
+  type MainSheetProps,
+  CanvasEmptyStateShell,
+  CanvasMetaStrip,
+  CanvasMobileActionSlot,
+  CanvasSheetFrame,
+  CanvasStageTabRail,
+  CanvasWorkbenchList,
+  CanvasWorkbenchRow,
+  type CanvasMetaStripItem,
+  type CanvasMetaStripProps,
+  type CanvasMobilePrimaryAction,
+  type CanvasStageTab,
+  type CanvasStageTabRailProps,
+  type CanvasWorkbenchRowProps,
+  type CanvasWorkbenchTone,
   FabProvider,
   useCanvasPortal,
+  useCanvasResponsiveFab,
   useFabConfig,
   useFabConfigValue,
   type ToolbarSlot,
@@ -89,7 +104,8 @@ export {
   type SideSheetProps,
   TopContextBar,
   type TopContextBarProps,
-} from "./Cockpit";
+  type UseCanvasResponsiveFabOptions,
+} from "./Canvas";
 // DatePicker Components
 export {
   DatePicker,

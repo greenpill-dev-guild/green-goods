@@ -39,7 +39,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         {children}
       </div>
     ),
-    Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+    Button: ({ children, loading: _loading, ...props }: any) => <button {...props}>{children}</button>,
     classifyTxError: () => ({
       severity: "error",
       titleKey: "app.status.error",
@@ -171,14 +171,13 @@ describe("DepositModal", () => {
     );
   }
 
-  it("renders deposit guidance info alert", () => {
+  it("renders deposit guidance copy", () => {
     renderOpenModal();
 
-    const alert = screen.getByTestId("alert");
-    expect(alert).toBeTruthy();
-    expect(alert.getAttribute("data-variant")).toBe("info");
-    expect(alert.textContent).toContain("Aave");
-    expect(alert.textContent).toContain("yield");
+    expect(screen.getByText(/Deposits earn yield through Aave lending/i)).toBeTruthy();
+    expect(
+      screen.getByText(/Yield is automatically split between gardener rewards/i)
+    ).toBeTruthy();
   });
 
   it("renders network hint with selected asset symbol", () => {

@@ -81,6 +81,9 @@ web_modules/
 .env.production.local
 .env.local
 
+# Claude local project memory
+.claude/projects/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -145,6 +148,7 @@ test-results/
 playwright-report/
 tests/test-results/
 tests/playwright-report/
+session-state.md
 
 # Lighthouse CI results
 .lighthouseci/
@@ -188,6 +192,8 @@ FINAL_TEST_REPORT.md
 .ipfs-cache.json
 .ipfs-media-cache.json
 .action-images-cache.json
+data/test/*.db*
+reports/*.json
 
 # ================================
 # Other Package Manager Lockfiles (project uses bun)

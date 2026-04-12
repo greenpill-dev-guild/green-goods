@@ -17,7 +17,7 @@ export function ConnectShell({
   titleId = "cockpit.auth.connectWalletTitle",
   defaultTitle = "Connect your wallet to continue",
   descriptionId = "cockpit.auth.connectWalletDescription",
-  defaultDescription = "Sign in to access the admin cockpit",
+  defaultDescription = "Sign in to access the admin canvas",
   action,
   icon,
   testId = "connect-shell",

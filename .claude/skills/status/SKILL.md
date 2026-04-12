@@ -19,6 +19,13 @@ Situational awareness briefing for starting a work session. Aggregates architect
 
 ---
 
+## Activation
+
+Use when:
+- Starting a work session and you need a lay of the land
+- You want a quick pipeline, health, or git pulse briefing
+- You need continuity from the prior session before choosing work
+
 ## Invocation
 
 ```
@@ -124,7 +131,7 @@ If `session-state.md` exists in the repo root, read it and surface a continuity 
 ```
 > **Continuing from last session** (saved 2026-04-06T23:15:00Z)
 > Task: Admin UI Phase 1a — Wave 3 surface migration
-> Left off: GardenStatsGrid and StatCard redesigned, CockpitLayout wired
+> Left off: GardenStatsGrid and StatCard redesigned, CanvasLayout wired
 > Next: TrendIndicator component, garden view empty states
 ```
 

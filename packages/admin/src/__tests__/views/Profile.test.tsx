@@ -19,6 +19,8 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       signOut: mockSignOut,
       eoaAddress: "0x1234567890123456789012345678901234567890",
     }),
+    useEnsAvatar: () => ({ data: null }),
+    useEnsName: () => ({ data: null }),
     useRole: () => ({ role: "operator" }),
     useTheme: () => ({
       theme: "dark" as const,

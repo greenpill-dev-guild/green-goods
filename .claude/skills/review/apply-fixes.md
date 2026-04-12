@@ -6,7 +6,7 @@
 
 - Default for this mode: `apply_fixes`
 - Safety gate: explicit opt-in required (e.g., `/review --mode apply_fixes`, "autonomous review", "review and fix everything", "fix all review findings")
-- Severity mapping is inherited from `.claude/standards/output-contracts.md`
+- Severity mapping is inherited from the parent review skill: `Critical|High -> must-fix`, `Medium -> should-fix`, `Low -> nice-to-have`
 
 If fix intent is not explicit, route to `review` (report-only).
 

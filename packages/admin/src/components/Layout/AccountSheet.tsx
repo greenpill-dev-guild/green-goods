@@ -26,7 +26,7 @@ export function AccountSheet({
       : formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" });
   const description = formatMessage({
     id: "cockpit.profile.description",
-    defaultMessage: "Manage your cockpit identity, appearance, and operator preferences.",
+    defaultMessage: "Manage your canvas identity, appearance, and operator preferences.",
   });
 
   return (

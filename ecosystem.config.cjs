@@ -129,8 +129,8 @@ module.exports = {
     },
     {
       name: "browser",
-      script: "sh",
-      args: `-c "npx wait-port ${PORTS.client} & npx wait-port ${PORTS.admin} & npx wait-port ${PORTS.docs} & wait && open -a 'Brave Browser' https://localhost:${PORTS.client} https://localhost:${PORTS.admin} http://localhost:${PORTS.docs}"`,
+      script: "bash",
+      args: "scripts/open-dev-urls.sh",
       cwd: ".",
       merge_logs: true,
       autorestart: false,

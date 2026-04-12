@@ -1,12 +1,12 @@
 ---
 name: ui
 description: UI development - design system, TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Use for frontend design, theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["shared", "client", "admin"]
 dependencies: []
-last_updated: "2026-03-18"
-last_verified: "2026-03-18"
+last_updated: "2026-04-12"
+last_verified: "2026-04-12"
 ---
 
 # UI Skill
@@ -21,7 +21,7 @@ Unified UI development guide: design thinking, component development, TailwindCS
 | **TailwindCSS** | theme, tokens, dark mode, CSS config, `@theme`, responsive utilities | [tailwindcss.md](./tailwindcss.md) |
 | **Radix UI** | dialog, select, popover, accordion, accessible primitive, `asChild` | [radix-ui.md](./radix-ui.md) |
 | **Accessibility & Compliance** | WCAG, a11y, form validation, responsive, reduced motion, safe areas | [compliance.md](./compliance.md) |
-| **Storybook** | story, stories, CSF3, play function, visual regression | [storybook.md](./storybook.md) |
+| **Storybook** | story, stories, CSF3, play function, visual regression, story authoring | [storybook.md](./storybook.md) |
 | **Storybook Addons** | a11y addon, theme switching, design system docs, MDX | [storybook-addons.md](./storybook-addons.md) |
 | **Storybook Testing** | visual regression, Chromatic, interaction testing, responsive stories | [storybook-testing.md](./storybook-testing.md) |
 | **i18n** | translation, react-intl, locale, RTL, Browser Translation API | [i18n.md](./i18n.md) |
@@ -32,6 +32,7 @@ When invoked:
 - Preserve existing Green Goods design tokens when working in existing views/components.
 - Pair design work with compliance checks (accessibility + responsive).
 - All shared components need Storybook stories.
+- Dedicated Storybook authoring now routes through this skill. Do not use a separate storybook agent.
 
 ---
 
@@ -68,13 +69,13 @@ When the package is `admin` or the surface is an operator dashboard, cockpit, or
 - Cards and elevated surfaces are for records or bounded interactions, not the default page structure.
 - Prefer one dominant workspace surface per route. Avoid nested stacks of rounded bordered panels.
 - Use shared semantic tokens and one workspace accent. Do not introduce decorative gradients behind routine product UI.
-- Use the admin `/work` route as the reference composition for new cockpit surfaces.
+- Use the admin `/hub` route as the reference composition for new cockpit surfaces.
 
 ---
 
 ## Part 2: Component Development Workflow
 
-1. **Check existing patterns** (`CockpitLayout`, `PageHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
+1. **Check existing patterns** (`CanvasLayout`, `AccountSheet`, `PageHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
 2. **Develop reusable components in Storybook first** (`bun run storybook` in packages/shared)
 3. **Follow Radix UI + tailwind-variants patterns** (see [radix-ui.md](./radix-ui.md))
 4. **Run compliance checklist** before integration (see [compliance.md](./compliance.md))

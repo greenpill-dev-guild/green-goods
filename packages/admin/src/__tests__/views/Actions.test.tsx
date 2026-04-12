@@ -7,6 +7,9 @@ import { en as enMessages } from "@green-goods/shared";
 
 const mockUseActions = vi.fn();
 const mockUseFilteredActions = vi.fn();
+const mockSetFilter = vi.fn();
+const mockResetFilters = vi.fn();
+const mockUseFabConfig = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   DEFAULT_CHAIN_ID: 42161,
@@ -16,18 +19,60 @@ vi.mock("@green-goods/shared", () => ({
     EDU: 2,
     WASTE: 3,
   },
+  Button: ({
+    children,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+  }) => React.createElement("button", { onClick }, children),
+  CanvasWorkbenchList: ({
+    children,
+    ...props
+  }: {
+    children?: React.ReactNode;
+  }) => React.createElement("div", props, children),
+  CanvasWorkbenchRow: ({
+    title,
+    description,
+    statusLabel,
+    meta,
+    onClick,
+  }: {
+    title: string;
+    description: string;
+    statusLabel?: string;
+    meta?: string[];
+    onClick?: () => void;
+  }) =>
+    React.createElement(
+      "button",
+      { type: "button", onClick },
+      React.createElement("h2", {}, title),
+      React.createElement("p", {}, description),
+      statusLabel ? React.createElement("span", {}, statusLabel) : null,
+      meta?.length ? React.createElement("span", {}, meta.join(" | ")) : null
+    ),
   EmptyState: ({ title }: { title: string }) => React.createElement("div", {}, title),
+  adminRoutes: {
+    actions: () => "/actions",
+    actionCreate: () => "/actions/create",
+    actionDetail: (id: string) => `/actions/${id}`,
+  },
+  en: {},
   formatDate: () => "Jan 1",
-  useFilteredActions: (...args: unknown[]) => mockUseFilteredActions(...args),
-  ImageWithFallback: ({ src, alt }: { src: string; alt: string }) =>
-    React.createElement("img", { src, alt, "data-testid": "image-with-fallback" }),
   ListToolbar: ({ children }: { children?: React.ReactNode }) =>
     React.createElement("div", {}, children),
   SortSelect: () => React.createElement("div", {}, "Sort"),
-}));
-
-vi.mock("@green-goods/shared/hooks", () => ({
   useActions: () => mockUseActions(),
+  useFabConfig: (...args: unknown[]) => mockUseFabConfig(...args),
+  useFilteredActions: (...args: unknown[]) => mockUseFilteredActions(...args),
+  useRole: () => ({ role: "deployer" }),
+  useUrlFilters: () => ({
+    filters: {},
+    setFilter: mockSetFilter,
+    resetFilters: mockResetFilters,
+  }),
 }));
 
 vi.mock("@green-goods/shared/utils", () => ({
@@ -40,11 +85,13 @@ vi.mock("@/components/Layout/PageHeader", () => ({
     description,
     actions,
     toolbar,
+    children,
   }: {
     title: string;
     description: string;
     actions?: React.ReactNode;
     toolbar?: React.ReactNode;
+    children?: React.ReactNode;
   }) =>
     React.createElement(
       "div",
@@ -52,7 +99,8 @@ vi.mock("@/components/Layout/PageHeader", () => ({
       React.createElement("h1", {}, title),
       React.createElement("p", {}, description),
       React.createElement("div", {}, actions),
-      React.createElement("div", {}, toolbar)
+      React.createElement("div", {}, toolbar),
+      React.createElement("div", {}, children)
     ),
 }));
 
@@ -118,7 +166,7 @@ describe("Actions View", () => {
     }));
   });
 
-  it("shows image placeholder card when media is missing", () => {
+  it("renders a registry row when media is missing", () => {
     const mockRefetch = vi.fn();
     mockUseActions.mockReturnValue({
       data: [ACTION_FIXTURE],
@@ -129,10 +177,9 @@ describe("Actions View", () => {
 
     renderWithIntl(React.createElement(Actions));
 
-    expect(screen.getByText("Image unavailable")).toBeInTheDocument();
-    expect(
-      screen.getByText("This action does not currently have a valid image.")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Site Setup" })).toBeInTheDocument();
+    expect(screen.getByText("Test action")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
   it("triggers refetch when refresh is clicked", () => {

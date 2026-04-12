@@ -7,19 +7,20 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "ready",
+    "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-08",
-    "updated_at": "2026-04-08"
+    "updated_at": "2026-04-12T02:12:11Z"
   },
   "links": {
     "brief": "brief.md",
+    "spec": "spec.md",
     "plan": "plan.todo.md",
     "eval": "eval.md"
   },
   "notes": [
     "Orthogonal to admin-ui-revamp — addresses visual primitives, not architecture.",
-    "Same branch (feature/admin-ui-revamp). No contract or indexer changes.",
+    "Execute on canonical per-lane branches; it may land alongside admin-ui-revamp but remains a separate active hub.",
     "Steps 1-3 are foundational (tokens + components). Steps 4-9 are migration. Steps 10-12 are polish.",
     "13 modal files migrate to ModalDialog. CardBase/SurfaceCard preserved as re-exports."
   ],
@@ -27,9 +28,56 @@
     "ui": {
       "owner": "claude",
       "status": "ready",
-      "branch": "feature/admin-ui-revamp",
+      "branch": "claude/ui/design-system-enforcement",
       "depends_on": [],
-      "skill_tags": ["ui", "design"]
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "design"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/design-system-enforcement",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "data-layer"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/design-system-enforcement",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "claude/qa-pass-1/design-system-enforcement",
+      "depends_on": [
+        "ui",
+        "state_api",
+        "contracts"
+      ],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"],
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": "codex/qa-pass-2/design-system-enforcement",
+      "branch_trigger": "claude/qa-pass-1/design-system-enforcement",
+      "depends_on": [
+        "qa_pass_1"
+      ],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true
     }
   },
   "history": [

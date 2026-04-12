@@ -3,6 +3,7 @@ import {
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   FormField,
+  Surface,
   fromDateTimeLocalValue,
   getFileByHash,
   instructionTemplates,
@@ -217,24 +218,38 @@ export default function EditAction() {
 
   return (
     <div>
-      <PageHeader
-        title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
-        description={formatMessage({ id: "app.actions.edit.description" })}
-        backLink={{
-          to: `/actions/${id}`,
-          label: formatMessage({
-            id: "app.actions.backToAction",
-            defaultMessage: "Back to action",
-          }),
-        }}
-      />
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+        <PageHeader
+          title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
+          description={formatMessage({
+            id: "cockpit.actions.editDescription",
+            defaultMessage: "Update lifecycle details and the submission contract for this action.",
+          })}
+          variant="canvas"
+          backLink={{
+            to: `/actions/${id}`,
+            label: formatMessage({
+              id: "app.actions.backToAction",
+              defaultMessage: "Back to action",
+            }),
+          }}
+          sticky
+        />
+      </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 max-w-4xl space-y-6">
-        {/* Basic Fields */}
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {formatMessage({ id: "app.actions.edit.basicInfo" })}
-          </h3>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="mx-auto mt-4 max-w-5xl space-y-4 px-4 sm:px-6">
+        <Surface elevation="raised" padding="default" className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-text-strong">
+              {formatMessage({ id: "app.actions.edit.basicInfo" })}
+            </h3>
+            <p className="mt-1 text-sm text-text-sub">
+              {formatMessage({
+                id: "cockpit.actions.detailDescription",
+                defaultMessage: "Review lifecycle details and the submission requirements for this action.",
+              })}
+            </p>
+          </div>
           <div className="space-y-4">
             <FormField
               label={formatMessage({ id: "app.assessment.table.title" })}
@@ -279,12 +294,11 @@ export default function EditAction() {
               </FormField>
             </div>
           </div>
-        </div>
+        </Surface>
 
-        {/* Instructions Configuration */}
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+        <Surface elevation="raised" padding="default" className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">
+            <h3 className="text-lg font-semibold text-text-strong">
               {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
             </h3>
             {!isLoadingInstructions && (
@@ -311,10 +325,9 @@ export default function EditAction() {
               {formatMessage({ id: "app.actions.edit.instructionsHint" })}
             </p>
           )}
-        </div>
+        </Surface>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4">
+        <Surface elevation="raised" padding="default" className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <button
             type="submit"
             disabled={isLoading}
@@ -331,7 +344,7 @@ export default function EditAction() {
           >
             {formatMessage({ id: "app.common.cancel" })}
           </button>
-        </div>
+        </Surface>
       </form>
     </div>
   );

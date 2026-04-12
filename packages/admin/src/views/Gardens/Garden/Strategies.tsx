@@ -16,7 +16,13 @@ import { useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
-export default function GardenStrategiesView() {
+interface GardenStrategiesViewProps {
+  layout?: "page" | "sheet";
+}
+
+export default function GardenStrategiesView({
+  layout = "page",
+}: GardenStrategiesViewProps = {}) {
   const { formatMessage } = useIntl();
   const [newAddress, setNewAddress] = useState("");
   const [addressError, setAddressError] = useState("");
@@ -39,14 +45,18 @@ export default function GardenStrategiesView() {
   const { mutate: setStrategies, isPending: isSaving } = useSetConvictionStrategies();
 
   if (gardensLoading) {
+    if (layout === "sheet") {
+      return <Alert variant="info">{formatMessage({ id: "app.conviction.loadingStrategies" })}</Alert>;
+    }
+
     return (
       <div className="pb-6">
         <PageHeader
           title={formatMessage({ id: "app.conviction.title" })}
           description={formatMessage({ id: "app.conviction.loadingStrategies" })}
           backLink={{
-            to: "/garden",
-            label: formatMessage({ id: "app.conviction.backToGarden" }),
+            to: adminRoutes.communityGovernance(),
+            label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
           }}
         />
       </div>
@@ -54,14 +64,18 @@ export default function GardenStrategiesView() {
   }
 
   if (!garden) {
+    if (layout === "sheet") {
+      return <Alert variant="error">{formatMessage({ id: "app.conviction.gardenNotFound" })}</Alert>;
+    }
+
     return (
       <div className="pb-6">
         <PageHeader
           title={formatMessage({ id: "app.conviction.title" })}
           description={formatMessage({ id: "app.conviction.gardenNotFound" })}
           backLink={{
-            to: "/garden",
-            label: formatMessage({ id: "app.conviction.backToGarden" }),
+            to: adminRoutes.communityGovernance(),
+            label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
           }}
         />
       </div>
@@ -94,8 +108,8 @@ export default function GardenStrategiesView() {
     setStrategies({ gardenAddress: gardenId as Address, strategies: updated }, { onSettled });
   };
 
-  return (
-    <div className="pb-6">
+  const pageHeader =
+    layout === "page" ? (
       <PageHeader
         title={formatMessage({ id: "app.conviction.title" })}
         description={formatMessage(
@@ -103,13 +117,20 @@ export default function GardenStrategiesView() {
           { gardenName: garden.name }
         )}
         backLink={{
-          to: adminRoutes.community(),
+          to: adminRoutes.communityGovernance(),
           label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
         }}
         sticky
       />
+    ) : null;
+  const contentClassName =
+    layout === "page" ? "mx-auto mt-6 max-w-4xl space-y-6 px-4 sm:px-6" : "space-y-6";
 
-      <div className="mx-auto mt-6 max-w-4xl space-y-6 px-4 sm:px-6">
+  return (
+    <div className="pb-6">
+      {pageHeader}
+
+      <div className={contentClassName}>
         {/* Stats */}
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="surface-inset">

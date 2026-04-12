@@ -16,6 +16,13 @@ Analyze the Green Goods codebase architecture: map current state, identify struc
 
 ---
 
+## Activation
+
+Use when:
+- A user asks for architecture analysis or structural refactoring guidance
+- You need a map of boundaries, coupling, or complexity hotspots
+- You want a read-only architecture scorecard before planning changes
+
 ## Invocation
 
 ```

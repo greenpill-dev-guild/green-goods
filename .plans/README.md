@@ -91,6 +91,17 @@ That split keeps scheduling platform-specific while keeping instructions, branch
 5. Let lane automations claim work from `.plans/active/`
 6. Archive the hub when QA pass 2 is complete and the work is merged or intentionally paused
 
+## Backlog Quality Bar
+
+Backlog is for execution candidates, not general storage.
+
+- Keep only work that is realistic for the next execution cycle or two
+- Move strategic research to `.plans/ideas/` or `.plans/adr/`
+- Move prompt packs, team prompts, and implementation wrappers to `.plans/_automation/` or `.plans/archive/`
+- Archive broad legacy hubs once the remaining work can be expressed as a smaller follow-up hub
+
+Every hub that remains in `.plans/active/` or `.plans/backlog/` must include real `brief.md`, `spec.md`, `plan.todo.md`, and `eval.md` content. Migration placeholder text is not allowed in the live queue.
+
 ## CLI
 
 Use the repo helper script for scaffolding, lane discovery, and status transitions:
@@ -105,6 +116,6 @@ node scripts/plan-hub.mjs validate
 
 ## Legacy Compatibility
 
-Older flat files in `.plans/` and `.plans/_backlog/` remain in the repo. Do not create new feature work in the flat layout. When touching legacy work, migrate it into a foldered feature hub first.
+The foldered feature hub layout is the only supported plan surface. Do not create new flat files in `.plans/`, `.plans/_backlog/`, or `.claude/plans/`. If a legacy plan artifact appears, migrate it into a feature hub immediately.
 
 Published product and developer specifications under `docs/docs/builders/specs/` remain where they are. They are public docs, not the live automation queue.

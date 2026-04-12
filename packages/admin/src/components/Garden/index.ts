@@ -7,7 +7,6 @@ export { GardenMetadata } from "./GardenMetadata";
 export { GardenProfileModal } from "./GardenProfileModal";
 export { GardenRolesPanel } from "./GardenRolesPanel";
 export { GardenSettingsEditor } from "./GardenSettingsEditor";
-export { GardenStatsGrid } from "./GardenStatsGrid";
 export { GardenYieldCard } from "./GardenYieldCard";
 export { getRoleLabel } from "./gardenUtils";
 export { ManageRolesModal } from "./ManageRolesModal";

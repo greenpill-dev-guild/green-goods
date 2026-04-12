@@ -25,7 +25,7 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import { GardenChip } from "../../components/Cockpit/GardenChip";
+import { GardenChip } from "../../components/Canvas/GardenChip";
 
 const GARDEN_A = { id: "0x1111", name: "Wildflower Meadow" };
 const GARDEN_B = { id: "0x2222", name: "Urban Composting" };

@@ -237,7 +237,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(work.createdAt),
-      href: adminRoutes.workDetail(work.id),
+      href: adminRoutes.hubWorkDetail(work.id),
       itemId: work.id,
     })),
     ...assessments.map((assessment) => ({
@@ -252,8 +252,7 @@ export function useGardenDerivedState({
         { date: formatDate(assessment.createdAt, { dateStyle: "medium" }) }
       ),
       timestamp: toMs(assessment.createdAt),
-      href: adminRoutes.garden({
-        view: "impact",
+      href: adminRoutes.gardenImpact({
         section: "assessments",
         item: assessment.id,
       }),
@@ -288,7 +287,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: adminRoutes.community({ card: "yield", item: allocation.txHash }),
+      href: adminRoutes.communityTreasury({ item: allocation.txHash }),
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);

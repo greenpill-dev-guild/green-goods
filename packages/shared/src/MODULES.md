@@ -142,7 +142,7 @@
 
 ### components/ -- Shared UI primitives
 
-Reusable primitives consumed by both client and admin: Alert, Badge, Button, Cards (Garden/Work/Vault), Cockpit (BottomSheet, SideSheet, FloatingToolbar, TopContextBar), DatePicker, Dialog, Display (image fallbacks), ErrorBoundary, Form (inputs, selects, confidence/method selectors), ListPrimitives, Progress (submission, ENS, sync), Spinner, StatusBadge, SyncStatusBar, Toast (service + presets + viewport), TranslationBadge, Audio (player/recorder), Vault (AssetSelector).
+Reusable primitives consumed by both client and admin: Alert, Badge, Button, Cards (Garden/Work/Vault), Canvas (BottomSheet, SideSheet, FloatingToolbar, TopContextBar), DatePicker, Dialog, Display (image fallbacks), ErrorBoundary, Form (inputs, selects, confidence/method selectors), ListPrimitives, Progress (submission, ENS, sync), Spinner, StatusBadge, SyncStatusBar, Toast (service + presets + viewport), TranslationBadge, Audio (player/recorder), Vault (AssetSelector).
 
 ## Dependency Flow
 

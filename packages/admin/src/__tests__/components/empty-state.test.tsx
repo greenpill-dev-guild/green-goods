@@ -95,9 +95,9 @@ vi.mock("@/components/Layout/PageTransition", () => ({
   PageTransition: () => <div data-testid="page-content">Page Transition</div>,
 }));
 
-import { CockpitLayout } from "@/components/Layout/CockpitLayout";
+import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 
-describe("Cockpit no-garden access state", () => {
+describe("Canvas no-garden access state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEligibleAdminGardens.current = {
@@ -112,20 +112,20 @@ describe("Cockpit no-garden access state", () => {
 
   it("renders a create-garden CTA when the user can create gardens", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("cockpit-no-garden-access")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /create garden/i })).toBeInTheDocument();
     expect(screen.queryByTestId("page-content")).not.toBeInTheDocument();
   });
 
   it("navigates to /garden/create from the CTA", async () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
@@ -142,27 +142,27 @@ describe("Cockpit no-garden access state", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("cockpit-no-garden-access")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /create garden/i })).not.toBeInTheDocument();
   });
 
   it.each([
-    "/work",
+    "/hub",
     "/garden",
     "/community",
   ])("renders the shared fallback state on %s when no eligible gardens exist", (route) => {
     renderWithProviders(
       <MemoryRouter initialEntries={[route]}>
-        <CockpitLayout />
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("cockpit-no-garden-access")).toBeInTheDocument();
+    expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
     expect(screen.queryByTestId("page-content")).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@
  * Tests for the core message handlers (start, join, submit).
  */
 
+import fs from "fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { handleJoin, type JoinDeps } from "../handlers/join";
 import { handleStart, type StartDeps } from "../handlers/start";
@@ -14,11 +15,30 @@ import { initDB } from "../services/db";
 import type { InboundMessage, User } from "../types";
 
 // Set up test environment
-const TEST_DB_PATH = "data/test/handlers-test.db";
+const TEST_DB_DIR = "data/test";
+const TEST_DB_PATH = `${TEST_DB_DIR}/handlers-test-${process.pid}-${Date.now()}.db`;
+
+function removeTestDatabaseFiles() {
+  for (const file of [TEST_DB_PATH, `${TEST_DB_PATH}-wal`, `${TEST_DB_PATH}-shm`]) {
+    if (fs.existsSync(file)) {
+      fs.unlinkSync(file);
+    }
+  }
+}
 
 beforeAll(() => {
+  if (!fs.existsSync(TEST_DB_DIR)) {
+    fs.mkdirSync(TEST_DB_DIR, { recursive: true });
+  }
+
+  removeTestDatabaseFiles();
   initDB(TEST_DB_PATH);
   initAI();
+});
+
+afterAll(async () => {
+  await db.closeDB();
+  removeTestDatabaseFiles();
 });
 
 // ============================================================================

@@ -74,8 +74,16 @@ function SyncStatusIndicator({
   return null;
 }
 
-export default function HypercertDetail() {
-  const { hypercertId } = useParams<{ hypercertId: string }>();
+interface HypercertDetailProps {
+  layout?: "page" | "sheet";
+  hypercertId?: string;
+}
+
+export default function HypercertDetail({
+  layout = "page",
+  hypercertId: providedHypercertId,
+}: HypercertDetailProps = {}) {
+  const { hypercertId: routeHypercertId } = useParams<{ hypercertId: string }>();
   const { formatMessage } = useIntl();
   const location = useLocation();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
@@ -84,6 +92,7 @@ export default function HypercertDetail() {
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
   const [listingDialogOpen, setListingDialogOpen] = useState(false);
+  const hypercertId = providedHypercertId ?? routeHypercertId ?? "";
 
   // Extract optimistic data from navigation state (passed after minting)
   const locationState = location.state as { optimisticData?: OptimisticHypercertData } | null;
@@ -100,13 +109,19 @@ export default function HypercertDetail() {
   const showSyncStatus = Boolean(optimisticData);
 
   if (!garden) {
+    if (layout === "sheet") {
+      return (
+        <Alert variant="error">{formatMessage({ id: "app.hypercerts.detail.notFound" })}</Alert>
+      );
+    }
+
     return (
       <div className="pb-6">
         <PageHeader
           title={formatMessage({ id: "app.hypercerts.detail.title" })}
           description={formatMessage({ id: "app.hypercerts.detail.notFound" })}
           backLink={{
-            to: "/garden",
+            to: adminRoutes.gardenImpact({ section: "hypercerts" }),
             label: formatMessage({ id: "app.hypercerts.backToGardens" }),
           }}
         />
@@ -114,8 +129,8 @@ export default function HypercertDetail() {
     );
   }
 
-  return (
-    <div className="pb-6">
+  const pageHeader =
+    layout === "page" ? (
       <PageHeader
         title={formatMessage({ id: "app.hypercerts.detail.title" })}
         description={formatMessage(
@@ -123,13 +138,21 @@ export default function HypercertDetail() {
           { gardenName: garden.name }
         )}
         backLink={{
-          to: adminRoutes.garden({ view: "impact", section: "hypercerts" }),
+          to: adminRoutes.gardenImpact({ section: "hypercerts" }),
           label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
         }}
         sticky
       />
+    ) : null;
 
-      <div className="mx-auto mt-6 max-w-5xl space-y-6 px-4 sm:px-6">
+  const contentClassName =
+    layout === "sheet" ? "space-y-6" : "mx-auto mt-6 max-w-5xl space-y-6 px-4 sm:px-6";
+
+  return (
+    <div className="pb-6">
+      {pageHeader}
+
+      <div className={contentClassName}>
         {isLoading && (
           <div className="space-y-6">
             <div className="animate-pulse rounded-lg border border-stroke-soft bg-bg-white p-6">

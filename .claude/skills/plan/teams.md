@@ -8,7 +8,7 @@ parent: plan
 
 Coordinate multiple Claude Code instances working together. One session leads, teammates work independently with their own context, and they communicate directly with each other via a shared task list and messaging.
 
-**References**: [Claude Code Agent Teams docs](https://code.claude.com/docs/agent-teams), `CLAUDE.md`, `.claude/hooks.json`.
+**References**: [Claude Code Agent Teams docs](https://code.claude.com/docs/agent-teams), `CLAUDE.md`, `.claude/settings.json` (canonical Claude Code settings and hooks surface).
 
 > **Experimental feature** — requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in `.claude/settings.json` (already configured for this project).
 

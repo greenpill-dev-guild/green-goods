@@ -26,7 +26,7 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import { TopContextBar } from "../../components/Cockpit/TopContextBar";
+import { TopContextBar } from "../../components/Canvas/TopContextBar";
 
 describe("TopContextBar", () => {
   const user = userEvent.setup();

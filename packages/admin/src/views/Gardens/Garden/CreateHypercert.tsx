@@ -38,20 +38,23 @@ export default function CreateHypercert() {
         },
       });
     },
-    [garden?.id, navigate]
+    [navigate]
   );
 
   if (!garden) {
     return (
       <div className="pb-6">
-        <PageHeader
-          title={formatMessage({ id: "app.hypercerts.create.title" })}
-          description={formatMessage({ id: "app.hypercerts.create.notFound" })}
-          backLink={{
-            to: adminRoutes.garden(),
-            label: formatMessage({ id: "app.hypercerts.backToGardens" }),
-          }}
-        />
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <PageHeader
+            title={formatMessage({ id: "app.hypercerts.create.title" })}
+            description={formatMessage({ id: "app.hypercerts.create.notFound" })}
+            variant="canvas"
+            backLink={{
+              to: adminRoutes.garden(),
+              label: formatMessage({ id: "app.hypercerts.backToGardens" }),
+            }}
+          />
+        </div>
       </div>
     );
   }
@@ -59,36 +62,42 @@ export default function CreateHypercert() {
   if (!canManage) {
     return (
       <div className="pb-6">
-        <PageHeader
-          title={formatMessage({ id: "app.hypercerts.create.title" })}
-          description={formatMessage({ id: "app.hypercerts.create.unauthorized" })}
-          backLink={{
-            to: adminRoutes.garden({ view: "impact", section: "hypercerts" }),
-            label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
-          }}
-        />
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <PageHeader
+            title={formatMessage({ id: "app.hypercerts.create.title" })}
+            description={formatMessage({ id: "app.hypercerts.create.unauthorized" })}
+            variant="canvas"
+            backLink={{
+              to: adminRoutes.gardenImpact({ section: "hypercerts" }),
+              label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
+            }}
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="pb-6">
-      <PageHeader
-        title={formatMessage({ id: "app.hypercerts.create.title" })}
-        description={formatMessage(
-          { id: "app.hypercerts.create.description" },
-          { gardenName: garden.name }
-        )}
-        backLink={{
-          to: adminRoutes.garden({ view: "impact", section: "hypercerts" }),
-          label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
-        }}
-        sticky
-      />
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <PageHeader
+          title={formatMessage({ id: "app.hypercerts.create.title" })}
+          description={formatMessage(
+            { id: "app.hypercerts.create.description" },
+            { gardenName: garden.name }
+          )}
+          variant="canvas"
+          backLink={{
+            to: adminRoutes.gardenImpact({ section: "hypercerts" }),
+            label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
+          }}
+          sticky
+        />
+      </div>
       <HypercertWizard
         gardenId={garden.id}
         gardenName={garden.name}
-        onCancel={() => navigate(adminRoutes.garden({ view: "impact", section: "hypercerts" }))}
+        onCancel={() => navigate(adminRoutes.gardenImpact({ section: "hypercerts" }))}
         onComplete={handleComplete}
       />
     </div>

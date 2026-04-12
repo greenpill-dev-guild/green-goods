@@ -15,7 +15,7 @@ interface TabActionsProps {
 }
 
 export function TabActions({
-  gardenId,
+  gardenId: _gardenId,
   activeTab,
   canManage,
   canReview,
@@ -34,14 +34,14 @@ export function TabActions({
     ) : null,
     impact: canReview ? (
       <Button size="sm" asChild>
-        <Link to={adminRoutes.gardenAssessmentsCreate()}>
+        <Link to={adminRoutes.hubAssessCreate()}>
           <RiFileList3Line className="h-4 w-4" />
           {formatMessage({ id: "app.garden.admin.newAssessment" })}
         </Link>
       </Button>
     ) : (
       <Button size="sm" variant="secondary" asChild>
-        <Link to={adminRoutes.garden({ view: "impact", section: "assessments" })}>
+        <Link to={adminRoutes.gardenImpact({ section: "assessments" })}>
           {formatMessage({ id: "app.garden.admin.viewAssessments" })}
         </Link>
       </Button>
@@ -50,7 +50,7 @@ export function TabActions({
       <div className="flex flex-wrap items-center gap-1.5">
         {canManage && (
           <Button size="sm" asChild>
-            <Link to={adminRoutes.workSubmit()}>
+            <Link to={adminRoutes.hubWorkSubmit()}>
               <RiUploadCloudLine className="h-4 w-4" />
               {formatMessage({ id: "app.admin.work.submitWork" })}
             </Link>
@@ -71,7 +71,7 @@ export function TabActions({
     community: (
       <div className="flex flex-wrap items-center gap-1.5">
         <Button size="sm" asChild>
-          <Link to={adminRoutes.communityVault()}>
+          <Link to={adminRoutes.communityTreasuryVault()}>
             {formatMessage({ id: "app.treasury.manageVault" })}
           </Link>
         </Button>

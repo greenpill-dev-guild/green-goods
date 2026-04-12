@@ -84,7 +84,7 @@ vi.mock("@/components/Layout/PageTransition", () => ({
   PageTransition: () => <div>Page Transition</div>,
 }));
 
-import { CockpitLayout } from "@/components/Layout/CockpitLayout";
+import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 
 describe("Mobile Navigation", () => {
   beforeEach(() => {
@@ -137,12 +137,12 @@ describe("Mobile Navigation", () => {
 
   it("renders Profile as a real mobile navigation item", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-item-work")).toHaveTextContent("Hub");
+    expect(screen.getByTestId("nav-item-hub")).toHaveTextContent("Hub");
     expect(screen.getByTestId("nav-item-garden")).toHaveTextContent("Garden");
     expect(screen.getByTestId("nav-item-community")).toHaveTextContent("Community");
     expect(screen.getByTestId("nav-item-profile")).toHaveTextContent("Profile");
@@ -158,12 +158,12 @@ describe("Mobile Navigation", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("nav-item-work")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-item-hub")).toBeInTheDocument();
     expect(screen.getByTestId("nav-item-profile")).toBeInTheDocument();
     expect(screen.queryByTestId("nav-item-garden")).not.toBeInTheDocument();
     expect(screen.queryByTestId("nav-item-community")).not.toBeInTheDocument();
@@ -173,7 +173,7 @@ describe("Mobile Navigation", () => {
   it("marks /profile as the active mobile navigation path", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/profile"]}>
-        <CockpitLayout />
+        <CanvasLayout />
       </MemoryRouter>
     );
 
@@ -192,8 +192,8 @@ describe("Mobile Navigation", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 
@@ -207,8 +207,8 @@ describe("Mobile Navigation", () => {
 
   it("keeps navigation visible for authenticated users", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/work"]}>
-        <CockpitLayout />
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
       </MemoryRouter>
     );
 

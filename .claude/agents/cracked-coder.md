@@ -141,7 +141,7 @@ Do not bulk-remove without per-item grep confirmation.
 
 ### ESCALATE
 - After 3 consecutive failed fix attempts (Three-Strike Protocol)
-- When the task requires changes across 4+ packages (use migration agent instead)
+- When the task requires changes across 4+ packages (use `/plan` + `ops/migration` instead)
 - When touching contract deployment, migration, or UUPS upgrade logic
 - When test failures suggest a deeper architectural issue beyond the task scope
 - When approaching 40/50 turns without task completion — save state and report

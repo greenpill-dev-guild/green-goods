@@ -253,7 +253,7 @@ export function HypercertPreview({
               )}
               {gardenId && (
                 <Link
-                  to={adminRoutes.garden({ view: "impact", section: "assessments" })}
+                  to={adminRoutes.gardenImpact({ section: "assessments" })}
                   className="mt-1 inline-block text-xs text-primary-base hover:underline"
                 >
                   {formatMessage({ id: "app.hypercerts.preview.assessment.viewAll" })}

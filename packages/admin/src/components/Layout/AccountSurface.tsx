@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { CanvasStageTabRail, cn } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
@@ -31,68 +31,35 @@ export function AccountTabList({
   const { formatMessage } = useIntl();
 
   return (
-    <div
-      role="tablist"
-      aria-label={formatMessage({
+    <CanvasStageTabRail
+      ariaLabel={formatMessage({
         id: "cockpit.topBar.userProfile",
         defaultMessage: "User profile",
       })}
-      className={cn(
-        "inline-flex rounded-2xl bg-bg-soft p-1 shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)]",
-        className
-      )}
-    >
-      {ACCOUNT_TABS.map((tab) => {
-        const isActive = activeTab === tab;
-        const label =
+      activeId={activeTab}
+      onChange={(nextTab) => onTabChange(nextTab as AccountSheetTab)}
+      idBase="account"
+      tabs={ACCOUNT_TABS.map((tab) => ({
+        id: tab,
+        label:
           tab === "settings"
             ? formatMessage({ id: "cockpit.settings.title", defaultMessage: "Settings" })
-            : formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" });
-
-        return (
-          <button
-            key={tab}
-            id={`account-tab-${tab}`}
-            type="button"
-            role="tab"
-            aria-selected={isActive}
-            aria-controls={`account-panel-${tab}`}
-            onClick={() => onTabChange(tab)}
-            className={cn(
-              "min-w-[7rem] rounded-[1rem] px-4 py-2.5 text-sm font-medium transition-colors",
-              isActive
-                ? "bg-bg-white text-text-strong shadow-[var(--edge-rest),var(--elevation-1)]"
-                : "text-text-sub hover:text-text-strong"
-            )}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
+            : formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" }),
+      }))}
+      className={cn("w-full", className)}
+    />
   );
 }
 
 export function AccountTabPanels({ activeTab, className }: AccountTabPanelsProps) {
   return (
-    <div className={cn("flex flex-col gap-4", className)}>
-      <div
-        id="account-panel-profile"
-        role="tabpanel"
-        aria-labelledby="account-tab-profile"
-        hidden={activeTab !== "profile"}
-      >
-        {activeTab === "profile" ? <AccountProfilePanel /> : null}
-      </div>
-
-      <div
-        id="account-panel-settings"
-        role="tabpanel"
-        aria-labelledby="account-tab-settings"
-        hidden={activeTab !== "settings"}
-      >
-        {activeTab === "settings" ? <AccountSettingsPanel /> : null}
-      </div>
+    <div
+      id="account-panel"
+      role="tabpanel"
+      aria-labelledby={`account-tab-${activeTab}`}
+      className={cn("flex flex-col gap-4", className)}
+    >
+      {activeTab === "settings" ? <AccountSettingsPanel /> : <AccountProfilePanel />}
     </div>
   );
 }

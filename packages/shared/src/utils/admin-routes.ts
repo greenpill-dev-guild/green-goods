@@ -1,14 +1,38 @@
-export type AdminWorkspaceId = "work" | "garden" | "community" | "actions" | "profile";
+import type { Address } from "../types/domain";
+
+export type AdminWorkspaceId = "hub" | "garden" | "community" | "actions" | "profile";
 
 export type AdminSignalPoolType = "hypercert" | "action";
+export type AdminHubMode = "work" | "assess" | "certify" | "history";
+export type AdminHubView = AdminHubMode;
+export type AdminGardenMode = "overview" | "impact" | "settings";
+export type AdminCommunityMode = "treasury" | "governance" | "payouts" | "members";
+export type AdminHubSort = "newest" | "oldest";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
 
+export interface AdminHubRouteContext {
+  gardenAddress?: Address | string;
+  sort?: AdminHubSort;
+  item?: string;
+}
+
+export interface AdminGardenRouteContext {
+  gardenAddress?: Address | string;
+  range?: string;
+  section?: string;
+  item?: string;
+}
+
+export interface AdminCommunityRouteContext {
+  gardenAddress?: Address | string;
+  item?: string;
+}
+
 export const ADMIN_GARDEN_SHARE_PARAM = "gardenAddress";
-export const ADMIN_GARDEN_LEGACY_PARAM = "garden";
 
 export const ADMIN_WORKSPACE_ROOTS: Record<AdminWorkspaceId, string> = {
-  work: "/work",
+  hub: "/hub",
   garden: "/garden",
   community: "/community",
   actions: "/actions",
@@ -37,48 +61,139 @@ export function buildAdminHref(
   return query ? `${pathname}?${query}` : pathname;
 }
 
+function buildHubContextSearch(context?: AdminHubRouteContext): Record<string, AdminSearchValue> | undefined {
+  if (!context) return undefined;
+
+  return {
+    [ADMIN_GARDEN_SHARE_PARAM]: context.gardenAddress,
+    sort: context.sort,
+    item: context.item,
+  };
+}
+
+function buildGardenContextSearch(
+  context?: AdminGardenRouteContext
+): Record<string, AdminSearchValue> | undefined {
+  if (!context) return undefined;
+
+  return {
+    [ADMIN_GARDEN_SHARE_PARAM]: context.gardenAddress,
+    range: context.range,
+    section: context.section,
+    item: context.item,
+  };
+}
+
+function buildCommunityContextSearch(
+  context?: AdminCommunityRouteContext
+): Record<string, AdminSearchValue> | undefined {
+  if (!context) return undefined;
+
+  return {
+    [ADMIN_GARDEN_SHARE_PARAM]: context.gardenAddress,
+    item: context.item,
+  };
+}
+
 export const adminRoutes = {
-  work(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/work", search);
+  hub(context?: AdminHubRouteContext) {
+    return this.hubWork(context);
   },
-  workDetail(workId: string, search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref(`/work/${encodeSegment(workId)}`, search);
+  hubMode(mode: AdminHubMode, context?: AdminHubRouteContext) {
+    return buildAdminHref(`/hub/${mode}`, buildHubContextSearch(context));
   },
-  workSubmit(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/work/submit", search);
+  hubWork(context?: AdminHubRouteContext) {
+    return this.hubMode("work", context);
   },
-  garden(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/garden", search);
+  hubAssess(context?: AdminHubRouteContext) {
+    return this.hubMode("assess", context);
+  },
+  hubCertify(context?: AdminHubRouteContext) {
+    return this.hubMode("certify", context);
+  },
+  hubHistory(context?: AdminHubRouteContext) {
+    return this.hubMode("history", context);
+  },
+  hubWorkDetail(workId: string, context?: AdminHubRouteContext) {
+    return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));
+  },
+  hubWorkSubmit(context?: AdminHubRouteContext) {
+    return buildAdminHref("/hub/work/submit", buildHubContextSearch(context));
+  },
+  hubAssessCreate(context?: AdminHubRouteContext) {
+    return buildAdminHref("/hub/assess/create", buildHubContextSearch(context));
+  },
+  hubCertifyDetail(assessmentId: string, context?: AdminHubRouteContext) {
+    return buildAdminHref(
+      `/hub/certify/${encodeSegment(assessmentId)}`,
+      buildHubContextSearch(context)
+    );
+  },
+  hubCertifyCreate(context?: AdminHubRouteContext) {
+    return buildAdminHref("/hub/certify/create", buildHubContextSearch(context));
+  },
+  garden(context?: AdminGardenRouteContext) {
+    return this.gardenOverview(context);
+  },
+  gardenMode(mode: AdminGardenMode, context?: AdminGardenRouteContext) {
+    return buildAdminHref(`/garden/${mode}`, buildGardenContextSearch(context));
+  },
+  gardenOverview(context?: AdminGardenRouteContext) {
+    return this.gardenMode("overview", context);
+  },
+  gardenImpact(context?: AdminGardenRouteContext) {
+    return this.gardenMode("impact", context);
+  },
+  gardenSettings(context?: AdminGardenRouteContext) {
+    return this.gardenMode("settings", context);
   },
   gardenCreate() {
     return "/garden/create";
   },
-  gardenAssessmentsCreate(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/garden/assessments/create", search);
-  },
   gardenHypercertDetail(
     hypercertId: string,
-    search?: Record<string, AdminSearchValue>
+    context?: AdminGardenRouteContext
   ) {
-    return buildAdminHref(`/garden/hypercerts/${encodeSegment(hypercertId)}`, search);
+    return buildAdminHref(
+      `/garden/impact/hypercerts/${encodeSegment(hypercertId)}`,
+      buildGardenContextSearch(context)
+    );
   },
-  gardenHypercertCreate(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/garden/hypercerts/create", search);
+  community(context?: AdminCommunityRouteContext) {
+    return this.communityTreasury(context);
   },
-  community(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/community", search);
+  communityMode(mode: AdminCommunityMode, context?: AdminCommunityRouteContext) {
+    return buildAdminHref(`/community/${mode}`, buildCommunityContextSearch(context));
   },
-  communityVault(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/community/vault", search);
+  communityTreasury(context?: AdminCommunityRouteContext) {
+    return this.communityMode("treasury", context);
   },
-  communityStrategies(search?: Record<string, AdminSearchValue>) {
-    return buildAdminHref("/community/strategies", search);
+  communityGovernance(context?: AdminCommunityRouteContext) {
+    return this.communityMode("governance", context);
   },
-  communitySignalPool(
+  communityPayouts(context?: AdminCommunityRouteContext) {
+    return this.communityMode("payouts", context);
+  },
+  communityMembers(context?: AdminCommunityRouteContext) {
+    return this.communityMode("members", context);
+  },
+  communityTreasuryVault(context?: AdminCommunityRouteContext) {
+    return buildAdminHref("/community/treasury/vault", buildCommunityContextSearch(context));
+  },
+  communityGovernanceStrategies(context?: AdminCommunityRouteContext) {
+    return buildAdminHref(
+      "/community/governance/strategies",
+      buildCommunityContextSearch(context)
+    );
+  },
+  communityGovernanceSignalPool(
     poolType: AdminSignalPoolType,
-    search?: Record<string, AdminSearchValue>
+    context?: AdminCommunityRouteContext
   ) {
-    return buildAdminHref(`/community/signal-pool/${encodeSegment(poolType)}`, search);
+    return buildAdminHref(
+      `/community/governance/signal-pool/${encodeSegment(poolType)}`,
+      buildCommunityContextSearch(context)
+    );
   },
   actions(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/actions", search);
@@ -112,7 +227,7 @@ export function getAdminWorkspaceForPath(pathname: string): AdminWorkspaceId {
     }
   }
 
-  return "work";
+  return "hub";
 }
 
 export function getAdminWorkspaceRoot(pathname: string): string {

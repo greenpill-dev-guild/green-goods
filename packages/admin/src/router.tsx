@@ -1,41 +1,73 @@
-import { HydrationFallback } from "@green-goods/shared";
+import { HydrationFallback, SkeletonGrid, adminRoutes } from "@green-goods/shared";
 import {
   createBrowserRouter,
   createHashRouter,
   Navigate,
   useLocation,
-  useParams,
 } from "react-router-dom";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
+import RequireRole from "@/routes/RequireRole";
 
 // Use hash router for IPFS builds to ensure proper SPA routing on IPFS gateways
 const createRouter =
   import.meta.env.VITE_USE_HASH_ROUTER === "true" ? createHashRouter : createBrowserRouter;
 
-// Root redirect component - cockpit default is /work
-const RootRedirect = () => <Navigate to="/work" replace />;
+function preserveSearch(search: string, omitKeys: string[] = []): string {
+  if (!search) return "";
+
+  const params = new URLSearchParams(search);
+  for (const key of omitKeys) {
+    params.delete(key);
+  }
+
+  const nextSearch = params.toString();
+  return nextSearch ? `?${nextSearch}` : "";
+}
+
+function RoleGateSkeleton() {
+  return (
+    <div className="p-6 space-y-6" data-testid="content-skeleton">
+      <div className="h-9 w-48 rounded-md skeleton-shimmer" />
+      <SkeletonGrid count={4} columns={2} />
+    </div>
+  );
+}
+
+// Root redirect component - default canvas route is /hub/work
+const RootRedirect = () => <Navigate to={adminRoutes.hub()} replace />;
 
 // Login redirect - preserves redirectTo param for bookmarked /login URLs
 const LoginRedirect = () => {
   const location = useLocation();
-  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || "/work";
+  const redirectTo = new URLSearchParams(location.search).get("redirectTo") || adminRoutes.hub();
   return <Navigate to={redirectTo} replace />;
 };
 
-const LegacyHubRedirect = () => {
+const HubIndexRedirect = () => {
   const location = useLocation();
-  return <Navigate to={`/work${location.search}`} replace />;
+  return (
+    <Navigate to={`${adminRoutes.hubWork()}${preserveSearch(location.search, ["view"])}`} replace />
+  );
 };
 
-const LegacyHubWorkDetailRedirect = () => {
+const GardenIndexRedirect = () => {
   const location = useLocation();
-  const { workId } = useParams<{ workId: string }>();
-  return <Navigate to={`/work/${encodeURIComponent(workId ?? "")}${location.search}`} replace />;
+  return (
+    <Navigate
+      to={`${adminRoutes.gardenOverview()}${preserveSearch(location.search, ["view"])}`}
+      replace
+    />
+  );
 };
 
-const LegacyHubWorkSubmitRedirect = () => {
+const CommunityIndexRedirect = () => {
   const location = useLocation();
-  return <Navigate to={`/work/submit${location.search}`} replace />;
+  return (
+    <Navigate
+      to={`${adminRoutes.communityTreasury()}${preserveSearch(location.search, ["card", "pool"])}`}
+      replace
+    />
+  );
 };
 
 export const router = createRouter([
@@ -56,47 +88,78 @@ export const router = createRouter([
         element: <LoginRedirect />,
       },
       {
-        // DashboardShell renders for ALL routes — no auth wrapper
+        // CanvasShell renders for all routes — access control happens inside the shell and route guards.
         lazy: async () => ({
-          Component: (await import("@/routes/DashboardShell")).default,
+          Component: (await import("@/routes/CanvasShell")).default,
         }),
         children: [
           {
             // Pathless error-catching wrapper: child errors render here
-            // while DashboardShell and the cockpit shell stay visible above
+            // while CanvasShell and the canvas shell stay visible above.
             errorElement: <RouteErrorBoundary />,
             children: [
-              // ── Cockpit primary routes ──
+              // ── Canvas primary routes ──
               {
                 path: "hub",
-                element: <LegacyHubRedirect />,
-              },
-              {
-                path: "hub/work/submit",
-                element: <LegacyHubWorkSubmitRedirect />,
-              },
-              {
-                path: "hub/work/:workId",
-                element: <LegacyHubWorkDetailRedirect />,
-              },
-              {
-                path: "work",
                 children: [
                   {
                     index: true,
-                    lazy: async () => ({ Component: (await import("@/views/Work")).default }),
+                    element: <HubIndexRedirect />,
                   },
                   {
-                    path: ":workId",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Gardens/Garden/WorkDetail")).default,
-                    }),
+                    path: "work",
+                    children: [
+                      {
+                        index: true,
+                        lazy: async () => ({ Component: (await import("@/views/Hub")).default }),
+                      },
+                      {
+                        path: ":workId",
+                        lazy: async () => ({ Component: (await import("@/views/Hub")).default }),
+                      },
+                      {
+                        path: "submit",
+                        lazy: async () => ({ Component: (await import("@/views/Hub")).default }),
+                      },
+                    ],
                   },
                   {
-                    path: "submit",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Gardens/Garden/SubmitWork")).default,
-                    }),
+                    path: "assess",
+                    children: [
+                      {
+                        index: true,
+                        lazy: async () => ({ Component: (await import("@/views/Hub")).default }),
+                      },
+                      {
+                        path: "create",
+                        lazy: async () => ({
+                          Component: (await import("@/views/Gardens/Garden/CreateAssessment")).default,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    path: "certify",
+                    children: [
+                      {
+                        index: true,
+                        lazy: async () => ({ Component: (await import("@/views/Hub")).default }),
+                      },
+                      {
+                        path: ":assessmentId",
+                        lazy: async () => ({ Component: (await import("@/views/Hub")).default }),
+                      },
+                      {
+                        path: "create",
+                        lazy: async () => ({
+                          Component: (await import("@/views/Gardens/Garden/CreateHypercert")).default,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    path: "history",
+                    lazy: async () => ({ Component: (await import("@/views/Hub")).default }),
                   },
                 ],
               },
@@ -105,13 +168,37 @@ export const router = createRouter([
                 children: [
                   {
                     index: true,
+                    element: <GardenIndexRedirect />,
+                  },
+                  {
+                    path: "overview",
+                    lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+                  },
+                  {
+                    path: "impact",
+                    children: [
+                      {
+                        index: true,
+                        lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+                      },
+                      {
+                        path: "hypercerts/:hypercertId",
+                        lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+                      },
+                    ],
+                  },
+                  {
+                    path: "settings",
                     lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
                   },
                   {
                     path: "create",
-                    lazy: async () => ({
-                      Component: (await import("@/routes/RequireDeployer")).default,
-                    }),
+                    element: (
+                      <RequireRole
+                        allowedRoles={["deployer"]}
+                        loadingFallback={<RoleGateSkeleton />}
+                      />
+                    ),
                     children: [
                       {
                         index: true,
@@ -121,60 +208,71 @@ export const router = createRouter([
                       },
                     ],
                   },
-                  {
-                    path: "assessments/create",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Gardens/Garden/CreateAssessment")).default,
-                    }),
-                  },
-                  {
-                    path: "hypercerts/create",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Gardens/Garden/CreateHypercert")).default,
-                    }),
-                  },
-                  {
-                    path: "hypercerts/:hypercertId",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Gardens/Garden/HypercertDetail")).default,
-                    }),
-                  },
                 ],
               },
               {
                 path: "community",
-                lazy: async () => ({
-                  Component: (await import("@/routes/RequireSpecificGarden")).RequireSpecificGarden,
-                }),
                 children: [
                   {
                     index: true,
+                    element: <CommunityIndexRedirect />,
+                  },
+                  {
+                    path: "treasury",
+                    children: [
+                      {
+                        index: true,
+                        lazy: async () => ({
+                          Component: (await import("@/views/Community")).default,
+                        }),
+                      },
+                      {
+                        path: "vault",
+                        lazy: async () => ({
+                          Component: (await import("@/views/Community")).default,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    path: "governance",
+                    children: [
+                      {
+                        index: true,
+                        lazy: async () => ({
+                          Component: (await import("@/views/Community")).default,
+                        }),
+                      },
+                      {
+                        path: "strategies",
+                        lazy: async () => ({
+                          Component: (await import("@/views/Community")).default,
+                        }),
+                      },
+                      {
+                        path: "signal-pool/:poolType",
+                        lazy: async () => ({
+                          Component: (await import("@/views/Community")).default,
+                        }),
+                      },
+                    ],
+                  },
+                  {
+                    path: "payouts",
                     lazy: async () => ({
                       Component: (await import("@/views/Community")).default,
                     }),
                   },
                   {
-                    path: "vault",
+                    path: "members",
                     lazy: async () => ({
-                      Component: (await import("@/views/Gardens/Garden/Vault")).default,
-                    }),
-                  },
-                  {
-                    path: "strategies",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Gardens/Garden/Strategies")).default,
-                    }),
-                  },
-                  {
-                    path: "signal-pool/:poolType",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Gardens/Garden/SignalPool")).default,
+                      Component: (await import("@/views/Community")).default,
                     }),
                   },
                 ],
               },
 
-              // ── Actions cockpit surface + secondary flows ──
+              // ── Actions canvas surface + secondary flows ──
               {
                 path: "actions",
                 lazy: async () => ({ Component: (await import("@/views/Actions")).default }),
@@ -185,9 +283,12 @@ export const router = createRouter([
               },
               {
                 path: "actions/create",
-                lazy: async () => ({
-                  Component: (await import("@/routes/RequireActionManager")).default,
-                }),
+                element: (
+                  <RequireRole
+                    allowedRoles={["deployer", "operator"]}
+                    loadingFallback={<RoleGateSkeleton />}
+                  />
+                ),
                 children: [
                   {
                     index: true,
@@ -205,9 +306,12 @@ export const router = createRouter([
               },
               {
                 path: "actions/:id/edit",
-                lazy: async () => ({
-                  Component: (await import("@/routes/RequireActionManager")).default,
-                }),
+                element: (
+                  <RequireRole
+                    allowedRoles={["deployer", "operator"]}
+                    loadingFallback={<RoleGateSkeleton />}
+                  />
+                ),
                 children: [
                   {
                     index: true,

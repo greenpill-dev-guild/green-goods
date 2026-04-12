@@ -532,7 +532,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // If user was previously authenticated with wallet, wait for Wagmi to settle
     // before declaring auth as ready. This prevents:
-    // 1. Auto-logout on refresh (RequireAuth redirecting before wallet reconnects)
+    // 1. Auto-logout on refresh (route access checks running before wallet reconnects)
     // 2. Login view flash (showing login briefly before auto-login completes)
     // Give up waiting after timeout to prevent infinite loading
     const isWalletHydrating =

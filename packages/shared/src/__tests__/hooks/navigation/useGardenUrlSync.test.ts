@@ -2,7 +2,7 @@
  * useGardenUrlSync Hook Tests
  * @vitest-environment jsdom
  *
- * Tests URL <-> store synchronization for the cockpit garden navigation.
+ * Tests URL <-> store synchronization for the canvas garden navigation.
  */
 
 import { renderHook, act } from "@testing-library/react";
@@ -95,26 +95,15 @@ describe("useGardenUrlSync", () => {
     mockSelectedGardenId.current = "garden-123";
 
     const wrapper = createRouterWrapper([
-      "/work?gardenAddress=0x1230000000000000000000000000000000000123",
+      "/hub?gardenAddress=0x1230000000000000000000000000000000000123",
     ]);
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
     expect(result.current.gardenId).toBe("garden-123");
   });
 
-  it("still reads legacy ?garden= param during the transition", () => {
-    const garden = createMockGarden({ id: "garden-legacy" });
-    mockEligibleGardens.current = [garden];
-    mockSelectedGardenId.current = "garden-legacy";
-
-    const wrapper = createRouterWrapper(["/work?garden=garden-legacy"]);
-    const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
-
-    expect(result.current.gardenId).toBe("garden-legacy");
-  });
-
   it("reads tab from URL ?tab= param", () => {
-    const wrapper = createRouterWrapper(["/work?tab=community"]);
+    const wrapper = createRouterWrapper(["/hub?tab=community"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -122,7 +111,7 @@ describe("useGardenUrlSync", () => {
   });
 
   it("setTab updates URL search param", () => {
-    const wrapper = createRouterWrapper(["/work"]);
+    const wrapper = createRouterWrapper(["/hub"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -135,7 +124,7 @@ describe("useGardenUrlSync", () => {
   });
 
   it("openItem adds ?item= param to URL", () => {
-    const wrapper = createRouterWrapper(["/work"]);
+    const wrapper = createRouterWrapper(["/hub"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -147,7 +136,7 @@ describe("useGardenUrlSync", () => {
   });
 
   it("closeItem removes ?item= param", () => {
-    const wrapper = createRouterWrapper(["/work?item=item-789"]);
+    const wrapper = createRouterWrapper(["/hub?item=item-789"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -169,7 +158,7 @@ describe("useGardenUrlSync", () => {
     mockIsLoaded.current = true;
 
     const wrapper = createRouterWrapper([
-      "/work?gardenAddress=0x4560000000000000000000000000000000000456",
+      "/hub?gardenAddress=0x4560000000000000000000000000000000000456",
     ]);
 
     renderHook(() => useGardenUrlSync(), { wrapper });
@@ -190,7 +179,7 @@ describe("useGardenUrlSync", () => {
     mockResolvedDefaultGarden.current = defaultGarden;
 
     const wrapper = createRouterWrapper([
-      "/work?gardenAddress=0x7890000000000000000000000000000000000789",
+      "/hub?gardenAddress=0x7890000000000000000000000000000000000789",
     ]);
 
     renderHook(() => useGardenUrlSync(), { wrapper });
@@ -205,7 +194,7 @@ describe("useGardenUrlSync", () => {
     mockEligibleGardens.current = [defaultGarden];
     mockResolvedDefaultGarden.current = defaultGarden;
 
-    const wrapper = createRouterWrapper(["/work"]);
+    const wrapper = createRouterWrapper(["/hub"]);
 
     const { rerender } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -229,7 +218,7 @@ describe("useGardenUrlSync", () => {
     mockResolvedDefaultGarden.current = defaultGarden;
 
     const wrapper = createRouterWrapper([
-      "/work?gardenAddress=0x0000000000000000000000000000000000000001",
+      "/hub?gardenAddress=0x0000000000000000000000000000000000000001",
     ]);
 
     renderHook(() => useGardenUrlSync(), { wrapper });

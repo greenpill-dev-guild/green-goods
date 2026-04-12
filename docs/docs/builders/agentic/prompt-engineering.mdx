@@ -67,14 +67,14 @@ The specification includes:
 
 ## Skill System
 
-Skills are modular instruction sets in `.claude/skills/`. Each skill provides domain-specific patterns and constraints. The project has 40+ skills covering areas like:
+Skills are modular instruction sets in `.claude/skills/`. Each skill provides domain-specific patterns and constraints. The repo keeps a focused local skill set here, while plugin and system skills add more runtime coverage. Local skills cover areas like:
 
 - `testing` -- TDD workflow, test adequacy checklist
 - `react` -- Hook patterns, component conventions
 - `contracts` -- Solidity patterns, deployment scripts
-- `error-handling-patterns` -- Error parsing, user-friendly messages
-- `storybook` -- CSF3 format, story organization
-- `tailwindcss` -- Theme tokens, responsive patterns
+- `ui` -- Shared primitives, accessibility, Storybook, and interface composition
+- `ops` -- Deployments, migrations, and repo workflow
+- `review` -- Code review and audit workflows
 
 Skills are activated by listing them in an agent's `skills` array. Multiple skills compose additively.
 

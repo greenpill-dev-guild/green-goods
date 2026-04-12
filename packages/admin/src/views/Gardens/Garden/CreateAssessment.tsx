@@ -327,7 +327,7 @@ export default function CreateAssessment() {
         suppressLogging: true,
       });
       resetStore();
-      navigate(adminRoutes.garden({ view: "impact", section: "assessments" }));
+      navigate(adminRoutes.gardenImpact({ section: "assessments" }));
     }
   }, [isSuccess, navigate, gardenId, formatMessage, resetStore]);
 
@@ -357,7 +357,7 @@ export default function CreateAssessment() {
   };
 
   const handleCancel = () => {
-    navigate(adminRoutes.garden({ view: "impact", section: "assessments" }));
+    navigate(adminRoutes.gardenImpact({ section: "assessments" }));
   };
 
   // ── Final submission (validate all fields) ─────────────
@@ -440,20 +440,25 @@ export default function CreateAssessment() {
   if (!garden) {
     return (
       <div className="pb-6">
-        <PageHeader
-          title={formatMessage({
-            id: "app.assessment.submitAssessment",
-            defaultMessage: "Submit assessment",
-          })}
-          description={formatMessage({ id: "app.garden.admin.notFound" })}
-          backLink={{
-            to: "/garden",
-            label: formatMessage({ id: "app.garden.admin.backToGardens" }),
-          }}
-          sticky
-        />
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <PageHeader
+            title={formatMessage({
+              id: "app.assessment.submitAssessment",
+              defaultMessage: "Submit assessment",
+            })}
+            description={formatMessage({ id: "app.garden.admin.notFound" })}
+            variant="canvas"
+            backLink={{
+              to: "/garden",
+              label: formatMessage({ id: "app.garden.admin.backToGardens" }),
+            }}
+            sticky
+          />
+        </div>
         <div className="mt-6 px-4 sm:px-6">
-          <Alert variant="error">{formatMessage({ id: "app.garden.admin.notFound" })}</Alert>
+          <div className="mx-auto w-full max-w-6xl">
+            <Alert variant="error">{formatMessage({ id: "app.garden.admin.notFound" })}</Alert>
+          </div>
         </div>
       </div>
     );
@@ -462,88 +467,114 @@ export default function CreateAssessment() {
   if (!canReview) {
     return (
       <div className="pb-6">
-        <PageHeader
-          title={formatMessage({
-            id: "app.assessment.submitAssessment",
-            defaultMessage: "Submit assessment",
-          })}
-          description={formatMessage({ id: "app.admin.auth.noPermission" })}
-          backLink={{
-            to: adminRoutes.garden(),
-            label: formatMessage({ id: "app.garden.admin.backToGardens" }),
-          }}
-          sticky
-        />
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+          <PageHeader
+            title={formatMessage({
+              id: "app.assessment.submitAssessment",
+              defaultMessage: "Submit assessment",
+            })}
+            description={formatMessage({ id: "app.admin.auth.noPermission" })}
+            variant="canvas"
+            backLink={{
+              to: adminRoutes.garden(),
+              label: formatMessage({ id: "app.garden.admin.backToGardens" }),
+            }}
+            sticky
+          />
+        </div>
         <div className="mt-6 px-4 sm:px-6">
-          <Alert variant="warning">{formatMessage({ id: "app.admin.auth.noPermission" })}</Alert>
+          <div className="mx-auto w-full max-w-6xl">
+            <Alert variant="warning">{formatMessage({ id: "app.admin.auth.noPermission" })}</Alert>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <ErrorBoundary context="CreateAssessment.Wizard">
-      <FormWizard
-        steps={stepConfigs}
-        currentStep={currentStep}
-        onNext={handleNext}
-        onBack={handleBack}
-        onCancel={handleCancel}
-        onSubmit={handleSubmit}
-        isSubmitting={isSubmitting}
-        nextLabel={formatMessage({ id: "app.assessment.continue", defaultMessage: "Continue" })}
-        submitLabel={formatMessage({
-          id: "app.assessment.submitAssessment",
-          defaultMessage: "Submit assessment",
-        })}
-      >
-        <TxInlineFeedback
-          visible={hasError}
-          severity={txErrorView.severity}
-          title={errorTitle}
-          message={errorMessage}
-          reserveClassName="min-h-[8.5rem]"
-          className="mb-4"
-          action={
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={retry}
-                disabled={!canRetry || isSubmitting}
-                className="rounded-md border border-stroke-soft bg-bg-white px-3 py-1.5 text-xs font-medium text-text-strong transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {formatMessage({
-                  id: "app.assessment.retrySubmission",
-                  defaultMessage: "Retry submission",
-                })}
-              </button>
-              <button
-                type="button"
-                onClick={() => resetWorkflow()}
-                className="rounded-md border border-stroke-soft px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
-              >
-                {formatMessage({
-                  id: "app.assessment.editDetails",
-                  defaultMessage: "Edit details",
-                })}
-              </button>
-            </div>
-          }
+    <div className="pb-6">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <PageHeader
+          title={formatMessage({
+            id: "app.assessment.submitAssessment",
+            defaultMessage: "Submit assessment",
+          })}
+          description={formatMessage({
+            id: "cockpit.assessment.createDescription",
+            defaultMessage:
+              "Capture the context, strategy kernel, and harvest window for a new assessment.",
+          })}
+          variant="canvas"
+          backLink={{
+            to: adminRoutes.hubAssess(),
+            label: formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" }),
+          }}
+          sticky
         />
-        {stepConfigs[currentStep]?.id === "domainContext" && (
-          <DomainContextStep
-            showValidation={showValidation}
-            isSubmitting={isSubmitting}
-            gardenDomainMask={normalizedGardenDomainMask}
+      </div>
+      <ErrorBoundary context="CreateAssessment.Wizard">
+        <FormWizard
+          steps={stepConfigs}
+          currentStep={currentStep}
+          onNext={handleNext}
+          onBack={handleBack}
+          onCancel={handleCancel}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+          nextLabel={formatMessage({ id: "app.assessment.continue", defaultMessage: "Continue" })}
+          submitLabel={formatMessage({
+            id: "app.assessment.submitAssessment",
+            defaultMessage: "Submit assessment",
+          })}
+        >
+          <TxInlineFeedback
+            visible={hasError}
+            severity={txErrorView.severity}
+            title={errorTitle}
+            message={errorMessage}
+            reserveClassName="min-h-[8.5rem]"
+            className="mb-4"
+            action={
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={retry}
+                  disabled={!canRetry || isSubmitting}
+                  className="rounded-md border border-stroke-soft bg-bg-white px-3 py-1.5 text-xs font-medium text-text-strong transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {formatMessage({
+                    id: "app.assessment.retrySubmission",
+                    defaultMessage: "Retry submission",
+                  })}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => resetWorkflow()}
+                  className="rounded-md border border-stroke-soft px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
+                >
+                  {formatMessage({
+                    id: "app.assessment.editDetails",
+                    defaultMessage: "Edit details",
+                  })}
+                </button>
+              </div>
+            }
           />
-        )}
-        {stepConfigs[currentStep]?.id === "strategy" && (
-          <StrategyKernelStep showValidation={showValidation} isSubmitting={isSubmitting} />
-        )}
-        {stepConfigs[currentStep]?.id === "actionsHarvest" && (
-          <ActionsHarvestStep showValidation={showValidation} isSubmitting={isSubmitting} />
-        )}
-      </FormWizard>
-    </ErrorBoundary>
+          {stepConfigs[currentStep]?.id === "domainContext" && (
+            <DomainContextStep
+              showValidation={showValidation}
+              isSubmitting={isSubmitting}
+              gardenDomainMask={normalizedGardenDomainMask}
+            />
+          )}
+          {stepConfigs[currentStep]?.id === "strategy" && (
+            <StrategyKernelStep showValidation={showValidation} isSubmitting={isSubmitting} />
+          )}
+          {stepConfigs[currentStep]?.id === "actionsHarvest" && (
+            <ActionsHarvestStep showValidation={showValidation} isSubmitting={isSubmitting} />
+          )}
+        </FormWizard>
+      </ErrorBoundary>
+    </div>
   );
 }

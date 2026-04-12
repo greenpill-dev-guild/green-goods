@@ -154,10 +154,10 @@ describe("stores/useSheetOrchestratorStore", () => {
 
   it("setScrollPosition saves scroll for path", () => {
     act(() => {
-      useSheetOrchestratorStore.getState().setScrollPosition("/work", 350);
+      useSheetOrchestratorStore.getState().setScrollPosition("/hub", 350);
     });
 
-    const saved = useSheetOrchestratorStore.getState().viewStates["/work"];
+    const saved = useSheetOrchestratorStore.getState().viewStates["/hub"];
     expect(saved).toBeDefined();
     expect(saved!.scrollPosition).toBe(350);
   });
@@ -235,11 +235,11 @@ describe("stores/useSheetOrchestratorStore", () => {
       useSheetOrchestratorStore.getState().openSheet("right", "work-detail");
     });
     act(() => {
-      useSheetOrchestratorStore.getState().saveViewState("/work");
+      useSheetOrchestratorStore.getState().saveViewState("/hub");
     });
 
     const gardensState = useSheetOrchestratorStore.getState().restoreViewState("/gardens");
-    const workState = useSheetOrchestratorStore.getState().restoreViewState("/work");
+    const workState = useSheetOrchestratorStore.getState().restoreViewState("/hub");
 
     expect(gardensState!.sheetOpen).toBe("left");
     expect(gardensState!.sheetContentId).toBe("garden-create");

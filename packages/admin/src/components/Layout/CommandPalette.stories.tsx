@@ -34,7 +34,7 @@ interface MockCommandPaletteProps {
 }
 
 const STATIC_ROUTES: Omit<SearchResult, "category">[] = [
-  { id: "page-work", label: "Hub", href: "/work" },
+  { id: "page-hub", label: "Hub", href: "/hub" },
   { id: "page-garden", label: "Garden", href: "/garden" },
   { id: "page-community", label: "Community", href: "/community" },
   { id: "page-actions", label: "Actions", href: "/actions" },

@@ -1,6 +1,7 @@
 import {
   type Address,
   Alert,
+  CanvasStageTabRail,
   adminRoutes,
   ConfirmDialog,
   formatAddress,
@@ -17,7 +18,7 @@ import {
 import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 /**
@@ -30,9 +31,16 @@ import { PageHeader } from "@/components/Layout/PageHeader";
  * Both pool types share the same contract ABI (registerHypercert/deregisterHypercert)
  * because "hypercertId" at the contract level is a generic proposal identifier.
  */
-export default function GardenSignalPoolView() {
+interface GardenSignalPoolViewProps {
+  layout?: "page" | "sheet";
+}
+
+export default function GardenSignalPoolView({
+  layout = "page",
+}: GardenSignalPoolViewProps = {}) {
   const { poolType: poolTypeParam } = useParams<{ poolType: string }>();
   const { formatMessage } = useIntl();
+  const navigate = useNavigate();
   const [newItemId, setNewItemId] = useState("");
   const [inputError, setInputError] = useState("");
   const [confirmDeregister, setConfirmDeregister] = useState<bigint | null>(null);
@@ -96,14 +104,18 @@ export default function GardenSignalPoolView() {
     : "app.signal.hypercertPool.confirmDeregisterDescription";
 
   if (gardensLoading) {
+    if (layout === "sheet") {
+      return <Alert variant="info">{formatMessage({ id: "app.signal.loading" })}</Alert>;
+    }
+
     return (
       <div className="pb-6">
         <PageHeader
           title={formatMessage({ id: titleKey })}
           description={formatMessage({ id: "app.signal.loading" })}
           backLink={{
-            to: "/garden",
-            label: formatMessage({ id: "app.conviction.backToGarden" }),
+            to: adminRoutes.communityGovernance(),
+            label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
           }}
         />
       </div>
@@ -111,14 +123,18 @@ export default function GardenSignalPoolView() {
   }
 
   if (!garden) {
+    if (layout === "sheet") {
+      return <Alert variant="error">{formatMessage({ id: "app.conviction.gardenNotFound" })}</Alert>;
+    }
+
     return (
       <div className="pb-6">
         <PageHeader
           title={formatMessage({ id: titleKey })}
           description={formatMessage({ id: "app.conviction.gardenNotFound" })}
           backLink={{
-            to: "/garden",
-            label: formatMessage({ id: "app.conviction.backToGarden" }),
+            to: adminRoutes.communityGovernance(),
+            label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
           }}
         />
       </div>
@@ -171,44 +187,72 @@ export default function GardenSignalPoolView() {
     return Number((weight * 100n) / totalWeight);
   };
 
-  return (
-    <div className="pb-6">
+  const pageHeader =
+    layout === "page" ? (
       <PageHeader
         title={formatMessage({ id: titleKey })}
         description={formatMessage({ id: descriptionKey }, { gardenName: garden.name })}
+        variant="canvas"
         backLink={{
-          to: adminRoutes.community({ card: "pools", pool: poolTypeParam ?? "hypercert" }),
+          to: adminRoutes.communityGovernance(),
           label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
         }}
         sticky
-      />
+      >
+        <CanvasStageTabRail
+          ariaLabel={formatMessage({ id: "app.community.pools" })}
+          activeId={isActionPool ? "action" : "hypercert"}
+          onChange={(nextPoolType) =>
+            navigate(
+              adminRoutes.communityGovernanceSignalPool(
+                nextPoolType === "action" ? "action" : "hypercert"
+              )
+            )
+          }
+          tabs={[
+            {
+              id: "hypercert",
+              label: formatMessage({ id: "app.signal.viewHypercertPool" }),
+            },
+            {
+              id: "action",
+              label: formatMessage({ id: "app.signal.viewActionPool" }),
+            },
+          ]}
+        />
+      </PageHeader>
+    ) : null;
+  const contentClassName =
+    layout === "page" ? "mx-auto mt-6 max-w-4xl space-y-6 px-4 sm:px-6" : "space-y-6";
 
-      <div className="mx-auto mt-6 max-w-4xl space-y-6 px-4 sm:px-6">
-        {/* Pool type switcher */}
-        <nav className="flex gap-2" aria-label={formatMessage({ id: "app.community.pools" })}>
-          <Link
-            to={adminRoutes.communitySignalPool("hypercert")}
-            aria-current={!isActionPool ? "page" : undefined}
-            className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium transition ${
-              !isActionPool
-                ? "bg-primary-base text-primary-foreground"
-                : "border border-stroke-sub bg-bg-white text-text-sub hover:bg-bg-weak"
-            }`}
-          >
-            {formatMessage({ id: "app.signal.viewHypercertPool" })}
-          </Link>
-          <Link
-            to={adminRoutes.communitySignalPool("action")}
-            aria-current={isActionPool ? "page" : undefined}
-            className={`inline-flex items-center rounded-md px-3 py-2 text-sm font-medium transition ${
-              isActionPool
-                ? "bg-primary-base text-primary-foreground"
-                : "border border-stroke-sub bg-bg-white text-text-sub hover:bg-bg-weak"
-            }`}
-          >
-            {formatMessage({ id: "app.signal.viewActionPool" })}
-          </Link>
-        </nav>
+  return (
+    <div className="pb-6">
+      {pageHeader}
+
+      <div className={contentClassName}>
+        {layout === "sheet" ? (
+          <CanvasStageTabRail
+            ariaLabel={formatMessage({ id: "app.community.pools" })}
+            activeId={isActionPool ? "action" : "hypercert"}
+            onChange={(nextPoolType) =>
+              navigate(
+                adminRoutes.communityGovernanceSignalPool(
+                  nextPoolType === "action" ? "action" : "hypercert"
+                )
+              )
+            }
+            tabs={[
+              {
+                id: "hypercert",
+                label: formatMessage({ id: "app.signal.viewHypercertPool" }),
+              },
+              {
+                id: "action",
+                label: formatMessage({ id: "app.signal.viewActionPool" }),
+              },
+            ]}
+          />
+        ) : null}
 
         {/* Pool not deployed */}
         {!poolAddress && (

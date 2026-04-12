@@ -1,15 +1,10 @@
 import { cn, type UserRole, useRole } from "@green-goods/shared";
+import { RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 interface UserAvatarProps {
   onOpenProfile: () => void;
 }
-
-const ROLE_INITIALS: Record<UserRole, string> = {
-  deployer: "D",
-  operator: "O",
-  user: "U",
-};
 
 const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string }> = {
   deployer: {
@@ -37,9 +32,13 @@ export function UserAvatar({ onOpenProfile }: UserAvatarProps) {
       type="button"
       onClick={onOpenProfile}
       className={cn(
-        "inline-flex h-10 w-10 items-center justify-center rounded-full",
-        "bg-primary-alpha-10 text-primary-dark text-sm font-semibold",
-        "focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:outline-none"
+        "inline-flex h-10 w-10 items-center justify-center rounded-lg",
+        "border border-white/65 bg-[rgba(255,255,255,0.64)] text-text-sub",
+        "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45),0_8px_18px_rgba(15,23,42,0.08)]",
+        "transition-all duration-200 hover:border-[rgb(var(--workspace-tint,59_130_246)/0.24)]",
+        "hover:bg-[rgb(var(--workspace-tint,59_130_246)/0.10)] hover:text-[rgb(var(--workspace-tint,59_130_246))]",
+        "active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100",
+        "focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))] focus-visible:outline-none"
       )}
       aria-label={formatMessage(
         {
@@ -49,7 +48,7 @@ export function UserAvatar({ onOpenProfile }: UserAvatarProps) {
         { role: roleLabel }
       )}
     >
-      {ROLE_INITIALS[role]}
+      <RiUserLine className="h-5 w-5" />
     </button>
   );
 }

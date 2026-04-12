@@ -381,8 +381,8 @@ export { useBatchWorkSync } from "./work/useBatchWorkSync";
 // ============================================================================
 // NAVIGATION
 // ============================================================================
-export type { CockpitSearchParamsResult } from "./navigation/useCockpitSearchParams";
-export { useCockpitSearchParams } from "./navigation/useCockpitSearchParams";
+export type { CanvasSearchParamsResult } from "./navigation/useCanvasSearchParams";
+export { useCanvasSearchParams } from "./navigation/useCanvasSearchParams";
 export type { GardenUrlSyncResult } from "./navigation/useGardenUrlSync";
 export { useGardenUrlSync } from "./navigation/useGardenUrlSync";
 export type { UseSheetOrchestratorReturn } from "./navigation/useSheetOrchestrator";

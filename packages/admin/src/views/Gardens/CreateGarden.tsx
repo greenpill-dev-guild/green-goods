@@ -2,6 +2,7 @@ import {
   Button,
   classifyTxError,
   FormWizard,
+  adminRoutes,
   gardenStepFields,
   isMeaningfulTxErrorMessage,
   TxInlineFeedback,
@@ -17,6 +18,7 @@ import { useShallow } from "zustand/react/shallow";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
+import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function CreateGarden() {
   const intl = useIntl();
@@ -233,43 +235,67 @@ export default function CreateGarden() {
           });
 
   return (
-    <FormWizard
-      steps={steps}
-      currentStep={currentStep}
-      onNext={handleNext}
-      onBack={handleBack}
-      onCancel={handleCancel}
-      onSubmit={handleSubmit}
-      onStepClick={handleStepClick}
-      isSubmitting={isSubmitting}
-      nextLabel={intl.formatMessage({
-        id: "admin.garden.form.continue",
-        defaultMessage: "Continue",
-      })}
-      submitLabel={intl.formatMessage({
-        id: "admin.garden.form.deploy",
-        defaultMessage: "Deploy garden",
-      })}
-    >
-      <TxInlineFeedback
-        visible={hasError}
-        severity={txErrorView.severity}
-        title={errorTitle}
-        message={errorMessage}
-        reserveClassName="min-h-[8.25rem]"
-        className="mb-4"
-        action={
-          <Button variant="secondary" size="sm" onClick={retry}>
-            {intl.formatMessage({
-              id: "admin.garden.deploy.retry",
-              defaultMessage: "Retry deployment",
-            })}
-          </Button>
-        }
-      />
-      {isDetailsStep && <DetailsStep showValidation={showValidation} />}
-      {isTeamStep && <TeamStep />}
-      {isReviewStepActive && <ReviewStep />}
-    </FormWizard>
+    <div className="pb-6">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <PageHeader
+          title={intl.formatMessage({
+            id: "admin.gardens.createGarden",
+            defaultMessage: "Create Garden",
+          })}
+          description={intl.formatMessage({
+            id: "cockpit.garden.createDescription",
+            defaultMessage:
+              "Set the garden profile, team plan, and deployment details before going on chain.",
+          })}
+          variant="canvas"
+          backLink={{
+            to: adminRoutes.garden(),
+            label: intl.formatMessage({
+              id: "cockpit.nav.garden",
+              defaultMessage: "Garden",
+            }),
+          }}
+          sticky
+        />
+      </div>
+      <FormWizard
+        steps={steps}
+        currentStep={currentStep}
+        onNext={handleNext}
+        onBack={handleBack}
+        onCancel={handleCancel}
+        onSubmit={handleSubmit}
+        onStepClick={handleStepClick}
+        isSubmitting={isSubmitting}
+        nextLabel={intl.formatMessage({
+          id: "admin.garden.form.continue",
+          defaultMessage: "Continue",
+        })}
+        submitLabel={intl.formatMessage({
+          id: "admin.garden.form.deploy",
+          defaultMessage: "Deploy garden",
+        })}
+      >
+        <TxInlineFeedback
+          visible={hasError}
+          severity={txErrorView.severity}
+          title={errorTitle}
+          message={errorMessage}
+          reserveClassName="min-h-[8.25rem]"
+          className="mb-4"
+          action={
+            <Button variant="secondary" size="sm" onClick={retry}>
+              {intl.formatMessage({
+                id: "admin.garden.deploy.retry",
+                defaultMessage: "Retry deployment",
+              })}
+            </Button>
+          }
+        />
+        {isDetailsStep && <DetailsStep showValidation={showValidation} />}
+        {isTeamStep && <TeamStep />}
+        {isReviewStepActive && <ReviewStep />}
+      </FormWizard>
+    </div>
   );
 }

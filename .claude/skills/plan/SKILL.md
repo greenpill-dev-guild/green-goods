@@ -2,12 +2,12 @@
 name: plan
 description: Planning & Execution - create structured implementation plans, check progress, execute in batches, manage lifecycle, and coordinate agent teams. Use when the user says 'plan this', asks to break down a feature into steps, needs a phased implementation strategy, or wants to coordinate multiple agents.
 argument-hint: "[feature-name]"
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
+last_updated: "2026-04-12"
+last_verified: "2026-04-12"
 ---
 
 # Plan Skill
@@ -29,6 +29,7 @@ Planning lifecycle for Green Goods: create plans, check progress, execute in bat
 | `/plan --mode teams` | Team coordination — see [teams.md](./teams.md) |
 | `/teams` | Legacy alias — routes to `/plan --mode teams` |
 | Starting new feature | Create plan before coding |
+| Cross-package breaking change | Create or update the owning feature hub, then route execution through `ops/migration` |
 
 ## Progress Tracking (REQUIRED)
 

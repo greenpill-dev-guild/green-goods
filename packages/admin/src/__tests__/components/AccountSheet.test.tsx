@@ -19,6 +19,8 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       signOut: mockSignOut,
       eoaAddress: "0x1234567890123456789012345678901234567890",
     }),
+    useEnsAvatar: () => ({ data: null }),
+    useEnsName: () => ({ data: null }),
     useRole: () => ({ role: "operator" }),
     useTheme: () => ({
       theme: "dark" as const,
@@ -57,7 +59,7 @@ describe("AccountSheet", () => {
 
     expect(screen.getByRole("tab", { name: "Profile" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("operator")).toBeInTheDocument();
-    expect(screen.getByText("Wallet")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Wallet" })).toBeInTheDocument();
   });
 
   it("switches to the settings tab and renders preferences content", async () => {

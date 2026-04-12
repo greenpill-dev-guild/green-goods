@@ -6,7 +6,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { Domain, type Work } from "@green-goods/shared";
 import { describe, expect, it, vi } from "vitest";
-import { HubWorkCard } from "@/components/Work/HubWorkCard";
+import { HubWorkCard } from "@/views/Hub/components/HubWorkCard";
 
 // Wrap in IntlProvider for formatMessage
 import { IntlProvider } from "react-intl";
@@ -125,9 +125,8 @@ describe("HubWorkCard", () => {
   });
 
   it("renders with correct card shape classes", () => {
-    const { container } = renderCard();
-    const card = container.firstElementChild;
-    expect(card?.className).toContain("rounded-2xl");
+    renderCard();
+    expect(screen.getByRole("button").className).toContain("rounded-[1.65rem]");
   });
 
   it("is focusable (native button)", () => {

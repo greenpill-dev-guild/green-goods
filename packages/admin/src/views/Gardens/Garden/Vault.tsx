@@ -11,6 +11,7 @@ import {
   getVaultAssetSymbol,
   isZeroAddress,
   OCTANT_MODULE_ABI,
+  useAdminStore,
   useCurrentChain,
   useGardenPermissions,
   useGardens,
@@ -36,18 +37,24 @@ type VaultRouteState = {
   returnLabelId?: string;
 };
 
-export default function GardenVaultView() {
+interface GardenVaultViewProps {
+  layout?: "page" | "sheet";
+}
+
+export default function GardenVaultView({ layout = "page" }: GardenVaultViewProps = {}) {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const { formatMessage } = useIntl();
+  const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const [depositAsset, setDepositAsset] = useState<string | undefined>(undefined);
   const [withdrawAsset, setWithdrawAsset] = useState<string | undefined>(undefined);
   const [depositOpen, setDepositOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const routeState = (location.state as VaultRouteState | null) ?? null;
+  const resolvedGardenId = id ?? selectedGarden?.id;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const garden = gardens.find((item) => item.id === id);
+  const garden = gardens.find((item) => item.id === resolvedGardenId);
   const permissions = useGardenPermissions();
   const { primaryAddress } = useUser();
   const chainId = useCurrentChain();
@@ -71,8 +78,8 @@ export default function GardenVaultView() {
     isError: vaultsHasError,
     refetch: refetchVaults,
     isFetching: vaultsFetching,
-  } = useGardenVaults(garden?.id ?? id, {
-    enabled: Boolean(garden?.id ?? id),
+  } = useGardenVaults(garden?.id ?? resolvedGardenId, {
+    enabled: Boolean(garden?.id ?? resolvedGardenId),
   });
 
   const { totalNetDeposited, totalHarvestCount, totalDepositorCount } = useMemo(() => {
@@ -124,6 +131,10 @@ export default function GardenVaultView() {
   }, [formatMessage, routeState?.returnLabelId, routeState?.returnTo]);
 
   if (gardensLoading) {
+    if (layout === "sheet") {
+      return <Alert variant="info">{formatMessage({ id: "app.treasury.loadingGarden" })}</Alert>;
+    }
+
     return (
       <div className="pb-6">
         <PageHeader
@@ -131,7 +142,7 @@ export default function GardenVaultView() {
           description={formatMessage({ id: "app.treasury.loadingGarden" })}
           backLink={
             contextualBackLink ?? {
-              to: "/community?card=treasury",
+              to: adminRoutes.communityTreasury(),
               label: formatMessage({ id: "app.admin.nav.treasury" }),
             }
           }
@@ -141,6 +152,10 @@ export default function GardenVaultView() {
   }
 
   if (!garden) {
+    if (layout === "sheet") {
+      return <Alert variant="error">{formatMessage({ id: "app.treasury.gardenNotFound" })}</Alert>;
+    }
+
     return (
       <div className="pb-6">
         <PageHeader
@@ -148,7 +163,7 @@ export default function GardenVaultView() {
           description={formatMessage({ id: "app.treasury.gardenNotFound" })}
           backLink={
             contextualBackLink ?? {
-              to: "/community?card=treasury",
+              to: adminRoutes.communityTreasury(),
               label: formatMessage({ id: "app.admin.nav.treasury" }),
             }
           }
@@ -160,9 +175,8 @@ export default function GardenVaultView() {
   const gardenAddress = garden.id as Address;
   const canManage = permissions.canManageGarden(garden);
   const canEmergencyPause = permissions.isOwnerOfGarden(garden);
-
-  return (
-    <div className="pb-6">
+  const pageHeader =
+    layout === "page" ? (
       <PageHeader
         title={formatMessage({ id: "app.treasury.title" })}
         description={formatMessage(
@@ -171,14 +185,22 @@ export default function GardenVaultView() {
         )}
         backLink={
           contextualBackLink ?? {
-            to: adminRoutes.community({ card: "treasury" }),
+            to: adminRoutes.communityTreasury(),
             label: formatMessage({ id: "app.admin.nav.treasury" }),
           }
         }
         sticky
       />
+    ) : null;
 
-      <div className="mx-auto mt-6 max-w-6xl space-y-6 px-4 sm:px-6">
+  const contentClassName =
+    layout === "page" ? "mx-auto mt-6 max-w-6xl space-y-6 px-4 sm:px-6" : "space-y-6";
+
+  return (
+    <div className="pb-6">
+      {pageHeader}
+
+      <div className={contentClassName}>
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="surface-inset">
             <p className="text-xs text-text-soft">

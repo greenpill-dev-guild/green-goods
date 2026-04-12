@@ -1,11 +1,13 @@
 import {
   Alert,
-  Button,
-  cn,
-  formatTokenAmount,
-  StatCard,
+  BottomSheet,
+  CanvasMetaStrip,
+  CanvasStageTabRail,
+  Surface,
+  SideSheet,
   adminRoutes,
   useAdminStore,
+  useCanvasPortal,
   useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
@@ -20,33 +22,58 @@ import {
   RiShieldCheckLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { CockpitWorkspaceSelectionState } from "@/components/Layout/CockpitWorkspaceSelectionState";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { CommunityTab } from "@/views/CockpitGarden/CommunityTab";
+import { CommunityTab } from "@/views/Community/components/CommunityTab";
+import GardenSignalPoolView from "@/views/Gardens/Garden/SignalPool";
+import GardenStrategiesView from "@/views/Gardens/Garden/Strategies";
+import GardenVaultView from "@/views/Gardens/Garden/Vault";
 
-type CommunityWorkspaceCard = "treasury" | "members" | "pools" | "yield";
+type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";
 
-function parseCommunityCard(value: string | null): CommunityWorkspaceCard {
-  if (value === "members" || value === "pools" || value === "yield") {
-    return value;
-  }
+function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
+  if (pathname.startsWith("/community/governance")) return "governance";
+  if (pathname.startsWith("/community/payouts")) return "payouts";
+  if (pathname.startsWith("/community/members")) return "members";
   return "treasury";
+}
+
+function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const handleChange = (event: MediaQueryListEvent) => setMatches(event.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
 }
 
 export default function CommunityView() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const { poolType } = useParams<{ poolType?: string }>();
+  const { portalTarget } = useCanvasPortal();
   const { eligibleGardens } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
+  const isDesktop = useMediaQuery("(min-width: 600px)");
   const [memberSearch, setMemberSearch] = useState("");
 
-  const card = parseCommunityCard(searchParams.get("card"));
-  const pool = searchParams.get("pool") ?? "hypercert";
+  const mode = resolveCommunityMode(location.pathname);
+  const desktopSheetWidth =
+    typeof window === "undefined" ? 560 : Math.min(Math.max(440, window.innerWidth * 0.38), 660);
+  const isVaultRoute = location.pathname.startsWith("/community/treasury/vault");
+  const isStrategiesRoute = location.pathname.startsWith("/community/governance/strategies");
+  const isSignalPoolRoute = location.pathname.startsWith("/community/governance/signal-pool/");
 
   const {
     garden,
@@ -93,63 +120,42 @@ export default function CommunityView() {
         },
       ],
       onAction: (actionId: string) => {
-        if (actionId === "add-member") navigate(adminRoutes.garden({ view: "settings" }));
-        else if (actionId === "manage-vault") navigate(adminRoutes.communityVault());
+        if (actionId === "add-member") navigate(adminRoutes.communityMembers());
+        else if (actionId === "manage-vault") navigate(adminRoutes.communityTreasuryVault());
       },
     };
   }, [selectedGarden, canManage, navigate]);
   useFabConfig(communityFabConfig);
-
-  const updateSearch = useCallback(
-    (updates: Partial<Record<"card" | "pool", string | undefined>>, replace = true) => {
-      setSearchParams(
-        (previous) => {
-          const next = new URLSearchParams(previous);
-          for (const [key, value] of Object.entries(updates)) {
-            if (!value) {
-              next.delete(key);
-            } else {
-              next.set(key, value);
-            }
-          }
-          return next;
-        },
-        { replace }
-      );
-    },
-    [setSearchParams]
-  );
 
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
       if (!selectedGarden) return;
 
       if (tab === "community") {
-        const nextCard =
+        navigate(
           section === "members"
-            ? "members"
-            : section === "yield"
-              ? "yield"
-              : section === "pools"
-                ? "pools"
-                : "treasury";
-        updateSearch({ card: nextCard }, false);
+            ? adminRoutes.communityMembers({ item: itemId })
+            : section === "cookie-jars" || section === "payouts"
+              ? adminRoutes.communityPayouts({ item: itemId })
+              : section === "pools" || section === "governance"
+                ? adminRoutes.communityGovernance({ item: itemId })
+                : adminRoutes.communityTreasury({ item: itemId })
+        );
         return;
       }
 
       if (tab === "work") {
-        navigate(adminRoutes.work({ item: itemId }));
+        navigate(adminRoutes.hubWork({ item: itemId }));
         return;
       }
 
       navigate(
-        adminRoutes.garden({
-          view: tab === "impact" ? "impact" : "overview",
-          item: itemId,
-        })
+        tab === "impact"
+          ? adminRoutes.gardenImpact({ item: itemId })
+          : adminRoutes.gardenOverview({ item: itemId })
       );
     },
-    [navigate, selectedGarden, updateSearch]
+    [navigate, selectedGarden]
   );
 
   const derived = useGardenDerivedState({
@@ -164,102 +170,127 @@ export default function CommunityView() {
     selectedRange: "30d",
     activityFilter: "all",
     memberSearch,
-    section: card,
+    section:
+      mode === "governance" ? "governance" : mode === "payouts" ? "cookie-jars" : mode,
     formatMessage,
     openSection,
   });
 
   const totalMembers = derived.directoryEntries.length;
+  const communitySheet = useMemo(() => {
+    if (isVaultRoute) {
+      return {
+        title: formatMessage({ id: "app.treasury.title" }),
+        content: <GardenVaultView layout="sheet" />,
+        onClose: () => navigate(adminRoutes.communityTreasury()),
+      };
+    }
+
+    if (isStrategiesRoute) {
+      return {
+        title: formatMessage({ id: "app.conviction.title" }),
+        content: <GardenStrategiesView layout="sheet" />,
+        onClose: () => navigate(adminRoutes.communityGovernance()),
+      };
+    }
+
+    if (isSignalPoolRoute) {
+      return {
+        title: formatMessage({
+          id:
+            poolType === "action"
+              ? "app.signal.actionPool.title"
+              : "app.signal.hypercertPool.title",
+        }),
+        content: <GardenSignalPoolView layout="sheet" />,
+        onClose: () => navigate(adminRoutes.communityGovernance()),
+      };
+    }
+
+    return null;
+  }, [
+    formatMessage,
+    isSignalPoolRoute,
+    isStrategiesRoute,
+    isVaultRoute,
+    navigate,
+    poolType,
+  ]);
 
   return (
     <div className="pb-6">
-      <PageHeader
-        title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
-        description={formatMessage({
-          id: "cockpit.community.description",
-          defaultMessage: "Manage treasury, members, and signal pools",
-        })}
-        metadata={selectedGarden?.name}
-        sticky
-        actions={
-          selectedGarden ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" variant="secondary" asChild>
-                <Link to={adminRoutes.communityVault()}>
-                  {formatMessage({ id: "app.treasury.manageVault" })}
-                </Link>
-              </Button>
-              {card === "pools" ? (
-                <Button size="sm" asChild>
-                  <Link to={adminRoutes.communitySignalPool(pool === "action" ? "action" : "hypercert")}>
-                    {pool === "action"
-                      ? formatMessage({ id: "app.signal.viewActionPool" })
-                      : formatMessage({ id: "app.signal.viewHypercertPool" })}
-                  </Link>
-                </Button>
-              ) : null}
-            </div>
-          ) : undefined
-        }
-        toolbar={
-          <div
-            className="flex flex-wrap items-center gap-2"
-            role="tablist"
-            aria-label={formatMessage({
+      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
+        <PageHeader
+          title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
+          description={formatMessage({
+            id: "cockpit.community.description",
+            defaultMessage: "Manage treasury, governance, payouts, and members",
+          })}
+          variant="canvas"
+          metadata={
+            selectedGarden ? (
+              <CanvasMetaStrip items={[{ id: "garden", label: selectedGarden.name }]} />
+            ) : undefined
+          }
+          sticky
+        >
+          <CanvasStageTabRail
+            ariaLabel={formatMessage({
               id: "cockpit.community.viewSwitcher",
               defaultMessage: "Community views",
             })}
-          >
-            {(
-              [
-                {
-                  id: "treasury",
-                  labelId: "cockpit.community.treasury",
+            activeId={mode}
+            onChange={(nextMode) =>
+              navigate(
+                nextMode === "governance"
+                  ? adminRoutes.communityGovernance()
+                  : nextMode === "payouts"
+                    ? adminRoutes.communityPayouts()
+                    : nextMode === "members"
+                      ? adminRoutes.communityMembers()
+                      : adminRoutes.communityTreasury()
+              )
+            }
+            tabs={[
+              {
+                id: "treasury",
+                label: formatMessage({
+                  id: "cockpit.community.treasury",
                   defaultMessage: "Treasury",
-                },
-                {
-                  id: "members",
-                  labelId: "cockpit.community.members",
+                }),
+                count: derived.hasVaults ? 1 : undefined,
+              },
+              {
+                id: "governance",
+                label: formatMessage({
+                  id: "cockpit.community.governance",
+                  defaultMessage: "Governance",
+                }),
+                count: pools.length || undefined,
+              },
+              {
+                id: "payouts",
+                label: formatMessage({
+                  id: "cockpit.community.payouts",
+                  defaultMessage: "Payouts",
+                }),
+                count: allocations.length || undefined,
+              },
+              {
+                id: "members",
+                label: formatMessage({
+                  id: "cockpit.community.members",
                   defaultMessage: "Members",
-                },
-                {
-                  id: "pools",
-                  labelId: "cockpit.community.pools",
-                  defaultMessage: "Signal Pools",
-                },
-                { id: "yield", labelId: "app.yield.title", defaultMessage: "Yield" },
-              ] as const
-            ).map((option) => {
-              const active = card === option.id;
-              return (
-                <button
-                  key={option.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() =>
-                    updateSearch({
-                      card: option.id,
-                      pool: option.id === "pools" ? pool : undefined,
-                    })
-                  }
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-primary-alpha-16 text-primary-darker"
-                      : "bg-bg-soft text-text-sub hover:bg-bg-weak"
-                  )}
-                >
-                  {formatMessage({ id: option.labelId, defaultMessage: option.defaultMessage })}
-                </button>
-              );
-            })}
-          </div>
-        }
-      />
+                }),
+                count: totalMembers || undefined,
+              },
+            ]}
+          />
+        </PageHeader>
+      </div>
 
       {!selectedGarden ? (
-        <CockpitWorkspaceSelectionState
+        <CanvasWorkspaceSelectionState
           workspaceLabel={formatMessage({
             id: "cockpit.nav.community",
             defaultMessage: "Community",
@@ -276,125 +307,105 @@ export default function CommunityView() {
         />
       ) : fetching ? (
         <div className="mt-6 px-4 sm:px-6">
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" role="status" aria-live="polite">
-            <div className="h-40 rounded-lg skeleton-shimmer" />
-            <div className="h-40 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.08s" }} />
-            <div
-              className="h-72 rounded-lg skeleton-shimmer lg:col-span-2"
-              style={{ animationDelay: "0.16s" }}
-            />
+          <div className="mx-auto w-full max-w-[1400px]">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" role="status" aria-live="polite">
+              <div className="h-40 rounded-lg skeleton-shimmer" />
+              <div className="h-40 rounded-lg skeleton-shimmer" style={{ animationDelay: "0.08s" }} />
+              <div
+                className="h-72 rounded-lg skeleton-shimmer lg:col-span-2"
+                style={{ animationDelay: "0.16s" }}
+              />
+            </div>
           </div>
         </div>
       ) : !garden || error ? (
         <div className="mt-6 px-4 sm:px-6">
-          <Alert variant="error">
-            {error?.message ??
-              formatMessage({
-                id: "cockpit.community.loadFailed",
-                defaultMessage: "Unable to load this community workspace.",
-              })}
-          </Alert>
+          <div className="mx-auto w-full max-w-[1400px]">
+            <Alert variant="error">
+              {error?.message ??
+                formatMessage({
+                  id: "cockpit.community.loadFailed",
+                  defaultMessage: "Unable to load this community workspace.",
+                })}
+            </Alert>
+          </div>
         </div>
       ) : (
-        <div className="mt-6 space-y-6 px-4 sm:px-6">
-          <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatCard
-              icon={<RiMoneyDollarCircleLine className="h-5 w-5" />}
-              label={formatMessage({ id: "app.treasury.totalValueLocked" })}
-              value={derived.hasVaults ? formatTokenAmount(vaultNetDeposited) : "0"}
-              colorScheme="info"
-            />
-            <StatCard
-              icon={<RiUserLine className="h-5 w-5" />}
-              label={formatMessage({ id: "cockpit.community.members", defaultMessage: "Members" })}
-              value={totalMembers}
-              colorScheme="success"
-            />
-            <StatCard
-              icon={<RiGroupLine className="h-5 w-5" />}
-              label={formatMessage({
-                id: "cockpit.community.pools",
-                defaultMessage: "Signal Pools",
-              })}
-              value={pools.length}
-              colorScheme="warning"
-            />
-          </section>
-
-          {card === "pools" ? (
-            <Alert variant="info">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>
-                  {formatMessage({
-                    id: "cockpit.community.poolsHint",
-                    defaultMessage:
-                      "Open a specific signal pool to manage registrations and conviction weights.",
-                  })}
-                </span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={pool === "hypercert" ? "primary" : "secondary"}
-                    asChild
-                  >
-                    <Link to={adminRoutes.communitySignalPool("hypercert")}>
-                      {formatMessage({ id: "app.signal.viewHypercertPool" })}
-                    </Link>
-                  </Button>
-                  <Button size="sm" variant={pool === "action" ? "primary" : "secondary"} asChild>
-                    <Link to={adminRoutes.communitySignalPool("action")}>
-                      {formatMessage({ id: "app.signal.viewActionPool" })}
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </Alert>
-          ) : null}
-
-          <CommunityTab
-            garden={{ id: garden.id, name: garden.name }}
-            gardenId={gardenId}
-            canManage={canManage}
-            isOwner={isOwner}
-            section={card}
-            showSectionStateCard={false}
-            clearSection={() => updateSearch({ card: "treasury", pool: undefined }, false)}
-            openSection={openSection}
-            community={community}
-            communityLoading={communityLoading}
-            pools={pools}
-            createPools={async () => {
-              createPools();
-            }}
-            isCreatingPools={isCreatingPools}
-            vaultsLoading={vaultsLoading}
-            hasVaults={derived.hasVaults}
-            vaultNetDeposited={vaultNetDeposited}
-            treasurySeverity={derived.treasurySeverity}
-            allocations={allocations}
-            allocationsLoading={allocationsLoading}
-            roleSummary={derived.roleSummary}
-            roleIcons={{
-              owner: RiShieldCheckLine,
-              operator: RiUserLine,
-              evaluator: RiCheckboxCircleLine,
-              gardener: RiSeedlingLine,
-              funder: RiMoneyDollarCircleLine,
-              community: RiGroupLine,
-            }}
-            filteredDirectory={derived.filteredDirectory}
-            visibleDirectory={
-              card === "members" ? derived.filteredDirectory : derived.visibleDirectory
-            }
-            memberSearch={memberSearch}
-            setMemberSearch={setMemberSearch}
-            openMembersModal={() => {
-              updateSearch({ card: "members" }, false);
-            }}
-            scheduleBackgroundRefetch={scheduleBackgroundRefetch}
-          />
+        <div className="mt-4 px-4 sm:px-6">
+          <div className="mx-auto w-full max-w-[1400px]">
+            <Surface elevation="raised" padding="default" className="overflow-hidden">
+              <CommunityTab
+                garden={{ id: garden.id, name: garden.name }}
+                gardenId={gardenId}
+                canManage={canManage}
+                isOwner={isOwner}
+                section={
+                  mode === "governance" ? "governance" : mode === "payouts" ? "cookie-jars" : mode
+                }
+                showSectionStateCard={false}
+                clearSection={() => navigate(adminRoutes.communityTreasury())}
+                openSection={openSection}
+                community={community}
+                communityLoading={communityLoading}
+                pools={pools}
+                createPools={async () => {
+                  createPools();
+                }}
+                isCreatingPools={isCreatingPools}
+                vaultsLoading={vaultsLoading}
+                hasVaults={derived.hasVaults}
+                vaultNetDeposited={vaultNetDeposited}
+                treasurySeverity={derived.treasurySeverity}
+                allocations={allocations}
+                allocationsLoading={allocationsLoading}
+                roleSummary={derived.roleSummary}
+                roleIcons={{
+                  owner: RiShieldCheckLine,
+                  operator: RiUserLine,
+                  evaluator: RiCheckboxCircleLine,
+                  gardener: RiSeedlingLine,
+                  funder: RiMoneyDollarCircleLine,
+                  community: RiGroupLine,
+                }}
+                filteredDirectory={derived.filteredDirectory}
+                visibleDirectory={
+                  mode === "members" ? derived.filteredDirectory : derived.visibleDirectory
+                }
+                memberSearch={memberSearch}
+                setMemberSearch={setMemberSearch}
+                openMembersModal={() => {
+                  navigate(adminRoutes.communityMembers());
+                }}
+                scheduleBackgroundRefetch={scheduleBackgroundRefetch}
+              />
+            </Surface>
+          </div>
         </div>
       )}
+
+      {communitySheet ? (
+        isDesktop ? (
+          <SideSheet
+            open
+            onClose={communitySheet.onClose}
+            title={communitySheet.title}
+            width={desktopSheetWidth}
+            side="left"
+            container={portalTarget}
+          >
+            {communitySheet.content}
+          </SideSheet>
+        ) : (
+          <BottomSheet
+            open
+            onClose={communitySheet.onClose}
+            title={communitySheet.title}
+            maxHeight={92}
+          >
+            {communitySheet.content}
+          </BottomSheet>
+        )
+      ) : null}
     </div>
   );
 }

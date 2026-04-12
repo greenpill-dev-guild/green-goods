@@ -21,6 +21,10 @@ let capturedProps: Record<string, unknown> = {};
 vi.mock("@green-goods/shared", () => ({
   DEFAULT_CHAIN_ID: 42161,
   Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+  adminRoutes: {
+    actions: () => "/actions",
+  },
+  en: {},
   createActionSchema: {
     // Minimal Zod-compatible schema mock for zodResolver
     _def: { typeName: "ZodObject" },
@@ -126,6 +130,22 @@ vi.mock("@remixicon/react", () => {
   const Icon = (props: unknown) => React.createElement("span", props as object);
   return new Proxy({}, { get: () => Icon });
 });
+
+vi.mock("@/components/Layout/PageHeader", () => ({
+  PageHeader: ({
+    title,
+    description,
+  }: {
+    title: string;
+    description?: React.ReactNode;
+  }) =>
+    React.createElement(
+      "div",
+      {},
+      React.createElement("h1", {}, title),
+      description ? React.createElement("p", {}, description) : null
+    ),
+}));
 
 vi.mock("@green-goods/shared/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),

@@ -265,7 +265,7 @@ for (const [name, info] of skillMeta.entries()) {
 // === Unified registry: canonical commands, command skills, and bundles ===
 // All now live in skills.json alongside skills and aliases.
 
-const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit", "principles"]);
+const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit", "principles", "architecture", "status"]);
 let canonicalCommandNames = new Set();
 
 {
@@ -487,7 +487,6 @@ for (const pattern of forbiddenDebugPatterns) {
 for (const relPath of [
   ".claude/skills/debug/SKILL.md",
   ".claude/skills/ops/migration.md",
-  ".claude/agents/migration.md",
 ]) {
   if (!exists(relPath)) continue;
   const content = read(relPath);
@@ -551,15 +550,6 @@ for (const relPath of [
     "### Recommendation",
   ], relPath);
 }
-
-assertInOrder(read(".claude/agents/migration.md"), [
-  "### Summary",
-  "### Blast Radius",
-  "### Execution Order",
-  "### Validation Results",
-  "### Risks / Rollback",
-  "### Completion Checklist",
-], ".claude/agents/migration.md");
 
 // Thin wrapper checks for agent docs that delegate to canonical skills
 const thinWrappers = {

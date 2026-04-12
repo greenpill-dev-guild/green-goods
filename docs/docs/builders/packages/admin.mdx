@@ -4,43 +4,46 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-04-11
 feature_status: Active
 ---
 
 # Admin Dashboard
 
-The admin package is the Green Goods operator cockpit. This page is the single UI contract for `packages/admin`.
+The admin package is the Green Goods operator canvas. This page is the single UI contract for `packages/admin`.
 
 ## Purpose
 
-- `packages/admin` owns cockpit shell composition and admin-only workflows.
+- `packages/admin` owns canvas shell composition and admin-only workflows.
 - `@green-goods/shared` owns reusable UI primitives, shared config helpers, hooks, providers, stores, and Storybook-backed foundations.
 - If a pattern is reusable across admin surfaces, move it to shared instead of creating a package-local copy.
 
 ## Canonical Routes
 
-- Primary cockpit surfaces: `/hub`, `/garden`, `/community`, `/actions`
-- Secondary garden flows: `/garden/create`, `/garden/assessments/create`, `/garden/hypercerts/:hypercertId`, `/garden/hypercerts/create`, `/community/vault`, `/community/strategies`, `/community/signal-pool/:poolType`, `/hub/work/:workId`, `/hub/work/submit`
+- Primary canvas surfaces: `/hub`, `/garden`, `/community`, `/actions`
+- Hub canonical deep links: `/hub/work/:workId`, `/hub/work/submit`
+- Secondary garden flows: `/garden/create`, `/garden/impact/hypercerts/:hypercertId`, `/community/treasury/vault`, `/community/governance/strategies`, `/community/governance/signal-pool/:poolType`
 - Do not preserve compatibility redirects for removed top-level routes.
 
 ## Shell Contract
 
-- `CockpitLayout` is the canonical shell.
-- The shell is `TopContextBar + .workspace-canvas + NavigationBar`.
+- `CanvasLayout` is the canonical shell.
+- The shell is `TopContextBar + .workspace-canvas + MainSheet + NavigationBar`.
 - `TopContextBar` is the sticky `z-40 h-14` context region with `GardenChip` on the left and search, settings, and `UserAvatar` on the right.
-- `NavigationBar` is navigation only. The canonical items are `Work`, `Garden`, `Community`, and `Actions`.
+- `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions`.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
-- Admin owns `CockpitLayout`, `CommandPalette`, `SettingsSheet`, `UserAvatar`, `ConnectShell`, and `PageHeader`.
-- Shared owns `TopContextBar`, `NavigationBar`, `GardenChip`, `SideSheet`, `BottomSheet`, and `SheetErrorBoundary`.
+- Admin owns `CanvasLayout`, `CommandPalette`, `AccountSheet`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `ConnectShell`, and `PageHeader`.
+- Shared owns `TopContextBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `SideSheet`, `BottomSheet`, and `SheetErrorBoundary`.
 
 ## Preferred Primitives
 
 - `TopContextBar`
 - `NavigationBar`
+- `MainSheet`
 - `GardenChip`
 - `CommandPalette`
-- `SettingsSheet`
+- `AccountSheet`
+- `AccountSettingsPanel`
 - `UserAvatar`
 - `ConnectShell`
 - `SideSheet`
@@ -55,23 +58,23 @@ The admin package is the Green Goods operator cockpit. This page is the single U
 
 ## Surface Primitives
 
-- `.workspace-canvas` is the default cockpit workspace treatment.
+- `.workspace-canvas` is the default canvas workspace treatment.
 - `.surface-section` creates a rounded full-width section wrapper.
 - `.surface-inset` creates nested panels inside a section.
 - `.surface-card` creates interactive tiles.
 
-## Cockpit UI Heuristics
+## Canvas UI Heuristics
 
-- Admin is an operator cockpit. Use utility copy and operational hierarchy over marketing language.
+- Admin is an operator canvas. Use utility copy and operational hierarchy over marketing language.
 - Default page sequence is `PageHeader`, then the primary workspace, then any secondary inspector or side sheet.
 - Start with layout and flow before introducing cards or elevated panels.
 - Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
 - Prefer one dominant workspace surface per route and plain layout within it. Avoid nested stacks of rounded bordered panels.
 - Avoid hero sections, decorative promo callouts, and decorative gradients behind routine product UI.
-- Keep color restrained and semantic. Let workspace tint, typography, and spacing do most of the hierarchy work.
-- Use `/hub` as the reference implementation for cockpit composition and interaction density.
+- Use route-tint atmosphere, dock depth, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
+- Use `/hub` as the reference implementation for canvas composition and interaction density.
 
-## Unified Cockpit Route Contract
+## Unified Canvas Route Contract
 
 - Every primary route must answer one operator question, not three.
 - The first viewport must show: route title, one short scope sentence, current garden context when applicable, one control row, and the first actionable content.
@@ -83,10 +86,15 @@ The admin package is the Green Goods operator cockpit. This page is the single U
 - Default detail behavior is an inspector or secondary pane, not a new pile of inline cards.
 - Use utility copy. Titles identify the workspace. Descriptions explain scope, freshness, or what the operator can do next.
 - Keep imagery subordinate to status, title, and actions unless the operator is explicitly reviewing media itself.
+- Reduced-motion support is mandatory. Stage changes, row selection, and sheet open/close must retain state clarity without relying on travel or spring lift.
 
 ## Route Roles
 
-- `/hub` is the primary cockpit workspace. Its primary object is the Hub workbench with Work, Assess, Certify, and History modes.
+- `/hub` is the primary canvas workspace. Its primary object is the Hub workbench with Work, Assess, Certify, and History modes.
+- `/hub` is the gold-standard canvas route for composition, depth, responsive adaptation, and tactile state behavior.
+- `/hub` defaults to one dominant workbench surface under the stage rail. Detail, review, submit, and read-only handoff flows belong in bounded `SideSheet` or `BottomSheet` inspectors.
+- `/hub/work/:workId` and `/hub/work/submit` are canonical Hub deep links, not separate full-page detours. They must render through the same Hub controller and preserve `gardenAddress`, `view`, and `sort`.
+- `Certify` stays visible for evaluator-only users as a read-only handoff state. Owner or operator authority unlocks mint actions.
 - `/garden` is the situational overview of a single garden. Its primary object is health, activity, and impact state.
 - `/community` is the operations workspace for membership, treasury, pools, and yield. Only one of those modes should dominate the canvas at a time.
 - `/actions` is the action registry and lifecycle workspace. It should feel like a managed catalog, not a marketing gallery.

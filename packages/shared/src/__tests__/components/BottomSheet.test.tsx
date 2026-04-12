@@ -37,7 +37,7 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import { BottomSheet } from "../../components/Cockpit/BottomSheet";
+import { BottomSheet } from "../../components/Canvas/BottomSheet";
 
 describe("BottomSheet", () => {
   const user = userEvent.setup();
@@ -104,7 +104,7 @@ describe("BottomSheet", () => {
     expect(screen.getByTestId("bottom-sheet-drag-handle")).toBeTruthy();
   });
 
-  it("applies default max height of 85vh", () => {
+  it("applies default max height of 85dvh", () => {
     render(
       <BottomSheet open={true} onClose={() => {}}>
         <p>Content</p>
@@ -112,7 +112,7 @@ describe("BottomSheet", () => {
     );
 
     const dialog = screen.getByTestId("bottom-sheet");
-    expect(dialog.style.maxHeight).toBe("85vh");
+    expect(dialog.style.maxHeight).toBe("85dvh");
   });
 
   it("applies custom max height", () => {
@@ -123,7 +123,7 @@ describe("BottomSheet", () => {
     );
 
     const dialog = screen.getByTestId("bottom-sheet");
-    expect(dialog.style.maxHeight).toBe("60vh");
+    expect(dialog.style.maxHeight).toBe("60dvh");
   });
 
   it("renders overlay when open", () => {
@@ -182,7 +182,7 @@ describe("BottomSheet", () => {
     expect(dialog.className).toContain("z-modal");
   });
 
-  it("has concentric 20px radius for top edge rounding", () => {
+  it("has the shared 1.6rem radius for top edge rounding", () => {
     render(
       <BottomSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
@@ -190,7 +190,7 @@ describe("BottomSheet", () => {
     );
 
     const dialog = screen.getByTestId("bottom-sheet");
-    expect(dialog.className).toContain("rounded-t-[1.25rem]");
+    expect(dialog.className).toContain("rounded-t-[1.6rem]");
   });
 
   it("uses bounded absolute positioning and re-enables pointer events when portaled into a container", () => {

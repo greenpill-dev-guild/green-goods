@@ -9,11 +9,15 @@ const mockUseLocation = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   adminRoutes: {
-    community: (search?: Record<string, string>) => {
+    communityTreasury: (search?: Record<string, string>) => {
       const query = search ? new URLSearchParams(search).toString() : "";
-      return query ? `/community?${query}` : "/community";
+      return query ? `/community/treasury?${query}` : "/community/treasury";
     },
   },
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({
+      selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+    }),
   useGardens: () => mockUseGardens(),
   useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
   useGardenPermissions: () => mockUseGardenPermissions(),
@@ -76,13 +80,13 @@ describe("GardenVaultView", () => {
   });
 
   it("links back to community treasury when opened from the treasury card", () => {
-    mockUseLocation.mockReturnValue({ state: { returnTo: "/community?card=treasury" } });
+    mockUseLocation.mockReturnValue({ state: { returnTo: "/community/treasury" } });
 
     renderWithProviders(<GardenVaultView />);
 
     expect(screen.getByTestId("page-header")).toHaveAttribute(
       "data-back-link",
-      "/community?card=treasury"
+      "/community/treasury"
     );
   });
 
@@ -93,7 +97,7 @@ describe("GardenVaultView", () => {
 
     expect(screen.getByTestId("page-header")).toHaveAttribute(
       "data-back-link",
-      "/community?card=treasury"
+      "/community/treasury"
     );
   });
 });
