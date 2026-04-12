@@ -192,7 +192,7 @@ describe("SideSheet", () => {
     expect(dialog.className).toContain("z-modal");
   });
 
-  it("has the shared 1.5rem radius for left edge rounding", () => {
+  it("has the shared xl radius for left edge rounding", () => {
     render(
       <SideSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
@@ -200,7 +200,7 @@ describe("SideSheet", () => {
     );
 
     const dialog = screen.getByTestId("side-sheet");
-    expect(dialog.className).toContain("rounded-l-[1.5rem]");
+    expect(dialog.className).toContain("rounded-l-xl");
   });
 
   it("pins the default sheet to the right edge via inline style", () => {

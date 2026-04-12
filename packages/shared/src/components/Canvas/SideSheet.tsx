@@ -18,9 +18,9 @@ export interface SideSheetProps {
   side?: "left" | "right";
   /**
    * Portal container element. When provided, the sheet portals into this
- * element instead of document.body, and uses absolute positioning
- * (bounded to the container). Used by the canvas shell to scope
- * sheets within the main-sheet content zone.
+   * element instead of document.body, and uses absolute positioning
+   * (bounded to the container). Used by the canvas shell to scope
+   * sheets within the main-sheet content zone.
    *
    * When null/undefined, falls back to default Radix behavior (body portal).
    */
@@ -62,7 +62,9 @@ export function SideSheet({
         <Dialog.Overlay
           className={cn(
             isBounded ? "absolute inset-0" : "fixed inset-0",
-            isBounded ? "z-[45] bg-transparent" : "z-overlay bg-[rgba(8,15,28,0.18)] backdrop-blur-[2px]",
+            isBounded
+              ? "z-[45] bg-transparent"
+              : "z-overlay bg-neutral-950/18 backdrop-blur-sm",
             isBounded && "pointer-events-auto",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -83,20 +85,20 @@ export function SideSheet({
             isBounded ? "absolute top-0" : "fixed top-0",
             isBounded ? "z-[46]" : "z-modal",
             "flex h-full flex-col",
-            "bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(247,249,252,0.9)_100%)] backdrop-blur-xl supports-[backdrop-filter]:bg-[linear-gradient(180deg,rgba(255,255,255,0.86)_0%,rgba(247,249,252,0.78)_100%)] focus:outline-none",
-            "border border-white/66 will-change-transform",
+            "glass-floating focus:outline-none",
+            "will-change-transform",
             isBounded && "pointer-events-auto",
             // Position + rounding per spec: 20px concentric radius
             isLeft
-              ? "left-0 rounded-r-[1.5rem] border-l-0"
-              : "right-0 rounded-l-[1.5rem] border-r-0",
+              ? "left-0 rounded-r-xl border-l-0"
+              : "right-0 rounded-l-xl border-r-0",
             // Slide animation direction
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             isLeft
               ? "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left"
               : "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "duration-[420ms]",
+            "duration-[var(--spring-medium-duration,300ms)]",
             // Reduce motion: disable animations
             "motion-reduce:duration-0"
           )}
@@ -106,13 +108,13 @@ export function SideSheet({
             paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
             left: isLeft ? 0 : undefined,
             right: isLeft ? undefined : 0,
-            boxShadow: isLeft
-              ? "18px 0 40px rgba(15,23,42,0.16), inset -1px 0 0 rgba(255,255,255,0.7), var(--edge-rest)"
-              : "-18px 0 40px rgba(15,23,42,0.16), inset 1px 0 0 rgba(255,255,255,0.7), var(--edge-rest)",
+            boxShadow: "var(--elevation-4)",
           }}
           data-testid="side-sheet"
         >
-          {description ? <Dialog.Description className="sr-only">{description}</Dialog.Description> : null}
+          {description ? (
+            <Dialog.Description className="sr-only">{description}</Dialog.Description>
+          ) : null}
 
           {/* Header */}
           {title && (

@@ -182,7 +182,7 @@ describe("BottomSheet", () => {
     expect(dialog.className).toContain("z-modal");
   });
 
-  it("has the shared 1.6rem radius for top edge rounding", () => {
+  it("has the shared xl radius for top edge rounding", () => {
     render(
       <BottomSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
@@ -190,7 +190,7 @@ describe("BottomSheet", () => {
     );
 
     const dialog = screen.getByTestId("bottom-sheet");
-    expect(dialog.className).toContain("rounded-t-[1.6rem]");
+    expect(dialog.className).toContain("rounded-t-xl");
   });
 
   it("uses bounded absolute positioning and re-enables pointer events when portaled into a container", () => {

@@ -17,9 +17,9 @@ export interface BottomSheetProps {
   maxHeight?: number;
   /**
    * Portal container element. When provided, the sheet portals into this
- * element instead of document.body, and uses absolute positioning
- * (bounded to the container). Used by the canvas shell to scope
- * sheets within the main-sheet content zone.
+   * element instead of document.body, and uses absolute positioning
+   * (bounded to the container). Used by the canvas shell to scope
+   * sheets within the main-sheet content zone.
    */
   container?: HTMLElement | null;
 }
@@ -99,7 +99,9 @@ export function BottomSheet({
         <Dialog.Overlay
           className={cn(
             isBounded ? "absolute inset-0" : "fixed inset-0",
-            isBounded ? "z-[45] bg-transparent" : "z-overlay bg-[rgba(8,15,28,0.18)] backdrop-blur-[2px]",
+            isBounded
+              ? "z-[45] bg-transparent"
+              : "z-overlay bg-neutral-950/18 backdrop-blur-sm",
             isBounded && "pointer-events-auto",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
@@ -121,15 +123,15 @@ export function BottomSheet({
             isBounded ? "absolute bottom-0 left-0 right-0" : "fixed bottom-0 left-0 right-0",
             isBounded ? "z-[46]" : "z-modal",
             "flex w-full flex-col",
-            "rounded-t-[1.6rem] bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(247,249,252,0.9)_100%)] backdrop-blur-xl supports-[backdrop-filter]:bg-[linear-gradient(180deg,rgba(255,255,255,0.88)_0%,rgba(247,249,252,0.78)_100%)]",
+            "rounded-t-xl glass-floating",
             "focus:outline-none",
-            "border border-white/66 border-b-0 will-change-transform",
+            "border-b-0 will-change-transform",
             isBounded && "pointer-events-auto",
             // Slide-in from bottom
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "duration-[420ms]",
+            "duration-[var(--spring-slow-duration,400ms)]",
             // Reduce motion: disable animations
             "motion-reduce:duration-0"
           )}
@@ -137,7 +139,7 @@ export function BottomSheet({
             maxHeight: isBounded ? `${maxHeight}%` : `${maxHeight}dvh`,
             animationTimingFunction: SPRING_EASING,
             paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
-            boxShadow: "0 -24px 48px rgba(15,23,42,0.18), inset 0 1px 0 rgba(255,255,255,0.72), var(--edge-rest)",
+            boxShadow: "var(--elevation-4)",
           }}
           data-testid="bottom-sheet"
         >
@@ -150,7 +152,7 @@ export function BottomSheet({
             onPointerCancel={settleSheet}
             data-testid="bottom-sheet-drag-handle"
           >
-            <div className="h-1.5 w-10 rounded-full bg-[rgb(var(--workspace-tint,59_130_246)/0.32)]" />
+            <div className="h-1.5 w-10 rounded-full bg-[rgb(var(--ws-primary,var(--primary-base))/0.32)]" />
           </div>
 
           {/* Header */}
