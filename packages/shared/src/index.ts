@@ -482,6 +482,8 @@ export {
   useVaultEvents,
   useVaultPreview,
   useVaultWithdraw,
+  useContainerQuery,
+  useSheetWidth,
   useIsDarkMode,
   useWindowEvent,
   fetchApprovalsByRecipients,

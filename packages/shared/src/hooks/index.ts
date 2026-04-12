@@ -351,6 +351,8 @@ export { useDebouncedValue } from "./utils/useDebouncedValue";
 // UI (General-purpose UI utilities)
 // ============================================================================
 export { useIsDarkMode } from "./ui/useIsDarkMode";
+export { useContainerQuery } from "./useContainerQuery";
+export { useSheetWidth } from "./useSheetWidth";
 // ============================================================================
 // UTILS (Low-level hooks for common patterns)
 // ============================================================================
