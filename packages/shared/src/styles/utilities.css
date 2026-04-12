@@ -180,11 +180,11 @@
   @keyframes stagger-fade-in {
     from {
       opacity: 0;
-      transform: translateY(8px);
+      transform: translateY(8px) scale(0.97);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
@@ -194,18 +194,21 @@
 
   .animate-stagger-in > * {
     opacity: 0;
-    animation: stagger-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: stagger-fade-in var(--spring-dramatic-duration, 500ms) var(--spring-dramatic-easing, cubic-bezier(0.16, 1, 0.3, 1)) both;
   }
 
   .animate-stagger-in > *:nth-child(1) { animation-delay: 0ms; }
-  .animate-stagger-in > *:nth-child(2) { animation-delay: 40ms; }
-  .animate-stagger-in > *:nth-child(3) { animation-delay: 80ms; }
-  .animate-stagger-in > *:nth-child(4) { animation-delay: 120ms; }
-  .animate-stagger-in > *:nth-child(5) { animation-delay: 160ms; }
-  .animate-stagger-in > *:nth-child(6) { animation-delay: 200ms; }
-  .animate-stagger-in > *:nth-child(7) { animation-delay: 240ms; }
-  .animate-stagger-in > *:nth-child(8) { animation-delay: 280ms; }
-  .animate-stagger-in > *:nth-child(n+9) { animation-delay: 320ms; }
+  .animate-stagger-in > *:nth-child(2) { animation-delay: 50ms; }
+  .animate-stagger-in > *:nth-child(3) { animation-delay: 100ms; }
+  .animate-stagger-in > *:nth-child(4) { animation-delay: 150ms; }
+  .animate-stagger-in > *:nth-child(5) { animation-delay: 200ms; }
+  .animate-stagger-in > *:nth-child(6) { animation-delay: 250ms; }
+  .animate-stagger-in > *:nth-child(7) { animation-delay: 300ms; }
+  .animate-stagger-in > *:nth-child(8) { animation-delay: 350ms; }
+  .animate-stagger-in > *:nth-child(9) { animation-delay: 400ms; }
+  .animate-stagger-in > *:nth-child(10) { animation-delay: 450ms; }
+  .animate-stagger-in > *:nth-child(11) { animation-delay: 500ms; }
+  .animate-stagger-in > *:nth-child(n+12) { animation-delay: 550ms; }
 
   @media (prefers-reduced-motion: reduce) {
     .animate-stagger-in > * {
