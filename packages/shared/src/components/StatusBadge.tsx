@@ -283,7 +283,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   variant,
   ...props
 }) => {
-  const textSize = size === "sm" ? "text-xs" : "text-sm";
+  const textSize = size === "sm" ? "text-label-sm" : "text-label-md";
   const resolvedProps = { className, showIcon, size, variant, ...props } as StatusBadgeProps;
 
   if (isWorkStatusProps(resolvedProps)) {
