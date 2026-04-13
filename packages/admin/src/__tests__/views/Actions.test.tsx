@@ -28,7 +28,6 @@ vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) =>
     React.createElement("button", { onClick }, children),
-  CanvasStageTabRail: () => React.createElement("div", { "data-testid": "stage-rail" }),
   CanvasWorkbenchList: ({ children, ...props }: { children?: React.ReactNode }) =>
     React.createElement("div", props, children),
   CanvasWorkbenchRow: ({
@@ -60,9 +59,6 @@ vi.mock("@green-goods/shared", () => ({
   },
   en: {},
   formatDate: () => "Jan 1",
-  ListToolbar: ({ children }: { children?: React.ReactNode }) =>
-    React.createElement("div", {}, children),
-  SortSelect: () => React.createElement("div", {}, "Sort"),
   useActions: () => mockUseActions(),
   useFabConfig: (...args: unknown[]) => mockUseFabConfig(...args),
   useFilteredActions: (...args: unknown[]) => mockUseFilteredActions(...args),
@@ -72,6 +68,20 @@ vi.mock("@green-goods/shared", () => ({
     setFilter: mockSetFilter,
     resetFilters: mockResetFilters,
   }),
+}));
+
+vi.mock("@/components/AdminTabRail", () => ({
+  AdminTabRail: () => React.createElement("div", { "data-testid": "stage-rail" }),
+}));
+
+vi.mock("@/components/AdminSearchToolbar", () => ({
+  AdminSearchToolbar: ({ children }: { children?: React.ReactNode }) =>
+    React.createElement("div", { "data-testid": "search-toolbar" }, children),
+}));
+
+vi.mock("@/components/AdminFilterChip", () => ({
+  AdminFilterChip: ({ label, selected }: { label: string; selected: boolean }) =>
+    React.createElement("button", { "data-selected": selected }, label),
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({

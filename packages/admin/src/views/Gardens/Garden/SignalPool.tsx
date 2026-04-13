@@ -1,7 +1,6 @@
 import {
   type Address,
   Alert,
-  CanvasStageTabRail,
   adminRoutes,
   ConfirmDialog,
   formatAddress,
@@ -19,6 +18,7 @@ import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
+import { AdminTabRail } from "@/components/AdminTabRail";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 /**
@@ -199,7 +199,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
         }}
         sticky
       >
-        <CanvasStageTabRail
+        <AdminTabRail
           ariaLabel={formatMessage({ id: "app.community.pools" })}
           activeId={isActionPool ? "action" : "hypercert"}
           onChange={(nextPoolType) =>
@@ -231,7 +231,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
 
       <div className={contentClassName}>
         {layout === "sheet" ? (
-          <CanvasStageTabRail
+          <AdminTabRail
             ariaLabel={formatMessage({ id: "app.community.pools" })}
             activeId={isActionPool ? "action" : "hypercert"}
             onChange={(nextPoolType) =>
