@@ -83,11 +83,11 @@ export function SideSheet({
             isBounded ? "absolute top-0" : "fixed top-0",
             isBounded ? "z-[46]" : "z-modal",
             "flex h-full flex-col",
-            "glass-floating focus:outline-none",
+            "focus:outline-none",
             "will-change-transform",
             isBounded && "pointer-events-auto",
             // Position + rounding per spec: 20px concentric radius
-            isLeft ? "left-0 rounded-r-xl border-l-0" : "right-0 rounded-l-xl border-r-0",
+            isLeft ? "left-0 rounded-r-xl" : "right-0 rounded-l-xl",
             // Slide animation direction
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             isLeft
@@ -104,7 +104,11 @@ export function SideSheet({
             paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
             left: isLeft ? 0 : undefined,
             right: isLeft ? undefined : 0,
-            boxShadow: "var(--elevation-4)",
+            background: "rgb(var(--neutral-0) / 55%)",
+            backdropFilter: "blur(20px) saturate(1.5)",
+            boxShadow: isLeft
+              ? "inset -1px 0 0 0 rgb(var(--neutral-0) / 25%), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)"
+              : "inset 1px 0 0 0 rgb(var(--neutral-0) / 25%), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
           }}
           data-testid="side-sheet"
         >
