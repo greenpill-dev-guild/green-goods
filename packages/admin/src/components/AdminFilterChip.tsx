@@ -48,9 +48,9 @@ export function AdminFilterChip({
       className={cn(
         // Shape & layout
         "inline-flex items-center gap-1.5 px-3",
-        "h-8 rounded-[var(--m3-shape-sm)]",
-        // Typography
-        "text-label-lg font-medium whitespace-nowrap",
+        "h-7 rounded-[var(--m3-shape-sm)]",
+        // Typography: compact for admin
+        "text-label-sm font-medium whitespace-nowrap",
         // State layer
         "m3-state-layer",
         // Focus ring
@@ -68,9 +68,8 @@ export function AdminFilterChip({
               "[--state-layer-color:var(--m3-on-secondary-container)]",
             ]
           : [
-              // Unselected: transparent, outline ring
-              "bg-transparent",
-              "ring-1 ring-inset ring-[rgb(var(--m3-outline))]",
+              // Unselected: subtle surface fill, no border
+              "bg-[rgb(var(--m3-surface-container))]",
               "text-[rgb(var(--m3-on-surface-variant))]",
               "[--state-layer-color:var(--m3-on-surface-variant)]",
             ],

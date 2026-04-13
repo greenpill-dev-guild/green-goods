@@ -60,8 +60,8 @@ export function AdminSearchToolbar({
         className={cn(
           // Shape: pill
           "rounded-[var(--m3-shape-full)]",
-          // Height
-          "h-14",
+          // Height: compact for admin density (M3 spec is 56dp, reduced to 40dp)
+          "h-10",
           // Background + elevation
           "bg-[rgb(var(--m3-surface-container-high))]",
           "shadow-[var(--m3-elevation-3)]",
@@ -71,7 +71,7 @@ export function AdminSearchToolbar({
       >
         {/* Leading search icon */}
         <RiSearchLine
-          className="ml-4 h-6 w-6 shrink-0 text-[rgb(var(--m3-on-surface))]"
+          className="ml-3 h-4 w-4 shrink-0 text-[rgb(var(--m3-on-surface))]"
           aria-hidden
         />
 
@@ -83,8 +83,8 @@ export function AdminSearchToolbar({
           placeholder={placeholder}
           aria-label={placeholder}
           className={cn(
-            "flex-1 bg-transparent px-4",
-            "text-body-lg text-[rgb(var(--m3-on-surface))]",
+            "flex-1 bg-transparent px-3",
+            "text-body-md text-[rgb(var(--m3-on-surface))]",
             "placeholder:text-[rgb(var(--m3-on-surface-variant))]",
             "outline-none border-none focus:outline-none"
           )}
@@ -98,7 +98,7 @@ export function AdminSearchToolbar({
             aria-label={clearLabel}
             className={cn(
               // 40dp circular touch target
-              "mr-2 h-10 w-10 shrink-0 rounded-full",
+              "mr-1.5 h-8 w-8 shrink-0 rounded-full",
               // State layer
               "m3-state-layer",
               "[--state-layer-color:var(--m3-on-surface-variant)]",
@@ -108,7 +108,7 @@ export function AdminSearchToolbar({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]"
             )}
           >
-            <RiCloseLine className="h-6 w-6" aria-hidden />
+            <RiCloseLine className="h-4 w-4" aria-hidden />
           </button>
         ) : null}
       </div>

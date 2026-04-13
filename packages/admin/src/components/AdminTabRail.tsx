@@ -33,7 +33,7 @@ export interface AdminTabRailProps {
  * - Flat surface container (corner-none) with bottom border
  * - 3dp active indicator underline that slides between tabs via spring animation
  * - State layer on each button (m3-state-layer from admin-m3-tokens.css)
- * - 48dp height (label only) or 64dp height (icon + label) auto-detected
+ * - Compact density: 36dp (label) or 40dp (icon + label) for admin information density
  * - M3 notification badge on count prop (16dp, corner-full, error bg)
  *
  * Accepts the same data contract as the shared CanvasStageTabRail so
@@ -124,9 +124,9 @@ export function AdminTabRail({
               // Layout: equal share, column or row depending on icon presence
               "m3-state-layer",
               "relative flex flex-1 items-center justify-center",
-              hasIcons ? "h-16 flex-col gap-[2px]" : "h-12 flex-row gap-2",
-              // Typography: title-sm (14sp, weight 500)
-              "text-[0.875rem] font-medium leading-snug",
+              hasIcons ? "h-10 flex-row gap-1.5 px-3" : "h-9 flex-row gap-1.5 px-3",
+              // Typography: label-large (compact density for admin)
+              "text-[0.8125rem] font-medium leading-snug",
               // Color: active vs inactive
               active
                 ? "text-[rgb(var(--m3-primary))] [--state-layer-color:var(--m3-primary)]"
@@ -138,11 +138,11 @@ export function AdminTabRail({
               // No transition on tab button itself (indicator handles motion)
             )}
           >
-            {/* Icon — 24dp, inherits text color */}
+            {/* Icon — 18dp compact, inherits text color */}
             {Icon ? (
               <Icon
                 className={cn(
-                  "h-6 w-6 shrink-0",
+                  "h-[18px] w-[18px] shrink-0",
                   active
                     ? "text-[rgb(var(--m3-primary))]"
                     : "text-[rgb(var(--m3-on-surface-variant))]"
@@ -154,17 +154,16 @@ export function AdminTabRail({
             {/* Label */}
             <span className="truncate">{tab.label}</span>
 
-            {/* M3 notification badge */}
+            {/* Inline count badge — compact style */}
             {tab.count !== undefined ? (
               <span
                 className={cn(
-                  "absolute right-2 top-2",
                   "inline-flex items-center justify-center",
-                  "min-w-4 h-4 px-1",
+                  "min-w-[1.125rem] h-[1.125rem] px-1",
                   "rounded-[var(--m3-shape-full)]",
                   "bg-[rgb(var(--m3-error))] text-[rgb(var(--m3-on-error))]",
-                  "text-label-sm font-bold leading-none",
-                  "pointer-events-none select-none"
+                  "text-[0.625rem] font-bold leading-none",
+                  "pointer-events-none select-none",
                 )}
                 aria-label={`${tab.count} items`}
               >
