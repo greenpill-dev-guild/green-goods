@@ -134,7 +134,7 @@ export function AdminTabRail({
               // Focus ring
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--m3-primary))]",
               // Disabled
-              tab.disabled && "pointer-events-none opacity-[0.38]",
+              tab.disabled && "pointer-events-none opacity-[0.38]"
               // No transition on tab button itself (indicator handles motion)
             )}
           >

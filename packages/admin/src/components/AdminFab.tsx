@@ -30,7 +30,13 @@ export interface AdminFabProps {
  * Icon/label: on-primary-container color
  * Elevation: elevation-3 base, elevation-4 on hover
  */
-export function AdminFab({ icon: Icon, label, onClick, size = "standard", className }: AdminFabProps) {
+export function AdminFab({
+  icon: Icon,
+  label,
+  onClick,
+  size = "standard",
+  className,
+}: AdminFabProps) {
   const isExtended = Boolean(label);
 
   return (
@@ -80,10 +86,7 @@ export function AdminFab({ icon: Icon, label, onClick, size = "standard", classN
       )}
     >
       <Icon
-        className={cn(
-          "shrink-0",
-          size === "large" && !isExtended ? "h-9 w-9" : "h-6 w-6"
-        )}
+        className={cn("shrink-0", size === "large" && !isExtended ? "h-9 w-9" : "h-6 w-6")}
         aria-hidden
       />
       {isExtended ? <span>{label}</span> : null}

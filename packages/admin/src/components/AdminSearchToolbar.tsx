@@ -114,9 +114,7 @@ export function AdminSearchToolbar({
       </div>
 
       {/* Filter chip children — flex shrink-0, no wrapping */}
-      {children ? (
-        <div className="flex shrink-0 items-center gap-2">{children}</div>
-      ) : null}
+      {children ? <div className="flex shrink-0 items-center gap-2">{children}</div> : null}
     </div>
   );
 }

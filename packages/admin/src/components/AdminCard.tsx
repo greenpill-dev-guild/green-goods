@@ -18,15 +18,9 @@ export const adminCardVariants = tv({
   variants: {
     variant: {
       // Filled — surface-container-highest, no outline, elevation 0→1 on hover
-      filled: [
-        "bg-[rgb(var(--m3-surface-container-highest))]",
-        "shadow-[var(--m3-elevation-0)]",
-      ],
+      filled: ["bg-[rgb(var(--m3-surface-container-highest))]", "shadow-[var(--m3-elevation-0)]"],
       // Elevated — surface-container-low, elevation 1 base
-      elevated: [
-        "bg-[rgb(var(--m3-surface-container-low))]",
-        "shadow-[var(--m3-elevation-1)]",
-      ],
+      elevated: ["bg-[rgb(var(--m3-surface-container-low))]", "shadow-[var(--m3-elevation-1)]"],
       // Outlined — surface, no elevation, ring outline
       outlined: [
         "bg-[rgb(var(--m3-surface))]",
@@ -35,11 +29,7 @@ export const adminCardVariants = tv({
       ],
     },
     interactive: {
-      true: [
-        "m3-state-layer",
-        "cursor-pointer",
-        "[--state-layer-color:var(--m3-on-surface)]",
-      ],
+      true: ["m3-state-layer", "cursor-pointer", "[--state-layer-color:var(--m3-on-surface)]"],
       false: [],
     },
   },
@@ -103,10 +93,7 @@ export function AdminCard({
   ...props
 }: AdminCardProps) {
   return (
-    <div
-      className={cn(adminCardVariants({ variant, interactive }), className)}
-      {...props}
-    >
+    <div className={cn(adminCardVariants({ variant, interactive }), className)} {...props}>
       {children}
     </div>
   );

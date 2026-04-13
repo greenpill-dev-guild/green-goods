@@ -123,10 +123,7 @@ export function AdminDialog({
           {/* Optional description */}
           {description ? (
             <Dialog.Description
-              className={cn(
-                "mt-4 text-body-md",
-                "text-[rgb(var(--m3-on-surface-variant))]"
-              )}
+              className={cn("mt-4 text-body-md", "text-[rgb(var(--m3-on-surface-variant))]")}
             >
               {description}
             </Dialog.Description>
@@ -138,9 +135,7 @@ export function AdminDialog({
           </div>
 
           {/* Actions — right-aligned row */}
-          {actions ? (
-            <div className="mt-6 flex justify-end gap-2">{actions}</div>
-          ) : null}
+          {actions ? <div className="mt-6 flex justify-end gap-2">{actions}</div> : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

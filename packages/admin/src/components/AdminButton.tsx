@@ -134,10 +134,7 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
   ) => {
     const hasLeadingIcon = Boolean(leadingIcon) || loading;
 
-    const classes = cn(
-      adminButtonVariants({ variant, size, hasLeadingIcon }),
-      className
-    );
+    const classes = cn(adminButtonVariants({ variant, size, hasLeadingIcon }), className);
 
     const leadingSlot = loading ? (
       <RiLoader4Line className="h-[18px] w-[18px] shrink-0 animate-spin" aria-hidden />

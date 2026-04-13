@@ -88,9 +88,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
 
     // Determine if the label should be in floating position
     const hasValue =
-      value !== undefined
-        ? value.length > 0
-        : (internalRef.current?.value?.length ?? 0) > 0;
+      value !== undefined ? value.length > 0 : (internalRef.current?.value?.length ?? 0) > 0;
 
     const isFloating = focused || hasValue || Boolean(defaultValue);
 
@@ -127,9 +125,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
       // Remove browser defaults
       "outline-none border-none focus:outline-none focus:border-none",
       // Caret color
-      hasError
-        ? "caret-[rgb(var(--m3-error))]"
-        : "caret-[rgb(var(--m3-primary))]",
+      hasError ? "caret-[rgb(var(--m3-error))]" : "caret-[rgb(var(--m3-primary))]",
       // Placeholder — only visible when focused and empty
       "placeholder-[rgb(var(--m3-on-surface-variant)/0.6)]",
       !focused && "placeholder-transparent",
@@ -427,9 +423,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
             role={hasError ? "alert" : undefined}
             className={cn(
               "mt-1 px-4 text-body-sm",
-              hasError
-                ? "text-[rgb(var(--m3-error))]"
-                : "text-[rgb(var(--m3-on-surface-variant))]",
+              hasError ? "text-[rgb(var(--m3-error))]" : "text-[rgb(var(--m3-on-surface-variant))]",
               disabled && "text-[rgb(var(--m3-on-surface)/0.38)]"
             )}
           >

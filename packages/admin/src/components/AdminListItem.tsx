@@ -25,10 +25,7 @@ export interface AdminListItemProps {
 // ============================================================================
 
 /** Derives the M3 line count (1, 2, or 3) from the item's content. */
-function getLineCount(
-  overline: string | undefined,
-  supportingText: string | undefined
-): 1 | 2 | 3 {
+function getLineCount(overline: string | undefined, supportingText: string | undefined): 1 | 2 | 3 {
   if (overline || (supportingText && supportingText.length > 60)) return 3;
   if (supportingText) return 2;
   return 1;
@@ -147,15 +144,15 @@ export function AdminListItem({
   const textContent = (
     <div className="min-w-0 flex-1">
       {overline ? (
-        <p className="truncate text-label-sm text-[rgb(var(--m3-on-surface-variant))]" title={overline}>
+        <p
+          className="truncate text-label-sm text-[rgb(var(--m3-on-surface-variant))]"
+          title={overline}
+        >
           {overline}
         </p>
       ) : null}
 
-      <p
-        className="truncate text-body-lg text-[rgb(var(--m3-on-surface))]"
-        title={label}
-      >
+      <p className="truncate text-body-lg text-[rgb(var(--m3-on-surface))]" title={label}>
         {label}
       </p>
 
