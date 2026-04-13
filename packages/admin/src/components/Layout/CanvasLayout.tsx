@@ -299,7 +299,7 @@ export function CanvasLayout() {
 
   return (
     <FabProvider>
-      <div data-workspace={workspaceId} className="flex h-full min-h-0 flex-col workspace-canvas">
+      <div data-workspace={workspaceId} className="admin-m3 flex h-full min-h-0 flex-col workspace-canvas">
         {/* Skip to content */}
         <a
           href="#main-content"

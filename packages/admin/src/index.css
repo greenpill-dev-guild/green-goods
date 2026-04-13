@@ -2,6 +2,7 @@
 @import "tailwindcss";
 @import "@green-goods/shared/styles/theme.css";
 @import "./styles/admin-m3-tokens.css";
+@import "./styles/admin-m3-overrides.css";
 @import "@green-goods/shared/styles/utilities.css";
 
 /* Configure dark mode to use data-theme attribute */

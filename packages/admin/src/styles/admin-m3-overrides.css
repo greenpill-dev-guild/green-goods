@@ -1,0 +1,47 @@
+/* Navigation Bar — M3 anatomy overrides
+ * Applied via .admin-m3 class on CanvasLayout root */
+
+.admin-m3 nav[aria-label] {
+  min-height: 80px;
+  background: rgb(var(--m3-surface-container));
+  box-shadow: var(--m3-elevation-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Bottom Sheet — M3 shape + surface */
+.admin-m3 [role="dialog"][data-state="open"] .rounded-t-xl {
+  border-radius: var(--m3-shape-xl) var(--m3-shape-xl) 0 0;
+}
+
+/* Side Sheet — narrower */
+.admin-m3 [role="dialog"][data-state="open"] .rounded-l-xl,
+.admin-m3 [role="dialog"][data-state="open"] .rounded-r-xl {
+  max-width: 256px;
+  border-radius: var(--m3-shape-lg) 0 0 var(--m3-shape-lg);
+}
+
+/* Toast / Snackbar — M3 inverse surface */
+.admin-m3 [data-hot-toast] > div {
+  background: rgb(var(--m3-inverse-surface)) !important;
+  color: rgb(var(--m3-inverse-on-surface)) !important;
+  border-radius: var(--m3-shape-xs) !important;
+  box-shadow: var(--m3-elevation-3) !important;
+}
+
+/* Date Picker — M3 surface + shape */
+.admin-m3 .rdp {
+  border-radius: var(--m3-shape-lg);
+  background: rgb(var(--m3-surface-container-high));
+  box-shadow: var(--m3-elevation-3);
+}
+
+.admin-m3 .rdp-day_selected {
+  background: rgb(var(--m3-primary)) !important;
+  color: rgb(var(--m3-on-primary)) !important;
+}
+
+.admin-m3 .rdp-day_today {
+  color: rgb(var(--m3-primary));
+  font-weight: 700;
+}
