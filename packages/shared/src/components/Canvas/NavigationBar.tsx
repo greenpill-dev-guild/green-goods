@@ -51,7 +51,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
       onClick={() => onNavigate(slot.path)}
       aria-current={isActive ? "page" : undefined}
       className={cn(
-        "group relative flex items-center justify-center gap-1.5 overflow-hidden",
+        "group relative flex cursor-pointer items-center justify-center gap-1.5 overflow-hidden",
         mobile
           ? "min-h-[3.75rem] min-w-0 flex-1 flex-col rounded-[1.15rem] px-1.5 py-2"
           : "min-w-[4.25rem] rounded-[1.1rem] px-3 py-2",
@@ -135,7 +135,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                 type="button"
                 onClick={() => handleAction(action.id)}
                 className={cn(
-                  "flex items-center gap-2 rounded-full px-3 py-2",
+                  "flex cursor-pointer items-center gap-2 rounded-full px-3 py-2",
                   "border border-white/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.86)_100%)] shadow-[0_16px_30px_rgba(15,23,42,0.14)]",
                   "text-sm font-medium text-text-strong",
                   "transition-all hover:shadow-[0_20px_34px_rgba(15,23,42,0.18)]",
@@ -162,10 +162,10 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         aria-label={config.label}
         aria-expanded={speedDialOpen || undefined}
         className={cn(
-          "flex items-center justify-center rounded-full border border-white/35",
+          "flex cursor-pointer items-center justify-center rounded-full border border-white/35",
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
           "bg-[rgb(var(--ws-primary,var(--primary-base)))] text-[rgb(var(--ws-on-primary,255_255_255))] shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
-          "transition-all hover:shadow-[0_24px_40px_rgba(15,23,42,0.28),inset_0_0_0_1px_rgba(255,255,255,0.28)]",
+          "transition-all hover:scale-105 hover:shadow-[0_24px_40px_rgba(15,23,42,0.28),inset_0_0_0_1px_rgba(255,255,255,0.28)]",
           mobileFloating &&
             "shadow-[0_24px_44px_rgb(var(--workspace-tint,59_130_246)/0.32),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "active:scale-95",
@@ -268,7 +268,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
             "canvas-navigation-bar fixed bottom-4 left-1/2 z-nav flex -translate-x-1/2 items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
             "glass-ground",
-            "dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(var(--neutral-900)/0.88)_0%,rgba(var(--neutral-950)/0.76)_100%)]",
+            "dark:border-stroke-soft dark:bg-[linear-gradient(180deg,rgb(var(--bg-soft-200)/0.88)_0%,rgb(var(--bg-white-0)/0.76)_100%)]",
             "animate-[nav-bar-enter_var(--spring-medium-duration,300ms)_cubic-bezier(0.16,1,0.3,1)_both]",
             "motion-reduce:animate-none"
           )}

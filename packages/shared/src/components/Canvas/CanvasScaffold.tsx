@@ -158,7 +158,7 @@ export function CanvasWorkbenchList({
     <div
       {...props}
       className={cn(
-        "overflow-hidden rounded-xl divide-y divide-black/5 dark:divide-white/5",
+        "overflow-hidden rounded-xl divide-y divide-stroke-soft",
         "glass-raised",
         className
       )}
