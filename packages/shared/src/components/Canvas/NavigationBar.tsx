@@ -261,15 +261,14 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         </div>
       ) : null}
 
-      {isDesktop && (desktopSlots.length > 1 || fab) && (
+      {isDesktop && desktopSlots.length > 1 && (
         <nav
           aria-label={navLabel}
           className={cn(
             "canvas-navigation-bar fixed bottom-4 left-1/2 z-nav flex -translate-x-1/2 items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
             "glass-ground",
-            "dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(20,24,33,0.88)_0%,rgba(17,19,27,0.76)_100%)]",
-            fab && "pr-2.5",
+            "dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(var(--neutral-900)/0.88)_0%,rgba(var(--neutral-950)/0.76)_100%)]",
             "animate-[nav-bar-enter_var(--spring-medium-duration,300ms)_cubic-bezier(0.16,1,0.3,1)_both]",
             "motion-reduce:animate-none"
           )}
@@ -286,8 +285,19 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
               label={formatMessage({ id: slot.labelId })}
             />
           ))}
-          {fab && <FabButton config={fab} />}
         </nav>
+      )}
+
+      {isDesktop && fab && (
+        <div
+          className={cn(
+            "fixed bottom-4 right-6 z-nav",
+            "animate-[nav-bar-enter_var(--spring-medium-duration,300ms)_cubic-bezier(0.16,1,0.3,1)_both]",
+            "motion-reduce:animate-none"
+          )}
+        >
+          <FabButton config={fab} />
+        </div>
       )}
 
       {!isDesktop && mobileSlots.length > 1 && !hideMobileChrome && (
