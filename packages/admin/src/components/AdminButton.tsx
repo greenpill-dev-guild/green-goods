@@ -7,7 +7,7 @@ import { cn } from "@green-goods/shared";
 // Variant System
 // ============================================================================
 
-const adminButtonVariants = tv({
+export const adminButtonVariants = tv({
   base: [
     // Layout & shape
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
@@ -65,9 +65,9 @@ const adminButtonVariants = tv({
       ],
     },
     size: {
-      sm: "h-10 px-4",
-      md: "h-10 px-6",
-      lg: "h-12 px-6",
+      sm: "h-10 px-4 text-label-sm",
+      md: "h-10 px-6 text-label-lg",
+      lg: "h-12 px-6 text-body-lg",
     },
     hasLeadingIcon: {
       true: "pl-4",
