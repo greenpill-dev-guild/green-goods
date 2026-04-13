@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap");
 @import "tailwindcss";
 @import "@green-goods/shared/styles/theme.css";
+@import "./styles/admin-m3-tokens.css";
 @import "@green-goods/shared/styles/utilities.css";
 
 /* Configure dark mode to use data-theme attribute */
