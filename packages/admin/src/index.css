@@ -384,22 +384,36 @@
  * ============================================================================ */
 [data-workspace="hub"] .glass-raised,
 [data-workspace="hub"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--blue-500)) 4%);
+  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 92%, rgb(var(--blue-500)) 8%);
 }
 
 [data-workspace="garden"] .glass-raised,
 [data-workspace="garden"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--green-500)) 4%);
+  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 92%, rgb(var(--green-500)) 8%);
 }
 
 [data-workspace="community"] .glass-raised,
 [data-workspace="community"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--orange-500)) 4%);
+  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 92%, rgb(var(--orange-500)) 8%);
 }
 
 [data-workspace="actions"] .glass-raised,
 [data-workspace="actions"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 96%, rgb(var(--red-500)) 4%);
+  background: color-mix(in srgb, rgb(var(--neutral-0) / 70%) 92%, rgb(var(--red-500)) 8%);
+}
+
+/* Workspace-aware tab rail tint */
+[data-workspace="hub"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--blue-50) / 0.5) 0%, rgb(var(--neutral-100) / 0.7) 100%);
+}
+[data-workspace="garden"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--green-50) / 0.5) 0%, rgb(var(--neutral-100) / 0.7) 100%);
+}
+[data-workspace="community"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--orange-50) / 0.5) 0%, rgb(var(--neutral-100) / 0.7) 100%);
+}
+[data-workspace="actions"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--red-50) / 0.5) 0%, rgb(var(--neutral-100) / 0.7) 100%);
 }
 
 /* Workspace color cross-dissolve when switching views */

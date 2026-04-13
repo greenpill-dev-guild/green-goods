@@ -73,7 +73,7 @@ export function CanvasStageTabRail({
       aria-label={ariaLabel}
       className={cn(
         "relative isolate flex w-full rounded-lg px-[var(--canvas-stage-pad-x)] py-[var(--canvas-stage-pad-y)] [--canvas-stage-pad-x:0.25rem] [--canvas-stage-pad-y:0.25rem] max-[599px]:rounded-none max-[599px]:[--canvas-stage-pad-x:0.75rem] max-[599px]:[--canvas-stage-pad-y:0.35rem]",
-        "bg-[linear-gradient(180deg,rgb(244_242_236/0.9)_0%,rgb(238_235_229/0.7)_100%)] dark:bg-bg-sub/80",
+        "canvas-stage-tab-rail-tint bg-[linear-gradient(180deg,rgb(var(--neutral-100)/0.9)_0%,rgb(var(--neutral-200)/0.7)_100%)] dark:bg-bg-sub/80",
         className
       )}
       style={{
