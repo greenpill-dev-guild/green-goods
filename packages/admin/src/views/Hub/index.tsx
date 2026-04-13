@@ -7,17 +7,14 @@ import {
   CanvasMetaStrip,
   CanvasMobileActionSlot,
   CanvasSheetFrame,
-  CanvasStageTabRail,
   CanvasWorkbenchList,
   CanvasWorkbenchRow,
   EmptyState,
   formatAddress,
   formatRelativeTime,
-  ListToolbar,
   resolveIPFSUrl,
   SideSheet,
   type SortOption,
-  SortSelect,
   Surface,
   useActions,
   useAdminStore,
@@ -31,6 +28,9 @@ import {
   useSheetOrchestrator,
   type Work,
 } from "@green-goods/shared";
+import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import {
   RiAddLine,
   RiCheckboxCircleLine,
@@ -60,11 +60,11 @@ const HISTORY_CONTENT_ID_PREFIX = "hub:history:";
 const SUBMIT_WORK_CONTENT_ID = "hub:submit-work";
 const HUB_STAGE_RAIL_ID = "hub-stage";
 const HUB_META_PILL_CLASSNAME =
-  "inline-flex items-center rounded-full bg-white/80 px-2.5 py-[0.34rem] text-[0.74rem] font-semibold text-text-sub shadow-[inset_0_0_0_1px_rgba(0,0,0,0.04)]";
+  "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-[0.34rem] text-[0.74rem] font-semibold text-text-sub shadow-[var(--edge-rest)]";
 const HUB_CERTIFY_STATUS_CLASSNAME =
   "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-strong";
 const HUB_HISTORY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-white/85 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-sub shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)]";
+  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-sub shadow-[var(--edge-rest)]";
 
 function resolvePipelineStageFromPath(pathname: string): HubPipelineStage {
   if (pathname.startsWith("/hub/assess")) return "assess";
@@ -1263,11 +1263,10 @@ export default function HubView() {
               }
               toolbar={
                 <div className="hub-toolbar-shell">
-                  <ListToolbar
+                  <AdminSearchToolbar
                     search={searchTerm}
                     onSearchChange={setSearchTerm}
-                    searchPlaceholder={searchPlaceholder}
-                    className="hub-list-toolbar"
+                    placeholder={searchPlaceholder}
                   >
                     <Button
                       variant="secondary"
@@ -1286,33 +1285,31 @@ export default function HubView() {
                     >
                       <RiRefreshLine className="h-4 w-4" />
                     </Button>
-                    {(stage === "work" || stage === "history") && (
-                      <SortSelect
-                        value={sortDirection}
-                        onChange={(value) => updateSearch({ sort: value }, false)}
-                        options={sortOptions}
-                        className="hub-sort-select"
-                      />
-                    )}
-                  </ListToolbar>
+                    {(stage === "work" || stage === "history") &&
+                      sortOptions.map((option) => (
+                        <AdminFilterChip
+                          key={option.value}
+                          label={option.label}
+                          selected={sortDirection === option.value}
+                          onToggle={() => updateSearch({ sort: option.value }, false)}
+                        />
+                      ))}
+                  </AdminSearchToolbar>
                 </div>
               }
             >
-              <CanvasStageTabRail
+              <AdminTabRail
                 idBase={HUB_STAGE_RAIL_ID}
-                tabs={stages.map((option) => ({
-                  id: option.id,
-                  label: formatMessage({
-                    id: option.labelId,
-                    defaultMessage: option.defaultMessage,
-                  }),
-                  icon: option.icon,
-                  count: option.count,
+                tabs={stages.map((s) => ({
+                  id: s.id,
+                  label: formatMessage({ id: s.labelId, defaultMessage: s.defaultMessage }),
+                  icon: s.icon,
+                  count: s.count,
                 }))}
                 activeId={stage}
                 ariaLabel={formatMessage({
-                  id: "cockpit.hub.viewSwitcher",
-                  defaultMessage: "Pipeline stages",
+                  id: "cockpit.hub.tabRail",
+                  defaultMessage: "Hub pipeline stages",
                 })}
                 onChange={(nextStage) => {
                   closeSheet();
