@@ -32,13 +32,28 @@ interface StageConfigWithKey extends StageConfig {
 }
 
 const STAGE_CONFIG: Record<SubmissionStage, StageConfigWithKey> = {
-  idle: { label: "Ready", labelKey: "idle", icon: "○", color: "text-gray-400" },
-  compressing: { label: "Compressing", labelKey: "compressing", icon: "◐", color: "text-blue-500" },
-  uploading: { label: "Uploading", labelKey: "uploading", icon: "↑", color: "text-indigo-500" },
-  confirming: { label: "Confirming", labelKey: "confirming", icon: "⟳", color: "text-amber-500" },
-  syncing: { label: "Syncing", labelKey: "syncing", icon: "◉", color: "text-purple-500" },
-  complete: { label: "Complete", labelKey: "complete", icon: "✓", color: "text-green-500" },
-  error: { label: "Error", labelKey: "error", icon: "✕", color: "text-red-500" },
+  idle: { label: "Ready", labelKey: "idle", icon: "○", color: "text-text-disabled" },
+  compressing: {
+    label: "Compressing",
+    labelKey: "compressing",
+    icon: "◐",
+    color: "text-information-base",
+  },
+  uploading: {
+    label: "Uploading",
+    labelKey: "uploading",
+    icon: "↑",
+    color: "text-information-dark",
+  },
+  confirming: {
+    label: "Confirming",
+    labelKey: "confirming",
+    icon: "⟳",
+    color: "text-warning-base",
+  },
+  syncing: { label: "Syncing", labelKey: "syncing", icon: "◉", color: "text-feature-base" },
+  complete: { label: "Complete", labelKey: "complete", icon: "✓", color: "text-success-base" },
+  error: { label: "Error", labelKey: "error", icon: "✕", color: "text-error-base" },
 };
 
 const ORDERED_STAGES = ["compressing", "uploading", "confirming", "syncing"] as const;
@@ -73,9 +88,9 @@ function CompactProgress({ progress }: { progress: SubmissionProgressState }) {
   return (
     <div className="flex items-center gap-2 text-sm">
       <span className={`animate-pulse ${config.color}`}>{config.icon}</span>
-      <span className="text-gray-600 dark:text-gray-300">{progress.message}</span>
+      <span className="text-text-sub">{progress.message}</span>
       {progress.stage !== "complete" && progress.stage !== "error" && (
-        <span className="text-gray-400">{progress.overallProgress}%</span>
+        <span className="text-text-disabled">{progress.overallProgress}%</span>
       )}
     </div>
   );
@@ -126,19 +141,19 @@ function StageDot({
   const isPending =
     !isComplete && !isCurrent && stageIsOrdered && currentIsOrdered && currentIndex < stageIndex;
 
-  let bgColor = "bg-gray-200 dark:bg-gray-700";
-  let textColor = "text-gray-400";
+  let bgColor = "bg-bg-soft";
+  let textColor = "text-text-disabled";
   let icon = config.icon;
 
   if (isComplete) {
-    bgColor = "bg-green-500";
+    bgColor = "bg-success-base";
     textColor = "text-white";
     icon = "✓";
   } else if (isCurrent) {
-    bgColor = "bg-blue-500";
+    bgColor = "bg-information-base";
     textColor = "text-white";
   } else if (isError) {
-    bgColor = "bg-red-500";
+    bgColor = "bg-error-base";
     textColor = "text-white";
     icon = "✕";
   }
@@ -163,7 +178,7 @@ function StageDot({
         className={`
           w-8 h-8 rounded-full flex items-center justify-center
           ${bgColor} ${textColor}
-          ${isCurrent ? "animate-pulse ring-2 ring-blue-300 ring-offset-2" : ""}
+          ${isCurrent ? "animate-pulse ring-2 ring-information-light ring-offset-2 ring-offset-bg-white" : ""}
           transition-all duration-300
         `}
       >
@@ -172,16 +187,16 @@ function StageDot({
       <span
         className={`
           mt-1 text-xs font-medium
-          ${isCurrent ? "text-blue-600 dark:text-blue-400" : ""}
-          ${isComplete ? "text-green-600 dark:text-green-400" : ""}
-          ${isPending ? "text-gray-400" : ""}
-          ${isError ? "text-red-600 dark:text-red-400" : ""}
+          ${isCurrent ? "text-information-dark" : ""}
+          ${isComplete ? "text-success-dark" : ""}
+          ${isPending ? "text-text-disabled" : ""}
+          ${isError ? "text-error-dark" : ""}
         `}
       >
         {localizedLabel}
       </span>
       {isCurrent && stageProgress > 0 && stageProgress < 100 && (
-        <span className="text-[10px] text-gray-500">{stageProgress}%</span>
+        <span className="text-[10px] text-text-soft">{stageProgress}%</span>
       )}
     </div>
   );
@@ -214,7 +229,7 @@ function StageConnector({
       className={`
         flex-1 h-0.5 mx-1 mt-4
         transition-all duration-500
-        ${isComplete ? "bg-green-500" : "bg-gray-200 dark:bg-gray-700"}
+        ${isComplete ? "bg-success-base" : "bg-bg-soft"}
       `}
     />
   );
@@ -242,7 +257,7 @@ function FullProgress({
 
   return (
     <div
-      className={`rounded-lg bg-white dark:bg-gray-800 p-4 shadow-sm border border-gray-100 dark:border-gray-700 ${className || ""}`}
+      className={`rounded-lg bg-bg-white p-4 shadow-sm border border-stroke-soft ${className || ""}`}
     >
       {/* Stage stepper */}
       <div className="flex items-start justify-between mb-4">
@@ -271,12 +286,12 @@ function FullProgress({
           { id: "app.submission.overallProgress" },
           { percent: progress.overallProgress, stageSuffix: errorSuffix }
         )}
-        className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden mb-3"
+        className="h-2 bg-bg-weak rounded-full overflow-hidden mb-3"
       >
         <div
           className={`
             h-full transition-all duration-300 ease-out rounded-full
-            ${progress.stage === "error" ? "bg-red-500" : "bg-gradient-to-r from-blue-500 to-green-500"}
+            ${progress.stage === "error" ? "bg-error-base" : "bg-gradient-to-r from-information-base to-success-base"}
           `}
           style={{ width: `${progress.overallProgress}%` }}
         />
@@ -290,12 +305,12 @@ function FullProgress({
           >
             {config.icon}
           </span>
-          <span className="text-sm text-gray-700 dark:text-gray-300">{progress.message}</span>
+          <span className="text-sm text-text-sub">{progress.message}</span>
         </div>
 
         {/* File progress if applicable */}
         {progress.totalFiles !== undefined && progress.completedFiles !== undefined && (
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-text-soft">
             {progress.completedFiles}/{progress.totalFiles} files
           </span>
         )}
@@ -303,7 +318,7 @@ function FullProgress({
 
       {/* Error message */}
       {progress.stage === "error" && progress.error && (
-        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded text-sm text-red-600 dark:text-red-400">
+        <div className="mt-2 p-2 bg-error-lighter rounded text-sm text-error-dark">
           {progress.error}
         </div>
       )}

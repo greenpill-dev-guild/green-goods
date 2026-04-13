@@ -137,6 +137,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                 className={cn(
                   "flex cursor-pointer items-center gap-2 rounded-full px-3 py-2",
                   "border border-white/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.86)_100%)] shadow-[0_16px_30px_rgba(15,23,42,0.14)]",
+                  "dark:border-stroke-soft dark:bg-[linear-gradient(180deg,rgb(var(--bg-soft-200)/0.92)_0%,rgb(var(--bg-weak-50)/0.86)_100%)] dark:shadow-[0_16px_30px_rgba(0,0,0,0.3)]",
                   "text-sm font-medium text-text-strong",
                   "transition-all hover:shadow-[0_20px_34px_rgba(15,23,42,0.18)]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))]",

@@ -133,7 +133,7 @@ export function CanvasStageTabRail({
             {tab.count !== undefined ? (
               <span
                 className={cn(
-                  "inline-flex min-w-6 items-center justify-center rounded-full bg-white/74 px-2 py-0.5 text-[0.72rem] font-bold leading-none text-text-soft shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)] transition-[background-color,color,box-shadow] duration-200 ease-out motion-reduce:transition-none max-[599px]:min-w-[1.35rem] max-[599px]:px-[0.35rem] max-[599px]:text-[0.68rem]",
+                  "inline-flex min-w-6 items-center justify-center rounded-full bg-white/74 dark:bg-bg-soft px-2 py-0.5 text-[0.72rem] font-bold leading-none text-text-soft shadow-[inset_0_0_0_1px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] transition-[background-color,color,box-shadow] duration-200 ease-out motion-reduce:transition-none max-[599px]:min-w-[1.35rem] max-[599px]:px-[0.35rem] max-[599px]:text-[0.68rem]",
                   active &&
                     "bg-primary-alpha-10 text-text-strong shadow-[inset_0_0_0_1px_rgba(var(--workspace-tint),0.14)]"
                 )}
