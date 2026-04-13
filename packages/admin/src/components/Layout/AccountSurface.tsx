@@ -1,4 +1,5 @@
-import { CanvasStageTabRail, cn } from "@green-goods/shared";
+import { cn } from "@green-goods/shared";
+import { AdminTabRail } from "@/components/AdminTabRail";
 import { useIntl } from "react-intl";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
@@ -27,7 +28,7 @@ export function AccountTabList({ activeTab, onTabChange, className }: AccountTab
   const { formatMessage } = useIntl();
 
   return (
-    <CanvasStageTabRail
+    <AdminTabRail
       ariaLabel={formatMessage({
         id: "cockpit.topBar.userProfile",
         defaultMessage: "User profile",

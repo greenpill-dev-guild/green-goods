@@ -2,7 +2,6 @@ import {
   Alert,
   BottomSheet,
   CanvasMetaStrip,
-  CanvasStageTabRail,
   SideSheet,
   adminRoutes,
   useAdminStore,
@@ -13,6 +12,7 @@ import {
   useEligibleAdminGardens,
   useSheetWidth,
 } from "@green-goods/shared";
+import { AdminTabRail } from "@/components/AdminTabRail";
 import {
   RiAddLine,
   RiCheckboxCircleLine,
@@ -209,7 +209,7 @@ export default function CommunityView() {
           }
           sticky
         >
-          <CanvasStageTabRail
+          <AdminTabRail
             ariaLabel={formatMessage({
               id: "cockpit.community.viewSwitcher",
               defaultMessage: "Community views",

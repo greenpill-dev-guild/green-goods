@@ -3,17 +3,13 @@ import {
   type ActionFiltersState,
   type ActionSortOrder,
   Button,
-  CanvasStageTabRail,
   CanvasWorkbenchList,
   CanvasWorkbenchRow,
   EmptyState,
-  ListToolbar,
-  SortSelect,
   DEFAULT_CHAIN_ID,
   DOMAIN_CONFIG,
   Domain,
   adminRoutes,
-  cn,
   useActions,
   useFabConfig,
   useFilteredActions,
@@ -21,7 +17,10 @@ import {
   useUrlFilters,
   formatDate,
 } from "@green-goods/shared";
-import { RiAddLine, RiCheckLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
+import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
+import { RiAddLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -182,7 +181,7 @@ export default function Actions() {
           toolbar={
             showToolbar ? (
               <div className="flex flex-col gap-3">
-                <CanvasStageTabRail
+                <AdminTabRail
                   ariaLabel={intl.formatMessage({
                     id: "cockpit.actions.lifecycleSwitcher",
                     defaultMessage: "Filter actions by lifecycle",
@@ -198,51 +197,31 @@ export default function Actions() {
                     count: lifecycleCounts[tab.id] || undefined,
                   }))}
                 />
-                <ListToolbar
+                <AdminSearchToolbar
                   search={filters.search ?? ""}
                   onSearchChange={(value) => setFilter("search", value || undefined)}
-                  searchPlaceholder={intl.formatMessage({
+                  placeholder={intl.formatMessage({
                     id: "admin.actions.searchPlaceholder",
                     defaultMessage: "Search actions...",
                   })}
                 >
-                  <SortSelect
-                    value={filters.sort}
-                    onChange={(value) => setFilter("sort", value)}
-                    options={sortOptions}
-                  />
-                  <div
-                    className="flex flex-wrap items-center gap-1.5"
-                    role="group"
-                    aria-label={intl.formatMessage({
-                      id: "admin.actions.filterByDomain",
-                      defaultMessage: "Filter by domain",
-                    })}
-                  >
-                    {DOMAIN_FILTER_OPTIONS.map((tag) => {
-                      const isActive = filters.domain === tag.value;
-                      return (
-                        <button
-                          key={tag.value}
-                          type="button"
-                          onClick={() => toggleDomain(tag.value)}
-                          className={cn(
-                            "group inline-flex items-center gap-1 rounded-sm px-3 py-1.5 text-label-lg font-medium",
-                            "transition-colors duration-[var(--spring-micro-duration,150ms)]",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))]",
-                            isActive
-                              ? "bg-[rgb(var(--ws-primary-container,var(--red-100)))] text-[rgb(var(--ws-on-primary-container,var(--red-900)))]"
-                              : "glass-ground text-text-sub hover:bg-bg-soft"
-                          )}
-                          aria-pressed={isActive}
-                        >
-                          {isActive && <RiCheckLine className="h-3.5 w-3.5" aria-hidden="true" />}
-                          {intl.formatMessage({ id: tag.labelId })}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </ListToolbar>
+                  {sortOptions.map((option) => (
+                    <AdminFilterChip
+                      key={option.value}
+                      label={option.label}
+                      selected={filters.sort === option.value}
+                      onToggle={() => setFilter("sort", option.value)}
+                    />
+                  ))}
+                  {DOMAIN_FILTER_OPTIONS.map((tag) => (
+                    <AdminFilterChip
+                      key={tag.value}
+                      label={intl.formatMessage({ id: tag.labelId })}
+                      selected={filters.domain === tag.value}
+                      onToggle={() => toggleDomain(tag.value)}
+                    />
+                  ))}
+                </AdminSearchToolbar>
               </div>
             ) : undefined
           }

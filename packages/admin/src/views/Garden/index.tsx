@@ -3,7 +3,6 @@ import {
   Alert,
   BottomSheet,
   CanvasMetaStrip,
-  CanvasStageTabRail,
   Surface,
   formatTokenAmount,
   parseGardenRange,
@@ -18,6 +17,7 @@ import {
   useEligibleAdminGardens,
   useSheetWidth,
 } from "@green-goods/shared";
+import { AdminTabRail } from "@/components/AdminTabRail";
 import { RiAddLine, RiSettings3Line } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -373,7 +373,7 @@ export default function GardenView() {
           }
           sticky
         >
-          <CanvasStageTabRail
+          <AdminTabRail
             ariaLabel={formatMessage({
               id: "cockpit.garden.viewSwitcher",
               defaultMessage: "Garden views",
