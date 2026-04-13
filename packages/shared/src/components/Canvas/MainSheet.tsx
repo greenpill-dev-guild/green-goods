@@ -90,9 +90,10 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
         <div className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]">
           <div
             className={cn(
-              "h-full min-h-0 rounded-[inherit] bg-bg-white will-change-[transform,opacity,filter]"
+              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity,filter]"
             )}
             style={{
+              background: "linear-gradient(180deg, rgb(var(--neutral-0)) 0%, rgb(var(--neutral-50) / 0.5) 100%)",
               boxShadow:
                 "inset 0 0 0 1px rgba(255,255,255,0.65), 0 18px 46px rgba(21, 16, 10, 0.14)",
               transform: isMainSheetReceded
