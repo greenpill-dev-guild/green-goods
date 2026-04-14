@@ -123,7 +123,20 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   );
 
   return (
-    <div className={cn("relative flex items-center", !mobileFloating && "ml-auto")}>
+    <div className={cn("group/fab relative flex items-center", !mobileFloating && "ml-auto")}>
+      {/* Tooltip — shows on hover for single-action mode */}
+      {isSingleAction && (
+        <div
+          className={cn(
+            "pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap",
+            "rounded-md bg-neutral-900/90 px-2.5 py-1 text-xs font-medium text-white",
+            "opacity-0 transition-opacity group-hover/fab:opacity-100",
+            "motion-reduce:transition-none"
+          )}
+        >
+          {floatingActionLabel}
+        </div>
+      )}
       {/* Speed dial items — animate upward from FAB */}
       {speedDialOpen && !isSingleAction && (
         <div className="absolute bottom-full right-0 mb-2 flex flex-col-reverse items-end gap-2">
@@ -266,7 +279,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         <nav
           aria-label={navLabel}
           className={cn(
-            "canvas-navigation-bar fixed bottom-4 left-1/2 z-nav flex -translate-x-1/2 items-center",
+            "canvas-navigation-bar fixed bottom-4 left-1/2 z-nav flex w-max -translate-x-1/2 items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
             "glass-ground",
             "dark:border-stroke-soft dark:bg-[linear-gradient(180deg,rgb(var(--bg-soft-200)/0.88)_0%,rgb(var(--bg-white-0)/0.76)_100%)]",
