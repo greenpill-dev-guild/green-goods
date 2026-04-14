@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
-import type { ToolbarSlot } from "./FloatingToolbar";
 import { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";
 
 // ----------------------------------------------------------------------------
 // Types
 // ----------------------------------------------------------------------------
+
+export interface ToolbarSlot {
+  id: string;
+  label: string;
+  labelId: string;
+  icon: React.ComponentType<{ className?: string }>;
+  path: string;
+  visible: boolean;
+  mobileOnly?: boolean;
+  desktopOnly?: boolean;
+}
 
 export interface FabAction {
   id: string;

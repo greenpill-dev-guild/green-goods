@@ -27,8 +27,7 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import type { ToolbarSlot } from "../../components/Canvas/FloatingToolbar";
-import { NavigationBar } from "../../components/Canvas/NavigationBar";
+import { NavigationBar, type ToolbarSlot } from "../../components/Canvas/NavigationBar";
 
 // Stub icon component
 function StubIcon({ className }: { className?: string }) {

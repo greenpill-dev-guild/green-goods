@@ -6,7 +6,7 @@ import {
   Surface,
   formatTokenAmount,
   parseGardenRange,
-  SideSheet,
+  LeftSheet,
   adminRoutes,
   useAdminStore,
   useCanvasPortal,
@@ -49,7 +49,7 @@ export default function GardenView() {
   const { eligibleGardens } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
-  const { containerRef, sheetWidth, isDesktop } = useSheetWidth();
+  const { containerRef, isDesktop } = useSheetWidth();
   const [activityFilter, setActivityFilter] = useState<"all" | "work" | "impact" | "community">(
     "all"
   );
@@ -421,16 +421,14 @@ export default function GardenView() {
 
       {showHypercertSheet ? (
         isDesktop ? (
-          <SideSheet
+          <LeftSheet
             open
             onClose={handleCloseHypercertSheet}
             title={formatMessage({ id: "app.hypercerts.detail.title" })}
-            width={sheetWidth}
-            side="left"
             container={portalTarget}
           >
             <HypercertDetail layout="sheet" hypercertId={hypercertId} />
-          </SideSheet>
+          </LeftSheet>
         ) : (
           <BottomSheet
             open

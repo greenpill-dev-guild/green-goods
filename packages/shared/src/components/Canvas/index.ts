@@ -21,15 +21,19 @@ export {
   type UseCanvasResponsiveFabOptions,
 } from "./CanvasScaffold";
 export { FabProvider, useFabConfig, useFabConfigValue } from "./FabContext";
-export { type ToolbarSlot } from "./FloatingToolbar";
 export { GardenChip, type GardenChipProps } from "./GardenChip";
 export {
   NavigationBar,
   type NavigationBarProps,
   type FabAction,
   type FabConfig,
+  type ToolbarSlot,
 } from "./NavigationBar";
 export { NotificationPanel } from "./NotificationPanel";
 export { SheetErrorBoundary, type SheetErrorBoundaryProps } from "./SheetErrorBoundary";
-export { SideSheet, type SideSheetProps } from "./SideSheet";
+export {
+  SPRING_CONFIGS,
+  DISMISS_VELOCITY_THRESHOLD,
+  CHOREOGRAPHY_STAGGER_MS,
+} from "./springConfig";
 export { TopContextBar, type TopContextBarProps } from "./TopContextBar";

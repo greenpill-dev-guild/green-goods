@@ -2,7 +2,7 @@ import {
   Alert,
   BottomSheet,
   CanvasMetaStrip,
-  SideSheet,
+  LeftSheet,
   adminRoutes,
   useAdminStore,
   useCanvasPortal,
@@ -50,7 +50,7 @@ export default function CommunityView() {
   const { eligibleGardens } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
-  const { containerRef, sheetWidth, isDesktop } = useSheetWidth();
+  const { containerRef, isDesktop } = useSheetWidth();
   const [memberSearch, setMemberSearch] = useState("");
 
   const mode = resolveCommunityMode(location.pathname);
@@ -363,16 +363,14 @@ export default function CommunityView() {
 
       {communitySheet ? (
         isDesktop ? (
-          <SideSheet
+          <LeftSheet
             open
             onClose={communitySheet.onClose}
             title={communitySheet.title}
-            width={sheetWidth}
-            side="left"
             container={portalTarget}
           >
             {communitySheet.content}
-          </SideSheet>
+          </LeftSheet>
         ) : (
           <BottomSheet
             open

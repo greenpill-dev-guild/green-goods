@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { RiClipboardLine, RiFlashlightLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
-import { NavigationBar } from "./NavigationBar";
-import type { ToolbarSlot } from "./FloatingToolbar";
+import { NavigationBar, type ToolbarSlot } from "./NavigationBar";
 
 const workSlot: ToolbarSlot = {
   id: "hub",

@@ -13,7 +13,7 @@ import {
   formatAddress,
   formatRelativeTime,
   resolveIPFSUrl,
-  SideSheet,
+  LeftSheet,
   type SortOption,
   Surface,
   useActions,
@@ -1226,9 +1226,6 @@ export default function HubView() {
           ? renderCertificationQueue()
           : renderHistory();
 
-  const desktopSheetWidth =
-    typeof window === "undefined" ? 560 : Math.min(Math.max(440, window.innerWidth * 0.38), 660);
-
   return (
     <div className="hub-route-shell">
       {!selectedGarden && !routeWorkId && !isSubmitRoute ? (
@@ -1353,16 +1350,14 @@ export default function HubView() {
 
       {sheetDescriptor ? (
         isDesktop ? (
-          <SideSheet
+          <LeftSheet
             open
             onClose={handleCloseSheet}
             title={sheetDescriptor.title}
-            width={desktopSheetWidth}
-            side={sheetDescriptor.side}
             container={portalTarget}
           >
             {sheetDescriptor.content}
-          </SideSheet>
+          </LeftSheet>
         ) : (
           <BottomSheet open onClose={handleCloseSheet} title={sheetDescriptor.title} maxHeight={92}>
             {sheetDescriptor.content}
