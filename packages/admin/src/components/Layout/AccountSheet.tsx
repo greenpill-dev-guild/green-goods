@@ -1,5 +1,4 @@
-import { SideSheet } from "@green-goods/shared";
-import { useIntl } from "react-intl";
+import { RightSheet } from "@green-goods/shared";
 import { AccountSurface } from "./AccountSurface";
 import { type AccountSheetTab } from "./accountSheet.events";
 
@@ -18,26 +17,9 @@ export function AccountSheet({
   onTabChange,
   container,
 }: AccountSheetProps) {
-  const { formatMessage } = useIntl();
-
-  const title =
-    activeTab === "settings"
-      ? formatMessage({ id: "cockpit.settings.title", defaultMessage: "Settings" })
-      : formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" });
-  const description = formatMessage({
-    id: "cockpit.profile.description",
-    defaultMessage: "Manage your canvas identity, appearance, and operator preferences.",
-  });
-
   return (
-    <SideSheet
-      open={open}
-      onClose={onClose}
-      title={title}
-      description={description}
-      container={container}
-    >
+    <RightSheet open={open} onClose={onClose} container={container}>
       <AccountSurface activeTab={activeTab} onTabChange={onTabChange} />
-    </SideSheet>
+    </RightSheet>
   );
 }
