@@ -188,6 +188,22 @@
       0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(34, 197, 94, 0.09);
   }
 
+  /* ── Glass Surface — MainSheet (lighter than ground, heavier than floating) ── */
+  .glass-surface {
+    background: rgb(var(--neutral-0) / 45%);
+    backdrop-filter: blur(12px) saturate(1.2);
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--neutral-0) / 35%),
+      0 12px 40px rgba(0, 0, 0, 0.06);
+  }
+
+  [data-theme="dark"] .glass-surface {
+    background: rgb(var(--neutral-900) / 50%);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 8%),
+      0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+
   /* ── Reduced Motion — disable non-essential animation on glass ── */
   @media (prefers-reduced-motion: reduce) {
     .glass-ground,

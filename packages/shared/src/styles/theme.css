@@ -1215,6 +1215,42 @@
     }
   }
 
+  /* ── Canvas Grid Layout ── */
+  .workspace-canvas-grid {
+    display: grid;
+    grid-template-areas:
+      "top    top    top"
+      "left   main   right"
+      "bottom bottom bottom";
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns:
+      var(--left-sheet-width, 0)
+      1fr
+      var(--right-sheet-width, 0);
+    background: var(--canvas-gradient,
+      linear-gradient(180deg, rgb(var(--bg-white-0)) 0%, rgb(var(--bg-weak-50) / 0.6) 40%, rgb(var(--bg-sub-300) / 0.3) 100%)
+    );
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .canvas-area-top { grid-area: top; }
+  .canvas-area-left { grid-area: left; }
+  .canvas-area-main { grid-area: main; }
+  .canvas-area-right { grid-area: right; }
+  .canvas-area-bottom { grid-area: bottom; position: relative; }
+
+  @media (max-width: 599px) {
+    .workspace-canvas-grid {
+      grid-template-areas:
+        "top"
+        "main"
+        "bottom";
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto;
+    }
+  }
+
   /* Container query contexts - apply to parent elements to enable @[width] queries on children */
   .container-inline {
     container-type: inline-size;
