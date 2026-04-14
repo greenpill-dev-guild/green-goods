@@ -1,10 +1,11 @@
 import {
   FabProvider,
   GardenChip,
+  LeftSheet,
   MainSheet,
   NavigationBar,
   NotificationPanel,
-  SideSheet,
+  RightSheet,
   TopContextBar,
   useAdminStore,
   useAuth,
@@ -301,7 +302,7 @@ export function CanvasLayout() {
     <FabProvider>
       <div
         data-workspace={workspaceId}
-        className="admin-m3 flex h-full min-h-0 flex-col workspace-canvas"
+        className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
       >
         {/* Skip to content */}
         <a
@@ -315,13 +316,15 @@ export function CanvasLayout() {
         </a>
 
         {/* ── Body 1: Persistent Chrome — Top Axis (Z3) ── */}
-        <TopContextBar
-          gardenChip={gardenChipNode}
-          onOpenSearch={handleOpenSearch}
-          onOpenSettings={isDesktop ? () => openAccountSheet("settings") : undefined}
-          onOpenNotifications={() => orchestrator.openSheet("right", "notifications")}
-          userAvatar={isDesktop ? userAvatarNode : undefined}
-        />
+        <div className="canvas-area-top">
+          <TopContextBar
+            gardenChip={gardenChipNode}
+            onOpenSearch={handleOpenSearch}
+            onOpenSettings={isDesktop ? () => openAccountSheet("settings") : undefined}
+            onOpenNotifications={() => orchestrator.openSheet("right", "notifications")}
+            userAvatar={isDesktop ? userAvatarNode : undefined}
+          />
+        </div>
 
         {/* ── Body 2: MainSheet — Content Zone (Z2) ── */}
         <MainSheet isReceded={orchestrator.isReceded} overlayRef={overlayRootRef}>
@@ -347,13 +350,15 @@ export function CanvasLayout() {
         </MainSheet>
 
         {/* ── Body 3: Persistent Chrome — Navigation Bar (Z3) ── */}
-        {visibleSlotCount > 0 && (
-          <FabAwareNavigationBar
-            slots={slots}
-            activePath={activePath}
-            onNavigate={(path) => navigate(path)}
-          />
-        )}
+        <div className="canvas-area-bottom">
+          {visibleSlotCount > 0 && (
+            <FabAwareNavigationBar
+              slots={slots}
+              activePath={activePath}
+              onNavigate={(path) => navigate(path)}
+            />
+          )}
+        </div>
 
         {/* Pane-scoped sheets — portal into the bounded canvas overlay root */}
         <AccountSheet
@@ -363,7 +368,7 @@ export function CanvasLayout() {
           onTabChange={setAccountTab}
           container={overlayRootRef.current}
         />
-        <SideSheet
+        <RightSheet
           open={
             orchestrator.activeSheet === "right" && orchestrator.activeContentId === "notifications"
           }
@@ -375,7 +380,7 @@ export function CanvasLayout() {
           container={overlayRootRef.current}
         >
           <NotificationPanel />
-        </SideSheet>
+        </RightSheet>
         <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
     </FabProvider>

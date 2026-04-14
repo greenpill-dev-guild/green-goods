@@ -1,5 +1,7 @@
 export { BottomSheet, type BottomSheetProps } from "./BottomSheet";
+export { LeftSheet, type LeftSheetProps } from "./LeftSheet";
 export { MainSheet, useCanvasPortal, type MainSheetProps } from "./MainSheet";
+export { RightSheet, type RightSheetProps } from "./RightSheet";
 export {
   CanvasEmptyStateShell,
   CanvasMetaStrip,
