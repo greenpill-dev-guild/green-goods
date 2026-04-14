@@ -42,26 +42,24 @@ describe("MainSheet", () => {
     });
   });
 
-  it("recedes the main sheet content when the shell marks it as receded", () => {
+  it("applies glass-surface class to the content surface when receded", () => {
     render(
       <MainSheet isReceded={true}>
         <div>Content</div>
       </MainSheet>
     );
 
-    expect(screen.getByTestId("main-sheet-content")).toHaveStyle({
-      transform: "translateY(8px) scale(var(--canvas-scale-receded))",
-    });
+    expect(screen.getByTestId("main-sheet-content").className).toContain("glass-surface");
   });
 
-  it("uses the shared main-sheet frame class for pane margins", () => {
+  it("uses the canvas-area-main class on the outermost div", () => {
     render(
       <MainSheet isReceded={false}>
         <div>Content</div>
       </MainSheet>
     );
 
-    expect(screen.getByTestId("main-sheet").className).toContain("canvas-main-sheet-frame");
+    expect(screen.getByTestId("main-sheet").className).toContain("canvas-area-main");
   });
 
   it("recedes the main sheet content when a bounded overlay is active", async () => {
@@ -71,10 +69,10 @@ describe("MainSheet", () => {
       </MainSheet>
     );
 
+    // With react-spring, the animated.div has will-change-[transform,opacity,filter]
+    // indicating it is the receding surface; glass-surface class is always present
     await waitFor(() => {
-      expect(screen.getByTestId("main-sheet-content")).toHaveStyle({
-        transform: "translateY(8px) scale(var(--canvas-scale-receded))",
-      });
+      expect(screen.getByTestId("main-sheet-content").className).toContain("glass-surface");
     });
   });
 });

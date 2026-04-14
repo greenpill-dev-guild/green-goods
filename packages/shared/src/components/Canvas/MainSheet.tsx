@@ -7,7 +7,9 @@ import {
   type MutableRefObject,
   type ReactNode,
 } from "react";
+import { animated, useSpring } from "@react-spring/web";
 import { cn } from "../../utils";
+import { SPRING_CONFIGS } from "./springConfig";
 
 interface CanvasPortalContextValue {
   portalTarget: HTMLDivElement | null;
@@ -81,37 +83,39 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
 
   const isMainSheetReceded = isReceded || activeOverlayIds.size > 0;
 
+  const recessionSpring = useSpring({
+    scale: isMainSheetReceded ? 0.96 : 1,
+    opacity: isMainSheetReceded ? 0.5 : 1,
+    blur: isMainSheetReceded ? 3 : 0,
+    y: isMainSheetReceded ? 8 : 0,
+    config: SPRING_CONFIGS.sheet,
+  });
+
   return (
     <CanvasPortalContext.Provider value={canvasPortalValue}>
       <div
-        className={cn("canvas-main-sheet-frame relative flex-1 min-h-0", className)}
+        className={cn("canvas-area-main relative flex-1 min-h-0", className)}
         data-testid="main-sheet"
       >
         <div className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]">
-          <div
+          <animated.div
             className={cn(
-              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity,filter]"
+              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity,filter]",
+              "glass-surface"
             )}
             style={{
-              background: "linear-gradient(180deg, rgb(var(--neutral-0)) 0%, rgb(var(--neutral-50) / 0.5) 100%)",
-              boxShadow:
-                "inset 0 0 0 1px rgba(255,255,255,0.65), 0 18px 46px rgba(21, 16, 10, 0.14)",
-              transform: isMainSheetReceded
-                ? "translateY(8px) scale(var(--canvas-scale-receded))"
-                : "translateY(0) scale(1)",
-              opacity: isMainSheetReceded ? "var(--canvas-opacity-receded)" : "1",
-              filter: isMainSheetReceded
-                ? "blur(var(--canvas-blur-receded)) saturate(0.88) brightness(0.98)"
-                : "none",
-              transitionProperty: "transform, opacity, filter",
-              transitionDuration: "var(--spring-spatial-slow-duration, 420ms)",
-              transitionTimingFunction:
-                "var(--spring-spatial-easing, cubic-bezier(0.16, 1, 0.3, 1))",
+              transform: recessionSpring.scale.to((s) =>
+                `translateY(${recessionSpring.y.get()}px) scale(${s})`
+              ),
+              opacity: recessionSpring.opacity,
+              filter: recessionSpring.blur.to(
+                (b) => `blur(${b}px) saturate(${b > 0 ? 0.88 : 1}) brightness(${b > 0 ? 0.98 : 1})`
+              ),
             }}
             data-testid="main-sheet-content"
           >
             {children}
-          </div>
+          </animated.div>
         </div>
 
         <div
