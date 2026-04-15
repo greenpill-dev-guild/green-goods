@@ -376,7 +376,6 @@ export {
   useEmergencyPause,
   // ENS registration hooks
   useENSClaim,
-  useGreenGoodsEnsName,
   useENSRegistrationStatus,
   useEnsAddress,
   useEnsAvatar,
@@ -402,12 +401,9 @@ export {
   useGardenTabs,
   useGardenTranslation,
   useGardenVaults,
-  useGreenWillBadgeDefinitions,
-  useGreenWillBadges,
-  useGreenWillRecentGrants,
-  useClaimGenesisBadge,
-  useClaimFirstWorkBadge,
-  useGreenWillSupportDeposit,
+  // GreenWill hooks: WIP — re-export once dependencies wired
+  // useGreenWillBadgeDefinitions, useGreenWillBadges, useGreenWillRecentGrants,
+  // useClaimGenesisBadge, useClaimFirstWorkBadge, useGreenWillSupportDeposit,
   useHarvest,
   useHasRole,
   useHypercertAllowlist,
