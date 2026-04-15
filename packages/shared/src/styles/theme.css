@@ -1217,6 +1217,7 @@
 
   /* ── Canvas Grid Layout ── */
   .workspace-canvas-grid {
+    --canvas-right-sheet-width: clamp(320px, 28vw, 480px);
     display: grid;
     grid-template-areas:
       "top    top    top"
