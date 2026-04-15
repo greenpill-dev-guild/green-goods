@@ -3,12 +3,10 @@ import { useIntl } from "react-intl";
 import { SeedlingIllustration } from "./SeedlingIllustration";
 
 interface CanvasGardenAccessStateProps {
-  canCreateGarden: boolean;
   onCreateGarden: () => void;
 }
 
 export function CanvasGardenAccessState({
-  canCreateGarden,
   onCreateGarden,
 }: CanvasGardenAccessStateProps) {
   const { formatMessage } = useIntl();
@@ -27,22 +25,17 @@ export function CanvasGardenAccessState({
       </h1>
       <p className="mt-2 max-w-md text-sm text-text-sub">
         {formatMessage({
-          id: canCreateGarden
-            ? "cockpit.access.noGardenDescriptionCanCreate"
-            : "cockpit.access.noGardenDescription",
-          defaultMessage: canCreateGarden
-            ? "This wallet is not assigned to an operator or evaluator garden yet. Create a garden to start working in the canvas."
-            : "This wallet is not assigned to an operator or evaluator garden yet. Ask a garden owner or operator to add you before using the canvas.",
+          id: "cockpit.access.noGardenDescriptionUnified",
+          defaultMessage:
+            "Create your first garden or ask a garden owner to add you as an operator.",
         })}
       </p>
-      {canCreateGarden ? (
-        <Button className="mt-6" onClick={onCreateGarden}>
-          {formatMessage({
-            id: "cockpit.workspace.createGarden",
-            defaultMessage: "Create Garden",
-          })}
-        </Button>
-      ) : null}
+      <Button className="mt-6" onClick={onCreateGarden}>
+        {formatMessage({
+          id: "cockpit.workspace.createGarden",
+          defaultMessage: "Create Garden",
+        })}
+      </Button>
     </section>
   );
 }

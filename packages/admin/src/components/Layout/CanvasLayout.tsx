@@ -72,7 +72,6 @@ export function CanvasLayout() {
   const { isAuthenticated, eoaAddress, isReady, authMode, signOut } = useAuth();
   const {
     eligibleGardens,
-    canCreateGarden,
     isLoaded: eligibleGardensLoaded,
   } = useEligibleAdminGardens();
 
@@ -327,7 +326,6 @@ export function CanvasLayout() {
           >
             {showNoGardenAccessState ? (
               <CanvasGardenAccessState
-                canCreateGarden={canCreateGarden}
                 onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
               />
             ) : (
