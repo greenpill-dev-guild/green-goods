@@ -189,18 +189,28 @@ jobs:
             echo "FF failed; opening labeled issue"
             gh issue create \
               --title "develop sync: FF failed, manual resolution needed" \
-              --label "routine:sync-develop:blocked" \
+              --label "automated/claude-routine" \
               --body "Fast-forward of develop from main failed on commit $GITHUB_SHA. Routine PRs on develop now conflict with main. Resolve manually by either (1) merging develop → main first, or (2) rebasing any open claude/* branches onto main."
           fi
 ```
 
-- [ ] **Step 2: Ensure the label exists**
+- [ ] **Step 2: Create the 6 routine labels**
 
 Run:
 ```bash
-gh label create "routine:sync-develop:blocked" --color "d73a4a" --description "develop sync GHA failed; manual resolution needed" || true
+# Umbrella label (matches existing automated/codex precedent)
+gh label create "automated/claude-routine" --color "0075ca" --description "Issue or PR authored by a Claude routine" || true
+
+# Dedupe labels for gg-morning-watch (category-specific, used by the routine's logic)
+gh label create "routine:watch:indexer"        --color "0e8a16" --description "Morning-watch: indexer lag/reachability" || true
+gh label create "routine:watch:pilot-activity" --color "0e8a16" --description "Morning-watch: Season One garden dormancy" || true
+gh label create "routine:watch:ci-pulse"       --color "0e8a16" --description "Morning-watch: recent CI failures on main" || true
+gh label create "routine:watch:onchain-sanity" --color "0e8a16" --description "Morning-watch: on-chain anomalies" || true
+
+# Dedupe label for gg-data-analyst
+gh label create "routine:metrics:anomaly"      --color "d73a4a" --description "Data-analyst: metric anomaly finding" || true
 ```
-Expected: label created (or already exists).
+Expected: 6 labels created (or already exist).
 
 - [ ] **Step 3: Commit the workflow**
 
@@ -660,7 +670,7 @@ For each category:
 ```
 open_issues = gh issue list --label "routine:watch:<category>" --state open --json number,title,body
 if open_issues is empty:
-  gh issue create --label "routine:watch:<category>" --title "<category summary>" --body "<findings>"
+  gh issue create --label "routine:watch:<category>" --label "automated/claude-routine" --title "<category summary>" --body "<findings>"
 else:
   gh issue comment <first open issue number> --body "<dated append of findings>"
 ```
@@ -1037,7 +1047,7 @@ Write `docs/metrics/YYYY-WW.md` (e.g., `docs/metrics/2026-15.md`). Structure:
 - …
 ```
 
-Open a PR to `develop`, title `metrics: week YYYY-WW digest`, label `routine:metrics:digest`.
+Open a PR to `develop`, title `metrics: week YYYY-WW digest`, label `automated/claude-routine`.
 
 ## Channel 3: Issue (anomalies only)
 
@@ -1090,10 +1100,7 @@ Prefer (a) for least-privilege: other routines stay on Trusted.
 
 ### Task 5.5: Create the anomaly label
 
-```bash
-gh label create "routine:metrics:anomaly" --color "d73a4a" --description "Data-analyst routine anomaly finding" || true
-gh label create "routine:metrics:digest" --color "0366d6" --description "Weekly metrics digest PR" || true
-```
+Labels were created in Phase 0 Task 0.4 Step 2. No new labels needed in Phase 5 — both `routine:metrics:anomaly` (dedupe) and `automated/claude-routine` (umbrella) already exist.
 
 ### Task 5.6: Create the routine on claude.ai
 
@@ -1120,7 +1127,9 @@ Log in to dune.com → My queries. Expected: if any `[routine]`-tagged queries e
 - [ ] **Step 3: Verify digest PR**
 
 ```bash
-gh pr list --label "routine:metrics:digest"
+gh pr list --label "automated/claude-routine" --label "routine:metrics:anomaly" --state open
+# or to find the digest PR specifically:
+gh pr list --label "automated/claude-routine" --base develop --search "metrics: week"
 ```
 Expected: one open PR targeting `develop` with `docs/metrics/YYYY-WW.md` diff.
 
@@ -1189,7 +1198,7 @@ Visit claude.ai/settings/usage → Routine runs.
 **Type/name consistency check:**
 - Routine names: `gg-pr-review`, `gg-morning-watch`, `gg-dream-on`, `gg-data-analyst` — consistent throughout.
 - Branch prefixes: `claude/<routine-name>/<topic>` — e.g., `claude/data-analyst/YYYY-WW`. Consistent.
-- Labels: `routine:watch:<category>`, `routine:metrics:anomaly`, `routine:metrics:digest`, `routine:sync-develop:blocked` — documented at creation, referenced in prompts.
+- Labels: 5 dedupe labels (`routine:watch:{indexer,pilot-activity,ci-pulse,onchain-sanity}`, `routine:metrics:anomaly`) + 1 umbrella (`automated/claude-routine`, matches existing `automated/codex` precedent) — documented at creation, referenced in prompts.
 - Cloud env names: `green-goods-routines` (trusted) and `green-goods-routines-full` (Dune-enabled) — distinct and referenced consistently.
 
 Plan is ready for execution.

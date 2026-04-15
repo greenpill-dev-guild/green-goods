@@ -29,14 +29,15 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 
 Ensure these GitHub labels exist before enabling the corresponding routines:
 
-| Label | Routine | Color |
-|---|---|---|
-| `routine:sync-develop:blocked` | sync-develop workflow | `d73a4a` |
-| `routine:watch:indexer` | gg-morning-watch | `0e8a16` |
-| `routine:watch:pilot-activity` | gg-morning-watch | `0e8a16` |
-| `routine:watch:ci-pulse` | gg-morning-watch | `0e8a16` |
-| `routine:watch:onchain-sanity` | gg-morning-watch | `0e8a16` |
-| `routine:metrics:anomaly` | gg-data-analyst | `d73a4a` |
-| `routine:metrics:digest` | gg-data-analyst | `0366d6` |
+| Label | Used by | Purpose | Color |
+|---|---|---|---|
+| `automated/claude-routine` | all routines | Umbrella: "authored by a Claude routine" — matches existing `automated/codex` precedent | `0075ca` |
+| `routine:watch:indexer` | gg-morning-watch | Dedupe: one open issue per category | `0e8a16` |
+| `routine:watch:pilot-activity` | gg-morning-watch | Dedupe | `0e8a16` |
+| `routine:watch:ci-pulse` | gg-morning-watch | Dedupe | `0e8a16` |
+| `routine:watch:onchain-sanity` | gg-morning-watch | Dedupe | `0e8a16` |
+| `routine:metrics:anomaly` | gg-data-analyst | Dedupe: one open anomaly issue | `d73a4a` |
+
+Routines apply **both** a category label (for dedupe) and `automated/claude-routine` (for discovery) on every issue or PR they author. The umbrella is what you filter on to see "everything any routine produced"; the category label is what the routine's code uses to decide "create new or append to existing."
 
 Create them with `gh label create "<name>" --color "<hex>" --description "<purpose>"`.

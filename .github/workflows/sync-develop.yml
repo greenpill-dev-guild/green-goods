@@ -32,6 +32,6 @@ jobs:
             echo "FF failed; opening labeled issue"
             gh issue create \
               --title "develop sync: FF failed, manual resolution needed" \
-              --label "routine:sync-develop:blocked" \
+              --label "automated/claude-routine" \
               --body "Fast-forward of develop from main failed on commit $GITHUB_SHA. Routine PRs on develop now conflict with main. Resolve manually by either (1) merging develop → main first, or (2) rebasing any open claude/* branches onto main."
           fi

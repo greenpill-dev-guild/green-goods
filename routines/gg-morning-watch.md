@@ -54,7 +54,7 @@ For each category:
 ```
 open_issues = gh issue list --label "routine:watch:<category>" --state open --json number,title,body
 if open_issues is empty:
-  gh issue create --label "routine:watch:<category>" --title "<category summary>" --body "<findings>"
+  gh issue create --label "routine:watch:<category>" --label "automated/claude-routine" --title "<category summary>" --body "<findings>"
 else:
   gh issue comment <first open issue number> --body "<dated append of findings>"
 ```

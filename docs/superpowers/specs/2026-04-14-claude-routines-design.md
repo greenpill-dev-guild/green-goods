@@ -223,7 +223,7 @@ jobs:
           else
             gh issue create \
               --title "develop sync: FF failed, manual resolution needed" \
-              --label "routine:sync-develop:blocked" \
+              --label "automated/claude-routine" \
               --body "Routine PRs on develop now conflict with main. Resolve manually."
           fi
 ```
