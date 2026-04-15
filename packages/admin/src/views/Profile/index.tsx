@@ -63,7 +63,7 @@ export default function ProfileView() {
   return (
     <div className="pb-6">
       <PageHeader
-        title={formatMessage({ id: "cockpit.profile.title", defaultMessage: "Profile" })}
+        title={formatMessage({ id: "cockpit.nav.account", defaultMessage: "Account" })}
         description={description}
         variant="canvas"
         sticky
