@@ -1,0 +1,37 @@
+name: Sync develop with main
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_DEVELOP_PAT }}
+
+      - name: Fast-forward develop to main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          if git merge --ff-only origin/main; then
+            git push origin develop
+            echo "develop fast-forwarded to main"
+          else
+            echo "FF failed; opening labeled issue"
+            gh issue create \
+              --title "develop sync: FF failed, manual resolution needed" \
+              --label "routine:sync-develop:blocked" \
+              --body "Fast-forward of develop from main failed on commit $GITHUB_SHA. Routine PRs on develop now conflict with main. Resolve manually by either (1) merging develop → main first, or (2) rebasing any open claude/* branches onto main."
+          fi
