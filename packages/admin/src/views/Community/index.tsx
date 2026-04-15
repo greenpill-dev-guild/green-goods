@@ -1,7 +1,7 @@
 import {
   Alert,
   BottomSheet,
-  CanvasMetaStrip,
+  MetaStrip,
   LeftSheet,
   adminRoutes,
   useAdminStore,
@@ -204,7 +204,7 @@ export default function CommunityView() {
           variant="canvas"
           metadata={
             selectedGarden ? (
-              <CanvasMetaStrip items={[{ id: "garden", label: selectedGarden.name }]} />
+              <MetaStrip items={[{ id: "garden", label: selectedGarden.name }]} />
             ) : undefined
           }
           sticky

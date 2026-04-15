@@ -3,12 +3,11 @@ import {
   adminRoutes,
   BottomSheet,
   Button,
-  CanvasEmptyStateShell,
-  CanvasMetaStrip,
-  CanvasMobileActionSlot,
-  CanvasSheetFrame,
-  CanvasWorkbenchList,
-  CanvasWorkbenchRow,
+  EmptyStateShell,
+  MetaStrip,
+  useCanvasMobileChromeHidden,
+  WorkbenchList,
+  WorkbenchRow,
   EmptyState,
   formatAddress,
   formatRelativeTime,
@@ -129,7 +128,7 @@ function useMediaQuery(query: string): boolean {
 
 function HubWorkbenchSkeletonRows({ count }: { count: number }) {
   return (
-    <CanvasWorkbenchList aria-busy="true">
+    <WorkbenchList aria-busy="true">
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={`hub-skeleton-${index}`}
@@ -151,7 +150,7 @@ function HubWorkbenchSkeletonRows({ count }: { count: number }) {
           <div className="hidden h-9 w-9 rounded-full skeleton-shimmer min-[600px]:block" />
         </div>
       ))}
-    </CanvasWorkbenchList>
+    </WorkbenchList>
   );
 }
 
@@ -173,7 +172,7 @@ function HubCertificationInspector({
   const { formatMessage } = useIntl();
 
   return (
-    <CanvasSheetFrame>
+    <div className="flex flex-col gap-4 p-1.5">
       <Surface elevation="ground" padding="compact" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className={HUB_CERTIFY_STATUS_CLASSNAME}>
@@ -244,7 +243,7 @@ function HubCertificationInspector({
           })}
         </Alert>
       )}
-    </CanvasSheetFrame>
+    </div>
   );
 }
 
@@ -259,7 +258,7 @@ function HubHistoryInspector({ event }: { event: ActivityEvent }) {
         : formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" });
 
   return (
-    <CanvasSheetFrame>
+    <div className="flex flex-col gap-4 p-1.5">
       <Surface elevation="ground" padding="compact" className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className={HUB_HISTORY_STATUS_CLASSNAME}>{categoryLabel}</span>
@@ -291,7 +290,7 @@ function HubHistoryInspector({ event }: { event: ActivityEvent }) {
           </Button>
         </Surface>
       ) : null}
-    </CanvasSheetFrame>
+    </div>
   );
 }
 
@@ -739,6 +738,7 @@ export default function HubView() {
     isDesktop,
     blocked: hasOpenHubInspector,
   });
+  const hideMobileChrome = useCanvasMobileChromeHidden();
 
   const resultCount =
     stage === "work"
@@ -902,14 +902,14 @@ export default function HubView() {
   ]);
 
   const renderErrorState = () => (
-    <CanvasEmptyStateShell>
+    <EmptyStateShell>
       <Alert variant="error">
         {formatMessage({
           id: "cockpit.hub.error",
           defaultMessage: "Hub data could not be loaded. Refresh the workspace and try again.",
         })}
       </Alert>
-    </CanvasEmptyStateShell>
+    </EmptyStateShell>
   );
 
   const renderWorkQueue = (items: Work[]) => {
@@ -921,7 +921,7 @@ export default function HubView() {
 
     if (normalizedSearch && items.length === 0) {
       return (
-        <CanvasEmptyStateShell>
+        <EmptyStateShell>
           <EmptyState
             icon={<RiSearchLine className="h-6 w-6" />}
             title={formatMessage(
@@ -944,13 +944,13 @@ export default function HubView() {
               },
             }}
           />
-        </CanvasEmptyStateShell>
+        </EmptyStateShell>
       );
     }
 
     if (items.length === 0) {
       return (
-        <CanvasEmptyStateShell>
+        <EmptyStateShell>
           <EmptyState
             icon={<RiCheckboxCircleLine className="h-6 w-6" />}
             title={formatMessage({
@@ -962,17 +962,17 @@ export default function HubView() {
               defaultMessage: "No pending work items across your gardens.",
             })}
           />
-        </CanvasEmptyStateShell>
+        </EmptyStateShell>
       );
     }
 
     return (
-      <CanvasWorkbenchList>
+      <WorkbenchList>
         {items.map((work) => {
           const actionTitle = actionsMap.get(work.actionUID)?.title;
           const gardenerDisplayName = formatAddress(work.gardenerAddress, { variant: "card" });
           return (
-            <CanvasWorkbenchRow
+            <WorkbenchRow
               key={work.id}
               eyebrow={
                 selectedGarden?.name ??
@@ -1005,7 +1005,7 @@ export default function HubView() {
             />
           );
         })}
-      </CanvasWorkbenchList>
+      </WorkbenchList>
     );
   };
 
@@ -1018,7 +1018,7 @@ export default function HubView() {
 
     if (assessmentQueue.length === 0) {
       return (
-        <CanvasEmptyStateShell>
+        <EmptyStateShell>
           <EmptyState
             icon={<RiFileList3Line className="h-6 w-6" />}
             title={formatMessage({
@@ -1030,16 +1030,16 @@ export default function HubView() {
               defaultMessage: "Approved work will appear here for bundling into assessments.",
             })}
           />
-        </CanvasEmptyStateShell>
+        </EmptyStateShell>
       );
     }
 
     return (
-      <CanvasWorkbenchList>
+      <WorkbenchList>
         {assessmentQueue.map((work) => {
           const actionTitle = actionsMap.get(work.actionUID)?.title;
           return (
-            <CanvasWorkbenchRow
+            <WorkbenchRow
               key={work.id}
               eyebrow={formatMessage({ id: "cockpit.hub.tab.assess", defaultMessage: "Assess" })}
               title={
@@ -1071,7 +1071,7 @@ export default function HubView() {
             />
           );
         })}
-      </CanvasWorkbenchList>
+      </WorkbenchList>
     );
   };
 
@@ -1084,7 +1084,7 @@ export default function HubView() {
 
     if (certificationQueue.length === 0) {
       return (
-        <CanvasEmptyStateShell>
+        <EmptyStateShell>
           <EmptyState
             icon={<RiMedalLine className="h-6 w-6" />}
             title={formatMessage({
@@ -1096,16 +1096,16 @@ export default function HubView() {
               defaultMessage: "Completed assessments will appear here for minting as hypercerts.",
             })}
           />
-        </CanvasEmptyStateShell>
+        </EmptyStateShell>
       );
     }
 
     return (
-      <CanvasWorkbenchList>
+      <WorkbenchList>
         {certificationQueue.map((assessment) => {
           const hasMintAuthority = canManage;
           return (
-            <CanvasWorkbenchRow
+            <WorkbenchRow
               key={assessment.id}
               eyebrow={formatMessage({ id: "cockpit.hub.tab.certify", defaultMessage: "Certify" })}
               title={
@@ -1151,7 +1151,7 @@ export default function HubView() {
             />
           );
         })}
-      </CanvasWorkbenchList>
+      </WorkbenchList>
     );
   };
 
@@ -1164,7 +1164,7 @@ export default function HubView() {
 
     if (historyEvents.length === 0) {
       return (
-        <CanvasEmptyStateShell>
+        <EmptyStateShell>
           <EmptyState
             icon={<RiInboxLine className="h-6 w-6" />}
             title={formatMessage({
@@ -1177,12 +1177,12 @@ export default function HubView() {
                 "Audit the recent work, impact, and community decisions tied to this garden.",
             })}
           />
-        </CanvasEmptyStateShell>
+        </EmptyStateShell>
       );
     }
 
     return (
-      <CanvasWorkbenchList>
+      <WorkbenchList>
         {historyEvents.map((event) => {
           const leadingIcon =
             event.category === "work"
@@ -1199,7 +1199,7 @@ export default function HubView() {
                 : formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" });
 
           return (
-            <CanvasWorkbenchRow
+            <WorkbenchRow
               key={event.id}
               eyebrow={categoryLabel}
               title={event.title}
@@ -1213,7 +1213,7 @@ export default function HubView() {
             />
           );
         })}
-      </CanvasWorkbenchList>
+      </WorkbenchList>
     );
   };
 
@@ -1255,7 +1255,7 @@ export default function HubView() {
               variant="canvas"
               metadata={
                 selectedGarden ? (
-                  <CanvasMetaStrip items={[{ id: "garden", label: selectedGarden.name }]} />
+                  <MetaStrip items={[{ id: "garden", label: selectedGarden.name }]} />
                 ) : undefined
               }
               toolbar={
@@ -1343,7 +1343,20 @@ export default function HubView() {
               </div>
             </section>
 
-            <CanvasMobileActionSlot action={mobileFabAction} />
+            {!hideMobileChrome && mobileFabAction && (
+              <div className="pointer-events-none sticky bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[7] flex justify-end px-3 pb-2 pt-1 min-[600px]:hidden">
+                <div className="pointer-events-auto ml-auto w-auto max-w-full">
+                  <Button
+                    onClick={mobileFabAction.onClick}
+                    size="lg"
+                    className="min-h-12 min-w-[10rem] max-w-[min(15rem,calc(100vw-1.5rem))] justify-center rounded-full px-4.5 shadow-[0_14px_30px_rgba(38,28,18,0.14)] transition-[transform,box-shadow] duration-200 ease-out motion-reduce:transition-none active:translate-y-px active:shadow-[0_8px_18px_rgba(38,28,18,0.16)]"
+                  >
+                    <mobileFabAction.icon className="h-5 w-5" />
+                    {mobileFabAction.label}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

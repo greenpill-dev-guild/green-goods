@@ -2,7 +2,7 @@ import {
   type Address,
   Alert,
   BottomSheet,
-  CanvasMetaStrip,
+  MetaStrip,
   Surface,
   formatTokenAmount,
   parseGardenRange,
@@ -368,7 +368,7 @@ export default function GardenView() {
           variant="canvas"
           metadata={
             selectedGarden ? (
-              <CanvasMetaStrip items={[{ id: "garden", label: selectedGarden.name }]} />
+              <MetaStrip items={[{ id: "garden", label: selectedGarden.name }]} />
             ) : undefined
           }
           sticky

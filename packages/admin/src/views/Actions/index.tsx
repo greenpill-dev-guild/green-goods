@@ -3,8 +3,8 @@ import {
   type ActionFiltersState,
   type ActionSortOrder,
   Button,
-  CanvasWorkbenchList,
-  CanvasWorkbenchRow,
+  WorkbenchList,
+  WorkbenchRow,
   EmptyState,
   DEFAULT_CHAIN_ID,
   DOMAIN_CONFIG,
@@ -292,7 +292,7 @@ export default function Actions() {
         ) : null}
 
         {!isLoading && stageFilteredActions.length > 0 ? (
-          <CanvasWorkbenchList aria-label={intl.formatMessage({ id: "app.admin.nav.actions" })}>
+          <WorkbenchList aria-label={intl.formatMessage({ id: "app.admin.nav.actions" })}>
             {stageFilteredActions.map((action) => {
               const stage = getActionLifecycleState(action);
               const domainLabel = intl.formatMessage({
@@ -300,7 +300,7 @@ export default function Actions() {
               });
 
               return (
-                <CanvasWorkbenchRow
+                <WorkbenchRow
                   key={action.id}
                   eyebrow={domainLabel}
                   title={action.title}
@@ -344,7 +344,7 @@ export default function Actions() {
                 />
               );
             })}
-          </CanvasWorkbenchList>
+          </WorkbenchList>
         ) : null}
       </div>
     </div>
