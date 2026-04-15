@@ -1,6 +1,6 @@
 import type { Address } from "../../types/domain";
 
-export type AdminWorkspaceId = "hub" | "garden" | "community" | "actions" | "profile";
+export type AdminWorkspaceId = "home" | "hub" | "garden" | "community" | "actions" | "profile";
 
 export type AdminSignalPoolType = "hypercert" | "action";
 export type AdminHubMode = "work" | "assess" | "certify" | "history";
@@ -32,6 +32,7 @@ export interface AdminCommunityRouteContext {
 export const ADMIN_GARDEN_SHARE_PARAM = "gardenAddress";
 
 export const ADMIN_WORKSPACE_ROOTS: Record<AdminWorkspaceId, string> = {
+  home: "/",
   hub: "/hub",
   garden: "/garden",
   community: "/community",
@@ -215,9 +216,13 @@ export const adminRoutes = {
 };
 
 export function getAdminWorkspaceForPath(pathname: string): AdminWorkspaceId {
+  // Check exact "/" match first — home workspace only for root path
+  if (pathname === "/") return "home";
+
   for (const [workspaceId, root] of Object.entries(ADMIN_WORKSPACE_ROOTS) as Array<
     [AdminWorkspaceId, string]
   >) {
+    if (workspaceId === "home") continue; // Skip — handled above
     if (pathname === root || pathname.startsWith(`${root}/`)) {
       return workspaceId;
     }

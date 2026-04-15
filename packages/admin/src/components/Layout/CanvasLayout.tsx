@@ -28,6 +28,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
+import { SeedlingIllustration } from "./SeedlingIllustration";
 import { ConnectShell, WalletRequiredConnectShell } from "./ConnectShell";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
@@ -212,6 +213,15 @@ export function CanvasLayout() {
     pendingDesktopAccountTabRef.current = null;
   }, [isDesktop, orchestrator, rawWorkspaceId]);
 
+  // Home workspace: redirect authenticated users to hub
+  const isHomeWorkspace = workspaceId === "home";
+
+  useEffect(() => {
+    if (isHomeWorkspace && isAuthenticated && eoaAddress) {
+      navigate(adminRoutes.hub(), { replace: true });
+    }
+  }, [isHomeWorkspace, isAuthenticated, eoaAddress, navigate]);
+
   if (!isReady || (isAuthenticated && !eligibleGardensLoaded)) {
     return (
       <div
@@ -247,14 +257,48 @@ export function CanvasLayout() {
   }
 
   if (!isAuthenticated || !eoaAddress) {
+    // Render on the canvas with "home" workspace identity
     return (
-      <ConnectShell
-        titleId="app.admin.auth.connectRequired"
-        defaultTitle="Connect to continue"
-        descriptionId="app.admin.auth.connectPrompt"
-        defaultDescription="Connect your wallet to access this feature."
-        action={<ConnectButton size="lg" />}
-      />
+      <div
+        data-workspace="home"
+        className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
+      >
+        <div className="canvas-area-top">
+          <AppBar
+            gardenChip={
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-strong">
+                <SeedlingIllustration className="h-5 w-5" />
+                {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
+              </span>
+            }
+          />
+        </div>
+        <MainSheet isReceded={false}>
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
+          >
+            <SeedlingIllustration className="h-28 w-28" />
+            <h1 className="mt-5 text-xl font-semibold text-text-strong">
+              {intl.formatMessage({
+                id: "app.admin.auth.connectRequired",
+                defaultMessage: "Connect to continue",
+              })}
+            </h1>
+            <p className="mt-2 max-w-md text-sm text-text-sub">
+              {intl.formatMessage({
+                id: "app.admin.auth.connectPrompt",
+                defaultMessage: "Connect your wallet to access this feature.",
+              })}
+            </p>
+            <div className="mt-6">
+              <ConnectButton size="lg" />
+            </div>
+          </main>
+        </MainSheet>
+        <div className="canvas-area-bottom" />
+      </div>
     );
   }
 

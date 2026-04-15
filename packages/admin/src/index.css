@@ -344,6 +344,19 @@
   --ws-surface-tint-color: rgb(var(--red-500) / 8%);
 }
 
+/* Home — Stone/Neutral (unauthenticated) */
+[data-workspace="home"] {
+  --ws-primary: 120 113 108;
+  --ws-on-primary: 255 255 255;
+  --ws-primary-container: 231 229 228;
+  --ws-on-primary-container: 41 37 36;
+  --ws-secondary: 168 162 158;
+  --ws-surface-tint: 120 113 108 / 8%;
+  --ws-outline: 214 211 209;
+  --ws-surface-variant: 245 245 244;
+  --ws-surface-tint-color: rgb(120 113 108 / 8%);
+}
+
 /* Dark mode workspace overrides */
 [data-theme="dark"] [data-workspace="hub"] {
   --ws-primary: var(--blue-200);
@@ -393,9 +406,26 @@
   --ws-surface-tint-color: rgb(var(--red-200) / 10%);
 }
 
+[data-theme="dark"] [data-workspace="home"] {
+  --ws-primary: 214 211 209;
+  --ws-on-primary: 41 37 36;
+  --ws-primary-container: 68 64 60;
+  --ws-on-primary-container: 231 229 228;
+  --ws-secondary: 168 162 158;
+  --ws-surface-tint: 214 211 209 / 10%;
+  --ws-outline: 87 83 78;
+  --ws-surface-variant: 68 64 60;
+  --ws-surface-tint-color: rgb(214 211 209 / 10%);
+}
+
 /* ============================================================================
  * WORKSPACE GLASS TINTING — subtle color bleed into glass surfaces
  * ============================================================================ */
+[data-workspace="home"] .glass-raised,
+[data-workspace="home"] .glass-floating {
+  background: color-mix(in srgb, rgb(var(--bg-white-0) / 70%) 92%, rgb(var(--ws-primary)) 8%);
+}
+
 [data-workspace="hub"] .glass-raised,
 [data-workspace="hub"] .glass-floating {
   background: color-mix(in srgb, rgb(var(--bg-white-0) / 70%) 92%, rgb(var(--ws-primary)) 8%);
@@ -1289,6 +1319,12 @@
 .workspace-canvas > * {
   position: relative;
   z-index: 1;
+}
+
+.workspace-canvas[data-workspace="home"] {
+  --workspace-tint: 120 113 108;
+  --workspace-tint-2: 168 162 158;
+  --workspace-accent: 87 83 78;
 }
 
 .workspace-canvas[data-workspace="hub"] {

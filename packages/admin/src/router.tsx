@@ -28,9 +28,6 @@ function RoleGateSkeleton() {
   );
 }
 
-// Root redirect component - default canvas route is /hub/work
-const RootRedirect = () => <Navigate to={adminRoutes.hub()} replace />;
-
 // Login redirect - preserves redirectTo param for bookmarked /login URLs
 const LoginRedirect = () => {
   const location = useLocation();
@@ -75,10 +72,6 @@ export const router = createRouter([
     ),
     children: [
       {
-        index: true,
-        element: <RootRedirect />,
-      },
-      {
         path: "login",
         element: <LoginRedirect />,
       },
@@ -88,6 +81,11 @@ export const router = createRouter([
           Component: (await import("@/routes/CanvasShell")).default,
         }),
         children: [
+          {
+            // Home — "/" renders through CanvasLayout which detects "home" workspace
+            // and shows connect prompt or redirects to /hub when authenticated
+            index: true,
+          },
           {
             // Pathless error-catching wrapper: child errors render here
             // while CanvasShell and the canvas shell stay visible above.
