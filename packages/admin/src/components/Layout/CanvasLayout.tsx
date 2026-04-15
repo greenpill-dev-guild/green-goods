@@ -6,7 +6,7 @@ import {
   NavigationBar,
   NotificationPanel,
   RightSheet,
-  TopContextBar,
+  AppBar,
   useAdminStore,
   useAuth,
   useEligibleAdminGardens,
@@ -29,8 +29,8 @@ import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
 import { ConnectShell, WalletRequiredConnectShell } from "./ConnectShell";
-import { ProfileSheet } from "./ProfileSheet";
-import { SettingsSheet } from "./SettingsSheet";
+import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import {
   ACCOUNT_TAB_SEARCH_PARAM,
   PROFILE_SHEET_CONTENT_ID,
@@ -59,12 +59,18 @@ function useMediaQuery(query: string): boolean {
 /**
  * Canvas layout — top context bar above the main sheet and floating navigation below.
  *
- * - TopContextBar renders garden context, search, settings, and avatar
+ * - AppBar renders garden context, search, settings, and avatar
  * - NavigationBar stays focused on route navigation only
  * - No sidebar, no legacy header, no layout shift
  *
  * Paradigm: Command Surface — thick material, controls visible and ready.
  */
+const RIGHT_SHEET_TITLES: Record<string, { id: string; defaultMessage: string }> = {
+  profile: { id: "cockpit.profile.title", defaultMessage: "Profile" },
+  settings: { id: "cockpit.settings.title", defaultMessage: "Settings" },
+  notifications: { id: "cockpit.notifications.title", defaultMessage: "Notifications" },
+};
+
 export function CanvasLayout() {
   const intl = useIntl();
   const navigate = useNavigate();
@@ -87,14 +93,6 @@ export function CanvasLayout() {
   const orchestrator = useSheetOrchestrator();
   const overlayRootRef = useRef<HTMLDivElement>(null);
   const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
-
-  const profileSheetOpen =
-    orchestrator.activeSheet === "right" &&
-    orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID;
-
-  const settingsSheetOpen =
-    orchestrator.activeSheet === "right" &&
-    orchestrator.activeContentId === SETTINGS_SHEET_CONTENT_ID;
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -303,7 +301,7 @@ export function CanvasLayout() {
 
         {/* ── Body 1: Persistent Chrome — Top Axis (Z3) ── */}
         <div className="canvas-area-top">
-          <TopContextBar
+          <AppBar
             gardenChip={gardenChipNode}
             onOpenSearch={handleOpenSearch}
             onOpenSettings={isDesktop ? openSettings : undefined}
@@ -345,29 +343,24 @@ export function CanvasLayout() {
           )}
         </div>
 
-        {/* Pane-scoped sheets — portal into the bounded canvas overlay root */}
-        <ProfileSheet
-          open={profileSheetOpen}
-          onClose={() => orchestrator.closeSheet()}
-          container={overlayRootRef.current}
-        />
-        <SettingsSheet
-          open={settingsSheetOpen}
-          onClose={() => orchestrator.closeSheet()}
-          container={overlayRootRef.current}
-        />
+        {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
         <RightSheet
-          open={
-            orchestrator.activeSheet === "right" && orchestrator.activeContentId === "notifications"
-          }
+          open={orchestrator.activeSheet === "right"}
           onClose={() => orchestrator.closeSheet()}
-          title={intl.formatMessage({
-            id: "cockpit.notifications.title",
-            defaultMessage: "Notifications",
-          })}
+          title={
+            orchestrator.activeContentId && RIGHT_SHEET_TITLES[orchestrator.activeContentId]
+              ? intl.formatMessage(RIGHT_SHEET_TITLES[orchestrator.activeContentId])
+              : undefined
+          }
           container={overlayRootRef.current}
         >
-          <NotificationPanel />
+          {orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID && (
+            <div className="p-5"><AccountProfilePanel /></div>
+          )}
+          {orchestrator.activeContentId === SETTINGS_SHEET_CONTENT_ID && (
+            <div className="p-5"><AccountSettingsPanel /></div>
+          )}
+          {orchestrator.activeContentId === "notifications" && <NotificationPanel />}
         </RightSheet>
         <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
