@@ -281,10 +281,17 @@ docker-compose.local.yml
 .claude/projects/
 .claude/todos/
 .claude/statsig/
+.claude/worktrees/
 .claude/*.db
 
 # Keep shared Claude settings
 !.claude/settings.json
+
+# Superpowers brainstorm sessions
+.superpowers/brainstorm/
+
+# Temp patches
+*.patch
 
 # ================================
 # OS Generated

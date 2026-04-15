@@ -139,7 +139,7 @@ export function RightSheet({
           ) : null}
 
           {/* Header */}
-          {title && (
+          {title ? (
             <div className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3">
               <Dialog.Title className="text-lg font-semibold text-text-strong">
                 {title}
@@ -159,11 +159,13 @@ export function RightSheet({
                 </button>
               </Dialog.Close>
             </div>
-          )}
-
-          {!title && (
-            <div className="flex px-4 pt-3 justify-end">
-              <Dialog.Close asChild>
+          ) : (
+            <>
+              <Dialog.Title className="sr-only">
+                {closeLabel}
+              </Dialog.Title>
+              <div className="flex px-4 pt-3 justify-end">
+                <Dialog.Close asChild>
                 <button
                   type="button"
                   className={cn(
@@ -177,7 +179,8 @@ export function RightSheet({
                   <RiCloseLine className="h-5 w-5" />
                 </button>
               </Dialog.Close>
-            </div>
+              </div>
+            </>
           )}
 
           {/* Body */}

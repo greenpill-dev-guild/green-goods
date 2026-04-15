@@ -97,8 +97,12 @@ export function LeftSheet({
             isBounded && "pointer-events-auto",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "duration-[260ms] motion-reduce:duration-0"
+            "motion-reduce:duration-0"
           )}
+          style={{
+            animationDuration: "320ms",
+            animationTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
+          }}
           data-testid="left-sheet-overlay"
         />
 
@@ -117,12 +121,14 @@ export function LeftSheet({
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "duration-[300ms] motion-reduce:duration-0"
+            "motion-reduce:duration-0"
           )}
           style={{
             width: "100%",
             maxWidth: "clamp(260px, 25vw, 360px)",
             paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
+            animationDuration: "320ms",
+            animationTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
           }}
           data-testid="left-sheet"
           {...bind()}
