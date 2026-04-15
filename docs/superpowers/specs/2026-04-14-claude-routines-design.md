@@ -80,7 +80,7 @@ This spec defines the initial routine portfolio, write-back model, branching str
 | Field | Value |
 |---|---|
 | Trigger | GitHub: `pull_request.opened`, `pull_request.ready_for_review` |
-| Filters | `base=main`, `is_draft=false`, `author != claude/*`, `from_fork=false` |
+| Filters | `base=main`, `is_draft=false`, `head_branch` does not start with `claude/`, `from_fork=false` |
 | Repos | `green-goods` |
 | Environment | Default cloud env, trusted network access |
 | Connectors | None required |
@@ -274,7 +274,7 @@ Headroom on a 15-run cap: ~8–10 slots/day for manual `Run now`, API triggers, 
 | Lockfile conflict with in-flight `feature/*` | Routine PRs target `develop`, not `main`. Conflict only surfaces at promotion-time, resolved manually. |
 | Data-analyst overwrites user-owned Dune queries | Routine only edits queries tagged `[routine]`; tag convention enforced in prompt. |
 | Two routines fire simultaneously | Staggered schedules: 03:00 dream → 07:30 watch → 22:00 data-analyst. PR-review event-driven on a different artifact surface. |
-| Routine triggers itself (loop) | `gg-pr-review` filter `author != claude/*` excludes routine-opened PRs. |
+| Routine triggers itself (loop) | `gg-pr-review` filter on `head_branch` excludes branches starting with `claude/` — catches routine-opened PRs (which carry user's GitHub author per docs, so author filter wouldn't help). |
 | Dream-on 4-repo clone hits resource cap | Prompt instructs read-only; no `bun install` in any repo. |
 | Env-var secret leak | Dedicated cloud environment; scope keys read-only where supported (PostHog especially); rotate quarterly. |
 | Morning-watch issue flood on transient blip | Dedupe by `routine:watch:<category>` label; append comments instead of new issues. |
