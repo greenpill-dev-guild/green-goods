@@ -107,7 +107,7 @@ export function RightSheet({
           aria-modal="true"
           aria-label={title}
           className={cn(
-            isBounded ? "absolute top-0 right-0" : "fixed top-0 right-0",
+            isBounded ? "absolute" : "fixed",
             isBounded ? "z-[46]" : "z-modal",
             "flex h-full flex-col rounded-l-xl",
             "focus:outline-none will-change-transform",
@@ -119,8 +119,10 @@ export function RightSheet({
             "duration-[300ms] motion-reduce:duration-0"
           )}
           style={{
+            top: 0,
+            right: 0,
             width: "100%",
-            maxWidth: "clamp(220px, 20vw, 300px)",
+            maxWidth: "var(--canvas-right-sheet-width, clamp(320px, 28vw, 480px))",
             paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           }}
           data-testid="right-sheet"
