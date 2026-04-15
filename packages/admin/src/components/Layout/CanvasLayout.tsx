@@ -29,7 +29,7 @@ import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
 import { SeedlingIllustration } from "./SeedlingIllustration";
-import { ConnectShell, WalletRequiredConnectShell } from "./ConnectShell";
+import { WalletRequiredConnectShell } from "./ConnectShell";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import {

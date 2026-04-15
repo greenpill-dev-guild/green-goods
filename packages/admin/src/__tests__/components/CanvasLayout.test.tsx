@@ -119,14 +119,6 @@ vi.mock("@/components/Layout/PageTransition", () => ({
   PageTransition: () => <div>Page Transition</div>,
 }));
 
-vi.mock("@/components/Layout/UserAvatar", () => ({
-  UserAvatar: ({ onOpenProfile }: { onOpenProfile: () => void }) => (
-    <button type="button" onClick={onOpenProfile}>
-      Avatar
-    </button>
-  ),
-}));
-
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 
 describe("CanvasLayout", () => {
@@ -210,7 +202,7 @@ describe("CanvasLayout", () => {
     );
   });
 
-  it("opens the account sheet on the profile tab from the desktop avatar", async () => {
+  it("passes onOpenProfile to AppBar on desktop", () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -225,20 +217,21 @@ describe("CanvasLayout", () => {
       })),
     });
 
-    const user = userEvent.setup();
-
     renderWithProviders(
       <MemoryRouter initialEntries={["/hub"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
-    await user.click(screen.getByRole("button", { name: "Avatar" }));
-
-    expect(screen.getByTestId("account-sheet")).toHaveTextContent("profile");
+    expect(mockAppBarProps.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        onOpenProfile: expect.any(Function),
+        onOpenSettings: expect.any(Function),
+      })
+    );
   });
 
-  it("opens the account sheet on the settings tab from the desktop settings trigger", async () => {
+  it("opens RightSheet with settings content from the desktop settings trigger", async () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -263,38 +256,12 @@ describe("CanvasLayout", () => {
 
     await user.click(screen.getByRole("button", { name: "Open Settings" }));
 
-    expect(screen.getByTestId("account-sheet")).toHaveTextContent("settings");
-  });
-
-  it("redirects desktop /profile visits to /hub and reopens the requested account tab in a sheet", async () => {
-    Object.defineProperty(window, "matchMedia", {
-      writable: true,
-      value: vi.fn().mockImplementation((query: string) => ({
-        matches: query === "(min-width: 600px)",
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-      })),
-    });
-
-    renderWithProviders(
-      <MemoryRouter initialEntries={["/profile?tab=settings"]}>
-        <CanvasLayout />
-      </MemoryRouter>
-    );
-
     await waitFor(() => {
-      expect(screen.getByTestId("account-sheet")).toHaveTextContent("settings");
+      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
     });
-
-    expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");
   });
 
-  it("renders ConnectShell only for unauthenticated users", () => {
+  it("renders home canvas with connect prompt for unauthenticated users", () => {
     mockAuthState.current = {
       ...mockAuthState.current,
       isAuthenticated: false,
@@ -308,8 +275,8 @@ describe("CanvasLayout", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("connect-shell")).toBeInTheDocument();
-    expect(screen.queryByTestId("top-context-bar")).not.toBeInTheDocument();
+    // Home canvas renders AppBar + connect button, not old ConnectShell
+    expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
     expect(screen.queryByTestId("navigation-bar")).not.toBeInTheDocument();
   });
 
