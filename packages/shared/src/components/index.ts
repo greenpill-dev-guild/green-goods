@@ -107,8 +107,8 @@ export {
   SPRING_CONFIGS,
   DISMISS_VELOCITY_THRESHOLD,
   CHOREOGRAPHY_STAGGER_MS,
-  TopContextBar,
-  type TopContextBarProps,
+  AppBar,
+  type AppBarProps,
   type UseCanvasResponsiveFabOptions,
 } from "./Canvas";
 // DatePicker Components

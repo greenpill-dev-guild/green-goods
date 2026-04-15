@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
-import { TopContextBar } from "./TopContextBar";
+import { AppBar } from "./AppBar";
 import { GardenChip } from "./GardenChip";
 
 // ---------------------------------------------------------------------------
@@ -27,8 +27,8 @@ const gardenChipElement = (
 // ---------------------------------------------------------------------------
 
 const meta = {
-  title: "Canvas/TopContextBar",
-  component: TopContextBar,
+  title: "Canvas/AppBar",
+  component: AppBar,
   tags: ["autodocs"],
   argTypes: {
     gardenChip: {
@@ -50,7 +50,7 @@ const meta = {
       description: "Callback for the profile button. When provided, the person icon appears.",
     },
   },
-} satisfies Meta<typeof TopContextBar>;
+} satisfies Meta<typeof AppBar>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -109,7 +109,7 @@ export const Gallery: Story = {
         <h3 className="mb-3 px-4 text-sm font-semibold text-text-sub">
           Default (garden chip + all actions)
         </h3>
-        <TopContextBar
+        <AppBar
           gardenChip={gardenChipElement}
           onOpenSearch={fn()}
           onOpenSettings={fn()}
@@ -121,7 +121,7 @@ export const Gallery: Story = {
         <h3 className="mb-3 px-4 text-sm font-semibold text-text-sub">
           Sheet Context (back arrow + label)
         </h3>
-        <TopContextBar
+        <AppBar
           gardenChip={gardenChipElement}
           sheetContext={{ label: "Work Detail", onBack: fn() }}
           onOpenSearch={fn()}
@@ -134,7 +134,7 @@ export const Gallery: Story = {
         <h3 className="mb-3 px-4 text-sm font-semibold text-text-sub">
           Minimal (no search, no profile)
         </h3>
-        <TopContextBar gardenChip={gardenChipElement} onOpenSettings={fn()} />
+        <AppBar gardenChip={gardenChipElement} onOpenSettings={fn()} />
       </section>
     </div>
   ),

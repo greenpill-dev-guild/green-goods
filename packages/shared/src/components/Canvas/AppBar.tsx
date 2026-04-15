@@ -66,7 +66,7 @@ function TopBarIconButton({
 // Types
 // ----------------------------------------------------------------------------
 
-export interface TopContextBarProps {
+export interface AppBarProps {
   gardenChip: React.ReactNode;
   /** When a side sheet is open, show item name with back arrow */
   sheetContext?: { label: string; onBack: () => void };
@@ -78,11 +78,11 @@ export interface TopContextBarProps {
 }
 
 // ----------------------------------------------------------------------------
-// TopContextBar
+// AppBar
 // ----------------------------------------------------------------------------
 
 /**
- * Sticky top bar for the admin canvas layout.
+ * Sticky top bar for the admin canvas layout (M3 AppBar).
  *
  * - Left side: GardenChip (or sheetContext back-arrow + label when a sheet is open)
  * - Right side: Search, Notifications, Settings, User avatar — all with identical styling
@@ -91,14 +91,14 @@ export interface TopContextBarProps {
  *
  * On mobile, search icon is hidden to save space (notifications + settings + avatar remain).
  */
-export function TopContextBar({
+export function AppBar({
   gardenChip,
   sheetContext,
   onOpenSearch,
   onOpenSettings,
   onOpenNotifications,
   onOpenProfile,
-}: TopContextBarProps) {
+}: AppBarProps) {
   const { formatMessage } = useIntl();
 
   return (

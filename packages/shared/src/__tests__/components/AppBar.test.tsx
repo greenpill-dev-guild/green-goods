@@ -1,5 +1,5 @@
 /**
- * TopContextBar Tests
+ * AppBar Tests
  *
  * Verifies the sticky top bar renders the garden chip, toggles to
  * sheet context mode with back arrow, renders action buttons with
@@ -26,9 +26,9 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import { TopContextBar } from "../../components/Canvas/TopContextBar";
+import { AppBar } from "../../components/Canvas/AppBar";
 
-describe("TopContextBar", () => {
+describe("AppBar", () => {
   const user = userEvent.setup();
 
   beforeEach(() => {
@@ -40,14 +40,14 @@ describe("TopContextBar", () => {
   });
 
   it("renders the gardenChip slot", () => {
-    render(<TopContextBar gardenChip={<span data-testid="garden-chip">My Garden</span>} />);
+    render(<AppBar gardenChip={<span data-testid="garden-chip">My Garden</span>} />);
 
     expect(screen.getByTestId("garden-chip")).toBeTruthy();
     expect(screen.getByText("My Garden")).toBeTruthy();
   });
 
   it("renders as a sticky header with z-sticky", () => {
-    render(<TopContextBar gardenChip={<span>Chip</span>} />);
+    render(<AppBar gardenChip={<span>Chip</span>} />);
 
     const header = screen.getByRole("banner");
     expect(header.className).toContain("sticky");
@@ -55,7 +55,7 @@ describe("TopContextBar", () => {
   });
 
   it("has h-14 height class", () => {
-    render(<TopContextBar gardenChip={<span>Chip</span>} />);
+    render(<AppBar gardenChip={<span>Chip</span>} />);
 
     const header = screen.getByRole("banner");
     expect(header.className).toContain("h-14");
@@ -68,7 +68,7 @@ describe("TopContextBar", () => {
   it("shows back arrow + label when sheetContext is provided", () => {
     const onBack = vi.fn();
     render(
-      <TopContextBar
+      <AppBar
         gardenChip={<span data-testid="garden-chip">Chip</span>}
         sheetContext={{ label: "Settings Panel", onBack }}
       />
@@ -88,7 +88,7 @@ describe("TopContextBar", () => {
   it("calls sheetContext.onBack when back arrow is clicked", async () => {
     const onBack = vi.fn();
     render(
-      <TopContextBar gardenChip={<span>Chip</span>} sheetContext={{ label: "Details", onBack }} />
+      <AppBar gardenChip={<span>Chip</span>} sheetContext={{ label: "Details", onBack }} />
     );
 
     await user.click(screen.getByRole("button", { name: "Back" }));
@@ -96,7 +96,7 @@ describe("TopContextBar", () => {
   });
 
   it("shows gardenChip when sheetContext is not provided", () => {
-    render(<TopContextBar gardenChip={<span data-testid="garden-chip">My Garden</span>} />);
+    render(<AppBar gardenChip={<span data-testid="garden-chip">My Garden</span>} />);
 
     expect(screen.getByTestId("garden-chip")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
@@ -107,42 +107,42 @@ describe("TopContextBar", () => {
   // --------------------------------------------------------------------------
 
   it("renders search button with correct aria-label when onOpenSearch is provided", () => {
-    render(<TopContextBar gardenChip={<span>Chip</span>} onOpenSearch={() => {}} />);
+    render(<AppBar gardenChip={<span>Chip</span>} onOpenSearch={() => {}} />);
 
     const searchBtn = screen.getByRole("button", { name: "Open search" });
     expect(searchBtn).toBeTruthy();
   });
 
   it("does not render search button when onOpenSearch is not provided", () => {
-    render(<TopContextBar gardenChip={<span>Chip</span>} />);
+    render(<AppBar gardenChip={<span>Chip</span>} />);
 
     expect(screen.queryByRole("button", { name: "Open search" })).toBeNull();
   });
 
   it("calls onOpenSearch when search button is clicked", async () => {
     const onOpenSearch = vi.fn();
-    render(<TopContextBar gardenChip={<span>Chip</span>} onOpenSearch={onOpenSearch} />);
+    render(<AppBar gardenChip={<span>Chip</span>} onOpenSearch={onOpenSearch} />);
 
     await user.click(screen.getByRole("button", { name: "Open search" }));
     expect(onOpenSearch).toHaveBeenCalledOnce();
   });
 
   it("renders settings button with correct aria-label when onOpenSettings is provided", () => {
-    render(<TopContextBar gardenChip={<span>Chip</span>} onOpenSettings={() => {}} />);
+    render(<AppBar gardenChip={<span>Chip</span>} onOpenSettings={() => {}} />);
 
     const settingsBtn = screen.getByRole("button", { name: "Open settings" });
     expect(settingsBtn).toBeTruthy();
   });
 
   it("does not render settings button when onOpenSettings is not provided", () => {
-    render(<TopContextBar gardenChip={<span>Chip</span>} />);
+    render(<AppBar gardenChip={<span>Chip</span>} />);
 
     expect(screen.queryByRole("button", { name: "Open settings" })).toBeNull();
   });
 
   it("calls onOpenSettings when settings button is clicked", async () => {
     const onOpenSettings = vi.fn();
-    render(<TopContextBar gardenChip={<span>Chip</span>} onOpenSettings={onOpenSettings} />);
+    render(<AppBar gardenChip={<span>Chip</span>} onOpenSettings={onOpenSettings} />);
 
     await user.click(screen.getByRole("button", { name: "Open settings" }));
     expect(onOpenSettings).toHaveBeenCalledOnce();
@@ -153,21 +153,21 @@ describe("TopContextBar", () => {
   // --------------------------------------------------------------------------
 
   it("renders profile button when onOpenProfile is provided", () => {
-    render(<TopContextBar gardenChip={<span>Chip</span>} onOpenProfile={() => {}} />);
+    render(<AppBar gardenChip={<span>Chip</span>} onOpenProfile={() => {}} />);
 
     const profileBtn = screen.getByRole("button", { name: "cockpit.topBar.openProfile" });
     expect(profileBtn).toBeTruthy();
   });
 
   it("does not render profile button when onOpenProfile is not provided", () => {
-    render(<TopContextBar gardenChip={<span>Chip</span>} />);
+    render(<AppBar gardenChip={<span>Chip</span>} />);
 
     expect(screen.queryByRole("button", { name: "cockpit.topBar.openProfile" })).toBeNull();
   });
 
   it("calls onOpenProfile when profile button is clicked", async () => {
     const onOpenProfile = vi.fn();
-    render(<TopContextBar gardenChip={<span>Chip</span>} onOpenProfile={onOpenProfile} />);
+    render(<AppBar gardenChip={<span>Chip</span>} onOpenProfile={onOpenProfile} />);
 
     await user.click(screen.getByRole("button", { name: "cockpit.topBar.openProfile" }));
     expect(onOpenProfile).toHaveBeenCalledOnce();
@@ -179,7 +179,7 @@ describe("TopContextBar", () => {
 
   it("action buttons have focus-visible ring classes", () => {
     render(
-      <TopContextBar
+      <AppBar
         gardenChip={<span>Chip</span>}
         onOpenSearch={() => {}}
         onOpenSettings={() => {}}

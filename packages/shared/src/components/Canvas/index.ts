@@ -36,4 +36,4 @@ export {
   DISMISS_VELOCITY_THRESHOLD,
   CHOREOGRAPHY_STAGGER_MS,
 } from "./springConfig";
-export { TopContextBar, type TopContextBarProps } from "./TopContextBar";
+export { AppBar, type AppBarProps } from "./AppBar";
