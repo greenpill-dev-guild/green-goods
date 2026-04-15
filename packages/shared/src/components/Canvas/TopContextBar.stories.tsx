@@ -22,12 +22,6 @@ const gardenChipElement = (
   />
 );
 
-const sampleAvatar = (
-  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-base text-xs font-bold text-white">
-    AF
-  </div>
-);
-
 // ---------------------------------------------------------------------------
 // Meta
 // ---------------------------------------------------------------------------
@@ -52,9 +46,8 @@ const meta = {
     onOpenSettings: {
       description: "Callback for the settings button. When provided, the settings icon appears.",
     },
-    userAvatar: {
-      control: false,
-      description: "ReactNode for the user avatar displayed at the far right.",
+    onOpenProfile: {
+      description: "Callback for the profile button. When provided, the person icon appears.",
     },
   },
 } satisfies Meta<typeof TopContextBar>;
@@ -66,13 +59,13 @@ type Story = StoryObj<typeof meta>;
 // Stories
 // ---------------------------------------------------------------------------
 
-/** Default state: GardenChip on left, search + settings + avatar on right. */
+/** Default state: GardenChip on left, search + settings + profile on right. */
 export const Default: Story = {
   args: {
     gardenChip: gardenChipElement,
     onOpenSearch: fn(),
     onOpenSettings: fn(),
-    userAvatar: sampleAvatar,
+    onOpenProfile: fn(),
   },
 };
 
@@ -86,16 +79,16 @@ export const WithSheetContext: Story = {
     },
     onOpenSearch: fn(),
     onOpenSettings: fn(),
-    userAvatar: sampleAvatar,
+    onOpenProfile: fn(),
   },
 };
 
-/** Mobile layout: no search button (only settings + avatar visible). */
+/** Mobile layout: no search button (only settings + profile visible). */
 export const MinimalMobile: Story = {
   args: {
     gardenChip: gardenChipElement,
     onOpenSettings: fn(),
-    userAvatar: sampleAvatar,
+    onOpenProfile: fn(),
   },
   parameters: {
     viewport: { defaultViewport: "mobile1" },
@@ -108,7 +101,7 @@ export const Gallery: Story = {
     gardenChip: gardenChipElement,
     onOpenSearch: fn(),
     onOpenSettings: fn(),
-    userAvatar: sampleAvatar,
+    onOpenProfile: fn(),
   },
   render: () => (
     <div className="flex flex-col gap-8">
@@ -120,7 +113,7 @@ export const Gallery: Story = {
           gardenChip={gardenChipElement}
           onOpenSearch={fn()}
           onOpenSettings={fn()}
-          userAvatar={sampleAvatar}
+          onOpenProfile={fn()}
         />
       </section>
 
@@ -133,13 +126,13 @@ export const Gallery: Story = {
           sheetContext={{ label: "Work Detail", onBack: fn() }}
           onOpenSearch={fn()}
           onOpenSettings={fn()}
-          userAvatar={sampleAvatar}
+          onOpenProfile={fn()}
         />
       </section>
 
       <section>
         <h3 className="mb-3 px-4 text-sm font-semibold text-text-sub">
-          Minimal (no search, no avatar)
+          Minimal (no search, no profile)
         </h3>
         <TopContextBar gardenChip={gardenChipElement} onOpenSettings={fn()} />
       </section>
@@ -153,7 +146,7 @@ export const DarkMode: Story = {
     gardenChip: gardenChipElement,
     onOpenSearch: fn(),
     onOpenSettings: fn(),
-    userAvatar: sampleAvatar,
+    onOpenProfile: fn(),
   },
   decorators: [
     (Story) => (

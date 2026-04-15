@@ -3,7 +3,7 @@
  *
  * Verifies the sticky top bar renders the garden chip, toggles to
  * sheet context mode with back arrow, renders action buttons with
- * correct aria labels, and passes through user avatar slot.
+ * correct aria labels, and conditionally renders the profile icon button.
  *
  * @vitest-environment jsdom
  */
@@ -149,25 +149,28 @@ describe("TopContextBar", () => {
   });
 
   // --------------------------------------------------------------------------
-  // User avatar slot
+  // Profile button
   // --------------------------------------------------------------------------
 
-  it("renders userAvatar when provided", () => {
-    render(
-      <TopContextBar
-        gardenChip={<span>Chip</span>}
-        userAvatar={<img data-testid="user-avatar" alt="User" src="/avatar.png" />}
-      />
-    );
+  it("renders profile button when onOpenProfile is provided", () => {
+    render(<TopContextBar gardenChip={<span>Chip</span>} onOpenProfile={() => {}} />);
 
-    expect(screen.getByTestId("user-avatar")).toBeTruthy();
+    const profileBtn = screen.getByRole("button", { name: "cockpit.topBar.openProfile" });
+    expect(profileBtn).toBeTruthy();
   });
 
-  it("does not render avatar container when userAvatar is not provided", () => {
-    const { container } = render(<TopContextBar gardenChip={<span>Chip</span>} />);
+  it("does not render profile button when onOpenProfile is not provided", () => {
+    render(<TopContextBar gardenChip={<span>Chip</span>} />);
 
-    // No avatar image
-    expect(container.querySelector("[data-testid='user-avatar']")).toBeNull();
+    expect(screen.queryByRole("button", { name: "cockpit.topBar.openProfile" })).toBeNull();
+  });
+
+  it("calls onOpenProfile when profile button is clicked", async () => {
+    const onOpenProfile = vi.fn();
+    render(<TopContextBar gardenChip={<span>Chip</span>} onOpenProfile={onOpenProfile} />);
+
+    await user.click(screen.getByRole("button", { name: "cockpit.topBar.openProfile" }));
+    expect(onOpenProfile).toHaveBeenCalledOnce();
   });
 
   // --------------------------------------------------------------------------

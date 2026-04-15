@@ -3,6 +3,7 @@ import {
   RiNotification3Line,
   RiSearchLine,
   RiSettings3Line,
+  RiUserLine,
 } from "@remixicon/react";
 import * as Popover from "@radix-ui/react-popover";
 import type React from "react";
@@ -14,12 +15,52 @@ import { cn } from "../../utils/styles/cn";
 // ----------------------------------------------------------------------------
 
 const ICON_BTN = cn(
-  "flex h-10 w-10 items-center justify-center rounded-sm",
-  "text-text-sub hover:bg-bg-weak active:bg-bg-sub active:scale-95",
+  "group/icon relative flex h-10 w-10 items-center justify-center rounded-full",
+  "text-text-strong",
+  "hover:bg-[rgb(var(--m3-on-surface,15_23_42)/0.08)] hover:scale-105",
+  "active:bg-[rgb(var(--m3-on-surface,15_23_42)/0.12)] active:scale-95",
   "transition-all duration-[var(--spring-micro-duration,150ms)]",
-  "motion-reduce:transition-none motion-reduce:active:scale-100",
+  "motion-reduce:transition-none motion-reduce:active:scale-100 motion-reduce:hover:scale-100",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))]"
 );
+
+// ----------------------------------------------------------------------------
+// TopBarIconButton — internal icon button with CSS tooltip
+// ----------------------------------------------------------------------------
+
+function TopBarIconButton({
+  tooltip,
+  onClick,
+  children,
+  className,
+}: {
+  tooltip: string;
+  onClick: () => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={tooltip}
+      className={cn(ICON_BTN, className)}
+    >
+      {children}
+      <span
+        className={cn(
+          "pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap",
+          "rounded-md bg-neutral-900/90 px-2.5 py-1 text-xs font-medium text-white",
+          "opacity-0 transition-opacity group-hover/icon:opacity-100",
+          "motion-reduce:transition-none"
+        )}
+        role="tooltip"
+      >
+        {tooltip}
+      </span>
+    </button>
+  );
+}
 
 // ----------------------------------------------------------------------------
 // Types
@@ -33,7 +74,7 @@ export interface TopContextBarProps {
   onOpenSettings?: () => void;
   /** Open notifications in right sheet (desktop) — bell icon triggers this */
   onOpenNotifications?: () => void;
-  userAvatar?: React.ReactNode;
+  onOpenProfile?: () => void;
 }
 
 // ----------------------------------------------------------------------------
@@ -56,7 +97,7 @@ export function TopContextBar({
   onOpenSearch,
   onOpenSettings,
   onOpenNotifications,
-  userAvatar,
+  onOpenProfile,
 }: TopContextBarProps) {
   const { formatMessage } = useIntl();
 
@@ -86,33 +127,30 @@ export function TopContextBar({
         )}
       </div>
 
-      {/* Right side — all icons share ICON_BTN styling */}
+      {/* Right side — all icons share ICON_BTN styling via TopBarIconButton */}
       <div className="flex items-center gap-1">
         {/* Search — hidden on mobile */}
         {onOpenSearch && (
-          <button
-            type="button"
+          <TopBarIconButton
+            tooltip={formatMessage({ id: "cockpit.topBar.openSearch", defaultMessage: "Search" })}
             onClick={onOpenSearch}
-            aria-label={formatMessage({ id: "cockpit.topBar.openSearch" })}
-            className={cn(ICON_BTN, "hidden min-[600px]:flex")}
+            className="hidden min-[600px]:flex"
           >
             <RiSearchLine className="h-5 w-5" />
-          </button>
+          </TopBarIconButton>
         )}
 
         {/* Notification bell — desktop: opens right sheet, mobile: popover fallback */}
         {onOpenNotifications ? (
-          <button
-            type="button"
-            onClick={onOpenNotifications}
-            aria-label={formatMessage({
+          <TopBarIconButton
+            tooltip={formatMessage({
               id: "cockpit.topBar.notifications",
               defaultMessage: "Notifications",
             })}
-            className={ICON_BTN}
+            onClick={onOpenNotifications}
           >
             <RiNotification3Line className="h-5 w-5" />
-          </button>
+          </TopBarIconButton>
         ) : (
           <Popover.Root>
             <Popover.Trigger asChild>
@@ -151,18 +189,23 @@ export function TopContextBar({
 
         {/* Settings */}
         {onOpenSettings && (
-          <button
-            type="button"
+          <TopBarIconButton
+            tooltip={formatMessage({ id: "cockpit.topBar.openSettings", defaultMessage: "Settings" })}
             onClick={onOpenSettings}
-            aria-label={formatMessage({ id: "cockpit.topBar.openSettings" })}
-            className={ICON_BTN}
           >
             <RiSettings3Line className="h-5 w-5" />
-          </button>
+          </TopBarIconButton>
         )}
 
-        {/* User avatar */}
-        {userAvatar && <div className="ml-1 flex items-center">{userAvatar}</div>}
+        {/* Profile */}
+        {onOpenProfile && (
+          <TopBarIconButton
+            tooltip={formatMessage({ id: "cockpit.topBar.openProfile", defaultMessage: "Profile" })}
+            onClick={onOpenProfile}
+          >
+            <RiUserLine className="h-5 w-5" />
+          </TopBarIconButton>
+        )}
       </div>
     </header>
   );
