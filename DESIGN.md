@@ -10,8 +10,8 @@ This file uses **Stitch-compatible color vocabulary** (neutral/primary/secondary
 
 | Stitch Role | Job | Internal Token | Color |
 |-------------|-----|---------------|-------|
-| Neutral | Canvas (80-90%) | `--bg-white-0`, `--bg-weak-50` | Warm linen white (#FAF8F5 light / #1C1917 dark) |
-| Primary | Ink (8-15%) | `--text-strong-950` | Warm charcoal (#292524 light / #F5F5F4 dark) |
+| Neutral | Canvas (80-90%) | `--bg-white-0`, `--bg-weak-50` | Warm linen white — direction: #FAF8F5 light / #1C1917 dark (current impl is cooler) |
+| Primary | Ink (8-15%) | `--text-strong-950` | Warm charcoal — direction: #292524 light / #F5F5F4 dark (current impl is darker #0C0A09) |
 | Secondary | Subdued support (3-5%) | `--text-sub-600` | Earth stone (#78716C light / #A8A29E dark) |
 | Tertiary | Accent/CTA (1-3%) | `--color-primary` / `--green-500` | Garden green (#1FC16B) |
 
