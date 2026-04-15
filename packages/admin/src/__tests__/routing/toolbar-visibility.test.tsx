@@ -66,11 +66,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       </nav>
     ),
     GardenChip: () => <div>Garden Chip</div>,
-    TopContextBar: (props: {
+    AppBar: (props: {
       gardenChip: React.ReactNode;
       onOpenSearch?: () => void;
       onOpenSettings?: () => void;
-      userAvatar?: React.ReactNode;
+      onOpenProfile?: () => void;
     }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
     useAdminStore: (
       selector: (state: {
@@ -98,10 +98,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 
 vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,
-}));
-
-vi.mock("@/components/Layout/AccountSheet", () => ({
-  AccountSheet: () => null,
 }));
 
 vi.mock("@/components/Layout/PageTransition", () => ({

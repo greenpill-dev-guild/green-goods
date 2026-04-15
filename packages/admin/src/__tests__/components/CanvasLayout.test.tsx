@@ -65,11 +65,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       </div>
     ),
     GardenChip: () => <div>Garden Chip</div>,
-    TopContextBar: (props: {
+    AppBar: (props: {
       gardenChip: React.ReactNode;
       onOpenSearch?: () => void;
       onOpenSettings?: () => void;
-      userAvatar?: React.ReactNode;
+      onOpenProfile?: () => void;
     }) => {
       mockTopContextBarProps(props);
       return (
@@ -80,7 +80,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
               Open Settings
             </button>
           ) : null}
-          <div data-testid="top-context-avatar">{props.userAvatar}</div>
         </div>
       );
     },
@@ -114,11 +113,6 @@ vi.mock("@/components/Layout/CommandPalette", () => ({
 
 vi.mock("@/components/ConnectButton", () => ({
   ConnectButton: () => <button type="button">Connect Wallet</button>,
-}));
-
-vi.mock("@/components/Layout/AccountSheet", () => ({
-  AccountSheet: ({ open, activeTab }: { open: boolean; activeTab: "profile" | "settings" }) =>
-    open ? <div data-testid="account-sheet">{activeTab}</div> : null,
 }));
 
 vi.mock("@/components/Layout/PageTransition", () => ({

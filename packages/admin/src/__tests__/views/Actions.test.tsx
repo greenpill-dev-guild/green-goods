@@ -28,9 +28,9 @@ vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   Button: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) =>
     React.createElement("button", { onClick }, children),
-  CanvasWorkbenchList: ({ children, ...props }: { children?: React.ReactNode }) =>
+  WorkbenchList: ({ children, ...props }: { children?: React.ReactNode }) =>
     React.createElement("div", props, children),
-  CanvasWorkbenchRow: ({
+  WorkbenchRow: ({
     title,
     description,
     statusLabel,
