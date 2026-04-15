@@ -8,7 +8,7 @@ import { useIntl } from "react-intl";
  * Currently a placeholder skeleton — notification data source TBD.
  *
  * Desktop: opens in right sheet via bell icon → orchestrator.openSheet("right", "notifications")
- * Mobile: the TopContextBar bell icon uses a Popover fallback (max 5 items).
+ * Mobile: the AppBar bell icon uses a Popover fallback (max 5 items).
  */
 export function NotificationPanel() {
   const { formatMessage } = useIntl();

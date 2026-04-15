@@ -1,7 +1,7 @@
 /**
- * CanvasScaffold Tests
+ * Canvas Primitives Tests
  *
- * Covers the reusable canvas route scaffolds extracted from Hub:
+ * Covers the reusable canvas layout primitives:
  * workbench row, empty shell, and responsive FAB behavior.
  *
  * @vitest-environment jsdom
@@ -76,7 +76,7 @@ function ResponsiveFabProbe({
   );
 }
 
-describe("CanvasScaffold", () => {
+describe("Canvas Primitives", () => {
   const user = userEvent.setup();
 
   beforeEach(() => {

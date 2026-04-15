@@ -36,7 +36,7 @@ export interface AdminTabRailProps {
  * - Compact density: 36dp (label) or 40dp (icon + label) for admin information density
  * - M3 notification badge on count prop (16dp, corner-full, error bg)
  *
- * Accepts the same data contract as the shared CanvasStageTabRail so
+ * Accepts the same data contract as the shared shared stage tab rail so
  * admin views can swap imports without any other code changes.
  */
 export function AdminTabRail({

@@ -1,0 +1,324 @@
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createElement } from "react";
+import { IntlProvider } from "react-intl";
+import { MemoryRouter } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import messages from "../../../../shared/src/i18n/en.json";
+
+const GREENWILL_BADGE_IDS = {
+  GENESIS: "0x019f6193080fa2ce1eb4082321d3fc1563ca3ee6f96dc5b2092d4bd08cc1b2cb",
+  FIRST_WORK: "0xcf9804d3da2c8f716a32449c2b67e5dfa650d9335bc0be6c8a48b9a99ad1efde",
+  FIRST_SUPPORT: "0x6fc67c6755ce3ed4ebb1672f2ee106e26f5ba6e37f0f76c2b2541991212dcdc4",
+} as const;
+
+const sharedMocks = vi.hoisted(() => ({
+  usePrimaryAddress: vi.fn(() => "0x1234567890abcdef1234567890abcdef12345678"),
+  useGreenGoodsEnsName: vi.fn(() => ({ data: "river.greengoods.eth" })),
+  useEnsName: vi.fn(() => ({ data: "river.eth" })),
+  useGreenWillBadges: vi.fn(),
+  useClaimGenesisBadge: vi.fn(),
+  useClaimFirstWorkBadge: vi.fn(),
+  useMyOnlineWorks: vi.fn(),
+  useProtocolMemberStatus: vi.fn(),
+  formatAddress: vi.fn((address: string, opts?: { ensName?: string }) =>
+    opts?.ensName || `${address.slice(0, 6)}...${address.slice(-4)}`
+  ),
+}));
+
+vi.mock("@green-goods/shared", () => ({
+  formatAddress: sharedMocks.formatAddress,
+  usePrimaryAddress: sharedMocks.usePrimaryAddress,
+  useGreenGoodsEnsName: sharedMocks.useGreenGoodsEnsName,
+  useEnsName: sharedMocks.useEnsName,
+  useGreenWillBadges: sharedMocks.useGreenWillBadges,
+  useClaimGenesisBadge: sharedMocks.useClaimGenesisBadge,
+  useClaimFirstWorkBadge: sharedMocks.useClaimFirstWorkBadge,
+  useMyOnlineWorks: sharedMocks.useMyOnlineWorks,
+  useProtocolMemberStatus: sharedMocks.useProtocolMemberStatus,
+}));
+
+vi.mock("@remixicon/react", () => ({
+  RiAwardLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-award" }),
+  RiCoinsLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-coins" }),
+  RiHammerLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-hammer" }),
+  RiSeedlingLine: (props: any) =>
+    createElement("span", { ...props, "data-testid": "icon-seedling" }),
+}));
+
+vi.mock("@/components/Cards", () => ({
+  Card: ({ children, ...props }: any) => createElement("div", props, children),
+}));
+
+vi.mock("@/components/Actions", () => ({
+  Button: ({ label, onClick, ...props }: any) =>
+    createElement("button", { ...props, onClick, type: "button" }, label),
+}));
+
+import { ProfileBadges } from "../../views/Profile/Badges";
+
+const wrap = (el: React.ReactElement) =>
+  createElement(MemoryRouter, null, createElement(IntlProvider, { locale: "en", messages }, el));
+
+describe("ProfileBadges", () => {
+  const mockGenesisClaim = vi.fn();
+  const mockFirstWorkClaim = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    sharedMocks.useGreenWillBadges.mockReturnValue({
+      badges: [
+        {
+          id: "def-genesis",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.GENESIS,
+          slug: "genesis",
+          metadataURI: "ipfs://genesis",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 4,
+          grantCount: 4,
+          updatedAt: 1710000000,
+          owned: true,
+          claimableNow: false,
+          ownership: {
+            id: "own-genesis",
+            chainId: 42161,
+            badgeId: GREENWILL_BADGE_IDS.GENESIS,
+            owner: "0x1234567890abcdef1234567890abcdef12345678",
+            sourceRef: "0x1111111111111111111111111111111111111111111111111111111111111111",
+            issuer: "0x0000000000000000000000000000000000000004",
+            unlockTokenId: 1n,
+            issuedAt: 1710000000,
+            definitionId: "def-genesis",
+            lastGrantId: "grant-genesis",
+          },
+        },
+        {
+          id: "def-first-work",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_WORK,
+          slug: "first-work",
+          metadataURI: "ipfs://first-work",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 2,
+          grantCount: 2,
+          updatedAt: 1710001000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+        {
+          id: "def-first-support",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_SUPPORT,
+          slug: "first-support",
+          metadataURI: "ipfs://first-support",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: false,
+          active: true,
+          holderCount: 1,
+          grantCount: 1,
+          updatedAt: 1710002000,
+          owned: false,
+          claimableNow: false,
+          ownership: null,
+        },
+      ],
+      earnedBadges: [
+        {
+          id: "def-genesis",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.GENESIS,
+          slug: "genesis",
+          metadataURI: "ipfs://genesis",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 4,
+          grantCount: 4,
+          updatedAt: 1710000000,
+          owned: true,
+          claimableNow: false,
+          ownership: {
+            id: "own-genesis",
+            chainId: 42161,
+            badgeId: GREENWILL_BADGE_IDS.GENESIS,
+            owner: "0x1234567890abcdef1234567890abcdef12345678",
+            sourceRef: "0x1111111111111111111111111111111111111111111111111111111111111111",
+            issuer: "0x0000000000000000000000000000000000000004",
+            unlockTokenId: 1n,
+            issuedAt: 1710000000,
+            definitionId: "def-genesis",
+            lastGrantId: "grant-genesis",
+          },
+        },
+      ],
+      claimableBadges: [
+        {
+          id: "def-first-work",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_WORK,
+          slug: "first-work",
+          metadataURI: "ipfs://first-work",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 2,
+          grantCount: 2,
+          updatedAt: 1710001000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+        {
+          id: "def-first-support",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_SUPPORT,
+          slug: "first-support",
+          metadataURI: "ipfs://first-support",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: false,
+          active: true,
+          holderCount: 1,
+          grantCount: 1,
+          updatedAt: 1710002000,
+          owned: false,
+          claimableNow: false,
+          ownership: null,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    sharedMocks.useClaimGenesisBadge.mockReturnValue({
+      mutate: mockGenesisClaim,
+      isPending: false,
+    });
+    sharedMocks.useClaimFirstWorkBadge.mockReturnValue({
+      mutate: mockFirstWorkClaim,
+      isPending: false,
+    });
+    sharedMocks.useMyOnlineWorks.mockReturnValue({
+      data: [{ id: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+      isLoading: false,
+    });
+    sharedMocks.useProtocolMemberStatus.mockReturnValue({
+      data: true,
+      isLoading: false,
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders earned badge data and prefers the protocol ENS identity", () => {
+    render(wrap(createElement(ProfileBadges)));
+
+    expect(screen.getByText("Issued to river.greengoods.eth")).toBeInTheDocument();
+    expect(screen.getByText("Genesis")).toBeInTheDocument();
+    expect(screen.getByText("Earned badges")).toBeInTheDocument();
+  });
+
+  it("excludes non-claimable badges from the claimable section", () => {
+    render(wrap(createElement(ProfileBadges)));
+
+    // first-support has claimableNow: false in the default mock —
+    // it should NOT appear under "Claimable badges"
+    const claimableHeading = screen.getByText("Claimable badges");
+    const claimableSection = claimableHeading.closest("div")!;
+    expect(claimableSection).not.toBeNull();
+
+    // "Auto-issued after routed support" is the renderAction text for first-support.
+    // With the claimableNow filter, first-support should be excluded entirely.
+    expect(
+      screen.queryByText("Auto-issued after routed support.")
+    ).not.toBeInTheDocument();
+  });
+
+  it("allows claiming the genesis badge when eligible", async () => {
+    const user = userEvent.setup();
+    sharedMocks.useGreenWillBadges.mockReturnValueOnce({
+      badges: [
+        {
+          id: "def-genesis",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.GENESIS,
+          slug: "genesis",
+          metadataURI: "ipfs://genesis",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 4,
+          grantCount: 4,
+          updatedAt: 1710000000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+      ],
+      earnedBadges: [],
+      claimableBadges: [
+        {
+          id: "def-genesis",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.GENESIS,
+          slug: "genesis",
+          metadataURI: "ipfs://genesis",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 4,
+          grantCount: 4,
+          updatedAt: 1710000000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+
+    await user.click(screen.getByRole("button", { name: "Claim Genesis" }));
+
+    expect(mockGenesisClaim).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows claiming the first work badge with the first work uid", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileBadges)));
+
+    await user.click(screen.getByRole("button", { name: "Claim First Work" }));
+
+    expect(mockFirstWorkClaim).toHaveBeenCalledWith({
+      uid: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+  });
+});

@@ -1,0 +1,208 @@
+<h2>Grid-Based Canvas with Canvas-Level Gradient</h2>
+<p class="subtitle">Grid areas for legibility, gradient on canvas, absolute nav/FAB for floating freedom</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">Canvas Grid Layout</div>
+    <div class="mockup-body" style="padding: 0; min-height: 560px; position: relative; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: auto 1fr auto; grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; background: linear-gradient(180deg, #fff 0%, rgba(249,247,242,0.6) 40%, rgba(234,231,224,0.9) 100%); overflow: hidden; border-radius: 8px;">
+
+      <!-- Canvas gradient label -->
+      <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 700; color: rgba(0,0,0,0.2); letter-spacing: 1.5px; text-transform: uppercase; z-index: 20; background: rgba(255,255,255,0.6); padding: 2px 10px; border-radius: 4px;">Canvas gradient (lives here, blends through all containers)</div>
+
+      <!-- TOP CONTAINER (grid-area: top) -->
+      <div style="grid-area: top; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: transparent; border: 1px dashed rgba(180,80,0,0.15); position: relative; margin: 4px 4px 0;">
+        <div style="position: absolute; bottom: 2px; left: 8px; font-size: 8px; font-weight: 700; color: rgba(180,80,0,0.35); letter-spacing: 1px; text-transform: uppercase;">grid-area: top</div>
+        <div style="background: rgba(255,255,255,0.5); backdrop-filter: blur(8px); padding: 5px 14px; border-radius: 18px; font-size: 11px; border: 1px solid rgba(0,0,0,0.06);">🌱 Garden</div>
+        <div style="display: flex; gap: 8px;">
+          <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(255,255,255,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid rgba(0,0,0,0.04);">🔍</div>
+          <div style="width: 30px; height: 30px; border-radius: 8px; background: rgba(255,255,255,0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid rgba(0,0,0,0.04);">🔔</div>
+          <div style="width: 30px; height: 30px; border-radius: 50%; background: #c4b5a0;"></div>
+        </div>
+      </div>
+
+      <!-- LEFT SHEET (grid-area: left) — collapsed/hidden by default -->
+      <div style="grid-area: left; width: 0; overflow: hidden; position: relative; border: 1px dashed rgba(0,80,180,0.15); margin: 0 0 0 4px; border-radius: 12px 0 0 12px;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-90deg); font-size: 8px; font-weight: 700; color: rgba(0,80,180,0.35); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;">grid-area: left (width: 0 when closed)</div>
+      </div>
+
+      <!-- MAIN SHEET (grid-area: main) -->
+      <div style="grid-area: main; position: relative; margin: 4px; border-radius: 16px; background: rgba(255,255,255,0.45); backdrop-filter: blur(12px); border: 1px solid rgba(0,0,0,0.05); box-shadow: 0 12px 40px rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: center; min-height: 0; overflow: hidden;">
+        <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-size: 8px; font-weight: 700; color: rgba(0,100,60,0.35); letter-spacing: 1px; text-transform: uppercase;">grid-area: main</div>
+        <div style="text-align: center;">
+          <div style="font-size: 14px; font-weight: 500; color: rgba(0,0,0,0.5);">MainSheet</div>
+          <div style="font-size: 11px; color: rgba(0,0,0,0.3); margin-top: 4px;">Glass surface — canvas gradient shows through</div>
+        </div>
+      </div>
+
+      <!-- RIGHT SHEET (grid-area: right) — collapsed/hidden by default -->
+      <div style="grid-area: right; width: 0; overflow: hidden; position: relative; border: 1px dashed rgba(0,80,180,0.15); margin: 0 4px 0 0; border-radius: 0 12px 12px 0;">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(90deg); font-size: 8px; font-weight: 700; color: rgba(0,80,180,0.35); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;">grid-area: right (width: 0 when closed)</div>
+      </div>
+
+      <!-- BOTTOM CONTAINER (grid-area: bottom) — relative for absolute children -->
+      <div style="grid-area: bottom; height: 72px; position: relative; background: transparent; border: 1px dashed rgba(180,80,0,0.15); margin: 0 4px 4px;">
+        <div style="position: absolute; top: 2px; left: 8px; font-size: 8px; font-weight: 700; color: rgba(180,80,0,0.35); letter-spacing: 1px; text-transform: uppercase;">grid-area: bottom (position: relative)</div>
+
+        <!-- NavigationBar — absolute, can float outside -->
+        <div style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); border-radius: 24px; padding: 8px 24px; display: flex; gap: 20px; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(0,0,0,0.04); z-index: 5;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 22px; height: 22px; border-radius: 6px; background: rgba(74,124,89,0.15);"></div>
+            <div style="font-size: 8px; color: rgba(0,0,0,0.4);">Hub</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 22px; height: 22px; border-radius: 6px; background: rgba(0,0,0,0.06);"></div>
+            <div style="font-size: 8px; color: rgba(0,0,0,0.4);">Actions</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 22px; height: 22px; border-radius: 6px; background: rgba(0,0,0,0.06);"></div>
+            <div style="font-size: 8px; color: rgba(0,0,0,0.4);">Garden</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 22px; height: 22px; border-radius: 6px; background: rgba(0,0,0,0.06);"></div>
+            <div style="font-size: 8px; color: rgba(0,0,0,0.4);">Community</div>
+          </div>
+        </div>
+
+        <!-- FAB — absolute, floats freely -->
+        <div style="position: absolute; bottom: 4px; right: -4px; width: 52px; height: 52px; border-radius: 14px; background: #4a7c59; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(74,124,89,0.3); z-index: 6;">
+          <span style="color: white; font-size: 22px;">+</span>
+          <div style="position: absolute; top: -22px; white-space: nowrap; background: rgba(0,0,0,0.75); color: white; font-size: 9px; padding: 2px 8px; border-radius: 4px;">Submit Work</div>
+        </div>
+        <div style="position: absolute; bottom: -12px; right: 4px; font-size: 8px; color: rgba(180,80,0,0.4);">← absolute, can overflow container</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- With sheets open -->
+<div class="section" style="margin-top: 24px;">
+  <div class="mockup">
+    <div class="mockup-header">Both Sheets Open — MainSheet Recedes, Grid Columns Respond</div>
+    <div class="mockup-body" style="padding: 0; min-height: 480px; position: relative; display: grid; grid-template-rows: auto 1fr auto; grid-template-columns: clamp(260px, 25vw, 360px) 1fr clamp(220px, 20vw, 300px); grid-template-areas: 'top top top' 'left main right' 'bottom bottom bottom'; background: linear-gradient(180deg, #fff 0%, rgba(249,247,242,0.6) 40%, rgba(234,231,224,0.9) 100%); overflow: hidden; border-radius: 8px;">
+
+      <!-- TOP -->
+      <div style="grid-area: top; height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;">
+        <div style="background: rgba(255,255,255,0.5); padding: 4px 12px; border-radius: 16px; font-size: 10px; border: 1px solid rgba(0,0,0,0.06);">🌱 Garden</div>
+        <div style="display: flex; gap: 6px;">
+          <div style="width: 26px; height: 26px; border-radius: 6px; background: rgba(255,255,255,0.4); display: flex; align-items: center; justify-content: center; font-size: 10px;">🔍</div>
+          <div style="width: 26px; height: 26px; border-radius: 50%; background: #c4b5a0;"></div>
+        </div>
+      </div>
+
+      <!-- LEFT SHEET — open, viewport-driven width -->
+      <div style="grid-area: left; background: rgba(255,255,255,0.45); backdrop-filter: blur(20px); border-right: 1px solid rgba(0,0,0,0.04); display: flex; flex-direction: column; position: relative; margin: 4px 0 4px 4px; border-radius: 12px 0 0 12px;">
+        <div style="position: absolute; top: 6px; left: 12px; font-size: 8px; font-weight: 700; color: rgba(0,80,180,0.4); letter-spacing: 1px; text-transform: uppercase;">clamp(260px, 25vw, 360px)</div>
+        <div style="padding: 28px 14px 14px; flex: 1; display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.5px;">Actions</div>
+          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 10px; font-size: 11px; color: rgba(0,0,0,0.45);">Submit Work</div>
+          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 10px; font-size: 11px; color: rgba(0,0,0,0.45);">Create Assessment</div>
+        </div>
+      </div>
+
+      <!-- MAIN SHEET — receded -->
+      <div style="grid-area: main; position: relative; margin: 4px 2px; border-radius: 12px; background: rgba(255,255,255,0.25); backdrop-filter: blur(6px); border: 1px solid rgba(0,0,0,0.03); display: flex; align-items: center; justify-content: center; opacity: 0.5; transform: scale(0.96); filter: blur(1.5px) saturate(0.85); transition: all 0.42s cubic-bezier(0.16,1,0.3,1);">
+        <div style="text-align: center;">
+          <div style="font-size: 12px; color: rgba(0,0,0,0.3);">MainSheet (receded)</div>
+          <div style="font-size: 10px; color: rgba(0,0,0,0.2); margin-top: 2px;">1fr — takes remaining space</div>
+        </div>
+      </div>
+
+      <!-- RIGHT SHEET — open, viewport-driven width -->
+      <div style="grid-area: right; background: rgba(255,255,255,0.45); backdrop-filter: blur(20px); border-left: 1px solid rgba(0,0,0,0.04); display: flex; flex-direction: column; position: relative; margin: 4px 4px 4px 0; border-radius: 0 12px 12px 0;">
+        <div style="position: absolute; top: 6px; right: 12px; font-size: 8px; font-weight: 700; color: rgba(0,80,180,0.4); letter-spacing: 1px; text-transform: uppercase;">clamp(220px, 20vw, 300px)</div>
+        <div style="padding: 28px 14px 14px; flex: 1; display: flex; flex-direction: column; gap: 6px;">
+          <div style="font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.45); text-transform: uppercase; letter-spacing: 0.5px;">Settings</div>
+          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 10px; font-size: 11px; color: rgba(0,0,0,0.45);">Account</div>
+          <div style="background: rgba(0,0,0,0.03); border-radius: 8px; padding: 10px; font-size: 11px; color: rgba(0,0,0,0.45);">Notifications</div>
+        </div>
+      </div>
+
+      <!-- BOTTOM -->
+      <div style="grid-area: bottom; height: 64px; position: relative;">
+        <div style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.85); backdrop-filter: blur(8px); border-radius: 22px; padding: 8px 20px; display: flex; gap: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.04), inset 0 0 0 1px rgba(0,0,0,0.04);">
+          <div style="width: 20px; height: 20px; border-radius: 5px; background: rgba(74,124,89,0.15);"></div>
+          <div style="width: 20px; height: 20px; border-radius: 5px; background: rgba(0,0,0,0.06);"></div>
+          <div style="width: 20px; height: 20px; border-radius: 5px; background: rgba(0,0,0,0.06);"></div>
+          <div style="width: 20px; height: 20px; border-radius: 5px; background: rgba(0,0,0,0.06);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Grid spec -->
+<div class="section" style="margin-top: 24px;">
+  <h3>Grid Specification</h3>
+  <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 16px; font-family: monospace; font-size: 12px; line-height: 1.8; color: rgba(0,0,0,0.7);">
+    <div style="color: rgba(0,0,0,0.4);">/* Canvas root */</div>
+    <div>.workspace-canvas {</div>
+    <div style="padding-left: 20px;">display: grid;</div>
+    <div style="padding-left: 20px;">grid-template-areas:</div>
+    <div style="padding-left: 40px;">"top&nbsp;&nbsp;&nbsp;&nbsp;top&nbsp;&nbsp;top"</div>
+    <div style="padding-left: 40px;">"left&nbsp;&nbsp;&nbsp;main&nbsp;right"</div>
+    <div style="padding-left: 40px;">"bottom&nbsp;bottom&nbsp;bottom";</div>
+    <div style="padding-left: 20px;">grid-template-rows: auto 1fr auto;</div>
+    <div style="padding-left: 20px;">grid-template-columns:</div>
+    <div style="padding-left: 40px; color: rgba(0,80,180,0.7);">var(--left-sheet-width, 0)&nbsp;&nbsp;<span style="color: rgba(0,0,0,0.35);">/* animated via react-spring */</span></div>
+    <div style="padding-left: 40px;">1fr</div>
+    <div style="padding-left: 40px; color: rgba(0,80,180,0.7);">var(--right-sheet-width, 0);&nbsp;<span style="color: rgba(0,0,0,0.35);">/* animated via react-spring */</span></div>
+    <div style="padding-left: 20px; color: rgba(0,0,0,0.4);">/* Canvas owns the gradient */</div>
+    <div style="padding-left: 20px;">background: var(--canvas-gradient);</div>
+    <div>}</div>
+    <br>
+    <div style="color: rgba(0,0,0,0.4);">/* Responsive sheet widths */</div>
+    <div>--left-open:&nbsp;&nbsp;clamp(260px, 25vw, 360px);</div>
+    <div>--right-open:&nbsp;clamp(220px, 20vw, 300px);</div>
+    <br>
+    <div style="color: rgba(0,0,0,0.4);">/* Nav & FAB float freely */</div>
+    <div>[grid-area="bottom"] { position: relative; }</div>
+    <div>.navigation-bar { position: absolute; }</div>
+    <div>.fab { position: absolute; }</div>
+  </div>
+</div>
+
+<!-- Surface model -->
+<div class="section" style="margin-top: 24px;">
+  <h3>Surface Model (Corrected)</h3>
+  <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+    <thead>
+      <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
+        <th style="text-align: left; padding: 8px;">Element</th>
+        <th style="text-align: left; padding: 8px;">Background</th>
+        <th style="text-align: left; padding: 8px;">Why</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">Canvas (.workspace-canvas)</td>
+        <td style="padding: 8px;">Gradient (top: white → warm neutral)</td>
+        <td style="padding: 8px; color: rgba(0,0,0,0.5);">Single source of truth for color — everything inherits</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">TopContainer</td>
+        <td style="padding: 8px;">Transparent</td>
+        <td style="padding: 8px; color: rgba(0,0,0,0.5);">Canvas gradient shows through</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">BottomContainer</td>
+        <td style="padding: 8px;">Transparent</td>
+        <td style="padding: 8px; color: rgba(0,0,0,0.5);">Canvas gradient shows through</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">MainSheet</td>
+        <td style="padding: 8px;">Glass (white/45% + blur)</td>
+        <td style="padding: 8px; color: rgba(0,0,0,0.5);">Semi-transparent — canvas gradient bleeds through</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">LeftSheet / RightSheet</td>
+        <td style="padding: 8px;">Glass floating (white/45% + blur 20px)</td>
+        <td style="padding: 8px; color: rgba(0,0,0,0.5);">Same glass language, canvas shows through</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: 500;">NavigationBar</td>
+        <td style="padding: 8px;">Glass ground (white/85% + blur 8px)</td>
+        <td style="padding: 8px; color: rgba(0,0,0,0.5);">Slightly more opaque for readability</td>
+      </tr>
+    </tbody>
+  </table>
+</div>

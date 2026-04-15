@@ -1,0 +1,223 @@
+<h2>Proposed Canvas Taxonomy</h2>
+<p class="subtitle">Three containers, three center sheets — does this capture it?</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">Desktop Layout — Canonical Structure</div>
+    <div class="mockup-body" style="padding: 0; background: #eae7e0; min-height: 580px; position: relative; display: flex; flex-direction: column;">
+
+      <!-- TOP CONTAINER -->
+      <div style="position: relative; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: transparent;">
+        <!-- Label -->
+        <div style="position: absolute; top: 2px; right: 8px; font-size: 9px; font-weight: 700; color: rgba(180,80,0,0.5); letter-spacing: 1.5px; text-transform: uppercase;">Top Container (transparent)</div>
+
+        <!-- Left: Garden Selector -->
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); padding: 6px 14px; border-radius: 20px; font-size: 12px; border: 1px solid rgba(0,0,0,0.08); font-weight: 500;">🌱 Garden Selector</div>
+        </div>
+
+        <!-- Center: breadcrumb (shown dashed to indicate mobile-only) -->
+        <div style="font-size: 11px; color: rgba(0,0,0,0.3); border: 1px dashed rgba(0,0,0,0.15); padding: 4px 12px; border-radius: 6px;">Breadcrumb (mobile)</div>
+
+        <!-- Right: Actions -->
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; font-size: 13px;">🔍</div>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(0,0,0,0.05); display: flex; align-items: center; justify-content: center; font-size: 13px;">🔔</div>
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #c4b5a0;"></div>
+        </div>
+      </div>
+
+      <!-- CENTER CONTAINER -->
+      <div style="flex: 1; display: flex; gap: 0; padding: 4px 8px; position: relative; min-height: 0;">
+        <!-- Label -->
+        <div style="position: absolute; top: -2px; right: 8px; font-size: 9px; font-weight: 700; color: rgba(0,80,180,0.5); letter-spacing: 1.5px; text-transform: uppercase; z-index: 5;">Center Container (transparent)</div>
+
+        <!-- LEFT SHEET -->
+        <div style="width: 320px; border-radius: 16px 0 0 16px; background: rgba(255,255,255,0.55); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.06); border-right: none; display: flex; flex-direction: column; position: relative; overflow: hidden;">
+          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 700; color: rgba(0,100,60,0.5); letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap;">Left Sheet (surface)</div>
+          <div style="padding: 32px 16px 16px; flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Actions &amp; Creation</div>
+            <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 12px; font-size: 12px; color: rgba(0,0,0,0.5);">Submit Work form</div>
+            <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 12px; font-size: 12px; color: rgba(0,0,0,0.5);">Create Assessment</div>
+            <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 12px; font-size: 12px; color: rgba(0,0,0,0.5);">Mint Hypercert</div>
+            <div style="font-size: 10px; color: rgba(0,0,0,0.3); margin-top: auto; text-align: center;">Wider — for task-oriented flows</div>
+          </div>
+        </div>
+
+        <!-- MAIN SHEET -->
+        <div style="flex: 1; background: linear-gradient(180deg, #fff 0%, rgba(249,247,242,0.5) 100%); box-shadow: 0 18px 46px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.05); display: flex; flex-direction: column; position: relative; overflow: hidden; z-index: 2;">
+          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 700; color: rgba(0,100,60,0.5); letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap;">Main Sheet (surface)</div>
+          <div style="padding: 36px 20px 20px; flex: 1; display: flex; align-items: center; justify-content: center;">
+            <div style="text-align: center;">
+              <div style="font-size: 15px; font-weight: 500; color: rgba(0,0,0,0.6);">Primary Content</div>
+              <div style="font-size: 11px; color: rgba(0,0,0,0.35); margin-top: 4px;">Recedes when side sheets open</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT SHEET -->
+        <div style="width: 280px; border-radius: 0 16px 16px 0; background: rgba(255,255,255,0.55); backdrop-filter: blur(20px); border: 1px solid rgba(0,0,0,0.06); border-left: none; display: flex; flex-direction: column; position: relative; overflow: hidden;">
+          <div style="position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 700; color: rgba(0,100,60,0.5); letter-spacing: 1.5px; text-transform: uppercase; white-space: nowrap;">Right Sheet (surface)</div>
+          <div style="padding: 32px 16px 16px; flex: 1; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 11px; font-weight: 600; color: rgba(0,0,0,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Config &amp; Notifications</div>
+            <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 12px; font-size: 12px; color: rgba(0,0,0,0.5);">Account Settings</div>
+            <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 12px; font-size: 12px; color: rgba(0,0,0,0.5);">Notification Panel</div>
+            <div style="background: rgba(0,0,0,0.03); border-radius: 10px; padding: 12px; font-size: 12px; color: rgba(0,0,0,0.5);">Work Detail (read)</div>
+            <div style="font-size: 10px; color: rgba(0,0,0,0.3); margin-top: auto; text-align: center;">Narrower — for read/config</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM CONTAINER -->
+      <div style="position: relative; height: 72px; display: flex; align-items: center; justify-content: center; background: transparent; padding: 0 24px;">
+        <!-- Label -->
+        <div style="position: absolute; bottom: 2px; right: 8px; font-size: 9px; font-weight: 700; color: rgba(180,80,0,0.5); letter-spacing: 1.5px; text-transform: uppercase;">Bottom Container (transparent)</div>
+
+        <!-- NavigationBar centered -->
+        <div style="background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-radius: 28px; padding: 10px 28px; display: flex; gap: 24px; align-items: center; box-shadow: 0 2px 12px rgba(0,0,0,0.06), inset 0 0 0 1px rgba(0,0,0,0.05);">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 24px; height: 24px; border-radius: 6px; background: rgba(74,124,89,0.15);"></div>
+            <div style="font-size: 9px; color: rgba(0,0,0,0.4);">Hub</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 24px; height: 24px; border-radius: 6px; background: rgba(0,0,0,0.06);"></div>
+            <div style="font-size: 9px; color: rgba(0,0,0,0.4);">Actions</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 24px; height: 24px; border-radius: 6px; background: rgba(0,0,0,0.06);"></div>
+            <div style="font-size: 9px; color: rgba(0,0,0,0.4);">Garden</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+            <div style="width: 24px; height: 24px; border-radius: 6px; background: rgba(0,0,0,0.06);"></div>
+            <div style="font-size: 9px; color: rgba(0,0,0,0.4);">Community</div>
+          </div>
+        </div>
+
+        <!-- FAB right-aligned to MainSheet -->
+        <div style="position: absolute; right: 340px; bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 4px;">
+          <div style="width: 56px; height: 56px; border-radius: 16px; background: #4a7c59; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(74,124,89,0.3); position: relative;">
+            <span style="color: white; font-size: 24px;">+</span>
+            <!-- Tooltip -->
+            <div style="position: absolute; top: -28px; white-space: nowrap; background: rgba(0,0,0,0.8); color: white; font-size: 10px; padding: 3px 8px; border-radius: 4px;">Submit Work</div>
+          </div>
+          <div style="font-size: 9px; color: rgba(0,0,0,0.3);">Right-aligned to Main Sheet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Taxonomy Summary -->
+<div class="section" style="margin-top: 24px;">
+  <h3>Proposed Taxonomy</h3>
+  <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+    <thead>
+      <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
+        <th style="text-align: left; padding: 8px;">Layer</th>
+        <th style="text-align: left; padding: 8px;">Type</th>
+        <th style="text-align: left; padding: 8px;">Background</th>
+        <th style="text-align: left; padding: 8px;">Contains</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(180,80,0,0.03);">
+        <td style="padding: 8px; font-weight: 600;" colspan="4">Containers (transparent, structural)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px 8px 8px 24px;">TopContainer</td>
+        <td style="padding: 8px;">Container</td>
+        <td style="padding: 8px;">Transparent</td>
+        <td style="padding: 8px; font-size: 13px;">Garden selector (left) · Breadcrumb (center/mobile) · Actions (right)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px 8px 8px 24px;">CenterContainer</td>
+        <td style="padding: 8px;">Container</td>
+        <td style="padding: 8px;">Transparent</td>
+        <td style="padding: 8px; font-size: 13px;">LeftSheet · MainSheet · RightSheet</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px 8px 8px 24px;">BottomContainer</td>
+        <td style="padding: 8px;">Container</td>
+        <td style="padding: 8px;">Transparent</td>
+        <td style="padding: 8px; font-size: 13px;">NavigationBar (center) · FAB (right-aligned to MainSheet)</td>
+      </tr>
+
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06); background: rgba(0,100,60,0.03);">
+        <td style="padding: 8px; font-weight: 600;" colspan="4">Sheets (surfaces with visual treatment)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px 8px 8px 24px;">LeftSheet</td>
+        <td style="padding: 8px;">Surface</td>
+        <td style="padding: 8px;">Glass floating</td>
+        <td style="padding: 8px; font-size: 13px;">Action-oriented flows (wider ~320px)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px 8px 8px 24px;">MainSheet</td>
+        <td style="padding: 8px;">Surface</td>
+        <td style="padding: 8px;">Gradient + shadow</td>
+        <td style="padding: 8px; font-size: 13px;">Primary view content (fills remaining space)</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px 8px 8px 24px;">RightSheet</td>
+        <td style="padding: 8px;">Surface</td>
+        <td style="padding: 8px;">Glass floating</td>
+        <td style="padding: 8px; font-size: 13px;">Config, notifications, read-detail (narrower ~280px)</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 8px 8px 24px;">NavigationBar</td>
+        <td style="padding: 8px;">Surface</td>
+        <td style="padding: 8px;">Glass ground</td>
+        <td style="padding: 8px; font-size: 13px;">Route nav dock</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- FAB detail -->
+<div class="section" style="margin-top: 24px;">
+  <h3>FAB Behavior</h3>
+  <div style="display: flex; gap: 16px;">
+    <div style="flex: 1; background: rgba(0,0,0,0.02); border-radius: 12px; padding: 16px; border: 1px solid rgba(0,0,0,0.06);">
+      <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">Single Action</div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 48px; height: 48px; border-radius: 14px; background: #4a7c59; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(74,124,89,0.25);">
+          <span style="color: white; font-size: 20px;">📝</span>
+        </div>
+        <div>
+          <div style="font-size: 12px; font-weight: 500;">Distinct icon per action</div>
+          <div style="font-size: 11px; color: rgba(0,0,0,0.4);">Tooltip always visible on hover</div>
+        </div>
+      </div>
+    </div>
+    <div style="flex: 1; background: rgba(0,0,0,0.02); border-radius: 12px; padding: 16px; border: 1px solid rgba(0,0,0,0.06);">
+      <div style="font-weight: 600; font-size: 13px; margin-bottom: 8px;">Speed Dial (multi-action)</div>
+      <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(74,124,89,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">📊</div>
+          <div style="font-size: 11px; background: rgba(0,0,0,0.06); padding: 2px 8px; border-radius: 4px;">Create Assessment</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(74,124,89,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px;">📝</div>
+          <div style="font-size: 11px; background: rgba(0,0,0,0.06); padding: 2px 8px; border-radius: 4px;">Submit Work</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 48px; height: 48px; border-radius: 14px; background: #4a7c59; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(74,124,89,0.25);">
+            <span style="color: white; font-size: 18px;">✕</span>
+          </div>
+          <div style="font-size: 11px; color: rgba(0,0,0,0.4);">Close / toggle</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 20px; padding: 16px; background: rgba(180,80,0,0.04); border-radius: 12px; border: 1px solid rgba(180,80,0,0.1);">
+  <h3 style="margin: 0 0 8px; font-size: 14px; color: #92400e;">Key Differences from Current Code</h3>
+  <ul style="margin: 0; font-size: 13px; line-height: 1.8; color: rgba(0,0,0,0.65);">
+    <li><strong>SideSheet splits into LeftSheet + RightSheet</strong> with distinct widths and semantic roles</li>
+    <li><strong>TopContextBar → TopContainer</strong> — rename to match taxonomy, add mobile breadcrumb slot</li>
+    <li><strong>BottomSheet (mobile modal) stays separate</strong> — it's a mobile affordance, not part of the spatial layout</li>
+    <li><strong>FAB gains tooltips + distinct icons</strong> — speed dial variant for multi-action views</li>
+    <li><strong>Containers get explicit components</strong> — TopContainer, CenterContainer, BottomContainer as named layout slots</li>
+  </ul>
+</div>

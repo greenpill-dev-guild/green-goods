@@ -1,0 +1,486 @@
+diff --git a/packages/admin/src/components/AdminTabRail.tsx b/packages/admin/src/components/AdminTabRail.tsx
+index 90d8cf9f..37a49e65 100644
+--- a/packages/admin/src/components/AdminTabRail.tsx
++++ b/packages/admin/src/components/AdminTabRail.tsx
+@@ -82,7 +82,6 @@ export function AdminTabRail({
+       className={cn(
+         // Container: flat surface, bottom border only
+         "relative flex w-full",
+-        "bg-[rgb(var(--m3-surface))]",
+         "border-b border-[rgb(var(--m3-outline-variant))]",
+         className
+       )}
+@@ -163,7 +162,7 @@ export function AdminTabRail({
+                   "rounded-[var(--m3-shape-full)]",
+                   "bg-[rgb(var(--m3-error))] text-[rgb(var(--m3-on-error))]",
+                   "text-[0.625rem] font-bold leading-none",
+-                  "pointer-events-none select-none",
++                  "pointer-events-none select-none"
+                 )}
+                 aria-label={`${tab.count} items`}
+               >
+diff --git a/packages/admin/src/components/Layout/AccountSurface.tsx b/packages/admin/src/components/Layout/AccountSurface.tsx
+index 44fbd49d..b971c972 100644
+--- a/packages/admin/src/components/Layout/AccountSurface.tsx
++++ b/packages/admin/src/components/Layout/AccountSurface.tsx
+@@ -1,6 +1,4 @@
+ import { cn } from "@green-goods/shared";
+-import { AdminTabRail } from "@/components/AdminTabRail";
+-import { useIntl } from "react-intl";
+ import { AccountProfilePanel } from "./AccountProfilePanel";
+ import { AccountSettingsPanel } from "./AccountSettingsPanel";
+ import { type AccountSheetTab } from "./accountSheet.events";
+@@ -11,61 +9,10 @@ interface AccountSurfaceProps {
+   className?: string;
+ }
+ 
+-const ACCOUNT_TABS: AccountSheetTab[] = ["profile", "settings"];
+-
+-interface AccountTabListProps {
+-  activeTab: AccountSheetTab;
+-  onTabChange: (tab: AccountSheetTab) => void;
+-  className?: string;
+-}
+-
+-interface AccountTabPanelsProps {
+-  activeTab: AccountSheetTab;
+-  className?: string;
+-}
+-
+-export function AccountTabList({ activeTab, onTabChange, className }: AccountTabListProps) {
+-  const { formatMessage } = useIntl();
+-
+-  return (
+-    <AdminTabRail
+-      ariaLabel={formatMessage({
+-        id: "cockpit.topBar.userProfile",
+-        defaultMessage: "User profile",
+-      })}
+-      activeId={activeTab}
+-      onChange={(nextTab) => onTabChange(nextTab as AccountSheetTab)}
+-      idBase="account"
+-      tabs={ACCOUNT_TABS.map((tab) => ({
+-        id: tab,
+-        label:
+-          tab === "settings"
+-            ? formatMessage({ id: "cockpit.settings.title", defaultMessage: "Settings" })
+-            : formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" }),
+-      }))}
+-      className={cn("w-full", className)}
+-    />
+-  );
+-}
+-
+-export function AccountTabPanels({ activeTab, className }: AccountTabPanelsProps) {
+-  return (
+-    <div
+-      id="account-panel"
+-      role="tabpanel"
+-      aria-labelledby={`account-tab-${activeTab}`}
+-      className={cn("flex flex-col gap-4", className)}
+-    >
+-      {activeTab === "settings" ? <AccountSettingsPanel /> : <AccountProfilePanel />}
+-    </div>
+-  );
+-}
+-
+-export function AccountSurface({ activeTab, onTabChange, className }: AccountSurfaceProps) {
++export function AccountSurface({ activeTab, className }: AccountSurfaceProps) {
+   return (
+     <div className={cn("flex flex-col gap-4 p-4 sm:p-5", className)}>
+-      <AccountTabList activeTab={activeTab} onTabChange={onTabChange} />
+-      <AccountTabPanels activeTab={activeTab} />
++      {activeTab === "settings" ? <AccountSettingsPanel /> : <AccountProfilePanel />}
+     </div>
+   );
+ }
+diff --git a/packages/admin/src/components/Layout/PageTransition.tsx b/packages/admin/src/components/Layout/PageTransition.tsx
+index acdb1b05..c6868199 100644
+--- a/packages/admin/src/components/Layout/PageTransition.tsx
++++ b/packages/admin/src/components/Layout/PageTransition.tsx
+@@ -43,13 +43,8 @@ export function PageTransition() {
+         prevPathRef.current = newPath;
+       };
+ 
+-      // Cross-fade using the View Transitions API
+-      if (document.startViewTransition) {
+-        const transition = document.startViewTransition(commitOutletSwap);
+-        await transition.finished;
+-      } else {
+-        commitOutletSwap();
+-      }
++      // Cross-fade removed to fix tab change flash (Issue #4)
++      commitOutletSwap();
+ 
+       if (isCancelled || transitionTokenRef.current !== transitionToken) return;
+ 
+diff --git a/packages/admin/src/styles/admin-m3-overrides.css b/packages/admin/src/styles/admin-m3-overrides.css
+index 2a2b3330..65b6e1c0 100644
+--- a/packages/admin/src/styles/admin-m3-overrides.css
++++ b/packages/admin/src/styles/admin-m3-overrides.css
+@@ -6,115 +6,24 @@
+  * 56×32dp pill active indicators, label-medium typography
+  * ============================================================================ */
+ 
+-/* Desktop nav: override floating pill → full-width bottom bar */
+-.admin-m3 .canvas-navigation-bar {
+-  /* Reset floating pill positioning */
+-  left: 0;
+-  right: 0;
+-  bottom: 0;
+-  transform: none;
++/* Desktop nav: override floating pill → bottom bar removed (Issue #1) */
+ 
+-  /* M3 nav bar anatomy */
+-  min-height: 64px;
+-  border-radius: 0;
+-  padding: 6px 16px;
+-  gap: 0;
+-
+-  /* M3 surface + elevation */
+-  background: rgb(var(--m3-surface-container));
+-  box-shadow: var(--m3-elevation-2);
+-
+-  /* Remove glass effect */
+-  backdrop-filter: none;
+-  -webkit-backdrop-filter: none;
+-}
+-
+-/* Nav items: M3 anatomy — vertical icon + label stack */
+-.admin-m3 .canvas-navigation-bar button {
+-  flex: 1;
+-  min-width: 48px;
+-  max-width: 120px;
+-  flex-direction: column;
+-  align-items: center;
+-  gap: 4px;
+-  padding: 8px 0 6px;
+-  border-radius: 0;
+-  background: transparent;
+-  box-shadow: none;
+-}
+-
+-/* Remove the existing circular icon background */
+-.admin-m3 .canvas-navigation-bar button > span:first-child {
+-  background: transparent;
+-  box-shadow: none;
+-  width: auto;
+-  height: auto;
+-  border-radius: 0;
++/* Specific admin overrides beyond the spec */
++.admin-m3 .garden-chip { 
++  font-size: 0.8125rem; 
+ }
+ 
+-/* Active item: M3 pill indicator behind icon */
+-.admin-m3 .canvas-navigation-bar button[aria-current="page"] {
+-  background: transparent;
+-  box-shadow: none;
++/* Dark mode tweaks for shared components */
++[data-theme="dark"] .admin-m3 .main-sheet,
++[data-theme="dark"] .admin-m3 .admin-tab-rail,
++[data-theme="dark"] .admin-m3 .admin-search-toolbar,
++[data-theme="dark"] .admin-m3 .canvas-workbench-row {
++  background-color: rgb(var(--m3-surface));
+ }
+ 
+-.admin-m3 .canvas-navigation-bar button[aria-current="page"] > span:first-child {
+-  background: rgb(var(--m3-secondary-container));
+-  width: 56px;
+-  height: 32px;
+-  border-radius: var(--m3-shape-full);
+-  display: flex;
+-  align-items: center;
+-  justify-content: center;
+-}
+-
+-/* Label typography: M3 label-medium */
+-.admin-m3 .canvas-navigation-bar button > span:last-child {
+-  font-size: 12px;
+-  line-height: 16px;
+-  letter-spacing: 0.5px;
+-  font-weight: 500;
+-}
+-
+-/* Active label: bolder weight */
+-.admin-m3 .canvas-navigation-bar button[aria-current="page"] > span:last-child {
+-  font-weight: 700;
+-  color: rgb(var(--m3-on-surface));
+-}
+-
+-/* Inactive label color */
+-.admin-m3 .canvas-navigation-bar button:not([aria-current="page"]) > span:last-child {
+-  color: rgb(var(--m3-on-surface-variant));
+-}
+-
+-/* Active icon color */
+-.admin-m3 .canvas-navigation-bar button[aria-current="page"] svg {
+-  color: rgb(var(--m3-on-secondary-container));
+-}
+-
+-/* Inactive icon color */
+-.admin-m3 .canvas-navigation-bar button:not([aria-current="page"]) svg {
+-  color: rgb(var(--m3-on-surface-variant));
+-}
+-
+-/* Desktop FAB — position relative to the full-width nav */
+-.admin-m3 .canvas-navigation-bar + div {
+-  /* Adjust FAB to sit above the nav bar */
+-  bottom: 76px;
+-}
+-
+-/* Mobile nav — also full-width M3 bar */
+-.admin-m3 nav.canvas-navigation-bar {
+-  left: 0;
+-  right: 0;
+-  bottom: 0;
+-  border-radius: 0;
+-  padding: 4px 8px calc(env(safe-area-inset-bottom) + 4px);
+-  gap: 0;
+-  background: rgb(var(--m3-surface-container));
+-  box-shadow: var(--m3-elevation-2);
+-  backdrop-filter: none;
+-  -webkit-backdrop-filter: none;
++/* Normalizing profile icon hover in top bar */
++.admin-m3 button:has(.user-avatar):hover {
++  background: rgba(var(--on-surface-rgb, 0, 0, 0), 0.08);
+ }
+ 
+ /* Bottom Sheet — M3 shape + surface */
+@@ -122,12 +31,7 @@
+   border-radius: var(--m3-shape-xl) var(--m3-shape-xl) 0 0;
+ }
+ 
+-/* Side Sheet — narrower */
+-.admin-m3 [role="dialog"][data-state="open"] .rounded-l-xl,
+-.admin-m3 [role="dialog"][data-state="open"] .rounded-r-xl {
+-  max-width: 256px;
+-  border-radius: var(--m3-shape-lg) 0 0 var(--m3-shape-lg);
+-}
++
+ 
+ /* Toast / Snackbar — M3 inverse surface */
+ .admin-m3 [data-hot-toast] > div {
+diff --git a/packages/admin/src/views/Actions/index.tsx b/packages/admin/src/views/Actions/index.tsx
+index 6be38309..df68a1bd 100644
+--- a/packages/admin/src/views/Actions/index.tsx
++++ b/packages/admin/src/views/Actions/index.tsx
+@@ -153,7 +153,7 @@ export default function Actions() {
+ 
+   return (
+     <div className="pb-6">
+-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-4 sm:px-6">
++      <div className="flex w-full flex-col gap-4">
+         <PageHeader
+           title={intl.formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
+           description={intl.formatMessage({
+diff --git a/packages/admin/src/views/Community/index.tsx b/packages/admin/src/views/Community/index.tsx
+index 074f1ce6..ec1f7cf4 100644
+--- a/packages/admin/src/views/Community/index.tsx
++++ b/packages/admin/src/views/Community/index.tsx
+@@ -194,7 +194,7 @@ export default function CommunityView() {
+ 
+   return (
+     <div ref={containerRef} className="pb-6">
+-      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
++      <div className="w-full">
+         <PageHeader
+           title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
+           description={formatMessage({
+@@ -281,8 +281,8 @@ export default function CommunityView() {
+           }}
+         />
+       ) : fetching ? (
+-        <div className="mt-6 px-4 sm:px-6">
+-          <div className="mx-auto w-full max-w-[1400px]">
++        <div className="mt-6">
++          <div className="w-full">
+             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2" role="status" aria-live="polite">
+               <div className="h-36 rounded-lg skeleton-shimmer" />
+               <div
+@@ -297,8 +297,8 @@ export default function CommunityView() {
+           </div>
+         </div>
+       ) : !garden || error ? (
+-        <div className="mt-6 px-4 sm:px-6">
+-          <div className="mx-auto w-full max-w-[1400px]">
++        <div className="mt-6">
++          <div className="w-full">
+             <Alert variant="error">
+               {error?.message ??
+                 formatMessage({
+@@ -309,8 +309,8 @@ export default function CommunityView() {
+           </div>
+         </div>
+       ) : (
+-        <div className="mt-4 px-4 sm:px-6">
+-          <div className="mx-auto w-full max-w-[1400px]">
++        <div className="mt-4">
++          <div className="w-full">
+             <div className="canvas-route-shell overflow-hidden">
+               <CommunityTab
+                 garden={{ id: garden.id, name: garden.name }}
+diff --git a/packages/admin/src/views/Garden/components/ImpactTab.tsx b/packages/admin/src/views/Garden/components/ImpactTab.tsx
+index 64cfe161..f56c2ebb 100644
+--- a/packages/admin/src/views/Garden/components/ImpactTab.tsx
++++ b/packages/admin/src/views/Garden/components/ImpactTab.tsx
+@@ -73,7 +73,7 @@ export function ImpactTab({
+             <Card className={SECTION_CARD_MIN_HEIGHT}>
+               <Card.Header className="flex-wrap gap-3">
+                 <div>
+-                  <h3 className="label-md text-text-strong sm:text-lg">
++                  <h3 className="text-title-md text-text-strong">
+                     {formatMessage({ id: "app.garden.detail.impact.hypercertHighlights" })}
+                   </h3>
+                   <p className="mt-1 text-sm text-text-sub">
+@@ -172,7 +172,7 @@ export function ImpactTab({
+           <div className="garden-tab-rail-sticky">
+             <Card>
+               <Card.Header className="flex-wrap gap-3">
+-                <h3 className="label-md text-text-strong">
++                <h3 className="text-title-md text-text-strong">
+                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
+                 </h3>
+                 <Button size="sm" variant="secondary" asChild>
+@@ -234,7 +234,7 @@ export function ImpactTab({
+ 
+             <Card>
+               <Card.Header>
+-                <h3 className="label-md text-text-strong">
++                <h3 className="text-title-md text-text-strong">
+                   {formatMessage({ id: "app.garden.detail.impactSummary" })}
+                 </h3>
+               </Card.Header>
+diff --git a/packages/admin/src/views/Garden/components/OverviewTab.tsx b/packages/admin/src/views/Garden/components/OverviewTab.tsx
+index eb192242..86573ed3 100644
+--- a/packages/admin/src/views/Garden/components/OverviewTab.tsx
++++ b/packages/admin/src/views/Garden/components/OverviewTab.tsx
+@@ -120,7 +120,7 @@ export function OverviewTab({
+             <Card className={SECTION_CARD_MIN_HEIGHT}>
+               <Card.Header className="flex-wrap gap-3">
+                 <div>
+-                  <h3 className="label-md text-text-strong sm:text-lg">
++                  <h3 className="text-title-md text-text-strong">
+                     {formatMessage({ id: "app.garden.detail.health.title" })}
+                   </h3>
+                   <p className="mt-1 text-sm text-text-sub">{gardenHealthLabel}</p>
+@@ -203,7 +203,7 @@ export function OverviewTab({
+             <Card className={SECTION_CARD_MIN_HEIGHT}>
+               <Card.Header className="flex-wrap gap-3">
+                 <div>
+-                  <h3 className="label-md text-text-strong sm:text-lg">
++                  <h3 className="text-title-md text-text-strong">
+                     {formatMessage({ id: "app.garden.detail.activity.title" })}
+                   </h3>
+                   <p className="mt-1 text-sm text-text-sub">
+@@ -333,7 +333,7 @@ export function OverviewTab({
+           <div className="garden-tab-rail-sticky">
+             <Card>
+               <Card.Header>
+-                <h3 className="label-md text-text-strong">
++                <h3 className="text-title-md text-text-strong">
+                   {formatMessage({ id: "app.garden.detail.alerts.title" })}
+                 </h3>
+               </Card.Header>
+@@ -360,7 +360,7 @@ export function OverviewTab({
+ 
+             <Card>
+               <Card.Header>
+-                <h3 className="label-md text-text-strong">
++                <h3 className="text-title-md text-text-strong">
+                   {formatMessage({ id: "app.garden.detail.keyMetrics" })}
+                 </h3>
+               </Card.Header>
+diff --git a/packages/admin/src/views/Garden/index.tsx b/packages/admin/src/views/Garden/index.tsx
+index 6f53f37f..bcbf242c 100644
+--- a/packages/admin/src/views/Garden/index.tsx
++++ b/packages/admin/src/views/Garden/index.tsx
+@@ -213,8 +213,8 @@ export default function GardenView() {
+ 
+     if (!garden || error) {
+       return (
+-        <div className="mt-6 px-4 sm:px-6">
+-          <div className="mx-auto w-full max-w-[1400px]">
++        <div className="mt-6">
++          <div className="w-full">
+             <Alert variant="error">
+               {error?.message ??
+                 formatMessage({
+@@ -228,8 +228,8 @@ export default function GardenView() {
+     }
+ 
+     return (
+-      <div className="mt-4 px-4 sm:px-6">
+-        <div className="mx-auto w-full max-w-[1400px]">
++      <div className="mt-4">
++        <div className="w-full">
+           <div className="canvas-route-shell overflow-hidden">
+             {view === "overview" ? (
+               <OverviewTab
+@@ -358,7 +358,7 @@ export default function GardenView() {
+ 
+   return (
+     <div ref={containerRef} className="pb-6">
+-      <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
++      <div className="w-full">
+         <PageHeader
+           title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
+           description={formatMessage({
+diff --git a/packages/admin/src/views/Hub/index.tsx b/packages/admin/src/views/Hub/index.tsx
+index 3bc66fe6..1b6d0181 100644
+--- a/packages/admin/src/views/Hub/index.tsx
++++ b/packages/admin/src/views/Hub/index.tsx
+@@ -1251,7 +1251,7 @@ export default function HubView() {
+           id={`${HUB_STAGE_RAIL_ID}-panel`}
+           aria-labelledby={`${HUB_STAGE_RAIL_ID}-tab-${stage}`}
+         >
+-          <div className="hub-route-content mx-auto flex w-full max-w-[1400px] flex-col gap-3 sm:gap-4">
++          <div className="hub-route-content flex w-full flex-col gap-3 sm:gap-4">
+             <PageHeader
+               title={stageTitle}
+               description={headerDescription}
+@@ -1324,7 +1324,7 @@ export default function HubView() {
+             </PageHeader>
+           </div>
+ 
+-          <div className="hub-route-content mx-auto flex w-full max-w-[1400px] flex-col gap-3 sm:gap-4">
++          <div className="hub-route-content flex w-full flex-col gap-3 sm:gap-4">
+             <section className="hub-results-shell surface-section" aria-label={stageTitle}>
+               <div aria-live="polite" className="sr-only">
+                 {debouncedSearch &&
+diff --git a/packages/shared/src/components/Canvas/MainSheet.tsx b/packages/shared/src/components/Canvas/MainSheet.tsx
+index bcf3ae50..b1e0bbec 100644
+--- a/packages/shared/src/components/Canvas/MainSheet.tsx
++++ b/packages/shared/src/components/Canvas/MainSheet.tsx
+@@ -93,9 +93,10 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
+               "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity,filter]"
+             )}
+             style={{
+-              background: "linear-gradient(180deg, rgb(var(--neutral-0)) 0%, rgb(var(--neutral-50) / 0.5) 100%)",
++              background:
++                "linear-gradient(180deg, rgb(var(--bg-white-0)) 0%, rgb(var(--bg-weak-50) / 0.5) 100%)",
+               boxShadow:
+-                "inset 0 0 0 1px rgba(255,255,255,0.65), 0 18px 46px rgba(21, 16, 10, 0.14)",
++                "inset 0 0 0 1px rgb(var(--stroke-soft-200) / 0.5), 0 18px 46px rgba(0, 0, 0, 0.14)",
+               transform: isMainSheetReceded
+                 ? "translateY(8px) scale(var(--canvas-scale-receded))"
+                 : "translateY(0) scale(1)",
+diff --git a/packages/shared/src/components/Canvas/SideSheet.tsx b/packages/shared/src/components/Canvas/SideSheet.tsx
+index 8e99a770..7982d1d5 100644
+--- a/packages/shared/src/components/Canvas/SideSheet.tsx
++++ b/packages/shared/src/components/Canvas/SideSheet.tsx
+@@ -104,11 +104,11 @@ export function SideSheet({
+             paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
+             left: isLeft ? 0 : undefined,
+             right: isLeft ? undefined : 0,
+-            background: "rgb(var(--neutral-0) / 55%)",
++            background: "rgb(var(--bg-white-0) / 55%)",
+             backdropFilter: "blur(20px) saturate(1.5)",
+             boxShadow: isLeft
+-              ? "inset -1px 0 0 0 rgb(var(--neutral-0) / 25%), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)"
+-              : "inset 1px 0 0 0 rgb(var(--neutral-0) / 25%), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
++              ? "inset -1px 0 0 0 rgb(var(--stroke-soft-200) / 0.25), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)"
++              : "inset 1px 0 0 0 rgb(var(--stroke-soft-200) / 0.25), 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)",
+           }}
+           data-testid="side-sheet"
+         >

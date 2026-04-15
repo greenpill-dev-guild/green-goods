@@ -1,0 +1,112 @@
+<h2>Design Section 3: Sheet Separation, Nav Gate & Empty State</h2>
+<p class="subtitle">Splitting profile/settings into separate sheets, preventing nav flash, and improving the no-garden experience.</p>
+
+<div class="section">
+  <h3>3a. Profile & Settings as Separate Sheets</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">Before: Single AccountSheet with tabs</div>
+      <div class="mockup-body" style="padding:0;position:relative;height:320px;background:#f1f5f9;">
+        <div style="position:absolute;right:0;top:0;bottom:0;width:180px;background:#fff;border-left:1px solid #e2e8f0;border-radius:12px 0 0 12px;overflow:hidden;">
+          <div style="display:flex;border-bottom:2px solid #e2e8f0;font-size:11px;">
+            <div style="flex:1;padding:8px 4px;text-align:center;color:#22c55e;border-bottom:2px solid #22c55e;font-weight:600;">Profile</div>
+            <div style="flex:1;padding:8px 4px;text-align:center;color:#94a3b8;">Settings</div>
+          </div>
+          <div style="padding:12px;font-size:11px;color:#64748b;">
+            <div style="width:40px;height:40px;border-radius:10px;background:#e2e8f0;margin:0 auto 8px;"></div>
+            <div style="text-align:center;">Profile content...</div>
+            <div style="text-align:center;font-size:10px;color:#94a3b8;margin-top:4px;">Clipped at 300px max</div>
+          </div>
+        </div>
+        <div style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:12px;color:#94a3b8;max-width:120px;">
+          &#10060; Tabs on desktop<br>
+          &#10060; Shared container<br>
+          &#10060; 300px max width
+        </div>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">After: Separate RightSheet instances</div>
+      <div class="mockup-body" style="padding:0;position:relative;height:320px;background:#f1f5f9;">
+        <div style="position:absolute;right:0;top:0;bottom:0;width:220px;background:#fff;border-left:1px solid #e2e8f0;border-radius:12px 0 0 12px;overflow:hidden;">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid #f1f5f9;">
+            <div style="font-size:14px;font-weight:600;color:#1e293b;">Profile</div>
+            <div style="width:24px;height:24px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:12px;color:#94a3b8;">&#10005;</div>
+          </div>
+          <div style="padding:16px;">
+            <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#a78bfa,#7c3aed);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:600;">AF</div>
+            <div style="text-align:center;font-size:13px;font-weight:600;color:#1e293b;">Afo</div>
+            <div style="text-align:center;font-size:11px;color:#94a3b8;margin-top:2px;">Operator</div>
+            <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:10px;font-size:11px;color:#64748b;">
+              <div style="font-weight:500;margin-bottom:4px;">Wallet</div>
+              <div style="font-family:monospace;font-size:10px;">0xf3...26</div>
+            </div>
+          </div>
+        </div>
+        <div style="position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:12px;color:#22c55e;max-width:140px;">
+          &#10004; No tabs on desktop<br>
+          &#10004; Titled header + close<br>
+          &#10004; Responsive 320-480px<br>
+          &#10004; Room to breathe
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top:12px;">
+    <strong>Desktop:</strong> Clicking person icon opens <code>ProfileSheet</code> (title: "Profile"). Clicking gear opens <code>SettingsSheet</code> (title: "Settings"). Each is its own RightSheet with a title header — no tabs.<br>
+    <strong>Mobile:</strong> Profile route renders full-page view with "Account" / "Settings" tabs via <code>AdminTabRail</code>. Tab labels change from "Profile"/"Settings" to "Account"/"Settings".
+  </p>
+</div>
+
+<div class="section">
+  <h3>3b. Navigation Bar Loading Gate</h3>
+  <div class="mockup">
+    <div class="mockup-header">Fix: Don't render nav until garden data is loaded</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 12px; line-height: 1.8; padding: 16px; background: #1e1e2e; color: #cdd6f4; border-radius: 8px;">
+      <div style="color:#89b4fa">// In CanvasLayout, the nav render block becomes:</div>
+      <div>&lt;div className="canvas-area-bottom"&gt;</div>
+      <div>&nbsp;&nbsp;{<span style="color:#f9e2af">eligibleGardensLoaded</span> && visibleSlotCount > 0 && (</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;&lt;FabAwareNavigationBar ... /&gt;</div>
+      <div>&nbsp;&nbsp;)}</div>
+      <div>&lt;/div&gt;</div>
+    </div>
+  </div>
+  <p style="margin-top:12px;">
+    Simple guard: nav only renders after <code>eligibleGardensLoaded</code> is true. No flash — the spinner/loading state handles the wait, then nav appears with correct slot count.
+  </p>
+</div>
+
+<div class="section">
+  <h3>3c. Empty State — Create Garden CTA</h3>
+  <div class="mockup">
+    <div class="mockup-header">Enhanced no-garden experience</div>
+    <div class="mockup-body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:240px;background:linear-gradient(180deg,#f0fdf4,#ecfdf5);text-align:center;padding:24px;">
+      <div style="font-size:48px;margin-bottom:12px;">&#127793;</div>
+      <div style="font-size:18px;font-weight:600;color:#1e293b;">No garden access yet</div>
+      <div style="font-size:13px;color:#64748b;max-width:320px;margin-top:8px;">
+        This wallet isn't assigned to a garden yet. Create your first garden or ask an operator to add you.
+      </div>
+      <div style="margin-top:20px;display:flex;gap:12px;">
+        <div style="padding:10px 20px;background:#22c55e;color:#fff;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;">
+          Create Garden
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top:12px;">
+    <strong>Two entry points for garden creation:</strong><br>
+    1. <strong>GardenChip dropdown</strong> — always includes "Create Garden" option, even when no gardens exist. The chip shows "No Garden Access" but is still tappable to open the dropdown.<br>
+    2. <strong>Empty state CTA</strong> — prominent "Create Garden" button below the description. Always visible (removed the <code>canCreateGarden</code> gate on the button — any connected wallet should be able to start creation).
+  </p>
+</div>
+
+<div class="section">
+  <h3>3d. Sheet Content Styling Fixes</h3>
+  <p>With the wider sheet (320-480px), most content overflow issues resolve automatically. Remaining fixes:</p>
+  <ul style="font-size:14px;line-height:1.8;color:#475569;">
+    <li><strong>Profile panel:</strong> Avatar centered, name/role below, wallet address in a copy-able card — all already exist but were clipped</li>
+    <li><strong>Settings panel:</strong> Theme selector grid gets room to show 3 columns, network info readable</li>
+    <li><strong>Notification panel:</strong> Empty state gets proper centering at the new width</li>
+    <li><strong>All panels:</strong> Consistent <code>p-5</code> padding, <code>gap-5</code> section spacing</li>
+  </ul>
+</div>

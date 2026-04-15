@@ -1,0 +1,385 @@
+<style>
+  .design-section {
+    margin-bottom: 20px;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .design-header {
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #f5f5f5, #fafafa);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .design-header h3 { font-size: 15px; font-weight: 700; margin: 0; }
+  .design-header .impl-note { font-size: 11px; color: #888; margin-top: 3px; }
+  .design-body { padding: 14px 20px; }
+  .tier-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; padding: 10px 0 6px;
+    border-bottom: 1px solid rgba(0,0,0,0.06); margin-top: 4px;
+  }
+  .tier-high { color: #e65100; }
+  .tier-medium { color: #f57f17; }
+  .tier-low { color: #2e7d32; }
+  .tier-missing { color: #7b1fa2; }
+  .spec-table {
+    width: 100%; font-size: 12px; border-collapse: collapse; margin: 8px 0;
+  }
+  .spec-table th {
+    text-align: left; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: #999; padding: 6px 8px; border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .spec-table td {
+    padding: 5px 8px; border-bottom: 1px solid rgba(0,0,0,0.04);
+    vertical-align: top;
+  }
+  .val-wrong { color: #c62828; }
+  .val-target { color: #2e7d32; font-weight: 600; }
+  .strategy-note {
+    background: rgba(33,150,243,0.06);
+    border: 1px solid rgba(33,150,243,0.12);
+    border-radius: 8px;
+    padding: 10px 14px; font-size: 12px; line-height: 1.6; color: #333;
+    margin-top: 10px;
+  }
+  .strategy-note strong { color: #1565c0; }
+  .file-list {
+    font-size: 11px; color: #666; margin-top: 6px; font-family: monospace;
+  }
+  .chip-mockup {
+    display: inline-flex; align-items: center; height: 32px;
+    border-radius: 8px; padding: 0 12px; font-size: 13px; font-weight: 500;
+    gap: 6px; border: 1px solid rgba(0,0,0,0.15);
+  }
+  .chip-mockup.selected {
+    background: #e8def8; border-color: transparent; color: #1d192b;
+  }
+  .chip-mockup.unselected { background: transparent; color: #49454f; }
+  .btn-mockup {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 40px; border-radius: 20px; padding: 0 24px;
+    font-size: 14px; font-weight: 500; letter-spacing: 0.02em; gap: 8px;
+  }
+  .btn-filled { background: #6750a4; color: #fff; border: none; }
+  .btn-outlined { background: transparent; color: #6750a4; border: 1px solid #79747e; }
+  .btn-text { background: transparent; color: #6750a4; border: none; padding: 0 12px; }
+  .btn-tonal { background: #e8def8; color: #1d192b; border: none; }
+  .btn-elevated { background: #f7f2fa; color: #6750a4; border: none; box-shadow: 0 1px 2px rgba(0,0,0,0.15); }
+  .mockup-row { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; align-items: center; }
+  .compact-compare {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0;
+  }
+  .compact-box {
+    padding: 10px 12px; border-radius: 8px; font-size: 12px;
+  }
+  .compact-box.current { background: #fff5f5; border: 1px solid rgba(211,47,47,0.12); }
+  .compact-box.target { background: #f1f8e9; border: 1px solid rgba(46,125,50,0.12); }
+  .compact-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; margin-bottom: 4px;
+  }
+  .compact-box.current .compact-label { color: #c62828; }
+  .compact-box.target .compact-label { color: #2e7d32; }
+</style>
+
+<h2>Design: High & Medium Tier Fixes</h2>
+<p class="subtitle">Completing the M3 component compliance overhaul</p>
+
+<!-- HIGH TIER -->
+<div class="tier-label tier-high">High Priority — Wrong anatomy or missing M3 features</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>4. Buttons → M3 5-Type Button System</h3>
+    <div class="impl-note">AdminButton wrapping shared Button data model</div>
+  </div>
+  <div class="design-body">
+    <div class="mockup-row">
+      <div class="btn-mockup btn-filled">Filled</div>
+      <div class="btn-mockup btn-tonal">Tonal</div>
+      <div class="btn-mockup btn-elevated">Elevated</div>
+      <div class="btn-mockup btn-outlined">Outlined</div>
+      <div class="btn-mockup btn-text">Text</div>
+    </div>
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Shape</td><td class="val-wrong">rounded-sm (~4px)</td><td class="val-target">corner-full (pill)</td></tr>
+      <tr><td>Variants</td><td class="val-wrong">primary / secondary / ghost / danger</td><td class="val-target">filled / tonal / elevated / outlined / text</td></tr>
+      <tr><td>Height</td><td>h-10 (40px) ✓</td><td class="val-target">40dp ✓</td></tr>
+      <tr><td>Padding</td><td>px-4 (16px)</td><td class="val-target">24dp (no icon) / 16dp leading + 24dp trailing (with icon)</td></tr>
+      <tr><td>Icon size</td><td>Mixed</td><td class="val-target">18dp</td></tr>
+      <tr><td>State layers</td><td class="val-wrong">brightness + scale transform</td><td class="val-target">Color overlay: hover 8%, focus 12%, pressed 12%</td></tr>
+      <tr><td>Elevation (filled)</td><td class="val-wrong">None</td><td class="val-target">level 0 → level 1 on hover</td></tr>
+      <tr><td>Disabled</td><td>opacity-50</td><td class="val-target">on-surface @ 0.12 container, @ 0.38 label</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Create <code>AdminButton</code> with 5 M3 variants via tailwind-variants. Map existing usage: primary→filled, secondary→outlined, ghost→text, danger→filled with error colors. Add tonal and elevated as new options. State layers use pseudo-element with <code>::after</code> overlay at M3 opacity values. Spring motion on Liquid Glass surfaces only.
+    </div>
+    <div class="file-list">Files: packages/admin/src/components/AdminButton.tsx (new)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>5. Chips → M3 Filter Chips</h3>
+    <div class="impl-note">AdminFilterChip replacing native select</div>
+  </div>
+  <div class="design-body">
+    <div class="mockup-row">
+      <div class="chip-mockup selected">✓ Newest</div>
+      <div class="chip-mockup unselected">Oldest</div>
+      <div class="chip-mockup unselected">Pending</div>
+      <div class="chip-mockup selected">✓ Approved</div>
+    </div>
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Component</td><td class="val-wrong">Native &lt;select&gt; (SortSelect)</td><td class="val-target">M3 filter chip set</td></tr>
+      <tr><td>Height</td><td class="val-wrong">h-9 (36px)</td><td class="val-target">32dp</td></tr>
+      <tr><td>Shape</td><td class="val-wrong">rounded-lg (~8px)</td><td class="val-target">corner-small (8dp) ≈ same</td></tr>
+      <tr><td>Selected state</td><td class="val-wrong">N/A (native)</td><td class="val-target">secondary-container fill, checkmark icon</td></tr>
+      <tr><td>Unselected</td><td class="val-wrong">N/A</td><td class="val-target">outline 1dp, transparent fill</td></tr>
+      <tr><td>Typography</td><td>text-sm</td><td class="val-target">label-large</td></tr>
+      <tr><td>Icon</td><td>None</td><td class="val-target">18dp leading icon, optional trailing</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Create <code>AdminFilterChip</code> — a toggleable chip with selected/unselected states following M3 filter chip spec. For sort, render two chips ("Newest" / "Oldest") instead of a dropdown — only one can be active (radio behavior). For status filters, use multi-select chips. Both render inline in the <code>AdminSearchToolbar</code> (no wrapping).
+    </div>
+    <div class="file-list">Files: packages/admin/src/components/AdminFilterChip.tsx (new)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>6. FAB → M3 Standard + Extended FAB</h3>
+    <div class="impl-note">AdminFab replacing FabButton in NavigationBar</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Size (desktop)</td><td class="val-wrong">48x48px (h-12 w-12)</td><td class="val-target">56x56dp</td></tr>
+      <tr><td>Shape</td><td class="val-wrong">rounded-full (circle)</td><td class="val-target">corner-large (16dp rounded square)</td></tr>
+      <tr><td>Color</td><td class="val-wrong">ws-primary + white/35 border</td><td class="val-target">primary-container fill, on-primary-container icon</td></tr>
+      <tr><td>Elevation</td><td class="val-wrong">Custom shadow</td><td class="val-target">level 3 (default) → level 4 (hover)</td></tr>
+      <tr><td>Icon</td><td>24dp ✓</td><td class="val-target">24dp ✓</td></tr>
+      <tr><td>Extended (mobile)</td><td>h-14 rounded-full pill</td><td class="val-target">56dp height, corner-large (16dp), label-large text</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Create <code>AdminFab</code> that renders a 56dp rounded-square (16dp radius) with M3 primary-container coloring and level 3 elevation. The extended variant (mobile) adds a label-large text label. The NavBar integration stays the same — only the visual rendering changes. Speed dial items also get corner-large shape.
+    </div>
+    <div class="file-list">Files: packages/admin/src/components/AdminFab.tsx (new)<br>
+    Touches: packages/admin/src/views/ (swap FAB rendering where used)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>7. Checkbox → M3 Checkbox</h3>
+    <div class="impl-note">AdminCheckbox wrapping FormCheckbox</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Size</td><td class="val-wrong">16px (h-4 w-4)</td><td class="val-target">18dp</td></tr>
+      <tr><td>Border radius</td><td>Default</td><td class="val-target">2dp</td></tr>
+      <tr><td>Selected color</td><td class="val-wrong">success (green)</td><td class="val-target">primary</td></tr>
+      <tr><td>Checkmark</td><td>Browser default</td><td class="val-target">on-primary</td></tr>
+      <tr><td>Touch target</td><td class="val-wrong">None</td><td class="val-target">40dp circular state layer</td></tr>
+      <tr><td>Unselected outline</td><td>stroke-soft-200</td><td class="val-target">on-surface-variant, 2dp width</td></tr>
+      <tr><td>Error state</td><td class="val-wrong">None</td><td class="val-target">error outline + error fill</td></tr>
+      <tr><td>Disabled</td><td>opacity-50</td><td class="val-target">on-surface @ 0.38</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Create <code>AdminCheckbox</code> — a styled checkbox with 18dp box, 2dp radius, primary fill when checked, 40dp circular touch target with state layer ripple. Error variant uses error color. Wraps the same form registration pattern (react-hook-form compatible).
+    </div>
+    <div class="file-list">Files: packages/admin/src/components/AdminCheckbox.tsx (new)</div>
+  </div>
+</div>
+
+<!-- MEDIUM TIER -->
+<div class="tier-label tier-medium">Medium Priority — Partial compliance, refinement needed</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>8. Cards → M3 3-Type Card System</h3>
+    <div class="impl-note">AdminCard with filled / elevated / outlined variants</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Shape</td><td class="val-wrong">rounded-2xl (~16px)</td><td class="val-target">corner-medium (12dp)</td></tr>
+      <tr><td>Types</td><td class="val-wrong">No clear distinction</td><td class="val-target">filled (surface-container-highest), elevated (surface-container-low + level 1), outlined (surface + outline-variant 1dp)</td></tr>
+      <tr><td>State layer</td><td class="val-wrong">brightness + scale</td><td class="val-target">on-surface @ 8%/12%/12%</td></tr>
+      <tr><td>Elevation</td><td>shadow-sm / custom</td><td class="val-target">M3 elevation scale (0→1→2→3)</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Create <code>AdminCard</code> with 3 explicit variants. Default to "elevated" for interactive cards (list items), "filled" for content sections, "outlined" for forms. Radius changes from 16px to 12dp. State layers become pseudo-element overlays.
+    </div>
+    <div class="file-list">Files: packages/admin/src/components/AdminCard.tsx (new)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>9. Navigation Bar → M3 Anatomy Adjustments</h3>
+    <div class="impl-note">CSS overrides on existing NavigationBar in admin layout</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Height</td><td>~60dp</td><td class="val-target">80dp</td></tr>
+      <tr><td>Active indicator</td><td class="val-wrong">Circular icon bg</td><td class="val-target">64x32dp pill, secondary-container</td></tr>
+      <tr><td>Surface</td><td class="val-wrong">Glass effect</td><td class="val-target">surface-container, level 2 (strict M3)</td></tr>
+      <tr><td>Label</td><td>text-[11px]</td><td class="val-target">label-medium (12sp)</td></tr>
+      <tr><td>Icon</td><td>24dp ✓</td><td class="val-target">24dp ✓</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Since NavigationBar is in shared, apply admin-specific CSS overrides via a wrapper class <code>.admin-nav-override</code> on the CanvasLayout. This adjusts height, swaps the circular active indicator for an M3 64x32dp pill, and sets the surface to M3 colors. Less disruptive than a full component replacement since the nav behavior is correct.
+    </div>
+    <div class="file-list">Touches: packages/admin/src/components/Layout/CanvasLayout.tsx (add override class), packages/admin/src/styles/admin-m3-overrides.css (new)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>10. Dialogs → M3 Basic Dialog</h3>
+    <div class="impl-note">AdminDialog wrapping ConfirmDialog</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Shape</td><td>Custom rounded</td><td class="val-target">corner-extra-large (28dp)</td></tr>
+      <tr><td>Surface</td><td>bg-bg-white</td><td class="val-target">surface-container-high</td></tr>
+      <tr><td>Elevation</td><td>Custom shadow</td><td class="val-target">level 3</td></tr>
+      <tr><td>Headline</td><td>text-title-lg</td><td class="val-target">headline-small</td></tr>
+      <tr><td>Body</td><td>text-body-lg</td><td class="val-target">body-medium</td></tr>
+      <tr><td>Actions</td><td class="val-wrong">Full-width stacked</td><td class="val-target">Text buttons, right-aligned row</td></tr>
+      <tr><td>Padding</td><td>Mixed</td><td class="val-target">24dp uniform</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Create <code>AdminDialog</code> wrapping Radix Dialog with M3 visual overrides: 28dp radius, surface-container-high, 24dp padding, headline-small title. Actions become right-aligned M3 text buttons instead of full-width. Retains Radix focus trap and accessibility.
+    </div>
+    <div class="file-list">Files: packages/admin/src/components/AdminDialog.tsx (new)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>11. Lists → M3 List Item Anatomy</h3>
+    <div class="impl-note">AdminListItem adjusting CanvasWorkbenchRow rendering</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Heights</td><td>Variable</td><td class="val-target">56dp (1-line) / 72dp (2-line) / 88dp (3-line)</td></tr>
+      <tr><td>Label text</td><td>text-title-md</td><td class="val-target">body-large</td></tr>
+      <tr><td>Supporting text</td><td>text-body-md</td><td class="val-target">body-medium, on-surface-variant</td></tr>
+      <tr><td>Overline</td><td>text-label-sm</td><td class="val-target">label-small, on-surface-variant</td></tr>
+      <tr><td>Padding</td><td>px-4 (16px) ✓</td><td class="val-target">16dp ✓</td></tr>
+      <tr><td>Leading element</td><td>56px thumbnail ✓</td><td class="val-target">56dp image or 40dp avatar ✓</td></tr>
+      <tr><td>State layer</td><td class="val-wrong">translate + brightness</td><td class="val-target">on-surface @ 8%/12%</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Create <code>AdminListItem</code> — an M3-compliant list row with fixed heights per line count, body-large label, M3 state layers. The Hub workbench rows become AdminListItems with 3-line height (88dp). Dividers use on-surface-variant at low opacity.
+    </div>
+    <div class="file-list">Files: packages/admin/src/components/AdminListItem.tsx (new)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>12. Badges → M3 Badge</h3>
+    <div class="impl-note">CSS adjustments on admin Badge usage</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Small (dot)</td><td class="val-wrong">Various sizes</td><td class="val-target">6dp, corner-full, error color</td></tr>
+      <tr><td>Large (number)</td><td class="val-wrong">Custom pill with tints</td><td class="val-target">16dp height, corner-full, error color, label-small</td></tr>
+      <tr><td>Color system</td><td class="val-wrong">8 tint variants</td><td class="val-target">error (only) for notification badges</td></tr>
+      <tr><td>StatusBadge</td><td>Keep as-is (WCAG)</td><td>Keep — domain-specific, not an M3 badge</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> M3 badges are specifically notification indicators (error color only). The existing Badge tint system serves a different purpose (status/category labels) — those are closer to M3 "assist chips" or "label" patterns. For admin: create <code>AdminBadge</code> for true M3 notification badges (tab counts, nav indicators). Keep StatusBadge as-is since it's domain-specific and WCAG-compliant.
+    </div>
+    <div class="file-list">Files: packages/admin/src/components/AdminBadge.tsx (new)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>13. Snackbar → M3 Snackbar</h3>
+    <div class="impl-note">Admin toast styling overrides</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Background</td><td class="val-wrong">bg-white (light surface)</td><td class="val-target">inverse-surface (dark in light mode)</td></tr>
+      <tr><td>Text</td><td class="val-wrong">on-surface</td><td class="val-target">inverse-on-surface</td></tr>
+      <tr><td>Action</td><td>primary</td><td class="val-target">inverse-primary</td></tr>
+      <tr><td>Shape</td><td class="val-wrong">10px rounded</td><td class="val-target">corner-extra-small (4dp)</td></tr>
+      <tr><td>Height</td><td>Variable</td><td class="val-target">48dp (1-line) / 68dp (2-line)</td></tr>
+      <tr><td>Elevation</td><td>shadow-md</td><td class="val-target">level 3</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Override toast styling in admin via CSS custom properties on the admin root. Set toast container to inverse-surface (dark bg), inverse-on-surface text, 4dp radius, level 3 shadow. The react-hot-toast Toaster accepts style overrides — configure these in the admin's provider setup.
+    </div>
+    <div class="file-list">Touches: packages/admin/src/styles/admin-m3-overrides.css, packages/admin/src/main.tsx (toast config)</div>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>14. Sheets → M3 Bottom & Side Sheet</h3>
+    <div class="impl-note">CSS overrides on shared sheet components in admin</div>
+  </div>
+  <div class="design-body">
+    <table class="spec-table">
+      <tr><th>Property</th><th>Current</th><th>M3 Target</th></tr>
+      <tr><td>Bottom radius</td><td>rounded-t-xl (~12px)</td><td class="val-target">corner-extra-large-top (28dp)</td></tr>
+      <tr><td>Side width</td><td>400px</td><td class="val-target">256dp (M3 modal standard)</td></tr>
+      <tr><td>Side shape</td><td>rounded-l/r-xl</td><td class="val-target">corner-large-start (16dp)</td></tr>
+      <tr><td>Surface</td><td class="val-wrong">Glass (blur+saturate)</td><td class="val-target">surface-container-low (solid)</td></tr>
+      <tr><td>Drag handle</td><td>w-10 h-1.5</td><td class="val-target">32x4dp, on-surface-variant</td></tr>
+    </table>
+    <div class="strategy-note">
+      <strong>Strategy:</strong> Apply CSS overrides via admin wrapper classes. Bottom sheet gets 28dp top radius and solid surface. Side sheet narrows to 256dp and loses glass treatment. Drag handle gets correct 32x4dp dimensions. These are all visual tweaks — the Radix Dialog behavior stays identical.
+    </div>
+    <div class="file-list">Touches: packages/admin/src/styles/admin-m3-overrides.css</div>
+  </div>
+</div>
+
+<!-- LOW + MISSING -->
+<div class="tier-label tier-low">Low Priority & Missing — Minimal impact or new components</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>15-17. Low: Progress, Tooltips, Date Picker</h3>
+  </div>
+  <div class="design-body" style="font-size:12px; line-height:1.7">
+    <p><strong>Progress:</strong> SubmissionProgress is domain-specific (multi-stage pipeline) — keep as-is. Add a generic <code>AdminLinearProgress</code> (4dp track, primary indicator) for loading states where the current Spinner is used.</p>
+    <p><strong>Tooltips:</strong> Extract the FloatingToolbar tooltip into <code>AdminTooltip</code> — 4dp radius, inverse-surface bg, body-small text. Reusable across admin.</p>
+    <p><strong>Date Picker:</strong> CSS overrides on the existing DatePicker — corner-large (16dp), surface-container-high bg, M3 day cell selected state (primary fill).</p>
+  </div>
+</div>
+
+<div class="design-section">
+  <div class="design-header">
+    <h3>18-20. Missing: Switch, Slider, Carousel</h3>
+  </div>
+  <div class="design-body" style="font-size:12px; line-height:1.7">
+    <p><strong>Switch:</strong> New <code>AdminSwitch</code> — 52x32dp track, 16→24dp handle with size animation, primary color when on, outline when off. Used for Garden settings toggles.</p>
+    <p><strong>Slider:</strong> New <code>AdminSlider</code> — 20dp handle, 4dp track, primary color. Only build if needed for confidence selector or yield config.</p>
+    <p><strong>Carousel:</strong> Wrap embla-carousel with M3 styling — 28dp corner items, surface color. Only build when media galleries are active.</p>
+  </div>
+</div>
+
+<div style="margin-top:20px; padding:14px 18px; border-radius:10px; background: linear-gradient(135deg, rgba(103,80,164,0.06), rgba(103,80,164,0.02)); border: 1px solid rgba(103,80,164,0.1); font-size:13px; line-height:1.7">
+  <strong style="color:#6750a4">Total new admin components: 12</strong><br>
+  AdminTabRail · AdminSearchToolbar · AdminFilterChip · AdminTextField · AdminButton · AdminFab · AdminCheckbox · AdminCard · AdminDialog · AdminListItem · AdminBadge · AdminTooltip<br><br>
+  <strong style="color:#6750a4">CSS-only overrides: 3</strong><br>
+  NavigationBar (via wrapper class) · Sheets (via wrapper class) · Snackbar (via toast config)<br><br>
+  <strong style="color:#6750a4">Build-on-demand: 3</strong><br>
+  AdminSwitch · AdminSlider · AdminCarousel<br><br>
+  <strong style="color:#6750a4">Shared package changes: 0</strong>
+</div>

@@ -1,0 +1,113 @@
+<h2>Current Canvas Architecture</h2>
+<p class="subtitle">Here's what I found in the codebase — does this match your mental model?</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">Admin Canvas Layout (Desktop)</div>
+    <div class="mockup-body" style="padding: 0; background: #f5f3ee; min-height: 500px; position: relative; overflow: hidden;">
+
+      <!-- TopContextBar -->
+      <div style="height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: transparent; border-bottom: 1px dashed rgba(0,0,0,0.1);">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="background: rgba(255,255,255,0.7); backdrop-filter: blur(8px); padding: 6px 14px; border-radius: 20px; font-size: 13px; border: 1px solid rgba(0,0,0,0.08);">🌱 Garden Chip</div>
+        </div>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; font-size: 14px;">🔍</div>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center; font-size: 14px;">🔔</div>
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: #c4b5a0;"></div>
+        </div>
+      </div>
+
+      <!-- Labels -->
+      <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.35); letter-spacing: 1px; text-transform: uppercase;">TopContextBar</div>
+
+      <!-- MainSheet -->
+      <div style="margin: 8px 24px; background: linear-gradient(180deg, #fff 0%, rgba(249,247,242,0.5) 100%); border-radius: 20px; box-shadow: 0 18px 46px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.05); min-height: 340px; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 8px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.35); letter-spacing: 1px; text-transform: uppercase;">MainSheet</div>
+
+        <div style="padding: 40px 24px 24px; color: rgba(0,0,0,0.5); font-size: 13px;">
+          <div style="text-align: center; padding: 40px;">
+            <div style="font-size: 16px; font-weight: 500; color: rgba(0,0,0,0.7); margin-bottom: 8px;">View Content (via PageTransition)</div>
+            <div style="font-size: 12px; color: rgba(0,0,0,0.4);">Hub / Garden / Actions / Community / Account</div>
+          </div>
+
+          <!-- Overlay Portal Zone -->
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 80px; border-top: 1px dashed rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center;">
+            <div style="font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.25); letter-spacing: 1px; text-transform: uppercase;">Overlay Portal Root (sheets portal here when bounded)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NavigationBar -->
+      <div style="position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.9); backdrop-filter: blur(8px); border-radius: 28px; padding: 8px 24px; display: flex; gap: 20px; align-items: center; box-shadow: 0 2px 12px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.05);">
+        <div style="font-size: 10px; font-weight: 600; color: rgba(0,0,0,0.25); letter-spacing: 1px; text-transform: uppercase; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); white-space: nowrap;">NavigationBar</div>
+        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(0,0,0,0.06);"></div>
+        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(0,0,0,0.06);"></div>
+        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(0,0,0,0.06);"></div>
+        <div style="width: 28px; height: 28px; border-radius: 8px; background: rgba(0,0,0,0.06);"></div>
+      </div>
+
+      <!-- FAB -->
+      <div style="position: absolute; bottom: 16px; right: 24px; width: 56px; height: 56px; border-radius: 16px; background: #4a7c59; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(74,124,89,0.3);">
+        <span style="color: white; font-size: 24px;">+</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>Current Sheet Inventory</h3>
+  <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+    <thead>
+      <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
+        <th style="text-align: left; padding: 8px;">Component</th>
+        <th style="text-align: left; padding: 8px;">Position</th>
+        <th style="text-align: left; padding: 8px;">Background</th>
+        <th style="text-align: left; padding: 8px;">Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">TopContextBar</td>
+        <td style="padding: 8px;">Sticky top</td>
+        <td style="padding: 8px;"><span style="background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(0,0,0,0.05) 3px, rgba(0,0,0,0.05) 6px); padding: 2px 10px; border-radius: 4px; font-size: 12px;">Transparent</span></td>
+        <td style="padding: 8px; font-size: 13px;">Context bar — garden chip, search, notifications</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">MainSheet</td>
+        <td style="padding: 8px;">Center fill</td>
+        <td style="padding: 8px;"><span style="background: linear-gradient(180deg, #fff 0%, #f9f7f2 100%); padding: 2px 10px; border-radius: 4px; font-size: 12px; border: 1px solid rgba(0,0,0,0.08);">Gradient surface</span></td>
+        <td style="padding: 8px; font-size: 13px;">Primary content — recedes when overlays open</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">SideSheet</td>
+        <td style="padding: 8px;">Left or right</td>
+        <td style="padding: 8px;"><span style="background: rgba(255,255,255,0.55); backdrop-filter: blur(4px); padding: 2px 10px; border-radius: 4px; font-size: 12px; border: 1px solid rgba(0,0,0,0.08);">Glass floating</span></td>
+        <td style="padding: 8px; font-size: 13px;">Detail panels — account, notifications, work detail</td>
+      </tr>
+      <tr style="border-bottom: 1px solid rgba(0,0,0,0.06);">
+        <td style="padding: 8px; font-weight: 500;">BottomSheet</td>
+        <td style="padding: 8px;">Bottom</td>
+        <td style="padding: 8px;"><span style="background: rgba(255,255,255,0.55); backdrop-filter: blur(4px); padding: 2px 10px; border-radius: 4px; font-size: 12px; border: 1px solid rgba(0,0,0,0.08);">Glass floating + M3 elevation</span></td>
+        <td style="padding: 8px; font-size: 13px;">Mobile modals — drag-dismissable</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px; font-weight: 500;">NavigationBar</td>
+        <td style="padding: 8px;">Fixed bottom</td>
+        <td style="padding: 8px;"><span style="background: rgba(255,255,255,0.9); padding: 2px 10px; border-radius: 4px; font-size: 12px; border: 1px solid rgba(0,0,0,0.08);">Glass ground</span></td>
+        <td style="padding: 8px; font-size: 13px;">Route nav dock + FAB integration</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3 style="color: #b45309;">Notable Gaps vs Your Mental Model</h3>
+  <ul style="font-size: 14px; line-height: 1.8; color: rgba(0,0,0,0.7);">
+    <li><strong>No dedicated "LeftSheet" or "RightSheet"</strong> — a single <code>SideSheet</code> component takes a <code>side</code> prop ("left" | "right")</li>
+    <li><strong>BottomSheet is mobile-only</strong>, not a persistent transparent container — it's a glass-surfaced modal with drag-to-dismiss</li>
+    <li><strong>NavigationBar sits outside the sheet taxonomy</strong> — it's a fixed dock, not a "bottom sheet"</li>
+    <li><strong>TopContextBar is the only truly transparent container</strong> — everything else has surface treatment</li>
+    <li><strong>Deprecated FloatingToolbar</strong> still exported alongside its replacement (NavigationBar)</li>
+  </ul>
+</div>

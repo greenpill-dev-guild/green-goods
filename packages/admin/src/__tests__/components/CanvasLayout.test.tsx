@@ -13,14 +13,14 @@ const {
   mockUseGardenUrlSync,
   mockUseStaleGardenGuard,
   mockSetSelectedGarden,
-  mockTopContextBarProps,
+  mockAppBarProps,
   mockAuthState,
   mockEligibleAdminGardens,
 } = vi.hoisted(() => ({
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
-  mockTopContextBarProps: vi.fn(),
+  mockAppBarProps: vi.fn(),
   mockAuthState: {
     current: {
       isAuthenticated: true,
@@ -71,7 +71,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       onOpenSettings?: () => void;
       onOpenProfile?: () => void;
     }) => {
-      mockTopContextBarProps(props);
+      mockAppBarProps(props);
       return (
         <div data-testid="top-context-bar">
           <div data-testid="top-context-garden">{props.gardenChip}</div>
@@ -192,7 +192,7 @@ describe("CanvasLayout", () => {
     expect(screen.getByTestId("active-path")).toHaveTextContent(expectedActivePath);
   });
 
-  it("renders TopContextBar above the main workspace and keeps NavigationBar pure", () => {
+  it("renders AppBar above the main workspace and keeps NavigationBar pure", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/hub"]}>
         <CanvasLayout />
@@ -202,7 +202,7 @@ describe("CanvasLayout", () => {
     expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
     expect(screen.getByTestId("top-context-garden")).toHaveTextContent("Garden Chip");
     expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
-    expect(mockTopContextBarProps.mock.calls[0]?.[0]).toEqual(
+    expect(mockAppBarProps.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         onOpenSearch: expect.any(Function),
         onOpenNotifications: expect.any(Function),

@@ -1,0 +1,441 @@
+<style>
+  .audit-grid { display: grid; gap: 12px; }
+  .audit-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 80px;
+    align-items: start;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: rgba(255,255,255,0.7);
+    gap: 12px;
+  }
+  .audit-row:hover { background: rgba(255,255,255,0.95); }
+  .component-name {
+    font-weight: 700;
+    font-size: 14px;
+    color: #1a1a1a;
+  }
+  .component-impl {
+    font-size: 11px;
+    color: #888;
+    margin-top: 2px;
+  }
+  .gap-list {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #444;
+  }
+  .gap-item {
+    display: flex;
+    gap: 6px;
+    align-items: baseline;
+  }
+  .gap-item::before {
+    content: "△";
+    color: #e67700;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .gap-item.critical::before { content: "●"; color: #d32f2f; }
+  .gap-item.ok::before { content: "✓"; color: #2e7d32; }
+  .severity {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .sev-critical { background: #ffebee; color: #c62828; }
+  .sev-high { background: #fff3e0; color: #e65100; }
+  .sev-medium { background: #fff8e1; color: #f57f17; }
+  .sev-low { background: #e8f5e9; color: #2e7d32; }
+  .sev-missing { background: #f3e5f5; color: #7b1fa2; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #999;
+    padding: 8px 0 4px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    margin-top: 8px;
+  }
+  .stats-bar {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f8f9fa, #fff);
+    border: 1px solid rgba(0,0,0,0.06);
+    margin-bottom: 16px;
+  }
+  .stat { text-align: center; flex: 1; }
+  .stat-num { font-size: 28px; font-weight: 800; }
+  .stat-label { font-size: 11px; color: #888; margin-top: 2px; }
+  .spec-detail {
+    font-size: 11px;
+    color: #777;
+    background: rgba(0,0,0,0.03);
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 1px 0;
+  }
+</style>
+
+<h2>M3 Component Compliance Audit</h2>
+<p class="subtitle">Admin dashboard components vs Material Design 3 v0.192 spec</p>
+
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-num" style="color:#1a1a1a">20</div>
+    <div class="stat-label">M3 Component Types</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num" style="color:#c62828">3</div>
+    <div class="stat-label">Critical</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num" style="color:#e65100">4</div>
+    <div class="stat-label">High</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num" style="color:#f57f17">7</div>
+    <div class="stat-label">Medium</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num" style="color:#2e7d32">3</div>
+    <div class="stat-label">Low</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num" style="color:#7b1fa2">3</div>
+    <div class="stat-label">Missing</div>
+  </div>
+</div>
+
+<div class="audit-grid">
+
+  <div class="section-label">Critical — Visually broken or fundamentally wrong anatomy</div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Tabs</div>
+      <div class="component-impl">CanvasStageTabRail</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">Container has rounded-lg + gradient bg — M3 says corner-none, flat surface</div>
+      <div class="gap-item critical">Active indicator is a pill/card behind tab — M3 uses 3dp bottom underline</div>
+      <div class="gap-item critical">Height varies (3.25rem/3.4rem) — M3 specifies exactly 48dp or 64dp</div>
+      <div class="gap-item critical">Typography uses 0.92rem custom — M3 requires title-small</div>
+      <div class="gap-item">Count badge uses white/74 bg — M3 badges use error color</div>
+      <div class="gap-item">State layers missing (hover 8%, focus 12%, pressed 12%)</div>
+      <div class="spec-detail">M3: 48dp height · corner-none · primary underline 3dp · title-small</div>
+    </div>
+    <div class="severity sev-critical">CRITICAL</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Search</div>
+      <div class="component-impl">ListToolbar</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">Height h-9 (36px) — M3 search bar is 56dp</div>
+      <div class="gap-item critical">Shape rounded-sm — M3 search bar is corner-full (pill)</div>
+      <div class="gap-item critical">No elevation — M3 specifies level 3</div>
+      <div class="gap-item critical">Background bg-bg-white — M3 uses surface-container-high</div>
+      <div class="gap-item">Uses edge-rest shadow instead of elevation shadow</div>
+      <div class="gap-item">Toolbar wraps children (filters) — should be single row</div>
+      <div class="spec-detail">M3: 56dp · corner-full · surface-container-high · level 3 · body-large</div>
+    </div>
+    <div class="severity sev-critical">CRITICAL</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Text Fields</div>
+      <div class="component-impl">FormInput</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">No floating label — M3 filled field uses animated label that floats on focus</div>
+      <div class="gap-item critical">No active indicator (bottom line) — M3 filled uses 1dp→2dp bottom line</div>
+      <div class="gap-item critical">Shape rounded-sm — M3 filled is corner-extra-small-top (4 4 0 0)</div>
+      <div class="gap-item">No outlined variant — M3 has both filled and outlined</div>
+      <div class="gap-item">Background bg-bg-white — M3 uses surface-container-highest</div>
+      <div class="gap-item">Typography text-body-lg OK — M3 uses body-large ✓</div>
+      <div class="spec-detail">M3: 56dp · 4dp top corners · floating label · 2dp active indicator · body-large</div>
+    </div>
+    <div class="severity sev-critical">CRITICAL</div>
+  </div>
+
+  <div class="section-label">High — Wrong anatomy or missing key M3 features</div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Buttons</div>
+      <div class="component-impl">Button (tv variants)</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">Shape rounded-sm — M3 buttons are corner-full (pill)</div>
+      <div class="gap-item critical">Only 4 variants (primary/secondary/ghost/danger) — M3 has 5 (filled/outlined/text/elevated/tonal)</div>
+      <div class="gap-item">Height h-10 (40px) matches M3 40dp ✓</div>
+      <div class="gap-item">Missing M3 elevation changes on hover (filled: 0→1, elevated: 1→2)</div>
+      <div class="gap-item">State layers use brightness/scale instead of M3 color overlay at 8%/12%</div>
+      <div class="gap-item">Icon size not standardized to 18dp</div>
+      <div class="spec-detail">M3: 40dp · corner-full · 5 types · label-large · 24dp padding</div>
+    </div>
+    <div class="severity sev-high">HIGH</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Chips</div>
+      <div class="component-impl">None (SortSelect)</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">No chip component — using native &lt;select&gt; for sort</div>
+      <div class="gap-item critical">Filter children wrap as buttons, not M3 filter chips</div>
+      <div class="gap-item">M3 chips: 32dp height, corner-small (8dp), 4 types (assist/filter/input/suggestion)</div>
+      <div class="gap-item">Filter chips have selected state with secondary-container fill</div>
+      <div class="spec-detail">M3: 32dp · corner-small (8dp) · label-large · outline 1dp · 4 types</div>
+    </div>
+    <div class="severity sev-high">HIGH</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">FAB</div>
+      <div class="component-impl">FabButton in NavBar</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">Shape rounded-full (circle) — M3 standard FAB is corner-large (16dp rounded square)</div>
+      <div class="gap-item critical">Size h-12 w-12 (48px) — M3 is 56x56dp</div>
+      <div class="gap-item">Elevation not following M3 scale (level 3 default, 4 on hover)</div>
+      <div class="gap-item">Color uses ws-primary with white/35 border — M3 uses primary-container</div>
+      <div class="gap-item">Extended FAB variant on mobile has different anatomy than M3</div>
+      <div class="spec-detail">M3: 56dp · corner-large (16dp) · primary-container · level 3 · 24dp icon</div>
+    </div>
+    <div class="severity sev-high">HIGH</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Checkbox</div>
+      <div class="component-impl">FormCheckbox</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">Uses success (green) colors — M3 uses primary for selected state</div>
+      <div class="gap-item critical">Container h-4 w-4 (16px) — M3 is 18dp with 2dp radius</div>
+      <div class="gap-item">Missing 40dp state layer / touch target circle</div>
+      <div class="gap-item">No error state variant (M3 has error outline + error fill)</div>
+      <div class="gap-item">Disabled state uses opacity-50 — M3 uses on-surface @ 0.38</div>
+      <div class="spec-detail">M3: 18dp · 2dp radius · primary fill · on-primary checkmark · 40dp touch target</div>
+    </div>
+    <div class="severity sev-high">HIGH</div>
+  </div>
+
+  <div class="section-label">Medium — Partial compliance, needs refinement</div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Cards</div>
+      <div class="component-impl">CardBase / SurfaceCard</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Shape rounded-2xl (~16px) — M3 is corner-medium (12dp), close but off</div>
+      <div class="gap-item">No clear filled/elevated/outlined type system</div>
+      <div class="gap-item">Custom shadow-sm instead of M3 elevation scale</div>
+      <div class="gap-item">State layer uses brightness/scale — M3 uses on-surface @ 8%</div>
+      <div class="gap-item ok">Has interactive state handling (hover, press)</div>
+      <div class="spec-detail">M3: corner-medium (12dp) · 3 types · on-surface state layer</div>
+    </div>
+    <div class="severity sev-medium">MEDIUM</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Navigation Bar</div>
+      <div class="component-impl">NavigationBar</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Active indicator is circular icon bg — M3 is 64x32dp pill in secondary-container</div>
+      <div class="gap-item">Container uses glass effect — M3 is flat surface-container at level 2</div>
+      <div class="gap-item">Label text-[11px] — M3 uses label-medium (12sp)</div>
+      <div class="gap-item ok">Has icon + label anatomy ✓</div>
+      <div class="gap-item ok">Has aria-current="page" ✓</div>
+      <div class="spec-detail">M3: 80dp · surface-container · level 2 · 64x32 pill indicator · label-medium</div>
+    </div>
+    <div class="severity sev-medium">MEDIUM</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Dialogs</div>
+      <div class="component-impl">ConfirmDialog</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Shape close but uses sm:max-w-md — M3 uses corner-extra-large (28dp)</div>
+      <div class="gap-item">Headline uses text-title-lg — M3 uses headline-small</div>
+      <div class="gap-item">Action buttons are full-width — M3 uses text buttons aligned right</div>
+      <div class="gap-item ok">Radix Dialog with proper aria + focus trap ✓</div>
+      <div class="gap-item ok">Scrim overlay present ✓</div>
+      <div class="spec-detail">M3: corner-extra-large (28dp) · surface-container-high · headline-small · 24dp padding</div>
+    </div>
+    <div class="severity sev-medium">MEDIUM</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Lists</div>
+      <div class="component-impl">CanvasWorkbenchRow</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Custom grid layout — M3 lists have fixed heights (56/72/88dp)</div>
+      <div class="gap-item">Leading element is 56px thumbnail — M3 supports this as "leading image"</div>
+      <div class="gap-item">No divider between items (uses divide-y on parent)</div>
+      <div class="gap-item">Typography custom — M3 uses body-large for label</div>
+      <div class="gap-item ok">Has supporting text and overline ✓</div>
+      <div class="spec-detail">M3: 56/72/88dp · body-large · 16dp padding · on-surface-variant supporting text</div>
+    </div>
+    <div class="severity sev-medium">MEDIUM</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Badges</div>
+      <div class="component-impl">Badge / StatusBadge</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Custom tint system (primary/secondary/accent etc) — M3 badges use only error color</div>
+      <div class="gap-item">Pill variant rounded-2xl is close to corner-full ✓</div>
+      <div class="gap-item">M3 badges are 6dp (dot) or 16dp (number) — current sizes vary</div>
+      <div class="gap-item ok">StatusBadge has icon + color (WCAG compliant) ✓</div>
+      <div class="spec-detail">M3: 6dp dot or 16dp large · corner-full · error color · label-small</div>
+    </div>
+    <div class="severity sev-medium">MEDIUM</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Snackbar / Toast</div>
+      <div class="component-impl">ToastViewport + toast.service</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Background white/surface — M3 uses inverse-surface (dark in light mode)</div>
+      <div class="gap-item">Shape rounded 10px — M3 is corner-extra-small (4dp)</div>
+      <div class="gap-item">Text color on-surface — M3 uses inverse-on-surface</div>
+      <div class="gap-item">Action color primary — M3 uses inverse-primary</div>
+      <div class="gap-item ok">Has action button slot ✓</div>
+      <div class="spec-detail">M3: 48dp · corner-extra-small (4dp) · inverse-surface · body-medium</div>
+    </div>
+    <div class="severity sev-medium">MEDIUM</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Sheets</div>
+      <div class="component-impl">BottomSheet / SideSheet</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Bottom shape rounded-t-xl (~12px) — M3 is corner-extra-large-top (28dp)</div>
+      <div class="gap-item">Side width 400px — M3 modal side is 256dp</div>
+      <div class="gap-item">Side uses glass bg — M3 uses surface-container-low</div>
+      <div class="gap-item">Drag handle w-10 h-1.5 — M3 is 32x4dp</div>
+      <div class="gap-item ok">Radix Dialog with aria-modal ✓</div>
+      <div class="spec-detail">M3: Bottom 28dp top radius · Side 256dp · surface-container-low · 32x4 handle</div>
+    </div>
+    <div class="severity sev-medium">MEDIUM</div>
+  </div>
+
+  <div class="section-label">Low — Minor deviations or specialized components</div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Progress</div>
+      <div class="component-impl">SubmissionProgress</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Custom multi-stage dot system — not M3 linear/circular anatomy</div>
+      <div class="gap-item ok">Appropriate for domain-specific progress tracking</div>
+      <div class="gap-item">Could add M3 linear progress bar (4dp track, primary indicator) for generic loading</div>
+      <div class="spec-detail">M3: Linear 4dp track · Circular 48dp · primary indicator</div>
+    </div>
+    <div class="severity sev-low">LOW</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Tooltips</div>
+      <div class="component-impl">FloatingToolbar only</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Only exists inside FloatingToolbar, not reusable</div>
+      <div class="gap-item">Uses bg-bg-strong — M3 plain tooltip uses inverse-surface</div>
+      <div class="gap-item ok">Text body-small close to M3 ✓</div>
+      <div class="spec-detail">M3: Plain 4dp radius · Rich 12dp · inverse-surface · body-small</div>
+    </div>
+    <div class="severity sev-low">LOW</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Date Picker</div>
+      <div class="component-impl">DatePicker (Radix+DayPicker)</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">Custom styling on react-day-picker</div>
+      <div class="gap-item">Calendar uses rounded-xl — M3 uses corner-large (16dp)</div>
+      <div class="gap-item ok">Has day cells, navigation, weekdays ✓</div>
+      <div class="gap-item ok">Proper aria + popover ✓</div>
+      <div class="spec-detail">M3: corner-large (16dp) · surface-container-high · level 3</div>
+    </div>
+    <div class="severity sev-low">LOW</div>
+  </div>
+
+  <div class="section-label">Missing — M3 component type not implemented</div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Switch</div>
+      <div class="component-impl">—</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">No switch component in shared or admin</div>
+      <div class="gap-item">M3 switch: 52x32dp track, 16→24dp handle, primary color</div>
+      <div class="gap-item">Needed for toggle settings in Garden config and admin preferences</div>
+      <div class="spec-detail">M3: 52x32dp · corner-full · primary track · on-primary handle</div>
+    </div>
+    <div class="severity sev-missing">MISSING</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Slider</div>
+      <div class="component-impl">—</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item critical">No slider component</div>
+      <div class="gap-item">M3 slider: 20dp handle, 4dp track, primary color, value label</div>
+      <div class="gap-item">May be needed for confidence selectors or yield split configuration</div>
+      <div class="spec-detail">M3: 20dp handle · 4dp track · primary · corner-full</div>
+    </div>
+    <div class="severity sev-missing">MISSING</div>
+  </div>
+
+  <div class="audit-row">
+    <div>
+      <div class="component-name">Carousel</div>
+      <div class="component-impl">embla (library only)</div>
+    </div>
+    <div class="gap-list">
+      <div class="gap-item">embla-carousel-react available but no M3-styled wrapper component</div>
+      <div class="gap-item">M3 carousel: corner-extra-large (28dp) items, surface color</div>
+      <div class="gap-item">Used for work submission media galleries</div>
+      <div class="spec-detail">M3: corner-extra-large (28dp) · surface · level 0 · on-surface state layer</div>
+    </div>
+    <div class="severity sev-missing">MISSING</div>
+  </div>
+
+</div>
