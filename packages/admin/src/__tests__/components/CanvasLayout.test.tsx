@@ -80,6 +80,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
               Open Settings
             </button>
           ) : null}
+          {props.onOpenProfile ? (
+            <button type="button" onClick={props.onOpenProfile}>
+              Open Profile
+            </button>
+          ) : null}
         </div>
       );
     },
@@ -255,6 +260,36 @@ describe("CanvasLayout", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Open Settings" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+    });
+  });
+
+  it("opens RightSheet with profile content from the desktop profile trigger", async () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(min-width: 600px)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open Profile" }));
 
     await waitFor(() => {
       expect(screen.getByTestId("right-sheet")).toBeInTheDocument();

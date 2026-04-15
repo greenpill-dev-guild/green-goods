@@ -18,6 +18,8 @@ export const ensKeys = {
   avatar: (address: Address | string) => ["greengoods", "ens", "avatar", address] as const,
   registrationStatus: (slug: string) => ["greengoods", "ens", "registration", slug] as const,
   availability: (slug: string) => ["greengoods", "ens", "availability", slug] as const,
+  protocolName: (address: Address | string) =>
+    ["greengoods", "ens", "protocolName", address] as const,
   protocolMembership: (address: Address | string) =>
     ["greengoods", "ens", "protocolMembership", address] as const,
 } as const;
