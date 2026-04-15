@@ -1,7 +1,9 @@
 import {
+  BottomSheet,
   FabProvider,
   GardenChip,
   LeftSheet,
+  LeftSheetProvider,
   MainSheet,
   NavigationBar,
   NotificationPanel,
@@ -13,6 +15,7 @@ import {
   useEffectiveToolbarPermissions,
   useFabConfigValue,
   useGardenUrlSync,
+  useLeftSheetConfigValue,
   adminRoutes,
   getAdminWorkspaceForPath,
   getAdminWorkspaceRoot,
@@ -327,6 +330,7 @@ export function CanvasLayout() {
 
   return (
     <FabProvider>
+    <LeftSheetProvider>
       <div
         data-workspace={workspaceId}
         className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
@@ -387,6 +391,7 @@ export function CanvasLayout() {
         </div>
 
         {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
+        {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
         <RightSheet
           open={orchestrator.activeSheet === "right"}
           onClose={() => orchestrator.closeSheet()}
@@ -409,8 +414,13 @@ export function CanvasLayout() {
           )}
           {orchestrator.activeContentId === "notifications" && <NotificationPanel />}
         </RightSheet>
+
+        {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
+        <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRootRef.current} />
+
         <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       </div>
+    </LeftSheetProvider>
     </FabProvider>
   );
 }
@@ -423,4 +433,44 @@ function FabAwareNavigationBar(props: {
 }) {
   const fabConfig = useFabConfigValue();
   return <NavigationBar {...props} fab={fabConfig} />;
+}
+
+/**
+ * Bridge: reads left sheet config from LeftSheetContext and renders
+ * LeftSheet (desktop) or BottomSheet (mobile). Persistent across route
+ * transitions — views declare content via useLeftSheetConfig().
+ */
+function CanvasLeftSheet({
+  isDesktop,
+  overlayRoot,
+}: {
+  isDesktop: boolean;
+  overlayRoot: HTMLElement | null;
+}) {
+  const config = useLeftSheetConfigValue();
+  const isOpen = config !== null;
+
+  if (isDesktop) {
+    return (
+      <LeftSheet
+        open={isOpen}
+        onClose={config?.onClose ?? (() => {})}
+        title={config?.title}
+        container={overlayRoot}
+      >
+        {config?.content}
+      </LeftSheet>
+    );
+  }
+
+  return (
+    <BottomSheet
+      open={isOpen}
+      onClose={config?.onClose ?? (() => {})}
+      title={config?.title}
+      maxHeight={92}
+    >
+      {config?.content}
+    </BottomSheet>
+  );
 }

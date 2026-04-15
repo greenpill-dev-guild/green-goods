@@ -1,18 +1,17 @@
 import {
   Alert,
   adminRoutes,
-  BottomSheet,
   Button,
   EmptyStateShell,
   MetaStrip,
   useCanvasMobileChromeHidden,
+  useLeftSheetConfig,
   WorkbenchList,
   WorkbenchRow,
   EmptyState,
   formatAddress,
   formatRelativeTime,
   resolveIPFSUrl,
-  LeftSheet,
   type SortOption,
   Surface,
   useActions,
@@ -901,6 +900,17 @@ export default function HubView() {
     selectedWork,
   ]);
 
+  // Declare left sheet content — CanvasLayout renders the persistent sheet
+  useLeftSheetConfig(
+    sheetDescriptor
+      ? {
+          title: sheetDescriptor.title,
+          content: sheetDescriptor.content,
+          onClose: handleCloseSheet,
+        }
+      : null,
+  );
+
   const renderErrorState = () => (
     <EmptyStateShell>
       <Alert variant="error">
@@ -1361,22 +1371,6 @@ export default function HubView() {
         </div>
       )}
 
-      {sheetDescriptor ? (
-        isDesktop ? (
-          <LeftSheet
-            open
-            onClose={handleCloseSheet}
-            title={sheetDescriptor.title}
-            container={portalTarget}
-          >
-            {sheetDescriptor.content}
-          </LeftSheet>
-        ) : (
-          <BottomSheet open onClose={handleCloseSheet} title={sheetDescriptor.title} maxHeight={92}>
-            {sheetDescriptor.content}
-          </BottomSheet>
-        )
-      ) : null}
     </div>
   );
 }

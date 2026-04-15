@@ -1,18 +1,17 @@
 import {
   type Address,
   Alert,
-  BottomSheet,
   MetaStrip,
   Surface,
   formatTokenAmount,
   parseGardenRange,
-  LeftSheet,
   adminRoutes,
   useAdminStore,
   useCanvasPortal,
   useCanvasSearchParams,
   useFabConfig,
   useGardenDerivedState,
+  useLeftSheetConfig,
   useGardenDetailData,
   useEligibleAdminGardens,
   useSheetWidth,
@@ -356,6 +355,17 @@ export default function GardenView() {
     );
   }, [navigate, range, section]);
 
+  // Declare left sheet content — CanvasLayout renders the persistent sheet
+  useLeftSheetConfig(
+    hypercertId
+      ? {
+          title: formatMessage({ id: "app.hypercerts.detail.title", defaultMessage: "Hypercert" }),
+          content: <HypercertDetail layout="sheet" hypercertId={hypercertId} />,
+          onClose: handleCloseHypercertSheet,
+        }
+      : null,
+  );
+
   return (
     <div ref={containerRef} className="pb-6">
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
@@ -419,27 +429,6 @@ export default function GardenView() {
 
       {renderContent()}
 
-      {showHypercertSheet ? (
-        isDesktop ? (
-          <LeftSheet
-            open
-            onClose={handleCloseHypercertSheet}
-            title={formatMessage({ id: "app.hypercerts.detail.title" })}
-            container={portalTarget}
-          >
-            <HypercertDetail layout="sheet" hypercertId={hypercertId} />
-          </LeftSheet>
-        ) : (
-          <BottomSheet
-            open
-            onClose={handleCloseHypercertSheet}
-            title={formatMessage({ id: "app.hypercerts.detail.title" })}
-            maxHeight={92}
-          >
-            <HypercertDetail layout="sheet" hypercertId={hypercertId} />
-          </BottomSheet>
-        )
-      ) : null}
     </div>
   );
 }

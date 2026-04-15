@@ -16,6 +16,12 @@ export {
   type WorkbenchTone,
 } from "./WorkbenchRow";
 export { FabProvider, useFabConfig, useFabConfigValue } from "./FabContext";
+export {
+  LeftSheetProvider,
+  useLeftSheetConfig,
+  useLeftSheetConfigValue,
+  type LeftSheetConfig,
+} from "./LeftSheetContext";
 export { GardenChip, type GardenChipProps } from "./GardenChip";
 export {
   NavigationBar,

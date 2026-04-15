@@ -1,8 +1,6 @@
 import {
   Alert,
-  BottomSheet,
   MetaStrip,
-  LeftSheet,
   adminRoutes,
   useAdminStore,
   useCanvasPortal,
@@ -10,6 +8,7 @@ import {
   useGardenDerivedState,
   useGardenDetailData,
   useEligibleAdminGardens,
+  useLeftSheetConfig,
   useSheetWidth,
 } from "@green-goods/shared";
 import { AdminTabRail } from "@/components/AdminTabRail";
@@ -192,6 +191,9 @@ export default function CommunityView() {
     return null;
   }, [formatMessage, isSignalPoolRoute, isStrategiesRoute, isVaultRoute, navigate, poolType]);
 
+  // Declare left sheet content — CanvasLayout renders the persistent sheet
+  useLeftSheetConfig(communitySheet);
+
   return (
     <div ref={containerRef} className="pb-6">
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6">
@@ -361,27 +363,6 @@ export default function CommunityView() {
         </div>
       )}
 
-      {communitySheet ? (
-        isDesktop ? (
-          <LeftSheet
-            open
-            onClose={communitySheet.onClose}
-            title={communitySheet.title}
-            container={portalTarget}
-          >
-            {communitySheet.content}
-          </LeftSheet>
-        ) : (
-          <BottomSheet
-            open
-            onClose={communitySheet.onClose}
-            title={communitySheet.title}
-            maxHeight={92}
-          >
-            {communitySheet.content}
-          </BottomSheet>
-        )
-      ) : null}
     </div>
   );
 }
