@@ -2,24 +2,19 @@ export { BottomSheet, type BottomSheetProps } from "./BottomSheet";
 export { LeftSheet, type LeftSheetProps } from "./LeftSheet";
 export { MainSheet, useCanvasPortal, type MainSheetProps } from "./MainSheet";
 export { RightSheet, type RightSheetProps } from "./RightSheet";
+export { EmptyStateShell } from "./EmptyStateShell";
+export { MetaStrip, type MetaStripItem, type MetaStripProps } from "./MetaStrip";
 export {
-  CanvasEmptyStateShell,
-  CanvasMetaStrip,
-  CanvasMobileActionSlot,
-  CanvasSheetFrame,
-  CanvasStageTabRail,
-  CanvasWorkbenchList,
-  CanvasWorkbenchRow,
   useCanvasResponsiveFab,
-  type CanvasMetaStripItem,
-  type CanvasMetaStripProps,
   type CanvasMobilePrimaryAction,
-  type CanvasStageTab,
-  type CanvasStageTabRailProps,
-  type CanvasWorkbenchRowProps,
-  type CanvasWorkbenchTone,
   type UseCanvasResponsiveFabOptions,
-} from "./CanvasScaffold";
+} from "./useCanvasResponsiveFab";
+export { WorkbenchList } from "./WorkbenchList";
+export {
+  WorkbenchRow,
+  type WorkbenchRowProps,
+  type WorkbenchTone,
+} from "./WorkbenchRow";
 export { FabProvider, useFabConfig, useFabConfigValue } from "./FabContext";
 export { GardenChip, type GardenChipProps } from "./GardenChip";
 export {

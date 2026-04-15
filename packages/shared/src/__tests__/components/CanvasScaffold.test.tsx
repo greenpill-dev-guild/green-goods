@@ -2,7 +2,7 @@
  * CanvasScaffold Tests
  *
  * Covers the reusable canvas route scaffolds extracted from Hub:
- * stage rail, workbench row, empty shell, and responsive FAB behavior.
+ * workbench row, empty shell, and responsive FAB behavior.
  *
  * @vitest-environment jsdom
  */
@@ -22,19 +22,34 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-import type { FabConfig } from "../../components";
+import type { FabConfig, CanvasMobilePrimaryAction } from "../../components";
 import {
-  CanvasEmptyStateShell,
-  CanvasMobileActionSlot,
-  CanvasStageTabRail,
-  CanvasWorkbenchRow,
+  EmptyStateShell,
+  WorkbenchRow,
   FabProvider,
   useCanvasResponsiveFab,
   useFabConfigValue,
 } from "../../components";
+import { useCanvasMobileChromeHidden } from "../../components/Canvas/useCanvasMobileChromeHidden";
 
 function StubIcon({ className }: { className?: string }) {
   return <span data-testid="stub-icon" className={className} />;
+}
+
+/**
+ * Inline version of CanvasMobileActionSlot (dead code in shared — inlined in admin views).
+ * Used here to test the useCanvasResponsiveFab hook end-to-end.
+ */
+function MobileActionSlot({ action }: { action: CanvasMobilePrimaryAction | null }) {
+  const hideMobileChrome = useCanvasMobileChromeHidden();
+  if (hideMobileChrome || !action) return null;
+  const Icon = action.icon;
+  return (
+    <button type="button" onClick={action.onClick}>
+      <Icon className="h-5 w-5" />
+      {action.label}
+    </button>
+  );
 }
 
 function ResponsiveFabProbe({
@@ -56,7 +71,7 @@ function ResponsiveFabProbe({
   return (
     <>
       <div data-testid="fab-config-state">{activeConfig ? "mounted" : "none"}</div>
-      <CanvasMobileActionSlot action={mobileAction} />
+      <MobileActionSlot action={mobileAction} />
     </>
   );
 }
@@ -72,55 +87,11 @@ describe("CanvasScaffold", () => {
     cleanup();
   });
 
-  it("renders stage tabs and dispatches changes", async () => {
-    const onChange = vi.fn();
-
-    render(
-      <CanvasStageTabRail
-        ariaLabel="Hub stages"
-        activeId="work"
-        onChange={onChange}
-        tabs={[
-          { id: "work", label: "Work", icon: StubIcon, count: 4 },
-          { id: "assess", label: "Assess", icon: StubIcon, count: 2 },
-          { id: "certify", label: "Certify", icon: StubIcon, disabled: true },
-        ]}
-      />
-    );
-
-    await user.click(screen.getByRole("tab", { name: /Assess/i }));
-    await user.click(screen.getByRole("tab", { name: /Certify/i }));
-
-    expect(onChange).toHaveBeenCalledWith("assess");
-    expect(onChange).toHaveBeenCalledTimes(1);
-  });
-
-  it("links tabs to a shared panel when an id base is provided", () => {
-    render(
-      <CanvasStageTabRail
-        idBase="hub-stage"
-        ariaLabel="Hub stages"
-        activeId="work"
-        onChange={() => {}}
-        tabs={[
-          { id: "work", label: "Work", icon: StubIcon, count: 4 },
-          { id: "assess", label: "Assess", icon: StubIcon, count: 2 },
-        ]}
-      />
-    );
-
-    expect(screen.getByRole("tab", { name: /work/i })).toHaveAttribute("id", "hub-stage-tab-work");
-    expect(screen.getByRole("tab", { name: /assess/i })).toHaveAttribute(
-      "aria-controls",
-      "hub-stage-panel"
-    );
-  });
-
   it("renders workbench rows as buttons when actionable", async () => {
     const onClick = vi.fn();
 
     render(
-      <CanvasWorkbenchRow
+      <WorkbenchRow
         eyebrow="Work"
         title="Review greenhouse update"
         description="Action 12 · 0x1234...5678"
@@ -138,9 +109,9 @@ describe("CanvasScaffold", () => {
 
   it("renders the empty shell as a centered canvas surface", () => {
     render(
-      <CanvasEmptyStateShell>
+      <EmptyStateShell>
         <p>No work yet</p>
-      </CanvasEmptyStateShell>
+      </EmptyStateShell>
     );
 
     expect(screen.getByText("No work yet")).toBeInTheDocument();
