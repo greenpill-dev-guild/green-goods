@@ -2,8 +2,8 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useDrag } from "@use-gesture/react";
-import { animated, useSpring } from "@react-spring/web";
-import { useCallback, useEffect, useRef } from "react";
+import { useSpring } from "@react-spring/web";
+import { useCallback, useRef } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
@@ -23,11 +23,19 @@ export interface RightSheetProps {
 }
 
 /**
+ * Spring-tuned CSS easing that matches the sheet spring config
+ * (mass: 1, tension: 170, friction: 26 ≈ 320ms with slight overshoot).
+ * This keeps the sheet slide-in/out synchronized with MainSheet recession.
+ */
+const SHEET_EASING = "cubic-bezier(0.32, 0.72, 0, 1)";
+const SHEET_DURATION = "320ms";
+
+/**
  * RightSheet — config and alerts panel that slides in from the right edge.
  *
- * Animation: fully spring-driven via react-spring. Radix Dialog with forceMount
- * provides accessibility (focus trap, escape, aria) while springs control
- * the visual transition. Gesture drag-dismiss also uses the same spring.
+ * Animation: CSS transitions with spring-matched easing for open/close,
+ * react-spring for gesture-driven drag-dismiss. Radix Dialog provides
+ * accessibility (focus trap, escape, aria).
  */
 export function RightSheet({
   open,
@@ -42,22 +50,14 @@ export function RightSheet({
   const closeLabel = formatMessage({ id: "app.common.close" });
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Single spring drives both open/close slide AND drag gesture.
-  // x: 0 = fully open, 100 = fully off-screen right
   const [springs, api] = useSpring(() => ({
     x: open ? 0 : 100,
-    overlay: open ? 1 : 0,
+    opacity: open ? 1 : 0,
     config: SPRING_CONFIGS.sheet,
   }));
 
-  // Drive spring when open prop changes
-  useEffect(() => {
-    api.start({ x: open ? 0 : 100, overlay: open ? 1 : 0 });
-  }, [open, api]);
-
   const bind = useDrag(
     ({ movement: [mx], velocity: [vx], direction: [dx], cancel }) => {
-      // Only allow dragging right (positive x)
       if (mx < -20) {
         cancel();
         return;
@@ -70,13 +70,10 @@ export function RightSheet({
         onClose();
         return;
       }
-      // Convert px drag to percentage of sheet width
-      const sheetWidth = contentRef.current?.offsetWidth ?? 400;
-      const pct = Math.max(0, (mx / sheetWidth) * 100 * 0.6);
-      api.start({ x: pct, immediate: true });
+      api.start({ x: Math.max(0, mx * 0.6), immediate: true });
     },
     {
-      from: () => [0, 0],
+      from: () => [springs.x.get(), 0],
       axis: "x",
       filterTaps: true,
     }
@@ -89,66 +86,54 @@ export function RightSheet({
     [onClose]
   );
 
-  // When closed, hide from pointer events and screen readers
-  const isVisuallyHidden = !open && springs.x.get() >= 99;
-
   return (
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Portal container={container ?? undefined} forceMount>
-        {/* Overlay — spring-driven opacity */}
-        <Dialog.Overlay forceMount asChild>
-          <animated.div
-            className={cn(
-              isBounded ? "absolute inset-0" : "fixed inset-0",
-              isBounded ? "z-[45]" : "z-overlay",
-              isBounded && "pointer-events-auto",
-              "motion-reduce:transition-none"
-            )}
-            style={{
-              opacity: isBounded ? 0 : springs.overlay,
-              backgroundColor: isBounded ? "transparent" : "rgba(10, 10, 10, 0.18)",
-              backdropFilter: isBounded
-                ? undefined
-                : springs.overlay.to((o) => `blur(${o * 4}px)`),
-              WebkitBackdropFilter: isBounded
-                ? undefined
-                : springs.overlay.to((o) => `blur(${o * 4}px)`),
-              pointerEvents: open ? "auto" : "none",
-            }}
-            data-testid="right-sheet-overlay"
-          />
-        </Dialog.Overlay>
+      <Dialog.Portal container={container ?? undefined}>
+        <Dialog.Overlay
+          className={cn(
+            isBounded ? "absolute inset-0" : "fixed inset-0",
+            isBounded ? "z-[45] bg-transparent" : "z-overlay bg-neutral-950/18 backdrop-blur-sm",
+            isBounded && "pointer-events-auto",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "motion-reduce:duration-0"
+          )}
+          style={{
+            animationDuration: SHEET_DURATION,
+            animationTimingFunction: SHEET_EASING,
+          }}
+          data-testid="right-sheet-overlay"
+        />
 
-        {/* Content — spring-driven translateX slide via animated.div + asChild */}
-        <Dialog.Content asChild forceMount>
-          <animated.div
-            ref={contentRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            className={cn(
-              isBounded ? "absolute" : "fixed",
-              isBounded ? "z-[46]" : "z-modal",
-              "flex h-full flex-col rounded-l-xl",
-              "focus:outline-none will-change-transform",
-              isBounded && "pointer-events-auto",
-              "glass-floating",
-              "motion-reduce:transition-none"
-            )}
-            style={{
-              top: 0,
-              right: 0,
-              width: "100%",
-              maxWidth: "var(--canvas-right-sheet-width, clamp(320px, 28vw, 480px))",
-              paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
-              transform: springs.x.to((x) => `translateX(${x}%)`),
-              opacity: springs.x.to((x) => (x > 98 ? 0 : 1)),
-              pointerEvents: open ? "auto" : "none",
-              visibility: isVisuallyHidden ? "hidden" : "visible",
-            }}
-            data-testid="right-sheet"
-            {...bind()}
-          >
+        <Dialog.Content
+          ref={contentRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={title}
+          className={cn(
+            isBounded ? "absolute" : "fixed",
+            isBounded ? "z-[46]" : "z-modal",
+            "flex h-full flex-col rounded-l-xl",
+            "focus:outline-none will-change-transform",
+            isBounded && "pointer-events-auto",
+            "glass-floating",
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right",
+            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+            "motion-reduce:duration-0"
+          )}
+          style={{
+            top: 0,
+            right: 0,
+            width: "100%",
+            maxWidth: "var(--canvas-right-sheet-width, clamp(320px, 28vw, 480px))",
+            paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
+            animationDuration: SHEET_DURATION,
+            animationTimingFunction: SHEET_EASING,
+          }}
+          data-testid="right-sheet"
+          {...bind()}
+        >
           {description ? (
             <Dialog.Description className="sr-only">{description}</Dialog.Description>
           ) : null}
@@ -199,7 +184,6 @@ export function RightSheet({
           <div className="flex-1 overflow-y-auto">
             <SheetErrorBoundary onClose={onClose}>{children}</SheetErrorBoundary>
           </div>
-          </animated.div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
