@@ -95,7 +95,11 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
     <CanvasPortalContext.Provider value={canvasPortalValue}>
       <div
         className={cn("canvas-area-main relative flex-1 min-h-0", className)}
-        style={{ width: "min(calc(100% - 2rem), 1400px)", justifySelf: "center", marginBottom: "1rem" }}
+        style={{
+          width: "min(calc(100% - 2rem), 1400px)",
+          justifySelf: "center",
+          marginBottom: "1rem",
+        }}
         data-testid="main-sheet"
       >
         <div className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]">
@@ -105,8 +109,8 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
               "glass-surface"
             )}
             style={{
-              transform: recessionSpring.scale.to((s) =>
-                `translateY(${recessionSpring.y.get()}px) scale(${s})`
+              transform: recessionSpring.scale.to(
+                (s) => `translateY(${recessionSpring.y.get()}px) scale(${s})`
               ),
               opacity: recessionSpring.opacity,
               filter: recessionSpring.blur.to(

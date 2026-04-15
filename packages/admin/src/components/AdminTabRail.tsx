@@ -163,7 +163,7 @@ export function AdminTabRail({
                   "rounded-[var(--m3-shape-full)]",
                   "bg-[rgb(var(--m3-error))] text-[rgb(var(--m3-on-error))]",
                   "text-[0.625rem] font-bold leading-none",
-                  "pointer-events-none select-none",
+                  "pointer-events-none select-none"
                 )}
                 aria-label={`${tab.count} items`}
               >

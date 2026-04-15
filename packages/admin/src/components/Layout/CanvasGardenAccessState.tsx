@@ -6,9 +6,7 @@ interface CanvasGardenAccessStateProps {
   onCreateGarden: () => void;
 }
 
-export function CanvasGardenAccessState({
-  onCreateGarden,
-}: CanvasGardenAccessStateProps) {
+export function CanvasGardenAccessState({ onCreateGarden }: CanvasGardenAccessStateProps) {
   const { formatMessage } = useIntl();
 
   return (

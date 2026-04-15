@@ -87,9 +87,7 @@ describe("AppBar", () => {
 
   it("calls sheetContext.onBack when back arrow is clicked", async () => {
     const onBack = vi.fn();
-    render(
-      <AppBar gardenChip={<span>Chip</span>} sheetContext={{ label: "Details", onBack }} />
-    );
+    render(<AppBar gardenChip={<span>Chip</span>} sheetContext={{ label: "Details", onBack }} />);
 
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(onBack).toHaveBeenCalledOnce();
@@ -179,11 +177,7 @@ describe("AppBar", () => {
 
   it("action buttons have focus-visible ring classes", () => {
     render(
-      <AppBar
-        gardenChip={<span>Chip</span>}
-        onOpenSearch={() => {}}
-        onOpenSettings={() => {}}
-      />
+      <AppBar gardenChip={<span>Chip</span>} onOpenSearch={() => {}} onOpenSettings={() => {}} />
     );
 
     const buttons = screen.getAllByRole("button");

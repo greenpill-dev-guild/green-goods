@@ -190,7 +190,10 @@ export function AppBar({
         {/* Settings */}
         {onOpenSettings && (
           <TopBarIconButton
-            tooltip={formatMessage({ id: "cockpit.topBar.openSettings", defaultMessage: "Settings" })}
+            tooltip={formatMessage({
+              id: "cockpit.topBar.openSettings",
+              defaultMessage: "Settings",
+            })}
             onClick={onOpenSettings}
           >
             <RiSettings3Line className="h-5 w-5" />

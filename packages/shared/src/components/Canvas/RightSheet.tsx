@@ -161,24 +161,22 @@ export function RightSheet({
             </div>
           ) : (
             <>
-              <Dialog.Title className="sr-only">
-                {closeLabel}
-              </Dialog.Title>
+              <Dialog.Title className="sr-only">{closeLabel}</Dialog.Title>
               <div className="flex px-4 pt-3 justify-end">
                 <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
-                    "text-text-soft transition-colors hover:bg-bg-soft",
-                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
-                  )}
-                  aria-label={closeLabel}
-                  data-testid="right-sheet-close"
-                >
-                  <RiCloseLine className="h-5 w-5" />
-                </button>
-              </Dialog.Close>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-lg",
+                      "text-text-soft transition-colors hover:bg-bg-soft",
+                      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+                    )}
+                    aria-label={closeLabel}
+                    data-testid="right-sheet-close"
+                  >
+                    <RiCloseLine className="h-5 w-5" />
+                  </button>
+                </Dialog.Close>
               </div>
             </>
           )}

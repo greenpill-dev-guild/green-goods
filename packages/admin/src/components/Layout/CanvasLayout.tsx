@@ -77,10 +77,7 @@ export function CanvasLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated, eoaAddress, isReady, authMode, signOut } = useAuth();
-  const {
-    eligibleGardens,
-    isLoaded: eligibleGardensLoaded,
-  } = useEligibleAdminGardens();
+  const { eligibleGardens, isLoaded: eligibleGardensLoaded } = useEligibleAdminGardens();
 
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const setSelectedGarden = useAdminStore((s) => s.setSelectedGarden);
@@ -98,7 +95,8 @@ export function CanvasLayout() {
   useEffect(() => {
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<OpenAccountSheetEventDetail>).detail;
-      const contentId = detail?.tab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID;
+      const contentId =
+        detail?.tab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID;
       orchestrator.openSheet("right", contentId);
     };
 
@@ -208,7 +206,8 @@ export function CanvasLayout() {
       return;
     }
 
-    const contentId = pendingTab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID;
+    const contentId =
+      pendingTab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID;
     orchestrator.openSheet("right", contentId);
     pendingDesktopAccountTabRef.current = null;
   }, [isDesktop, orchestrator, rawWorkspaceId]);
@@ -399,10 +398,14 @@ export function CanvasLayout() {
           container={overlayRootRef.current}
         >
           {orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID && (
-            <div className="p-5"><AccountProfilePanel /></div>
+            <div className="p-5">
+              <AccountProfilePanel />
+            </div>
           )}
           {orchestrator.activeContentId === SETTINGS_SHEET_CONTENT_ID && (
-            <div className="p-5"><AccountSettingsPanel /></div>
+            <div className="p-5">
+              <AccountSettingsPanel />
+            </div>
           )}
           {orchestrator.activeContentId === "notifications" && <NotificationPanel />}
         </RightSheet>
