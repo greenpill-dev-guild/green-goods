@@ -1,13 +1,12 @@
 // packages/shared/src/components/Canvas/BottomSheet.tsx
 import { RiCloseLine } from "@remixicon/react";
 import { animated, useSpring } from "@react-spring/web";
+import { useDrag } from "@use-gesture/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
-import { SPRING_CONFIGS } from "./springConfig";
-
-const DRAG_DISMISS_THRESHOLD = 120;
+import { SPRING_CONFIGS, DISMISS_VELOCITY_THRESHOLD } from "./springConfig";
 
 export interface BottomSheetProps {
   open: boolean;
@@ -44,7 +43,6 @@ export function BottomSheet({
 
   const dialogRef = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const dragStartY = useRef<number | null>(null);
 
   const [mounted, setMounted] = useState(open);
 
@@ -92,38 +90,31 @@ export function BottomSheet({
     return () => dialog.removeEventListener("cancel", handleCancel);
   }, [onClose]);
 
-  // Pointer-based drag handle
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    dragStartY.current = e.clientY;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, []);
-
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (dragStartY.current === null) return;
-      const delta = e.clientY - dragStartY.current;
-      if (delta > 0) {
-        const sheetHeight = contentRef.current?.offsetHeight ?? 400;
-        const pct = Math.min(100, (delta / sheetHeight) * 100 * 0.86);
-        api.start({ y: pct, immediate: true });
+  // Drag dismiss gesture — drag down to dismiss
+  const bind = useDrag(
+    ({ movement: [, my], velocity: [, vy], direction: [, dy], cancel }) => {
+      // Only allow dragging down (positive y)
+      if (my < -20) {
+        cancel();
+        return;
       }
-    },
-    [api],
-  );
-
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      if (dragStartY.current === null) return;
-      const delta = e.clientY - dragStartY.current;
-      dragStartY.current = null;
-
-      if (delta > DRAG_DISMISS_THRESHOLD) {
+      if (dy > 0 && vy > DISMISS_VELOCITY_THRESHOLD) {
         onClose();
-      } else {
-        api.start({ y: 0 });
+        return;
       }
+      if (my > 120) {
+        onClose();
+        return;
+      }
+      const sheetHeight = contentRef.current?.offsetHeight ?? 400;
+      const pct = Math.max(0, (my / sheetHeight) * 100 * 0.86);
+      api.start({ y: pct, immediate: true });
     },
-    [onClose, api],
+    {
+      from: () => [0, 0],
+      axis: "y",
+      filterTaps: true,
+    },
   );
 
   const handleOverlayClick = useCallback(
@@ -190,11 +181,8 @@ export function BottomSheet({
         {/* Drag handle */}
         <div
           className="flex cursor-grab touch-none justify-center pb-1 pt-3 active:cursor-grabbing"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={() => api.start({ y: 0 })}
           data-testid="bottom-sheet-drag-handle"
+          {...bind()}
         >
           <div className="h-1.5 w-10 rounded-full bg-[rgb(var(--ws-primary,var(--primary-base))/0.32)]" />
         </div>
