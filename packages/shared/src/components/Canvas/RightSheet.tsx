@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { useDrag } from "@use-gesture/react";
 import { animated, useSpring } from "@react-spring/web";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
@@ -50,18 +50,10 @@ export function RightSheet({
     config: SPRING_CONFIGS.sheet,
   }));
 
-  // React to open prop changes
-  useSpring({
-    x: open ? 0 : 100,
-    overlay: open ? 1 : 0,
-    config: SPRING_CONFIGS.sheet,
-    onChange: ({ value }) => {
-      // Sync the main spring API so drag gesture reads correct position
-      if (!open && value.x >= 99) {
-        api.set({ x: 100, overlay: 0 });
-      }
-    },
-  });
+  // Drive spring when open prop changes
+  useEffect(() => {
+    api.start({ x: open ? 0 : 100, overlay: open ? 1 : 0 });
+  }, [open, api]);
 
   const bind = useDrag(
     ({ movement: [mx], velocity: [vx], direction: [dx], cancel }) => {
