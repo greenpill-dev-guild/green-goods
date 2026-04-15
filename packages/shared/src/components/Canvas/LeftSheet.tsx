@@ -1,9 +1,8 @@
 // packages/shared/src/components/Canvas/LeftSheet.tsx
-import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
@@ -25,9 +24,8 @@ export interface LeftSheetProps {
 /**
  * LeftSheet — action-oriented panel that slides in from the left edge.
  *
- * Used for: Submit Work, Create Assessment, Mint Hypercert, Work Detail.
- * Width: viewport-driven via CSS clamp (set by grid column).
- * Animation: react-spring physics with gesture-driven drag-dismiss.
+ * Uses native <dialog> for focus trap + Escape handling, react-spring for
+ * physics-based slide animation. Mirrors RightSheet architecture.
  */
 export function LeftSheet({
   open,
@@ -40,25 +38,62 @@ export function LeftSheet({
   const isBounded = container !== undefined && container !== null;
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Track whether the sheet should be rendered (stays true during close animation)
+  const [mounted, setMounted] = useState(open);
+
+  // Spring: x=0 fully open, x=-100 fully offscreen left
   const [springs, api] = useSpring(() => ({
     x: open ? 0 : -100,
-    opacity: open ? 1 : 0,
+    overlay: open ? 1 : 0,
     config: SPRING_CONFIGS.sheet,
+    onRest: (result) => {
+      if (!open && result.finished && result.value.x <= -99) {
+        setMounted(false);
+        dialogRef.current?.close();
+      }
+    },
   }));
 
-  // Update spring when open changes
-  useSpring({
-    x: open ? 0 : -100,
-    opacity: open ? 1 : 0,
-    config: SPRING_CONFIGS.sheet,
-    onChange: () => {},
-  });
+  // Drive spring when open prop changes
+  useEffect(() => {
+    if (open) {
+      setMounted(true);
+    }
+    api.start({ x: open ? 0 : -100, overlay: open ? 1 : 0 });
+  }, [open, api]);
 
+  // Show native dialog when mounted
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (mounted && open) {
+      if (!dialog.open) {
+        dialog.showModal();
+      }
+    }
+  }, [mounted, open]);
+
+  // Handle native dialog cancel (Escape key)
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const handleCancel = (e: Event) => {
+      e.preventDefault();
+      onClose();
+    };
+
+    dialog.addEventListener("cancel", handleCancel);
+    return () => dialog.removeEventListener("cancel", handleCancel);
+  }, [onClose]);
+
+  // Drag dismiss gesture — drag left to dismiss
   const bind = useDrag(
     ({ movement: [mx], velocity: [vx], direction: [dx], cancel }) => {
-      // Only allow dragging left (negative x)
       if (mx > 20) {
         cancel();
         return;
@@ -71,120 +106,132 @@ export function LeftSheet({
         onClose();
         return;
       }
-      api.start({ x: Math.min(0, mx * 0.6), immediate: true });
+      const sheetWidth = contentRef.current?.offsetWidth ?? 360;
+      const pct = Math.min(0, (mx / sheetWidth) * 100 * 0.6);
+      api.start({ x: pct, immediate: true });
     },
     {
-      from: () => [springs.x.get(), 0],
+      from: () => [0, 0],
       axis: "x",
       filterTaps: true,
     }
   );
 
-  const handleOpenChange = useCallback(
-    (nextOpen: boolean) => {
-      if (!nextOpen) onClose();
+  const handleOverlayClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target === e.currentTarget) {
+        onClose();
+      }
     },
     [onClose]
   );
 
+  if (!mounted) return null;
+
   return (
-    <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Portal container={container ?? undefined}>
-        <Dialog.Overlay
-          className={cn(
-            isBounded ? "absolute inset-0" : "fixed inset-0",
-            isBounded ? "z-[45] bg-transparent" : "z-overlay bg-neutral-950/18 backdrop-blur-sm",
-            isBounded && "pointer-events-auto",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "motion-reduce:duration-0"
-          )}
-          style={{
-            animationDuration: "320ms",
-            animationTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
-          }}
-          data-testid="left-sheet-overlay"
-        />
+    <dialog
+      ref={dialogRef}
+      aria-label={title || closeLabel}
+      aria-modal="true"
+      className={cn(
+        "fixed inset-0 m-0 h-full w-full max-h-full max-w-full",
+        "bg-transparent p-0 outline-none",
+        "backdrop:bg-transparent backdrop:backdrop-filter-none",
+        isBounded && "absolute"
+      )}
+      style={{
+        zIndex: isBounded ? 45 : 50,
+      }}
+      data-testid="left-sheet-dialog"
+    >
+      {description ? (
+        <p className="sr-only">{description}</p>
+      ) : null}
 
-        <Dialog.Content
-          ref={contentRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={title}
-          className={cn(
-            isBounded ? "absolute top-0 left-0" : "fixed top-0 left-0",
-            isBounded ? "z-[46]" : "z-modal",
-            "flex h-full flex-col rounded-r-xl",
-            "focus:outline-none will-change-transform",
-            isBounded && "pointer-events-auto",
-            "glass-floating",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out",
-            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left",
-            "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-            "motion-reduce:duration-0"
-          )}
-          style={{
-            width: "100%",
-            maxWidth: "clamp(260px, 25vw, 360px)",
-            paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
-            animationDuration: "320ms",
-            animationTimingFunction: "cubic-bezier(0.32, 0.72, 0, 1)",
-          }}
-          data-testid="left-sheet"
-          {...bind()}
-        >
-          {description ? (
-            <Dialog.Description className="sr-only">{description}</Dialog.Description>
-          ) : null}
+      {/* Custom overlay */}
+      <animated.div
+        className={cn(
+          "absolute inset-0",
+          isBounded ? "bg-transparent" : "",
+        )}
+        style={{
+          opacity: isBounded ? 0 : springs.overlay,
+          backgroundColor: isBounded ? undefined : "rgba(10, 10, 10, 0.18)",
+          backdropFilter: isBounded
+            ? undefined
+            : springs.overlay.to((o) => `blur(${o * 4}px)`),
+          WebkitBackdropFilter: isBounded
+            ? undefined
+            : springs.overlay.to((o) => `blur(${o * 4}px)`),
+        }}
+        onClick={handleOverlayClick}
+        data-testid="left-sheet-overlay"
+      />
 
-          {/* Header */}
-          {title && (
-            <div className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3 flex-row-reverse">
-              <Dialog.Title className="text-lg font-semibold text-text-strong">
-                {title}
-              </Dialog.Title>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
-                    "text-text-soft transition-colors hover:bg-bg-soft",
-                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
-                  )}
-                  aria-label={closeLabel}
-                  data-testid="left-sheet-close"
-                >
-                  <RiCloseLine className="h-5 w-5" />
-                </button>
-              </Dialog.Close>
-            </div>
-          )}
-
-          {!title && (
-            <div className="flex px-4 pt-3 justify-start">
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
-                    "text-text-soft transition-colors hover:bg-bg-soft",
-                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
-                  )}
-                  aria-label={closeLabel}
-                  data-testid="left-sheet-close"
-                >
-                  <RiCloseLine className="h-5 w-5" />
-                </button>
-              </Dialog.Close>
-            </div>
-          )}
-
-          {/* Body */}
-          <div className="flex-1 overflow-y-auto">
-            <SheetErrorBoundary onClose={onClose}>{children}</SheetErrorBoundary>
+      {/* Sheet content — spring-driven translateX from left */}
+      <animated.div
+        ref={contentRef}
+        className={cn(
+          "absolute top-0 left-0 flex h-full flex-col rounded-r-xl",
+          "focus:outline-none will-change-transform",
+          "glass-floating"
+        )}
+        style={{
+          width: "100%",
+          maxWidth: "clamp(260px, 25vw, 360px)",
+          paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
+          transform: springs.x.to((x) => `translateX(${x}%)`),
+          zIndex: isBounded ? 46 : 51,
+        }}
+        data-testid="left-sheet"
+        {...bind()}
+      >
+        {/* Header — close button on left, title on right (mirrored from RightSheet) */}
+        {title ? (
+          <div className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3 flex-row-reverse">
+            <h2 className="text-lg font-semibold text-text-strong">
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              className={cn(
+                "flex h-10 w-10 items-center justify-center rounded-lg",
+                "text-text-soft transition-colors hover:bg-bg-soft",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+              )}
+              aria-label={closeLabel}
+              data-testid="left-sheet-close"
+            >
+              <RiCloseLine className="h-5 w-5" />
+            </button>
           </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        ) : (
+          <>
+            <h2 className="sr-only">{closeLabel}</h2>
+            <div className="flex px-4 pt-3 justify-start">
+              <button
+                type="button"
+                onClick={onClose}
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-lg",
+                  "text-text-soft transition-colors hover:bg-bg-soft",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+                )}
+                aria-label={closeLabel}
+                data-testid="left-sheet-close"
+              >
+                <RiCloseLine className="h-5 w-5" />
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          <SheetErrorBoundary onClose={onClose}>{children}</SheetErrorBoundary>
+        </div>
+      </animated.div>
+    </dialog>
   );
 }
