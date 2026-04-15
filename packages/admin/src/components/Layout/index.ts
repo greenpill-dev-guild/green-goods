@@ -1,4 +1,3 @@
-export { AccountSheet } from "./AccountSheet";
 export { CanvasLayout } from "./CanvasLayout";
 export { CanvasWorkspaceSelectionState } from "./CanvasWorkspaceSelectionState";
 export { CommandPalette } from "./CommandPalette";
