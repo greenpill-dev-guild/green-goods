@@ -25,16 +25,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ConnectButton } from "@/components/ConnectButton";
-import { AccountSheet } from "./AccountSheet";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
-import { SeedlingIllustration } from "./SeedlingIllustration";
 import { ConnectShell, WalletRequiredConnectShell } from "./ConnectShell";
-import { UserAvatar } from "./UserAvatar";
+import { ProfileSheet } from "./ProfileSheet";
+import { SettingsSheet } from "./SettingsSheet";
 import {
   ACCOUNT_TAB_SEARCH_PARAM,
-  ACCOUNT_SHEET_CONTENT_ID,
+  PROFILE_SHEET_CONTENT_ID,
+  SETTINGS_SHEET_CONTENT_ID,
   OPEN_ACCOUNT_SHEET_EVENT,
   parseAccountSheetTab,
   type AccountSheetTab,
@@ -88,18 +88,20 @@ export function CanvasLayout() {
   const orchestrator = useSheetOrchestrator();
   const overlayRootRef = useRef<HTMLDivElement>(null);
   const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
-  const [accountTab, setAccountTab] = useState<AccountSheetTab>("profile");
 
-  const accountSheetOpen =
+  const profileSheetOpen =
     orchestrator.activeSheet === "right" &&
-    orchestrator.activeContentId === ACCOUNT_SHEET_CONTENT_ID;
+    orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID;
+
+  const settingsSheetOpen =
+    orchestrator.activeSheet === "right" &&
+    orchestrator.activeContentId === SETTINGS_SHEET_CONTENT_ID;
 
   useEffect(() => {
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<OpenAccountSheetEventDetail>).detail;
-      const nextTab = detail?.tab === "settings" ? "settings" : "profile";
-      setAccountTab(nextTab);
-      orchestrator.openSheet("right", ACCOUNT_SHEET_CONTENT_ID);
+      const contentId = detail?.tab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID;
+      orchestrator.openSheet("right", contentId);
     };
 
     window.addEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
@@ -107,11 +109,12 @@ export function CanvasLayout() {
   }, [orchestrator]);
 
   const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
-  const openAccountSheet = useCallback(
-    (tab: AccountSheetTab) => {
-      setAccountTab(tab);
-      orchestrator.openSheet("right", ACCOUNT_SHEET_CONTENT_ID);
-    },
+  const openProfile = useCallback(
+    () => orchestrator.openSheet("right", PROFILE_SHEET_CONTENT_ID),
+    [orchestrator]
+  );
+  const openSettings = useCallback(
+    () => orchestrator.openSheet("right", SETTINGS_SHEET_CONTENT_ID),
     [orchestrator]
   );
 
@@ -194,7 +197,6 @@ export function CanvasLayout() {
     );
 
     pendingDesktopAccountTabRef.current = requestedTab;
-    setAccountTab(requestedTab);
     navigate(adminRoutes.hub(), { replace: true });
   }, [isDesktop, location.search, navigate, rawWorkspaceId]);
 
@@ -208,8 +210,8 @@ export function CanvasLayout() {
       return;
     }
 
-    setAccountTab(pendingTab);
-    orchestrator.openSheet("right", ACCOUNT_SHEET_CONTENT_ID);
+    const contentId = pendingTab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID;
+    orchestrator.openSheet("right", contentId);
     pendingDesktopAccountTabRef.current = null;
   }, [isDesktop, orchestrator, rawWorkspaceId]);
 
@@ -265,21 +267,7 @@ export function CanvasLayout() {
   const noEligibleGardens = eligibleGardens.length === 0;
   const showNoGardenAccessState = isCoreWorkspace && noEligibleGardens;
 
-  const noGardenChipNode = (
-    <span className="inline-flex max-w-[220px] items-center gap-1.5 rounded-full bg-bg-white/80 px-3 py-1.5 text-sm font-medium text-text-sub shadow-[var(--edge-rest),_var(--elevation-1)] backdrop-blur-sm supports-[backdrop-filter]:bg-bg-white/60">
-      <SeedlingIllustration className="h-4 w-4" />
-      <span className="truncate">
-        {intl.formatMessage({
-          id: "cockpit.access.noGardenChip",
-          defaultMessage: "No Garden Access",
-        })}
-      </span>
-    </span>
-  );
-
-  const gardenChipNode = showNoGardenAccessState ? (
-    noGardenChipNode
-  ) : (
+  const gardenChipNode = (
     <GardenChip
       gardens={gardenList}
       selectedGarden={chipGarden}
@@ -291,11 +279,10 @@ export function CanvasLayout() {
           setSelectedGarden(null);
         }
       }}
-      onCreateGarden={canCreateGarden ? () => navigate(adminRoutes.gardenCreate()) : undefined}
+      onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
     />
   );
 
-  const userAvatarNode = <UserAvatar onOpenProfile={() => openAccountSheet("profile")} />;
   const visibleSlotCount = slots.filter((slot) => slot.visible).length;
 
   return (
@@ -320,9 +307,9 @@ export function CanvasLayout() {
           <TopContextBar
             gardenChip={gardenChipNode}
             onOpenSearch={handleOpenSearch}
-            onOpenSettings={isDesktop ? () => openAccountSheet("settings") : undefined}
+            onOpenSettings={isDesktop ? openSettings : undefined}
             onOpenNotifications={() => orchestrator.openSheet("right", "notifications")}
-            userAvatar={isDesktop ? userAvatarNode : undefined}
+            onOpenProfile={isDesktop ? openProfile : undefined}
           />
         </div>
 
@@ -351,7 +338,7 @@ export function CanvasLayout() {
 
         {/* ── Body 3: Persistent Chrome — Navigation Bar (Z3) ── */}
         <div className="canvas-area-bottom">
-          {visibleSlotCount > 0 && (
+          {eligibleGardensLoaded && visibleSlotCount > 0 && (
             <FabAwareNavigationBar
               slots={slots}
               activePath={activePath}
@@ -361,11 +348,14 @@ export function CanvasLayout() {
         </div>
 
         {/* Pane-scoped sheets — portal into the bounded canvas overlay root */}
-        <AccountSheet
-          open={accountSheetOpen}
-          activeTab={accountTab}
+        <ProfileSheet
+          open={profileSheetOpen}
           onClose={() => orchestrator.closeSheet()}
-          onTabChange={setAccountTab}
+          container={overlayRootRef.current}
+        />
+        <SettingsSheet
+          open={settingsSheetOpen}
+          onClose={() => orchestrator.closeSheet()}
           container={overlayRootRef.current}
         />
         <RightSheet
