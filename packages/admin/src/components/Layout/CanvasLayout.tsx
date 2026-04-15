@@ -336,7 +336,7 @@ export function CanvasLayout() {
 
         {/* ── Body 3: Persistent Chrome — Navigation Bar (Z3) ── */}
         <div className="canvas-area-bottom">
-          {eligibleGardensLoaded && visibleSlotCount > 0 && (
+          {eligibleGardensLoaded && !permissions.isLoading && visibleSlotCount > 0 && (
             <FabAwareNavigationBar
               slots={slots}
               activePath={activePath}
