@@ -76,7 +76,7 @@ vi.mock("@/components/Hypercerts/TradeHistoryTable", () => ({
   TradeHistoryTable: () => React.createElement("div", { "data-testid": "trade-history" }),
 }));
 
-import HypercertDetail from "@/views/Gardens/Garden/HypercertDetail";
+import HypercertDetail from "@/views/Garden/HypercertDetail";
 
 function renderWithIntl(ui: React.ReactElement) {
   return render(React.createElement(IntlProvider, { locale: "en", messages: {} }, ui));
