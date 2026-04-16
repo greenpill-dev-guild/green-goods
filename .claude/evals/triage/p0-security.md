@@ -46,7 +46,7 @@ This is P0 because:
 
 ### Expected Route
 - Entry point: `/debug --mode incident_hotfix`
-- Skills: `error-handling-patterns`, `monitoring`
+- Skills: `react` (error-handling sub-file), `monitoring`
 - Escalation: Immediate — notify security team, consider purging existing debug logs in IndexedDB for beta users
 
 ### Context for Next Agent

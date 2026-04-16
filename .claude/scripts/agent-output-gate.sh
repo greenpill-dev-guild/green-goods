@@ -1,6 +1,7 @@
 #!/bin/bash
 # Gate for Claude PostToolUse hooks on agent output (SendMessage/TaskUpdate).
-# Validates that agent output follows the required section order from output-contracts.md.
+# Validates that agent output follows the required section order defined in the
+# owning skill or agent surface.
 # Exit 0 = allow. Exit 2 = block with feedback.
 #
 # This is advisory validation — warns about missing sections but does not block.
@@ -85,7 +86,7 @@ esac
 if [ -n "$MISSING_SECTIONS" ]; then
   echo "OUTPUT CONTRACT WARNING: Agent output detected as '$OUTPUT_TYPE' but missing required sections:" >&2
   printf '%b' "$MISSING_SECTIONS" >&2
-  echo "   See .claude/standards/output-contracts.md for required section order." >&2
+  echo "   See the owning review, triage, or migration skill for the required section order." >&2
   echo "   This is advisory — output will be accepted. Fix sections before handoff." >&2
 fi
 

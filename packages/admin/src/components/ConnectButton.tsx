@@ -1,4 +1,4 @@
-import { cn, useAuth } from "@green-goods/shared";
+import { cn, useAuthActions } from "@green-goods/shared";
 import { RiLoader4Line, RiWallet3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useAccount } from "wagmi";
@@ -18,7 +18,7 @@ export function ConnectButton({
 }: ConnectButtonProps) {
   const { formatMessage } = useIntl();
   const { isConnecting } = useAccount();
-  const { loginWithWallet } = useAuth();
+  const { loginWithWallet } = useAuthActions();
 
   const baseStyles =
     "inline-flex items-center justify-center font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";

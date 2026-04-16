@@ -90,7 +90,7 @@ vi.mock("../../../utils/blockchain/vaults", () => ({
   ZERO_ADDRESS,
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryKeys: {
     cookieJar: {
       garden: (garden: string) => ["cookie-jar", "garden", garden],

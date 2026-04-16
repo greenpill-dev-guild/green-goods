@@ -10,7 +10,7 @@
 import { type Address, decodeEventLog, type Hex, zeroAddress } from "viem";
 
 import { generateMerkleTree } from "../../lib/hypercerts";
-import { ERC1155_TRANSFER_SINGLE_ABI } from "./hypercert-abis";
+import { ERC1155_TRANSFER_SINGLE_ABI } from "../../utils/blockchain/hypercert-abis";
 
 /** Maximum time (ms) to wait for transaction receipt before timing out */
 export const RECEIPT_POLLING_TIMEOUT_MS = 120_000 as const; // 2 minutes

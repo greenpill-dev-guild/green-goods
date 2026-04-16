@@ -4,6 +4,7 @@ import { cn } from "../../utils/styles/cn";
 export interface FormFieldWrapperProps {
   id?: string;
   label: string;
+  required?: boolean;
   helperText?: string;
   error?: string;
   className?: string;
@@ -19,6 +20,7 @@ export interface FormFieldWrapperProps {
 export function FormFieldWrapper({
   id,
   label,
+  required = false,
   helperText,
   error,
   className,
@@ -26,18 +28,56 @@ export function FormFieldWrapper({
 }: FormFieldWrapperProps) {
   return (
     <div className={cn("flex flex-col gap-1", error && "shake-error", className)}>
-      <label className="font-semibold text-text-strong-950 text-label-sm" htmlFor={id}>
+      <label className="font-medium text-text-strong-950 text-label-lg" htmlFor={id}>
         {label}
+        {required && <span className="ml-0.5 text-error-base">*</span>}
       </label>
       {children}
       {(helperText || error) && (
         <p
           id={id ? `${id}-helper-text` : undefined}
-          className={cn("text-xs min-h-[1rem]", error ? "text-error-base" : "text-text-sub-600")}
+          role={error ? "alert" : undefined}
+          className={cn(
+            "text-body-sm min-h-[1rem]",
+            error ? "text-error-dark" : "text-text-sub-600"
+          )}
         >
           {error || helperText}
         </p>
       )}
     </div>
+  );
+}
+
+export interface FormFieldProps {
+  label: string;
+  htmlFor?: string;
+  required?: boolean;
+  error?: string;
+  hint?: string;
+  className?: string;
+  children: ReactNode;
+}
+
+export function FormField({
+  label,
+  htmlFor,
+  required,
+  error,
+  hint,
+  className,
+  children,
+}: FormFieldProps) {
+  return (
+    <FormFieldWrapper
+      id={htmlFor}
+      label={label}
+      required={required}
+      helperText={hint}
+      error={error}
+      className={cn("space-y-1.5", className)}
+    >
+      {children}
+    </FormFieldWrapper>
   );
 }

@@ -1,7 +1,9 @@
 import {
+  adminRoutes,
   cn,
   DEFAULT_CHAIN_ID,
   useActions,
+  useAdminStore,
   useAllAssessments,
   useGardens,
   useRole,
@@ -18,17 +20,28 @@ import {
   RiHammerFill,
   RiPlantLine,
   RiSearchLine,
+  RiSettings3Line,
+  RiUserLine,
 } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { dispatchOpenAccountSheet } from "./accountSheet.events";
 
 interface SearchResult {
   id: string;
   label: string;
-  href: string;
+  href?: string;
+  onSelect?: () => void;
+  actionId?: "open-profile-sheet" | "open-settings-sheet";
+  icon?: React.ComponentType<{ className?: string }>;
   category: "quick-actions" | "pages" | "gardens" | "actions" | "assessments";
   subtitle?: string;
+}
+
+interface CommandPaletteProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const CATEGORY_ICONS: Record<
@@ -43,46 +56,40 @@ const CATEGORY_ICONS: Record<
 };
 
 const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
+  { id: "page-hub", labelId: "cockpit.nav.hub", defaultLabel: "Hub", href: adminRoutes.hub() },
   {
-    id: "page-dashboard",
-    labelId: "app.admin.nav.dashboard",
-    defaultLabel: "Dashboard",
-    href: "/dashboard",
+    id: "page-garden",
+    labelId: "cockpit.nav.garden",
+    defaultLabel: "Garden",
+    href: adminRoutes.garden(),
   },
   {
-    id: "page-gardens",
-    labelId: "app.admin.nav.gardens",
-    defaultLabel: "Gardens",
-    href: "/gardens",
-  },
-  {
-    id: "page-endowments",
-    labelId: "app.admin.nav.treasury",
-    defaultLabel: "Endowments",
-    href: "/endowments",
+    id: "page-community",
+    labelId: "cockpit.nav.community",
+    defaultLabel: "Community",
+    href: adminRoutes.community(),
   },
   {
     id: "page-actions",
     labelId: "app.admin.nav.actions",
     defaultLabel: "Actions",
-    href: "/actions",
-  },
-  {
-    id: "page-contracts",
-    labelId: "app.admin.nav.contracts",
-    defaultLabel: "Contracts",
-    href: "/contracts",
-  },
-  {
-    id: "page-deployment",
-    labelId: "app.admin.nav.deployment",
-    defaultLabel: "Deployment",
-    href: "/deployment",
+    href: adminRoutes.actions(),
   },
 ];
 
-export function CommandPalette() {
-  const [open, setOpen] = useState(false);
+export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPaletteProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Support both controlled and uncontrolled modes
+  const open = externalOpen ?? internalOpen;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      onOpenChange?.(next);
+      setInternalOpen(next);
+    },
+    [onOpenChange]
+  );
+
   const [inputValue, setInputValue] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -103,19 +110,20 @@ export function CommandPalette() {
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
+  const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
 
   // Global keyboard shortcut: Cmd+K / Ctrl+K
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        setOpen((prev) => !prev);
+        setOpen(!open);
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [open, setOpen]);
 
   // Build filtered results using debounced query
   const results = useMemo(() => {
@@ -123,14 +131,21 @@ export function CommandPalette() {
     const items: SearchResult[] = [];
 
     // Quick actions (role-gated)
-    const quickActions: Array<{ id: string; label: string; href: string; roles: UserRole[] }> = [
+    const quickActions: Array<{
+      id: string;
+      label: string;
+      href?: string;
+      actionId?: SearchResult["actionId"];
+      icon?: React.ComponentType<{ className?: string }>;
+      roles: UserRole[];
+    }> = [
       {
         id: "quick-pending-reviews",
         label: formatMessage({
           id: "app.admin.nav.quickAction.pendingReviews",
           defaultMessage: "Go to Pending Reviews",
         }),
-        href: "/gardens?scope=mine",
+        href: adminRoutes.hubWork(),
         roles: ["deployer", "operator"],
       },
       {
@@ -139,8 +154,28 @@ export function CommandPalette() {
           id: "app.admin.nav.quickAction.createGarden",
           defaultMessage: "Create Garden",
         }),
-        href: "/gardens/create",
+        href: adminRoutes.gardenCreate(),
         roles: ["deployer"],
+      },
+      {
+        id: "open-profile-sheet",
+        label: formatMessage({
+          id: "cockpit.nav.profile",
+          defaultMessage: "Profile",
+        }),
+        actionId: "open-profile-sheet",
+        icon: RiUserLine,
+        roles: ["deployer", "operator", "user"],
+      },
+      {
+        id: "open-settings-sheet",
+        label: formatMessage({
+          id: "cockpit.settings.title",
+          defaultMessage: "Settings",
+        }),
+        actionId: "open-settings-sheet",
+        icon: RiSettings3Line,
+        roles: ["deployer", "operator", "user"],
       },
     ];
 
@@ -151,6 +186,8 @@ export function CommandPalette() {
             id: qa.id,
             label: qa.label,
             href: qa.href,
+            actionId: qa.actionId,
+            icon: qa.icon,
             category: "quick-actions",
           });
         }
@@ -172,7 +209,8 @@ export function CommandPalette() {
           items.push({
             id: `garden-${garden.id}`,
             label: garden.name,
-            href: `/gardens/${garden.id}`,
+            href: adminRoutes.garden(),
+            onSelect: () => setSelectedGarden(garden),
             category: "gardens",
             subtitle: garden.location || undefined,
           });
@@ -187,7 +225,7 @@ export function CommandPalette() {
           items.push({
             id: `action-${action.id}`,
             label: action.title,
-            href: `/actions/${action.id}`,
+            href: adminRoutes.actionDetail(action.id),
             category: "actions",
             subtitle: action.startTime
               ? new Date(action.startTime * 1000).toLocaleDateString()
@@ -202,14 +240,23 @@ export function CommandPalette() {
       for (const assessment of assessments) {
         const title = assessment.title || `Assessment ${assessment.id.slice(0, 8)}`;
         if (!lowerQuery || title.toLowerCase().includes(lowerQuery)) {
-          // Resolve garden name for subtitle if possible
-          const gardenName = gardens?.find(
+          const matchedGarden = gardens?.find(
             (g) => g.tokenAddress.toLowerCase() === assessment.gardenAddress.toLowerCase()
-          )?.name;
+          );
+          const gardenName = matchedGarden?.name;
           items.push({
             id: `assessment-${assessment.id}`,
             label: title,
-            href: "/assessments",
+            href: matchedGarden
+              ? adminRoutes.share(adminRoutes.gardenImpact(), matchedGarden.tokenAddress, {
+                  section: "assessments",
+                  item: assessment.id,
+                })
+              : adminRoutes.gardenImpact({
+                  section: "assessments",
+                  item: assessment.id,
+                }),
+            onSelect: matchedGarden ? () => setSelectedGarden(matchedGarden) : undefined,
             category: "assessments",
             subtitle: gardenName ? gardenName : `Garden ${assessment.gardenAddress.slice(0, 8)}...`,
           });
@@ -218,7 +265,7 @@ export function CommandPalette() {
     }
 
     return items;
-  }, [debouncedQuery, gardens, actions, assessments, role, formatMessage]);
+  }, [actions, assessments, debouncedQuery, formatMessage, gardens, role, setSelectedGarden]);
 
   // Group results by category
   const grouped = useMemo(() => {
@@ -251,22 +298,50 @@ export function CommandPalette() {
   }, [results, formatMessage]);
 
   // Reset state when dialog opens/closes
-  const handleOpenChange = useCallback((isOpen: boolean) => {
-    setOpen(isOpen);
-    if (isOpen) {
-      setInputValue("");
-      setDebouncedQuery("");
-      setActiveIndex(0);
-    }
-  }, []);
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      setOpen(isOpen);
+      if (isOpen) {
+        setInputValue("");
+        setDebouncedQuery("");
+        setActiveIndex(0);
+      }
+    },
+    [setOpen]
+  );
 
-  // Navigate to a result
+  // Navigate to a result or dispatch a sheet-opening action
   const selectResult = useCallback(
     (result: SearchResult) => {
       setOpen(false);
-      navigate(result.href);
+
+      if (result.actionId) {
+        const isDesktop =
+          typeof window !== "undefined"
+            ? (window.matchMedia?.("(min-width: 600px)").matches ?? false)
+            : false;
+
+        if (isDesktop) {
+          const nextTab = result.actionId === "open-settings-sheet" ? "settings" : "profile";
+          dispatchOpenAccountSheet(nextTab);
+          return;
+        }
+
+        navigate(
+          result.actionId === "open-settings-sheet"
+            ? adminRoutes.profile({ tab: "settings" })
+            : adminRoutes.profile()
+        );
+        return;
+      }
+
+      result.onSelect?.();
+
+      if (result.href) {
+        navigate(result.href);
+      }
     },
-    [navigate]
+    [navigate, setOpen]
   );
 
   // Keyboard navigation within results
@@ -302,38 +377,30 @@ export function CommandPalette() {
 
   return (
     <>
-      {/* Trigger button with keyboard shortcut hint */}
-      <button
-        onClick={() => handleOpenChange(true)}
-        aria-label={formatMessage({ id: "app.admin.nav.search", defaultMessage: "Search" })}
-        className="min-h-11 flex items-center gap-1.5 px-2 rounded-md text-text-soft hover:text-text-sub hover:bg-bg-weak transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-      >
-        <RiSearchLine className="h-5 w-5" />
-        <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-stroke-soft bg-bg-weak px-1.5 py-0.5 text-[10px] font-medium text-text-soft">
-          <span className="text-xs">
-            {typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent)
-              ? "\u2318"
-              : "Ctrl"}
-          </span>
-          <span>K</span>
-        </kbd>
-      </button>
-
       <Dialog.Root open={open} onOpenChange={handleOpenChange}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay" />
           <Dialog.Content
-            className="fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-stroke-sub bg-bg-white shadow-xl animate-fade-in-up"
-            aria-label={formatMessage({
-              id: "app.admin.nav.commandPalette",
-              defaultMessage: "Command palette",
-            })}
+            className="bg-bg-white fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-stroke-sub shadow-xl animate-fade-in-up"
             onKeyDown={handleKeyDown}
             onOpenAutoFocus={(e) => {
               e.preventDefault();
               inputRef.current?.focus();
             }}
           >
+            <Dialog.Title className="sr-only">
+              {formatMessage({
+                id: "app.admin.nav.commandPalette",
+                defaultMessage: "Command palette",
+              })}
+            </Dialog.Title>
+            <Dialog.Description className="sr-only">
+              {formatMessage({
+                id: "app.admin.nav.searchPlaceholder",
+                defaultMessage: "Search pages, gardens, actions...",
+              })}
+            </Dialog.Description>
+
             {/* Search input */}
             <div className="flex items-center gap-3 border-b border-stroke-soft px-4">
               <RiSearchLine className="h-5 w-5 shrink-0 text-text-soft" aria-hidden="true" />
@@ -345,7 +412,7 @@ export function CommandPalette() {
                   id: "app.admin.nav.searchPlaceholder",
                   defaultMessage: "Search pages, gardens, actions...",
                 })}
-                className="flex-1 bg-transparent py-3 text-sm text-text-strong placeholder:text-text-soft outline-none"
+                className="flex-1 h-10 bg-transparent rounded-sm py-3 text-body-lg text-text-strong placeholder:text-text-soft shadow-[var(--edge-rest)] focus:shadow-[var(--edge-focus)] transition-shadow duration-[var(--spring-micro-duration,150ms)] outline-none"
               />
             </div>
 
@@ -361,13 +428,15 @@ export function CommandPalette() {
               ) : (
                 grouped.map((group) => (
                   <div key={group.category} role="group" aria-label={group.label}>
-                    <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-text-soft">
-                      {group.label}
-                    </div>
+                    <div className="px-2 py-1.5 text-label-sm text-text-soft">{group.label}</div>
                     {group.items.map((result) => {
                       const index = flatIndex++;
                       const isActive = index === activeIndex;
-                      const Icon = CATEGORY_ICONS[result.category];
+                      const Icon =
+                        result.icon ??
+                        (result.category === "pages"
+                          ? CATEGORY_ICONS.pages
+                          : CATEGORY_ICONS[result.category]);
                       return (
                         <button
                           key={result.id}
@@ -377,10 +446,10 @@ export function CommandPalette() {
                           onClick={() => selectResult(result)}
                           onMouseMove={() => setActiveIndex(index)}
                           className={cn(
-                            "flex w-full items-center rounded-lg px-3 py-2 text-sm text-left transition-colors",
+                            "flex w-full items-center rounded-sm px-3 py-2 text-body-md text-left transition-colors",
                             isActive
                               ? "bg-primary-alpha-16 text-primary-darker"
-                              : "text-text-sub hover:bg-bg-weak"
+                              : "text-text-sub hover:bg-bg-soft"
                           )}
                         >
                           {Icon && <Icon className="h-4 w-4 mr-2 flex-shrink-0 text-text-soft" />}

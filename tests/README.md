@@ -45,7 +45,7 @@ tests/
 |----------|-------------|-----|
 | **Android Chrome** | Passkey (virtual WebAuthn) | Full automation support |
 | **iOS Safari** | Wallet (storage injection) | Safari lacks virtual WebAuthn |
-| **Admin Desktop** | Wallet (storage injection) | Fast, no real wallet needed |
+| **Admin Desktop** | Dev `mockAuth` + mocked GraphQL | Stable cockpit verification without wallet state hacks |
 
 ### Client Tests (Platform Detection)
 
@@ -68,17 +68,23 @@ test("can view gardens", async ({ page }, testInfo) => {
 });
 ```
 
-### Admin Tests (Wallet Only)
+### Admin Tests (Cockpit Mock Auth)
 
 ```typescript
-test("can access dashboard", async ({ page }) => {
+test("can access the cockpit", async ({ page }) => {
   const helper = new AdminTestHelper(page);
-  await helper.injectWalletAuth();
-  
-  await page.goto("/dashboard");
+  await helper.enableMockAuth("operator");
+  await page.route("**/api/graphql", mockIndexerRoute);
+
+  await page.goto("/hub");
   // Assertions...
 });
 ```
+
+Use this path for admin cockpit checks:
+- Seed `sessionStorage` with `helper.enableMockAuth("operator" | "deployer" | "user")`.
+- Mock indexer requests on both `**/api/graphql` and `**/v1/graphql` because local HTTPS uses the Vite proxy.
+- Assert against current cockpit routes like `/hub`, `/garden`, `/community`, and `/actions`, not legacy `/dashboard`.
 
 ## Writing New Tests
 
@@ -101,7 +107,7 @@ const helper = new AdminTestHelper(page);
 await helper.setupPasskeyAuth();
 await helper.createPasskeyAccount("username");
 
-// iOS/Admin - Wallet
+// iOS - Wallet
 await helper.injectWalletAuth("0xAddress");
 await page.goto("/route");
 ```

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
-import { ConfirmDialog } from "./ConfirmDialog";
+import { ConfirmDialog, DialogShell } from "./ConfirmDialog";
 
 const meta: Meta<typeof ConfirmDialog> = {
   title: "Feedback/ConfirmDialog",
@@ -224,5 +224,34 @@ export const InteractiveClose: Story = {
     const closeButton = await dialog.findByTestId("confirm-dialog-close");
     await userEvent.click(closeButton);
     await expect(args.onClose).toHaveBeenCalled();
+  },
+};
+
+export const ShellPattern: Story = {
+  render: () => (
+    <DialogShell
+      open={true}
+      onOpenChange={fn()}
+      title="Garden Profile"
+      description="Shared dialog shell for admin workbench and detail flows."
+      size="xl"
+    >
+      <div className="space-y-4">
+        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
+          Primary content block
+        </div>
+        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
+          Secondary content block
+        </div>
+      </div>
+    </DialogShell>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Reusable shell for admin dialogs. Prefer extending this for domain-specific modal content instead of rebuilding Radix overlay, header, sizing, and mobile sheet behavior repeatedly.",
+      },
+    },
   },
 };

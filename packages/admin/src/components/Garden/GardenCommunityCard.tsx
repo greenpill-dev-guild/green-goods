@@ -1,17 +1,18 @@
 import {
   type Address,
+  AddressDisplay,
+  Button,
+  Card,
   logger,
   PoolType,
   toastService,
   WEIGHT_SCHEME_VALUES,
   WeightScheme,
+  adminRoutes,
 } from "@green-goods/shared";
 import { RiAddLine, RiGroupLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AddressDisplay } from "@/components/AddressDisplay";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 interface GardenPool {
   poolType: PoolType;
@@ -37,7 +38,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   community,
   communityLoading,
   pools,
-  gardenId,
+  gardenId: _gardenId,
   canManage,
   isCreatingPools,
   onCreatePools,
@@ -153,7 +154,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             {canManage && (
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Link
-                  to={`/gardens/${gardenId}/signal-pool/hypercert`}
+                  to={adminRoutes.communityGovernanceSignalPool("hypercert")}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewHypercertPool" })}
@@ -162,7 +163,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={`/gardens/${gardenId}/signal-pool/action`}
+                  to={adminRoutes.communityGovernanceSignalPool("action")}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewActionPool" })}
@@ -171,7 +172,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={`/gardens/${gardenId}/strategies`}
+                  to={adminRoutes.communityGovernanceStrategies()}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.conviction.manageStrategies" })}

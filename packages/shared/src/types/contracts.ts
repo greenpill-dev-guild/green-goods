@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import type { WeightScheme } from "./gardens-community";
 
 // Contract addresses for different networks
 export interface NetworkContracts {
@@ -26,16 +27,6 @@ export interface NetworkContracts {
   marketplaceAdapter: Address;
   hypercertsModule: Address;
   strategyHypercertFractionOffer: Address;
-}
-
-/**
- * Weight scheme for Gardens V2 conviction voting signal pools.
- * Must match `IGardensModule.WeightScheme` enum in Solidity.
- */
-export enum WeightScheme {
-  Linear = 0,
-  Exponential = 1,
-  Power = 2,
 }
 
 // Garden creation parameters — must match GardenToken.GardenConfig struct

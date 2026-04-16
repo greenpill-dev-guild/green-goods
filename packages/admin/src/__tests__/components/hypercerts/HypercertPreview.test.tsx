@@ -39,16 +39,16 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 });
 
 // Mock the DistributionChart and MintProgress components
-vi.mock("../../../components/hypercerts/DistributionChart", () => ({
+vi.mock("../../../components/Hypercerts/DistributionChart", () => ({
   DistributionChart: () => createElement("div", { "data-testid": "distribution-chart" }, "Chart"),
 }));
 
-vi.mock("../../../components/hypercerts/steps/MintProgress", () => ({
+vi.mock("../../../components/Hypercerts/Steps/MintProgress", () => ({
   MintProgress: ({ state }: { state: MintingState }) =>
     createElement("div", { "data-testid": "mint-progress" }, `Minting: ${state.status}`),
 }));
 
-import { HypercertPreview } from "../../../components/hypercerts/steps/HypercertPreview";
+import { HypercertPreview } from "../../../components/Hypercerts/Steps/HypercertPreview";
 
 // ============================================
 // Test Fixtures
@@ -133,7 +133,7 @@ function createMockMintingState(overrides: Partial<MintingState> = {}): MintingS
   };
 }
 
-describe("components/hypercerts/HypercertPreview", () => {
+describe("components/Hypercerts/HypercertPreview", () => {
   const defaultProps = {
     metadata: createMockMetadata(),
     gardenName: "Test Community Garden",

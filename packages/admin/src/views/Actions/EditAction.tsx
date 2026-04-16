@@ -2,6 +2,7 @@ import {
   type ActionInstructionConfig,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
+  Surface,
   fromDateTimeLocalValue,
   getFileByHash,
   instructionTemplates,
@@ -21,8 +22,9 @@ import { useIntl } from "react-intl";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminTextField } from "@/components/AdminTextField";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { FormField } from "@/components/ui/FormField";
 
 const editActionSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -217,86 +219,89 @@ export default function EditAction() {
 
   return (
     <div>
-      <PageHeader
-        title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
-        description={formatMessage({ id: "app.actions.edit.description" })}
-        backLink={{
-          to: `/actions/${id}`,
-          label: formatMessage({
-            id: "app.actions.backToAction",
-            defaultMessage: "Back to action",
-          }),
-        }}
-      />
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
+        <PageHeader
+          title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
+          description={formatMessage({
+            id: "cockpit.actions.editDescription",
+            defaultMessage: "Update lifecycle details and the submission contract for this action.",
+          })}
+          variant="canvas"
+          backLink={{
+            to: `/actions/${id}`,
+            label: formatMessage({
+              id: "app.actions.backToAction",
+              defaultMessage: "Back to action",
+            }),
+          }}
+          sticky
+        />
+      </div>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 max-w-4xl space-y-6">
-        {/* Basic Fields */}
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
-          <h3 className="text-lg font-semibold mb-4">
-            {formatMessage({ id: "app.actions.edit.basicInfo" })}
-          </h3>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="mx-auto mt-4 max-w-5xl space-y-4 px-4 sm:px-6"
+      >
+        <Surface elevation="raised" padding="default" className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-text-strong">
+              {formatMessage({ id: "app.actions.edit.basicInfo" })}
+            </h3>
+            <p className="mt-1 text-sm text-text-sub">
+              {formatMessage({
+                id: "cockpit.actions.detailDescription",
+                defaultMessage:
+                  "Review lifecycle details and the submission requirements for this action.",
+              })}
+            </p>
+          </div>
           <div className="space-y-4">
-            <FormField
+            <AdminTextField
               label={formatMessage({ id: "app.assessment.table.title" })}
-              htmlFor="action-title"
+              id="action-title"
+              variant="outlined"
               error={form.formState.errors.title?.message}
-            >
-              <input
-                id="action-title"
-                type="text"
-                {...form.register("title")}
-                className="w-full rounded-md border border-stroke-soft px-3 py-2"
-              />
-            </FormField>
+              {...form.register("title")}
+            />
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
+              <AdminTextField
                 label={formatMessage({ id: "app.actions.detail.startTime" })}
-                htmlFor="action-start-time"
-              >
-                <input
-                  id="action-start-time"
-                  type="datetime-local"
-                  value={toDateTimeLocalValue(form.watch("startTime").getTime())}
-                  onChange={(e) =>
-                    form.setValue("startTime", fromDateTimeLocalValue(e.target.value))
-                  }
-                  className="w-full rounded-md border border-stroke-soft px-3 py-2"
-                />
-              </FormField>
+                id="action-start-time"
+                type="datetime-local"
+                variant="outlined"
+                value={toDateTimeLocalValue(form.watch("startTime").getTime())}
+                onChange={(e) => form.setValue("startTime", fromDateTimeLocalValue(e.target.value))}
+              />
 
-              <FormField
+              <AdminTextField
                 label={formatMessage({ id: "app.actions.detail.endTime" })}
-                htmlFor="action-end-time"
-              >
-                <input
-                  id="action-end-time"
-                  type="datetime-local"
-                  value={toDateTimeLocalValue(form.watch("endTime").getTime())}
-                  onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
-                  className="w-full rounded-md border border-stroke-soft px-3 py-2"
-                />
-              </FormField>
+                id="action-end-time"
+                type="datetime-local"
+                variant="outlined"
+                value={toDateTimeLocalValue(form.watch("endTime").getTime())}
+                onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
+              />
             </div>
           </div>
-        </div>
+        </Surface>
 
-        {/* Instructions Configuration */}
-        <div className="rounded-lg border border-stroke-soft bg-bg-white p-6">
+        <Surface elevation="raised" padding="default" className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">
+            <h3 className="text-lg font-semibold text-text-strong">
               {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
             </h3>
             {!isLoadingInstructions && (
-              <button
+              <AdminButton
                 type="button"
+                variant="text"
+                size="sm"
                 onClick={() => setIsEditingInstructions(!isEditingInstructions)}
-                className="text-sm text-primary-base hover:text-primary-darker"
               >
                 {isEditingInstructions
                   ? formatMessage({ id: "app.actions.edit.cancelEditing" })
                   : formatMessage({ id: "app.actions.edit.editInstructions" })}
-              </button>
+              </AdminButton>
             )}
           </div>
 
@@ -311,27 +316,22 @@ export default function EditAction() {
               {formatMessage({ id: "app.actions.edit.instructionsHint" })}
             </p>
           )}
-        </div>
+        </Surface>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4">
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-darker disabled:opacity-50"
-          >
+        <Surface
+          elevation="raised"
+          padding="default"
+          className="flex flex-col gap-3 sm:flex-row sm:justify-end"
+        >
+          <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
             {isLoading
               ? formatMessage({ id: "app.actions.edit.saving" })
               : formatMessage({ id: "app.actions.edit.saveChanges" })}
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate(`/actions/${id}`)}
-            className="rounded-md border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong hover:bg-bg-soft"
-          >
+          </AdminButton>
+          <AdminButton type="button" variant="outlined" onClick={() => navigate(`/actions/${id}`)}>
             {formatMessage({ id: "app.common.cancel" })}
-          </button>
-        </div>
+          </AdminButton>
+        </Surface>
       </form>
     </div>
   );

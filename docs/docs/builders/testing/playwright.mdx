@@ -77,7 +77,7 @@ The config defines several Playwright projects for different testing scopes:
 | `passkey-mock` | `*.passkey.spec.ts` | Passkey E2E with mocked Pimlico |
 | `client-full` | `client*.spec.ts` | Full client suite (optional) |
 
-Mobile projects (`mobile-chrome`, `mobile-safari`) are available but disabled by default -- enable with `--project`.
+Mobile projects (`mobile-chrome`, `mobile-safari`) exist in the config, but the normal repo entry points use the explicit root scripts below rather than relying on those projects implicitly.
 
 ### Web Server Configuration
 
@@ -126,18 +126,24 @@ The `contract-helpers.ts` fixture provides deployment artifact types and utility
 ## Running Tests
 
 ```bash
-# Run default CI test suite
-npx playwright test
+# Standard local wrapper
+bun run test:e2e
 
-# Run specific project
+# Smoke suite
+bun run test:e2e:smoke
+
+# Fork / passkey / testnet variants
+bun run test:e2e:fork
+bun run test:e2e:passkey
+bun run test:e2e:testnet
+
+# Direct Playwright usage when you want a specific project or file
 npx playwright test --project=chromium
-
-# Run a single spec file
 npx playwright test tests/specs/client.navigation.spec.ts
-
-# Run with UI mode for debugging
 npx playwright test --ui
 ```
+
+The `bun run test:e2e` wrapper starts `bun dev`, waits for the client and admin surfaces to become reachable, then runs `npx playwright test` with `SKIP_WEBSERVER=true` and `SKIP_HEALTH_CHECK=true`.
 
 ### Configuration Details
 

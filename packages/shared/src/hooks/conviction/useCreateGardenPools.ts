@@ -9,8 +9,8 @@ import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 /**
  * Hook for creating signal pools for a garden.
@@ -35,7 +35,7 @@ export function useCreateGardenPools(gardenAddress?: Address) {
   const normalizedGarden = gardenAddress ? normalizeAddress(gardenAddress) : undefined;
 
   const lastGardenRef = useRef<string>("");
-  const { start: schedulePoolSync } = useDelayedInvalidation(
+  const { start: schedulePoolSync } = useProgressiveInvalidation(
     useCallback(() => {
       const garden = lastGardenRef.current;
       if (garden) {
@@ -44,7 +44,7 @@ export function useCreateGardenPools(gardenAddress?: Address) {
         });
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({

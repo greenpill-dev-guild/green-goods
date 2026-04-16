@@ -1,11 +1,13 @@
 import {
   type CreateActionFormData,
-  cn,
+  adminRoutes,
   createActionSchema,
   DEFAULT_CHAIN_ID,
+  Domain,
   defaultTemplate,
-  instructionTemplates,
+  FormWizard,
   logger,
+  type Step,
   toastService,
   uploadFileToIPFS,
   useActionOperations,
@@ -15,17 +17,37 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
-import { FileUploadField } from "@/components/FileUploadField";
-import { FormWizard } from "@/components/Form/FormWizard";
-import type { Step } from "@/components/Form/StepIndicator";
-import { FormField } from "@/components/ui/FormField";
+import {
+  BasicsStep,
+  CapitalsStep,
+  InstructionsStep,
+  ReviewStep,
+} from "@/components/Action/CreateActionSteps";
+import { PageHeader } from "@/components/Layout/PageHeader";
 
 export default function CreateAction() {
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
   const { registerAction, isLoading } = useActionOperations(DEFAULT_CHAIN_ID);
   const [currentStep, setCurrentStep] = useState(0);
+  const domainOptions = [
+    {
+      value: Domain.SOLAR,
+      label: formatMessage({ id: "app.domain.tab.solar", defaultMessage: "Solar" }),
+    },
+    {
+      value: Domain.AGRO,
+      label: formatMessage({ id: "app.domain.tab.agro", defaultMessage: "Agro" }),
+    },
+    {
+      value: Domain.EDU,
+      label: formatMessage({ id: "app.domain.tab.education", defaultMessage: "Education" }),
+    },
+    {
+      value: Domain.WASTE,
+      label: formatMessage({ id: "app.domain.tab.waste", defaultMessage: "Waste" }),
+    },
+  ];
 
   const stepConfigs: Step[] = [
     {
@@ -72,6 +94,8 @@ export default function CreateAction() {
     resolver: zodResolver(createActionSchema),
     defaultValues: {
       title: "",
+      slug: "",
+      domain: Domain.SOLAR,
       startTime: new Date(),
       endTime: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       capitals: [],
@@ -109,6 +133,8 @@ export default function CreateAction() {
       // Register action on-chain
       await registerAction({
         title: data.title,
+        slug: data.slug.trim().toLowerCase(),
+        domain: data.domain as Domain,
         startTime: Math.floor(data.startTime.getTime() / 1000),
         endTime: Math.floor(data.endTime.getTime() / 1000),
         capitals: data.capitals,
@@ -116,7 +142,7 @@ export default function CreateAction() {
         instructions: instructionsCID,
       });
 
-      navigate("/actions");
+      navigate(adminRoutes.actions());
     } catch (error) {
       logger.error("Failed to create action", {
         source: "CreateAction.onSubmit",
@@ -141,473 +167,13 @@ export default function CreateAction() {
   const renderStep = () => {
     switch (currentStep) {
       case 0:
-        return (
-          <div className="space-y-4">
-            <FormField
-              label={formatMessage({
-                id: "app.admin.actions.create.titleLabel",
-                defaultMessage: "Title",
-              })}
-              htmlFor="create-action-title"
-              error={form.formState.errors.title?.message}
-            >
-              <input
-                id="create-action-title"
-                {...form.register("title")}
-                type="text"
-                className="w-full rounded-md border border-stroke-soft px-3 py-2"
-                placeholder={formatMessage({
-                  id: "app.admin.actions.create.titlePlaceholder",
-                  defaultMessage: "Action title",
-                })}
-              />
-            </FormField>
-
-            <FormField
-              label={formatMessage({
-                id: "app.admin.actions.create.startDateLabel",
-                defaultMessage: "Start Date",
-              })}
-              htmlFor="create-action-starttime"
-              error={form.formState.errors.startTime?.message}
-            >
-              <input
-                id="create-action-starttime"
-                {...form.register("startTime", { valueAsDate: true })}
-                type="date"
-                className="w-full rounded-md border border-stroke-soft px-3 py-2"
-              />
-            </FormField>
-
-            <FormField
-              label={formatMessage({
-                id: "app.admin.actions.create.endDateLabel",
-                defaultMessage: "End Date",
-              })}
-              htmlFor="create-action-endtime"
-              error={form.formState.errors.endTime?.message}
-            >
-              <input
-                id="create-action-endtime"
-                {...form.register("endTime", { valueAsDate: true })}
-                type="date"
-                className="w-full rounded-md border border-stroke-soft px-3 py-2"
-              />
-            </FormField>
-          </div>
-        );
-
-      case 1: {
-        const capitals = form.watch("capitals");
-        const CAPITALS_OPTIONS = [
-          {
-            value: 0,
-            label: formatMessage({
-              id: "app.admin.actions.create.capitalSocial",
-              defaultMessage: "Social",
-            }),
-          },
-          {
-            value: 1,
-            label: formatMessage({
-              id: "app.admin.actions.create.capitalMaterial",
-              defaultMessage: "Material",
-            }),
-          },
-          {
-            value: 2,
-            label: formatMessage({
-              id: "app.admin.actions.create.capitalFinancial",
-              defaultMessage: "Financial",
-            }),
-          },
-          {
-            value: 3,
-            label: formatMessage({
-              id: "app.admin.actions.create.capitalLiving",
-              defaultMessage: "Living",
-            }),
-          },
-          {
-            value: 4,
-            label: formatMessage({
-              id: "app.admin.actions.create.capitalIntellectual",
-              defaultMessage: "Intellectual",
-            }),
-          },
-          {
-            value: 5,
-            label: formatMessage({
-              id: "app.admin.actions.create.capitalExperiential",
-              defaultMessage: "Experiential",
-            }),
-          },
-          {
-            value: 6,
-            label: formatMessage({
-              id: "app.admin.actions.create.capitalSpiritual",
-              defaultMessage: "Spiritual",
-            }),
-          },
-          {
-            value: 7,
-            label: formatMessage({
-              id: "app.admin.actions.create.capitalCultural",
-              defaultMessage: "Cultural",
-            }),
-          },
-        ];
-
-        return (
-          <div className="space-y-6">
-            <FormField
-              label={formatMessage({
-                id: "app.admin.actions.create.capitalsLabel",
-                defaultMessage: "Forms of Capital",
-              })}
-              required
-              hint={formatMessage({
-                id: "app.admin.actions.create.capitalsDescription",
-                defaultMessage: "Select the forms of capital associated with this action",
-              })}
-              error={form.formState.errors.capitals?.message}
-            >
-              <fieldset
-                id="create-action-capitals"
-                className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-              >
-                {CAPITALS_OPTIONS.map((capital) => {
-                  const isChecked = capitals.includes(capital.value);
-                  return (
-                    <label
-                      key={capital.value}
-                      className={cn(
-                        "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
-                        isChecked
-                          ? "border-success-base bg-success-lighter text-success-dark"
-                          : "border-stroke-soft bg-bg-white text-text-sub hover:border-success-light hover:bg-success-lighter/30"
-                      )}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={(e) => {
-                          const newCapitals = e.target.checked
-                            ? [...capitals, capital.value]
-                            : capitals.filter((c) => c !== capital.value);
-                          form.setValue("capitals", newCapitals);
-                        }}
-                        className="h-4 w-4 rounded border-stroke-sub text-success-base focus:ring-2 focus:ring-success-light focus:ring-offset-0"
-                      />
-                      <span className="flex-1 truncate font-medium">{capital.label}</span>
-                    </label>
-                  );
-                })}
-              </fieldset>
-            </FormField>
-
-            <FormField
-              label={formatMessage({
-                id: "app.admin.actions.create.mediaLabel",
-                defaultMessage: "Media (Images)",
-              })}
-              error={form.formState.errors.media?.message}
-            >
-              <FileUploadField
-                id="create-action-media"
-                currentFiles={form.watch("media")}
-                onFilesChange={(files: File[]) => form.setValue("media", files)}
-                onRemoveFile={(index: number) => {
-                  const current = form.getValues("media");
-                  form.setValue(
-                    "media",
-                    current.filter((_, i) => i !== index)
-                  );
-                }}
-                accept="image/*"
-                multiple
-                showPreview
-                compress
-              />
-            </FormField>
-          </div>
-        );
-      }
-
+        return <BasicsStep form={form} domainOptions={domainOptions} />;
+      case 1:
+        return <CapitalsStep form={form} />;
       case 2:
-        return (
-          <div>
-            <FormField
-              label={formatMessage({
-                id: "app.admin.actions.create.templateLabel",
-                defaultMessage: "Start from a template (optional)",
-              })}
-              htmlFor="create-action-template"
-              className="mb-4"
-            >
-              <select
-                id="create-action-template"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    form.setValue("instructionConfig", instructionTemplates[e.target.value]);
-                  }
-                }}
-                className="w-full rounded-md border border-stroke-soft px-3 py-2"
-              >
-                <option value="">
-                  {formatMessage({
-                    id: "app.admin.actions.create.templateKeepCurrent",
-                    defaultMessage: "Keep current configuration",
-                  })}
-                </option>
-                <optgroup
-                  label={formatMessage({
-                    id: "app.admin.actions.create.templateGroupSolar",
-                    defaultMessage: "Solar",
-                  })}
-                >
-                  <option value="solar.site_setup">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateSolarSiteSetup",
-                      defaultMessage: "Site & Readiness Setup",
-                    })}
-                  </option>
-                  <option value="solar.install_milestone">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateSolarInstallMilestone",
-                      defaultMessage: "Infrastructure Milestone",
-                    })}
-                  </option>
-                  <option value="solar.service_session">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateSolarServiceSession",
-                      defaultMessage: "Hub Service Session",
-                    })}
-                  </option>
-                  <option value="solar.energy_uptime_check">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateSolarEnergyCheck",
-                      defaultMessage: "Energy & Uptime Check",
-                    })}
-                  </option>
-                  <option value="solar.node_ops">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateSolarNodeOps",
-                      defaultMessage: "Node Operation Log",
-                    })}
-                  </option>
-                </optgroup>
-                <optgroup
-                  label={formatMessage({
-                    id: "app.admin.actions.create.templateGroupAgro",
-                    defaultMessage: "Agroforestry",
-                  })}
-                >
-                  <option value="agro.site_species_plan">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateAgroSitePlan",
-                      defaultMessage: "Site Assessment & Species Plan",
-                    })}
-                  </option>
-                  <option value="agro.planting_event">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateAgroPlanting",
-                      defaultMessage: "Planting Event",
-                    })}
-                  </option>
-                  <option value="agro.survival_check">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateAgroSurvival",
-                      defaultMessage: "Survival Check",
-                    })}
-                  </option>
-                  <option value="agro.maintenance_activity">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateAgroMaintenance",
-                      defaultMessage: "Maintenance Activity",
-                    })}
-                  </option>
-                  <option value="agro.learning_reflection">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateAgroLearning",
-                      defaultMessage: "Learning Reflection",
-                    })}
-                  </option>
-                  <option value="agro.harvest_yield">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateAgroHarvest",
-                      defaultMessage: "Harvest & Yield Record",
-                    })}
-                  </option>
-                </optgroup>
-                <optgroup
-                  label={formatMessage({
-                    id: "app.admin.actions.create.templateGroupEdu",
-                    defaultMessage: "Education",
-                  })}
-                >
-                  <option value="edu.publish_session">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateEduPublish",
-                      defaultMessage: "Publish Session & Open Roster",
-                    })}
-                  </option>
-                  <option value="edu.deliver_session">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateEduDeliver",
-                      defaultMessage: "Workshop Delivered",
-                    })}
-                  </option>
-                  <option value="edu.verify_attendance">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateEduAttendance",
-                      defaultMessage: "Attendance Verified",
-                    })}
-                  </option>
-                  <option value="edu.followup_action">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateEduFollowup",
-                      defaultMessage: "Follow-up Action Logged",
-                    })}
-                  </option>
-                  <option value="edu.learning_assessment">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateEduAssessment",
-                      defaultMessage: "Learning Assessment",
-                    })}
-                  </option>
-                </optgroup>
-                <optgroup
-                  label={formatMessage({
-                    id: "app.admin.actions.create.templateGroupWaste",
-                    defaultMessage: "Waste Management",
-                  })}
-                >
-                  <option value="waste.site_assessment">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateWasteAssessment",
-                      defaultMessage: "Site Assessment (Before)",
-                    })}
-                  </option>
-                  <option value="waste.cleanup_event">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateWasteCleanup",
-                      defaultMessage: "Cleanup Event",
-                    })}
-                  </option>
-                  <option value="waste.sorting_breakdown">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateWasteSorting",
-                      defaultMessage: "Sorting & Breakdown",
-                    })}
-                  </option>
-                  <option value="waste.transfer_receipt">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateWasteTransfer",
-                      defaultMessage: "Recycler/Disposal Transfer",
-                    })}
-                  </option>
-                  <option value="waste.upcycle_batch">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateWasteUpcycle",
-                      defaultMessage: "Compost/Upcycle Batch",
-                    })}
-                  </option>
-                  <option value="waste.maintenance_check">
-                    {formatMessage({
-                      id: "app.admin.actions.create.templateWasteMaintenance",
-                      defaultMessage: "Recurring Maintenance Check",
-                    })}
-                  </option>
-                </optgroup>
-              </select>
-            </FormField>
-            <InstructionsBuilder
-              value={form.watch("instructionConfig")}
-              onChange={(config) => form.setValue("instructionConfig", config)}
-            />
-          </div>
-        );
-
-      case 3: {
-        const data = form.getValues();
-        return (
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-text-strong">
-                {formatMessage({
-                  id: "app.admin.actions.create.reviewTitle",
-                  defaultMessage: "Title",
-                })}
-              </h3>
-              <p className="text-text-sub">{data.title}</p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-text-strong">
-                {formatMessage({
-                  id: "app.admin.actions.create.reviewTimeline",
-                  defaultMessage: "Timeline",
-                })}
-              </h3>
-              <p className="text-text-sub">
-                {data.startTime.toLocaleDateString()} - {data.endTime.toLocaleDateString()}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-text-strong">
-                {formatMessage({
-                  id: "app.admin.actions.create.reviewCapitals",
-                  defaultMessage: "Capitals",
-                })}
-              </h3>
-              <p className="text-text-sub">
-                {formatMessage(
-                  {
-                    id: "app.admin.actions.create.reviewCapitalsCount",
-                    defaultMessage: "{count} selected",
-                  },
-                  { count: data.capitals.length }
-                )}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-text-strong">
-                {formatMessage({
-                  id: "app.admin.actions.create.reviewMedia",
-                  defaultMessage: "Media",
-                })}
-              </h3>
-              <p className="text-text-sub">
-                {formatMessage(
-                  {
-                    id: "app.admin.actions.create.reviewMediaCount",
-                    defaultMessage: "{count} files",
-                  },
-                  { count: data.media.length }
-                )}
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-text-strong">
-                {formatMessage({
-                  id: "app.admin.actions.create.reviewFormInputs",
-                  defaultMessage: "Form Inputs",
-                })}
-              </h3>
-              <p className="text-text-sub">
-                {formatMessage(
-                  {
-                    id: "app.admin.actions.create.reviewFieldsCount",
-                    defaultMessage: "{count} custom fields",
-                  },
-                  { count: data.instructionConfig.uiConfig.details.inputs.length }
-                )}
-              </p>
-            </div>
-          </div>
-        );
-      }
-
+        return <InstructionsStep form={form} />;
+      case 3:
+        return <ReviewStep form={form} domainOptions={domainOptions} />;
       default:
         return null;
     }
@@ -615,7 +181,7 @@ export default function CreateAction() {
 
   // Fields to validate per wizard step before advancing
   const stepFields: Record<number, (keyof CreateActionFormData)[]> = {
-    0: ["title", "startTime", "endTime"],
+    0: ["title", "slug", "domain", "startTime", "endTime"],
     1: ["capitals"],
   };
 
@@ -633,20 +199,44 @@ export default function CreateAction() {
   };
 
   const handleCancel = () => {
-    navigate("/actions");
+    navigate(adminRoutes.actions());
   };
 
   return (
-    <FormWizard
-      steps={stepConfigs}
-      currentStep={currentStep}
-      onNext={handleNext}
-      onBack={handleBack}
-      onCancel={handleCancel}
-      onSubmit={form.handleSubmit(onSubmit)}
-      isSubmitting={isLoading}
-    >
-      {renderStep()}
-    </FormWizard>
+    <div className="pb-6">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
+        <PageHeader
+          title={formatMessage({
+            id: "admin.actions.createAction",
+            defaultMessage: "Create action",
+          })}
+          description={formatMessage({
+            id: "cockpit.actions.createDescription",
+            defaultMessage:
+              "Define the registry record, timeline, and submission requirements for a new action.",
+          })}
+          variant="canvas"
+          backLink={{
+            to: adminRoutes.actions(),
+            label: formatMessage({
+              id: "app.actions.backToActions",
+              defaultMessage: "Back to actions",
+            }),
+          }}
+          sticky
+        />
+      </div>
+      <FormWizard
+        steps={stepConfigs}
+        currentStep={currentStep}
+        onNext={handleNext}
+        onBack={handleBack}
+        onCancel={handleCancel}
+        onSubmit={form.handleSubmit(onSubmit)}
+        isSubmitting={isLoading}
+      >
+        {renderStep()}
+      </FormWizard>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { cn, useTimeout } from "@green-goods/shared";
+import { cn, useFocusTrap, useTimeout } from "@green-goods/shared";
 import { RiCloseLine } from "@remixicon/react";
 import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -63,37 +63,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   }, [isOpen]);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useEffect(() => {
-    if (!isOpen) return;
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-
-      const focusable = dialog.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    dialog.addEventListener("keydown", handleKeyDown);
-    const closeBtn = dialog.querySelector<HTMLElement>('[data-testid="modal-drawer-close"]');
-    closeBtn?.focus();
-
-    return () => dialog.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  useFocusTrap(dialogRef, { enabled: isOpen });
 
   const handleClose = () => {
     setIsClosing(true);

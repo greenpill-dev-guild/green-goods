@@ -75,7 +75,7 @@ vi.mock("viem", () => ({
   },
 }));
 
-import { CookieJarManageModal } from "@/components/Work/CookieJarManageModal";
+import { CookieJarManageModal } from "@/views/Hub/components/CookieJarManageModal";
 
 const defaultProps = {
   isOpen: true,

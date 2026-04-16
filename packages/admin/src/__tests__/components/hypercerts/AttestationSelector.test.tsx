@@ -18,6 +18,10 @@ vi.mock("@green-goods/shared", () => ({
   formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
   ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon"],
   filterAttestationsByAssessment: (attestations: any[]) => attestations,
+  Alert: ({ children }: { children?: React.ReactNode }) => {
+    const React = require("react");
+    return React.createElement("div", { role: "alert" }, children);
+  },
   // Minimal FormInput mock for search functionality with accessible label
   FormInput: ({
     id,
@@ -50,7 +54,7 @@ vi.mock("@green-goods/shared", () => ({
   },
 }));
 
-import { AttestationSelector } from "../../../components/hypercerts/steps/AttestationSelector";
+import { AttestationSelector } from "../../../components/Hypercerts/Steps/AttestationSelector";
 
 // ============================================
 // Test Fixtures
@@ -101,7 +105,7 @@ const mockAttestations: HypercertAttestation[] = [
   }),
 ];
 
-describe("components/hypercerts/AttestationSelector", () => {
+describe("components/Hypercerts/AttestationSelector", () => {
   const defaultProps = {
     attestations: mockAttestations,
     selectedIds: [] as string[],

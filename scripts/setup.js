@@ -181,6 +181,7 @@ See .env.schema for the full environment contract.\n`);
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
 console.log(`${c.cyan}Next steps:${c.reset}
   1. Set APP_ENV in .env, then either add \`*_OP_REF=op://...\` entries for local secrets or configure OP_ENVIRONMENT + OP_ENABLE_ENVIRONMENT_LOAD=true for service-account/bulk loading
+     • WalletConnect local secret: \`WALLETCONNECT_PROJECT_ID_OP_REF=op://<vault>/<item>/credential\`
   2. Start services: bun dev
   3. Run tests: bun run test
 

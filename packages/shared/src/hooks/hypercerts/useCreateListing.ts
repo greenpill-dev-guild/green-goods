@@ -28,8 +28,8 @@ import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
-import { queryInvalidation } from "../query-keys";
-import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
+import { queryInvalidation } from "../../config/query-keys";
+import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
 export type ListingStep =
   | "idle"

@@ -23,7 +23,7 @@ import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
-import { queryInvalidation } from "../query-keys";
+import { queryInvalidation } from "../../config/query-keys";
 
 /**
  * Session data for passkey authentication.

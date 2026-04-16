@@ -128,6 +128,18 @@ module.exports = {
       treekill: true,
     },
     {
+      name: "browser",
+      script: "bash",
+      args: "scripts/open-dev-urls.sh",
+      cwd: ".",
+      merge_logs: true,
+      autorestart: false,
+      max_restarts: 0,
+      min_uptime: "2s",
+      kill_timeout: 5000,
+      treekill: true,
+    },
+    {
       name: "storybook",
       script: "sh",
       args: `-c "${killPort(PORTS.storybook)} && cd packages/shared && bun run storybook"`,

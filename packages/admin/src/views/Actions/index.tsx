@@ -1,91 +1,134 @@
 import {
-  ActionBannerFallback,
+  type Action,
   type ActionFiltersState,
   type ActionSortOrder,
-  cn,
+  Button,
+  WorkbenchList,
+  WorkbenchRow,
+  EmptyState,
   DEFAULT_CHAIN_ID,
+  DOMAIN_CONFIG,
   Domain,
-  formatDate,
-  ImageWithFallback,
+  adminRoutes,
   useActions,
+  useFabConfig,
   useFilteredActions,
   useRole,
   useUrlFilters,
+  formatDate,
 } from "@green-goods/shared";
-import { RiAddLine, RiCalendarLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
+import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
+import { RiAddLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { ListToolbar } from "@/components/ui/ListToolbar";
-import { SkeletonGrid } from "@/components/ui/Skeleton";
-import { SortSelect } from "@/components/ui/SortSelect";
 
-interface ActionCardMediaProps {
-  src?: string;
-  alt: string;
-  domain: Domain;
-  title: string;
-}
-
-function ActionCardMedia({ src, alt, domain, title }: ActionCardMediaProps) {
-  return (
-    <div className="relative h-40 w-full overflow-hidden">
-      <ImageWithFallback
-        src={src || ""}
-        alt={alt}
-        className="w-full h-40 object-cover"
-        fallbackClassName="w-full h-40"
-        backgroundFallback={<ActionBannerFallback domain={domain} title={title} />}
-      />
-    </div>
-  );
-}
-
-const DOMAIN_TAGS: { value: Domain; labelId: string; activeClass: string }[] = [
-  {
-    value: Domain.SOLAR,
-    labelId: "app.domain.tab.solar",
-    activeClass: "bg-away-lighter text-away-dark border-away-light",
-  },
-  {
-    value: Domain.AGRO,
-    labelId: "app.domain.tab.agro",
-    activeClass: "bg-success-lighter text-success-dark border-success-light",
-  },
-  {
-    value: Domain.EDU,
-    labelId: "app.domain.tab.education",
-    activeClass: "bg-information-lighter text-information-dark border-information-light",
-  },
-  {
-    value: Domain.WASTE,
-    labelId: "app.domain.tab.waste",
-    activeClass: "bg-warning-lighter text-warning-dark border-warning-light",
-  },
-];
+const DOMAIN_FILTER_OPTIONS = (
+  Object.entries(DOMAIN_CONFIG) as [string, (typeof DOMAIN_CONFIG)[Domain]][]
+).map(([key, config]) => ({
+  value: Number(key) as Domain,
+  labelId: config.labelId,
+  colors: config.colors,
+}));
 
 const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
   sort: "default",
   domain: undefined,
   search: undefined,
+  lifecycle: "all",
 };
+
+type LifecycleStage = "all" | "active" | "upcoming" | "completed";
+
+const LIFECYCLE_TABS: { id: LifecycleStage; labelId: string; defaultLabel: string }[] = [
+  { id: "all", labelId: "cockpit.actions.stage.all", defaultLabel: "All" },
+  { id: "active", labelId: "cockpit.actions.stage.active", defaultLabel: "Active" },
+  { id: "upcoming", labelId: "cockpit.actions.stage.upcoming", defaultLabel: "Upcoming" },
+  { id: "completed", labelId: "cockpit.actions.stage.completed", defaultLabel: "Completed" },
+];
+
+function normalizeTimestamp(value: number): number {
+  return value > 10_000_000_000 ? value : value * 1000;
+}
+
+function getActionLifecycleState(action: Pick<Action, "startTime" | "endTime">) {
+  const now = Date.now();
+  const start = normalizeTimestamp(action.startTime);
+  const end = normalizeTimestamp(action.endTime);
+
+  if (now < start) {
+    return "upcoming" as const;
+  }
+
+  if (now > end) {
+    return "completed" as const;
+  }
+
+  return "active" as const;
+}
+
+function getWorkbenchTone(action: Pick<Action, "startTime" | "endTime">) {
+  const lifecycle = getActionLifecycleState(action);
+  if (lifecycle === "upcoming") return "pending" as const;
+  if (lifecycle === "active") return "approved" as const;
+  return "history" as const;
+}
 
 export default function Actions() {
   const intl = useIntl();
+  const navigate = useNavigate();
   const { role } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
   const canManageActions = role === "deployer";
+
+  const actionsFabConfig = useMemo(() => {
+    if (!canManageActions) return null;
+    return {
+      icon: RiAddLine,
+      label: "Create Action",
+      actions: [
+        {
+          id: "create-action",
+          icon: RiAddLine,
+          label: "Create Action",
+          labelId: "cockpit.actions.fab.createAction",
+        },
+      ],
+      onAction: (actionId: string) => {
+        if (actionId === "create-action") {
+          navigate(adminRoutes.actionCreate());
+        }
+      },
+    };
+  }, [canManageActions, navigate]);
+  useFabConfig(actionsFabConfig);
+
   const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(ACTION_FILTER_DEFAULTS);
   const filters: ActionFiltersState = {
     sort: (urlFilters.sort as ActionSortOrder) ?? "default",
     domain: urlFilters.domain ? (Number(urlFilters.domain) as Domain) : undefined,
     search: urlFilters.search,
   };
+  const lifecycle = (urlFilters.lifecycle as LifecycleStage) ?? "all";
   const isRefreshing = isFetching && !isLoading;
 
   const { filteredActions } = useFilteredActions(actions, filters);
+
+  const lifecycleCounts = useMemo(() => {
+    const counts = { all: actions.length, active: 0, upcoming: 0, completed: 0 };
+    for (const action of actions) {
+      counts[getActionLifecycleState(action)] += 1;
+    }
+    return counts;
+  }, [actions]);
+
+  const stageFilteredActions = useMemo(() => {
+    if (lifecycle === "all") return filteredActions;
+    return filteredActions.filter((action) => getActionLifecycleState(action) === lifecycle);
+  }, [filteredActions, lifecycle]);
 
   const toggleDomain = (domain: Domain) => {
     setFilter("domain", filters.domain === domain ? undefined : String(domain));
@@ -108,24 +151,19 @@ export default function Actions() {
 
   const showToolbar = !isLoading && actions.length > 0;
 
-  const description = isLoading
-    ? intl.formatMessage({ id: "admin.actions.loading" })
-    : intl.formatMessage(
-        {
-          id: "admin.actions.description",
-          defaultMessage: "{count} {count, plural, one {action} other {actions}} available",
-        },
-        { count: actions.length }
-      );
-
   return (
     <div className="pb-6">
-      <PageHeader
-        title="Actions"
-        description={description}
-        sticky
-        actions={
-          <div className="flex items-center gap-2">
+      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-4 sm:px-6">
+        <PageHeader
+          title={intl.formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
+          description={intl.formatMessage({
+            id: "cockpit.actions.description",
+            defaultMessage:
+              "Scan the registry, review lifecycle status, and maintain submission requirements.",
+          })}
+          variant="canvas"
+          sticky
+          actions={
             <Button
               size="sm"
               variant="secondary"
@@ -139,162 +177,175 @@ export default function Actions() {
                 id: isRefreshing ? "app.common.refreshing" : "app.common.refresh",
               })}
             </Button>
-            {canManageActions && (
-              <Button size="sm" asChild>
-                <Link to="/actions/create">
-                  <RiAddLine className="mr-1.5 h-4 w-4" />
-                  {intl.formatMessage({
-                    id: "admin.actions.createAction",
-                    defaultMessage: "Create action",
+          }
+          toolbar={
+            showToolbar ? (
+              <div className="flex flex-col gap-3">
+                <AdminTabRail
+                  ariaLabel={intl.formatMessage({
+                    id: "cockpit.actions.lifecycleSwitcher",
+                    defaultMessage: "Filter actions by lifecycle",
                   })}
-                </Link>
-              </Button>
-            )}
-          </div>
-        }
-        toolbar={
-          showToolbar ? (
-            <ListToolbar
-              search={filters.search ?? ""}
-              onSearchChange={(value) => setFilter("search", value || undefined)}
-              searchPlaceholder={intl.formatMessage({
-                id: "admin.actions.searchPlaceholder",
-                defaultMessage: "Search actions...",
-              })}
-            >
-              <SortSelect
-                value={filters.sort}
-                onChange={(value) => setFilter("sort", value)}
-                options={sortOptions}
-              />
-              <div
-                className="flex flex-wrap items-center gap-1.5"
-                role="group"
-                aria-label={intl.formatMessage({
-                  id: "admin.actions.filterByDomain",
-                  defaultMessage: "Filter by domain",
-                })}
-              >
-                {DOMAIN_TAGS.map((tag) => {
-                  const isActive = filters.domain === tag.value;
-                  return (
-                    <button
+                  activeId={lifecycle}
+                  onChange={(next) => setFilter("lifecycle", next === "all" ? undefined : next)}
+                  tabs={LIFECYCLE_TABS.map((tab) => ({
+                    id: tab.id,
+                    label: intl.formatMessage({
+                      id: tab.labelId,
+                      defaultMessage: tab.defaultLabel,
+                    }),
+                    count: lifecycleCounts[tab.id] || undefined,
+                  }))}
+                />
+                <AdminSearchToolbar
+                  search={filters.search ?? ""}
+                  onSearchChange={(value) => setFilter("search", value || undefined)}
+                  placeholder={intl.formatMessage({
+                    id: "admin.actions.searchPlaceholder",
+                    defaultMessage: "Search actions...",
+                  })}
+                >
+                  {sortOptions.map((option) => (
+                    <AdminFilterChip
+                      key={option.value}
+                      label={option.label}
+                      selected={filters.sort === option.value}
+                      onToggle={() => setFilter("sort", option.value)}
+                    />
+                  ))}
+                  {DOMAIN_FILTER_OPTIONS.map((tag) => (
+                    <AdminFilterChip
                       key={tag.value}
-                      type="button"
-                      onClick={() => toggleDomain(tag.value)}
-                      className={cn(
-                        "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
-                        isActive
-                          ? tag.activeClass
-                          : "border-stroke-soft bg-bg-white text-text-sub hover:bg-bg-soft"
-                      )}
-                      aria-pressed={isActive}
-                    >
-                      {intl.formatMessage({ id: tag.labelId })}
-                    </button>
-                  );
-                })}
+                      label={intl.formatMessage({ id: tag.labelId })}
+                      selected={filters.domain === tag.value}
+                      onToggle={() => toggleDomain(tag.value)}
+                    />
+                  ))}
+                </AdminSearchToolbar>
               </div>
-            </ListToolbar>
-          ) : undefined
-        }
-      />
+            ) : undefined
+          }
+        />
 
-      <div className="mt-6 space-y-6 px-4 sm:px-6">
-        {isLoading && (
-          <div role="status" aria-live="polite">
+        {isLoading ? (
+          <div className="canvas-route-shell space-y-3" role="status" aria-live="polite">
             <span className="sr-only">
               {intl.formatMessage({
                 id: "admin.actions.loadingMessage",
                 defaultMessage: "Loading actions...",
               })}
             </span>
-            <SkeletonGrid count={6} columns={3} />
-          </div>
-        )}
-
-        {!isLoading && actions.length === 0 && (
-          <EmptyState
-            icon={<RiFileListLine className="h-6 w-6" />}
-            title={intl.formatMessage({
-              id: "admin.actions.noActions",
-              defaultMessage: "No actions yet",
-            })}
-            description={intl.formatMessage({
-              id: "admin.actions.noActionsDescription",
-              defaultMessage: "Get started by creating your first action.",
-            })}
-          />
-        )}
-
-        {!isLoading && actions.length > 0 && filteredActions.length === 0 && (
-          <EmptyState
-            icon={<RiFileListLine className="h-6 w-6" />}
-            title={intl.formatMessage({
-              id: "admin.actions.noResults",
-              defaultMessage: "No actions match your filters",
-            })}
-            action={{
-              label: intl.formatMessage({
-                id: "admin.actions.resetFilters",
-                defaultMessage: "Reset filters",
-              }),
-              onClick: resetFilters,
-            }}
-          />
-        )}
-
-        {!isLoading && filteredActions.length > 0 && (
-          <div className="stagger-children grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredActions.map((action) => (
-              <Link
-                key={action.id}
-                to={`/actions/${action.id}`}
-                data-testid="action-card"
-                className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white transition hover:border-primary-base hover:shadow-md"
-              >
-                <ActionCardMedia
-                  src={action.media[0]}
-                  alt={action.title}
-                  domain={action.domain}
-                  title={action.title}
-                />
-
-                <div className="p-6">
-                  <h3
-                    className="text-xl font-semibold text-text-strong mb-2 group-hover:text-primary-dark line-clamp-1"
-                    title={action.title}
-                  >
-                    {action.title}
-                  </h3>
-
-                  <p
-                    className="text-sm text-text-sub mb-4 line-clamp-2"
-                    title={action.description || undefined}
-                  >
-                    {action.description ||
-                      intl.formatMessage({
-                        id: "admin.actions.noDescription",
-                        defaultMessage: "No description",
-                      })}
-                  </p>
-
-                  <div className="flex items-center text-xs text-text-soft">
-                    <div className="flex items-center gap-1">
-                      <RiCalendarLine className="h-4 w-4 shrink-0" />
-                      <span
-                        className="truncate"
-                        title={`${formatDate(action.startTime)} - ${formatDate(action.endTime)}`}
-                      >
-                        {formatDate(action.startTime)} - {formatDate(action.endTime)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={`action-skeleton-${index}`}
+                className="h-20 rounded-sm skeleton-shimmer"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              />
             ))}
           </div>
-        )}
+        ) : null}
+
+        {!isLoading && actions.length === 0 ? (
+          <div className="canvas-route-shell">
+            <EmptyState
+              icon={<RiFileListLine className="h-6 w-6" />}
+              title={intl.formatMessage({
+                id: "admin.actions.noActions",
+                defaultMessage: "No actions yet",
+              })}
+              description={intl.formatMessage({
+                id: "admin.actions.noActionsDescription",
+                defaultMessage: "Get started by creating your first action.",
+              })}
+              action={
+                canManageActions
+                  ? {
+                      label: intl.formatMessage({
+                        id: "app.actions.createFirst",
+                        defaultMessage: "Create your first action",
+                      }),
+                      onClick: () => navigate(adminRoutes.actionCreate()),
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        ) : null}
+
+        {!isLoading && actions.length > 0 && stageFilteredActions.length === 0 ? (
+          <div className="canvas-route-shell">
+            <EmptyState
+              icon={<RiFileListLine className="h-6 w-6" />}
+              title={intl.formatMessage({
+                id: "admin.actions.noResults",
+                defaultMessage: "No actions match your filters",
+              })}
+              action={{
+                label: intl.formatMessage({
+                  id: "admin.actions.resetFilters",
+                  defaultMessage: "Reset filters",
+                }),
+                onClick: resetFilters,
+              }}
+            />
+          </div>
+        ) : null}
+
+        {!isLoading && stageFilteredActions.length > 0 ? (
+          <WorkbenchList aria-label={intl.formatMessage({ id: "app.admin.nav.actions" })}>
+            {stageFilteredActions.map((action) => {
+              const stage = getActionLifecycleState(action);
+              const domainLabel = intl.formatMessage({
+                id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
+              });
+
+              return (
+                <WorkbenchRow
+                  key={action.id}
+                  eyebrow={domainLabel}
+                  title={action.title}
+                  description={
+                    action.description ||
+                    intl.formatMessage({
+                      id: "admin.actions.noDescription",
+                      defaultMessage: "No description",
+                    })
+                  }
+                  meta={[
+                    `${formatDate(action.startTime)} - ${formatDate(action.endTime)}`,
+                    intl.formatMessage(
+                      {
+                        id: "cockpit.actions.inputsCount",
+                        defaultMessage: "{count} {count, plural, one {field} other {fields}}",
+                      },
+                      { count: action.inputs.length }
+                    ),
+                    intl.formatMessage(
+                      {
+                        id: "app.actions.detail.capitalsForms",
+                        defaultMessage: "{count} capital forms",
+                      },
+                      { count: action.capitals.length }
+                    ),
+                  ]}
+                  statusLabel={intl.formatMessage({
+                    id: `cockpit.actions.status.${stage}`,
+                    defaultMessage:
+                      stage === "active"
+                        ? "Active"
+                        : stage === "upcoming"
+                          ? "Upcoming"
+                          : "Completed",
+                  })}
+                  statusTone={getWorkbenchTone(action)}
+                  leadingIcon={RiFileListLine}
+                  thumbnailSrc={action.media[0] ?? undefined}
+                  onClick={() => navigate(adminRoutes.actionDetail(action.id))}
+                />
+              );
+            })}
+          </WorkbenchList>
+        ) : null}
       </div>
     </div>
   );

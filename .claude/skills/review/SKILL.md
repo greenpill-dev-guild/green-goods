@@ -15,7 +15,6 @@ last_verified: "2026-02-19"
 Code review workflow: request reviews, perform 6-pass analysis, process feedback.
 
 **References**: See `CLAUDE.md` for codebase patterns and conventions. Use `code-reviewer` agent for PRs.
-Canonical output contract: `.claude/standards/output-contracts.md`.
 
 ---
 
@@ -193,6 +192,8 @@ bun run verify:contracts:fast  # Quick: skip E2E and dry runs
 
 ## Part 2: Review Output
 
+This skill is the canonical review output contract.
+
 ```markdown
 ## Code Review: [PR Title]
 
@@ -240,6 +241,15 @@ bun run verify:contracts:fast  # Quick: skip E2E and dry runs
 | High | must-fix |
 | Medium | should-fix |
 | Low | nice-to-have |
+
+### Review Definition of Done
+
+- [ ] All 6 review passes executed
+- [ ] Every finding includes severity plus file:line evidence
+- [ ] Severity mapping uses `Critical|High -> must-fix`, `Medium -> should-fix`, `Low -> nice-to-have`
+- [ ] Verification commands are run before the final recommendation
+- [ ] Final verdict is `APPROVE` or `REQUEST_CHANGES`
+- [ ] Output follows this ordered structure: `Summary -> Severity Mapping -> Must-Fix -> Should-Fix -> Nice-to-Have -> Verification -> Recommendation`
 
 ### Post to GitHub
 

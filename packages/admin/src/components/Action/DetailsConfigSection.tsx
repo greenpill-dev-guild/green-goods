@@ -1,4 +1,4 @@
-import type { ActionInstructionConfig, WorkInput } from "@green-goods/shared";
+import { type ActionInstructionConfig, FormField, type WorkInput } from "@green-goods/shared";
 import {
   RiAddLine,
   RiArrowDownLine,
@@ -8,7 +8,6 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { FormField } from "@/components/ui/FormField";
 
 interface DetailsConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["details"];
@@ -321,6 +320,12 @@ function InputFieldEditor({
                 defaultMessage: "Select Dropdown",
               })}
             </option>
+            <option value="multi-select">
+              {formatMessage({
+                id: "app.admin.actions.detailsConfig.typeMultiSelect",
+                defaultMessage: "Multi-select",
+              })}
+            </option>
           </select>
         </FormField>
 
@@ -382,7 +387,7 @@ function InputFieldEditor({
       </div>
 
       {/* Options for Select type */}
-      {input.type === "select" && (
+      {(input.type === "select" || input.type === "multi-select") && (
         <div className="mt-3 pt-3 border-t border-stroke-soft">
           <FormField
             label={formatMessage({

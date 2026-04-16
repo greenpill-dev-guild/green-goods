@@ -23,6 +23,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { CONFIG_ROOT, DEPLOYMENTS_ROOT, IPFS_CACHE_PATH } from "./paths";
 
 // --- env loading (same as ipfs-uploader.ts) ---
 function loadEnvFile(envPath: string): void {
@@ -57,9 +58,9 @@ loadEnvFile(path.join(__dirname, "../../../../", ".env"));
 
 // --- config ---
 const CHAIN_ID = 42161; // Arbitrum One
-const DEPLOYMENT_FILE = path.join(process.cwd(), `deployments/${CHAIN_ID}-latest.json`);
-const CACHE_FILE = path.join(process.cwd(), ".ipfs-cache.json");
-const ACTIONS_FILE = path.join(process.cwd(), "config", "actions.json");
+const DEPLOYMENT_FILE = path.join(DEPLOYMENTS_ROOT, `${CHAIN_ID}-latest.json`);
+const CACHE_FILE = IPFS_CACHE_PATH;
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
 
 interface ActionConfig {
   title: string;

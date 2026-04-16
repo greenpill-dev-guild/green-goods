@@ -120,7 +120,6 @@ export function validateConfig(config: Config): void {
   const warnings: string[] = [];
   const errors: string[] = [];
 
-  // Check encryption secret - REQUIRED in production
   if (!config.encryptionSecret) {
     if (config.isProduction) {
       errors.push(
@@ -138,7 +137,6 @@ export function validateConfig(config: Config): void {
     }
   }
 
-  // Check webhook mode requirements - REQUIRED in production
   if (config.mode === "webhook") {
     if (!config.telegramWebhookSecret) {
       if (config.isProduction) {
@@ -152,7 +150,6 @@ export function validateConfig(config: Config): void {
     }
   }
 
-  // Check analytics configuration
   if (config.isProduction && !config.posthogApiKey) {
     warnings.push("POSTHOG_AGENT_KEY not set. Analytics will be disabled.");
   }

@@ -64,13 +64,13 @@ vi.mock("../../../utils/blockchain/abis", () => ({
   ERC20_DECIMALS_ABI: [],
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryInvalidation: {
     onCookieJarAdminAction: () => [["greengoods", "cookieJar"]],
     onCookieJarDeposit: () => [["greengoods", "cookieJar"]],
     onCookieJarWithdraw: () => [["greengoods", "cookieJar"]],
   },
-  INDEXER_LAG_FOLLOWUP_MS: 2000,
+  INDEXER_LAG_SCHEDULE_MS: [2000, 5000, 15000],
   queryKeys: {
     cookieJar: {
       all: ["greengoods", "cookieJar"],
@@ -81,7 +81,11 @@ vi.mock("../../../hooks/query-keys", () => ({
 }));
 
 vi.mock("../../../hooks/utils/useTimeout", () => ({
-  useDelayedInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
+  useProgressiveInvalidation: () => ({ start: vi.fn(), cancel: vi.fn() }),
+}));
+
+vi.mock("../../../hooks/utils/useSafeMutation", () => ({
+  useSafeMutation: (mutation: unknown) => mutation,
 }));
 
 vi.mock("../../../hooks/auth/useUser", () => ({

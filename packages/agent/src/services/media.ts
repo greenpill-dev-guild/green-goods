@@ -40,9 +40,6 @@ interface StorachaClient {
 let storachaClient: StorachaClient | null = null;
 let gatewayUrl = "https://storacha.link";
 
-/**
- * Initialize media service with Storacha credentials
- */
 export async function initMedia(key: string, proof: string, customGateway?: string): Promise<void> {
   try {
     // Dynamic imports for ES modules
@@ -61,7 +58,6 @@ export async function initMedia(key: string, proof: string, customGateway?: stri
       store: new StoreMemory(),
     })) as StorachaClient;
 
-    // Parse and add proof to the client
     const parsedProof = await Proof.parse(proof);
     const space = await storachaClient.addSpace(parsedProof);
     await storachaClient.setCurrentSpace(space.did());
@@ -76,9 +72,6 @@ export async function initMedia(key: string, proof: string, customGateway?: stri
   }
 }
 
-/**
- * Check if media service is configured
- */
 export function isMediaConfigured(): boolean {
   return storachaClient !== null;
 }
@@ -87,16 +80,12 @@ export function isMediaConfigured(): boolean {
 // UPLOADS
 // ============================================================================
 
-/**
- * Upload a buffer to IPFS via Storacha
- */
 export async function uploadBufferToIPFS(media: MediaBuffer): Promise<MediaUploadResult> {
   if (!storachaClient) {
     throw new Error("Media service not initialized. Call initMedia() first.");
   }
 
   try {
-    // Create a Blob from Buffer using Uint8Array (compatible with all Node.js versions)
     const uint8Array = new Uint8Array(media.buffer);
     const blob = new Blob([uint8Array], { type: media.mimeType });
     const file = new File([blob], media.filename, { type: media.mimeType });
@@ -123,9 +112,6 @@ export async function uploadBufferToIPFS(media: MediaBuffer): Promise<MediaUploa
   }
 }
 
-/**
- * Upload multiple media buffers in parallel
- */
 export async function uploadMediaBatch(media: MediaBuffer[]): Promise<MediaUploadResult[]> {
   if (media.length === 0) return [];
 
@@ -156,9 +142,6 @@ export async function uploadMediaBatch(media: MediaBuffer[]): Promise<MediaUploa
 // URL RESOLUTION
 // ============================================================================
 
-/**
- * Resolve an IPFS CID or URL to a gateway URL
- */
 export function resolveIPFSUrl(cidOrUrl: string): string {
   if (!cidOrUrl) return "";
 
@@ -181,9 +164,6 @@ export function resolveIPFSUrl(cidOrUrl: string): string {
   return cidOrUrl;
 }
 
-/**
- * Get IPFS CIDs from media upload results
- */
 export function getMediaCIDs(results: MediaUploadResult[]): string[] {
   return results.map((r) => r.cid);
 }

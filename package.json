@@ -25,6 +25,7 @@
     "env:validate:staging": "APP_ENV=staging varlock load --path .env.schema",
     "env:validate:production": "APP_ENV=production varlock load --path .env.schema",
     "env:validate": "bun run env:validate:development && bun run env:validate:test && bun run env:validate:staging && bun run env:validate:production",
+    "check:codex-guidance": "node scripts/check-codex-consistency.js",
     "check:claude-guidance": "node .claude/scripts/check-guidance-consistency.js",
     "prepare": "husky",
     "postinstall": "node scripts/fix-multiformats.js",
@@ -88,6 +89,8 @@
     "verify:contracts:fast": "./scripts/verify-production.sh --skip-e2e --skip-dry-run",
     "contracts:upgrade:dry:arbitrum": "APP_ENV=development varlock run -- sh -lc 'cd packages/contracts && bun run upgrade:dry:arbitrum'",
     "contracts:upgrade:arbitrum": "APP_ENV=development varlock run -- sh -lc 'cd packages/contracts && bun run upgrade:arbitrum'",
+    "contracts:deploy:action:repair:dry:arbitrum": "sh -lc 'cd packages/contracts && bun run deploy:action:repair:dry:arbitrum'",
+    "contracts:deploy:action:repair:arbitrum": "APP_ENV=development varlock run -- sh -lc 'cd packages/contracts && bun run deploy:action:repair:arbitrum'",
     "contracts:repair:octant-assets:dry:arbitrum": "APP_ENV=development varlock run -- sh -lc 'cd packages/contracts && bun run repair:octant-assets:dry:arbitrum'",
     "contracts:repair:octant-assets:arbitrum": "APP_ENV=development varlock run -- sh -lc 'cd packages/contracts && bun run repair:octant-assets:arbitrum'",
     "contracts:migrate:vaults:dry:arbitrum": "APP_ENV=development varlock run -- sh -lc 'cd packages/contracts && bun run migrate:vaults -- --network arbitrum --dry-run'",
@@ -143,7 +146,6 @@
     "@vitest/coverage-v8": "^4.0.18",
     "babel-plugin-react-compiler": "^1.0.0",
     "fake-indexeddb": "^6.2.5",
-    "files-from-path": "^1.1.4",
     "graphql": "^16.12.0",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.1",
@@ -173,7 +175,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "bash -c 'files=\"$@\"; filtered=$(echo \"$files\" | tr \" \" \"\\n\" | grep -v \"packages/contracts/out/\"); [ -n \"$filtered\" ] && echo \"$filtered\" | xargs npx @biomejs/biome format --write || true' --"
+      "bash -c 'files=\"$@\"; filtered=$(echo \"$files\" | tr \" \" \"\\n\" | grep -Ev \"packages/contracts/(\\\\.generated|out)/\"); [ -n \"$filtered\" ] && echo \"$filtered\" | xargs npx @biomejs/biome format --write || true' --"
     ]
   },
   "workspaces": [

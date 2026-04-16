@@ -4,7 +4,7 @@ sidebar_label: "Managing Payouts"
 slug: /community/operator-guide/managing-payouts
 audience: operator
 owner: docs
-last_verified: 2026-03-11
+last_verified: 2026-04-07
 feature_status: Live
 goal: "Help operators manage vault deposits, withdrawals, cookie jar payouts, and gardener compensation."
 difficulty: "standard"
@@ -14,10 +14,13 @@ next_steps: "/community/operator-guide/managing-governance"
 persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
 source_of_truth:
   - packages/admin/src/views/Gardens/Garden/Vault.tsx
-  - packages/admin/src/views/Gardens/Garden/CookieJars.tsx
+  - packages/admin/src/components/Work/CookieJarManageModal.tsx
+  - packages/admin/src/components/Work/CookieJarDepositModal.tsx
+  - packages/admin/src/components/Work/CookieJarWithdrawModal.tsx
   - packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts
   - packages/shared/src/hooks/cookie-jar/useCookieJarAdmin.ts
-  - packages/shared/src/hooks/vault/useVaultOperations.ts
+  - packages/shared/src/hooks/vault/useVaultDeposit.ts
+  - packages/shared/src/hooks/vault/useVaultWithdraw.ts
 keywords:
   - payouts
   - vault
@@ -77,8 +80,8 @@ Cookie jars provide a lightweight mechanism for small, recurring payouts to gard
 
 <FeatureState
   title="Cookie Jar system"
-  status="Implemented (activation pending deployment)"
-  summary="Creation/admin/deposit/withdraw hooks are implemented. Deployment activation is pending non-zero cookieJarModule address."
+  status="Live"
+  summary="Creation, funding, pause, and withdraw flows are live when the garden has an active cookie jar configured on the selected chain."
 />
 
 <StepFlow

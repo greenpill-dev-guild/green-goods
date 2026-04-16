@@ -1,0 +1,20 @@
+/** @deprecated Prefer imports from ../utils/navigation/admin-routes. */
+export {
+  ADMIN_GARDEN_SHARE_PARAM,
+  ADMIN_WORKSPACE_ROOTS,
+  adminRoutes,
+  buildAdminHref,
+  getAdminWorkspaceForPath,
+  getAdminWorkspaceRoot,
+  type AdminCommunityMode,
+  type AdminCommunityRouteContext,
+  type AdminGardenMode,
+  type AdminGardenRouteContext,
+  type AdminHubMode,
+  type AdminHubRouteContext,
+  type AdminHubSort,
+  type AdminHubView,
+  type AdminSearchValue,
+  type AdminSignalPoolType,
+  type AdminWorkspaceId,
+} from "./navigation/admin-routes";

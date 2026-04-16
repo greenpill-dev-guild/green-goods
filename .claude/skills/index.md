@@ -6,37 +6,42 @@
 
 ## Command Skills (User-Invocable)
 
-| Skill | Invoke With | Use For |
-|-------|-------------|---------|
-| **audit** | `/audit`, `/audit --loop`, `/audit --team` | Codebase health check, dead code, anti-patterns, iterative fix loop |
-| **review** | `/review`, `/review --iterate`, `/review --mode apply_fixes` | 6-pass code review, iterative fix-and-verify, cross-package verification |
-| **debug** | `/debug`, `/debug --mode tdd_bugfix` | Root cause investigation, production monitoring, test-first bugfix |
-| **meeting-notes** | `/meeting-notes` | Extract GitHub issues from meeting transcripts |
+| Skill | Invoke With | Modes | Use For |
+|-------|-------------|-------|---------|
+| **plan** | `/plan` | `--mode check`, `--mode execute`, `--mode cleanup`, `--mode teams` | Create structured implementation plans with specs, coordinate agent teams |
+| **debug** | `/debug` | `--mode incident_hotfix`, `--mode tdd_bugfix` | Root cause investigation and systematic debugging |
+| **review** | `/review` | `--mode report_only`, `--mode apply_fixes`, `--mode iterate`, `--mode verify_only` | 6-pass systematic code review with structured findings |
+| **audit** | `/audit` | `--mode loop`, `--mode team` | Dead code detection, architectural anti-patterns, and codebase health |
+| **principles** | `/principles` | `--mode team`, `--mode execute` | Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4 |
+| **architecture** | `/architecture` | `--mode boundaries`, `--mode dependencies`, `--mode complexity`, `--mode gaps`, `--mode scorecard` | Analyze software architecture — map structure, identify gaps, provide actionable suggestions |
+| **status** | `/status` | `--mode quick`, `--mode full`, `--mode focus` | Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus |
 
 ---
 
 ## Domain Skills (Auto-Loaded by Context)
 
-| Skill | Keywords | Covers |
-|-------|----------|--------|
-| **ui** | design, TailwindCSS, Radix, dialog, accessibility, Storybook, i18n, diagram | Design system, theming, primitives, compliance, stories, translation, Mermaid |
-| **react** | component, hooks, state, Zustand, TanStack Query, mutation, error boundary, XState, performance | State management, data fetching, error handling, state machines, profiling |
-| **web3** | wallet, transaction, Wagmi, passkey, contract call | Wallet/passkey auth, contract reads/writes, chain ops, tx lifecycle |
-| **contracts** | Solidity, Foundry, deploy, UUPS, security audit | Contract dev, testing, gas optimization, upgrades, security checklist |
-| **indexer** | indexer, event handler, schema.graphql, Docker | Envio handlers, entity design, Docker Compose stack, GraphQL |
-| **data-layer** | offline, PWA, job queue, IndexedDB, sync, storage | Job queue, service workers, schema design, background sync, drafts |
-| **ops** | deploy, CI, GitHub Actions, git, branch, commit, dependency, format, Biome | Deployment pipeline, CI/CD, git workflow, deps, formatting |
-| **agent** | bot, Telegram, handler, platform adapter | Bot handlers, platform adapters, crypto services |
-| **testing** | test, TDD, Vitest, Playwright, E2E, coverage | Unit tests, E2E tests, mock strategies, TDD workflow |
+| Skill | Keywords | Sub-files |
+|-------|----------|-----------|
+| **react** | React component, state management, hooks, TanStack Query, XState | tanstack-query, error-handling, xstate, performance, compiler |
+| **ui** | TailwindCSS, Radix, dialog, accessibility, Storybook | tailwindcss, radix-ui, compliance, storybook, storybook-addons, storybook-testing, i18n, mermaid |
+| **design** | design direction, spatial UI, adaptive surface, glass, material | spatial, interaction, materials, implementation, ecosystem, references |
+| **web3** | wallet, transaction, Wagmi, passkey, contract call | — |
+| **contracts** | Solidity, smart contract, Foundry, security audit, vulnerability | security |
+| **indexer** | indexer, event handler, schema.graphql, Docker, container | docker |
+| **data-layer** | offline, PWA, job queue, sync, IndexedDB | service-worker, storage-lifecycle |
+| **ops** | deploy, CI, GitHub Actions, git, branch | deployment, ci-cd, git-workflow, dependency-management, biome, vite, migration |
+| **testing** | write tests, TDD, unit test, e2e test, Vitest | vitest-patterns |
+| **bot** | bot, Telegram, handler, platform adapter | — |
 
-### Also Available (Standalone)
+---
+
+## User-Level Skills (Available Across All Projects)
 
 | Skill | Use For |
 |-------|---------|
-| **architecture** | Clean Architecture, DDD, entropy reduction, module boundaries |
-| **migration** | Cross-package breaking changes, UUPS upgrades, re-indexing |
-| **plan** | Structured implementation plans, task decomposition |
-| **agent-teams** | Coordinate multiple Claude Code sessions |
+| **meeting-notes** | Extract GitHub issues from meeting transcripts |
+| **drive** | Find, sort, and read meeting notes from Google Drive |
+| **dream-on** | Overnight autonomous cross-project exploration |
 
 ---
 
@@ -47,7 +52,6 @@
 | **oracle** | Deep research requiring 3+ sources |
 | **cracked-coder** | Complex implementation with TDD |
 | **code-reviewer** | Systematic 6-pass PR review |
-| **migration** | Cross-package migration orchestration |
 | **triage** | Issue classification and routing |
 
 ---
@@ -57,27 +61,70 @@
 ```
 What do you need?
 │
-├─► Health check / audit? ──────► /audit (or /audit --loop for fix cycle)
-├─► Review code? ───────────────► /review (or /review --iterate)
-├─► Debug something? ───────────► /debug
-├─► Extract meeting actions? ───► /meeting-notes
+├─► Create structured implementation plans with specs, coordinate agent teams? ──► /plan
+├─► Root cause investigation and systematic debugging? ──► /debug
+├─► 6-pass systematic code review with structured findings? ──► /review
+├─► Dead code detection, architectural anti-patterns, and codebase health? ──► /audit
+├─► Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4? ──► /principles
+├─► Analyze software architecture — map structure, identify gaps, provide actionable suggestions? ──► /architecture
+├─► Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus? ──► /status
 │
-├─► Working on UI? ─────────────► ui skill (sub-files: tailwind, radix, compliance, storybook, i18n)
-├─► React / state / queries? ──► react skill (sub-files: tanstack-query, error-handling, xstate, performance)
-├─► Wallet / transactions? ────► web3 skill
-├─► Smart contracts? ──────────► contracts skill (sub-file: security)
-├─► Indexer / Docker? ──────────► indexer skill (sub-file: docker)
-├─► Offline / storage? ────────► data-layer skill
-├─► Deploy / CI / git / deps? ─► ops skill (sub-files: deployment, ci-cd, git, deps, biome)
-├─► Bot development? ──────────► agent skill
-├─► Write tests? ──────────────► testing skill
+├─► React component? ──► react
+├─► TailwindCSS? ──► ui
+├─► design direction? ──► design
+├─► wallet? ──► web3
+├─► Solidity? ──► contracts
+├─► indexer? ──► indexer
+├─► offline? ──► data-layer
+├─► deploy? ──► ops
+├─► write tests? ──► testing
+├─► bot? ──► bot
 │
-├─► Architecture decision? ────► architecture skill
-├─► Breaking change? ──────────► migration skill (or migration agent)
-├─► Plan a feature? ───────────► /plan
-│
-└─► Simple change? ────────────► Direct Claude (no skill needed)
+└─► Simple change? ──► Direct Claude (no skill needed)
 ```
+
+---
+
+## Aliases
+
+Old names route to their new homes automatically:
+
+| Alias | Routes To |
+|-------|-----------|
+| `agent` | bot |
+| `security` | contracts |
+| `offline` | data-layer |
+| `storage` | data-layer |
+| `monitoring` | debug |
+| `tdd-bugfix` | debug |
+| `docker` | indexer |
+| `biome` | ops |
+| `format` | ops |
+| `migration` | ops |
+| `vite` | ops |
+| `agent-teams` | plan |
+| `teams` | plan |
+| `error-handling` | react |
+| `performance` | react |
+| `tanstack-query` | react |
+| `xstate` | react |
+| `autonomous-review` | review |
+| `cross-package-verify` | review |
+| `a11y` | ui |
+| `i18n` | ui |
+| `mermaid` | ui |
+| `radix-ui` | ui |
+| `storybook` | ui |
+| `tailwindcss` | ui |
+
+### Command Mode Shortcuts
+
+| Shortcut | Routes To |
+|----------|-----------|
+| `/teams` | `/plan --mode teams` |
+| `autonomous review` | `/review --mode apply_fixes` |
+| `cross-package-verify-mode` | `/review --mode verify_only --scope cross-package` |
+| `tdd bugfix` | `/debug --mode tdd_bugfix` |
 
 ---
 

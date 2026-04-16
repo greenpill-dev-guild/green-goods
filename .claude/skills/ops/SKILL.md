@@ -1,12 +1,12 @@
 ---
 name: ops
-description: Operations - deployment pipeline, CI/CD, git workflow, dependency management, code formatting. Use for deploying, CI configuration, git operations, branch strategy, dependency upgrades, formatting, and release management.
-version: "1.0.0"
+description: Operations - deployment pipeline, CI/CD, git workflow, dependency management, code formatting, Vite build, and cross-package migrations. Use for deploying, CI configuration, git operations, branch strategy, dependency upgrades, formatting, build tooling, and release management.
+version: "1.1.0"
 status: active
 packages: ["all"]
 dependencies: ["contracts"]
-last_updated: "2026-03-18"
-last_verified: "2026-03-18"
+last_updated: "2026-04-12"
+last_verified: "2026-04-12"
 ---
 
 # Ops Skill
@@ -24,6 +24,8 @@ Unified operations guide covering deployment, CI/CD, git workflow, dependency ma
 | Branch, commit, merge, rebase, PR, release tag, changelog | Git | [git-workflow.md](./git-workflow.md) |
 | Dependencies, lockfile, `bun install`, audit, upgrade, workspace | Dependencies | [dependency-management.md](./dependency-management.md) |
 | Format, Biome, import sorting, Prettier migration | Formatting | [biome.md](./biome.md) |
+| Vite, build config, HMR, env vars, plugins, bundle | Build Tool | [vite.md](./vite.md) |
+| Migration, breaking change, upgrade, blast radius | Migration | [migration.md](./migration.md) |
 
 ---
 
@@ -85,6 +87,10 @@ bun update wagmi                # Update specific package
 bun install --frozen-lockfile   # CI validation (catches drift)
 bun audit                       # Security vulnerability scan
 ```
+
+### Migration Rule
+
+For cross-package breaking changes, use `/plan` to create or update the owning feature hub first, then follow [migration.md](./migration.md). Migration notes belong in that hub's `reports/` directory, not in a separate global migrations folder.
 
 ---
 
@@ -163,6 +169,8 @@ Imported by `@green-goods/shared` for contract address resolution.
 | [git-workflow.md](./git-workflow.md) | Branch strategy, conventional commits, conflict resolution, release tagging, PR best practices |
 | [dependency-management.md](./dependency-management.md) | Bun workspace protocol, lockfile handling, update workflow, phantom dependencies, security audit, version pinning |
 | [biome.md](./biome.md) | Biome configuration, import organization, editor setup, Prettier migration, contracts exception (forge fmt) |
+| [vite.md](./vite.md) | Vite 7.x build tool, plugin configuration, environment variables, HMR, PWA setup, bundle optimization |
+| [migration.md](./migration.md) | Cross-package breaking changes, blast radius mapping, feature-hub reporting, execution order, rollback planning |
 
 ---
 
@@ -211,6 +219,10 @@ What ops work?
 +-- Formatting / imports? ----------> biome.md
 |     bun format / editor setup
 |
++-- Breaking change / multi-package rollout?
+|     --> migration.md
+|     --> create or update the owning /plan hub first
+|
 +-- Pre-commit validation? ---------> Quick Reference (Part 1)
       bun format && bun lint && bun run test && bun build
 ```
@@ -222,5 +234,5 @@ What ops work?
 - `contracts` -- Solidity development patterns, testing, and build system
 - `testing` -- TDD workflow, Vitest patterns, E2E with Playwright
 - `indexer` -- Event handler development, schema design, Docker setup
-- `vite` -- Frontend build configuration
-- `migration` -- Cross-package breaking changes and dependency upgrades
+- `contracts` -- ABI/storage/deployment implications for migrations
+- `plan` -- Migration plan lifecycle and team coordination

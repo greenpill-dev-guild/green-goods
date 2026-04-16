@@ -9,6 +9,7 @@ import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IHatsModuleFactory } from "../../src/interfaces/IHatsModuleFactory.sol";
 import { ICVSyncPowerFacet } from "../../src/interfaces/ICVSyncPowerFacet.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
+import { ZeroAddress, ArrayLengthMismatch } from "../../src/errors/CommonErrors.sol";
 
 /// @notice Mock conviction strategy that records syncPower calls
 contract MockConvictionStrategy is ICVSyncPowerFacet {
@@ -128,7 +129,7 @@ contract HatsModuleTest is Test {
         HatsModule impl = new HatsModule();
         bytes memory initData = abi.encodeWithSelector(HatsModule.initialize.selector, address(0), address(mockHats));
 
-        vm.expectRevert(HatsModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         new ERC1967Proxy(address(impl), initData);
     }
 
@@ -136,7 +137,7 @@ contract HatsModuleTest is Test {
         HatsModule impl = new HatsModule();
         bytes memory initData = abi.encodeWithSelector(HatsModule.initialize.selector, owner, address(0));
 
-        vm.expectRevert(HatsModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         new ERC1967Proxy(address(impl), initData);
     }
 
@@ -234,7 +235,7 @@ contract HatsModuleTest is Test {
     }
 
     function test_configureGarden_revertsOnZeroGarden() public {
-        vm.expectRevert(HatsModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         adapter.configureGarden(
             address(0),
             GARDEN1_OWNER_HAT,
@@ -686,7 +687,7 @@ contract HatsModuleTest is Test {
         address[] memory accounts = new address[](2);
         IHatsModule.GardenRole[] memory roles = new IHatsModule.GardenRole[](1);
 
-        vm.expectRevert(HatsModule.ArrayLengthMismatch.selector);
+        vm.expectRevert(ArrayLengthMismatch.selector);
         adapter.grantRoles(garden1, accounts, roles);
     }
 
@@ -1101,7 +1102,7 @@ contract HatsModuleTest is Test {
         );
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
-        vm.expectRevert(HatsModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         adapter.grantRole(garden1, address(0), IHatsModule.GardenRole.Gardener);
     }
 
@@ -1117,7 +1118,7 @@ contract HatsModuleTest is Test {
         );
         mockHats.setWearer(GARDEN1_OWNER_HAT, owner, true);
 
-        vm.expectRevert(HatsModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         adapter.revokeRole(garden1, address(0), IHatsModule.GardenRole.Gardener);
     }
 

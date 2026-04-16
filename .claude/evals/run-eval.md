@@ -1,6 +1,8 @@
 # Eval Runner Protocol
 
-Step-by-step manual protocol for running agent evaluations, comparing output against expected results, and recording scores.
+Step-by-step protocol for the runnable eval surface. This document covers only the automated `triage` and `code-reviewer` suites that remain live under `.claude/evals/`.
+
+Manual benchmark material for `oracle`, `cracked-coder`, and cross-agent handoff tests is no longer part of the active workflow.
 
 ## Prerequisites
 
@@ -13,23 +15,24 @@ Step-by-step manual protocol for running agent evaluations, comparing output aga
 
 ### Step 1: Select Eval Set
 
-Choose the agent and eval case to run:
+Choose a supported agent and eval case:
 
 ```
 .claude/evals/{agent-name}/{task-file}.md
 ```
+
+Supported agents:
+
+- `triage`
+- `code-reviewer`
 
 Read the task file to understand the scenario, then read the corresponding `expected.json` for pass/fail criteria.
 
 ### Step 2: Prepare the Environment
 
 ```bash
-# Start from clean state
-git stash  # or ensure working copy is clean
+# Prefer a clean worktree or a disposable branch
 bun install
-
-# For implementation agents (cracked-coder, migration):
-# If the task requires synthetic code, create it per the task file instructions
 ```
 
 ### Step 3: Spawn the Agent
@@ -37,8 +40,8 @@ bun install
 Launch the target agent with the eval task as input. Use a worktree to isolate changes:
 
 ```bash
-# Example: spawn cracked-coder with an eval task
-claude --agent cracked-coder --worktree "Read .claude/evals/cracked-coder/create-query-hook.md and complete the task described."
+# Example: spawn triage with an eval task
+claude --agent triage --worktree "Read .claude/evals/triage/p0-security.md and classify the issue."
 ```
 
 Record:
@@ -55,40 +58,11 @@ Open `expected.json` for the eval case and verify each check:
 - Compare `severity`, `type`, `complexity` against expected values
 - Score: exact match per field
 
-#### For Research Agents (oracle)
-
-- Check if root cause / key findings match expected items
-- Apply rubric scoring (weighted points per criterion)
-- Verify confidence ratings are present
-
 #### For Review Agents (code-reviewer)
 
 - Count true positives (expected findings found)
 - Count false positives (findings not in expected set)
 - Check verdict matches expected
-
-#### For Implementation Agents (cracked-coder, migration)
-
-Run the automated checks:
-
-```bash
-# file_exists checks
-ls -la {expected_file_paths}
-
-# pattern_present checks
-grep -n "{pattern}" {file}
-
-# pattern_absent checks (should return no results)
-grep -n "{pattern}" {file}
-
-# barrel_export check
-grep "{symbol}" {barrel_file}
-
-# Verification
-bun run test
-bun lint
-bun build
-```
 
 ### Step 5: Score the Run
 
@@ -109,9 +83,8 @@ Add a row to `.claude/evals/README.md` Historical Results table:
 ### Step 7: Clean Up
 
 ```bash
-# If using worktree, it auto-cleans on session exit
-# Otherwise, revert eval changes:
-git checkout -- .
+# If using a worktree, it auto-cleans on session exit
+# Otherwise, remove only eval artifacts you created locally
 ```
 
 ## Scoring Guide
@@ -131,14 +104,10 @@ git checkout -- .
 | triage | Classification accuracy | >= 90% |
 | code-reviewer | True positive rate | >= 85% |
 | code-reviewer | False positive rate | <= 10% |
-| oracle | Correct root cause identification | >= 80% |
-| cracked-coder | Tests pass + build succeeds | 100% |
-| migration | Per-package validation pass | 100% |
-| storybook-author | Quality checklist compliance | >= 90% |
 
 ## Automated Runner (triage, code-reviewer)
 
-For deterministic agents, use the automated eval runner instead of the manual protocol:
+Use the automated eval runner for the full live eval surface:
 
 ```bash
 # Run a single eval
@@ -154,8 +123,6 @@ For deterministic agents, use the automated eval runner instead of the manual pr
 
 The script spawns the agent via `claude -p`, scores output against `expected.json` criteria using keyword matching, and appends results to the Historical Results table. Output is saved to `.claude/evals/.runs/` for manual review.
 
-For non-deterministic agents (oracle, cracked-coder, migration, storybook-author), use the manual protocol above.
-
 ## Tips
 
 - Run evals after modifying agent definitions to catch regressions
@@ -163,3 +130,4 @@ For non-deterministic agents (oracle, cracked-coder, migration, storybook-author
 - Compare results across model versions to track improvement/degradation
 - If an agent consistently scores below target, review its constraints and workflow sections
 - Use `--dry-run` to preview scoring without recording results
+- Keep product acceptance work in `acceptance/`; it is a QA companion, not part of the automated runner

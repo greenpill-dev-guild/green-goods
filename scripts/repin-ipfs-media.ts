@@ -148,6 +148,7 @@ function usage(): never {
       "  bun scripts/repin-ipfs-media.ts --chain 42161 --audit-only --input ./broken-refs.json",
       "",
       "Include values: input,actions,gardens,works,assessments,hypercerts",
+      "Default report path: output/reports/ipfs-repin-<chainId>-<ts>.json",
       "Non-audit mode pins the original CID by fetching the existing DAG as CAR, uploading that CAR to Storacha, and syncing the CID to Pinata when PINATA_JWT is configured.",
     ].join("\n")
   );
@@ -1091,7 +1092,7 @@ async function main() {
   );
   const inputPath = values.input ? path.resolve(values.input) : null;
   const outPath = path.resolve(
-    values.out ?? `reports/ipfs-repin-${chainId}-${Date.now()}.json`
+    values.out ?? `output/reports/ipfs-repin-${chainId}-${Date.now()}.json`
   );
   const auditOnly = Boolean(values["audit-only"]);
   const deployment = await loadDeployment(chainId);

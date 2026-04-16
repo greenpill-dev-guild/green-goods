@@ -1,0 +1,18 @@
+{
+  "projectId": "",
+  "surfaces": {
+    "admin": {
+      "designMd": "packages/admin/DESIGN.md",
+      "rootDesignMd": "DESIGN.md",
+      "componentPrefix": "Admin",
+      "viewsDir": "packages/admin/src/views",
+      "designSystem": "m3-strict"
+    },
+    "client": {
+      "designMd": "packages/client/DESIGN.md",
+      "rootDesignMd": "DESIGN.md",
+      "viewsDir": "packages/client/src/views",
+      "designSystem": "warm-earth"
+    }
+  }
+}

@@ -1,12 +1,16 @@
 import {
   type Address,
+  Alert,
   AssetSelector,
+  Button,
   classifyTxError,
+  FormField,
   formatTokenAmount,
   type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   isMeaningfulTxErrorMessage,
+  TxInlineFeedback,
   useDebouncedValue,
   useUser,
   useVaultDeposits,
@@ -19,10 +23,6 @@ import { RiCloseLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
-import { Alert } from "@/components/ui/Alert";
-import { Button } from "@/components/ui/Button";
-import { FormField } from "@/components/ui/FormField";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -155,8 +155,8 @@ export function WithdrawModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[9999] bg-overlay backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+        <Dialog.Overlay className="fixed inset-0 z-overlay bg-overlay backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-elevation-5 focus:outline-none">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <Dialog.Title className="text-lg font-semibold text-text-strong">

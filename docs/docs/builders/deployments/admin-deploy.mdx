@@ -4,7 +4,7 @@ sidebar_label: Admin
 slug: /builders/deployments/admin-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-08
 feature_status: Live
 keywords: [admin, dashboard, SPA, Vite, roles, Hats Protocol]
 ---
@@ -109,9 +109,9 @@ Access checks happen client-side by querying the Hats contracts. The admin does 
 
 ### Query Persistence
 
-The admin uses `@tanstack/react-query` with a persister that caches query data to `localStorage`. This provides faster page loads on return visits without full offline support.
+The admin uses `@tanstack/react-query` persistence via the shared `createQueryPersister()` helper. This provides faster page loads on return visits without claiming full offline support.
 
-The persister configuration lives in `packages/admin/src/config/persister.ts` and uses a configurable TTL for cache invalidation.
+The admin wires persistence in `packages/admin/src/main.tsx`, and the shared persistence helpers live under `packages/shared/src/config/query-persistence.ts`.
 
 ### Storybook Integration
 

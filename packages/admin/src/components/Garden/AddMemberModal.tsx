@@ -1,6 +1,7 @@
 import {
   type Address,
   cn,
+  FormField,
   formatAddress,
   type GardenRole,
   logger,
@@ -14,7 +15,6 @@ import { RiClipboardLine, RiCloseLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
-import { FormField } from "@/components/ui/FormField";
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -120,9 +120,9 @@ export function AddMemberModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-60 bg-overlay backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
+        <Dialog.Overlay className="fixed inset-0 z-overlay bg-overlay backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-60 -translate-x-1/2 -translate-y-1/2 bg-bg-white rounded-lg shadow-2xl ring-1 ring-black/5 max-w-[calc(100vw-2rem)] sm:max-w-md w-full p-6 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
+          className="fixed left-1/2 top-1/2 z-modal -translate-x-1/2 -translate-y-1/2 bg-bg-white rounded-lg shadow-elevation-5 ring-1 ring-black/5 max-w-[calc(100vw-2rem)] sm:max-w-md w-full p-6 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200"
           onPointerDownOutside={(e) => {
             if (isLoading) e.preventDefault();
           }}

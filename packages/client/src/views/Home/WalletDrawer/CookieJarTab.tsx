@@ -1,4 +1,5 @@
 import {
+  useAccessibleCookieJars,
   ConfirmDialog,
   type CookieJar,
   formatTokenAmount,
@@ -6,7 +7,6 @@ import {
   useCookieJarWithdraw,
   useGardens,
   useOffline,
-  useUserCookieJars,
   validateDecimalInput,
 } from "@green-goods/shared";
 import React, { useMemo, useState } from "react";
@@ -160,7 +160,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
 
 export const CookieJarTab: React.FC = () => {
   const { formatMessage } = useIntl();
-  const { jars, isLoading } = useUserCookieJars();
+  const { jars, isLoading, moduleConfigured, unconfirmedGardenCount } = useAccessibleCookieJars();
   const { data: gardens = [] } = useGardens();
 
   // Group jars by garden
@@ -195,14 +195,41 @@ export const CookieJarTab: React.FC = () => {
     );
   }
 
+  if (!moduleConfigured) {
+    return (
+      <p className="p-4 text-sm text-text-soft">
+        {formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+      </p>
+    );
+  }
+
+  const unconfirmedMessage =
+    unconfirmedGardenCount > 0
+      ? formatMessage(
+          {
+            id: "app.cookieJar.walletEligibilityUnconfirmed",
+            defaultMessage:
+              "{count, plural, one {# garden is hidden until onchain access can be confirmed.} other {# gardens are hidden until onchain access can be confirmed.}}",
+          },
+          { count: unconfirmedGardenCount }
+        )
+      : null;
+
   if (jars.length === 0) {
     return (
-      <p className="p-4 text-sm text-text-soft">{formatMessage({ id: "app.cookieJar.noJars" })}</p>
+      <p className="p-4 text-sm text-text-soft">
+        {unconfirmedMessage ?? formatMessage({ id: "app.cookieJar.walletEmpty" })}
+      </p>
     );
   }
 
   return (
     <div className="space-y-4 p-4">
+      {unconfirmedMessage && (
+        <p className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-soft">
+          {unconfirmedMessage}
+        </p>
+      )}
       {groupedJars.map((group) => (
         <div key={group.gardenName}>
           <h4 className="mb-2 text-xs font-medium text-text-soft uppercase tracking-wide">

@@ -1,8 +1,7 @@
-import { logger, trackErrorBoundary } from "@green-goods/shared";
+import { Button, logger, trackErrorBoundary } from "@green-goods/shared";
 import { RiAlertLine, RiArrowLeftLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
 import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-dom";
-import { Button } from "@/components/ui/Button";
 
 /**
  * Route-level error boundary for React Router.
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/Button";
  * - Thrown responses from loaders/actions
  * - Any unhandled error during route resolution
  *
- * Placed on a pathless wrapper inside DashboardShell's children so the
+ * Placed on a pathless wrapper inside CanvasShell's children so the
  * sidebar/header stay visible when a child route errors.
  * Also placed on the root route as a full-page fallback.
  */

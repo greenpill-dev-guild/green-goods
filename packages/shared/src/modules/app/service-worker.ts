@@ -22,8 +22,8 @@ class ServiceWorkerManager {
       hasWindow &&
       "serviceWorker" in navigator &&
       "ServiceWorkerRegistration" in window &&
-      // @ts-ignore - prototype check for Background Sync support in browsers that implement it
-      "sync" in (window.ServiceWorkerRegistration.prototype as any);
+      // Background Sync support check — not in standard types yet
+      "sync" in ServiceWorkerRegistration.prototype;
 
     this.hasController =
       hasNavigator && "serviceWorker" in navigator && navigator.serviceWorker.controller !== null;
@@ -204,14 +204,14 @@ export const serviceWorkerManager = new ServiceWorkerManager();
 
 // Auto-register service worker only in production, or when explicitly enabled for tests
 if (typeof window !== "undefined") {
-  const enableDevServiceWorker = (import.meta as any).env?.VITE_ENABLE_SW_DEV === "true";
+  const enableDevServiceWorker = import.meta.env?.VITE_ENABLE_SW_DEV === "true";
 
-  if ((import.meta as any).env?.PROD || enableDevServiceWorker) {
+  if (import.meta.env?.PROD || enableDevServiceWorker) {
     serviceWorkerManager.register();
   }
 
   // In development (and when not explicitly enabled), ensure no SW interferes with HMR
-  if ((import.meta as any).env?.DEV && !enableDevServiceWorker && "serviceWorker" in navigator) {
+  if (import.meta.env?.DEV && !enableDevServiceWorker && "serviceWorker" in navigator) {
     // Best-effort cleanup: unregister existing SWs and clear caches
     navigator.serviceWorker
       .getRegistrations()

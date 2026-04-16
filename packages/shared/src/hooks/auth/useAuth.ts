@@ -26,8 +26,15 @@ import type { P256Credential } from "viem/account-abstraction";
 import { type AuthMode } from "../../modules/auth/session";
 import { useAuthContext } from "../../providers/Auth";
 
-// Export auth context hook and type
-export { type AuthContextType, useAuthContext } from "../../providers/Auth";
+// Export auth context hooks and types
+export {
+  type AuthActionsValue,
+  type AuthContextType,
+  type AuthStateValue,
+  useAuthActions,
+  useAuthContext,
+  useAuthState,
+} from "../../providers/Auth";
 
 /**
  * Unified auth context returned by useAuth.
@@ -83,6 +90,8 @@ interface UseAuthReturn {
  *
  * Requires AuthProvider to be present in the component tree.
  * Works with both passkey and wallet authentication modes.
+ *
+ * @deprecated Prefer useAuthState() for reads and useAuthActions() for mutations in new code.
  */
 export function useAuth(): UseAuthReturn {
   const auth = useAuthContext();

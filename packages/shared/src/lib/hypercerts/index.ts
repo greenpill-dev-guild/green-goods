@@ -26,4 +26,4 @@ export {
   MARKETPLACE_ADAPTER_ABI,
   HYPERCERTS_MODULE_ABI,
   TRANSFER_MANAGER_ABI,
-} from "../../hooks/hypercerts/hypercert-abis";
+} from "../../utils/blockchain/hypercert-abis";

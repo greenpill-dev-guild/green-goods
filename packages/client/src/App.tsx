@@ -1,4 +1,4 @@
-import { debugWarn, queryClient } from "@green-goods/shared";
+import { logger, queryClient } from "@green-goods/shared";
 // Note: Service worker is registered by vite-plugin-pwa (registerType: "autoUpdate")
 // Auto-update logic (foreground checks + controllerchange reload) is in main.tsx
 import type { Query } from "@tanstack/react-query";
@@ -18,7 +18,7 @@ const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persiste
       try {
         storage.setItem("__rq_pc__", JSON.stringify(client));
       } catch (error) {
-        debugWarn("[Persister] Failed to persist client to storage:", error);
+        logger.warn("[Persister] Failed to persist client to storage", { error });
       }
     },
     restoreClient: async (): Promise<PersistedClient | undefined> => {
@@ -26,7 +26,7 @@ const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persiste
         const raw = storage.getItem("__rq_pc__");
         return raw ? (JSON.parse(raw) as PersistedClient) : undefined;
       } catch (error) {
-        debugWarn("[Persister] Failed to restore client from storage:", error);
+        logger.warn("[Persister] Failed to restore client from storage", { error });
         return undefined;
       }
     },
@@ -34,7 +34,7 @@ const createSyncStoragePersister = ({ storage }: { storage: Storage }): Persiste
       try {
         storage.removeItem("__rq_pc__");
       } catch (error) {
-        debugWarn("[Persister] Failed to remove client from storage:", error);
+        logger.warn("[Persister] Failed to remove client from storage", { error });
       }
     },
   } as Persister;
@@ -54,14 +54,14 @@ const createIDBPersister = ({
         try {
           await idbSet("__rq_pc__", client, store);
         } catch (error) {
-          debugWarn("[Persister] Failed to persist client to IndexedDB:", error);
+          logger.warn("[Persister] Failed to persist client to IndexedDB", { error });
         }
       },
       restoreClient: async (): Promise<PersistedClient | undefined> => {
         try {
           return (await idbGet("__rq_pc__", store)) as PersistedClient | undefined;
         } catch (error) {
-          debugWarn("[Persister] Failed to restore client from IndexedDB:", error);
+          logger.warn("[Persister] Failed to restore client from IndexedDB", { error });
           return undefined;
         }
       },
@@ -69,12 +69,14 @@ const createIDBPersister = ({
         try {
           await idbDel("__rq_pc__", store);
         } catch (error) {
-          debugWarn("[Persister] Failed to remove client from IndexedDB:", error);
+          logger.warn("[Persister] Failed to remove client from IndexedDB", { error });
         }
       },
     } as Persister;
   } catch (e) {
-    debugWarn("[Persister] Failed to initialize IndexedDB persister, falling back to storage:", e);
+    logger.warn("[Persister] Failed to initialize IndexedDB persister, falling back to storage", {
+      error: e,
+    });
     return undefined;
   }
 };

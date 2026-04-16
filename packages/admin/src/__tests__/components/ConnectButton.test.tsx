@@ -4,13 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ConnectButton } from "@/components/ConnectButton";
 
 const mockLoginWithWallet = vi.fn();
-const mockUseAuth = vi.fn();
 const mockOpen = vi.fn();
 const mockUseAccount = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-  useAuth: () => mockUseAuth(),
+  useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+  useAuthActions: () => ({ loginWithWallet: mockLoginWithWallet }),
 }));
 
 vi.mock("@reown/appkit/react", () => ({
@@ -32,9 +32,6 @@ function renderWithIntl(ui: React.ReactElement) {
 describe("ConnectButton", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseAuth.mockReturnValue({
-      loginWithWallet: mockLoginWithWallet,
-    });
     mockUseAccount.mockReturnValue({
       isConnecting: false,
     });

@@ -1,8 +1,7 @@
-import type { ActionInstructionConfig } from "@green-goods/shared";
+import { type ActionInstructionConfig, FormField } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { FormField } from "@/components/ui/FormField";
 
 interface MediaConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["media"];

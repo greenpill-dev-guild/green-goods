@@ -7,12 +7,12 @@
 import fs from "fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 // We'll use direct DB access instead of the adapter pattern
-import { getDB, initDB } from "../services/db";
+import { closeDB, getDB, initDB } from "../services/db";
 import type { CreateUserInput, Session, WorkDraftData } from "../types";
 
 // Test database path
 const TEST_DB_DIR = "data/test";
-const TEST_DB_PATH = `${TEST_DB_DIR}/test-storage-vitest.db`;
+const TEST_DB_PATH = `${TEST_DB_DIR}/test-storage-vitest-${process.pid}-${Date.now()}.db`;
 
 beforeAll(() => {
   // Ensure test directory exists
@@ -30,11 +30,7 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
-  // Close DB connection before deleting files (required for Windows file-lock cleanup)
-  const db = getDB();
-  if (db && typeof db.close === "function") {
-    db.close();
-  }
+  await closeDB();
 
   // Remove main database and companion WAL/SHM files
   const filesToRemove = [TEST_DB_PATH, `${TEST_DB_PATH}-wal`, `${TEST_DB_PATH}-shm`];

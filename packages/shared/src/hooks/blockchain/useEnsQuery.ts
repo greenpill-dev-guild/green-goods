@@ -8,7 +8,7 @@
  */
 
 import { type UseQueryResult, useQuery } from "@tanstack/react-query";
-import { STALE_TIME_RARE } from "../query-keys";
+import { STALE_TIME_RARE } from "../../config/query-keys";
 
 /** Default stale time for ENS queries (5 minutes) */
 const DEFAULT_ENS_STALE_TIME = STALE_TIME_RARE;

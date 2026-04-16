@@ -1,7 +1,6 @@
-import { formatAddress, useAddressInput, useCreateGardenStore } from "@green-goods/shared";
+import { Button, formatAddress, useAddressInput, useCreateGardenStore } from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/ui/Button";
 
 export function TeamStep() {
   const form = useCreateGardenStore((s) => s.form);

@@ -1,4 +1,17 @@
-import "react";
+import type * as React from "react";
+
+type AppKitButtonElement = React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+
+declare module "react" {
+  namespace JSX {
+    interface IntrinsicElements {
+      /**
+       * The AppKit button web component. Registered globally by AppKit.
+       */
+      "appkit-button": AppKitButtonElement;
+    }
+  }
+}
 
 declare global {
   namespace JSX {
@@ -6,7 +19,7 @@ declare global {
       /**
        * The AppKit button web component. Registered globally by AppKit.
        */
-      "appkit-button": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+      "appkit-button": AppKitButtonElement;
     }
   }
 }

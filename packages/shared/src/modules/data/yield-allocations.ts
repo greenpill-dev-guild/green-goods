@@ -26,6 +26,17 @@ const ALL_YIELD_ALLOCATIONS_QUERY = /* GraphQL */ `
   }
 `;
 
+const GARDEN_YIELD_ALLOCATIONS_QUERY = /* GraphQL */ `
+  query GardenYieldAllocations($garden: String!, $chainId: Int!) {
+    YieldAllocation(
+      where: { garden: { _eq: $garden }, chainId: { _eq: $chainId } }
+      order_by: { timestamp: desc }
+    ) {
+      ${YIELD_ALLOCATION_FIELDS}
+    }
+  }
+`;
+
 interface YieldAllocationRow {
   garden: string;
   asset: string;
@@ -38,6 +49,10 @@ interface YieldAllocationRow {
 }
 
 interface AllYieldAllocationsResponse {
+  YieldAllocation?: YieldAllocationRow[];
+}
+
+interface GardenYieldAllocationsResponse {
   YieldAllocation?: YieldAllocationRow[];
 }
 
@@ -73,6 +88,33 @@ export async function getAllYieldAllocations(
       error: error.message,
     });
     throw new Error(`Failed to load yield allocations: ${error.message}`);
+  }
+
+  return (data?.YieldAllocation ?? []).map(mapYieldAllocation);
+}
+
+/**
+ * Fetch all yield allocation records for a single garden on a chain.
+ * Used for garden-scoped yield aggregation.
+ */
+export async function getGardenYieldAllocations(
+  gardenAddress: Address,
+  chainId: number = DEFAULT_CHAIN_ID
+): Promise<YieldAllocation[]> {
+  const normalizedGarden = gardenAddress.toLowerCase() as Address;
+  const { data, error } = await greenGoodsIndexer.query<GardenYieldAllocationsResponse>(
+    GARDEN_YIELD_ALLOCATIONS_QUERY,
+    { garden: normalizedGarden, chainId },
+    "GardenYieldAllocations"
+  );
+
+  if (error) {
+    logger.error("[getGardenYieldAllocations] Indexer query failed", {
+      gardenAddress: normalizedGarden,
+      chainId,
+      error: error.message,
+    });
+    throw new Error(`Failed to load garden yield allocations: ${error.message}`);
   }
 
   return (data?.YieldAllocation ?? []).map(mapYieldAllocation);

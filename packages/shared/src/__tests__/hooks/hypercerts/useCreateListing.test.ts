@@ -56,7 +56,7 @@ vi.mock("../../../modules/marketplace", () => ({
   validateOrder: (...args: unknown[]) => mockValidateOrder(...args),
 }));
 
-vi.mock("../../../hooks/hypercerts/hypercert-abis", () => ({
+vi.mock("../../../utils/blockchain/hypercert-abis", () => ({
   HYPERCERTS_MODULE_ABI: [],
 }));
 
@@ -94,7 +94,7 @@ vi.mock("../../../stores/useAdminStore", () => ({
     selector({ selectedChainId: 11155111 }),
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryInvalidation: {
     onMarketplaceListingChanged: () => [["greengoods", "marketplace"]],
   },

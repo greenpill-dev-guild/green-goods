@@ -15,7 +15,7 @@ import { createPublicClientForChain } from "../../config/pimlico";
 import {
   HYPERCERTS_MODULE_ABI,
   MARKETPLACE_ADAPTER_ABI,
-} from "../../hooks/hypercerts/hypercert-abis";
+} from "../../utils/blockchain/hypercert-abis";
 import type { FractionTrade, RegisteredOrderView } from "../../types/hypercerts";
 import { isZeroAddress, ZERO_ADDRESS } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";

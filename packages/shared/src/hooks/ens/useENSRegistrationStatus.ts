@@ -26,7 +26,7 @@ import {
   GreenGoodsENSABI,
   getNetworkContracts,
 } from "../../utils/blockchain/contracts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 /**
  * Minimal ABI for querying the L1 ENSReceiver's getRegistration view.
@@ -73,8 +73,7 @@ function getENSL1ChainId(l2ChainId: number): number | null {
 function createL1Client(l1ChainId: number) {
   const chain = l1ChainId === 1 ? mainnet : sepolia;
   const alchemyKey =
-    (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_ALCHEMY_API_KEY) ||
-    "demo";
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_ALCHEMY_API_KEY) || "demo";
   const rpcUrl = getRpcUrl(l1ChainId, alchemyKey);
 
   return createPublicClient({

@@ -57,15 +57,11 @@ async function main(): Promise<void> {
     logger.warn("STORACHA_KEY and STORACHA_PROOF not configured - photo uploads will be disabled");
   }
 
-  // Create Telegram bot
   const bot = createTelegramBot({ token: config.telegramToken }, handleMessage);
 
-  // Create platform-specific adapters
   const voiceProcessor = createVoiceProcessor(bot, (audioPath) => ai.transcribe(audioPath));
   const photoProcessor = isMediaConfigured() ? createPhotoProcessor(bot) : undefined;
   const notifier = createNotifier(bot);
-
-  // Set handler context with platform adapters
   setHandlerContext({ voiceProcessor, photoProcessor, notifier });
 
   // ============================================================================
@@ -73,18 +69,15 @@ async function main(): Promise<void> {
   // ============================================================================
 
   if (config.mode === "webhook") {
-    // Webhook mode: Start HTTP server
     const server = createServer({
       isAIReady: isAIModelLoaded,
     });
 
-    // Set up Telegram webhook
     const webhookPath = `/webhook/telegram`;
     await bot.telegram.setWebhook(`${process.env.WEBHOOK_URL}${webhookPath}`, {
       secret_token: config.telegramWebhookSecret,
     });
 
-    // Add Telegram webhook handler to server
     // SECURITY: Always verify webhook secret when configured
     server.post(webhookPath, async (request, reply) => {
       const secretToken = request.headers["x-telegram-bot-api-secret-token"];

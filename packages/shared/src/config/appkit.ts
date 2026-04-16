@@ -32,6 +32,14 @@ type AppKitInitOptions = {
   defaultChainId?: number;
 };
 
+function normalizeOptionalProjectId(value?: string): string {
+  const normalized = value?.trim();
+  if (!normalized || normalized === "''" || normalized === '""') {
+    return "";
+  }
+  return normalized;
+}
+
 /**
  * Canonical app URL for wallet connect metadata.
  * Production: always use www.greengoods.app (consistent across IPFS gateways, in-app browsers)
@@ -56,7 +64,7 @@ const defaultMetadata: AppKitMetadata = {
   icons: ["https://www.greengoods.app/icon.png"],
 };
 
-const defaultProjectId = ENV.VITE_WALLETCONNECT_PROJECT_ID;
+const defaultProjectId = normalizeOptionalProjectId(ENV.VITE_WALLETCONNECT_PROJECT_ID);
 
 let appKitInstance: ReturnType<typeof createAppKit> | null = null;
 let wagmiAdapterInstance: WagmiAdapter | null = null;
@@ -69,8 +77,8 @@ export function ensureAppKit(options?: AppKitInitOptions) {
   // Skip initialization in Node.js/Server environment
   if (typeof window === "undefined") {
     return {
-      appKit: null as any,
-      wagmiConfig: null as any,
+      appKit: null as ReturnType<typeof createAppKit> | null,
+      wagmiConfig: null as WagmiAdapter["wagmiConfig"] | null,
     };
   }
 
@@ -81,10 +89,12 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     };
   }
 
-  const projectId = options?.projectId ?? defaultProjectId ?? "";
+  const projectId = normalizeOptionalProjectId(options?.projectId) || defaultProjectId || "";
 
   if (!projectId) {
-    logger.warn("[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Wallet login will not work.");
+    logger.warn(
+      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Add WALLETCONNECT_PROJECT_ID_OP_REF to the root .env so varlock can resolve the WalletConnect project ID."
+    );
   }
 
   const metadata = options?.metadata ?? defaultMetadata;
@@ -96,8 +106,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
 
   // Type assertion needed due to viem version mismatch between main dependency
   // and @reown/appkit-common's bundled viem. Runtime compatible.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const networks = chains as any;
+  const networks = chains as unknown as Parameters<typeof createAppKit>[0]["networks"];
 
   wagmiAdapterInstance = new WagmiAdapter({
     networks,
@@ -113,7 +122,9 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     metadata,
     enableNetworkSwitch: false,
-    defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID) as any,
+    defaultNetwork: getChain(
+      options?.defaultChainId ?? DEFAULT_CHAIN_ID
+    ) as (typeof networks)[number],
     features: {
       analytics: false, // Disable AppKit analytics (we use PostHog)
       email: true, // Enable email login (AppKit embedded wallet)

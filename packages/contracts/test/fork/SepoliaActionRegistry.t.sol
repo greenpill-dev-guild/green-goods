@@ -58,8 +58,9 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
         ActionRegistry.Action memory updated = actionRegistry.getAction(0);
         assertEq(updated.title, "Updated Sepolia Planting", "title should be updated");
 
-        // Disable by setting endTime to past
+        // Disable by shortening the action window, then advance time past it
         actionRegistry.updateActionEndTime(0, startTime + 1);
+        vm.warp(startTime + 2);
         ActionRegistry.Action memory disabled = actionRegistry.getAction(0);
         assertTrue(disabled.endTime < block.timestamp, "action should be disabled (past endTime)");
 
@@ -85,9 +86,10 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
         // Set up garden with roles and an active action
         (address garden, uint256 actionUID) = _setupGardenWithRolesAndAction("Sepolia Disabled Action Garden");
 
-        // Disable the action by setting endTime to just after startTime
+        // Disable the action by shortening the action window, then advance time past it
         ActionRegistry.Action memory action = actionRegistry.getAction(actionUID);
         actionRegistry.updateActionEndTime(actionUID, action.startTime + 1);
+        vm.warp(action.startTime + 2);
 
         // Attempt work attestation via real Sepolia EAS — should revert
         string[] memory media = new string[](1);
@@ -136,7 +138,7 @@ contract SepoliaActionRegistryForkTest is ForkTestBase {
         capitals[0] = Capital.SOCIAL;
 
         vm.prank(forkNonMember);
-        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("OwnableUnauthorizedAccount(address)")), forkNonMember));
+        vm.expectRevert("Ownable: caller is not the owner");
         actionRegistry.registerAction(
             block.timestamp,
             block.timestamp + 30 days,

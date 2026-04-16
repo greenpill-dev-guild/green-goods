@@ -6,6 +6,7 @@ import { GardensModule } from "../../src/modules/Gardens.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { GardensV2Addresses } from "./helpers/GardensV2Addresses.sol";
+import { NotGardenOperator } from "../../src/errors/CommonErrors.sol";
 
 /// @title ArbitrumGardensNegativePathsForkTest
 /// @notice Fork tests for GardensModule negative/error paths against Arbitrum mainnet.
@@ -81,7 +82,7 @@ contract ArbitrumGardensNegativePathsForkTest is ForkTestBase {
 
         // forkNonMember is NOT an operator — real HatsModule should deny access
         vm.prank(forkNonMember);
-        vm.expectRevert(GardensModule.NotGardenOperator.selector);
+        vm.expectRevert(NotGardenOperator.selector);
         gardensModule.createGardenPools(garden);
     }
 

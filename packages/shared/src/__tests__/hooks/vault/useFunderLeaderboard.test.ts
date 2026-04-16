@@ -30,6 +30,16 @@ vi.mock("../../../hooks/vault/useAllVaultDeposits", () => ({
 
 vi.mock("../../../hooks/vault/useBatchConvertToAssets", () => ({
   useBatchConvertToAssets: (...args: unknown[]) => mockUseBatchConvertToAssets(...args),
+  getBatchConvertToAssetsKey: ({
+    chainId,
+    vaultAddress,
+    shares,
+  }: {
+    chainId?: number;
+    vaultAddress: string;
+    shares: bigint;
+  }) =>
+    chainId === undefined ? `${vaultAddress}:${shares}` : `${chainId}:${vaultAddress}:${shares}`,
 }));
 
 const { useFunderLeaderboard } = await import("../../../hooks/vault/useFunderLeaderboard");
@@ -101,17 +111,17 @@ describe("useFunderLeaderboard", () => {
     expect(result.current.protocolAssetTotals).toEqual([
       {
         chainId: 11155111,
-        asset: TEST_WETH,
-        totalYieldGenerated: 25n,
-        totalNetDeposited: 190n,
-        totalCurrentValue: 215n,
-      },
-      {
-        chainId: 11155111,
         asset: TEST_DAI,
         totalYieldGenerated: 30n,
         totalNetDeposited: 200n,
         totalCurrentValue: 230n,
+      },
+      {
+        chainId: 11155111,
+        asset: TEST_WETH,
+        totalYieldGenerated: 25n,
+        totalNetDeposited: 190n,
+        totalCurrentValue: 215n,
       },
     ]);
 
@@ -122,17 +132,17 @@ describe("useFunderLeaderboard", () => {
     expect(multiAssetFunder?.assetTotals).toEqual([
       {
         chainId: 11155111,
-        asset: TEST_WETH,
-        totalYieldGenerated: 10n,
-        totalNetDeposited: 100n,
-        totalCurrentValue: 110n,
-      },
-      {
-        chainId: 11155111,
         asset: TEST_DAI,
         totalYieldGenerated: 30n,
         totalNetDeposited: 200n,
         totalCurrentValue: 230n,
+      },
+      {
+        chainId: 11155111,
+        asset: TEST_WETH,
+        totalYieldGenerated: 10n,
+        totalNetDeposited: 100n,
+        totalCurrentValue: 110n,
       },
     ]);
 

@@ -22,7 +22,7 @@ import { encodeWorkData } from "../../utils/eas/encoders";
 import { buildBatchWorkAttestTx } from "../../utils/eas/transaction-builder";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 interface BatchWorkSyncResult {
   hash?: `0x${string}`;

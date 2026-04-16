@@ -13,10 +13,6 @@
       "path": "../packages/indexer"
     },
     {
-      "name": "agent",
-      "path": "../packages/agent"
-    },
-    {
       "name": "admin",
       "path": "../packages/admin"
     },
@@ -30,10 +26,6 @@
     },
     {
       "path": "../docs"
-    },
-    {
-      "name": "gardens",
-      "path": "../../gardens"
     }
   ],
   "settings": {

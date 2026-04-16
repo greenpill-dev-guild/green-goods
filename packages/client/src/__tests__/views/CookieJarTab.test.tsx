@@ -12,6 +12,7 @@ const TEST_JAR = "0x2222222222222222222222222222222222222222" as const;
 const TEST_TOKEN = "0x3333333333333333333333333333333333333333" as const;
 
 const mockWithdrawMutate = vi.fn();
+const mockUseAccessibleCookieJars = vi.fn();
 
 const testJar = {
   jarAddress: TEST_JAR,
@@ -39,7 +40,7 @@ vi.mock("@green-goods/shared", async () => {
       data: [{ tokenAddress: TEST_GARDEN, name: "Garden Alpha" }],
     }),
     useOffline: () => ({ isOnline: true }),
-    useUserCookieJars: () => ({ jars: [testJar], isLoading: false }),
+    useAccessibleCookieJars: () => mockUseAccessibleCookieJars(),
   };
 });
 
@@ -48,6 +49,14 @@ import { CookieJarTab } from "../../views/Home/WalletDrawer/CookieJarTab";
 describe("CookieJarTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [testJar],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 1,
+      confirmedGardenCount: 1,
+      unconfirmedGardenCount: 0,
+    });
   });
 
   it("renders balances using each jar's actual decimals", () => {
@@ -68,5 +77,39 @@ describe("CookieJarTab", () => {
     await user.click(screen.getByRole("button", { name: "Max" }));
 
     expect(screen.getByRole("textbox", { name: "Amount" })).toHaveValue("0.1");
+  });
+
+  it("renders the empty state when no jars are confirmed", () => {
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 0,
+      confirmedGardenCount: 1,
+      unconfirmedGardenCount: 0,
+    });
+
+    render(<CookieJarTab />);
+
+    expect(
+      screen.getByText("No cookie jars are available for this wallet yet.")
+    ).toBeInTheDocument();
+  });
+
+  it("shows the fail-closed message when eligibility could not be confirmed", () => {
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 0,
+      confirmedGardenCount: 0,
+      unconfirmedGardenCount: 2,
+    });
+
+    render(<CookieJarTab />);
+
+    expect(
+      screen.getByText("2 gardens are hidden until onchain access can be confirmed.")
+    ).toBeInTheDocument();
   });
 });

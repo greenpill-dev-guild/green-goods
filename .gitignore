@@ -81,6 +81,9 @@ web_modules/
 .env.production.local
 .env.local
 
+# Claude local project memory
+.claude/projects/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
@@ -96,31 +99,6 @@ dist-ssr
 # Foundry build artifacts - ignore all out/ directories
 out/
 **/out/
-
-# Keep only the specific ABIs imported by packages/shared
-# Step 1: Un-ignore the out/ directory so git looks inside
-!packages/contracts/out/
-# Step 2: Re-ignore everything inside it
-packages/contracts/out/*
-# Step 3: Un-ignore only the subdirectories we need
-!packages/contracts/out/Garden.sol/
-!packages/contracts/out/Action.sol/
-!packages/contracts/out/EAS.sol/
-!packages/contracts/out/ENS.sol/
-!packages/contracts/out/IHats.sol/
-# Step 4: Re-ignore everything inside those subdirectories
-packages/contracts/out/Garden.sol/*
-packages/contracts/out/Action.sol/*
-packages/contracts/out/EAS.sol/*
-packages/contracts/out/ENS.sol/*
-packages/contracts/out/IHats.sol/*
-# Step 5: Un-ignore only the specific ABI files we need
-!packages/contracts/out/Garden.sol/GardenAccount.json
-!packages/contracts/out/Garden.sol/GardenToken.json
-!packages/contracts/out/Action.sol/ActionRegistry.json
-!packages/contracts/out/EAS.sol/MockEAS.json
-!packages/contracts/out/ENS.sol/GreenGoodsENS.json
-!packages/contracts/out/IHats.sol/IHats.json
 
 # Vite dev build output
 dev-dist
@@ -164,12 +142,18 @@ dev-dist
 .yarn/install-state.gz
 .pnp.*
 .vercel
+.codex-artifacts/
+tmp/
 
 # Playwright test results
 test-results/
 playwright-report/
 tests/test-results/
 tests/playwright-report/
+session-state.md
+
+# Stitch downloaded assets (fetched per-session, not committed)
+.stitch/designs/
 
 # Lighthouse CI results
 .lighthouseci/
@@ -211,7 +195,10 @@ debug-storybook.log
 test-results.json
 FINAL_TEST_REPORT.md
 .ipfs-cache.json
+.ipfs-media-cache.json
 .action-images-cache.json
+data/test/*.db*
+reports/*.json
 
 # ================================
 # Other Package Manager Lockfiles (project uses bun)
@@ -297,10 +284,17 @@ docker-compose.local.yml
 .claude/projects/
 .claude/todos/
 .claude/statsig/
+.claude/worktrees/
 .claude/*.db
 
 # Keep shared Claude settings
 !.claude/settings.json
+
+# Superpowers brainstorm sessions
+.superpowers/brainstorm/
+
+# Temp patches
+*.patch
 
 # ================================
 # OS Generated
@@ -350,6 +344,8 @@ output/
 docs/build/
 
 # Package-specific generated files
+packages/contracts/.generated/
+packages/contracts/localhost.json
 packages/contracts/cache/
 packages/contracts/cache-*/
 packages/contracts/out-*/

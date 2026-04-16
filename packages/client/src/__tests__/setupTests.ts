@@ -44,3 +44,7 @@ vi.mock("@reown/appkit", () => ({
     destroy() {}
   },
 }));
+
+// JSDOM does not implement scrollTo, but several client views call it during
+// interaction flows. Stub it once here so package-wide test runs stay quiet.
+window.scrollTo = vi.fn();

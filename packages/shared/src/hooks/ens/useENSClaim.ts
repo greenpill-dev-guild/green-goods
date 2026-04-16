@@ -23,7 +23,7 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 // Contract error -> user-friendly message mapping
 const ENS_ERROR_MESSAGES: Record<string, string> = {

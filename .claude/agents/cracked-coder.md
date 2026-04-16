@@ -17,9 +17,10 @@ skills:
   - testing
   - react
   - contracts
-  - error-handling-patterns
+  - react
 mcpServers:
   - foundry
+isolation: worktree
 maxTurns: 50
 ---
 
@@ -41,7 +42,7 @@ Use when:
 
 ### SCOPE (Step 0)
 
-Before ANY work, check for a `bundle_id` in the task brief. If present, load the matching bundle from `.claude/registry/skill-bundles.json` to determine which skills to activate and in what mode.
+Before ANY work, check for a `bundle_id` in the task brief. If present, load the matching bundle from `.claude/registry/skills.json` (under the `bundles` key) to determine which skills to activate and in what mode.
 
 1. Confirm target scope — which package(s)? If unclear, ASK.
 2. Confirm intent:
@@ -141,7 +142,7 @@ Do not bulk-remove without per-item grep confirmation.
 
 ### ESCALATE
 - After 3 consecutive failed fix attempts (Three-Strike Protocol)
-- When the task requires changes across 4+ packages (use migration agent instead)
+- When the task requires changes across 4+ packages (use `/plan` + `ops/migration` instead)
 - When touching contract deployment, migration, or UUPS upgrade logic
 - When test failures suggest a deeper architectural issue beyond the task scope
 - When approaching 40/50 turns without task completion — save state and report

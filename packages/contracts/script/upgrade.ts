@@ -5,6 +5,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as dotenv from "dotenv";
 import { NetworkManager } from "./utils/network";
+import { CONTRACTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
 import { assertSepoliaGate } from "./utils/release-gate";
 
 // Load environment variables from root .env
@@ -62,8 +63,6 @@ const DEPLOYMENT_KEYS: Record<Exclude<ContractName, "all">, string> = {
   "assessment-resolver": "assessmentResolver",
   "deployment-registry": "deploymentRegistry",
 };
-
-const CONTRACTS_ROOT = path.join(__dirname, "..");
 
 interface UpgradeOptions {
   contract: ContractName;
@@ -317,7 +316,7 @@ function parseOptions(args: string[]): UpgradeOptions {
 }
 
 function findLatestUpgradeArtifact(chainId: number): string {
-  const baseDir = path.join(CONTRACTS_ROOT, "broadcast", "Upgrade.s.sol", chainId.toString());
+  const baseDir = getFoundryBroadcastPath("Upgrade.s.sol", chainId.toString());
   const candidates = [path.join(baseDir, "dry-run", "run-latest.json"), path.join(baseDir, "run-latest.json")];
 
   for (const candidate of candidates) {

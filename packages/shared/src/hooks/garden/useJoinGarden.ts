@@ -44,7 +44,7 @@ import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /**

@@ -4,7 +4,7 @@ sidebar_label: Storybook
 slug: /builders/testing/storybook
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-08
 feature_status: Live
 keywords:
   - storybook
@@ -23,22 +23,18 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 ```mermaid
 graph TB
-    subgraph Stories["57 Story Files"]
-        S["shared/\n35 stories"]
-        A["admin/\n16 stories"]
-        C["client/\n6 stories"]
+    subgraph Stories["Story Files"]
+        S["shared/\nstories"]
+        A["admin/\nstories"]
+        C["client/\nstories"]
     end
 
     Config["main.ts\npackageScopedAliasPlugin"] -->|glob| Stories
 
-    subgraph Addons
-        A11y["addon-a11y"]
-        Actions["addon-actions"]
-        Interact["addon-interactions"]
-    end
+    A11y["addon-a11y"]
 
     Stories --> SB["Storybook 10.2.8\nCSF3 format"]
-    Addons --> SB
+    A11y --> SB
     SB -->|CI| Gates["check:stories\nbuild-storybook"]
 ```
 
@@ -64,11 +60,9 @@ A custom `packageScopedAliasPlugin` Vite plugin resolves `@/` imports dynamicall
 
 ### Addons
 
-Three addons are configured (order matters -- actions must precede interactions):
+The current Storybook config enables:
 
 1. `@storybook/addon-a11y` -- Accessibility audits via axe-core
-2. `@storybook/addon-actions` -- Action logging for event handlers
-3. `@storybook/addon-interactions` -- Step-through interaction tests
 
 ## Completing Test Coverage
 

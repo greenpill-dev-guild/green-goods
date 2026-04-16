@@ -3,14 +3,22 @@ import React from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import ActionDetail from "@/views/Actions/ActionDetail";
-import enMessages from "../../../../shared/src/i18n/en.json";
+import { en as enMessages } from "@green-goods/shared";
 
 const mockUseActions = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
+  ActionBannerFallback: ({ title }: { title: string }) => React.createElement("div", {}, title),
+  Button: ({ children }: { children: React.ReactNode }) => React.createElement("div", {}, children),
   DEFAULT_CHAIN_ID: 42161,
+  StatusBadge: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("span", {}, children),
+  Surface: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", {}, children),
+  en: {},
   formatDateTime: () => "Jan 1",
   useActions: () => mockUseActions(),
+  useRole: () => ({ role: "deployer" }),
   ImageWithFallback: ({ src, alt }: { src: string; alt: string }) =>
     React.createElement("img", { src, alt, "data-testid": "image-with-fallback" }),
 }));
@@ -58,7 +66,7 @@ describe("ActionDetail View", () => {
     vi.clearAllMocks();
   });
 
-  it("renders media placeholder when action has no media", () => {
+  it("renders operator detail fallbacks when an action has no media or inputs", () => {
     mockUseActions.mockReturnValue({
       data: [
         {
@@ -96,9 +104,8 @@ describe("ActionDetail View", () => {
 
     renderWithIntl(React.createElement(ActionDetail));
 
-    expect(screen.getByText("Image unavailable")).toBeInTheDocument();
-    expect(
-      screen.getByText("This action does not currently have a valid image.")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Site Setup" })).toBeInTheDocument();
+    expect(screen.getByText("No media attached")).toBeInTheDocument();
+    expect(screen.getByText("No form fields configured")).toBeInTheDocument();
   });
 });

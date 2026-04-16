@@ -13,6 +13,7 @@ type PageHeaderProps = {
   description?: ReactNode;
   metadata?: ReactNode;
   actions?: ReactNode;
+  variant?: "default" | "canvas";
   /**
    * Filter bar (search, sort, tags) rendered between the title row and children.
    * Use this for list-view toolbars so `children` stays free for tabs.
@@ -33,18 +34,25 @@ export function PageHeader({
   description,
   metadata,
   actions,
+  variant = "default",
   toolbar,
   backLink,
   sticky,
   className,
   children,
 }: PageHeaderProps) {
+  const isCanvas = variant === "canvas";
+
   return (
     <header
       className={cn(
-        "border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4",
+        isCanvas
+          ? "bg-bg-white relative overflow-hidden rounded-[1.6rem] border border-[rgb(var(--workspace-tint,59_130_246)/0.18)] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_18px_36px_rgba(15,23,42,0.12)] sm:px-6 sm:py-5"
+          : "border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4",
         sticky &&
-          "sticky top-0 z-30 bg-bg-white/95 supports-[backdrop-filter]:bg-bg-white/70 backdrop-blur",
+          (isCanvas
+            ? "sticky top-14 z-sticky"
+            : "sticky top-14 z-sticky bg-bg-white shadow-[var(--edge-rest)]"),
         className
       )}
     >
@@ -59,35 +67,66 @@ export function PageHeader({
           </Link>
         ) : null}
 
-        <div className="min-w-0 flex-1 space-y-0.5 sm:space-y-1">
+        <div
+          className={cn("min-w-0 flex-1", isCanvas ? "space-y-1.5" : "space-y-0.5 sm:space-y-1")}
+        >
           <h1
-            className="truncate font-heading text-lg font-semibold text-text-strong sm:text-2xl"
+            className={cn(
+              "truncate text-headline-lg font-semibold text-text-strong",
+              !isCanvas && "text-lg sm:text-2xl"
+            )}
             title={typeof title === "string" ? title : undefined}
           >
             {title}
           </h1>
           {description ? (
             <p
-              className="line-clamp-2 text-xs text-text-sub sm:text-sm"
+              className={cn(
+                "line-clamp-2",
+                isCanvas ? "text-body-lg text-text-sub" : "text-xs text-text-sub sm:text-sm"
+              )}
               title={typeof description === "string" ? description : undefined}
             >
               {description}
             </p>
           ) : null}
-          {metadata ? <div className="text-xs text-text-soft sm:text-sm">{metadata}</div> : null}
+          {metadata ? (
+            <div
+              className={cn(
+                "text-text-soft",
+                isCanvas ? "pt-1 text-xs sm:text-sm" : "text-xs sm:text-sm"
+              )}
+            >
+              {metadata}
+            </div>
+          ) : null}
         </div>
       </div>
 
       {actions || toolbar ? (
-        <div className="flex flex-wrap items-center gap-3 mt-3 sm:mt-4">
-          <div className="flex flex-1 min-w-0 flex-wrap items-center gap-3">{toolbar}</div>
+        <div
+          className={cn(
+            "mt-3 flex flex-wrap items-center gap-3 sm:mt-4",
+            isCanvas &&
+              "rounded-[1.2rem] border border-[rgb(var(--workspace-tint,59_130_246)/0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.76)_0%,rgba(var(--workspace-tint,59_130_246),0.06)_100%)] px-3 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_8px_20px_rgba(15,23,42,0.08)]"
+          )}
+        >
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">{toolbar}</div>
           {actions ? (
-            <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">{actions}</div>
+            <div className="flex flex-shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
+              {actions}
+            </div>
           ) : null}
         </div>
       ) : null}
 
-      {children ? <div className="mt-3 sm:mt-4">{children}</div> : null}
+      {children ? (
+        <div
+          className={cn("mt-3 sm:mt-4", isCanvas && "border-t border-[rgba(133,109,70,0.12)] pt-4")}
+        >
+          {children}
+        </div>
+      ) : null}
     </header>
   );
 }

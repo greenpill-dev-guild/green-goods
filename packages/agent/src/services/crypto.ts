@@ -46,10 +46,6 @@ export interface EncryptedData {
 // KEY DERIVATION
 // ============================================================================
 
-/**
- * Derives an encryption key from the master secret using PBKDF2.
- * Uses a unique salt per encryption for key isolation.
- */
 function deriveKey(secret: string, salt: Buffer): Buffer {
   return crypto.pbkdf2Sync(secret, salt, PBKDF2_ITERATIONS, KEY_LENGTH, "sha256");
 }
@@ -119,19 +115,13 @@ function getEncryptionSecret(): string {
 export function encryptPrivateKey(plaintext: string): EncryptedData {
   const secret = getEncryptionSecret();
 
-  // Generate unique salt and IV for this encryption
   const salt = crypto.randomBytes(SALT_LENGTH);
   const iv = crypto.randomBytes(IV_LENGTH);
-
-  // Derive key from secret + salt
   const key = deriveKey(secret, salt);
 
-  // Create cipher and encrypt
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   let ciphertext = cipher.update(plaintext, "utf8", "hex");
   ciphertext += cipher.final("hex");
-
-  // Get authentication tag
   const authTag = cipher.getAuthTag();
 
   return {
@@ -157,15 +147,11 @@ export function encryptPrivateKey(plaintext: string): EncryptedData {
 export function decryptPrivateKey(encrypted: EncryptedData): string {
   const secret = getEncryptionSecret();
 
-  // Parse hex strings back to buffers
   const salt = Buffer.from(encrypted.salt, "hex");
   const iv = Buffer.from(encrypted.iv, "hex");
   const authTag = Buffer.from(encrypted.authTag, "hex");
-
-  // Derive the same key using stored salt
   const key = deriveKey(secret, salt);
 
-  // Create decipher
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(authTag);
 
@@ -267,16 +253,10 @@ export function generateSecureId(length: number = 8): string {
 // VALIDATION
 // ============================================================================
 
-/**
- * Validates that a string looks like an Ethereum private key.
- */
 export function isValidPrivateKey(key: string): boolean {
   return /^0x[a-fA-F0-9]{64}$/.test(key);
 }
 
-/**
- * Validates that a string looks like an Ethereum address.
- */
 export function isValidAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }

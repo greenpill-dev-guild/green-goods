@@ -1,54 +1,78 @@
-# Green Goods — Agent Guide (Pointer Contract)
+# Green Goods — Codex Guide
 
-Compact runtime contract for AI agents. Canonical guidance lives in `CLAUDE.md` and `.claude/**`.
+Primary runtime contract for Codex in this repository. Start here, then read the nearest
+`AGENTS.md` for the package you are editing. Package-level guides override this file for
+their subtree.
 
-## Non-Negotiable Invariants
+## Monorepo Map
 
-- Use `bun` for all package operations (never npm/yarn).
-- Use `bun run test` (NEVER `bun test`) — `bun test` ignores vitest config.
-- Never use raw `forge` commands — use `bun build`, `bun run test:contracts`.
+- `packages/contracts` — Solidity contracts, deploy/upgrade wrappers, Foundry tests
+- `packages/shared` — Shared hooks, providers, stores, modules, types, i18n, UI primitives
+- `packages/client` — End-user web app
+- `packages/admin` — Admin cockpit
+- `packages/agent` — Bot/webhook service
+- `packages/indexer` — Envio indexer
+
+## Global Invariants
+
+- Use `bun` for repo scripts and package operations. Do not introduce npm/yarn commands.
+- Use `bun run test`, never `bun test`.
+- Never use raw `forge`; use the repo's bun scripts for build, test, deploy, and upgrade flows.
 - Hooks live in `@green-goods/shared` only.
-- Root `.env` only; never add package-level `.env` files.
-- Single-chain behavior only (`getDefaultChain()` / `DEFAULT_CHAIN_ID`).
-- Contract deployments/upgrades go through `deploy.ts` wrappers and bun scripts.
-- `packages/contracts/config/schemas.json` is read-only.
-- Any new user-facing string must be added to `en/es/pt` locale files.
-
-## Code Conventions
-
-- Barrel imports: `import { x } from "@green-goods/shared"`, never deep paths.
-- Use `Address` type (not `string`) for Ethereum addresses.
+- Use root `.env` only; do not add package-level `.env` files.
+- Default to single-chain behavior through `getDefaultChain()` or `DEFAULT_CHAIN_ID`.
+- Use the `Address` type for Ethereum addresses.
 - Use `logger` from shared, never `console.log`.
-- Icons: Remixicon (`Ri*Line`), never lucide.
-- Never swallow errors — use `parseContractError()` for contract errors.
-- Build order: contracts → shared → indexer → client/admin/agent.
+- Use Remixicon (`Ri*Line`), never lucide.
+- Any new user-facing string must be added to `en`, `es`, and `pt`.
+- Respect build dependency order: contracts -> shared -> indexer -> client/admin/agent.
 
-## Scope Constraints (Automated Tasks)
+## Codex Workflow
 
-When running automated maintenance tasks:
-- Max 20 files changed per PR.
-- Never touch deployment scripts, contract upgrade scripts, or `.env` files.
+1. Read the nearest `AGENTS.md`.
+2. Keep the change inside the smallest sensible package boundary.
+3. Run the lightest validation loop that still proves the change.
+4. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
+
+## Admin UI Defaults
+
+- For `packages/admin`, read `docs/docs/builders/packages/admin.mdx` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
+- The canonical admin shell is `CanvasLayout`.
+- Use `/hub` as the reference admin canvas surface; `/work` is retired.
+- New admin UI should not start from `DashboardLayout`, `Sidebar`, or `Header`; treat them as legacy migration references only.
+- Default to the preferred admin primitives in `packages/admin/AGENTS.md` and shared Storybook-backed foundations from `packages/shared`.
+
+## Validation Ladder
+
+- Codex drift check: `node scripts/check-codex-consistency.js`
+- Quick repo verification: `node scripts/ci-local.js --quick`
+- Test-quality guardrail: `bash scripts/check-test-quality.sh`
+- Lint check: `bun run format:check && bun lint`
+- Lint fix: `bun format && bun lint`
+- Full tests: `bun run test`
+- Full build: `VITE_CHAIN_ID=11155111 bun run build`
+
+## Package Guides
+
+- `packages/contracts/AGENTS.md`
+- `packages/shared/AGENTS.md`
+- `packages/client/AGENTS.md`
+- `packages/admin/AGENTS.md`
+- `packages/agent/AGENTS.md`
+- `packages/indexer/AGENTS.md`
+
+## Scope Constraints For Automated Maintenance
+
+When Codex is running unattended maintenance work:
+
+- Keep PRs to 20 changed files or fewer.
+- Do not modify deployment scripts, contract upgrade scripts, or `.env` files.
 - Do not create new packages or top-level directories.
-- Do not modify `CLAUDE.md`, `AGENTS.md`, or files in `.claude/`.
-- All automated PRs must be created as drafts with appropriate labels.
+- Do not modify agent operating docs (`AGENTS.md`, `.codex/**`, `CLAUDE.md`, `.claude/**`) unless the task explicitly asks for it.
+- Keep automated PRs as drafts with the appropriate labels.
 
-## Canonical Sources
+## Codex Config Surface
 
-| What | Where |
-|---|---|
-| Primary context | `CLAUDE.md` |
-| Package contexts | `.claude/context/{shared,client,admin,contracts,indexer,agent}.md` |
-| Skills | `.claude/skills/*/SKILL.md` (also symlinked at `.agents/skills/`) |
-| Agents | `.claude/agents/*.md` |
-| Rules | `.claude/rules/*.md` (path-scoped, loaded conditionally) |
-| MCP servers | `.mcp.json` (single source of truth) |
-
-For agentic development practices and tool-specific guides, see `docs/docs/builders/agentic/`.
-
-## Guidance Governance
-
-```bash
-node .claude/scripts/check-guidance-consistency.js
-```
-
-CI runs this check via `.github/workflows/claude-guidance.yml`.
+- Project config: `.codex/config.toml`
+- Environment and actions: `.codex/environments/environment.toml`
+- Reference doc: `docs/docs/builders/agentic/codex.mdx`

@@ -29,7 +29,7 @@ export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 export const USERNAME_STORAGE_KEY = "greengoods_username";
 
 /** Passkey credential (id + publicKey as JSON) */
-export const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
+const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
 
 /** RP ID used during passkey registration (for cross-device consistency) */
 export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
@@ -167,7 +167,7 @@ function isPasskeyDebugEnabled(): boolean {
  * Call this from browser console to diagnose Android passkey issues:
  *   window.__debugPasskey() (in dev mode)
  */
-export function debugPasskeyConfig(): void {
+function debugPasskeyConfig(): void {
   if (!isPasskeyDebugEnabled()) return;
 
   const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;

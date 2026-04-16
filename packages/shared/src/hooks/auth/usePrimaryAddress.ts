@@ -25,7 +25,8 @@
  */
 
 import type { Hex } from "viem";
-import { useAuth } from "./useAuth";
+import { useAccount } from "wagmi";
+import { useOptionalAuthContext } from "../../providers/Auth";
 
 /**
  * Get the primary address for the current auth mode.
@@ -36,7 +37,14 @@ import { useAuth } from "./useAuth";
  * - Unauthenticated → null
  */
 export function usePrimaryAddress(): Hex | null {
-  const { authMode, smartAccountAddress, walletAddress, embeddedAddress } = useAuth();
+  const auth = useOptionalAuthContext();
+  const { address: wagmiAddress } = useAccount();
+
+  if (!auth) {
+    return (wagmiAddress as Hex | undefined) ?? null;
+  }
+
+  const { authMode, smartAccountAddress, walletAddress, embeddedAddress } = auth;
 
   if (authMode === "passkey" && smartAccountAddress) {
     return smartAccountAddress;

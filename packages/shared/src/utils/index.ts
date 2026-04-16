@@ -30,6 +30,19 @@ export {
   gardenHasMember,
   resolveGardenMemberKey,
 } from "./app/garden";
+export type {
+  AdminSearchValue,
+  AdminSignalPoolType,
+  AdminWorkspaceId,
+} from "./navigation/admin-routes";
+export {
+  ADMIN_GARDEN_SHARE_PARAM,
+  ADMIN_WORKSPACE_ROOTS,
+  adminRoutes,
+  buildAdminHref,
+  getAdminWorkspaceForPath,
+  getAdminWorkspaceRoot,
+} from "./navigation/admin-routes";
 // ============================================================================
 // HAPTIC FEEDBACK (Vibration API)
 // ============================================================================
@@ -145,6 +158,7 @@ export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation
 export {
   formatTokenAmount,
   AAVE_V3_POOL,
+  getDepositLimitLabel,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
@@ -274,7 +288,7 @@ export {
   scheduleInvalidation,
   scheduleInvalidationForKey,
   scheduleProgressiveInvalidation,
-} from "./query-invalidation";
+} from "../config/query-keys/schedule";
 // ============================================================================
 // SCHEDULER (Native Scheduler API for cooperative multitasking)
 // ============================================================================

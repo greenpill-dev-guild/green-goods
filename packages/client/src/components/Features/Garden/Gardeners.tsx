@@ -1,4 +1,5 @@
 import {
+  type Address,
   copyToClipboard,
   formatAddress,
   type Garden,
@@ -26,7 +27,7 @@ import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/component
 import { AddressCopy } from "@/components/Inputs";
 
 export type GardenMember = GardenerCard & {
-  account: string;
+  account: Address;
   isOperator: boolean;
   isGardener: boolean;
 };

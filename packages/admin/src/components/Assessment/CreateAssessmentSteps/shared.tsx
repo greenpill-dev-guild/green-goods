@@ -1,9 +1,6 @@
-import { type CreateAssessmentFormData, CynefinPhase, cn, Domain } from "@green-goods/shared";
+import { CynefinPhase, cn, Domain } from "@green-goods/shared";
 import { type ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-
-// Re-export the form data type from shared for backwards compatibility
-export type CreateAssessmentForm = CreateAssessmentFormData;
 
 // ─── Domain Display Constants ────────────────────────────
 

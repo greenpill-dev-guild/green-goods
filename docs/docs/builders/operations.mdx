@@ -4,7 +4,7 @@ sidebar_position: 5
 slug: /builders/operations
 audience: developer
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-04-08
 feature_status: Live
 goal: "Complete Operations with clear, role-specific next actions."
 difficulty: "standard"
@@ -42,22 +42,23 @@ import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 ## Contract deployment procedure (mainnet -> sepolia -> arbitrum)
 
-Use wrapper scripts from repo root:
+Use the existing deployment wrappers:
 
 ```bash
 # 0) Mainnet ENS receiver (required before Arbitrum)
-bun --filter @green-goods/contracts deploy:dry:mainnet
-bun --filter @green-goods/contracts deploy:mainnet
+bun run contracts:ens:deploy:mainnet
+bun run contracts:ens:deploy:mainnet:broadcast
 
 # 1) Sepolia deployment
-bun --filter @green-goods/contracts deploy:dry:sepolia
-bun --filter @green-goods/contracts deploy:sepolia
-bun --filter @green-goods/contracts verify:post-deploy:sepolia
+cd packages/contracts
+bun run deploy:dry:sepolia
+bun run deploy:sepolia
+bun run verify:post-deploy:sepolia
 
 # 2) Arbitrum deployment
-bun --filter @green-goods/contracts deploy:dry:arbitrum
-bun --filter @green-goods/contracts deploy:arbitrum
-bun --filter @green-goods/contracts verify:post-deploy:arbitrum
+bun run deploy:dry:arbitrum
+bun run deploy:arbitrum
+bun run verify:post-deploy:arbitrum
 ```
 
 Deployment behavior:
@@ -74,7 +75,7 @@ Validation notes:
 
 ## Operational checks
 
-1. `bun format && bun lint && bun test`
+1. `bun format && bun lint && bun run test`
 2. Contract test suites including fork/E2E where relevant.
 3. Docs updates for behavioral changes in same PR.
 4. `bun run docs:audit` passes with no warnings.

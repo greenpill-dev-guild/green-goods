@@ -145,3 +145,78 @@ export function useDelayedInvalidation(
 
   return { start, cancel: clear, isPending };
 }
+
+interface UseProgressiveInvalidationReturn {
+  /** Schedule progressive invalidations at each delay in the schedule */
+  start: () => void;
+  /** Cancel all pending invalidations */
+  cancel: () => void;
+}
+
+/**
+ * Hook for progressive query invalidation with automatic cleanup.
+ * Fires the invalidation function at multiple intervals to handle
+ * variable indexer lag (e.g. 2s, 5s, 15s).
+ *
+ * @param invalidate - The invalidation function to call at each interval
+ * @param schedule - Array of delays in milliseconds
+ * @returns Object with start and cancel functions
+ *
+ * @example
+ * ```tsx
+ * import { INDEXER_LAG_SCHEDULE_MS } from "../../config/query-keys";
+ *
+ * const { start: scheduleFollowUp } = useProgressiveInvalidation(
+ *   () => queryClient.invalidateQueries({ queryKey: ["gardens"] }),
+ *   INDEXER_LAG_SCHEDULE_MS
+ * );
+ *
+ * onSuccess: () => {
+ *   scheduleFollowUp();
+ * }
+ * ```
+ */
+export function useProgressiveInvalidation(
+  invalidate: () => void,
+  schedule: readonly number[]
+): UseProgressiveInvalidationReturn {
+  const isMountedRef = useRef(true);
+  const timeoutIdsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const latestInvalidateRef = useRef(invalidate);
+
+  useEffect(() => {
+    latestInvalidateRef.current = invalidate;
+  }, [invalidate]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      for (const id of timeoutIdsRef.current) {
+        clearTimeout(id);
+      }
+      timeoutIdsRef.current = [];
+    };
+  }, []);
+
+  const cancel = useCallback(() => {
+    for (const id of timeoutIdsRef.current) {
+      clearTimeout(id);
+    }
+    timeoutIdsRef.current = [];
+  }, []);
+
+  const start = useCallback(() => {
+    // Clear any previously scheduled progressive invalidations
+    cancel();
+    timeoutIdsRef.current = schedule.map((delay) =>
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          latestInvalidateRef.current();
+        }
+      }, delay)
+    );
+  }, [cancel, schedule]);
+
+  return { start, cancel };
+}

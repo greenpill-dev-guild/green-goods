@@ -41,36 +41,6 @@
   animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* 2. Shimmer skeleton - Dark mode friendly */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
-}
-
-.skeleton {
-  position: relative;
-  overflow: hidden;
-  background-color: rgb(var(--bg-soft-200));
-}
-
-.skeleton::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgb(var(--bg-sub-300) / 60%),
-    transparent
-  );
-  background-size: 1000px 100%;
-  animation: shimmer 2s infinite;
-}
-
 /* 3. Page transitions */
 @keyframes pageSlideIn {
   from {
@@ -137,19 +107,6 @@
   100% {
     box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
   }
-}
-
-/* Mobile-first tap feedback - no hover, only active state */
-.tap-feedback {
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-  touch-action: manipulation; /* Removes 300ms tap delay */
-  -webkit-tap-highlight-color: transparent; /* Remove iOS blue highlight */
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.tap-feedback:active {
-  transform: scale(0.98);
 }
 
 /* Landing page only - hover effects for desktop */
@@ -454,12 +411,5 @@ a:active,
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* Optimize skeleton shimmer on mobile */
-@media (max-width: 768px) {
-  .skeleton::after {
-    animation-duration: 2.5s; /* Slightly slower, less GPU intensive */
   }
 }

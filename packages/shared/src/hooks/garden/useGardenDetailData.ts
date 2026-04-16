@@ -12,7 +12,7 @@ import { useCreateGardenPools } from "../conviction/useCreateGardenPools";
 import { useGardenCommunity } from "../conviction/useGardenCommunity";
 import { useGardenPools } from "../conviction/useGardenPools";
 import { useHypercerts } from "../hypercerts/useHypercerts";
-import { queryInvalidation } from "../query-keys";
+import { queryInvalidation } from "../../config/query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useGardenVaults } from "../vault/useGardenVaults";
 import { useWorks } from "../work/useWorks";

@@ -27,7 +27,10 @@
 import { useMemo } from "react";
 import { ENV } from "varlock/env";
 import { useConfig, useWriteContract } from "wagmi";
-import { createTransactionSender } from "../../modules/transactions/factory";
+import {
+  createTransactionSender,
+  type TransactionSenderOptions,
+} from "../../modules/transactions/factory";
 import type { TransactionSender } from "../../modules/transactions/types";
 import { useUser } from "../auth/useUser";
 
@@ -55,7 +58,8 @@ export function useTransactionSender(): TransactionSender | null {
         authMode,
         smartAccountClient,
         wagmiConfig: config,
-        writeContractAsync: writeContractAsync as any,
+        writeContractAsync:
+          writeContractAsync as unknown as TransactionSenderOptions["writeContractAsync"],
         erc7677ProxyUrl,
       });
     } catch {

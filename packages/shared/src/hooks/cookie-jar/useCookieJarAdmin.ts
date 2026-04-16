@@ -13,8 +13,8 @@ import { COOKIE_JAR_ABI } from "../../utils/blockchain/abis";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 export function useCookieJarPause(gardenAddress: Address) {
   const { formatMessage } = useIntl();
@@ -30,7 +30,7 @@ export function useCookieJarPause(gardenAddress: Address) {
     gardenAddress,
     jarAddress: "",
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress && lastParamsRef.current.jarAddress) {
         queryInvalidation
@@ -42,7 +42,7 @@ export function useCookieJarPause(gardenAddress: Address) {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({
@@ -95,7 +95,7 @@ export function useCookieJarUnpause(gardenAddress: Address) {
     gardenAddress,
     jarAddress: "",
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress && lastParamsRef.current.jarAddress) {
         queryInvalidation
@@ -107,7 +107,7 @@ export function useCookieJarUnpause(gardenAddress: Address) {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({
@@ -160,7 +160,7 @@ export function useCookieJarUpdateMaxWithdrawal(gardenAddress: Address) {
     gardenAddress,
     jarAddress: "",
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress && lastParamsRef.current.jarAddress) {
         queryInvalidation
@@ -172,7 +172,7 @@ export function useCookieJarUpdateMaxWithdrawal(gardenAddress: Address) {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({
@@ -225,7 +225,7 @@ export function useCookieJarUpdateInterval(gardenAddress: Address) {
     gardenAddress,
     jarAddress: "",
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress && lastParamsRef.current.jarAddress) {
         queryInvalidation
@@ -237,7 +237,7 @@ export function useCookieJarUpdateInterval(gardenAddress: Address) {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({
@@ -290,7 +290,7 @@ export function useCookieJarEmergencyWithdraw(gardenAddress: Address) {
     gardenAddress,
     jarAddress: "",
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress && lastParamsRef.current.jarAddress) {
         queryInvalidation
@@ -302,7 +302,7 @@ export function useCookieJarEmergencyWithdraw(gardenAddress: Address) {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({

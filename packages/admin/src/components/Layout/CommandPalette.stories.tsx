@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { adminRoutes, cn } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiArrowDownLine,
@@ -34,12 +34,10 @@ interface MockCommandPaletteProps {
 }
 
 const STATIC_ROUTES: Omit<SearchResult, "category">[] = [
-  { id: "page-dashboard", label: "Dashboard", href: "/dashboard" },
-  { id: "page-gardens", label: "Gardens", href: "/gardens" },
-  { id: "page-endowments", label: "Endowments", href: "/endowments" },
+  { id: "page-hub", label: "Hub", href: "/hub" },
+  { id: "page-garden", label: "Garden", href: "/garden" },
+  { id: "page-community", label: "Community", href: "/community" },
   { id: "page-actions", label: "Actions", href: "/actions" },
-  { id: "page-contracts", label: "Contracts", href: "/contracts" },
-  { id: "page-deployment", label: "Deployment", href: "/deployment" },
 ];
 
 function MockCommandPalette({
@@ -82,7 +80,7 @@ function MockCommandPalette({
         items.push({
           id: `garden-${name}`,
           label: name,
-          href: `/gardens/${name}`,
+          href: adminRoutes.garden(),
           category: "gardens",
         });
       }

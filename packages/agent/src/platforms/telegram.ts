@@ -62,7 +62,6 @@ export function toInboundMessage(ctx: Context): InboundMessage | null {
   };
   const timestamp = Date.now();
 
-  // Handle callback queries (button presses)
   if (ctx.callbackQuery && "data" in ctx.callbackQuery) {
     return {
       id: String(ctx.callbackQuery.message?.message_id || "callback"),
@@ -98,32 +97,28 @@ function extractContent(ctx: Context): MessageContent | null {
   const msg = ctx.message;
   if (!msg) return null;
 
-  // Photo message - get highest resolution
   if ("photo" in msg && msg.photo && msg.photo.length > 0) {
-    const largestPhoto = msg.photo[msg.photo.length - 1]; // Last item is highest res
+    const largestPhoto = msg.photo[msg.photo.length - 1];
     return {
       type: "image",
-      imageUrl: largestPhoto.file_id, // Resolve to actual URL later via getFileLink
+      imageUrl: largestPhoto.file_id,
       mimeType: "image/jpeg", // Telegram converts all photos to JPEG
       caption: "caption" in msg ? (msg.caption as string) : undefined,
     };
   }
 
-  // Voice message
   if ("voice" in msg && msg.voice) {
     return {
       type: "voice",
-      audioUrl: msg.voice.file_id, // Resolve to URL later
+      audioUrl: msg.voice.file_id,
       mimeType: msg.voice.mime_type || "audio/ogg",
       duration: msg.voice.duration,
     };
   }
 
-  // Text message
   if ("text" in msg && msg.text) {
     const text = msg.text;
 
-    // Check if command
     if (text.startsWith("/")) {
       const parts = text.split(" ");
       const commandWithBot = parts[0].substring(1);
@@ -204,7 +199,6 @@ async function downloadFile(
     };
 
     const request = https.get(url, (response) => {
-      // Handle redirects
       if (response.statusCode === 302 || response.statusCode === 301) {
         const redirectUrl = response.headers.location;
         if (redirectUrl) {
@@ -213,7 +207,6 @@ async function downloadFile(
         }
       }
 
-      // Check Content-Length before downloading
       const contentLength = parseInt(response.headers["content-length"] || "0", 10);
       if (contentLength > maxSize) {
         cleanup(
@@ -248,7 +241,6 @@ async function downloadFile(
       cleanup(err);
     });
 
-    // Set download timeout
     timeoutId = setTimeout(() => {
       request.destroy();
       cleanup(new Error(`Download timeout after ${DOWNLOAD_TIMEOUT_MS}ms`));
@@ -284,7 +276,6 @@ export function createVoiceProcessor(
 ): VoiceProcessor {
   return {
     async downloadAndTranscribe(fileId: string): Promise<string> {
-      // Create secure temp directory with unpredictable name
       const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "gg-agent-voice-"));
       const tempPath = path.join(tempDir, "audio.ogg");
       const wavPath = path.join(tempDir, "audio.wav");
@@ -341,22 +332,18 @@ export function createPhotoProcessor(bot: Telegraf): PhotoProcessor {
   return {
     async downloadPhoto(fileId: string): Promise<Buffer> {
       try {
-        // Get file link from Telegram
         const fileLink = await bot.telegram.getFileLink(fileId);
         const url = fileLink.toString();
 
-        // Create AbortController for timeout
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
 
         try {
-          // Download file to buffer with timeout
           const response = await fetch(url, { signal: controller.signal });
           if (!response.ok) {
             throw new Error(`Failed to download: ${response.statusText}`);
           }
 
-          // Check Content-Length before downloading
           const contentLength = parseInt(response.headers.get("content-length") || "0", 10);
           if (contentLength > MAX_PHOTO_SIZE_BYTES) {
             throw new Error(
@@ -398,7 +385,6 @@ export function createTelegramBot(config: TelegramConfig, handleMessage: Message
 
   bot.use(session());
 
-  // Handle callback queries (button presses)
   bot.on("callback_query", async (ctx) => {
     const inbound = toInboundMessage(ctx);
     if (!inbound) {
@@ -421,7 +407,6 @@ export function createTelegramBot(config: TelegramConfig, handleMessage: Message
     }
   });
 
-  // Handle voice messages
   bot.on(message("voice"), async (ctx) => {
     const inbound = toInboundMessage(ctx);
     if (!inbound) return;
@@ -434,7 +419,6 @@ export function createTelegramBot(config: TelegramConfig, handleMessage: Message
     }
   });
 
-  // Handle text messages
   bot.on(message("text"), async (ctx) => {
     const inbound = toInboundMessage(ctx);
     if (!inbound) return;
@@ -447,7 +431,6 @@ export function createTelegramBot(config: TelegramConfig, handleMessage: Message
     }
   });
 
-  // Handle photo messages
   bot.on(message("photo"), async (ctx) => {
     const inbound = toInboundMessage(ctx);
     if (!inbound) return;

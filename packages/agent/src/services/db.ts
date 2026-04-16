@@ -409,4 +409,9 @@ export const getPendingWorksForGarden = (gardenAddress: string) =>
   getDB().getPendingWorksForGarden(gardenAddress);
 export const removePendingWork = (id: string) => getDB().removePendingWork(id);
 
-export const closeDB = () => _db?.close();
+export const closeDB = async () => {
+  if (!_db) return;
+
+  await _db.close();
+  _db = null;
+};

@@ -1,0 +1,140 @@
+/* ============================================================================
+ * M3 Token Foundation
+ * Material Design 3 design tokens for the Admin package.
+ * Consumed by all Admin M3 components.
+ * ============================================================================ */
+
+:root {
+  /* --------------------------------------------------------------------------
+   * M3 Elevation Scale
+   * box-shadow values mapping to Material elevation levels 0–5
+   * -------------------------------------------------------------------------- */
+  --m3-elevation-0: none;
+  --m3-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --m3-elevation-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  --m3-elevation-3: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+  --m3-elevation-4: 0 2px 3px rgba(0, 0, 0, 0.3), 0 6px 10px 4px rgba(0, 0, 0, 0.15);
+  --m3-elevation-5: 0 4px 4px rgba(0, 0, 0, 0.3), 0 8px 12px 6px rgba(0, 0, 0, 0.15);
+
+  /* --------------------------------------------------------------------------
+   * M3 Shape Scale
+   * Border-radius tokens mapping to Material shape corners
+   * -------------------------------------------------------------------------- */
+  --m3-shape-none: 0px;
+  --m3-shape-xs: 4px;
+  --m3-shape-sm: 8px;
+  --m3-shape-md: 12px;
+  --m3-shape-lg: 16px;
+  --m3-shape-xl: 28px;
+  --m3-shape-full: 9999px;
+
+  /* --------------------------------------------------------------------------
+   * M3 State Layer Opacity
+   * Opacity values for interactive state overlays
+   * -------------------------------------------------------------------------- */
+  --m3-state-hover: 0.08;
+  --m3-state-focus: 0.12;
+  --m3-state-pressed: 0.12;
+  --m3-state-dragged: 0.16;
+
+  /* --------------------------------------------------------------------------
+   * M3 Surface Color Aliases — Light Mode
+   * Maps to design system tokens from @green-goods/shared/styles/theme.css
+   * -------------------------------------------------------------------------- */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-dim: var(--neutral-200);
+  --m3-surface-container-lowest: 255 255 255;
+  --m3-surface-container-low: var(--neutral-50);
+  --m3-surface-container: var(--neutral-100);
+  --m3-surface-container-high: var(--neutral-200);
+  --m3-surface-container-highest: var(--neutral-300);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
+  --m3-inverse-surface: var(--neutral-900);
+  --m3-inverse-on-surface: var(--neutral-100);
+  --m3-inverse-primary: var(--green-200);
+  --m3-primary: var(--ws-primary, var(--green-500));
+  --m3-on-primary: var(--ws-on-primary, 255 255 255);
+  --m3-primary-container: var(--ws-primary-container, var(--green-100));
+  --m3-on-primary-container: var(--ws-on-primary-container, var(--green-900));
+  --m3-secondary-container: var(--neutral-200);
+  --m3-on-secondary-container: var(--neutral-900);
+  --m3-error: var(--error-base);
+  --m3-on-error: 255 255 255;
+}
+
+/* --------------------------------------------------------------------------
+ * M3 Surface Color Aliases — Dark Mode
+ * Overrides for [data-theme="dark"] adaptive dark palette
+ * -------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  /* Surface ladder — derive from --bg-* semantic tokens (remapped in theme.css)
+   * to stay in sync with the M3-aligned dark surface hierarchy (tones 4→22) */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-dim: var(--bg-white-0);
+  --m3-surface-container-lowest: var(--neutral-975);
+  --m3-surface-container-low: var(--bg-weak-50);
+  --m3-surface-container: var(--bg-soft-200);
+  --m3-surface-container-high: var(--bg-sub-300);
+  --m3-surface-container-highest: var(--bg-surface-800);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
+  --m3-inverse-surface: var(--neutral-100);
+  --m3-inverse-on-surface: var(--neutral-900);
+  --m3-inverse-primary: var(--green-700);
+  --m3-primary: var(--ws-primary, var(--green-200));
+  --m3-on-primary: var(--ws-on-primary, var(--green-900));
+  --m3-primary-container: var(--ws-primary-container, var(--green-900));
+  --m3-on-primary-container: var(--ws-on-primary-container, var(--green-100));
+  --m3-secondary-container: var(--neutral-700);
+  --m3-on-secondary-container: var(--neutral-100);
+}
+
+/* --------------------------------------------------------------------------
+ * M3 State Layer Utility
+ * Adds an ::after pseudo-element for hover/focus/pressed state overlays.
+ * Usage: add class="m3-state-layer" to any interactive element.
+ * Override --state-layer-color to change the overlay tint.
+ * -------------------------------------------------------------------------- */
+.m3-state-layer {
+  position: relative;
+  overflow: hidden;
+}
+
+.m3-state-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background-color: rgb(var(--state-layer-color, var(--m3-on-surface)));
+  opacity: 0;
+  transition:
+    opacity var(--spring-micro-duration, 150ms) var(--spring-micro-easing, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.m3-state-layer:hover::after {
+  opacity: var(--m3-state-hover);
+}
+
+.m3-state-layer:focus-visible::after {
+  opacity: var(--m3-state-focus);
+}
+
+.m3-state-layer:active::after {
+  opacity: var(--m3-state-pressed);
+}
+
+/* --------------------------------------------------------------------------
+ * M3 Indeterminate Animation
+ * Used by AdminLinearProgress for indeterminate progress bars
+ * -------------------------------------------------------------------------- */
+@keyframes m3-indeterminate {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(100%); }
+  100% { transform: translateX(300%); }
+}

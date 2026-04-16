@@ -12,13 +12,14 @@ import {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
   INDEXER_LAG_FOLLOWUP_MS,
+  INDEXER_LAG_SCHEDULE_MS,
   queryInvalidation,
   queryKeys,
   STALE_TIME_FAST,
   STALE_TIME_MEDIUM,
   STALE_TIME_RARE,
   STALE_TIME_SLOW,
-} from "../../hooks/query-keys";
+} from "../../config/query-keys";
 import type { Address } from "../../types/domain";
 
 // ============================================
@@ -59,8 +60,16 @@ describe("Stale Time Constants", () => {
     expect(DEFAULT_RETRY_DELAY).toBe(1000);
   });
 
-  it("defines indexer lag followup delay", () => {
+  it("defines indexer lag followup delay (deprecated)", () => {
     expect(INDEXER_LAG_FOLLOWUP_MS).toBe(2000);
+  });
+
+  it("defines progressive invalidation schedule", () => {
+    expect(INDEXER_LAG_SCHEDULE_MS).toEqual([2_000, 5_000, 15_000]);
+    // Each delay should be strictly increasing
+    for (let i = 1; i < INDEXER_LAG_SCHEDULE_MS.length; i++) {
+      expect(INDEXER_LAG_SCHEDULE_MS[i]).toBeGreaterThan(INDEXER_LAG_SCHEDULE_MS[i - 1]);
+    }
   });
 });
 

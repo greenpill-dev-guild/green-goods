@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "{{FEATURE_SLUG}}",
+    "title": "{{FEATURE_TITLE}}",
+    "kind": "feature",
+    "stage": "{{STAGE}}"
+  },
+  "workflow": {
+    "overall_status": "{{WORKFLOW_STATUS}}",
+    "priority": "p2",
+    "created_at": "{{DATE}}",
+    "updated_at": "{{DATE}}"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Mark unused lanes as n/a before promoting QA.",
+    "status.json is authoritative; branch names are automation signals."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/{{FEATURE_SLUG}}",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/{{FEATURE_SLUG}}",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/contracts/{{FEATURE_SLUG}}",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/{{FEATURE_SLUG}}",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/{{FEATURE_SLUG}}",
+      "branch_trigger": "claude/qa-pass-1/{{FEATURE_SLUG}}",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": []
+}

@@ -1,0 +1,71 @@
+/**
+ * Landing View Tests
+ *
+ * Smoke tests for the public landing page.
+ * This page should work without authentication.
+ */
+
+import { cleanup, render, screen } from "@testing-library/react";
+import { createElement } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Mock @green-goods/shared
+vi.mock("@green-goods/shared", () => ({
+  toastService: { success: vi.fn(), error: vi.fn() },
+}));
+
+// Mock client components
+vi.mock("@/components/Layout", () => ({
+  Hero: ({ handleSubscribe }: { handleSubscribe: (e: any) => void }) =>
+    createElement(
+      "div",
+      { "data-testid": "hero" },
+      createElement(
+        "form",
+        {
+          "data-testid": "subscribe-form",
+          onSubmit: handleSubscribe,
+        },
+        createElement("input", { name: "email", placeholder: "Email" }),
+        createElement("button", { type: "submit" }, "Subscribe")
+      )
+    ),
+}));
+
+vi.mock("@/components/Navigation", () => ({
+  LandingHeader: () => createElement("header", { "data-testid": "landing-header" }, "Green Goods"),
+}));
+
+import Landing from "../../views/Landing";
+
+describe("Landing View", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders landing header", () => {
+    render(createElement(Landing));
+
+    expect(screen.getByTestId("landing-header")).toBeInTheDocument();
+    expect(screen.getByText("Green Goods")).toBeInTheDocument();
+  });
+
+  it("renders hero section with subscribe form", () => {
+    render(createElement(Landing));
+
+    expect(screen.getByTestId("hero")).toBeInTheDocument();
+    expect(screen.getByTestId("subscribe-form")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Email")).toBeInTheDocument();
+  });
+
+  it("has the landing root container", () => {
+    const { container } = render(createElement(Landing));
+
+    const root = container.querySelector("#landing-root");
+    expect(root).toBeInTheDocument();
+  });
+});

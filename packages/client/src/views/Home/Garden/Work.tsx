@@ -1,36 +1,26 @@
 import {
   type Address,
-  type ApprovalJobPayload,
-  Confidence,
   ConfidenceSelector,
   cn,
   DEFAULT_CHAIN_ID,
-  debugWarn,
   downloadWorkData,
   downloadWorkMedia,
-  getFileByHash,
   isAddressInList,
   isValidAttestationId,
   jobQueue,
   openEASExplorer,
-  queryKeys,
   isUserAddress as sharedIsUserAddress,
   shareWork,
   toastService,
   useActions,
-  useAsyncEffect,
   useGardens,
   useHasRole,
-  useJobQueueEvents,
   useNavigateToTop,
-  useTimeout,
   useUser,
-  useWorkApproval,
+  useWorkApprovalActions,
+  useWorkMetadata,
   useWorks,
-  VerificationMethod,
-  type WorkApprovalDraft,
   type WorkData,
-  type WorkMetadata,
 } from "@green-goods/shared";
 import {
   RiCheckLine,
@@ -39,8 +29,7 @@ import {
   RiLoader4Line,
   RiUploadCloudLine,
 } from "@remixicon/react";
-import { useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 
@@ -53,16 +42,6 @@ export const GardenWork: React.FC = () => {
   const intl = useIntl();
   const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
   const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
-  const [workMetadata, setWorkMetadata] = useState<WorkMetadata | null>(null);
-  const [metadataStatus, setMetadataStatus] = useState<"idle" | "loading" | "success" | "error">(
-    "loading"
-  );
-  const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [metadataRetryKey, setMetadataRetryKey] = useState(0);
-  const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
-  const [inlineFeedback, setInlineFeedback] = useState<string>("");
-  const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
-  const [optimisticStatus, setOptimisticStatus] = useState<"approved" | "rejected" | null>(null);
   const navigateToTop = useNavigateToTop();
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,10 +53,14 @@ export const GardenWork: React.FC = () => {
   const { works: mergedWorks } = useWorks(gardenId || "", { offline: true });
   const work = mergedWorks.find((w) => w.id === (workId || ""));
 
-  // Derive effective status (optimistic takes precedence over fetched data)
-  const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
+  // Metadata loading (with retry support)
+  const {
+    metadata: workMetadata,
+    status: metadataStatus,
+    error: metadataError,
+    retryFetch: handleRetryMetadataFetch,
+  } = useWorkMetadata(work?.metadata);
 
-  const queryClient = useQueryClient();
   const matchedAction = useMemo(() => {
     if (!work) return null;
     const compositeId = `${chainId}-${work.actionUID}`;
@@ -89,7 +72,6 @@ export const GardenWork: React.FC = () => {
   const { user, smartAccountClient } = useUser();
   const activeAddress = user?.id;
   const [isRetrying, setIsRetrying] = useState(false);
-  const { set: scheduleTimeout } = useTimeout();
   const { hasRole: canReviewOnChain } = useHasRole(
     garden?.id as Address | undefined,
     activeAddress as Address | undefined,
@@ -100,17 +82,35 @@ export const GardenWork: React.FC = () => {
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
-    // Check if user is garden operator
     const isOperator = isAddressInList(activeAddress, garden.operators);
     const canReview = isOperator || canReviewOnChain;
-
-    // Check if user is the gardener who submitted the work
     const isGardener = sharedIsUserAddress(work.gardenerAddress, activeAddress);
 
     if (canReview) return "operator";
     if (isGardener) return "gardener";
     return "viewer";
   }, [garden, work, activeAddress, canReviewOnChain]);
+
+  // Approval interaction state (extracted to shared hook)
+  const {
+    feedbackMode,
+    inlineFeedback,
+    setInlineFeedback,
+    confidence,
+    setConfidence,
+    effectiveStatus,
+    handleApprovePress,
+    handleRejectPress,
+    handleCancelFeedback,
+    handleSubmitApproval,
+    workApprovalMutation,
+  } = useWorkApprovalActions({
+    work,
+    gardenId: garden?.id,
+    chainId,
+    viewingMode,
+    onApprovalComplete: (gId) => navigateToTop(`/home/${gId || gardenIdParam || ""}`),
+  });
 
   // Detect if this is offline work
   const isOfflineWork =
@@ -246,229 +246,6 @@ export const GardenWork: React.FC = () => {
     }
     openEASExplorer(chainId, work.id);
   };
-
-  // Approval feedback handlers
-  const handleApprovePress = () => {
-    if (navigator.vibrate) navigator.vibrate([50]);
-    setFeedbackMode("approve");
-    // Default confidence to MEDIUM for approvals
-    setConfidence(Confidence.MEDIUM);
-    // Focus feedback input after animation (auto-cleared on unmount)
-    scheduleTimeout(() => {
-      document.getElementById("approval-feedback-input")?.focus();
-    }, 300);
-  };
-
-  const handleRejectPress = () => {
-    if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
-    setFeedbackMode("reject");
-    // Confidence defaults to NONE for rejections (per decision #31)
-    setConfidence(Confidence.NONE);
-    scheduleTimeout(() => {
-      document.getElementById("approval-feedback-input")?.focus();
-    }, 300);
-  };
-
-  const handleCancelFeedback = () => {
-    setFeedbackMode(null);
-    setInlineFeedback("");
-    setConfidence(Confidence.NONE);
-  };
-
-  const handleSubmitApproval = () => {
-    if (!work) return;
-
-    if (feedbackMode === "reject" && !inlineFeedback) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.workApproval.feedbackRequired",
-          defaultMessage: "Feedback required",
-        }),
-        message: intl.formatMessage({
-          id: "app.home.workApproval.feedbackRequiredMessage",
-          defaultMessage: "Please provide feedback when rejecting work.",
-        }),
-        context: "work approval",
-      });
-      return;
-    }
-
-    // Confidence validation: must be LOW or higher for approvals (decision #21)
-    if (feedbackMode === "approve" && confidence < Confidence.LOW) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.workApproval.confidenceRequired",
-          defaultMessage: "Confidence required",
-        }),
-        message: intl.formatMessage({
-          id: "app.home.workApproval.confidenceRequiredMessage",
-          defaultMessage: "Please select a confidence level (Low or higher) when approving.",
-        }),
-        context: "work approval",
-      });
-      return;
-    }
-
-    const draft: WorkApprovalDraft = {
-      actionUID: work.actionUID,
-      workUID: work.id,
-      approved: feedbackMode === "approve",
-      feedback: inlineFeedback,
-      confidence: feedbackMode === "approve" ? confidence : Confidence.NONE,
-      // Client PWA hardcodes HUMAN verification method (decision #33)
-      verificationMethod: VerificationMethod.HUMAN,
-    };
-
-    // Optimistic status is set AFTER transaction confirms (in job:completed handler)
-    workApprovalMutation.mutate({ draft, work });
-    setFeedbackMode(null);
-    setInlineFeedback("");
-    setConfidence(Confidence.NONE);
-  };
-
-  const workApprovalMutation = useWorkApproval();
-
-  // Toasts + cache invalidation from queue events
-  useJobQueueEvents(
-    ["job:completed", "job:failed"],
-    (type, data) => {
-      if (!work) return;
-      if (data.job.kind !== "approval") return;
-      const payload = data.job.payload as ApprovalJobPayload;
-      if (payload.workUID !== work.id) return;
-
-      if (type === "job:completed") {
-        // Set optimistic status AFTER transaction confirms (bridges indexer lag)
-        setOptimisticStatus(payload.approved ? "approved" : "rejected");
-
-        const message = payload.approved
-          ? intl.formatMessage({ id: "app.toast.workApproved", defaultMessage: "Work approved" })
-          : intl.formatMessage({ id: "app.toast.workRejected", defaultMessage: "Work rejected" });
-        toastService.success({
-          id: "approval-submit",
-          title: message,
-          message,
-          context: "approval submission",
-          suppressLogging: true,
-        });
-
-        // Delay navigation to show success state (auto-cleared on unmount)
-        scheduleTimeout(() => {
-          setOptimisticStatus(null); // Clear before navigating
-          navigateToTop(`/home/${garden?.id || gardenIdParam || ""}`);
-        }, 2500);
-      }
-      if (type === "job:failed") {
-        // Clear optimistic status on failure
-        setOptimisticStatus(null);
-
-        const failureMessage = intl.formatMessage({
-          id: "app.toast.actionFailed",
-          defaultMessage: "Action failed",
-        });
-        toastService.error({
-          id: "approval-submit",
-          title: failureMessage,
-          message: failureMessage,
-          context: "approval submission",
-          error: "error" in data ? data.error : undefined,
-        });
-      }
-
-      // Invalidate queries - real data will replace optimistic when ready
-      queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
-      if (garden?.id) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(garden.id, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(garden.id, chainId) });
-      }
-    },
-    [work?.id, garden?.id]
-  );
-
-  // Clear optimistic status when real data arrives
-  useEffect(() => {
-    if (optimisticStatus && work?.status && work.status === optimisticStatus) {
-      // Real data caught up with optimistic state, clear it
-      setOptimisticStatus(null);
-    }
-  }, [work?.status, optimisticStatus]);
-
-  // Load work metadata with proper async cleanup (Rule 3: Async Cleanup)
-  useAsyncEffect(
-    async ({ signal, isMounted }) => {
-      setMetadataStatus("loading");
-      setMetadataError(null);
-      setWorkMetadata(null);
-
-      if (!work) {
-        if (isMounted()) {
-          setMetadataStatus("idle");
-        }
-        return;
-      }
-
-      const raw = work.metadata;
-      if (!raw || typeof raw !== "string") {
-        if (isMounted()) {
-          setWorkMetadata(null);
-          setMetadataStatus("success");
-        }
-        return;
-      }
-
-      const trimmed = raw.trim();
-
-      // Try parsing as inline JSON first
-      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-        try {
-          let parsed = JSON.parse(trimmed) as unknown;
-          // Handle double-encoded JSON (string inside string)
-          if (typeof parsed === "string") {
-            parsed = JSON.parse(parsed) as unknown;
-          }
-          if (isMounted()) {
-            setWorkMetadata(parsed as WorkMetadata);
-            setMetadataStatus("success");
-          }
-          return;
-        } catch (error) {
-          debugWarn(
-            `[GardenWork] Failed to parse inline metadata for work ${work.id}: ${
-              error instanceof Error ? error.message : String(error)
-            }`
-          );
-          // Continue to gateway fetch fallback
-        }
-      }
-
-      // Fetch from IPFS gateway
-      try {
-        const file = await getFileByHash(trimmed, { signal, timeoutMs: 30_000 });
-        const data = file.data as unknown as WorkMetadata | null | undefined;
-        if (!isMounted()) return;
-
-        if (data) {
-          setWorkMetadata(data);
-          setMetadataStatus("success");
-        } else {
-          setWorkMetadata(null);
-          setMetadataStatus("error");
-          setMetadataError("Empty metadata response");
-          debugWarn(
-            `[GardenWork] Received empty metadata response from gateway for work ${work.id}`
-          );
-        }
-      } catch (error) {
-        if (!isMounted()) return;
-        const message = error instanceof Error ? error.message : String(error);
-        setWorkMetadata(null);
-        setMetadataStatus("error");
-        setMetadataError(message);
-        debugWarn(`[GardenWork] Failed to fetch metadata for work ${work.id}: ${message}`);
-      }
-    },
-    [work?.id, work?.metadata, metadataRetryKey]
-  );
 
   const handleBack = () => {
     const state = (location.state as { from?: string; returnTo?: string } | null | undefined) ?? {};
@@ -814,10 +591,6 @@ export const GardenWork: React.FC = () => {
           { message: metadataError }
         )
       : null;
-
-  const handleRetryMetadataFetch = () => {
-    setMetadataRetryKey((prev) => prev + 1);
-  };
 
   return (
     <article>

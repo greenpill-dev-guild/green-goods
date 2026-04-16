@@ -1,5 +1,7 @@
 import {
   type Address,
+  Button,
+  Card,
   cn,
   GARDEN_NAME_MAX_LENGTH,
   useSetMaxGardeners,
@@ -12,8 +14,6 @@ import {
 import { RiEditLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 interface GardenSettingsEditorProps {
   gardenAddress: Address;
@@ -110,7 +110,6 @@ function EditableField({
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
           className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-          autoFocus
         />
       ) : (
         <input
@@ -119,7 +118,6 @@ function EditableField({
           onChange={(e) => setDraft(e.target.value)}
           maxLength={maxLength}
           className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-          autoFocus
         />
       )}
       {maxLength && (

@@ -79,10 +79,7 @@ export function setHandlerContext(ctx: HandlerContext): void {
 export async function handleMessage(message: InboundMessage): Promise<OutboundResponse> {
   const { platform, sender, content } = message;
 
-  // Get user (may be undefined for /start and /help)
   const user = await db.getUser(platform, sender.platformId);
-
-  // Route based on content type
   let response: OutboundResponse;
 
   if (isCommandContent(content)) {
@@ -99,7 +96,6 @@ export async function handleMessage(message: InboundMessage): Promise<OutboundRe
     response = textResponse("❌ Unsupported message type.");
   }
 
-  // Validate outbound content against messaging constraints (advisory)
   validateOutboundContent(response);
 
   return response;
@@ -361,7 +357,6 @@ async function handlePhoto(
     const imageContent = content as ImageContent;
     const photoBuffer = await _context.photoProcessor.downloadPhoto(imageContent.imageUrl);
 
-    // Get the current session to see if we have a pending draft
     const session = await db.getSession(platform, sender.platformId);
 
     if (session?.step === "awaiting_photo") {

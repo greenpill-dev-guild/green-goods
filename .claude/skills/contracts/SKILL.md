@@ -63,15 +63,10 @@ packages/contracts/
 Always use custom errors over `require` strings — lower gas, better debugging:
 
 ```solidity
-// Define at contract top
 error ZeroAddress(string paramName);
 error UnauthorizedCaller(address caller);
 
-// Use instead of require
 if (addr == address(0)) revert ZeroAddress("tokenAddress");
-
-// NEVER use require with strings
-// require(addr != address(0), "Zero address");  // Higher gas
 ```
 
 ### Visibility (MANDATORY)
@@ -110,20 +105,7 @@ try octantModule.onWorkApproved(garden, name) returns (address vault) {
 
 ### Storage Gaps (MANDATORY)
 
-All upgradeable contracts must have storage gaps:
-
-```solidity
-contract GreenGoodsResolver is OwnableUpgradeable, UUPSUpgradeable {
-    mapping(bytes32 => bool) private _enabledModules;      // slot 1
-    mapping(address => bool) public authorizedCallers;     // slot 2
-    OctantModule public octantModule;                       // slot 3
-    UnlockModule public unlockModule;                       // slot 4
-
-    uint256[46] private __gap;  // 50 - 4 = 46 slots reserved
-}
-```
-
-**Gap size formula:** `50 - (number of state variables)`
+All upgradeable contracts must have storage gaps. **Gap size formula:** `50 - (number of state variables)`
 
 | Contract | Storage Slots | Gap |
 |----------|---------------|-----|
@@ -143,30 +125,7 @@ contract GreenGoodsResolver is OwnableUpgradeable, UUPSUpgradeable {
 
 ## Part 3: Gas Optimization
 
-### Storage Packing
-
-```solidity
-// Both fit in 1 slot
-uint128 public startTime;
-uint128 public endTime;
-
-// NEVER waste 2 slots
-// uint256 public startTime;
-// uint256 public endTime;
-```
-
-### Bounded Loops
-
-```solidity
-// Always bound iterations
-function process(uint256 start, uint256 count) external {
-    uint256 end = min(start + count, items.length);
-    for (uint256 i = start; i < end; i++) { }
-}
-
-// NEVER unbounded (gas limit risk)
-// for (uint256 i = 0; i < items.length; i++) { }
-```
+Rules: pack storage variables into single slots, always bound loop iterations, use `unchecked` only where overflow is impossible.
 
 ### Gas Benchmarks
 
@@ -207,7 +166,7 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 ### Pre-Flight Checklist
 
 ```bash
-# Full production readiness (build → lint → tests → E2E → dry runs on all chains)
+# Full production readiness (build -> lint -> tests -> E2E -> dry runs on all chains)
 bun run verify:contracts
 
 # Or run steps individually:
@@ -234,18 +193,6 @@ testInvariant_  // Invariant tests
 testE2E_        // Multi-contract flows
 ```
 
-### Fuzz Testing (MANDATORY for mainnet)
-
-```solidity
-function testFuzz_mintGarden(address to, string calldata uri) public {
-    vm.assume(to != address(0));
-    vm.assume(bytes(uri).length > 0 && bytes(uri).length < 1000);
-
-    uint256 tokenId = gardenToken.mintGarden(to, uri);
-    assertEq(gardenToken.ownerOf(tokenId), to);
-}
-```
-
 ### Coverage Targets
 
 | Network | Pass Rate |
@@ -255,139 +202,15 @@ function testFuzz_mintGarden(address to, string calldata uri) public {
 
 ## Part 6: Security Checklist
 
-### Reentrancy Prevention
+### Rules
 
-```solidity
-// ✅ ALWAYS: Checks-Effects-Interactions pattern
-function withdraw(uint256 amount) external {
-    // 1. Checks
-    if (balances[msg.sender] < amount) revert InsufficientBalance();
-
-    // 2. Effects (update state BEFORE external call)
-    balances[msg.sender] -= amount;
-
-    // 3. Interactions (external call last)
-    (bool success, ) = msg.sender.call{value: amount}("");
-    if (!success) revert TransferFailed();
-}
-
-// ✅ ALSO: Use ReentrancyGuard for complex flows
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-
-function complexFlow() external nonReentrant {
-    // Safe from reentrancy
-}
-
-// ❌ NEVER: External call before state update
-function withdraw(uint256 amount) external {
-    (bool success, ) = msg.sender.call{value: amount}("");
-    balances[msg.sender] -= amount; // Too late — reentrancy possible
-}
-```
-
-### Access Control Verification
-
-```solidity
-// Green Goods uses Hats Protocol for role-based access
-// Always verify hat-based permissions for privileged operations
-
-// ✅ Verify caller has the correct hat
-modifier onlyOperator(address garden) {
-    if (!hatsModule.isOperator(garden, msg.sender)) {
-        revert UnauthorizedCaller(msg.sender);
-    }
-    _;
-}
-
-// ✅ Check authorization in initializers
-function initialize(address admin) external initializer {
-    if (admin == address(0)) revert ZeroAddress("admin");
-    __Ownable_init(admin);
-    __UUPSUpgradeable_init();
-}
-
-// ❌ NEVER: Unprotected state-changing functions
-function setResolver(address newResolver) external {
-    resolver = newResolver; // Anyone can call this!
-}
-```
-
-### Storage Collision Prevention (UUPS)
-
-```bash
-# Verify storage layout before upgrading
-forge inspect src/GreenGoodsResolver.sol:GreenGoodsResolver storage-layout
-
-# Compare with previous version
-forge inspect src/GreenGoodsResolver.sol:GreenGoodsResolver storage-layout --pretty > layout-v2.txt
-diff layout-v1.txt layout-v2.txt
-```
-
-```solidity
-// ✅ ALWAYS: Add new variables at the end, reduce gap
-contract GreenGoodsResolverV2 is GreenGoodsResolver {
-    // Existing: slots 1-4, gap was 46
-    address public newFeature;         // slot 5 (new)
-    uint256[45] private __gap;         // 50 - 5 = 45 (reduced by 1)
-}
-
-// ❌ NEVER: Reorder, rename, or change types of existing variables
-// ❌ NEVER: Insert new variables between existing ones
-// ❌ NEVER: Change uint256 to uint128 (changes slot packing)
-```
-
-### Initializer Safety
-
-```solidity
-// ✅ ALWAYS: Disable initializers in constructor for UUPS
-/// @custom:oz-upgrades-unsafe-allow constructor
-constructor() {
-    _disableInitializers();
-}
-
-// ✅ ALWAYS: Use initializer modifier
-function initialize(address admin) external initializer {
-    __Ownable_init(admin);
-    __UUPSUpgradeable_init();
-}
-
-// ✅ ALWAYS: Protect upgrade authorization
-function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-```
-
-### Frontrunning Mitigation
-
-```solidity
-// ✅ Use commit-reveal for sensitive operations
-// ✅ Use deadline parameters for time-sensitive transactions
-function submitWork(
-    bytes32 actionUID,
-    bytes calldata data,
-    uint256 deadline
-) external {
-    if (block.timestamp > deadline) revert DeadlineExpired();
-    // ... process work
-}
-
-// ✅ Use nonces for replay protection
-mapping(address => uint256) public nonces;
-```
-
-### Invariant Testing (MANDATORY for mainnet)
-
-```solidity
-// Define invariants that must always hold
-function invariant_totalSupplyMatchesBalances() public view {
-    uint256 sum;
-    for (uint256 i = 0; i < holders.length; i++) {
-        sum += balances[holders[i]];
-    }
-    assert(sum == totalSupply);
-}
-
-// Test with forge
-// forge test --match-test invariant_ -vvv
-```
+- **Reentrancy**: Follow checks-effects-interactions (CEI) pattern; use `ReentrancyGuardUpgradeable` for complex flows
+- **Access control**: Green Goods uses Hats Protocol for role-based access — verify hat-based permissions on all privileged operations
+- **Storage collisions (UUPS)**: Run `forge inspect <Contract> storage-layout` before every upgrade; add new variables at end only, reduce gap accordingly
+- **Initializer safety**: `_disableInitializers()` in constructor, `initializer` modifier on `initialize()`, protect `_authorizeUpgrade` with `onlyOwner`
+- **Frontrunning**: Use deadline parameters on time-sensitive operations, nonces for replay protection
+- **Fuzz testing**: Mandatory for mainnet — use `testFuzz_` prefix
+- **Invariant testing**: Mandatory for mainnet — use `testInvariant_` prefix
 
 ### Pre-Audit Checklist
 
@@ -431,5 +254,4 @@ function invariant_totalSupplyMatchesBalances() public view {
 - `architecture` — For system-level contract design decisions
 - `security` — For the full security audit toolkit, see [security.md](./security.md). This skill's Security Checklist (Part 6) is a development-time quick check; the security sub-file provides detection depth, static analysis tooling, threat modeling, and pre-deployment review
 - `ops` (deployment sub-file) — For deploy.ts workflow and pre-deployment gates
-- `migration` — For cross-package changes when contract ABIs change
-
+- `ops` (migration sub-file) — For cross-package changes when contract ABIs change

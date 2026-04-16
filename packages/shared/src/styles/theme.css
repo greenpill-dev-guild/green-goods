@@ -122,20 +122,23 @@
   --slate-alpha-16: 153 160 174 / 16%;
   --slate-alpha-10: 153 160 174 / 10%;
 
-  /* Neutral (alias to gray with added 850 for card elevation) */
-  --neutral-950: var(--gray-950);
-  --neutral-900: var(--gray-900);
-  --neutral-850: 35 35 35;  /* Custom intermediate for card elevation */
-  --neutral-800: var(--gray-800);
-  --neutral-700: var(--gray-700);
-  --neutral-600: var(--gray-600);
-  --neutral-500: var(--gray-500);
-  --neutral-400: var(--gray-400);
-  --neutral-300: var(--gray-300);
-  --neutral-200: var(--gray-200);
-  --neutral-100: var(--gray-100);
-  --neutral-50: var(--gray-50);
-  --neutral-0: var(--gray-0);
+  /* Neutral — Stone (warm gray with earthy undertone) */
+  --neutral-975: 8 7 6;
+  --neutral-950: 12 10 9;
+  --neutral-925: 22 20 18;
+  --neutral-900: 28 25 23;
+  --neutral-850: 35 32 30;
+  --neutral-800: 41 37 36;
+  --neutral-775: 50 46 43;
+  --neutral-700: 68 64 60;
+  --neutral-600: 87 83 78;
+  --neutral-500: 120 113 108;
+  --neutral-400: 168 162 158;
+  --neutral-300: 214 211 209;
+  --neutral-200: 231 229 228;
+  --neutral-100: 245 245 244;
+  --neutral-50: 250 250 249;
+  --neutral-0: 255 255 255;
 
   --neutral-alpha-24: var(--gray-alpha-24);
   --neutral-alpha-16: var(--gray-alpha-16);
@@ -403,17 +406,110 @@
   --stable-base: var(--teal-500);
   --stable-light: var(--teal-200);
   --stable-lighter: var(--teal-50);
+
+  /* ── Z-Index Scale ── Semantic stacking order for layout layers
+   * Use Tailwind classes: z-base, z-raised, z-sticky, z-nav, z-overlay, z-modal, z-toast
+   */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-nav: 30;
+  --z-overlay: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+
+  /* ── Glass Material ── Blur + transparency tokens for navigation-tier surfaces
+   * Applied via .glass-surface utility or per-component backdrop-filter.
+   * @media (prefers-contrast: more) forces solid fallback — see utilities.
+   */
+  --glass-blur: 16px;
+  --glass-bg: 255 255 255 / 80%;
+  --glass-ring: 0 0 0 / 4%;
+  --glass-overlay-bg: 0 0 0 / 40%;
+
+  /* Material 3 role aliases - documentation layer only
+   * Green Goods semantic tokens remain canonical for component authors.
+   * These aliases make the Material relationship explicit for admin governance.
+   */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-dim: var(--neutral-200);
+  --m3-surface-bright: var(--bg-white-0);
+  --m3-surface-container-lowest: var(--bg-white-0);
+  --m3-surface-container-low: var(--bg-weak-50);
+  --m3-surface-container: var(--bg-soft-200);
+  --m3-surface-container-high: var(--bg-sub-300);
+  --m3-surface-container-highest: var(--bg-surface-800);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
+  --m3-primary: var(--primary-base);
+  --m3-on-primary: var(--primary-foreground);
+  --m3-primary-container: var(--green-100);
+  --m3-on-primary-container: var(--green-950);
+  --m3-error: var(--error-base);
+  --m3-on-error: var(--neutral-0);
+  --m3-state-hover: var(--primary-alpha-10);
+  --m3-state-focus: var(--primary-alpha-16);
+  --m3-state-pressed: var(--primary-alpha-24);
+
+  /* ── M3 Type Scale ── */
+  --type-display-lg: 57px;
+  --type-display-lg-lh: 64px;
+  --type-display-lg-ls: -0.25px;
+  --type-display-md: 45px;
+  --type-display-md-lh: 52px;
+  --type-display-md-ls: 0px;
+  --type-display-sm: 36px;
+  --type-display-sm-lh: 44px;
+  --type-display-sm-ls: 0px;
+  --type-headline-lg: 32px;
+  --type-headline-lg-lh: 40px;
+  --type-headline-lg-ls: 0px;
+  --type-headline-md: 28px;
+  --type-headline-md-lh: 36px;
+  --type-headline-md-ls: 0px;
+  --type-headline-sm: 24px;
+  --type-headline-sm-lh: 32px;
+  --type-headline-sm-ls: 0px;
+  --type-title-lg: 22px;
+  --type-title-lg-lh: 28px;
+  --type-title-lg-ls: 0px;
+  --type-title-md: 16px;
+  --type-title-md-lh: 24px;
+  --type-title-md-ls: 0.15px;
+  --type-title-sm: 14px;
+  --type-title-sm-lh: 20px;
+  --type-title-sm-ls: 0.1px;
+  --type-body-lg: 16px;
+  --type-body-lg-lh: 24px;
+  --type-body-lg-ls: 0.5px;
+  --type-body-md: 14px;
+  --type-body-md-lh: 20px;
+  --type-body-md-ls: 0.25px;
+  --type-body-sm: 12px;
+  --type-body-sm-lh: 16px;
+  --type-body-sm-ls: 0.4px;
+  --type-label-lg: 14px;
+  --type-label-lg-lh: 20px;
+  --type-label-lg-ls: 0.1px;
+  --type-label-md: 12px;
+  --type-label-md-lh: 16px;
+  --type-label-md-ls: 0.5px;
+  --type-label-sm: 11px;
+  --type-label-sm-lh: 16px;
+  --type-label-sm-ls: 0.5px;
 }
 
 /* Dark theme overrides using data-theme attribute */
 :root[data-theme="dark"] {
-  /* Backgrounds - proper dark mode hierarchy with clear card elevation */
-  --bg-white-0: var(--neutral-950);      /* 23 23 23 - page background (darkest) */
-  --bg-weak-50: var(--neutral-850);      /* 35 35 35 - card surfaces (visibly lighter) */
-  --bg-soft-200: var(--neutral-800);     /* 41 41 41 - elevated cards/surfaces */
-  --bg-sub-300: var(--neutral-700);      /* 51 51 51 - more elevated elements */
-  --bg-surface-800: var(--neutral-600);  /* 92 92 92 - prominent surfaces */
-  --bg-strong-950: var(--neutral-100);   /* 245 245 245 - highlights/hovers */
+  /* Backgrounds — M3-aligned dark surface ladder (tones 6→22, ceiling at 24) */
+  --bg-white-0: var(--neutral-950);      /* 12 10 9  — surface / surfaceDim (tone 6) */
+  --bg-weak-50: var(--neutral-925);      /* 22 20 18 — surfaceContainerLow (tone 10) */
+  --bg-soft-200: var(--neutral-900);     /* 28 25 23 — surfaceContainer (tone 12) */
+  --bg-sub-300: var(--neutral-850);      /* 35 32 30 — surfaceContainerHigh (tone 17) */
+  --bg-surface-800: var(--neutral-800);  /* 41 37 36 — surfaceContainerHighest (tone 22) */
+  --bg-strong-950: var(--neutral-100);   /* 245 245 244 — inverse surface (unchanged) */
 
   /* Text - light on dark */
   --text-strong-950: var(--neutral-50);      /* 245 247 250 - primary text (lightest) */
@@ -492,10 +588,37 @@
   --stable-light: var(--teal-alpha-24);
   --stable-lighter: var(--teal-alpha-16);
 
+  /* Material 3 role aliases — dark mode overrides */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-dim: var(--bg-white-0);
+  --m3-surface-bright: var(--neutral-775);
+  --m3-surface-container-lowest: var(--neutral-975);
+  --m3-surface-container-low: var(--bg-weak-50);
+  --m3-surface-container: var(--bg-soft-200);
+  --m3-surface-container-high: var(--bg-sub-300);
+  --m3-surface-container-highest: var(--bg-surface-800);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
+  --m3-primary: var(--primary-base);
+  --m3-on-primary: var(--primary-foreground);
+  --m3-primary-container: var(--green-900);
+  --m3-on-primary-container: var(--green-100);
+  --m3-error: var(--error-base);
+  --m3-on-error: var(--neutral-950);
+  --m3-state-hover: var(--primary-alpha-10);
+  --m3-state-focus: var(--primary-alpha-16);
+  --m3-state-pressed: var(--primary-alpha-24);
+
   /* Overlays - darker in dark mode */
   --overlay-gray: 51 51 51 / 56%;
   --overlay-slate: 43 48 59 / 56%;
   --overlay: var(--overlay-gray);
+
+  /* Glass material - dark mode overrides */
+  --glass-bg: 23 23 23 / 80%;
+  --glass-ring: 255 255 255 / 6%;
 
   /* Social colors - invert for dark mode */
   --social-apple: 255 255 255;
@@ -1025,6 +1148,14 @@
 
   /* ── Shadows ── */
 
+  /* Elevation scale — progressive depth for surface hierarchy */
+  --shadow-elevation-1: 0 1px 3px 0 rgba(14, 18, 27, 0.04), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
+  --shadow-elevation-2: 0 4px 12px 0 rgba(14, 18, 27, 0.06), 0 1px 3px 0 rgba(14, 18, 27, 0.04);
+  --shadow-elevation-3: 0 8px 24px 0 rgba(14, 18, 27, 0.08), 0 2px 4px 0 rgba(14, 18, 27, 0.04);
+  --shadow-float: 0 12px 40px 0 rgba(14, 18, 27, 0.12), 0 4px 8px 0 rgba(14, 18, 27, 0.06);
+  --shadow-primary-glow: 0 4px 16px 0 rgba(31, 193, 107, 0.12), 0 1px 3px 0 rgba(14, 18, 27, 0.04);
+
+  /* Legacy aliases */
   --shadow-regular-xs: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
   --shadow-regular-sm: 0 2px 4px rgba(27, 28, 29, 0.04);
   --shadow-regular-md: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
@@ -1051,11 +1182,21 @@
   --shadow-switch-thumb: 0 4px 8px 0 rgba(27, 28, 29, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.08);
   --shadow-tooltip: 0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
 
+  /* ── Z-Index Scale ── Generates: z-base, z-raised, z-sticky, z-nav, z-overlay, z-modal, z-toast */
+  --z-index-base: var(--z-base);
+  --z-index-raised: var(--z-raised);
+  --z-index-sticky: var(--z-sticky);
+  --z-index-nav: var(--z-nav);
+  --z-index-overlay: var(--z-overlay);
+  --z-index-modal: var(--z-modal);
+  --z-index-toast: var(--z-toast);
+
   /* ── Animations ── */
 
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-spring-bump: spring-bump 0.56s ease-in-out;
+  --animate-stagger-fade-in: stagger-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ============================================================================
@@ -1064,6 +1205,53 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries
  * ============================================================================ */
 @layer utilities {
+  .canvas-main-sheet-frame {
+    margin: 0.5rem 1.5rem;
+  }
+
+  @media (max-width: 599px) {
+    .canvas-main-sheet-frame {
+      margin-inline: 0.75rem;
+    }
+  }
+
+  /* ── Canvas Grid Layout ── */
+  .workspace-canvas-grid {
+    --canvas-right-sheet-width: clamp(320px, 28vw, 480px);
+    display: grid;
+    grid-template-areas:
+      "top    top    top"
+      "left   main   right"
+      "bottom bottom bottom";
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns:
+      var(--left-sheet-width, 0)
+      1fr
+      var(--right-sheet-width, 0);
+    background: var(--canvas-gradient,
+      linear-gradient(180deg, rgb(var(--bg-white-0)) 0%, rgb(var(--bg-weak-50) / 0.6) 40%, rgb(var(--bg-sub-300) / 0.3) 100%)
+    );
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .canvas-area-top { grid-area: top; }
+  .canvas-area-left { grid-area: left; }
+  .canvas-area-main { grid-area: main; }
+  .canvas-area-right { grid-area: right; }
+  .canvas-area-bottom { grid-area: bottom; position: relative; }
+
+  @media (max-width: 599px) {
+    .workspace-canvas-grid {
+      grid-template-areas:
+        "top"
+        "main"
+        "bottom";
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto;
+    }
+  }
+
   /* Container query contexts - apply to parent elements to enable @[width] queries on children */
   .container-inline {
     container-type: inline-size;

@@ -32,7 +32,7 @@
 
 import type { SmartAccountClient } from "permissionless";
 import { useAuth } from "./useAuth";
-import { usePrimaryAddress } from "./usePrimaryAddress";
+import { getPrimaryAddress } from "./usePrimaryAddress";
 
 export interface User {
   id: string;
@@ -68,7 +68,6 @@ export interface UseUserReturn {
 
 export function useUser(): UseUserReturn {
   const auth = useAuth();
-  const primaryAddress = usePrimaryAddress();
 
   // Extract auth state with null defaults for type safety
   const {
@@ -82,6 +81,13 @@ export function useUser(): UseUserReturn {
     externalWalletAddress = null,
     smartAccountClient = null,
   } = auth;
+
+  const primaryAddress = getPrimaryAddress(
+    authMode,
+    walletAddress,
+    smartAccountAddress,
+    auth.embeddedAddress
+  );
 
   // Create EOA object only when wallet is the primary auth (React 19 compiler handles memoization)
   const eoa = authMode === "wallet" && walletAddress ? { address: walletAddress } : null;

@@ -1,7 +1,7 @@
 import {
   AppKitProvider,
   AppProvider,
-  AuthProvider,
+  AuthGate,
   DEFAULT_CHAIN_ID,
   initGlobalErrorHandlers,
   initTheme,
@@ -83,13 +83,13 @@ export const Root = () => (
         }}
         defaultChainId={DEFAULT_CHAIN_ID}
       >
-        {/* AuthProvider uses XState + Pimlico passkey server */}
-        <AuthProvider>
+        {/* AuthGate uses DevAuthProvider in dev when ?mockAuth= is present */}
+        <AuthGate>
           <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
             <UpdateNotifier />
             <App />
           </AppProvider>
-        </AuthProvider>
+        </AuthGate>
       </AppKitProvider>
     </AppErrorBoundary>
   </HelmetProvider>

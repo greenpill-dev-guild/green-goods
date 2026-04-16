@@ -1,0 +1,37 @@
+# Agent Package — Codex Guide
+
+Use this guide when editing `packages/agent/**`.
+
+## Role
+
+The agent package is the bot and webhook service. It handles inbound platform messages,
+routes them through handlers, and coordinates service dependencies.
+
+## Commands
+
+- `bun run test`
+- `bun run typecheck`
+- `bun run test:coverage`
+- `bun run lint`
+
+## Non-Negotiables
+
+- Keep handlers pure where possible and inject dependencies that need mocking.
+- Keep services behind stable helper APIs or singleton accessors.
+- Never store plaintext private keys; use the crypto helpers for storage and retrieval.
+- Rate-limit externally triggered actions.
+- Do not leak internal error details to users; keep user-facing failures generic.
+- If a change touches shared types or shared APIs, validate those boundaries as well.
+
+## Codex Notes
+
+- Response-shape changes ripple quickly through platform adapters and tests; run both tests and
+  typecheck when editing handlers, adapters, or service contracts.
+- Coverage is currently permissive, so correctness depends more on targeted tests than on the
+  threshold number alone.
+
+## Validation
+
+- Package loop: `bun run test && bun run typecheck`
+- Security-sensitive or handler-heavy changes: `bun run test:coverage`
+- Shared impact: from repo root run `node scripts/ci-local.js --quick`

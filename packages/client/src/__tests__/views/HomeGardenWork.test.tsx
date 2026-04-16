@@ -51,6 +51,21 @@ vi.mock("@green-goods/shared", () => ({
     mutate: vi.fn(),
     isPending: false,
   }),
+  useWorkApprovalActions: () => ({
+    feedbackMode: null,
+    inlineFeedback: "",
+    setInlineFeedback: vi.fn(),
+    confidence: "NONE",
+    setConfidence: vi.fn(),
+    optimisticStatus: null,
+    effectiveStatus: "pending",
+    handleApprovePress: vi.fn(),
+    handleRejectPress: vi.fn(),
+    handleCancelFeedback: vi.fn(),
+    handleSubmitApproval: vi.fn(),
+    workApprovalMutation: { mutate: vi.fn(), isPending: false },
+  }),
+  useWorkMetadata: () => ({ metadata: null, isLoading: false, error: null, retryFetch: vi.fn() }),
   useWorks: () => ({ works: [] }),
 }));
 

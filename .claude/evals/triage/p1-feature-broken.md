@@ -56,7 +56,7 @@ This is P1 because:
 
 ### Expected Route
 - Entry point: `/debug --mode hotfix`
-- Skills: `contracts`, `error-handling-patterns`
+- Skills: `contracts`, `react` (error-handling sub-file)
 - Immediate: Revert PR #312 or fix the ABI import path in the shared mutation hook
 
 ### Context for Next Agent

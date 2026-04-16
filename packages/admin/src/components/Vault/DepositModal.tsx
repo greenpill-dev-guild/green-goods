@@ -1,13 +1,17 @@
 import {
   type Address,
   AssetSelector,
+  Button,
   classifyTxError,
+  FormField,
   formatTokenAmount,
   type GardenVault,
+  getDepositLimitLabel,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
   isMeaningfulTxErrorMessage,
+  TxInlineFeedback,
   useDebouncedValue,
   useDepositForm,
   useUser,
@@ -21,10 +25,6 @@ import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { ConnectButton } from "@/components/ConnectButton";
-import { TxInlineFeedback } from "@/components/feedback/TxInlineFeedback";
-import { Button } from "@/components/ui/Button";
-import { FormField } from "@/components/ui/FormField";
-import { getDepositLimitLabel } from "./depositLimit";
 
 const VAULT_DEPOSIT_ABI = [
   {
@@ -70,6 +70,7 @@ export function DepositModal({
   const { data: balance } = useBalance({
     address: primaryAddress as Address | undefined,
     token: selectedVault?.asset as Address | undefined,
+    chainId: selectedVault?.chainId,
     query: {
       enabled: isOpen && Boolean(primaryAddress && selectedVault),
       refetchInterval: isOpen ? 10_000 : false,
@@ -103,6 +104,7 @@ export function DepositModal({
   const { preview: healthCheck } = useVaultPreview({
     vaultAddress: selectedVault?.vaultAddress as Address | undefined,
     userAddress: primaryAddress as Address | undefined,
+    chainId: selectedVault?.chainId,
     enabled: isOpen && Boolean(selectedVault),
   });
   const vaultAcceptingDeposits = healthCheck ? healthCheck.maxDeposit > 0n : true;
@@ -112,6 +114,7 @@ export function DepositModal({
     vaultAddress: selectedVault?.vaultAddress as Address | undefined,
     amount: debouncedAmount,
     userAddress: primaryAddress as Address | undefined,
+    chainId: selectedVault?.chainId,
     enabled: isOpen && Boolean(selectedVault && debouncedAmount > 0n),
   });
 
@@ -130,9 +133,11 @@ export function DepositModal({
   const { data: estimatedGas } = useEstimateGas({
     to: selectedVault?.vaultAddress as Address | undefined,
     data: depositData,
+    chainId: selectedVault?.chainId,
     query: { enabled: isOpen && Boolean(selectedVault && depositData) },
   });
   const { data: gasPrice } = useGasPrice({
+    chainId: selectedVault?.chainId,
     query: { enabled: isOpen && Boolean(estimatedGas) },
   });
   const estimatedGasCost = estimatedGas && gasPrice ? estimatedGas * gasPrice : undefined;
@@ -188,8 +193,8 @@ export function DepositModal({
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[9999] bg-overlay backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+        <Dialog.Overlay className="fixed inset-0 z-overlay bg-overlay backdrop-blur-sm" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-elevation-5 focus:outline-none">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <Dialog.Title className="text-lg font-semibold text-text-strong">

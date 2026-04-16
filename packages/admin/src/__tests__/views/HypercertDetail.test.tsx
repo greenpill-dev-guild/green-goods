@@ -16,6 +16,16 @@ const mockUseHypercertListings = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
+  adminRoutes: {
+    gardenImpact: (search?: Record<string, string>) => {
+      const query = search ? new URLSearchParams(search).toString() : "";
+      return query ? `/garden/impact?${query}` : "/garden/impact";
+    },
+  },
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({
+      selectedGarden: { id: "garden-1", name: "Test Garden" },
+    }),
   useGardens: () => mockUseGardens(),
   useHypercerts: (opts: any) => mockUseHypercerts(opts),
   useHypercertListings: () => mockUseHypercertListings(),
@@ -32,7 +42,7 @@ vi.mock("viem", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
-  useParams: () => ({ id: "garden-1", hypercertId: "hc-123" }),
+  useParams: () => ({ hypercertId: "hc-123" }),
   useLocation: () => ({ state: null }),
   Link: ({ to, children, ...props }: any) =>
     React.createElement("a", { href: to, ...props }, children),
@@ -53,20 +63,20 @@ vi.mock("@/components/Layout/PageHeader", () => ({
     ),
 }));
 
-vi.mock("@/components/hypercerts/MarketplaceApprovalGate", () => ({
+vi.mock("@/components/Hypercerts/MarketplaceApprovalGate", () => ({
   MarketplaceApprovalGate: ({ children }: { children: React.ReactNode }) =>
     React.createElement("div", { "data-testid": "marketplace-gate" }, children),
 }));
 
-vi.mock("@/components/hypercerts/CreateListingDialog", () => ({
+vi.mock("@/components/Hypercerts/CreateListingDialog", () => ({
   CreateListingDialog: () => React.createElement("div", { "data-testid": "listing-dialog" }),
 }));
 
-vi.mock("@/components/hypercerts/TradeHistoryTable", () => ({
+vi.mock("@/components/Hypercerts/TradeHistoryTable", () => ({
   TradeHistoryTable: () => React.createElement("div", { "data-testid": "trade-history" }),
 }));
 
-import HypercertDetail from "@/views/Gardens/Garden/HypercertDetail";
+import HypercertDetail from "@/views/Garden/HypercertDetail";
 
 function renderWithIntl(ui: React.ReactElement) {
   return render(React.createElement(IntlProvider, { locale: "en", messages: {} }, ui));

@@ -10,7 +10,7 @@ import {
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { STALE_TIME_MEDIUM } from "../query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 interface UseGardenCookieJarsOptions {
   enabled?: boolean;

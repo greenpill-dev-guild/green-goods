@@ -141,7 +141,12 @@ for (const relPath of skillFiles) {
 
   if (meta.status !== "deprecated") {
     if (!/^##\s+Activation/m.test(content)) fail(`${relPath}: missing section "## Activation"`);
-    if (!/^##\s+Part\s+/m.test(content)) fail(`${relPath}: missing numbered "## Part" section`);
+    // Skills must have substantive content sections (numbered Parts or major concept headings)
+    const hasPartSections = /^##\s+Part\s+/m.test(content);
+    const hasConceptSections = (content.match(/^##\s+[A-Z]/gm) || []).length >= 3;
+    if (!hasPartSections && !hasConceptSections) {
+      fail(`${relPath}: missing substantive content sections (numbered "## Part" or 3+ concept headings)`);
+    }
     if (!/^##\s+Anti-Patterns/m.test(content)) fail(`${relPath}: missing section "## Anti-Patterns"`);
     if (!/^##\s+Related Skills/m.test(content)) fail(`${relPath}: missing section "## Related Skills"`);
   }
@@ -178,7 +183,6 @@ if (!exists(registryPath)) {
     const required = [
       "name",
       "status",
-      "deprecated_replacement",
       "listed_in_index",
       "default_mode",
       "triggers",
@@ -187,6 +191,10 @@ if (!exists(registryPath)) {
 
     for (const key of required) {
       if (!(key in record)) fail(`${registryPath}: ${record.name ?? "unknown"} missing key: ${key}`);
+    }
+
+    if (record.status === "deprecated" && !("deprecated_replacement" in record)) {
+      fail(`${registryPath}: deprecated skill ${record.name} missing key: deprecated_replacement`);
     }
 
     if (record.name === "offline" || record.name === "storage") {
@@ -206,6 +214,9 @@ if (!exists(registryPath)) {
   activeSkillNames = names;
 
   for (const [alias, target] of Object.entries(aliases)) {
+    // Skip command-route aliases (values starting with "/") — validated separately
+    if (typeof target === "string" && target.startsWith("/")) continue;
+
     if (activeSkillNames.has(alias)) {
       fail(`${registryPath}: alias key collides with active skill: ${alias}`);
     }
@@ -231,31 +242,14 @@ if (!exists(registryPath)) {
     fail(`${indexPath}: deprecated skills section should be removed`);
   }
 
-  if (!/\|\s*error-handling-patterns\s*\|/m.test(indexText)) {
-    fail(`${indexPath}: coverage matrix must use error-handling-patterns row name`);
-  }
-  if (/\|\s*error-handling\s*\|/m.test(indexText)) {
-    fail(`${indexPath}: legacy coverage row "error-handling" should not exist`);
+  // Verify command skills section exists
+  if (!/##\s+Command Skills/m.test(indexText)) {
+    fail(`${indexPath}: missing "Command Skills" section`);
   }
 
-  const commandSkillsMatch = indexText.match(/##\s+Command Skills([\s\S]*?)##\s+Development Skills/m);
-  if (!commandSkillsMatch) {
-    fail(`${indexPath}: missing "Command Skills" or "Development Skills" section`);
-  } else {
-    const [primaryCommandTable] = commandSkillsMatch[1].split(/###\s+Command Mode Wrappers/m);
-    if (/\|\s*\*\*cross-package-verify\*\*\s*\|/m.test(primaryCommandTable)) {
-      fail(`${indexPath}: cross-package-verify must be a command-mode wrapper, not a primary command row`);
-    }
-    if (/\|\s*\*\*agent-teams\*\*\s*\|/m.test(primaryCommandTable)) {
-      fail(`${indexPath}: agent-teams must be a command-mode wrapper, not a primary command row`);
-    }
-  }
-
-  if (!/###\s+Command Mode Wrappers/m.test(indexText)) {
-    fail(`${indexPath}: missing "Command Mode Wrappers" section`);
-  }
-  if (/\|\s*`cross-package-change`\s*\|\s*`cross-package-verify`\s*\|/m.test(indexText)) {
-    fail(`${indexPath}: cross-package-change entrypoint must route through canonical /review command`);
+  // Verify domain skills section exists
+  if (!/##\s+Domain Skills/m.test(indexText)) {
+    fail(`${indexPath}: missing "Domain Skills" section`);
   }
 }
 
@@ -268,151 +262,92 @@ for (const [name, info] of skillMeta.entries()) {
   }
 }
 
-const commandsRegistryPath = ".claude/registry/commands.json";
-const registrySchemas = [
-  ".claude/registry/skills.schema.json",
-  ".claude/registry/skill-bundles.schema.json",
-  ".claude/registry/commands.schema.json",
-];
-for (const relPath of registrySchemas) {
-  if (!exists(relPath)) {
-    fail(`${relPath}: schema file does not exist`);
-  }
-}
+// === Unified registry: canonical commands, command skills, and bundles ===
+// All now live in skills.json alongside skills and aliases.
 
-const commandsSchemaPath = ".claude/registry/commands.schema.json";
-if (exists(commandsSchemaPath)) {
-  const commandsSchema = JSON.parse(read(commandsSchemaPath));
-  const sourceConst = commandsSchema?.properties?.source?.const;
-  if (sourceConst !== ".claude/skills/*/SKILL.md") {
-    fail(`${commandsSchemaPath}: source must be locked to .claude/skills/*/SKILL.md`);
-  }
-
-  const entryPattern = commandsSchema?.$defs?.command?.properties?.entry_file?.pattern;
-  if (entryPattern !== "^\\.claude\\/skills\\/[a-z0-9-]+\\/SKILL\\.md$") {
-    fail(`${commandsSchemaPath}: entry_file pattern must target .claude/skills/*/SKILL.md`);
-  }
-}
-
-const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit"]);
+const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit", "principles", "architecture", "status"]);
 let canonicalCommandNames = new Set();
-let commandAliases = {};
 
-if (!exists(commandsRegistryPath)) {
-  fail(`${commandsRegistryPath}: file does not exist`);
-} else {
-  const registry = JSON.parse(read(commandsRegistryPath));
+{
+  const registry = JSON.parse(read(registryPath));
 
   if (registry.source !== ".claude/skills/*/SKILL.md") {
-    fail(`${commandsRegistryPath}: source must be .claude/skills/*/SKILL.md`);
+    fail(`${registryPath}: source must be .claude/skills/*/SKILL.md`);
   }
 
+  // Canonical commands
   if (!Array.isArray(registry.canonical_commands)) {
-    fail(`${commandsRegistryPath}: canonical_commands must be an array`);
+    fail(`${registryPath}: canonical_commands must be an array`);
   } else {
     canonicalCommandNames = new Set(registry.canonical_commands);
   }
 
-  if (!Array.isArray(registry.commands)) {
-    fail(`${commandsRegistryPath}: commands must be an array`);
-  }
-
-  if (!registry.aliases || typeof registry.aliases !== "object" || Array.isArray(registry.aliases)) {
-    fail(`${commandsRegistryPath}: aliases must be an object`);
-  } else {
-    commandAliases = registry.aliases;
-  }
-
-  if (canonicalCommandNames.size !== expectedCanonicalCommands.size) {
-    fail(`${commandsRegistryPath}: canonical_commands must contain exactly plan, debug, review, audit`);
-  }
   for (const cmd of expectedCanonicalCommands) {
     if (!canonicalCommandNames.has(cmd)) {
-      fail(`${commandsRegistryPath}: missing canonical command: ${cmd}`);
+      fail(`${registryPath}: missing canonical command: ${cmd}`);
     }
   }
-
-  const seenCommands = new Set();
-  for (const command of registry.commands ?? []) {
-    const requiredKeys = ["name", "status", "default_mode", "intent", "entry_file", "owned_skills"];
-    for (const key of requiredKeys) {
-      if (!(key in command)) {
-        fail(`${commandsRegistryPath}: ${command.name ?? "unknown"} missing key: ${key}`);
-      }
-    }
-
-    if (seenCommands.has(command.name)) {
-      fail(`${commandsRegistryPath}: duplicate command definition: ${command.name}`);
-      continue;
-    }
-    seenCommands.add(command.name);
-
-    if (!canonicalCommandNames.has(command.name)) {
-      fail(`${commandsRegistryPath}: command is not in canonical_commands: ${command.name}`);
-    }
-
-    if (!exists(command.entry_file)) {
-      fail(`${commandsRegistryPath}: command entry file missing: ${command.entry_file}`);
-    }
-    if (!/^\.claude\/skills\/[a-z0-9-]+\/SKILL\.md$/.test(command.entry_file)) {
-      fail(`${commandsRegistryPath}: ${command.name} has invalid entry_file format: ${command.entry_file}`);
-    } else {
-      const entrySkillName = command.entry_file.match(/^\.claude\/skills\/([a-z0-9-]+)\/SKILL\.md$/)?.[1];
-      if (entrySkillName !== command.name) {
-        fail(`${commandsRegistryPath}: ${command.name} entry_file must point to matching skill directory`);
-      }
-    }
-
-    for (const ownedSkill of command.owned_skills ?? []) {
-      if (!activeSkillNames.has(ownedSkill)) {
-        fail(`${commandsRegistryPath}: ${command.name} references unknown owned skill: ${ownedSkill}`);
-      }
-    }
-  }
-
   for (const cmd of canonicalCommandNames) {
-    if (!seenCommands.has(cmd)) {
-      fail(`${commandsRegistryPath}: missing command object for canonical command: ${cmd}`);
+    if (!expectedCanonicalCommands.has(cmd)) {
+      fail(`${registryPath}: unexpected canonical command: ${cmd}`);
     }
   }
 
-  const requiredAliases = {
-    "/teams": "/plan --mode teams",
-    "cross-package-verify": "/review --mode verify_only --scope cross-package",
-    "autonomous review": "/review --mode apply_fixes",
-    "tdd bugfix": "/debug --mode tdd_bugfix",
-  };
+  // Command skills (user_invocable: true) must have command-specific fields
+  for (const record of registry.skills ?? []) {
+    if (record.user_invocable) {
+      const commandKeys = ["intent", "entry_file", "owned_skills", "modes"];
+      for (const key of commandKeys) {
+        if (!(key in record)) {
+          fail(`${registryPath}: command skill ${record.name} missing key: ${key}`);
+        }
+      }
 
-  for (const [alias, expectedRoute] of Object.entries(requiredAliases)) {
-    if (commandAliases[alias] !== expectedRoute) {
-      fail(`${commandsRegistryPath}: required alias ${alias} -> ${expectedRoute} is missing`);
+      if (!canonicalCommandNames.has(record.name)) {
+        fail(`${registryPath}: user_invocable skill ${record.name} is not in canonical_commands`);
+      }
+
+      if (record.entry_file && !exists(record.entry_file)) {
+        fail(`${registryPath}: command entry file missing: ${record.entry_file}`);
+      }
+      if (record.entry_file && !/^\.claude\/skills\/[a-z0-9-]+\/SKILL\.md$/.test(record.entry_file)) {
+        fail(`${registryPath}: ${record.name} has invalid entry_file format: ${record.entry_file}`);
+      }
+
+      for (const ownedSkill of record.owned_skills ?? []) {
+        if (!activeSkillNames.has(ownedSkill)) {
+          fail(`${registryPath}: ${record.name} references unknown owned skill: ${ownedSkill}`);
+        }
+      }
     }
   }
 
-  for (const [alias, route] of Object.entries(commandAliases)) {
+  // Every canonical command must have a user_invocable skill
+  for (const cmd of canonicalCommandNames) {
+    const skill = (registry.skills ?? []).find((s) => s.name === cmd);
+    if (!skill || !skill.user_invocable) {
+      fail(`${registryPath}: canonical command ${cmd} has no user_invocable skill entry`);
+    }
+  }
+
+  // Command aliases (keys starting with "/" or containing spaces route to /command modes)
+  const commandAliasKeys = Object.entries(aliases).filter(
+    ([key, val]) => key.startsWith("/") || (typeof val === "string" && val.startsWith("/"))
+  );
+  for (const [alias, route] of commandAliasKeys) {
     const token = extractCommandToken(route);
     if (!token) {
-      fail(`${commandsRegistryPath}: alias target must start with canonical command route: ${alias} -> ${route}`);
+      fail(`${registryPath}: command alias target must start with / command route: ${alias} -> ${route}`);
       continue;
     }
     if (!canonicalCommandNames.has(token)) {
-      fail(`${commandsRegistryPath}: alias target points to non-canonical command: ${alias} -> ${route}`);
+      fail(`${registryPath}: command alias target points to non-canonical command: ${alias} -> ${route}`);
     }
   }
-}
 
-if (exists(".claude/commands")) {
-  const commandDocs = listDirFiles(".claude/commands");
-  fail(`.claude/commands: command docs surface should remain removed (${commandDocs.join(", ") || "directory present"})`);
-}
-
-const bundlesPath = ".claude/registry/skill-bundles.json";
-if (!exists(bundlesPath)) {
-  fail(`${bundlesPath}: file does not exist`);
-} else {
-  const bundlesData = JSON.parse(read(bundlesPath));
-  if (!bundlesData.bundles || typeof bundlesData.bundles !== "object" || Array.isArray(bundlesData.bundles)) {
-    fail(`${bundlesPath}: bundles must be an object`);
+  // Bundles
+  if (!registry.bundles || typeof registry.bundles !== "object" || Array.isArray(registry.bundles)) {
+    fail(`${registryPath}: bundles must be an object`);
   } else {
     const requiredBundleIds = [
       "frontend-change",
@@ -425,53 +360,58 @@ if (!exists(bundlesPath)) {
     ];
 
     for (const id of requiredBundleIds) {
-      if (!(id in bundlesData.bundles)) fail(`${bundlesPath}: missing required bundle: ${id}`);
+      if (!(id in registry.bundles)) fail(`${registryPath}: missing required bundle: ${id}`);
     }
 
-    for (const [id, bundle] of Object.entries(bundlesData.bundles)) {
+    for (const [id, bundle] of Object.entries(registry.bundles)) {
       const requiredKeys = ["entrypoint", "default_mode", "skills", "user_facing", "contract_touching"];
       for (const key of requiredKeys) {
-        if (!(key in bundle)) fail(`${bundlesPath}: ${id} missing key: ${key}`);
+        if (!(key in bundle)) fail(`${registryPath}: bundle ${id} missing key: ${key}`);
       }
 
       const entryCommand = extractCommandToken(bundle.entrypoint);
       if (!entryCommand) {
-        fail(`${bundlesPath}: ${id} entrypoint must start with canonical command route (received: ${bundle.entrypoint})`);
+        fail(`${registryPath}: bundle ${id} entrypoint must start with / command route (received: ${bundle.entrypoint})`);
       } else if (!canonicalCommandNames.has(entryCommand)) {
-        fail(`${bundlesPath}: ${id} entrypoint references non-canonical command: ${bundle.entrypoint}`);
+        fail(`${registryPath}: bundle ${id} entrypoint references non-canonical command: ${bundle.entrypoint}`);
       }
 
       if (!Array.isArray(bundle.skills) || bundle.skills.length === 0) {
-        fail(`${bundlesPath}: ${id} skills must be a non-empty array`);
+        fail(`${registryPath}: bundle ${id} skills must be a non-empty array`);
         continue;
       }
 
       for (const skill of bundle.skills) {
-        if (skill === "offline" || skill === "storage") {
-          fail(`${bundlesPath}: ${id} uses removed skill id: ${skill}`);
-        }
         if (!activeSkillNames.has(skill)) {
-          fail(`${bundlesPath}: ${id} references unknown skill: ${skill}`);
+          fail(`${registryPath}: bundle ${id} references unknown skill: ${skill}`);
         }
       }
 
       if (bundle.default_mode === "apply_fixes" && !bundle.skills.includes("testing")) {
-        fail(`${bundlesPath}: ${id} (apply_fixes) must include testing`);
+        fail(`${registryPath}: bundle ${id} (apply_fixes) must include testing`);
       }
 
-      if (bundle.contract_touching) {
-        if (!bundle.skills.includes("contracts") || !bundle.skills.includes("security")) {
-          fail(`${bundlesPath}: ${id} (contract_touching) must include contracts and security`);
-        }
+      if (bundle.contract_touching && !bundle.skills.includes("contracts")) {
+        fail(`${registryPath}: bundle ${id} (contract_touching) must include contracts`);
       }
 
-      if (bundle.user_facing) {
-        if (!bundle.skills.includes("i18n") || !bundle.skills.includes("ui-compliance")) {
-          fail(`${bundlesPath}: ${id} (user_facing) must include i18n and ui-compliance`);
-        }
+      if (bundle.user_facing && !bundle.skills.includes("ui")) {
+        fail(`${registryPath}: bundle ${id} (user_facing) must include ui`);
       }
     }
   }
+}
+
+// Deleted registries should not be reintroduced
+for (const removedRegistry of [".claude/registry/commands.json", ".claude/registry/skill-bundles.json"]) {
+  if (exists(removedRegistry)) {
+    fail(`${removedRegistry}: merged into skills.json — should not exist as separate file`);
+  }
+}
+
+if (exists(".claude/commands")) {
+  const commandDocs = listDirFiles(".claude/commands");
+  fail(`.claude/commands: command docs surface should remain removed (${commandDocs.join(", ") || "directory present"})`);
 }
 
 const removedSurfaceFiles = [
@@ -496,7 +436,7 @@ if (exists(".cursor")) {
   }
 }
 
-for (const relPath of ["CLAUDE.md", ".claude/hooks.json", ".claude/skills/autonomous-review/SKILL.md", ".claude/skills/tdd-bugfix/SKILL.md"]) {
+for (const relPath of ["CLAUDE.md", ".claude/settings.json"]) {
   if (exists(relPath) && /13 architectural rules/i.test(read(relPath))) {
     fail(`${relPath}: contains stale phrase "13 architectural rules"`);
   }
@@ -546,9 +486,9 @@ for (const pattern of forbiddenDebugPatterns) {
 
 for (const relPath of [
   ".claude/skills/debug/SKILL.md",
-  ".claude/skills/migration/SKILL.md",
-  ".claude/agents/migration.md",
+  ".claude/skills/ops/migration.md",
 ]) {
+  if (!exists(relPath)) continue;
   const content = read(relPath);
   if (/(^|[\s`])forge\s+(build|test)\b/im.test(content)) {
     fail(`${relPath}: raw forge build/test command detected; use bun wrappers`);
@@ -559,8 +499,8 @@ const crackedCoder = read(".claude/agents/cracked-coder.md");
 if (!/bundle_id/.test(crackedCoder)) {
   fail(`.claude/agents/cracked-coder.md: missing required bundle_id intake guidance`);
 }
-if (!/\.claude\/registry\/skill-bundles\.json/.test(crackedCoder)) {
-  fail(`.claude/agents/cracked-coder.md: missing skill-bundle registry reference`);
+if (!/\.claude\/registry\/skills\.json/.test(crackedCoder)) {
+  fail(`.claude/agents/cracked-coder.md: missing skills registry reference (bundles are in skills.json)`);
 }
 
 const triageDoc = read(".claude/agents/triage.md");
@@ -571,12 +511,10 @@ if (/cross-package-verify/i.test(triageDoc)) {
 const reviewSurfaces = [
   ".claude/agents/code-reviewer.md",
   ".claude/skills/review/SKILL.md",
-  ".claude/skills/autonomous-review/SKILL.md",
-  ".claude/skills/cross-package-verify/SKILL.md",
-  ".claude/skills/tdd-bugfix/SKILL.md",
 ];
 
 for (const relPath of reviewSurfaces) {
+  if (!exists(relPath)) continue;
   const content = read(relPath);
   if (!/Severity Mapping/i.test(content)) {
     fail(`${relPath}: missing "Severity Mapping" section`);
@@ -599,10 +537,8 @@ assertInOrder(read(".claude/agents/triage.md"), [
 for (const relPath of [
   ".claude/agents/code-reviewer.md",
   ".claude/skills/review/SKILL.md",
-  ".claude/skills/autonomous-review/SKILL.md",
-  ".claude/skills/cross-package-verify/SKILL.md",
-  ".claude/skills/tdd-bugfix/SKILL.md",
 ]) {
+  if (!exists(relPath)) continue;
   const content = read(relPath);
   assertInOrder(content, [
     "### Summary",
@@ -615,28 +551,8 @@ for (const relPath of [
   ], relPath);
 }
 
-assertInOrder(read(".claude/agents/migration.md"), [
-  "### Summary",
-  "### Blast Radius",
-  "### Execution Order",
-  "### Validation Results",
-  "### Risks / Rollback",
-  "### Completion Checklist",
-], ".claude/agents/migration.md");
-
+// Thin wrapper checks for agent docs that delegate to canonical skills
 const thinWrappers = {
-  ".claude/skills/autonomous-review/SKILL.md": {
-    maxLines: 220,
-    mustContain: ["Canonical review protocol", "Canonical output contract"],
-  },
-  ".claude/skills/cross-package-verify/SKILL.md": {
-    maxLines: 240,
-    mustContain: ["Canonical review protocol", "Canonical output contract"],
-  },
-  ".claude/skills/tdd-bugfix/SKILL.md": {
-    maxLines: 220,
-    mustContain: ["Canonical debug flow", "Canonical output contract"],
-  },
   ".claude/agents/code-reviewer.md": {
     maxLines: 220,
     mustContain: ["Canonical review protocol", "Canonical output contract"],
@@ -644,6 +560,7 @@ const thinWrappers = {
 };
 
 for (const [relPath, rule] of Object.entries(thinWrappers)) {
+  if (!exists(relPath)) continue;
   const content = read(relPath);
   const count = lineCount(content);
   if (count > rule.maxLines) {

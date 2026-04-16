@@ -4,9 +4,9 @@ sidebar_label: Managing Actions
 slug: /community/operator-guide/managing-actions
 audience: operator
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-04-07
 feature_status: Live
-goal: "Complete Manage Actions with clear, role-specific next actions."
+goal: "Explain the current action workflow clearly, including the boundary between deployer-managed registry actions and operator-managed garden setup."
 difficulty: "standard"
 estimated_time: "10-20 minutes per action lifecycle update."
 prereqs: "Existing garden and operator permission."
@@ -15,10 +15,13 @@ persona_context: "Operators coordinating gardens, approvals, and governance/endo
 source_of_truth:
   - packages/admin/src/views/Actions/index.tsx
   - packages/admin/src/views/Actions/CreateAction.tsx
+  - packages/admin/src/views/Actions/EditAction.tsx
+  - packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx
   - packages/shared/src/hooks/action/useActionOperations.ts
 keywords:
   - manage actions
   - action registry
+  - action domains
 ---
 
 import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
@@ -27,14 +30,18 @@ import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
+## Overview
+
+Actions live in the shared Action Registry, and gardens expose them based on domain fit and timing. In the current admin app, **creating and editing action definitions is a deployer-level flow** under `/actions`. Operators still need to understand actions because domain choice, instructions, timing, and acceptance criteria directly shape what gardeners can submit.
+
 ## Action lifecycle
 
 <StepFlow
   steps={[
-    {title: "Create action", detail: "Define title, instructions, domain, timing, and media requirements."},
-    {title: "Publish", detail: "Submit transaction to register action for gardeners."},
-    {title: "Monitor", detail: "Track active/inactive windows and incoming work volume."},
-    {title: "Edit", detail: "Update instructions/media/timing when real-world constraints shift."},
+    {title: "Check current registry actions", detail: "Open `/actions` in admin and review the existing catalog by domain, title, and timing."},
+    {title: "Create or edit if you have deployer access", detail: "Define title, instructions, domain, timing, media expectations, and any action-specific guidance. If you do not have deployer access, request the update instead of working around it."},
+    {title: "Match actions to garden domains", detail: "Make sure your garden has the right domains enabled, because gardeners only see actions whose domain matches the garden."},
+    {title: "Monitor real-world fit", detail: "Watch incoming submissions, stale action windows, and recurring confusion from gardeners. Tighten instructions when field reality changes."},
   ]}
 />
 
@@ -44,14 +51,15 @@ import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 ## Operator standards
 
-- Use explicit acceptance criteria in instructions.
-- Keep action windows realistic for field constraints.
-- Prefer short action titles, detailed instructions.
-- Close stale actions to reduce invalid submissions.
+- Use explicit acceptance criteria in instructions so review decisions stay consistent
+- Keep action windows realistic for field conditions, connectivity, and seasonality
+- Prefer short action titles and specific instructions with examples of acceptable evidence
+- Use garden domains intentionally, because they are the gate that makes actions visible in a garden
+- If the registry action is wrong and you do not have deployer access, escalate early instead of asking gardeners to guess
 
 <NextBestAction
   title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
+  why="Once actions are clear, the operator workflow becomes a review discipline problem."
   actionLabel="Reviewing Work"
   actionHref="./reviewing-work"
   alternatives={[

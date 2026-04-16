@@ -3,10 +3,10 @@
 /**
  * Action Image Uploader
  *
- * Uploads action card images to Storacha (IPFS/Filecoin), pins to Pinata,
+ * Uploads action card images to Pinata when configured, otherwise Storacha,
  * and updates actions.json with the resulting CIDs.
  *
- * Pipeline: WebP/PNG source → Storacha + Pinata → actions.json
+ * Pipeline: WebP/PNG source → Pinata or Storacha → actions.json
  *
  * Usage:
  *   bun scripts/upload-action-images.ts              # Full run
@@ -14,11 +14,13 @@
  *   bun scripts/upload-action-images.ts --force      # Skip cache, re-upload all
  *
  * Required env vars (unless --dry-run):
+ *   PINATA_JWT or VITE_PINATA_JWT - Pinata JWT for primary uploads
+ *   or
  *   VITE_STORACHA_KEY   - Base64-encoded ed25519 private key
  *   VITE_STORACHA_PROOF - Multibase-encoded delegation proof
  *
  * Optional env vars:
- *   PINATA_JWT or VITE_PINATA_JWT - Pinata JWT for secondary pinning
+ *   PINATA_JWT or VITE_PINATA_JWT - Pinata JWT for primary uploads
  *   PINATA_GATEWAY_URL            - Pinata dedicated gateway URL
  */
 
@@ -27,18 +29,24 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+	ACTION_IMAGES_CACHE_PATH,
+	CONFIG_ROOT,
+	CONTRACTS_ROOT,
+	ensureParentDir,
+} from "../packages/contracts/script/utils/paths";
+import {
 	loadPinataConfigFromEnv,
-	pinCidWithPinata,
+	uploadBufferWithPinata,
+	verifyGatewayAvailability,
 } from "./lib/ipfs-hybrid";
 
 // --- Paths ---
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.join(SCRIPT_DIR, "..");
-const CONTRACTS_DIR = path.join(ROOT_DIR, "packages", "contracts");
-const IMAGES_DIR = path.join(CONTRACTS_DIR, "config", "action-images");
-const ACTIONS_FILE = path.join(CONTRACTS_DIR, "config", "actions.json");
-const CACHE_FILE = path.join(CONTRACTS_DIR, ".action-images-cache.json");
+const IMAGES_DIR = path.join(CONFIG_ROOT, "action-images");
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
+const CACHE_FILE = ACTION_IMAGES_CACHE_PATH;
 // --- Filename overrides for mismatches between slug and actual filename ---
 // The canonical slug is in actions.json; the filename on disk may differ.
 
@@ -143,7 +151,7 @@ function loadCache(): Cache {
 
 function saveCache(cache: Cache): void {
 	try {
-		fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2) + "\n");
+		fs.writeFileSync(ensureParentDir(CACHE_FILE), JSON.stringify(cache, null, 2) + "\n");
 	} catch (error) {
 		console.error("Warning: Unable to save cache.", error);
 	}
@@ -155,7 +163,7 @@ function formatSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-// --- Storacha client (ephemeral principal pattern from storacha-upload.js) ---
+// --- Storacha client (ephemeral principal pattern) ---
 
 interface StorachaClient {
 	uploadFile: (file: File) => Promise<{ toString(): string }>;
@@ -177,7 +185,7 @@ async function initStoracha(): Promise<StorachaClient> {
 	const { Signer } = await import("@storacha/client/principal/ed25519");
 	const { parse: parseProof } = await import("@storacha/client/proof");
 
-	// Use explicit principal + ephemeral memory store (matches storacha-upload.js)
+	// Use explicit principal + ephemeral memory store for one-off uploads.
 	const principal = Signer.parse(storachaKey);
 	const memoryStore = {
 		data: null as Uint8Array | null,
@@ -281,43 +289,57 @@ async function uploadImages(
 	compressed: CompressedImage[],
 	cache: Cache,
 ): Promise<Record<string, string>> {
-	console.error("--- Stage 2: Sync to Storacha + Pinata ---\n");
+	console.error("--- Stage 2: Sync to Pinata or Storacha ---\n");
 
-	const client = await initStoracha();
 	const pinataConfig = loadPinataConfigFromEnv();
+	const client = pinataConfig?.jwt ? null : await initStoracha();
 	const cidMap: Record<string, string> = {};
 	let uploads = 0;
 	let cacheHits = 0;
-	let pinataSuccesses = 0;
+	let pinataUploads = 0;
+	let storachaUploads = 0;
 
 	for (const item of compressed) {
 		const cached = cache[item.slug];
+		const fileName = path.basename(item.webpPath);
 
 		if (cached && cached.contentHash === item.contentHash) {
-			cacheHits++;
-			cidMap[item.slug] = cached.cid;
-
-			// Still pin cached CIDs to Pinata
-			try {
-				await pinCidWithPinata(pinataConfig, cached.cid, {
-					name: path.basename(item.webpPath),
-					metadata: { source: "action-image", slug: item.slug },
-				});
-				pinataSuccesses++;
-			} catch (error) {
-				const msg = error instanceof Error ? error.message : String(error);
-				console.error(`  WARN:  Pinata pin failed for cached ${item.slug}: ${msg}`);
+			if (pinataConfig?.jwt) {
+				try {
+					await verifyGatewayAvailability(`ipfs://${cached.cid}`, pinataConfig.gatewayBaseUrl, {
+						label: "Pinata gateway",
+						attempts: 2,
+						timeoutMs: 5_000,
+					});
+					cacheHits++;
+					cidMap[item.slug] = cached.cid;
+					console.error(`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`);
+					continue;
+				} catch {
+					console.error(`  REFRESH: ${item.slug} cache exists but is not verified on Pinata`);
+				}
+			} else {
+				cacheHits++;
+				cidMap[item.slug] = cached.cid;
+				console.error(`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`);
+				continue;
 			}
-
-			console.error(
-				`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`,
-			);
-			continue;
 		}
 
 		try {
-			const fileName = path.basename(item.webpPath);
-			const cid = await uploadToStoracha(client, item.webpPath, fileName);
+			let cid: string;
+			if (pinataConfig?.jwt) {
+				cid = await uploadBufferWithPinata(pinataConfig, fs.readFileSync(item.webpPath), {
+					filename: fileName,
+					mimeType: "image/webp",
+					name: fileName,
+					metadata: { source: "action-image", slug: item.slug },
+				});
+				pinataUploads++;
+			} else {
+				cid = await uploadToStoracha(client!, item.webpPath, fileName);
+				storachaUploads++;
+			}
 			uploads++;
 			cidMap[item.slug] = cid;
 
@@ -327,18 +349,6 @@ async function uploadImages(
 				slug: item.slug,
 				uploadedAt: new Date().toISOString(),
 			};
-
-			// Pin to Pinata (non-fatal)
-			try {
-				await pinCidWithPinata(pinataConfig, cid, {
-					name: fileName,
-					metadata: { source: "action-image", slug: item.slug },
-				});
-				pinataSuccesses++;
-			} catch (error) {
-				const msg = error instanceof Error ? error.message : String(error);
-				console.error(`  WARN:  Pinata pin failed for ${item.slug}: ${msg}`);
-			}
 
 			console.error(`  UPLOAD: ${item.slug} -> ${cid.slice(0, 24)}...`);
 		} catch (error) {
@@ -355,7 +365,9 @@ async function uploadImages(
 		}
 	}
 
-	console.error(`\n  ${uploads} uploaded, ${cacheHits} cached, ${pinataSuccesses} pinned to Pinata\n`);
+	console.error(
+		`\n  ${uploads} uploaded, ${cacheHits} cached, ${pinataUploads} uploaded to Pinata, ${storachaUploads} uploaded to Storacha\n`,
+	);
 	return cidMap;
 }
 
@@ -439,7 +451,7 @@ async function main(): Promise<void> {
 	// Save cache
 	saveCache(cache);
 	console.error(
-		`Cache saved to ${path.relative(process.cwd(), CACHE_FILE)}\n`,
+		`Cache saved to ${path.relative(CONTRACTS_ROOT, CACHE_FILE)}\n`,
 	);
 
 	// Summary output

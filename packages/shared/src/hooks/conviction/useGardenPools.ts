@@ -8,7 +8,7 @@ import { GARDENS_MODULE_ABI } from "../../utils/blockchain/abis";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { fetchGardensModuleAddress } from "../../utils/blockchain/garden-modules";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
+import { queryKeys, STALE_TIME_SLOW } from "../../config/query-keys";
 
 interface UseGardenPoolsOptions {
   /** RegistryCommunity address -- when provided, uses subgraph instead of RPC */

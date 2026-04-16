@@ -1,16 +1,18 @@
 import {
   type Address,
+  Button,
+  Card,
   formatAddress,
   formatTokenAmount,
-  getBlockExplorerAddressUrl,
   type GardenVault,
+  getBlockExplorerAddressUrl,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   OCTANT_VAULT_ABI,
   useCurrentChain,
-  useEnableAutoAllocate,
   useEmergencyPause,
+  useEnableAutoAllocate,
   useHarvest,
   useUser,
   useVaultPreview,
@@ -20,8 +22,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 interface PositionCardProps {
   gardenAddress: Address;
@@ -248,8 +248,8 @@ export function PositionCard({
       {/* Emergency pause confirmation dialog */}
       <Dialog.Root open={confirmPauseOpen} onOpenChange={setConfirmPauseOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[9999] bg-overlay backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
+          <Dialog.Overlay className="fixed inset-0 z-overlay bg-overlay backdrop-blur-sm" />
+          <Dialog.Content className="fixed left-1/2 top-1/2 z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-elevation-5 focus:outline-none">
             <Dialog.Title className="text-lg font-semibold text-text-strong">
               {formatMessage({ id: "app.treasury.emergencyPauseTitle" })}
             </Dialog.Title>

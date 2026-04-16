@@ -33,7 +33,7 @@ class JobQueueEventBus extends EventTarget {
    * Emit a typed event
    */
   emit<T extends JobQueueEventType>(type: T, data: JobQueueEventData<T>): void {
-    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+    if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
       logger.debug("[JobQueueEventBus] emit", { type, data });
     }
     this.dispatchEvent(new CustomEvent(type, { detail: data }));

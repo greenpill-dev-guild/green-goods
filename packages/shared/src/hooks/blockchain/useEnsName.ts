@@ -8,7 +8,7 @@
 
 import { type Address, isAddress } from "viem";
 import { resolveEnsName } from "../../utils/blockchain/ens";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 import { type UseEnsQueryOptions, type UseEnsQueryResult, useEnsQuery } from "./useEnsQuery";
 
 /**

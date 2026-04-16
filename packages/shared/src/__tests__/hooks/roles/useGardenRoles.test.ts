@@ -6,7 +6,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock external dependencies
 const mockReadContract = vi.fn();
@@ -19,13 +19,7 @@ vi.mock("../../../config/appkit", () => ({
   getWagmiConfig: () => ({}),
 }));
 
-// Dynamically import after mocks
-let useGardenRoles: typeof import("../../../hooks/roles/useGardenRoles").useGardenRoles;
-
-beforeAll(async () => {
-  const module = await import("../../../hooks/roles/useGardenRoles");
-  useGardenRoles = module.useGardenRoles;
-});
+import { useGardenRoles } from "../../../hooks/roles/useGardenRoles";
 
 const MOCK_GARDEN = "0x1111111111111111111111111111111111111111";
 const MOCK_USER = "0x2222222222222222222222222222222222222222";

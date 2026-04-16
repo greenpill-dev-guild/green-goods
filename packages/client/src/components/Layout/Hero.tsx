@@ -5,7 +5,13 @@ import { DeviceFrameset } from "react-device-frameset";
 import { useNavigate } from "react-router-dom";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { copyToClipboard, useApp, useInstallGuidance } from "@green-goods/shared";
+import {
+  copyToClipboard,
+  useApp,
+  useInstallGuidance,
+  useIsDarkMode,
+  useTimeout,
+} from "@green-goods/shared";
 import {
   RiAddBoxLine,
   RiAlertLine,
@@ -20,7 +26,7 @@ import {
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-/** In dev mode, poll /__dev/tunnel for the cloudflared tunnel URL */
+// Exception to hook boundary: dev-only, non-exported, single-use infrastructure
 function useTunnelUrl(): string | null {
   const [url, setUrl] = useState<string | null>(null);
 
@@ -46,23 +52,6 @@ function useTunnelUrl(): string | null {
   }, []);
 
   return url;
-}
-
-function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(() => document.documentElement.dataset.theme === "dark");
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.dataset.theme === "dark");
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark;
 }
 
 interface HeroProps {
@@ -92,24 +81,16 @@ export const Hero: FC<HeroProps> = () => {
     isMobile
   );
 
-  // Auto-reset copy states after 2 seconds (with proper cleanup)
-  useEffect(() => {
-    if (!copySuccess) return;
-    const timer = setTimeout(() => {
-      setCopySuccess(false);
-      setCopyError(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [copySuccess]);
+  // Auto-reset copy states after 2 seconds (auto-cleared on unmount)
+  const { set: scheduleCopyReset } = useTimeout();
 
   useEffect(() => {
-    if (!copyError) return;
-    const timer = setTimeout(() => {
+    if (!copySuccess && !copyError) return;
+    scheduleCopyReset(() => {
       setCopySuccess(false);
       setCopyError(false);
     }, 2000);
-    return () => clearTimeout(timer);
-  }, [copyError]);
+  }, [copySuccess, copyError, scheduleCopyReset]);
 
   const handleCopyUrl = useCallback(async () => {
     try {

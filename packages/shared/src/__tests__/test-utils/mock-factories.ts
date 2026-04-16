@@ -196,7 +196,6 @@ export function createMockAuthContext(options: MockAuthContextOptions = {}) {
     walletAddress,
     smartAccountClient: authMode === "passkey" ? createMockSmartAccountClient() : null,
     eoa: walletAddress ? { address: walletAddress } : null,
-    createPasskey: vi.fn(),
     clearPasskey: vi.fn(),
     signOut: vi.fn(),
     error: null,

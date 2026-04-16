@@ -1,7 +1,7 @@
 import { RiFileUnknowLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@green-goods/shared";
 
 export default function NotFound() {
   const { formatMessage } = useIntl();
@@ -21,10 +21,10 @@ export default function NotFound() {
         </p>
         <div className="mt-6">
           <Button asChild>
-            <Link to="/dashboard">
+            <Link to="/hub">
               {formatMessage({
                 id: "app.admin.nav.backToDashboard",
-                defaultMessage: "Back to Dashboard",
+                defaultMessage: "Back to Hub",
               })}
             </Link>
           </Button>

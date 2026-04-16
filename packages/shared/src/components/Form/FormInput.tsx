@@ -35,13 +35,14 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
       >
         <input
           className={cn(
-            "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4",
-            "text-base text-text-strong-950 placeholder:text-text-soft-400",
-            "transition-all duration-200",
+            "block w-full bg-bg-white-0 rounded-sm py-3 px-4",
+            "text-text-strong-950 placeholder:text-text-soft-400 text-body-lg",
+            "shadow-[var(--edge-rest)]",
+            "transition-shadow duration-[var(--spring-micro-duration,150ms)]",
             "disabled:opacity-50 disabled:pointer-events-none",
             error
-              ? "border-error-base focus-visible:ring-2 focus-visible:ring-error-lighter focus-visible:border-error-base"
-              : "focus-visible:ring-2 focus-visible:ring-primary-lighter focus-visible:border-primary-base"
+              ? "shadow-[0_0_0_1px_rgb(var(--error-base))] focus-visible:shadow-[var(--edge-focus)]"
+              : "focus-visible:shadow-[var(--edge-focus)]"
           )}
           aria-describedby={ariaDescribedBy}
           aria-invalid={!!error || undefined}

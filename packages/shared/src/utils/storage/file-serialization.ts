@@ -72,7 +72,7 @@ export function deserializeFile(
 /**
  * Check if running on iOS Safari (for diagnostic purposes)
  */
-export function isIOSSafari(): boolean {
+function isIOSSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }

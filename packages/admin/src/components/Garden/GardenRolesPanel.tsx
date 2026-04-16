@@ -1,5 +1,9 @@
 import {
   type Address,
+  AddressDisplay,
+  Button,
+  Card,
+  EmptyState,
   ErrorBoundary,
   GARDEN_ROLE_ORDER,
   type GardenRole,
@@ -15,11 +19,7 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { AddressDisplay } from "@/components/AddressDisplay";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
 
 const roleIcons = {
   owner: RiShieldCheckLine,

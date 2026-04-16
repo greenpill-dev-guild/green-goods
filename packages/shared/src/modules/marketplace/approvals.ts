@@ -15,7 +15,7 @@
 import { type Address, encodeFunctionData, type Hex } from "viem";
 
 import { createPublicClientForChain } from "../../config";
-import { TRANSFER_MANAGER_ABI } from "../../hooks/hypercerts/hypercert-abis";
+import { TRANSFER_MANAGER_ABI } from "../../utils/blockchain/hypercert-abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";
 

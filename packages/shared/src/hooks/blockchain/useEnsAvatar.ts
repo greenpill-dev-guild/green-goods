@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { type Address, isAddress } from "viem";
 import { resolveEnsAvatar } from "../../utils/blockchain/ens";
 import { cacheAvatar, getCachedAvatar } from "../../utils/storage/avatar-cache";
-import { queryKeys, STALE_TIME_RARE } from "../query-keys";
+import { queryKeys, STALE_TIME_RARE } from "../../config/query-keys";
 import type { UseEnsQueryOptions, UseEnsQueryResult } from "./useEnsQuery";
 
 /**

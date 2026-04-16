@@ -59,7 +59,7 @@ vi.mock("../../../utils/errors/user-messages", () => ({
   USER_FRIENDLY_ERRORS: {} as Record<string, string>,
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryKeys: {
     gardenerProfile: {
       all: ["greengoods", "gardener-profile"],

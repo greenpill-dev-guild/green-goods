@@ -3,7 +3,8 @@ import {
   debugError,
   hapticLight,
   toastService,
-  useAuth,
+  useAuthActions,
+  useAuthState,
   useEnsName,
   usePrimaryAddress,
 } from "@green-goods/shared";
@@ -16,7 +17,8 @@ import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
 
 export const AccountInfo: React.FC = () => {
-  const { authMode, signOut, credential, walletAddress, embeddedAddress } = useAuth();
+  const { authMode, credential, walletAddress, embeddedAddress } = useAuthState();
+  const { signOut } = useAuthActions();
   const primaryAddress = usePrimaryAddress();
   const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
@@ -25,7 +27,7 @@ export const AccountInfo: React.FC = () => {
   const handleLogout = async () => {
     hapticLight();
     try {
-      await signOut?.();
+      await signOut();
       navigate("/login", { replace: true, state: { fromLogout: true }, viewTransition: true });
       toastService.success({
         title: intl.formatMessage({

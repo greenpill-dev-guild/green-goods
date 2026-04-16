@@ -100,24 +100,3 @@ export function cacheAvatar(address: string, avatarUrl: string): void {
 
   setCache(cache);
 }
-
-/**
- * Clear all cached avatars
- */
-export function clearAvatarCache(): void {
-  try {
-    localStorage.removeItem(AVATAR_CACHE_KEY);
-  } catch (error) {
-    debugError("Failed to clear avatar cache", error, { key: AVATAR_CACHE_KEY });
-  }
-}
-
-/**
- * Remove a specific avatar from cache
- */
-export function removeCachedAvatar(address: string): void {
-  const cache = getCache();
-  const normalized = address.toLowerCase();
-  cache.entries = cache.entries.filter((e) => e.address !== normalized);
-  setCache(cache);
-}

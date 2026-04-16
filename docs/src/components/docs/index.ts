@@ -10,3 +10,4 @@ export {JourneyMap} from "./JourneyMap";
 export {DecisionGuide} from "./DecisionGuide";
 export {QuickAnswer} from "./QuickAnswer";
 export {NextBestAction} from "./NextBestAction";
+export {ProtocolRevenueExplorer} from "./ProtocolRevenueExplorer";

@@ -23,7 +23,7 @@ import {
   type AssessmentWorkflowParams,
   createAssessmentMachine,
 } from "../../workflows/createAssessment";
-import { queryInvalidation } from "../query-keys";
+import { queryInvalidation } from "../../config/query-keys";
 import { useAssessmentDraft } from "./useAssessmentDraft";
 
 export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../../types/domain";

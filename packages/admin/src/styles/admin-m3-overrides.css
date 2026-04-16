@@ -1,0 +1,184 @@
+/* ============================================================================
+ * Navigation Bar — M3 anatomy overrides
+ * Applied via .admin-m3 class on CanvasLayout root
+ *
+ * M3 spec: full-width, 64dp height, surface-container, elevation-2,
+ * 56×32dp pill active indicators, label-medium typography
+ * ============================================================================ */
+
+/* Desktop nav: override floating pill → full-width bottom bar */
+.admin-m3 .canvas-navigation-bar {
+  /* Reset floating pill positioning */
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: none;
+
+  /* M3 nav bar anatomy */
+  min-height: 64px;
+  border-radius: 0;
+  padding: 6px 16px;
+  gap: 0;
+
+  /* M3 surface + elevation */
+  background: rgb(var(--m3-surface-container));
+  box-shadow: var(--m3-elevation-2);
+
+  /* Remove glass effect */
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Nav items: M3 anatomy — vertical icon + label stack */
+.admin-m3 .canvas-navigation-bar button {
+  flex: 1;
+  min-width: 48px;
+  max-width: 120px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0 6px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Remove the existing circular icon background */
+.admin-m3 .canvas-navigation-bar button > span:first-child {
+  background: transparent;
+  box-shadow: none;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+}
+
+/* Active item: M3 pill indicator behind icon */
+.admin-m3 .canvas-navigation-bar button[aria-current="page"] {
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-m3 .canvas-navigation-bar button[aria-current="page"] > span:first-child {
+  background: rgb(var(--m3-secondary-container));
+  width: 56px;
+  height: 32px;
+  border-radius: var(--m3-shape-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Label typography: M3 label-medium */
+.admin-m3 .canvas-navigation-bar button > span:last-child {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+/* Active label: bolder weight */
+.admin-m3 .canvas-navigation-bar button[aria-current="page"] > span:last-child {
+  font-weight: 700;
+  color: rgb(var(--m3-on-surface));
+}
+
+/* Inactive label color */
+.admin-m3 .canvas-navigation-bar button:not([aria-current="page"]) > span:last-child {
+  color: rgb(var(--m3-on-surface-variant));
+}
+
+/* Active icon color */
+.admin-m3 .canvas-navigation-bar button[aria-current="page"] svg {
+  color: rgb(var(--m3-on-secondary-container));
+}
+
+/* Inactive icon color */
+.admin-m3 .canvas-navigation-bar button:not([aria-current="page"]) svg {
+  color: rgb(var(--m3-on-surface-variant));
+}
+
+/* Desktop FAB — position relative to the full-width nav */
+.admin-m3 .canvas-navigation-bar + div {
+  /* Adjust FAB to sit above the nav bar */
+  bottom: 76px;
+}
+
+/* Mobile nav — also full-width M3 bar */
+.admin-m3 nav.canvas-navigation-bar {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0;
+  padding: 4px 8px calc(env(safe-area-inset-bottom) + 4px);
+  gap: 0;
+  background: rgb(var(--m3-surface-container));
+  box-shadow: var(--m3-elevation-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Bottom Sheet — M3 shape + surface */
+.admin-m3 [role="dialog"][data-state="open"] .rounded-t-xl {
+  border-radius: var(--m3-shape-xl) var(--m3-shape-xl) 0 0;
+}
+
+/* Side Sheet — narrower */
+.admin-m3 [role="dialog"][data-state="open"] .rounded-l-xl,
+.admin-m3 [role="dialog"][data-state="open"] .rounded-r-xl {
+  max-width: 256px;
+  border-radius: var(--m3-shape-lg) 0 0 var(--m3-shape-lg);
+}
+
+/* Toast / Snackbar — M3 inverse surface */
+.admin-m3 [data-hot-toast] > div {
+  background: rgb(var(--m3-inverse-surface)) !important;
+  color: rgb(var(--m3-inverse-on-surface)) !important;
+  border-radius: var(--m3-shape-xs) !important;
+  box-shadow: var(--m3-elevation-3) !important;
+}
+
+/* Date Picker — M3 surface + shape */
+.admin-m3 .rdp {
+  border-radius: var(--m3-shape-lg);
+  background: rgb(var(--m3-surface-container-high));
+  box-shadow: var(--m3-elevation-3);
+}
+
+.admin-m3 .rdp-day_selected {
+  background: rgb(var(--m3-primary)) !important;
+  color: rgb(var(--m3-on-primary)) !important;
+}
+
+.admin-m3 .rdp-day_today {
+  color: rgb(var(--m3-primary));
+  font-weight: 700;
+}
+
+/* ============================================================================
+ * D1: Solid M3 surfaces — glass on chrome only
+ * Glass material (backdrop-filter) stays on NavigationBar and GardenChip (Z3).
+ * All content surfaces (MainSheet, sheets, lists, cards) use solid M3 colors.
+ * ============================================================================ */
+
+/* MainSheet content — solid surface */
+.admin-m3 [data-testid="main-sheet-content"].glass-surface {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgb(var(--m3-surface));
+}
+
+/* Sheets — solid surface-container */
+.admin-m3 [data-testid="right-sheet"].glass-floating,
+.admin-m3 [data-testid="left-sheet"].glass-floating,
+.admin-m3 [data-testid="bottom-sheet"].glass-floating {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgb(var(--m3-surface-container));
+}
+
+/* Content lists/cards within MainSheet — solid surface-container-low */
+.admin-m3 .canvas-area-main .glass-raised {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgb(var(--m3-surface-container-low));
+}

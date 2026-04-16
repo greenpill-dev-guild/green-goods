@@ -1,4 +1,5 @@
 import { APP_NAME } from "@green-goods/shared";
+import { useIntl } from "react-intl";
 
 import type { LoadingState } from "@/components/Layout";
 
@@ -7,13 +8,22 @@ interface LoadingSplashProps {
   message?: string;
 }
 
-const stateMessages: Record<LoadingState, string> = {
-  welcome: "Welcome",
-  "joining-garden": "Joining garden...",
-  default: "Loading...",
-};
-
 export function LoadingSplash({ loadingState, message }: LoadingSplashProps) {
+  const { formatMessage } = useIntl();
+  const stateMessages: Record<LoadingState, string> = {
+    welcome: formatMessage({
+      id: "app.login.loading.welcome",
+      defaultMessage: "Welcome",
+    }),
+    "joining-garden": formatMessage({
+      id: "app.login.loading.joiningGarden",
+      defaultMessage: "Joining garden...",
+    }),
+    default: formatMessage({
+      id: "app.login.loading.default",
+      defaultMessage: "Loading...",
+    }),
+  };
   const displayMessage = message || stateMessages[loadingState] || APP_NAME;
 
   return (

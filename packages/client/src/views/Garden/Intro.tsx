@@ -10,13 +10,11 @@ import {
 import { RiHammerFill, RiPlantFill } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
-import {
-  ActionCard,
-  ActionCardSkeleton,
-  FormInfo,
-  GardenCard,
-  GardenCardSkeleton,
-} from "@/components/Cards";
+import { ActionCard } from "@/components/Cards/Action/ActionCard";
+import { ActionCardSkeleton } from "@/components/Cards/Action/ActionCardSkeleton";
+import { FormInfo } from "@/components/Cards/Form/FormInfo";
+import { GardenCard } from "@/components/Cards/Garden/GardenCard";
+import { GardenCardSkeleton } from "@/components/Cards/Garden/GardenCardSkeleton";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 

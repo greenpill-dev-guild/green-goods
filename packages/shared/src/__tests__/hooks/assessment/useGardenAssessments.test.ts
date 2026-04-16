@@ -30,7 +30,7 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: any) => mockUseQuery(options),
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryKeys: {
     assessments: {
       byGardenBase: (addr: string, chainId: number) => [

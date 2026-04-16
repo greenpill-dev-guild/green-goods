@@ -6,6 +6,13 @@ import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
 interface ConvertEntry {
   vaultAddress: Address;
   shares: bigint;
+  chainId?: number;
+}
+
+export function getBatchConvertToAssetsKey(entry: ConvertEntry): string {
+  return entry.chainId === undefined
+    ? `${entry.vaultAddress}:${entry.shares}`
+    : `${entry.chainId}:${entry.vaultAddress}:${entry.shares}`;
 }
 
 /**
@@ -20,7 +27,7 @@ export function useBatchConvertToAssets(entries: ConvertEntry[]) {
     const seen = new Set<string>();
     const deduped: ConvertEntry[] = [];
     for (const entry of entries) {
-      const key = `${entry.vaultAddress}:${entry.shares}`;
+      const key = getBatchConvertToAssetsKey(entry);
       if (!seen.has(key)) {
         seen.add(key);
         deduped.push(entry);
@@ -54,7 +61,7 @@ export function useBatchConvertToAssets(entries: ConvertEntry[]) {
     for (let i = 0; i < uniqueEntries.length; i++) {
       const entry = uniqueEntries[i];
       const result = query.data[i];
-      const key = `${entry.vaultAddress}:${entry.shares}`;
+      const key = getBatchConvertToAssetsKey(entry);
       if (result?.status === "success") {
         map.set(key, result.result as bigint);
       }

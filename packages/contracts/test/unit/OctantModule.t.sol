@@ -7,6 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { AaveV3ERC4626 } from "../../src/strategies/AaveV3ERC4626.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../../src/errors/CommonErrors.sol";
 import {
     MockOctantFactory,
     MockOctantVault,
@@ -192,7 +193,7 @@ contract OctantModuleTest is Test {
         module.setSupportedAsset(WETH, address(wethStrategy));
 
         vm.prank(UNAUTHORIZED);
-        vm.expectRevert(abi.encodeWithSelector(OctantModule.UnauthorizedCaller.selector, UNAUTHORIZED));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, UNAUTHORIZED));
         module.onGardenMinted(address(garden), "Community Garden");
     }
 
@@ -216,7 +217,7 @@ contract OctantModuleTest is Test {
         module.harvest(address(garden), WETH);
 
         vm.prank(UNAUTHORIZED);
-        vm.expectRevert(abi.encodeWithSelector(OctantModule.UnauthorizedCaller.selector, UNAUTHORIZED));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, UNAUTHORIZED));
         module.harvest(address(garden), WETH);
     }
 
@@ -228,7 +229,7 @@ contract OctantModuleTest is Test {
 
         // Operators should NOT be able to trigger emergency pause
         vm.prank(OPERATOR);
-        vm.expectRevert(abi.encodeWithSelector(OctantModule.UnauthorizedCaller.selector, OPERATOR));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, OPERATOR));
         module.emergencyPause(address(garden), WETH);
 
         // Only owner can trigger emergency pause
@@ -239,7 +240,7 @@ contract OctantModuleTest is Test {
 
         // Unauthorized should also be rejected
         vm.prank(UNAUTHORIZED);
-        vm.expectRevert(abi.encodeWithSelector(OctantModule.UnauthorizedCaller.selector, UNAUTHORIZED));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, UNAUTHORIZED));
         module.emergencyPause(address(garden), WETH);
     }
 
@@ -458,18 +459,18 @@ contract OctantModuleTest is Test {
     }
 
     function test_setGardenToken_revertsForZeroAddress() public {
-        vm.expectRevert(OctantModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         module.setGardenToken(address(0));
     }
 
     function test_setSupportedAsset_revertsForZeroAddress() public {
-        vm.expectRevert(OctantModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         module.setSupportedAsset(address(0), address(wethStrategy));
     }
 
     function test_setDonationAddress_revertsForZeroAddress() public {
         vm.prank(OPERATOR);
-        vm.expectRevert(OctantModule.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         module.setDonationAddress(address(garden), address(0));
     }
 

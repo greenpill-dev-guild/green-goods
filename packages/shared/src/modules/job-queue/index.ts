@@ -1,4 +1,3 @@
-import { getEASConfig } from "../../config/blockchain";
 import { DEFAULT_CHAIN_ID } from "../../config";
 import type {
   ApprovalJobPayload,
@@ -8,19 +7,20 @@ import type {
   QueueStats,
   WorkJobPayload,
 } from "../../types/job-queue";
-import {
-  buildApprovalAttestContractCall,
-  buildWorkAttestContractCall,
-} from "../../utils/eas/transaction-builder";
 import { scheduleTask, yieldToMain } from "../../utils/scheduler";
-import { getStorageQuota } from "../../utils/storage/quota";
-import { addBreadcrumb, getBreadcrumbs, trackSyncError } from "../app/error-tracking";
+import { addBreadcrumb } from "../app/error-tracking";
 import { logger } from "../app/logger";
-import { track } from "../app/posthog";
-import { getIpfsInitStatus } from "../data/ipfs";
-import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
 import { jobQueueEventBus } from "./event-bus";
+import {
+  trackJobCreated,
+  trackJobPermanentlyFailed,
+  trackJobProcessed,
+  trackJobProcessingError,
+  trackStorageWarning,
+} from "./job-analytics";
+import { executeApprovalJob, executeWorkJob } from "./job-executors";
+import { JobMaintenance } from "./job-maintenance";
 
 /**
  * Create a synthetic transaction hash for offline-queued jobs.
@@ -81,111 +81,8 @@ export interface FlushResult {
   skipped: number;
 }
 
-async function executeWorkJob(
-  jobId: string,
-  job: Job<WorkJobPayload>,
-  chainId: number,
-  sender: TransactionSender
-): Promise<string> {
-  const images = await jobQueueDB.getImagesForJob(jobId);
-  const allFiles = images.map((img) => img.file);
-  const payload = job.payload as WorkJobPayload;
-  const actionTitle = payload.title || `Action ${payload.actionUID}`;
-
-  // Separate audio from visual media by MIME type
-  const audioFiles = allFiles.filter((f) => f.type.startsWith("audio/"));
-  const mediaFiles = allFiles.filter((f) => !f.type.startsWith("audio/"));
-
-  const accountAddress = job.userAddress as `0x${string}`;
-
-  // Simulate before uploading to IPFS
-  const { simulateWorkSubmission } = await import("../work/simulate");
-  await simulateWorkSubmission({
-    draft: {
-      actionUID: payload.actionUID,
-      title: actionTitle,
-      feedback: payload.feedback,
-      media: mediaFiles,
-      details: payload.details ?? {},
-      ...(typeof payload.timeSpentMinutes === "number"
-        ? { timeSpentMinutes: payload.timeSpentMinutes }
-        : {}),
-      ...(payload.tags ? { tags: payload.tags } : {}),
-      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
-    } as any,
-    gardenAddress: payload.gardenAddress,
-    actionUID: payload.actionUID,
-    actionTitle,
-    chainId,
-    images: mediaFiles,
-    accountAddress,
-  });
-
-  // Encode attestation data (includes IPFS upload)
-  const { encodeWorkData } = await import("../../utils/eas/encoders");
-  const attestationData = await encodeWorkData(
-    {
-      actionUID: payload.actionUID,
-      title: `${actionTitle} - ${new Date().toISOString()}`,
-      feedback: payload.feedback,
-      media: mediaFiles,
-      details: payload.details ?? {},
-      ...(typeof payload.timeSpentMinutes === "number"
-        ? { timeSpentMinutes: payload.timeSpentMinutes }
-        : {}),
-      ...(payload.tags ? { tags: payload.tags } : {}),
-      ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
-    } as any,
-    chainId,
-    {
-      gardenAddress: payload.gardenAddress,
-      authMode: sender.authMode === "embedded" ? "passkey" : sender.authMode,
-    }
-  );
-
-  // Build and send attestation via TransactionSender
-  const easConfig = getEASConfig(chainId);
-  const contractCall = buildWorkAttestContractCall(
-    easConfig,
-    payload.gardenAddress as `0x${string}`,
-    attestationData
-  );
-  const result = await sender.sendContractCall(contractCall);
-  return result.hash;
-}
-
-async function executeApprovalJob(
-  job: Job<ApprovalJobPayload>,
-  chainId: number,
-  sender: TransactionSender
-): Promise<string> {
-  const payload = job.payload as ApprovalJobPayload;
-
-  // Encode approval attestation data (no IPFS upload needed)
-  const { encodeWorkApprovalData } = await import("../../utils/eas/encoders");
-  const attestationData = encodeWorkApprovalData(
-    {
-      actionUID: payload.actionUID,
-      workUID: payload.workUID,
-      approved: payload.approved,
-      feedback: payload.feedback,
-      confidence: payload.confidence,
-      verificationMethod: payload.verificationMethod,
-      reviewNotesCID: payload.reviewNotesCID,
-    },
-    chainId
-  );
-
-  // Build and send attestation via TransactionSender
-  const easConfig = getEASConfig(chainId);
-  const contractCall = buildApprovalAttestContractCall(
-    easConfig,
-    payload.gardenAddress as `0x${string}`,
-    attestationData
-  );
-  const result = await sender.sendContractCall(contractCall);
-  return result.hash;
-}
+import type { TransactionSender } from "../transactions/types";
+import { getStorageQuota } from "../../utils/storage/quota";
 
 /** Maximum number of retry attempts before a job is marked as permanently failed */
 const MAX_RETRIES = 5;
@@ -193,32 +90,15 @@ const MAX_RETRIES = 5;
 /**
  * Job queue responsible for persisting and processing offline work/approval jobs.
  */
-/** Default interval for orphaned job cleanup (5 minutes) */
-const ORPHAN_CLEANUP_INTERVAL = 5 * 60 * 1000;
-
-/** Threshold for alerting on failed delete count */
-const FAILED_DELETE_ALERT_THRESHOLD = 10;
-
 class JobQueue {
   private isFlushing = false;
   private flushPromise: Promise<FlushResult> | null = null;
-
-  /** Track job IDs that failed to delete for retry */
-  private failedDeleteJobIds: Set<string> = new Set();
-
-  /** Counter for failed deletes since last cleanup */
-  private failedDeleteCount = 0;
-
-  /** Interval ID for cleanup scheduler */
-  private cleanupIntervalId: ReturnType<typeof setInterval> | null = null;
+  private maintenance = new JobMaintenance(jobQueueDB);
 
   /** Cached storage quota to avoid per-job async latency */
   private cachedStorageQuota: Awaited<ReturnType<typeof getStorageQuota>> | null = null;
   private cachedStorageQuotaFetchedAt = 0;
   private storageQuotaCacheTTL = 30_000; // 30 seconds
-
-  /** Whether failed delete IDs have been rehydrated from IndexedDB */
-  private failedDeleteIdsInitialized = false;
 
   /**
    * Get cached storage quota, refreshing if expired
@@ -234,33 +114,6 @@ class JobQueue {
     this.cachedStorageQuota = await getStorageQuota();
     this.cachedStorageQuotaFetchedAt = now;
     return this.cachedStorageQuota;
-  }
-
-  /**
-   * Initialize failed delete IDs from IndexedDB on first access
-   */
-  private async initFailedDeleteIds(): Promise<void> {
-    if (this.failedDeleteIdsInitialized) return;
-    try {
-      const storedIds = await jobQueueDB.loadFailedDeleteIds();
-      this.failedDeleteJobIds = new Set(storedIds);
-      this.failedDeleteCount = storedIds.length;
-      this.failedDeleteIdsInitialized = true;
-    } catch (err) {
-      logger.warn("[JobQueue] Failed to load failed delete IDs from IndexedDB", { error: err });
-      this.failedDeleteIdsInitialized = true;
-    }
-  }
-
-  /**
-   * Persist failed delete IDs to IndexedDB
-   */
-  private async persistFailedDeleteIds(): Promise<void> {
-    try {
-      await jobQueueDB.saveFailedDeleteIds([...this.failedDeleteJobIds]);
-    } catch (err) {
-      logger.warn("[JobQueue] Failed to persist failed delete IDs to IndexedDB", { error: err });
-    }
   }
 
   /**
@@ -285,40 +138,7 @@ class JobQueue {
 
     // Check storage quota before adding job (using cache to avoid per-job latency)
     const storageQuota = await this.getCachedStorageQuota();
-
-    // Track storage status with job creation
-    if (storageQuota.isCritical) {
-      // Track critical storage warning - job may fail to persist
-      track("job_queue_storage_critical", {
-        job_kind: kind,
-        storage_percent_used: Math.round(storageQuota.percentUsed * 10) / 10,
-        storage_used_mb: Math.round(storageQuota.used / (1024 * 1024)),
-        storage_quota_mb: Math.round(storageQuota.quota / (1024 * 1024)),
-        is_online: isOnline,
-      });
-
-      // Add breadcrumb for debugging potential storage failures
-      addBreadcrumb("storage_critical_on_job_add", {
-        job_kind: kind,
-        percent_used: storageQuota.percentUsed,
-      });
-
-      logger.warn(
-        `[JobQueue] Storage critically low (${Math.round(storageQuota.percentUsed)}% used). Job may fail to persist.`
-      );
-    } else if (storageQuota.isLow) {
-      // Track low storage warning
-      track("job_queue_storage_low", {
-        job_kind: kind,
-        storage_percent_used: Math.round(storageQuota.percentUsed * 10) / 10,
-        is_online: isOnline,
-      });
-
-      addBreadcrumb("storage_low_on_job_add", {
-        job_kind: kind,
-        percent_used: storageQuota.percentUsed,
-      });
-    }
+    trackStorageWarning(kind, storageQuota, isOnline);
 
     const jobId = await jobQueueDB.addJob({
       kind,
@@ -340,24 +160,9 @@ class JobQueue {
       synced: false,
     };
 
-    // Add breadcrumb for error debugging
-    addBreadcrumb("job_created", {
-      job_id: jobId,
-      job_kind: kind,
-      is_online: isOnline,
-      garden_address: (payload as WorkJobPayload)?.gardenAddress,
-    });
+    trackJobCreated(jobId, kind, isOnline, chainId, userAddress);
 
-    track("offline_job_created", {
-      job_id: jobId,
-      job_kind: kind,
-      is_online: isOnline,
-      chain_id: chainId,
-      user_address: userAddress,
-      will_process_immediately: false,
-    });
-
-    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+    if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
       let mediaCount = 0;
       if (
         payload &&
@@ -394,7 +199,6 @@ class JobQueue {
    * @returns Delay in milliseconds (max 60 seconds)
    */
   private calculateBackoffDelay(attempts: number): number {
-    // Base delay of 1 second, doubles each attempt, max 60 seconds
     return Math.min(1000 * Math.pow(2, attempts), 60_000);
   }
 
@@ -403,7 +207,7 @@ class JobQueue {
    */
   private isWithinBackoffWindow(job: Job): boolean {
     if (!job.lastAttemptAt || job.attempts === 0) {
-      return false; // Never attempted or first attempt
+      return false;
     }
     const backoffDelay = this.calculateBackoffDelay(job.attempts);
     const timeSinceLastAttempt = Date.now() - job.lastAttemptAt;
@@ -445,35 +249,7 @@ class JobQueue {
       await jobQueueDB.markJobFailed(jobId, errorMessage);
 
       jobQueueEventBus.emit("job:failed", { jobId, job, error: errorMessage });
-
-      // Get IPFS status for debugging
-      const ipfsStatus = getIpfsInitStatus();
-
-      // Track as fatal error - job will not be retried
-      trackSyncError(new Error(errorMessage), {
-        severity: "fatal",
-        source: "JobQueue.processJob",
-        userAction: `${job.kind} job exhausted retries`,
-        recoverable: false,
-        metadata: {
-          job_id: jobId,
-          job_kind: job.kind,
-          attempts: job.attempts,
-          last_error: job.lastError,
-          garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
-          action_uid: (job.payload as WorkJobPayload)?.actionUID,
-          ipfs_status: ipfsStatus.status,
-          ipfs_client_ready: ipfsStatus.clientReady,
-        },
-      });
-
-      track("offline_job_permanently_failed", {
-        job_id: jobId,
-        job_kind: job.kind,
-        attempts: job.attempts,
-        last_error: job.lastError,
-        ipfs_status: ipfsStatus.status,
-      });
+      trackJobPermanentlyFailed(jobId, job);
 
       return { success: false, error: errorMessage };
     }
@@ -485,7 +261,6 @@ class JobQueue {
 
     jobQueueEventBus.emit("job:processing", { jobId, job });
 
-    // Add breadcrumb for error debugging
     addBreadcrumb("job_processing_started", {
       job_id: jobId,
       job_kind: job.kind,
@@ -512,11 +287,7 @@ class JobQueue {
       // Store clientWorkId mapping for instant deduplication
       if (job.kind === "work" && job.meta?.clientWorkId) {
         try {
-          await jobQueueDB.storeClientWorkIdMapping(
-            job.meta.clientWorkId as string,
-            txHash, // attestation ID
-            jobId
-          );
+          await jobQueueDB.storeClientWorkIdMapping(job.meta.clientWorkId as string, txHash, jobId);
         } catch (error) {
           logger.warn("[JobQueue] Failed to store clientWorkId mapping", { error });
         }
@@ -525,21 +296,7 @@ class JobQueue {
       try {
         await jobQueueDB.deleteJob(jobId);
       } catch (deleteErr) {
-        // Job is already marked synced, so this is just a storage leak
-        // Track for cleanup retry and persist to IndexedDB
-        this.failedDeleteJobIds.add(jobId);
-        this.failedDeleteCount += 1;
-        await this.persistFailedDeleteIds();
-
-        logger.warn("[JobQueue] Failed to delete synced job", { jobId, error: deleteErr });
-
-        // Alert if threshold exceeded
-        if (this.failedDeleteCount >= FAILED_DELETE_ALERT_THRESHOLD) {
-          track("job_queue_delete_failures_threshold", {
-            failed_count: this.failedDeleteCount,
-            pending_cleanup_count: this.failedDeleteJobIds.size,
-          });
-        }
+        await this.maintenance.trackFailedDelete(jobId);
       }
 
       const completedJob: Job = {
@@ -549,14 +306,7 @@ class JobQueue {
       };
 
       jobQueueEventBus.emit("job:completed", { jobId, job: completedJob, txHash });
-
-      track("offline_job_processed", {
-        job_id: jobId,
-        job_kind: job.kind,
-        processing_time_ms: Date.now() - startTime,
-        attempts: job.attempts + 1,
-        tx_hash: txHash,
-      });
+      trackJobProcessed(jobId, job.kind, Date.now() - startTime, job.attempts + 1, txHash);
 
       return { success: true, txHash };
     } catch (error) {
@@ -567,59 +317,7 @@ class JobQueue {
       const updated = (await jobQueueDB.getJob(jobId)) ?? job;
 
       jobQueueEventBus.emit("job:failed", { jobId, job: updated, error: errorMessage });
-
-      // Get IPFS status for debugging upload failures
-      const ipfsStatus = getIpfsInitStatus();
-
-      // Get storage quota for debugging storage-related failures
-      const storageQuota = await getStorageQuota();
-
-      // Track as structured exception for PostHog error dashboard
-      trackSyncError(error, {
-        source: "JobQueue.processJob",
-        userAction: `processing ${job.kind} job`,
-        recoverable: job.attempts + 1 < MAX_RETRIES,
-        metadata: {
-          job_id: jobId,
-          job_kind: job.kind,
-          attempts: job.attempts + 1,
-          max_retries: MAX_RETRIES,
-          will_retry: job.attempts + 1 < MAX_RETRIES,
-          processing_duration_ms: processingDuration,
-          chain_id: chainId,
-          user_address: job.userAddress,
-          garden_address: (job.payload as WorkJobPayload)?.gardenAddress,
-          action_uid: (job.payload as WorkJobPayload)?.actionUID,
-          ipfs_status: ipfsStatus.status,
-          ipfs_error: ipfsStatus.error,
-          ipfs_client_ready: ipfsStatus.clientReady,
-          is_online: typeof navigator !== "undefined" ? navigator.onLine : true,
-          connection_type:
-            typeof navigator !== "undefined"
-              ? (navigator as unknown as { connection?: { effectiveType?: string } }).connection
-                  ?.effectiveType
-              : undefined,
-          // Storage quota information
-          storage_percent_used: Math.round(storageQuota.percentUsed * 10) / 10,
-          storage_is_low: storageQuota.isLow,
-          storage_is_critical: storageQuota.isCritical,
-          storage_used_mb: Math.round(storageQuota.used / (1024 * 1024)),
-          storage_quota_mb: Math.round(storageQuota.quota / (1024 * 1024)),
-          breadcrumbs: getBreadcrumbs().slice(-5),
-        },
-      });
-
-      // Also track as analytics event for funnel analysis
-      track("offline_job_failed", {
-        job_id: jobId,
-        job_kind: job.kind,
-        error: errorMessage,
-        attempts: job.attempts + 1,
-        will_retry: job.attempts + 1 < MAX_RETRIES,
-        processing_duration_ms: processingDuration,
-        ipfs_status: ipfsStatus.status,
-        ipfs_client_ready: ipfsStatus.clientReady,
-      });
+      await trackJobProcessingError(jobId, job, error, processingDuration, chainId, MAX_RETRIES);
 
       return { success: false, error: errorMessage };
     }
@@ -630,7 +328,6 @@ class JobQueue {
    * Uses mutex to prevent concurrent flush operations.
    */
   async flush(context: FlushContext): Promise<FlushResult> {
-    // Return existing promise if flush already in progress
     if (this.isFlushing && this.flushPromise) {
       return this.flushPromise;
     }
@@ -657,7 +354,6 @@ class JobQueue {
       throw new Error("userAddress is required for flush operation");
     }
 
-    // Only get jobs for the current user
     const jobs = await jobQueueDB.getJobs({ userAddress: context.userAddress, synced: false });
     if (jobs.length === 0) {
       const emptyResult = { processed: 0, failed: 0, skipped: 0 };
@@ -669,12 +365,10 @@ class JobQueue {
     let failed = 0;
     let skipped = 0;
 
-    // Process jobs with scheduler to yield to user input
     for (let i = 0; i < jobs.length; i++) {
       const job = jobs[i];
 
       try {
-        // Schedule job processing as background task - yields to user interactions
         const result = await scheduleTask(() => this.processJob(job.id, context), {
           priority: "background",
         });
@@ -814,89 +508,23 @@ class JobQueue {
 
   /**
    * Cleanup orphaned synced jobs that failed to delete.
-   * This method scans for jobs marked as synced but still present,
-   * and retries deletion.
    */
   async cleanupOrphanedSyncedJobs(): Promise<{ cleaned: number; failed: number }> {
-    // Ensure we've rehydrated from IndexedDB
-    await this.initFailedDeleteIds();
-
-    let cleaned = 0;
-    let failed = 0;
-
-    // First, retry jobs from the failed delete set
-    for (const jobId of this.failedDeleteJobIds) {
-      try {
-        const job = await jobQueueDB.getJob(jobId);
-        // Only delete if job exists and is synced
-        if (job?.synced) {
-          await jobQueueDB.deleteJob(jobId);
-          this.failedDeleteJobIds.delete(jobId);
-          cleaned += 1;
-        } else if (!job) {
-          // Job already deleted, remove from tracking
-          this.failedDeleteJobIds.delete(jobId);
-          cleaned += 1;
-        }
-      } catch {
-        failed += 1;
-      }
-    }
-
-    // Note: We only clean up jobs that previously failed to delete.
-    // A full scan of all synced jobs would require iterating over all users,
-    // which is handled separately via the JobQueueDB.cleanupSyncedJobs method
-    // that can be called with a specific userAddress.
-
-    // Reset counter after cleanup attempt
-    this.failedDeleteCount = 0;
-
-    // Persist the updated set
-    await this.persistFailedDeleteIds();
-
-    if (cleaned > 0 || failed > 0) {
-      track("job_queue_orphan_cleanup", {
-        cleaned,
-        failed,
-        remaining: this.failedDeleteJobIds.size,
-      });
-    }
-
-    return { cleaned, failed };
+    return this.maintenance.cleanupOrphanedSyncedJobs();
   }
 
   /**
    * Start periodic cleanup of orphaned synced jobs.
-   * @param intervalMs - Cleanup interval in milliseconds (default: 5 minutes)
    */
-  startCleanupScheduler(intervalMs: number = ORPHAN_CLEANUP_INTERVAL): void {
-    if (this.cleanupIntervalId) {
-      return; // Already running
-    }
-
-    // Rehydrate failed delete IDs from IndexedDB on startup
-    this.initFailedDeleteIds().catch((err) => {
-      logger.warn("[JobQueue] Failed to init failed delete IDs", { error: err });
-    });
-
-    this.cleanupIntervalId = setInterval(() => {
-      // Only run cleanup if there are failed deletes to retry
-      if (this.failedDeleteJobIds.size > 0) {
-        this.cleanupOrphanedSyncedJobs().catch((err) => {
-          logger.warn("[JobQueue] Cleanup scheduler error", { error: err });
-        });
-      }
-    }, intervalMs);
+  startCleanupScheduler(intervalMs?: number): void {
+    this.maintenance.startCleanupScheduler(intervalMs);
   }
 
   /**
    * Stop the periodic cleanup scheduler.
    */
   stopCleanupScheduler(): void {
-    if (this.cleanupIntervalId) {
-      clearInterval(this.cleanupIntervalId);
-      this.cleanupIntervalId = null;
-    }
+    this.maintenance.stopCleanupScheduler();
   }
 
   /**

@@ -16,7 +16,7 @@ import type { DraftStep, WorkDraftRecord } from "../../types/job-queue";
 import { createDraftErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 /**
  * Map DraftStep to WorkTab enum

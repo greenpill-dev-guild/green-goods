@@ -218,7 +218,12 @@ export function Login() {
   // Login with existing passkey
   const handlePasskeyLogin = async () => {
     setLoginError(null);
-    setLoadingMessage("Authenticating...");
+    setLoadingMessage(
+      intl.formatMessage({
+        id: "app.login.loading.authenticating",
+        defaultMessage: "Authenticating...",
+      })
+    );
     setLoadingState("welcome");
     try {
       await loginWithPasskey?.();
@@ -240,7 +245,12 @@ export function Login() {
       return;
     }
     setLoginError(null);
-    setLoadingMessage("Creating your wallet...");
+    setLoadingMessage(
+      intl.formatMessage({
+        id: "app.login.loading.creatingWallet",
+        defaultMessage: "Creating your wallet...",
+      })
+    );
     setLoadingState("welcome");
     try {
       await createAccount?.(trimmedUsername);

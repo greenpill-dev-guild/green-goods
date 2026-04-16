@@ -35,6 +35,7 @@ interface DeploymentRecord {
   octantModule?: string;
   cookieJarModule?: string;
   greenGoodsENS?: string;
+  octantFactory?: string;
   marketplaceAdapter?: string;
   unifiedPowerRegistry?: string;
   yieldSplitter?: string;

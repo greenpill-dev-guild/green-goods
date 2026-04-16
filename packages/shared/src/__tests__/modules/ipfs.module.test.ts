@@ -103,4 +103,13 @@ describe("modules/data/ipfs", () => {
       `https://pinata.example/ipfs/${validCid}/config.json`
     );
   });
+
+  it("initializes successfully with Pinata-only upload config", async () => {
+    const initialized = await initializeIpfsFromEnv({
+      PINATA_JWT: "pinata-live-token-value",
+      PINATA_GATEWAY_URL: "https://pinata.example",
+    });
+
+    expect(initialized).toBe(true);
+  });
 });

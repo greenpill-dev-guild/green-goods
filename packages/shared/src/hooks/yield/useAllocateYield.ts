@@ -10,8 +10,8 @@ import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 /**
  * Mutation hook to trigger yield allocation via YieldSplitter.splitYield().
@@ -31,7 +31,7 @@ export function useAllocateYield() {
 
   const lastGardenRef = useRef<string>("");
   const lastAssetRef = useRef<string>("");
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastGardenRef.current && lastAssetRef.current) {
         queryInvalidation
@@ -39,7 +39,7 @@ export function useAllocateYield() {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({

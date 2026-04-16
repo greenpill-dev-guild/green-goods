@@ -101,7 +101,7 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
 import { toastService } from "../../../components/toast";
 // Import after mocks
 import { useENSClaim } from "../../../hooks/ens/useENSClaim";
-import { queryKeys } from "../../../hooks/query-keys";
+import { queryKeys } from "../../../config/query-keys";
 import { logger } from "../../../modules/app/logger";
 
 // ============================================================================

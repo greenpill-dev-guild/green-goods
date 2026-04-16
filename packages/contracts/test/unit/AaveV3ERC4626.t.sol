@@ -6,6 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { AaveV3ERC4626 } from "../../src/strategies/AaveV3ERC4626.sol";
 import { MockAavePool, MockAToken, MockPoolDataProvider } from "../../src/mocks/AavePool.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
+import { ZeroAddress } from "../../src/errors/CommonErrors.sol";
 
 contract AaveV3ERC4626Test is Test {
     AaveV3ERC4626 internal strategy;
@@ -63,7 +64,7 @@ contract AaveV3ERC4626Test is Test {
     }
 
     function test_constructor_revertsForZeroAddressInputs() public {
-        vm.expectRevert(AaveV3ERC4626.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         new AaveV3ERC4626(address(0), "Name", "SYM", address(pool), address(aToken), address(dataProvider), owner);
 
         vm.expectRevert();
@@ -87,7 +88,7 @@ contract AaveV3ERC4626Test is Test {
         // Deploy a fresh strategy without vault set
         AaveV3ERC4626 fresh =
             new AaveV3ERC4626(address(asset), "Fresh", "FRSH", address(pool), address(aToken), address(dataProvider), owner);
-        vm.expectRevert(AaveV3ERC4626.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         fresh.setVault(address(0));
     }
 

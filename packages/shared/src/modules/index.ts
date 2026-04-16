@@ -113,8 +113,6 @@ export { serviceWorkerManager } from "./app/service-worker";
 // AUTH / SESSION
 // ============================================================================
 export {
-  // Storage keys
-  AUTH_MODE_STORAGE_KEY,
   // Auth mode
   type AuthMode,
   clearAllAuth,
@@ -167,14 +165,12 @@ export {
   GQLClient,
   GRAPHQL_TIMEOUT_MS,
   greenGoodsIndexer,
-  TimeoutError,
   withTimeout,
 } from "./data/graphql-client";
 // ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
 export {
-  Capital,
   getActions,
   getGardeners,
   getGardens,
@@ -314,5 +310,4 @@ export {
   formatJobError,
   getSubmissionStatusText,
   validateApprovalDraft,
-  validateWorkDraft,
 } from "./work/work-submission";

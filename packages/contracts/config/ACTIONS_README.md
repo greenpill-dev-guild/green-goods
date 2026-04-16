@@ -404,7 +404,7 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 
 **IPFS upload failing:**
 - Verify `VITE_STORACHA_KEY` in root `.env`
-- Check `.ipfs-cache.json` for cached hashes
+- Check `.generated/runtime/ipfs-cache.json` for cached hashes
 - Use `--force` flag to skip cache
 
 **Schema validation errors:**
@@ -417,4 +417,3 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 - Deployment script: `script/deploy.ts`
 - IPFS uploader: `script/utils/ipfs-uploader.ts`
 - Docs site: [docs.greengoods.app](https://docs.greengoods.app)
-

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { logger } from "../../modules/app/logger";
 import { getAllYieldAllocations } from "../../modules/data/yield-allocations";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 /** Aggregated protocol-wide yield summary */
 export interface ProtocolYieldSummary {
@@ -53,7 +53,6 @@ export function useProtocolYieldSummary(options: UseProtocolYieldSummaryOptions 
     },
     enabled,
     staleTime: STALE_TIME_MEDIUM,
-    placeholderData: [],
   });
 
   const summary = useMemo((): ProtocolYieldSummary => {
