@@ -4,7 +4,7 @@ trigger:
   schedule: "0 22 * * 0"  # 22:00 local, Sunday
 repos:
   - green-goods
-environment: green-goods-routines-full  # separate env with Full network access for Dune + PostHog
+environment: green-goods-routines-extended
 network-access: full
 env-vars:
   - DUNE_API_KEY
@@ -12,7 +12,10 @@ env-vars:
   - POSTHOG_HOST
   - ENVIO_INDEXER_URL
   - ARBITRUM_RPC_URL
-connectors: []  # optionally Slack
+connectors:
+  - google-calendar
+  - google-drive
+  # - slack  # optional, for "digest ready" ping
 model: claude-opus-4-6
 allow-unrestricted-branch-pushes: true  # needs to push claude/data-analyst/YYYY-WW branches
 ---
@@ -79,6 +82,13 @@ If any of these are true, open a GitHub issue with **both** labels `routine:metr
 - A Dune query that worked last week now errors
 
 Dedupe: before opening, query `gh issue list --label "routine:metrics:anomaly" --state open`. If an open anomaly issue exists, append a dated comment instead of creating a new one.
+
+## Context enrichment (connectors)
+
+You have access to Google Calendar and Google Drive connectors. Use them to add human context to the digest, but don't fail if they're empty or inaccessible.
+
+- **Calendar**: note the week's significant events in the digest (demos, grant milestones, operator syncs). A 40% action-volume drop during a holiday week is expected, not an anomaly.
+- **Drive**: cross-reference meeting notes for any metrics commitments or targets discussed. If a recent meeting set a goal ("100 actions by month-end"), include progress toward it in the Growth section.
 
 ## Output
 

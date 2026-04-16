@@ -11,7 +11,8 @@ environment: green-goods-routines
 network-access: trusted
 env-vars: []
 connectors:
-  - google-drive  # for cross-project meeting notes
+  - google-drive     # for cross-project meeting notes
+  - google-calendar  # for upcoming deadlines, demos, milestones
   # - gmail  # optional, enable if useful
 model: claude-opus-4-6
 ---
@@ -30,7 +31,9 @@ Four repos cloned as read-only reference:
 
 DO NOT run `bun install` in any repo. DO NOT run builds or tests. Read-only exploration only.
 
-You have the Google Drive connector available for cross-project meeting notes and shared docs.
+You have Google Drive and Google Calendar connectors available:
+- **Drive**: cross-project meeting notes, shared docs, brainstorm artifacts.
+- **Calendar**: upcoming events, deadlines, demos, milestones. Use these to ground ideation — "what should we be ready for?" is prime REM material. A demo next Wednesday or a grant deadline in 10 days should steer your exploration.
 
 ## Sleep cycle structure
 

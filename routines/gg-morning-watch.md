@@ -4,12 +4,15 @@ trigger:
   schedule: "30 7 * * 1-5"  # 07:30 local, Mon-Fri (configure via claude.ai preset, then /schedule update for exact cron)
 repos:
   - green-goods
-environment: green-goods-routines
-network-access: trusted  # add ARBITRUM_RPC and ENVIO_INDEXER domains if custom
+environment: green-goods-routines-extended
+network-access: full  # or custom with ARBITRUM_RPC + ENVIO_INDEXER domains
 env-vars:
   - ARBITRUM_RPC_URL
   - ENVIO_INDEXER_URL
-connectors: []  # optionally add Slack for ping
+connectors:
+  - google-calendar
+  - google-drive
+  # - slack  # optional, for a ping on anomaly
 model: claude-sonnet-4-6
 ---
 
@@ -58,6 +61,15 @@ if open_issues is empty:
 else:
   gh issue comment <first open issue number> --body "<dated append of findings>"
 ```
+
+## Context enrichment (connectors)
+
+You have access to Google Calendar and Google Drive connectors. Use them to add context to your findings, but don't fail if they're empty or inaccessible — they are optional enrichment.
+
+- **Calendar**: check today's and tomorrow's events for relevant context (demos, operator syncs, grant deadlines). If a garden shows low activity but there's a planning meeting scheduled this week, note that in the issue.
+- **Drive**: check recent shared documents for meeting notes that mention specific gardens or features. Operator-reported context (e.g., "pausing for planting season") changes the severity of a dormancy signal.
+
+Add a `### Context` subsection to any issue body where connector data changes the interpretation of the finding.
 
 ## Output
 
