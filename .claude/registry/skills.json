@@ -1,6 +1,14 @@
 {
   "source": ".claude/skills/*/SKILL.md",
-  "canonical_commands": ["plan", "debug", "review", "audit", "principles", "architecture", "status"],
+  "canonical_commands": [
+    "plan",
+    "debug",
+    "review",
+    "audit",
+    "principles",
+    "architecture",
+    "status"
+  ],
   "skills": [
     {
       "name": "plan",
@@ -273,6 +281,16 @@
       "default_mode": "passive",
       "triggers": ["bot", "Telegram", "handler", "platform adapter"],
       "dependencies": []
+    },
+    {
+      "name": "stitch",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": false,
+      "triggers": ["stitch", "build from stitch", "stitch prompt", "stitch screen", "implement screen"],
+      "dependencies": ["ui", "design"],
+      "sub_files": []
     }
   ],
   "aliases": {
