@@ -9,10 +9,11 @@ network-access: full  # or custom with ARBITRUM_RPC + ENVIO_INDEXER domains
 env-vars:
   - ARBITRUM_RPC_URL
   - ENVIO_INDEXER_URL
+  - DISCORD_BOT_TOKEN
+  - DISCORD_GREEN_GOODS_CHANNEL_ID
 connectors:
   - google-calendar
   - google-drive
-  # - slack  # optional, for a ping on anomaly
 model: claude-sonnet-4-6
 ---
 
@@ -22,8 +23,7 @@ You are the morning-watch routine for Green Goods. Run the four checks below. Fo
 
 ## Setup
 
-- `ARBITRUM_RPC_URL` is available as an environment variable.
-- `ENVIO_INDEXER_URL` is available as an environment variable.
+- `ARBITRUM_RPC_URL`, `ENVIO_INDEXER_URL`, `DISCORD_BOT_TOKEN`, and `DISCORD_GREEN_GOODS_CHANNEL_ID` are in the environment.
 - Do not read `.env` — variables are already in the environment.
 
 ## Categories and checks
@@ -70,6 +70,49 @@ You have access to Google Calendar and Google Drive connectors. Use them to add 
 - **Drive**: check recent shared documents for meeting notes that mention specific gardens or features. Operator-reported context (e.g., "pausing for planting season") changes the severity of a dormancy signal.
 
 Add a `### Context` subsection to any issue body where connector data changes the interpretation of the finding.
+
+## Discord integration (#green-goods channel)
+
+`DISCORD_BOT_TOKEN` and `DISCORD_GREEN_GOODS_CHANNEL_ID` are in the environment.
+
+### Read: coordination context
+
+Before running checks, scan the last 24h of messages in the #green-goods channel:
+
+```
+GET https://discord.com/api/v10/channels/{DISCORD_GREEN_GOODS_CHANNEL_ID}/messages?limit=50
+Authorization: Bot {DISCORD_BOT_TOKEN}
+```
+
+Look for:
+- Operator reports ("garden X is offline for maintenance", "we're migrating vaults")
+- Known issues ("indexer is resyncing, expected to take 2h")
+- Planned activities that explain anomalies
+
+Use this context to **adjust severity**. If someone posted "redeploying indexer tonight," an indexer-lag anomaly becomes informational, not urgent.
+
+### Write: morning health summary
+
+After all checks complete, post a formatted summary to the #green-goods channel:
+
+```
+POST https://discord.com/api/v10/channels/{DISCORD_GREEN_GOODS_CHANNEL_ID}/messages
+Authorization: Bot {DISCORD_BOT_TOKEN}
+Content-Type: application/json
+```
+
+Message format:
+```
+**Morning Watch — {YYYY-MM-DD}**
+🟢 Indexer: OK (lag: {N} blocks)
+🟢 Pilot gardens: {N}/13 active
+🔴 CI: 1 failure — {workflow name} ([#issue](url))
+🟢 On-chain: vaults stable
+
+{if any anomalies: "→ {N} issue(s) created/updated — check GitHub for details"}
+```
+
+Use 🟢 for OK, 🟡 for informational, 🔴 for anomaly. If Discord is unreachable, continue — the GitHub issues are the primary output.
 
 ## Output
 

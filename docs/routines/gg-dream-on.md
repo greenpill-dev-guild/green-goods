@@ -7,13 +7,14 @@ repos:
   - greenpill-website
   - coop
   - wefa
-environment: green-goods-routines
-network-access: trusted
-env-vars: []
+environment: green-goods-routines-extended
+network-access: full  # needs Discord API access
+env-vars:
+  - DISCORD_BOT_TOKEN
+  - DISCORD_RESEARCH_CHANNEL_ID
 connectors:
   - google-drive     # for cross-project meeting notes
   - google-calendar  # for upcoming deadlines, demos, milestones
-  # - gmail  # optional, enable if useful
 model: claude-opus-4-6
 ---
 
@@ -31,9 +32,32 @@ Four repos cloned as read-only reference:
 
 DO NOT run `bun install` in any repo. DO NOT run builds or tests. Read-only exploration only.
 
-You have Google Drive and Google Calendar connectors available:
+You have Google Drive, Google Calendar, and Discord available:
 - **Drive**: cross-project meeting notes, shared docs, brainstorm artifacts.
 - **Calendar**: upcoming events, deadlines, demos, milestones. Use these to ground ideation — "what should we be ready for?" is prime REM material. A demo next Wednesday or a grant deadline in 10 days should steer your exploration.
+- **Discord #research** (`DISCORD_RESEARCH_CHANNEL_ID`): read-only. Scan the last 7 days of the research channel for papers, tools, protocols, and discussions shared by the community. Use these to seed NREM questions and REM ideation.
+
+To read Discord:
+```
+GET https://discord.com/api/v10/channels/{DISCORD_RESEARCH_CHANNEL_ID}/messages?limit=100
+Authorization: Bot {DISCORD_BOT_TOKEN}
+```
+
+#### Emoji triage protocol
+
+The channel uses an emoji convention to track what's been explored:
+- **No emoji** → unreviewed, fresh material — **prioritize these** for NREM exploration
+- **🚧 (construction)** → in progress / partially reviewed — good REM ideation seeds
+- **✅ (check mark)** → fully reviewed — lower priority, but may still inspire cross-project connections
+
+Focus NREM analysis on unreviewed items. Use 🚧 items as REM fuel.
+
+Example NREM questions seeded from research channel:
+- "Someone shared a paper on composable credentials — where in green-goods/coop could that pattern apply?"
+- "A new attestation framework was discussed — how does it compare to our EAS integration?"
+- "A regenerative finance protocol was mentioned — could Green Goods vaults interoperate?"
+
+DO NOT write to the Discord channel and DO NOT add reactions. Dream-on is session-only for privacy. The human decides when to mark research items as 🚧 or ✅.
 
 ## Sleep cycle structure
 

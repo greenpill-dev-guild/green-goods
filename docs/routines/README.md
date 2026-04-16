@@ -5,9 +5,11 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 ## Files
 
 - `gg-pr-review.md` — GitHub-triggered inline PR review (replaces `claude-code-review.yml`)
-- `gg-morning-watch.md` — Scheduled weekday operational health checks; writes GitHub Issues
-- `gg-dream-on.md` — Nightly cross-project exploration; session-only output
-- `gg-data-analyst.md` — Weekly Dune + PostHog maintenance; writes PR to develop + issues
+- `gg-morning-watch.md` — Scheduled weekday operational health checks; writes GitHub Issues + Discord #green-goods health summary
+- `gg-client-polish.md` — Daily client PWA audit with rotating focus + bi-directional Discord; writes GitHub Issues + Discord messages
+- `gg-dream-on.md` — Nightly cross-project exploration; reads Discord #research; session-only output
+- `gg-data-analyst.md` — Weekly Dune + PostHog maintenance; writes PR to develop + issues + Discord #funding highlights
+- `gg-grant-scout.md` — Weekly grant opportunity scouting + proposal drafting for Green Goods & Coop; writes Drive docs + Discord #funding + GitHub Issues
 
 ## Conventions
 
@@ -37,6 +39,14 @@ Ensure these GitHub labels exist before enabling the corresponding routines:
 | `routine:watch:ci-pulse` | gg-morning-watch | Dedupe | `0e8a16` |
 | `routine:watch:onchain-sanity` | gg-morning-watch | Dedupe | `0e8a16` |
 | `routine:metrics:anomaly` | gg-data-analyst | Dedupe: one open anomaly issue | `d73a4a` |
+| `routine:polish:notes` | gg-client-polish | Dedupe: findings from Drive meeting notes | `c5def5` |
+| `routine:polish:discord` | gg-client-polish | Dedupe: bug reports sourced from Discord | `5865F2` |
+| `routine:polish:design` | gg-client-polish | Dedupe: design & accessibility issues | `d4c5f9` |
+| `routine:polish:architecture` | gg-client-polish | Dedupe: architecture & pattern violations | `fbca04` |
+| `routine:polish:testing` | gg-client-polish | Dedupe: test coverage gaps & quality | `0e8a16` |
+| `routine:polish:performance` | gg-client-polish | Dedupe: performance & PWA issues | `e4e669` |
+| `routine:polish:quality` | gg-client-polish | Dedupe: code quality & principles issues | `f9d0c4` |
+| `routine:grant:deadline` | gg-grant-scout | Dedupe: grant deadlines within 14 days | `d93f0b` |
 
 Routines apply **both** a category label (for dedupe) and `automated/claude-routine` (for discovery) on every issue or PR they author. The umbrella is what you filter on to see "everything any routine produced"; the category label is what the routine's code uses to decide "create new or append to existing."
 
