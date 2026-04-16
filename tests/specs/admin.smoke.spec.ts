@@ -220,15 +220,11 @@ test.describe("Admin Cockpit", () => {
 
     await page.getByRole("tab", { name: "Settings" }).click();
     await expect(page.getByText("Disconnect", { exact: true })).toBeVisible({ timeout: 15000 });
-    await expect
-      .poll(() => new URL(page.url()).searchParams.get("tab"))
-      .toBe("settings");
+    await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe("settings");
 
     await page.getByRole("tab", { name: "Profile" }).click();
     await expect(page.getByText("Disconnect", { exact: true })).toHaveCount(0);
-    await expect
-      .poll(() => new URL(page.url()).searchParams.get("tab"))
-      .toBe(null);
+    await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe(null);
   });
 
   test("redirects desktop profile deep links back to hub while opening the settings sheet", async ({
@@ -240,9 +236,7 @@ test.describe("Admin Cockpit", () => {
     await page.goto(helper.buildMockAuthPath("/profile?tab=settings"));
     await helper.waitForPageLoad();
 
-    await expect
-      .poll(() => new URL(page.url()).pathname, { timeout: 15000 })
-      .toBe("/hub");
+    await expect.poll(() => new URL(page.url()).pathname, { timeout: 15000 }).toBe("/hub");
     await expect(page.getByText("Disconnect", { exact: true })).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole("heading", { name: "Profile" })).toHaveCount(0);
   });

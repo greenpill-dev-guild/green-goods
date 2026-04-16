@@ -516,13 +516,7 @@ export class AdminTestHelper {
    * route changes and reloads during a browser session.
    */
   async enableMockAuth(role: AdminMockRole = "operator") {
-    const initScript = ({
-      role,
-      storageKey,
-    }: {
-      role: AdminMockRole;
-      storageKey: string;
-    }) => {
+    const initScript = ({ role, storageKey }: { role: AdminMockRole; storageKey: string }) => {
       window.sessionStorage.setItem(storageKey, role);
     };
 
