@@ -269,7 +269,7 @@ Headroom on a 15-run cap: ~8–10 slots/day for manual `Run now`, API triggers, 
 
 | Risk | Mitigation |
 |---|---|
-| Research-preview API changes break routines | Keep each routine's prompt + config as a committed markdown file under `routines/` in repo; easy to rebuild. |
+| Research-preview API changes break routines | Keep each routine's prompt + config as a committed markdown file under `docs/routines/` in repo; easy to rebuild. |
 | Webhook hourly caps drop a PR review event | Manual `Run now` as fallback; PR review isn't time-critical. |
 | Lockfile conflict with in-flight `feature/*` | Routine PRs target `develop`, not `main`. Conflict only surfaces at promotion-time, resolved manually. |
 | Data-analyst overwrites user-owned Dune queries | Routine only edits queries tagged `[routine]`; tag convention enforced in prompt. |
@@ -287,7 +287,7 @@ Headroom on a 15-run cap: ~8–10 slots/day for manual `Run now`, API triggers, 
   sync-develop.yml              (new — Phase 0)
   claude-code-review.yml        (deleted — Phase 2)
   claude.yml                    (kept)
-routines/                       (new — committed for rebuildability)
+docs/routines/                       (new — committed for rebuildability)
   gg-pr-review.md
   gg-morning-watch.md
   gg-dream-on.md

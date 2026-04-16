@@ -4,7 +4,7 @@
 
 **Goal:** Set up four Claude Code routines (`gg-pr-review`, `gg-morning-watch`, `gg-dream-on`, `gg-data-analyst`) with a `develop`-as-routine-target branching model, so Claude can work on Green Goods autonomously without merge conflicts or cross-routine clashes.
 
-**Architecture:** Routine PRs target `develop`; human `feature/*` PRs keep targeting `main`; a GitHub Action fast-forwards `develop` to `main` on every main push. Each routine has a committed markdown prompt under `routines/` for rebuildability. Output channels differ by routine: inline PR comments, deduped issues, session-only, or PR to isolated `docs/metrics/` path.
+**Architecture:** Routine PRs target `develop`; human `feature/*` PRs keep targeting `main`; a GitHub Action fast-forwards `develop` to `main` on every main push. Each routine has a committed markdown prompt under `docs/routines/` for rebuildability. Output channels differ by routine: inline PR comments, deduped issues, session-only, or PR to isolated `docs/metrics/` path.
 
 **Tech Stack:** Claude Code routines (research preview), GitHub Actions, Envio indexer, Arbitrum RPC, Dune API, PostHog API, Google Drive connector.
 
@@ -19,12 +19,12 @@ Each file has one clear responsibility:
 | File | Responsibility | Phase |
 |---|---|---|
 | `.github/workflows/sync-develop.yml` | Fast-forward `develop` to `main` on every main push; open labeled issue on FF failure. | 0 |
-| `routines/README.md` | Explain what lives in this directory, naming conventions, how to rebuild a routine from a prompt file. | 0 |
-| `routines/gg-pr-review.md` | Source-of-truth prompt for the PR-review routine (trigger filters, checklist, cost controls). | 1 |
+| `docs/routines/README.md` | Explain what lives in this directory, naming conventions, how to rebuild a routine from a prompt file. | 0 |
+| `docs/routines/gg-pr-review.md` | Source-of-truth prompt for the PR-review routine (trigger filters, checklist, cost controls). | 1 |
 | `.github/workflows/claude-code-review.yml` | **DELETE** after parallel-run validation proves routine supersedes it. | 2 |
-| `routines/gg-morning-watch.md` | Prompt for daily operational health-check routine. | 3 |
-| `routines/gg-dream-on.md` | Prompt for nightly cross-project exploration routine. | 4 |
-| `routines/gg-data-analyst.md` | Prompt for weekly Dune/PostHog maintenance routine. | 5 |
+| `docs/routines/gg-morning-watch.md` | Prompt for daily operational health-check routine. | 3 |
+| `docs/routines/gg-dream-on.md` | Prompt for nightly cross-project exploration routine. | 4 |
+| `docs/routines/gg-data-analyst.md` | Prompt for weekly Dune/PostHog maintenance routine. | 5 |
 | `docs/metrics/.gitkeep` | Placeholder so the data-analyst routine has a target directory on first run. | 5 |
 
 ## Before You Start — Repository Setup
@@ -249,10 +249,10 @@ git log --oneline origin/develop..origin/main
 ```
 Expected: both empty.
 
-### Task 0.6: Create the routines/ directory + README
+### Task 0.6: Create the docs/routines/ directory + README
 
 **Files:**
-- Create: `routines/README.md`
+- Create: `docs/routines/README.md`
 
 - [ ] **Step 1: Create a new branch for Phase 0 completion**
 
@@ -264,7 +264,7 @@ git checkout -b chore/claude-routines-directory
 
 - [ ] **Step 2: Write the README**
 
-Create `routines/README.md`:
+Create `docs/routines/README.md`:
 
 ```markdown
 # Claude Routines
@@ -297,8 +297,8 @@ This directory holds the source-of-truth prompts and configurations for Claude C
 - [ ] **Step 3: Commit**
 
 ```bash
-git add routines/README.md
-git commit -m "docs(routines): add routines/ directory with conventions README"
+git add docs/routines/README.md
+git commit -m "docs(routines): add docs/routines/ directory with conventions README"
 ```
 
 ### Task 0.7: Create the cloud environment on claude.ai
@@ -331,7 +331,7 @@ git push -u origin chore/claude-routines-directory
 - [ ] **Step 2: Open PR to main**
 
 ```bash
-gh pr create --base main --title "chore(routines): add routines/ directory with README" --body "Phase 0 of claude-routines rollout (directory scaffold). sync-develop workflow already merged in earlier PR."
+gh pr create --base main --title "chore(routines): add docs/routines/ directory with README" --body "Phase 0 of claude-routines rollout (directory scaffold). sync-develop workflow already merged in earlier PR."
 ```
 
 Expected: PR opens, CI passes, user merges.
@@ -349,7 +349,7 @@ Ship the PR-review routine without removing the existing action. Observe for a w
 ### Task 1.1: Write the gg-pr-review prompt
 
 **Files:**
-- Create: `routines/gg-pr-review.md`
+- Create: `docs/routines/gg-pr-review.md`
 
 - [ ] **Step 1: Create a new branch**
 
@@ -361,7 +361,7 @@ git checkout -b chore/claude-routines-pr-review
 
 - [ ] **Step 2: Write the routine prompt file**
 
-Create `routines/gg-pr-review.md`:
+Create `docs/routines/gg-pr-review.md`:
 
 ````markdown
 ---
@@ -451,7 +451,7 @@ Use `COMMENT_ONLY` unless there is a hard-invariant violation (items 1, 2, 5). I
 - [ ] **Step 3: Commit**
 
 ```bash
-git add routines/gg-pr-review.md
+git add docs/routines/gg-pr-review.md
 git commit -m "docs(routines): add gg-pr-review prompt
 
 Source-of-truth for the GitHub-triggered PR review routine that
@@ -481,7 +481,7 @@ Expected: routines list page loads.
 - [ ] **Step 3: Fill in the form**
 
 - Name: `gg-pr-review`
-- Prompt: (paste the prompt body from `routines/gg-pr-review.md` — everything after the `# Prompt` heading)
+- Prompt: (paste the prompt body from `docs/routines/gg-pr-review.md` — everything after the `# Prompt` heading)
 - Model: `claude-opus-4-6`
 - Repositories: `green-goods` (or the org-qualified name, e.g., `greenpill/green-goods`)
 - Allow unrestricted branch pushes: **No**
@@ -524,7 +524,7 @@ For each, compare the routine's output vs. the action's output.
 
 - [ ] **Step 2: Log observations**
 
-Create a section at the bottom of `routines/gg-pr-review.md`:
+Create a section at the bottom of `docs/routines/gg-pr-review.md`:
 
 ```markdown
 ## Validation log
@@ -569,7 +569,7 @@ git rm .github/workflows/claude-code-review.yml
 ```bash
 git commit -m "ci(claude): retire claude-code-review.yml in favor of gg-pr-review routine
 
-Parallel-run observation (see routines/gg-pr-review.md Validation log)
+Parallel-run observation (see docs/routines/gg-pr-review.md Validation log)
 confirmed the routine meets or exceeds the workflow's output on
 observed PRs. Keeping claude.yml (on-demand @claude mentions)."
 ```
@@ -580,7 +580,7 @@ observed PRs. Keeping claude.yml (on-demand @claude mentions)."
 
 ```bash
 git push -u origin chore/retire-claude-code-review-yml
-gh pr create --base main --title "ci(claude): retire claude-code-review.yml" --body "Phase 2 of claude-routines rollout. Routine superseded the workflow on N observed PRs (see routines/gg-pr-review.md)."
+gh pr create --base main --title "ci(claude): retire claude-code-review.yml" --body "Phase 2 of claude-routines rollout. Routine superseded the workflow on N observed PRs (see docs/routines/gg-pr-review.md)."
 ```
 
 - [ ] **Step 2: Merge**
@@ -600,7 +600,7 @@ Daily operational health checks. Issues only.
 ### Task 3.1: Write the gg-morning-watch prompt
 
 **Files:**
-- Create: `routines/gg-morning-watch.md`
+- Create: `docs/routines/gg-morning-watch.md`
 
 - [ ] **Step 1: Branch**
 
@@ -612,7 +612,7 @@ git checkout -b chore/claude-routines-morning-watch
 
 - [ ] **Step 2: Write the file**
 
-Create `routines/gg-morning-watch.md`:
+Create `docs/routines/gg-morning-watch.md`:
 
 ````markdown
 ---
@@ -683,7 +683,7 @@ At the end of the session, print a one-line summary: `morning-watch: indexer=OK,
 - [ ] **Step 3: Commit**
 
 ```bash
-git add routines/gg-morning-watch.md
+git add docs/routines/gg-morning-watch.md
 git commit -m "docs(routines): add gg-morning-watch prompt
 
 Daily weekday 07:30 operational health check. Four categories
@@ -724,7 +724,7 @@ Expected: labels created (or already exist).
 - [ ] **Step 2: Fill in**
 
 - Name: `gg-morning-watch`
-- Prompt: (paste from `routines/gg-morning-watch.md`, content after `# Prompt`)
+- Prompt: (paste from `docs/routines/gg-morning-watch.md`, content after `# Prompt`)
 - Model: `claude-sonnet-4-6`
 - Repositories: `green-goods`
 - Environment: `green-goods-routines`
@@ -762,7 +762,7 @@ Cross-project nightly exploration. Session-only.
 ### Task 4.1: Write the gg-dream-on prompt
 
 **Files:**
-- Create: `routines/gg-dream-on.md`
+- Create: `docs/routines/gg-dream-on.md`
 
 - [ ] **Step 1: Branch**
 
@@ -774,7 +774,7 @@ git checkout -b chore/claude-routines-dream-on
 
 - [ ] **Step 2: Write the file**
 
-Create `routines/gg-dream-on.md`:
+Create `docs/routines/gg-dream-on.md`:
 
 ````markdown
 ---
@@ -867,7 +867,7 @@ This session is private to the user's claude.ai account. You may discuss ideas-i
 - [ ] **Step 3: Commit**
 
 ```bash
-git add routines/gg-dream-on.md
+git add docs/routines/gg-dream-on.md
 git commit -m "docs(routines): add gg-dream-on prompt
 
 Nightly 03:00 cross-project exploration. Four repos cloned
@@ -886,7 +886,7 @@ Expected: Google Drive listed. If not, install from the connector directory.
 - [ ] **Step 1: New routine**
 
 - Name: `gg-dream-on`
-- Prompt: (paste content after `# Prompt` from `routines/gg-dream-on.md`)
+- Prompt: (paste content after `# Prompt` from `docs/routines/gg-dream-on.md`)
 - Model: `claude-opus-4-6`
 - Repositories: `green-goods`, `greenpill-website`, `coop`, `wefa` (org-qualified as needed)
 - Environment: `green-goods-routines`
@@ -955,7 +955,7 @@ Record it for Task 5.5.
 ### Task 5.3: Write the gg-data-analyst prompt
 
 **Files:**
-- Create: `routines/gg-data-analyst.md`
+- Create: `docs/routines/gg-data-analyst.md`
 - Create: `docs/metrics/.gitkeep`
 
 - [ ] **Step 1: Branch**
@@ -975,7 +975,7 @@ echo "# Weekly metrics digests go here (written by gg-data-analyst routine)." > 
 
 - [ ] **Step 3: Write the routine prompt**
 
-Create `routines/gg-data-analyst.md`:
+Create `docs/routines/gg-data-analyst.md`:
 
 ````markdown
 ---
@@ -1071,7 +1071,7 @@ data-analyst: dune=[N updated, M created, K proposed], digest-PR=#[N], anomalies
 - [ ] **Step 4: Commit**
 
 ```bash
-git add routines/gg-data-analyst.md docs/metrics/README.md
+git add docs/routines/gg-data-analyst.md docs/metrics/README.md
 git commit -m "docs(routines): add gg-data-analyst prompt
 
 Weekly Sunday 22:00 routine. Three write-back channels: Dune API
@@ -1107,7 +1107,7 @@ Labels were created in Phase 0 Task 0.4 Step 2. No new labels needed in Phase 5 
 - [ ] **Step 1: New routine**
 
 - Name: `gg-data-analyst`
-- Prompt: (paste content after `# Prompt` from `routines/gg-data-analyst.md`)
+- Prompt: (paste content after `# Prompt` from `docs/routines/gg-data-analyst.md`)
 - Model: `claude-opus-4-6`
 - Repositories: `green-goods` (allow `claude/data-analyst/*` branch pushes)
 - Environment: `green-goods-routines-full` (or shared with Full access)
@@ -1189,7 +1189,7 @@ Visit claude.ai/settings/usage → Routine runs.
 - 4 routines defined in spec → 4 routines created here (Phases 1/3/4/5). ✓
 - develop branching + sync GHA → Phase 0. ✓
 - `claude-code-review.yml` retirement → Phase 2. ✓
-- Path-prefix isolation → `routines/`, `docs/metrics/`, issue labels. ✓
+- Path-prefix isolation → `docs/routines/`, `docs/metrics/`, issue labels. ✓
 - Phased rollout with gates → explicit in each phase. ✓
 - 5 open questions from spec → addressed in Phase 0 (orphan commits, PAT), Phase 3 (env vars), Phase 5 (Dune tier, PostHog). ✓
 

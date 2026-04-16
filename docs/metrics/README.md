@@ -1,6 +1,6 @@
 # Weekly metrics digests
 
-Written automatically by the `gg-data-analyst` routine (see `routines/gg-data-analyst.md`).
+Written automatically by the `gg-data-analyst` routine (see `docs/routines/gg-data-analyst.md`).
 
 Filename convention: `YYYY-WW.md` where `WW` is ISO week number (1–53).
 
