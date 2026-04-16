@@ -34,6 +34,8 @@ import { useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminTextField } from "@/components/AdminTextField";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 const INPUT_CLASS =
@@ -79,42 +81,33 @@ function DynamicWorkFields({
         switch (input.type) {
           case "number":
             return (
-              <FormField
+              <AdminTextField
                 key={input.key}
                 label={input.title}
-                htmlFor={input.key}
+                id={input.key}
+                type="number"
+                variant="outlined"
                 required={input.required}
                 error={error}
-              >
-                <input
-                  id={input.key}
-                  type="number"
-                  step="any"
-                  min={0}
-                  placeholder={input.placeholder}
-                  className={cn(INPUT_CLASS, error && INPUT_ERROR_CLASS)}
-                  {...register(input.key, { valueAsNumber: true })}
-                />
-              </FormField>
+                placeholder={input.placeholder}
+                inputProps={{ step: "any", min: 0 }}
+                {...register(input.key, { valueAsNumber: true })}
+              />
             );
 
           case "text":
             return (
-              <FormField
+              <AdminTextField
                 key={input.key}
                 label={input.title}
-                htmlFor={input.key}
+                id={input.key}
+                type="text"
+                variant="outlined"
                 required={input.required}
                 error={error}
-              >
-                <input
-                  id={input.key}
-                  type="text"
-                  placeholder={input.placeholder}
-                  className={cn(INPUT_CLASS, error && INPUT_ERROR_CLASS)}
-                  {...register(input.key)}
-                />
-              </FormField>
+                placeholder={input.placeholder}
+                {...register(input.key)}
+              />
             );
 
           case "textarea":
@@ -179,9 +172,11 @@ function DynamicWorkFields({
                       {(input.options ?? []).map((option) => {
                         const selected = Array.isArray(field.value) && field.value.includes(option);
                         return (
-                          <button
+                          <AdminButton
                             key={option}
                             type="button"
+                            variant={selected ? "tonal" : "outlined"}
+                            size="sm"
                             onClick={() => {
                               const current = Array.isArray(field.value) ? field.value : [];
                               field.onChange(
@@ -190,15 +185,10 @@ function DynamicWorkFields({
                                   : [...current, option]
                               );
                             }}
-                            className={cn(
-                              "rounded-full border px-3 py-1 text-xs font-medium transition",
-                              selected
-                                ? "border-primary-base bg-primary-alpha-16 text-primary-darker"
-                                : "border-stroke-soft bg-bg-white text-text-sub hover:border-primary-base"
-                            )}
+                            className="rounded-full px-3 py-1"
                           >
                             {option}
-                          </button>
+                          </AdminButton>
                         );
                       })}
                     </div>
@@ -413,22 +403,17 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
 
           {selectedAction ? (
             <>
-              <FormField
+              <AdminTextField
                 label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
-                htmlFor="timeSpentMinutes"
-                hint={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
+                id="timeSpentMinutes"
+                type="number"
+                variant="outlined"
                 error={errors.timeSpentMinutes?.message}
-              >
-                <input
-                  id="timeSpentMinutes"
-                  type="number"
-                  step="0.25"
-                  min={0}
-                  placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
-                  className={cn(INPUT_CLASS, errors.timeSpentMinutes && INPUT_ERROR_CLASS)}
-                  {...register("timeSpentMinutes")}
-                />
-              </FormField>
+                helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
+                placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
+                inputProps={{ step: "0.25", min: 0 }}
+                {...register("timeSpentMinutes")}
+              />
 
               <FormField
                 label={formatMessage({ id: "app.admin.work.submit.feedback" })}

@@ -11,6 +11,8 @@ import {
   type TabBadgeSeverity,
   type TabBadgeState,
 } from "@green-goods/shared";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 import {
   RiAlertLine,
   RiArrowLeftLine,
@@ -107,15 +109,17 @@ export function GardenHeroBanner({
                 {description}
               </p>
               {isLongDescription ? (
-                <button
+                <AdminButton
                   type="button"
+                  variant="text"
+                  size="sm"
                   onClick={() => setDescExpanded((prev) => !prev)}
-                  className="mt-1 text-xs text-white/70 hover:text-white/90 transition-colors"
+                  className="mt-1 text-xs text-white/70 hover:text-white/90"
                 >
                   {descExpanded
                     ? formatMessage({ id: "app.common.showLess", defaultMessage: "Show less" })
                     : formatMessage({ id: "app.common.showMore", defaultMessage: "Show more" })}
-                </button>
+                </AdminButton>
               ) : null}
             </div>
           ) : null}
@@ -134,14 +138,16 @@ export function GardenHeroBanner({
                 </span>
               ))}
               {canManage && onEditDomains ? (
-                <button
+                <AdminButton
                   type="button"
+                  variant="text"
+                  size="sm"
                   onClick={onEditDomains}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white/80 backdrop-blur-sm transition hover:bg-white/30 hover:text-white"
+                  className="h-6 w-6 min-w-0 rounded-full bg-white/20 p-0 text-white/80 backdrop-blur-sm hover:bg-white/30 hover:text-white"
                   aria-label={formatMessage({ id: "app.garden.detail.editDomains" })}
                 >
                   <RiPencilLine className="h-3 w-3" />
-                </button>
+                </AdminButton>
               ) : null}
             </div>
           ) : null}
@@ -184,19 +190,15 @@ interface AlertRowProps {
 
 export function AlertRow({ severity, label, actionLabel, onAction }: AlertRowProps) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2.5">
+    <AdminCard variant="outlined" className="flex items-start justify-between gap-3 px-3 py-2.5">
       <div className="flex min-w-0 items-start gap-2">
         <RiAlertLine className={`mt-0.5 h-4 w-4 flex-shrink-0 ${ALERT_LABEL_CLASSES[severity]}`} />
         <p className="text-sm text-text-sub">{label}</p>
       </div>
-      <button
-        type="button"
-        onClick={onAction}
-        className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
-      >
+      <AdminButton type="button" variant="text" size="sm" onClick={onAction} className="gap-1 px-0">
         {actionLabel}
         <RiArrowRightSLine className="h-4 w-4" />
-      </button>
-    </div>
+      </AdminButton>
+    </AdminCard>
   );
 }

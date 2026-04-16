@@ -9,6 +9,8 @@ import {
 import { RiArrowRightSLine, RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
@@ -110,9 +112,10 @@ export function ImpactTab({
                 ) : (
                   <div className="space-y-2">
                     {recentHypercerts.map((record) => (
-                      <div
+                      <AdminCard
+                        variant="outlined"
                         key={record.id}
-                        className={`flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2.5 ${
+                        className={`flex items-center justify-between px-3 py-2.5 ${
                           selectedItem && record.id === selectedItem
                             ? "ring-1 ring-primary-base"
                             : ""
@@ -139,7 +142,7 @@ export function ImpactTab({
                           {formatMessage({ id: "app.actions.view" })}
                           <RiArrowRightSLine className="h-4 w-4" />
                         </Link>
-                      </div>
+                      </AdminCard>
                     ))}
                   </div>
                 )}
@@ -199,9 +202,11 @@ export function ImpactTab({
                 ) : (
                   <div className="space-y-2">
                     {recentAssessments.map((assessment) => (
-                      <button
+                      <AdminButton
                         key={assessment.id}
                         type="button"
+                        variant="text"
+                        size="sm"
                         onClick={() => openSection("impact", "assessments", assessment.id)}
                         className={`group w-full rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 text-left hover:bg-bg-soft ${
                           selectedItem && assessment.id === selectedItem
@@ -225,7 +230,7 @@ export function ImpactTab({
                           </div>
                           <RiArrowRightSLine className="mt-0.5 h-4 w-4 flex-shrink-0 text-text-disabled transition-colors group-hover:text-text-sub" />
                         </div>
-                      </button>
+                      </AdminButton>
                     ))}
                   </div>
                 )}

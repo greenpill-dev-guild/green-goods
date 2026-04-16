@@ -26,6 +26,7 @@ import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useShallow } from "zustand/react/shallow";
+import { AdminButton } from "@/components/AdminButton";
 import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
@@ -538,27 +539,24 @@ export default function CreateAssessment() {
             className="mb-4"
             action={
               <div className="flex flex-wrap gap-2">
-                <button
+                <AdminButton
                   type="button"
+                  variant="outlined"
+                  size="sm"
                   onClick={retry}
                   disabled={!canRetry || isSubmitting}
-                  className="rounded-md border border-stroke-soft bg-bg-white px-3 py-1.5 text-xs font-medium text-text-strong transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {formatMessage({
                     id: "app.assessment.retrySubmission",
                     defaultMessage: "Retry submission",
                   })}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => resetWorkflow()}
-                  className="rounded-md border border-stroke-soft px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
-                >
+                </AdminButton>
+                <AdminButton type="button" variant="text" size="sm" onClick={() => resetWorkflow()}>
                   {formatMessage({
                     id: "app.assessment.editDetails",
                     defaultMessage: "Edit details",
                   })}
-                </button>
+                </AdminButton>
               </div>
             }
           />

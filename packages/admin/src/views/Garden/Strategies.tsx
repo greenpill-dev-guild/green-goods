@@ -14,6 +14,8 @@ import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminTextField } from "@/components/AdminTextField";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 interface GardenStrategiesViewProps {
@@ -183,15 +185,17 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                   >
                     <AddressDisplay address={strategy} className="min-w-0 flex-1" />
                     {canManage && (
-                      <button
+                      <AdminButton
                         type="button"
+                        variant="danger"
+                        size="sm"
+                        className="h-9 w-9 min-w-0 rounded p-0"
                         onClick={() => setConfirmRemoveIndex(index)}
                         disabled={isSaving}
-                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50"
                         aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
                       >
                         <RiDeleteBinLine className="h-4 w-4" />
-                      </button>
+                      </AdminButton>
                     )}
                   </div>
                 ))}
@@ -201,28 +205,27 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
             {/* Add strategy form */}
             {canManage && (
               <div className="mt-4 flex gap-2">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={newAddress}
-                    onChange={(e) => {
-                      setNewAddress(e.target.value);
-                      setAddressError("");
-                    }}
-                    placeholder={formatMessage({ id: "app.conviction.strategyAddressPlaceholder" })}
-                    className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 font-mono text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
-                    aria-label={formatMessage({ id: "app.conviction.strategyAddress" })}
-                  />
-                  {addressError && <p className="mt-1 text-xs text-error-base">{addressError}</p>}
-                </div>
-                <button
+                <AdminTextField
+                  label={formatMessage({ id: "app.conviction.strategyAddress" })}
+                  variant="outlined"
+                  value={newAddress}
+                  onChange={(e) => {
+                    setNewAddress(e.target.value);
+                    setAddressError("");
+                  }}
+                  placeholder={formatMessage({ id: "app.conviction.strategyAddressPlaceholder" })}
+                  error={addressError || undefined}
+                  className="flex-1"
+                />
+                <AdminButton
                   type="button"
+                  variant="filled"
                   onClick={handleAddStrategy}
                   disabled={isSaving || !newAddress.trim()}
-                  className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:opacity-50"
+                  loading={isSaving}
                 >
                   {formatMessage({ id: "app.conviction.addStrategy" })}
-                </button>
+                </AdminButton>
               </div>
             )}
           </div>

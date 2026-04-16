@@ -2,7 +2,6 @@ import {
   type ActionInstructionConfig,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
-  FormField,
   Surface,
   fromDateTimeLocalValue,
   getFileByHash,
@@ -23,6 +22,8 @@ import { useIntl } from "react-intl";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminTextField } from "@/components/AdminTextField";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 const editActionSchema = z.object({
@@ -255,47 +256,32 @@ export default function EditAction() {
             </p>
           </div>
           <div className="space-y-4">
-            <FormField
+            <AdminTextField
               label={formatMessage({ id: "app.assessment.table.title" })}
-              htmlFor="action-title"
+              id="action-title"
+              variant="outlined"
               error={form.formState.errors.title?.message}
-            >
-              <input
-                id="action-title"
-                type="text"
-                {...form.register("title")}
-                className="w-full rounded-md border border-stroke-soft px-3 py-2"
-              />
-            </FormField>
+              {...form.register("title")}
+            />
 
             <div className="grid grid-cols-2 gap-4">
-              <FormField
+              <AdminTextField
                 label={formatMessage({ id: "app.actions.detail.startTime" })}
-                htmlFor="action-start-time"
-              >
-                <input
-                  id="action-start-time"
-                  type="datetime-local"
-                  value={toDateTimeLocalValue(form.watch("startTime").getTime())}
-                  onChange={(e) =>
-                    form.setValue("startTime", fromDateTimeLocalValue(e.target.value))
-                  }
-                  className="w-full rounded-md border border-stroke-soft px-3 py-2"
-                />
-              </FormField>
+                id="action-start-time"
+                type="datetime-local"
+                variant="outlined"
+                value={toDateTimeLocalValue(form.watch("startTime").getTime())}
+                onChange={(e) => form.setValue("startTime", fromDateTimeLocalValue(e.target.value))}
+              />
 
-              <FormField
+              <AdminTextField
                 label={formatMessage({ id: "app.actions.detail.endTime" })}
-                htmlFor="action-end-time"
-              >
-                <input
-                  id="action-end-time"
-                  type="datetime-local"
-                  value={toDateTimeLocalValue(form.watch("endTime").getTime())}
-                  onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
-                  className="w-full rounded-md border border-stroke-soft px-3 py-2"
-                />
-              </FormField>
+                id="action-end-time"
+                type="datetime-local"
+                variant="outlined"
+                value={toDateTimeLocalValue(form.watch("endTime").getTime())}
+                onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
+              />
             </div>
           </div>
         </Surface>
@@ -306,15 +292,16 @@ export default function EditAction() {
               {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
             </h3>
             {!isLoadingInstructions && (
-              <button
+              <AdminButton
                 type="button"
+                variant="text"
+                size="sm"
                 onClick={() => setIsEditingInstructions(!isEditingInstructions)}
-                className="text-sm text-primary-base hover:text-primary-darker"
               >
                 {isEditingInstructions
                   ? formatMessage({ id: "app.actions.edit.cancelEditing" })
                   : formatMessage({ id: "app.actions.edit.editInstructions" })}
-              </button>
+              </AdminButton>
             )}
           </div>
 
@@ -336,22 +323,14 @@ export default function EditAction() {
           padding="default"
           className="flex flex-col gap-3 sm:flex-row sm:justify-end"
         >
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-darker disabled:opacity-50"
-          >
+          <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
             {isLoading
               ? formatMessage({ id: "app.actions.edit.saving" })
               : formatMessage({ id: "app.actions.edit.saveChanges" })}
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate(`/actions/${id}`)}
-            className="rounded-md border border-stroke-soft px-4 py-2 text-sm font-medium text-text-strong hover:bg-bg-soft"
-          >
+          </AdminButton>
+          <AdminButton type="button" variant="outlined" onClick={() => navigate(`/actions/${id}`)}>
             {formatMessage({ id: "app.common.cancel" })}
-          </button>
+          </AdminButton>
         </Surface>
       </form>
     </div>

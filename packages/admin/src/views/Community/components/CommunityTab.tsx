@@ -12,8 +12,11 @@ import {
   type RoleDirectoryEntry,
   type TabBadgeSeverity,
 } from "@green-goods/shared";
-import { RiArrowRightSLine, RiUserLine } from "@remixicon/react";
+import { RiArrowRightSLine, RiSearchLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
+import { AdminTextField } from "@/components/AdminTextField";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
@@ -181,10 +184,7 @@ export function CommunityTab({
                       const roleLabel = getRoleLabel(entry.role, formatMessage);
                       const Icon = roleIcons[entry.role];
                       return (
-                        <div
-                          key={entry.role}
-                          className="rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2.5"
-                        >
+                        <AdminCard variant="outlined" key={entry.role} className="px-3 py-2.5">
                           <div className="flex items-center justify-between gap-2">
                             <p className="inline-flex items-center gap-1.5 text-sm font-medium text-text-strong">
                               <Icon className="h-4 w-4 text-text-soft" />
@@ -195,13 +195,15 @@ export function CommunityTab({
                             </span>
                           </div>
                           {entry.firstMember ? (
-                            <button
+                            <AdminButton
                               type="button"
+                              variant="text"
+                              size="sm"
+                              className="mt-1 h-auto min-w-0 rounded p-0 text-xs"
                               onClick={() => openMembersModal(entry.role)}
-                              className="mt-1 inline-flex text-xs text-primary-base hover:text-primary-darker"
                             >
                               {formatAddress(entry.firstMember)}
-                            </button>
+                            </AdminButton>
                           ) : (
                             <p className="mt-1 text-xs text-text-soft">
                               {formatMessage(
@@ -210,7 +212,7 @@ export function CommunityTab({
                               )}
                             </p>
                           )}
-                        </div>
+                        </AdminCard>
                       );
                     })}
                   </div>
@@ -241,14 +243,18 @@ export function CommunityTab({
                 </Card.Header>
                 <Card.Body>
                   <div className="mb-3">
-                    <input
+                    <AdminTextField
+                      label={formatMessage({
+                        id: "app.garden.detail.community.memberSearch",
+                      })}
+                      variant="outlined"
                       type="search"
                       value={memberSearch}
                       onChange={(event) => setMemberSearch(event.target.value)}
                       placeholder={formatMessage({
                         id: "app.garden.detail.community.memberSearch",
                       })}
-                      className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
+                      leadingIcon={RiSearchLine}
                     />
                   </div>
 
@@ -260,29 +266,28 @@ export function CommunityTab({
                   ) : (
                     <div className="space-y-2">
                       {visibleDirectory.map((entry) => (
-                        <div
-                          key={entry.address}
-                          className="rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2.5"
-                        >
+                        <AdminCard variant="outlined" key={entry.address} className="px-3 py-2.5">
                           <div className="flex min-w-0 items-center justify-between gap-3">
                             <AddressDisplay address={entry.address} className="min-w-0 flex-1" />
                             <div className="flex flex-wrap items-center gap-1.5">
                               {entry.roles.map((role) => {
                                 const label = getRoleLabel(role, formatMessage);
                                 return (
-                                  <button
+                                  <AdminButton
                                     key={`${entry.address}-${role}`}
                                     type="button"
+                                    variant="tonal"
+                                    size="sm"
+                                    className="h-auto min-w-0 rounded-full px-2 py-0.5 text-[11px]"
                                     onClick={() => openMembersModal(role)}
-                                    className="inline-flex items-center rounded-full bg-primary-lighter px-2 py-0.5 text-[11px] font-medium text-primary-dark hover:bg-primary-light"
                                   >
                                     {label.singular}
-                                  </button>
+                                  </AdminButton>
                                 );
                               })}
                             </div>
                           </div>
-                        </div>
+                        </AdminCard>
                       ))}
                     </div>
                   )}
@@ -313,7 +318,7 @@ export function CommunityTab({
                 </h3>
               </Card.Header>
               <Card.Body className="space-y-2">
-                <div className="rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2">
+                <AdminCard variant="outlined" className="px-3 py-2">
                   <p className="text-xs text-text-soft">
                     {formatMessage({ id: "app.treasury.totalValueLocked" })}
                   </p>
@@ -322,7 +327,7 @@ export function CommunityTab({
                       ? formatTokenAmount(vaultNetDeposited)
                       : formatMessage({ id: "app.garden.detail.community.noVault" })}
                   </p>
-                </div>
+                </AdminCard>
                 {treasurySeverity !== "none" ? (
                   <p
                     className={`text-sm ${
@@ -368,14 +373,16 @@ export function CommunityTab({
                     </div>
                   </div>
                 ) : null}
-                <button
+                <AdminButton
                   type="button"
+                  variant="text"
+                  size="sm"
+                  className="h-auto min-w-0 rounded p-0 text-xs"
                   onClick={() => openSection("community", "treasury")}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.actions.view" })}
                   <RiArrowRightSLine className="h-4 w-4" />
-                </button>
+                </AdminButton>
               </Card.Body>
             </Card>
 
@@ -390,11 +397,13 @@ export function CommunityTab({
                   const roleLabel = getRoleLabel(entry.role, formatMessage);
                   const Icon = roleIcons[entry.role];
                   return (
-                    <button
+                    <AdminButton
                       key={entry.role}
                       type="button"
+                      variant="text"
+                      size="sm"
+                      className="garden-stat-row w-full h-auto min-w-0 rounded p-0"
                       onClick={() => openMembersModal(entry.role)}
-                      className="garden-stat-row w-full"
                     >
                       <span className="inline-flex items-center gap-1.5 garden-stat-row-label">
                         <Icon className="h-3.5 w-3.5" />
@@ -404,7 +413,7 @@ export function CommunityTab({
                         <span className="garden-stat-row-value">{entry.count}</span>
                         <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
                       </span>
-                    </button>
+                    </AdminButton>
                   );
                 })}
               </Card.Body>

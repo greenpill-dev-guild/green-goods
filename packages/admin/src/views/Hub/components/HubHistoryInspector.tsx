@@ -1,8 +1,4 @@
-import {
-  Button,
-  formatRelativeTime,
-  Surface,
-} from "@green-goods/shared";
+import { Button, formatRelativeTime, Surface } from "@green-goods/shared";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { HUB_HISTORY_STATUS_CLASSNAME, type ActivityEvent } from "../hub.utils";

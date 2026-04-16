@@ -81,8 +81,7 @@ export function filterHistoryEvents(
   const filtered = events.filter((event) => {
     if (!search) return true;
     return (
-      event.title.toLowerCase().includes(search) ||
-      event.description.toLowerCase().includes(search)
+      event.title.toLowerCase().includes(search) || event.description.toLowerCase().includes(search)
     );
   });
 

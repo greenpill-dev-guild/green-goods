@@ -10,6 +10,7 @@ import {
 } from "@green-goods/shared";
 import { RiCloseLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { WorkSubmissionsView } from "@/views/Hub/components/WorkSubmissionsView";
 import { SectionStateCard } from "@/views/Garden/components/GardenDetailHelpers";
 
@@ -86,17 +87,19 @@ export function WorkTab({
                       id: "app.garden.detail.work.filterAge72h",
                       defaultMessage: "Pending 72h+",
                     })}
-                <button
+                <AdminButton
                   type="button"
+                  variant="text"
+                  size="sm"
                   onClick={() => clearSection()}
-                  className="ml-1 rounded-full p-0.5 hover:bg-primary-alpha-16"
+                  className="ml-1 h-5 w-5 min-w-0 rounded-full p-0"
                   aria-label={formatMessage({
                     id: "app.garden.detail.work.clearFilter",
                     defaultMessage: "Clear filter",
                   })}
                 >
                   <RiCloseLine className="h-3 w-3" />
-                </button>
+                </AdminButton>
               </span>
             </div>
           )}
@@ -197,30 +200,36 @@ export function WorkTab({
                   )}
                 </p>
                 <div className="mt-3 grid grid-cols-1 gap-2">
-                  <button
+                  <AdminButton
                     type="button"
+                    variant="outlined"
+                    size="sm"
                     onClick={() => openSection("work", "queue")}
-                    className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub hover:bg-bg-soft"
+                    className="flex w-full items-center justify-between"
                   >
                     <span>{formatMessage({ id: "app.garden.detail.metric.pendingQueue" })}</span>
                     <span className="font-semibold text-text-strong">{pendingWorks.length}</span>
-                  </button>
-                  <button
+                  </AdminButton>
+                  <AdminButton
                     type="button"
+                    variant="outlined"
+                    size="sm"
                     onClick={() => openSection("work", "queue", "age-24h")}
-                    className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub hover:bg-bg-soft"
+                    className="flex w-full items-center justify-between"
                   >
                     <span>{formatMessage({ id: "app.garden.detail.metric.pending24h" })}</span>
                     <span className="font-semibold text-text-strong">{pendingWarningCount}</span>
-                  </button>
-                  <button
+                  </AdminButton>
+                  <AdminButton
                     type="button"
+                    variant="outlined"
+                    size="sm"
                     onClick={() => openSection("work", "queue", "age-72h")}
-                    className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-sub hover:bg-bg-soft"
+                    className="flex w-full items-center justify-between"
                   >
                     <span>{formatMessage({ id: "app.garden.detail.metric.pending72h" })}</span>
                     <span className="font-semibold text-text-strong">{pendingCriticalCount}</span>
-                  </button>
+                  </AdminButton>
                 </div>
               </Card.Body>
             </Card>

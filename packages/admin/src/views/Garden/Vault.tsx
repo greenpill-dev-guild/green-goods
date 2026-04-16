@@ -23,6 +23,7 @@ import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
+import { AdminButton } from "@/components/AdminButton";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import {
   DepositModal,
@@ -234,18 +235,19 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
           <Alert
             variant="error"
             action={
-              <button
+              <AdminButton
                 type="button"
+                variant="outlined"
+                size="sm"
                 onClick={() => {
                   void refetchVaults();
                 }}
                 disabled={vaultsFetching}
-                className="rounded-md border border-error-light px-3 py-1.5 text-xs font-medium text-error-dark hover:bg-error-lighter disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {vaultsFetching
                   ? formatMessage({ id: "app.common.refreshing" })
                   : formatMessage({ id: "app.common.tryAgain" })}
-              </button>
+              </AdminButton>
             }
           >
             {formatMessage({ id: "app.treasury.errorLoading" })}

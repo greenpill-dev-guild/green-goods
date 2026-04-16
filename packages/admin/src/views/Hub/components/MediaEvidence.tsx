@@ -6,6 +6,7 @@ import {
   resolveIPFSUrl,
 } from "@green-goods/shared";
 import { RiImageLine, RiZoomInLine } from "@remixicon/react";
+import { AdminButton } from "@/components/AdminButton";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -38,11 +39,13 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
       {resolvedMedia.length > 0 ? (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {resolvedMedia.map((src, index) => (
-            <button
+            <AdminButton
               key={src}
               type="button"
+              variant="text"
+              size="sm"
               onClick={() => setPreviewIndex(index)}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+              className="group relative aspect-square h-auto min-w-0 overflow-hidden rounded-lg border border-stroke-soft bg-bg-weak p-0"
               aria-label={`View ${actionTitle ? `${actionTitle} ` : ""}photo ${index + 1} of ${resolvedMedia.length}`}
             >
               <ImageWithFallback
@@ -55,7 +58,7 @@ export function MediaEvidence({ media, audioNoteCids, actionTitle }: MediaEviden
               <div className="absolute inset-0 flex items-center justify-center bg-static-black/0 transition-colors group-hover:bg-static-black/20">
                 <RiZoomInLine className="h-6 w-6 text-static-white opacity-0 transition-opacity group-hover:opacity-100" />
               </div>
-            </button>
+            </AdminButton>
           ))}
         </div>
       ) : (

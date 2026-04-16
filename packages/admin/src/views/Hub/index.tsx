@@ -120,21 +120,33 @@ export default function HubView() {
   const canCertify = canReview;
   const canBrowseHistory = canManage || canReview;
 
-  const stageCounts: Record<HubPipelineStage, number | undefined> = useMemo(() => ({
-    work: works.filter((w) => w.status === "pending").length,
-    assess: works.filter((w) => w.status === "approved").length,
-    certify: assessments.filter((a) => !hypercerts.some((h) => h.id === a.id)).length,
-    history: undefined,
-  }), [assessments, hypercerts, works]);
+  const stageCounts: Record<HubPipelineStage, number | undefined> = useMemo(
+    () => ({
+      work: works.filter((w) => w.status === "pending").length,
+      assess: works.filter((w) => w.status === "approved").length,
+      certify: assessments.filter((a) => !hypercerts.some((h) => h.id === a.id)).length,
+      history: undefined,
+    }),
+    [assessments, hypercerts, works]
+  );
 
-  const stageVisibility: Record<HubPipelineStage, boolean> = useMemo(() => ({
-    work: canManage, assess: canAssess, certify: canCertify, history: canBrowseHistory,
-  }), [canAssess, canBrowseHistory, canCertify, canManage]);
+  const stageVisibility: Record<HubPipelineStage, boolean> = useMemo(
+    () => ({
+      work: canManage,
+      assess: canAssess,
+      certify: canCertify,
+      history: canBrowseHistory,
+    }),
+    [canAssess, canBrowseHistory, canCertify, canManage]
+  );
 
   const allStages = useMemo(
-    () => PIPELINE_STAGE_CONFIG.map((cfg) => ({
-      ...cfg, count: stageCounts[cfg.id], visible: stageVisibility[cfg.id],
-    })),
+    () =>
+      PIPELINE_STAGE_CONFIG.map((cfg) => ({
+        ...cfg,
+        count: stageCounts[cfg.id],
+        visible: stageVisibility[cfg.id],
+      })),
     [stageCounts, stageVisibility]
   );
 
@@ -347,7 +359,8 @@ export default function HubView() {
   }, [refreshWorks]);
 
   const navFabConfig = useMemo(
-    () => (selectedGarden ? buildHubFabConfig(stage, canManage, canReview, navigate, hubContext) : null),
+    () =>
+      selectedGarden ? buildHubFabConfig(stage, canManage, canReview, navigate, hubContext) : null,
     [canManage, canReview, hubContext, navigate, selectedGarden, stage]
   );
   const mobileFabAction = useCanvasResponsiveFab({

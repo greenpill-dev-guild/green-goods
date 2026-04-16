@@ -26,6 +26,7 @@ import { formatEther } from "viem";
 import { CreateListingDialog } from "@/components/Hypercerts/CreateListingDialog";
 import { MarketplaceApprovalGate } from "@/components/Hypercerts/MarketplaceApprovalGate";
 import { TradeHistoryTable } from "@/components/Hypercerts/TradeHistoryTable";
+import { AdminButton } from "@/components/AdminButton";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
@@ -399,14 +400,15 @@ function MarketplaceSection({
             {formatMessage({ id: "app.hypercerts.marketplace.title" })}
           </h3>
           {!activeListing && (
-            <button
+            <AdminButton
               type="button"
+              variant="filled"
+              size="sm"
               onClick={() => setListingDialogOpen(true)}
-              className="flex items-center gap-1.5 rounded-md bg-primary-base px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary-darker"
+              leadingIcon={<RiExchangeDollarLine />}
             >
-              <RiExchangeDollarLine className="h-3.5 w-3.5" />
               {formatMessage({ id: "app.hypercerts.marketplace.listForYield" })}
-            </button>
+            </AdminButton>
           )}
         </div>
 

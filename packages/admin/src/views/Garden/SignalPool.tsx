@@ -18,7 +18,9 @@ import { RiDeleteBinLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminTextField } from "@/components/AdminTextField";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 /**
@@ -355,15 +357,17 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
                             </div>
                           </div>
                           {canManage && (
-                            <button
+                            <AdminButton
                               type="button"
+                              variant="danger"
+                              size="sm"
+                              className="h-9 w-9 min-w-0 rounded p-0"
                               onClick={() => setConfirmDeregister(itemId)}
                               disabled={deregisterMutation.isPending}
-                              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded text-error-base transition hover:bg-error-lighter active:scale-95 disabled:opacity-50"
                               aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
                             >
                               <RiDeleteBinLine className="h-4 w-4" />
-                            </button>
+                            </AdminButton>
                           )}
                         </div>
                       );
@@ -374,48 +378,37 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
                 {/* Register item form */}
                 {canManage && (
                   <div className="mt-4 flex gap-2">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={newItemId}
-                        onChange={(e) => {
-                          setNewItemId(e.target.value);
-                          setInputError("");
-                        }}
-                        placeholder={formatMessage({
-                          id: isActionPool
-                            ? "app.signal.actionPool.actionIdPlaceholder"
-                            : "app.signal.hypercertPool.hypercertIdPlaceholder",
-                        })}
-                        className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 font-mono text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
-                        aria-label={formatMessage({
-                          id: isActionPool
-                            ? "app.signal.actionPool.actionIdPlaceholder"
-                            : "app.signal.hypercertPool.hypercertIdPlaceholder",
-                        })}
-                        aria-invalid={inputError ? true : undefined}
-                        aria-describedby={inputError ? "register-input-error" : undefined}
-                      />
-                      {inputError && (
-                        <p
-                          id="register-input-error"
-                          className="mt-1 text-xs text-error-base"
-                          role="alert"
-                        >
-                          {inputError}
-                        </p>
-                      )}
-                    </div>
-                    <button
+                    <AdminTextField
+                      label={formatMessage({
+                        id: isActionPool
+                          ? "app.signal.actionPool.actionIdPlaceholder"
+                          : "app.signal.hypercertPool.hypercertIdPlaceholder",
+                      })}
+                      variant="outlined"
+                      value={newItemId}
+                      onChange={(e) => {
+                        setNewItemId(e.target.value);
+                        setInputError("");
+                      }}
+                      placeholder={formatMessage({
+                        id: isActionPool
+                          ? "app.signal.actionPool.actionIdPlaceholder"
+                          : "app.signal.hypercertPool.hypercertIdPlaceholder",
+                      })}
+                      error={inputError || undefined}
+                      className="flex-1"
+                    />
+                    <AdminButton
                       type="button"
+                      variant="filled"
                       onClick={handleRegister}
                       disabled={!newItemId.trim() || registerMutation.isPending}
-                      className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:opacity-50"
+                      loading={registerMutation.isPending}
                     >
                       {registerMutation.isPending
                         ? formatMessage({ id: "app.common.processing" })
                         : formatMessage({ id: "app.conviction.register" })}
-                    </button>
+                    </AdminButton>
                   </div>
                 )}
               </div>

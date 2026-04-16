@@ -87,17 +87,40 @@ export function isRouteSheetContentId(contentId: string | null) {
 // ============================================================================
 
 export const PIPELINE_STAGE_CONFIG = [
-  { id: "work" as const, labelId: "cockpit.hub.tab.work", defaultMessage: "Work", icon: RiCheckLine },
-  { id: "assess" as const, labelId: "cockpit.hub.tab.assess", defaultMessage: "Assess", icon: RiFileList3Line },
-  { id: "certify" as const, labelId: "cockpit.hub.tab.certify", defaultMessage: "Certify", icon: RiMedalLine },
-  { id: "history" as const, labelId: "cockpit.hub.tab.history", defaultMessage: "History", icon: RiCheckboxCircleLine },
+  {
+    id: "work" as const,
+    labelId: "cockpit.hub.tab.work",
+    defaultMessage: "Work",
+    icon: RiCheckLine,
+  },
+  {
+    id: "assess" as const,
+    labelId: "cockpit.hub.tab.assess",
+    defaultMessage: "Assess",
+    icon: RiFileList3Line,
+  },
+  {
+    id: "certify" as const,
+    labelId: "cockpit.hub.tab.certify",
+    defaultMessage: "Certify",
+    icon: RiMedalLine,
+  },
+  {
+    id: "history" as const,
+    labelId: "cockpit.hub.tab.history",
+    defaultMessage: "History",
+    icon: RiCheckboxCircleLine,
+  },
 ] as const;
 
 // ============================================================================
 // Stage Label Helpers
 // ============================================================================
 
-type FormatMessage = (descriptor: { id: string; defaultMessage: string }, values?: Record<string, string>) => string;
+type FormatMessage = (
+  descriptor: { id: string; defaultMessage: string },
+  values?: Record<string, string>
+) => string;
 
 const STAGE_LABELS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
   work: { id: "cockpit.hub.tab.work", defaultMessage: "Work" },
@@ -107,16 +130,31 @@ const STAGE_LABELS: Record<HubPipelineStage, { id: string; defaultMessage: strin
 };
 
 const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
-  work: { id: "cockpit.hub.description", defaultMessage: "Review, assess, and certify work flowing through {garden}." },
-  assess: { id: "cockpit.hub.assess.placeholder.description", defaultMessage: "Approved work appears here for assessment packaging and handoff." },
-  certify: { id: "cockpit.hub.certify.placeholder.description", defaultMessage: "Certification bundles stay inside Hub until they are ready for minting." },
-  history: { id: "cockpit.hub.history.description", defaultMessage: "Audit the recent work, impact, and community decisions tied to this garden." },
+  work: {
+    id: "cockpit.hub.description",
+    defaultMessage: "Review, assess, and certify work flowing through {garden}.",
+  },
+  assess: {
+    id: "cockpit.hub.assess.placeholder.description",
+    defaultMessage: "Approved work appears here for assessment packaging and handoff.",
+  },
+  certify: {
+    id: "cockpit.hub.certify.placeholder.description",
+    defaultMessage: "Certification bundles stay inside Hub until they are ready for minting.",
+  },
+  history: {
+    id: "cockpit.hub.history.description",
+    defaultMessage: "Audit the recent work, impact, and community decisions tied to this garden.",
+  },
 };
 
 const SEARCH_PLACEHOLDERS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
   work: { id: "cockpit.hub.search.placeholder", defaultMessage: "Search submissions" },
   assess: { id: "cockpit.hub.search.assessPlaceholder", defaultMessage: "Search approved work" },
-  certify: { id: "cockpit.hub.search.certifyPlaceholder", defaultMessage: "Search certification bundles" },
+  certify: {
+    id: "cockpit.hub.search.certifyPlaceholder",
+    defaultMessage: "Search certification bundles",
+  },
   history: { id: "cockpit.hub.search.historyPlaceholder", defaultMessage: "Search audit trail" },
 };
 
@@ -124,7 +162,11 @@ export function getStageTitle(stage: HubPipelineStage, formatMessage: FormatMess
   return formatMessage(STAGE_LABELS[stage]);
 }
 
-export function getStageDescription(stage: HubPipelineStage, gardenName: string | undefined, formatMessage: FormatMessage): string {
+export function getStageDescription(
+  stage: HubPipelineStage,
+  gardenName: string | undefined,
+  formatMessage: FormatMessage
+): string {
   if (stage === "work") {
     return formatMessage(STAGE_DESCRIPTIONS.work, {
       garden: gardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" }),
@@ -133,7 +175,10 @@ export function getStageDescription(stage: HubPipelineStage, gardenName: string 
   return formatMessage(STAGE_DESCRIPTIONS[stage]);
 }
 
-export function getSearchPlaceholder(stage: HubPipelineStage, formatMessage: FormatMessage): string {
+export function getSearchPlaceholder(
+  stage: HubPipelineStage,
+  formatMessage: FormatMessage
+): string {
   return formatMessage(SEARCH_PLACEHOLDERS[stage]);
 }
 
@@ -160,8 +205,10 @@ export function resolveOpenSectionRoute(
   }
 
   if (section === "members") return adminRoutes.communityMembers({ item: itemId });
-  if (section === "cookie-jars" || section === "payouts") return adminRoutes.communityPayouts({ item: itemId });
-  if (section === "pools" || section === "governance") return adminRoutes.communityGovernance({ item: itemId });
+  if (section === "cookie-jars" || section === "payouts")
+    return adminRoutes.communityPayouts({ item: itemId });
+  if (section === "pools" || section === "governance")
+    return adminRoutes.communityGovernance({ item: itemId });
   return adminRoutes.communityTreasury({ item: itemId });
 }
 
@@ -181,7 +228,12 @@ export function buildHubFabConfig(
       icon: RiAddLine,
       label: "Submit Work",
       actions: [
-        { id: "submit-work", icon: RiAddLine, label: "Submit Work", labelId: "cockpit.hub.fab.submitWork" },
+        {
+          id: "submit-work",
+          icon: RiAddLine,
+          label: "Submit Work",
+          labelId: "cockpit.hub.fab.submitWork",
+        },
       ],
       onAction: (actionId: string) => {
         if (actionId === "submit-work") navigate(adminRoutes.hubWorkSubmit(hubContext));
@@ -194,7 +246,12 @@ export function buildHubFabConfig(
       icon: RiAddLine,
       label: "Create Assessment",
       actions: [
-        { id: "create-assessment", icon: RiAddLine, label: "Create Assessment", labelId: "cockpit.hub.fab.createAssessment" },
+        {
+          id: "create-assessment",
+          icon: RiAddLine,
+          label: "Create Assessment",
+          labelId: "cockpit.hub.fab.createAssessment",
+        },
       ],
       onAction: (actionId: string) => {
         if (actionId === "create-assessment") navigate(adminRoutes.hubAssessCreate());
@@ -207,7 +264,12 @@ export function buildHubFabConfig(
       icon: RiAddLine,
       label: "Mint Hypercert",
       actions: [
-        { id: "mint-hypercert", icon: RiAddLine, label: "Mint Hypercert", labelId: "cockpit.hub.fab.mintHypercert" },
+        {
+          id: "mint-hypercert",
+          icon: RiAddLine,
+          label: "Mint Hypercert",
+          labelId: "cockpit.hub.fab.mintHypercert",
+        },
       ],
       onAction: (actionId: string) => {
         if (actionId === "mint-hypercert") navigate(adminRoutes.hubCertifyCreate());

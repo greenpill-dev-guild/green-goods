@@ -12,6 +12,7 @@ import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
+import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
 import { RANGE_OPTIONS, SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
@@ -128,18 +129,16 @@ export function OverviewTab({
                 </div>
                 <div className="flex items-center gap-2">
                   {RANGE_OPTIONS.map((range) => (
-                    <button
+                    <AdminButton
                       key={range}
                       type="button"
+                      variant={selectedRange === range ? "tonal" : "text"}
+                      size="sm"
                       onClick={() => updateQueryState({ range })}
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                        selectedRange === range
-                          ? "bg-primary-alpha-16 text-primary-darker"
-                          : "bg-bg-soft text-text-sub hover:bg-bg-weak"
-                      }`}
+                      className="px-2.5 py-1"
                     >
                       {formatMessage({ id: `app.garden.detail.range.${range}` })}
-                    </button>
+                    </AdminButton>
                   ))}
                 </div>
               </Card.Header>
@@ -213,18 +212,16 @@ export function OverviewTab({
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {(["all", "work", "impact", "community"] as ActivityFilter[]).map((filter) => (
-                    <button
+                    <AdminButton
                       key={filter}
                       type="button"
+                      variant={activityFilter === filter ? "tonal" : "text"}
+                      size="sm"
                       onClick={() => setActivityFilter(filter)}
-                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
-                        activityFilter === filter
-                          ? "bg-primary-alpha-16 text-primary-darker"
-                          : "bg-bg-soft text-text-sub hover:bg-bg-weak"
-                      }`}
+                      className="px-2.5 py-1"
                     >
                       {formatMessage({ id: `app.garden.detail.activity.filter.${filter}` })}
-                    </button>
+                    </AdminButton>
                   ))}
                 </div>
               </Card.Header>
@@ -309,10 +306,12 @@ export function OverviewTab({
                         })}
                     </div>
                     {filteredActivityEvents.length > (section === "activity" ? 14 : 8) && (
-                      <button
+                      <AdminButton
                         type="button"
+                        variant="text"
+                        size="sm"
                         onClick={() => openSection("overview", "activity")}
-                        className="mt-3 w-full text-center text-xs font-medium text-primary-base hover:text-primary-darker transition-colors"
+                        className="mt-3 w-full"
                       >
                         {formatMessage(
                           {
@@ -321,7 +320,7 @@ export function OverviewTab({
                           },
                           { count: filteredActivityEvents.length }
                         )}
-                      </button>
+                      </AdminButton>
                     )}
                   </>
                 )}

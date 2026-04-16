@@ -8,6 +8,7 @@ import {
 } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { WorkCard } from "./WorkCard";
 
 interface WorkSubmissionsViewProps {
@@ -137,24 +138,22 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
           aria-label={intl.formatMessage({ id: "app.admin.work.filterGroup" })}
         >
           {filterButtons.map((filter) => (
-            <button
+            <AdminButton
               key={filter.id}
               type="button"
+              variant={activeFilter === filter.id ? "tonal" : "text"}
+              size="sm"
               onClick={() => setActiveFilter(filter.id)}
-              className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition active:scale-95 sm:min-h-0 sm:px-3 sm:py-1.5 ${
-                activeFilter === filter.id
-                  ? "bg-primary-alpha-16 text-primary-darker"
-                  : "bg-bg-soft text-text-sub hover:bg-bg-sub"
-              }`}
+              className="min-h-[44px] sm:min-h-0"
               aria-label={intl.formatMessage(
                 { id: "app.admin.work.filterBy" },
                 { filter: filter.label }
               )}
               aria-pressed={activeFilter === filter.id}
+              leadingIcon={filter.icon}
             >
-              <span className="flex-shrink-0">{filter.icon}</span>
               <span className="whitespace-nowrap">{filter.label}</span>
-            </button>
+            </AdminButton>
           ))}
         </div>
       </Card.Header>
@@ -232,14 +231,15 @@ function ButtonRefresh({ canManage, isRefreshing, onRefresh, label }: ButtonRefr
   }
 
   return (
-    <button
+    <AdminButton
       type="button"
+      variant="outlined"
+      size="sm"
       onClick={onRefresh}
       disabled={isRefreshing}
-      className="inline-flex items-center gap-1.5 rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-xs font-medium text-text-sub transition hover:bg-bg-weak disabled:opacity-60"
+      leadingIcon={<RiRefreshLine className={isRefreshing ? "animate-spin" : ""} />}
     >
-      <RiRefreshLine className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
       {label}
-    </button>
+    </AdminButton>
   );
 }

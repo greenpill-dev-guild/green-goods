@@ -9,11 +9,7 @@ import {
   WorkbenchList,
   WorkbenchRow,
 } from "@green-goods/shared";
-import {
-  RiCheckboxCircleLine,
-  RiInboxLine,
-  RiSearchLine,
-} from "@remixicon/react";
+import { RiCheckboxCircleLine, RiInboxLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
@@ -114,8 +110,7 @@ export function HubWorkQueue({
           <WorkbenchRow
             key={work.id}
             eyebrow={
-              selectedGardenName ??
-              formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })
+              selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })
             }
             title={
               work.title ||

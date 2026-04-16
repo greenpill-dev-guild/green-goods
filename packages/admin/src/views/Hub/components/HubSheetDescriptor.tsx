@@ -14,7 +14,13 @@ interface HubSheetDescriptorProps {
   activeWorkDetailId: string | null;
   selectedWork: Work | undefined;
   selectedCertification:
-    | { id: string; title?: string | null; description?: string | null; assessmentType?: string | null; createdAt: number }
+    | {
+        id: string;
+        title?: string | null;
+        description?: string | null;
+        assessmentType?: string | null;
+        createdAt: number;
+      }
     | undefined;
   selectedHistoryEvent: ActivityEvent | undefined;
   canManage: boolean;
@@ -55,7 +61,13 @@ export function HubSheetDescriptor({
         title:
           selectedWork.title ??
           formatMessage({ id: "app.work.detail.reviewTitle", defaultMessage: "Review Work" }),
-        content: <WorkDetailPanel workId={resolvedWorkDetailId} layout="sheet" onSuccess={onNavigateToBase} />,
+        content: (
+          <WorkDetailPanel
+            workId={resolvedWorkDetailId}
+            layout="sheet"
+            onSuccess={onNavigateToBase}
+          />
+        ),
       };
     }
 
@@ -63,7 +75,10 @@ export function HubSheetDescriptor({
       return {
         title:
           selectedCertification.title ??
-          formatMessage({ id: "app.garden.admin.assessmentFallback", defaultMessage: "Assessment" }),
+          formatMessage({
+            id: "app.garden.admin.assessmentFallback",
+            defaultMessage: "Assessment",
+          }),
         content: (
           <HubCertificationInspector
             assessment={selectedCertification}

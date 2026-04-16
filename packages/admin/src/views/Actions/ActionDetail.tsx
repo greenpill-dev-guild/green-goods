@@ -13,6 +13,7 @@ import {
 import { RiEditLine, RiFileListLine, RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
+import { AdminCard } from "@/components/AdminCard";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 interface ActionDetailMediaTileProps {
@@ -188,7 +189,7 @@ export default function ActionDetail() {
                 </div>
 
                 <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
+                  <AdminCard variant="outlined" className="px-4 py-3">
                     <dt className="text-xs text-text-soft">
                       {formatMessage({
                         id: "cockpit.actions.lifecycle",
@@ -198,8 +199,8 @@ export default function ActionDetail() {
                     <dd className="mt-1 text-sm font-semibold text-text-strong">
                       {lifecycleLabel}
                     </dd>
-                  </div>
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
+                  </AdminCard>
+                  <AdminCard variant="outlined" className="px-4 py-3">
                     <dt className="text-xs text-text-soft">
                       {formatMessage({ id: "app.actions.detail.capitals" })}
                     </dt>
@@ -212,23 +213,23 @@ export default function ActionDetail() {
                         { count: action.capitals.length }
                       )}
                     </dd>
-                  </div>
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
+                  </AdminCard>
+                  <AdminCard variant="outlined" className="px-4 py-3">
                     <dt className="text-xs text-text-soft">
                       {formatMessage({ id: "app.actions.detail.startTime" })}
                     </dt>
                     <dd className="mt-1 text-sm font-semibold text-text-strong">
                       {formatDateTime(action.startTime)}
                     </dd>
-                  </div>
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak px-4 py-3">
+                  </AdminCard>
+                  <AdminCard variant="outlined" className="px-4 py-3">
                     <dt className="text-xs text-text-soft">
                       {formatMessage({ id: "app.actions.detail.endTime" })}
                     </dt>
                     <dd className="mt-1 text-sm font-semibold text-text-strong">
                       {formatDateTime(action.endTime)}
                     </dd>
-                  </div>
+                  </AdminCard>
                 </dl>
               </div>
 
@@ -252,10 +253,7 @@ export default function ActionDetail() {
                 <div className="space-y-2">
                   {action.inputs.length > 0 ? (
                     action.inputs.map((input) => (
-                      <div
-                        key={input.key}
-                        className="rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5"
-                      >
+                      <AdminCard variant="outlined" key={input.key} className="px-3 py-2.5">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium text-text-strong">{input.title}</p>
                           <span className="text-xs text-text-soft">{input.type}</span>
@@ -265,7 +263,7 @@ export default function ActionDetail() {
                             {formatMessage({ id: "app.admin.actions.detailsConfig.requiredField" })}
                           </p>
                         ) : null}
-                      </div>
+                      </AdminCard>
                     ))
                   ) : (
                     <p className="text-sm text-text-sub">
