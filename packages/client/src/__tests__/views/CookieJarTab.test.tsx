@@ -91,7 +91,9 @@ describe("CookieJarTab", () => {
 
     render(<CookieJarTab />);
 
-    expect(screen.getByText("No cookie jars are available for this wallet yet.")).toBeInTheDocument();
+    expect(
+      screen.getByText("No cookie jars are available for this wallet yet.")
+    ).toBeInTheDocument();
   });
 
   it("shows the fail-closed message when eligibility could not be confirmed", () => {

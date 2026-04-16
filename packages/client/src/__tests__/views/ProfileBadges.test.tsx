@@ -21,8 +21,9 @@ const sharedMocks = vi.hoisted(() => ({
   useClaimFirstWorkBadge: vi.fn(),
   useMyOnlineWorks: vi.fn(),
   useProtocolMemberStatus: vi.fn(),
-  formatAddress: vi.fn((address: string, opts?: { ensName?: string }) =>
-    opts?.ensName || `${address.slice(0, 6)}...${address.slice(-4)}`
+  formatAddress: vi.fn(
+    (address: string, opts?: { ensName?: string }) =>
+      opts?.ensName || `${address.slice(0, 6)}...${address.slice(-4)}`
   ),
 }));
 
@@ -250,9 +251,7 @@ describe("ProfileBadges", () => {
 
     // "Auto-issued after routed support" is the renderAction text for first-support.
     // With the claimableNow filter, first-support should be excluded entirely.
-    expect(
-      screen.queryByText("Auto-issued after routed support.")
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Auto-issued after routed support.")).not.toBeInTheDocument();
   });
 
   it("allows claiming the genesis badge when eligible", async () => {

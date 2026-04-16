@@ -81,8 +81,10 @@ function sortBadges(badges: GreenWillBadgeView[]) {
     const leftIndex = BADGE_ORDER.indexOf(left.slug as (typeof BADGE_ORDER)[number]);
     const rightIndex = BADGE_ORDER.indexOf(right.slug as (typeof BADGE_ORDER)[number]);
 
-    return (leftIndex === -1 ? BADGE_ORDER.length : leftIndex) -
-      (rightIndex === -1 ? BADGE_ORDER.length : rightIndex);
+    return (
+      (leftIndex === -1 ? BADGE_ORDER.length : leftIndex) -
+      (rightIndex === -1 ? BADGE_ORDER.length : rightIndex)
+    );
   });
 }
 
@@ -93,7 +95,9 @@ export const ProfileBadges: React.FC = () => {
   const { data: ensName } = useEnsName(primaryAddress);
   const { data: isProtocolMember = false } = useProtocolMemberStatus(primaryAddress ?? undefined);
   const { data: works = [] } = useMyOnlineWorks({ limit: 1 });
-  const { badges, earnedBadges, isLoading, isError } = useGreenWillBadges(primaryAddress ?? undefined);
+  const { badges, earnedBadges, isLoading, isError } = useGreenWillBadges(
+    primaryAddress ?? undefined
+  );
   const genesisClaim = useClaimGenesisBadge();
   const firstWorkClaim = useClaimFirstWorkBadge();
 
@@ -104,7 +108,10 @@ export const ProfileBadges: React.FC = () => {
   const firstWorkUid = works[0]?.id as `0x${string}` | undefined;
 
   const earned = useMemo(() => sortBadges(earnedBadges), [earnedBadges]);
-  const available = useMemo(() => sortBadges(badges.filter((badge) => badge.claimableNow)), [badges]);
+  const available = useMemo(
+    () => sortBadges(badges.filter((badge) => badge.claimableNow)),
+    [badges]
+  );
 
   const renderAction = (badge: GreenWillBadgeView) => {
     if (badge.slug === "genesis") {
@@ -263,9 +270,7 @@ export const ProfileBadges: React.FC = () => {
                   <p className="text-sm font-medium text-text-strong-950">
                     {badgeTitle(intl, badge.slug)}
                   </p>
-                  <p className="text-sm text-text-sub-600">
-                    {badgeDescription(intl, badge.slug)}
-                  </p>
+                  <p className="text-sm text-text-sub-600">{badgeDescription(intl, badge.slug)}</p>
                 </div>
               </div>
             </Card>
@@ -301,9 +306,7 @@ export const ProfileBadges: React.FC = () => {
                   <p className="text-sm font-medium text-text-strong-950">
                     {badgeTitle(intl, badge.slug)}
                   </p>
-                  <p className="text-sm text-text-sub-600">
-                    {badgeDescription(intl, badge.slug)}
-                  </p>
+                  <p className="text-sm text-text-sub-600">{badgeDescription(intl, badge.slug)}</p>
                 </div>
               </div>
               <div>{renderAction(badge)}</div>
