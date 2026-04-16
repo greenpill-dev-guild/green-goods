@@ -96,12 +96,14 @@ Before shipping copy:
 
 ## Using With AI Tools
 
-When feeding this to a copywriting agent (Antigravity, Gemini, Claude):
+When feeding this to a copywriting agent (Gemini, Claude) or design tool (Stitch):
 
 1. Paste this full file as voice/tone context
 2. Specify the surface (browser / PWA / admin)
 3. Include the relevant DESIGN.md (foundation + surface) for visual context
 4. Ask the agent to draft, then review against the checklist
 
-**Example prompt:**
+**Example prompts:**
 > Using the attached COPY_PROMPT.md as voice/tone guide and DESIGN.md as visual context, write copy for the Green Goods homepage (browser mode). The audience is funders and community members. Use the editorial lookbook tone. Draft 3 options for the hero headline and subhead.
+
+> Feed COPY_PROMPT.md + DESIGN.md into Stitch to generate UI with on-brand copy already in place, then export to Figma or code.

@@ -29,6 +29,9 @@ Green Goods is an **offline-first, single-chain** platform for documenting regen
 3. **Single Chain**: Target chain set by `VITE_CHAIN_ID` at build time
 4. **Shared Logic**: ALL React hooks MUST live in `@green-goods/shared`
 
+### Plan Location
+Superpowers plans save to `.plans/active/<feature-name>/plan.todo.md` (not the skill default).
+
 ### Build Order
 1. **contracts** -> ABIs for other packages
 2. **shared** -> hooks/modules for frontends
