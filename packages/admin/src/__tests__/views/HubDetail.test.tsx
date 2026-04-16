@@ -64,7 +64,7 @@ vi.mock("@/views/Hub/components/WorkSubmissionDetails", () => ({
     React.createElement("div", { "data-testid": "work-submission-details" }),
 }));
 
-vi.mock("@/views/Gardens/Garden/WorkDetail/ReviewForm", () => ({
+vi.mock("@/views/Garden/WorkDetail/ReviewForm", () => ({
   ReviewForm: ({ canReview, actionSlug }: { canReview: boolean; actionSlug?: string }) => {
     const actions = mockUseActions.mock.results.at(-1)?.value?.data ?? [];
     const permissions = mockUseGardenPermissions.mock.results.at(-1)?.value;
@@ -102,11 +102,11 @@ vi.mock("@/views/Gardens/Garden/WorkDetail/ReviewForm", () => ({
   },
 }));
 
-vi.mock("@/views/Gardens/Garden/WorkDetail/SubmissionDetails", () => ({
+vi.mock("@/views/Garden/WorkDetail/SubmissionDetails", () => ({
   SubmissionDetails: () => React.createElement("div", { "data-testid": "submission-details" }),
 }));
 
-import WorkDetail from "@/views/Gardens/Garden/WorkDetail";
+import WorkDetail from "@/views/Garden/WorkDetail";
 
 const messages = {
   "app.garden.admin.backToGarden": "Back to garden",

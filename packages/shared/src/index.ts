@@ -492,6 +492,7 @@ export {
   useContainerQuery,
   useSheetWidth,
   useIsDarkMode,
+  useMediaQuery,
   useWindowEvent,
   fetchApprovalsByRecipients,
   useWorkApproval,

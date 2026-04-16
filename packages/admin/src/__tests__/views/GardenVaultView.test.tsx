@@ -57,7 +57,7 @@ vi.mock("@/components/Vault", () => ({
   VaultEventHistory: () => null,
 }));
 
-import GardenVaultView from "@/views/Gardens/Garden/Vault";
+import GardenVaultView from "@/views/Garden/Vault";
 
 describe("GardenVaultView", () => {
   beforeEach(() => {

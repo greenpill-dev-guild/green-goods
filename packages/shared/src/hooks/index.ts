@@ -353,6 +353,7 @@ export { useDebouncedValue } from "./utils/useDebouncedValue";
 // UI (General-purpose UI utilities)
 // ============================================================================
 export { useIsDarkMode } from "./ui/useIsDarkMode";
+export { useMediaQuery } from "./ui/useMediaQuery";
 export { useContainerQuery } from "./useContainerQuery";
 export { useSheetWidth } from "./useSheetWidth";
 // ============================================================================

@@ -198,7 +198,7 @@ export const router = createRouter([
                       {
                         index: true,
                         lazy: async () => ({
-                          Component: (await import("@/views/Gardens/CreateGarden")).default,
+                          Component: (await import("@/views/Garden/CreateGarden")).default,
                         }),
                       },
                     ],

@@ -12,6 +12,7 @@ import { RiArrowRightSLine, RiTimeLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
+import { AdminCard } from "@/components/AdminCard";
 import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
 import { RANGE_OPTIONS, SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
 
@@ -144,7 +145,7 @@ export function OverviewTab({
               </Card.Header>
               <Card.Body>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3" aria-live="polite">
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
+                  <AdminCard variant="outlined" className="p-3">
                     <p className="label-xs text-text-soft">
                       {formatMessage({
                         id: "app.garden.detail.metric.lastActivity",
@@ -159,8 +160,8 @@ export function OverviewTab({
                             defaultMessage: "No activity yet",
                           })}
                     </p>
-                  </div>
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
+                  </AdminCard>
+                  <AdminCard variant="outlined" className="p-3">
                     <p className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
                     </p>
@@ -180,8 +181,8 @@ export function OverviewTab({
                             { count: Math.abs(impactVelocityDelta) }
                           )}
                     </p>
-                  </div>
-                  <div className="rounded-lg border border-stroke-soft bg-bg-weak p-3">
+                  </AdminCard>
+                  <AdminCard variant="outlined" className="p-3">
                     <p className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
                     </p>
@@ -193,7 +194,7 @@ export function OverviewTab({
                           )
                         : formatMessage({ id: "app.garden.detail.metric.notAvailable" })}
                     </p>
-                  </div>
+                  </AdminCard>
                 </div>
               </Card.Body>
             </Card>

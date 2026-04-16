@@ -27,9 +27,9 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { CommunityTab } from "@/views/Community/components/CommunityTab";
-import GardenSignalPoolView from "@/views/Gardens/Garden/SignalPool";
-import GardenStrategiesView from "@/views/Gardens/Garden/Strategies";
-import GardenVaultView from "@/views/Gardens/Garden/Vault";
+import GardenSignalPoolView from "@/views/Garden/SignalPool";
+import GardenStrategiesView from "@/views/Garden/Strategies";
+import GardenVaultView from "@/views/Garden/Vault";
 
 type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";
 
