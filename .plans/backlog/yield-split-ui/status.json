@@ -30,11 +30,7 @@
       "branch": "claude/ui/yield-split-ui",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "skill_tags": [
-        "ui",
-        "frontend-design",
-        "react"
-      ]
+      "skill_tags": ["ui", "frontend-design", "react"]
     },
     "state_api": {
       "owner": "codex",
@@ -42,11 +38,7 @@
       "branch": "codex/state-api/yield-split-ui",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "skill_tags": [
-        "react",
-        "tanstack-query",
-        "data-layer"
-      ]
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
     "contracts": {
       "owner": "codex",
@@ -62,16 +54,9 @@
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/yield-split-ui",
-      "depends_on": [
-        "ui",
-        "state_api",
-        "contracts"
-      ],
+      "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ]
+      "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
       "owner": "codex",
@@ -80,14 +65,9 @@
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/yield-split-ui",
       "branch_trigger": "claude/qa-pass-1/yield-split-ui",
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ]
+      "skill_tags": ["testing", "review"]
     }
   },
   "history": [

@@ -209,10 +209,7 @@
     ]
   },
   "worktree": {
-    "symlinkDirectories": [
-      "node_modules",
-      ".turbo"
-    ]
+    "symlinkDirectories": ["node_modules", ".turbo"]
   },
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": true,

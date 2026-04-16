@@ -56,11 +56,7 @@
       "owner": "claude",
       "status": "blocked",
       "branch": "claude/qa-pass-1/design-system-enforcement",
-      "depends_on": [
-        "ui",
-        "state_api",
-        "contracts"
-      ],
+      "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"],
       "ready_when_dependencies_met": true,
@@ -71,9 +67,7 @@
       "status": "blocked",
       "branch": "codex/qa-pass-2/design-system-enforcement",
       "branch_trigger": "claude/qa-pass-1/design-system-enforcement",
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "skill_tags": ["testing", "review"],
       "ready_when_dependencies_met": true,
