@@ -6,7 +6,7 @@ import { OCTANT_MODULE_ABI, OCTANT_VAULT_ABI, STRATEGY_ABI } from "../../utils/b
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { STALE_TIME_MEDIUM } from "../query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 interface HarvestableEntry {
   vaultAddress: Address;

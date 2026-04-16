@@ -4,7 +4,7 @@ import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { STALE_TIME_MEDIUM } from "../query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 interface UsePendingYieldOptions {
   enabled?: boolean;
