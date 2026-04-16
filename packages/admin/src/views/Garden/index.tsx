@@ -26,7 +26,7 @@ import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspa
 import { PageHeader } from "@/components/Layout/PageHeader";
 import { ImpactTab } from "@/views/Garden/components/ImpactTab";
 import { OverviewTab } from "@/views/Garden/components/OverviewTab";
-import HypercertDetail from "@/views/Gardens/Garden/HypercertDetail";
+import HypercertDetail from "@/views/Garden/HypercertDetail";
 
 // Paradigm: Mixed — overview = Data Landscape, impact = Data Landscape, settings = Command Surface.
 
@@ -363,7 +363,7 @@ export default function GardenView() {
           content: <HypercertDetail layout="sheet" hypercertId={hypercertId} />,
           onClose: handleCloseHypercertSheet,
         }
-      : null,
+      : null
   );
 
   return (
@@ -428,7 +428,6 @@ export default function GardenView() {
       </div>
 
       {renderContent()}
-
     </div>
   );
 }

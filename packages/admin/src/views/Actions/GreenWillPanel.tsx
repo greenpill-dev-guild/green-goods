@@ -40,9 +40,16 @@ export function GreenWillPanel() {
   const lookupAddress = lookupValue.trim();
   const lookupEnabled = lookupAddress.length > 0;
 
-  const { badgeDefinitions, isLoading: isDefinitionsLoading, isError: isDefinitionsError } =
-    useGreenWillBadgeDefinitions({ chainId: DEFAULT_CHAIN_ID });
-  const { grants, isLoading: isGrantsLoading, isError: isGrantsError } = useGreenWillRecentGrants({
+  const {
+    badgeDefinitions,
+    isLoading: isDefinitionsLoading,
+    isError: isDefinitionsError,
+  } = useGreenWillBadgeDefinitions({ chainId: DEFAULT_CHAIN_ID });
+  const {
+    grants,
+    isLoading: isGrantsLoading,
+    isError: isGrantsError,
+  } = useGreenWillRecentGrants({
     chainId: DEFAULT_CHAIN_ID,
     limit: 5,
   });
@@ -150,8 +157,7 @@ export function GreenWillPanel() {
                       {intl.formatMessage(
                         {
                           id: "admin.greenWill.holders",
-                          defaultMessage:
-                            "{count} {count, plural, one {holder} other {holders}}",
+                          defaultMessage: "{count} {count, plural, one {holder} other {holders}}",
                         },
                         { count: definition.holderCount }
                       )}
@@ -207,8 +213,8 @@ export function GreenWillPanel() {
                   <p className="text-xs text-text-sub-600">
                     {badgeTitle(
                       intl,
-                      badgeDefinitions.find((definition) => definition.badgeId === grant.badgeId)?.slug ??
-                        "unknown"
+                      badgeDefinitions.find((definition) => definition.badgeId === grant.badgeId)
+                        ?.slug ?? "unknown"
                     )}
                     {" · "}
                     {formatDate(grant.timestamp)}

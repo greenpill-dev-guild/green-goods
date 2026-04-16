@@ -908,7 +908,7 @@ export default function HubView() {
           content: sheetDescriptor.content,
           onClose: handleCloseSheet,
         }
-      : null,
+      : null
   );
 
   const renderErrorState = () => (
@@ -1370,7 +1370,6 @@ export default function HubView() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

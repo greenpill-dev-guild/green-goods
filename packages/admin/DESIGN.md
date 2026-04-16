@@ -73,13 +73,13 @@ CSS Grid with named areas:
 
 Existing tokens (`--ws-primary`, `--ws-on-primary`) support per-workspace color atmosphere:
 
-| Workspace | Tint | Purpose |
-|-----------|------|---------|
-| Hub / Work | Soft green wash | Managing growth |
-| Garden | Garden's own accent (future) | Garden identity |
-| Community | Neutral / warm stone | Assessment objectivity |
-| Actions | Neutral | Configuration, structure |
-| Settings | Cool gray | System, infrastructure |
+| Workspace | Primary Color | Purpose |
+|-----------|---------------|---------|
+| Hub | Blue (`--blue-500`) | Work pipeline, review queue |
+| Garden | Green (`--green-500`) | Garden management, brand color |
+| Community | Orange (`--orange-500`) | Members, roles, social activity |
+| Actions | Red (`--red-500`) | Action configuration, templates |
+| Home | Stone/Neutral (`120 113 108`) | Unauthenticated landing |
 
 The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar.
 

@@ -126,7 +126,7 @@ export const router = createRouter([
                       {
                         path: "create",
                         lazy: async () => ({
-                          Component: (await import("@/views/Gardens/Garden/CreateAssessment"))
+                          Component: (await import("@/views/Garden/CreateAssessment"))
                             .default,
                         }),
                       },
@@ -146,7 +146,7 @@ export const router = createRouter([
                       {
                         path: "create",
                         lazy: async () => ({
-                          Component: (await import("@/views/Gardens/Garden/CreateHypercert"))
+                          Component: (await import("@/views/Garden/CreateHypercert"))
                             .default,
                         }),
                       },

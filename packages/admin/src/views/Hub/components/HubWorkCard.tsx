@@ -111,7 +111,7 @@ export function HubWorkCard({
       onClick={onClick}
       className={cn(
         "group w-full cursor-pointer overflow-hidden rounded-xl text-left",
-        "glass-raised",
+        "bg-bg-white",
         "shadow-[var(--edge-rest),_var(--elevation-1)]",
         "transition-[transform,box-shadow] duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
         "hover:-translate-y-0.5 hover:shadow-[var(--edge-hover),_var(--elevation-2)]",

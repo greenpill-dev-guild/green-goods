@@ -381,7 +381,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay" />
           <Dialog.Content
-            className="glass-overlay fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-stroke-sub shadow-xl animate-fade-in-up"
+            className="bg-bg-white fixed left-1/2 top-[20%] z-50 w-full max-w-lg -translate-x-1/2 rounded-xl border border-stroke-sub shadow-xl animate-fade-in-up"
             onKeyDown={handleKeyDown}
             onOpenAutoFocus={(e) => {
               e.preventDefault();
@@ -449,7 +449,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                             "flex w-full items-center rounded-sm px-3 py-2 text-body-md text-left transition-colors",
                             isActive
                               ? "bg-primary-alpha-16 text-primary-darker"
-                              : "text-text-sub hover:glass-raised"
+                              : "text-text-sub hover:bg-bg-soft"
                           )}
                         >
                           {Icon && <Icon className="h-4 w-4 mr-2 flex-shrink-0 text-text-soft" />}

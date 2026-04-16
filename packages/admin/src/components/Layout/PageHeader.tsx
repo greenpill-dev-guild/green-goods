@@ -47,12 +47,12 @@ export function PageHeader({
     <header
       className={cn(
         isCanvas
-          ? "glass-ground relative overflow-hidden rounded-[1.6rem] border border-[rgb(var(--workspace-tint,59_130_246)/0.18)] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_18px_36px_rgba(15,23,42,0.12)] sm:px-6 sm:py-5"
+          ? "bg-bg-white relative overflow-hidden rounded-[1.6rem] border border-[rgb(var(--workspace-tint,59_130_246)/0.18)] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_18px_36px_rgba(15,23,42,0.12)] sm:px-6 sm:py-5"
           : "border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4",
         sticky &&
           (isCanvas
-            ? "sticky top-14 z-sticky supports-[backdrop-filter]:backdrop-blur-xl"
-            : "sticky top-14 z-sticky bg-bg-white/90 supports-[backdrop-filter]:bg-bg-white/70 backdrop-blur-lg shadow-[var(--edge-rest)]"),
+            ? "sticky top-14 z-sticky"
+            : "sticky top-14 z-sticky bg-bg-white shadow-[var(--edge-rest)]"),
         className
       )}
     >

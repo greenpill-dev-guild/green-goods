@@ -362,7 +362,6 @@ export default function CommunityView() {
           </div>
         </div>
       )}
-
     </div>
   );
 }

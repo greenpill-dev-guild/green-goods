@@ -70,17 +70,19 @@
  * Overrides for [data-theme="dark"] adaptive dark palette
  * -------------------------------------------------------------------------- */
 [data-theme="dark"] {
-  --m3-surface: var(--neutral-950);
-  --m3-surface-dim: var(--neutral-900);
-  --m3-surface-container-lowest: 0 0 0;
-  --m3-surface-container-low: var(--neutral-900);
-  --m3-surface-container: var(--neutral-800);
-  --m3-surface-container-high: var(--neutral-700);
-  --m3-surface-container-highest: var(--neutral-600);
-  --m3-on-surface: var(--neutral-50);
-  --m3-on-surface-variant: var(--neutral-300);
-  --m3-outline: var(--neutral-600);
-  --m3-outline-variant: var(--neutral-700);
+  /* Surface ladder — derive from --bg-* semantic tokens (remapped in theme.css)
+   * to stay in sync with the M3-aligned dark surface hierarchy (tones 4→22) */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-dim: var(--bg-white-0);
+  --m3-surface-container-lowest: var(--neutral-975);
+  --m3-surface-container-low: var(--bg-weak-50);
+  --m3-surface-container: var(--bg-soft-200);
+  --m3-surface-container-high: var(--bg-sub-300);
+  --m3-surface-container-highest: var(--bg-surface-800);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
   --m3-inverse-surface: var(--neutral-100);
   --m3-inverse-on-surface: var(--neutral-900);
   --m3-inverse-primary: var(--green-700);

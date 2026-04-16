@@ -183,6 +183,7 @@ export function CanvasLayout() {
     } as const;
   }, [isDesktop, location.pathname]);
 
+  const isHomeWorkspace = workspaceId === "home";
   const isCoreWorkspace =
     activePath === "/hub" || activePath === "/garden" || activePath === "/community";
 
@@ -214,15 +215,6 @@ export function CanvasLayout() {
     orchestrator.openSheet("right", contentId);
     pendingDesktopAccountTabRef.current = null;
   }, [isDesktop, orchestrator, rawWorkspaceId]);
-
-  // Home workspace: redirect authenticated users to hub
-  const isHomeWorkspace = workspaceId === "home";
-
-  useEffect(() => {
-    if (isHomeWorkspace && isAuthenticated && eoaAddress) {
-      navigate(adminRoutes.hub(), { replace: true });
-    }
-  }, [isHomeWorkspace, isAuthenticated, eoaAddress, navigate]);
 
   if (!isReady || (isAuthenticated && !eligibleGardensLoaded)) {
     return (
@@ -308,7 +300,15 @@ export function CanvasLayout() {
   const gardenList = eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name }));
   const chipGarden = selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null;
   const noEligibleGardens = eligibleGardens.length === 0;
-  const showNoGardenAccessState = isCoreWorkspace && noEligibleGardens;
+
+  // Redirect users with no gardens to home — they see the garden creation CTA there
+  useEffect(() => {
+    if (noEligibleGardens && isCoreWorkspace) {
+      navigate("/", { replace: true });
+    }
+  }, [noEligibleGardens, isCoreWorkspace, navigate]);
+
+  const showNoGardenAccessState = isHomeWorkspace && noEligibleGardens;
 
   const gardenChipNode = (
     <GardenChip
@@ -330,97 +330,97 @@ export function CanvasLayout() {
 
   return (
     <FabProvider>
-    <LeftSheetProvider>
-      <div
-        data-workspace={workspaceId}
-        className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
-      >
-        {/* Skip to content */}
-        <a
-          href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-primary-base focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
+      <LeftSheetProvider>
+        <div
+          data-workspace={workspaceId}
+          className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
         >
-          {intl.formatMessage({
-            id: "app.admin.layout.skipToContent",
-            defaultMessage: "Skip to content",
-          })}
-        </a>
-
-        {/* ── Body 1: Persistent Chrome — Top Axis (Z3) ── */}
-        <div className="canvas-area-top">
-          <AppBar
-            gardenChip={gardenChipNode}
-            onOpenSearch={handleOpenSearch}
-            onOpenSettings={isDesktop ? openSettings : undefined}
-            onOpenNotifications={() => orchestrator.openSheet("right", "notifications")}
-            onOpenProfile={isDesktop ? openProfile : undefined}
-          />
-        </div>
-
-        {/* ── Body 2: MainSheet — Content Zone (Z2) ── */}
-        <MainSheet isReceded={orchestrator.isReceded} overlayRef={overlayRootRef}>
-          <main
-            id="main-content"
-            tabIndex={-1}
-            className="main-scroll-area h-full overflow-y-auto"
-            style={{
-              paddingBottom: isDesktop ? "6rem" : "calc(env(safe-area-inset-bottom) + 9.5rem)",
-              overscrollBehaviorY: "contain",
-              WebkitOverflowScrolling: "touch",
-            }}
+          {/* Skip to content */}
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-primary-base focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground"
           >
-            {showNoGardenAccessState ? (
-              <CanvasGardenAccessState
-                onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
-              />
-            ) : (
-              <PageTransition />
-            )}
-          </main>
-        </MainSheet>
+            {intl.formatMessage({
+              id: "app.admin.layout.skipToContent",
+              defaultMessage: "Skip to content",
+            })}
+          </a>
 
-        {/* ── Body 3: Persistent Chrome — Navigation Bar (Z3) ── */}
-        <div className="canvas-area-bottom">
-          {eligibleGardensLoaded && !permissions.isLoading && visibleSlotCount > 0 && (
-            <FabAwareNavigationBar
-              slots={slots}
-              activePath={activePath}
-              onNavigate={(path) => navigate(path)}
+          {/* ── Body 1: Persistent Chrome — Top Axis (Z3) ── */}
+          <div className="canvas-area-top">
+            <AppBar
+              gardenChip={gardenChipNode}
+              onOpenSearch={handleOpenSearch}
+              onOpenSettings={isDesktop ? openSettings : undefined}
+              onOpenNotifications={() => orchestrator.openSheet("right", "notifications")}
+              onOpenProfile={isDesktop ? openProfile : undefined}
             />
-          )}
+          </div>
+
+          {/* ── Body 2: MainSheet — Content Zone (Z2) ── */}
+          <MainSheet isReceded={orchestrator.isReceded} overlayRef={overlayRootRef}>
+            <main
+              id="main-content"
+              tabIndex={-1}
+              className="main-scroll-area h-full overflow-y-auto"
+              style={{
+                paddingBottom: isDesktop ? "6rem" : "calc(env(safe-area-inset-bottom) + 9.5rem)",
+                overscrollBehaviorY: "contain",
+                WebkitOverflowScrolling: "touch",
+              }}
+            >
+              {showNoGardenAccessState ? (
+                <CanvasGardenAccessState
+                  onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
+                />
+              ) : (
+                <PageTransition />
+              )}
+            </main>
+          </MainSheet>
+
+          {/* ── Body 3: Persistent Chrome — Navigation Bar (Z3) ── */}
+          <div className="canvas-area-bottom">
+            {eligibleGardensLoaded && !permissions.isLoading && visibleSlotCount > 0 && (
+              <FabAwareNavigationBar
+                slots={slots}
+                activePath={activePath}
+                onNavigate={(path) => navigate(path)}
+              />
+            )}
+          </div>
+
+          {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
+          {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
+          <RightSheet
+            open={orchestrator.activeSheet === "right"}
+            onClose={() => orchestrator.closeSheet()}
+            title={
+              orchestrator.activeContentId && RIGHT_SHEET_TITLES[orchestrator.activeContentId]
+                ? intl.formatMessage(RIGHT_SHEET_TITLES[orchestrator.activeContentId])
+                : undefined
+            }
+            container={overlayRootRef.current}
+          >
+            {orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID && (
+              <div className="p-5">
+                <AccountProfilePanel />
+              </div>
+            )}
+            {orchestrator.activeContentId === SETTINGS_SHEET_CONTENT_ID && (
+              <div className="p-5">
+                <AccountSettingsPanel />
+              </div>
+            )}
+            {orchestrator.activeContentId === "notifications" && <NotificationPanel />}
+          </RightSheet>
+
+          {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
+          <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRootRef.current} />
+
+          <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
         </div>
-
-        {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
-        {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
-        <RightSheet
-          open={orchestrator.activeSheet === "right"}
-          onClose={() => orchestrator.closeSheet()}
-          title={
-            orchestrator.activeContentId && RIGHT_SHEET_TITLES[orchestrator.activeContentId]
-              ? intl.formatMessage(RIGHT_SHEET_TITLES[orchestrator.activeContentId])
-              : undefined
-          }
-          container={overlayRootRef.current}
-        >
-          {orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID && (
-            <div className="p-5">
-              <AccountProfilePanel />
-            </div>
-          )}
-          {orchestrator.activeContentId === SETTINGS_SHEET_CONTENT_ID && (
-            <div className="p-5">
-              <AccountSettingsPanel />
-            </div>
-          )}
-          {orchestrator.activeContentId === "notifications" && <NotificationPanel />}
-        </RightSheet>
-
-        {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
-        <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRootRef.current} />
-
-        <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
-      </div>
-    </LeftSheetProvider>
+      </LeftSheetProvider>
     </FabProvider>
   );
 }

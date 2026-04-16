@@ -418,34 +418,6 @@
   --ws-surface-tint-color: rgb(214 211 209 / 10%);
 }
 
-/* ============================================================================
- * WORKSPACE GLASS TINTING — subtle color bleed into glass surfaces
- * ============================================================================ */
-[data-workspace="home"] .glass-raised,
-[data-workspace="home"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--bg-white-0) / 70%) 92%, rgb(var(--ws-primary)) 8%);
-}
-
-[data-workspace="hub"] .glass-raised,
-[data-workspace="hub"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--bg-white-0) / 70%) 92%, rgb(var(--ws-primary)) 8%);
-}
-
-[data-workspace="garden"] .glass-raised,
-[data-workspace="garden"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--bg-white-0) / 70%) 92%, rgb(var(--ws-primary)) 8%);
-}
-
-[data-workspace="community"] .glass-raised,
-[data-workspace="community"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--bg-white-0) / 70%) 92%, rgb(var(--ws-primary)) 8%);
-}
-
-[data-workspace="actions"] .glass-raised,
-[data-workspace="actions"] .glass-floating {
-  background: color-mix(in srgb, rgb(var(--bg-white-0) / 70%) 92%, rgb(var(--ws-primary)) 8%);
-}
-
 /* Workspace-aware tab rail tint */
 [data-workspace="hub"] .canvas-stage-tab-rail-tint {
   background: linear-gradient(180deg, rgb(var(--ws-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
@@ -872,6 +844,25 @@
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* M3 override: full-width nav bar uses transform: none, so the entrance
+   animation must not apply translateX(-50%) or it shifts the bar off-screen.
+   Also applies to the FAB (adjacent sibling div) which inherits the same animation. */
+.admin-m3 .canvas-navigation-bar,
+.admin-m3 .canvas-navigation-bar + div {
+  animation-name: m3-nav-bar-enter;
+}
+
+@keyframes m3-nav-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

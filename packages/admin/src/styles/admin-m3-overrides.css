@@ -153,3 +153,32 @@
   color: rgb(var(--m3-primary));
   font-weight: 700;
 }
+
+/* ============================================================================
+ * D1: Solid M3 surfaces — glass on chrome only
+ * Glass material (backdrop-filter) stays on NavigationBar and GardenChip (Z3).
+ * All content surfaces (MainSheet, sheets, lists, cards) use solid M3 colors.
+ * ============================================================================ */
+
+/* MainSheet content — solid surface */
+.admin-m3 [data-testid="main-sheet-content"].glass-surface {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgb(var(--m3-surface));
+}
+
+/* Sheets — solid surface-container */
+.admin-m3 [data-testid="right-sheet"].glass-floating,
+.admin-m3 [data-testid="left-sheet"].glass-floating,
+.admin-m3 [data-testid="bottom-sheet"].glass-floating {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgb(var(--m3-surface-container));
+}
+
+/* Content lists/cards within MainSheet — solid surface-container-low */
+.admin-m3 .canvas-area-main .glass-raised {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgb(var(--m3-surface-container-low));
+}
