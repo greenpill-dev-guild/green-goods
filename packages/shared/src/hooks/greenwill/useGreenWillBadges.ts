@@ -2,7 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
-import { getGreenWillBadgesByOwner, getGreenWillBadgeDefinitions } from "../../modules/data/greenwill";
+import {
+  getGreenWillBadgesByOwner,
+  getGreenWillBadgeDefinitions,
+} from "../../modules/data/greenwill";
 import type {
   GreenWillBadgeDefinition,
   GreenWillBadgeOwnership,

@@ -197,7 +197,7 @@ describe("GardenChip", () => {
     expect(truncatedSpan).toBeTruthy();
   });
 
-  it("applies max-w-[200px] to the chip container", () => {
+  it("applies max-width constraint to the chip container", () => {
     render(
       <GardenChip
         gardens={[GARDEN_A, GARDEN_B]}
@@ -207,6 +207,6 @@ describe("GardenChip", () => {
     );
 
     const trigger = screen.getByRole("button");
-    expect(trigger.className).toContain("max-w-[200px]");
+    expect(trigger.className).toContain("max-w-sm");
   });
 });

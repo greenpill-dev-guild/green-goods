@@ -144,22 +144,15 @@ export function LeftSheet({
       }}
       data-testid="left-sheet-dialog"
     >
-      {description ? (
-        <p className="sr-only">{description}</p>
-      ) : null}
+      {description ? <p className="sr-only">{description}</p> : null}
 
       {/* Custom overlay */}
       <animated.div
-        className={cn(
-          "absolute inset-0",
-          isBounded ? "bg-transparent" : "",
-        )}
+        className={cn("absolute inset-0", isBounded ? "bg-transparent" : "")}
         style={{
           opacity: isBounded ? 0 : springs.overlay,
           backgroundColor: isBounded ? undefined : "rgba(10, 10, 10, 0.18)",
-          backdropFilter: isBounded
-            ? undefined
-            : springs.overlay.to((o) => `blur(${o * 4}px)`),
+          backdropFilter: isBounded ? undefined : springs.overlay.to((o) => `blur(${o * 4}px)`),
           WebkitBackdropFilter: isBounded
             ? undefined
             : springs.overlay.to((o) => `blur(${o * 4}px)`),
@@ -189,9 +182,7 @@ export function LeftSheet({
         {/* Header — close button on left, title on right (mirrored from RightSheet) */}
         {title ? (
           <div className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3 flex-row-reverse">
-            <h2 className="text-lg font-semibold text-text-strong">
-              {title}
-            </h2>
+            <h2 className="text-lg font-semibold text-text-strong">{title}</h2>
             <button
               type="button"
               onClick={onClose}

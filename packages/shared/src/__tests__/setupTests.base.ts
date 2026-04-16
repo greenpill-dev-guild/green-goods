@@ -20,6 +20,22 @@ import "../__mocks__/browser/navigator";
 // Initialize once and allow missing values so ENV access in shared config works.
 initVarlockEnv({ allowFail: true });
 
+// Polyfill HTMLDialogElement.showModal/close for jsdom.
+// jsdom doesn't implement the <dialog> top-layer API; our Canvas sheets
+// (BottomSheet, LeftSheet, RightSheet) use native <dialog> for focus trap
+// and Escape handling.
+if (typeof window !== "undefined") {
+  const dialogProto = (window as any).HTMLDialogElement?.prototype;
+  if (dialogProto) {
+    dialogProto.showModal = function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    };
+    dialogProto.close = function (this: HTMLDialogElement) {
+      this.removeAttribute("open");
+    };
+  }
+}
+
 // Mock matchMedia immediately (before any module imports that might use it)
 // This needs to be at the top level, not in beforeAll, because it's called during module import
 if (typeof window !== "undefined") {

@@ -114,7 +114,7 @@ export function BottomSheet({
       from: () => [0, 0],
       axis: "y",
       filterTaps: true,
-    },
+    }
   );
 
   const handleOverlayClick = useCallback(
@@ -123,7 +123,7 @@ export function BottomSheet({
         onClose();
       }
     },
-    [onClose],
+    [onClose]
   );
 
   if (!mounted) return null;
@@ -137,7 +137,7 @@ export function BottomSheet({
         "fixed inset-0 m-0 h-full w-full max-h-full max-w-full",
         "bg-transparent p-0 outline-none",
         "backdrop:bg-transparent backdrop:backdrop-filter-none",
-        isBounded && "absolute",
+        isBounded && "absolute"
       )}
       style={{
         zIndex: isBounded ? 45 : 50,
@@ -150,9 +150,7 @@ export function BottomSheet({
         style={{
           opacity: isBounded ? 0 : springs.overlay,
           backgroundColor: isBounded ? undefined : "rgba(10, 10, 10, 0.18)",
-          backdropFilter: isBounded
-            ? undefined
-            : springs.overlay.to((o) => `blur(${o * 4}px)`),
+          backdropFilter: isBounded ? undefined : springs.overlay.to((o) => `blur(${o * 4}px)`),
           WebkitBackdropFilter: isBounded
             ? undefined
             : springs.overlay.to((o) => `blur(${o * 4}px)`),
@@ -167,7 +165,7 @@ export function BottomSheet({
         className={cn(
           "absolute bottom-0 left-0 right-0 flex w-full flex-col",
           "rounded-t-xl glass-floating",
-          "focus:outline-none will-change-transform",
+          "focus:outline-none will-change-transform"
         )}
         style={{
           maxHeight: isBounded ? `${maxHeight}%` : `${maxHeight}dvh`,
@@ -197,7 +195,7 @@ export function BottomSheet({
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-lg",
                 "text-text-soft transition-colors hover:bg-bg-soft",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
               )}
               aria-label={closeLabel}
               data-testid="bottom-sheet-close"

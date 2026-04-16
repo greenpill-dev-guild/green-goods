@@ -1,6 +1,5 @@
 import {
   createContext,
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -45,11 +44,7 @@ export function LeftSheetProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({ config, setConfig }), [config]);
 
-  return (
-    <LeftSheetContext.Provider value={value}>
-      {children}
-    </LeftSheetContext.Provider>
-  );
+  return <LeftSheetContext.Provider value={value}>{children}</LeftSheetContext.Provider>;
 }
 
 // ----------------------------------------------------------------------------

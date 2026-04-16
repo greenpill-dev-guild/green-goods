@@ -108,6 +108,7 @@ export {
   AppBar,
   type AppBarProps,
   type UseCanvasResponsiveFabOptions,
+  useCanvasMobileChromeHidden,
 } from "./Canvas";
 // DatePicker Components
 export {

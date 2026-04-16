@@ -8,7 +8,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -88,8 +88,9 @@ describe("BottomSheet", () => {
       </BottomSheet>
     );
 
-    const dialog = screen.getByTestId("bottom-sheet");
-    expect(dialog.getAttribute("role")).toBe("dialog");
+    // ARIA attributes live on the native <dialog>, not the content div
+    const dialog = screen.getByTestId("bottom-sheet-dialog");
+    expect(dialog.tagName).toBe("DIALOG");
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(dialog.getAttribute("aria-label")).toBe("Accessibility Test");
   });
@@ -136,7 +137,7 @@ describe("BottomSheet", () => {
     expect(screen.getByTestId("bottom-sheet-overlay")).toBeTruthy();
   });
 
-  it("calls onClose when Escape is pressed", async () => {
+  it("calls onClose when Escape is pressed", () => {
     const onClose = vi.fn();
     render(
       <BottomSheet open={true} onClose={onClose} title="Test">
@@ -144,7 +145,10 @@ describe("BottomSheet", () => {
       </BottomSheet>
     );
 
-    await user.keyboard("{Escape}");
+    // Native <dialog> fires a cancel event when Escape is pressed;
+    // simulate that rather than dispatching a keyboard event.
+    const dialog = screen.getByTestId("bottom-sheet-dialog");
+    fireEvent(dialog, new Event("cancel", { bubbles: true }));
     expect(onClose).toHaveBeenCalledOnce();
   });
 
@@ -171,15 +175,15 @@ describe("BottomSheet", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("has z-modal class on content (unbounded mode)", () => {
+  it("applies z-index via inline style in unbounded mode", () => {
     render(
       <BottomSheet open={true} onClose={() => {}} title="Test">
         <p>Content</p>
       </BottomSheet>
     );
 
-    const dialog = screen.getByTestId("bottom-sheet");
-    expect(dialog.className).toContain("z-modal");
+    const content = screen.getByTestId("bottom-sheet");
+    expect(content.style.zIndex).toBe("51");
   });
 
   it("has the shared xl radius for top edge rounding", () => {
@@ -193,7 +197,7 @@ describe("BottomSheet", () => {
     expect(dialog.className).toContain("rounded-t-xl");
   });
 
-  it("uses bounded absolute positioning and re-enables pointer events when portaled into a container", () => {
+  it("uses bounded absolute positioning when container is provided", () => {
     const container = document.createElement("div");
     document.body.appendChild(container);
 
@@ -203,13 +207,13 @@ describe("BottomSheet", () => {
       </BottomSheet>
     );
 
-    const overlay = screen.getByTestId("bottom-sheet-overlay");
-    const dialog = screen.getByTestId("bottom-sheet");
+    const dialogEl = screen.getByTestId("bottom-sheet-dialog");
+    const content = screen.getByTestId("bottom-sheet");
 
-    expect(container.querySelector("[data-testid='bottom-sheet']")).toBe(dialog);
-    expect(overlay.className).toContain("absolute");
-    expect(overlay.className).toContain("pointer-events-auto");
-    expect(dialog.className).toContain("pointer-events-auto");
-    expect(dialog.className).toContain("z-[46]");
+    // Native dialog uses absolute positioning in bounded mode
+    expect(dialogEl.className).toContain("absolute");
+    // Content uses percentage maxHeight and lower z-index
+    expect(content.style.maxHeight).toBe("85%");
+    expect(content.style.zIndex).toBe("46");
   });
 });

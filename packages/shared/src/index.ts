@@ -160,6 +160,7 @@ export {
   SyncStatusBar,
   ToastViewport,
   AppBar,
+  useCanvasMobileChromeHidden,
   TranslationBadge,
   toastService,
   TxInlineFeedback,

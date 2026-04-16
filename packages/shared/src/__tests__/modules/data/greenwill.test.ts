@@ -30,8 +30,7 @@ const TEST_OWNER = "0xABcDEFabcdefABCDEFabcdefAbcdefABcDefABCD" as Address;
 const TEST_ISSUER = "0x1111111111111111111111111111111111111111" as Address;
 const TEST_LOCK = "0x2222222222222222222222222222222222222222" as Address;
 const TEST_VALIDATOR = "0x3333333333333333333333333333333333333333" as Address;
-const TEST_TX_HASH =
-  "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const TEST_TX_HASH = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const GENESIS_BADGE_ID =
   "0x5caeb56e5079d78d65e7255ef2250acddb4eaeff124f4dbd0d41fd52e6d7f3d8" as const;
 
@@ -98,8 +97,7 @@ describe("modules/data/greenwill", () => {
             chainId: TEST_CHAIN_ID,
             badgeId: GENESIS_BADGE_ID,
             owner: TEST_OWNER,
-            sourceRef:
-              "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            sourceRef: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             issuer: TEST_ISSUER.toUpperCase(),
             unlockTokenId: "1",
             issuedAt: 1710000010,
@@ -123,8 +121,7 @@ describe("modules/data/greenwill", () => {
         chainId: TEST_CHAIN_ID,
         badgeId: GENESIS_BADGE_ID,
         owner: TEST_OWNER.toLowerCase(),
-        sourceRef:
-          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        sourceRef: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         issuer: TEST_ISSUER.toLowerCase(),
         unlockTokenId: 1n,
         issuedAt: 1710000010,
@@ -143,8 +140,7 @@ describe("modules/data/greenwill", () => {
             chainId: TEST_CHAIN_ID,
             badgeId: GENESIS_BADGE_ID,
             owner: TEST_OWNER.toUpperCase(),
-            sourceRef:
-              "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            sourceRef: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             issuer: TEST_ISSUER.toUpperCase(),
             unlockTokenId: "1",
             txHash: TEST_TX_HASH,
@@ -167,8 +163,7 @@ describe("modules/data/greenwill", () => {
         chainId: TEST_CHAIN_ID,
         badgeId: GENESIS_BADGE_ID,
         owner: TEST_OWNER.toLowerCase(),
-        sourceRef:
-          "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        sourceRef: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         issuer: TEST_ISSUER.toLowerCase(),
         unlockTokenId: 1n,
         txHash: TEST_TX_HASH,

@@ -9,9 +9,7 @@ interface UseGreenWillBadgeDefinitionsOptions {
   enabled?: boolean;
 }
 
-export function useGreenWillBadgeDefinitions(
-  options: UseGreenWillBadgeDefinitionsOptions = {}
-) {
+export function useGreenWillBadgeDefinitions(options: UseGreenWillBadgeDefinitionsOptions = {}) {
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;
   const enabled = options.enabled ?? true;
 

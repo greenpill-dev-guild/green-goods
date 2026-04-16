@@ -17,7 +17,9 @@ const VALID_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as const;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
-  GreenGoodsENSABI: [{ name: "ownerToSlug", type: "function", inputs: [{ name: "owner", type: "address" }] }],
+  GreenGoodsENSABI: [
+    { name: "ownerToSlug", type: "function", inputs: [{ name: "owner", type: "address" }] },
+  ],
   createClients: vi.fn(() => ({
     publicClient: {
       readContract: mockReadContract,
@@ -99,9 +101,9 @@ describe("useGreenGoodsEnsName", () => {
     renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
 
     await waitFor(() => {
-      expect(queryClient.getQueryData(queryKeys.ens.protocolName(VALID_ADDRESS.toLowerCase()))).toBe(
-        "river.greengoods.eth"
-      );
+      expect(
+        queryClient.getQueryData(queryKeys.ens.protocolName(VALID_ADDRESS.toLowerCase()))
+      ).toBe("river.greengoods.eth");
     });
   });
 });

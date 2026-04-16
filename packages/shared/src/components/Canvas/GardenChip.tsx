@@ -48,7 +48,7 @@ export function GardenChip({
     return (
       <span
         className={cn(
-          "inline-flex max-w-[200px] items-center gap-1.5 rounded-full",
+          "inline-flex max-w-sm items-center gap-1.5 rounded-full",
           "px-3 py-1.5",
           "glass-raised",
           "shadow-[var(--edge-rest),_var(--elevation-1)]",
@@ -77,7 +77,7 @@ export function GardenChip({
         <button
           type="button"
           className={cn(
-            "inline-flex max-w-[200px] cursor-pointer items-center gap-1.5 rounded-full",
+            "inline-flex max-w-sm cursor-pointer items-center gap-1.5 rounded-full",
             "px-3 py-1.5",
             "glass-raised",
             "shadow-[var(--edge-rest),_var(--elevation-1)]",
@@ -181,7 +181,7 @@ function GardenDropdownItem({ label, isSelected, onClick }: GardenDropdownItemPr
       type="button"
       onClick={onClick}
       className={cn(
-        "flex w-full items-center justify-between rounded-lg px-3 py-2 text-body-md",
+        "flex w-full items-center rounded-lg px-3 py-2 text-body-md",
         "transition-colors duration-[var(--spring-micro-duration,150ms)]",
         "motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
@@ -193,7 +193,6 @@ function GardenDropdownItem({ label, isSelected, onClick }: GardenDropdownItemPr
       <span className="truncate" title={label}>
         {label}
       </span>
-      {isSelected && <RiCheckLine className="h-4 w-4 shrink-0 text-primary-dark" />}
     </button>
   );
 }

@@ -38,3 +38,4 @@ export {
   CHOREOGRAPHY_STAGGER_MS,
 } from "./springConfig";
 export { AppBar, type AppBarProps } from "./AppBar";
+export { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";
