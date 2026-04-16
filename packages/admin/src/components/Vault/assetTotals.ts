@@ -1,8 +1,8 @@
-import { formatTokenAmount } from "@green-goods/shared";
+import { formatTokenAmount, type Address } from "@green-goods/shared";
 
 export interface AssetTotalInput {
   chainId: number;
-  assetAddress: string;
+  assetAddress: Address;
   amount: bigint;
   decimals: number;
   symbol: string;
@@ -15,7 +15,7 @@ export interface AssetTotal {
   symbol: string;
 }
 
-export function getAssetTotalKey(chainId: number, assetAddress: string): string {
+export function getAssetTotalKey(chainId: number, assetAddress: Address): string {
   return `${chainId}:${assetAddress.toLowerCase()}`;
 }
 

@@ -162,7 +162,7 @@ class JobQueue {
 
     trackJobCreated(jobId, kind, isOnline, chainId, userAddress);
 
-    if ((import.meta as any).env?.VITE_QUEUE_DEBUG === "true") {
+    if (import.meta.env?.VITE_QUEUE_DEBUG === "true") {
       let mediaCount = 0;
       if (
         payload &&

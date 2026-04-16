@@ -1,7 +1,3 @@
-/**
- * Submit Handler - Process work submission from text or voice
- */
-
 import { parseWorkText } from "../services/ai";
 import * as db from "../services/db";
 import type {
@@ -19,9 +15,6 @@ export interface SubmitDeps {
   notifyOperator?: (operatorPlatformId: string, message: string) => Promise<void>;
 }
 
-/**
- * Handle text message as work submission
- */
 export async function handleTextSubmission(
   message: InboundMessage,
   _user: User,
@@ -48,9 +41,6 @@ export async function handleTextSubmission(
   return showConfirmation(workData);
 }
 
-/**
- * Handle voice transcription result as work submission
- */
 export async function handleVoiceSubmission(
   message: InboundMessage,
   _user: User,
@@ -75,9 +65,6 @@ export async function handleVoiceSubmission(
   return showConfirmation(workData);
 }
 
-/**
- * Show confirmation dialog for work submission
- */
 function showConfirmation(workData: ParsedWorkData): HandlerResult {
   const tasksSummary = workData.tasks
     .map((t) => {
@@ -108,9 +95,6 @@ function showConfirmation(workData: ParsedWorkData): HandlerResult {
   };
 }
 
-/**
- * Handle confirmation of work submission
- */
 export async function handleConfirmSubmission(
   message: InboundMessage,
   user: User,
@@ -180,9 +164,6 @@ export async function handleConfirmSubmission(
   };
 }
 
-/**
- * Handle cancellation of work submission
- */
 export async function handleCancelSubmission(
   message: InboundMessage,
   _deps: SubmitDeps

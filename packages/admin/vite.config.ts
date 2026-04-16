@@ -88,7 +88,7 @@ export default defineConfig(async (): Promise<UserConfig> => {
     root: __dirname,
     base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
-    envPrefix: ["VITE_", "PINATA_", "PRIVY_", "SKIP_"],
+    envPrefix: ["VITE_", "PINATA_", "SKIP_"],
     build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
     define: envDefine,
     plugins,

@@ -18,7 +18,7 @@ interface DeploymentArtifact {
   actionRegistry?: string;
   workResolver?: string;
   workApprovalResolver?: string;
-  [key: string]: any;
+  [key: string]: string | Record<string, unknown> | undefined;
 }
 
 const CHAIN_MAP: Record<string, { name: string; chainId: number }> = {

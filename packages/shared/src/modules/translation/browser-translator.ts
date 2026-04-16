@@ -22,6 +22,16 @@ type AITranslatorAPI = {
   }>;
 };
 
+/** Chrome experimental AI API surface (self.ai) */
+interface ExperimentalAI {
+  ai: { translator: AITranslatorAPI };
+}
+
+/** Chrome experimental translation API surface (self.translation) */
+interface ExperimentalTranslation {
+  translation: LegacyTranslatorAPI;
+}
+
 class BrowserTranslator {
   private legacyApi: LegacyTranslatorAPI | null = null;
   private aiApi: AITranslatorAPI | null = null;
@@ -29,12 +39,16 @@ class BrowserTranslator {
 
   constructor() {
     // Check for new AI Translation API (Chrome 127+)
-    if (typeof self !== "undefined" && "ai" in self && "translator" in (self as any).ai) {
-      this.aiApi = (self as any).ai.translator;
+    if (
+      typeof self !== "undefined" &&
+      "ai" in self &&
+      "translator" in (self as ExperimentalAI).ai
+    ) {
+      this.aiApi = (self as unknown as ExperimentalAI).ai.translator;
     }
     // Check for Legacy Translation API (Chrome 125-126)
     else if (typeof self !== "undefined" && "translation" in self) {
-      this.legacyApi = (self as unknown as { translation: LegacyTranslatorAPI }).translation;
+      this.legacyApi = (self as unknown as ExperimentalTranslation).translation;
     } else {
       // Browser Translation API not available - silently fall back to English
       // Only log in debug mode to reduce console noise

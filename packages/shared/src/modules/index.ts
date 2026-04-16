@@ -171,7 +171,6 @@ export {
 // DATA / GREENGOODS
 // ============================================================================
 export {
-  Capital,
   getActions,
   getGardeners,
   getGardens,
@@ -311,5 +310,4 @@ export {
   formatJobError,
   getSubmissionStatusText,
   validateApprovalDraft,
-  validateWorkDraft,
 } from "./work/work-submission";

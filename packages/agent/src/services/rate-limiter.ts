@@ -33,6 +33,8 @@ export interface RateLimitResult {
   resetIn: number;
   /** Total limit for this window */
   limit: number;
+  /** Optional human-readable message (e.g. when rate limited) */
+  message?: string;
 }
 
 interface RateLimitEntry {
@@ -130,7 +132,7 @@ export class RateLimiter {
     userId: number | string,
     type: RateLimitType,
     config?: Partial<RateLimitConfig>
-  ): RateLimitResult & { message?: string } {
+  ): RateLimitResult {
     const baseConfig = RATE_LIMITS[type];
     const { maxRequests, windowMs, message } = { ...baseConfig, ...config };
 
@@ -138,19 +140,15 @@ export class RateLimiter {
     const now = Date.now();
     const windowStart = now - windowMs;
 
-    // Get or create entry
     let entry = this.limits.get(key);
     if (!entry) {
       entry = { timestamps: [], lastCleanup: now };
       this.limits.set(key, entry);
     }
 
-    // Remove timestamps outside the window
     entry.timestamps = entry.timestamps.filter((t) => t > windowStart);
 
-    // Check if allowed
     if (entry.timestamps.length >= maxRequests) {
-      // Find when the oldest timestamp will expire
       const oldestInWindow = Math.min(...entry.timestamps);
       const resetIn = oldestInWindow + windowMs - now;
 
@@ -163,7 +161,6 @@ export class RateLimiter {
       };
     }
 
-    // Add current timestamp and allow
     entry.timestamps.push(now);
 
     return {

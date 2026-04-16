@@ -77,8 +77,8 @@ export function ensureAppKit(options?: AppKitInitOptions) {
   // Skip initialization in Node.js/Server environment
   if (typeof window === "undefined") {
     return {
-      appKit: null as any,
-      wagmiConfig: null as any,
+      appKit: null as ReturnType<typeof createAppKit> | null,
+      wagmiConfig: null as WagmiAdapter["wagmiConfig"] | null,
     };
   }
 
@@ -106,8 +106,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
 
   // Type assertion needed due to viem version mismatch between main dependency
   // and @reown/appkit-common's bundled viem. Runtime compatible.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const networks = chains as any;
+  const networks = chains as unknown as Parameters<typeof createAppKit>[0]["networks"];
 
   wagmiAdapterInstance = new WagmiAdapter({
     networks,
@@ -123,7 +122,9 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     metadata,
     enableNetworkSwitch: false,
-    defaultNetwork: getChain(options?.defaultChainId ?? DEFAULT_CHAIN_ID) as any,
+    defaultNetwork: getChain(
+      options?.defaultChainId ?? DEFAULT_CHAIN_ID
+    ) as (typeof networks)[number],
     features: {
       analytics: false, // Disable AppKit analytics (we use PostHog)
       email: true, // Enable email login (AppKit embedded wallet)

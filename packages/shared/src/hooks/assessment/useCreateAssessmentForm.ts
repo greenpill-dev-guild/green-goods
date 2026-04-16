@@ -43,7 +43,7 @@ export const createAssessmentFormSchema = z
     sdgTargets: z.array(z.number()),
     reportingPeriodStart: z.string().trim().min(1, "Start date is required"),
     reportingPeriodEnd: z.string().trim().min(1, "End date is required"),
-    attachments: z.array(z.any()).optional().default([]),
+    attachments: z.array(z.instanceof(File)).optional().default([]),
   })
   .superRefine((data, ctx) => {
     const startDate = new Date(data.reportingPeriodStart);
@@ -96,7 +96,7 @@ const baseAssessmentSchema = z.object({
   sdgTargets: z.array(z.number()),
   reportingPeriodStart: z.string(),
   reportingPeriodEnd: z.string(),
-  attachments: z.array(z.any()).optional().default([]),
+  attachments: z.array(z.instanceof(File)).optional().default([]),
 });
 
 type CreateAssessmentFormInput = z.input<typeof baseAssessmentSchema>;

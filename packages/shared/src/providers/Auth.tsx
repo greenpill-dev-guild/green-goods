@@ -96,13 +96,10 @@ export interface AuthActionsValue {
   switchToPasskey: (userName?: string) => void;
   retry: () => void;
   dismissError: () => void;
-  // Legacy aliases
-  signInWithPasskey: (userName?: string) => Promise<void>;
-  createPasskey: (userName: string) => Promise<void>;
+
+  // Session management
   clearPasskey: () => void;
-  connectWallet: () => void;
   disconnectWallet: () => Promise<void>;
-  setPasskeySession?: (session: unknown) => void;
 }
 
 /**
@@ -600,10 +597,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       switchToPasskey,
       retry,
       dismissError,
-      signInWithPasskey: loginWithPasskey,
-      createPasskey: createAccount,
+
+      // Session management
       clearPasskey,
-      connectWallet: loginWithWallet,
       disconnectWallet,
     }),
     [
@@ -635,9 +631,3 @@ export function AuthProvider({ children }: AuthProviderProps) {
     </AuthActionsContext.Provider>
   );
 }
-
-// ============================================================================
-// RE-EXPORTS for backwards compatibility
-// ============================================================================
-
-export type { AuthMode } from "../modules/auth/session";

@@ -2,7 +2,7 @@ import { type Action, ActionBannerFallback, cn } from "@green-goods/shared";
 import { RiCamera3Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import { ImageWithFallback } from "../../Display";
+import { ImageWithFallback } from "../../Display/Image/ImageWithFallback";
 import { Card, type CardRootProps } from "../Base/Card";
 
 export const cardVariants = tv({

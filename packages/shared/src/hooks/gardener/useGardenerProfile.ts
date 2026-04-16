@@ -125,22 +125,17 @@ export function useGardenerProfile() {
   const queryClient = useQueryClient();
   const { formatMessage } = useIntl();
 
-  // Query profile from indexer (GraphQL)
-  // TODO: Replace with actual GraphQL query once indexer is updated
+  // TODO: Replace with GraphQL query once indexer supports gardener profiles
   const profileQuery = useQuery({
     queryKey: queryKeys.gardenerProfile.byAddress(smartAccountAddress ?? "", DEFAULT_CHAIN_ID),
     queryFn: async () => {
       if (!smartAccountAddress) return null;
-
-      // Placeholder: Will be replaced with GraphQL query
-      // For now, return null (profile not yet indexed)
       return null as GardenerProfile | null;
     },
     enabled: !!smartAccountAddress,
     staleTime: 30_000, // 30 seconds
   });
 
-  // Mutation to update entire profile on-chain (gasless)
   const updateProfileMutation = useMutation({
     mutationFn: async (profileData: Omit<GardenerProfile, "profileUpdatedAt">) => {
       if (!smartAccountClient || !smartAccountAddress) {
@@ -207,7 +202,6 @@ export function useGardenerProfile() {
     },
   });
 
-  // Build mutation options for individual field updates (DRY helper — not a hook)
   const fieldMutationOptions = (config: {
     functionName: "updateName" | "updateBio" | "updateLocation" | "updateImage";
     successTitle: string;
@@ -248,7 +242,6 @@ export function useGardenerProfile() {
     },
     onError: (error: Error) => {
       const parsed = parseContractError(error);
-      // Defensive: ensure parsed.name is a string before calling toLowerCase()
       const safeName = typeof parsed?.name === "string" ? parsed.name.toLowerCase() : "";
       const userFriendlyMsg = USER_FRIENDLY_ERRORS[safeName] || config.errorMessage;
       toastService.error({
@@ -260,7 +253,6 @@ export function useGardenerProfile() {
     },
   });
 
-  // Individual field update mutations (gas efficient)
   const updateNameMutation = useMutation(
     fieldMutationOptions({
       functionName: "updateName",

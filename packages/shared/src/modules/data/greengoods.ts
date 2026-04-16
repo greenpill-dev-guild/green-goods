@@ -17,9 +17,6 @@ import { getFileByHash, resolveIPFSUrl } from "./ipfs";
 
 const ACTION_INSTRUCTIONS_TIMEOUT_MS = 5_000;
 
-// Re-export Capital for backward compatibility
-export { Capital };
-
 /** Maps indexer domain string (e.g., "SOLAR") to the Domain enum value. */
 function parseDomain(domain: string | undefined | null): Domain {
   if (!domain) return Domain.SOLAR;

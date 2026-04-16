@@ -1,7 +1,7 @@
 import { RiCloseLine, RiImageLine } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import type { WorkDisplayStatus } from "../../../types/domain";
+import type { Address, WorkDisplayStatus } from "../../../types/domain";
 import { cn } from "../../../utils/styles/cn";
 import { formatRelativeTime } from "../../../utils/time";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
@@ -37,10 +37,10 @@ export interface WorkCardData {
   status: WorkStatus;
   createdAt: number;
   mediaPreview?: string[];
-  gardenerAddress?: string;
+  gardenerAddress?: Address;
   gardenerDisplayName?: string;
   gardenName?: string;
-  gardenAddress?: string;
+  gardenAddress?: Address;
   description?: string;
   imageCount?: number;
   feedback?: string;

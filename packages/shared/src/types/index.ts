@@ -219,9 +219,6 @@ export type {
   WorkDraftRecord,
   WorkJobPayload,
 } from "./job-queue";
-// Compatibility type aliases
-// Prefer WorkDraftRecord in new code.
-export type { WorkDraft as WorkDraftDB } from "./job-queue";
 // ============================================
 // Offline Types
 // ============================================

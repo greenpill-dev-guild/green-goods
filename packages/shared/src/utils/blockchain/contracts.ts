@@ -33,16 +33,31 @@ export const EASABI = EASABIJson as Abi;
 export const GreenGoodsENSABI = GreenGoodsENSABIJson as Abi;
 export const HatsABI = IHatsABIJson as Abi;
 
+/** Shape of deployment JSON files ({chainId}-latest.json) */
+interface DeploymentConfig {
+  [key: string]:
+    | string
+    | number
+    | { address: string; [k: string]: string | number }
+    | Record<string, string>
+    | undefined;
+}
+
+/** Shape of networks.json — each network has contracts, rpc config, etc. */
+interface NetworksConfig {
+  networks: Record<string, { contracts?: Record<string, string>; [k: string]: unknown }>;
+}
+
 function getNetworkConfigFromNetworksJson(chainId: number) {
-  const networksData = networksConfig as { networks: Record<string, any> };
+  const networksData = networksConfig as NetworksConfig;
   const networkName = getNetworkName(chainId);
   return networksData.networks[networkName] || networksData.networks.sepolia;
 }
 
-const DEPLOYMENT_CONFIGS: Record<string, Record<string, any>> = {
-  "42161": deployment42161 as Record<string, any>,
-  "42220": deployment42220 as Record<string, any>,
-  "11155111": deployment11155111 as Record<string, any>,
+const DEPLOYMENT_CONFIGS: Record<string, DeploymentConfig> = {
+  "42161": deployment42161 as DeploymentConfig,
+  "42220": deployment42220 as DeploymentConfig,
+  "11155111": deployment11155111 as DeploymentConfig,
 };
 
 import { ZERO_ADDRESS } from "./address";
@@ -51,7 +66,7 @@ function asAddress(value: unknown): Address {
   return typeof value === "string" ? (value as Address) : ZERO_ADDRESS;
 }
 
-function getDeploymentConfig(chainId: number | string): Record<string, any> {
+function getDeploymentConfig(chainId: number | string): DeploymentConfig {
   const chain = String(chainId);
   return DEPLOYMENT_CONFIGS[chain] ?? {};
 }

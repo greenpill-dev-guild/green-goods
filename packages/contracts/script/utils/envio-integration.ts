@@ -360,7 +360,6 @@ export class EnvioIntegration {
    * Disable local chain config (cleanup method for localhost deployments)
    */
   async disableLocalChainConfig(): Promise<void> {
-    // This is a placeholder for cleanup logic
     console.log("🧹 Disabling local chain config...");
   }
 

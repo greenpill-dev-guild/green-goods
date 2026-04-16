@@ -10,9 +10,28 @@ import { logger } from "../app/logger";
 import { browserTranslator } from "./browser-translator";
 import { translationCache } from "./db";
 
+/** Chrome experimental AI API surface (self.ai) */
+interface ExperimentalAI {
+  ai: {
+    translator: {
+      capabilities?: () => Promise<{
+        available: string;
+        languagePairAvailable: (source: string, target: string) => string;
+      }>;
+    };
+  };
+}
+
+/** Chrome experimental translation API surface (self.translation) */
+interface ExperimentalTranslation {
+  translation: {
+    canTranslate?: (config: { sourceLanguage: string; targetLanguage: string }) => Promise<string>;
+  };
+}
+
 export async function runTranslationDiagnostics() {
   const hasLegacy = "translation" in self;
-  const hasAI = "ai" in self && "translator" in (self as any).ai;
+  const hasAI = "ai" in self && "translator" in (self as unknown as ExperimentalAI).ai;
 
   // 1. Check browser API support
   logger.info("[Translation Diagnostics] Browser API Support", {
@@ -23,7 +42,7 @@ export async function runTranslationDiagnostics() {
 
   // Check Legacy API
   if (hasLegacy) {
-    const api = (self as any).translation;
+    const api = (self as unknown as ExperimentalTranslation).translation;
     if (api && api.canTranslate) {
       try {
         const canTranslateEs = await api.canTranslate({
@@ -43,7 +62,7 @@ export async function runTranslationDiagnostics() {
 
   // Check New AI API
   if (hasAI) {
-    const api = (self as any).ai.translator;
+    const api = (self as unknown as ExperimentalAI).ai.translator;
     if (api && api.capabilities) {
       try {
         const caps = await api.capabilities();
@@ -96,6 +115,6 @@ export async function runTranslationDiagnostics() {
  * Quick check in console
  */
 if (typeof window !== "undefined") {
-  (window as any).checkTranslation = runTranslationDiagnostics;
+  (window as unknown as Record<string, unknown>).checkTranslation = runTranslationDiagnostics;
   logger.info("[Translation] Run checkTranslation() in console to diagnose translation system");
 }

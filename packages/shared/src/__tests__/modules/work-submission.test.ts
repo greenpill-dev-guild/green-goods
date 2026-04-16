@@ -32,7 +32,6 @@ import {
   formatJobError,
   submitApprovalToQueue,
   submitWorkToQueue,
-  validateWorkDraft,
   validateWorkSubmissionContext,
 } from "../../modules/work/work-submission";
 
@@ -51,13 +50,8 @@ describe("modules/work-submission", () => {
     vi.spyOn(jobQueue, "addJob").mockResolvedValue("job-1");
   });
 
-  it("validates drafts and returns errors", () => {
-    const errors = validateWorkDraft(
-      { feedback: "", actionUID: null, title: "", plantSelection: [], plantCount: 0, media: [] },
-      null,
-      null,
-      []
-    );
+  it("validates submission context and returns errors", () => {
+    const errors = validateWorkSubmissionContext(null, null, []);
     expect(errors.length).toBeGreaterThan(0);
   });
 

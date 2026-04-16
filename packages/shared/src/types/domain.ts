@@ -108,7 +108,7 @@ export enum VerificationMethod {
 
 /** User profile information for display in cards and lists */
 export interface GardenerCard {
-  id: string; // Privy ID
+  id: string; // Indexer gardener ID
   /**
    * Smart Account Ethereum address.
    */
