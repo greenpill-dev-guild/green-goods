@@ -2,66 +2,33 @@
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { execFileSync } from "node:child_process";
 import { resolve } from "path";
 import { defineConfig, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
-type VarlockConfigItem = {
-  value: unknown;
-  isSensitive: boolean;
-};
-
-type VarlockGraph = {
-  config: Record<string, VarlockConfigItem>;
-};
-
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
-
-function loadVarlockGraph(rootDir: string): VarlockGraph {
-  const varlockBin = resolve(rootDir, "node_modules/.bin/varlock");
-  const rawOutput = execFileSync(
-    "node",
-    [varlockBin, "load", "--path", ".env", "--format", "json-full"],
-    {
-      cwd: rootDir,
-      env: process.env,
-      encoding: "utf8",
-      stdio: "pipe",
-    }
-  );
-
-  return JSON.parse(rawOutput) as VarlockGraph;
-}
 
 export default defineConfig(async (): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
-  const varlockGraph = loadVarlockGraph(rootDir);
-  const resolvedEnv = Object.fromEntries(
-    Object.entries(varlockGraph.config).map(([key, item]) => [key, item.value])
-  ) as Record<string, unknown>;
-
-  for (const [key, value] of Object.entries(resolvedEnv)) {
-    process.env[key] = value === undefined ? "" : String(value);
-  }
+  // Resolve env schema from monorepo root even when this package script runs with a package cwd.
+  process.chdir(rootDir);
+  const [{ varlockVitePlugin }, { ENV }] = await Promise.all([
+    import("@varlock/vite-integration"),
+    import("varlock/env"),
+  ]);
 
   // Use relative paths for IPFS builds
-  const isIPFSBuild = String(resolvedEnv.VITE_USE_HASH_ROUTER) === "true";
+  const isIPFSBuild = String(ENV.VITE_USE_HASH_ROUTER) === "true";
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
   const isDevContainer = process.env.DEVCONTAINER === "true";
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
-  const envDefine = Object.fromEntries(
-    Object.entries(varlockGraph.config).map(([key, item]) => [
-      `ENV.${key}`,
-      item.value === undefined ? "undefined" : JSON.stringify(item.value),
-    ])
-  );
-  const indexerProxyTarget = String(resolvedEnv.VITE_ENVIO_INDEXER_URL ?? DEFAULT_INDEXER_URL);
+  const indexerProxyTarget = String(ENV.VITE_ENVIO_INDEXER_URL ?? DEFAULT_INDEXER_URL);
 
   const plugins = [
+    varlockVitePlugin(),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -76,12 +43,12 @@ export default defineConfig(async (): Promise<UserConfig> => {
   ];
 
   const graphqlProxy: ProxyOptions = {
-    target: process.env.NODE_ENV === "development" ? indexerProxyTarget : indexerProxyTarget,
+    target: indexerProxyTarget,
     changeOrigin: true,
-    rewrite: (path: string) => path.replace(/^\/api\/graphql/, ''),
+    rewrite: (path: string) => path.replace(/^\/api\/graphql/, ""),
     configure: (proxy) => {
-      proxy.on('error', () => {});
-    }
+      proxy.on("error", () => {});
+    },
   };
 
   return {
@@ -90,12 +57,11 @@ export default defineConfig(async (): Promise<UserConfig> => {
     envDir: rootDir,
     envPrefix: ["VITE_", "PINATA_", "SKIP_"],
     build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
-    define: envDefine,
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances
     resolve: {
-      dedupe: ['react', 'react-dom', 'posthog-js'],
-      conditions: ['import', 'module', 'browser', 'default'],
+      dedupe: ["react", "react-dom", "posthog-js"],
+      conditions: ["import", "module", "browser", "default"],
       alias: {
         "@": resolve(__dirname, "./src"),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
@@ -113,21 +79,16 @@ export default defineConfig(async (): Promise<UserConfig> => {
         "@green-goods/contracts/deployments": resolve(__dirname, "../contracts/deployments"),
         "@green-goods/contracts/abis": resolve(__dirname, "../contracts/abis"),
         "varlock/env": resolve(__dirname, "./src/lib/varlock-env.ts"),
-      }
+      },
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
-      include: [
-        'react',
-        'react-dom',
-        'posthog-js',
-        'multiformats',
-      ],
-      exclude: ['@green-goods/shared'],
+      include: ["react", "react-dom", "posthog-js", "multiformats"],
+      exclude: ["@green-goods/shared"],
     },
     // Fix CommonJS resolution for ESM packages
     ssr: {
-      noExternal: ['multiformats'],
+      noExternal: ["multiformats"],
     },
     server: {
       port: 3002,
@@ -138,8 +99,8 @@ export default defineConfig(async (): Promise<UserConfig> => {
       watch: { usePolling: true, interval: 100 },
       proxy: {
         // Proxy indexer requests to avoid CORS issues in development
-        '/api/graphql': graphqlProxy,
-      }
+        "/api/graphql": graphqlProxy,
+      },
     },
   };
 });
