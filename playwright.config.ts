@@ -123,6 +123,18 @@ export default defineConfig({
       },
     },
 
+    // iPhone 16 Pro diagnostic — layout/safe-area investigation via WebKit
+    // Run with: bun x playwright test --project=iphone-16-pro
+    {
+      name: "iphone-16-pro",
+      testMatch: /\.diagnostic\.spec\.ts$/,
+      use: {
+        ...devices["iPhone 15 Pro"],
+        viewport: { width: 402, height: 874 },
+        deviceScaleFactor: 3,
+      },
+    },
+
     // ========================================================================
     // INTEGRATION TESTING PROJECTS
     // ========================================================================
