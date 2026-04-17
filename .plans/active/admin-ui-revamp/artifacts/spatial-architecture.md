@@ -1,6 +1,6 @@
 # Spatial Architecture — Three-Body System
 
-> **Design Language**: Warm Glass — see `.claude/skills/design/language.md`
+> **Design Language**: Warm Earth — see `.claude/skills/design/language.md`
 > Material expression through spatial structure.
 
 **Created**: 2026-04-07
@@ -70,7 +70,7 @@ Sheets slide within the content zone bounds — they do NOT cover the top axis o
 
 ### Animation Specs — Spring Tokens
 
-Uses Warm Glass named spring tokens (see `language.md` § Motion System) instead of hardcoded beziers. The cockpit uses the **Standard** motion scheme by default; **Expressive** activates for hero moments (garden creation, first submission).
+Uses Warm Earth named spring tokens (see `language.md` § Motion System) instead of hardcoded beziers. The cockpit uses the **Standard** motion scheme by default; **Expressive** activates for hero moments (garden creation, first submission).
 
 ```css
 /* Spatial springs (layout, navigation, sheets) */
@@ -240,7 +240,7 @@ The existing `view-transitions.css` has directional slides (`vt-slide-in-right`,
 
 ### Workspace Color Atmospheres
 
-Each workspace tints the Z1 ground with a subtle radial gradient — felt more than seen. This is an instance of Warm Glass "Dynamic Garden Theming" (see `language.md` § Color Direction) — workspace atmospheres are the first implementation of context-derived color. Future: garden detail views could derive atmosphere from the garden's banner image.
+Each workspace tints the Z1 ground with a subtle radial gradient — felt more than seen. This is an instance of Warm Earth "Dynamic Garden Theming" (see `language.md` § Color Direction) — workspace atmospheres are the first implementation of context-derived color. Future: garden detail views could derive atmosphere from the garden's banner image.
 
 The atmosphere transitions during workspace cross-fade morph using `--spring-spatial-slow`.
 
@@ -267,7 +267,7 @@ The atmosphere is visible in the 24px margins around the canvas — the spatial 
 
 ### Lift-and-Press Interaction Language
 
-Every interactive element follows this spatial interaction language. **Warm Glass complement**: cards use lift-and-press (scale), buttons use shape morph (radius). Interactive cards get both. See `language.md` § Shape Morphing.
+Every interactive element follows this spatial interaction language. **Warm Earth complement**: cards use lift-and-press (scale), buttons use shape morph (radius). Interactive cards get both. See `language.md` § Shape Morphing.
 
 ### Shadow-as-Border Principle
 
@@ -483,9 +483,9 @@ Both cause canvas recession. Rule: need canvas context → sheet. Simple yes/no 
 
 ---
 
-## Warm Glass Quick Reference
+## Warm Earth Quick Reference
 
-This spatial architecture is the first consumer of the Warm Glass design language. Quick reference for implementation:
+This spatial architecture is the first consumer of the Warm Earth design language. Quick reference for implementation:
 
 | Dimension | Cockpit Application |
 |-----------|-------------------|

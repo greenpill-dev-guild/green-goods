@@ -1,17 +1,70 @@
 ---
 name: stitch
 description: "Stitch-to-code pipeline — fetch designs from Stitch projects, download assets, and implement using existing package components. Use when the user says 'build from Stitch', 'implement this screen', or references a Stitch project."
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["admin", "client"]
 dependencies: ["ui", "design"]
-last_updated: "2026-04-15"
-last_verified: "2026-04-15"
+last_updated: "2026-04-17"
+last_verified: "2026-04-17"
 ---
 
 # Stitch Build Skill
 
 Bridge between Google Stitch designs and codebase implementation. Fetches screens from Stitch, downloads assets locally, and implements using the project's existing component system.
+
+## Route to another skill when…
+
+- You need to WRITE a Stitch prompt or sync DESIGN.md from Stitch → user-level **`stitch-design`** skill.
+- You need the **admin** AI prompt vocabulary (stable core + never-use list) → **`.claude/skills/design/prompt-contract.md`**.
+- You need the **client** AI prompt vocabulary → **`.claude/skills/design/client-prompt-contract.md`**.
+- Stitch is not involved → **`design`** (direction) + **`ui`** (implementation).
+
+## Skill Routing Map
+
+Two Stitch skills, two scopes. This diagram shows who owns what:
+
+```text
+                      ┌─────────────────────────────────┐
+   user says...       │  User-level:  stitch-design     │
+  ─────────────       │  (~/.claude/skills/stitch-design)│
+                      │                                 │
+  "create a Stitch    │  • Prompt enhancement           │
+   prompt for X"  ───►│  • DESIGN.md synthesis          │
+  "enhance this       │  • Cross-project Stitch MCP     │
+   for Stitch"        │  • Surface routing from         │
+  "sync DESIGN.md     │    .stitch/config.json          │
+   from Stitch"       └────────────┬────────────────────┘
+                                   │
+                                   │ called by
+                                   │ project
+                                   ▼
+                      ┌─────────────────────────────────┐
+   user says...       │  Project-level:  stitch          │
+  ─────────────       │  (.claude/skills/stitch)         │
+                      │                                 │
+  "build from Stitch" │  • Fetch screens from Stitch    │
+  "implement this     │  • Download HTML + screenshots  │
+   screen"       ────►│  • Map to surface DESIGN.md     │
+  "build the Work     │  • Implement using existing      │
+   view from Stitch"  │    package components           │
+                      │  • Verify against screenshot    │
+                      └────────────┬────────────────────┘
+                                   │
+                                   │ consults
+                                   ▼
+                      ┌─────────────────────────────────┐
+                      │  design + ui skills (project)    │
+                      │  design/prompt-contract.md (admin)│
+                      │  design/client-prompt-contract.md │
+                      └─────────────────────────────────┘
+```
+
+**Rule of thumb**:
+- Hands on **prompt** → stitch-design (user skill).
+- Hands on **code** → stitch (project skill), which pulls from design + ui.
+
+The project `stitch` skill calls the user-level `stitch-design` skill for prompt work (enhance, sync). The user skill is the bridge to the Stitch MCP; the project skill is the bridge from Stitch output to Green Goods code.
 
 ## Activation
 

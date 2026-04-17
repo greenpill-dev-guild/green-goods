@@ -7,9 +7,9 @@
 
 ## Problem
 
-The admin dashboard's design system has accumulated depth — M3 strict anatomy, Warm Glass spatial model, workspace tinting, spring motion, regenerative principles — but these layers haven't been unified into a single coherent system. Critical issues remain:
+The admin dashboard's design system has accumulated depth — M3 strict anatomy, Warm Earth spatial model, workspace tinting, spring motion, regenerative principles — but these layers haven't been unified into a single coherent system. Critical issues remain:
 
-- **D1 (Critical):** Dual visual system — `canvas-route-shell` warm-glass treatment coexists with M3 solid surfaces on content areas
+- **D1 (Critical):** Dual visual system — `canvas-route-shell` warm-earth treatment coexists with M3 solid surfaces on content areas
 - **D2 (High):** AdminCard (M3 filled/elevated/outlined variants) exists but has zero consumers
 - **D3 (High):** Duplicate view tree — `views/Gardens/Garden/` (18 files, old) vs `views/Garden/` (5 files, new)
 - **A1 (High):** Hub monolith at 1375 LOC (~4.5x SRP violation)
@@ -33,7 +33,7 @@ Each layer builds on the prior layer's deliverables. Each layer's acceptance cri
 
 ```
 Layer 1: Foundation (rules)
-  ├── D1: Retire warm-glass from content surfaces
+  ├── D1: Retire warm-earth from content surfaces
   ├── Write root DESIGN.md
   ├── Write packages/admin/DESIGN.md
   ├── Write COPY_PROMPT.md
@@ -64,7 +64,7 @@ Layer 3: Polish (consistency)
 
 ## Context
 Branch: `feature/admin-ui-revamp`. The admin dashboard has a dual visual system
-problem (D1): `canvas-route-shell` applies warm-glass treatment (blur, frosted
+problem (D1): `canvas-route-shell` applies warm-earth treatment (blur, frosted
 surfaces) to content areas, while `admin-m3-tokens.css` defines solid M3 surfaces.
 This creates visual inconsistency. The decision: **glass on chrome only
 (TopContextBar/AppBar), solid M3 on all content surfaces, atmospheric gradients
@@ -82,7 +82,7 @@ on the canvas background only.**
 
 ## Deliverables
 
-### 1. Resolve D1: Retire warm-glass from content surfaces
+### 1. Resolve D1: Retire warm-earth from content surfaces
 - In `packages/admin/src/index.css`, audit every `.canvas-route-shell`,
   `.glass-surface`, and any `backdrop-filter` usage on content surfaces
 - Remove blur/frosted treatment from MainSheet, cards, list items, and all

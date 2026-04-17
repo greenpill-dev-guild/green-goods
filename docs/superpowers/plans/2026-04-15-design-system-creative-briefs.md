@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Create 4 AI-readable creative brief files (DESIGN.md + COPY_PROMPT.md) that translate the internal Warm Glass design language into a format any external design tool can consume.
+**Goal:** Create 4 AI-readable creative brief files (DESIGN.md + COPY_PROMPT.md) that translate the internal Warm Earth design language into a format any external design tool can consume.
 
 **Architecture:** Foundation + surface layered approach. Root DESIGN.md holds shared creative direction (empathy, color hierarchy, typography, shape, motion, material, regenerative constraints). Per-package DESIGN.md files hold surface-specific direction. COPY_PROMPT.md holds voice/tone for all surfaces. Files are concatenated when fed to external tools (`cat DESIGN.md packages/client/DESIGN.md | pbcopy`).
 
@@ -16,7 +16,7 @@
 
 | File | Action | Responsibility |
 |------|--------|---------------|
-| `DESIGN.md` | Create | Shared foundation — empathy, Warm Glass identity, color hierarchy (Stitch-compatible roles), typography DNA, shape system, motion tokens, material thickness, elevation, progressive disclosure, hero moments, regenerative dos/don'ts |
+| `DESIGN.md` | Create | Shared foundation — empathy, Warm Earth identity, color hierarchy (Stitch-compatible roles), typography DNA, shape system, motion tokens, material thickness, elevation, progressive disclosure, hero moments, regenerative dos/don'ts |
 | `packages/client/DESIGN.md` | Create | Client surface — browser editorial (lookbook + marketplace) and PWA field tool. Navigation patterns, imagery direction, typography split (serif browser / Inter PWA), offline behavior |
 | `packages/admin/DESIGN.md` | Create | Admin surface — M3 strict cockpit. Canvas grid layout, Plus Jakarta Sans, workspace tinting, Admin* adapter pattern, cockpit litmus test |
 | `COPY_PROMPT.md` | Create | Voice/tone guide — brand voice pillars, tone spectrum, per-surface copy patterns, terminology table, writing checklist, AI tool usage instructions |
@@ -67,7 +67,7 @@ This file uses **Stitch-compatible color vocabulary** (neutral/primary/secondary
 - The green of new growth — vivid but not neon
 - Spring physics — things settle, bounce gently, feel alive
 
-## Design Language: Warm Glass
+## Design Language: Warm Earth
 
 A synthesis of Material Design 3's warmth with Liquid Glass's structural precision. Three qualities guide every decision:
 

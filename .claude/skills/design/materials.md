@@ -58,15 +58,15 @@ Spec for future addition to `packages/shared/src/styles/theme.css`:
 }
 ```
 
-**Note**: These are spec tokens — not yet in `theme.css`. Implementation tracked separately.
+**Implementation status**: Shipped in `packages/shared/src/styles/theme.css` (light + dark + `prefers-contrast: more` fallback). Use `var(--color-material-*)` and `var(--blur-material-*)` directly; do not hardcode opacity/blur in component code.
 
 ---
 
 ## Material ↔ Paradigm Mapping
 
-Each design paradigm has a natural material pairing. Warm Glass focus variation notes describe how materials shift dynamically within each paradigm.
+Each design paradigm has a natural material pairing. Warm Earth focus variation notes describe how materials shift dynamically within each paradigm.
 
-| Paradigm | Primary Material | Warm Glass Behavior |
+| Paradigm | Primary Material | Warm Earth Behavior |
 |----------|-----------------|---------------------|
 | **Command Surface** | Thick or Solid | Focus variation: stays thick. Controls need constant readability. Canvas recedes on sheet open. |
 | **Ambient Display** | Thin or Ultrathin | Focus variation: minimal change. Always peripheral. Promotes to thick only on autonomic actor failure. |
@@ -90,70 +90,12 @@ Each material metaphor from `SKILL.md` uses materials differently:
 
 ---
 
-## Material Focus Variation
+## Behavioral Patterns Defined Elsewhere
 
-Glass material shifts dynamically as user engagement deepens. This is the Warm Glass behavioral layer — materials are not static; they respond to what the user is doing.
+These material behaviors are specified once in [language.md](./language.md) — this file uses them without re-specifying:
 
-| Engagement Level | Material Response | UI State |
-|-----------------|-------------------|----------|
-| **Browsing** | Default glass — transparent, content shows through | No sheets open, user scanning |
-| **Engaged** | Slightly more opaque, material settles | User interacting with a specific surface |
-| **Deep focus** (modal/sheet) | Opaque glass + dimming layer behind | Sheet open, canvas recedes: `scale(0.97) + opacity(0.85) + blur(2px)` |
-| **Parallel task** (side panel) | Lighter glass, no dimming | Side panel open but canvas stays visible and aware |
-
-### Dimming vs Separation
-
-Two distinct responses for different task relationships (from Liquid Glass):
-
-- **Dimming** — for modal interruption: a task that interrupts the main flow. Pair glass with a dimming layer to center attention. Example: confirmation sheet, destructive action dialog.
-- **Glass separation** — for parallel tasks: a task that happens alongside the main flow. Glass creates natural separation without breaking context. Example: settings panel, garden context sidebar.
-
-### Canvas Recession as Material Behavior
-
-When a sheet opens, the canvas responds materially — it doesn't just get a dark overlay. The canvas physically recedes:
-
-```
-Canvas resting:   scale(1.0), opacity(1.0), filter(none)
-Canvas receded:   scale(0.97), opacity(0.85), filter(blur(2px))
-```
-
-This is the spatial architecture's "Three-Body System" expressed as material behavior. The transitions use `--spring-spatial` tokens (see [language.md](./language.md) § Motion System).
-
----
-
-## Functional Glass Layer
-
-Glass is not decoration — it defines a distinct functional layer in the UI. This formalizes the relationship between glass controls and content.
-
-### Three Functional Layers
-
-```
-Layer 3: Glass Controls   — Navigation bars, toolbars, FABs
-                            Semi-transparent, floating above content
-                            Interactive, persistent, orientation-giving
-
-Layer 2: Content          — Cards, lists, media, data tables, forms
-                            Solid or thick material, primary reading surface
-                            The work — what the user came for
-
-Layer 1: Environment      — Background, ambient color, workspace atmosphere
-                            Z0-Z1 in the Z-layer model
-                            Felt more than seen — sets mood without demanding attention
-```
-
-### Relationship to Z-Layers
-
-Z-layers (Z0-Z4) are the implementation mechanism — they define shadow depth, blur amount, and stacking order. Functional layers are design intent — they define the *role* each surface plays:
-
-| Functional Layer | Z-Layer Range | Material Thickness |
-|-----------------|---------------|-------------------|
-| Glass Controls | Z3 (chrome) | Regular or Thin — transparent enough to see content through |
-| Content | Z2 (surface) | Thick or Solid — maximum readability for the work |
-| Environment | Z0-Z1 (substrate/ground) | N/A — background color, ambient wash |
-
-### Design Principle
-
-Glass controls should never compete with content for attention. They exist to serve navigation and orientation, then recede. When content needs full focus (reading, form filling, media viewing), glass controls become more transparent or hide entirely.
+- **Material Focus Variation** — browsing / engaged / deep-focus / parallel-task states, dimming-vs-separation rule, canvas recession (`scale(0.97) + opacity(0.85) + blur(2px)`). See [language.md § Material Behaviors](./language.md#material-behaviors).
+- **Functional Glass Layers** — Layer 1 Environment / Layer 2 Content / Layer 3 Glass Controls, and how they map to the Z-layer model in [spatial.md](./spatial.md). See [language.md § Functional Glass Layers](./language.md#functional-glass-layers).
 
 ---
 

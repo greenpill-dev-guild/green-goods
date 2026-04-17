@@ -217,7 +217,7 @@
 }
 
 /* ============================================================================
- * SPATIAL DESIGN TOKENS — Warm Glass design language
+ * SPATIAL DESIGN TOKENS — Warm Earth design language
  * Spring tokens, canvas recession, shadow-border edges
  * Spec: .plans/active/admin-ui-revamp/artifacts/spatial-architecture.md
  * ============================================================================ */
@@ -258,7 +258,7 @@
   --edge-disabled: 0 0 0 1px rgba(0, 0, 0, 0.03);
   --edge-focus: 0 0 0 3px rgba(31, 193, 107, 0.20);
 
-  /* Warm Glass surface tokens — encode warm-stone (light) / cool-slate (dark) intent.
+  /* Warm Earth surface tokens — encode warm-stone (light) / cool-slate (dark) intent.
    * Use instead of hardcoded rgb(255 255 255) or raw --neutral-0 in glass surfaces. */
   --admin-surface-0: 255 255 255;
   --admin-surface-50: 251 249 244;
@@ -1033,7 +1033,7 @@
 
   /**
    * M3 shape scale — tokenized radii so routes stop inlining ad-hoc `rounded-[1.6rem]` values.
-   * Values kept large-biased to preserve the warm-glass aesthetic already shipped.
+   * Values kept large-biased to preserve the warm-earth aesthetic already shipped.
    */
   :root {
     --shape-xs: 0.5rem;   /* 8px — inline tags, chips */
@@ -1045,7 +1045,7 @@
   }
 
   /**
-   * Canvas route shell — the warm-glass container used by operator routes
+   * Canvas route shell — the warm-earth container used by operator routes
    * (list loading/empty/error states, workbench frames). Replaces repeated inline
    * `rounded-[1.6rem] border border-white/70 bg-[linear-gradient(...)]` copies.
    */

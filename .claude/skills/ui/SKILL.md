@@ -1,12 +1,17 @@
 ---
 name: ui
-description: UI development - design system, TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Use for frontend design, theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
-version: "1.1.0"
+description: UI implementation — TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Implements the direction set by the `design` skill. Use for theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
+version: "1.4.1"
+design_token_version: "2.3.0"
 status: active
 packages: ["shared", "client", "admin"]
-dependencies: []
-last_updated: "2026-04-12"
-last_verified: "2026-04-12"
+dependencies: ["design"]
+last_updated: "2026-04-17"
+last_verified: "2026-04-17"
+changelog:
+  - "1.4.1 — Added 10-step New Component Runbook (single golden path replacing scattered steps). Part 3 Dialogs now names DialogShell (shared, default) and AdminDialog (admin, strict M3) with file paths. Admin Cockpit Mode trimmed to ui-implementation specifics, pointing back to design/SKILL.md § Admin Cockpit Carve-Out as canonical. Registry design_token_version synced to 2.3.0 (was drifted at 2.2.0). Spring motion tokens now real in theme.css."
+  - "1.4.0 — Added view-transitions.md (inherited from former design/implementation.md — execution details belong here, not in design). design_token_version pinned to design skill 2.3.0. Material tokens (--color-material-*, --blur-material-*) now implemented in theme.css; compliance guidance should reference them over hardcoded glass values."
+  - "1.3.0 — Part 1 replaced with pointer to design skill. Design Thinking and Green Goods Aesthetic Tokens moved wholly to design/language.md and root DESIGN.md to eliminate duplication."
 ---
 
 # UI Skill
@@ -25,6 +30,7 @@ Unified UI development guide: design thinking, component development, TailwindCS
 | **Storybook Addons** | a11y addon, theme switching, design system docs, MDX | [storybook-addons.md](./storybook-addons.md) |
 | **Storybook Testing** | visual regression, Chromatic, interaction testing, responsive stories | [storybook-testing.md](./storybook-testing.md) |
 | **i18n** | translation, react-intl, locale, RTL, Browser Translation API | [i18n.md](./i18n.md) |
+| **View Transitions** | view transition API, entity morphing, route navigation | [view-transitions.md](./view-transitions.md) |
 | **Diagrams** | mermaid, flowchart, sequence diagram, state diagram, ERD | [mermaid.md](./mermaid.md) |
 
 When invoked:
@@ -36,40 +42,28 @@ When invoked:
 
 ---
 
-## Part 1: Design Thinking
+## Part 1: Design Direction Pointer
 
-> For design direction, paradigm selection, spatial patterns, and material language, see the **`design`** skill. This section covers execution-level aesthetic guidelines.
+**Design direction, paradigm selection, spatial patterns, material language, and aesthetic tokens are owned by the `design` skill.**
 
-### Frontend Aesthetics Guidelines
+- **Warm Earth language** (shape, motion, color, material behavior, hero moments) — [`.claude/skills/design/language.md`](../design/language.md)
+- **Role hierarchy** (canvas / ink / stone / green-as-tertiary-accent) — root `DESIGN.md` + [`design/language.md` § Color Direction](../design/language.md#color-direction)
+- **Paradigm selection** (Command / Ambient / Data Landscape / Conversational / Ritual) — [`design/SKILL.md`](../design/SKILL.md)
+- **AI prompt vocabulary** for admin cockpit — [`design/prompt-contract.md`](../design/prompt-contract.md)
 
-- **Typography**: Choose fonts that are beautiful, unique, and interesting. Avoid generic fonts like Arial and Inter. Pair a distinctive display font with a refined body font.
-- **Color & Theme**: Commit to a coherent aesthetic. Use CSS variables for consistency. Dominant colors with sharp accents outperform timid, evenly-distributed palettes.
-- **Motion**: Use animations for effects and micro-interactions. CSS-only for HTML; Motion library for React. One well-orchestrated page load with staggered reveals creates more delight than scattered micro-interactions. Use scroll-triggering and hover states that surprise.
-- **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density.
-- **Backgrounds & Visual Details**: Create atmosphere and depth. Gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, grain overlays.
-
-NEVER use generic AI-generated aesthetics: overused fonts (Inter, Roboto, Arial, system fonts), purple gradients on white, predictable layouts, cookie-cutter design without context-specific character. No two designs should be the same.
-
-### Green Goods Aesthetic Tokens
-
-- **Color**: Primary green (#1FC16B) with earth-toned accents
-- **Feel**: Organic, trustworthy, action-oriented (regenerative/nature)
-- **Tokens**: Semantic tokens from `packages/shared/src/styles/theme.css`
-- **Typography**: `packages/client/src/styles/typography.css` for existing hierarchy
-- **Animation**: `packages/client/src/styles/animation.css` for existing motions
-- **Consistency**: Shared tokens across client and admin, but admin surfaces should be quieter, denser, and more utility-led than public/client surfaces
+Execution-level tokens live in `packages/shared/src/styles/theme.css`, `packages/client/src/styles/typography.css`, and `packages/client/src/styles/animation.css`. This skill focuses on *how* to express the direction in code — Tailwind, Radix, Storybook, compliance, i18n.
 
 ### Admin Cockpit Mode
 
-When the package is `admin` or the surface is an operator dashboard, cockpit, or workbench:
+The design identity (**restrained operator cockpit**, why-it's-different-from-client, vocabulary, never-use list) is canonical in [`design/SKILL.md § Admin Cockpit Carve-Out`](../design/SKILL.md#admin-cockpit-carve-out) and [`design/prompt-contract.md`](../design/prompt-contract.md). Read those first.
 
-- Use utility copy, status language, and task framing. Do not write homepage, campaign, or executive-summary copy.
-- Default layout is `PageHeader`, then one primary workspace, then optional secondary context in a sheet or rail.
-- Start from layout and flow before reaching for `Card`.
-- Cards and elevated surfaces are for records or bounded interactions, not the default page structure.
-- Prefer one dominant workspace surface per route. Avoid nested stacks of rounded bordered panels.
-- Use shared semantic tokens and one workspace accent. Do not introduce decorative gradients behind routine product UI.
-- Use the admin `/hub` route as the reference composition for new cockpit surfaces.
+UI-level implementation rules that follow from that identity:
+
+- **Layout default**: `PageHeader` → one primary workspace → optional secondary context in a sheet or rail. Start from layout and flow before reaching for `Card`.
+- **Card usage**: cards and elevated surfaces are for records or bounded interactions, not the default page structure. Prefer one dominant workspace surface per route. Avoid nested stacks of rounded bordered panels.
+- **Tokens**: shared semantic tokens + one workspace accent. No decorative gradients behind routine product UI.
+- **Reference composition**: admin `/hub` route is the canonical cockpit layout — model new admin surfaces on it.
+- **Dialogs**: use `DialogShell` from `@green-goods/shared` by default; reserve `AdminDialog` for strict M3 flows (see Part 3).
 
 ---
 
@@ -85,11 +79,37 @@ When the package is `admin` or the surface is an operator dashboard, cockpit, or
 
 ---
 
+## New Component Runbook
+
+Linear golden path from blank file to merge-ready. Collapses the rules otherwise scattered across the design + ui skills into one pass.
+
+| # | Step | Decide / Do | Source |
+|---|------|-------------|--------|
+| 1 | **Paradigm** | Command / Ambient / Data Landscape / Conversational / Ritual. Declare in a one-line comment at top of file. | [design/SKILL.md § Paradigm Selection](../design/SKILL.md#paradigm-selection) |
+| 2 | **Material** | Pick thickness by content density: ultrathin/thin = glanceable, regular = default, thick/solid = text-dense. Admin dense surfaces stay solid. | [design/materials.md](../design/materials.md) |
+| 3 | **Shape** | Fixed (badges/avatars), Capsule (primary CTA, icon button), Concentric (nested: `child_radius = parent_radius − padding`). Shape alone creates hierarchy. | [design/language.md § Shape System](../design/language.md#shape-system) |
+| 4 | **Motion** | Use `var(--spring-*)` tokens only. Never hardcode `cubic-bezier` or `duration`. Standard scheme for admin; Expressive only for client hero moments. | [design/language.md § Motion System](../design/language.md#motion-system) |
+| 5 | **Primitive** | Compose from Radix + `tv()`. Dialogs → `DialogShell` (default) or `AdminDialog` (strict M3). | [radix-ui.md](./radix-ui.md), Part 3 below |
+| 6 | **Responsive** | Container queries (`@container`, `@[480px]:`) for component-internal layout; `sm:` / `md:` for page-level. | [compliance.md](./compliance.md), [tailwindcss.md](./tailwindcss.md) |
+| 7 | **A11y** | Label every input, associate errors via `aria-describedby`, color is never the sole indicator, hit targets ≥ 44px, focus management via Radix. | [compliance.md](./compliance.md) |
+| 8 | **i18n** | Every user-facing string via `intl.formatMessage` / `FormattedMessage`. Update `en.json`, `es.json`, `pt.json`. No banned vocabulary. | [i18n.md](./i18n.md), `bun run lint:vocab` |
+| 9 | **Storybook** | CSF3 story, `tags: ["autodocs"]`, include default + loading + error + empty variants + dark mode. | [storybook.md](./storybook.md) |
+| 10 | **Review** | Run the four-lens review on self: Regenerative → Spatial → Ecosystem → Compliance. `bun run check:design-tokens` before merge. | [design/review-checklist.md](../design/review-checklist.md) |
+
+**Admin-specific shortcut**: steps 1-4 are usually pre-answered — admin = Command Surface + solid material + M3 shapes + Standard motion. Start at step 5.
+
+**Client-specific shortcut**: hero-moment components (garden creation, hypercert mint, …) override step 4 to Expressive motion and step 2 to dramatic material. See [design/language.md § Hero Moments](../design/language.md#hero-moments).
+
+---
+
 ## Part 3: Implementation Patterns
 
 All UI patterns use **Radix UI primitives** + **tailwind-variants** (`tv()`). See [radix-ui.md](./radix-ui.md) for Dialog, Select, Popover composition examples.
 
-- **Dialogs**: Radix `Dialog.*` namespace imports + `tv()` for overlay/content size variants (see [radix-ui.md](./radix-ui.md))
+- **Dialogs**: two project wrappers sit on top of Radix `Dialog.*`:
+  - **`DialogShell`** — default. `packages/shared/src/components/Dialog/ConfirmDialog.tsx`, exported from `@green-goods/shared`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `size` (`md|lg|xl|2xl`), `children`, `preventClose?`. Mobile bottom-sheet + desktop centered, `glass-floating`, handles `z-overlay`/`z-modal`. Use for all new dialogs in client and admin unless strict M3 anatomy is required.
+  - **`AdminDialog`** — admin-only, strict M3. `packages/admin/src/components/AdminDialog.tsx`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `children`, `actions?`. Uses `--m3-shape-xl`, `--m3-surface-container-high`, `--m3-elevation-3`, 32% scrim. Reserve for flows that need the M3 `actions` slot and elevation-3 centered layout (CookieJar modals remain on this wrapper).
+  - Raw Radix `Dialog.*` namespace only when neither wrapper fits — see [radix-ui.md](./radix-ui.md) for composition rules.
 - **StatusBadge**: `tv()` with `status` variants (active, pending, failed, offline) mapping to semantic colors with dark mode
 - **Cards**: Compound pattern (`Card`, `Card.Header`, `Card.Body`, `Card.Footer`) with `tv()` variants for `interactive` and `elevated` -- used for GardenCard, WorkCard, ActionCard
 - **Animations**: CSS animations (transform, opacity) via `animate-in`/`fade-in`/`slide-in` utilities. Staggered reveals with `animationDelay` for list items. Skeletons with `animate-pulse`.
@@ -157,8 +177,8 @@ All UI patterns use **Radix UI primitives** + **tailwind-variants** (`tv()`). Se
 What kind of UI work?
 |
 +--> Design direction / visual identity?
-|    --> This file, Part 1 (Design Thinking)
-|    --> Green Goods Aesthetic Tokens
+|    --> design skill (language.md, SKILL.md, prompt-contract.md)
+|    --> root DESIGN.md for role hierarchy and atmosphere
 |
 +--> New component?
 |    --> Part 2 (Component Development Workflow)

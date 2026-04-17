@@ -137,6 +137,43 @@ Q4: Is this AI/guidance interaction?
 
 ---
 
+## Closing the Loop — Automated Enforcement
+
+Each lens has a manual review pass AND a set of automated checks that can run in CI or Storybook. Wire them up so the checklist isn't the only defender.
+
+| Lens | Manual Review | Automated Enforcement | Where It Runs |
+|------|--------------|----------------------|---------------|
+| **1 — Regenerative** | Motivation filter + degen/regen pattern table | Lint rule forbidding banned terms (`streak`, `countdown`, `leaderboard`, `FOMO`) in user-facing strings; grep CI check on i18n files | `packages/shared/src/i18n/*.json`, Biome custom rule |
+| **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression for material/paradigm stories; Storybook `tags: ["paradigm-*"]` for filtering; `@container` coverage via eslint-plugin-css-query | Storybook + Chromatic CI |
+| **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / operator / evaluator / funder); vitest tests that exercise surrogate submission paths; indexer schema checks for archetype-spanning entities | `packages/*/src/**/*.spec.ts`, `e2e/*.spec.ts` |
+| **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` fail on violations; `intl-lint` for missing translation keys; Storybook `@viewport` tests at 320/768/1280; `prefers-reduced-motion` vitest matcher | Storybook addons, Vitest, CI |
+
+### Quick wiring reference
+
+```bash
+# Lens 4 — accessibility gate in Storybook CI
+bun --filter @green-goods/shared test-storybook --failOnA11yIssues
+
+# Lens 2 — visual regression on paradigm stories
+bun --filter @green-goods/shared chromatic --only-changed --exit-zero-on-changes=false
+
+# Lens 1 — lint banned vocabulary in user strings (streak/countdown/leaderboard/FOMO/…)
+bun run lint:vocab
+
+# Token-spec drift — Warm Earth spec ↔ theme.css + version coupling
+bun run check:design-tokens
+```
+
+### Why automate
+
+A checklist agents run once per PR catches what we remember. Automated checks catch what we forget. The combination is the whole system — manual review for judgment, CI for vigilance.
+
+**Implementation notes**:
+- `lint:vocab` runs `scripts/check-i18n-vocab.sh` against `packages/*/src/i18n/*.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
+- `check:design-tokens` runs `scripts/check-design-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in `theme.css` AND that `token_version` is in sync across `design/SKILL.md`, `ui/SKILL.md`, and `.claude/registry/skills.json`.
+
+---
+
 ## Related
 
 - Regenerative principles: [regenerative.md](./regenerative.md)

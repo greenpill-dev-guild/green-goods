@@ -27,6 +27,8 @@
     "env:validate": "bun run env:validate:development && bun run env:validate:test && bun run env:validate:staging && bun run env:validate:production",
     "check:codex-guidance": "node scripts/check-codex-consistency.js",
     "check:claude-guidance": "node .claude/scripts/check-guidance-consistency.js",
+    "check:design-tokens": "bash scripts/check-design-tokens.sh",
+    "lint:vocab": "bash scripts/check-i18n-vocab.sh",
     "prepare": "husky",
     "postinstall": "node scripts/fix-multiformats.js",
     "format": "npx @biomejs/biome format --write .",

@@ -47,51 +47,9 @@ Natural light over dark mode for financial UIs. Seasonal rhythms over countdown 
 
 ---
 
-## Regenerative Design Checklist
+## Checklist
 
-Run alongside Spatial Readiness and Ecosystem Readiness checklists on new components:
-
-```
-Regenerative Design Check
-|
-+-- [ ] Value flow visible?
-|      User can trace how their action contributes to the larger system
-|
-+-- [ ] Succession-appropriate?
-|      Feature complexity matches garden maturity stage
-|      (Pioneer: simple, guided / Climax: advanced, configurable)
-|
-+-- [ ] Edge-enriched?
-|      Stakeholder boundaries designed for learning, not just transaction
-|
-+-- [ ] Failure as succession?
-|      Error/empty/rejection states guide toward renewal with context
-|
-+-- [ ] Growth-agnostic?
-|      No engagement gamification, no urgency manufacturing
-|      Metrics measure impact depth, not usage breadth
-|
-+-- [ ] Capability-building?
-|      Increases community independence, not platform dependency
-|      Passes the Walkaway Test
-|
-+-- [ ] Regen aesthetic?
-|      Solarpunk visual language (natural light, earth tones, organic)
-|      No degen patterns (countdown timers, PnL dashboards, FOMO)
-|
-+-- [ ] Honorable Harvest?
-|      Takes only the data it needs
-|      Gives value back to data contributors
-|      Community controls how their data flows
-|
-+-- [ ] Ecological time?
-|      Time in UI follows ecological rhythms (seasons, growth cycles)
-|      Not platform time (epochs, sprints, streaks)
-|
-+-- [ ] Collective, not competitive?
-|      Garden-level achievements, not individual leaderboards
-|      Social features serve learning and mentorship
-```
+The standalone Regenerative Design Checklist has been folded into [review-checklist.md § Lens 1: Regenerative Design](./review-checklist.md#lens-1-regenerative-design). Run the unified checklist on PR review.
 
 ---
 

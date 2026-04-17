@@ -7,7 +7,7 @@
 
 ## Problem
 
-The design skill documents describe a "Warm Glass" system grounded in Material Design 3 and Liquid Glass — 5 material layers, spring motion, spatial depth, glass blur hierarchy. The actual admin UI is uniformly `border border-stroke-soft bg-bg-white shadow-sm` on every surface at every depth. There are 4 overlapping ways to make a card, 8+ shadow variants with no scale, z-index values from `z-30` to `z-[10000]`, 13 modals copy-pasting identical Radix Dialog boilerplate, and typography utilities that exist but go unused in 79% of cases.
+The design skill documents describe a "Warm Earth" system grounded in Material Design 3 and Liquid Glass — 5 material layers, spring motion, spatial depth, glass blur hierarchy. The actual admin UI is uniformly `border border-stroke-soft bg-bg-white shadow-sm` on every surface at every depth. There are 4 overlapping ways to make a card, 8+ shadow variants with no scale, z-index values from `z-30` to `z-[10000]`, 13 modals copy-pasting identical Radix Dialog boilerplate, and typography utilities that exist but go unused in 79% of cases.
 
 The result: every surface looks identical, there's no visual hierarchy, and the UI has no connection to the documented design language.
 

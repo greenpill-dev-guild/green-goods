@@ -6,7 +6,7 @@
 
 ## Problem
 
-Green Goods has a comprehensive, well-structured design system — 18k+ lines of CSS tokens, a Warm Glass design language, spatial architecture, M3 strict anatomy, and rich design skills. But this system is invisible to external AI design tools (Stitch, Figma AI, generic LLMs). The philosophy lives across 9+ skill files that only Claude can access.
+Green Goods has a comprehensive, well-structured design system — 18k+ lines of CSS tokens, a Warm Earth design language, spatial architecture, M3 strict anatomy, and rich design skills. But this system is invisible to external AI design tools (Stitch, Figma AI, generic LLMs). The philosophy lives across 9+ skill files that only Claude can access.
 
 **Goal:** Create a set of AI-readable creative briefs (DESIGN.md files) that any design tool can consume to produce on-brand output. Inspired by Google's Stitch approach — structured creative direction that drives consistent generation.
 
@@ -71,9 +71,9 @@ The DESIGN.md files use **Stitch-compatible color vocabulary** (neutral/primary/
 - The green of new growth — vivid but not neon
 - Spring physics — things settle, bounce gently, feel alive
 
-### Design Language: Warm Glass
+### Design Language: Warm Earth
 
-This design system is built on **Warm Glass** — a synthesis of Material Design 3's warmth with Liquid Glass's structural precision. Three qualities guide every decision:
+This design system is built on **Warm Earth** — a synthesis of Material Design 3's warmth with Liquid Glass's structural precision. Three qualities guide every decision:
 
 1. **Warmth** — Higher chroma, spring motion, shape morphing. Friendly and alive, not sterile.
 2. **Clarity** — Concentricity, functional layers, content-forward hierarchy. Structure is self-evident.
@@ -202,7 +202,7 @@ Designated celebrations where all style dimensions amplify:
 | Assessment completion | Medium — flows into impact chain |
 | Role milestone | Medium — badge reveal with organic unfurl |
 
-**Succession-aware:** Pioneer gardens get simple, encouraging expression. Intermediate gets moderate. Climax communities earn the full Warm Glass treatment. Don't over-design for communities that need onboarding simplicity.
+**Succession-aware:** Pioneer gardens get simple, encouraging expression. Intermediate gets moderate. Climax communities earn the full Warm Earth treatment. Don't over-design for communities that need onboarding simplicity.
 
 ### Do's and Don'ts
 

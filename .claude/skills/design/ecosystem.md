@@ -183,41 +183,9 @@ When one person acts on behalf of another (operator submitting for a gardener), 
 
 ---
 
-## Ecosystem Readiness Checklist
+## Checklist
 
-Run alongside the Spatial Readiness Checklist ([references.md](./references.md)) for views that involve multiple user types:
-
-```
-Ecosystem Readiness Check
-│
-├─ [ ] Multi-archetype awareness?
-│      Does this surface serve users in different archetype roles?
-│      If yes, does the UI adapt to the active archetype?
-│
-├─ [ ] Cascade visibility?
-│      When a governing action affects dependent users, is the
-│      blast radius shown before the action is confirmed?
-│
-├─ [ ] Serial chain position?
-│      If this entity flows through multiple users (attestation chain),
-│      is the current position in the chain visible?
-│
-├─ [ ] Autonomic actors surfaced?
-│      Are contract/indexer/resolver states visible as ambient
-│      indicators, not hidden behind generic loading states?
-│
-├─ [ ] Surrogate distinction?
-│      If one user can act on behalf of another, does the UI
-│      distinguish who submitted from who is attributed?
-│
-├─ [ ] Terminal user presence?
-│      Does the interface remind users that real communities are
-│      the ultimate beneficiaries, not just data points?
-│
-└─ [ ] Ecosystem tested end-to-end?
-       Has the flow been tested across archetype transitions
-       (submit → review → assess → fund), not just within one role?
-```
+The standalone Ecosystem Readiness Checklist has been folded into [review-checklist.md § Lens 3: Ecosystem Awareness](./review-checklist.md#lens-3-ecosystem-awareness). Run the unified checklist on PR review.
 
 ---
 

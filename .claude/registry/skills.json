@@ -103,6 +103,70 @@
       ]
     },
     {
+      "name": "design",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "passive",
+      "triggers": [
+        "design direction",
+        "spatial UI",
+        "adaptive surface",
+        "Warm Earth",
+        "material",
+        "glass",
+        "depth",
+        "Z-layer",
+        "elevation",
+        "concentric",
+        "squircle",
+        "capsule",
+        "shape morph",
+        "spring motion",
+        "hero moment",
+        "canvas",
+        "paradigm",
+        "command surface",
+        "ambient display",
+        "data landscape",
+        "conversational",
+        "ritual",
+        "progressive disclosure",
+        "adaptive density",
+        "persona spectrum",
+        "ecosystem",
+        "archetype",
+        "cascade",
+        "surrogate",
+        "autonomic",
+        "inclusive design",
+        "regenerative",
+        "succession",
+        "mycelium",
+        "review checklist",
+        "design review",
+        "prompt contract",
+        "client prompt",
+        "admin prompt",
+        "quick reference",
+        "cheat sheet"
+      ],
+      "dependencies": [],
+      "token_version": "2.3.0",
+      "sub_files": [
+        "language.md",
+        "prompt-contract.md",
+        "client-prompt-contract.md",
+        "quick-reference.md",
+        "spatial.md",
+        "interaction.md",
+        "materials.md",
+        "generative-ui.md",
+        "ecosystem.md",
+        "regenerative.md",
+        "review-checklist.md"
+      ]
+    },
+    {
       "name": "ui",
       "status": "active",
       "listed_in_index": true,
@@ -115,9 +179,12 @@
         "Storybook",
         "i18n",
         "diagram",
-        "mermaid"
+        "mermaid",
+        "view transitions",
+        "view transitions API"
       ],
-      "dependencies": [],
+      "dependencies": ["design"],
+      "design_token_version": "2.3.0",
       "sub_files": [
         "tailwindcss.md",
         "radix-ui.md",
@@ -126,35 +193,8 @@
         "storybook-addons.md",
         "storybook-testing.md",
         "i18n.md",
-        "mermaid.md"
-      ]
-    },
-    {
-      "name": "design",
-      "status": "active",
-      "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": [
-        "design direction",
-        "spatial UI",
-        "adaptive surface",
-        "glass",
-        "material",
-        "depth",
-        "ecosystem",
-        "inclusive design"
-      ],
-      "dependencies": ["ui"],
-      "sub_files": [
-        "spatial.md",
-        "interaction.md",
-        "materials.md",
-        "implementation.md",
-        "ecosystem.md",
-        "references.md",
-        "language.md",
-        "regenerative.md",
-        "review-checklist.md"
+        "mermaid.md",
+        "view-transitions.md"
       ]
     },
     {
@@ -345,7 +385,7 @@
     "frontend-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
-      "skills": ["react", "ui", "design", "testing"],
+      "skills": ["design", "ui", "react", "testing"],
       "user_facing": true,
       "contract_touching": false
     },

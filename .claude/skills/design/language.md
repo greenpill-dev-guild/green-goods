@@ -1,8 +1,10 @@
-# Warm Glass — Design Language
+# Warm Earth — Design Language
 
-> Material expression through spatial structure. The warmth of color, shape, and spring physics wrapped in the geometric precision of glass hierarchy and concentricity.
+> Material expression through spatial structure. The warmth of color, shape, and spring physics wrapped in the geometric precision of hierarchy and concentricity.
 
-**Warm Glass** is Green Goods' design language — a synthesis of [M3 Expressive](https://m3.material.io/) and [Liquid Glass](https://developer.apple.com/design/) that creates interfaces feeling alive, friendly, and spatially precise. It builds on the existing Adaptive Surface paradigm, Z-layer model, and material system. Those foundations remain — Warm Glass adds the visual/interaction identity.
+**Warm Earth** is Green Goods' design language — a synthesis of [M3 Expressive](https://m3.material.io/) and [Liquid Glass](https://developer.apple.com/design/) that creates interfaces feeling alive, friendly, and spatially precise. It builds on the existing Adaptive Surface paradigm, Z-layer model, and material system. Those foundations remain — the Warm Earth language adds the visual/interaction identity.
+
+This file is the **canonical token spec** for shape, motion, color, material behavior, component patterns, and hero moments. The root `DESIGN.md` sets atmosphere and role hierarchy; sibling sub-files (`spatial.md`, `interaction.md`, `materials.md`) describe paradigm-level patterns and link back here for token values.
 
 ---
 
@@ -88,7 +90,7 @@ const cardRadius = isNested
 
 ### Shape & Emphasis Hierarchy
 
-Shape communicates emphasis level. This is the core Warm Glass principle for buttons and interactive elements:
+Shape communicates emphasis level. This is the core Warm Earth principle for buttons and interactive elements:
 
 | Emphasis | Shape | Morph on Press | Use |
 |----------|-------|----------------|-----|
@@ -167,9 +169,9 @@ All animation uses named spring tokens. No hardcoded `cubic-bezier` or `duration
 | `--spring-effects-fast` | `cubic-bezier(0.2, 0, 0, 1)` | 150ms | Hover states, focus rings, tooltip appearance |
 | `--spring-effects-slow` | `cubic-bezier(0.2, 0, 0, 1)` | 500ms | Loading indicators, progress bars, ambient pulse |
 
-**CSS custom property spec** (for future implementation in theme.css):
+**Implementation** — shipped in `packages/shared/src/styles/theme.css`:
 ```css
-@theme {
+:root {
   --spring-spatial: cubic-bezier(0.16, 1, 0.3, 1) 300ms;
   --spring-spatial-fast: cubic-bezier(0.34, 1.56, 0.64, 1) 200ms;
   --spring-spatial-slow: cubic-bezier(0.16, 1, 0.3, 1) 400ms;
@@ -178,6 +180,8 @@ All animation uses named spring tokens. No hardcoded `cubic-bezier` or `duration
   --spring-effects-slow: cubic-bezier(0.2, 0, 0, 1) 500ms;
 }
 ```
+
+Each token is a `cubic-bezier(...) duration` pair — usable directly as a transition shorthand: `transition: transform var(--spring-spatial-fast);`. Reduced motion is handled globally — do not gate per-component.
 
 ### Motion Schemes
 
@@ -228,25 +232,39 @@ Shape morphing, focus variation, and scroll edge effects are purely visual polis
 
 ## Color Direction
 
+### Role Hierarchy
+
+Green Goods uses a **four-role volume hierarchy** anchored in the root `DESIGN.md`. The roles describe *how much of the screen each color occupies*, not a palette ranking:
+
+| Role | Volume | Color | Internal Token | Job |
+|------|--------|-------|----------------|-----|
+| **Neutral (canvas)** | 80-90% | Warm linen — #FAF8F5 / dark #1C1917 | `--bg-white-0`, `--bg-weak-50` | Background, breathing room |
+| **Primary (ink)** | 8-15% | Warm charcoal — #292524 / dark #F5F5F4 | `--text-strong-950` | Headings, body, core content |
+| **Secondary (stone)** | 3-5% | Earth stone — #78716C / dark #A8A29E | `--text-sub-600` | Metadata, borders, labels |
+| **Tertiary (accent)** | 1-3% | Garden green — #1FC16B | `--color-primary` | CTAs, active states, value-flow moments |
+
+**Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower — draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 degen-aesthetic failure mode.
+
+> **Token-name caveat:** the codebase label `--color-primary` is an internal string — it resolves to the **tertiary role** (green as accent). This file, root `DESIGN.md`, and AI-prompt vocabulary all use role names. The internal token stays as-is; no rename needed.
+
+### Supporting Accents
+
+Situational, not core hierarchy. Used where state communication needs a dedicated hue:
+
+| Accent | Hex | Use |
+|--------|-----|-----|
+| **Amber** | `#D97706` | Warnings, seasonal indicators, secondary warmth |
+| **Sky** | `#3B82F6` | Information, external links, evaluation/assessment context |
+
+**State colors:** Information (Sky), Warning (Amber), Error (red), Success (Tertiary green).
+
 ### Expressive Color Principles
 
-From M3 Expressive: colors should be brighter, richer, and more diverse. The upgrade path from Green Goods' current 567 RGB tokens:
+From M3 Expressive: colors should be brighter, richer, more diverse. The upgrade path from Green Goods' current RGB tokens:
 
 1. **Higher chroma** — OKLCH color space unlocks more vibrant, perceptually uniform colors across all hues. Current RGB triplets are the bridge; OKLCH tokens are the destination.
 2. **Brighter content colors** — Text and icons on tinted surfaces (on-container treatment) use higher-chroma values for visual pop without sacrificing readability.
 3. **Diverse hue range** — Dynamic color produces wider variation, so users choosing soft neutrals AND juicy vibrance both get rich experiences.
-
-### Accent Triad
-
-Three accent colors create hierarchy and distinction throughout the UI:
-
-| Role | Color | Token | Use |
-|------|-------|-------|-----|
-| **Primary** | Green (#1FC16B) | `--color-primary` | Hero actions, active states, value flow, "the thing to do" |
-| **Secondary** | Earth/Amber (#D97706) | `--color-secondary` | Supporting actions, warnings, seasonal indicators, warmth |
-| **Tertiary** | Sky/Blue (#3B82F6) | `--color-tertiary` | Information, external links, assessment/evaluation context |
-
-**Rule**: Use all three — never just primary. Secondary and tertiary create the hierarchy that makes primary meaningful. A page of green buttons has no hierarchy. Green primary + amber secondary + blue tertiary tells a story.
 
 ### Tonal Surface Hierarchy
 
@@ -285,7 +303,7 @@ Colors must read well through translucent glass surfaces. Considerations:
 
 ## Component Patterns
 
-Admin-relevant subset. Components not listed here (button groups, split button, FAB menu, carousel, slider, XS/XL buttons) are recognized in the Warm Glass vocabulary but deferred for future specification.
+Admin-relevant subset. Components not listed here (button groups, split button, FAB menu, carousel, slider, XS/XL buttons) are recognized in the Warm Earth vocabulary but deferred for future specification.
 
 ### Button System
 
@@ -510,12 +528,12 @@ From Liquid Glass: persistent navigation bars now rely more on symbols (icons) t
 
 ### Definition
 
-Hero moments are designated places where all style dimensions amplify simultaneously. They celebrate special functionality or frame content in a delightful way — the full breadth of Warm Glass combining for maximum expression.
+Hero moments are designated places where all style dimensions amplify simultaneously. They celebrate special functionality or frame content in a delightful way — the full breadth of Warm Earth combining for maximum expression.
 
 | Dimension | Standard Surface | Hero Moment |
 |-----------|-----------------|-------------|
 | **Shape** | Functional squircles and capsules | Expressive/organic shapes |
-| **Color** | Balanced accent triad | Full chroma, vibrant primary |
+| **Color** | Balanced role hierarchy (mostly canvas + ink) | Full chroma, vibrant tertiary accent |
 | **Motion** | Standard spring scheme | Expressive spring scheme (bouncy, delightful) |
 | **Typography** | Body/label weights | Display weight, variable fonts |
 | **Material** | Regular glass | Dramatic (ultrathin glass over vivid background) |
@@ -540,7 +558,7 @@ Match expressiveness to garden maturity (see [regenerative.md](./regenerative.md
 |-------------|-------------------|-----|
 | **Pioneer** | Simple, encouraging | New communities need clarity, not spectacle. Clean confirmation, gentle celebration. |
 | **Intermediate** | Moderate expression | Community is established. Celebrate milestones with spring physics and color. |
-| **Climax** | Full expression | Mature community. The full Warm Glass treatment — expressive springs, organic shapes, rich color. |
+| **Climax** | Full expression | Mature community. The full Warm Earth treatment — expressive springs, organic shapes, rich color. |
 
 This prevents over-designing for communities that need onboarding simplicity, while rewarding mature communities with the rich expressiveness they've grown into.
 
@@ -548,7 +566,7 @@ This prevents over-designing for communities that need onboarding simplicity, wh
 
 ## Design Decisions Log
 
-Decisions made during the Warm Glass synthesis (2026-04-07):
+Decisions made during the Warm Earth synthesis (2026-04-07):
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
@@ -557,7 +575,7 @@ Decisions made during the Warm Glass synthesis (2026-04-07):
 | Button shape | Context-dependent: capsule = primary, squircle = secondary | Shape as emphasis hierarchy; capsule draws eye, squircle recedes |
 | Component scope | Admin-relevant subset (3 button sizes, toolbar, sheets, nav, progress) | Focus on what the revamp needs now; extend vocabulary later |
 | Document depth | Comprehensive standalone spec | language.md should be self-contained enough to guide implementation without jumping between files |
-| Spatial arch integration | Deep — all beziers → tokens, radii → concentric types, full vocabulary alignment | Spatial architecture is the first consumer of Warm Glass; coherence matters |
+| Spatial arch integration | Deep — all beziers → tokens, radii → concentric types, full vocabulary alignment | Spatial architecture is the first consumer of Warm Earth; coherence matters |
 
 ---
 
@@ -569,5 +587,6 @@ Decisions made during the Warm Glass synthesis (2026-04-07):
 - [materials.md](./materials.md) — Material thickness system, focus variation, tokens
 - [regenerative.md](./regenerative.md) — Seven principles, succession stages, growth-agnostic design
 - [ecosystem.md](./ecosystem.md) — 15 user archetypes, cascade awareness
-- [references.md](./references.md) — Spatial Readiness Checklist (includes Warm Glass items)
-- `.plans/active/admin-ui-revamp/artifacts/spatial-architecture.md` — Three-body system applying Warm Glass
+- [SKILL.md § Appendix](./SKILL.md#appendix--inspiration--frameworks) — Inspiration library, books, designers, studios
+- [review-checklist.md](./review-checklist.md) — Unified 4-lens PR review (Regenerative + Spatial + Ecosystem + Compliance)
+- `.plans/active/admin-ui-revamp/artifacts/spatial-architecture.md` — Three-body system applying Warm Earth
