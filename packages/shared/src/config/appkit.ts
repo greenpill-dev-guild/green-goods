@@ -169,12 +169,19 @@ function getAppKitSingleton() {
   return _cachedInit;
 }
 
-/** Get the singleton AppKit instance (lazily initialized). */
+/** Get the singleton AppKit instance (lazily initialized). Returns null only in SSR. */
 export function getAppKit() {
   return getAppKitSingleton().appKit;
 }
 
-/** Get the singleton Wagmi config (lazily initialized). */
+/**
+ * Get the singleton Wagmi config (lazily initialized).
+ * Throws in SSR — all call sites are inside WagmiProvider (browser-only).
+ */
 export function getWagmiConfig() {
-  return getAppKitSingleton().wagmiConfig;
+  const config = getAppKitSingleton().wagmiConfig;
+  if (!config) {
+    throw new Error("getWagmiConfig() called before AppKit initialization or in SSR context");
+  }
+  return config;
 }

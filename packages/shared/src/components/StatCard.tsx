@@ -12,7 +12,7 @@ const colorSchemeMap: Record<ColorScheme, string> = {
   info: "bg-information-lighter text-information-dark",
 };
 
-interface StatCardProps {
+export interface StatCardProps {
   icon: React.ReactNode;
   label: string;
   value: React.ReactNode;

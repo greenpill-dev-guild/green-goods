@@ -17,6 +17,8 @@ import ActionRegistryABIJson from "@green-goods/contracts/abis/ActionRegistry.js
 import GardenAccountABIJson from "@green-goods/contracts/abis/GardenAccount.json";
 import GardenTokenABIJson from "@green-goods/contracts/abis/GardenToken.json";
 import GreenGoodsENSABIJson from "@green-goods/contracts/abis/GreenGoodsENS.json";
+import GreenWillRegistryABIJson from "@green-goods/contracts/abis/GreenWillRegistry.json";
+import GreenWillSupportRouterABIJson from "@green-goods/contracts/abis/GreenWillSupportRouter.json";
 import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
 import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
 // Import deployment configurations
@@ -32,6 +34,11 @@ export const ActionRegistryABI = ActionRegistryABIJson as Abi;
 export const EASABI = EASABIJson as Abi;
 export const GreenGoodsENSABI = GreenGoodsENSABIJson as Abi;
 export const HatsABI = IHatsABIJson as Abi;
+export const GreenWillRegistryABI = GreenWillRegistryABIJson as Abi;
+export const GreenWillSupportRouterABI = GreenWillSupportRouterABIJson as Abi;
+
+// Re-export ERC20_ALLOWANCE_ABI from abis barrel for backward compatibility
+export { ERC20_ALLOWANCE_ABI } from "./abis";
 
 /** Shape of deployment JSON files ({chainId}-latest.json) */
 interface DeploymentConfig {
@@ -100,6 +107,9 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     marketplaceAdapter: asAddress(deployment.marketplaceAdapter),
     hypercertsModule: asAddress(deployment.hypercertsModule),
     strategyHypercertFractionOffer: asAddress(deployment.strategyHypercertFractionOffer),
+    // GreenWill
+    greenWillRegistry: asAddress(deployment.greenWillRegistry),
+    greenWillSupportRouter: asAddress(deployment.greenWillSupportRouter),
   };
 }
 

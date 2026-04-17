@@ -219,6 +219,19 @@ export function createDefaultGardenVault(
   };
 }
 
+// GreenWill badge entity ID helpers
+export function getGreenWillBadgeDefinitionId(chainId: number, badgeId: string): string {
+  return `${chainId}-${badgeId}`;
+}
+
+export function getGreenWillBadgeOwnershipId(
+  chainId: number,
+  badgeId: string,
+  owner: string
+): string {
+  return `${chainId}-${badgeId}-${normalizeAddress(owner)}`;
+}
+
 export function getMarketplaceOrderId(chainId: number, orderId: bigint): string {
   return `${chainId}-${orderId.toString()}`;
 }

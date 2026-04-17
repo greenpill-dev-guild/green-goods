@@ -27,6 +27,9 @@ export interface NetworkContracts {
   marketplaceAdapter: Address;
   hypercertsModule: Address;
   strategyHypercertFractionOffer: Address;
+  // GreenWill
+  greenWillRegistry: Address;
+  greenWillSupportRouter: Address;
 }
 
 // Garden creation parameters — must match GardenToken.GardenConfig struct

@@ -400,7 +400,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } else {
       // Open modal - when wallet connects, WALLET EVENT SYNC will
       // detect the connection + stored "wallet" intent and send LOGIN_WALLET
-      getAppKit().open();
+      getAppKit()?.open();
     }
   }, [actor, isConnected, wagmiWalletAddress]);
 
@@ -411,7 +411,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // When AppKit creates the embedded wallet, wagmi detects the connection
     // and WALLET EVENT SYNC handles the LOGIN_EMBEDDED dispatch.
     saveAuthModeToStorage("embedded");
-    getAppKit().open();
+    getAppKit()?.open();
   }, [actor]);
 
   const switchToWallet = useCallback(() => {

@@ -10,6 +10,7 @@ export {
 } from "./constants";
 
 import { actionsKeys, assessmentsKeys, gardensKeys, platformKeys } from "./garden";
+import { greenWillKeys } from "./greenwill";
 import { convictionKeys, hypercertsKeys, marketplaceKeys } from "./hypercert";
 import { communityKeys, ensKeys, gardenerProfileKeys, gardenersKeys, roleKeys } from "./identity";
 import { draftsKeys, mediaKeys, offlineKeys, queueKeys } from "./misc";
@@ -41,6 +42,7 @@ export const queryKeys = {
   drafts: draftsKeys,
   hypercerts: hypercertsKeys,
   marketplace: marketplaceKeys,
+  greenWill: greenWillKeys,
 } as const;
 
 export { queryInvalidation } from "./invalidation";

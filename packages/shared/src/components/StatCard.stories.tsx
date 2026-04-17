@@ -9,12 +9,6 @@ import {
 import { MemoryRouter } from "react-router-dom";
 import { StatCard } from "./StatCard";
 
-const trendPill = (
-  <span className="inline-flex items-center rounded-full bg-success-lighter px-2 py-1 text-xs font-medium text-success-dark">
-    +18% this month
-  </span>
-);
-
 const meta: Meta<typeof StatCard> = {
   title: "Admin/UI/StatCard",
   component: StatCard,
@@ -36,14 +30,6 @@ const meta: Meta<typeof StatCard> = {
       control: "select",
       options: ["success", "warning", "error", "info"],
       description: "Visual accent treatment for the icon chip.",
-    },
-    hero: {
-      control: "boolean",
-      description: "Use the larger hero presentation.",
-    },
-    trend: {
-      control: false,
-      description: "Optional supporting trend element rendered under the value.",
     },
     to: {
       control: "text",
@@ -71,8 +57,6 @@ export const HeroMetric: Story = {
     value: "$128,420",
     titleText: "$128,420.55",
     colorScheme: "info",
-    hero: true,
-    trend: trendPill,
   },
 };
 
@@ -129,8 +113,6 @@ export const Gallery: Story = {
           label="Treasury balance"
           value="$128,420"
           colorScheme="info"
-          hero
-          trend={trendPill}
         />
         <StatCard
           icon={<RiTeamLine className="h-5 w-5" />}
