@@ -26,10 +26,13 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
 
   // Work approval errors
   notgardenoperator:
-    "You don't have permission to review work for this garden. Please contact the garden operator.",
-  actionexpired: "This action has ended and work can no longer be reviewed.",
-  actionmismatch: "This approval doesn't match the submitted work. Please try again.",
+    "Only garden owners or operators can approve or reject work. Ask a garden owner to grant operator access.",
+  actionexpired: "This action has expired. Extend the action window before approving this work.",
+  actionmismatch: "This approval no longer matches the original work submission. Refresh and try again.",
   notinworkregistry: "The work submission could not be found. It may have been removed.",
+  invalidverificationmethod:
+    "Select at least one valid verification method before approving this work.",
+  invalidconfidence: "Select a valid confidence level before approving this work.",
 
   // Network and connectivity errors
   network: "Network connection error - your work is saved offline",
