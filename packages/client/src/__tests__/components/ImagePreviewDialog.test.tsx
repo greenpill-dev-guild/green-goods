@@ -4,7 +4,7 @@
  * Tests for the image preview dialog component.
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -88,19 +88,6 @@ describe("ImagePreviewDialog", () => {
     await user.click(closeBtn);
 
     expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not close when overlay is clicked (prevented by onPointerDownOutside)", () => {
-    const onClose = vi.fn();
-
-    render(<ImagePreviewDialog isOpen onClose={onClose} images={IMAGES} initialIndex={0} />);
-
-    fireEvent.click(screen.getByTestId("image-preview-dialog"));
-
-    // The component uses onPointerDownOutside={(e) => e.preventDefault()} on Content,
-    // which prevents Radix Dialog from dismissing on outside/overlay clicks.
-    // Close is only available via the close button or Escape key.
-    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("navigates to next image with arrow button", async () => {

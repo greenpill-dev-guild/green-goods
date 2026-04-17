@@ -275,7 +275,6 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         <Dialog.Content
           className="fixed inset-0 z-[10003] flex items-center justify-center focus:outline-none"
           aria-label={resolvedLabels.dialogLabel}
-          onPointerDownOutside={(e) => e.preventDefault()}
         >
           <div className="relative w-full h-full max-w-4xl max-h-4xl m-4">
             {/* Header Controls */}
