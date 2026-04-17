@@ -11,6 +11,32 @@
 import type { SerializedFileData } from "../../types/job-queue";
 
 /**
+ * Extension-to-MIME map for files that arrive with an empty `file.type`
+ * (common on iOS camera captures, especially HEIC/HEIF). Defaulting to
+ * "image/jpeg" for every empty type corrupts HEIC round-trips because the
+ * reconstructed File advertises jpeg but the bytes are HEIF, so the browser
+ * fails to decode it and shows a broken placeholder.
+ */
+const EXT_TO_MIME: Record<string, string> = {
+  heic: "image/heic",
+  heif: "image/heif",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+  avif: "image/avif",
+  mp4: "video/mp4",
+  mov: "video/quicktime",
+  webm: "video/webm",
+};
+
+function inferMimeType(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase();
+  return (ext && EXT_TO_MIME[ext]) || "image/jpeg";
+}
+
+/**
  * Serialize a File to IndexedDB-safe format.
  * Converts File to ArrayBuffer + metadata to work around iOS Safari limitations.
  */
@@ -19,7 +45,7 @@ export async function serializeFile(file: File): Promise<SerializedFileData> {
   return {
     data: arrayBuffer,
     name: file.name,
-    type: file.type || "image/jpeg",
+    type: file.type || inferMimeType(file.name),
     lastModified: file.lastModified || Date.now(),
   };
 }
