@@ -1,9 +1,12 @@
 import { toastService } from "@green-goods/shared";
 import React from "react";
+import { useIntl } from "react-intl";
 import { Hero } from "@/components/Layout";
 import { LandingHeader } from "@/components/Navigation";
 
 const Landing: React.FC = () => {
+  const { formatMessage } = useIntl();
+
   function handleSubscribe(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -22,16 +25,25 @@ const Landing: React.FC = () => {
           throw new Error("Network response was not ok.");
         }
         toastService.success({
-          title: "Subscribed",
-          message: "Thanks for joining the waitlist!",
+          title: formatMessage({ id: "app.landing.subscribed", defaultMessage: "Subscribed" }),
+          message: formatMessage({
+            id: "app.landing.subscribedMessage",
+            defaultMessage: "Thanks for joining the waitlist!",
+          }),
           context: "email subscription",
           suppressLogging: true,
         });
       })
       .catch((error) => {
         toastService.error({
-          title: "Subscription failed",
-          message: "Something went wrong. Please try again.",
+          title: formatMessage({
+            id: "app.landing.subscriptionFailed",
+            defaultMessage: "Subscription failed",
+          }),
+          message: formatMessage({
+            id: "app.landing.subscriptionFailedMessage",
+            defaultMessage: "Something went wrong. Please try again.",
+          }),
           context: "email subscription",
           error,
         });

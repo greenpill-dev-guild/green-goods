@@ -167,6 +167,10 @@ export {
   updateToasts,
   VaultPositionCard,
   WorkCard as WorkCardComponent,
+  GardenCard as GardenCardComponent,
+  type GardenCardProps,
+  type GardenCardVariantProps,
+  gardenCardVariants,
 } from "./components/index";
 
 // ============================================================================

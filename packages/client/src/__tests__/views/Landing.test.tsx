@@ -6,8 +6,12 @@
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
-import { createElement } from "react";
+import { createElement, type ReactElement } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const renderWithIntl = (element: ReactElement) =>
+  render(createElement(IntlProvider, { locale: "en", messages: {} }, element));
 
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared", () => ({
@@ -48,14 +52,14 @@ describe("Landing View", () => {
   });
 
   it("renders landing header", () => {
-    render(createElement(Landing));
+    renderWithIntl(createElement(Landing));
 
     expect(screen.getByTestId("landing-header")).toBeInTheDocument();
     expect(screen.getByText("Green Goods")).toBeInTheDocument();
   });
 
   it("renders hero section with subscribe form", () => {
-    render(createElement(Landing));
+    renderWithIntl(createElement(Landing));
 
     expect(screen.getByTestId("hero")).toBeInTheDocument();
     expect(screen.getByTestId("subscribe-form")).toBeInTheDocument();
@@ -63,7 +67,7 @@ describe("Landing View", () => {
   });
 
   it("has the landing root container", () => {
-    const { container } = render(createElement(Landing));
+    const { container } = renderWithIntl(createElement(Landing));
 
     const root = container.querySelector("#landing-root");
     expect(root).toBeInTheDocument();

@@ -4,8 +4,8 @@ import {
   truncateAddress,
   useEnsName,
   type Work,
+  WorkCardComponent as SharedWorkCard,
 } from "@green-goods/shared";
-import { WorkCard as SharedWorkCard } from "@green-goods/shared/components";
 import React from "react";
 import { useIntl } from "react-intl";
 

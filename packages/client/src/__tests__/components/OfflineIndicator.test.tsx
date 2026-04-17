@@ -7,9 +7,13 @@
 
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, type ReactElement } from "react";
+import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+const renderWithIntl = (element: ReactElement) =>
+  render(createElement(IntlProvider, { locale: "en", messages: {} }, element));
 
 // Track mock return values so tests can override them
 const mockOfflineState = { isOnline: true };
@@ -46,7 +50,7 @@ describe("OfflineIndicator", () => {
 
   describe("offline state", () => {
     it("renders offline mode via testState prop", () => {
-      render(
+      renderWithIntl(
         createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "offline" }))
       );
 
@@ -55,7 +59,7 @@ describe("OfflineIndicator", () => {
     });
 
     it("renders the offline indicator container", () => {
-      render(
+      renderWithIntl(
         createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "offline" }))
       );
 
@@ -65,7 +69,7 @@ describe("OfflineIndicator", () => {
 
   describe("back online state", () => {
     it("renders back online message via testState", () => {
-      render(
+      renderWithIntl(
         createElement(
           MemoryRouter,
           null,
@@ -80,7 +84,7 @@ describe("OfflineIndicator", () => {
 
   describe("install nudge state", () => {
     it("renders install nudge via testState", () => {
-      render(
+      renderWithIntl(
         createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
       );
 
@@ -91,7 +95,7 @@ describe("OfflineIndicator", () => {
     it("navigates to profile when Profile button clicked", async () => {
       const user = userEvent.setup();
 
-      render(
+      renderWithIntl(
         createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
       );
 
@@ -102,7 +106,7 @@ describe("OfflineIndicator", () => {
     it("dismiss button hides the install nudge", async () => {
       const user = userEvent.setup();
 
-      render(
+      renderWithIntl(
         createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: "install" }))
       );
 
@@ -119,7 +123,7 @@ describe("OfflineIndicator", () => {
 
   describe("null state", () => {
     it("renders container but no status content when testState is null", () => {
-      render(
+      renderWithIntl(
         createElement(MemoryRouter, null, createElement(OfflineIndicator, { testState: null }))
       );
 
@@ -132,7 +136,7 @@ describe("OfflineIndicator", () => {
     it("shows offline mode when forceShow is true and online", () => {
       mockOfflineState.isOnline = true;
 
-      render(
+      renderWithIntl(
         createElement(MemoryRouter, null, createElement(OfflineIndicator, { forceShow: true }))
       );
 

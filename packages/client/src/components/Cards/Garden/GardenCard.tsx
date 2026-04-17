@@ -1,10 +1,13 @@
-import { type Address, formatAddress, type Garden, useEnsName } from "@green-goods/shared";
 import {
-  GardenCard as SharedGardenCard,
+  type Address,
+  formatAddress,
+  type Garden,
+  GardenCardComponent as SharedGardenCard,
   type GardenCardProps as SharedGardenCardProps,
   type GardenCardVariantProps,
   gardenCardVariants,
-} from "@green-goods/shared/components";
+  useEnsName,
+} from "@green-goods/shared";
 import * as React from "react";
 import { useIntl } from "react-intl";
 export { gardenCardVariants };
