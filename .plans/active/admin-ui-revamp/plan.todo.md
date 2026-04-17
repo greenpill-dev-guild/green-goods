@@ -233,27 +233,41 @@ Core state management and transitions done. Mobile polish and promotions remaini
 - [x] Accessibility audit — AdminDialog close label i18n'd (`app.common.close`); Canvas sheets (RightSheet, LeftSheet, BottomSheet) use native `<dialog>` providing focus trap + Escape; icon-only buttons (AppBar, NavigationBar, AdminSearchToolbar, AdminDialog, DialogShell, ConfirmDialog) all aria-labelled
 - [ ] i18n formalization (~15 strings for empty states, toasts, palette labels)
 
-### Phase 3: Public Platform (greengoods.app) — NOT STARTED
+### Phase 3: Public Platform (greengoods.app) — ~90% SHIPPED
 
-Extend `packages/client` with public routes (no new package). Introduce PublicShell layout route with SiteHeader for public routes. Revise PlatformRouter to branch on isStandalone. Make AppShell display-mode aware.
+Extended `packages/client` with public routes (no new package). PublicShell layout route with SiteHeader renders public routes; PlatformRouter branches on isStandalone; AppShell is display-mode aware.
 
-> **Rollback strategy:** Phase 3 modifies the production gardener PWA. All new routes are lazy-loaded and behind PublicShell — a bad deploy can be reverted with `git revert` of the Phase 3 merge commit.
+> **Rollback strategy:** Phase 3 modifies the production gardener PWA. All new routes are lazy-loaded and behind PublicShell — a bad deploy can be reverted with `git revert` of the Phase 3 merge commits (a02dba49, a3ac2117, 266a2267, 51910311).
 
-- [ ] Create PublicShell layout route (SiteHeader + Outlet, outside RequireAuth)
-- [ ] Create SiteHeader component (desktop: Gardens | Actions | Impact | Fund | Connect Wallet; mobile: hamburger drawer)
-- [ ] Create AuthHeader component (browser-mode top nav for auth'd routes)
-- [ ] Revise PlatformRouter to branch on isStandalone (browser→/gardens, PWA→/home)
-- [ ] Refactor AppShell for display-mode awareness
-- [ ] Create /fund single-view page (stats + positions + gallery)
-- [ ] Create VaultDepositDialog (composing shared hooks)
-- [ ] Create /gardens public gallery with Join CTA
-- [ ] Create /gardens/:id public garden detail (read-only)
-- [ ] Create /impact aggregate view
-- [ ] Implement contextual install prompt (useInstallGuidance integration)
-- [ ] Create Garden wizard (reuse useCreateGardenStore, new shell)
-- [ ] Create /actions public gallery view
-- [ ] Create CookieJarDepositDialog (deposit-only)
-- [ ] Add i18n for public site strings (~40 strings)
+- [x] Create PublicShell layout route — `packages/client/src/routes/PublicShell.tsx`
+- [x] Create SiteHeader component — `packages/client/src/components/Navigation/SiteHeader.tsx` (desktop: Gardens | Actions | Impact | Fund | Connect Wallet; mobile: hamburger drawer)
+- [ ] Create AuthHeader component — **not built**; SiteHeader currently covers both public and auth'd states. Decide whether to split or keep merged.
+- [x] Revise PlatformRouter to branch on isStandalone — `packages/client/src/routes/PlatformRouter.tsx`
+- [x] Refactor AppShell for display-mode awareness — `packages/client/src/routes/AppShell.tsx`
+- [x] Create /fund single-view page — `packages/client/src/views/Public/Fund.tsx`
+- [x] Create VaultDepositDialog (composing shared hooks) — shipped in commit a3ac2117
+- [x] Create /gardens public gallery with Join CTA — `packages/client/src/views/Public/Gardens.tsx`
+- [x] Create /gardens/:id public garden detail (read-only) — `packages/client/src/views/Public/GardenDetail.tsx`
+- [x] Create /impact aggregate view — `packages/client/src/views/Public/Impact.tsx`
+- [x] Implement contextual install prompt — `packages/client/src/views/Profile/InstallCta.tsx` uses `useInstallGuidance`
+- [ ] Create Garden wizard (reuse useCreateGardenStore, new shell) — **not built**; admin's CreateGarden view still owns the wizard. Decide whether the public site needs its own shell or reuses admin.
+- [x] Create /actions public gallery view — `packages/client/src/views/Public/Actions.tsx`
+- [ ] Create CookieJarDepositDialog (deposit-only) — **not built**; D37 scopes /fund to vault deposit only, so this may be dropped.
+- [x] Add i18n for public site strings — ~36 keys added to en/es/pt for public surfaces
+
+**Bonus items delivered beyond original plan:**
+- Hypercert public gallery (commit a3ac2117)
+- Profile Badges page (`views/Profile/Badges.tsx`, 328 lines)
+- WorkDashboard decomposition (CompletedTab, PendingTab, WorkListTab, work-dashboard-utils.ts)
+- GreenWill badge framework foundations (commit 8d99ce23 — contracts + shared)
+- TDD evaluation framework for Phases 1b/2/3 (commit 1cff923b)
+- Offline-first + public-page tests (commit 2de79536)
+- Client DESIGN.md creative brief (commit 0ef1a9cf)
+
+**Remaining Phase 3 gaps (3 items):**
+1. AuthHeader component (or decision to keep SiteHeader dual-purpose)
+2. Public-site Create Garden wizard shell (or decision to keep admin-only)
+3. CookieJarDepositDialog (or formal drop per D37)
 
 ## Pre-existing Test Failures (Phase 2 tail — inspection before Phase 3)
 
