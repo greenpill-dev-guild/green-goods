@@ -23,8 +23,8 @@ import {
   type AssessmentWorkflowParams,
   createAssessmentMachine,
 } from "../../workflows/createAssessment";
-import { queryInvalidation } from "../../config/query-keys";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useAssessmentDraft } from "./useAssessmentDraft";
 
 export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../../types/domain";
@@ -386,14 +386,18 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   const isSuccess = state.matches("success");
   const gardenId = state.context.assessmentParams?.gardenId;
 
-  // Delayed re-invalidation covers EAS GraphQL indexer lag (~5-15s after tx confirmation)
-  const { start: scheduleIndexerRefetch } = useDelayedInvalidation(() => {
-    if (!gardenId) return;
-    const keys = queryInvalidation.invalidateAssessments(gardenId, chainIdRef.current);
-    for (const key of keys) {
-      queryClient.invalidateQueries({ queryKey: key });
-    }
-  }, 10_000);
+  // Progressive re-invalidation covers EAS GraphQL indexer lag at 2s / 5s / 15s — matches
+  // the pattern used by vault mutations (useVaultDeposit, useHarvest, useEmergencyPause).
+  const { start: scheduleIndexerRefetch } = useProgressiveInvalidation(
+    useCallback(() => {
+      if (!gardenId) return;
+      const keys = queryInvalidation.invalidateAssessments(gardenId, chainIdRef.current);
+      for (const key of keys) {
+        queryClient.invalidateQueries({ queryKey: key });
+      }
+    }, [gardenId, queryClient]),
+    INDEXER_LAG_SCHEDULE_MS
+  );
   useEffect(() => {
     if (!isSuccess) return;
 
