@@ -1341,10 +1341,12 @@ describe("queryInvalidation", () => {
   // ------------------------------------------
 
   describe("invalidateAssessments", () => {
-    it("returns byGardenBase when gardenAddress and chainId are provided", () => {
+    it("returns assessments byGardenBase plus gardens keys when gardenAddress and chainId are provided", () => {
       const result = queryInvalidation.invalidateAssessments(TEST_GARDEN, TEST_CHAIN_ID);
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(3);
       expect(result).toContainEqual(queryKeys.assessments.byGardenBase(TEST_GARDEN, TEST_CHAIN_ID));
+      expect(result).toContainEqual(queryKeys.gardens.byChain(TEST_CHAIN_ID));
+      expect(result).toContainEqual(queryKeys.gardens.detail(TEST_GARDEN, TEST_CHAIN_ID));
     });
 
     it("returns assessments.all when params are missing", () => {

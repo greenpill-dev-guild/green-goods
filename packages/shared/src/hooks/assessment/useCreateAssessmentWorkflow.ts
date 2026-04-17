@@ -24,6 +24,7 @@ import {
   createAssessmentMachine,
 } from "../../workflows/createAssessment";
 import { queryInvalidation } from "../../config/query-keys";
+import { useDelayedInvalidation } from "../utils/useTimeout";
 import { useAssessmentDraft } from "./useAssessmentDraft";
 
 export type { AssessmentWorkflowParams, CreateAssessmentForm } from "../../types/domain";
@@ -384,6 +385,15 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
   // Invalidate assessment queries and clear draft when workflow reaches success state
   const isSuccess = state.matches("success");
   const gardenId = state.context.assessmentParams?.gardenId;
+
+  // Delayed re-invalidation covers EAS GraphQL indexer lag (~5-15s after tx confirmation)
+  const { start: scheduleIndexerRefetch } = useDelayedInvalidation(() => {
+    if (!gardenId) return;
+    const keys = queryInvalidation.invalidateAssessments(gardenId, chainIdRef.current);
+    for (const key of keys) {
+      queryClient.invalidateQueries({ queryKey: key });
+    }
+  }, 10_000);
   useEffect(() => {
     if (!isSuccess) return;
 
@@ -400,11 +410,14 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
         }
       }
 
-      // Invalidate assessment queries so the list updates immediately
+      // Immediate invalidation for admin's direct EAS query
       const keys = queryInvalidation.invalidateAssessments(gardenId, chainIdRef.current);
       for (const key of keys) {
         queryClient.invalidateQueries({ queryKey: key });
       }
+
+      // Second pass after indexer lag so gardens/assessments data reflects the new attestation
+      scheduleIndexerRefetch();
     };
 
     void finalizeSuccess();
@@ -412,7 +425,15 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
     return () => {
       cancelled = true;
     };
-  }, [isSuccess, clearDraft, peekDraft, notifyDraftPersistenceIssue, gardenId, queryClient]);
+  }, [
+    isSuccess,
+    clearDraft,
+    peekDraft,
+    notifyDraftPersistenceIssue,
+    gardenId,
+    queryClient,
+    scheduleIndexerRefetch,
+  ]);
 
   return {
     state,

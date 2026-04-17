@@ -131,7 +131,11 @@ export const queryInvalidation = {
 
   invalidateAssessments: (gardenAddress?: string, chainId?: number) => {
     if (gardenAddress && chainId) {
-      return [queryKeys.assessments.byGardenBase(gardenAddress, chainId)];
+      return [
+        queryKeys.assessments.byGardenBase(gardenAddress, chainId),
+        queryKeys.gardens.byChain(chainId),
+        queryKeys.gardens.detail(gardenAddress, chainId),
+      ];
     }
     return [queryKeys.assessments.all];
   },
