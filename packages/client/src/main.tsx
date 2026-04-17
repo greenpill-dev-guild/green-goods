@@ -5,6 +5,7 @@ import {
   DEFAULT_CHAIN_ID,
   initGlobalErrorHandlers,
   initTheme,
+  serviceWorkerManager,
   updateToasts,
   useServiceWorkerUpdate,
 } from "@green-goods/shared";
@@ -44,6 +45,11 @@ if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
         // ignore
       });
   }
+}
+
+// After VitePWA auto-registers the service worker, attach the background-sync shim.
+if (import.meta.env.PROD || import.meta.env.VITE_ENABLE_SW_DEV === "true") {
+  serviceWorkerManager.register();
 }
 
 /**

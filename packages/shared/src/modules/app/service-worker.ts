@@ -30,7 +30,8 @@ class ServiceWorkerManager {
   }
 
   /**
-   * Register the service worker and set up sync capabilities
+   * Attach to the active service worker registration (registered by VitePWA)
+   * and set up message + controllerchange listeners for background sync.
    */
   async register(): Promise<boolean> {
     if (!this.isSupported) {
@@ -39,18 +40,15 @@ class ServiceWorkerManager {
     }
 
     try {
-      this.registration = await navigator.serviceWorker.register("/sw.js", {
-        scope: "/",
-      });
+      // VitePWA owns the actual navigator.serviceWorker.register() call.
+      // Wait for its registration to be active before attaching listeners.
+      this.registration = await navigator.serviceWorker.ready;
 
       // Set up message handler for background sync notifications
       navigator.serviceWorker.removeEventListener("message", this.boundMessageHandler);
       navigator.serviceWorker.removeEventListener("controllerchange", this.handleControllerChange);
       navigator.serviceWorker.addEventListener("message", this.boundMessageHandler);
       navigator.serviceWorker.addEventListener("controllerchange", this.handleControllerChange);
-
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.ready;
 
       track("service_worker_registered", {
         scope: this.registration.scope,
@@ -201,34 +199,3 @@ class ServiceWorkerManager {
 
 // Export singleton instance
 export const serviceWorkerManager = new ServiceWorkerManager();
-
-// Auto-register service worker only in production, or when explicitly enabled for tests
-if (typeof window !== "undefined") {
-  const enableDevServiceWorker = (import.meta as any).env?.VITE_ENABLE_SW_DEV === "true";
-
-  if ((import.meta as any).env?.PROD || enableDevServiceWorker) {
-    serviceWorkerManager.register();
-  }
-
-  // In development (and when not explicitly enabled), ensure no SW interferes with HMR
-  if ((import.meta as any).env?.DEV && !enableDevServiceWorker && "serviceWorker" in navigator) {
-    // Best-effort cleanup: unregister existing SWs and clear caches
-    navigator.serviceWorker
-      .getRegistrations()
-      .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
-      .catch((error) => {
-        // Log but don't block - this is best-effort cleanup
-        logger.warn("[ServiceWorker] Failed to unregister existing workers", { error });
-      });
-    // Clear caches that could serve stale assets
-    if ("caches" in window) {
-      caches
-        .keys()
-        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-        .catch((error) => {
-          // Log but don't block - this is best-effort cleanup
-          logger.warn("[ServiceWorker] Failed to clear caches", { error });
-        });
-    }
-  }
-}
