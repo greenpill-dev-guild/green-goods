@@ -1,6 +1,7 @@
 import { cn, useApp, useOffline } from "@green-goods/shared";
 import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 interface OfflineIndicatorProps {
@@ -17,6 +18,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   testState,
 }) => {
   const navigate = useNavigate();
+  const intl = useIntl();
   const { isOnline } = useOffline();
   const { isMobile, isInstalled } = useApp();
 
@@ -66,7 +68,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             aria-label="App is in offline mode"
           >
             <RiCloudOffLine size={8} aria-hidden="true" />
-            <span>Offline Mode</span>
+            <span>{intl.formatMessage({ id: "app.offline.mode", defaultMessage: "Offline Mode" })}</span>
           </div>
         );
 
@@ -79,7 +81,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             aria-label="App is back online"
           >
             <RiCheckLine size={10} aria-hidden="true" />
-            <span>Back Online</span>
+            <span>{intl.formatMessage({ id: "app.offline.backOnline", defaultMessage: "Back Online" })}</span>
           </div>
         );
 
@@ -90,7 +92,12 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             role="status"
           >
             <RiDownloadLine size={10} className="text-primary" aria-hidden="true" />
-            <span className="text-[10px]">Install for full experience.</span>
+            <span className="text-[10px]">
+              {intl.formatMessage({
+                id: "app.offline.installPrompt",
+                defaultMessage: "Install for full experience.",
+              })}
+            </span>
             <button
               type="button"
               onClick={() => navigate("/profile", { viewTransition: true })}
@@ -113,7 +120,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       default:
         return null;
     }
-  }, [displayPriority, navigate]);
+  }, [displayPriority, intl, navigate]);
 
   const containerClasses = cn(
     "fixed top-0 left-0 right-0 z-30 transition-all duration-500 ease-out pointer-events-none",
