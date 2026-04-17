@@ -1,6 +1,7 @@
 import { RiCloseLine } from "@remixicon/react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { type ComponentType, type ReactNode } from "react";
+import { useIntl } from "react-intl";
 import { cn } from "@green-goods/shared";
 
 // ============================================================================
@@ -47,13 +48,14 @@ export function AdminDialog({
   actions,
   className,
 }: AdminDialogProps) {
+  const { formatMessage } = useIntl();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         {/* Scrim */}
         <Dialog.Overlay
           className={cn(
-            "fixed inset-0 z-40",
+            "fixed inset-0 z-overlay",
             "bg-[rgb(var(--m3-on-surface)/0.32)]",
             // Fade animation
             "data-[state=open]:animate-in data-[state=open]:fade-in-0",
@@ -65,7 +67,7 @@ export function AdminDialog({
         <Dialog.Content
           className={cn(
             // Positioning: fixed centered
-            "fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
+            "fixed left-1/2 top-1/2 z-modal -translate-x-1/2 -translate-y-1/2",
             // Width constraints (Rule 14: mobile safety)
             "w-full max-w-[calc(100vw-2rem)] sm:max-w-md",
             // M3 shape: corner-extra-large (28dp)
@@ -96,7 +98,7 @@ export function AdminDialog({
               "text-[rgb(var(--m3-on-surface-variant))]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]"
             )}
-            aria-label="Close dialog"
+            aria-label={formatMessage({ id: "app.common.close" })}
           >
             <RiCloseLine className="h-6 w-6" aria-hidden />
           </Dialog.Close>

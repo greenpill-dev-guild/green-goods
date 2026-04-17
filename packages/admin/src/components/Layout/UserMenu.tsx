@@ -78,7 +78,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
           align="end"
           sideOffset={12}
           className={cn(
-            "z-50 min-w-[220px] rounded-2xl bg-bg-white p-2 shadow-lg",
+            "z-overlay min-w-[220px] rounded-2xl bg-bg-white p-2 shadow-lg",
             "border border-stroke-soft",
             "animate-in fade-in-0 zoom-in-95",
             "data-[side=top]:slide-in-from-bottom-2"

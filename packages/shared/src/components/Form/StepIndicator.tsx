@@ -19,7 +19,7 @@ export function StepIndicator({ steps, currentStep, onStepClick }: StepIndicator
   const { formatMessage } = useIntl();
   return (
     <div
-      className="sticky top-0 z-30 border-b border-stroke-soft bg-bg-white shadow-sm"
+      className="sticky top-0 z-nav border-b border-stroke-soft bg-bg-white shadow-sm"
       data-testid="step-indicator"
     >
       {/* Step progress indicators */}

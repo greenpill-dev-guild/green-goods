@@ -28,7 +28,8 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
   notgardenoperator:
     "Only garden owners or operators can approve or reject work. Ask a garden owner to grant operator access.",
   actionexpired: "This action has expired. Extend the action window before approving this work.",
-  actionmismatch: "This approval no longer matches the original work submission. Refresh and try again.",
+  actionmismatch:
+    "This approval no longer matches the original work submission. Refresh and try again.",
   notinworkregistry: "The work submission could not be found. It may have been removed.",
   invalidverificationmethod:
     "Select at least one valid verification method before approving this work.",

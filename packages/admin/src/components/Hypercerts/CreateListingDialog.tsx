@@ -2,13 +2,13 @@ import {
   type Address,
   Alert,
   type CreateListingParams,
+  DialogShell,
   LISTING_DEFAULTS,
   type ListingStep,
   logger,
   useCreateListing,
 } from "@green-goods/shared";
-import * as Dialog from "@radix-ui/react-dialog";
-import { RiCheckLine, RiCloseLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
+import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -106,195 +106,167 @@ export function CreateListingDialog({
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={handleClose}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200" />
-        <Dialog.Content
-          className="fixed z-50 w-full max-w-lg overflow-hidden bg-bg-white shadow-2xl focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-2xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-2xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom duration-300"
-          onPointerDownOutside={(e) => {
-            if (isCreating) e.preventDefault();
-          }}
-          onEscapeKeyDown={(e) => {
-            if (isCreating) e.preventDefault();
-          }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-stroke-soft p-4">
-            <Dialog.Title className="flex items-center gap-2 text-lg font-semibold text-text-strong">
-              <RiExchangeDollarLine className="h-5 w-5 text-primary-base" />
-              {formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
-            </Dialog.Title>
-            {!isCreating && (
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-text-soft transition hover:bg-bg-soft"
-                >
-                  <RiCloseLine className="h-5 w-5" />
-                </button>
-              </Dialog.Close>
+    <DialogShell
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) handleClose();
+      }}
+      size="lg"
+      title={formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
+      icon={<RiExchangeDollarLine className="h-5 w-5 text-primary-base" />}
+      iconContainerClassName="bg-primary-alpha-10"
+      preventClose={isCreating}
+      hideCloseButton={isCreating}
+    >
+      {phase === "configure" ? (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {/* Price per unit */}
+          <div>
+            <label className="block text-sm font-medium text-text-strong mb-1">
+              {formatMessage({
+                id: "app.listing.pricePerUnit",
+                defaultMessage: "Price per Unit (ETH)",
+              })}
+            </label>
+            <input
+              type="text"
+              {...register("pricePerUnit", {
+                required: formatMessage({
+                  id: "app.listing.priceRequired",
+                  defaultMessage: "Price is required",
+                }),
+              })}
+              className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
+              placeholder="0.00001"
+            />
+            {formErrors.pricePerUnit && (
+              <p className="mt-1 text-xs text-error-base">{formErrors.pricePerUnit.message}</p>
             )}
           </div>
 
-          {/* Content */}
-          <div className="p-4 sm:p-6">
-            {phase === "configure" ? (
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                {/* Price per unit */}
-                <div>
-                  <label className="block text-sm font-medium text-text-strong mb-1">
-                    {formatMessage({
-                      id: "app.listing.pricePerUnit",
-                      defaultMessage: "Price per Unit (ETH)",
-                    })}
-                  </label>
-                  <input
-                    type="text"
-                    {...register("pricePerUnit", {
-                      required: formatMessage({
-                        id: "app.listing.priceRequired",
-                        defaultMessage: "Price is required",
-                      }),
-                    })}
-                    className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-                    placeholder="0.00001"
-                  />
-                  {formErrors.pricePerUnit && (
-                    <p className="mt-1 text-xs text-error-base">
-                      {formErrors.pricePerUnit.message}
-                    </p>
+          {/* Min / Max units row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-text-strong mb-1">
+                {formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min Units" })}
+              </label>
+              <input
+                type="text"
+                {...register("minUnits")}
+                className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
+                placeholder="1"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text-strong mb-1">
+                {formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max Units" })}
+              </label>
+              <input
+                type="text"
+                {...register("maxUnits")}
+                className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
+                placeholder="Unlimited"
+              />
+            </div>
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="block text-sm font-medium text-text-strong mb-1">
+              {formatMessage({ id: "app.listing.duration", defaultMessage: "Duration" })}
+            </label>
+            <select
+              {...register("durationDays", { valueAsNumber: true })}
+              className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
+            >
+              {DURATION_VALUES.map((days) => (
+                <option key={days} value={days}>
+                  {formatMessage(
+                    { id: "app.listing.durationDays", defaultMessage: "{days} days" },
+                    { days }
                   )}
-                </div>
+                </option>
+              ))}
+            </select>
+          </div>
 
-                {/* Min / Max units row */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-text-strong mb-1">
-                      {formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min Units" })}
-                    </label>
-                    <input
-                      type="text"
-                      {...register("minUnits")}
-                      className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-                      placeholder="1"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-text-strong mb-1">
-                      {formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max Units" })}
-                    </label>
-                    <input
-                      type="text"
-                      {...register("maxUnits")}
-                      className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-                      placeholder="Unlimited"
-                    />
-                  </div>
-                </div>
+          {/* Sell leftover toggle */}
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              {...register("sellLeftover")}
+              className="h-4 w-4 rounded border-stroke-soft text-primary-base focus:ring-primary-base"
+            />
+            <span className="text-sm text-text-sub">
+              {formatMessage({
+                id: "app.listing.sellLeftover",
+                defaultMessage: "Sell leftover fraction",
+              })}
+            </span>
+          </label>
 
-                {/* Duration */}
-                <div>
-                  <label className="block text-sm font-medium text-text-strong mb-1">
-                    {formatMessage({ id: "app.listing.duration", defaultMessage: "Duration" })}
-                  </label>
-                  <select
-                    {...register("durationDays", { valueAsNumber: true })}
-                    className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-                  >
-                    {DURATION_VALUES.map((days) => (
-                      <option key={days} value={days}>
-                        {formatMessage(
-                          { id: "app.listing.durationDays", defaultMessage: "{days} days" },
-                          { days }
-                        )}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
+            >
+              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+            </button>
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
+            >
+              {formatMessage({
+                id: "app.listing.signAndList",
+                defaultMessage: "Sign & List",
+              })}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="space-y-4">
+          <ListingProgress step={step} />
 
-                {/* Sell leftover toggle */}
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    {...register("sellLeftover")}
-                    className="h-4 w-4 rounded border-stroke-soft text-primary-base focus:ring-primary-base"
-                  />
-                  <span className="text-sm text-text-sub">
-                    {formatMessage({
-                      id: "app.listing.sellLeftover",
-                      defaultMessage: "Sell leftover fraction",
-                    })}
-                  </span>
-                </label>
+          {error && <Alert variant="error">{error.message}</Alert>}
 
-                {/* Actions */}
-                <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
-                  <Dialog.Close asChild>
-                    <button
-                      type="button"
-                      className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
-                    >
-                      {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-                    </button>
-                  </Dialog.Close>
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1.5 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
-                  >
-                    {formatMessage({
-                      id: "app.listing.signAndList",
-                      defaultMessage: "Sign & List",
-                    })}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              /* Progress phase */
-              <div className="space-y-4">
-                <ListingProgress step={step} />
+          {step === "done" && (
+            <Alert variant="success">
+              {formatMessage({
+                id: "app.listing.createdSuccessfully",
+                defaultMessage: "Listing created successfully!",
+              })}
+            </Alert>
+          )}
 
-                {error && <Alert variant="error">{error.message}</Alert>}
-
-                {step === "done" && (
-                  <Alert variant="success">
-                    {formatMessage({
-                      id: "app.listing.createdSuccessfully",
-                      defaultMessage: "Listing created successfully!",
-                    })}
-                  </Alert>
-                )}
-
-                <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
-                  {(step === "done" || step === "error") && (
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
-                    >
-                      {step === "done"
-                        ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
-                        : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-                    </button>
-                  )}
-                  {step === "error" && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        reset();
-                        setPhase("configure");
-                      }}
-                      className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
-                    >
-                      {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-                    </button>
-                  )}
-                </div>
-              </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
+            {(step === "done" || step === "error") && (
+              <button
+                type="button"
+                onClick={handleClose}
+                className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
+              >
+                {step === "done"
+                  ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
+                  : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+              </button>
+            )}
+            {step === "error" && (
+              <button
+                type="button"
+                onClick={() => {
+                  reset();
+                  setPhase("configure");
+                }}
+                className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
+              >
+                {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
+              </button>
             )}
           </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </div>
+      )}
+    </DialogShell>
   );
 }
 

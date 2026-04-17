@@ -168,7 +168,7 @@ export const DatePicker = forwardRef<HTMLButtonElement, DatePickerProps>(
               align="start"
               sideOffset={4}
               className={cn(
-                "z-50 rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
+                "z-overlay rounded-xl border border-stroke-soft-200 bg-bg-white-0 p-3 shadow-lg",
                 "data-[state=open]:animate-in data-[state=closed]:animate-out",
                 "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
                 "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",

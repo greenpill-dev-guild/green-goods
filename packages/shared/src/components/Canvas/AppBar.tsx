@@ -171,7 +171,7 @@ export function AppBar({
                 align="end"
                 sideOffset={4}
                 className={cn(
-                  "z-50 rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
+                  "z-overlay rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
                   "text-sm text-text-sub",
                   "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
                   "duration-200"

@@ -205,7 +205,7 @@ export function CommunityTab({
                               {formatAddress(entry.firstMember)}
                             </AdminButton>
                           ) : (
-                            <p className="mt-1 text-xs text-text-soft">
+                            <p className="mt-1 body-xs text-text-soft">
                               {formatMessage(
                                 { id: "app.admin.roles.empty" },
                                 { role: roleLabel.plural }
@@ -227,7 +227,7 @@ export function CommunityTab({
                     <h3 className="label-md text-text-strong sm:text-lg">
                       {formatMessage({ id: "app.garden.detail.community.membersTitle" })}
                     </h3>
-                    <p className="mt-1 text-sm text-text-sub">
+                    <p className="mt-1 body-sm text-text-sub">
                       {formatMessage({ id: "app.garden.detail.community.membersDescription" })}
                     </p>
                   </div>
@@ -319,7 +319,7 @@ export function CommunityTab({
               </Card.Header>
               <Card.Body className="space-y-2">
                 <AdminCard variant="outlined" className="px-3 py-2">
-                  <p className="text-xs text-text-soft">
+                  <p className="body-xs text-text-soft">
                     {formatMessage({ id: "app.treasury.totalValueLocked" })}
                   </p>
                   <p className="mt-1 text-sm font-semibold text-text-strong">

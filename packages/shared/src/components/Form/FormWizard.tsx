@@ -64,7 +64,7 @@ export function FormWizard({
   }, [currentStep, scheduleTimeout]);
 
   const footer = (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-30 px-3 pb-2 pt-2 sm:px-6 sm:pb-4 min-[600px]:bottom-6">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-nav px-3 pb-2 pt-2 sm:px-6 sm:pb-4 min-[600px]:bottom-6">
       <div className="pointer-events-auto mx-auto max-w-6xl">
         <div className="rounded-[1.35rem] border border-white/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(248,246,241,0.9)_100%)] px-4 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.76),0_18px_38px_rgba(38,28,18,0.12)] supports-[backdrop-filter]:backdrop-blur-xl sm:px-6 sm:py-4">
           {showValidationMessage && (

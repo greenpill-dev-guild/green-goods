@@ -78,7 +78,7 @@ export function ImpactTab({
                   <h3 className="label-md text-text-strong sm:text-lg">
                     {formatMessage({ id: "app.garden.detail.impact.hypercertHighlights" })}
                   </h3>
-                  <p className="mt-1 text-sm text-text-sub">
+                  <p className="mt-1 body-sm text-text-sub">
                     {formatMessage({
                       id: "app.garden.detail.impact.hypercertHighlightsDescription",
                     })}
@@ -129,7 +129,7 @@ export function ImpactTab({
                             {record.title?.trim() ||
                               formatMessage({ id: "app.hypercerts.list.fallbackTitle" })}
                           </p>
-                          <p className="mt-0.5 text-xs text-text-soft">
+                          <p className="mt-0.5 body-xs text-text-soft">
                             {record.mintedAt
                               ? formatDate(record.mintedAt * 1000, { dateStyle: "medium" })
                               : formatMessage({ id: "app.hypercerts.list.dateUnknown" })}
@@ -196,7 +196,7 @@ export function ImpactTab({
                     ))}
                   </div>
                 ) : recentAssessments.length === 0 ? (
-                  <p className="text-sm text-text-soft">
+                  <p className="body-sm text-text-soft">
                     {formatMessage({ id: "app.garden.admin.noAssessments" })}
                   </p>
                 ) : (
@@ -224,7 +224,7 @@ export function ImpactTab({
                                 assessment.assessmentType ||
                                 formatMessage({ id: "app.garden.admin.assessmentFallback" })}
                             </p>
-                            <p className="mt-0.5 text-xs text-text-soft">
+                            <p className="mt-0.5 body-xs text-text-soft">
                               {formatDate(assessment.createdAt, { dateStyle: "medium" })}
                             </p>
                           </div>

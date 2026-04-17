@@ -140,7 +140,7 @@ export function WorkTab({
                           >
                             {work.title || formatMessage({ id: "app.admin.work.untitledWork" })}
                           </p>
-                          <p className="mt-0.5 text-xs text-text-soft">
+                          <p className="mt-0.5 body-xs text-text-soft">
                             {formatDate(work.createdAt, { dateStyle: "medium" })}
                           </p>
                         </div>
@@ -193,7 +193,7 @@ export function WorkTab({
                 </Button>
               </Card.Header>
               <Card.Body>
-                <p className="text-xs text-text-soft">
+                <p className="body-xs text-text-soft">
                   {formatMessage(
                     { id: "app.garden.detail.work.lastUpdated" },
                     { when: formatRelativeTime(lastWorkRefreshAt) }
@@ -240,7 +240,7 @@ export function WorkTab({
                   <h3 className="label-md text-text-strong">
                     {formatMessage({ id: "app.garden.detail.reviewStats" })}
                   </h3>
-                  <p className="text-xs text-text-soft">
+                  <p className="body-xs text-text-soft">
                     {formatMessage({
                       id: "app.garden.detail.reviewStats.allTime",
                       defaultMessage: "All time",

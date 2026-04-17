@@ -2,6 +2,7 @@ import {
   Alert,
   MetaStrip,
   adminRoutes,
+  toastService,
   useAdminStore,
   useCanvasPortal,
   useFabConfig,
@@ -21,7 +22,7 @@ import {
   RiShieldCheckLine,
   RiUserLine,
 } from "@remixicon/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
@@ -51,6 +52,32 @@ export default function CommunityView() {
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
   const { containerRef, isDesktop } = useSheetWidth();
   const [memberSearch, setMemberSearch] = useState("");
+
+  // D20: /community is per-garden only. Auto-select first eligible garden when
+  // entering in All Gardens mode, and notify the user that scope changed.
+  const hasShownAllGardensToastRef = useRef(false);
+  useEffect(() => {
+    if (selectedGarden || eligibleGardens.length === 0) return;
+    const firstGarden = eligibleGardens[0];
+    if (!firstGarden) return;
+    setSelectedGarden(firstGarden);
+    if (!hasShownAllGardensToastRef.current) {
+      hasShownAllGardensToastRef.current = true;
+      toastService.info({
+        title: formatMessage({
+          id: "cockpit.community.allGardensRedirect.title",
+          defaultMessage: "Community is per-garden",
+        }),
+        message: formatMessage(
+          {
+            id: "cockpit.community.allGardensRedirect.message",
+            defaultMessage: "Showing {name}. Use the garden chip to switch.",
+          },
+          { name: firstGarden.name }
+        ),
+      });
+    }
+  }, [selectedGarden, eligibleGardens, setSelectedGarden, formatMessage]);
 
   const mode = resolveCommunityMode(location.pathname);
   const isVaultRoute = location.pathname.startsWith("/community/treasury/vault");

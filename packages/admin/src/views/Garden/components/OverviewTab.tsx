@@ -125,7 +125,7 @@ export function OverviewTab({
                   <h3 className="label-md text-text-strong sm:text-lg">
                     {formatMessage({ id: "app.garden.detail.health.title" })}
                   </h3>
-                  <p className="mt-1 text-sm text-text-sub">{gardenHealthLabel}</p>
+                  <p className="mt-1 body-sm text-text-sub">{gardenHealthLabel}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {RANGE_OPTIONS.map((range) => (
@@ -167,7 +167,7 @@ export function OverviewTab({
                     <p className="mt-1 font-heading text-lg font-semibold text-text-strong">
                       {approvedInRangeCount}
                     </p>
-                    <p className="mt-0.5 text-xs text-text-soft">
+                    <p className="mt-0.5 body-xs text-text-soft">
                       {impactVelocityDelta === 0
                         ? formatMessage({ id: "app.garden.detail.metric.noDelta" })
                         : formatMessage(
@@ -206,7 +206,7 @@ export function OverviewTab({
                   <h3 className="label-md text-text-strong sm:text-lg">
                     {formatMessage({ id: "app.garden.detail.activity.title" })}
                   </h3>
-                  <p className="mt-1 text-sm text-text-sub">
+                  <p className="mt-1 body-sm text-text-sub">
                     {formatMessage({ id: "app.garden.detail.activity.description" })}
                   </p>
                 </div>
@@ -274,11 +274,11 @@ export function OverviewTab({
                                   >
                                     {event.title}
                                   </p>
-                                  <p className="mt-1 max-w-prose text-xs text-text-soft">
+                                  <p className="mt-1 max-w-prose body-xs text-text-soft">
                                     {event.description}
                                   </p>
                                 </div>
-                                <span className="text-xs text-text-soft">
+                                <span className="body-xs text-text-soft">
                                   {formatRelativeTime(event.timestamp)}
                                 </span>
                               </div>
@@ -339,7 +339,7 @@ export function OverviewTab({
               </Card.Header>
               <Card.Body>
                 {overviewAlerts.length === 0 ? (
-                  <p className="text-sm text-text-soft">
+                  <p className="body-sm text-text-soft">
                     {formatMessage({ id: "app.garden.detail.alerts.none" })}
                   </p>
                 ) : (

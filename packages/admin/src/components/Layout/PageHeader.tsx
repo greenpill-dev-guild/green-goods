@@ -48,11 +48,13 @@ export function PageHeader({
       className={cn(
         isCanvas
           ? "bg-bg-white relative overflow-hidden rounded-[1.6rem] border border-[rgb(var(--workspace-tint,59_130_246)/0.18)] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_18px_36px_rgba(15,23,42,0.12)] sm:px-6 sm:py-5"
-          : "border-b border-stroke-soft bg-bg-white px-4 py-3 sm:px-6 sm:py-4",
-        sticky &&
-          (isCanvas
-            ? "sticky top-14 z-sticky"
-            : "sticky top-14 z-sticky bg-bg-white shadow-[var(--edge-rest)]"),
+          : cn(
+              "border-b border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
+              sticky
+                ? "bg-bg-white/90 supports-[backdrop-filter]:bg-bg-white/70 backdrop-blur-lg ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+                : "bg-bg-white"
+            ),
+        sticky && "sticky top-14 z-sticky",
         className
       )}
     >

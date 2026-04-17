@@ -584,7 +584,7 @@ export default function HubView() {
             </section>
 
             {!hideMobileChrome && mobileFabAction && (
-              <div className="pointer-events-none sticky bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-[7] flex justify-end px-3 pb-2 pt-1 min-[600px]:hidden">
+              <div className="pointer-events-none sticky bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-raised flex justify-end px-3 pb-2 pt-1 min-[600px]:hidden">
                 <div className="pointer-events-auto ml-auto w-auto max-w-full">
                   <Button
                     onClick={mobileFabAction.onClick}

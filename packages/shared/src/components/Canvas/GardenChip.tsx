@@ -107,7 +107,7 @@ export function GardenChip({
           align="start"
           sideOffset={8}
           className={cn(
-            "z-50 w-56 rounded-xl glass-floating p-1 shadow-[var(--edge-rest),_var(--elevation-4)]",
+            "z-overlay w-56 rounded-xl glass-floating p-1 shadow-[var(--edge-rest),_var(--elevation-4)]",
             "animate-in fade-in-0 zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
             "motion-reduce:animate-none"

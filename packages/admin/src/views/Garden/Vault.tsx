@@ -195,7 +195,9 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     ) : null;
 
   const contentClassName =
-    layout === "page" ? "mx-auto mt-6 max-w-6xl space-y-6 px-4 sm:px-6" : "space-y-6";
+    layout === "page"
+      ? "mx-auto mt-6 flex max-w-6xl flex-col gap-section px-4 sm:px-6"
+      : "flex flex-col gap-section";
 
   return (
     <div className="pb-6">
@@ -204,7 +206,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <div className={contentClassName}>
         <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="surface-inset">
-            <p className="text-xs text-text-soft">
+            <p className="body-xs text-text-soft">
               {formatMessage({ id: "app.treasury.totalValueLocked" })}
             </p>
             <p className="mt-1 text-xl font-semibold text-text-strong">
@@ -212,13 +214,13 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
             </p>
           </div>
           <div className="surface-inset">
-            <p className="text-xs text-text-soft">
+            <p className="body-xs text-text-soft">
               {formatMessage({ id: "app.treasury.totalHarvests" })}
             </p>
             <p className="mt-1 text-xl font-semibold text-text-strong">{totalHarvestCount}</p>
           </div>
           <div className="surface-inset">
-            <p className="text-xs text-text-soft">
+            <p className="body-xs text-text-soft">
               {formatMessage({ id: "app.treasury.depositorCount" })}
             </p>
             <p className="mt-1 text-xl font-semibold text-text-strong">{totalDepositorCount}</p>
@@ -226,7 +228,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
         </section>
 
         {vaultsLoading && (
-          <p className="text-sm text-text-soft">
+          <p className="body-sm text-text-soft">
             {formatMessage({ id: "app.treasury.loadingVaults" })}
           </p>
         )}
@@ -255,7 +257,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
         )}
 
         {!vaultsLoading && !vaultsHasError && vaults.length === 0 && (
-          <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 text-sm text-text-soft">
+          <p className="rounded-md border border-stroke-soft bg-bg-white px-4 py-3 body-sm text-text-soft">
             {formatMessage({ id: "app.treasury.noVault" })}
           </p>
         )}
@@ -304,7 +306,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
                     href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary-base hover:underline"
+                    className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
                   >
                     {formatAddress(vault.vaultAddress, { variant: "card" })}
                     <RiExternalLinkLine className="h-3 w-3" />
@@ -320,7 +322,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
                     href={getBlockExplorerAddressUrl(chainId, octantModuleAddress)}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary-base hover:underline"
+                    className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
                   >
                     {formatAddress(octantModuleAddress, { variant: "card" })}
                     <RiExternalLinkLine className="h-3 w-3" />
@@ -336,7 +338,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
                     href={getBlockExplorerAddressUrl(chainId, AAVE_V3_POOL[chainId])}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-primary-base hover:underline"
+                    className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
                   >
                     {formatAddress(AAVE_V3_POOL[chainId], { variant: "card" })}
                     <RiExternalLinkLine className="h-3 w-3" />

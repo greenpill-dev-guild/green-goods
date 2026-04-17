@@ -43,6 +43,8 @@ export interface DialogShellProps {
   bodyClassName?: string;
   headerClassName?: string;
   hideCloseButton?: boolean;
+  /** When true, prevents close via overlay click or Escape — useful during in-flight mutations. */
+  preventClose?: boolean;
 }
 
 const dialogShellSizeClasses: Record<NonNullable<DialogShellProps["size"]>, string> = {
@@ -65,6 +67,7 @@ export function DialogShell({
   bodyClassName,
   headerClassName,
   hideCloseButton = false,
+  preventClose = false,
 }: DialogShellProps) {
   const { formatMessage } = useIntl();
 
@@ -78,6 +81,12 @@ export function DialogShell({
             dialogShellSizeClasses[size],
             className
           )}
+          onPointerDownOutside={(event) => {
+            if (preventClose) event.preventDefault();
+          }}
+          onEscapeKeyDown={(event) => {
+            if (preventClose) event.preventDefault();
+          }}
         >
           <div
             className={cn(

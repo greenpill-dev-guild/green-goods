@@ -279,7 +279,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         >
           <div className="relative w-full h-full max-w-4xl max-h-4xl m-4">
             {/* Header Controls */}
-            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
+            <div className="absolute top-0 left-0 right-0 z-raised flex items-center justify-between p-4 bg-gradient-to-b from-black/50 to-transparent">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-white font-medium">
                   {currentIndex + 1} / {images.length}

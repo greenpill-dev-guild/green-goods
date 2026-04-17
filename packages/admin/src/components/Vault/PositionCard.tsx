@@ -2,6 +2,7 @@ import {
   type Address,
   Button,
   Card,
+  ConfirmDialog,
   formatAddress,
   formatTokenAmount,
   type GardenVault,
@@ -18,7 +19,6 @@ import {
   useVaultPreview,
   ZERO_ADDRESS,
 } from "@green-goods/shared";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
@@ -245,33 +245,17 @@ export function PositionCard({
         </div>
       )}
 
-      {/* Emergency pause confirmation dialog */}
-      <Dialog.Root open={confirmPauseOpen} onOpenChange={setConfirmPauseOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-overlay bg-overlay backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-elevation-5 focus:outline-none">
-            <Dialog.Title className="text-lg font-semibold text-text-strong">
-              {formatMessage({ id: "app.treasury.emergencyPauseTitle" })}
-            </Dialog.Title>
-            <Dialog.Description className="mt-2 text-sm text-text-sub">
-              {formatMessage({ id: "app.treasury.emergencyPauseDescription" })}
-            </Dialog.Description>
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <Dialog.Close asChild>
-                <Button variant="secondary">{formatMessage({ id: "app.wizard.cancel" })}</Button>
-              </Dialog.Close>
-              <Button
-                variant="danger"
-                onClick={onConfirmPause}
-                disabled={emergencyPause.isPending}
-                loading={emergencyPause.isPending}
-              >
-                {formatMessage({ id: "app.treasury.emergencyPause" })}
-              </Button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <ConfirmDialog
+        isOpen={confirmPauseOpen}
+        onClose={() => setConfirmPauseOpen(false)}
+        onConfirm={onConfirmPause}
+        title={formatMessage({ id: "app.treasury.emergencyPauseTitle" })}
+        description={formatMessage({ id: "app.treasury.emergencyPauseDescription" })}
+        confirmLabel={formatMessage({ id: "app.treasury.emergencyPause" })}
+        cancelLabel={formatMessage({ id: "app.wizard.cancel" })}
+        variant="danger"
+        isLoading={emergencyPause.isPending}
+      />
     </Card>
   );
 }
