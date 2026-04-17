@@ -4,7 +4,7 @@
  * @vitest-environment jsdom
  */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -37,6 +37,7 @@ const mockGardens = [
 
 const mockUseGardens = vi.fn();
 const mockOpenWalletModal = vi.fn();
+const mockUseUser = vi.fn();
 
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
@@ -45,8 +46,18 @@ vi.mock("@green-goods/shared", async () => {
     ...actual,
     useAppKit: () => ({ open: mockOpenWalletModal }),
     useGardens: (...args: unknown[]) => mockUseGardens(...args),
+    useUser: (...args: unknown[]) => mockUseUser(...args),
   };
 });
+
+// The deposit dialogs pull in wagmi + tx stacks; stub them so unit tests
+// stay focused on Fund.tsx behavior.
+vi.mock("@/components/Dialogs", () => ({
+  VaultDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
+    isOpen ? <div data-testid="vault-deposit-dialog">Vault · {gardenName}</div> : null,
+  CookieJarDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
+    isOpen ? <div data-testid="cookie-jar-deposit-dialog">Jar · {gardenName}</div> : null,
+}));
 
 import FundPage from "../../views/Public/Fund";
 
@@ -55,7 +66,6 @@ const messages: Record<string, string> = {
   "public.fund.description": "Support regenerative gardens by funding their vaults",
   "public.fund.deposit": "Deposit",
   "public.fund.cookieJar": "Cookie Jar",
-  "public.fund.actionsUnavailable": "Public funding opens in a later update.",
   "public.fund.connectWallet": "Connect Wallet",
   "public.fund.empty": "Funding destinations will appear here as gardens enable them.",
   "public.fund.totalGardens": "Total Gardens",
@@ -76,6 +86,7 @@ describe("FundPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseGardens.mockReturnValue({ data: mockGardens, isLoading: false });
+    mockUseUser.mockReturnValue({ primaryAddress: null });
   });
 
   it("renders the page title", () => {
@@ -100,23 +111,48 @@ describe("FundPage", () => {
     expect(screen.getByText("Urban Composting Hub")).toBeInTheDocument();
   });
 
-  it("renders disabled Deposit button for each garden", () => {
+  it("renders an enabled Deposit button for each garden", () => {
     renderView();
-    const depositButtons = screen.getAllByRole("button", { name: /deposit/i });
+    const depositButtons = screen.getAllByRole("button", { name: /^deposit$/i });
     expect(depositButtons).toHaveLength(2);
-    depositButtons.forEach((button) => expect(button).toBeDisabled());
+    depositButtons.forEach((button) => expect(button).toBeEnabled());
   });
 
-  it("renders disabled Cookie Jar button for each garden", () => {
+  it("renders an enabled Cookie Jar button for each garden", () => {
     renderView();
     const cookieButtons = screen.getAllByRole("button", { name: /cookie jar/i });
     expect(cookieButtons).toHaveLength(2);
-    cookieButtons.forEach((button) => expect(button).toBeDisabled());
+    cookieButtons.forEach((button) => expect(button).toBeEnabled());
   });
 
-  it("shows an inline unavailable message for each garden card", () => {
+  it("opens the AppKit modal when an anonymous user clicks Deposit", () => {
     renderView();
-    expect(screen.getAllByText("Public funding opens in a later update.")).toHaveLength(2);
+    const depositButtons = screen.getAllByRole("button", { name: /^deposit$/i });
+    fireEvent.click(depositButtons[0]);
+    expect(mockOpenWalletModal).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("vault-deposit-dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens the vault deposit dialog when a connected user clicks Deposit", () => {
+    mockUseUser.mockReturnValue({ primaryAddress: "0xabc" });
+    renderView();
+    const depositButtons = screen.getAllByRole("button", { name: /^deposit$/i });
+    fireEvent.click(depositButtons[0]);
+    expect(mockOpenWalletModal).not.toHaveBeenCalled();
+    expect(screen.getByTestId("vault-deposit-dialog")).toHaveTextContent(
+      "Vault · Solar Community Garden"
+    );
+  });
+
+  it("opens the cookie jar deposit dialog when a connected user clicks Cookie Jar", () => {
+    mockUseUser.mockReturnValue({ primaryAddress: "0xabc" });
+    renderView();
+    const cookieButtons = screen.getAllByRole("button", { name: /cookie jar/i });
+    fireEvent.click(cookieButtons[1]);
+    expect(mockOpenWalletModal).not.toHaveBeenCalled();
+    expect(screen.getByTestId("cookie-jar-deposit-dialog")).toHaveTextContent(
+      "Jar · Urban Composting Hub"
+    );
   });
 
   it("shows loading skeletons when fetching", () => {
@@ -132,5 +168,11 @@ describe("FundPage", () => {
     expect(
       screen.getByText("Funding destinations will appear here as gardens enable them.")
     ).toBeInTheDocument();
+  });
+
+  it("hides Connect Wallet CTA once the user is connected", () => {
+    mockUseUser.mockReturnValue({ primaryAddress: "0xabc" });
+    renderView();
+    expect(screen.queryByRole("button", { name: /connect wallet/i })).not.toBeInTheDocument();
   });
 });

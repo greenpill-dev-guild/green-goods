@@ -1,22 +1,40 @@
-import { useAppKit, useGardens } from "@green-goods/shared";
-import { useCallback } from "react";
+import { type Address, useAppKit, useGardens, useUser } from "@green-goods/shared";
+import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
+import { CookieJarDepositDialog, VaultDepositDialog } from "@/components/Dialogs";
 import { ImageWithFallback } from "@/components/Display";
 
+type ActiveDialog = { kind: "vault" | "cookieJar"; gardenAddress: Address; gardenName: string };
+
 /**
- * Public fund page — public-facing funding overview.
- * Public finance actions fail closed until the full flow is shipped.
+ * Public fund page — supporters deposit into a garden's vault or cookie jar.
+ * Deposit-only (no withdraw) per D37.
  */
 export default function FundPage() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = useGardens();
   const { open: openWalletModal } = useAppKit();
+  const { primaryAddress } = useUser();
+  const [activeDialog, setActiveDialog] = useState<ActiveDialog | null>(null);
 
   const totalGardeners = new Set(gardens.flatMap((g) => g.gardeners ?? [])).size;
 
   const handleConnectWallet = useCallback(() => {
     openWalletModal();
   }, [openWalletModal]);
+
+  const handleOpenDialog = useCallback(
+    (kind: "vault" | "cookieJar", gardenAddress: Address, gardenName: string) => {
+      if (!primaryAddress) {
+        openWalletModal();
+        return;
+      }
+      setActiveDialog({ kind, gardenAddress, gardenName });
+    },
+    [primaryAddress, openWalletModal]
+  );
+
+  const closeDialog = useCallback(() => setActiveDialog(null), []);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -30,14 +48,11 @@ export default function FundPage() {
         })}
       </p>
 
-      {/* Aggregate Stats — 2/3 stats + 1/3 positions placeholder */}
+      {/* Aggregate Stats */}
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-stroke-soft bg-bg-white p-4">
           <p className="text-xs text-text-soft">
-            {formatMessage({
-              id: "public.fund.totalGardens",
-              defaultMessage: "Total Gardens",
-            })}
+            {formatMessage({ id: "public.fund.totalGardens", defaultMessage: "Total Gardens" })}
           </p>
           <p className="mt-1 text-2xl font-bold text-text-strong">{gardens.length}</p>
         </div>
@@ -87,51 +102,56 @@ export default function FundPage() {
               <div className="mt-4 flex items-center gap-2">
                 <button
                   type="button"
-                  disabled
-                  aria-disabled="true"
+                  onClick={() => handleOpenDialog("vault", garden.id, garden.name)}
                   className="flex-1 rounded-lg bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
                 >
-                  {formatMessage({
-                    id: "public.fund.deposit",
-                    defaultMessage: "Deposit",
-                  })}
+                  {formatMessage({ id: "public.fund.deposit", defaultMessage: "Deposit" })}
                 </button>
                 <button
                   type="button"
-                  disabled
-                  aria-disabled="true"
+                  onClick={() => handleOpenDialog("cookieJar", garden.id, garden.name)}
                   className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2 text-sm font-medium text-text-strong transition-colors hover:bg-bg-weak active:scale-[0.98]"
                 >
-                  {formatMessage({
-                    id: "public.fund.cookieJar",
-                    defaultMessage: "Cookie Jar",
-                  })}
+                  {formatMessage({ id: "public.fund.cookieJar", defaultMessage: "Cookie Jar" })}
                 </button>
               </div>
-              <p className="mt-2 text-xs text-text-soft">
-                {formatMessage({
-                  id: "public.fund.actionsUnavailable",
-                  defaultMessage: "Public funding opens in a later update.",
-                })}
-              </p>
             </div>
           ))}
         </div>
       )}
 
       {/* Connect Wallet CTA — opens AppKit modal without redirect to /login */}
-      <div className="mt-8 text-center">
-        <button
-          type="button"
-          onClick={handleConnectWallet}
-          className="rounded-lg bg-primary-base px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
-        >
-          {formatMessage({
-            id: "public.fund.connectWallet",
-            defaultMessage: "Connect Wallet",
-          })}
-        </button>
-      </div>
+      {!primaryAddress && (
+        <div className="mt-8 text-center">
+          <button
+            type="button"
+            onClick={handleConnectWallet}
+            className="rounded-lg bg-primary-base px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
+          >
+            {formatMessage({
+              id: "public.fund.connectWallet",
+              defaultMessage: "Connect Wallet",
+            })}
+          </button>
+        </div>
+      )}
+
+      {activeDialog?.kind === "vault" && (
+        <VaultDepositDialog
+          isOpen
+          onClose={closeDialog}
+          gardenAddress={activeDialog.gardenAddress}
+          gardenName={activeDialog.gardenName}
+        />
+      )}
+      {activeDialog?.kind === "cookieJar" && (
+        <CookieJarDepositDialog
+          isOpen
+          onClose={closeDialog}
+          gardenAddress={activeDialog.gardenAddress}
+          gardenName={activeDialog.gardenName}
+        />
+      )}
     </div>
   );
 }
