@@ -233,7 +233,7 @@ Core state management and transitions done. Mobile polish and promotions remaini
 - [x] Accessibility audit — AdminDialog close label i18n'd (`app.common.close`); Canvas sheets (RightSheet, LeftSheet, BottomSheet) use native `<dialog>` providing focus trap + Escape; icon-only buttons (AppBar, NavigationBar, AdminSearchToolbar, AdminDialog, DialogShell, ConfirmDialog) all aria-labelled
 - [ ] i18n formalization (~15 strings for empty states, toasts, palette labels)
 
-### Phase 3: Public Platform (greengoods.app) — ~90% SHIPPED
+### Phase 3: Public Platform (greengoods.app) — COMPLETE (2026-04-17)
 
 Extended `packages/client` with public routes (no new package). PublicShell layout route with SiteHeader renders public routes; PlatformRouter branches on isStandalone; AppShell is display-mode aware.
 
@@ -241,7 +241,7 @@ Extended `packages/client` with public routes (no new package). PublicShell layo
 
 - [x] Create PublicShell layout route — `packages/client/src/routes/PublicShell.tsx`
 - [x] Create SiteHeader component — `packages/client/src/components/Navigation/SiteHeader.tsx` (desktop: Gardens | Actions | Impact | Fund | Connect Wallet; mobile: hamburger drawer)
-- [ ] Create AuthHeader component — **not built**; SiteHeader currently covers both public and auth'd states. Decide whether to split or keep merged.
+- [x] ~~Create AuthHeader component~~ — decision 2026-04-17: **keep SiteHeader dual-purpose**; no separate AuthHeader needed. SiteHeader already switches chrome based on wallet connection state via `useUser`.
 - [x] Revise PlatformRouter to branch on isStandalone — `packages/client/src/routes/PlatformRouter.tsx`
 - [x] Refactor AppShell for display-mode awareness — `packages/client/src/routes/AppShell.tsx`
 - [x] Create /fund single-view page — `packages/client/src/views/Public/Fund.tsx`
@@ -250,9 +250,9 @@ Extended `packages/client` with public routes (no new package). PublicShell layo
 - [x] Create /gardens/:id public garden detail (read-only) — `packages/client/src/views/Public/GardenDetail.tsx`
 - [x] Create /impact aggregate view — `packages/client/src/views/Public/Impact.tsx`
 - [x] Implement contextual install prompt — `packages/client/src/views/Profile/InstallCta.tsx` uses `useInstallGuidance`
-- [ ] Create Garden wizard (reuse useCreateGardenStore, new shell) — **not built**; admin's CreateGarden view still owns the wizard. Decide whether the public site needs its own shell or reuses admin.
+- [x] ~~Create Garden wizard (reuse useCreateGardenStore, new shell)~~ — decision 2026-04-17: **drop**. Public site does not offer garden creation; gardens are operator-provisioned. Admin's `/garden/create` (behind `RequireRole allowedRoles={["deployer"]}`) is the only entry point.
 - [x] Create /actions public gallery view — `packages/client/src/views/Public/Actions.tsx`
-- [ ] Create CookieJarDepositDialog (deposit-only) — **not built**; D37 scopes /fund to vault deposit only, so this may be dropped.
+- [x] Create CookieJarDepositDialog (deposit-only) — shipped in commit `7043a000`. Decision 2026-04-17: **D37 amended** — /fund now exposes **both** vault deposit AND cookie jar deposit (withdraw stays admin-only). Client-local dialog at `packages/client/src/components/Dialogs/CookieJarDepositDialog.tsx` composing `useGardenCookieJars` + `useCookieJarDeposit`.
 - [x] Add i18n for public site strings — ~36 keys added to en/es/pt for public surfaces
 
 **Bonus items delivered beyond original plan:**
@@ -264,10 +264,10 @@ Extended `packages/client` with public routes (no new package). PublicShell layo
 - Offline-first + public-page tests (commit 2de79536)
 - Client DESIGN.md creative brief (commit 0ef1a9cf)
 
-**Remaining Phase 3 gaps (3 items):**
-1. AuthHeader component (or decision to keep SiteHeader dual-purpose)
-2. Public-site Create Garden wizard shell (or decision to keep admin-only)
-3. CookieJarDepositDialog (or formal drop per D37)
+**Phase 3 complete as of 2026-04-17.** The three documented gaps were all resolved with explicit decisions:
+1. AuthHeader → kept SiteHeader dual-purpose.
+2. Public-site Create Garden wizard → dropped; garden creation stays admin-deployer-gated.
+3. CookieJarDepositDialog → shipped; /fund now supports both vault and cookie jar deposits (D37 amended to deposit-only on both, withdraw still admin-only).
 
 ## Pre-existing Test Failures (Phase 2 tail — inspection before Phase 3)
 
