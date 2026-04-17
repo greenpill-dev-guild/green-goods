@@ -15,6 +15,7 @@
 | **principles** | `/principles` | `--mode team`, `--mode execute` | Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4 |
 | **architecture** | `/architecture` | `--mode boundaries`, `--mode dependencies`, `--mode complexity`, `--mode gaps`, `--mode scorecard` | Analyze software architecture — map structure, identify gaps, provide actionable suggestions |
 | **status** | `/status` | `--mode quick`, `--mode full`, `--mode focus` | Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus |
+| **clean** | `/clean` | `--dry-run`, `--scope pkg`, `--agents 1,3,5` | 8-agent parallel codebase cleanup — dedup, types, dead code, circular deps, type strengthening, defensive code, legacy, AI slop |
 
 ---
 
@@ -31,7 +32,7 @@
 | **data-layer** | offline, PWA, job queue, sync, IndexedDB | service-worker, storage-lifecycle |
 | **ops** | deploy, CI, GitHub Actions, git, branch | deployment, ci-cd, git-workflow, dependency-management, biome, vite, migration |
 | **testing** | write tests, TDD, unit test, e2e test, Vitest | vitest-patterns |
-| **bot** | bot, Telegram, handler, platform adapter | — |
+| **stitch** | build from stitch, stitch prompt, stitch screen, implement screen | — |
 
 ---
 
@@ -68,6 +69,7 @@ What do you need?
 ├─► Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4? ──► /principles
 ├─► Analyze software architecture — map structure, identify gaps, provide actionable suggestions? ──► /architecture
 ├─► Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus? ──► /status
+├─► Comprehensive codebase cleanup with parallel agents? ──► /clean
 │
 ├─► React component? ──► react
 ├─► TailwindCSS? ──► ui
@@ -78,7 +80,7 @@ What do you need?
 ├─► offline? ──► data-layer
 ├─► deploy? ──► ops
 ├─► write tests? ──► testing
-├─► bot? ──► bot
+├─► build from stitch? ──► stitch
 │
 └─► Simple change? ──► Direct Claude (no skill needed)
 ```
@@ -91,7 +93,6 @@ Old names route to their new homes automatically:
 
 | Alias | Routes To |
 |-------|-----------|
-| `agent` | bot |
 | `security` | contracts |
 | `offline` | data-layer |
 | `storage` | data-layer |

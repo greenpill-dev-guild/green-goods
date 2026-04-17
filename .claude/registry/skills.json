@@ -275,12 +275,23 @@
       "dependencies": []
     },
     {
-      "name": "bot",
+      "name": "clean",
       "status": "active",
       "listed_in_index": true,
-      "default_mode": "passive",
-      "triggers": ["bot", "Telegram", "handler", "platform adapter"],
-      "dependencies": []
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Comprehensive codebase cleanup with 8 parallel subagents — deduplication, type consolidation, dead code, circular deps, type strengthening, defensive code, legacy, AI slop",
+      "entry_file": ".claude/skills/clean/SKILL.md",
+      "owned_skills": [],
+      "modes": ["default", "dry-run", "scope", "agents"],
+      "triggers": [
+        "/clean",
+        "clean the codebase",
+        "cleanup",
+        "codebase cleanup",
+        "parallel cleanup"
+      ],
+      "dependencies": ["audit", "principles"]
     },
     {
       "name": "stitch",
@@ -288,13 +299,18 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "user_invocable": false,
-      "triggers": ["stitch", "build from stitch", "stitch prompt", "stitch screen", "implement screen"],
+      "triggers": [
+        "stitch",
+        "build from stitch",
+        "stitch prompt",
+        "stitch screen",
+        "implement screen"
+      ],
       "dependencies": ["ui", "design"],
       "sub_files": []
     }
   ],
   "aliases": {
-    "agent": "bot",
     "offline": "data-layer",
     "storage": "data-layer",
     "vite": "ops",
@@ -350,13 +366,6 @@
       "entrypoint": "/plan",
       "default_mode": "interactive",
       "skills": ["indexer", "testing"],
-      "user_facing": false,
-      "contract_touching": false
-    },
-    "agent-change": {
-      "entrypoint": "/plan",
-      "default_mode": "interactive",
-      "skills": ["bot", "testing"],
       "user_facing": false,
       "contract_touching": false
     },
