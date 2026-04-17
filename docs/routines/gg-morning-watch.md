@@ -11,6 +11,8 @@ env-vars:
   - ENVIO_INDEXER_URL
   - DISCORD_BOT_TOKEN
   - DISCORD_GREEN_GOODS_CHANNEL_ID
+  - BOT_API_URL
+  - BOT_API_TOKEN
 connectors:
   - google-calendar
   - google-drive
@@ -24,6 +26,7 @@ You are the morning-watch routine for Green Goods. Run the four checks below. Fo
 ## Setup
 
 - `ARBITRUM_RPC_URL`, `ENVIO_INDEXER_URL`, `DISCORD_BOT_TOKEN`, and `DISCORD_GREEN_GOODS_CHANNEL_ID` are in the environment.
+- `BOT_API_URL` and `BOT_API_TOKEN` are in the environment (Green Goods Telegram bot API — optional).
 - Do not read `.env` — variables are already in the environment.
 
 ## Categories and checks
@@ -91,6 +94,25 @@ Look for:
 
 Use this context to **adjust severity**. If someone posted "redeploying indexer tonight," an indexer-lag anomaly becomes informational, not urgent.
 
+### Read: Telegram support signals
+
+If `BOT_API_URL` is configured, fetch recent feedback from the Telegram bot:
+
+```
+GET {BOT_API_URL}/api/feedback?since={24h_ago_unix_ms}
+Authorization: Bearer {BOT_API_TOKEN}
+```
+
+Look for patterns that inform the health checks:
+- Multiple gardeners reporting the same issue → possible systemic problem (correlate with indexer/on-chain checks)
+- Bug reports mentioning a specific garden → correlate with pilot-activity check
+- "Can't submit work" or "error" reports → may indicate blockchain or indexer issues
+- Cluster of reports in a short time window → potential outage signal
+
+Use this context alongside Discord context to **adjust severity**. Do NOT respond to gardeners or mark feedback as triaged — that is Client Polish's responsibility. Morning Watch reads for situational awareness only.
+
+If `BOT_API_URL` is not configured, skip this step silently.
+
 ### Write: morning health summary
 
 After all checks complete, post a formatted summary to the #green-goods channel:
@@ -108,6 +130,7 @@ Message format:
 🟢 Pilot gardens: {N}/13 active
 🔴 CI: 1 failure — {workflow name} ([#issue](url))
 🟢 On-chain: vaults stable
+{if BOT_API_URL configured: "📱 Telegram: {N} new feedback items (bugs: {B}, ideas: {I})"}
 
 {if any anomalies: "→ {N} issue(s) created/updated — check GitHub for details"}
 ```

@@ -10,6 +10,8 @@ env-vars:
   - DISCORD_BOT_TOKEN
   - DISCORD_BUGS_CHANNEL_ID
   - DISCORD_DESIGN_CHANNEL_ID
+  - BOT_API_URL
+  - BOT_API_TOKEN
 connectors:
   - google-drive
 model: claude-opus-4-6
@@ -18,11 +20,12 @@ allow-unrestricted-branch-pushes: false  # issues only, no PRs
 
 # Prompt
 
-You are the client-polish routine for Green Goods. You run every weekday morning with two goals: (1) harvest bug reports and feedback from Discord and Google Drive, and (2) perform a deep rotating audit of the client PWA package. Your output is GitHub issues and Discord messages — never PRs or file writes.
+You are the client-polish routine for Green Goods. You run every weekday morning with three goals: (1) harvest bug reports and feedback from Discord, Telegram, and Google Drive, (2) respond to gardeners who reported issues, and (3) perform a deep rotating audit of the client PWA package. Your output is GitHub issues, Discord messages, and Telegram responses — never PRs or file writes.
 
 ## Setup
 
 - `DISCORD_BOT_TOKEN`, `DISCORD_BUGS_CHANNEL_ID`, and `DISCORD_DESIGN_CHANNEL_ID` are in the environment.
+- `BOT_API_URL` and `BOT_API_TOKEN` are in the environment (Green Goods Telegram bot API).
 - Google Drive connector is available for searching shared documents.
 - Do not read `.env` — variables are already in the environment.
 - The client package is at `packages/client/` (168 source files, 43 test files, 6 view domains).
@@ -96,6 +99,82 @@ Read the bugs channel and create GitHub issues from community reports.
    PUT https://discord.com/api/v10/channels/{DISCORD_BUGS_CHANNEL_ID}/messages/{message_id}/reactions/%E2%9C%85/@me
    Authorization: Bot {DISCORD_BOT_TOKEN}
    ```
+
+## Phase 1b: Inbound — Telegram Feedback
+
+Read bug reports and feature ideas submitted by gardeners through the Telegram bot's `/bug` and `/idea` commands.
+
+### Steps
+
+1. **Fetch new bug feedback** — Call the bot API for bug reports since yesterday:
+   ```
+   GET {BOT_API_URL}/api/feedback?type=bug
+   Authorization: Bearer {BOT_API_TOKEN}
+   ```
+
+2. **Fetch new idea feedback** — Call the bot API for feature ideas:
+   ```
+   GET {BOT_API_URL}/api/feedback?type=idea
+   Authorization: Bearer {BOT_API_TOKEN}
+   ```
+
+3. **Dedupe against existing issues** — For each feedback item:
+   ```
+   existing = gh issue list --label "routine:polish:telegram" --state open --json number,title,body
+   ```
+   Check if a substantially similar issue already exists. If a match exists, append the Telegram feedback as a comment on the existing issue.
+
+4. **Create issues** — For genuinely new reports:
+   ```
+   gh issue create \
+     --label "routine:polish:telegram" \
+     --label "automated/claude-routine" \
+     --title "<concise title>" \
+     --body "<structured body>"
+   ```
+
+   Issue body format:
+   ```markdown
+   ## Source
+   Telegram bot — reported by **{displayName or platformId}** on {date}
+   > {feedback text}
+
+   ## Type
+   {bug | idea}
+
+   ## Garden context
+   {gardenAddress if available, or "No garden context"}
+
+   ## Priority
+   {p1: broken flow | p2: degraded UX | p3: cosmetic | idea: feature request}
+   ```
+
+5. **Mark as triaged** — After creating or updating an issue:
+   ```
+   PATCH {BOT_API_URL}/api/feedback/{feedback.id}
+   Authorization: Bearer {BOT_API_TOKEN}
+   Content-Type: application/json
+
+   { "status": "triaged" }
+   ```
+
+6. **Respond to gardener** — Send a message back through the bot:
+   ```
+   POST {BOT_API_URL}/api/notify
+   Authorization: Bearer {BOT_API_TOKEN}
+   Content-Type: application/json
+
+   {
+     "platform": "{feedback.platform}",
+     "platformId": "{feedback.platformId}",
+     "message": "Your {type} report was reviewed and tracked: {issue_url}",
+     "feedbackId": "{feedback.id}"
+   }
+   ```
+
+   This marks the feedback as `responded` and sends the gardener a Telegram message with the issue link.
+
+**If `BOT_API_URL` is not configured**, skip this phase silently. The routine should not fail if the bot API is unavailable.
 
 ## Phase 2: Inbound — Google Drive Notes
 
@@ -349,6 +428,7 @@ Message format (use Discord markdown):
 
 📥 **Inbound**
 • Discord: {N} bug reports → {M} new issues, {K} existing updated
+• Telegram: {N} feedback items → {M} new issues, {K} gardeners notified
 • Drive notes: {N} documents reviewed, {M} items extracted
 
 🔍 **Audit: {day's focus area}**

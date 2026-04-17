@@ -41,6 +41,7 @@ Ensure these GitHub labels exist before enabling the corresponding routines:
 | `routine:metrics:anomaly` | gg-data-analyst | Dedupe: one open anomaly issue | `d73a4a` |
 | `routine:polish:notes` | gg-client-polish | Dedupe: findings from Drive meeting notes | `c5def5` |
 | `routine:polish:discord` | gg-client-polish | Dedupe: bug reports sourced from Discord | `5865F2` |
+| `routine:polish:telegram` | gg-client-polish | Dedupe: bug reports sourced from Telegram bot | `229ED9` |
 | `routine:polish:design` | gg-client-polish | Dedupe: design & accessibility issues | `d4c5f9` |
 | `routine:polish:architecture` | gg-client-polish | Dedupe: architecture & pattern violations | `fbca04` |
 | `routine:polish:testing` | gg-client-polish | Dedupe: test coverage gaps & quality | `0e8a16` |
@@ -51,3 +52,14 @@ Ensure these GitHub labels exist before enabling the corresponding routines:
 Routines apply **both** a category label (for dedupe) and `automated/claude-routine` (for discovery) on every issue or PR they author. The umbrella is what you filter on to see "everything any routine produced"; the category label is what the routine's code uses to decide "create new or append to existing."
 
 Create them with `gh label create "<name>" --color "<hex>" --description "<purpose>"`.
+
+## Bot API environment
+
+Routines that consume Telegram feedback need these additional environment variables:
+
+| Variable | Description |
+|---|---|
+| `BOT_API_URL` | Public URL of the Green Goods agent (e.g., `https://agent.greengoods.app`) |
+| `BOT_API_TOKEN` | Bearer token for authenticating API requests to the agent |
+
+Used by: `gg-client-polish` (read + respond), `gg-morning-watch` (read-only).
