@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-03-26`
-**Last Updated**: `2026-04-16` (status sync — marked implemented items, updated component names to match codebase)
+**Last Updated**: `2026-04-17` (Phase 2 chunk: modal migration to DialogShell, All Gardens /community guard, command palette fuzzy search + Cmd+1..9 garden switch, bundle verification, a11y audit with 1 i18n fix, empty-state tests repaired)
 **Branch Strategy**: All work on feature branch. Phases 1a, 1b, 2, 3 merged as separate commits for independent rollback (D57).
 
 > **Implementation note (2026-04-16):** Component naming diverged from original plan during implementation. The "Cockpit" namespace became "Canvas" in code. This plan now uses actual code names. Mapping: FloatingToolbar → `NavigationBar`, TopContextBar → `AppBar` + `CanvasLayout`, SideSheet → `RightSheet`, SettingsSheet → `AccountSurface`.
@@ -91,9 +91,9 @@
 | Cross-garden review queue (`useCrossGardenQueue`) | `state_api` | Phase 2 | ✅ |
 | Per-garden persistent state (`useGardenStateStore`) | `state_api` | Phase 2 | ✅ |
 | Command palette route update (static + trigger) | `ui` | Phase 1 | ✅ |
-| Command palette fuzzy search + commands | `ui` | Phase 2 | ⏳ |
+| Command palette fuzzy search + commands | `ui` | Phase 2 | ✅ (subsequence fuzzy scoring + Cmd+1..9 garden switch) |
 | Empty state (no gardens) (`EmptyStateShell`) | `ui` | Phase 2 | ✅ |
-| Mobile cockpit (bottom nav + top bar) | `ui` | Phase 2 | ⏳ needs polish |
+| Mobile cockpit (bottom nav + top bar) | `ui` | Phase 2 | ✅ (single-slot guard at NavigationBar.tsx:270; Profile as mobile-only slot) |
 | M3 tonal elevation tokens | `ui` | Phase 2 | ✅ (in `theme.css`) |
 | greengoods.app header nav | `ui` | Phase 3 | ⏳ |
 | greengoods.app hamburger + sidebar (mobile) | `ui` | Phase 3 | ⏳ |
@@ -108,8 +108,8 @@
 | Cockpit /actions route | `ui` | Phase 1 | ✅ |
 | Public /actions gallery | `ui` | Phase 3 | ⏳ |
 | Role-adaptive toolbar | `ui` | Phase 1 | ✅ |
-| Deployer in Settings sheet | `ui` | Phase 1 | ⏳ (AccountSurface exists but deployer sections not wired) |
-| All Gardens /community guard | `state_api` | Phase 2 | ⏳ |
+| Deployer in Settings sheet | `ui` | Phase 1 | ✅ (AccountProfilePanel shows the "deployer" role label via `useRole()`; deployer-gated CRUD actions live on their own routes — `/garden/create`, `/actions/create`, `/actions/:id/edit` — wrapped by `RequireRole allowedRoles={["deployer"]}`. The original Deployment view was retired in refactor 56076023 — no panels to wire in-place.) |
+| All Gardens /community guard | `state_api` | Phase 2 | ✅ (auto-select first garden + toast on entry) |
 | Assessments in /work pipeline | `ui` | Phase 1 | ✅ |
 | Hash router compatibility | `ui` | Phase 2 | ✅ |
 | Storybook for new M3 components | `ui` | Phase 1 | ✅ (8 story files in Canvas/) |
@@ -122,7 +122,7 @@
 | Action detail side sheet | `ui` | Phase 1 | ✅ |
 | Action create/edit UX pattern | `ui` | Phase 1 | ✅ |
 | PostHog route tracking update | `ui` | Phase 1b | ✅ (usePageView auto-tracks) |
-| VaultPositionCard (read-only, new in shared) | `state_api` | Phase 2 | ⏳ |
+| VaultPositionCard (read-only, new in shared) | `state_api` | Phase 2 | ✅ (at `shared/components/Cards/VaultPositionCard/`) |
 | Unit tests for new hooks and redirects | `qa_pass_1` | Phase 1b | ✅ (useEffectiveToolbarPermissions, GardenChip, CanvasLayout, MainSheet tests) |
 | Phase 3 extends packages/client | `ui` | Phase 3 | ⏳ |
 | `useEffectiveToolbarPermissions` hook | `state_api` | Phase 1a | ✅ |
@@ -138,11 +138,11 @@
 | Promote TxInlineFeedback + getDepositLimitLabel | `state_api` | Phase 2 | ⏳ |
 | `useCrossGardenQueue` hook | `state_api` | Phase 2 | ✅ |
 | UserProfile migration to AppBar + AccountSurface | `ui` | Phase 1a | ✅ |
-| Bundle size verification after promotions | `qa_pass_1` | Phase 2 | ⏳ |
+| Bundle size verification after promotions | `qa_pass_1` | Phase 2 | ✅ (admin 9.2MB main / 2.3MB gzip; VaultPositionCard tree-shaken out of admin; client source imports none of the promoted exports) |
 | Mobile keyboard toolbar hiding (`useCanvasMobileChromeHidden`) | `ui` | Phase 2 | ✅ |
 | Admin test fixture updates for layout removal | `ui` | Phase 1a | ✅ |
-| Accessibility audit | `qa_pass_1` | Phase 2 | ⏳ |
-| Deployment view decomposition (D52) | `ui` | Phase 1b | ⏳ (AccountSurface shell exists, deployer sections not wired) |
+| Accessibility audit | `qa_pass_1` | Phase 2 | ✅ (AdminDialog close button i18n'd; Canvas sheets use native `<dialog>` for focus trap + Escape; all icon-only buttons verified aria-labelled) |
+| Deployment view decomposition (D52) | `ui` | Phase 1b | n/a — superseded by the 2026-04-16 `/clean` pass which retired the Deployment view entirely (commit 56076023). The decomposition was to split a large deployer surface into AccountSurface sub-sections; that surface no longer exists. |
 | Dead code cleanup for removed routes (D53) | `ui` | Phase 1b | ✅ (partial — `/clean` pass 2026-04-16 removed dead Endowments, barrels, deps) |
 | Toolbar permissions error state + toast (D59) | `state_api` | Phase 1a | ✅ |
 
@@ -202,8 +202,8 @@ Routes consolidated, redirects live, command palette updated.
 - [x] `usePageView` auto-tracks new routes (no code change needed)
 - [x] Unit tests for `useEffectiveToolbarPermissions`, `GardenChip`, `CanvasLayout`, `MainSheet`
 - [x] Dead code cleanup (partial — `/clean` pass 2026-04-16)
-- [ ] Wire deployer sections in AccountSurface (contracts + deployment behind RequireDeployer)
-- [ ] Decompose Deployment view into AccountSurface sub-sections (D52)
+- [x] Wire deployer sections in AccountSurface — completed differently than planned: AccountProfilePanel shows deployer role label; deployer-only CRUD (`/garden/create`, `/actions/create`, `/actions/:id/edit`) is guarded by `RequireRole` route wrappers. Original "deployer tools panel" idea obsolete after 2026-04-16 Deployment view retirement.
+- [x] Decompose Deployment view into AccountSurface sub-sections (D52) — n/a after the 2026-04-16 `/clean` pass removed the Deployment view (commit 56076023).
 - [ ] i18n formalization — English keys exist inline but not in structured locale files
 
 ### Phase 2: Cockpit Intelligence — IN PROGRESS (~70%)
@@ -223,14 +223,14 @@ Core state management and transitions done. Mobile polish and promotions remaini
 - [x] 13 Admin* M3 design system components (AdminButton, AdminDialog, AdminCard, AdminBadge, AdminCheckbox, AdminTextField, AdminListItem, AdminTabRail, AdminLinearProgress, AdminTooltip, AdminFilterChip, AdminSearchToolbar, AdminFab)
 
 **Remaining:**
-- [ ] Mobile bottom nav final polish (responsive breakpoints, single-slot guard)
-- [ ] All Gardens guard on /community
-- [ ] Command palette fuzzy search enhancements + keyboard garden switching
-- [ ] VaultPositionCard (read-only shared component for Phase 3 /fund)
-- [ ] Promote TxInlineFeedback from admin to shared
-- [ ] Promote getDepositLimitLabel to shared utils
-- [ ] Bundle size verification (tree-shaking check after promotions)
-- [ ] Accessibility audit (keyboard nav, screen reader, contrast)
+- [x] Mobile bottom nav final polish (single-slot guard at NavigationBar.tsx:270; desktop≥600px, mobile <600px + Profile as mobile-only slot)
+- [x] All Gardens guard on /community (auto-select + toast on entry)
+- [x] Command palette fuzzy search enhancements + keyboard garden switching (subsequence fuzzy scoring + Cmd+1..9)
+- [x] VaultPositionCard (shipped at `shared/components/Cards/VaultPositionCard/`)
+- [x] Promote TxInlineFeedback from admin to shared (already in `shared/components/feedback/TxInlineFeedback.tsx`)
+- [x] Promote getDepositLimitLabel to shared utils (already in `shared/utils/blockchain/vaults.ts`)
+- [x] Bundle size verification — admin builds clean, VaultPositionCard tree-shaken out of admin bundle; client has no promoted-export imports yet (Phase 3)
+- [x] Accessibility audit — AdminDialog close label i18n'd (`app.common.close`); Canvas sheets (RightSheet, LeftSheet, BottomSheet) use native `<dialog>` providing focus trap + Escape; icon-only buttons (AppBar, NavigationBar, AdminSearchToolbar, AdminDialog, DialogShell, ConfirmDialog) all aria-labelled
 - [ ] i18n formalization (~15 strings for empty states, toasts, palette labels)
 
 ### Phase 3: Public Platform (greengoods.app) — NOT STARTED
@@ -254,6 +254,13 @@ Extend `packages/client` with public routes (no new package). Introduce PublicSh
 - [ ] Create /actions public gallery view
 - [ ] Create CookieJarDepositDialog (deposit-only)
 - [ ] Add i18n for public site strings (~40 strings)
+
+## Pre-existing Test Failures (Phase 2 tail — inspection before Phase 3)
+
+- [x] **`empty-state.test.tsx` (6 failed → 0 failed)** — root cause: tests rendered at `/hub`/`/garden`/`/community`, but `CanvasLayout` only renders `CanvasGardenAccessState` when `workspaceId === "home"` (path = `/`). Core-workspace routes redirect to `/` via `navigate`, but the test mocks `navigate` so the URL doesn't change. Fix: tests updated to initialEntries `["/"]` plus a new assertion that `mockNavigate` is called with `"/"` for core workspaces. Also wired `canCreateGarden` prop through `CanvasGardenAccessState` so the Create Garden button hides when the user cannot create — prior test case was asserting behavior the component never implemented.
+- [x] **`route-folding.test.ts` (1 failed → 0 failed)** — root cause: assertion expected `views/Hub/index.tsx` to contain `WorkDetailPanel`/`SubmitWorkPanel` strings, but these panels are imported and composed in `views/Hub/components/HubSheetDescriptor.tsx`, and the `hub:submit-work`/`hub:work-detail:` content-id constants live in `views/Hub/hub.utils.ts`. Fix: test now reads `HubSheetDescriptor.tsx` + `hub.utils.ts` instead of collapsing everything into the view's entry file.
+- [x] **`Profile.test.tsx` (2 failed → 0 failed)** — root cause: `AccountTabList` rendered the profile tab with the label resolved from `cockpit.nav.account` (which has no en.json key and falls back to the "Account" default string), but the tests expect `getByRole("tab", { name: "Profile" })`. The `cockpit.nav.profile` key already exists in all three locales. Fix: label the profile tab with `cockpit.nav.profile`; "Account" remains the page-header title.
+- [x] **`HubWorkCard.test.tsx` (3 failed → 0 failed)** — root cause: `HubWorkCard` wrapped its content in `<AdminCard>` (a DIV with `role="button"` + manual Enter/Space handler), but the tests assert native BUTTON semantics and used the older `rounded-xl` class; AdminCard renders `rounded-[var(--m3-shape-md)]` after the M3 migration. Fix: `HubWorkCard` now renders a native `<button type="button">` (Enter/Space handled for free, better a11y) and composes the M3 card look via `adminCardVariants({ variant: "elevated", interactive: true })` — no visual drift, no new AdminCard polymorphism needed. The shape assertion was updated to reflect the current M3 token.
 
 ## Manual / Human Tasks
 

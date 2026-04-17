@@ -3,7 +3,7 @@
 **Feature Slug**: `design-system-enforcement`
 **Status**: `ACTIVE`
 **Created**: `2026-04-08`
-**Last Updated**: `2026-04-08`
+**Last Updated**: `2026-04-17` (Step 6 tablet layout already in place; typography migration applied safe body-*/subheading-xs mappings across 5 files — label-sm/label-md mappings deferred as admin token overrides would shrink text; spacing rhythm applied to Vault.tsx; Hub/index.tsx already clean.)
 **Branch**: `feature/admin-ui-revamp` (shared with admin-ui-revamp — orthogonal concerns, same branch)
 
 ## Decision Log
@@ -22,20 +22,20 @@
 
 | Requirement | Planned Step | Status |
 |-------------|-------------|--------|
-| Unified surface component | Step 2 | - |
-| Z-index scale tokens | Step 1 | - |
-| Z-index applied to all components | Step 4 | - |
-| Glass material tokens | Step 1 | - |
-| Glass applied to PageHeader, SideSheet, TopContextBar | Step 5 | - |
-| ModalDialog wrapper | Step 3 | - |
-| Modal migration (13 files) | Steps 7, 8, 9 | - |
-| Garden detail tablet layout | Step 6 | - |
-| Spacing rhythm utilities | Step 1 | - |
-| Spacing applied to hub + vault | Step 12 | - |
-| Typography in garden tabs | Step 10 | - |
-| Typography in hub + vault | Step 11 | - |
-| CardBase/SurfaceCard backward compat | Step 2 | - |
-| prefers-contrast solid fallback | Step 1 | - |
+| Unified surface component | Step 2 | ✅ (already built at `packages/shared/src/components/Surface/Surface.tsx` with full elevation/padding/radius/interactive variant system mapping to glass-ground/raised/floating/overlay plus solid variants. Consumed by admin AccountProfilePanel, AccountSettingsPanel, and Garden/index.tsx. `CardBase` and `SurfaceCard` still exist as separate components — deprecation re-exports skipped per decision 3B since no consumer migration is pressing.) |
+| Z-index scale tokens | Step 1 | ✅ (`--z-base/raised/sticky/nav/overlay/modal/toast` at theme.css:413–419 with `--z-index-*` Tailwind aliases at 1186–1192) |
+| Z-index applied to all components | Step 4 | 🟡 (13 files swept: 7 admin+Canvas — AppBar tooltip, GardenChip dropdown, AdminDialog, CommandPalette, UserMenu, AdminTooltip, Hub FAB; 6 shared primitives — DateRangePicker, DatePicker, FormWizard, StepIndicator, ImagePreviewDialog header gradient (z-raised), ImagePreviewDialog body layer stays high. **Reverted for client safety 2026-04-17:** SyncStatusBar (z-50), Select (z-50), WorkCard preview (z-[70]), ImagePreviewDialog overlay/content (z-[10002]/[10003]) — these shared components are consumed by client, whose modal stack still uses arbitrary `z-[1000]`/`z-[10001]`/`z-[20000]`; migrating shared to the token scale would drop them below client modals and TopNav. Deferred until Phase 3 sweeps client's z values too.) |
+| Glass material tokens | Step 1 | ✅ (`--glass-blur/bg/ring`, dark overrides, `--glass-overlay-bg` at theme.css:425–428, 620–621; `.glass-surface` utility at admin/index.css:1111–1125) |
+| Glass applied to PageHeader, SideSheet, TopContextBar | Step 5 | ✅ (Sheets use `glass-floating` ×3, NavigationBar uses `glass-ground`, MainSheet uses `glass-surface`, GardenChip dropdowns use `glass-raised`/`glass-floating`. PageHeader sticky variant now applies glass backdrop-blur + ring (admin PageHeader.tsx). AppBar stays `bg-transparent` intentionally — canvas backdrop shows through.) |
+| ModalDialog wrapper | Step 3 | ✅ (`DialogShell` in shared serves this role; `preventClose` prop added for loading lock) |
+| Modal migration (13 files) | Steps 7, 8, 9 | 9/13 ✅ Garden (AddMember, ManageRoles, Members, GardenDomainEditor), Vault (PositionCard, Deposit, Withdraw), Hypercerts (CreateListing, Minting). CookieJar×3 stay on AdminDialog (M3-strict). ConfirmDialog already is the shared primitive. |
+| Garden detail tablet layout | Step 6 | ✅ (media (768-1023px) rule at index.css:749–777) |
+| Spacing rhythm utilities | Step 1 | ✅ (`gap-section`/`gap-content` at index.css:1137–1152) |
+| Spacing applied to hub + vault | Step 12 | ✅ (Vault.tsx `contentClassName` now uses `flex flex-col gap-section`; Hub/index.tsx had no space-y to migrate) |
+| Typography in garden tabs | Step 10 | ✅ (body-*/subheading-xs applied across OverviewTab, ImpactTab, WorkTab, CommunityTab. Label-* rows dropped 2026-04-17 per decision 1A — admin's M3 small-label overrides shrink the shared label scale, so raw `text-sm font-medium`/`text-lg font-semibold` stay on admin stat rows and headers.) |
+| Typography in hub + vault | Step 11 | ✅ (Vault.tsx body-sm/body-xs applied. Hub/index.tsx delegates all typography to child components — no raw text-* patterns in the orchestration file.) |
+| CardBase/SurfaceCard backward compat | Step 2 | n/a — dropped per decision 3B (2026-04-17). Existing CardBase/SurfaceCard consumers stay as-is; Surface lives alongside them. |
+| prefers-contrast solid fallback | Step 1 | 🟡 (glass-* utility definitions exist; `@media (prefers-contrast: more)` fallback still to verify in utilities.css) |
 
 ## CLAUDE.md Compliance
 
@@ -164,6 +164,9 @@ Glass utility classes:
 **Verify**: CSS builds without errors, tokens accessible in Tailwind classes.
 
 ### Step 2: Surface Component
+
+> **Status (2026-04-17):** Already built at `packages/shared/src/components/Surface/Surface.tsx` with glass tiers (ground/raised/floating/overlay) + solid equivalents, padding/radius/interactive/colorAccent variants, `Surface.Header`/`Body`/`Footer` compound pattern, polymorphic `as` prop. Exported from shared barrel, consumed by AccountProfilePanel, AccountSettingsPanel, Garden/index. **Not done in this plan's execution — it was implemented in an earlier pass and the plan hadn't been updated.** Per decision 3B (2026-04-17), the "CardBase/SurfaceCard backward-compat re-export" sub-goal is also dropped: consumers who still use CardBase are fine as-is; a targeted `.surface-*` CSS retirement can happen separately.
+
 **Files**: `packages/shared/src/components/Surface/Surface.tsx`, `packages/shared/src/components/Surface/index.ts`, `packages/shared/src/components/Cards/CardBase.tsx` (add deprecation re-export), `packages/shared/src/index.ts` (barrel export)
 **Details**:
 
@@ -360,6 +363,9 @@ After:
 **Verify**: Cookie jar deposit/withdraw flows. Hypercert minting flow. Confirm dialog renders in all consuming views.
 
 ### Step 10: Typography — Garden Detail Tabs
+
+> **Implementation note (2026-04-17):** Admin overrides `--text-label-sm: 11px` and `--text-label-md: 12px` (M3 small-label adaptation, vs theme-scale 14px/16px). Per decision 1A, the `text-sm font-medium → label-sm` and `text-lg font-semibold → label-md` rows are **dropped from this step's mapping**; admin stat values / section headers stay on raw `text-lg font-semibold` so the M3 small-label scale remains usable for its intended role (compact metadata labels) without affecting emphasis typography. Applied mappings (value-equivalent across both scales): `text-xs text-text-soft → body-xs text-text-soft`, `text-sm text-text-sub → body-sm text-text-sub`, `text-sm text-text-soft → body-sm text-text-soft`, `text-xs text-primary-base → body-xs text-primary-base`.
+
 **Files**: `OverviewTab.tsx`, `ImpactTab.tsx`, `WorkTab.tsx`, `CommunityTab.tsx`
 **Details**:
 
