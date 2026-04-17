@@ -31,12 +31,11 @@ import {
   RiMapPin2Fill,
   RiUserAddLine,
 } from "@remixicon/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { Suspense, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
 import { Button } from "@/components/Actions";
-import { ConvictionDrawer, EndowmentDrawer } from "@/components/Dialogs";
 import { GardenErrorBoundary } from "@/components/Errors";
 import {
   GardenAssessments,
@@ -45,6 +44,13 @@ import {
   GardenWork,
 } from "@/components/Features";
 import { type StandardTab, StandardTabs, TopNav } from "@/components/Navigation";
+
+const ConvictionDrawer = React.lazy(() =>
+  import("@/components/Dialogs/ConvictionDrawer").then((m) => ({ default: m.ConvictionDrawer }))
+);
+const EndowmentDrawer = React.lazy(() =>
+  import("@/components/Dialogs/TreasuryDrawer").then((m) => ({ default: m.EndowmentDrawer }))
+);
 
 export const Garden: React.FC = () => {
   const intl = useIntl();
@@ -394,20 +400,24 @@ export const Garden: React.FC = () => {
           </>
         )}
         {garden && (
-          <EndowmentDrawer
-            isOpen={isEndowmentOpen}
-            onClose={closeEndowmentDrawer}
-            gardenAddress={garden.id}
-            gardenName={garden.name}
-          />
+          <Suspense fallback={null}>
+            <EndowmentDrawer
+              isOpen={isEndowmentOpen}
+              onClose={closeEndowmentDrawer}
+              gardenAddress={garden.id}
+              gardenName={garden.name}
+            />
+          </Suspense>
         )}
         {garden && hasGovernance && (
-          <ConvictionDrawer
-            isOpen={isGovernanceOpen}
-            onClose={() => setIsGovernanceOpen(false)}
-            gardenAddress={garden.id}
-            gardenName={garden.name}
-          />
+          <Suspense fallback={null}>
+            <ConvictionDrawer
+              isOpen={isGovernanceOpen}
+              onClose={() => setIsGovernanceOpen(false)}
+              gardenAddress={garden.id}
+              gardenName={garden.name}
+            />
+          </Suspense>
         )}
         <Outlet context={{ gardenId: garden.id }} />
       </div>
