@@ -14,6 +14,7 @@ const mockUpdateMaxWithdrawal = vi.fn();
 const mockUpdateInterval = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
   ConfirmDialog: () => null,
   formatTokenAmount: (value: bigint, decimals = 18) =>
     `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),

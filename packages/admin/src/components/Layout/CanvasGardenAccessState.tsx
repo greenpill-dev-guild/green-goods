@@ -4,9 +4,13 @@ import { SeedlingIllustration } from "./SeedlingIllustration";
 
 interface CanvasGardenAccessStateProps {
   onCreateGarden: () => void;
+  canCreateGarden?: boolean;
 }
 
-export function CanvasGardenAccessState({ onCreateGarden }: CanvasGardenAccessStateProps) {
+export function CanvasGardenAccessState({
+  onCreateGarden,
+  canCreateGarden = true,
+}: CanvasGardenAccessStateProps) {
   const { formatMessage } = useIntl();
 
   return (
@@ -23,17 +27,22 @@ export function CanvasGardenAccessState({ onCreateGarden }: CanvasGardenAccessSt
       </h1>
       <p className="mt-2 max-w-md text-sm text-text-sub">
         {formatMessage({
-          id: "cockpit.access.noGardenDescriptionUnified",
-          defaultMessage:
-            "Create your first garden or ask a garden owner to add you as an operator.",
+          id: canCreateGarden
+            ? "cockpit.access.noGardenDescriptionUnified"
+            : "cockpit.access.noGardenDescriptionOperator",
+          defaultMessage: canCreateGarden
+            ? "Create your first garden or ask a garden owner to add you as an operator."
+            : "Ask a garden owner to add you as an operator.",
         })}
       </p>
-      <Button className="mt-6" onClick={onCreateGarden}>
-        {formatMessage({
-          id: "cockpit.workspace.createGarden",
-          defaultMessage: "Create Garden",
-        })}
-      </Button>
+      {canCreateGarden && (
+        <Button className="mt-6" onClick={onCreateGarden}>
+          {formatMessage({
+            id: "cockpit.workspace.createGarden",
+            defaultMessage: "Create Garden",
+          })}
+        </Button>
+      )}
     </section>
   );
 }

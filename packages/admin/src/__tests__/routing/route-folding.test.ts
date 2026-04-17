@@ -18,6 +18,8 @@ import { describe, expect, it } from "vitest";
 const srcDir = resolve(__dirname, "../../");
 const routerPath = resolve(srcDir, "router.tsx");
 const workViewPath = resolve(srcDir, "views/Hub/index.tsx");
+const hubSheetDescriptorPath = resolve(srcDir, "views/Hub/components/HubSheetDescriptor.tsx");
+const hubUtilsPath = resolve(srcDir, "views/Hub/hub.utils.ts");
 const communityViewPath = resolve(srcDir, "views/Community/index.tsx");
 const profileViewPath = resolve(srcDir, "views/Profile/index.tsx");
 const sharedAdminRoutesPath = resolve(srcDir, "../../shared/src/utils/navigation/admin-routes.ts");
@@ -66,12 +68,14 @@ describe("route folding", () => {
   });
 
   it("Work view owns the bounded Hub detail and submit panels", () => {
-    const workView = readSource(workViewPath);
+    // Panels are composed in the Hub sheet descriptor; content-id constants live in hub.utils.
+    const hubSheetDescriptor = readSource(hubSheetDescriptorPath);
+    const hubUtils = readSource(hubUtilsPath);
 
-    expect(workView).toContain("WorkDetailPanel");
-    expect(workView).toContain("SubmitWorkPanel");
-    expect(workView).toContain("hub:submit-work");
-    expect(workView).toContain("hub:work-detail:");
+    expect(hubSheetDescriptor).toContain("WorkDetailPanel");
+    expect(hubSheetDescriptor).toContain("SubmitWorkPanel");
+    expect(hubUtils).toContain("hub:submit-work");
+    expect(hubUtils).toContain("hub:work-detail:");
   });
 
   it("Hub canonical builders preserve only garden, sort, and item context", () => {

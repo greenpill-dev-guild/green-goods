@@ -126,7 +126,7 @@ describe("HubWorkCard", () => {
 
   it("renders with correct card shape classes", () => {
     renderCard();
-    expect(screen.getByRole("button").className).toContain("rounded-xl");
+    expect(screen.getByRole("button").className).toContain("rounded-[var(--m3-shape-md)]");
   });
 
   it("is focusable (native button)", () => {

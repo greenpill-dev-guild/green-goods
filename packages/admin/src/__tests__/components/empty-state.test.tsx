@@ -108,7 +108,7 @@ describe("Canvas no-garden access state", () => {
 
   it("renders a create-garden CTA when the user can create gardens", () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -120,7 +120,7 @@ describe("Canvas no-garden access state", () => {
 
   it("navigates to /garden/create from the CTA", async () => {
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -138,7 +138,7 @@ describe("Canvas no-garden access state", () => {
     };
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
+      <MemoryRouter initialEntries={["/"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -151,14 +151,13 @@ describe("Canvas no-garden access state", () => {
     "/hub",
     "/garden",
     "/community",
-  ])("renders the shared fallback state on %s when no eligible gardens exist", (route) => {
+  ])("redirects to home from %s when no eligible gardens exist", (route) => {
     renderWithProviders(
       <MemoryRouter initialEntries={[route]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
-    expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
-    expect(screen.queryByTestId("page-content")).not.toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledWith("/", { replace: true });
   });
 });

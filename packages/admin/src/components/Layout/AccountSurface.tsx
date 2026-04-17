@@ -41,7 +41,7 @@ export function AccountTabList({ activeTab, onTabChange, className }: AccountTab
         label:
           tab === "settings"
             ? formatMessage({ id: "cockpit.settings.title", defaultMessage: "Settings" })
-            : formatMessage({ id: "cockpit.nav.account", defaultMessage: "Account" }),
+            : formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" }),
       }))}
       className={cn("w-full", className)}
     />

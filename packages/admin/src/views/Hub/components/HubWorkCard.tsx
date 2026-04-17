@@ -9,7 +9,7 @@ import {
 } from "@green-goods/shared";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminCard } from "@/components/AdminCard";
+import { adminCardVariants } from "@/components/AdminCard";
 
 // ---------------------------------------------------------------------------
 // Props
@@ -107,20 +107,12 @@ export function HubWorkCard({
     formatMessage({ id: "app.admin.work.untitledWork", defaultMessage: "Untitled Work" });
 
   return (
-    <AdminCard
-      variant="elevated"
-      interactive
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={onClick}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick?.();
-        }
-      }}
       className={cn(
-        "group w-full overflow-hidden text-left",
+        adminCardVariants({ variant: "elevated", interactive: true }),
+        "group block w-full overflow-hidden text-left",
         "active:translate-y-0 active:scale-[0.992]",
         "motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 motion-reduce:transition-none",
         "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))] focus-visible:ring-offset-2"
@@ -221,6 +213,6 @@ export function HubWorkCard({
           </span>
         </div>
       </div>
-    </AdminCard>
+    </button>
   );
 }
