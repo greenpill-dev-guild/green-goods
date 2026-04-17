@@ -1,22 +1,19 @@
 ---
 name: triage
-description: Classifies issues by severity, type, and affected packages, then routes to the appropriate agent or skill. Use for new bug reports, feature requests, or incidents that need quick prioritization and routing.
-# Model: haiku is optimal. Triage is fast classification (5 turns max) with
-# deterministic routing rules. No deep reasoning needed. Validated at 100/100 in evals.
+description: "Classifies issues by severity, type, and affected packages, then routes to the appropriate agent or skill. Use for new bug reports, feature requests, or incidents that need quick prioritization and routing."
 model: haiku
-tools:
+tools: 
   - Read
   - Glob
   - Grep
   - Bash
-disallowedTools:
+disallowedTools: 
   - Write
   - Edit
   - Task
 permissionMode: plan
 maxTurns: 5
 ---
-
 # Triage Agent
 
 Fast read-only classifier for deterministic routing.

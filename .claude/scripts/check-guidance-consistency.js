@@ -265,7 +265,7 @@ for (const [name, info] of skillMeta.entries()) {
 // === Unified registry: canonical commands, command skills, and bundles ===
 // All now live in skills.json alongside skills and aliases.
 
-const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit", "principles", "architecture", "status"]);
+const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit", "principles", "architecture", "status", "clean"]);
 let canonicalCommandNames = new Set();
 
 {

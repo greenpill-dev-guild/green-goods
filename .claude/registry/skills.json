@@ -7,7 +7,8 @@
     "audit",
     "principles",
     "architecture",
-    "status"
+    "status",
+    "clean"
   ],
   "skills": [
     {
@@ -366,6 +367,13 @@
       "entrypoint": "/plan",
       "default_mode": "interactive",
       "skills": ["indexer", "testing"],
+      "user_facing": false,
+      "contract_touching": false
+    },
+    "agent-change": {
+      "entrypoint": "/plan",
+      "default_mode": "interactive",
+      "skills": ["ops", "testing"],
       "user_facing": false,
       "contract_touching": false
     },

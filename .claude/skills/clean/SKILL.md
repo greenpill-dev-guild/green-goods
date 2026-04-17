@@ -362,13 +362,11 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 
 ---
 
-## Relationship to Other Skills
+## Related Skills
 
-| Skill | Role | When to use instead |
-|-------|------|-------------------|
-| `/audit` | **Find** problems (read-only) | When you want a report, not fixes |
-| `/principles` | **Evaluate** design soundness (read-only) | When checking SOLID/DRY/KISS compliance |
-| `/review` | **Review** specific changes | When reviewing a PR or recent commits |
-| `/clean` | **Fix** problems at scale | When you want to actually improve the codebase |
+- `audit` — Find problems (read-only). Use when you want a report, not fixes.
+- `principles` — Evaluate design soundness (SOLID/DRY/KISS compliance).
+- `review` — Review specific changes. Use when reviewing a PR or recent commits.
+- `testing` — Each agent runs `bun run test` in affected packages after implementing fixes.
 
-Recommended flow: `/audit` -> review findings -> `/clean --agents N` targeting specific issues -> `/review` the changes.
+Recommended flow: `audit` -> review findings -> `clean --agents N` targeting specific issues -> `review` the changes.
