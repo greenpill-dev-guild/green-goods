@@ -1,5 +1,4 @@
 {
-  "projectId": "",
   "surfaces": {
     "admin": {
       "designMd": "packages/admin/DESIGN.md",
@@ -14,5 +13,6 @@
       "viewsDir": "packages/client/src/views",
       "designSystem": "warm-earth"
     }
-  }
+  },
+  "projects": {}
 }
