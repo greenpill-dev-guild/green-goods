@@ -1,6 +1,6 @@
 import { DEFAULT_CHAIN_ID, DialogShell, type MintingState } from "@green-goods/shared";
 import { useIntl } from "react-intl";
-import { MintProgress } from "./steps/MintProgress";
+import { MintProgress } from "./Steps/MintProgress";
 
 interface MintingDialogProps {
   /** Current minting state from the wizard store */

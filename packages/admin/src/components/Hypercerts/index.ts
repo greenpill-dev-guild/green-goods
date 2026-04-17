@@ -5,8 +5,8 @@ export { HypercertWizard, type HypercertCompletionData } from "./HypercertWizard
 export { MarketplaceApprovalGate } from "./MarketplaceApprovalGate";
 export { MintingDialog } from "./MintingDialog";
 export { TradeHistoryTable } from "./TradeHistoryTable";
-export { AttestationSelector } from "./steps/AttestationSelector";
-export { DistributionConfig } from "./steps/DistributionConfig";
-export { HypercertPreview } from "./steps/HypercertPreview";
-export { MetadataEditor } from "./steps/MetadataEditor";
-export { MintProgress } from "./steps/MintProgress";
+export { AttestationSelector } from "./Steps/AttestationSelector";
+export { DistributionConfig } from "./Steps/DistributionConfig";
+export { HypercertPreview } from "./Steps/HypercertPreview";
+export { MetadataEditor } from "./Steps/MetadataEditor";
+export { MintProgress } from "./Steps/MintProgress";
