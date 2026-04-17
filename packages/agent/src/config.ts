@@ -40,6 +40,9 @@ export interface Config {
   // Security
   encryptionSecret?: string;
 
+  // API
+  botApiToken?: string;
+
   // Analytics
   posthogApiKey?: string;
   posthogHost: string;
@@ -93,6 +96,9 @@ export function loadConfig(): Config {
 
     // Database
     dbPath: process.env.DB_PATH || "data/agent.db",
+
+    // API
+    botApiToken: process.env.BOT_API_TOKEN,
 
     // Security
     encryptionSecret: process.env.ENCRYPTION_SECRET,

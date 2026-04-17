@@ -192,6 +192,26 @@ export interface WorkDraftData {
 }
 
 // ============================================================================
+// FEEDBACK
+// ============================================================================
+
+export type FeedbackType = "bug" | "idea";
+export type FeedbackStatus = "new" | "triaged" | "responded";
+
+export interface Feedback {
+  id: string;
+  type: FeedbackType;
+  status: FeedbackStatus;
+  text: string;
+  platform: Platform;
+  platformId: string;
+  displayName?: string;
+  gardenAddress?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ============================================================================
 // BLOCKCHAIN
 // ============================================================================
 

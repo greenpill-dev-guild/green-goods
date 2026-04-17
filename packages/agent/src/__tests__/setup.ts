@@ -208,6 +208,20 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return [];
 
+          if (tableName === "feedback") {
+            // Feedback queries: WHERE status = 'new' AND createdAt >= ? [AND type = ?]
+            let rows = Array.from(table.values());
+            rows = rows.filter((row) => row.status === "new");
+            if (params.length >= 1) {
+              const since = params[0] as number;
+              rows = rows.filter((row) => (row.createdAt as number) >= since);
+            }
+            if (params.length >= 2) {
+              rows = rows.filter((row) => row.type === params[1]);
+            }
+            return rows;
+          }
+
           // Filter by gardenAddress if present
           if (params.length === 1) {
             const gardenAddress = String(params[0]);
@@ -234,6 +248,7 @@ class InMemoryDatabase {
             users: 7,
             sessions: 5,
             pending_works: 7,
+            feedback: 10,
           };
 
           // Determine key based on table
@@ -287,6 +302,25 @@ class InMemoryDatabase {
               data: params[6],
               createdAt: getTestTimestamp(),
             };
+          } else if (tableName === "feedback") {
+            if (params.length !== EXPECTED_PARAMS.feedback) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.feedback} params for feedback, got ${params.length}`
+              );
+            }
+            key = String(params[0]);
+            row = {
+              id: params[0],
+              type: params[1],
+              status: params[2],
+              text: params[3],
+              platform: params[4],
+              platformId: params[5],
+              displayName: params[6],
+              gardenAddress: params[7],
+              createdAt: params[8],
+              updatedAt: params[9],
+            };
           } else {
             key = String(params[0]);
             row = { id: params[0] };
@@ -303,26 +337,38 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return;
 
-          // Last two params are always platform, platformId for WHERE clause
-          const platform = params[params.length - 2];
-          const platformId = params[params.length - 1];
-          const key = `${platform}:${platformId}`;
-
-          const existingRow = table.get(key);
-          if (existingRow) {
-            // Update fields based on SET clause
-            const setFields = params.slice(0, -2);
-            if (sql.includes("currentGarden = ?") && sql.includes("role = ?")) {
-              existingRow.currentGarden = setFields[0];
-              existingRow.role = setFields[1];
-            } else if (sql.includes("currentGarden = ?")) {
-              existingRow.currentGarden = setFields[0];
-            } else if (sql.includes("role = ?")) {
-              existingRow.role = setFields[0];
-            } else if (sql.includes("privateKey = ?")) {
-              existingRow.privateKey = setFields[0];
+          if (tableName === "feedback") {
+            // Feedback UPDATE: SET status = ?, updatedAt = ? WHERE id = ?
+            const id = params[params.length - 1];
+            const key = String(id);
+            const existingRow = table.get(key);
+            if (existingRow) {
+              existingRow.status = params[0];
+              existingRow.updatedAt = params[1];
+              table.set(key, existingRow);
             }
-            table.set(key, existingRow);
+          } else {
+            // Other tables: last two params are platform, platformId for WHERE clause
+            const platform = params[params.length - 2];
+            const platformId = params[params.length - 1];
+            const key = `${platform}:${platformId}`;
+
+            const existingRow = table.get(key);
+            if (existingRow) {
+              // Update fields based on SET clause
+              const setFields = params.slice(0, -2);
+              if (sql.includes("currentGarden = ?") && sql.includes("role = ?")) {
+                existingRow.currentGarden = setFields[0];
+                existingRow.role = setFields[1];
+              } else if (sql.includes("currentGarden = ?")) {
+                existingRow.currentGarden = setFields[0];
+              } else if (sql.includes("role = ?")) {
+                existingRow.role = setFields[0];
+              } else if (sql.includes("privateKey = ?")) {
+                existingRow.privateKey = setFields[0];
+              }
+              table.set(key, existingRow);
+            }
           }
           return;
         }

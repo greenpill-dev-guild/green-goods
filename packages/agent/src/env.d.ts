@@ -28,6 +28,9 @@ declare namespace NodeJS {
     STORACHA_PROOF?: string;
     STORACHA_GATEWAY?: string;
 
+    // API
+    BOT_API_TOKEN?: string;
+
     // Analytics
     POSTHOG_AGENT_KEY?: string;
     POSTHOG_HOST?: string;

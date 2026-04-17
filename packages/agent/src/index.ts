@@ -68,11 +68,14 @@ async function main(): Promise<void> {
   // LAUNCH
   // ============================================================================
 
-  if (config.mode === "webhook") {
-    const server = createServer({
-      isAIReady: isAIModelLoaded,
-    });
+  // Start HTTP server in both modes (health + API endpoints always available)
+  const server = createServer({
+    isAIReady: isAIModelLoaded,
+    botApiToken: config.botApiToken,
+    notifier,
+  });
 
+  if (config.mode === "webhook") {
     const webhookPath = `/webhook/telegram`;
     await bot.telegram.setWebhook(`${process.env.WEBHOOK_URL}${webhookPath}`, {
       secret_token: config.telegramWebhookSecret,
@@ -98,22 +101,26 @@ async function main(): Promise<void> {
       await bot.handleUpdate(request.body as Parameters<typeof bot.handleUpdate>[0]);
       return { ok: true };
     });
-
-    await startServer(server, { port: config.port, host: config.host });
-
-    logger.info(
-      {
-        webhook: `${process.env.WEBHOOK_URL}${webhookPath}`,
-        health: `http://${config.host}:${config.port}/health`,
-      },
-      "✅ Agent running in webhook mode"
-    );
   } else {
-    // Polling mode
+    // Polling mode for Telegram
     await bot.launch(() => {
-      logger.info("✅ Agent running in polling mode");
+      logger.info("✅ Agent Telegram bot running in polling mode");
     });
   }
+
+  await startServer(server, { port: config.port, host: config.host });
+
+  logger.info(
+    {
+      mode: config.mode,
+      health: `http://${config.host}:${config.port}/health`,
+      api: config.botApiToken ? "enabled" : "disabled (no BOT_API_TOKEN)",
+      ...(config.mode === "webhook"
+        ? { webhook: `${process.env.WEBHOOK_URL}/webhook/telegram` }
+        : {}),
+    },
+    "✅ Agent running"
+  );
 
   // ============================================================================
   // GRACEFUL SHUTDOWN
@@ -123,6 +130,7 @@ async function main(): Promise<void> {
     logger.info({ signal }, "📴 Shutting down gracefully");
 
     bot.stop(signal);
+    await server.close();
     rateLimiter.destroy();
     clearBlockchainCache();
     await closeDB();

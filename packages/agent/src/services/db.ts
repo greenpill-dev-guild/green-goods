@@ -9,6 +9,9 @@ import fs from "fs";
 import path from "path";
 import type {
   CreateUserInput,
+  Feedback,
+  FeedbackStatus,
+  FeedbackType,
   PendingWork,
   Platform,
   Session,
@@ -75,6 +78,21 @@ class DB {
       )
     `);
 
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS feedback (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'new',
+        text TEXT NOT NULL,
+        platform TEXT NOT NULL,
+        platformId TEXT NOT NULL,
+        displayName TEXT,
+        gardenAddress TEXT,
+        createdAt INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+        updatedAt INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+      )
+    `);
+
     this.db.run(
       `CREATE INDEX IF NOT EXISTS idx_users_garden ON users(currentGarden) WHERE currentGarden IS NOT NULL`
     );
@@ -83,6 +101,12 @@ class DB {
     );
     this.db.run(
       `CREATE INDEX IF NOT EXISTS idx_users_role_garden ON users(role, currentGarden) WHERE role = 'operator'`
+    );
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_feedback_status_created ON feedback(status, createdAt)`
+    );
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_feedback_platform ON feedback(platform, platformId)`
     );
   }
 
@@ -356,6 +380,110 @@ class DB {
   }
 
   // ==========================================================================
+  // FEEDBACK
+  // ==========================================================================
+
+  async addFeedback(feedback: Omit<Feedback, "createdAt" | "updatedAt">): Promise<Feedback> {
+    const now = Date.now();
+    this.db
+      .query(
+        `INSERT INTO feedback (id, type, status, text, platform, platformId, displayName, gardenAddress, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        feedback.id,
+        feedback.type,
+        feedback.status,
+        feedback.text,
+        feedback.platform,
+        feedback.platformId,
+        feedback.displayName ?? null,
+        feedback.gardenAddress ?? null,
+        now,
+        now
+      );
+
+    return { ...feedback, createdAt: now, updatedAt: now };
+  }
+
+  async getFeedback(id: string): Promise<Feedback | undefined> {
+    const row = this.db.query("SELECT * FROM feedback WHERE id = ?").get(id) as {
+      id: string;
+      type: string;
+      status: string;
+      text: string;
+      platform: string;
+      platformId: string;
+      displayName: string | null;
+      gardenAddress: string | null;
+      createdAt: number;
+      updatedAt: number;
+    } | null;
+
+    if (!row) return undefined;
+
+    return {
+      id: row.id,
+      type: row.type as FeedbackType,
+      status: row.status as FeedbackStatus,
+      text: row.text,
+      platform: row.platform as Platform,
+      platformId: row.platformId,
+      displayName: row.displayName ?? undefined,
+      gardenAddress: row.gardenAddress ?? undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  async getNewFeedback(since?: number, type?: FeedbackType): Promise<Feedback[]> {
+    const defaultSince = Date.now() - 24 * 60 * 60 * 1000;
+    const sinceMs = since ?? defaultSince;
+
+    let query = "SELECT * FROM feedback WHERE status = 'new' AND createdAt >= ?";
+    const params: (string | number)[] = [sinceMs];
+
+    if (type) {
+      query += " AND type = ?";
+      params.push(type);
+    }
+
+    query += " ORDER BY createdAt ASC";
+
+    const rows = this.db.query(query).all(...params) as Array<{
+      id: string;
+      type: string;
+      status: string;
+      text: string;
+      platform: string;
+      platformId: string;
+      displayName: string | null;
+      gardenAddress: string | null;
+      createdAt: number;
+      updatedAt: number;
+    }>;
+
+    return rows.map((row) => ({
+      id: row.id,
+      type: row.type as FeedbackType,
+      status: row.status as FeedbackStatus,
+      text: row.text,
+      platform: row.platform as Platform,
+      platformId: row.platformId,
+      displayName: row.displayName ?? undefined,
+      gardenAddress: row.gardenAddress ?? undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
+  }
+
+  async updateFeedbackStatus(id: string, status: FeedbackStatus): Promise<void> {
+    this.db
+      .query("UPDATE feedback SET status = ?, updatedAt = ? WHERE id = ?")
+      .run(status, Date.now(), id);
+  }
+
+  // ==========================================================================
   // LIFECYCLE
   // ==========================================================================
 
@@ -408,6 +536,14 @@ export const getPendingWork = (id: string) => getDB().getPendingWork(id);
 export const getPendingWorksForGarden = (gardenAddress: string) =>
   getDB().getPendingWorksForGarden(gardenAddress);
 export const removePendingWork = (id: string) => getDB().removePendingWork(id);
+
+export const addFeedback = (feedback: Omit<Feedback, "createdAt" | "updatedAt">) =>
+  getDB().addFeedback(feedback);
+export const getFeedback = (id: string) => getDB().getFeedback(id);
+export const getNewFeedback = (since?: number, type?: FeedbackType) =>
+  getDB().getNewFeedback(since, type);
+export const updateFeedbackStatus = (id: string, status: FeedbackStatus) =>
+  getDB().updateFeedbackStatus(id, status);
 
 export const closeDB = async () => {
   if (!_db) return;
