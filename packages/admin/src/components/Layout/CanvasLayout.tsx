@@ -190,6 +190,7 @@ export function CanvasLayout() {
   const isHomeWorkspace = workspaceId === "home";
   const isCoreWorkspace =
     activePath === "/hub" || activePath === "/garden" || activePath === "/community";
+  const noEligibleGardens = eligibleGardens.length === 0;
 
   useEffect(() => {
     if (!isDesktop || rawWorkspaceId !== "profile") {
@@ -219,6 +220,27 @@ export function CanvasLayout() {
     orchestrator.openSheet("right", contentId);
     pendingDesktopAccountTabRef.current = null;
   }, [isDesktop, orchestrator, rawWorkspaceId]);
+
+  // Redirect users with no gardens to home — they see the garden creation CTA there.
+  // Hoisted above the early-return ladder below so hook count stays stable across renders.
+  useEffect(() => {
+    if (!isReady) return;
+    if (authMode === "embedded") return;
+    if (!isAuthenticated || !eoaAddress) return;
+    if (!eligibleGardensLoaded) return;
+    if (noEligibleGardens && isCoreWorkspace) {
+      navigate("/", { replace: true });
+    }
+  }, [
+    isReady,
+    authMode,
+    isAuthenticated,
+    eoaAddress,
+    eligibleGardensLoaded,
+    noEligibleGardens,
+    isCoreWorkspace,
+    navigate,
+  ]);
 
   if (!isReady || (isAuthenticated && !eligibleGardensLoaded)) {
     return (
@@ -303,14 +325,6 @@ export function CanvasLayout() {
   // GardenChip only needs the selector shape, not full domain objects.
   const gardenList = eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name }));
   const chipGarden = selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null;
-  const noEligibleGardens = eligibleGardens.length === 0;
-
-  // Redirect users with no gardens to home — they see the garden creation CTA there
-  useEffect(() => {
-    if (noEligibleGardens && isCoreWorkspace) {
-      navigate("/", { replace: true });
-    }
-  }, [noEligibleGardens, isCoreWorkspace, navigate]);
 
   const showNoGardenAccessState = isHomeWorkspace && noEligibleGardens;
 
