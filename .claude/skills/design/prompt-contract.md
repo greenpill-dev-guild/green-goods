@@ -72,6 +72,35 @@ These terms signal promotional, marketing, or brand-surface framing and produce 
 - **Glass is restricted** to `TopContextBar` only.
 - **Typography** — Plus Jakarta Sans across the cockpit.
 
+## Canonical Component Palette
+
+AI design tools MUST map generated output to these existing exports. Do not invent component names — flag missing primitives instead.
+
+**Layout shell** (`packages/admin/src/components/Layout/`):
+
+| Component | Role |
+|-----------|------|
+| `CanvasLayout` | CSS Grid root — named areas: `canvas-area-top`, `canvas-area-bottom`, inner cells |
+| `TopContextBar` (AppBar) | Z3 — garden context, search, settings, avatar; **only** surface permitted glass/blur |
+| `MainSheet` | Z2 — dominant workspace; `isReceded` prop triggers canvas recession on sheet open |
+| `LeftSheet` | Creation flows (submit work, create assessment, mint) |
+| `RightSheet` | Config, alerts, profile, settings, notifications |
+| `BottomSheet` | Mobile detail flows |
+| `NavigationBar` | Bottom workspace tabs — Hub, Garden, Community, Actions; symbol-first; role-adaptive |
+| `AdminFab` | Per-workspace primary action, capsule shape, integrated via `FabProvider` |
+
+**M3 wrappers** (`packages/admin/src/components/Admin*.tsx`, 13 total):
+
+`AdminBadge` · `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminDialog` · `AdminFab` · `AdminFilterChip` · `AdminLinearProgress` · `AdminListItem` · `AdminSearchToolbar` · `AdminTabRail` · `AdminTextField` · `AdminTooltip`
+
+All follow M3 v0.192 anatomy exactly — do not override dimensions, state layers, or shape scale.
+
+**Shared primitives** (import from `@green-goods/shared`):
+- Dialogs default to `DialogShell`. Use `AdminDialog` only for strict M3 `actions` slot + elevation-3 centered layout (CookieJar modals).
+- Identity / data display: `AddressDisplay`, `DomainBadge`, `StatusBadge`, `Alert`.
+
+**Reference composition**: `/hub` route. Model new admin surfaces on it. `DashboardLayout` / `Sidebar` / `Header` are legacy — do not start from them.
+
 ## Companion Files
 
 - [language.md](./language.md) — Full Warm Earth design language (shapes, motion, color, hero moments, material behaviors)

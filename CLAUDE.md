@@ -84,6 +84,34 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Subagent Discipline**: Spawn teammates when tasks can run in parallel, require isolated context, or involve independent workstreams. Work directly (no subagent) for single-file edits, sequential operations, tasks sharing state across steps, or any task needing fewer than 10 tool calls. Prefer the simplest approach that completes the task.
 
+## Design System
+
+Full skills: `design` (direction) + `ui` (implementation). Load explicitly when paradigm, layout composition, new view, tokens, or PR review is at stake. For trivial edits (padding, copy, a single component touch), the rules below are sufficient.
+
+**Language**: Warm Earth — M3 Expressive × Liquid Glass. Canonical spec: `.claude/skills/design/language.md`. Scannable cheat sheet: `.claude/skills/design/quick-reference.md`. Ecosystem map: `.claude/skills/design/ARCHITECTURE.md`.
+
+**Surface identities (never mix)**:
+- **Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192), Plus Jakarta Sans, glass only on `TopContextBar`, solid surfaces everywhere else. Use `Admin*` wrappers. Litmus: appropriate for Linear / GitHub / Stripe Dashboard?
+- **Client PWA** (`packages/client`) — warm garden-journal feel. Full Warm Earth expression. Inter typography. Bottom `AppBar` (installed PWA) / `SiteHeader` hamburger (browser). Hero moments live here, never in admin.
+- **Shared** (`packages/shared`) — primitives + tokens in `src/styles/theme.css`. All React hooks live here (`@green-goods/shared`).
+
+**Tokens**: Never hardcode `cubic-bezier`, `duration`, or raw color/radius values. Use `--spring-*` (6 motion tokens), `--color-*`, `--radius-*`, `--color-material-*` + `--blur-material-*`. Concentricity rule: `child_radius = parent_radius − padding`.
+
+**4-role volume hierarchy**: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%. Flooding the screen with green is the #1 failure mode. Codebase token `--color-primary` resolves to the **tertiary accent** role — do not rename.
+
+**Banned vocabulary** (enforced by `bun run lint:vocab` on i18n strings):
+- Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language.
+- Admin only: `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, glass outside `TopContextBar`.
+- Client only: `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
+
+**Component palettes** (do not invent component names — flag missing primitives instead):
+- Admin: 13 `Admin*` wrappers + `CanvasLayout` / `TopContextBar` / `MainSheet` / `{Left,Right,Bottom}Sheet` / `NavigationBar` / `AdminFab`. Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
+- Client: `@green-goods/shared` primitives + `PlatformRouter` / `SiteHeader` / `AppBar`. Full list: `.claude/skills/design/client-prompt-contract.md § Canonical Component Palette`.
+
+**Validation**: `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (banned terms).
+
+**PR review**: 4-lens checklist at `.claude/skills/design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance. Quick pass = Lenses 1 + 4. Full pass (new view) = all four.
+
 ## Contract Deployment
 
 ```bash

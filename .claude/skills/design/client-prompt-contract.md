@@ -58,6 +58,42 @@ These terms signal operator-cockpit or growth-hacking framing and produce incohe
 
 The client speaks **to the community, about the work**. The admin speaks **about the work, to the operator**. Same garden, different dialects.
 
+## Canonical Component Palette
+
+AI design tools MUST map generated output to these existing exports. Do not invent component names — flag missing primitives instead.
+
+**Shell** (`packages/client/src/components/`):
+
+| Component | Role |
+|-----------|------|
+| `PlatformRouter` | `isInstalled` detection — PWA → `/home`, browser → `/gardens` |
+| `SiteHeader` | Browser mode — hamburger (mobile) + horizontal links (desktop), sticky, backdrop blur |
+| `AppBar` | Installed PWA — bottom nav (Home / Garden / Profile), hides on `/garden` and `/work/:id` |
+| `SyncStatusBar` | Positioned above `AppBar`, reflects offline queue state |
+
+**Shared primitives** (import from `@green-goods/shared`):
+
+| Family | Components |
+|--------|-----------|
+| Dialogs | `DialogShell` (default — mobile bottom-sheet + desktop centered, `glass-floating`) |
+| Cards / status | `Card`, `StatCard`, `StatusBadge`, `Alert` |
+| Feedback | `Skeleton`, `Spinner`, `HydrationFallback` |
+| Input | `FileUploadField`, `ListPrimitives`, `DatePicker`, form components |
+| Surfaces | `Surface`, `SyncStatusBar` |
+| Identity | `AddressDisplay`, `DomainBadge` |
+| Audio | `Audio/*` (voice capture primitives) |
+
+**Typography utilities** (`packages/client/src/styles/typography.css`):
+- `.title-screen` · `.title-section` · `.body-md-regular` · `.label-md`
+- Compact type scale — `body-sm` and `label-md` are the workhorses.
+
+**Hero moment amplification** (garden creation, first work submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone):
+- Apply full Warm Earth amplification: expressive shape × full chroma × Expressive motion scheme × display typography × dramatic material.
+- Spec and list: `.claude/skills/design/language.md § Hero Moments`.
+- **Never appear in admin** — see `prompt-contract.md § Hero Moments Live in the Client, Not the Cockpit`.
+
+**Reference composition**: browser `/gardens` marketplace, PWA `/home` Work/Garden/Profile tabs. Model new client surfaces on them.
+
 ## Companion Files
 
 - [prompt-contract.md](./prompt-contract.md) — Admin cockpit prompt contract (sister file)

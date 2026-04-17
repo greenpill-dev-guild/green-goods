@@ -153,6 +153,7 @@
       "dependencies": [],
       "token_version": "2.3.0",
       "sub_files": [
+        "ARCHITECTURE.md",
         "language.md",
         "prompt-contract.md",
         "client-prompt-contract.md",
