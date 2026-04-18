@@ -8,14 +8,13 @@
 
 | Skill | Invoke With | Modes | Use For |
 |-------|-------------|-------|---------|
-| **plan** | `/plan` | `--mode check`, `--mode execute`, `--mode cleanup`, `--mode teams` | Create structured implementation plans with specs, coordinate agent teams |
-| **debug** | `/debug` | `--mode incident_hotfix`, `--mode tdd_bugfix` | Root cause investigation and systematic debugging |
 | **review** | `/review` | `--mode report_only`, `--mode apply_fixes`, `--mode iterate`, `--mode verify_only` | 6-pass systematic code review with structured findings |
 | **audit** | `/audit` | `--mode loop`, `--mode team` | Dead code detection, architectural anti-patterns, and codebase health |
 | **principles** | `/principles` | `--mode team`, `--mode execute` | Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4 |
 | **architecture** | `/architecture` | `--mode boundaries`, `--mode dependencies`, `--mode complexity`, `--mode gaps`, `--mode scorecard` | Analyze software architecture — map structure, identify gaps, provide actionable suggestions |
-| **status** | `/status` | `--mode quick`, `--mode full`, `--mode focus` | Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus |
+| **status** | `/status` | `--mode quick`, `--mode full`, `--mode focus`, `--mode resume` | Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus; `--mode resume` for branch resumption |
 | **clean** | `/clean` | `--dry-run`, `--scope pkg`, `--agents 1,3,5` | 8-agent parallel codebase cleanup — dedup, types, dead code, circular deps, type strengthening, defensive code, legacy, AI slop |
+| **ship** | `/ship` | `--dry-run`, `--no-commit` | Pre-merge gate: format + lint + test + build + conventional-commit + branch safety; evidence-before-claims |
 
 ---
 
@@ -23,9 +22,11 @@
 
 | Skill | Keywords | Sub-files |
 |-------|----------|-----------|
+| **plan** | plan this, break down feature, phased implementation | teams, brainstorm |
+| **debug** | debug this, root cause, investigate bug, unexpected error | monitoring, posthog, health-diagnostics |
 | **react** | React component, state management, hooks, TanStack Query, XState | tanstack-query, error-handling, xstate, performance, compiler |
-| **ui** | TailwindCSS, Radix, dialog, accessibility, Storybook | tailwindcss, radix-ui, compliance, storybook, storybook-addons, storybook-testing, i18n, mermaid |
-| **design** | design direction, spatial UI, adaptive surface, glass, material | spatial, interaction, materials, implementation, ecosystem, references |
+| **ui** | TailwindCSS, Radix, dialog, accessibility, Storybook | tailwindcss, radix-ui, compliance, storybook, storybook-addons, storybook-testing, i18n, mermaid, view-transitions |
+| **design** | design direction, spatial UI, adaptive surface, glass, material | ARCHITECTURE, language, prompt-contract, client-prompt-contract, quick-reference, spatial, interaction, materials, generative-ui, ecosystem, regenerative, review-checklist, stack-review |
 | **web3** | wallet, transaction, Wagmi, passkey, contract call | — |
 | **contracts** | Solidity, smart contract, Foundry, security audit, vulnerability | security |
 | **indexer** | indexer, event handler, schema.graphql, Docker, container | docker |
@@ -52,8 +53,6 @@
 |-------|---------|
 | **oracle** | Deep research requiring 3+ sources |
 | **cracked-coder** | Complex implementation with TDD |
-| **code-reviewer** | Systematic 6-pass PR review |
-| **triage** | Issue classification and routing |
 
 ---
 
@@ -62,15 +61,17 @@
 ```
 What do you need?
 │
-├─► Create structured implementation plans with specs, coordinate agent teams? ──► /plan
-├─► Root cause investigation and systematic debugging? ──► /debug
 ├─► 6-pass systematic code review with structured findings? ──► /review
 ├─► Dead code detection, architectural anti-patterns, and codebase health? ──► /audit
 ├─► Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4? ──► /principles
 ├─► Analyze software architecture — map structure, identify gaps, provide actionable suggestions? ──► /architecture
 ├─► Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus? ──► /status
+├─► Resume a stale branch — what was I doing here? ──► /status --mode resume
 ├─► Comprehensive codebase cleanup with parallel agents? ──► /clean
+├─► Pre-merge gate — am I safe to push/merge? ──► /ship
 │
+├─► Plan this feature, break it down into steps? ──► plan (passive)
+├─► Debug this bug, investigate unexpected error? ──► debug (passive)
 ├─► React component? ──► react
 ├─► TailwindCSS? ──► ui
 ├─► design direction? ──► design

@@ -1,6 +1,5 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "autoUpdatesChannel": "latest",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
@@ -100,7 +99,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /plan /debug /review /audit /teams /meeting-notes' '  Agents: oracle | cracked-coder | code-reviewer | triage'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /audit /architecture /principles /status /clean /ship /meeting-notes' '  Agents: oracle | cracked-coder'",
             "once": true
           }
         ]
@@ -209,12 +208,10 @@
       }
     ]
   },
-  "worktree": {
-    "symlinkDirectories": ["node_modules", ".turbo"]
-  },
+  "worktree": {},
   "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "code-simplifier@claude-plugins-official": true
   },
+  "autoUpdatesChannel": "latest",
   "teammateMode": "in-process"
 }

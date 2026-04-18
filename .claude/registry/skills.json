@@ -1,41 +1,51 @@
 {
   "source": ".claude/skills/*/SKILL.md",
   "canonical_commands": [
-    "plan",
-    "debug",
     "review",
     "audit",
     "principles",
     "architecture",
     "status",
-    "clean"
+    "clean",
+    "ship"
   ],
   "skills": [
     {
       "name": "plan",
       "status": "active",
       "listed_in_index": true,
-      "default_mode": "interactive",
-      "user_invocable": true,
+      "default_mode": "passive",
+      "user_invocable": false,
       "intent": "Create structured implementation plans with specs, coordinate agent teams",
       "entry_file": ".claude/skills/plan/SKILL.md",
       "owned_skills": ["architecture", "testing"],
       "modes": ["default", "check", "execute", "cleanup", "teams"],
-      "triggers": ["/plan", "plan this", "create implementation plan"],
+      "triggers": [
+        "plan this",
+        "create implementation plan",
+        "break down feature",
+        "phased implementation"
+      ],
       "dependencies": [],
-      "sub_files": ["teams.md"]
+      "sub_files": ["teams.md", "brainstorm.md"]
     },
     {
       "name": "debug",
       "status": "active",
       "listed_in_index": true,
-      "default_mode": "interactive",
-      "user_invocable": true,
+      "default_mode": "passive",
+      "user_invocable": false,
       "intent": "Root cause investigation and systematic debugging",
       "entry_file": ".claude/skills/debug/SKILL.md",
       "owned_skills": ["testing"],
       "modes": ["default", "incident_hotfix", "tdd_bugfix"],
-      "triggers": ["/debug", "debug this", "investigate this bug"],
+      "triggers": [
+        "debug this",
+        "investigate this bug",
+        "root cause",
+        "why is this failing",
+        "unexpected error"
+      ],
       "dependencies": [],
       "sub_files": ["monitoring.md", "posthog.md", "health-diagnostics.md"]
     },
@@ -148,7 +158,9 @@
         "client prompt",
         "admin prompt",
         "quick reference",
-        "cheat sheet"
+        "cheat sheet",
+        "stack review",
+        "design system review"
       ],
       "dependencies": [],
       "token_version": "2.3.0",
@@ -164,7 +176,8 @@
         "generative-ui.md",
         "ecosystem.md",
         "regenerative.md",
-        "review-checklist.md"
+        "review-checklist.md",
+        "stack-review.md"
       ]
     },
     {
@@ -309,11 +322,19 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "user_invocable": true,
-      "intent": "Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus",
+      "intent": "Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus. `--resume` mode is branch-scoped resumption.",
       "entry_file": ".claude/skills/status/SKILL.md",
       "owned_skills": [],
-      "modes": ["default", "quick", "full", "focus"],
-      "triggers": ["/status", "morning briefing", "status check", "lay of the land"],
+      "modes": ["default", "quick", "full", "focus", "resume"],
+      "triggers": [
+        "/status",
+        "morning briefing",
+        "status check",
+        "lay of the land",
+        "where was I",
+        "resume branch",
+        "pick up where I left off"
+      ],
       "dependencies": []
     },
     {
@@ -334,6 +355,27 @@
         "parallel cleanup"
       ],
       "dependencies": ["audit", "principles"]
+    },
+    {
+      "name": "ship",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Pre-merge gate — format + lint + test + build + conventional-commit + branch safety. Evidence before claims. Absorbs verification-before-completion and finishing-a-development-branch.",
+      "entry_file": ".claude/skills/ship/SKILL.md",
+      "owned_skills": [],
+      "modes": ["default", "dry-run", "no-commit", "pr"],
+      "triggers": [
+        "/ship",
+        "ready to ship",
+        "ready to merge",
+        "pre-merge check",
+        "is this ready",
+        "push branch",
+        "open PR"
+      ],
+      "dependencies": ["ops", "testing"]
     },
     {
       "name": "stitch",
@@ -359,6 +401,8 @@
     "migration": "ops",
     "teams": "plan",
     "agent-teams": "plan",
+    "brainstorm": "plan",
+    "brainstorming": "plan",
     "docker": "indexer",
     "monitoring": "debug",
     "security": "contracts",
@@ -377,6 +421,12 @@
     "autonomous-review": "review",
     "cross-package-verify": "review",
     "tdd-bugfix": "debug",
+    "verification": "ship",
+    "finish-branch": "ship",
+    "pre-merge": "ship",
+    "resume": "status",
+    "onboard": "status",
+    "/onboard": "/status --mode resume",
     "/teams": "/plan --mode teams",
     "cross-package-verify-mode": "/review --mode verify_only --scope cross-package",
     "autonomous review": "/review --mode apply_fixes",
