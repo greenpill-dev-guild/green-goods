@@ -3,7 +3,7 @@
 **Feature Slug**: `design-system-enforcement`
 **Status**: `ACTIVE`
 **Created**: `2026-04-08`
-**Last Updated**: `2026-04-17` (Step 6 tablet layout already in place; typography migration applied safe body-*/subheading-xs mappings across 5 files — label-sm/label-md mappings deferred as admin token overrides would shrink text; spacing rhythm applied to Vault.tsx; Hub/index.tsx already clean.)
+**Last Updated**: `2026-04-17` (Step 6 tablet layout already in place; typography migration applied safe body-*/subheading-xs mappings across 5 files — label-sm/label-md mappings deferred as admin token overrides would shrink text; spacing rhythm applied to Vault.tsx; Hub/index.tsx already clean. **Plan hygiene refresh 2026-04-17**: added 3 Requirements Coverage rows for post-plan DS growth — admin M3 token cascade, `Admin*` component family, dialog primitive policy. Corrected Surface consumer list.)
 **Branch**: `feature/admin-ui-revamp` (shared with admin-ui-revamp — orthogonal concerns, same branch)
 
 ## Decision Log
@@ -17,12 +17,13 @@
 | 5 | Garden detail rail becomes horizontal summary strip at md breakpoint (768px-1023px) | Rail below fold on tablets means alerts/metrics invisible. A horizontal strip (2-3 stat boxes) above main content keeps key data visible without committing to a full sidebar. At lg+ (1024px), revert to current 9fr/3fr grid. |
 | 6 | Typography and spacing applied to high-visibility views, not full sweep | Touching 53 files for `text-sm font-medium` → `label-sm` creates massive diff noise with high conflict risk. New code follows the pattern. Existing code migrated in garden tabs, hub, and vault — the 3 most-visited views. |
 | 7 | Surface variants map to elevation scale, not blur levels | Design docs describe 5 material layers (ultrathin→solid) based on blur. But blur-based hierarchy requires careful readability testing and `prefers-contrast` fallbacks. Elevation-based hierarchy (background tint + shadow depth) is immediately usable, accessible by default, and aligns with M3. Glass blur is an enhancement on specific surfaces, not the hierarchy driver. |
+| 8 | Retire `.canvas-route-shell` + warm-glass atmospheric pseudo-elements from `.workspace-canvas`; keep workspace tint CSS vars (D1 resolution, 2026-04-17) | Admin ran two competing visual systems: warm-glass gradients (`.canvas-route-shell` content wrappers, `.workspace-canvas::before/::after` radial-gradient + noise backdrop + `canvas-atmosphere-drift` animation) vs strict M3 solid surfaces. Per `feedback_m3_strict_over_hybrid.md`, user prefers strict M3 below the TopContextBar glass. Path A retires warm-glass: `.canvas-route-shell` deleted (5 consumers migrated to `<Surface elevation="solid-raised">`); `.workspace-canvas` reduced to data-workspace attribute selectors that set `--workspace-tint/-tint-2/-accent` vars (still consumed by NavigationBar, UserAvatar, PageHeader, AccountProfilePanel, AccountSettingsPanel, WorkbenchRow — workspace color identity preserved via component accents, not backdrop atmosphere). Dead sheet-animation CSS overrides removed (sheets now use react-spring, not CSS). |
 
 ## Requirements Coverage
 
 | Requirement | Planned Step | Status |
 |-------------|-------------|--------|
-| Unified surface component | Step 2 | ✅ (already built at `packages/shared/src/components/Surface/Surface.tsx` with full elevation/padding/radius/interactive variant system mapping to glass-ground/raised/floating/overlay plus solid variants. Consumed by admin AccountProfilePanel, AccountSettingsPanel, and Garden/index.tsx. `CardBase` and `SurfaceCard` still exist as separate components — deprecation re-exports skipped per decision 3B since no consumer migration is pressing.) |
+| Unified surface component | Step 2 | ✅ (already built at `packages/shared/src/components/Surface/Surface.tsx` with full elevation/padding/radius/interactive variant system mapping to glass-ground/raised/floating/overlay plus solid variants. Consumed by 8 admin files (AccountProfilePanel, AccountSettingsPanel, Garden/index.tsx, HubCertificationInspector, HubHistoryInspector, Actions/ActionDetail, Actions/EditAction, Actions/GreenWillPanel) and 2 shared files (EmptyStateShell, FormWizard). `CardBase` and `SurfaceCard` still exist as separate components — deprecation re-exports skipped per decision 3B since no consumer migration is pressing.) |
 | Z-index scale tokens | Step 1 | ✅ (`--z-base/raised/sticky/nav/overlay/modal/toast` at theme.css:413–419 with `--z-index-*` Tailwind aliases at 1186–1192) |
 | Z-index applied to all components | Step 4 | 🟡 (13 files swept: 7 admin+Canvas — AppBar tooltip, GardenChip dropdown, AdminDialog, CommandPalette, UserMenu, AdminTooltip, Hub FAB; 6 shared primitives — DateRangePicker, DatePicker, FormWizard, StepIndicator, ImagePreviewDialog header gradient (z-raised), ImagePreviewDialog body layer stays high. **Reverted for client safety 2026-04-17:** SyncStatusBar (z-50), Select (z-50), WorkCard preview (z-[70]), ImagePreviewDialog overlay/content (z-[10002]/[10003]) — these shared components are consumed by client, whose modal stack still uses arbitrary `z-[1000]`/`z-[10001]`/`z-[20000]`; migrating shared to the token scale would drop them below client modals and TopNav. Deferred until Phase 3 sweeps client's z values too.) |
 | Glass material tokens | Step 1 | ✅ (`--glass-blur/bg/ring`, dark overrides, `--glass-overlay-bg` at theme.css:425–428, 620–621; `.glass-surface` utility at admin/index.css:1111–1125) |
@@ -36,6 +37,9 @@
 | Typography in hub + vault | Step 11 | ✅ (Vault.tsx body-sm/body-xs applied. Hub/index.tsx delegates all typography to child components — no raw text-* patterns in the orchestration file.) |
 | CardBase/SurfaceCard backward compat | Step 2 | n/a — dropped per decision 3B (2026-04-17). Existing CardBase/SurfaceCard consumers stay as-is; Surface lives alongside them. |
 | prefers-contrast solid fallback | Step 1 | 🟡 (glass-* utility definitions exist; `@media (prefers-contrast: more)` fallback still to verify in utilities.css) |
+| **Admin M3 token cascade** (added 2026-04-17) | post-plan | ✅ `packages/admin/src/styles/admin-m3-tokens.css` (140 LOC — M3 surface/state/shape/elevation foundation on top of `theme.css`) + `admin-m3-overrides.css` (184 LOC — CSS overrides for shared NavBar, sheets, toast, date picker). Landed 2026-04-13 via commits `8ae1f4df`, `3593a849`, `b3365978` during admin M3 compliance work (orthogonal to this plan, now recognized as the canonical admin token layer). |
+| **Admin\* M3 component family** (added 2026-04-17) | post-plan | ✅ 13 adapter components in `packages/admin/src/components/Admin*.tsx`: AdminBadge, AdminButton, AdminCard (7 view consumers — HubWorkCard, CommunityTab, ImpactTab, OverviewTab, CookieJarManageModal, GardenDetailHelpers, ActionDetail), AdminCheckbox, AdminDialog (3 CookieJar consumers), AdminFab, AdminFilterChip, AdminLinearProgress, AdminListItem, AdminSearchToolbar, AdminTabRail, AdminTextField, AdminTooltip. Strict M3 v0.192 anatomy, same data contracts as shared primitives. Storybook coverage pending. |
+| **Dialog primitive policy** (added 2026-04-17) | post-plan | ✅ Two primitives coexist by design: `DialogShell` (shared, flexible, **default**) consumed by 9 admin modals + 2 client dialogs; `ConfirmDialog` shares the DialogShell file. `AdminDialog` (admin, strict M3) reserved for CookieJar×3 (deposit/withdraw/manage) where the M3 `actions` slot + elevation-3 + centered layout are explicit design requirements. New admin modals default to DialogShell. |
 
 ## CLAUDE.md Compliance
 
@@ -54,6 +58,8 @@
 ### Files to Modify (Tokens)
 - `packages/shared/src/styles/theme.css` — glass + z-index custom properties
 - `packages/admin/src/index.css` — `@theme` z-index tokens, spacing rhythm, glass utilities, garden detail md breakpoint
+- `packages/admin/src/styles/admin-m3-tokens.css` — **post-plan (2026-04-13)**: M3 surface/state/shape/elevation foundation (140 LOC)
+- `packages/admin/src/styles/admin-m3-overrides.css` — **post-plan (2026-04-13)**: CSS overrides for shared NavBar/sheets/toast/date picker (184 LOC)
 
 ### Files to Modify (Z-Index)
 - `packages/shared/src/components/Cockpit/NavigationBar.tsx` — z-30 → z-nav

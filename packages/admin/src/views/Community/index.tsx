@@ -1,6 +1,7 @@
 import {
   Alert,
   MetaStrip,
+  Surface,
   adminRoutes,
   toastService,
   useAdminStore,
@@ -340,7 +341,7 @@ export default function CommunityView() {
       ) : (
         <div className="mt-4 px-4 sm:px-6">
           <div className="mx-auto w-full max-w-[1400px]">
-            <div className="canvas-route-shell overflow-hidden">
+            <Surface elevation="solid-raised" padding="default" className="overflow-hidden">
               <CommunityTab
                 garden={{ id: garden.id, name: garden.name }}
                 gardenId={gardenId}
@@ -385,7 +386,7 @@ export default function CommunityView() {
                 }}
                 scheduleBackgroundRefetch={scheduleBackgroundRefetch}
               />
-            </div>
+            </Surface>
           </div>
         </div>
       )}

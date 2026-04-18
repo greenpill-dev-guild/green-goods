@@ -1044,41 +1044,6 @@
     --shape-2xl: 1.9rem;  /* 30.4px — navigation dock */
   }
 
-  /**
-   * Canvas route shell — the warm-earth container used by operator routes
-   * (list loading/empty/error states, workbench frames). Replaces repeated inline
-   * `rounded-[1.6rem] border border-white/70 bg-[linear-gradient(...)]` copies.
-   */
-  .canvas-route-shell {
-    border-radius: var(--shape-xl);
-    background: linear-gradient(
-      180deg,
-      rgb(var(--admin-surface-0) / 0.94) 0%,
-      rgb(var(--admin-surface-50) / 0.92) 100%
-    );
-    padding: 1rem;
-    box-shadow:
-      var(--edge-rest),
-      0 18px 38px rgb(var(--warm-shadow-deep) / 0.08);
-  }
-
-  @media (min-width: 640px) {
-    .canvas-route-shell {
-      padding: 1.25rem;
-    }
-  }
-
-  [data-theme="dark"] .canvas-route-shell {
-    background: linear-gradient(
-      180deg,
-      rgb(var(--admin-surface-0) / 0.88) 0%,
-      rgb(var(--admin-surface-50) / 0.78) 100%
-    );
-    box-shadow:
-      var(--edge-rest),
-      0 18px 38px rgb(var(--warm-shadow-deep) / 0.30);
-  }
-
   /** Full-width section: page-level grouping */
   .surface-section {
     @apply rounded-xl;
@@ -1265,7 +1230,13 @@
 }
 
 /* ============================================================================
- * WORKSPACE CANVAS - atmospheric ground behind the main sheet
+ * WORKSPACE CANVAS - M3 solid ground behind the main sheet
+ *
+ * Workspace identity travels via --workspace-tint / --workspace-tint-2 /
+ * --workspace-accent CSS vars, consumed by NavigationBar, UserAvatar,
+ * PageHeader, AccountProfilePanel, AccountSettingsPanel, WorkbenchRow.
+ * Atmospheric radial-gradient backdrop + noise texture retired 2026-04-17
+ * per D1 (strict M3 over hybrid visual system).
  * ============================================================================ */
 .workspace-canvas {
   --workspace-tint: 59 130 246;
@@ -1273,43 +1244,8 @@
   --workspace-accent: 37 99 235;
   position: relative;
   isolation: isolate;
-  overflow: clip;
-  background: linear-gradient(180deg, rgb(var(--bg-weak-50)) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
-  transition:
-    background-color var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing),
-    filter var(--spring-spatial-duration) var(--spring-spatial-easing);
-}
-
-.workspace-canvas::before,
-.workspace-canvas::after {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  inset: 0;
-}
-
-.workspace-canvas::before {
-  inset: -12%;
-  z-index: 0;
-  background:
-    radial-gradient(circle at 14% 12%, rgb(var(--workspace-tint) / 0.18), transparent 34%),
-    radial-gradient(circle at 82% 14%, rgb(var(--workspace-tint-2) / 0.14), transparent 28%),
-    radial-gradient(circle at 52% 78%, rgb(var(--workspace-accent) / 0.10), transparent 38%);
-  filter: saturate(1.08);
-  animation: canvas-atmosphere-drift 24s ease-in-out infinite alternate;
-}
-
-.workspace-canvas::after {
-  z-index: 0;
-  opacity: 0.55;
-  background-image:
-    radial-gradient(circle, rgb(var(--stroke-sub-300) / 0.22) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-.workspace-canvas > * {
-  position: relative;
-  z-index: 1;
+  background: rgb(var(--m3-surface-container-lowest));
+  transition: background-color var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
 }
 
 .workspace-canvas[data-workspace="home"] {
@@ -1348,40 +1284,15 @@
   --workspace-accent: 147 51 234;
 }
 
-.workspace-canvas [data-testid="side-sheet"],
-.workspace-canvas [data-testid="bottom-sheet"] {
-  animation-duration: 420ms !important;
-}
-
-.workspace-canvas [data-testid="side-sheet-overlay"],
-.workspace-canvas [data-testid="bottom-sheet-overlay"] {
-  animation-duration: 260ms !important;
-}
-
 .main-scroll-area {
   overflow-x: hidden;
 }
 
 [data-theme="dark"] .workspace-canvas {
-  background: linear-gradient(180deg, rgb(var(--bg-white-0)) 0%, rgb(var(--bg-weak-50) / 0.95) 100%);
-}
-
-[data-theme="dark"] .workspace-canvas::before {
-  opacity: 0.9;
-  filter: saturate(1.1) brightness(0.9);
-}
-
-[data-theme="dark"] .workspace-canvas::after {
-  opacity: 0.38;
-  background-image:
-    radial-gradient(circle, rgb(var(--stroke-soft-200) / 0.18) 1px, transparent 1px);
+  background: rgb(var(--m3-surface-dim));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .workspace-canvas::before {
-    animation: none;
-  }
-
   .skeleton-shimmer,
   .animate-pulse,
   .animate-spin,
@@ -1400,22 +1311,9 @@
     transition: none !important;
   }
 
-  .hub-results-pane,
-  .workspace-canvas [data-testid="side-sheet"],
-  .workspace-canvas [data-testid="bottom-sheet"],
-  .workspace-canvas [data-testid="side-sheet-overlay"],
-  .workspace-canvas [data-testid="bottom-sheet-overlay"] {
+  .hub-results-pane {
     animation: none !important;
     transition: none !important;
     transform: none !important;
-  }
-}
-
-@keyframes canvas-atmosphere-drift {
-  from {
-    transform: translate3d(-1.5%, -1%, 0) scale(1);
-  }
-  to {
-    transform: translate3d(1.5%, 1%, 0) scale(1.04);
   }
 }

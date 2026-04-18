@@ -6,6 +6,7 @@ import {
   WorkbenchList,
   WorkbenchRow,
   EmptyState,
+  Surface,
   DEFAULT_CHAIN_ID,
   DOMAIN_CONFIG,
   Domain,
@@ -228,7 +229,13 @@ export default function Actions() {
         />
 
         {isLoading ? (
-          <div className="canvas-route-shell space-y-3" role="status" aria-live="polite">
+          <Surface
+            elevation="solid-raised"
+            padding="default"
+            className="space-y-3"
+            role="status"
+            aria-live="polite"
+          >
             <span className="sr-only">
               {intl.formatMessage({
                 id: "admin.actions.loadingMessage",
@@ -242,11 +249,11 @@ export default function Actions() {
                 style={{ animationDelay: `${index * 0.05}s` }}
               />
             ))}
-          </div>
+          </Surface>
         ) : null}
 
         {!isLoading && actions.length === 0 ? (
-          <div className="canvas-route-shell">
+          <Surface elevation="solid-raised" padding="default">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
               title={intl.formatMessage({
@@ -269,11 +276,11 @@ export default function Actions() {
                   : undefined
               }
             />
-          </div>
+          </Surface>
         ) : null}
 
         {!isLoading && actions.length > 0 && stageFilteredActions.length === 0 ? (
-          <div className="canvas-route-shell">
+          <Surface elevation="solid-raised" padding="default">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
               title={intl.formatMessage({
@@ -288,7 +295,7 @@ export default function Actions() {
                 onClick: resetFilters,
               }}
             />
-          </div>
+          </Surface>
         ) : null}
 
         {!isLoading && stageFilteredActions.length > 0 ? (
