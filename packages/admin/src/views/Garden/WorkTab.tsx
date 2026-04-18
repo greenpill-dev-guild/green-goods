@@ -11,6 +11,7 @@ import {
 import { RiCloseLine, RiInboxLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 import { WorkSubmissionsView } from "@/views/Hub/components/WorkSubmissionsView";
 import { SectionStateCard } from "@/views/Garden/components/GardenDetailHelpers";
 
@@ -127,9 +128,10 @@ export function WorkTab({
                 ) : (
                   <div className="space-y-2">
                     {reviewedWorks.slice(0, section === "decisions" ? 12 : 5).map((work) => (
-                      <div
+                      <AdminCard
                         key={work.id}
-                        className={`flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2 ${getStatusBorderClass(work.status)} ${
+                        variant="outlined"
+                        className={`flex items-center justify-between px-3 py-2 ${getStatusBorderClass(work.status)} ${
                           selectedItem && work.id === selectedItem ? "ring-1 ring-primary-base" : ""
                         }`}
                       >
@@ -151,7 +153,7 @@ export function WorkTab({
                             id: `app.admin.work.filter.${work.status}`,
                           })}
                         </span>
-                      </div>
+                      </AdminCard>
                     ))}
                   </div>
                 )}

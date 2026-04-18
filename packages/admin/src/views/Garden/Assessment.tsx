@@ -23,6 +23,7 @@ import {
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
+import { adminCardVariants } from "@/components/AdminCard";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
 /** EAS decoded field structure from attestation JSON */
@@ -119,7 +120,7 @@ export default function GardenAssessment() {
               target="_blank"
               rel="noopener noreferrer"
               data-testid="assessment-card"
-              className="group overflow-hidden rounded-lg border border-stroke-soft bg-bg-white shadow-sm transition-shadow hover:shadow-md hover:border-primary-base"
+              className={`${adminCardVariants({ variant: "elevated", interactive: true })} group overflow-hidden p-0`}
             >
               {/* Domain-colored gradient header */}
               <div className="relative h-20 overflow-hidden">
