@@ -21,13 +21,21 @@ const CanvasPortalContext = createContext<CanvasPortalContextValue>({
   setOverlayActive: () => {},
 });
 
+/**
+ * Accepts either a mutable ref object (legacy) or a React callback ref.
+ * Callback refs let consumers drive component state on mount — critical
+ * for the canvas overlay root, which must trigger a re-render when it
+ * attaches so sheets can bind `container` on first open.
+ */
+type OverlayRef = MutableRefObject<HTMLDivElement | null> | ((node: HTMLDivElement | null) => void);
+
 export interface MainSheetProps {
   /** Whether the main sheet is in receded state (sheet is open) */
   isReceded: boolean;
   /** Children rendered inside the main sheet content zone */
   children: ReactNode;
   /** Optional ref to the overlay portal root for shell-owned sheets */
-  overlayRef?: MutableRefObject<HTMLDivElement | null>;
+  overlayRef?: OverlayRef;
   className?: string;
 }
 
@@ -54,7 +62,9 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
   const handlePortalTargetRef = useCallback(
     (node: HTMLDivElement | null) => {
       setPortalTarget(node);
-      if (overlayRef) {
+      if (typeof overlayRef === "function") {
+        overlayRef(node);
+      } else if (overlayRef) {
         overlayRef.current = node;
       }
     },

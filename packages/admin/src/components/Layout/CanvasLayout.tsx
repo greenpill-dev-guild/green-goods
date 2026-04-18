@@ -96,7 +96,14 @@ export function CanvasLayout() {
 
   // Sheet orchestrator — manages pane-scoped sheets + main-sheet recession
   const orchestrator = useSheetOrchestrator();
-  const overlayRootRef = useRef<HTMLDivElement>(null);
+  // State-driven overlay root: sheets need to re-render once MainSheet mounts
+  // its overlay container so `container` flips from null to the bounded div.
+  // A plain ref wouldn't trigger re-renders, leaving sheets in unbounded mode
+  // on first open (covering AppBar + NavigationBar).
+  const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null);
+  const overlayRootRef = useCallback((node: HTMLDivElement | null) => {
+    setOverlayRoot(node);
+  }, []);
   const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
 
   useEffect(() => {
@@ -419,7 +426,7 @@ export function CanvasLayout() {
                 ? intl.formatMessage(RIGHT_SHEET_TITLES[orchestrator.activeContentId])
                 : undefined
             }
-            container={overlayRootRef.current}
+            container={overlayRoot}
           >
             {orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID && (
               <div className="p-5">
@@ -435,7 +442,7 @@ export function CanvasLayout() {
           </RightSheet>
 
           {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
-          <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRootRef.current} />
+          <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRoot} />
 
           <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
         </div>

@@ -2,7 +2,6 @@ import {
   adminRoutes,
   Button,
   MetaStrip,
-  useCanvasMobileChromeHidden,
   formatRelativeTime,
   type SortOption,
   useActions,
@@ -363,12 +362,14 @@ export default function HubView() {
       selectedGarden ? buildHubFabConfig(stage, canManage, canReview, navigate, hubContext) : null,
     [canManage, canReview, hubContext, navigate, selectedGarden, stage]
   );
-  const mobileFabAction = useCanvasResponsiveFab({
+  // Register FAB with FabProvider — CanvasLayout renders it. The return value
+  // (mobile inline primary action) is no longer used here; the sticky mobile
+  // FAB has been removed in favour of the FabProvider-driven render.
+  useCanvasResponsiveFab({
     fab: navFabConfig,
     isDesktop,
     blocked: hasOpenHubInspector,
   });
-  const hideMobileChrome = useCanvasMobileChromeHidden();
 
   const resultCount =
     stage === "work"
@@ -582,21 +583,6 @@ export default function HubView() {
                 {primaryContent}
               </div>
             </section>
-
-            {!hideMobileChrome && mobileFabAction && (
-              <div className="pointer-events-none sticky bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-raised flex justify-end px-3 pb-2 pt-1 min-[600px]:hidden">
-                <div className="pointer-events-auto ml-auto w-auto max-w-full">
-                  <Button
-                    onClick={mobileFabAction.onClick}
-                    size="lg"
-                    className="min-h-12 min-w-[10rem] max-w-[min(15rem,calc(100vw-1.5rem))] justify-center rounded-full px-4.5 shadow-[0_14px_30px_rgba(38,28,18,0.14)] transition-[transform,box-shadow] duration-200 ease-out motion-reduce:transition-none active:translate-y-px active:shadow-[0_8px_18px_rgba(38,28,18,0.16)]"
-                  >
-                    <mobileFabAction.icon className="h-5 w-5" />
-                    {mobileFabAction.label}
-                  </Button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}
