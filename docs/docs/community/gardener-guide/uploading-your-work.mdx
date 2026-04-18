@@ -1,25 +1,27 @@
 ---
-title: Uploading Your Work
+title: Submit Work
 sidebar_label: Uploading Your Work
 slug: /community/gardener-guide/uploading-your-work
 audience: gardener
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-18
 feature_status: Live
-goal: "Complete Submit Work with MDR with clear, role-specific next actions."
+goal: "Complete one work submission successfully on the first try, including in low-connectivity field conditions."
 difficulty: "standard"
 estimated_time: "3-8 minutes per submission."
-prereqs: "Joined garden, active action, camera or media files."
-next_steps: "/community/gardener-guide/garden-payouts"
-persona_context: "Gardeners documenting and syncing impact work in field conditions."
+prereqs: "Signed in, joined a garden, an active action available, photos or notes ready."
+next_steps: "/community/gardener-guide/track-status-and-attestations"
+persona_context: "Gardeners documenting regenerative work from the field, often with spotty connectivity."
 source_of_truth:
-  - packages/client/src/views/Home/Garden/Work.tsx
+  - packages/client/src/views/Garden/index.tsx
+  - packages/client/src/views/Garden/Intro.tsx
+  - packages/client/src/views/Home/WorkDashboard/index.tsx
   - packages/shared/src/hooks/work/useWorkForm.ts
   - packages/shared/src/hooks/work/useWorkMutation.ts
   - packages/shared/src/modules/job-queue
-  - packages/shared/src/hooks/work/useDrafts.ts
 keywords:
   - submit work
+  - upload work
   - work submission
   - submit work offline
   - mdr
@@ -31,108 +33,154 @@ keywords:
 ---
 
 import {
-  DecisionGuide,
-  FeatureState,
   JourneyMap,
   NextBestAction,
   StatusBadge,
-  StepFlow,
 } from "@site/src/components/docs";
 
-# Submit Work with MDR
+# Submit Work
 
 <StatusBadge status="Live" />
 
 <JourneyMap
   role="Gardener"
   steps={[
-    {title: "Get started", href: "./joining-a-garden", state: "complete"},
-    {title: "Submit work (MDR)", href: "./uploading-your-work", state: "current", note: "Capture media, details, and submit — online or offline."},
-    {title: "Garden payouts", href: "/community/gardener-guide/garden-payouts", state: "upcoming"},
-    {title: "Voting & governance", href: "/community/gardener-guide/voting-governance", state: "upcoming"},
+    {title: "Join a garden", href: "./joining-a-garden", state: "complete"},
+    {title: "Submit work", href: "./uploading-your-work", state: "current", note: "Choose an action, add evidence, fill in details, and send it for review."},
+    {title: "Track status", href: "./track-status-and-attestations", state: "upcoming"},
+    {title: "Common errors", href: "./common-errors", state: "upcoming"},
     {title: "Earning badges", href: "/community/gardener-guide/earning-badges", state: "upcoming"},
   ]}
 />
 
-## When to use this page
+Use this guide when you're ready to record work you completed in the field. You'll choose the right action, add photos or other evidence, fill in the details, and send it for review. The flow is sometimes called **MDR** — Media, Details, Review — but you don't need to memorize that to finish a submission.
 
-Use this guide when you need to submit work from mobile or field conditions, including offline-first submission flows. This page also covers how drafts persist, how the submission queue works, and what to do when connectivity is limited.
+## Before You Start
 
-## MDR steps
+A few quick checks will save you a redo later:
 
-<StepFlow
-  steps={[
-    {title: "Media", detail: "Capture or attach media evidence for the task."},
-    {title: "Details", detail: "Enter title, notes, and action-specific fields."},
-    {title: "Review", detail: "Confirm data and submit online or queue offline."},
-  ]}
-/>
+- You're signed in at greengoods.app (with your passkey or wallet).
+- You've already joined a garden. If not, [join one first](./joining-a-garden).
+- There's an active action available in that garden.
+- Your photos, notes, or measurements from the field are to hand.
+- If your signal is weak, you can still finish the whole flow — your work will sync when you're back online.
 
-<DecisionGuide
-  title="Choose your submit mode"
-  items={[
-    {
-      when: "You have stable connectivity",
-      do: "Submit immediately after Review and wait for confirmation.",
-      next: "Check your work dashboard to verify pending/approved state.",
-    },
-    {
-      when: "You are in low-connectivity field conditions",
-      do: "Save draft and submit; the queue retry system will handle sync later.",
-      next: "Reopen the app when back online to confirm queued submissions completed.",
-    },
-  ]}
-/>
+:::tip
+If you do not see any actions, go back and make sure you joined the right garden first. Actions belong to gardens, so switching gardens changes what you can submit against.
+:::
 
-## What good submissions include
+## Step 1: Choose the action and garden
 
-- Clear before/after evidence where relevant.
-- Direct alignment with action instructions.
-- Accurate metrics and notes (no placeholders).
-- Consistent location/timing details.
+Every submission starts with picking what you did and where you did it. This happens before you touch a photo — it's the most common place gardeners miss a step.
 
-## Offline Sync and Drafts
+1. From your home screen, open the work flow and tap **Start Gardening**.
+2. If your garden covers more than one domain, use the tabs along the top — **Solar**, **Agro**, **Education**, **Waste** — to narrow the list of actions.
+3. Tap the action that matches the work you actually completed.
+4. Tap the garden you're submitting for. Many gardeners belong to more than one, so double-check.
+5. The primary button only lights up once both an action and a garden are selected. Continue when both are chosen.
 
-Green Goods is built for field conditions where connectivity is unreliable. Your work is never lost.
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-intro.png" alt="Work flow intro — one domain tab active, one action card selected, one garden card selected" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
 
-<FeatureState
-  title="Draft persistence"
-  status="Live"
-  summary="Draft data and media references are stored locally so you can resume later."
-/>
+> Choose the action and garden before you add evidence. The Continue button only works after both are selected.
 
-<FeatureState
-  title="Queued submissions"
-  status="Live"
-  summary="When submit cannot complete online, work is queued and retried after reconnection."
-/>
+## Step 2: Upload media
 
-<FeatureState
-  title="Automatic sync"
-  status="Live"
-  summary="Queued jobs flush when connectivity and signing conditions are available."
-/>
+Media is your evidence that the work happened. The action itself tells you what counts.
 
-### Submission outcomes
+1. Use the photo or camera icons in the action bar to attach images.
+2. Read the on-screen media requirements — they tell you how many photos are needed and what they should show. Treat that list as the source of truth for this action.
+3. If the action supports it, record an audio note by tapping the microphone icon.
+4. Make sure each photo clearly shows the completed work. If one is blurry or too dark, retake it now instead of hoping it passes review.
+5. When you have everything the action asks for, tap **Add Details**.
 
-- **Online + ready:** Submission is sent immediately.
-- **Offline or network issue:** Submission is safely queued for retry.
-- **Validation failure:** You get actionable error feedback before submit.
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-media.png" alt="Work media step — required image count visible, gallery/camera/mic controls in the action bar" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
 
-### Field tips
+> Add clear evidence that matches the action requirements. If the action asks for more than one photo, stay on this step until you have all of them.
 
-1. Save progress before leaving field conditions — drafts persist in your browser's local storage.
-2. Reopen drafts and verify media is still attached before submitting.
-3. Check queue/upload states before repeating submissions — duplicate submissions waste operator review time.
-4. If a job fails repeatedly, retry from your work dashboard with corrected data.
+## Step 3: Add details
+
+Details are action-specific. Fill them in as if the person reviewing wasn't there with you — because they usually weren't.
+
+1. Tap **Add Details**.
+2. Fill in each field shown for this action. Fields vary — some ask for counts (trees planted, kilos collected), some ask for short notes or observations.
+3. Enter real values. Don't use placeholder text or "N/A" where a number is expected; operators will reject it.
+4. If a field is required, the app blocks the next step until it's complete.
+5. When the form is valid, tap **Review Work**.
+
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-details.png" alt="Work details step — action-specific fields filled in with real values" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
+
+> Fill in the details for this action exactly as they happened in the field. Required fields must be completed before you can continue.
+
+## Step 4: Review and upload
+
+One last look before you send.
+
+1. On the review screen, check the summary: action, garden, media, and details.
+2. If anything is wrong, tap back and fix it before you submit. It's much faster to correct a draft than to resubmit after a rejection.
+3. When everything looks right, tap **Upload Work**.
+
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-review.png" alt="Work review step — submission summary with the Upload Work button" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
+
+> Review your submission before you send it. This is your last chance to fix the wrong garden, wrong action, or missing evidence.
+
+## What happens if you're offline
+
+Green Goods is built for the field, so the app doesn't throw your work away when the signal drops.
+
+- If you lose connection, you'll see a message like *"You're offline. Your work will sync when you're back online."* That isn't an error — your submission is queued safely on your device.
+- When you come back online and the app is open, sync can resume on its own. You may see *"Syncing 1 items…"* or *"1 items waiting to sync"* in the status line above the primary button.
+- Give the queue a moment to clear before you move on — especially if you're about to submit a second piece of work.
+- Don't resubmit the same work just because it hasn't cleared immediately. Duplicates only give operators more to sort through.
+
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-offline.png" alt="Review step showing the offline banner — work will sync when you're back online" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
+
+> If you're offline, the app holds your submission and syncs it later. Wait for the queue to finish before submitting the same work again.
+
+## How to know it worked
+
+After you tap **Upload Work**, the app takes you home. To follow the submission from there:
+
+1. Open the **Work Dashboard** from your home screen.
+2. On the **Recent** tab, a new submission may first appear as *Uploading* or *Queued* — it's waiting on the network or on the queue to flush.
+3. Once it reaches the chain, it moves to **Pending** while an operator reviews it.
+4. Later, the same item shows up as **Approved** or **Rejected** in the Completed tab, along with any reviewer feedback.
+
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-dashboard.png" alt="Work Dashboard — a recent submission visible on the Recent tab with Uploading or Pending status" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
+
+> After you submit, check the Work Dashboard to see whether your work is still syncing, waiting for review, or already reviewed.
+
+## If something goes wrong
+
+Quick fixes for the most common snags:
+
+- **The next button is disabled.** Something required is missing — scroll back and look for empty fields or a media count below what the action asks for.
+- **Media disappeared from a draft.** Reopen the draft from the Work Dashboard and confirm the attachments are still there. If not, reattach them before you submit.
+- **Upload keeps failing.** Wait for connectivity to return, then retry from the dashboard. Don't create a second draft for the same work.
+- **Your submission was rejected.** Open the operator feedback, correct what they flagged, and submit a new version for the same action.
+
+Still stuck? See [Common Errors](./common-errors) for a longer triage list, or [Track Status and Attestations](./track-status-and-attestations) to confirm where your work sits in the pipeline.
+
+## Next step
 
 <NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Garden Payouts"
-  actionHref="/community/gardener-guide/garden-payouts"
+  title="Next step"
+  why="Once your work is submitted, the next thing you'll want to know is whether it synced, whether it's waiting for review, and what to do if it gets rejected."
+  actionLabel="Track Status and Attestations"
+  actionHref="./track-status-and-attestations"
   alternatives={[
-    {label: "Voting & Governance", href: "/community/gardener-guide/voting-governance"},
-    {label: "Earning Badges", href: "/community/gardener-guide/earning-badges"},
+    {label: "Common Errors", href: "./common-errors"},
+    {label: "Joining a Garden", href: "./joining-a-garden"},
   ]}
 />

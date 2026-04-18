@@ -11,11 +11,11 @@ This package is written in a coalition voice and keeps the project community-fir
 
 ## Source Anchors
 
-1. California Natural Resources Agency Urban Greening Grant Program page: <https://resources.ca.gov/grants/urban-greening/>
-2. Draft Urban Greening Grant Guidelines (Round 1, February 2026 draft): <https://resources.ca.gov/-/media/CNRA-Website/Files/grants/Prop-4/Urban-Greening/Round-1-Documents/UG-Draft-Guidelines_Final-Draft.pdf>
-3. Omo Yoruba of Southern California: <https://omoyorubaofsocal.org/>
-4. Omo Yoruba Programs page: <https://omoyorubaofsocal.org/our-programs/>
-5. Leimert Park background: <https://en.wikipedia.org/wiki/Leimert_Park,_Los_Angeles>
+1. California Natural Resources Agency Urban Greening Grant Program page: https://resources.ca.gov/grants/urban-greening/
+2. Draft Urban Greening Grant Guidelines (Round 1, February 2026 draft): https://resources.ca.gov/-/media/CNRA-Website/Files/grants/Prop-4/Urban-Greening/Round-1-Documents/UG-Draft-Guidelines_Final-Draft.pdf
+3. Omo Yoruba of Southern California: https://omoyorubaofsocal.org/
+4. Omo Yoruba Programs page: https://omoyorubaofsocal.org/our-programs/
+5. Leimert Park background: https://en.wikipedia.org/wiki/Leimert_Park,_Los_Angeles
 
 ## Deliverable 1: Public Comment On Draft Guidelines
 
