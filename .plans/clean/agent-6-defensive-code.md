@@ -1,121 +1,242 @@
-# Agent 6: Defensive Code Removal — Findings
+# Agent 6: Over-Defensive Code Assessment (DRY-RUN)
 
-## Summary
+Scope: `packages/{shared,client,admin,agent,indexer,ops}/src`. Tests, node_modules, generated code excluded.
 
-Scanned all packages (shared, admin, client, agent, contracts/script, indexer/src) for:
-- Empty catch blocks
-- Catch-and-log-only patterns
-- Catch-and-return-default patterns
-- Catch-and-rethrow (no-op)
-- Silent error swallowing in mutation paths
+## Executive Summary
 
-## Classification
+| Category | Source-code occurrences | Verdict |
+|---|---|---|
+| Empty `catch (e) {}` | **0** | None in src/ — only in vendored `node_modules` |
+| Bare `catch {}` (anonymous, no body) | **0** | None |
+| Bare `catch { ... }` (anonymous with body) | ~55 total (shared ~30 / client ~15 / admin ~10) | Mostly legitimate `JSON.parse` / API guards |
+| `catch (...)` blocks with bodies | ~440 at source level | Majority route through `logger` / `toastService` / `track*` / re-throw |
+| Log-only catches where the error should propagate | **3 critical** | See §1 |
+| `??` fallbacks total | 501 | Hot files listed below |
+| Chained `?.x?.y` | 45 | Mostly legitimate on narrowed unions |
+| `console.*` in production paths (non-logger) | **2** | `AppSettings.tsx` DEV-gated |
+| `throw new Error(...)` | 232 | 6 custom Error subclasses defined |
 
-### KEEP — Legitimate defensive patterns
+**Top 5 offenders (files worth closer review):**
+1. `/Users/afo/Code/greenpill/green-goods/packages/shared/src/providers/Work.tsx:280-289` — mutation error silently swallowed when DEBUG disabled
+2. `/Users/afo/Code/greenpill/green-goods/packages/admin/src/components/Hypercerts/CreateListingDialog.tsx:93-98` — mutation failure logged only, user stuck in progress phase
+3. `/Users/afo/Code/greenpill/green-goods/packages/shared/src/providers/JobQueue.tsx:265-267` — bare `catch {}` with comment claiming errors are “logged in jobQueue.flush” (only partially true)
+4. `/Users/afo/Code/greenpill/green-goods/packages/shared/src/hooks/{garden/useGardenDraft,assessment/useAssessmentDraft,hypercerts/useHypercertDraft}.ts` — identical IDB-catch shape repeated 12 times
+5. `/Users/afo/Code/greenpill/green-goods/packages/shared/src/modules/data/greengoods.ts:259, 346, 385` — indexer fetchers swallow on-chain outages and return `[]`
 
-These catch blocks handle genuinely unknown conditions (external APIs, browser APIs, storage I/O, user input):
+---
 
-1. **Storage/cache operations** (localStorage, sessionStorage, IndexedDB)
-   - `packages/shared/src/utils/storage/form.ts` — All 3 catch blocks (saveFormDraft, loadFormDraft, clearFormDraft). Storage can throw (quota exceeded, private browsing). Uses `logger.warn`.
-   - `packages/shared/src/utils/storage/avatar-cache.ts` — All 3 functions. localStorage can throw. Uses `debugError`.
-   - `packages/shared/src/utils/storage/quota.ts` — getStorageQuota and trackStorageQuota. Storage API informational, non-critical.
-   - `packages/admin/src/config/persister.ts` — All catch blocks. IndexedDB/localStorage fallback chain. Uses `debugWarn`.
-   - `packages/client/src/App.tsx` — Persister catch blocks. Same pattern as admin.
+## 1. HIGH-CONFIDENCE REMOVE
 
-2. **ENS resolution** (external RPC, can fail for many reasons)
-   - `packages/shared/src/utils/blockchain/ens.ts` — fetchEnsNameForChain, fetchEnsAddressForChain, fetchEnsAvatarForChain. RPC calls to external chain. Uses `logger.debug`. Returns null is correct (name may not exist).
+### 1.1 `Work.tsx:280-289` — mutation error swallowed in non-DEBUG builds
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/providers/Work.tsx`
+```tsx
+try {
+  await workMutation.mutateAsync({ draft: draft as WorkDraft, images: imagesSnapshot });
+} catch (error) {
+  if (DEBUG_ENABLED) {
+    debugError("[WorkProvider] mutateAsync threw", error, { gardenAddress, actionUID });
+  }
+}
+```
+Why REMOVE: `workMutation` owns the canonical work-submission flow. When `DEBUG_ENABLED` is false (production), this catch eats the error entirely — no log, no toast, no tracking. The mutation’s own `onError` handler does emit a toast, but any throw that exits `mutateAsync` AFTER `onError` ran (e.g. React Hook Form submit handler rejecting) vanishes here. Fix: either drop the try/catch (let the handler-level wrapper deal with it) or add an unconditional `logger.error(...)` and `throw error` after the debug block.
 
-3. **Contract reads for optional modules** (modules may not be deployed)
-   - `packages/shared/src/utils/blockchain/garden-hats.ts` — fetchHatsModuleAddress. Module may not exist. Uses `logger.error` + returns undefined.
-   - `packages/shared/src/utils/blockchain/garden-modules.ts` — fetchGardensModuleAddress. Same pattern.
-   - `packages/shared/src/hooks/hypercerts/hypercert-contracts.ts` — resolveHypercertContracts. Falls back to deployment artifact addresses. Uses `logger.warn`.
+### 1.2 `CreateListingDialog.tsx:93-98` — listing failure hidden from user
+File: `/Users/afo/Code/greenpill/green-goods/packages/admin/src/components/Hypercerts/CreateListingDialog.tsx`
+```tsx
+try {
+  await createListing(params);
+} catch (error) {
+  logger.error("Failed to create listing", { error });
+}
+```
+`setPhase("progress")` was set at line 79. On catch, phase stays `"progress"` indefinitely with no feedback. Compare to `AddMemberModal.tsx` / `DetailsStep.tsx` which pair `logger.error` with `setError`/`toastService.error`. Fix: reset phase and surface a toast, or consume the `error` state exposed by `useCreateListing`.
 
-4. **Simulation utilities** (designed to report simulation results, not crash)
-   - `packages/shared/src/utils/blockchain/simulation.ts` — simulateTransaction. Uses `parseContractError()` — the project's error pattern. Returns structured result.
-   - `packages/shared/src/modules/work/simulate.ts` — Both functions. Uses `parseContractError()` and re-throws with user-friendly messages.
+### 1.3 `JobQueue.tsx:265-267` — bare catch relying on “logged elsewhere”
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/providers/JobQueue.tsx`
+```tsx
+try {
+  await jobQueue.flush({ transactionSender: sender, userAddress: currentUserAddress });
+  if (!abortController.signal.aborted) await refreshStats(abortController.signal);
+} catch {
+  // Silently handle errors - they're logged in jobQueue.flush
+}
+```
+The comment is only half right: `jobQueue.flush` logs per-job failures, not flush-setup or `refreshStats` rejections. Replace with:
+```ts
+} catch (error) {
+  if (!abortController.signal.aborted) logger.debug("[JobQueue] attemptFlush failed", { error });
+}
+```
 
-5. **GraphQL client** (returns {data, error} envelope by design)
-   - `packages/shared/src/modules/data/graphql-client.ts` — GQLClient.query(). Returns error envelope. Uses `trackGraphQLError`.
+---
 
-6. **Service Worker** (browser APIs that may not be available)
-   - `packages/shared/src/modules/app/service-worker.ts` — All catch blocks. SW operations are best-effort. Uses `logger`.
+## 2. HIGH-CONFIDENCE SIMPLIFY (over-defensive `??` / optional chains)
 
-7. **Web Share API** (user can cancel)
-   - `packages/shared/src/utils/work/workActions.ts` — shareWork. AbortError is expected (user cancellation).
+### 2.1 `HubWorkCard.tsx:102` — `Work.media` is already `string[]`
+File: `/Users/afo/Code/greenpill/green-goods/packages/admin/src/views/Hub/components/HubWorkCard.tsx`
+```tsx
+const mediaUrls = work.media ?? [];
+```
+`Work.media` is typed `string[]` in `packages/shared/src/types/domain.ts:407`. Drop the `??`.
 
-8. **Merkle proof verification** (designed to return boolean)
-   - `packages/shared/src/lib/hypercerts/merkle.ts` — verifyProof. `catch { return false }` is the correct semantics.
+### 2.2 `useHypercertWizardStore.ts:386-395` — five identical `?? []` on validated output
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/stores/useHypercertWizardStore.ts`
+```ts
+workScopes: validated.workScopes ?? [],
+impactScopes: validated.impactScopes ?? [],
+sdgs: validated.sdgs ?? [],
+capitals: validated.capitals ?? [],
+allowlist: validated.allowlist ?? [],
+```
+If `validateDraft` produces these as non-optional, the `??` is dead code. Either tighten `HypercertDraft` type or drop the validate step entirely.
 
-9. **EAS field parsing** (external data, can be malformed)
-   - `packages/shared/src/modules/data/eas.ts` — toNumberFromField hex parsing. Returns null for unparseable data.
+### 2.3 `utils/app/garden.ts:38,43` — `(gardeners ?? []).forEach`
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/utils/app/garden.ts`
+`Garden.gardeners` / `Garden.operators` are `Address[]` (non-nullable) in `domain.ts`. Fix the upstream Envio parser instead of guarding on every consumer.
 
-10. **Translation diagnostics** (console diagnostic tool)
-    - `packages/shared/src/modules/translation/diagnostics.ts` — All catches. This is a diagnostic utility for browser console.
+### 2.4 `useGardenDetailData.ts:114-119` — six lines of `garden?.<role> ?? []`
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/hooks/garden/useGardenDetailData.ts`
+If an `if (!garden) return` precedes this block, drop the `?.`. Otherwise, extract a `roleMembers(garden)` helper.
 
-11. **Work approval parsing** (external attestation data)
-    - `packages/shared/src/hooks/work/useWorkApprovals.ts` — flatMap catch. Individual attestation parse failures are logged and skipped (malformed on-chain data). Correct.
+### 2.5 `chainId ?? DEFAULT_CHAIN_ID` — 8-site duplication
+Sites (all with `options.chainId ?? DEFAULT_CHAIN_ID` or similar):
+- `packages/shared/src/workflows/authMachine.ts:327`
+- `packages/shared/src/utils/blockchain/ens.ts:125, 153, 192`
+- `packages/shared/src/hooks/garden/useJoinGarden.ts:166`
+- `packages/shared/src/hooks/garden/useAutoJoinRootGarden.ts:112`
+- `packages/shared/src/hooks/greenwill/useGreenWillBadges.ts:22`
+- `packages/shared/src/hooks/greenwill/useGreenWillBadgeDefinitions.ts:13`
+- `packages/shared/src/hooks/greenwill/useGreenWillRecentGrants.ts:14`
+- `packages/shared/src/hooks/assessment/useGardenAssessments.ts:8`
 
-12. **Marketplace client** (optional module, may not be available)
-    - `packages/shared/src/modules/marketplace/client.ts` — getClient. Returns null when marketplace is unavailable.
+CLAUDE.md states “Single Environment / Single Chain — `VITE_CHAIN_ID` at build time.” A `resolveChainId(options?)` helper (or making `chainId` required with a default arg) collapses the cluster.
 
-13. **Agent error handling** (bot must always respond to user)
-    - `packages/agent/src/handlers/index.ts` — handleVoice, handleText, handlePhoto. Uses classifyError + user-facing messages. Agent must never crash on user input.
-    - `packages/agent/src/handlers/approve.ts` — Transaction errors. Logged + user-facing message.
-    - `packages/agent/src/services/ai.ts` — Whisper model loading. Re-throws with user-friendly message.
+---
 
-14. **Offline-first patterns** (graceful degradation)
-    - `packages/shared/src/hooks/work/useWorks.ts` — getWorkApprovals fetch failure. Correctly degrades (status may be stale). Uses `logger.warn`.
-    - `packages/shared/src/hooks/work/useBatchWorkSync.ts` — markJobSynced/deleteJob. Post-transaction cleanup, non-critical. Uses `logger.warn`.
-    - `packages/shared/src/hooks/work/useWorkImages.ts` — IDB load/save. Uses `logger.error` + `trackStorageError`.
+## 3. MEDIUM — judgment calls
 
-15. **Slug availability** (fail-closed is correct security posture)
-    - `packages/shared/src/hooks/ens/useSlugAvailability.ts` — Returns false on RPC failure. Documented as "fail closed."
+### 3.1 Indexer fetchers silently return `[]` — document contract
+Files:
+- `packages/shared/src/modules/data/greengoods.ts:259, 346, 385` (getActions, getGardens, getGardeners)
+- `packages/shared/src/modules/data/marketplace.ts` (documented by header comment: all functions return graceful defaults and never throw)
 
-16. **Community enrichment** (optional RPC enrichment of subgraph data)
-    - `packages/shared/src/hooks/conviction/useGardenCommunity.ts` — Weight scheme enrichment catch. Falls back to subgraph default. Uses `logger.warn`.
+Keep, but consider distinguishing indexer outage (`throw IndexerUnavailableError`) from empty result. Right now the UI can't tell "no gardens" from "indexer down".
 
-17. **Contract script utilities** (CLI tools, not production paths)
-    - `packages/contracts/script/utils/ipfs-uploader.ts` — Cache load/save. Non-critical cache.
-    - `packages/contracts/script/deploy/anvil.ts` — isRunning check. Returns false on error.
+### 3.2 `useGardenRoles.ts:44-46` — fail-closed role check
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/hooks/roles/useGardenRoles.ts`
+```ts
+} catch {
+  return { role, hasRole: false };
+}
+```
+Offline users appear role-less. Matches `useSlugAvailability.ts:51` pattern ("Fail closed"). KEEP but add `logger.debug(...)` for diagnostics.
 
-18. **UI components** (must not crash on callback errors)
-    - `packages/shared/src/components/Dialog/ConfirmDialog.tsx` — handleConfirm/handleCancel. Logs and delegates to onError prop or re-throws. Correct.
-    - `packages/shared/src/hooks/app/useToastAction.ts` — Re-throws after toast. Correct.
+### 3.3 Auth disconnect silent catch
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/providers/Auth.tsx:338-340`
+```ts
+} catch {
+  // Ignore disconnect errors
+}
+```
+Disconnecting an already-disconnected wallet throws. KEEP but add `logger.debug`.
 
-19. **Image gateway race** (expected failures during multi-gateway resolution)
-    - `packages/shared/src/components/Display/ImageWithFallback.tsx` — Race promise .catch(). Expected — shows fallback.
+### 3.4 Draft-IDB catch template repetition (12 sites)
+Files (4 methods × 3 hooks):
+- `packages/shared/src/hooks/garden/useGardenDraft.ts:102, 139, 186, 208`
+- `packages/shared/src/hooks/assessment/useAssessmentDraft.ts:102, 134, 184, 209`
+- `packages/shared/src/hooks/hypercerts/useHypercertDraft.ts:78, 110, 146, 168`
 
-20. **JSON parse in useWorkMetadata** (external data can be invalid)
-    - `packages/shared/src/hooks/work/useWorkMetadata.ts` — Line 66 `catch {}`. Inline JSON parse attempt before falling through to IPFS fetch. Intentional control flow.
+Each is legit (IDB boundary), but prime for a `makeIdbDraftOps<T>(key, source)` helper. Cross-refs Agent 1 (dedup).
 
-21. **Membership check with error tracking** (network errors during membership check)
-    - `packages/shared/src/hooks/garden/useAutoJoinRootGarden.ts` — Uses `trackNetworkError`. Properly tracked.
+### 3.5 String-matched contract error
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts:91-95`
+```ts
+if (error instanceof Error && error.message.includes("Insufficient token balance")) throw error;
+```
+Brittle — use `parseContractError(...).name === "InsufficientBalance"` (aligns with project pattern).
 
-22. **EAS encoder pooledSettled** (Promise.allSettled reimplementation)
-    - `packages/shared/src/utils/eas/encoders.ts` — pooledSettled worker. Captures rejection reason in PromiseSettledResult. Correct semantics.
+### 3.6 `useWorks.ts:71` — approval fetch silent
+File: `/Users/afo/Code/greenpill/green-goods/packages/shared/src/hooks/work/useWorks.ts`
+```ts
+try { ... } catch (error) { warnApprovalFetchOnce(error); }
+```
+If the approvals query throws, works show as "pending" not "approved". Downstream comment (`status may be stale`) acknowledges this. Keep, but worth a follow-up to surface a "status freshness" UI affordance.
 
-### REMOVE — No findings
+---
 
-After thorough review, no catch blocks in the codebase qualify for outright removal. The project has already been through multiple cleanup passes and follows its error handling patterns consistently.
+## 4. LOW / KEEP (inventory of legitimate boundary defenses)
 
-### SIMPLIFY — Minor improvements
+All of the following are appropriate and should NOT be touched:
 
-**S1. `packages/shared/src/utils/blockchain/garden-hats.ts:31` — logger.error should be logger.warn**
-The module address not being found is not necessarily an error (module may not be deployed). Matches garden-modules.ts which also uses logger.error — both should arguably be `logger.warn` since this is an expected condition for gardens without the Hats module. However, this is a logging severity choice, not a defensive code issue.
+- **`JSON.parse` guards** (~20 sites: `toast.service.tsx`, CookieJar/Vault dialogs, `WorkViewSection.tsx`, `deduplication.ts`, etc.) — JSON.parse genuinely throws.
+- **`parseUnits`/`parseEther`/`BigInt`** — user-typed decimals. `TreasuryDrawer`, `ConvictionDrawer`, `CookieJarDepositModal`, `SignalPool`, `WithdrawModal`.
+- **`localStorage`/`sessionStorage`** — private browsing throws. `haptics.ts`, `theme.ts`, `form.ts`, `useJoinGarden.ts`.
+- **`navigator.clipboard.writeText`** — permission denial. `clipboard.ts`, `AddressCopy.tsx`, `Hero.tsx`, `AddressDisplay.tsx`.
+- **`URL.revokeObjectURL`** — revoking twice is harmless. `media-resource-manager.ts:75, 110, 123`.
+- **Service Worker / query-persistence / IDB init** — offline-first requirement. `service-worker.ts`, `query-persistence.ts`, `client/src/App.tsx`.
+- **ENS / module-address readContract** — RPC to contracts not deployed on all chains. `ens.ts`, `garden-modules.ts`, `garden-hats.ts`, `hypercert-contracts.ts`.
+- **Wallet-submission / simulate paths** — wrap in typed errors (`WorkSubmissionError`, `VaultDepositStageError`). `modules/work/wallet-submission/*.ts`, `modules/work/simulate.ts`, `modules/work/passkey-submission.ts`.
+- **`isAlreadyGardenerError` branching** — contract error semantically = success. `useJoinGarden.ts:317`, `useAutoJoinRootGarden.ts:233`.
+- **Merkle / EAS hex parsing** — external data validation. `lib/hypercerts/merkle.ts`, `modules/data/eas.ts`.
+- **Agent package** — bot must respond; uses `classifyError` + user-facing text. `agent/src/handlers/*`.
+- **ENS event decoding in `useENSClaim.ts:114`** — decode against multi-event ABI, skip non-matches. Correct semantic pattern.
+- **Image compression** — `utils/work/image-compression.ts:167, 227, 326` — fall back to original file. Correct.
+- **Time formatters** — `utils/time.ts` many Intl API fallbacks (older browsers). Correct.
 
-**S2. `packages/shared/src/utils/storage/avatar-cache.ts` — Uses `debugError`/`debugWarn` instead of `logger`**
-The avatar cache uses the old debug utilities instead of the structured logger. This means errors are invisible unless VITE_DEBUG_MODE is enabled. Should migrate to `logger.warn` for consistency with similar storage utilities (form.ts uses logger).
+---
 
-**S3. `packages/admin/src/config/persister.ts` and `packages/client/src/App.tsx` — Uses `debugWarn` instead of `logger`**
-Same pattern as S2. Persister failures are invisible in production. Should use `logger.warn`.
+## 5. Pattern violations (`console.*` instead of `logger`)
 
-## Conclusion
+### 5.1 `AppSettings.tsx:182, 187` — DEV-gated `console.debug`
+File: `/Users/afo/Code/greenpill/green-goods/packages/client/src/views/Profile/AppSettings.tsx`
+```ts
+if (import.meta.env.DEV) console.debug("[AppRefresh] localStorage clear failed:", e);
+if (import.meta.env.DEV) console.debug("[AppRefresh] IndexedDB clear failed:", e);
+```
+Violates `.claude/rules/typescript.md` Rule 12 ("Console.log Cleanup"). The enclosing try/catch at line 189 uses `logger.debug` correctly — inconsistent. Fix: replace with `logger.debug`; `logger` itself is DEV-aware.
 
-The codebase has strong error handling discipline. All catch blocks found serve legitimate purposes:
-- Browser API fallbacks (storage, SW, clipboard)
-- External data parsing (EAS attestations, JSON, hex values)
-- RPC call failures with graceful degradation
-- Proper use of parseContractError() + user-friendly messages
-- Offline-first patterns that degrade gracefully
+### 5.2 Agent/indexer `console.*` — expected
+- `packages/agent/src/config.ts:133`, `packages/agent/src/services/crypto.ts:68` — inside string literals (`"node -e \"console.log(...)\""`). Not real usages.
+- `packages/indexer/src/handlers/*` — Envio runtime has no `logger`. Documented exception in the rules file.
 
-The only actionable findings are S2 and S3: migrating `debugWarn`/`debugError` to `logger.warn`/`logger.error` in avatar-cache.ts and the persisters, so production users get visibility into storage failures.
+No other production-path `console.*` found.
+
+---
+
+## 6. Mutation-path risks (critical to flag)
+
+### 6.1 `Work.tsx:280-289` — **most critical**
+Already in §1.1. Swallows mutation error when DEBUG is off. This is a mutation-hook caller wrapping `useWorkMutation`; the consequence is work-submission failures can fall entirely out of the reporting funnel.
+
+### 6.2 `CreateListingDialog.tsx:93-98`
+Already in §1.2. Logged but no user feedback; UI stuck in progress. Data-loss risk (user may retry, double-register).
+
+### 6.3 `useWorks.ts:71` — approval fetch
+Already in §3.6. Approvals throw → works rendered as pending. Documented as acceptable staleness.
+
+### 6.4 Passing mutation patterns (sanity-check inventory)
+- `useMintHypercert.ts:309-318` — catches `send()`, logs, re-throws. GOOD.
+- `useWorkMutation.ts:203-229` — catches tx-phase network error, falls back to queue. GOOD (offline-first).
+- `useWorkApproval.ts:197-203` — catches, logs, re-throws. GOOD.
+- `useVaultDeposit.ts:166, 207, 250` — wraps in `VaultDepositStageError`. GOOD.
+- `createGardenOperation.ts:307` — parses contract error, returns structured failure. GOOD.
+- All `createMutationErrorHandler`-consuming hooks delegate properly.
+
+No other mutation-path swallows found.
+
+---
+
+## Cross-agent dependencies
+
+- **Agent 1 (dedup)**: 12× identical draft-IDB catch template in §3.4 is a prime consolidation target.
+- **Agent 5 (type strengthening)**: `work.media ?? []`, `garden?.owners ?? []`, `validated.workScopes ?? []` are type-boundary issues; fixing upstream types removes the `??`.
+- **Agent 7 (legacy)**: `console.debug` in `AppSettings.tsx` is a rule violation predating current lint enforcement.
+
+## Summary counts
+
+- **REMOVE** (silent swallow of real failures): **1** (`Work.tsx` DEBUG catch)
+- **SIMPLIFY** (narrow or add logging): **3** (`CreateListingDialog`, `JobQueue` bare catch, `AppSettings` console)
+- **SIMPLIFY** (drop over-defensive `??`/`?.`): ~20 identified, full count pending type-boundary audit
+- **KEEP** (legitimate external boundaries): ~350 catches + ~480 `??` — dominant majority
+
+The codebase is **well-disciplined** on error handling overall. The shared/errors module (`parseContractError`, `USER_FRIENDLY_ERRORS`, `createMutationErrorHandler`, `categorizeError`, `trackStorageError`, `trackNetworkError`, `trackUploadError`) is consistently consumed. Chronic drift from CLAUDE.md rules is minimal; primary findings concentrate in §1 (three high-impact silent catches) and §2 (type-level over-defensiveness).
