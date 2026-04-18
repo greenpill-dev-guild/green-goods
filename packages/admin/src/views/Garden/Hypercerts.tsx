@@ -10,6 +10,7 @@ import {
 import { RiAddLine, RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
+import { AdminCard } from "@/components/AdminCard";
 import { ActiveListingsTable } from "@/components/Hypercerts/ActiveListingsTable";
 import { PageHeader } from "@/components/Layout/PageHeader";
 
@@ -102,7 +103,7 @@ export default function Hypercerts() {
         )}
 
         {!isLoading && hypercerts.length === 0 && (
-          <div className="rounded-xl border border-stroke-soft bg-bg-white p-8 text-center sm:p-12">
+          <AdminCard variant="outlined" className="p-8 text-center sm:p-12">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-lighter">
               <RiAwardLine className="h-8 w-8 text-primary-base" />
             </div>
@@ -124,7 +125,7 @@ export default function Hypercerts() {
                 {formatMessage({ id: "app.hypercerts.list.empty.cta" })}
               </Link>
             )}
-          </div>
+          </AdminCard>
         )}
 
         {/* Active Marketplace Listings */}
