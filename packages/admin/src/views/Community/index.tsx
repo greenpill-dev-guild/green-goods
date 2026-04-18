@@ -11,6 +11,7 @@ import {
   useGardenDetailData,
   useEligibleAdminGardens,
   useLeftSheetConfig,
+  type LeftSheetConfig,
   useSheetWidth,
 } from "@green-goods/shared";
 import { AdminTabRail } from "@/components/AdminTabRail";
@@ -186,7 +187,7 @@ export default function CommunityView() {
   });
 
   const totalMembers = derived.directoryEntries.length;
-  const communitySheet = useMemo(() => {
+  const communitySheet = useMemo<LeftSheetConfig | null>(() => {
     if (isVaultRoute) {
       return {
         title: formatMessage({ id: "app.treasury.title" }),

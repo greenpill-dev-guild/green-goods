@@ -12,6 +12,7 @@ import {
   useFabConfig,
   useGardenDerivedState,
   useLeftSheetConfig,
+  type LeftSheetConfig,
   useGardenDetailData,
   useEligibleAdminGardens,
   useSheetWidth,
@@ -356,15 +357,21 @@ export default function GardenView() {
   }, [navigate, range, section]);
 
   // Declare left sheet content — CanvasLayout renders the persistent sheet
-  useLeftSheetConfig(
-    hypercertId
-      ? {
-          title: formatMessage({ id: "app.hypercerts.detail.title", defaultMessage: "Hypercert" }),
-          content: <HypercertDetail layout="sheet" hypercertId={hypercertId} />,
-          onClose: handleCloseHypercertSheet,
-        }
-      : null
+  const gardenLeftSheetConfig = useMemo<LeftSheetConfig | null>(
+    () =>
+      hypercertId
+        ? {
+            title: formatMessage({
+              id: "app.hypercerts.detail.title",
+              defaultMessage: "Hypercert",
+            }),
+            content: <HypercertDetail layout="sheet" hypercertId={hypercertId} />,
+            onClose: handleCloseHypercertSheet,
+          }
+        : null,
+    [formatMessage, handleCloseHypercertSheet, hypercertId]
   );
+  useLeftSheetConfig(gardenLeftSheetConfig);
 
   return (
     <div ref={containerRef} className="pb-6">

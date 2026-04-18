@@ -1,4 +1,9 @@
-import { adminRoutes, useLeftSheetConfig, type Work } from "@green-goods/shared";
+import {
+  adminRoutes,
+  useLeftSheetConfig,
+  type LeftSheetConfig,
+  type Work,
+} from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -111,11 +116,14 @@ export function HubSheetDescriptor({
     selectedWork,
   ]);
 
-  useLeftSheetConfig(
-    sheetDescriptor
-      ? { title: sheetDescriptor.title, content: sheetDescriptor.content, onClose }
-      : null
+  const leftSheetConfig = useMemo<LeftSheetConfig | null>(
+    () =>
+      sheetDescriptor
+        ? { title: sheetDescriptor.title, content: sheetDescriptor.content, onClose }
+        : null,
+    [sheetDescriptor, onClose]
   );
+  useLeftSheetConfig(leftSheetConfig);
 
   return null;
 }

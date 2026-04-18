@@ -3,7 +3,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -68,17 +67,14 @@ export function LeftSheetProvider({ children }: { children: ReactNode }) {
  */
 export function useLeftSheetConfig(config: LeftSheetConfig | null) {
   const { setConfig } = useContext(LeftSheetContext);
-  const configRef = useRef(config);
-  configRef.current = config;
-
-  useEffect(() => {
-    setConfig(configRef.current);
-    return () => setConfig(null);
-  }, [setConfig]);
 
   useEffect(() => {
     setConfig(config);
   }, [config, setConfig]);
+
+  useEffect(() => {
+    return () => setConfig(null);
+  }, [setConfig]);
 }
 
 // ----------------------------------------------------------------------------

@@ -105,6 +105,7 @@ export {
   useFabConfigValue,
   useLeftSheetConfig,
   useLeftSheetConfigValue,
+  type LeftSheetConfig,
   GardenChip,
   NavigationBar,
   NotificationPanel,

@@ -88,6 +88,7 @@ export {
   useFabConfigValue,
   useLeftSheetConfig,
   useLeftSheetConfigValue,
+  type LeftSheetConfig,
   type ToolbarSlot,
   GardenChip,
   type GardenChipProps,
