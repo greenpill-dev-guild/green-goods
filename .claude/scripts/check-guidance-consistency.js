@@ -456,14 +456,6 @@ for (const relPath of docsToScan) {
   }
 }
 
-const codeReviewer = read(".claude/agents/code-reviewer.md");
-if (/Every review MUST be posted to GitHub PR/i.test(codeReviewer)) {
-  fail(`.claude/agents/code-reviewer.md: unconditional GitHub posting statement is not allowed`);
-}
-if (!/If reviewing a PR/i.test(codeReviewer)) {
-  fail(`.claude/agents/code-reviewer.md: missing conditional GitHub posting guidance`);
-}
-
 const reviewSkill = read(".claude/skills/review/SKILL.md");
 if (/ALWAYS POST TO GITHUB/i.test(reviewSkill)) {
   fail(`.claude/skills/review/SKILL.md: unconditional GitHub posting statement is not allowed`);
@@ -503,15 +495,7 @@ if (!/\.claude\/registry\/skills\.json/.test(crackedCoder)) {
   fail(`.claude/agents/cracked-coder.md: missing skills registry reference (bundles are in skills.json)`);
 }
 
-const triageDoc = read(".claude/agents/triage.md");
-if (/cross-package-verify/i.test(triageDoc)) {
-  fail(`.claude/agents/triage.md: should route cross-package work via canonical /review command, not cross-package-verify`);
-}
-
-const reviewSurfaces = [
-  ".claude/agents/code-reviewer.md",
-  ".claude/skills/review/SKILL.md",
-];
+const reviewSurfaces = [".claude/skills/review/SKILL.md"];
 
 for (const relPath of reviewSurfaces) {
   if (!exists(relPath)) continue;
@@ -527,17 +511,7 @@ for (const relPath of reviewSurfaces) {
   }
 }
 
-assertInOrder(read(".claude/agents/triage.md"), [
-  "### Classification",
-  "### Affected Packages",
-  "### Recommended Route",
-  "### Context for Next Agent",
-], ".claude/agents/triage.md");
-
-for (const relPath of [
-  ".claude/agents/code-reviewer.md",
-  ".claude/skills/review/SKILL.md",
-]) {
+for (const relPath of [".claude/skills/review/SKILL.md"]) {
   if (!exists(relPath)) continue;
   const content = read(relPath);
   assertInOrder(content, [
@@ -551,25 +525,10 @@ for (const relPath of [
   ], relPath);
 }
 
-// Thin wrapper checks for agent docs that delegate to canonical skills
-const thinWrappers = {
-  ".claude/agents/code-reviewer.md": {
-    maxLines: 220,
-    mustContain: ["Canonical review protocol", "Canonical output contract"],
-  },
-};
-
-for (const [relPath, rule] of Object.entries(thinWrappers)) {
-  if (!exists(relPath)) continue;
-  const content = read(relPath);
-  const count = lineCount(content);
-  if (count > rule.maxLines) {
-    fail(`${relPath}: wrapper too large (${count} lines > ${rule.maxLines})`);
-  }
-  for (const snippet of rule.mustContain) {
-    if (!content.includes(snippet)) {
-      fail(`${relPath}: missing canonical wrapper marker: ${snippet}`);
-    }
+// Retired agents — ensure removal stays clean
+for (const retiredAgent of [".claude/agents/triage.md", ".claude/agents/code-reviewer.md"]) {
+  if (exists(retiredAgent)) {
+    fail(`${retiredAgent}: retired agent surface should not be reintroduced`);
   }
 }
 
@@ -619,7 +578,7 @@ for (const relPath of ["CLAUDE.md", "AGENTS.md", "docs/docs/reference/changelog.
 }
 
 const removedCommandSurfaceMentions = [".claude/commands/", "/teams ship", "/teams review", "/teams entropy"];
-const commandSurfaceDocs = ["CLAUDE.md", "AGENTS.md", ".claude/skills/index.md", ".claude/agents/triage.md"];
+const commandSurfaceDocs = ["CLAUDE.md", "AGENTS.md", ".claude/skills/index.md"];
 for (const relPath of commandSurfaceDocs) {
   if (!exists(relPath)) continue;
   const content = read(relPath);

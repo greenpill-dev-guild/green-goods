@@ -14,7 +14,7 @@ last_verified: "2026-02-19"
 
 Code review workflow: request reviews, perform 6-pass analysis, process feedback.
 
-**References**: See `CLAUDE.md` for codebase patterns and conventions. Use `code-reviewer` agent for PRs.
+**References**: See `CLAUDE.md` for codebase patterns and conventions.
 
 ---
 

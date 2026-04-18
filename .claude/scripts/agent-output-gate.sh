@@ -31,8 +31,6 @@ detect_output_type() {
   local text="$1"
   if printf '%s' "$text" | grep -q '### severity mapping' && printf '%s' "$text" | grep -q '### recommendation'; then
     echo "review"
-  elif printf '%s' "$text" | grep -q '### classification' && printf '%s' "$text" | grep -Eq 'p[0-4]'; then
-    echo "triage"
   elif printf '%s' "$text" | grep -q '### blast radius' && printf '%s' "$text" | grep -q '### execution order'; then
     echo "migration"
   elif printf '%s' "$text" | grep -q '### executive summary' && printf '%s' "$text" | grep -q '### confidence assessment'; then
@@ -60,13 +58,6 @@ case "$OUTPUT_TYPE" in
       fi
     done
     ;;
-  triage)
-    for section in "classification" "affected packages" "recommended route" "context for next agent"; do
-      if ! printf '%s' "$CONTENT_LOWER" | grep -q "### $section\|## $section"; then
-        MISSING_SECTIONS="${MISSING_SECTIONS}  - Missing: ${section}\n"
-      fi
-    done
-    ;;
   migration)
     for section in "summary" "blast radius" "execution order" "validation results" "completion checklist"; do
       if ! printf '%s' "$CONTENT_LOWER" | grep -q "### $section\|## $section"; then
@@ -86,7 +77,7 @@ esac
 if [ -n "$MISSING_SECTIONS" ]; then
   echo "OUTPUT CONTRACT WARNING: Agent output detected as '$OUTPUT_TYPE' but missing required sections:" >&2
   printf '%b' "$MISSING_SECTIONS" >&2
-  echo "   See the owning review, triage, or migration skill for the required section order." >&2
+  echo "   See the owning review, migration, or oracle skill for the required section order." >&2
   echo "   This is advisory — output will be accepted. Fix sections before handoff." >&2
 fi
 
