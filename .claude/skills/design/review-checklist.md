@@ -139,34 +139,40 @@ Q4: Is this AI/guidance interaction?
 
 ## Closing the Loop — Automated Enforcement
 
-Each lens has a manual review pass AND a set of automated checks that can run in CI or Storybook. Wire them up so the checklist isn't the only defender.
+Each lens has a manual review pass. Some lenses also have automation that runs today; the rest are on the roadmap. Treat rows marked **Wired** as real CI defenders. Treat **Proposed** / **Partial** as gaps to fill — not as guarantees that anything will catch a regression.
 
-| Lens | Manual Review | Automated Enforcement | Where It Runs |
-|------|--------------|----------------------|---------------|
-| **1 — Regenerative** | Motivation filter + degen/regen pattern table | Lint rule forbidding banned terms (`streak`, `countdown`, `leaderboard`, `FOMO`) in user-facing strings; grep CI check on i18n files | `packages/shared/src/i18n/*.json`, Biome custom rule |
-| **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression for material/paradigm stories; Storybook `tags: ["paradigm-*"]` for filtering; `@container` coverage via eslint-plugin-css-query | Storybook + Chromatic CI |
-| **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / operator / evaluator / funder); vitest tests that exercise surrogate submission paths; indexer schema checks for archetype-spanning entities | `packages/*/src/**/*.spec.ts`, `e2e/*.spec.ts` |
-| **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` fail on violations; `intl-lint` for missing translation keys; Storybook `@viewport` tests at 320/768/1280; `prefers-reduced-motion` vitest matcher | Storybook addons, Vitest, CI |
+| Lens | Manual Review | Automation | Status |
+|------|--------------|-----------|--------|
+| **1 — Regenerative** | Motivation filter + degen/regen pattern table | `bun run lint:vocab` — grep over `packages/*/src/i18n/*.json` for banned terms (`streak`, `countdown`, `leaderboard`, `FOMO`) | **Wired** |
+| **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
+| **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / operator / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
+| **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** — addon installed, no CI gate |
+| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` + `token_version` coupling across `design/SKILL.md`, `ui/SKILL.md`, registry | **Wired** |
 
-### Quick wiring reference
+### Quick wiring reference — currently runnable
 
 ```bash
-# Lens 4 — accessibility gate in Storybook CI
-bun --filter @green-goods/shared test-storybook --failOnA11yIssues
-
-# Lens 2 — visual regression on paradigm stories
-bun --filter @green-goods/shared chromatic --only-changed --exit-zero-on-changes=false
-
-# Lens 1 — lint banned vocabulary in user strings (streak/countdown/leaderboard/FOMO/…)
+# Lens 1 — banned vocabulary in user-facing strings
 bun run lint:vocab
 
-# Token-spec drift — Warm Earth spec ↔ theme.css + version coupling
+# Cross-cutting — Warm Earth token spec ↔ theme.css + version coupling
 bun run check:design-tokens
 ```
 
+### Roadmap — not yet wired
+
+To move rows out of **Proposed** / **Partial**:
+
+- **Lens 4 — Storybook a11y gate**: add a `test-storybook` script to `packages/shared/package.json` backed by `@storybook/addon-a11y` (v10.2.8 is already installed); fail CI on violations.
+- **Lens 2 — Chromatic visual regression**: add a `chromatic` script, tag stories with `tags: ["paradigm-command" | "paradigm-ambient" | …]`, run on paradigm-tagged stories. No `paradigm-*` tags exist today.
+- **Lens 2 — `@container` coverage**: adopt `eslint-plugin-css-query` or equivalent (not installed).
+- **Lens 4 — i18n key coverage**: adopt or build a lightweight lint that diffs keys across `en.json` / `es.json` / `pt.json`. No `intl-lint` package currently installed.
+- **Lens 4 — viewport tests**: Storybook `@viewport` at 320/768/1280 — depends on the `test-storybook` script above.
+- **Lens 3 — archetype-spanning Playwright flows**: Playwright is in the stack; missing is the gardener / operator / evaluator / funder + surrogate coverage.
+
 ### Why automate
 
-A checklist agents run once per PR catches what we remember. Automated checks catch what we forget. The combination is the whole system — manual review for judgment, CI for vigilance.
+A checklist agents run once per PR catches what we remember. Automated checks catch what we forget. The combination is the whole system — manual review for judgment, CI for vigilance. Keep this table honest: every row marked **Wired** must execute without error from a clean checkout.
 
 **Implementation notes**:
 - `lint:vocab` runs `scripts/check-i18n-vocab.sh` against `packages/*/src/i18n/*.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.

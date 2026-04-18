@@ -8,7 +8,7 @@ One-page map. Read this first when you need design context — it points to the 
 
 | Layer | Skill | Owns |
 |-------|-------|------|
-| Direction (what/why) | **`design`** (project, v2.3.1) | Paradigms, Warm Earth language, prompt contracts, 4-lens review, spec |
+| Direction (what/why) | **`design`** (project, v2.3.3) | Paradigms, Warm Earth language, prompt contracts, 4-lens review, spec, stack self-audit |
 | Implementation (how) | **`ui`** (project, v1.4.1, depends on design) | Tailwind v4, Radix, Storybook, a11y, i18n, 10-step component runbook |
 | AI code pipeline | **`stitch`** (project, v1.1.0) | Fetch from Stitch MCP → implement using existing components |
 | AI prompt work | **`stitch-design`** (user, v2.0.0) | Prompt enhancement, DESIGN.md synthesis, generate/edit screens |
@@ -43,6 +43,7 @@ Dependency chain: `stitch → ui + design → language.md → theme.css`.
 | Decision: which component / primitive? | `ui/SKILL.md § New Component Runbook` (10 steps) |
 | Surface-specific brief | `packages/{admin,client}/DESIGN.md` |
 | PR review | `design/review-checklist.md` (4 lenses: Regenerative → Spatial → Ecosystem → Compliance) |
+| Self-audit the design-system skill stack | `design/stack-review.md` (meta-review of `design/` + `ui/` only — not other skills) |
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |
 | Regenerative lens specifics | `design/regenerative.md` |
 | Inspiration / books / designers | `design/SKILL.md § Appendix` |
@@ -106,6 +107,7 @@ If you're editing more than one component, changing layout composition, creating
 - [language.md](./language.md) — Canonical token spec
 - [quick-reference.md](./quick-reference.md) — One-page cheat sheet
 - [review-checklist.md](./review-checklist.md) — 4-lens PR review
+- [stack-review.md](./stack-review.md) — Design-system self-audit (meta-review of `design/` + `ui/`)
 - [prompt-contract.md](./prompt-contract.md) — Admin AI prompt vocabulary + palette
 - [client-prompt-contract.md](./client-prompt-contract.md) — Client AI prompt vocabulary + palette
 - Root `DESIGN.md`, `packages/{admin,client}/DESIGN.md` — creative briefs

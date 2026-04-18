@@ -112,6 +112,14 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 
 **PR review**: 4-lens checklist at `.claude/skills/design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance. Quick pass = Lenses 1 + 4. Full pass (new view) = all four.
 
+**Admin UI defect resolution**: When the user reports anything off on an admin surface — however casually ("the card on Hub feels tight", "that thing at the top", "the tabs look weird on mobile") — do **not** guess and do **not** ask them to formalize the report. Resolve to a canonical `Admin*` wrapper or canvas region first, then edit. Escalate in order:
+
+1. **Chrome MCP live DOM** — if an admin tab is open (`mcp__claude-in-chrome__tabs_context_mcp`), use `javascript_tool` or `read_page` to read `data-component` / `data-variant` / `data-region` / `data-workspace` on the rendered page. This is the preferred path because the user already runs admin in Brave with Chrome MCP for UI review.
+2. **Grep fallback** — `grep -rn 'data-component="AdminX"' packages/admin/src/views/<workspace>/` when the page isn't open or Chrome MCP is unavailable. Map casual terms ("card", "tabs", "search") via the table in the grammar file.
+3. **Ask** — only if 1 + 2 don't narrow to a single candidate. Ask in terms the user recognizes (component name + view), never ask them to write the grammar.
+
+Full resolution workflow, casual-term mapping, and defect-type taxonomy: `.claude/skills/design/defect-grammar.md`. Ground every edit with an internal `<Component> in <route/region> → <defect-type>: <expected> vs <actual>` statement — user never has to write it.
+
 ## Contract Deployment
 
 ```bash

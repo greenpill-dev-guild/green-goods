@@ -1,7 +1,7 @@
 ---
 name: design
 description: "Design philosophy for adaptive, spatial interfaces. Paradigm selection, material language, interaction patterns, inclusive design, ecosystem thinking, and progressive immersion strategy. Use for design direction, visual language decisions, and spatial UI planning."
-version: "2.3.1"
+version: "2.3.3"
 token_version: "2.3.0"
 status: active
 packages: ["shared", "client", "admin"]
@@ -9,6 +9,8 @@ dependencies: []
 last_updated: "2026-04-17"
 last_verified: "2026-04-17"
 changelog:
+  - "2.3.3 — Added stack-review.md (design-system self-audit protocol, scoped strictly to design/ + ui/). ARCHITECTURE.md synced: version label bumped to 2.3.3, stack-review.md added to the Where-to-look table and Related section. stack-review.md hardened with an explicit scope fence (out-of-scope list: other skills, registry canonical_commands, check-guidance-consistency, ship/plan/debug) after a first-run drift into non-design findings."
+  - "2.3.2 — review-checklist.md § Closing the Loop rewritten to mark each lens's automation as Wired / Partial / Proposed, with evidence. Dropped two broken commands from the Quick wiring reference (`bun --filter @green-goods/shared test-storybook --failOnA11yIssues` and `bun --filter @green-goods/shared chromatic` — neither script exists in `packages/shared/package.json`). Added a Roadmap subsection listing what's needed to move each Proposed row to Wired. No token changes."
   - "2.3.1 — Spring motion tokens shipped to packages/shared/src/styles/theme.css (previously spec'd as aspirational in language.md; AI tools can now safely emit var(--spring-*)). prompt-contract.md clarifies admin = restrained Warm Earth (not raw M3) and that hero moments are client-only. materials.md stale 'not yet in theme.css' note removed. review-checklist.md references new scripts bun run lint:vocab and bun run check:design-tokens instead of the unwritten biome rule. Registry token_version synced to 2.3.0 (was drifted at 2.2.0)."
   - "2.3.0 — Added client-prompt-contract.md (closes admin/client asymmetry). Material tokens now implemented in theme.css (no longer aspirational). Added quick-reference.md cheat sheet. Closing-the-loop section added to review-checklist.md. implementation.md split — generative UI stayed, view transitions moved to ui/, progressive immersion folded into SKILL.md, references.md folded into SKILL.md appendix. Registry triggers expanded for finer activation routing. Bumped token_version — coupled ui skill should revisit compliance guidance."
   - "2.2.0 — Consolidated token spec to language.md (single source of truth). Reconciled colour model on canvas/ink/stone/green-as-tertiary. Collapsed per-file checklists into review-checklist.md. DESIGN.md rewritten as terse creative brief."
@@ -24,10 +26,12 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 
 ## Route to another skill when…
 
+- You need an at-a-glance map of this skill stack (which file owns which question) → [ARCHITECTURE.md](./ARCHITECTURE.md).
 - You need implementation detail (Tailwind tokens, Radix composition, a11y checks, Storybook, i18n) → **`ui`** skill.
 - You are building a screen from a Stitch project → **`stitch`** skill (project), which calls out to **`stitch-design`** (user-level) for prompt/design work.
 - You need the **admin** AI prompt contract (stable core, vocabulary, never-use list) → [prompt-contract.md](./prompt-contract.md).
 - You need the **client** AI prompt contract → [client-prompt-contract.md](./client-prompt-contract.md).
+- You need to **report a UI defect** on an admin surface (grammar, component identifiers, browser workflow) → [defect-grammar.md](./defect-grammar.md).
 - You just need a scannable token cheat sheet → [quick-reference.md](./quick-reference.md).
 
 ## Version coupling with `ui`
@@ -46,9 +50,11 @@ If the two versions drift, you have a token consistency bug: the design says one
 
 | Domain | Keywords / Triggers | Sub-file |
 |--------|-------------------|----------|
+| **Skill Map** | where does X live, skill stack, routing, architecture overview | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | **Design Language** | Warm Earth language, shape system, motion tokens, color direction, components, hero moments | [language.md](./language.md) |
 | **Admin Prompt Contract** | admin stable core, banned terms, workspace vocabulary for Stitch / Antigravity / Claude Design | [prompt-contract.md](./prompt-contract.md) |
 | **Client Prompt Contract** | client stable core, banned terms, PWA shell vocabulary | [client-prompt-contract.md](./client-prompt-contract.md) |
+| **Defect Grammar** | "this looks broken", describe UI bug, component identifier lookup, defect types, browser inspect workflow | [defect-grammar.md](./defect-grammar.md) |
 | **Quick Reference** | cheat sheet, radii, springs, colors, materials, paradigms at a glance | [quick-reference.md](./quick-reference.md) |
 | **Design Philosophy** | design direction, paradigm, adaptive surface, spatial, vision, progressive immersion | This file |
 | **Depth & Space** | Z-axis, depth, layers, glass pane, elevation, scroll depth | [spatial.md](./spatial.md) |
@@ -59,6 +65,7 @@ If the two versions drift, you have a token consistency bug: the design says one
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
 | **Regenerative** | regenerative, regen, degen, mycofi, commons, biomimicry, succession, growth-agnostic, capability | [regenerative.md](./regenerative.md) |
 | **Review Checklist** | review, PR, audit, compliance, checklist, design review, before merging | [review-checklist.md](./review-checklist.md) |
+| **Stack Review** | stack review, review design system, audit skill stack, meta-review, system health | [stack-review.md](./stack-review.md) |
 | **Inspiration & Frameworks** | inspiration, design books, designers, studios, research | § Appendix below |
 
 When invoked:
