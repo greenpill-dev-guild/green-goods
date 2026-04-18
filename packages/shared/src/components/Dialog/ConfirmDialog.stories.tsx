@@ -255,3 +255,88 @@ export const ShellPattern: Story = {
     },
   },
 };
+
+export const ShellSizeMd: Story = {
+  render: () => (
+    <DialogShell
+      open={true}
+      onOpenChange={fn()}
+      title="Remove member"
+      description="Confirm before revoking access — size=md"
+      size="md"
+    >
+      <p className="text-body-sm text-text-sub-600">
+        Medium shell (max-w-md). Use for simple confirmations that do not need form layout.
+      </p>
+    </DialogShell>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: "`size='md'` — default for small confirmations and single-field edits.",
+      },
+    },
+  },
+};
+
+export const ShellSizeLg: Story = {
+  render: () => (
+    <DialogShell
+      open={true}
+      onOpenChange={fn()}
+      title="Edit garden profile"
+      description="Multi-field edit — size=lg"
+      size="lg"
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">Name field</div>
+        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">Domain field</div>
+        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4 sm:col-span-2">
+          Description field
+        </div>
+      </div>
+    </DialogShell>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story: "`size='lg'` — use when content is a 2-column form or a medium detail view.",
+      },
+    },
+  },
+};
+
+export const ShellSize2xl: Story = {
+  render: () => (
+    <DialogShell
+      open={true}
+      onOpenChange={fn()}
+      title="Hypercert minting preview"
+      description="Full-size shell for multi-section flows — size=2xl"
+      size="2xl"
+    >
+      <div className="grid gap-4 md:grid-cols-[1fr_2fr]">
+        <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
+          <div className="text-label-sm text-text-sub-600">Summary</div>
+        </div>
+        <div className="space-y-3">
+          <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
+            Attestation selector
+          </div>
+          <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">
+            Distribution config
+          </div>
+          <div className="rounded-lg border border-stroke-soft bg-bg-weak p-4">Metadata editor</div>
+        </div>
+      </div>
+    </DialogShell>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "`size='2xl'` — reserved for multi-section workflows like hypercert minting, wizards, or data-dense previews.",
+      },
+    },
+  },
+};

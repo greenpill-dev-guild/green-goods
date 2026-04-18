@@ -417,5 +417,5 @@ Only replace section-level and content-level gaps, not within-card micro-spacing
 - [ ] `bun format && bun lint`
 - [ ] `bun run test`
 - [ ] `VITE_CHAIN_ID=11155111 bun run build`
-- [ ] Storybook: Surface variants, ModalDialog sizes, glass effects
+- [x] Storybook: Surface variants ✅ (pre-existing), **DialogShell sizes** (md/lg/xl/2xl) ✅ (2026-04-17), **glass effects** (ground/raised/floating/overlay/surface + dark mode) ✅ (2026-04-17 `Surface/Glass.stories.tsx`), **13 Admin\* components** ✅ (2026-04-17 all 13 `Admin*.stories.tsx` in `packages/admin/src/components/`)
 - [ ] Manual: admin dashboard at 375px (mobile), 768px (tablet), 1024px (desktop), 1440px (wide)
