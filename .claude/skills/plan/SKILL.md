@@ -22,14 +22,16 @@ Planning lifecycle for Green Goods: create plans, check progress, execute in bat
 
 | Trigger | Action |
 |---------|--------|
-| `/plan` | Create new implementation plan |
-| `/plan --mode check` | Audit progress against plan |
-| `/plan --mode execute` | Execute plan in batches |
-| `/plan --mode cleanup` | Audit `.plans/` — archive implemented, flag stale |
-| `/plan --mode teams` | Team coordination — see [teams.md](./teams.md) |
-| `/teams` | Legacy alias — routes to `/plan --mode teams` |
-| Starting new feature | Create plan before coding |
+| "plan this" / "break down X" | Create new implementation plan |
+| Fuzzy request, no clear "done when" | Brainstorm first — see [brainstorm.md](./brainstorm.md) |
+| Plan exists, check progress | Audit progress against plan |
+| Plan approved, ready to execute | Execute in batches |
+| `.plans/` feels stale | Audit — archive implemented, flag stale |
+| Team coordination needed | See [teams.md](./teams.md) |
+| Starting new feature | Brainstorm → brief → plan → code |
 | Cross-package breaking change | Create or update the owning feature hub, then route execution through `ops/migration` |
+
+**Note**: `/plan` is no longer a user-invocable slash command. The skill fires passively when the user describes planning intent. For the brainstorm-before-plan flow (fuzzy requirements), see [brainstorm.md](./brainstorm.md).
 
 ## Progress Tracking (REQUIRED)
 
@@ -347,6 +349,7 @@ bun format && bun lint && bun run test && bun build
 
 ## Related Skills
 
+- `plan/brainstorm.md` — Pre-plan exploration when requirements are fuzzy
 - `architecture` — Architectural patterns considered during planning
 - `testing` — TDD strategy included in implementation plans
 - `ui` (mermaid sub-file) — Visualizing plan architecture and dependencies

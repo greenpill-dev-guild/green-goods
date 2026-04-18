@@ -32,6 +32,7 @@ Use when:
 /status                    # Standard briefing (all sections)
 /status --quick            # Abbreviated — pipeline + health + focus only
 /status --full             # Deep briefing with subagent exploration
+/status --resume           # Branch-scoped resumption — pick up where you left off
 /status --focus pipeline   # Feature pipeline only
 /status --focus health     # Production health only
 /status --focus journeys   # User journey readiness only
@@ -515,6 +516,61 @@ Run only the named section:
 - `journeys` → Section 4
 - `git` → Section 5
 - `onchain` → Section 6
+
+### `--resume`
+
+Branch-scoped resumption — different from the project-wide briefing. Use when picking up a stale or paused branch. Answers "what was I doing here?" not "what's happening in the project?"
+
+**Gather:**
+
+1. Current branch: `git rev-parse --abbrev-ref HEAD`
+2. Session state: Read `session-state.md` from repo root if present
+3. Matching feature plan: derive slug from branch name (`feature/<slug>` → `slug`) and read `.plans/active/<slug>/plan.todo.md` + `status.json` if they exist
+4. Divergence from main: `git log --oneline origin/main..HEAD`
+5. Last activity on branch: `git log -1 --format='%ar by %an: %s' HEAD`
+6. Uncommitted state: `git status --short` + `git diff --stat`
+7. Stashed work on this branch: `git stash list | grep <branch-name>`
+8. Health pulse (only for touched packages): typecheck the packages that have changed files
+
+**Output:**
+
+```markdown
+# Resume — <branch-name>
+
+> **Last touched <age> — <summary of where you left off>**
+
+## Session State
+<content of session-state.md, or "no session-state.md saved">
+
+## Active Plan
+- Plan: `.plans/active/<slug>/plan.todo.md` (Updated: <age>)
+- Lanes: ui ✓ | state_api ◐ | contracts — | qa1 → | qa2 →
+- Next step: [from plan.todo.md]
+
+## Git State
+- N commits ahead of origin/main
+- M files modified, K untracked
+- Stashed: N (if any)
+
+## Health (touched packages only)
+- shared: tsc PASS (0 errors)
+- client: tsc FAIL (3 errors in src/views/Garden/index.tsx)
+
+## Next
+1. **[Concrete immediate action]** — usually the first unchecked item in plan.todo.md, OR the first compile error, OR "resolve uncommitted changes"
+2. [Second action]
+3. [Third action]
+```
+
+**Rules:**
+- Skip sections 1, 2, 4, 6, 7 from standard status. This is branch-scoped, not project-scoped.
+- If no plan matches the branch AND no session-state.md → state "no continuity artifacts found" and fall back to git log + uncommitted diff only.
+- If the branch is `main`/`develop` → redirect to standard `/status` (resume doesn't make sense there).
+- Target: under 45 seconds. Don't run full test suite — typecheck only, scoped to touched packages.
+
+**When to use `/status --resume` vs standard `/status`:**
+- Resume: "I'm on this branch, remind me what I was doing." Narrow, branch-local.
+- Standard: "What's the state of the project?" Wide, repo-wide.
 
 ---
 
