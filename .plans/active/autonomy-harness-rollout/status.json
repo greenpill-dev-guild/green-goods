@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "autonomy-harness-rollout",
+    "title": "Autonomy Harness Rollout",
+    "kind": "quality",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-04-18T21:43:55.778Z",
+    "updated_at": "2026-04-18T23:45:38Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Research source: .plans/ideas/autonomous-harness-map-2026-04-18.md; this hub is the live execution queue.",
+    "The five existing plan-hub lanes remain authoritative; D.* and T.* stay loop families, not schema changes.",
+    "Full-view cleanup requires both route-unreachability and parity review against the live folded surface.",
+    "Use targeted bun run test or bun run test as the fast iterative gate; coverage is scheduled or pre-merge evidence, not the default inner loop.",
+    ".plans/ is the durable repo truth; any .claude/agent-memory pilot remains environment-local until freshness, expiry, and ownership rules exist.",
+    "Baseline refresh report: reports/2026-04-18-baseline-refresh.md; all three verified silent-failure mutation loops are now closed and a bounded shared cleanup loop landed.",
+    "The packages/client test-runner stall is closed: full client `bun run test` now exits cleanly after aliasing the EAS SDK test surface and replacing the mock-heavy Cards omnibus with split behavior tests.",
+    "Repo-quick validation now uses packages/admin `bun run test:hub`, clears shared, client, admin, and agent tests, and is currently blocked by unrelated format drift in `.plans/backlog/harness-hardening-wave-1/status.json`; the legacy `packages/admin` full-suite `bun run test` hang remains a separate hardening item."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "claude/ui/autonomy-harness-rollout",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Design specialist rollout intentionally deferred until Tier 0 partials are closed and a single pilot surface is chosen.",
+      "skill_tags": ["plan", "review"],
+      "manual_blocked": true
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "in_progress",
+      "branch": "codex/state-api/autonomy-harness-rollout",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "Tier 0 control-surface work is complete, all three verified silent-failure mutation loops are closed, one bounded shared cleanup loop landed, the packages/client runner now exits cleanly, and repo-quick now clears admin via `test:hub`; the next blocker to tighten is the unrelated repo-quick format drift or the separate packages/admin full-suite hang / warning-hygiene work.",
+      "skill_tags": ["plan", "clean", "testing", "debug", "review"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/autonomy-harness-rollout",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "No active Solidity scope in the current phase; reopen only if a later loop touches contract artifacts directly.",
+      "skill_tags": [],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "claude/qa-pass-1/autonomy-harness-rollout",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Blocked until the state lane stabilizes the remaining admin harness hang and there is a concrete UI pilot to review.",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "codex/qa-pass-2/autonomy-harness-rollout",
+      "branch_trigger": "claude/qa-pass-1/autonomy-harness-rollout",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Blocked on QA pass 1 and on cleaning up the remaining env-gated / hanging validation edges.",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-18T21:43:55.784Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-04-18T21:44:59Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "promoted",
+      "branch": null,
+      "note": "Promoted the autonomy research map into a live active hub and captured current Tier 0 / Loop A status."
+    },
+    {
+      "timestamp": "2026-04-18T21:44:59Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Tier 0 unblockers are mostly complete; remaining work is cleanup baseline refresh, inner-loop policy codification, and memory policy."
+    },
+    {
+      "timestamp": "2026-04-18T21:50:43Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Refreshed the cleanup and mutation-bug baseline; the three silent-failure paths remain open and stale dead-code classifications were recorded in the active hub."
+    },
+    {
+      "timestamp": "2026-04-18T22:05:12Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Completed the remaining control-surface work by codifying the inner-loop testing policy and memory policy in the plan hub, template notes, and builder docs."
+    },
+    {
+      "timestamp": "2026-04-18T22:12:38Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Closed the CreateListingDialog silent-failure loop with a local actionable error fallback and a focused admin regression test; two provider-side mutation bugs remain."
+    },
+    {
+      "timestamp": "2026-04-18T22:15:02Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Closed the Work provider silent-failure loop by rethrowing rejected work submissions after debug logging and backing it with a focused provider test; JobQueue is the remaining verified mutation bug."
+    },
+    {
+      "timestamp": "2026-04-18T22:22:16Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Closed the JobQueue auto-flush silent-failure loop with a focused provider regression test, leaving no verified silent-failure mutation bugs open in the active baseline."
+    },
+    {
+      "timestamp": "2026-04-18T22:54:33Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Landed one bounded shared cleanup loop by removing the deprecated query invalidation shim, then tightened repo-quick blocker evidence to a packages/client test-runner stall with a live fsevents watcher after suite output."
+    },
+    {
+      "timestamp": "2026-04-18T23:30:02Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Closed the packages/client runner stall by aliasing the EAS SDK test surface and replacing the mock-heavy Cards omnibus with split behavior tests; repo-quick now reaches packages/admin, where isolated and repo-quick admin Vitest runs hang with the child node idle in uv__io_poll and holding KQUEUE handles."
+    },
+    {
+      "timestamp": "2026-04-18T23:45:38Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Aligned repo-quick with packages/admin `test:hub`, confirmed quick now clears shared, client, admin, and agent tests without stalling in the admin legacy suite, and narrowed the remaining quick failure to unrelated format drift in `.plans/backlog/harness-hardening-wave-1/status.json`; the full admin suite hang remains a separate hardening target."
+    }
+  ]
+}

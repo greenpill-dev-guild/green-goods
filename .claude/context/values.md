@@ -78,6 +78,31 @@ When agent values conflict, resolve in this order (highest priority first):
    - **This means**: if two CLAUDE.md rules conflict for your specific case, ask rather than pick one
    - **This means**: if test failures are confusing after 3 attempts, stop and report what you've tried
 
+## Criticality Matrix
+
+Choose review depth from the surface, not from how small the diff feels.
+
+- **`critical`**
+  - `packages/contracts/src/**`
+  - `packages/shared/src/providers/{Auth,JobQueue,Work}.tsx`
+  - `packages/shared/src/modules/job-queue/**`
+  - `packages/shared/src/hooks/{auth,work,vault,blockchain}/**`
+  - Required behavior: read every touched line, run the matching reviewer flow, and reject log-only failure handling.
+
+- **`sensitive`**
+  - `packages/agent/src/**`
+  - admin workflow state surfaces
+  - client journey views
+  - Required behavior: verify failure and recovery states explicitly, keep the blast radius tight, and run targeted validation before claiming the change is safe.
+
+- **`routine`**
+  - docs
+  - automation prompts
+  - stories
+  - cleanup-only changes
+  - test-only refactors that do not alter runtime behavior
+  - Required behavior: use the lightest honest validation loop and keep attention on correctness, not ceremony.
+
 ## Tradeoff Escalation Triggers
 
 Escalate to human when:
