@@ -1,6 +1,11 @@
 /**
  * Empty State Tests
  * @vitest-environment jsdom
+ *
+ * The unauthenticated / no-eligible-gardens home shell now lives in
+ * IndexRoute (mounted at "/"), not CanvasLayout. These tests render
+ * IndexRoute directly plus the CanvasLayout redirect safety net that
+ * kicks users back to "/" when they lose garden membership mid-session.
  */
 
 import type React from "react";
@@ -50,6 +55,9 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       onOpenSettings?: () => void;
       onOpenProfile?: () => void;
     }) => <div data-testid="top-context-bar">{props.gardenChip}</div>,
+    MainSheet: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="main-sheet">{children}</div>
+    ),
     useAdminStore: (selector: (state: any) => unknown) =>
       selector({
         selectedGarden: null,
@@ -80,8 +88,13 @@ vi.mock("react-router-dom", async (importOriginal) => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
+    Navigate: ({ to }: { to: string }) => <div data-testid="navigate" data-to={to} />,
   };
 });
+
+vi.mock("@/components/ConnectButton", () => ({
+  ConnectButton: () => <button type="button">Connect Wallet</button>,
+}));
 
 vi.mock("@/components/Layout/CommandPalette", () => ({
   CommandPalette: () => null,
@@ -91,9 +104,10 @@ vi.mock("@/components/Layout/PageTransition", () => ({
   PageTransition: () => <div data-testid="page-content">Page Transition</div>,
 }));
 
+import IndexRoute from "@/routes/IndexRoute";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 
-describe("Canvas no-garden access state", () => {
+describe("IndexRoute no-garden access state", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEligibleAdminGardens.current = {
@@ -109,19 +123,18 @@ describe("Canvas no-garden access state", () => {
   it("renders a create-garden CTA when the user can create gardens", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/"]}>
-        <CanvasLayout />
+        <IndexRoute />
       </MemoryRouter>
     );
 
     expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /create garden/i })).toBeInTheDocument();
-    expect(screen.queryByTestId("page-content")).not.toBeInTheDocument();
   });
 
   it("navigates to /garden/create from the CTA", async () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/"]}>
-        <CanvasLayout />
+        <IndexRoute />
       </MemoryRouter>
     );
 
@@ -139,12 +152,42 @@ describe("Canvas no-garden access state", () => {
 
     renderWithProviders(
       <MemoryRouter initialEntries={["/"]}>
-        <CanvasLayout />
+        <IndexRoute />
       </MemoryRouter>
     );
 
     expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /create garden/i })).not.toBeInTheDocument();
+  });
+
+  it("redirects authenticated users with eligible gardens to /hub", () => {
+    mockEligibleAdminGardens.current = {
+      ...mockEligibleAdminGardens.current,
+      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
+    };
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/"]}>
+        <IndexRoute />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/hub/work");
+    expect(screen.queryByTestId("canvas-no-garden-access")).not.toBeInTheDocument();
+  });
+});
+
+describe("CanvasLayout redirect safety net", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockEligibleAdminGardens.current = {
+      eligibleGardens: [],
+      resolvedDefaultGarden: null,
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    };
   });
 
   it.each([

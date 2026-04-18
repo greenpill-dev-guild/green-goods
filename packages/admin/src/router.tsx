@@ -76,16 +76,21 @@ export const router = createRouter([
         element: <LoginRedirect />,
       },
       {
-        // CanvasShell renders for all routes — access control happens inside the shell and route guards.
+        // Home — explicit terminal states (spinner / redirect / no-access /
+        // connect prompt). Lives outside CanvasShell because none of those
+        // states need the hub chrome; IndexRoute provides its own visual shell.
+        index: true,
+        lazy: async () => ({
+          Component: (await import("@/routes/IndexRoute")).default,
+        }),
+      },
+      {
+        // CanvasShell renders for all in-app routes — access control happens
+        // inside the shell and route guards.
         lazy: async () => ({
           Component: (await import("@/routes/CanvasShell")).default,
         }),
         children: [
-          {
-            // Home — "/" renders through CanvasLayout which detects "home" workspace
-            // and shows connect prompt or redirects to /hub when authenticated
-            index: true,
-          },
           {
             // Pathless error-catching wrapper: child errors render here
             // while CanvasShell and the canvas shell stay visible above.

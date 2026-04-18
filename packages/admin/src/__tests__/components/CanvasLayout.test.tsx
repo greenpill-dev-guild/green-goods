@@ -296,42 +296,6 @@ describe("CanvasLayout", () => {
     });
   });
 
-  it("renders home canvas with connect prompt for unauthenticated users", () => {
-    mockAuthState.current = {
-      ...mockAuthState.current,
-      isAuthenticated: false,
-      eoaAddress: null,
-      authMode: null,
-    };
-
-    renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
-        <CanvasLayout />
-      </MemoryRouter>
-    );
-
-    // Home canvas renders AppBar + connect button, not old ConnectShell
-    expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
-    expect(screen.queryByTestId("navigation-bar")).not.toBeInTheDocument();
-  });
-
-  it("renders the wallet-required shell for embedded auth", () => {
-    mockAuthState.current = {
-      ...mockAuthState.current,
-      authMode: "embedded",
-    };
-
-    renderWithProviders(
-      <MemoryRouter initialEntries={["/hub"]}>
-        <CanvasLayout />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByTestId("wallet-required-shell")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /sign out & connect wallet/i })).toBeInTheDocument();
-    expect(screen.queryByTestId("navigation-bar")).not.toBeInTheDocument();
-  });
-
   it("does not apply pl-20 padding on main content", () => {
     renderWithProviders(
       <MemoryRouter initialEntries={["/hub"]}>
