@@ -125,6 +125,17 @@
     transition: background-color 200ms ease, color 200ms ease;
   }
 
+  /* Pointer cursor for interactive elements — Tailwind v4 no longer sets this
+     by default, so icon-only <button> and ARIA-roled triggers across admin
+     need an explicit reset. Guarded so disabled controls keep their default
+     (or disabled:cursor-not-allowed utilities). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
   /* Smooth theme transitions for sidebar and card surfaces */
   [data-testid="sidebar"],
   .rounded-xl {
@@ -836,26 +847,12 @@
   }
 }
 
+/* Nav bar entrance animation — pure vertical slide + fade.
+   Centering is handled in the component via `inset-x-0 mx-auto`, not a transform,
+   so the animation ends at `transform: none` without clobbering horizontal position.
+   The shared animation is safe for both the centered desktop nav and the
+   corner-docked FAB (which uses fixed right/bottom positioning, also transform-free). */
 @keyframes nav-bar-enter {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(1rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
-}
-
-/* M3 override: full-width nav bar uses transform: none, so the entrance
-   animation must not apply translateX(-50%) or it shifts the bar off-screen.
-   Also applies to the FAB (adjacent sibling div) which inherits the same animation. */
-.admin-m3 .canvas-navigation-bar,
-.admin-m3 .canvas-navigation-bar + div {
-  animation-name: m3-nav-bar-enter;
-}
-
-@keyframes m3-nav-bar-enter {
   from {
     opacity: 0;
     transform: translateY(1rem);
@@ -1244,7 +1241,13 @@
   --workspace-accent: 37 99 235;
   position: relative;
   isolation: isolate;
-  background: rgb(var(--m3-surface-container-lowest));
+  background:
+    radial-gradient(
+      ellipse 100% 60% at 50% 0%,
+      var(--ws-surface-tint-color, transparent) 0%,
+      transparent 70%
+    ),
+    rgb(var(--m3-surface-container-lowest));
   transition: background-color var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
 }
 
