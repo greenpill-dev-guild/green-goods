@@ -54,7 +54,7 @@ export function AdminSearchToolbar({
   });
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div data-component="AdminSearchToolbar" className={cn("flex items-center gap-2", className)}>
       {/* M3 Search Bar pill */}
       <div
         className={cn(

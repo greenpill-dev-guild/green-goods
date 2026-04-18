@@ -77,6 +77,7 @@ export function AdminTabRail({
 
   return (
     <div
+      data-component="AdminTabRail"
       role="tablist"
       aria-label={ariaLabel}
       className={cn(

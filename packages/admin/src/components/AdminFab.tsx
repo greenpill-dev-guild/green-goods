@@ -41,6 +41,7 @@ export function AdminFab({
 
   return (
     <button
+      data-component="AdminFab"
       type="button"
       onClick={onClick}
       className={cn(

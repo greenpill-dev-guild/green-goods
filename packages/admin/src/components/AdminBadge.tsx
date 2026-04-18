@@ -32,6 +32,7 @@ export function AdminBadge({ count, visible = true, className }: AdminBadgeProps
 
   return (
     <span
+      data-component="AdminBadge"
       aria-label={label ? `${label} notifications` : "notification"}
       className={cn(
         // Color

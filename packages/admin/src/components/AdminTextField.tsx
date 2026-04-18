@@ -139,7 +139,11 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
 
     if (variant === "filled") {
       return (
-        <div className={cn("flex flex-col", className)}>
+        <div
+          data-component="AdminTextField"
+          data-variant="filled"
+          className={cn("flex flex-col", className)}
+        >
           {/* Container */}
           <div
             className={cn(
@@ -297,7 +301,11 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
     // -------------------------------------------------------------------------
 
     return (
-      <div className={cn("flex flex-col", className)}>
+      <div
+        data-component="AdminTextField"
+        data-variant="outlined"
+        className={cn("flex flex-col", className)}
+      >
         {/* Container with outline ring */}
         <div
           className={cn(

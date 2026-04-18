@@ -40,6 +40,7 @@ export function AdminFilterChip({
 }: AdminFilterChipProps) {
   return (
     <button
+      data-component="AdminFilterChip"
       type="button"
       role="checkbox"
       aria-checked={selected}

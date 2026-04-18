@@ -160,6 +160,7 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
         ...(props as SlottableChildProps),
         ref,
         className: cn(classes, childProps.className),
+        "data-component": "AdminButton",
         "aria-busy": loading || undefined,
         children: (
           <>
@@ -173,6 +174,7 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
     return (
       <button
         ref={ref}
+        data-component="AdminButton"
         className={classes}
         disabled={disabled || loading}
         aria-busy={loading || undefined}

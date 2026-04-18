@@ -59,6 +59,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
 
     return (
       <label
+        data-component="AdminCheckbox"
         htmlFor={inputId}
         className={cn(
           "inline-flex items-start gap-3",

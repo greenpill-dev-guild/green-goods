@@ -93,7 +93,11 @@ export function AdminCard({
   ...props
 }: AdminCardProps) {
   return (
-    <div className={cn(adminCardVariants({ variant, interactive }), className)} {...props}>
+    <div
+      data-component="AdminCard"
+      className={cn(adminCardVariants({ variant, interactive }), className)}
+      {...props}
+    >
       {children}
     </div>
   );

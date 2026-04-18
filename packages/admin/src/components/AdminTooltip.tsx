@@ -12,6 +12,7 @@ export function AdminTooltip({ content, children, className }: AdminTooltipProps
 
   return (
     <span
+      data-component="AdminTooltip"
       className="relative inline-flex"
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}

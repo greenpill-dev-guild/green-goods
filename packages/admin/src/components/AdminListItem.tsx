@@ -176,7 +176,13 @@ export function AdminListItem({
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} disabled={disabled} className={containerClasses}>
+      <button
+        data-component="AdminListItem"
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        className={containerClasses}
+      >
         {leadingSlot}
         {textContent}
         {trailingSlot}
@@ -185,7 +191,7 @@ export function AdminListItem({
   }
 
   return (
-    <div className={containerClasses}>
+    <div data-component="AdminListItem" className={containerClasses}>
       {leadingSlot}
       {textContent}
       {trailingSlot}
