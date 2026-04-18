@@ -152,10 +152,10 @@ export function LeftSheet({
         style={{
           opacity: isBounded ? 0 : springs.overlay,
           backgroundColor: isBounded ? undefined : "rgba(10, 10, 10, 0.18)",
-          backdropFilter: isBounded ? undefined : springs.overlay.to((o) => `blur(${o * 4}px)`),
+          backdropFilter: isBounded ? undefined : springs.overlay.to((o) => `blur(${o * 2}px)`),
           WebkitBackdropFilter: isBounded
             ? undefined
-            : springs.overlay.to((o) => `blur(${o * 4}px)`),
+            : springs.overlay.to((o) => `blur(${o * 2}px)`),
         }}
         onClick={handleOverlayClick}
         data-testid="left-sheet-overlay"

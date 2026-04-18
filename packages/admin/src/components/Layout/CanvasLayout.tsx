@@ -27,12 +27,8 @@ import { RiAppsLine, RiHammerFill, RiSeedlingLine, RiTeamLine, RiUserLine } from
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ConnectButton } from "@/components/ConnectButton";
-import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
-import { SeedlingIllustration } from "./SeedlingIllustration";
-import { WalletRequiredConnectShell } from "./ConnectShell";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import {
@@ -79,12 +75,8 @@ export function CanvasLayout() {
   const intl = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, eoaAddress, isReady, authMode, signOut } = useAuth();
-  const {
-    eligibleGardens,
-    isLoaded: eligibleGardensLoaded,
-    canCreateGarden,
-  } = useEligibleAdminGardens();
+  const { isAuthenticated, eoaAddress, isReady, authMode } = useAuth();
+  const { eligibleGardens, isLoaded: eligibleGardensLoaded } = useEligibleAdminGardens();
 
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const setSelectedGarden = useAdminStore((s) => s.setSelectedGarden);
@@ -96,7 +88,14 @@ export function CanvasLayout() {
 
   // Sheet orchestrator — manages pane-scoped sheets + main-sheet recession
   const orchestrator = useSheetOrchestrator();
-  const overlayRootRef = useRef<HTMLDivElement>(null);
+  // State-driven overlay root: sheets need to re-render once MainSheet mounts
+  // its overlay container so `container` flips from null to the bounded div.
+  // A plain ref wouldn't trigger re-renders, leaving sheets in unbounded mode
+  // on first open (covering AppBar + NavigationBar).
+  const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null);
+  const overlayRootRef = useCallback((node: HTMLDivElement | null) => {
+    setOverlayRoot(node);
+  }, []);
   const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
 
   useEffect(() => {
@@ -187,7 +186,6 @@ export function CanvasLayout() {
     } as const;
   }, [isDesktop, location.pathname]);
 
-  const isHomeWorkspace = workspaceId === "home";
   const isCoreWorkspace =
     activePath === "/hub" || activePath === "/garden" || activePath === "/community";
   const noEligibleGardens = eligibleGardens.length === 0;
@@ -242,6 +240,9 @@ export function CanvasLayout() {
     navigate,
   ]);
 
+  // Shared spinner — covers every authenticated in-app route while auth state
+  // resolves. Unauthenticated "/" is handled by IndexRoute; the in-app routes
+  // all live under CanvasShell which mounts this layout.
   if (!isReady || (isAuthenticated && !eligibleGardensLoaded)) {
     return (
       <div
@@ -257,76 +258,9 @@ export function CanvasLayout() {
     );
   }
 
-  if (authMode === "embedded") {
-    return (
-      <WalletRequiredConnectShell
-        action={
-          <button
-            type="button"
-            onClick={() => signOut()}
-            className="inline-flex items-center justify-center rounded-md bg-primary-base px-6 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
-          >
-            {intl.formatMessage({
-              id: "app.admin.auth.signOutAndReconnect",
-              defaultMessage: "Sign out & connect wallet",
-            })}
-          </button>
-        }
-      />
-    );
-  }
-
-  if (!isAuthenticated || !eoaAddress) {
-    // Render on the canvas with "home" workspace identity
-    return (
-      <div
-        data-workspace="home"
-        className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
-      >
-        <div className="canvas-area-top">
-          <AppBar
-            gardenChip={
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-strong">
-                <SeedlingIllustration className="h-5 w-5" />
-                {intl.formatMessage({ id: "app.admin.brand", defaultMessage: "Green Goods" })}
-              </span>
-            }
-          />
-        </div>
-        <MainSheet isReceded={false}>
-          <main
-            id="main-content"
-            tabIndex={-1}
-            className="flex min-h-full flex-col items-center justify-center px-6 py-16 text-center"
-          >
-            <SeedlingIllustration className="h-28 w-28" />
-            <h1 className="mt-5 text-xl font-semibold text-text-strong">
-              {intl.formatMessage({
-                id: "app.admin.auth.connectRequired",
-                defaultMessage: "Connect to continue",
-              })}
-            </h1>
-            <p className="mt-2 max-w-md text-sm text-text-sub">
-              {intl.formatMessage({
-                id: "app.admin.auth.connectPrompt",
-                defaultMessage: "Connect your wallet to access this feature.",
-              })}
-            </p>
-            <div className="mt-6">
-              <ConnectButton size="lg" />
-            </div>
-          </main>
-        </MainSheet>
-        <div className="canvas-area-bottom" />
-      </div>
-    );
-  }
-
   // GardenChip only needs the selector shape, not full domain objects.
   const gardenList = eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name }));
   const chipGarden = selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null;
-
-  const showNoGardenAccessState = isHomeWorkspace && noEligibleGardens;
 
   const gardenChipNode = (
     <GardenChip
@@ -350,6 +284,7 @@ export function CanvasLayout() {
     <FabProvider>
       <LeftSheetProvider>
         <div
+          data-component="CanvasLayout"
           data-workspace={workspaceId}
           className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
         >
@@ -365,7 +300,7 @@ export function CanvasLayout() {
           </a>
 
           {/* ── Body 1: Persistent Chrome — Top Axis (Z3) ── */}
-          <div className="canvas-area-top">
+          <div data-region="canvas-area-top" className="canvas-area-top">
             <AppBar
               gardenChip={gardenChipNode}
               onOpenSearch={handleOpenSearch}
@@ -379,6 +314,7 @@ export function CanvasLayout() {
           <MainSheet isReceded={orchestrator.isReceded} overlayRef={overlayRootRef}>
             <main
               id="main-content"
+              data-region="main-scroll-area"
               tabIndex={-1}
               className="main-scroll-area h-full overflow-y-auto"
               style={{
@@ -387,20 +323,16 @@ export function CanvasLayout() {
                 WebkitOverflowScrolling: "touch",
               }}
             >
-              {showNoGardenAccessState ? (
-                <CanvasGardenAccessState
-                  onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
-                  canCreateGarden={canCreateGarden}
-                />
-              ) : (
-                <PageTransition />
-              )}
+              <PageTransition />
             </main>
           </MainSheet>
 
           {/* ── Body 3: Persistent Chrome — Navigation Bar (Z3) ── */}
-          <div className="canvas-area-bottom">
-            {eligibleGardensLoaded && !permissions.isLoading && visibleSlotCount > 0 && (
+          {/* Nav slots are role-based, not garden-based. Render as soon as auth is
+             resolved; slots fade in/out as role permissions resolve via FAIL_OPEN
+             defaults in useEffectiveToolbarPermissions. */}
+          <div data-region="canvas-area-bottom" className="canvas-area-bottom">
+            {visibleSlotCount > 0 && (
               <FabAwareNavigationBar
                 slots={slots}
                 activePath={activePath}
@@ -419,7 +351,7 @@ export function CanvasLayout() {
                 ? intl.formatMessage(RIGHT_SHEET_TITLES[orchestrator.activeContentId])
                 : undefined
             }
-            container={overlayRootRef.current}
+            container={overlayRoot}
           >
             {orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID && (
               <div className="p-5">
@@ -435,7 +367,7 @@ export function CanvasLayout() {
           </RightSheet>
 
           {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
-          <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRootRef.current} />
+          <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRoot} />
 
           <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
         </div>

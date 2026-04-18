@@ -8,7 +8,7 @@ import type { SpringConfig } from "@react-spring/web";
  * - gentle: Choreographed stagger, background blur transitions
  */
 export const SPRING_CONFIGS = {
-  sheet: { mass: 1, tension: 170, friction: 26 } satisfies SpringConfig,
+  sheet: { mass: 0.7, tension: 260, friction: 26 } satisfies SpringConfig,
   snappy: { mass: 0.8, tension: 300, friction: 28 } satisfies SpringConfig,
   gentle: { mass: 1.2, tension: 120, friction: 20 } satisfies SpringConfig,
 } as const;
