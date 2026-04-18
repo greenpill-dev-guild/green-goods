@@ -19,6 +19,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
 import { PageHeader } from "@/components/Layout/PageHeader";
@@ -337,22 +338,14 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
                               #{itemId.toString()}
                             </p>
                             <div className="mt-1 flex items-center gap-2">
-                              <div
-                                className="h-1.5 flex-1 overflow-hidden rounded-full bg-stroke-soft"
-                                role="progressbar"
-                                aria-valuenow={Math.min(pct, 100)}
-                                aria-valuemin={0}
-                                aria-valuemax={100}
-                                aria-label={formatMessage(
+                              <AdminLinearProgress
+                                value={Math.min(pct, 100)}
+                                ariaLabel={formatMessage(
                                   { id: "app.signal.weightFor" },
                                   { id: itemId.toString() }
                                 )}
-                              >
-                                <div
-                                  className="h-full rounded-full bg-primary-base transition-all duration-500"
-                                  style={{ width: `${Math.min(pct, 100)}%` }}
-                                />
-                              </div>
+                                className="flex-1"
+                              />
                               <span className="text-xs text-text-sub">{pct}%</span>
                             </div>
                           </div>

@@ -2,16 +2,19 @@ import { cn } from "@green-goods/shared";
 
 interface AdminLinearProgressProps {
   value?: number;
+  ariaLabel?: string;
   className?: string;
 }
 
-export function AdminLinearProgress({ value, className }: AdminLinearProgressProps) {
+export function AdminLinearProgress({ value, ariaLabel, className }: AdminLinearProgressProps) {
   const isIndeterminate = value === undefined;
   const clamped = isIndeterminate ? undefined : Math.min(100, Math.max(0, value));
 
   return (
     <div
+      data-component="AdminLinearProgress"
       role="progressbar"
+      aria-label={ariaLabel}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={clamped}

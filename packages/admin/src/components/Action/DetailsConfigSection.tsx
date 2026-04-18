@@ -8,6 +8,7 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminCheckbox } from "../AdminCheckbox";
 
 interface DetailsConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["details"];
@@ -370,20 +371,16 @@ function InputFieldEditor({
         </FormField>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <input
-          type="checkbox"
+      <div className="mt-3">
+        <AdminCheckbox
           id={`required-${input.key}`}
           checked={input.required}
           onChange={(e) => onUpdate({ required: e.target.checked })}
-          className="rounded border-stroke-soft"
-        />
-        <label htmlFor={`required-${input.key}`} className="text-xs text-text-strong">
-          {formatMessage({
+          label={formatMessage({
             id: "app.admin.actions.detailsConfig.requiredField",
             defaultMessage: "Required field",
           })}
-        </label>
+        />
       </div>
 
       {/* Options for Select type */}

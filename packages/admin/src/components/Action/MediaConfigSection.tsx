@@ -2,6 +2,7 @@ import { type ActionInstructionConfig, FormField } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminCheckbox } from "../AdminCheckbox";
 
 interface MediaConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["media"];
@@ -127,21 +128,15 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
       </div>
 
       {/* Required Toggle */}
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          id="media-required"
-          checked={config.required}
-          onChange={(e) => onChange({ ...config, required: e.target.checked })}
-          className="rounded border-stroke-soft"
-        />
-        <label htmlFor="media-required" className="text-sm text-text-strong">
-          {formatMessage({
-            id: "app.admin.actions.mediaConfig.required",
-            defaultMessage: "Media is required",
-          })}
-        </label>
-      </div>
+      <AdminCheckbox
+        id="media-required"
+        checked={config.required}
+        onChange={(e) => onChange({ ...config, required: e.target.checked })}
+        label={formatMessage({
+          id: "app.admin.actions.mediaConfig.required",
+          defaultMessage: "Media is required",
+        })}
+      />
 
       {/* Needed Shot Types */}
       <FormField
