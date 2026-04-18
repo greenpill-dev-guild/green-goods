@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "client-z-index-sweep",
+    "title": "Client Z-Index Sweep",
+    "kind": "quality",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-04-17",
+    "updated_at": "2026-04-17"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Closes the last 🟡 row in design-system-enforcement Requirements Coverage.",
+    "Single atomic PR recommended — split causes mid-migration stacking glitches.",
+    "Annotate third-party / Radix escape hatches with `// z-escape: <reason>`."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "ready",
+      "branch": "chore/client-z-index-sweep",
+      "depends_on": [],
+      "skill_tags": ["ui", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "",
+      "depends_on": [],
+      "skill_tags": [],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "",
+      "depends_on": [],
+      "skill_tags": [],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "claude/qa-pass-1/client-z-index-sweep",
+      "depends_on": ["ui"],
+      "skill_tags": ["testing"],
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true
+    }
+  },
+  "history": [
+    {
+      "date": "2026-04-17",
+      "event": "created",
+      "details": "Scoped as spin-off from design-system-enforcement Step 4 deferral. ~12 files identified (9 client + 3-4 shared). Single atomic PR recommended per Decision 1."
+    }
+  ]
+}
