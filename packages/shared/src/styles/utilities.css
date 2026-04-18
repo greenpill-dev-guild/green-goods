@@ -204,6 +204,51 @@
       0 12px 40px rgba(0, 0, 0, 0.4);
   }
 
+  /* ── High Contrast — flatten glass to solid surfaces with strong strokes ──
+   * Users who enable prefers-contrast: more lose translucent backdrop-filter
+   * and get opaque surfaces with a 1px high-contrast border. Elevation cues
+   * still travel via shadow intensity per tier.
+   */
+  @media (prefers-contrast: more) {
+    .glass-ground,
+    .glass-raised,
+    .glass-floating,
+    .glass-overlay,
+    .glass-surface {
+      background: rgb(var(--neutral-0));
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: inset 0 0 0 1px rgb(var(--stroke-strong-950));
+    }
+
+    .glass-raised {
+      box-shadow:
+        inset 0 0 0 1px rgb(var(--stroke-strong-950)),
+        0 1px 2px 0 rgba(0, 0, 0, 0.08);
+    }
+
+    .glass-floating {
+      box-shadow:
+        inset 0 0 0 1px rgb(var(--stroke-strong-950)),
+        0 4px 6px -1px rgba(0, 0, 0, 0.12);
+    }
+
+    .glass-overlay {
+      box-shadow:
+        inset 0 0 0 1px rgb(var(--stroke-strong-950)),
+        0 10px 15px -3px rgba(0, 0, 0, 0.14);
+    }
+
+    [data-theme="dark"] .glass-ground,
+    [data-theme="dark"] .glass-raised,
+    [data-theme="dark"] .glass-floating,
+    [data-theme="dark"] .glass-overlay,
+    [data-theme="dark"] .glass-surface {
+      background: rgb(var(--neutral-900));
+      box-shadow: inset 0 0 0 1px rgb(255 255 255 / 60%);
+    }
+  }
+
   /* ── Reduced Motion — disable non-essential animation on glass ── */
   @media (prefers-reduced-motion: reduce) {
     .glass-ground,
