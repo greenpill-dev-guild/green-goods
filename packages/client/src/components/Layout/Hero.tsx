@@ -274,9 +274,9 @@ export const Hero: FC<HeroProps> = () => {
               {/* Manual Installation Modal */}
               <Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <Dialog.Portal>
-                  <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-50" />
+                  <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-overlay" />
                   <Dialog.Content
-                    className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in z-50 focus:outline-none"
+                    className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in z-modal focus:outline-none"
                     aria-labelledby="hero-modal-title"
                     aria-describedby="hero-modal-desc"
                   >

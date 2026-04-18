@@ -59,7 +59,7 @@ export const SiteHeader = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-stroke-soft-200 bg-bg-white-0/80 backdrop-blur-md">
+      <header className="sticky top-0 z-sticky border-b border-stroke-soft-200 bg-bg-white-0/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
@@ -123,7 +123,7 @@ export const SiteHeader = () => {
       {/* Mobile drawer overlay */}
       {isDrawerOpen && (
         <div
-          className="fixed inset-0 z-50 md:hidden"
+          className="fixed inset-0 z-overlay md:hidden"
           role="dialog"
           aria-modal="true"
           id="mobile-nav-drawer"

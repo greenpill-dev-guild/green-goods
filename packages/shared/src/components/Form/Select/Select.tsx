@@ -73,7 +73,7 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-[--radix-select-content-available-height] min-w-[8rem]",
+        "relative z-overlay max-h-[--radix-select-content-available-height] min-w-[8rem]",
         "overflow-y-auto overflow-x-hidden rounded-md",
         "border border-stroke-soft-200 bg-bg-white-0 text-text-strong-950 shadow-sm",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",

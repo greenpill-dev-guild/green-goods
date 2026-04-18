@@ -190,8 +190,8 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
           }}
         >
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-[10002] bg-black/30 backdrop-blur-sm" />
-            <Dialog.Content className="fixed z-[10003] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bg-white-0 rounded-2xl shadow-2xl w-[min(520px,92vw)] p-5 focus:outline-none">
+            <Dialog.Overlay className="fixed inset-0 z-overlay bg-black/30 backdrop-blur-sm" />
+            <Dialog.Content className="fixed z-modal top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bg-white-0 rounded-2xl shadow-2xl w-[min(520px,92vw)] p-5 focus:outline-none">
               <div className="flex items-center justify-between mb-3">
                 <Dialog.Title className="text-base font-semibold truncate">{title}</Dialog.Title>
                 <Dialog.Close asChild>

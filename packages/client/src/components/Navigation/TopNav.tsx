@@ -200,7 +200,7 @@ export const TopNav: React.FC<TopNavProps> = ({
   const backButtonStyles = createButtonStyles(buttonVariant);
 
   const containerClasses = cn(
-    "relative flex z-[1000] flex-row w-full justify-evenly items-start gap-4 p-6 h-20 top-2",
+    "relative flex z-nav flex-row w-full justify-evenly items-start gap-4 p-6 h-20 top-2",
     overlay && "fixed bg-bg-white-0",
     overlay && hasOfflineIssues && "top-2", // Space for offline indicator
     overlay && !hasOfflineIssues && "top-0"

@@ -266,14 +266,14 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
       <Dialog.Portal>
         <Dialog.Overlay
           className={cn(
-            "fixed inset-0 z-[10002] bg-black/90 backdrop-blur-sm",
+            "fixed inset-0 z-overlay bg-black/90 backdrop-blur-sm",
             "animate-in fade-in duration-200",
             className
           )}
           data-testid="image-preview-dialog"
         />
         <Dialog.Content
-          className="fixed inset-0 z-[10003] flex items-center justify-center focus:outline-none"
+          className="fixed inset-0 z-modal flex items-center justify-center focus:outline-none"
           aria-label={resolvedLabels.dialogLabel}
         >
           <div className="relative w-full h-full max-w-4xl max-h-4xl m-4">

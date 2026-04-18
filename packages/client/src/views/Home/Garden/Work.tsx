@@ -304,7 +304,7 @@ export const GardenWork: React.FC = () => {
   // Retry footer for offline work
   const retryFooter =
     isOfflineWork && viewingMode === "gardener" ? (
-      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light p-4 pb-6 z-[100]">
+      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light p-4 pb-6 z-sticky">
         <div className="max-w-screen-sm mx-auto">
           <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
             <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
@@ -357,7 +357,7 @@ export const GardenWork: React.FC = () => {
         {/* Backdrop - Fades in over content */}
         <div
           className={cn(
-            "fixed inset-0 bg-black/30 backdrop-blur-sm z-[190] transition-opacity duration-300",
+            "fixed inset-0 bg-black/30 backdrop-blur-sm z-overlay transition-opacity duration-300",
             feedbackMode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
           onClick={handleCancelFeedback}
@@ -365,7 +365,7 @@ export const GardenWork: React.FC = () => {
         />
 
         {/* Footer Container */}
-        <div className="fixed left-0 right-0 bottom-0 z-[200]">
+        <div className="fixed left-0 right-0 bottom-0 z-modal">
           {/* Feedback Drawer - Slides up from behind the footer bar */}
           <div
             className={cn(
@@ -552,7 +552,7 @@ export const GardenWork: React.FC = () => {
   const isResolved = effectiveStatus === "approved" || effectiveStatus === "rejected";
   const successFooter =
     viewingMode === "operator" && isResolved ? (
-      <div className="fixed left-0 right-0 bottom-0 z-[200]">
+      <div className="fixed left-0 right-0 bottom-0 z-sticky">
         <div className="bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="max-w-screen-sm mx-auto flex items-center justify-center gap-2">
             {effectiveStatus === "approved" ? (

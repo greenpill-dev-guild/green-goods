@@ -278,7 +278,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
       {isPreviewOpen && thumbUrl ? (
         <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-static-black/80 p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-static-black/80 p-4"
           role="dialog"
           aria-modal="true"
           onClick={(event) => {

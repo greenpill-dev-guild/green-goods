@@ -19,11 +19,11 @@
 
 | Requirement | Planned Step | Status |
 |-------------|-------------|--------|
-| F1 — client raw z-index removed | Step 1, 2 | ⏳ |
-| F2 — shared primitive raw z-index removed | Step 3 | ⏳ |
-| F3 — `z-10`/`z-20` audit (local stacking only) | Step 2 | ⏳ |
-| F4 — stacking regression check | Step 4 | ⏳ |
-| F5 — flip design-system-enforcement 🟡 → ✅ | Step 5 | ⏳ |
+| F1 — client raw z-index removed | Step 1, 2 | ✅ (2026-04-17) |
+| F2 — shared primitive raw z-index removed | Step 3 | ✅ (2026-04-17) |
+| F3 — `z-10`/`z-20` audit (local stacking only) | Step 2 | ✅ (2026-04-17) `z-10` in Media.tsx/PullToRefresh/Profile/ActionCard/Home/Garden confirmed local-stacking-only; kept as-is |
+| F4 — stacking regression check | Step 4 | 🟡 (manual browser pass still owed — see "Done when" below) |
+| F5 — flip design-system-enforcement 🟡 → ✅ | Step 5 | ✅ (2026-04-17) |
 
 ## Impact Analysis
 

@@ -125,7 +125,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   }, [displayPriority, navigate, formatMessage]);
 
   const containerClasses = cn(
-    "fixed top-0 left-0 right-0 z-30 transition-all duration-500 ease-out pointer-events-none",
+    "fixed top-0 left-0 right-0 z-nav transition-all duration-500 ease-out pointer-events-none",
     displayPriority ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full",
     className
   );

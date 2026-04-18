@@ -29,14 +29,14 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
       <Dialog.Portal>
         <Dialog.Overlay
           className={cn(
-            "fixed inset-0 z-[10001] bg-black/30 backdrop-blur-sm",
+            "fixed inset-0 z-overlay bg-black/30 backdrop-blur-sm",
             "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200"
           )}
           data-testid="draft-dialog-overlay"
         />
         <Dialog.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-[10002] -translate-x-1/2 -translate-y-1/2",
+            "fixed left-1/2 top-1/2 z-modal -translate-x-1/2 -translate-y-1/2",
             "w-full max-w-sm bg-bg-white-0 rounded-2xl shadow-2xl p-0",
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
