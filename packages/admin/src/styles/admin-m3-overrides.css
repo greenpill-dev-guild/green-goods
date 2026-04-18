@@ -1,120 +1,162 @@
 /* ============================================================================
- * Navigation Bar — M3 anatomy overrides
+ * Navigation Bar — M3 Expressive floating anatomy
  * Applied via .admin-m3 class on CanvasLayout root
  *
- * M3 spec: full-width, 64dp height, surface-container, elevation-2,
- * 56×32dp pill active indicators, label-medium typography
+ * Desktop: keep the shared component's floating pill (bottom-4, w-max, centered).
+ * Mobile:  full-width bottom bar per M3 phone spec.
+ *
+ * Active indicator (56×32 pill) lives on the icon wrapper. The wrapper keeps
+ * its dimensions whether active or inactive — only the background changes —
+ * so the label never shifts vertically between states.
  * ============================================================================ */
 
-/* Desktop nav: override floating pill → full-width bottom bar */
+/* Shared anatomy — solid M3 surface, no glass (glass is Chrome/TopContextBar only) */
 .admin-m3 .canvas-navigation-bar {
-  /* Reset floating pill positioning */
-  left: 0;
-  right: 0;
-  bottom: 0;
-  transform: none;
-
-  /* M3 nav bar anatomy */
-  min-height: 64px;
-  border-radius: 0;
-  padding: 6px 16px;
-  gap: 0;
-
-  /* M3 surface + elevation */
   background: rgb(var(--m3-surface-container));
   box-shadow: var(--m3-elevation-2);
-
-  /* Remove glass effect */
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
-/* Nav items: M3 anatomy — vertical icon + label stack */
+/* Desktop: floating pill — compact M3 Expressive anatomy.
+   `width: max-content` is declared explicitly here because the shared
+   component's `w-max` Tailwind utility isn't compiled into admin's CSS
+   (admin's content scan doesn't cover packages/shared). Without it,
+   left:0 + right:0 + width:auto → full-viewport width. With it,
+   auto margins recenter the intrinsic-width pill. */
+@media (min-width: 600px) {
+  .admin-m3 .canvas-navigation-bar {
+    left: 0;
+    right: 0;
+    width: max-content;
+    max-width: calc(100vw - 2rem);
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 56px;
+    padding: 4px 6px;
+    gap: 2px;
+    border-radius: var(--m3-shape-full);
+  }
+}
+
+/* Mobile: full-width M3 bar at screen edge — 80dp per phone spec */
+@media (max-width: 599px) {
+  .admin-m3 nav.canvas-navigation-bar {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 80px;
+    border-radius: 0;
+    padding: 12px 8px calc(env(safe-area-inset-bottom) + 16px);
+    gap: 0;
+  }
+}
+
+/* Nav item button: vertical icon + label stack, transparent by default */
 .admin-m3 .canvas-navigation-bar button {
-  flex: 1;
-  min-width: 48px;
-  max-width: 120px;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 8px 0 6px;
-  border-radius: 0;
   background: transparent;
   box-shadow: none;
+  border-radius: var(--m3-shape-full);
+  transition: background-color var(--spring-effects-fast);
 }
 
-/* Remove the existing circular icon background */
-.admin-m3 .canvas-navigation-bar button > span:first-child {
-  background: transparent;
-  box-shadow: none;
-  width: auto;
-  height: auto;
-  border-radius: 0;
+@media (min-width: 600px) {
+  .admin-m3 .canvas-navigation-bar button {
+    min-width: 64px;
+    padding: 2px 10px 4px;
+    gap: 2px;
+  }
 }
 
-/* Active item: M3 pill indicator behind icon */
+@media (max-width: 599px) {
+  .admin-m3 nav.canvas-navigation-bar button {
+    flex: 1;
+    min-width: 0;
+    max-width: 120px;
+    padding: 0;
+    border-radius: 0;
+  }
+}
+
+/* Active button state: indicator is drawn by the icon wrapper below, not the button */
 .admin-m3 .canvas-navigation-bar button[aria-current="page"] {
   background: transparent;
   box-shadow: none;
 }
 
-.admin-m3 .canvas-navigation-bar button[aria-current="page"] > span:first-child {
-  background: rgb(var(--m3-secondary-container));
-  width: 56px;
-  height: 32px;
-  border-radius: var(--m3-shape-full);
+/* Icon wrapper: pill, dimensions constant across active/inactive so the
+   label never shifts. Mobile uses M3 phone spec (56×32); desktop floating
+   dock uses a tighter 40×28 to stay compact. */
+.admin-m3 .canvas-navigation-bar button > span:first-child {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 56px;
+  height: 32px;
+  border-radius: var(--m3-shape-full);
+  background: transparent;
+  box-shadow: none;
+  transition: background-color var(--spring-effects);
 }
 
-/* Label typography: M3 label-medium */
+@media (min-width: 600px) {
+  .admin-m3 .canvas-navigation-bar button > span:first-child {
+    width: 40px;
+    height: 28px;
+  }
+}
+
+.admin-m3 .canvas-navigation-bar button[aria-current="page"] > span:first-child {
+  background: rgb(var(--m3-secondary-container));
+}
+
+/* Hover state layer — stable dimensions, subtle tint */
+@media (hover: hover) {
+  .admin-m3 .canvas-navigation-bar button:hover > span:first-child {
+    background: rgb(var(--m3-on-surface) / 0.08);
+  }
+  .admin-m3 .canvas-navigation-bar button[aria-current="page"]:hover > span:first-child {
+    background: rgb(var(--m3-secondary-container));
+  }
+}
+
+/* Icon: 24dp on mobile (M3 phone spec), 20dp on desktop to fit the 40×28 pill */
+.admin-m3 .canvas-navigation-bar button svg {
+  width: 24px;
+  height: 24px;
+  transition: color var(--spring-effects-fast);
+}
+
+@media (min-width: 600px) {
+  .admin-m3 .canvas-navigation-bar button svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+.admin-m3 .canvas-navigation-bar button[aria-current="page"] svg {
+  color: rgb(var(--m3-on-secondary-container));
+}
+.admin-m3 .canvas-navigation-bar button:not([aria-current="page"]) svg {
+  color: rgb(var(--m3-on-surface-variant));
+}
+
+/* Label: M3 label-medium — 12/16, 0.5 tracking, weight 500 both states.
+   Only color changes between active/inactive so the label doesn't reflow. */
 .admin-m3 .canvas-navigation-bar button > span:last-child {
   font-size: 12px;
   line-height: 16px;
   letter-spacing: 0.5px;
   font-weight: 500;
+  transition: color var(--spring-effects-fast);
 }
-
-/* Active label: bolder weight */
 .admin-m3 .canvas-navigation-bar button[aria-current="page"] > span:last-child {
-  font-weight: 700;
   color: rgb(var(--m3-on-surface));
 }
-
-/* Inactive label color */
 .admin-m3 .canvas-navigation-bar button:not([aria-current="page"]) > span:last-child {
   color: rgb(var(--m3-on-surface-variant));
-}
-
-/* Active icon color */
-.admin-m3 .canvas-navigation-bar button[aria-current="page"] svg {
-  color: rgb(var(--m3-on-secondary-container));
-}
-
-/* Inactive icon color */
-.admin-m3 .canvas-navigation-bar button:not([aria-current="page"]) svg {
-  color: rgb(var(--m3-on-surface-variant));
-}
-
-/* Desktop FAB — position relative to the full-width nav */
-.admin-m3 .canvas-navigation-bar + div {
-  /* Adjust FAB to sit above the nav bar */
-  bottom: 76px;
-}
-
-/* Mobile nav — also full-width M3 bar */
-.admin-m3 nav.canvas-navigation-bar {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: 0;
-  padding: 4px 8px calc(env(safe-area-inset-bottom) + 4px);
-  gap: 0;
-  background: rgb(var(--m3-surface-container));
-  box-shadow: var(--m3-elevation-2);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
 }
 
 /* Bottom Sheet — M3 shape + surface */

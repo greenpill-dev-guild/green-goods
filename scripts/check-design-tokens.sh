@@ -83,5 +83,32 @@ if [[ "$UI_VER" != "$REG_UI_VER" ]]; then
   exit 1
 fi
 
+# Usage check: raw cubic-bezier() literals outside token-definition files and var() fallbacks.
+# CLAUDE.md: "Never hardcode cubic-bezier, duration, or raw color/radius values."
+# Allowlist: files that legitimately define or document tokens.
+USAGE_ALLOWLIST_REGEX='(packages/shared/src/styles/theme\.css|packages/shared/src/styles/utilities\.css|packages/shared/\.storybook/storybook\.css|packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-tokens\.css|packages/client/src/styles/animation\.css|packages/client/src/styles/view-transitions\.css|\.stories\.tsx)'
+
+# Find `cubic-bezier(` not wrapped as a var() fallback (lines without `var(`),
+# restricted to package source, excluding build artifacts and the allowlist.
+USAGE_HITS="$(
+  grep -RIn --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+    --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
+    'cubic-bezier(' packages/ 2>/dev/null \
+    | grep -Ev "$USAGE_ALLOWLIST_REGEX" \
+    | grep -v 'var(' \
+    || true
+)"
+
+if [[ -n "$USAGE_HITS" ]]; then
+  echo "❌ Hardcoded cubic-bezier() literals found outside token-definition files:"
+  echo "$USAGE_HITS" | sed 's/^/  /'
+  echo
+  echo "Use a Warm Earth spring token instead (var(--spring-spatial), var(--spring-effects), etc.)."
+  echo "If the literal is intentional (one-off micro-animation), wrap it as a var() fallback."
+  exit 1
+fi
+
 echo "✅ check-design-tokens: ${#EXPECTED_TOKENS[@]} spec'd tokens present in theme.css."
+echo "✅ no raw cubic-bezier() literals in component code (outside token-definition files)."
 echo "✅ token_version coupled across design skill, ui skill, and registry (${DESIGN_VER})."

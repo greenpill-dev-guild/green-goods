@@ -308,7 +308,7 @@ export function PullToRefresh({
               : undefined,
           transition:
             pullState === "idle" && !prefersReducedMotion.current
-              ? "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+              ? "transform var(--spring-spatial)"
               : "none",
         }}
       >
