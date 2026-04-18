@@ -37,6 +37,28 @@ When principles conflict, resolve top-down:
 4. **Developer experience** — build times, test speed, clear errors
 5. **Code elegance** — readability, patterns, minimal complexity
 
+### Criticality Matrix
+Use criticality to choose review depth before optimizing for speed:
+
+- **`critical`**
+  - `packages/contracts/src/**`
+  - `packages/shared/src/providers/{Auth,JobQueue,Work}.tsx`
+  - `packages/shared/src/modules/job-queue/**`
+  - `packages/shared/src/hooks/{auth,work,vault,blockchain}/**`
+  - Required depth: read every touched line, run the matching reviewer flow (`contracts-security` or `mutation-reliability`), and do not treat log-only failure handling as acceptable.
+- **`sensitive`**
+  - `packages/agent/src/**`
+  - admin workflow state surfaces
+  - client journey views
+  - Required depth: keep the diff bounded, inspect failure and recovery states explicitly, and run the lightest targeted validation that proves the user-facing path still works.
+- **`routine`**
+  - docs
+  - automation prompts
+  - stories
+  - cleanup-only changes
+  - test-only refactors that do not alter runtime behavior
+  - Required depth: use the lightest honest check and avoid escalating the review footprint unless runtime behavior changes.
+
 ### Plan Location
 Superpowers plans save to `.plans/active/<feature-name>/plan.todo.md` (not the skill default).
 

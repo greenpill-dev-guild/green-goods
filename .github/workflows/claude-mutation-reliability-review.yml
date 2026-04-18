@@ -1,0 +1,58 @@
+name: Mutation Reliability Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    paths:
+      - "packages/shared/src/providers/Auth.tsx"
+      - "packages/shared/src/providers/JobQueue.tsx"
+      - "packages/shared/src/providers/Work.tsx"
+      - "packages/shared/src/modules/job-queue/**"
+      - "packages/admin/src/components/Hypercerts/CreateListingDialog.tsx"
+      - "packages/admin/src/views/Garden/SubmitWork.tsx"
+      - "packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx"
+      - "packages/admin/src/views/Hub/components/CookieJarManageModal.tsx"
+      - "packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx"
+      - ".github/workflows/claude-mutation-reliability-review.yml"
+
+jobs:
+  mutation-reliability:
+    name: mutation-reliability
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run mutation reliability review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Review the current pull request diff, but only the changed files in this mutation-reliability scope:
+            - `packages/shared/src/providers/Auth.tsx`
+            - `packages/shared/src/providers/JobQueue.tsx`
+            - `packages/shared/src/providers/Work.tsx`
+            - `packages/shared/src/modules/job-queue/**`
+            - `packages/admin/src/components/Hypercerts/CreateListingDialog.tsx`
+            - `packages/admin/src/views/Garden/SubmitWork.tsx`
+            - `packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx`
+            - `packages/admin/src/views/Hub/components/CookieJarManageModal.tsx`
+            - `packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx`
+
+            Return only severe reliability findings that could plausibly cause:
+            - swallowed or log-only failures
+            - lost writes, dropped queue work, or broken replay
+            - stale success state after a failed mutation
+            - missing user-visible remediation for auth, token, or network failure
+            - unsafe retry, timeout, or recovery behavior
+
+            Ignore style, naming, docs, and minor UX nits. Every finding must be anchored to a concrete file and line in the diff and include the smallest durable remediation. If there are no severe findings in scope, say so briefly.

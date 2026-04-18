@@ -1,0 +1,41 @@
+name: Contracts Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    paths:
+      - "packages/contracts/src/**"
+      - ".github/workflows/claude-contracts-security-review.yml"
+
+jobs:
+  contracts-security:
+    name: contracts-security
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run contracts security review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            Review the current pull request diff, but only the changed files under `packages/contracts/src/**`.
+
+            Return only severe findings that could plausibly cause:
+            - asset loss or unauthorized value movement
+            - authorization bypass
+            - storage-layout or upgrade hazards
+            - broken attestation or resolver invariants
+            - unsafe external-call or reentrancy behavior
+
+            Ignore style, naming, docs, gas nits, and speculative concerns. Every finding must be anchored to a concrete file and line in the diff and include the smallest viable remediation. If there are no severe findings in scope, say so briefly.

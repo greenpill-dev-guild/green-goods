@@ -23,6 +23,12 @@ Suggested weekly docs review sequence:
 1. Codex docs pass 1 on Wednesday afternoon
 2. Claude docs pass 2 after Codex docs pass 1 has opened its dated branch
 
+Suggested weekly harness-GC sequence:
+
+1. Codex harness GC on Friday afternoon after the week's PR reviews and CI failures have accumulated
+2. Write the dated report to `.plans/reviews/harness/<YYYY-MM-DD>-codex-harness-gc.md`
+3. Propose guardrail work only; do not edit code from the automation prompt
+
 ## Rule of Thumb
 
 - Branch names are the wake-up signal
@@ -40,3 +46,4 @@ Suggested weekly docs review sequence:
 - `codex-docs-pass-1.prompt.md`
 - `claude-docs-pass-2.prompt.md`
 - `claude-automation-setup.prompt.md`
+- `codex-harness-gc.prompt.md`

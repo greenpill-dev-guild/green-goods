@@ -28,6 +28,7 @@
     "check:codex-guidance": "node scripts/check-codex-consistency.js",
     "check:claude-guidance": "node .claude/scripts/check-guidance-consistency.js",
     "check:design-tokens": "bash scripts/check-design-tokens.sh",
+    "check:source-structure": "node scripts/check-source-structure.js",
     "lint:vocab": "bash scripts/check-i18n-vocab.sh",
     "prepare": "husky",
     "postinstall": "node scripts/fix-multiformats.js",

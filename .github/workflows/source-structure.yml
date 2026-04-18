@@ -1,0 +1,55 @@
+name: Source Structure
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "packages/**/src/**/*.ts"
+      - "packages/**/src/**/*.tsx"
+      - "packages/**/src/**/*.sol"
+      - "scripts/check-source-structure.js"
+      - ".github/workflows/source-structure.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "packages/**/src/**/*.ts"
+      - "packages/**/src/**/*.tsx"
+      - "packages/**/src/**/*.sol"
+      - "scripts/check-source-structure.js"
+      - ".github/workflows/source-structure.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-structure:
+    name: Source Structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: ./.github/workflows/setup-bun-action
+
+      - name: Resolve diff base
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch --no-tags --prune --depth=1 origin "${{ github.base_ref }}"
+            echo "SOURCE_STRUCTURE_BASE_REF=origin/${{ github.base_ref }}" >> "$GITHUB_ENV"
+          elif [[ "${{ github.event.before }}" != "" && "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]]; then
+            echo "SOURCE_STRUCTURE_BASE_REF=${{ github.event.before }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Check source structure
+        run: bun run check:source-structure
