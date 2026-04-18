@@ -125,6 +125,17 @@
     transition: background-color 200ms ease, color 200ms ease;
   }
 
+  /* Pointer cursor for interactive elements — Tailwind v4 no longer sets this
+     by default, so icon-only <button> and ARIA-roled triggers across admin
+     need an explicit reset. Guarded so disabled controls keep their default
+     (or disabled:cursor-not-allowed utilities). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
   /* Smooth theme transitions for sidebar and card surfaces */
   [data-testid="sidebar"],
   .rounded-xl {
@@ -1244,7 +1255,13 @@
   --workspace-accent: 37 99 235;
   position: relative;
   isolation: isolate;
-  background: rgb(var(--m3-surface-container-lowest));
+  background:
+    radial-gradient(
+      ellipse 100% 60% at 50% 0%,
+      var(--ws-surface-tint-color, transparent) 0%,
+      transparent 70%
+    ),
+    rgb(var(--m3-surface-container-lowest));
   transition: background-color var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
 }
 
