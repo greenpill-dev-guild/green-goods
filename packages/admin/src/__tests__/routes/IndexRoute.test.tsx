@@ -125,9 +125,7 @@ describe("IndexRoute", () => {
     );
 
     expect(screen.getByTestId("wallet-required-shell")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /sign out & connect wallet/i })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign out & connect wallet/i })).toBeInTheDocument();
   });
 
   it("renders the connect prompt for unauthenticated users", () => {

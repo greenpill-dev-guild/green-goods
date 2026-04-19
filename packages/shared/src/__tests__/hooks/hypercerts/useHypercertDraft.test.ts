@@ -116,7 +116,9 @@ describe("useHypercertDraft", () => {
 
   describe("draftKey", () => {
     it("builds key from gardenId and operatorAddress", () => {
-      const { result } = renderHook(() => useHypercertDraft(gardenId, operatorAddress));
+      const { result } = renderHook(() =>
+        useHypercertDraft(gardenId, operatorAddress, { autoLoad: false })
+      );
       expect(result.current.draftKey).toBe(expectedKey);
     });
 

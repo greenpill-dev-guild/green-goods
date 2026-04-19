@@ -289,9 +289,13 @@ describe("useDraftAutoSave", () => {
       );
 
       // Start first save
-      const firstSave = act(async () => {
-        return result.current.saveOnExit();
-      });
+      const firstSave = (async () => {
+        let savedId: string | null = null;
+        await act(async () => {
+          savedId = await result.current.saveOnExit();
+        });
+        return savedId;
+      })();
 
       // Try second save while first is in progress
       let secondResult: string | null;

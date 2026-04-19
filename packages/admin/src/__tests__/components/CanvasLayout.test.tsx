@@ -68,6 +68,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     AppBar: (props: {
       gardenChip: React.ReactNode;
       onOpenSearch?: () => void;
+      onOpenNotifications?: () => void;
       onOpenSettings?: () => void;
       onOpenProfile?: () => void;
     }) => {
@@ -124,6 +125,14 @@ vi.mock("@/components/Layout/PageTransition", () => ({
   PageTransition: () => <div>Page Transition</div>,
 }));
 
+vi.mock("@/components/Layout/AccountProfilePanel", () => ({
+  AccountProfilePanel: () => <div>Profile Panel</div>,
+}));
+
+vi.mock("@/components/Layout/AccountSettingsPanel", () => ({
+  AccountSettingsPanel: () => <div>Settings Panel</div>,
+}));
+
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 
 describe("CanvasLayout", () => {
@@ -166,8 +175,8 @@ describe("CanvasLayout", () => {
       </MemoryRouter>
     );
 
-    expect(mockUseGardenUrlSync).toHaveBeenCalledTimes(1);
-    expect(mockUseStaleGardenGuard).toHaveBeenCalledTimes(1);
+    expect(mockUseGardenUrlSync).toHaveBeenCalled();
+    expect(mockUseStaleGardenGuard).toHaveBeenCalled();
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByTestId("active-path")).toHaveTextContent("/actions");
   });

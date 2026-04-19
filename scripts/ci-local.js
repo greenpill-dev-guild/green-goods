@@ -69,6 +69,7 @@ const config = {
   skipLighthouse: false,
   onlyLint: false,
   generateIndexer: false,
+  quick: false,
 };
 
 // Track failures
@@ -226,6 +227,7 @@ for (const arg of args) {
       config.onlyLint = true;
       break;
     case "--quick":
+      config.quick = true;
       config.skipContracts = true;
       config.skipIndexer = true;
       config.skipBuild = true;
@@ -421,7 +423,9 @@ async function main() {
   await runStep("Client tests", "bun run test", resolve(projectRoot, "packages/client"), { CI: "true" });
 
   printSection("Admin Tests");
-  await runStep("Admin tests", "bun run test", resolve(projectRoot, "packages/admin"), { CI: "true" });
+  const adminTestCommand = config.quick ? "bun run test:hub" : "bun run test";
+  const adminTestName = config.quick ? "Admin hub tests" : "Admin tests";
+  await runStep(adminTestName, adminTestCommand, resolve(projectRoot, "packages/admin"), { CI: "true" });
 
   // Indexer tests (matches indexer-tests.yml)
   if (!config.skipIndexer) {

@@ -432,9 +432,15 @@ function validateFeatureStatus(status, featureDirPath, stage) {
   }
 
   for (const [laneName, lane] of Object.entries(status.lanes)) {
+    if (typeof lane.handoff !== "string" || lane.handoff.length === 0) {
+      errors.push(`lane "${laneName}" is missing a handoff path`);
+      continue;
+    }
+
     if (!lane.handoff.startsWith("handoffs/")) {
       errors.push(`lane "${laneName}" handoff must live under handoffs/`);
     }
+
   }
 
   return errors;

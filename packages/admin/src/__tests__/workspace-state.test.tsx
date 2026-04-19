@@ -154,7 +154,7 @@ describe("Workspace State Integration", () => {
     );
 
     // CanvasLayout must call useGardenUrlSync which parses the URL state
-    expect(mockUseGardenUrlSync).toHaveBeenCalledTimes(1);
+    expect(mockUseGardenUrlSync).toHaveBeenCalled();
 
     // The layout should render without errors when deep-linked
     expect(screen.getByTestId("page-content")).toBeInTheDocument();

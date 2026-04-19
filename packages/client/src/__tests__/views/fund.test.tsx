@@ -1,17 +1,5 @@
 /**
- * Fund View — Phase 3 Evaluation Contract
- *
- * Defines the behavioral contract for the /fund view in Phase 3 (Public Platform).
- * Some tests verify existing behavior, others define new requirements that will FAIL
- * until Phase 3 implementation is complete.
- *
- * Phase 3 requirements:
- * - Aggregate stats section (exists)
- * - Garden gallery with funding buttons (exists)
- * - Broken funding CTAs are disabled inline instead of opening dead ends
- * - Deposit-only: no withdraw actions in DOM (exists)
- * - Connect Wallet opens the wallet modal inline
- *
+ * Fund view behavior tests
  * @vitest-environment jsdom
  */
 
@@ -20,35 +8,37 @@ import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
+import type { Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-// --- Mocks ---
 
 const mockGardens = [
   {
-    id: "garden-1",
+    id: "0x1111111111111111111111111111111111111111" as Address,
     name: "Solar Community Garden",
     description: "A solar-powered community garden",
     location: "Austin, TX",
     bannerImage: "https://example.com/banner.jpg",
     operators: [],
-    gardeners: ["0x1111", "0x2222"],
+    gardeners: ["0xaaaa", "0xbbbb"],
     works: [{ id: "work-1" }],
   },
   {
-    id: "garden-2",
+    id: "0x2222222222222222222222222222222222222222" as Address,
     name: "Urban Composting Hub",
     description: "Turning waste into soil",
     location: "Portland, OR",
     bannerImage: "",
     operators: [],
-    gardeners: ["0x3333"],
+    gardeners: ["0xcccc"],
     works: [],
   },
 ];
 
-const mockUseGardens = vi.fn();
-const mockOpenWalletModal = vi.fn();
+const { mockUseGardens, mockOpenWalletModal, mockPrimaryAddress } = vi.hoisted(() => ({
+  mockUseGardens: vi.fn(),
+  mockOpenWalletModal: vi.fn(),
+  mockPrimaryAddress: { current: null as Address | null },
+}));
 
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
@@ -57,8 +47,16 @@ vi.mock("@green-goods/shared", async () => {
     ...actual,
     useAppKit: () => ({ open: mockOpenWalletModal }),
     useGardens: (...args: unknown[]) => mockUseGardens(...args),
+    useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
   };
 });
+
+vi.mock("@/components/Dialogs", () => ({
+  VaultDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
+    isOpen ? <div data-testid="vault-deposit-dialog">{gardenName}</div> : null,
+  CookieJarDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
+    isOpen ? <div data-testid="cookie-jar-dialog">{gardenName}</div> : null,
+}));
 
 import FundPage from "../../views/Public/Fund";
 
@@ -67,7 +65,6 @@ const messages: Record<string, string> = {
   "public.fund.description": "Support regenerative gardens by funding their vaults",
   "public.fund.deposit": "Deposit",
   "public.fund.cookieJar": "Cookie Jar",
-  "public.fund.actionsUnavailable": "Public funding opens in a later update.",
   "public.fund.totalGardens": "Total Gardens",
   "public.fund.totalGardeners": "Total Gardeners",
   "public.fund.connectWallet": "Connect Wallet",
@@ -83,52 +80,60 @@ function renderView() {
   );
 }
 
-describe("FundPage — Phase 3 contract", () => {
+describe("FundPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockPrimaryAddress.current = null;
     mockUseGardens.mockReturnValue({ data: mockGardens, isLoading: false });
   });
 
-  it("renders aggregate stats section", () => {
+  it("renders aggregate stats for gardens and gardeners", () => {
     renderView();
 
     expect(screen.getByText("Total Gardens")).toBeInTheDocument();
     expect(screen.getByText("Total Gardeners")).toBeInTheDocument();
-    // Verify actual counts
-    expect(screen.getByText("2")).toBeInTheDocument(); // 2 gardens
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
   });
 
-  it("renders garden gallery with disabled funding buttons per garden", () => {
+  it("renders a funding card with deposit and cookie jar actions for each garden", () => {
     renderView();
-
-    const depositButtons = screen.getAllByRole("button", { name: /deposit/i });
-    expect(depositButtons).toHaveLength(2);
-    depositButtons.forEach((button) => expect(button).toBeDisabled());
 
     expect(screen.getByText("Solar Community Garden")).toBeInTheDocument();
     expect(screen.getByText("Urban Composting Hub")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Deposit" })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: "Cookie Jar" })).toHaveLength(2);
   });
 
-  it("broken funding buttons are disabled in place", async () => {
+  it("opens the wallet modal when a disconnected user starts a deposit", async () => {
     const user = userEvent.setup();
     renderView();
 
-    const depositButtons = screen.getAllByRole("button", { name: /deposit/i });
-    await user.click(depositButtons[0]);
+    await user.click(screen.getAllByRole("button", { name: "Deposit" })[0]);
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(screen.getAllByText("Public funding opens in a later update.")).toHaveLength(2);
+    expect(mockOpenWalletModal).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId("vault-deposit-dialog")).not.toBeInTheDocument();
   });
 
-  it("/fund is deposit-only — no withdraw actions in DOM", () => {
+  it("opens the vault dialog when the user is already connected", async () => {
+    const user = userEvent.setup();
+    mockPrimaryAddress.current = "0x9999999999999999999999999999999999999999";
     renderView();
 
-    // No withdraw button/link should exist
+    await user.click(screen.getAllByRole("button", { name: "Deposit" })[0]);
+
+    expect(mockOpenWalletModal).not.toHaveBeenCalled();
+    expect(screen.getByTestId("vault-deposit-dialog")).toHaveTextContent("Solar Community Garden");
+  });
+
+  it("keeps the page deposit-only with no withdraw action", () => {
+    renderView();
+
     expect(screen.queryByRole("button", { name: /withdraw/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/withdraw/i)).not.toBeInTheDocument();
   });
 
-  it("Connect Wallet opens the wallet modal inline", async () => {
+  it("opens the wallet modal from the Connect Wallet CTA", async () => {
     const user = userEvent.setup();
     renderView();
 

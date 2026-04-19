@@ -20,6 +20,12 @@ import "../__mocks__/browser/navigator";
 // Initialize once and allow missing values so ENV access in shared config works.
 initVarlockEnv({ allowFail: true });
 
+// Lit queues a one-time dev-mode banner on first import. Pre-mark that code as
+// already issued so focused test runs stay readable without hiding other warnings.
+const litGlobal = globalThis as typeof globalThis & { litIssuedWarnings?: Set<string> };
+litGlobal.litIssuedWarnings ??= new Set<string>();
+litGlobal.litIssuedWarnings.add("dev-mode");
+
 // Polyfill HTMLDialogElement.showModal/close for jsdom.
 // jsdom doesn't implement the <dialog> top-layer API; our Canvas sheets
 // (BottomSheet, LeftSheet, RightSheet) use native <dialog> for focus trap

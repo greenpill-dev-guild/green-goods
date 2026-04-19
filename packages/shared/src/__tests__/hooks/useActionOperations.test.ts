@@ -9,7 +9,7 @@
  */
 
 import { QueryClient } from "@tanstack/react-query";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useActionOperations } from "../../hooks/action/useActionOperations";
 
@@ -68,6 +68,14 @@ vi.mock("@tanstack/react-query", () => ({
 import { useAccount, useWalletClient } from "wagmi";
 import { useToastAction } from "../../hooks/app/useToastAction";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
+
+async function runInAct<T>(callback: () => Promise<T>): Promise<T> {
+  let response!: T;
+  await act(async () => {
+    response = await callback();
+  });
+  return response;
+}
 
 describe("useActionOperations", () => {
   const mockWalletClient = {
@@ -140,7 +148,7 @@ describe("useActionOperations", () => {
 
       const { result } = renderHook(() => useActionOperations(11155111));
 
-      await result.current.updateActionTitle("1", "New Title");
+      await runInAct(() => result.current.updateActionTitle("1", "New Title"));
 
       expect(simulateTransaction).toHaveBeenCalledWith(
         "0xActionRegistry123",
@@ -162,7 +170,7 @@ describe("useActionOperations", () => {
 
       const { result } = renderHook(() => useActionOperations(11155111));
 
-      const response = await result.current.updateActionTitle("1", "New Title");
+      const response = await runInAct(() => result.current.updateActionTitle("1", "New Title"));
 
       expect(response.success).toBe(false);
       expect(response.error?.name).toBe("SimulationError");
@@ -183,7 +191,7 @@ describe("useActionOperations", () => {
 
       const { result } = renderHook(() => useActionOperations(11155111));
 
-      await result.current.updateActionTitle("1", "Updated Title");
+      await runInAct(() => result.current.updateActionTitle("1", "Updated Title"));
 
       expect(mockExecuteWithToast).toHaveBeenCalled();
     });
@@ -196,16 +204,18 @@ describe("useActionOperations", () => {
 
       const { result } = renderHook(() => useActionOperations(11155111));
 
-      await result.current.registerAction({
-        startTime: 1234567890,
-        endTime: 1234567900,
-        title: "Waste Repair Event",
-        slug: "waste.repair_event",
-        domain: 3,
-        instructions: "bafy-test-cid",
-        capitals: [1, 5],
-        media: ["bafy-media-cid"],
-      });
+      await runInAct(() =>
+        result.current.registerAction({
+          startTime: 1234567890,
+          endTime: 1234567900,
+          title: "Waste Repair Event",
+          slug: "waste.repair_event",
+          domain: 3,
+          instructions: "bafy-test-cid",
+          capitals: [1, 5],
+          media: ["bafy-media-cid"],
+        })
+      );
 
       expect(simulateTransaction).toHaveBeenCalledWith(
         "0xActionRegistry123",
@@ -240,7 +250,7 @@ describe("useActionOperations", () => {
 
       const { result } = renderHook(() => useActionOperations(11155111));
 
-      const response = await result.current.updateActionTitle("1", "New Title");
+      const response = await runInAct(() => result.current.updateActionTitle("1", "New Title"));
 
       expect(response.success).toBe(false);
       expect(response.error?.message).toContain("execution failed");

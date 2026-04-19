@@ -144,11 +144,7 @@ export default function IndexRoute() {
         />
       </div>
       <MainSheet isReceded={false}>
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="main-scroll-area h-full overflow-y-auto"
-        >
+        <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
           <CanvasGardenAccessState
             onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
             canCreateGarden={canCreateGarden}

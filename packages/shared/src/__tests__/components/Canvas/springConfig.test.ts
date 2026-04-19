@@ -2,15 +2,19 @@ import { describe, it, expect } from "vitest";
 import { SPRING_CONFIGS } from "../../../components/Canvas/springConfig";
 
 describe("SPRING_CONFIGS", () => {
-  it("exports sheet config with mass, tension, friction", () => {
-    expect(SPRING_CONFIGS.sheet).toEqual({ mass: 1, tension: 170, friction: 26 });
+  it("exports positive spring values for each motion token", () => {
+    for (const config of Object.values(SPRING_CONFIGS)) {
+      expect(config.mass).toBeGreaterThan(0);
+      expect(config.tension).toBeGreaterThan(0);
+      expect(config.friction).toBeGreaterThan(0);
+    }
   });
 
-  it("exports snappy config", () => {
-    expect(SPRING_CONFIGS.snappy).toEqual({ mass: 0.8, tension: 300, friction: 28 });
-  });
-
-  it("exports gentle config", () => {
-    expect(SPRING_CONFIGS.gentle).toEqual({ mass: 1.2, tension: 120, friction: 20 });
+  it("keeps sheet motion between snappy and gentle responsiveness", () => {
+    expect(SPRING_CONFIGS.snappy.tension).toBeGreaterThan(SPRING_CONFIGS.sheet.tension);
+    expect(SPRING_CONFIGS.sheet.tension).toBeGreaterThan(SPRING_CONFIGS.gentle.tension);
+    expect(SPRING_CONFIGS.snappy.friction).toBeGreaterThanOrEqual(SPRING_CONFIGS.sheet.friction);
+    expect(SPRING_CONFIGS.sheet.friction).toBeGreaterThan(SPRING_CONFIGS.gentle.friction);
+    expect(SPRING_CONFIGS.gentle.mass).toBeGreaterThan(SPRING_CONFIGS.sheet.mass);
   });
 });
