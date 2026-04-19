@@ -4,7 +4,7 @@ sidebar_label: Context Engineering
 slug: /builders/agentic/context-engineering
 audience: developer
 owner: docs
-last_verified: 2026-04-03
+last_verified: 2026-04-18
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -30,15 +30,15 @@ Context engineering is how we structure project knowledge so AI agents can work 
 
 ## The `.claude/` Directory
 
-The `.claude/` directory is the central context store for all agent tooling:
+The `.claude/` directory is the central guidance store for agent tooling, paired with root `.plans/`
+as the durable repo-truth planning and execution hub:
 
 ```
 .claude/
-  agents/          # Agent specifications (6 agents)
+  agents/          # Committed agent specifications (currently cracked-coder and oracle)
   context/         # Package and domain context files
   rules/           # Path-scoped coding rules
   skills/          # 19 active top-level skill dirs + _archived references
-  plans/           # Saved plans from agent PLAN phases
   registry/        # Skill bundles and activation configs
   scripts/         # Guidance consistency checks
   specs/           # Detailed feature specifications
@@ -46,6 +46,8 @@ The `.claude/` directory is the central context store for all agent tooling:
   evals/           # Agent evaluation criteria
   hooks.json       # Tool execution hooks
   settings.json    # Global agent settings
+
+.plans/            # Durable feature hub for briefs, specs, plan.todo, status, evals, and handoffs
 ```
 
 ## Context Layers
@@ -93,13 +95,21 @@ Each agent's specification lists the skills it needs. Skills provide detailed ho
 
 ### Repository Memory Surfaces
 
-This repository does not currently commit a `.claude/agent-memory/` tree. In-repo continuity currently comes from checkpoint artifacts such as `session-state.md`, `tests.json`, `.plans/`, and automation memory files outside the repo.
+This repository does not currently commit a repo-authoritative `.claude/agent-memory/` tree. In-repo
+continuity currently comes from checkpoint artifacts such as `session-state.md`, `tests.json`,
+`.plans/`, and automation memory files outside the repo.
 
-Treat any tool-local memory store as environment-specific unless it is explicitly checked into the repository.
+Treat any tool-local memory store as environment-specific unless it is explicitly checked into the
+repository. `.plans/` is the durable repo truth for feature state, handoffs, and automation context;
+`session-state.md` and `tests.json` are disposable local checkpoints and should not outrank the active
+feature hub.
+
+Do not promote `.claude/agent-memory/` into committed repo truth until freshness, expiry, and
+ownership rules exist for that surface.
 
 ### Session State
 
-For long sessions, agents checkpoint their progress to `session-state.md`:
+For long sessions, agents may checkpoint local progress to `session-state.md`:
 
 ```markdown
 ## Session State

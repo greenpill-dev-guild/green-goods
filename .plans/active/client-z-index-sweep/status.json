@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-17",
-    "updated_at": "2026-04-17"
+    "updated_at": "2026-04-18T20:30:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,24 +27,28 @@
     "ui": {
       "owner": "claude",
       "status": "ready",
-      "branch": "chore/client-z-index-sweep",
+      "branch": "claude/ui/client-z-index-sweep",
       "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Single-lane sweep with manual browser stacking verification still outstanding.",
       "skill_tags": ["ui", "react"],
       "manual_blocked": false
     },
     "state_api": {
       "owner": "codex",
       "status": "n/a",
-      "branch": "",
+      "branch": "codex/state-api/client-z-index-sweep",
       "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
       "skill_tags": [],
       "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
       "status": "n/a",
-      "branch": "",
+      "branch": "codex/contracts/client-z-index-sweep",
       "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
       "skill_tags": [],
       "manual_blocked": false
     },
@@ -52,8 +56,20 @@
       "owner": "claude",
       "status": "blocked",
       "branch": "claude/qa-pass-1/client-z-index-sweep",
-      "depends_on": ["ui"],
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing"],
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": "codex/qa-pass-2/client-z-index-sweep",
+      "branch_trigger": "claude/qa-pass-1/client-z-index-sweep",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
       "ready_when_dependencies_met": true,
       "manual_blocked": true
     }

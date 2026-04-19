@@ -20,6 +20,7 @@ graph TB
         NJ["Nate B. Jones\nAgent-First Dev"]
         DA["Dario Amodei\nResponsible Scaling"]
         AK["Andrej Karpathy\nVibe Coding"]
+        AR["Armin Ronacher + Earendil\nFriction + Legibility"]
         SX["Syntax Pod\nPractical AI"]
     end
 
@@ -61,6 +62,12 @@ For Green Goods, this translates to human-in-the-loop gates at every high-stakes
 Andrej Karpathy, former Tesla AI director and OpenAI researcher, popularized the concept of "vibe coding" -- the practice of describing intent in natural language and letting AI translate it into working code. His practical approach to AI-assisted development focuses on iteration speed and trusting the model's output while maintaining human judgment on architecture.
 
 Green Goods embraces this philosophy in day-to-day feature work while adding structure around it: TDD requirements ensure that vibes get validated by tests, and cathedral checks ensure that new code matches existing patterns rather than inventing new ones.
+
+### Armin Ronacher + Earendil -- Friction, Legibility, Judgment
+
+Armin Ronacher's writing and Earendil's public material add an important counterweight to "go faster" agent discourse: some friction is not process waste, it is where engineering judgment lives. Their guidance emphasizes agent-legible codebases, simple and stable patterns, explicit review call-outs for high-cost decisions, and resisting the temptation to let output volume masquerade as architectural progress.
+
+Green Goods applies that thinking by separating deterministic checks from judgment-heavy review, keeping criticality explicit, and treating high-risk surfaces like contracts, permissions, migrations, and shared public APIs as places where humans should slow down on purpose.
 
 ### Syntax Podcast -- Practical AI Tooling
 
@@ -105,15 +112,16 @@ Before implementing any new module, the agent (or human) finds the most similar 
 - **Andrej Karpathy** -- Talks and posts on practical AI for software development and the vibe coding philosophy
 - **Syntax Podcast** -- Episodes on web development meets AI tooling, practical integration patterns
 - **Anthropic documentation** -- Claude Code CLI and agent SDK guides for building with structured context
+- **Armin Ronacher + Earendil** -- talks, RFCs, and posts on friction, review, durable systems, and agent-legible codebases
 - **Green Goods `CLAUDE.md`** -- The living reference for how this project structures agent context (see root of this repository)
 
 <NextBestAction
   title="Next best action"
-  why="Learn how to write effective prompts for AI agents."
-  actionLabel="Prompt Engineering"
-  actionHref="./prompt-engineering"
+  why="See how Green Goods decides which friction to automate and which friction to keep human-owned."
+  actionLabel="Friction Engineering"
+  actionHref="./friction-engineering"
   alternatives={[
+    {label: "Prompt Engineering", href: "./prompt-engineering"},
     {label: "Context Engineering", href: "./context-engineering"},
-    {label: "Spec Engineering", href: "./spec-engineering"},
   ]}
 />

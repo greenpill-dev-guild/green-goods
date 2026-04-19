@@ -1,426 +1,190 @@
 ---
 name: architecture
-user-invocable: true
-description: Analyze software architecture — map current structure, identify gaps, and provide actionable suggestions. Also serves as a patterns reference for Clean Architecture, DDD, and entropy reduction.
+user-invocable: false
+description: Internal architecture lens for Green Goods. Prefer this inside `/plan` or `/review` when boundaries, placement, or structural refactors need focused judgment. Use a dedicated pass only when the user explicitly asks for it.
 effort: high
-version: "2.0.0"
+version: "3.0.0"
 status: active
-packages: ["contracts", "shared", "client", "admin", "indexer"]
+packages: ["contracts", "shared", "client", "admin", "agent", "indexer"]
 dependencies: []
-last_updated: "2026-04-03"
-last_verified: "2026-04-03"
+last_updated: "2026-04-18"
+last_verified: "2026-04-18"
 ---
 
 # Architecture Skill
 
-Analyze the Green Goods codebase architecture: map current state, identify structural gaps, and provide actionable improvement suggestions. Also a reference for design patterns and entropy reduction.
+Read-only architecture analysis for Green Goods.
 
----
+Prefer `/plan` or `/review` first. This skill exists as a deeper internal lens or as a dedicated pass when the user explicitly asks for architecture work.
+
+This skill exists to answer:
+
+- How is this part of the repo put together?
+- Where are the boundaries blurry or overloaded?
+- What is the smallest structural fix that improves coherence?
+- Where should a new feature or refactor actually live?
 
 ## Activation
 
 Use when:
-- A user asks for architecture analysis or structural refactoring guidance
-- You need a map of boundaries, coupling, or complexity hotspots
-- You want a read-only architecture scorecard before planning changes
 
-## Invocation
+- `/plan` or `/review` needs a focused boundary or placement pass
+- a user asks for architecture analysis or structural refactoring guidance
+- you need a package or module boundary map before planning changes
+- you need to decide where a feature belongs
+- you suspect coupling, boundary drift, or structural entropy
 
-```
-/architecture                          # Full analysis (all packages)
-/architecture shared                   # Scope to one package
-/architecture --focus boundaries       # Focus on a specific lens
-/architecture --focus dependencies     # Dependency health only
-/architecture --focus complexity       # Complexity hotspots only
-```
+Do not use this skill for dead-code scanning, dependency CVEs, or PR correctness review.
 
----
+## Scope Lock
 
-## Analysis Workflow
+This skill is strictly read-only. Do not edit files while running it.
 
-When invoked as `/architecture`, execute these phases in order. Output findings as chat — do NOT edit files (read-only session).
+## What This Skill Owns
 
-### Phase 1: Structure Map
+- package and module boundary mapping
+- public surface and import discipline review
+- coupling and coherency hotspot detection
+- placement recommendations for new work
+- deletion, merge, or split recommendations when structure is unclear
 
-Build a current-state map of the codebase. For each package in scope:
+## What This Skill Does Not Own
 
-1. **Module inventory** — list top-level modules/directories with a one-line purpose
-2. **Export surface** — count public exports vs internal modules (barrel health)
-3. **Dependency graph** — map which packages import from which, flag circular deps
-4. **Size profile** — approximate line counts per module to spot bloat
+- dead code or unused export detection (`audit`)
+- dependency health or security advisory scanning (`audit`)
+- PR-scoped correctness review (`review`)
+- textbook principle scoring (`principles`)
+- implementation of the refactor itself
 
-Output as a table per package:
+## Workflow
 
-```
-| Module | Purpose | Exports | Lines | Imports From |
-|--------|---------|---------|-------|-------------|
-```
+### 1. Declare Scope
 
-### Phase 2: Boundary Analysis
+Start by stating the scope:
 
-Check module boundaries against Green Goods architecture principles:
-
-1. **Import discipline** — flag any deep imports bypassing `@green-goods/shared` barrels
-2. **Layer violations** — flag UI code in shared, business logic in components, framework code in domain
-3. **Bounded context bleed** — flag modules reaching into other modules' internals
-4. **Shared surface health** — are shared exports well-organized or becoming a junk drawer?
-
-Severity: `violation` (must fix) | `smell` (should investigate) | `note` (worth knowing)
-
-### Phase 3: Gap Analysis
-
-Identify structural gaps — things that are missing or misaligned:
-
-1. **Missing abstractions** — concrete dependencies where ports/adapters should exist
-2. **Orphaned code** — modules with no importers or unclear purpose
-3. **Inconsistent patterns** — same problem solved differently in different places
-4. **Missing boundaries** — logic that should be separated but isn't
-5. **Test coverage gaps** — modules with complex logic but no tests
-6. **Documentation gaps** — public APIs without clear contracts
-
-### Phase 4: Complexity Hotspots
-
-Find the areas most likely to cause problems:
-
-1. **High fan-in files** — files imported by many others (fragile change points)
-2. **High fan-out files** — files importing many others (coupling magnets)
-3. **Deep nesting** — modules with deep directory trees or call chains
-4. **God modules** — files over 500 lines or modules doing too many things
-5. **Churn candidates** — areas where the same patterns repeat (abstraction opportunities)
-
-### Phase 5: Recommendations
-
-Synthesize findings into prioritized, actionable suggestions:
-
-| Priority | Category | Suggestion | Effort | Impact |
-|----------|----------|-----------|--------|--------|
-| P1 | ... | ... | S/M/L | ... |
-
-Categories: `boundary`, `abstraction`, `deletion`, `consistency`, `testing`, `performance`
-
-Effort: `S` (< 1 hour), `M` (half day), `L` (multi-day)
-
-Group by theme. Lead with high-impact, low-effort wins. End with strategic suggestions that require planning.
-
-### Phase 6: Architecture Scorecard
-
-Rate the overall architecture health (1-5) across these dimensions:
-
-| Dimension | Score | Trend | Notes |
-|-----------|-------|-------|-------|
-| **Modularity** | ?/5 | ↑↓→ | Are boundaries clean? |
-| **Cohesion** | ?/5 | ↑↓→ | Do modules have single responsibilities? |
-| **Coupling** | ?/5 | ↑↓→ | Can modules change independently? |
-| **Simplicity** | ?/5 | ↑↓→ | Is complexity justified? |
-| **Consistency** | ?/5 | ↑↓→ | Same patterns everywhere? |
-| **Testability** | ?/5 | ↑↓→ | Can you test without infrastructure? |
-
----
-
-## Focus Modes
-
-When `--focus` is specified, run only the relevant phase(s):
-
-| Focus | Phases |
-|-------|--------|
-| `boundaries` | Phase 2 + Phase 6 (modularity, cohesion, coupling) |
-| `dependencies` | Phase 1 (dependency graph) + Phase 2 (import discipline) |
-| `complexity` | Phase 4 + Phase 5 (hotspots → recommendations) |
-| `gaps` | Phase 3 + Phase 5 (gaps → recommendations) |
-| `scorecard` | Phase 6 only (quick health check) |
-
----
-
-## Execution Notes
-
-- **Read-only**: This skill analyzes — it never edits files. Findings go to chat output.
-- **Use subagents**: For full analysis across all packages, spawn Explore agents in parallel per package.
-- **Respect scope**: When scoped to a package, only analyze that package and its immediate dependencies.
-- **Be specific**: Every finding must reference a file path and line range. No vague observations.
-- **Green Goods context**: Validate against the architecture defined in CLAUDE.md (offline-first, single-chain, barrel imports, shared hook boundary, deployment artifacts).
-
-## Part 1: Reducing Entropy
-
-### The Goal
-
-**Less total code in the final codebase** - not less code to write right now.
-
-- Writing 50 lines that delete 200 lines = net win
-- Keeping 14 functions to avoid writing 2 = net loss
-- "No churn" is not a goal. Less code is the goal.
-
-**Measure the end state, not the effort.**
-
-### Three Questions
-
-#### 1. What's the smallest codebase that solves this?
-
-Not "what's the smallest change" - what's the smallest *result*.
-
-- Could this be 2 functions instead of 14?
-- Could this be 0 functions (delete the feature)?
-- What would we delete if we did this?
-
-#### 2. Does the proposed change result in less total code?
-
-```
-Before: X lines
-After: Y lines
-
-If Y > X → Question the change
-If Y < X → Good direction
+```text
+Architecture scope: [package, module, or full repo]
+Question: [boundary | placement | coupling | coherency | refactor]
+Mode: read-only
 ```
 
-#### 3. What can we delete?
+Default to the smallest relevant scope unless the user explicitly asks for the whole repo.
 
-Every change is an opportunity to delete:
-- What does this make obsolete?
-- What was only needed because of what we're replacing?
-- What's the maximum we could remove?
+### 2. Build a Structure Map
 
-### Red Flags
+For the scoped area, map only what is needed:
 
-| Red Flag | Reality |
-|----------|---------|
-| "Keep what exists" | Status quo bias. The question is total code, not churn. |
-| "This adds flexibility" | Flexibility for what? YAGNI. |
-| "Better separation of concerns" | More files/functions = more code. Separation isn't free. |
-| "Type safety" | Worth how many lines? Sometimes runtime checks win. |
-| "Easier to understand" | 14 things are not easier than 2 things. |
+1. top-level modules/directories and their purpose
+2. public entry points and barrel surfaces
+3. import relationships to immediate neighbors
+4. large or high-fan-in files worth closer inspection
 
-### Prioritization
+Prefer a short table:
 
-When trade-offs arise: **Maintainability > Speed > Brevity**
-
-Protect the existing architecture over shipping fast.
-
----
-
-## Part 2: The Cathedral Test
-
-Before writing code, run this mental checklist. Hold the "cathedral" (system architecture) in mind while laying this "brick" (specific change).
-
-### 1. What Cathedral Am I Building?
-
-Identify the system-level design this change supports:
-
-| Domain | Green Goods Cathedral | Key Pattern |
-|--------|----------------------|-------------|
-| **Offline sync** | Jobs queue for blockchain writes | `useJobQueue` with `JobKind` enum |
-| **State management** | Zustand with granular selectors | Never `(s) => s`, always specific fields |
-| **Server state** | TanStack Query with query keys | `queryKeys.gardens.list(chainId)` |
-| **Auth** | Dual wallet/passkey system | `useAuth` from shared, never local |
-| **Hooks location** | ALL hooks in `@green-goods/shared` | Never define hooks in client/admin |
-| **Addresses** | From deployment artifacts | Never hardcode `0x...` |
-
-**Ask**: "Which cathedral does this change belong to?"
-
-### 2. Does This Brick Fit?
-
-Find the most similar existing file and verify alignment:
-
-| Check | Example Reference |
-|-------|-------------------|
-| Naming conventions | `useGardenMetrics` → `use[Domain][Action]` |
-| Error handling | `createMutationErrorHandler()` pattern |
-| State updates | `queryInvalidation.gardens(queryClient)` |
-| Offline handling | `addJob({ kind: JobKind.WORK_SUBMISSION, ... })` |
-| Import structure | `import { x } from '@green-goods/shared'` |
-
-**Reference file**: [identify the closest existing implementation]
-
-### 3. Hidden Global Costs?
-
-Check architectural rules:
-
-| Rule | Check | Fix |
-|------|-------|-----|
-| **Timer Cleanup** | Raw setTimeout/setInterval? | Use `useTimeout()` |
-| **Event Listeners** | Missing removeEventListener? | Use `useEventListener()` or `{ once: true }` |
-| **Async Mount Guard** | Async in useEffect without guard? | Use `useAsyncEffect()` |
-| **Zustand Selectors** | `(s) => s` pattern? | Never `(s) => s`, use granular selectors |
-| **Query Keys** | Inline object keys? | Use `queryKeys.x.y()` helpers |
-| **Chained useMemo** | useMemo depending on useMemo? | Combine into single |
-| **Context Values** | Inline object in Provider value? | Wrap in useMemo |
-
-**Additional checks**:
-- [ ] Will this create waterfall requests?
-- [ ] Does this break offline-first guarantee?
-- [ ] Is this duplicating logic in `@green-goods/shared`?
-
-### 4. Explain Non-Obvious Violations
-
-When you spot a **non-obvious** violation:
-1. Explain the principle being violated
-2. Then suggest the fix
-
-*For obvious violations (missing cleanup, hardcoded addresses), the fix is self-explanatory.*
-
----
-
-## Part 3: Design Patterns
-
-### Clean Architecture (Uncle Bob)
-
-**Layers (dependencies point inward):**
-
-```
-┌─────────────────────────────────────────┐
-│           Frameworks & Drivers          │  ← UI, Database, External
-├─────────────────────────────────────────┤
-│           Interface Adapters            │  ← Controllers, Gateways
-├─────────────────────────────────────────┤
-│              Use Cases                  │  ← Application Logic
-├─────────────────────────────────────────┤
-│              Entities                   │  ← Business Rules
-└─────────────────────────────────────────┘
+```text
+| Module | Purpose | Public Surface | Depends On | Notes |
 ```
 
-**Key Principles:**
-- Dependencies point inward only
-- Inner layers independent of outer layers
-- Business logic framework-agnostic
-- Testable without external infrastructure
+### 3. Check Boundary Rules
 
-### Hexagonal Architecture (Ports & Adapters)
+Evaluate the structure against actual Green Goods rules, not generic ideals:
 
-```typescript
-// Port (interface)
-interface PaymentGateway {
-  charge(amount: Money, card: CardDetails): Promise<PaymentResult>;
-}
+- hooks live in `@green-goods/shared`
+- shared imports should prefer the barrel
+- addresses come from deployment artifacts, not hardcoded literals
+- chain defaults flow through `getDefaultChain()` or `DEFAULT_CHAIN_ID`
+- package layering respects `contracts -> shared -> indexer -> client/admin/agent`
 
-// Adapter (implementation)
-class StripeAdapter implements PaymentGateway {
-  async charge(amount: Money, card: CardDetails): Promise<PaymentResult> {
-    return stripe.charges.create({ /* ... */ });
-  }
-}
+Also inspect whether:
 
-// Domain uses port, not adapter
-class OrderService {
-  constructor(private payments: PaymentGateway) {}
+- one feature is spread across too many entry points
+- business logic is hiding inside UI-heavy files
+- risky checks are too far from the code that uses them
+- a public surface has become a junk drawer
 
-  async processOrder(order: Order): Promise<void> {
-    await this.payments.charge(order.total, order.payment);
-  }
-}
+### 4. Identify Hotspots
+
+Only flag a structural hotspot when there is concrete evidence. Good signals:
+
+- a file mixes unrelated responsibilities
+- a module acts as both domain surface and implementation sink
+- multiple callers depend on unstable internals
+- the same placement decision has been solved differently in nearby modules
+- a large file is also hard to test, hard to navigate, or repeatedly edited
+
+### 5. Run a Coherency and Deletion Pass
+
+Ask three questions:
+
+1. what can be deleted?
+2. what can be merged because it is one concern pretending to be several?
+3. what can be split because one file or surface is carrying two different responsibilities?
+
+Bias toward reducing total code and reducing decision surface, not adding new layers.
+
+### 6. Recommend the Smallest Structural Move
+
+End with one of:
+
+- `Do now` — narrow, high-confidence structural fix
+- `Do later` — real issue, but not on the critical path
+- `Leave alone` — looks odd, but is justified by current repo constraints
+
+## Confidence Rules
+
+These rules exist to reduce false positives:
+
+- do not flag a file based on length alone
+- do not recommend a new abstraction unless it removes repeated complexity or isolates a high-risk boundary
+- do not prescribe Clean Architecture, DDD, or ports/adapters unless the local code already wants that shape
+- do not call something a boundary problem unless you can point to the concrete import, surface, or ownership confusion
+- every finding must cite file paths and explain why it matters in Green Goods specifically
+
+## Output Contract
+
+Keep the output tight and decision-oriented.
+
+### Required
+
+1. **Structure Map** — brief table or bullets
+2. **Top Findings** — maximum 5
+3. **Deletion / Merge / Split Opportunities** — maximum 3
+4. **Positive Anchors** — what is already structurally sound
+5. **Recommended Next Move** — one paragraph
+
+### Finding Format
+
+```text
+[Title]
+- Type: boundary | coupling | coherency | placement | risk
+- Evidence: file:line
+- Why it matters here: ...
+- Smallest credible fix: ...
 ```
 
-### Domain-Driven Design (DDD)
+## Green Goods Heuristics
 
-**Tactical Patterns:**
+Use these repo-specific heuristics before making a recommendation:
 
-```typescript
-// Value Object (immutable, validated)
-class Money {
-  constructor(
-    readonly amount: number,
-    readonly currency: string
-  ) {
-    if (amount < 0) throw new Error("Amount cannot be negative");
-  }
-
-  add(other: Money): Money {
-    if (this.currency !== other.currency) {
-      throw new Error("Currency mismatch");
-    }
-    return new Money(this.amount + other.amount, this.currency);
-  }
-}
-
-// Entity (identity-based)
-class Garden {
-  constructor(
-    readonly address: Address,  // Identity
-    private name: string,
-    private actions: Action[]
-  ) {}
-
-  addAction(action: Action): void {
-    this.actions.push(action);
-    this.emit(new ActionAddedEvent(this.address, action));
-  }
-}
-
-// Aggregate Root (consistency boundary)
-class WorkSubmission {
-  approve(approver: Operator): void {
-    if (this.status !== WorkStatus.Pending) {
-      throw new Error("Can only approve pending work");
-    }
-    this.status = WorkStatus.Approved;
-    this.emit(new WorkApprovedEvent(this.id, approver));
-  }
-}
-```
-
----
-
-## Part 4: Green Goods Application
-
-### Current Architecture
-
-| Pattern | Implementation |
-|---------|----------------|
-| **Ports** | `@green-goods/shared` interfaces |
-| **Adapters** | Package-specific implementations |
-| **Bounded Contexts** | `client` (gardeners), `admin` (operators) |
-| **Repository Pattern** | Query hooks with IndexedDB/GraphQL |
-
-### When Adding Features
-
-1. **Define the domain entity** in `shared/src/types/`
-2. **Create port interface** in `shared/src/hooks/` (query/mutation)
-3. **Implement adapter** using existing infrastructure
-4. **Keep business logic** in domain, not UI
-
-### Directory Structure
-
-**Current structure** (`packages/shared/src/`):
-
-```
-├── components/       # Reusable UI components
-├── hooks/            # Domain-organized hooks (app/, auth/, garden/, work/)
-├── modules/          # Business logic modules
-├── providers/        # React context providers
-├── stores/           # Zustand state stores
-├── types/            # TypeScript type definitions
-└── workflows/        # XState state machines
-```
-
-> **Note:** Domain entities are defined in `types/`. Imports should use `@green-goods/shared` barrel exports.
-
----
+- `packages/shared` is the highest-blast-radius surface; prefer stability over cleverness
+- `packages/contracts` and deployment flows are structural risk surfaces, not cleanup playgrounds
+- `packages/indexer` should stay narrow and explicit about indexing boundaries
+- `packages/agent` needs visible external trust and retry boundaries
+- frontend structure should optimize for reuse through existing primitives, not new abstraction trees
 
 ## Anti-Patterns
 
-| Anti-Pattern | Problem |
-|--------------|---------|
-| **Anemic Domain** | Entities with only data, no behavior |
-| **Framework Coupling** | Business logic knows about HTTP/DB |
-| **Fat Controllers** | Business logic in controllers |
-| **Repository Leakage** | ORM objects in domain layer |
-| **Missing Abstractions** | Concrete dependencies everywhere |
-| **Over-Engineering** | DDD for simple CRUD operations |
+Avoid these failure modes:
 
----
-
-## Best Practices Summary
-
-1. **Dependencies point inward** — UI depends on domain, never reverse
-2. **Small interfaces** — Interface segregation
-3. **Domain logic separate** — No framework code in entities
-4. **Test without infrastructure** — Mock adapters, test domain
-5. **Bounded contexts** — Clear boundaries between domains
-6. **Ubiquitous language** — Same terms in code and conversation
-7. **Bias toward deletion** — Measure the end state
-8. **Rich domain models** — Behavior with data
+- turning architecture review into a lecture on general software patterns
+- proposing net-new directories, wrappers, or layers without a deletion story
+- reporting more findings than a human can act on
+- confusing "different from my preference" with "architecturally wrong"
+- using generic scorecards without repo evidence
 
 ## Related Skills
 
-- `react` — Component composition and state management patterns
-- `testing` — TDD workflow that drives architectural decisions
-- `react` (performance sub-file) — Bundle analysis and optimization that validate architecture
-- `ops` (migration sub-file) — Cross-package migration when architecture evolves
-- `principles` — SOLID/DRY/KISS/YAGNI audit that complements architecture analysis
+- `principles` — design judgment on simplicity, duplication, and boundary clarity
+- `audit` — dead code, dependency drift, and concrete brittle spots
+- `review` — PR-scoped review
+- `ops` — migration or cross-package implementation work after a structural decision is made

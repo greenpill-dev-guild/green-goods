@@ -34,4 +34,4 @@
 - Step 5 is complete as a refresh and reporting step.
 - The three verified silent-failure mutation bugs called out by the research map are now closed on the current branch tip.
 - No new deletion is authorized by this refresh pass.
-- The next narrow moves are bounded cleanup or validation-hygiene work; repo-quick now clears admin via `packages/admin` `test:hub`, the earlier `packages/client` stall is closed, the current quick failure is unrelated format drift in `.plans/backlog/harness-hardening-wave-1/status.json`, and the legacy `packages/admin` full-suite hang remains a separate hardening target.
+- The next narrow moves are bounded cleanup or validation-hygiene work; repo-quick now passes end to end via `packages/admin` `test:hub`, the earlier `packages/client` stall is closed, the default `packages/admin` `bun run test` gate now exits cleanly after being aligned with the package contract, and the separately excluded legacy admin view-heavy surface remains a dedicated hardening decision rather than an inner-loop blocker.

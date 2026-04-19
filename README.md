@@ -16,19 +16,30 @@ bun setup    # Checks deps, installs packages, creates .env
 bun dev      # Starts all services via PM2
 ```
 
+**Prereqs:** Node 22+, Bun, and Git. Docker is needed for local indexer work. Foundry is needed for contract work.
+
 For local development on the standard 1Password CLI, keep `OP_ENABLE_ENVIRONMENT_LOAD=false` and put root-only `op://...` references such as `ETHERSCAN_API_KEY_OP_REF=op://vault/item/field` in `.env`. CI and service-account flows can still use `OP_ENVIRONMENT` for bulk loading.
 
-**Services:** Client PWA (localhost:3001) • Admin (localhost:3002) • Indexer (localhost:8080) • Storybook (localhost:6006)
+**Core local URLs:** Client PWA (`localhost:3001`) • Admin (`localhost:3002`) • Docs (`localhost:3003`) • Indexer (`localhost:8080`) • Storybook (`localhost:6006`)
 
 ## Documentation
 
 📖 **[docs.greengoods.app](https://docs.greengoods.app)** — Full documentation for users and developers
 
-- [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer) — Detailed setup guide
-- [Architecture](https://docs.greengoods.app/developer/architecture) — System design and diagrams
-- [API Reference](https://docs.greengoods.app/developer/api-reference) — GraphQL and contract APIs
-- [Contributing](https://docs.greengoods.app/developer/contributing) — Guidelines for contributors
-- [Dependency Management](.claude/skills/dependency-management/SKILL.md) — Workspace dependencies, lockfile, and audit/update workflow
+- [Developer Getting Started](https://docs.greengoods.app/builders/getting-started) — Setup, env bootstrap, local services, and first-run workflow
+- [Prompting Green Goods](https://docs.greengoods.app/builders/agentic/prompting-green-goods) — Short repo-specific guide for working effectively with agents
+- [Architecture](https://docs.greengoods.app/builders/architecture) — System design, boundaries, and diagrams
+- [Builder API Index](https://docs.greengoods.app/builders/packages/api-index) — Package APIs, contracts, and shared surfaces
+- [Operations](https://docs.greengoods.app/builders/operations) — Build, deploy, environment, and workflow references
+- [How to Contribute](https://docs.greengoods.app/builders/how-to-contribute) — Contributor workflow and expectations
+
+## AI-Assisted Development
+
+If you are working in this repo with Codex, Claude Code, or another coding agent, start here:
+
+- [Prompting Green Goods](https://docs.greengoods.app/builders/agentic/prompting-green-goods) — the short prompt shape that matches this repo
+- [AGENTS.md](./AGENTS.md) — runtime rules and repo invariants
+- [CLAUDE.md](./CLAUDE.md) — commands, patterns, and working conventions
 
 ## Contributing
 

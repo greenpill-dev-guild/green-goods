@@ -20,7 +20,9 @@
   },
   "notes": [
     "Mark unused lanes as n/a before promoting QA.",
-    "status.json is authoritative; branch names are automation signals."
+    "status.json is authoritative; branch names are automation signals.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
   ],
   "lanes": {
     "ui": {

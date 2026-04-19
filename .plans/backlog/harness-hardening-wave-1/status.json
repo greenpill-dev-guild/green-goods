@@ -31,11 +31,7 @@
       "branch": "claude/ui/harness-hardening-wave-1",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "skill_tags": [
-        "ui",
-        "frontend-design",
-        "react"
-      ]
+      "skill_tags": ["ui", "frontend-design", "react"]
     },
     "state_api": {
       "owner": "codex",
@@ -43,11 +39,7 @@
       "branch": "codex/state-api/harness-hardening-wave-1",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "skill_tags": [
-        "ops",
-        "review",
-        "testing"
-      ]
+      "skill_tags": ["ops", "review", "testing"]
     },
     "contracts": {
       "owner": "codex",
@@ -55,9 +47,7 @@
       "branch": "codex/contracts/harness-hardening-wave-1",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "skill_tags": [
-        "contracts"
-      ]
+      "skill_tags": ["contracts"]
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -65,14 +55,9 @@
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/harness-hardening-wave-1",
-      "depends_on": [
-        "state_api"
-      ],
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ]
+      "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
       "owner": "codex",
@@ -81,14 +66,9 @@
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/harness-hardening-wave-1",
       "branch_trigger": "claude/qa-pass-1/harness-hardening-wave-1",
-      "depends_on": [
-        "qa_pass_1"
-      ],
+      "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": [
-        "testing",
-        "review"
-      ]
+      "skill_tags": ["testing", "review"]
     }
   },
   "history": [

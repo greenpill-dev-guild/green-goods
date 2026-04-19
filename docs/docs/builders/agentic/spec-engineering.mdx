@@ -4,7 +4,7 @@ sidebar_label: Spec Engineering
 slug: /builders/agentic/spec-engineering
 audience: developer
 owner: docs
-last_verified: 2026-04-03
+last_verified: 2026-04-18
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -30,16 +30,14 @@ maxTurns: 50
 ---
 ```
 
-The project maintains six agent specs:
+The committed repo surface currently keeps two agent specs and routes most specialization through skills instead of extra checked-in agent files:
 
 | Agent | Purpose | Model |
 |-------|---------|-------|
 | `cracked-coder` | Feature implementation with TDD | Opus |
-| `code-reviewer` | PR review and pattern enforcement | Opus |
 | `oracle` | Architecture guidance and analysis | Opus |
-| `migration` | Cross-package migrations | Opus |
-| `storybook-author` | Story creation and design system | Opus |
-| `triage` | Issue classification | Haiku |
+
+Retired agent roles such as `code-reviewer`, `triage`, `migration`, and `storybook-author` now live as skill or workflow patterns rather than committed `.claude/agents/*.md` surfaces.
 
 ### Feature Specifications (`.claude/specs/`)
 
@@ -53,22 +51,19 @@ Detailed requirements for complex features. Structure:
 
 ### Plan Files (`.plans/`)
 
-Intermediate artifacts from agent PLAN phases. Saved when a user asks for "just a plan" without execution:
+Plan files are the durable feature hub for complex work, not just an intermediate PLAN-phase artifact. A user asking for "just a plan" may stop after writing the hub without executing, but the same `.plans/` entry remains the repo truth during implementation, handoffs, and verification.
 
-```markdown
-## Plan: Cookie Jar Payout Integration
-
-### Phase 1: Hook Layer
-- [ ] Create `useCookieJarPayout` in shared
-- [ ] Test: query key correctness, enabled guard, error path
-
-### Phase 2: UI Layer
-- [ ] Add PayoutPanel component in admin
-- [ ] Wire to existing GardenDetail view
-
-### Phase 3: I18n
-- [ ] Add strings to en.json, es.json, pt.json
+```text
+.plans/active/<feature-slug>/
+  brief.md       # Problem framing and key decisions
+  spec.md        # Structured requirements and acceptance criteria
+  plan.todo.md   # Ordered implementation checklist
+  status.json    # Machine-readable lane and progress state
+  eval.md        # Optional verification or acceptance notes
+  handoffs/      # Optional human or agent handoff context
 ```
+
+Update the active feature hub as work moves forward, especially `plan.todo.md` and `status.json`. This keeps resumed sessions and parallel agents aligned on the same source of truth.
 
 ## Writing Effective Specs
 
@@ -94,7 +89,7 @@ Specs must define what is NOT in scope to prevent agents from over-engineering:
 
 ```markdown
 ## Out of Scope
-- Visual design changes (handled by storybook-author agent)
+- Visual design changes (handled by the `ui` or design workflow, not a separate committed agent spec)
 - Contract modifications (requires separate spec + security review)
 - i18n for languages other than en/es/pt
 ```

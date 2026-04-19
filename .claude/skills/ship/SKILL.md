@@ -1,6 +1,6 @@
 ---
 name: ship
-user-invocable: true
+user-invocable: false
 description: Pre-merge gate — validates the branch is safe to push/merge. Format + lint + test + build + conventional-commit + branch safety + vocab/design-token lint when applicable. Absorbs verification-before-completion and finishing-a-development-branch — evidence before claims, always.
 argument-hint: "[--dry-run] [--no-commit] [--pr]"
 version: "1.0.0"
@@ -23,10 +23,10 @@ Pre-merge gate for Green Goods. Validates that the current branch is safe to pus
 
 | Trigger | Action |
 |---------|--------|
-| `/ship` | Full validation + guided commit/push/PR |
-| `/ship --dry-run` | Validation only, no commit/push |
-| `/ship --no-commit` | Validate + stage applicable files, stop before commit |
-| `/ship --pr` | Validate + create PR via `gh pr create` |
+| "ready to ship" | Full validation + guided commit/push/PR |
+| "dry-run ship check" | Validation only, no commit/push |
+| "stage but don't commit" | Validate + stage applicable files, stop before commit |
+| "open a PR" | Validate + create PR via `gh pr create` |
 
 ---
 
@@ -199,7 +199,7 @@ Use this exact shape. Tables and short sentences — no prose.
 
 ---
 
-## Anti-patterns
+## Anti-Patterns
 
 | Don't | Why |
 |-------|-----|
@@ -210,15 +210,15 @@ Use this exact shape. Tables and short sentences — no prose.
 | Commit `.env`, credentials, or binaries > 5MB | Safety check — refuse |
 | Force-push anywhere without explicit user permission | Destructive action — confirm first |
 | Amend commits not authored in this branch | Destroys prior-author attribution |
-| Turn every `/ship` into a PR | Not all work needs a PR; match scope to request |
+| Turn every ship check into a PR | Not all work needs a PR; match scope to request |
 
 ---
 
-## Related skills
+## Related Skills
 
 - `ops/git-workflow` — branch strategy and commit conventions
 - `ops/ci-cd` — what CI runs after push
-- `review` — pre-merge code review (complement to `/ship`)
+- `review` — pre-merge code review that complements the ship flow
 - `testing` — test discipline referenced by the pipeline
 - `clean` — large-scale cleanup before shipping big diffs
 
@@ -229,5 +229,5 @@ Use this exact shape. Tables and short sentences — no prose.
 - **Evidence before claims** — no shortcuts
 - **Fail fast** — stop at the first failing stage, don't run downstream
 - **Scope-aware** — only run design-tokens / vocab / contracts-fork where applicable
-- **Match action to request** — `/ship` for validation, `--pr` for PR, `--dry-run` when exploring
+- **Match action to request** — use the ship flow for validation, `--pr` for PR, `--dry-run` when exploring
 - **Refuse unsafe operations** — branching onto main, secrets in diff, force-push to main

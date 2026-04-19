@@ -17,7 +17,6 @@ skills:
   - testing
   - react
   - contracts
-  - react
 mcpServers:
   - foundry
 isolation: worktree
@@ -47,7 +46,7 @@ Before ANY work, check for a `bundle_id` in the task brief. If present, load the
 1. Confirm target scope — which package(s)? If unclear, ASK.
 2. Confirm intent:
    - "plan"/"generate a prompt" -> Save to `.plans/`. Do NOT execute.
-   - "review"/"audit" -> Use code-reviewer agent. Do NOT implement.
+   - "review"/"audit" -> Route to `/review` or `/audit` skill. Do NOT implement.
    - "implement"/"build"/"fix" -> Proceed with workflow.
 3. Check prior work: `git diff` and `git log --oneline -20`. Don't redo completed work.
 4. Estimate task complexity: if the task involves creating BOTH new files AND wiring them into existing code across 3+ concerns (e.g., hook + component + i18n + barrel exports), use `/plan` to decompose into independently verifiable steps before starting TDD.

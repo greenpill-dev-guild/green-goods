@@ -1,5 +1,6 @@
 ---
 name: debug
+user-invocable: true
 description: Debugging & Troubleshooting - systematic root cause investigation with hypothesis testing, evidence collection, and production monitoring. Use when the user reports a bug, encounters an error, sees unexpected behavior, needs production diagnostics, or says 'debug this'.
 argument-hint: "[error-description]"
 version: "1.0.0"

@@ -1,0 +1,112 @@
+---
+title: Prompting Green Goods
+sidebar_label: Prompting Green Goods
+slug: /builders/agentic/prompting-green-goods
+audience: developer
+owner: docs
+last_verified: 2026-04-18
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Prompting Green Goods
+
+Prompt by work stage, not by internal tool names.
+
+Start with one of four verbs:
+
+- `/plan` to shape work
+- `/debug` to find root cause
+- `/review` to judge a diff
+- `/status --resume` to pick work back up
+
+## Default Shape
+
+```text
+[verb]
+Goal:
+Scope:
+Constraints:
+Watch for:
+Done when:
+```
+
+What each line does:
+
+- **Goal** — the outcome you want
+- **Scope** — the boundary the agent should stay inside
+- **Constraints** — the repo rules or tradeoffs that matter here
+- **Watch for** — the judgment-heavy areas where you want extra care
+- **Done when** — what a good result looks like
+
+If you keep only three lines, keep these:
+
+- `Goal`
+- `Scope`
+- `Done when`
+
+## Good Defaults
+
+Ask for:
+
+- the smallest sensible package boundary
+- existing repo patterns over new abstractions
+- human judgment points surfaced early
+- narrow validation, not a broad scan
+- clear separation between what is proven and what is inferred
+
+## Examples
+
+```text
+/plan
+Goal: Add gardener invite flow
+Scope: Keep it inside shared + client if possible
+Constraints: avoid new abstractions unless they remove real complexity
+Watch for: shared API changes, permissions
+Done when: small implementation plan with clear judgment points
+```
+
+```text
+/debug
+Goal: Find why wallet reconnect fails
+Scope: reproduce first, then isolate root cause
+Constraints: no speculative fixes
+Watch for: auth state, retries, swallowed errors
+Done when: root cause is proven and fix options are ranked by confidence
+```
+
+```text
+/review
+Goal: Review this branch
+Scope: changed files only
+Constraints: high-confidence findings only
+Watch for: hooks boundary, migrations, brittle fallback logic
+Done when: must-fix items and human call-outs are clearly separated
+```
+
+```text
+/status --resume
+Goal: Reorient me on this branch
+Done when: blockers and next 3 moves are clear
+```
+
+## Avoid This
+
+Avoid prompts like:
+
+- "run architecture, then principles, then audit"
+- "review the whole repo"
+- "fix everything"
+
+Those push the agent toward broad scans and weaker judgment. Start with the stage of work, define the scope, and say what done looks like.
+
+<NextBestAction
+  title="Next best action"
+  why="See how the repo's context layers help concise prompts stay accurate."
+  actionLabel="Context Engineering"
+  actionHref="./context-engineering"
+  alternatives={[
+    {label: "Prompt Engineering", href: "./prompt-engineering"},
+    {label: "Friction Engineering", href: "./friction-engineering"},
+  ]}
+/>

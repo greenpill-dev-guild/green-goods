@@ -1,26 +1,19 @@
 {
   "source": ".claude/skills/*/SKILL.md",
-  "canonical_commands": [
-    "review",
-    "audit",
-    "principles",
-    "architecture",
-    "status",
-    "clean",
-    "ship"
-  ],
+  "canonical_commands": ["plan", "debug", "review", "status"],
   "skills": [
     {
       "name": "plan",
       "status": "active",
       "listed_in_index": true,
-      "default_mode": "passive",
-      "user_invocable": false,
-      "intent": "Create structured implementation plans with specs, coordinate agent teams",
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Primary planning entry point for execution steps and team coordination, with architecture judgment pulled in internally when boundaries or placement are unclear",
       "entry_file": ".claude/skills/plan/SKILL.md",
       "owned_skills": ["architecture", "testing"],
       "modes": ["default", "check", "execute", "cleanup", "teams"],
       "triggers": [
+        "/plan",
         "plan this",
         "create implementation plan",
         "break down feature",
@@ -33,13 +26,14 @@
       "name": "debug",
       "status": "active",
       "listed_in_index": true,
-      "default_mode": "passive",
-      "user_invocable": false,
-      "intent": "Root cause investigation and systematic debugging",
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Root cause investigation and systematic debugging with evidence before fixes",
       "entry_file": ".claude/skills/debug/SKILL.md",
       "owned_skills": ["testing"],
       "modes": ["default", "incident_hotfix", "tdd_bugfix"],
       "triggers": [
+        "/debug",
         "debug this",
         "investigate this bug",
         "root cause",
@@ -55,9 +49,9 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "user_invocable": true,
-      "intent": "6-pass systematic code review with structured findings",
+      "intent": "Primary review entry point for diff-scoped correctness, human-vs-agent callouts, and internal architecture or principles lenses when needed",
       "entry_file": ".claude/skills/review/SKILL.md",
-      "owned_skills": ["architecture", "testing"],
+      "owned_skills": ["architecture", "principles", "testing", "audit"],
       "modes": ["report_only", "apply_fixes", "iterate", "verify_only"],
       "triggers": ["/review", "review this PR", "code review"],
       "dependencies": [],
@@ -66,33 +60,46 @@
     {
       "name": "audit",
       "status": "active",
-      "listed_in_index": true,
-      "default_mode": "interactive",
-      "user_invocable": true,
-      "intent": "Dead code detection, architectural anti-patterns, and codebase health",
+      "listed_in_index": false,
+      "default_mode": "passive",
+      "user_invocable": false,
+      "intent": "Internal repo-health lens for dead code, dependency drift, invariant drift, and broader brittle spots when review or status exposes drift beyond a single change",
       "entry_file": ".claude/skills/audit/SKILL.md",
       "owned_skills": ["review", "contracts", "testing"],
       "modes": ["default", "loop", "team"],
-      "triggers": ["/audit", "audit the codebase", "health check"],
+      "triggers": [
+        "audit the codebase",
+        "repo health sweep",
+        "dead code sweep",
+        "dependency drift"
+      ],
       "dependencies": ["review"]
     },
     {
       "name": "principles",
       "status": "active",
-      "listed_in_index": true,
-      "default_mode": "interactive",
-      "user_invocable": true,
-      "intent": "Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4",
+      "listed_in_index": false,
+      "default_mode": "passive",
+      "user_invocable": false,
+      "intent": "Internal design-judgment lens for cohesion, boundary discipline, simplicity, duplication, and reliability clarity inside review or planning flows",
       "entry_file": ".claude/skills/principles/SKILL.md",
       "owned_skills": ["architecture"],
-      "modes": ["default", "team", "execute"],
-      "triggers": ["/principles", "principles audit", "SOLID", "DRY"],
+      "modes": [
+        "default",
+        "cohesion",
+        "boundaries",
+        "simplicity",
+        "duplication",
+        "reliability",
+        "data"
+      ],
+      "triggers": ["principles audit", "simplify this", "too complex", "too coupled"],
       "dependencies": []
     },
     {
       "name": "react",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": [
         "React component",
@@ -115,7 +122,7 @@
     {
       "name": "design",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": [
         "design direction",
@@ -183,7 +190,7 @@
     {
       "name": "ui",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": [
         "TailwindCSS",
@@ -214,7 +221,7 @@
     {
       "name": "web3",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": ["wallet", "transaction", "Wagmi", "passkey", "contract call"],
       "dependencies": []
@@ -222,7 +229,7 @@
     {
       "name": "contracts",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": [
         "Solidity",
@@ -238,7 +245,7 @@
     {
       "name": "indexer",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": ["indexer", "event handler", "schema.graphql", "Docker", "container", "compose"],
       "dependencies": ["contracts"],
@@ -247,7 +254,7 @@
     {
       "name": "data-layer",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": ["offline", "PWA", "job queue", "sync", "IndexedDB"],
       "dependencies": [],
@@ -256,7 +263,7 @@
     {
       "name": "ops",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": [
         "deploy",
@@ -288,7 +295,7 @@
     {
       "name": "testing",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": ["write tests", "TDD", "unit test", "e2e test", "Vitest", "Playwright"],
       "dependencies": [],
@@ -297,20 +304,19 @@
     {
       "name": "architecture",
       "status": "active",
-      "listed_in_index": true,
-      "default_mode": "interactive",
-      "user_invocable": true,
-      "intent": "Analyze software architecture — map structure, identify gaps, provide actionable suggestions",
+      "listed_in_index": false,
+      "default_mode": "passive",
+      "user_invocable": false,
+      "intent": "Internal architecture lens for boundaries, placement, coupling, coherency, and refactor direction inside plan or review when a dedicated structural pass is warranted",
       "entry_file": ".claude/skills/architecture/SKILL.md",
       "owned_skills": [],
-      "modes": ["default", "boundaries", "dependencies", "complexity", "gaps", "scorecard"],
+      "modes": ["default", "boundaries", "placement", "coupling", "coherency", "refactor"],
       "triggers": [
-        "/architecture",
         "architecture analysis",
         "analyze architecture",
         "codebase structure",
-        "refactor",
-        "clean code",
+        "where should this live",
+        "structural refactor",
         "reduce complexity",
         "entropy"
       ],
@@ -322,52 +328,50 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "user_invocable": true,
-      "intent": "Morning briefing — architecture, pipeline, health, journeys, onchain, git pulse, daily focus. `--resume` mode is branch-scoped resumption.",
+      "intent": "Session resumption and quick orientation — branch state, blockers, continuity artifacts, recent deltas, and the next 1-3 moves. Not an audit or dashboard.",
       "entry_file": ".claude/skills/status/SKILL.md",
-      "owned_skills": [],
-      "modes": ["default", "quick", "full", "focus", "resume"],
+      "owned_skills": ["plan", "review"],
+      "modes": ["default", "quick", "resume"],
       "triggers": [
         "/status",
-        "morning briefing",
         "status check",
-        "lay of the land",
-        "where was I",
         "resume branch",
-        "pick up where I left off"
+        "where was I",
+        "pick up where I left off",
+        "what changed here",
+        "orient me"
       ],
       "dependencies": []
     },
     {
       "name": "clean",
       "status": "active",
-      "listed_in_index": true,
-      "default_mode": "interactive",
-      "user_invocable": true,
-      "intent": "Comprehensive codebase cleanup with 8 parallel subagents — deduplication, type consolidation, dead code, circular deps, type strengthening, defensive code, legacy, AI slop",
+      "listed_in_index": false,
+      "default_mode": "passive",
+      "user_invocable": false,
+      "intent": "Internal cleanup execution path used after review or audit findings have been accepted and need implementation",
       "entry_file": ".claude/skills/clean/SKILL.md",
       "owned_skills": [],
       "modes": ["default", "dry-run", "scope", "agents"],
       "triggers": [
-        "/clean",
         "clean the codebase",
-        "cleanup",
-        "codebase cleanup",
-        "parallel cleanup"
+        "cleanup follow-up",
+        "apply cleanup findings",
+        "targeted cleanup"
       ],
       "dependencies": ["audit", "principles"]
     },
     {
       "name": "ship",
       "status": "active",
-      "listed_in_index": true,
-      "default_mode": "interactive",
-      "user_invocable": true,
+      "listed_in_index": false,
+      "default_mode": "passive",
+      "user_invocable": false,
       "intent": "Pre-merge gate — format + lint + test + build + conventional-commit + branch safety. Evidence before claims. Absorbs verification-before-completion and finishing-a-development-branch.",
       "entry_file": ".claude/skills/ship/SKILL.md",
       "owned_skills": [],
       "modes": ["default", "dry-run", "no-commit", "pr"],
       "triggers": [
-        "/ship",
         "ready to ship",
         "ready to merge",
         "pre-merge check",
@@ -380,7 +384,7 @@
     {
       "name": "stitch",
       "status": "active",
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "interactive",
       "user_invocable": false,
       "triggers": [

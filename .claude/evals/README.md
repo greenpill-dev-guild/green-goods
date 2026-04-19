@@ -1,6 +1,6 @@
 # Product Acceptance Cases
 
-Product-level user story validation imported from CharmVerse QA. Used as a QA companion for feature work, not as an agent benchmark pack.
+Product-level user story validation imported from CharmVerse QA. This is the only live eval content checked into `.claude/evals/` today.
 
 | Directory | Purpose |
 |-----------|---------|
@@ -12,4 +12,4 @@ See [`acceptance/README.md`](./acceptance/README.md) for usage details. Agents s
 
 ## Retired Benchmark Note
 
-Automated agent eval suites for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` have been retired. `triage` and `code-reviewer` agents were trimmed from the project on 2026-04-17 (underutilized in practice — the `/review` skill covers review, and solo-dev workflow has no triage volume).
+Automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` are retired. The current CI workflow checks that this repo stays aligned with that retirement state instead of trying to run ghost eval packs.

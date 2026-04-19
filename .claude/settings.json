@@ -104,7 +104,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /audit /architecture /principles /status /clean /ship /meeting-notes' '  Agents: oracle | cracked-coder'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /plan /debug /review /status' '  resume: /status --resume'",
             "once": true
           }
         ]

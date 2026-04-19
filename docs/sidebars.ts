@@ -206,6 +206,8 @@ const sidebars: SidebarsConfig = {
       },
       items: [
         {type: 'doc', id: 'builders/agentic/core-philosophies', label: 'Core Philosophies'},
+        {type: 'doc', id: 'builders/agentic/friction-engineering', label: 'Friction Engineering'},
+        {type: 'doc', id: 'builders/agentic/prompting-green-goods', label: 'Prompting Green Goods'},
         {type: 'doc', id: 'builders/agentic/prompt-engineering', label: 'Prompt Engineering'},
         {type: 'doc', id: 'builders/agentic/context-engineering', label: 'Context Engineering'},
         {type: 'doc', id: 'builders/agentic/intent-engineering', label: 'Intent Engineering'},

@@ -1,243 +1,207 @@
 ---
 name: principles
-description: Software engineering principles audit — SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4, ACID, BASE, CAP. Use when the user wants to check adherence to industry best practices or says 'principles audit'.
-argument-hint: "[package-name | --team]"
+user-invocable: false
+description: Internal principles lens for Green Goods. Prefer this inside `/review` when a change feels too complex, too coupled, too duplicative, or too implicit. Use a dedicated pass only when the user explicitly asks for it.
+argument-hint: "[package-name] [--focus cohesion|boundaries|simplicity|duplication|reliability|data]"
 context: fork
 effort: high
-version: "1.1.0"
+version: "2.0.0"
 status: active
 packages: ["all"]
-dependencies: ["audit", "architecture"]
-last_updated: "2026-04-02"
-last_verified: "2026-04-02"
+dependencies: ["architecture"]
+last_updated: "2026-04-18"
+last_verified: "2026-04-18"
 ---
 
-# Principles Audit Skill
+# Principles Skill
 
-Systematic audit of codebase adherence to established software engineering principles.
+Read-only design judgment for Green Goods.
 
-**References**: See `CLAUDE.md` for codebase patterns. See `/audit` for dead code and dependency health.
+Prefer `/review` first. This skill is the deeper coherence lens when review findings turn into questions about simplicity, coupling, duplication, or reliability visibility.
 
-**Context mode**: `context: fork` — runs in an isolated subagent. Read-only snapshot; never edit files during audit. Report findings and let the user decide when to act.
+This skill answers:
 
----
-
-## Scope Lock (ENFORCED)
-
-**Audits are strictly read-only.** Do NOT use Edit, Write, or any file-modifying tool. Do NOT let sub-agents edit files. Describe fixes in the report with file:line references. Implementation is gated behind explicit user approval.
-
----
+- should this be simplified?
+- is this module carrying too many responsibilities?
+- is the boundary clear enough for humans and agents?
+- is duplication starting to drift into real maintenance cost?
+- are important reliability decisions visible where they matter?
 
 ## Activation
 
-### Audit (read-only)
+Use when:
 
-| Trigger | Action |
-|---------|--------|
-| `/principles` | Full codebase principles audit |
-| `/principles [package]` | Targeted package audit |
-| `/principles --team` | Parallel team audit (worktree-isolated agents) |
-| `/principles solid` | SOLID-only audit |
-| `/principles data` | ACID + BASE + CAP audit |
-| `/principles arch` | EDA + ADR + C4 audit |
+- `/review` needs a focused coherence or simplicity pass
+- a user asks for a principles audit
+- a package feels overgrown or unclear
+- you need a design-level judgment before refactoring
+- you want to pressure-test whether a change is coherent, not just correct
 
-### Execute (after audit)
+Do not use this skill for dead-code scanning, dependency health, or exhaustive architecture mapping.
 
-| Trigger | Action |
-|---------|--------|
-| `fix latest` | Load the most recent report, implement all findings by priority |
-| `fix latest critical` | Implement CRITICAL findings only |
-| `fix latest S1, EDA1` | Implement specific findings |
-| `fix [date]` | Load report from a specific date |
-| `fix critical` | Alias for `fix latest critical` |
-| `fix all` | Alias for `fix latest` |
-| `fix S1, EDA1` | Alias for `fix latest S1, EDA1` |
+## Scope Lock
 
----
+This skill is strictly read-only. Do not edit files while auditing.
 
-## Scope Confirmation (REQUIRED)
+## What This Skill Owns
 
-Before starting, echo scope to the user:
+This skill focuses on five lenses only:
 
+1. **Cohesion** — one module, one responsibility boundary
+2. **Boundary Discipline** — dependencies and public surfaces stay legible
+3. **Simplicity** — avoid unnecessary indirection, cleverness, or premature structure
+4. **Duplication** — repeated logic only becomes a finding when it creates real maintenance or divergence risk
+5. **Reliability Clarity** — permissions, retries, destructive paths, and trust-sensitive behavior should be visible
+
+### Optional Lens
+
+`--focus data` is opt-in and should only be used when the user specifically wants ACID/BASE/CAP-style reasoning on storage, sync, or consistency behavior.
+
+## What This Skill Does Not Own
+
+- dead code, unused exports, or dependency scanning (`audit`)
+- full repo structure mapping (`architecture`)
+- PR correctness and test review (`review`)
+- implementation orchestration or auto-fix flows
+
+## Workflow
+
+### 1. Declare Scope and Focus
+
+Start with:
+
+```text
+Principles scope: [package, module, or change]
+Focus: [cohesion | boundaries | simplicity | duplication | reliability | data]
+Mode: read-only
 ```
-Principles audit scope: [package or "full codebase"]
-Mode: [single-agent | team]
-Principle groups: [all | subset if specified]
-Previous audit: [date or "none found"]
-Proceed? [y/n]
+
+Default to one package or one changed surface. Avoid full-repo audits unless explicitly requested.
+
+### 2. Read Local Context First
+
+Before making findings:
+
+- read the neighboring modules
+- identify the local pattern already in use
+- check whether the code is intentionally shaped by an existing repo rule
+
+Do not audit a file in isolation.
+
+### 3. Evaluate the Five Lenses
+
+#### Cohesion
+
+Look for:
+
+- one file serving multiple unrelated responsibilities
+- domain logic mixed with glue code in ways that obscure ownership
+- public surfaces that combine unrelated concepts
+
+Do not equate file size with bad cohesion.
+
+#### Boundary Discipline
+
+Look for:
+
+- shared rules being bypassed
+- unstable internals imported from the wrong place
+- risky checks or trust boundaries hidden too far from use sites
+- public surfaces that make it unclear where code should live
+
+#### Simplicity
+
+Look for:
+
+- wrappers that add indirection without removing real complexity
+- abstractions that have only one current use and no concrete pressure behind them
+- complexity that makes code harder for both humans and agents to verify
+
+#### Duplication
+
+Look for:
+
+- 3+ repeated implementations of the same concern
+- divergence across similar flows that creates bug risk
+- repeated translation of the same concept across packages
+
+Do not flag duplication just because two packages solve similar UI or domain problems independently.
+
+#### Reliability Clarity
+
+Look for:
+
+- permissioning that is easy to miss
+- retry or fallback behavior that hides failure
+- destructive behavior without a clear boundary
+- external trust decisions embedded in convenience code
+
+This lens should align with the repo's friction model: judgment-heavy areas should remain visible.
+
+## False-Positive Guardrails
+
+These are mandatory:
+
+- do not report a principles finding without concrete harm or clear maintenance risk
+- do not call something a DRY violation unless the repetition is materially costly or drifting
+- do not call something YAGNI just because it feels unused; confirm the consumer story first
+- do not call something an SRP violation based on size alone
+- do not use CAP/ACID language unless you inspected real storage or sync paths
+- drop any finding below high confidence
+
+## Output Contract
+
+Keep the report short, opinionated, and actionable.
+
+### Required
+
+1. **Verdict** — `tighten now` | `monitor` | `leave as-is`
+2. **Top Findings** — maximum 7
+3. **Positive Findings** — what is structurally or semantically strong
+4. **Rejected Temptations** — optional, up to 3 things that looked suspicious but are not actual issues
+5. **Smallest Next Move** — the least invasive improvement that would matter
+
+### Finding Format
+
+```text
+[Title]
+- Lens: cohesion | boundaries | simplicity | duplication | reliability | data
+- Evidence: file:line
+- Why it matters: ...
+- Smallest credible fix: ...
 ```
 
----
+## Severity Guidance
 
-## Audit Packages (Priority Order)
+Use these labels only:
 
-1. `packages/shared/src/` — shared hooks and domain modules (highest surface area)
-2. `packages/contracts/src/` — Solidity smart contracts
-3. `packages/client/src/` — offline-first PWA
-4. `packages/admin/src/` — admin dashboard
-5. `packages/indexer/src/` — Envio blockchain indexer
-6. `packages/agent/src/` — Telegram bot agent
+- `must-fix` — concrete design problem with active maintenance or correctness cost
+- `should-fix` — real issue, but not urgent
+- `watch` — worth monitoring, not yet strong enough to change
 
----
+Avoid giant scorecards across every named principle. They create noise and encourage weak findings.
 
-## Part 0: Previous Findings Verification
+## Green Goods Heuristics
 
-Check `.plans/audits/*-principles.md` for prior reports. Re-verify all Critical and High findings. Escalation: 3+ cycles = escalate one level, 5+ = flag as chronic in Executive Summary.
+Before reporting a finding, pressure-test it against the repo:
 
----
-
-## Green Goods Application Rules
-
-You know what SOLID, DRY, KISS, YAGNI, SOC, EDA, ADR, C4, ACID, BASE, and CAP mean. Below is how each applies specifically to this codebase.
-
-### SOLID
-
-| Principle | Green Goods Focus |
-|-----------|------------------|
-| **SRP** | Flag files >300 LOC, functions >50 LOC. Shared modules must not mix domain logic with I/O. Client/admin components must not mix fetching + logic + presentation. Contracts must not mix access control + domain + storage. |
-| **OCP** | Look for switch/if-else on type discriminators in garden/action/work handling. Flag enum dispatch requiring source modification for new cases. |
-| **LSP** | Check mock vs. live behavioral parity. Verify chain-specific logic substitutability. Check UUPS upgrade storage layout compatibility. |
-| **ISP** | Check `@green-goods/shared` barrel exports — do downstream packages import large surfaces for a few symbols? Flag fat type definitions. |
-| **DIP** | Check if client/admin directly instantiate shared internals. Verify hooks depend on abstractions. Contract interactions must go through deployment artifacts, not hardcoded addresses. |
-
-### Code Quality
-
-| Principle | Green Goods Focus |
-|-----------|------------------|
-| **DRY** | Duplicated logic across shared <-> client, shared <-> admin. Check error handling, contract call construction, query key management, form validation. Cross-package duplication that avoids coupling = INFO, not violation. |
-| **KISS** | Flag premature optimization (memoization without profiling), complex type gymnastics, cyclomatic complexity >10. |
-| **YAGNI** | Exported symbols with zero consumers, feature flags never toggled, commented-out code, interfaces with exactly one non-test implementation. |
-| **SOC** | **Vertical**: circular deps between shared modules? **Horizontal**: views containing business logic that belongs in shared? **Cross-cutting**: consistent logging/error/auth patterns? **Hook Boundary**: ALL hooks MUST live in `@green-goods/shared`. |
-
-### Architecture
-
-| Principle | Green Goods Focus |
-|-----------|------------------|
-| **EDA** | Map contracts -> indexer -> client/admin query flow. Check offline-first sync for race conditions. Verify indexer handlers are isolated and idempotent. Check for event handler leaks (addEventListener without cleanup). |
-| **ADR** | Check for undocumented decisions: offline-first PWA, single-chain (VITE_CHAIN_ID), hook boundary rule, indexer boundary, deployment artifact pattern, single root .env, Garden/Action/Work domain model. |
-| **C4** | L1: clear system boundary (blockchain, EAS, Hats, Hypercerts, Gardens V2)? L2: six packages well-defined? L3: components identifiable? L4: barrel exports enforced, no deep imports? |
-
-### Data
-
-| Principle | Green Goods Focus |
-|-----------|------------------|
-| **ACID** | IndexedDB writes wrapped in transactions? Contract multi-call atomic? Service worker vs main thread isolation? Crash recovery for persisted data? |
-| **BASE** | Offline-first sync: stale data on reconnect? Optimistic updates with rollback? Code assuming strong consistency over eventual consistency? |
-| **CAP** | Expected positions: IndexedDB = CP, Onchain = CP, Envio indexer = AP, SW cache = AP. Flag mismatches where code assumes wrong CAP property. |
-
----
-
-## Self-Validation (REQUIRED before report)
-
-Re-verify EVERY finding before generating the report:
-
-1. **Re-read** the flagged file at the cited line number
-2. **Confirm** code matches your description
-3. **Check context** — 10 lines above/below for guards/comments that invalidate
-4. **Assign confidence**: `HIGH` (verified) / `MEDIUM` (likely but unclear)
-5. **Drop findings below HIGH confidence**
-
----
-
-## Report Generation
-
-Create at `.plans/audits/[date]-principles.md`:
-
-1. **Executive Summary**: packages, mode, scorecard (all 15 principles — GREEN/YELLOW/RED with top issue and effort)
-2. **Previous Findings Status**: tracked from prior audit, each with FIXED/STILL OPEN
-3. **Findings by Principle**: grouped under SOLID, Code Quality, Architecture, Data. Each: ID, severity, file:line, issue, evidence, recommendation
-4. **Priority Queue**: top 10 fixes ordered by severity x effort
-5. **Trend**: principle scores across last N audits
-6. **Next Steps**: `fix critical`, `fix all`, `fix S1, D3`
-
-### Chat Output (REQUIRED)
-
-After writing the report, output to chat:
-- Full scorecard (all 15 principles, even GREEN)
-- Every non-INFO finding: `[ID]. [Title] — [SEVERITY]`, principle, `file:line`, effort, 2-3 sentences, fix recommendation
-- Positive findings (what the codebase does well)
-- Action items (bundle overlapping fixes, ordered by impact)
-- Fix commands: `fix critical` | `fix all` | `fix S1, EDA1`
-
----
-
-## Team Mode
-
-When `--team` is passed, spawn 4 parallel worktree-isolated read-only agents:
-
-| Agent | Covers | Key checks |
-|-------|--------|------------|
-| **solid-auditor** | SOLID | SRP file/function size, OCP switch chains, LSP mock parity, ISP barrel exports, DIP concrete deps |
-| **quality-auditor** | DRY/KISS/YAGNI/SOC | Cross-package duplication, dead code, over-engineering, hook boundary |
-| **arch-auditor** | EDA/ADR/C4 | Data flow mapping, undocumented decisions, event handler leaks |
-| **data-auditor** | ACID/BASE/CAP | IndexedDB transactions, sync consistency, CAP position mapping |
-
-Lead handles Parts 0, self-validation, and report synthesis.
-
----
-
-## Execute Findings
-
-When user replies with `fix [IDs]`, `fix critical`, or `fix all`:
-
-### Flow
-
-1. **Load report**: Glob `.plans/audits/*-principles.md`, use newest (or specific date)
-2. **Batch**: Max 3 per run (explicit ID lists exempt). Tell user how many remain.
-3. **Plan**: Re-verify (skip if <24h old), list files, estimate blast radius, wait for approval
-4. **Route**: Use agent routing table below
-5. **Regression**: Scope check, build gate, `bun run test`, code review on diff, `/simplify`
-6. **Update report**: Mark findings as FIXED with date
-
-### Agent Routing
-
-| Finding Type | Agent | Skills | Isolation |
-|-------------|-------|--------|-----------|
-| SRP/OCP/DRY extraction | `cracked-coder` | `architecture`, `testing` | `worktree` |
-| SOC extraction | `cracked-coder` | `react`, `testing` | `worktree` |
-| EDA/ACID/BASE/CAP fix | `cracked-coder` | `data-layer`, `testing` | `worktree` |
-| ADR/C4 documentation | `oracle` | `architecture` | none |
-| ISP refactor (exports) | `cracked-coder` | `ops`, `architecture`, `testing` | `worktree` |
-
-### Parallel Rules
-
-- **Independent findings** (different files): parallel agents with `isolation: worktree`
-- **Overlapping findings** (same files): bundle into single agent
-- **Sequential dependencies**: run in order
-
----
+- if it touches `packages/shared`, prefer narrower public surfaces over new architecture
+- if it touches contracts, migrations, or permissions, optimize for visible judgment, not elegance
+- if it touches UI, prefer existing shared/admin primitives over new abstraction families
+- if it touches offline or retry paths, prefer explicitness over convenience fallbacks
 
 ## Anti-Patterns
 
-| Don't | Why |
-|-------|-----|
-| Flag all duplication as DRY violations | Cross-package duplication avoids coupling — classify as INFO |
-| Report YAGNI on mock/test boundaries | These serve a real test purpose |
-| Judge CAP without checking transport | Code may look CP but run over an AP channel |
-| Include findings below HIGH confidence | Self-validation gate exists for a reason |
-| Edit files during an audit | Read-only mode |
-| Skip re-reading files before reporting | Stale reads = false findings |
-| Execute fixes without user plan approval | Wait for explicit go-ahead |
-| Fix >3 findings per run (unless user listed IDs) | Context exhaustion causes loops |
-| Re-verify findings from a report <24h old | Already validated |
-| Skip regression review after agents finish | CLAUDE.md mandates post-agent review |
-| Let an agent touch files outside its scope | Explicit file allowlist per agent |
-| Run overlapping findings as separate agents | Same file = merge conflicts |
-| Skip `/simplify` on agent output | Agents over-engineer fixes |
+Avoid these:
 
----
-
-## Key Principles
-
-- **Complete all packages** — never skip
-- **Read-only mode** — don't edit during audit
-- **Evidence-based** — every finding needs file:line and code evidence
-- **Contextual scoring** — GREEN/YELLOW/RED per principle, not just pass/fail
-- **Actionable** — every finding has a concrete recommendation
+- turning the audit into a textbook SOLID lecture
+- generating broad issue lists that a human has to re-triage
+- recommending new layers without a deletion or simplification story
+- scoring principles that do not map cleanly to the repo surface under review
 
 ## Related Skills
 
-- `audit` — Dead code detection and dependency health
-- `architecture` — Module boundary design and entropy reduction
-- `review` — PR-scoped review for specific changes
-- `contracts` — Solidity-specific security audit
+- `architecture` — structure mapping and placement guidance
+- `audit` — dead code, dependency drift, and concrete brittle spots
+- `review` — PR or diff-scoped correctness review
+- `clean` — implementation pass after design judgment is accepted

@@ -4,9 +4,9 @@ sidebar_label: Agentic Eval
 slug: /builders/quality/agentic-eval
 audience: developer
 owner: docs
-last_verified: 2026-04-11
+last_verified: 2026-04-18
 feature_status: Live
-keywords: [agentic evaluation, AI code review, model selection, three-strike protocol, test generation]
+keywords: [agentic evaluation, acceptance cases, guidance consistency, inner loop, test generation]
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -15,64 +15,56 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
-AI agents assist with code review, routing, and audit tasks in the Green Goods workflow. This page covers the active eval surface, how agent outputs are checked for quality, and how product acceptance cases complement that workflow.
+Green Goods still uses agentic evaluation, but the runnable benchmark-pack layer is intentionally small. The current harness combines product acceptance cases, guidance-consistency checks, targeted test loops, and human review instead of maintaining separate model benchmark packs for retired agents.
 
 ```mermaid
 flowchart LR
-    PR[Pull Request] --> Diff[Load Diff + Context]
-    Diff --> Agent[code-reviewer Agent]
-    Agent --> Findings[Findings]
-    Findings --> Filter{FP Rate < 10%?}
-    Filter --> |Yes| Post[Post PR Comments]
-    Filter --> |No| Strike[Three-Strike Protocol]
-    Post --> Human[Manual Review]
-    Strike --> Human
+    Change[Change Set] --> Diff[Diff + plan context]
+    Diff --> Tests[Targeted bun run test loop]
+    Diff --> Acceptance[Acceptance cases]
+    Tests --> Review[Human or skill-driven review]
+    Acceptance --> Review
+    Review --> Merge[Pre-merge / scheduled coverage gates]
 ```
 
 ## What It Checks
 
-### Agent Roles in QA
+### Active Eval Surfaces
 
-| Agent | Purpose | Model Requirement |
-|-------|---------|-------------------|
-| `code-reviewer` | PR review, pattern enforcement | Opus (judgment tasks) |
-| `triage` | Issue classification | Haiku (fast deterministic routing) |
+| Surface | Purpose | Status |
+|-------|---------|--------|
+| `.claude/evals/acceptance/` | Product acceptance cases and workflow-level checks | Live |
+| `node .claude/scripts/check-guidance-consistency.js` | Guidance drift detection across committed agent surfaces | Live |
+| `.github/workflows/claude-agent-evals.yml` | CI sync check for the committed agent/eval surface | Live |
 
-Agent specs live in `.claude/agents/*.md`. Each defines activation criteria, workflow phases, and constraints.
-
-The live runnable eval packs are intentionally limited to:
-
-- `.claude/evals/triage/`
-- `.claude/evals/code-reviewer/`
-
-`.claude/evals/acceptance/` stays alongside them as product QA coverage, not as an agent benchmark pack. Older manual benchmark suites live in archive and are not part of the current regression loop.
+The only live eval directory under `.claude/evals/` today is `acceptance/`. Automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` are retired, and the current CI workflow checks that this repo stays aligned with that retirement state. The committed agent surface is currently `cracked-coder` plus `oracle`; specialization otherwise routes through skills and plan-hub lanes.
 
 ### Model Selection
 
-Model choice directly impacts evaluation quality:
+Model choice still matters for judgment-heavy work:
 
-- **Opus** -- Required for any task involving judgment: code reviews, security audits, architecture analysis, test quality assessment. Produces accurate findings grounded in semantic context.
-- **Sonnet** -- Suitable for straightforward tasks: file lookups, simple searches, factual queries, mechanical transforms.
-- **Haiku** -- Appropriate only for trivial tasks. Not suitable for code review -- it produces high false-positive rates by flagging patterns syntactically without reading semantic context.
+- **Opus** -- suited to implementation, review, and architecture judgment
+- **Sonnet** -- suited to straightforward lookups and mechanical transforms
+- **Haiku** -- keep for trivial routing or small deterministic work, not review
 
 ### Evaluation Criteria
 
-#### Code Review Quality
+#### Change Quality
 
-Agent-generated code reviews are evaluated against these criteria:
+Agent-assisted changes are evaluated against these criteria:
 
-1. **Grounding** -- Every finding must reference a specific file and line number
-2. **False positive rate** -- Target below 10% (Opus typically achieves this; Haiku exceeded 95%)
-3. **Actionability** -- Findings must include a concrete fix, not just a description
-4. **Context awareness** -- The agent must read surrounding code (guards, retry paths, comments) before flagging
+1. **Grounding** -- every finding or fix should point to specific files, tests, or plan artifacts
+2. **False positive rate** -- findings should be rare, specific, and anchored in current repo surfaces rather than retired workflows
+3. **Actionability** -- findings must suggest a concrete next step, not just a label
+4. **Context awareness** -- the agent must read surrounding code, current docs, and feature-hub state before claiming drift or failure
 
 #### Product Acceptance Quality
 
 When feature work needs user-level verification, consult the acceptance cases in `.claude/evals/acceptance/`:
 
 - user stories should map to concrete product behavior
-- acceptance cases complement agent heuristics rather than replacing them
-- passing a code-oriented agent eval does not mean the feature satisfies product intent
+- acceptance cases complement code-level heuristics rather than replacing them
+- passing targeted tests does not guarantee the workflow matches product intent
 
 ## How It's Configured
 
@@ -96,31 +88,39 @@ node .claude/scripts/check-guidance-consistency.js
 
 This runs in CI via `.github/workflows/claude-guidance.yml` to catch drift between guidance files.
 
+### Inner-Loop Policy
+
+For iterative agent work, use the fastest honest loop:
+
+- targeted `bun run test -- <file>` while shaping a change
+- `bash scripts/check-test-quality.sh` when touching test governance
+- broader package or repo gates only once the local loop is green
+
+Coverage remains a scheduled floor on package CI and pre-merge validation, not the per-change inner loop.
+
 ## Running & Troubleshooting
 
-### Automated Review Workflow
+### Eval Surface Sync
 
-The `claude-code-review.yml` workflow runs agent-powered code review on PRs. It:
+The `claude-agent-evals.yml` workflow no longer runs model benchmark packs. It now verifies that:
 
-1. Checks out the PR branch
-2. Loads relevant context files based on changed paths
-3. Runs the `code-reviewer` agent against the diff
-4. Posts findings as PR comments
+1. the committed `.claude/agents/` surface matches the documented current agents
+2. `.claude/evals/` only contains the live acceptance pack
 
-Review scope is limited by the `.claude/rules/` path-scoped rules -- a PR touching only `packages/contracts/` will load `contracts.md` rules but not `react-patterns.md`.
+Diff-scoped automated review still happens through the dedicated review workflow and human validation, not through retired benchmark suites.
 
 ### Lessons Learned
 
-- Agent reviews that scan entire codebases produce noise. Scope reviews to the diff and its immediate dependencies.
-- Always validate agent findings manually before merging. Even Opus makes mistakes on novel patterns.
-- Acceptance cases are a useful backstop for product intent, especially when the code-level eval passes but the user workflow still feels off.
-- Context window management matters. Long sessions should checkpoint state to `session-state.md` and `tests.json` before compaction.
+- Repo-truth drift is more dangerous than missing a benchmark pack. Keep docs, workflows, and committed agent surfaces aligned.
+- Targeted loops beat blanket coverage during active implementation. Use broader coverage only once the scoped loop is already green.
+- Acceptance cases are a useful backstop for product intent, especially when code-level checks pass but the user workflow still feels off.
+- Context window management matters. Long sessions can checkpoint to `session-state.md` and `tests.json`, but `.plans/` remains the durable repo truth.
 
 ## Resources
 
 - [Husky Git Hooks](./husky) -- Local quality gates that run before code reaches the repository
 - [Regression Testing](./regression) -- Regression suites that agents help maintain
-- [GitHub Actions](./gh-actions) -- CI pipeline including the automated review workflow
+- [GitHub Actions](./gh-actions) -- CI pipeline including the eval surface sync
 - [Test Cases](./test-cases) -- Test case strategy that agents follow during TDD
 - Agent specs: `.claude/agents/*.md`
 - Guidance consistency script: `.claude/scripts/check-guidance-consistency.js`

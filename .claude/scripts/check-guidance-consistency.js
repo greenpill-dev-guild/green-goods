@@ -265,7 +265,7 @@ for (const [name, info] of skillMeta.entries()) {
 // === Unified registry: canonical commands, command skills, and bundles ===
 // All now live in skills.json alongside skills and aliases.
 
-const expectedCanonicalCommands = new Set(["plan", "debug", "review", "audit", "principles", "architecture", "status", "clean"]);
+const expectedCanonicalCommands = new Set(["plan", "debug", "review", "status"]);
 let canonicalCommandNames = new Set();
 
 {
@@ -526,7 +526,12 @@ for (const relPath of [".claude/skills/review/SKILL.md"]) {
 }
 
 // Retired agents — ensure removal stays clean
-for (const retiredAgent of [".claude/agents/triage.md", ".claude/agents/code-reviewer.md"]) {
+for (const retiredAgent of [
+  ".claude/agents/triage.md",
+  ".claude/agents/code-reviewer.md",
+  ".claude/agents/migration.md",
+  ".claude/agents/storybook-author.md",
+]) {
   if (exists(retiredAgent)) {
     fail(`${retiredAgent}: retired agent surface should not be reintroduced`);
   }

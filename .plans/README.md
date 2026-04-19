@@ -44,6 +44,30 @@ The Markdown files are the human-readable context:
 - `reports/`: verification outputs, follow-up notes, release summaries
 - `artifacts/`: screenshots, logs, scratch outputs that should stay near the plan
 
+## Control-Surface Rules
+
+### Repo Truth and Memory
+
+`.plans/` is the durable repo-truth surface for feature state, handoffs, evaluations, and automation context.
+Tool-local memory stores and local checkpoints can help an agent resume work, but they do not outrank the
+active feature hub.
+
+- Treat `.claude/agent-memory/`, `session-state.md`, `tests.json`, and automation memory as
+  environment-local unless an explicit freshness, expiry, and ownership policy says otherwise
+- Do not promote a repo-level `.claude/agent-memory/` surface into committed truth by default
+- When the hub and a local memory artifact disagree, fix the hub or record the blocker in the hub
+
+### Validation Posture
+
+Use the fastest honest validation loop for the touched surface:
+
+- `node scripts/plan-hub.mjs validate` for hub and lane-state changes
+- targeted `bun run test -- <file>` while shaping a bounded code change
+- `bun run test` when the changed surface needs a package or repo-level iterative gate
+- `bash scripts/check-test-quality.sh` when touching test governance
+
+Coverage is a scheduled or pre-merge floor, not the default inner loop.
+
 ## Lane Ownership
 
 The default lane split is:

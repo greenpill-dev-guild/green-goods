@@ -1,262 +1,326 @@
-# Agent 1: Deduplication & DRY Findings
+# Agent 1: Deduplication & DRY Findings (re-run, dry-run)
 
-Monorepo: `/Users/afo/Code/greenpill/green-goods` (bun, 7 packages). Focused on admin↔client↔shared duplication, not contracts/indexer (which have legit runtime isolation).
+Scope: `admin`, `shared`, `client`, `contracts`. Agent + indexer out of scope.
+Re-verified against current `develop` (2026-04-18). Prior report's HIGH-2 and HIGH-8 are still live exactly as described; two prior MEDIUMs (cookie jar and vault modal duplication) fully solidified — they are now HIGH adoption gaps.
 
-## Executive Summary
+## Executive summary
 
-1. **`useTxErrorMessages` hook is built but unused.** The shared hook at `packages/shared/src/hooks/utils/useTxErrorMessages.ts` exists explicitly to replace a ~20-line boilerplate that is still copy-pasted across 6 components. Single biggest mechanical win: adoption saves ~110 LOC. See HIGH-1.
-2. **`useMediaQuery` is duplicated in admin** despite being in shared. The 2026-04-15 principles audit flagged this — it's still there (`CanvasLayout.tsx:44`). One-line fix.
-3. **`formatDateRange` and `formatBytes`/`formatFileSize` are duplicated within shared itself.** One in `admin/Assessment/shared.tsx`, one in `shared/utils/time.ts`; another pair within shared (`quota.ts` vs `image-compression.ts`). Cleanup target.
-4. **`TradeHistoryTable.tsx` has 3 local helpers that duplicate shared utilities** (`truncateAddress`, `formatTimestamp`, inline explorer URL construction). Replace with `formatAddress`, `formatDate`, `getBlockExplorerTxUrl`.
-5. **Admin and client each have their own CookieJar deposit modal** with ~70% overlapping logic; same pattern with Vault deposit. Cross-boundary consolidation possible but needs design sign-off (surface identity is intentionally different).
+1. **`useTxErrorMessages` adoption is STILL zero — 10 call sites paste the same 15-25 LOC boilerplate** (up from 6 in the prior report). Two new consumers (`CreateGarden.tsx`, `CreateAssessment.tsx`) were added after the hook existed; neither uses it. ~170 LOC mechanical win. See HIGH-1. This is the single biggest finding.
+2. **`formatAddress`/`truncateAddress` adoption gap — 7 inline `slice(0,6)...slice(-4)` duplicates in admin** (up from 1 known). Both helpers are already exported from `@green-goods/shared`. See HIGH-2.
+3. **`useMediaQuery`, `normalizeAddress`, `formatDateRange`, `formatFileSize`, `WorkDetailStatusBadge`, `getBlockExplorerTxUrl` barrel** — all prior HIGH-2/4/5/6/7/8 findings are unchanged. None have been fixed in the last 30 commits.
+4. **New: `toLocaleDateString()` inline — 13 occurrences** (up from 3). Promoted from LOW to HIGH — shared `formatDate`/`formatDateTime` exists. Consistency + locale safety.
+5. **New: `address.toLowerCase() as Address` — 10+ sites in shared hooks** (yield, cookie-jar, greenwill, ENS). Should call `normalizeAddress` — tied to HIGH-7 (prior). Related to HIGH-6.
+6. `ImpactFunders` / `GardenSupporters` still 85% duplicate. Unchanged MEDIUM.
 
 ---
 
-## HIGH-CONFIDENCE (safe to fix)
+## HIGH-CONFIDENCE findings (safe to fix)
 
-### 1. `useTxErrorMessages` adoption — 6 call sites still using raw boilerplate
+### HIGH-1. `useTxErrorMessages` — 0 adopters, 10 hand-rolled consumers (ADOPTION FAILURE)
 
-The shared hook `useTxErrorMessages(error)` already exists at `packages/shared/src/hooks/utils/useTxErrorMessages.ts` and returns `{ view, title, message }`. It has ZERO adopters — the exact boilerplate it replaces is duplicated at:
+Shared hook at `packages/shared/src/hooks/utils/useTxErrorMessages.ts:29` returns `{ view, title, message }`. Zero files import it (`$RG useTxErrorMessages\(` → only the definition).
 
-- `packages/admin/src/components/Vault/DepositModal.tsx:143-163` (21 LOC)
-- `packages/admin/src/components/Vault/WithdrawModal.tsx:116-136` (21 LOC)
-- `packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx:85-105` (21 LOC)
-- `packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx:79-99` (21 LOC)
-- `packages/client/src/components/Dialogs/CookieJarDepositDialog.tsx:80-94` (15 LOC — slightly different, no "cancelled" branch)
-- `packages/client/src/components/Dialogs/VaultDepositDialog.tsx:70-94` (25 LOC approx)
+10 sites still do `classifyTxError(...)` + manual `formatMessage` blocks (15–25 LOC each):
 
-**Fix**: Replace `useMemo(()=>classifyTxError(...), ...)` + manual `formatMessage` blocks with `const { view, title, message } = useTxErrorMessages(mutation.error);`.
+- `packages/admin/src/components/Vault/DepositModal.tsx:144-164` (25 LOC)
+- `packages/admin/src/components/Vault/WithdrawModal.tsx:117-138` (25 LOC)
+- `packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx:86-105` (21 LOC)
+- `packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx:80-99` (21 LOC)
+- `packages/admin/src/views/Garden/CreateGarden.tsx:54-76` (~22 LOC) — **new since prior report**
+- `packages/admin/src/views/Garden/CreateAssessment.tsx:298-316` (18 LOC) — **new since prior report**
+- `packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx:66-69` (partial — uses `classifyTxError` only; no `formatMessage` yet, but same pattern will grow)
+- `packages/client/src/components/Dialogs/VaultDepositDialog.tsx:70-86` (17 LOC)
+- `packages/client/src/components/Dialogs/CookieJarDepositDialog.tsx:80-97` (18 LOC)
+- `packages/shared/src/hooks/hypercerts/useMintHypercert.ts:169` (internal — different context, leave alone)
 
-**Est. LOC reduction**: ~110 LOC (plus ~6 `classifyTxError`/`isMeaningfulTxErrorMessage` imports removed).
+**Fix**: replace each with `const { view, title, message } = useTxErrorMessages(mutation.error);`. Remove `classifyTxError` + `isMeaningfulTxErrorMessage` + `useMemo` imports.
 
-**Owner**: Shared hook is already there; just migrate consumers.
+**Est. reduction**: ~170 LOC across 9 files. Purely mechanical; no behavior change.
 
-### 2. `useMediaQuery` local re-implementation in admin
+**Owner**: shared hook exists — migration only.
 
-- Local copy: `packages/admin/src/components/Layout/CanvasLayout.tsx:44-57`
-- Canonical: `packages/shared/src/hooks/ui/useMediaQuery.ts` (already in barrel at `packages/shared/src/index.ts:503`)
+### HIGH-2. `formatAddress`/`truncateAddress` — 7+ inline `slice(0,6)...slice(-4)` duplicates (ADOPTION GAP)
 
-`views/Hub/index.tsx:17` already imports from shared. Only `CanvasLayout` has the stale copy.
+Shared `truncateAddress` at `packages/shared/src/utils/blockchain/address.ts:74` and `formatAddress` at `packages/shared/src/utils/app/text.ts` (barrel: `shared/src/index.ts:930, 1011`). Current inline duplicates:
 
-**Fix**: Delete local function at `CanvasLayout.tsx:44-57`, add `useMediaQuery` to the `@green-goods/shared` import at top of file.
+- `packages/admin/src/components/Hypercerts/TradeHistoryTable.tsx:33-35` (local function definition)
+- `packages/admin/src/components/Layout/UserMenu.tsx:52`
+- `packages/admin/src/components/Garden/GardenMetadata.tsx:98,156`
+- `packages/admin/src/components/Hypercerts/Steps/DistributionConfig.tsx:21`
+- `packages/admin/src/components/Hypercerts/DistributionChart.tsx:56`
+- `packages/admin/src/components/Hypercerts/Steps/HypercertPreview.tsx:61`
+- `packages/client/src/components/Dialogs/ConvictionDrawer.tsx:508`
 
-**Est. LOC reduction**: 14 LOC.
+**Fix**: Import `truncateAddress` from `@green-goods/shared` (handles undefined + defaults match: 6/4), or `formatAddress(addr, { variant: "card" })` for Address-typed inputs.
 
-### 3. `TradeHistoryTable` has 3 local helpers duplicating shared utilities
+**Est. reduction**: ~10 LOC + API consistency. One source of truth for truncation.
 
-`packages/admin/src/components/Hypercerts/TradeHistoryTable.tsx`:
+### HIGH-3. `useTxErrorMessages` not in barrel — blocker for HIGH-1 adoption
 
-- Line 17-22: local `formatUnits(units: bigint)` — abbreviates as "1.2M"/"1.2K". Not in shared yet but is a one-off; low priority.
-- Line 24-31: `formatTimestamp(timestamp)` → duplicates `formatDate(timestamp * 1000, { month: "short", day: "numeric", year: "numeric" })` from `@green-goods/shared`.
-- Line 33-35: `truncateAddress(address)` → duplicates `formatAddress(address, { variant: "card" })` from `@green-goods/shared` (same `6...4` behavior).
+Verify barrel before the HIGH-1 migration. `shared/src/hooks/utils/useTxErrorMessages.ts` exists but confirm `packages/shared/src/hooks/index.ts` and `packages/shared/src/index.ts` export it (a 1-line check; if not exported, that alone explains zero adoption).
 
-Also at line 48 + template usage, this file constructs the tx URL inline: `explorerUrl = networkConfig?.blockExplorer` + string interpolation. Should use `getBlockExplorerTxUrl(chainId, txHash)` from shared.
+Current state: `$RG "useTxErrorMessages" packages/shared/src/index.ts` returns **no results** — **the hook is NOT exported from the barrel**. This is the root cause of zero adoption.
 
-**Fix**: Replace 3 helpers with shared imports; use `getBlockExplorerTxUrl`.
+**Fix**: Add `useTxErrorMessages` to `packages/shared/src/hooks/index.ts` (or wherever utility hooks are exported) and re-export from the root barrel. THEN run HIGH-1 migration.
 
-**Est. LOC reduction**: 20+ LOC + 1 file simpler.
+**Est. reduction**: 1 LOC add, unblocks ~170 LOC reduction in HIGH-1.
 
-### 4. `getBlockExplorerTxUrl` missing from shared barrel
+### HIGH-4. `useMediaQuery` local re-impl in `CanvasLayout` — unchanged from prior report
 
-`packages/shared/src/utils/eas/explorers.ts:51` defines `getBlockExplorerTxUrl`. `packages/shared/src/utils/index.ts:218` exports it. But `packages/shared/src/index.ts` only exports `getBlockExplorerAddressUrl` and `getBlockExplorerTokenUrl` (lines 953-954) — `getBlockExplorerTxUrl` is missing.
+- Local copy: `packages/admin/src/components/Layout/CanvasLayout.tsx:44-57` (14 LOC)
+- Canonical: `packages/shared/src/hooks/ui/useMediaQuery.ts` (already in barrel)
+- `views/Hub/index.tsx` already imports from shared — inconsistency.
 
-Consumers that inline-construct tx URLs as a result:
+**Fix**: Delete local, import from shared. Still outstanding since 2026-04-15.
 
-- `packages/admin/src/components/Vault/VaultEventHistory.tsx:106` and `:173` — `href={\`${blockExplorer}/tx/${event.txHash}\`}`
-- `packages/admin/src/components/Hypercerts/TradeHistoryTable.tsx:48` — `const explorerUrl = networkConfig?.blockExplorer;` + usage
-- `packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx` — reported in prior audit, verify
+**Est. reduction**: 14 LOC.
 
-**Fix**: Add `getBlockExplorerTxUrl` to the barrel export list in `packages/shared/src/index.ts` alongside lines 953-954, then use it in the 2-3 call sites.
+### HIGH-5. `TradeHistoryTable` local helpers duplicate shared utilities — unchanged
 
-**Est. LOC reduction**: ~6 LOC in admin + correctness (single source of truth for URL formatting).
+`packages/admin/src/components/Hypercerts/TradeHistoryTable.tsx:17-35`:
 
-### 5. `formatDateRange` duplicated inside the monorepo (admin + shared)
+- Line 17-22: `formatUnits(units: bigint)` — abbreviates "1.2M"/"1.2K". Local one-off; LOW.
+- Line 24-31: `formatTimestamp(timestamp)` → use shared `formatDate(timestamp * 1000, { month: "short", day: "numeric", year: "numeric" })`.
+- Line 33-35: `truncateAddress(address)` → use shared `truncateAddress` or `formatAddress(addr, { variant: "card" })`.
+- Line 48 + 137: inline `${explorerUrl}/tx/${trade.txHash}` → use `getBlockExplorerTxUrl` (see HIGH-6).
 
-- Admin: `packages/admin/src/components/Assessment/CreateAssessmentSteps/shared.tsx:256-279` (24 LOC, hard-coded "Not provided" string instead of `fallback` param, uses `–` vs `\u2013`)
-- Shared (canonical): `packages/shared/src/utils/time.ts:553-576` (exported via barrel at `packages/shared/src/index.ts:932`)
+**Est. reduction**: ~20 LOC + correctness.
 
-The shared version is strictly more flexible (accepts a `fallback` param) and handles same type signatures. The admin re-export is used exactly once (`views/Garden/Assessment.tsx:9`) through `components/Assessment/index.ts:10`.
+### HIGH-6. `getBlockExplorerTxUrl` missing from barrel — unchanged
 
-**Fix**: Delete the admin copy. `Assessment.tsx:9` should import from `@green-goods/shared`. Remove the re-export from `components/Assessment/index.ts:10`.
+`packages/shared/src/utils/eas/explorers.ts` exports it. `packages/shared/src/utils/index.ts` re-exports. But `packages/shared/src/index.ts:953-954` exports only `getBlockExplorerAddressUrl` + `getBlockExplorerTokenUrl`. Tx URL export is missing.
 
-**Est. LOC reduction**: 24 LOC.
+Result: 5 inline `/tx/${txHash}` constructions in admin:
 
-### 6. `formatBytes` vs `formatFileSize` duplicated within shared
+- `packages/admin/src/components/Vault/VaultEventHistory.tsx:106,173`
+- `packages/admin/src/views/Garden/HypercertDetail.tsx:234`
+- `packages/admin/src/components/Hypercerts/TradeHistoryTable.tsx:137`
+- `packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx:211`
 
-- `packages/shared/src/utils/storage/quota.ts:167-177` — `formatBytes(bytes)` (units `B/KB/MB/GB`)
-- `packages/shared/src/utils/work/image-compression.ts:367-375` — `formatFileSize(bytes)` (units `Bytes/KB/MB/GB`)
+**Fix**: Add one line `getBlockExplorerTxUrl,` to the barrel, then migrate 5 call sites.
 
-These are functionally equivalent (same `log/pow` math). The only differences are the "B" vs "Bytes" label and `toFixed(1)` vs `toFixed(2)`. Both are exported from shared (`index.ts:935` exports `formatFileSize`; `utils/index.ts:315` exports `formatBytes`).
+**Est. reduction**: ~6 LOC + single source of truth.
 
-**Fix**: Keep `formatBytes` (shorter unit labels match industry convention). Delete `formatFileSize` from `image-compression.ts`. Update `packages/client/src/components/Cards/Work/WorkCard.tsx:3,130` (only external consumer) to use `formatBytes`.
+### HIGH-7. `formatDateRange` duplicated in admin + shared — unchanged
 
-**Est. LOC reduction**: 10 LOC + 1 consistent API.
+- Admin: `packages/admin/src/components/Assessment/CreateAssessmentSteps/shared.tsx:256-279` (24 LOC)
+- Shared (canonical): `packages/shared/src/utils/time.ts:553` (has optional `fallback` param)
+- Admin re-export: `packages/admin/src/components/Assessment/index.ts:10` (used once by `views/Garden/Assessment.tsx:9`)
 
-### 7. `normalizeAddress` duplicated inside shared
+**Fix**: Delete admin copy + re-export. Import from `@green-goods/shared`.
+
+**Est. reduction**: 24 LOC.
+
+### HIGH-8. `formatBytes` vs `formatFileSize` — unchanged
+
+- `packages/shared/src/utils/storage/quota.ts:167` — `formatBytes` ("B/KB/MB/GB", `toFixed(1)`)
+- `packages/shared/src/utils/work/image-compression.ts:367` — `formatFileSize` ("Bytes/KB/MB/GB", `toFixed(2)`)
+
+Both exported from barrel. Only external consumer is `packages/client/src/components/Cards/Work/WorkCard.tsx:3,130` → `formatFileSize`.
+
+**Fix**: Keep `formatBytes`. Delete `formatFileSize`. Migrate the one client call site + its test at `packages/client/src/__tests__/components/Cards.test.tsx`.
+
+**Est. reduction**: 10 LOC + consistent API.
+
+### HIGH-9. `WorkDetailStatusBadge` duplicates shared `StatusBadge` — unchanged
+
+`packages/admin/src/views/Garden/WorkDetail/index.tsx:100-129` defines a local badge component (30 LOC) for `"pending" | "approved" | "rejected"`. Shared `StatusBadge` at `packages/shared/src/components/StatusBadge.tsx` supports the exact same statuses with identical visuals.
+
+`packages/admin/src/views/Actions/ActionDetail.tsx` already uses the shared version.
+
+**Fix**: Replace `<WorkDetailStatusBadge status={work.status} />` (uses at lines 189, 306) with `<StatusBadge status={work.status} />`. Delete local component + icon imports.
+
+**Est. reduction**: ~30 LOC.
+
+### HIGH-10. `normalizeAddress` duplicated inside shared + 10 inline `toLowerCase() as Address` in shared hooks
+
+Shared-internal dup:
 
 - Canonical: `packages/shared/src/utils/blockchain/address.ts:98-103` (overloaded, type-safe)
-- Local copy: `packages/shared/src/modules/data/vaults.ts:190-192` (private, simpler)
+- Local copy: `packages/shared/src/modules/data/vaults.ts:190-192` (private) — **unchanged from prior report**
 
-This is shared-internal duplication. The file already imports other things from shared utils so it can just use the canonical.
+Plus **10 non-test inline usages** of `addr.toLowerCase() as Address` (pattern normalizeAddress is for) in shared hooks/modules:
 
-**Fix**: Delete `normalizeAddress` at `vaults.ts:190`, import from `../../utils/blockchain/address`.
+- `packages/shared/src/modules/data/vaults.ts:191`
+- `packages/shared/src/modules/data/yield-allocations.ts:61,62,104`
+- `packages/shared/src/modules/data/greenwill.ts:137`
+- `packages/shared/src/hooks/ens/useGreenGoodsEnsName.ts:23`
+- `packages/shared/src/hooks/cookie-jar/useUserCookieJars.ts:44,68`
+- `packages/shared/src/hooks/cookie-jar/useAccessibleCookieJars.ts:42,85,111`
+- `packages/shared/src/hooks/cookie-jar/useGardenCookieJars.ts:25`
 
-**Est. LOC reduction**: 3 LOC + single source of truth for address normalization.
+**Fix**: Delete local copy in `vaults.ts:190`, import `normalizeAddress` from `../../utils/blockchain/address`. Then migrate inline `toLowerCase()` sites. Contracts/indexer sites OUT OF SCOPE (different runtime — leave as-is).
 
-*(Skipped: indexer and contracts/script versions are intentionally isolated — Envio runtime doesn't import shared, and deploy scripts run in a different tsconfig context. Do NOT deduplicate across that boundary.)*
+**Est. reduction**: ~12 LOC + single address-normalization contract.
 
-### 8. `WorkDetailStatusBadge` in admin duplicates shared `StatusBadge`
+### HIGH-11. `toLocaleDateString()` inline — 13 occurrences, shared `formatDate` exists (PROMOTED from LOW)
 
-`packages/admin/src/views/Garden/WorkDetail/index.tsx:100-129` defines a local `WorkDetailStatusBadge` for work statuses (pending/approved/rejected) with its own `statusConfig` record, icon lookup, and i18n. `packages/shared/src/components/StatusBadge.tsx` already supports `status: "pending" | "approved" | "rejected"` with identical behavior (canonical, exported from the barrel at line 216 of `shared/components/index.ts`).
+Shared `formatDate`, `formatDateTime`, `formatRelativeTime` all exist and are barrel-exported. Inline `toLocaleDateString()` still appears at:
 
-`ActionDetail.tsx:6,155` already uses the shared version correctly.
+- `packages/admin/src/views/Garden/HypercertDetail.tsx:447`
+- `packages/admin/src/components/Assessment/CreateAssessmentSteps/shared.tsx:263,269` (will be deleted via HIGH-7)
+- `packages/admin/src/components/Hypercerts/TradeHistoryTable.tsx:26` (covered by HIGH-5)
+- `packages/admin/src/components/Hypercerts/Steps/MetadataEditor.tsx:32`
+- `packages/admin/src/components/Layout/CommandPalette.tsx:284`
+- `packages/admin/src/components/Action/CreateActionSteps/ReviewStep.tsx:58` (×2)
+- `packages/client/src/views/Home/Garden/Assessment.tsx:32,39`
+- `packages/client/src/views/Home/Garden/index.tsx:350`
+- `packages/client/src/components/Features/Garden/Assessments.tsx:39,46`
 
-**Fix**: Replace `WorkDetailStatusBadge` with `<StatusBadge status={work.status} />`. Remove local component and its icon imports.
+**Fix**: Replace with `formatDate(ts)` / `formatDate(new Date(ts))` from shared. Ensures consistent locale/format (`formatDate` uses IntlContext).
 
-**Est. LOC reduction**: ~30 LOC.
+**Est. reduction**: ~13 LOC, correctness win for locale handling.
+
+### HIGH-12. Cookie Jar modal boilerplate (admin + client) — now counts as adoption gap
+
+No shared `useCookieJarDepositForm` / `useCookieJarWithdrawForm` hook exists. Four near-identical modals copy the same jar + amount + validation + mutation state machine:
+
+- `packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx` (258 LOC)
+- `packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx` (241 LOC)
+- `packages/client/src/components/Dialogs/CookieJarDepositDialog.tsx` (~220 LOC)
+- `packages/client/src/components/Dialogs/TreasuryDrawer/CookieJarCard.tsx` (inline withdraw)
+
+Each has: jar state, `amount` + `validateDecimalInput`, decimals, parsed BigInt, balance check, mutation, tx-error boilerplate (HIGH-1), `useEffect` to reset error.
+
+**Fix**: Extract `useCookieJarDepositForm(gardenAddress, isOpen)` and `useCookieJarWithdrawForm(...)` to `packages/shared/src/hooks/cookie-jar/` returning `{ jar, setJar, amount, setAmount, inputError, belowMin, parsedAmount, mutation, submit, reset, txMessages }`. Modals keep only their surface chrome (AdminDialog vs DialogShell).
+
+**Est. reduction**: ~200 LOC across 4 files once the hook lands. Pair with HIGH-1.
+
+**Owner**: shared (per CLAUDE.md hook boundary).
 
 ---
 
-## MEDIUM (needs judgment)
+## Adoption gaps (shared primitives with ≥3 hand-rolled duplicates)
 
-### 9. `ImpactFunders` vs `GardenSupporters` — 85% duplicate
+| Shared primitive | Location | Adopters | Hand-rolled copies |
+|---|---|---|---|
+| `useTxErrorMessages` hook | `shared/src/hooks/utils/useTxErrorMessages.ts` | 0 | **10** (see HIGH-1). Not exported in barrel → root cause. |
+| `truncateAddress` / `formatAddress` | `shared/src/utils/blockchain/address.ts:74` + `shared/src/utils/app/text.ts` | many | **7** inline `slice(0,6)...slice(-4)` (HIGH-2) |
+| `normalizeAddress` | `shared/src/utils/blockchain/address.ts:98` | some | **10** inline `toLowerCase() as Address` in shared hooks (HIGH-10) |
+| `formatDate` / `formatDateTime` | `shared/src/utils/time.ts` | some | **13** inline `toLocaleDateString()` (HIGH-11) |
+| `StatusBadge` | `shared/src/components/StatusBadge.tsx` | 1 (`ActionDetail`) | 1 local `WorkDetailStatusBadge` (HIGH-9) |
+| `useMediaQuery` | `shared/src/hooks/ui/useMediaQuery.ts` | some | 1 local in `CanvasLayout` (HIGH-4) |
+| `formatBytes` | `shared/src/utils/storage/quota.ts` | 0 external | 1 shared-internal twin `formatFileSize` (HIGH-8) |
+| `getBlockExplorerTxUrl` | `shared/src/utils/eas/explorers.ts` | 0 | 5 inline `/tx/${hash}` (HIGH-6, blocker: not in barrel) |
+
+Pattern: 4 of 8 entries are primitives that are defined in shared but **not exported at the root barrel**, or the barrel export exists yet consumers never discovered it. Barrel hygiene is the single-point intervention.
+
+---
+
+## MEDIUM (judgment needed)
+
+### M-1. `ImpactFunders` vs `GardenSupporters` — 85% duplicate (unchanged)
 
 - `packages/admin/src/components/Vault/ImpactFunders.tsx` (88 LOC)
 - `packages/admin/src/components/Vault/GardenSupporters.tsx` (~70 LOC)
 
-Both:
+Both call `useFunderLeaderboard()`, render identical skeleton + header chrome + row loop with `<FunderRow />`. Difference: ImpactFunders has expand/collapse.
 
-- Call `useFunderLeaderboard()` (one with `{ gardenAddress }`, one without)
-- Render identical loading skeleton (`rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm sm:p-5` + shimmer rows)
-- Render identical header chrome (title/subtitle + yield pill)
-- Iterate with `<FunderRow key={funder.address} funder={funder} maxYield={maxYield} />`
+**Fix**: `FunderLeaderboardPanel` props: `{ gardenAddress?: Address; title; subtitle; explainer?; defaultVisible? }`. Net ~80 LOC. Design sign-off for expand behavior.
 
-Differences: ImpactFunders has expand/collapse logic + context explainer text; GardenSupporters has no expand.
+### M-2. Vault Deposit/Withdraw Modal duplication (admin)
 
-**Proposed consolidation**: A `FunderLeaderboardPanel` component taking `{ gardenAddress?: Address; title; subtitle; explainer?: string; defaultVisible?: number }` props. Skeleton + header + row loop + (optional) expand all internal.
+`DepositModal.tsx` (366+ LOC) and `WithdrawModal.tsx` (330+ LOC) — identical debounce + decimals + gas estimation + validation scaffolding. Non-chrome differences are meaningful (deposit has gas estimation + max-deposit limits; withdraw has max-withdrawable). HIGH-1 + HIGH-12 cover the common tx-error + form pieces. What remains is ~40 LOC of shared "amount editor" UI that could move to `AdminAmountField` or similar — but that's a new primitive, not a dedup.
 
-**Est. LOC reduction**: ~80 LOC (one surface keeps both views' configurations). Requires design review for the expand-by-default behavior.
+### M-3. `DOMAIN_ICON_CONFIG` (admin) vs `DOMAIN_CONFIG` (shared) — unchanged
 
-### 10. Cookie Jar Deposit Modal: admin vs client cross-boundary duplicate
+- `packages/admin/src/components/Assessment/CreateAssessmentSteps/shared.tsx:8-30` (string-icon shape)
+- `packages/shared/src/config/domain.ts:19-72` (component-icon shape)
 
-- `packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx` (258 LOC)
-- `packages/client/src/components/Dialogs/CookieJarDepositDialog.tsx` (comparable size, uses `DialogShell`)
+Admin uses `<i className={icon}>` pattern; shared uses `<config.icon />`. Pick one — migrating Assessment to component-icon deletes `DOMAIN_ICON_CONFIG` + `DOMAIN_LABEL_DEFAULTS` + `resolveDomainLabel` (reuse shared labels).
 
-Both implement: jar selector, amount input with decimals/validation, min-deposit check, wallet balance hook, `useCookieJarDeposit` mutation, error display.
+**Est. reduction**: ~25 LOC.
 
-**Reason to keep separate (surface identity)**: Admin uses `AdminDialog` (strict M3), client uses `DialogShell` (warm glass). Typography and layout polish are different.
+### M-4. Native `<select>` chrome — 2 duplicates (down from 4)
 
-**Proposed consolidation**: Extract a `useCookieJarDepositForm(gardenAddress, isOpen)` hook to `@green-goods/shared/hooks/cookie-jar/useCookieJarDepositForm.ts` that encapsulates: jar state, amount state, decimals, validation, parsed amount, mutation lifecycle, belowMin check. Return `{ jar, setJar, amount, setAmount, inputError, belowMin, parsedAmount, mutation, submit, reset, txMessages }`. Each modal wraps it in its own surface chrome.
+Same exact class string at:
 
-**Est. LOC reduction**: ~80 LOC each — net ~120 LOC after hook is added. Owner: **shared** (per CLAUDE.md hook boundary rule).
+- `packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx:137`
+- `packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx:126`
 
-### 11. Cookie Jar Withdraw Modal duplication (withdraw-only, within admin)
+(Client versions appear to have been refactored since the prior report.)
 
-- `packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx` (241 LOC)
+**Fix** (or leave): Add `AdminSelect` wrapper to the Admin* palette. Feature add; out of scope for pure dedup. Flag for design.
 
-70% overlap with CookieJarDepositModal structure. Adding a `useCookieJarWithdrawForm` hook following the same pattern as finding 10 would yield additional ~60 LOC reduction when the modal chrome can share an internal layout.
+### M-5. `rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm` — 9 call sites
 
-### 12. Vault Deposit/Withdraw Modal duplication
+Card-section Tailwind string duplicated in:
 
-- `packages/admin/src/components/Vault/DepositModal.tsx` (366+ LOC) and `WithdrawModal.tsx` — same pattern as cookie jar: form state, decimals, debounced amount (`useDebouncedValue`), validation, mutation, tx feedback.
-- Plus the **exact same** tx-error block duplicated (see HIGH-1).
+- `packages/admin/src/components/Vault/GardenSupporters.tsx:15,37`
+- `packages/admin/src/components/Vault/ImpactFunders.tsx:16,40`
+- `packages/admin/src/components/Hypercerts/Steps/HypercertPreview.tsx:149,195,239`
+- `packages/admin/src/components/Garden/GardenYieldCard.tsx:51`
+- `packages/shared/src/components/Tokens/MaterialRoles.stories.tsx:43` (story)
 
-**Note**: Deposit has gas estimation (`useEstimateGas` + `useGasPrice`) and max-deposit limits; withdraw has max-withdrawable. So the non-chrome logic is different. Consolidation here would be the tx-error block only (already covered in HIGH-1).
-
-### 13. `DOMAIN_ICON_CONFIG` (admin) vs `DOMAIN_CONFIG` (shared) — two shapes for same data
-
-- `packages/admin/src/components/Assessment/CreateAssessmentSteps/shared.tsx:8-30` — `{ icon: string, color: string, labelId: string }` with `DOMAIN_LABEL_DEFAULTS` at lines 32-37
-- `packages/shared/src/config/domain.ts:19-72` — `{ icon: Component, labelId, colors: {bg,text,border}, gradient: {from,to} }`
-
-Both map the same 4 `Domain` enum values to display metadata. The admin one uses a Remixicon *string* (`"ri-sun-line"`) because the Assessment wizard renders via `<i className={icon}>` instead of a React component.
-
-**Proposed consolidation**: The shared `DOMAIN_CONFIG.icon` is already a component (`RiSunLine` etc.). The only real divergence is "string icon name vs component". Rather than storing both, pick one and migrate. Simpler path: change Assessment wizard to render `<config.icon className="..."/>` like the rest of the app. Removes `DOMAIN_ICON_CONFIG` + `DOMAIN_LABEL_DEFAULTS` entirely.
-
-**Est. LOC reduction**: ~25 LOC. Owner: shared (it wins).
-
-### 14. Native `<select>` chrome duplicated across 4 modals
-
-Exact class string `"mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"` appears (almost verbatim, small padding/radius differences) in:
-
-- `admin/src/views/Hub/components/CookieJarDepositModal.tsx:137`
-- `admin/src/views/Hub/components/CookieJarWithdrawModal.tsx:126`
-- `client/src/components/Dialogs/CookieJarDepositDialog.tsx:158`
-- `client/src/components/Dialogs/VaultDepositDialog.tsx:139`
-
-This is native `<select>` styling (not a component swap). The admin set uses `AdminTextField`; there is no `AdminSelect` yet.
-
-**Proposed consolidation**: Add an `AdminSelect` wrapper to `packages/admin/src/components` (admin surface) following the pattern of the other `Admin*` components. Client side is fewer usages and uses `DialogShell`; may warrant a `Select` primitive in `@green-goods/shared`.
-
-**Est. LOC reduction**: ~8 LOC saved per call site — but real win is design-system compliance, not LOC.
-
-### 15. `WorkCard` (Hub) + `HubWorkCard` — one used, one only in stories
-
-- `packages/admin/src/views/Hub/components/WorkCard.tsx` (116 LOC) — wraps shared `WorkCardComponent`, used in `WorkSubmissionsView.tsx:12`
-- `packages/admin/src/views/Hub/components/HubWorkCard.tsx` (218 LOC) — image-focused card, only imported in `HubWorkCard.stories.tsx` and `__tests__/components/HubWorkCard.test.tsx`
-
-`HubWorkCard` has no runtime consumer. It's either dead code or intended for a pending Hub visual. Either way, the two cards do NOT duplicate each other — they coexist without being reconciled. Flag for the dead-code pass (agent-3) to confirm.
+**Decision**: Likely should use `AdminCard` (9 consumers already). Flag for design — one layer deeper than a mechanical dedup. LOW-MEDIUM.
 
 ---
 
 ## LOW (probably not worth it)
 
-### 16. Inline spinners: `<RiLoader4Line className="h-X w-X animate-spin" />` — 35 occurrences
+### L-1. Inline `RiLoader4Line ... animate-spin` — ~40 occurrences
 
-Shared `Spinner` + `CenteredSpinner` exist (`packages/shared/src/components/Spinner.tsx`) but are used only 5 times. The inline usage is semantically the same but sizing varies (`h-3.5`, `h-4`, `h-5`, `h-6`) and color class varies (`text-text-soft`, `text-primary-base`, etc.). Replacing all would be a mechanical but LOW-value pass; the inline version is arguably clearer for button-adjacent spinners. **Not worth consolidating** unless design system is enforcing it.
+Shared `Spinner` / `CenteredSpinner` exist (~5 consumers). Sizing varies (`h-3.5`/`h-4`/`h-5`/`h-6`) and color class varies. Mechanical sweep, marginal value, some intentional context differences.
 
-### 17. `Array.from({ length: N }).map(...)` skeleton loops — 14 occurrences
+### L-2. `Array.from({ length: N }).map(...)` skeleton loops — 14+ occurrences
 
-Pattern appears in admin + client for skeleton rows. Could become `<SkeletonRows count={N} />` but the internal skeleton shape differs by view (table rows, cards, list items). Not enough similarity — **intentional**.
+Skeleton shape varies by view (table rows / cards / list items). Not enough similarity.
 
-### 18. Inline `toLocaleDateString()` without `formatDate` helper
+### L-3. Dialog `max-w-[calc(100vw-2rem)] sm:max-w-md` — 3 sites
 
-Found in 3 places:
+`AdminDialog.tsx:73`, `Dialog/ConfirmDialog.tsx:80,244`. Intentional per `project_dialog_architecture` memory — two wrappers, two surface identities.
 
-- `admin/src/components/Layout/CommandPalette.tsx:284`
-- `admin/src/views/Garden/HypercertDetail.tsx:447`
-- `client/src/views/Home/Garden/index.tsx:350`
+### L-4. `skeleton-shimmer` class — used in 12+ files
 
-Shared has `formatDate()`, `formatDateTime()`, `formatRelativeTime()`. Could migrate for consistency but 3 hits is marginal. **Not worth** unless doing a sweep.
-
-### 19. Mobile-safe dialog max-width `max-w-[calc(100vw-2rem)] sm:max-w-md` — duplicated in 2 shared components + admin
-
-Both `packages/admin/src/components/AdminDialog.tsx:73` and `packages/shared/src/components/Dialog/ConfirmDialog.tsx:244` use this exact string. Since `AdminDialog` and `DialogShell/ConfirmDialog` are intentionally separate wrappers (see memory: project_dialog_architecture.md), each with its own surface identity, this is **intentional** — both happen to follow the same Rule 14 from frontend-design.md.
-
-### 20. `.toLowerCase()` on addresses — 18+ occurrences
-
-Many hooks call `address.toLowerCase()` inline instead of using the canonical `normalizeAddress`. Consolidating this is LOW priority — the behavior is identical and inlining is readable. The dedupe win from finding 7 (inside vaults.ts) is enough.
+Already a shared CSS helper in `admin/src/index.css` + `shared/src/components/Skeleton.tsx`. Just repeated consumption. Not a dedup target.
 
 ---
 
-## Explicit NON-FINDINGS (checked and rejected)
+## Contracts (Solidity / script / test) — scope skim
 
-- **`AdminCard` vs shared `Card`** — Intentionally separate. M3 strict anatomy (per project_m3_component_compliance memory) requires admin-owned wrappers with `data-component="AdminCard"` for CSS scoping. Don't merge.
-- **Admin `AdminDialog` vs shared `DialogShell`** — Also intentional per project_dialog_architecture memory (2026-04-17). Admin uses M3 Basic Dialog chrome, shared uses warm glass. Do not merge.
-- **`indexer/handlers/helpers.ts` `normalizeAddress`** — Envio handlers run in a Node runtime that doesn't import `@green-goods/shared`. Leave it.
-- **`contracts/script/.../normalizeAddress`** — Deploy scripts use their own tsconfig + are forge/foundry-adjacent. Leave alone.
-- **Client `Display/Image/ImageWithFallback.tsx`** — Already a pure re-export shim (`export { ImageWithFallback } from "@green-goods/shared"`). No work to do.
-- **Two Hub WorkCards (finding 15)** — Not duplicates of each other; they serve different purposes. Flag to agent-3 as potential dead code.
-- **`CreateAction.tsx` vs `EditAction.tsx`** (580 total LOC) — Different zod schemas, different form fields, different API surface. Not duplicates. Consolidating would create worse conditional complexity.
-- **Client `ActionCard`, `DraftCard`, `WorkCard` + shared `Cards/*`** — Client cards intentionally compose `Card`/`CardBase` primitives from client's own `Base/Card`, not shared `Cards`. Client surface identity per design system. Leave intact.
-- **Native `<select>` vs `AdminSelect`** — No `AdminSelect` exists yet. Flagged in finding 14 as a potential new primitive, but creating one is out of scope for a dedup pass; that's a feature add.
-- **`useCookieJarWithdraw` per-component error clear `useEffect`** — Subtly different deps per modal (deposit clears on jar+amount; withdraw clears on jar+amount+purpose). Could live in the proposed `useCookieJar*Form` hooks (finding 10/11) but not worth a standalone dedup.
-- **Shared utility hooks (`useEventListener`, `useTimeout`, `useAsyncEffect`)** — Already canonical and adopted per react-patterns.md rules. Good shape.
+No obvious same-file duplication. Observations:
+
+- `packages/contracts/src/vendor/octant/**` — vendored Octant strategies; leave as-is by policy.
+- `packages/contracts/src/mocks/*.sol` — mock contracts are testing fixtures; duplication intentional across mocks (each models a different upstream).
+- `packages/contracts/test/helpers/*` — `DeploymentBase.sol`, `EASHelper.sol`, `ERC6551Helper.sol`, `GAPTestHelper.sol` are already shared helpers; no obvious dup inside tests.
+- `packages/contracts/script/utils/post-deploy-verify.ts` + `script/migrate-vaults.ts` both define their own `normalizeAddress` — intentional (different tsconfig context from shared, forge-adjacent). **Leave alone.**
+
+Agent 1 skips contracts in depth — nothing actionable.
 
 ---
 
-## Priority-Ordered Action List
+## Explicit non-findings (intentionally preserved)
 
-Pick top-N for immediate fix:
+- **`AdminCard` vs shared `Card`** — M3 strict anatomy requires admin-owned wrappers per `project_m3_component_compliance` memory. Both coexist.
+- **`AdminDialog` vs shared `DialogShell`** — Intentional per `project_dialog_architecture`. Two surface identities.
+- **`indexer/handlers/helpers.ts` `normalizeAddress`** — Envio runtime doesn't import shared. Leave.
+- **`contracts/script/.../normalizeAddress`** — Deploy scripts, different tsconfig. Leave.
+- **`agent/src/handlers/utils.ts` `formatAddress`** — Agent is OUT OF SCOPE; file also has explicit comment saying the duplication is deliberate (no browser-only deps in Node agent).
+- **Client `Display/Image/ImageWithFallback.tsx`** — Already a pure re-export shim.
+- **`HubWorkCard` vs `WorkCard`** (admin) — Different purposes; `HubWorkCard` has no runtime consumer (only storybook + test). Flag to agent-3 (dead-code pass) — not a dedup.
+- **`CreateAction.tsx` vs `EditAction.tsx`** — Different schemas/fields/APIs; consolidation would hurt.
+- **Shared utility hooks (`useEventListener`, `useTimeout`, `useAsyncEffect`)** — Good shape, per `react-patterns.md` rules.
+- **Client cards vs shared `Cards/*`** — Client cards intentionally compose client's own primitives for warm-glass surface identity.
 
-1. **HIGH-1** (`useTxErrorMessages` adoption × 6) — ~110 LOC, purely mechanical
-2. **HIGH-4** (export `getBlockExplorerTxUrl` from barrel) — 1 LOC add, unblocks HIGH-3
-3. **HIGH-3** (`TradeHistoryTable` local helpers) — ~20 LOC + correctness
-4. **HIGH-2** (`useMediaQuery` in CanvasLayout) — 14 LOC, long-overdue from 2026-04-15
-5. **HIGH-5** (`formatDateRange` dedupe) — 24 LOC
-6. **HIGH-8** (`WorkDetailStatusBadge` → shared `StatusBadge`) — 30 LOC
-7. **HIGH-6** (`formatFileSize` → `formatBytes`) — 10 LOC
-8. **HIGH-7** (shared-internal `normalizeAddress`) — 3 LOC
-9. **MEDIUM-9** (FunderLeaderboardPanel) — design sign-off needed
-10. **MEDIUM-10/11** (Cookie Jar form hooks) — shared hook design needed
+---
 
-Total HIGH-only mechanical reduction: **~210 LOC** across ~12 files with no behavior change.
+## Priority-ordered action list
+
+All HIGH items are mechanical and safe after step 1:
+
+1. **HIGH-3** (export `useTxErrorMessages` from barrel) — 1 LOC, unblocks HIGH-1
+2. **HIGH-1** (`useTxErrorMessages` migration × 9) — ~170 LOC
+3. **HIGH-6** (export `getBlockExplorerTxUrl` from barrel) — 1 LOC, unblocks HIGH-5
+4. **HIGH-5** (`TradeHistoryTable` local helpers) — ~20 LOC
+5. **HIGH-2** (inline address truncation → `truncateAddress`) — ~10 LOC
+6. **HIGH-4** (`useMediaQuery` in CanvasLayout) — 14 LOC
+7. **HIGH-7** (`formatDateRange` dedupe) — 24 LOC
+8. **HIGH-9** (`WorkDetailStatusBadge` → shared `StatusBadge`) — 30 LOC
+9. **HIGH-8** (`formatFileSize` → `formatBytes`) — 10 LOC
+10. **HIGH-10** (shared-internal `normalizeAddress` + 10 inline sites) — 12 LOC
+11. **HIGH-11** (`toLocaleDateString` → `formatDate`) — 13 LOC
+12. **HIGH-12** (`useCookieJar*Form` hooks) — ~200 LOC, needs shared hook design first
+
+**HIGH-only mechanical reduction**: ~305 LOC after step 1 across ~20 files, plus ~200 LOC once HIGH-12 hook design lands. Zero behavior change.
+
+Root cause of the biggest finding (HIGH-1): the hook was built but never exported from the barrel. The adoption-failure fix is the 1-line barrel export first, then the migration. Worth checking the barrel discipline in a follow-up pass — the same pattern likely exists elsewhere.

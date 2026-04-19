@@ -14,3 +14,4 @@ Each handoff should capture:
 2. What remains
 3. Validation run
 4. Known risks or blockers
+5. Repo-truth references from the active hub or reports, not tool-local memory claims

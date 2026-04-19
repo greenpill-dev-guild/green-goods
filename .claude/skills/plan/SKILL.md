@@ -1,5 +1,6 @@
 ---
 name: plan
+user-invocable: true
 description: Planning & Execution - create structured implementation plans, check progress, execute in batches, manage lifecycle, and coordinate agent teams. Use when the user says 'plan this', asks to break down a feature into steps, needs a phased implementation strategy, or wants to coordinate multiple agents.
 argument-hint: "[feature-name]"
 version: "1.1.0"
@@ -16,12 +17,16 @@ Planning lifecycle for Green Goods: create plans, check progress, execute in bat
 
 **References**: See `CLAUDE.md` for entry points, agent routing, and Green Goods conventions.
 
+This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, pull the architecture lens into `/plan` rather than bouncing the user to a separate starting command.
+
 ---
 
 ## Activation
 
 | Trigger | Action |
 |---------|--------|
+| `/plan` | Create new implementation plan |
+| `/plan --mode teams` | Coordinate a multi-agent execution plan |
 | "plan this" / "break down X" | Create new implementation plan |
 | Fuzzy request, no clear "done when" | Brainstorm first — see [brainstorm.md](./brainstorm.md) |
 | Plan exists, check progress | Audit progress against plan |
@@ -31,7 +36,7 @@ Planning lifecycle for Green Goods: create plans, check progress, execute in bat
 | Starting new feature | Brainstorm → brief → plan → code |
 | Cross-package breaking change | Create or update the owning feature hub, then route execution through `ops/migration` |
 
-**Note**: `/plan` is no longer a user-invocable slash command. The skill fires passively when the user describes planning intent. For the brainstorm-before-plan flow (fuzzy requirements), see [brainstorm.md](./brainstorm.md).
+`/plan` is the explicit entry point. The skill should also fire passively when the user clearly describes planning intent. For the brainstorm-before-plan flow on fuzzy requirements, see [brainstorm.md](./brainstorm.md).
 
 ## Progress Tracking (REQUIRED)
 

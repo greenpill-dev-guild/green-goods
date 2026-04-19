@@ -11,8 +11,10 @@ const docsRoot = path.resolve(repoRoot, "docs/docs");
 const referenceRoot = path.resolve(docsRoot, "reference");
 const introDocPath = path.resolve(docsRoot, "intro.md");
 const glossaryDocPath = path.resolve(docsRoot, "glossary.md");
+const readmePath = path.resolve(repoRoot, "README.md");
 
 const isCi = process.argv.includes("--ci");
+const isStrictReadme = process.argv.includes("--strict-readme");
 
 const canonicalRoots = [
   path.resolve(docsRoot, "gardener"),
@@ -62,6 +64,41 @@ const endpointLiteralPattern =
 const emptyMarkdownLinkPattern = /\[\s*]\([^)]+\)/;
 const incompletePhrasePattern = /\bsee the\s+for\b/i;
 
+const readmeRequiredHeadings = [
+  "Quick Start",
+  "Documentation",
+  "AI-Assisted Development",
+  "Contributing",
+];
+
+const readmeRequiredSnippets = [
+  "bun setup",
+  "bun dev",
+  "bun run test",
+  "https://docs.greengoods.app/builders/getting-started",
+  "https://docs.greengoods.app/builders/agentic/prompting-green-goods",
+  "https://docs.greengoods.app/builders/architecture",
+  "https://docs.greengoods.app/builders/operations",
+  "https://docs.greengoods.app/builders/how-to-contribute",
+  "./AGENTS.md",
+  "./CLAUDE.md",
+];
+
+const readmeForbiddenPatterns = [
+  {
+    pattern: /docs\.greengoods\.app\/welcome\//i,
+    message: "Contains stale docs link pattern: docs.greengoods.app/welcome/...",
+  },
+  {
+    pattern: /docs\.greengoods\.app\/developer\//i,
+    message: "Contains stale docs link pattern: docs.greengoods.app/developer/...",
+  },
+  {
+    pattern: /\.claude\/skills\/dependency-management\/SKILL\.md/i,
+    message: "Contains outdated dependency-management skill path.",
+  },
+];
+
 const warnings = [];
 
 const warn = (filePath, message) => {
@@ -88,6 +125,29 @@ const isExternalHref = (href) =>
   /^https?:\/\//i.test(href) || /^mailto:/i.test(href) || /^tel:/i.test(href);
 
 const stripHashAndQuery = (href) => href.split("#")[0].split("?")[0];
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const normalizeDocSlug = (slug) => {
+  const cleanSlug = stripHashAndQuery(String(slug).trim());
+  if (!cleanSlug || cleanSlug === "/") {
+    return "/";
+  }
+  const withLeadingSlash = cleanSlug.startsWith("/") ? cleanSlug : `/${cleanSlug}`;
+  return withLeadingSlash.endsWith("/") ? withLeadingSlash.slice(0, -1) : withLeadingSlash;
+};
+const isDocsSiteHref = (href) => {
+  try {
+    const url = new URL(href);
+    return url.hostname === "docs.greengoods.app";
+  } catch {
+    return false;
+  }
+};
+const collectMarkdownHrefs = (markdown) => {
+  const rawWithoutCodeBlocks = markdown.replace(/```[\s\S]*?```/g, "");
+  return [...rawWithoutCodeBlocks.matchAll(/\[[^\]]*]\(([^)]+)\)/g)]
+    .map((match) => (match[1] ?? "").trim())
+    .filter(Boolean);
+};
 
 const resolveDocLink = (sourceFilePath, href, docFileSet) => {
   const cleanHref = stripHashAndQuery(href.trim().replace(/^<|>$/g, ""));
@@ -134,6 +194,64 @@ const fileExists = async (relativePath) => {
     return true;
   } catch {
     return false;
+  }
+};
+
+const auditReadme = async (docSlugSet) => {
+  const relativePath = "README.md";
+  let raw;
+
+  try {
+    raw = await fs.readFile(readmePath, "utf8");
+  } catch {
+    warn(relativePath, "README.md not found.");
+    return;
+  }
+
+  for (const heading of readmeRequiredHeadings) {
+    const headingPattern = new RegExp(`^##\\s+${escapeRegExp(heading)}\\s*$`, "m");
+    if (!headingPattern.test(raw)) {
+      warn(relativePath, `Missing required README heading: ${heading}`);
+    }
+  }
+
+  for (const snippet of readmeRequiredSnippets) {
+    if (!raw.includes(snippet)) {
+      warn(relativePath, `Missing required README snippet or link: ${snippet}`);
+    }
+  }
+
+  for (const {pattern, message} of readmeForbiddenPatterns) {
+    if (pattern.test(raw)) {
+      warn(relativePath, message);
+    }
+  }
+
+  for (const href of collectMarkdownHrefs(raw)) {
+    const cleanHref = stripHashAndQuery(href.trim().replace(/^<|>$/g, ""));
+    if (!cleanHref || cleanHref.startsWith("#")) {
+      continue;
+    }
+
+    if (isDocsSiteHref(cleanHref)) {
+      const url = new URL(cleanHref);
+      const docSlug = normalizeDocSlug(url.pathname);
+      if (!docSlugSet.has(docSlug)) {
+        warn(relativePath, `Docs link target not found in local docs slugs: ${cleanHref}`);
+      }
+      continue;
+    }
+
+    if (isExternalHref(cleanHref) || cleanHref.startsWith("/")) {
+      continue;
+    }
+
+    const resolved = path.resolve(path.dirname(readmePath), cleanHref);
+    try {
+      await fs.access(resolved);
+    } catch {
+      warn(relativePath, `Relative README link target not found: ${href}`);
+    }
   }
 };
 
@@ -200,6 +318,7 @@ const collectDuplicateBlocks = (documents) => {
 
 const allDocs = await walk(docsRoot);
 const docFileSet = new Set(allDocs.map((filePath) => path.normalize(filePath)));
+const docSlugSet = new Set();
 const canonicalDocs = [];
 
 for (const filePath of allDocs) {
@@ -208,6 +327,10 @@ for (const filePath of allDocs) {
   const {frontmatter, body} = parseFrontmatter(raw);
   const canonical = isCanonicalFile(filePath);
   const monitored = isMonitoredDoc(filePath);
+
+  if (frontmatter && typeof frontmatter === "object" && typeof frontmatter.slug === "string") {
+    docSlugSet.add(normalizeDocSlug(frontmatter.slug));
+  }
 
   if (canonical) {
     canonicalDocs.push({relativePath, body});
@@ -233,10 +356,7 @@ for (const filePath of allDocs) {
     warn(relativePath, "Contains incomplete phrase pattern (for example 'See the  for').");
   }
 
-  const rawWithoutCodeBlocks = raw.replace(/```[\s\S]*?```/g, "");
-  const markdownLinkMatches = rawWithoutCodeBlocks.matchAll(/\[[^\]]*]\(([^)]+)\)/g);
-  for (const match of markdownLinkMatches) {
-    const href = (match[1] ?? "").trim();
+  for (const href of collectMarkdownHrefs(raw)) {
     if (!href) {
       continue;
     }
@@ -299,6 +419,7 @@ for (const filePath of allDocs) {
 }
 
 collectDuplicateBlocks(canonicalDocs);
+await auditReadme(docSlugSet);
 
 const sortedWarnings = warnings.sort((a, b) => {
   if (a.filePath === b.filePath) {
@@ -315,6 +436,18 @@ if (sortedWarnings.length === 0) {
 console.log(`docs-audit: ${sortedWarnings.length} warning(s).`);
 for (const warning of sortedWarnings) {
   console.log(`- ${warning.filePath}: ${warning.message}`);
+}
+
+const readmeWarnings = sortedWarnings.filter((warning) => warning.filePath === "README.md");
+
+if (isStrictReadme) {
+  if (readmeWarnings.length > 0) {
+    console.log(`docs-audit: strict README mode failed with ${readmeWarnings.length} README warning(s).`);
+    process.exit(1);
+  }
+
+  console.log("docs-audit: strict README mode passed; non-README warnings remain warn-only.");
+  process.exit(0);
 }
 
 if (isCi) {

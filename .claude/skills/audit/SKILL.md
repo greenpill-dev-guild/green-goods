@@ -1,24 +1,57 @@
 ---
 name: audit
-description: Codebase Audit - dead code detection, unused exports, architectural anti-patterns, dependency health, and security integration. Use when the user asks for a codebase health check, wants to find dead code, or says 'audit the codebase'.
+user-invocable: false
+description: Internal repo-health lens for Green Goods — dead code detection, dependency health, invariant drift, and concrete broken or brittle spots. Prefer this after `/review` or `/status` reveals broader drift beyond a single change.
 argument-hint: "[package-name] [--full] [--team]"
 context: fork
 effort: high
-version: "2.0.0"
+version: "2.1.0"
 status: active
 packages: ["all"]
 dependencies: ["review", "contracts"]
-last_updated: "2026-04-02"
-last_verified: "2026-04-02"
+last_updated: "2026-04-18"
+last_verified: "2026-04-18"
 ---
 
 # Audit Skill
 
-Systematic codebase analysis: quality audit, dead code detection, architectural review, dependency health, and security integration.
+Systematic repo-health analysis: dead code detection, dependency health, invariant drift, and concrete brittle spots.
+
+Prefer `/review` or `/status` first. This skill is for broader repo-health drift, not for every change or every question.
 
 **References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for deep investigation.
 
 **Context mode**: `context: fork` -- read-only subagent. Never edit files during an audit. Report findings and let the user decide.
+
+---
+
+## Scope Lock
+
+This skill is strictly read-only.
+
+## What This Skill Owns
+
+- dead code and unused export detection
+- dependency health and outdated package surfacing
+- concrete invariant drift against repo rules
+- brittle runtime or maintenance hotspots with direct evidence
+
+## What This Skill Does Not Own
+
+- abstract architecture judgment (`architecture`)
+- principles scoring or textbook design critique (`principles`)
+- PR-scoped correctness review (`review`)
+- implementation or refactor orchestration
+
+## False-Positive Guardrails
+
+These are mandatory:
+
+- only report issues with concrete runtime, correctness, or clear maintenance cost
+- do not recommend new abstractions, patterns, or layers from this skill
+- do not treat file size alone as a finding
+- if a structural concern is mostly about design judgment, route it to `architecture` or `principles` instead of reporting it here
+- cap medium and low-severity findings to the highest-signal set a human can act on
 
 ---
 

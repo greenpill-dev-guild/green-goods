@@ -1,6 +1,7 @@
 ---
 name: clean
-description: Comprehensive codebase cleanup with 8 parallel subagents — deduplication, type consolidation, dead code removal, circular dependencies, type strengthening, defensive code removal, legacy cleanup, and AI slop removal. Use when the user wants to clean up the codebase, improve code quality at scale, or says 'clean the codebase'.
+user-invocable: false
+description: Internal cleanup execution path for Green Goods. Use after `/review` or `audit` findings have been accepted and need implementation. Not a default discovery entry point.
 argument-hint: "[--dry-run] [--scope package-name] [--agents 1,3,5]"
 context: worktree
 effort: very-high
@@ -15,6 +16,8 @@ last_verified: "2026-04-15"
 # Clean Skill
 
 Parallel codebase cleanup: 8 focused agents each research, assess, and implement high-confidence improvements. Unlike `/audit` (read-only) and `/principles` (read-only), `/clean` **transforms code**.
+
+Prefer `/review` first. This skill should usually follow accepted findings, not replace judgment about whether cleanup is needed.
 
 **References**: `CLAUDE.md` for invariants. `/audit` for prior findings. `/principles` for design-level context.
 
