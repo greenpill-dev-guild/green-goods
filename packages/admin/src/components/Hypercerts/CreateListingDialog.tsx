@@ -58,6 +58,7 @@ export function CreateListingDialog({
   const { formatMessage } = useIntl();
   const { createListing, step, isCreating, error, reset } = useCreateListing(gardenAddress);
   const [phase, setPhase] = useState<"configure" | "progress">("configure");
+  const [submissionError, setSubmissionError] = useState<Error | null>(null);
 
   const {
     register,
@@ -76,6 +77,7 @@ export function CreateListingDialog({
   });
 
   const onSubmit = async (values: ListingFormValues) => {
+    setSubmissionError(null);
     setPhase("progress");
 
     const params: CreateListingParams = {
@@ -94,16 +96,30 @@ export function CreateListingDialog({
       await createListing(params);
     } catch (error) {
       logger.error("Failed to create listing", { error });
+      setSubmissionError(
+        error instanceof Error
+          ? error
+          : new Error(
+              formatMessage({
+                id: "app.listing.stepError",
+                defaultMessage: "Failed to create listing",
+              })
+            )
+      );
     }
   };
 
   const handleClose = () => {
     if (!isCreating) {
       setPhase("configure");
+      setSubmissionError(null);
       reset();
       onOpenChange(false);
     }
   };
+
+  const visibleError = error ?? submissionError;
+  const isErrorState = step === "error" || visibleError !== null;
 
   return (
     <DialogShell
@@ -228,7 +244,7 @@ export function CreateListingDialog({
         <div className="space-y-4">
           <ListingProgress step={step} />
 
-          {error && <Alert variant="error">{error.message}</Alert>}
+          {visibleError && <Alert variant="error">{visibleError.message}</Alert>}
 
           {step === "done" && (
             <Alert variant="success">
@@ -240,7 +256,7 @@ export function CreateListingDialog({
           )}
 
           <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
-            {(step === "done" || step === "error") && (
+            {(step === "done" || isErrorState) && (
               <button
                 type="button"
                 onClick={handleClose}
@@ -251,10 +267,11 @@ export function CreateListingDialog({
                   : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
               </button>
             )}
-            {step === "error" && (
+            {isErrorState && (
               <button
                 type="button"
                 onClick={() => {
+                  setSubmissionError(null);
                   reset();
                   setPhase("configure");
                 }}

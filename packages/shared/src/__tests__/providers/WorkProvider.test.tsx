@@ -468,6 +468,41 @@ describe("providers/WorkProvider", () => {
       expect(mockMutateAsync).toHaveBeenCalled();
     });
 
+    it("propagates submission errors when mutateAsync rejects", async () => {
+      const submissionError = new Error("Upload failed");
+      const mockMutateAsync = vi.fn().mockRejectedValue(submissionError);
+      mockUseWorkMutation.mockReturnValue({
+        mutateAsync: mockMutateAsync,
+        isPending: false,
+        isError: true,
+        error: submissionError,
+      });
+
+      mockWorkFlowStore.gardenAddress = MOCK_ADDRESSES.garden;
+      mockWorkFlowStore.actionUID = 1;
+
+      mockUseWorkImages.mockReturnValue({
+        images: [new File(["test"], "test.jpg", { type: "image/jpeg" })],
+        setImages: vi.fn(),
+      });
+
+      const { result } = renderHook(() => useWork(), {
+        wrapper: createFullWrapper(),
+      });
+
+      let thrownError: unknown = null;
+      await act(async () => {
+        try {
+          await result.current.form.uploadWork();
+        } catch (error) {
+          thrownError = error;
+        }
+      });
+
+      expect(mockMutateAsync).toHaveBeenCalled();
+      expect(thrownError).toBe(submissionError);
+    });
+
     it("exposes isPending from mutation", () => {
       mockUseWorkMutation.mockReturnValue({
         mutateAsync: vi.fn(),

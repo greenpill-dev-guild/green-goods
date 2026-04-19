@@ -49,6 +49,14 @@ interface JobQueueProviderProps {
   children: React.ReactNode;
 }
 
+const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
+
+const areQueueStatsEqual = (left: QueueStats, right: QueueStats) =>
+  left.total === right.total &&
+  left.pending === right.pending &&
+  left.failed === right.failed &&
+  left.synced === right.synced;
+
 // Work type for cache updates
 interface Work {
   id: string;
@@ -63,31 +71,45 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   // Use single source of truth for primary address
   const currentUserAddress = usePrimaryAddress();
 
-  const [stats, setStats] = useState<QueueStats>({ total: 0, pending: 0, failed: 0, synced: 0 });
+  const [stats, setStats] = useState<QueueStats>(EMPTY_QUEUE_STATS);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
   const setOfflineBannerVisible = useUIStore((state) => state.setOfflineBannerVisible);
+
+  const setOfflineBannerVisibleIfChanged = useCallback(
+    (visible: boolean) => {
+      if (useUIStore.getState().isOfflineBannerVisible === visible) {
+        return;
+      }
+      setOfflineBannerVisible(visible);
+    },
+    [setOfflineBannerVisible]
+  );
 
   // useCallback needed here as refreshStats is used in multiple effects
   const refreshStats = useCallback(
     async (signal?: AbortSignal) => {
       // Only fetch stats if we have a user address to scope by
       if (!currentUserAddress) {
-        setStats({ total: 0, pending: 0, failed: 0, synced: 0 });
-        setOfflineBannerVisible(false);
+        setStats((previousStats) =>
+          areQueueStatsEqual(previousStats, EMPTY_QUEUE_STATS) ? previousStats : EMPTY_QUEUE_STATS
+        );
+        setOfflineBannerVisibleIfChanged(false);
         return;
       }
 
       try {
         const newStats = await jobQueue.getStats(currentUserAddress);
         if (signal?.aborted) return;
-        setStats(newStats);
-        setOfflineBannerVisible(newStats.pending > 0 || newStats.failed > 0);
+        setStats((previousStats) =>
+          areQueueStatsEqual(previousStats, newStats) ? previousStats : newStats
+        );
+        setOfflineBannerVisibleIfChanged(newStats.pending > 0 || newStats.failed > 0);
       } catch {
         if (signal?.aborted) return;
       }
     },
-    [currentUserAddress, setOfflineBannerVisible]
+    [currentUserAddress, setOfflineBannerVisibleIfChanged]
   );
 
   // Helper to invalidate multiple query keys
@@ -121,7 +143,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     // Event handlers using DRY query invalidation helpers
     const handleJobProcessing = () => {
       setIsProcessing(true);
-      setOfflineBannerVisible(true);
+      setOfflineBannerVisibleIfChanged(true);
       // Suppress toasts for background processing/retries to reduce noise
     };
 
@@ -236,7 +258,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, refreshStats, setOfflineBannerVisible]);
+  }, [currentUserAddress, refreshStats, setOfflineBannerVisibleIfChanged]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -262,8 +284,20 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
         }
-      } catch {
-        // Silently handle errors - they're logged in jobQueue.flush
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        setIsProcessing(false);
+        setLastEvent({
+          type: "job_failed",
+          jobId: "queue-flush",
+          error: errorMessage,
+        });
+        queueToasts.syncError();
+        await refreshStats(abortController.signal);
       } finally {
         isFlushInProgress = false;
       }

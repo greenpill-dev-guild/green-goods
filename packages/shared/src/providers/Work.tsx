@@ -286,6 +286,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
             actionUID,
           });
         }
+        throw error;
       }
     },
     [gardenAddress, actionUID, images, workMutation, minRequiredImages]

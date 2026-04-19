@@ -809,6 +809,7 @@
   "app.cookieJar.errorLoading": "Failed to load cookie jars",
   "app.cookieJar.fundJars": "Fund Jars",
   "app.cookieJar.manageJars": "Manage Jars",
+  "app.cookieJar.manageModal.description": "Review balances, pause state, withdrawal limits, and cooldowns for this garden's cookie jars.",
   "app.cookieJar.manageModal.title": "Manage Cookie Jars",
   "app.cookieJar.maxWithdrawal": "Max Withdrawal",
   "app.cookieJar.minDeposit": "Min Deposit",

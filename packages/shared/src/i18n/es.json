@@ -809,6 +809,7 @@
   "app.cookieJar.errorLoading": "Error al cargar los tarros de galletas",
   "app.cookieJar.fundJars": "Fondear Tarros",
   "app.cookieJar.manageJars": "Administrar Tarros",
+  "app.cookieJar.manageModal.description": "Revisa saldos, estado de pausa, limites de retiro y periodos de espera de los tarros de galletas de este jardin.",
   "app.cookieJar.manageModal.title": "Administrar tarros",
   "app.cookieJar.maxWithdrawal": "Retiro máximo",
   "app.cookieJar.minDeposit": "Depósito mínimo",

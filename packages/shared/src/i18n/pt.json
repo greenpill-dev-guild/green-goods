@@ -809,6 +809,7 @@
   "app.cookieJar.errorLoading": "Falha ao carregar os potes de cookies",
   "app.cookieJar.fundJars": "Abastecer Potes",
   "app.cookieJar.manageJars": "Gerenciar Potes",
+  "app.cookieJar.manageModal.description": "Revise saldos, estado de pausa, limites de retirada e periodos de espera dos potes de cookies deste jardim.",
   "app.cookieJar.manageModal.title": "Gerenciar potes",
   "app.cookieJar.maxWithdrawal": "Retirada máxima",
   "app.cookieJar.minDeposit": "Depósito mínimo",

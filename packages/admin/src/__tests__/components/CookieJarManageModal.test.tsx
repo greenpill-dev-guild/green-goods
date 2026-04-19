@@ -94,6 +94,12 @@ describe("CookieJarManageModal", () => {
   it("shows edit buttons next to max withdrawal and cooldown when canManage is true", () => {
     renderWithProviders(<CookieJarManageModal {...defaultProps} />);
 
+    expect(
+      screen.getByText(
+        "Review balances, pause state, withdrawal limits, and cooldowns for this garden's cookie jars."
+      )
+    ).toBeInTheDocument();
+
     const editButtons = screen.getAllByRole("button", { name: /edit/i });
     // Should have 2 edit buttons: one for max withdrawal, one for interval
     expect(editButtons.length).toBe(2);

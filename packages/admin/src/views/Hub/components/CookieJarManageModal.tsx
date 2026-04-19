@@ -113,6 +113,11 @@ export function CookieJarManageModal({
           id: "app.cookieJar.manageModal.title",
           defaultMessage: "Manage Cookie Jars",
         })}
+        description={formatMessage({
+          id: "app.cookieJar.manageModal.description",
+          defaultMessage:
+            "Review balances, pause state, withdrawal limits, and cooldowns for this garden's cookie jars.",
+        })}
       >
         <div className="space-y-3">
           {jars.map((jar) => {
