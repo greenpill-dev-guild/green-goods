@@ -73,4 +73,4 @@ export const ENS_NAME_TYPE_MAP: Record<number, string> = {
   1: "Garden",
 } as const;
 
-export const DEFAULT_IPFS_GATEWAY = "https://storacha.link/ipfs/";
+export const DEFAULT_IPFS_GATEWAY = "https://greengoods.mypinata.cloud/ipfs/";

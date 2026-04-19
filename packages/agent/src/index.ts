@@ -21,7 +21,6 @@ import { initAI, isAIModelLoaded } from "./services/ai";
 import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
 import { logger } from "./services/logger";
-import { initMedia, isMediaConfigured } from "./services/media";
 import { rateLimiter } from "./services/rate-limiter";
 
 // ============================================================================
@@ -47,20 +46,10 @@ async function main(): Promise<void> {
   initBlockchain(config.chain);
   const ai = initAI();
 
-  // Initialize media service if Storacha credentials are available
-  const storachaKey = process.env.STORACHA_KEY;
-  const storachaProof = process.env.STORACHA_PROOF;
-  if (storachaKey && storachaProof) {
-    await initMedia(storachaKey, storachaProof, process.env.STORACHA_GATEWAY);
-    logger.info("Media service (Storacha) initialized");
-  } else {
-    logger.warn("STORACHA_KEY and STORACHA_PROOF not configured - photo uploads will be disabled");
-  }
-
   const bot = createTelegramBot({ token: config.telegramToken }, handleMessage);
 
   const voiceProcessor = createVoiceProcessor(bot, (audioPath) => ai.transcribe(audioPath));
-  const photoProcessor = isMediaConfigured() ? createPhotoProcessor(bot) : undefined;
+  const photoProcessor = createPhotoProcessor(bot);
   const notifier = createNotifier(bot);
   setHandlerContext({ voiceProcessor, photoProcessor, notifier });
 

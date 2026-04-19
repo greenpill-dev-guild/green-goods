@@ -5,11 +5,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { internal as varlockInternal } from "varlock";
-import {
-  ensureHybridCidAvailability,
-  loadPinataConfigFromEnv,
-  uploadBufferWithPinata,
-} from "../../../scripts/lib/ipfs-hybrid";
+import { loadPinataConfigFromEnv, uploadBufferWithPinata } from "../../../scripts/lib/ipfs-hybrid";
 import { NetworkManager } from "./utils/network";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -21,7 +17,6 @@ const ACTION_IMAGE_FILENAME = "waste-repair-event.webp";
 const CHAIN_ID = 42161;
 const DOMAIN_WASTE = 3;
 const DEFAULT_KEYSTORE = "green-goods-deployer";
-const DEFAULT_STORACHA_GATEWAY = "https://storacha.link";
 const TEMP_DIR = path.join(CONTRACTS_ROOT, "script", "temp");
 const TEMP_SCRIPT = path.join(TEMP_DIR, "DeployRepairEventArbitrumGenerated.s.sol");
 
@@ -85,12 +80,6 @@ interface InstructionsDocument {
   tips: string[];
 }
 
-interface StorachaClient {
-  uploadFile: (file: File) => Promise<{ toString(): string }>;
-  setCurrentSpace: (did: string) => Promise<void>;
-  addSpace: (proof: unknown) => Promise<{ did(): string }>;
-}
-
 async function ensureVarlockEnvLoaded(): Promise<void> {
   if (process.env.__VARLOCK_ENV) return;
 
@@ -117,36 +106,19 @@ async function ensureVarlockEnvLoaded(): Promise<void> {
   varlockInternal.initVarlockEnv();
 }
 
-function readEnvValue(...names: string[]): string | undefined {
-  for (const name of names) {
-    const value = process.env[name]?.trim();
-    if (value) return value;
-  }
-
-  return undefined;
-}
-
-function getStorachaCredentials(): { key: string; proof: string } {
-  const key = readEnvValue("STORACHA_KEY", "VITE_STORACHA_KEY");
-  const proof = readEnvValue("STORACHA_PROOF", "VITE_STORACHA_PROOF");
-
-  if (!key || !proof) {
-    throw new Error(
-      [
-        "Storacha credentials are missing.",
-        "Expected STORACHA_KEY/STORACHA_PROOF or VITE_STORACHA_KEY/VITE_STORACHA_PROOF.",
-        "With varlock, these resolve from STORACHA_KEY_OP_REF and STORACHA_PROOF_OP_REF.",
-        "Current APP_ENV resolves them to empty values.",
-      ].join(" "),
-    );
-  }
-
-  return { key, proof };
-}
-
 function getPinataConfigForUploads() {
   const config = loadPinataConfigFromEnv();
   return config?.jwt ? config : null;
+}
+
+function requirePinataConfigForUploads() {
+  const config = getPinataConfigForUploads();
+  if (!config) {
+    throw new Error(
+      "PINATA_JWT or VITE_PINATA_JWT is required for uploads. Reuse existing CIDs with --image-cid/--instructions-cid if you need a no-upload run.",
+    );
+  }
+  return config;
 }
 
 function showHelp(): void {
@@ -167,8 +139,7 @@ Options:
 
 Notes:
   - Preferred entrypoint is the root package.json wrapper so env comes from varlock/1Password
-  - Prefers direct Pinata uploads when PINATA_JWT is configured
-  - Falls back to Storacha uploads only when Pinata is unavailable
+  - Uploads use Pinata and require PINATA_JWT (or VITE_PINATA_JWT)
   - Uses Foundry keystore account from FOUNDRY_KEYSTORE_ACCOUNT
   - Defaults to keystore "${DEFAULT_KEYSTORE}" if env var is unset
   - Upload source image: config/action-images/${ACTION_IMAGE_FILENAME}
@@ -290,103 +261,40 @@ function buildInstructionsDocument(
   };
 }
 
-async function initStoracha(): Promise<StorachaClient> {
-  const { key: storachaKey, proof: storachaProof } = getStorachaCredentials();
-
-  const Client = await import("@storacha/client");
-  const Proof = await import("@storacha/client/proof");
-  const { Signer } = await import("@storacha/client/principal/ed25519");
-  const { StoreMemory } = await import("@storacha/client/stores/memory");
-
-  const principal = Signer.parse(storachaKey);
-  const client = await Client.create({ principal, store: new StoreMemory() });
-  const proof = await Proof.parse(storachaProof);
-  const space = await client.addSpace(proof);
-  await client.setCurrentSpace(space.did());
-
-  return client as unknown as StorachaClient;
-}
-
-async function uploadBufferToStoracha(
-  client: StorachaClient,
-  buffer: Buffer,
-  filename: string,
-  mimeType: string,
-): Promise<string> {
-  const blob = new Blob([buffer], { type: mimeType });
-  const file = new File([blob], filename, { type: mimeType });
-  const cid = await client.uploadFile(file);
-  return cid.toString();
-}
-
 async function uploadRepairImage(imagePath: string): Promise<string> {
   if (!fs.existsSync(imagePath)) {
     throw new Error(`Repair image not found: ${imagePath}`);
   }
 
   const imageBuffer = fs.readFileSync(imagePath);
-  const pinataConfig = getPinataConfigForUploads();
+  const pinataConfig = requirePinataConfigForUploads();
 
-  if (pinataConfig) {
-    console.log("Uploading repair image to Pinata");
-    return uploadBufferWithPinata(pinataConfig, imageBuffer, {
-      filename: path.basename(imagePath),
-      mimeType: "image/webp",
-      name: path.basename(imagePath),
-      metadata: {
-        source: "action-image",
-        slug: ACTION_SLUG,
-      },
-    });
-  }
-
-  const client = await initStoracha();
-  const cid = await uploadBufferToStoracha(client, imageBuffer, path.basename(imagePath), "image/webp");
-
-  await ensureHybridCidAvailability(cid, {
-    storachaGatewayBaseUrl: (process.env.VITE_STORACHA_GATEWAY || DEFAULT_STORACHA_GATEWAY).trim(),
-    pinataConfig: loadPinataConfigFromEnv(),
+  console.log("Uploading repair image to Pinata");
+  return uploadBufferWithPinata(pinataConfig, imageBuffer, {
+    filename: path.basename(imagePath),
+    mimeType: "image/webp",
     name: path.basename(imagePath),
     metadata: {
       source: "action-image",
       slug: ACTION_SLUG,
     },
   });
-
-  return cid;
 }
 
 async function uploadInstructions(document: InstructionsDocument): Promise<string> {
   const payload = Buffer.from(JSON.stringify(document, null, 2));
-  const pinataConfig = getPinataConfigForUploads();
+  const pinataConfig = requirePinataConfigForUploads();
 
-  if (pinataConfig) {
-    console.log("Uploading instructions to Pinata");
-    return uploadBufferWithPinata(pinataConfig, payload, {
-      filename: `${ACTION_SLUG}.json`,
-      mimeType: "application/json",
-      name: `${ACTION_SLUG}.json`,
-      metadata: {
-        source: "action-instructions",
-        slug: ACTION_SLUG,
-      },
-    });
-  }
-
-  const client = await initStoracha();
-  const cid = await uploadBufferToStoracha(client, payload, `${ACTION_SLUG}.json`, "application/json");
-
-  await ensureHybridCidAvailability(cid, {
-    storachaGatewayBaseUrl: (process.env.VITE_STORACHA_GATEWAY || DEFAULT_STORACHA_GATEWAY).trim(),
-    pinataConfig: loadPinataConfigFromEnv(),
+  console.log("Uploading instructions to Pinata");
+  return uploadBufferWithPinata(pinataConfig, payload, {
+    filename: `${ACTION_SLUG}.json`,
+    mimeType: "application/json",
     name: `${ACTION_SLUG}.json`,
     metadata: {
       source: "action-instructions",
       slug: ACTION_SLUG,
     },
   });
-
-  return cid;
 }
 
 function normalizeInstructionsCid(value: string): string {

@@ -3,7 +3,7 @@
 /**
  * Temporary script to update on-chain ActionRegistry instruction CIDs.
  *
- * After re-uploading IPFS instructions with the fixed Storacha client,
+ * After re-uploading IPFS instructions with the current Pinata uploader,
  * run this to call updateActionInstructions() for each action.
  *
  * Features:

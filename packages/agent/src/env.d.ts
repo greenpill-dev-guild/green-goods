@@ -24,9 +24,6 @@ declare namespace NodeJS {
 
     // Database
     DB_PATH?: string;
-    STORACHA_KEY?: string;
-    STORACHA_PROOF?: string;
-    STORACHA_GATEWAY?: string;
 
     // API
     BOT_API_TOKEN?: string;

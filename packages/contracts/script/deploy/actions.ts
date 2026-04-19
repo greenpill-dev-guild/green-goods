@@ -163,7 +163,7 @@ contract DeployActionsGenerated is Script {
 
   /**
    * Upload action instructions to IPFS via ipfs-uploader.ts.
-   * Uses npx tsx (NOT bun) — @storacha/client has Bun compat issues.
+   * Uses npx tsx (NOT bun) to match the deployment FFI environment.
    * Falls back to the runtime IPFS cache if uploader was run separately.
    */
   private _uploadActionsToIPFS(actions: ActionConfig[]): string[] {

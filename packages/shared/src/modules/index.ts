@@ -190,7 +190,7 @@ export {
   prefillMetadataFromAssessment,
 } from "./data/hypercerts";
 // ============================================================================
-// DATA / IPFS (Storacha)
+// DATA / IPFS
 // ============================================================================
 export {
   // Upload context types

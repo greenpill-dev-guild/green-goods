@@ -1,4 +1,3 @@
-const DEFAULT_STORACHA_GATEWAY = "https://storacha.link";
 const DEFAULT_PINATA_GATEWAY = "https://greengoods.mypinata.cloud";
 const DEFAULT_PINATA_API_BASE_URL = "https://api.pinata.cloud";
 const DEFAULT_PINATA_UPLOADS_API_BASE_URL = "https://uploads.pinata.cloud/v3";
@@ -225,7 +224,9 @@ export async function uploadBufferWithPinata(
   }
 
   const formData = new FormData();
-  const blob = new Blob([buffer], { type: options.mimeType });
+  const uploadBuffer = new ArrayBuffer(buffer.byteLength);
+  new Uint8Array(uploadBuffer).set(buffer);
+  const blob = new Blob([uploadBuffer], { type: options.mimeType });
   formData.append("network", "public");
   formData.append("file", blob, options.filename);
   if (options.name) {
@@ -329,32 +330,21 @@ export async function verifyGatewayAvailability(
   );
 }
 
-export async function ensureHybridCidAvailability(
+export async function ensurePinataCidAvailability(
   cid: string,
   options: {
-    storachaGatewayBaseUrl?: string;
     pinataConfig?: PinataScriptConfig | null;
     name?: string;
     metadata?: Record<string, string>;
     attempts?: number;
     timeoutMs?: number;
   } = {}
-): Promise<{ storachaUrl: string; pinataUrl?: string }> {
-  const canonicalUri = `ipfs://${cid}`;
-  const storachaUrl = await verifyGatewayAvailability(
-    canonicalUri,
-    options.storachaGatewayBaseUrl ?? DEFAULT_STORACHA_GATEWAY,
-    {
-      attempts: options.attempts,
-      timeoutMs: options.timeoutMs,
-      label: "Storacha gateway",
-    }
-  );
-
+): Promise<{ pinataUrl: string }> {
   if (!options.pinataConfig?.jwt) {
-    return { storachaUrl };
+    throw new Error("Pinata JWT is required to import and verify an existing CID");
   }
 
+  const canonicalUri = `ipfs://${cid}`;
   await importCidWithPinata(options.pinataConfig, cid, {
     name: options.name,
     metadata: options.metadata,
@@ -388,5 +378,5 @@ export async function ensureHybridCidAvailability(
     throw error;
   }
 
-  return { storachaUrl, pinataUrl };
+  return { pinataUrl };
 }

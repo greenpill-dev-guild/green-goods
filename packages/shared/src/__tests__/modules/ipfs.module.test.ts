@@ -112,4 +112,27 @@ describe("modules/data/ipfs", () => {
 
     expect(initialized).toBe(true);
   });
+
+  it("initializes from Vite-prefixed Pinata env values", async () => {
+    const initialized = await initializeIpfsFromEnv({
+      VITE_PINATA_JWT: "pinata-browser-token-value",
+      VITE_PINATA_GATEWAY_URL: "https://pinata-vite.example",
+    });
+
+    expect(initialized).toBe(true);
+    expect(resolveIPFSUrl(`ipfs://${validCid}/config.json`)).toBe(
+      `https://pinata-vite.example/ipfs/${validCid}/config.json`
+    );
+  });
+
+  it("ignores the retired Storacha gateway alias", async () => {
+    const initialized = await initializeIpfsFromEnv({
+      VITE_STORACHA_GATEWAY: "https://storacha.example",
+    });
+
+    expect(initialized).toBe(false);
+    expect(resolveIPFSUrl(`ipfs://${validCid}/config.json`)).toBe(
+      `https://greengoods.mypinata.cloud/ipfs/${validCid}/config.json`
+    );
+  });
 });

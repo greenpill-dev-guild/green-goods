@@ -470,10 +470,3 @@ vi.mock("telegraf", () => ({
     },
   })),
 }));
-
-// Mock Storacha storage client
-vi.mock("@storacha/client", () => ({
-  Client: vi.fn().mockImplementation(() => ({
-    uploadFile: vi.fn().mockResolvedValue({ cid: "test-cid" }),
-  })),
-}));

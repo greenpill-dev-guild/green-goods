@@ -1,28 +1,19 @@
 #!/usr/bin/env bun
 
-import "varlock/auto-load";
-
-import { create } from "@storacha/client";
-import { Signer } from "@storacha/client/principal/ed25519";
-import { parse as parseProof } from "@storacha/client/proof";
-import { StoreMemory } from "@storacha/client/stores/memory";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { CID } from "multiformats/cid";
 import {
-  ensureHybridCidAvailability,
+  ensurePinataCidAvailability,
   loadPinataConfigFromEnv,
 } from "./lib/ipfs-hybrid";
 
-const DEFAULT_GATEWAYS = ["https://greengoods.mypinata.cloud", "https://storacha.link", "https://w3s.link", "https://ipfs.io"];
+const DEFAULT_GATEWAYS = ["https://greengoods.mypinata.cloud", "https://gateway.pinata.cloud", "https://ipfs.io"];
 const DEFAULT_INDEXER_URL =
   process.env.VITE_ENVIO_INDEXER_URL?.trim() || "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 const TEXT_DECODER = new TextDecoder();
-const CAR_CONTENT_TYPE = "application/vnd.ipld.car";
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(SCRIPT_DIR, "..");
 const pinataConfig = loadPinataConfigFromEnv();
 
 const CHAIN_CONFIGS = {
@@ -82,22 +73,12 @@ type FetchResult = {
   text: string | null;
 };
 
-type CarFetchResult = {
-  url: string;
-  bytes: Uint8Array;
-  contentType: string | null;
-};
-
 type PinResult = {
   pinStatus: "pinned" | "pin_failed";
   pinnedFrom?: string;
-  pinnedRootCid?: string;
-  pinMatchesExpected?: boolean;
-  storachaGatewayUrl?: string;
   pinataGatewayUrl?: string;
   note?: string;
   pinError?: string;
-  carByteLength?: number;
 };
 
 type AuditEntry = {
@@ -115,27 +96,13 @@ type AuditEntry = {
   fetchError?: string;
   pinStatus: "audit_only" | "pinned" | "pin_failed";
   pinnedFrom?: string;
-  pinnedRootCid?: string;
-  pinMatchesExpected?: boolean;
-  storachaGatewayUrl?: string;
   pinataGatewayUrl?: string;
-  carByteLength?: number;
   pinError?: string;
   note?: string;
   expansionErrors?: string[];
 };
 
-type StorachaClient = Awaited<ReturnType<typeof create>>;
-
 type JsonRecord = Record<string, unknown>;
-
-type CarModule = {
-  CarReader: {
-    fromBytes(bytes: Uint8Array): Promise<{
-      getRoots(): Promise<CID[]>;
-    }>;
-  };
-};
 
 function usage(): never {
   console.error(
@@ -149,7 +116,7 @@ function usage(): never {
       "",
       "Include values: input,actions,gardens,works,assessments,hypercerts",
       "Default report path: output/reports/ipfs-repin-<chainId>-<ts>.json",
-      "Non-audit mode pins the original CID by fetching the existing DAG as CAR, uploading that CAR to Storacha, and syncing the CID to Pinata when PINATA_JWT is configured.",
+      "Non-audit mode imports each discovered CID into Pinata and verifies the dedicated Pinata gateway.",
     ].join("\n")
   );
   process.exit(1);
@@ -244,11 +211,7 @@ function getGatewayCandidates(reference: string): string[] {
 
   const bases = Array.from(
     new Set(
-      [
-        pinataConfig?.gatewayBaseUrl,
-        process.env.VITE_STORACHA_GATEWAY?.trim(),
-        ...DEFAULT_GATEWAYS,
-      ]
+      [pinataConfig?.gatewayBaseUrl, ...DEFAULT_GATEWAYS]
         .filter((entry): entry is string => Boolean(entry))
         .map((entry) => trimTrailingSlashes(entry))
     )
@@ -257,42 +220,6 @@ function getGatewayCandidates(reference: string): string[] {
   return Array.from(
     new Set([originalGateway, ...bases.map((base) => `${base}/ipfs/${parsed.canonicalId}`)])
   ).filter((candidate): candidate is string => Boolean(candidate));
-}
-
-function getPathGatewayBase(reference: string): string | null {
-  const trimmed = reference.trim();
-  if (!/^https?:\/\//i.test(trimmed)) return null;
-
-  try {
-    const url = new URL(trimmed);
-    const pathname = trimLeadingSlashes(url.pathname);
-    return pathname.startsWith("ipfs/") ? trimTrailingSlashes(url.origin) : null;
-  } catch {
-    return null;
-  }
-}
-
-function getCarGatewayCandidates(cid: string, originalReferences: Iterable<string>): string[] {
-  const bases = Array.from(
-    new Set(
-      [
-        ...Array.from(originalReferences, (reference) => getPathGatewayBase(reference)),
-        process.env.VITE_STORACHA_GATEWAY?.trim(),
-        ...DEFAULT_GATEWAYS,
-      ]
-        .filter((entry): entry is string => Boolean(entry))
-        .map((entry) => trimTrailingSlashes(entry))
-    )
-  );
-
-  return Array.from(
-    new Set(
-      bases.flatMap((base) => [
-        `${base}/ipfs/${cid}?format=car&dag-scope=all`,
-        `${base}/ipfs/${cid}?format=car`,
-      ])
-    )
-  );
 }
 
 function isRecord(value: unknown): value is JsonRecord {
@@ -396,85 +323,8 @@ async function fetchReference(reference: string): Promise<FetchResult> {
   throw lastError ?? new Error(`Unable to fetch ${reference}`);
 }
 
-let carModulePromise: Promise<CarModule> | null = null;
-
-async function loadCarModule(): Promise<CarModule> {
-  if (!carModulePromise) {
-    carModulePromise = import("@ipld/car")
-      .catch(async () => {
-        const fallbackPath = path.resolve(REPO_ROOT, "node_modules/.bun/node_modules/@ipld/car/src/index.js");
-        return import(pathToFileURL(fallbackPath).href);
-      })
-      .then((module) => module as CarModule);
-  }
-
-  return carModulePromise;
-}
-
-function cidsMatch(left: CID | string, right: CID | string): boolean {
-  const leftCid = typeof left === "string" ? CID.parse(left) : left;
-  const rightCid = typeof right === "string" ? CID.parse(right) : right;
-
-  if (leftCid.code !== rightCid.code) return false;
-  if (leftCid.multihash.bytes.length !== rightCid.multihash.bytes.length) return false;
-
-  return leftCid.multihash.bytes.every((byte, index) => byte === rightCid.multihash.bytes[index]);
-}
-
-async function fetchCarForCid(cid: string, originalReferences: Iterable<string>): Promise<CarFetchResult> {
-  const candidates = getCarGatewayCandidates(cid, originalReferences);
-  let lastError: Error | null = null;
-
-  for (const candidate of candidates) {
-    try {
-      const response = await fetchWithTimeout(candidate, 60_000, {
-        headers: { accept: CAR_CONTENT_TYPE },
-      });
-      if (!response.ok) {
-        lastError = new Error(`${response.status} ${response.statusText}`);
-        continue;
-      }
-
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (bytes.byteLength === 0) {
-        lastError = new Error(`Received an empty CAR payload from ${candidate}`);
-        continue;
-      }
-
-      return {
-        url: candidate,
-        bytes,
-        contentType: response.headers.get("content-type"),
-      };
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  throw lastError ?? new Error(`Unable to fetch a CAR for ${cid}`);
-}
-
-async function validateCarRoot(carBytes: Uint8Array, expectedCid: string): Promise<CID> {
-  const carModule = await loadCarModule();
-  const reader = await carModule.CarReader.fromBytes(carBytes);
-  const roots = await reader.getRoots();
-  if (roots.length === 0) {
-    throw new Error("Fetched CAR has no roots.");
-  }
-
-  const matchedRoot = roots.find((root) => cidsMatch(root, expectedCid));
-  if (!matchedRoot) {
-    throw new Error(
-      `Fetched CAR roots do not include ${expectedCid}. Roots: ${roots.map((root) => root.toString()).join(", ")}`
-    );
-  }
-
-  return matchedRoot;
-}
-
 async function pinOriginalCid(
   entry: CollectedReference,
-  storachaClient: StorachaClient,
   pinCache: Map<string, Promise<PinResult>>
 ): Promise<PinResult> {
   const existing = pinCache.get(entry.cid);
@@ -484,17 +334,7 @@ async function pinOriginalCid(
 
   const task = (async () => {
     try {
-      const car = await fetchCarForCid(entry.cid, entry.originalReferences);
-      await validateCarRoot(car.bytes, entry.cid);
-
-      const upload = await storachaClient.uploadCAR(
-        new Blob([car.bytes], { type: car.contentType ?? CAR_CONTENT_TYPE })
-      );
-      const pinnedRootCid = upload.toString();
-      const pinMatchesExpected = cidsMatch(pinnedRootCid, entry.cid);
-      const availability = await ensureHybridCidAvailability(entry.cid, {
-        storachaGatewayBaseUrl:
-          process.env.VITE_STORACHA_GATEWAY?.trim() || "https://storacha.link",
+      const availability = await ensurePinataCidAvailability(entry.cid, {
         pinataConfig,
         name: entry.canonicalId,
         metadata: {
@@ -505,17 +345,9 @@ async function pinOriginalCid(
 
       return {
         pinStatus: "pinned" as const,
-        pinnedFrom: car.url,
-        pinnedRootCid,
-        pinMatchesExpected,
-        storachaGatewayUrl: availability.storachaUrl,
+        pinnedFrom: entry.canonicalUri,
         pinataGatewayUrl: availability.pinataUrl,
-        carByteLength: car.bytes.byteLength,
-        note: pinMatchesExpected
-          ? availability.pinataUrl
-            ? "Pinned the original DAG via CAR, verified Storacha, and synced the CID to Pinata."
-            : "Pinned the original DAG via CAR and verified Storacha without changing the root CID."
-          : "Storacha accepted the CAR, but the reported root CID differs from the expected CID. Review before marking this complete.",
+        note: "Imported the existing CID into Pinata and verified it on the dedicated gateway.",
       };
     } catch (error) {
       return {
@@ -585,24 +417,6 @@ function shouldExpandNestedJson(pointer: string, reference: string): boolean {
   if (!parsed?.path) return false;
 
   return parsed.path.toLowerCase().endsWith(".json");
-}
-
-async function initStorachaClient(): Promise<StorachaClient> {
-  const key = process.env.VITE_STORACHA_KEY?.trim();
-  const proof = process.env.VITE_STORACHA_PROOF?.trim();
-
-  if (!key || !proof) {
-    throw new Error(
-      "Storacha credentials are missing. Set VITE_STORACHA_KEY and VITE_STORACHA_PROOF."
-    );
-  }
-
-  const principal = Signer.parse(key);
-  const client = await create({ principal, store: new StoreMemory() });
-  const delegation = await parseProof(proof);
-  const space = await client.addSpace(delegation);
-  await client.setCurrentSpace(space.did());
-  return client;
 }
 
 async function loadDeployment(chainId: number): Promise<{
@@ -993,11 +807,14 @@ async function auditAndRepin(
   collected: Map<string, CollectedReference>,
   auditOnly: boolean
 ): Promise<AuditEntry[]> {
+  if (!auditOnly && !pinataConfig?.jwt) {
+    throw new Error("PINATA_JWT or VITE_PINATA_JWT is required for non-audit repin runs.");
+  }
+
   const entries = Array.from(collected.values()).sort((left, right) =>
     left.canonicalId.localeCompare(right.canonicalId)
   );
   const results: AuditEntry[] = [];
-  const storachaClient = auditOnly ? null : await initStorachaClient();
   const pinCache = new Map<string, Promise<PinResult>>();
 
   for (const entry of entries) {
@@ -1039,7 +856,7 @@ async function auditAndRepin(
       continue;
     }
 
-    const pinResult = await pinOriginalCid(entry, storachaClient!, pinCache);
+    const pinResult = await pinOriginalCid(entry, pinCache);
     results.push({
       canonicalId: entry.canonicalId,
       canonicalUri: entry.canonicalUri,
@@ -1055,11 +872,7 @@ async function auditAndRepin(
       fetchError,
       pinStatus: pinResult.pinStatus,
       pinnedFrom: pinResult.pinnedFrom,
-      pinnedRootCid: pinResult.pinnedRootCid,
-      pinMatchesExpected: pinResult.pinMatchesExpected,
-      storachaGatewayUrl: pinResult.storachaGatewayUrl,
       pinataGatewayUrl: pinResult.pinataGatewayUrl,
-      carByteLength: pinResult.carByteLength,
       pinError: pinResult.pinError,
       note: pinResult.note,
       expansionErrors: entry.expansionErrors,
@@ -1138,9 +951,6 @@ async function main() {
     pinFailures: audit.filter((entry) => entry.pinStatus === "pin_failed").length,
     auditOnly: audit.filter((entry) => entry.pinStatus === "audit_only").length,
     pinataVerified: audit.filter((entry) => Boolean(entry.pinataGatewayUrl)).length,
-    cidMismatches: audit.filter(
-      (entry) => entry.pinStatus === "pinned" && entry.pinMatchesExpected === false
-    ).length,
   };
 
   const report = {

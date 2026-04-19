@@ -94,7 +94,7 @@ export function toCanonicalIPFSUri(value: string): string {
 
 /**
  * Returns deduplicated list of IPFS gateway base URLs, including
- * configured Pinata/Storacha gateways and hardcoded fallbacks.
+ * configured Pinata gateways and hardcoded fallbacks.
  * Single source of truth for gateway ordering across the app.
  */
 export function getIPFSFallbackGateways(customGateway?: string): string[] {

@@ -3,10 +3,9 @@
 /**
  * Action Image Uploader
  *
- * Uploads action card images to Pinata when configured, otherwise Storacha,
- * and updates actions.json with the resulting CIDs.
+ * Uploads action card images to Pinata and updates actions.json with the resulting CIDs.
  *
- * Pipeline: WebP/PNG source → Pinata or Storacha → actions.json
+ * Pipeline: WebP/PNG source → Pinata → actions.json
  *
  * Usage:
  *   bun scripts/upload-action-images.ts              # Full run
@@ -14,13 +13,9 @@
  *   bun scripts/upload-action-images.ts --force      # Skip cache, re-upload all
  *
  * Required env vars (unless --dry-run):
- *   PINATA_JWT or VITE_PINATA_JWT - Pinata JWT for primary uploads
- *   or
- *   VITE_STORACHA_KEY   - Base64-encoded ed25519 private key
- *   VITE_STORACHA_PROOF - Multibase-encoded delegation proof
+ *   PINATA_JWT or VITE_PINATA_JWT - Pinata JWT for uploads
  *
  * Optional env vars:
- *   PINATA_JWT or VITE_PINATA_JWT - Pinata JWT for primary uploads
  *   PINATA_GATEWAY_URL            - Pinata dedicated gateway URL
  */
 
@@ -163,74 +158,6 @@ function formatSize(bytes: number): string {
 	return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
-// --- Storacha client (ephemeral principal pattern) ---
-
-interface StorachaClient {
-	uploadFile: (file: File) => Promise<{ toString(): string }>;
-	setCurrentSpace: (did: string) => Promise<void>;
-	addSpace: (proof: unknown) => Promise<{ did(): string }>;
-}
-
-async function initStoracha(): Promise<StorachaClient> {
-	const storachaKey = (process.env.VITE_STORACHA_KEY || "").trim();
-	const storachaProof = (process.env.VITE_STORACHA_PROOF || "").trim();
-
-	if (!storachaKey || !storachaProof) {
-		throw new Error(
-			"VITE_STORACHA_KEY and VITE_STORACHA_PROOF environment variables required",
-		);
-	}
-
-	const { create } = await import("@storacha/client");
-	const { Signer } = await import("@storacha/client/principal/ed25519");
-	const { parse: parseProof } = await import("@storacha/client/proof");
-
-	// Use explicit principal + ephemeral memory store for one-off uploads.
-	const principal = Signer.parse(storachaKey);
-	const memoryStore = {
-		data: null as Uint8Array | null,
-		async load() {
-			return this.data;
-		},
-		async save(data: Uint8Array) {
-			this.data = data;
-		},
-		async reset() {
-			this.data = null;
-		},
-	};
-	const client = await create({ principal, store: memoryStore });
-
-	const delegation = await parseProof(storachaProof);
-	const space = await client.addSpace(delegation);
-	await client.setCurrentSpace(space.did());
-
-	return client as unknown as StorachaClient;
-}
-
-async function uploadToStoracha(
-	client: StorachaClient,
-	filePath: string,
-	fileName: string,
-	retries = 3,
-): Promise<string> {
-	for (let attempt = 1; attempt <= retries; attempt++) {
-		try {
-			const buffer = fs.readFileSync(filePath);
-			const blob = new Blob([buffer], { type: "image/webp" });
-			const file = new File([blob], fileName, { type: "image/webp" });
-			const cid = await client.uploadFile(file);
-			return cid.toString();
-		} catch (error) {
-			if (attempt === retries) throw error;
-			const delay = 1000 * attempt;
-			console.error(`    Retry ${attempt}/${retries} in ${delay}ms...`);
-			await new Promise((r) => setTimeout(r, delay));
-		}
-	}
-	throw new Error("Upload failed after all retries");
-}
-
 // --- Pipeline stages ---
 
 async function collectImages(
@@ -289,57 +216,45 @@ async function uploadImages(
 	compressed: CompressedImage[],
 	cache: Cache,
 ): Promise<Record<string, string>> {
-	console.error("--- Stage 2: Sync to Pinata or Storacha ---\n");
+	console.error("--- Stage 2: Sync to Pinata ---\n");
 
 	const pinataConfig = loadPinataConfigFromEnv();
-	const client = pinataConfig?.jwt ? null : await initStoracha();
+	if (!pinataConfig?.jwt) {
+		throw new Error("PINATA_JWT or VITE_PINATA_JWT is required for action image uploads");
+	}
 	const cidMap: Record<string, string> = {};
 	let uploads = 0;
 	let cacheHits = 0;
 	let pinataUploads = 0;
-	let storachaUploads = 0;
 
 	for (const item of compressed) {
 		const cached = cache[item.slug];
 		const fileName = path.basename(item.webpPath);
 
 		if (cached && cached.contentHash === item.contentHash) {
-			if (pinataConfig?.jwt) {
-				try {
-					await verifyGatewayAvailability(`ipfs://${cached.cid}`, pinataConfig.gatewayBaseUrl, {
-						label: "Pinata gateway",
-						attempts: 2,
-						timeoutMs: 5_000,
-					});
-					cacheHits++;
-					cidMap[item.slug] = cached.cid;
-					console.error(`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`);
-					continue;
-				} catch {
-					console.error(`  REFRESH: ${item.slug} cache exists but is not verified on Pinata`);
-				}
-			} else {
+			try {
+				await verifyGatewayAvailability(`ipfs://${cached.cid}`, pinataConfig.gatewayBaseUrl, {
+					label: "Pinata gateway",
+					attempts: 2,
+					timeoutMs: 5_000,
+				});
 				cacheHits++;
 				cidMap[item.slug] = cached.cid;
 				console.error(`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`);
 				continue;
+			} catch {
+				console.error(`  REFRESH: ${item.slug} cache exists but is not verified on Pinata`);
 			}
 		}
 
 		try {
-			let cid: string;
-			if (pinataConfig?.jwt) {
-				cid = await uploadBufferWithPinata(pinataConfig, fs.readFileSync(item.webpPath), {
-					filename: fileName,
-					mimeType: "image/webp",
-					name: fileName,
-					metadata: { source: "action-image", slug: item.slug },
-				});
-				pinataUploads++;
-			} else {
-				cid = await uploadToStoracha(client!, item.webpPath, fileName);
-				storachaUploads++;
-			}
+			const cid = await uploadBufferWithPinata(pinataConfig, fs.readFileSync(item.webpPath), {
+				filename: fileName,
+				mimeType: "image/webp",
+				name: fileName,
+				metadata: { source: "action-image", slug: item.slug },
+			});
+			pinataUploads++;
 			uploads++;
 			cidMap[item.slug] = cid;
 
@@ -366,7 +281,7 @@ async function uploadImages(
 	}
 
 	console.error(
-		`\n  ${uploads} uploaded, ${cacheHits} cached, ${pinataUploads} uploaded to Pinata, ${storachaUploads} uploaded to Storacha\n`,
+		`\n  ${uploads} uploaded, ${cacheHits} cached, ${pinataUploads} uploaded to Pinata\n`,
 	);
 	return cidMap;
 }

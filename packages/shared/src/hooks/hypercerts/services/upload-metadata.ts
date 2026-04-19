@@ -17,7 +17,7 @@ import type { MintServiceDeps } from "./types";
 /**
  * Creates the uploadMetadata actor for the mint hypercert machine.
  *
- * Validates metadata fields, then uploads the JSON blob to IPFS via Storacha.
+ * Validates metadata fields, then uploads the JSON blob to IPFS.
  */
 export function createUploadMetadataActor(deps: MintServiceDeps) {
   return fromPromise(async ({ input }: { input: MintHypercertInput }) => {

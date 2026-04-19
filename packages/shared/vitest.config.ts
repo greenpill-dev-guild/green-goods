@@ -38,7 +38,6 @@ export default defineConfig({
       deps: {
         inline: [
           "multiformats",
-          "@storacha/client",
           "@ethereum-attestation-service/eas-sdk",
           "uint8arrays",
           "react",

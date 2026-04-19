@@ -67,7 +67,6 @@ const NODE_MODULE_CHUNK_GROUPS = [
   {
     name: "storage",
     patterns: [
-      "/node_modules/@storacha/",
       "/node_modules/multiformats/",
       "/node_modules/@ipld/",
       "/node_modules/@ucanto/",
@@ -242,7 +241,7 @@ export default defineConfig(async () => {
             // IPFS content is immutable (same CID = same bytes forever), so cache aggressively.
             // Matches dedicated Pinata gateway + public IPFS gateways.
             urlPattern:
-              /https:\/\/(greengoods\.mypinata\.cloud|gateway\.pinata\.cloud|storacha\.link|w3s\.link|ipfs\.io)\/ipfs\/.+/,
+              /https:\/\/(greengoods\.mypinata\.cloud|gateway\.pinata\.cloud|ipfs\.io)\/ipfs\/.+/,
             handler: "CacheFirst",
             options: {
               cacheName: "ipfs-cache",

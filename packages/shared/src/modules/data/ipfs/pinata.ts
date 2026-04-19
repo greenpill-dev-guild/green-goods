@@ -1,5 +1,6 @@
 import type { UploadErrorCategory } from "../../app/error-tracking";
 import {
+  getGatewayUrl,
   getPinataGatewayUrl,
   getPinataJwt,
   getPinataUploadsApiBaseUrl,
@@ -183,16 +184,7 @@ async function verifyGatewayAvailability(
   );
 }
 
-export async function ensureStorachaGatewayAvailability(
-  cid: string,
-  storachaGatewayUrl: string
-): Promise<void> {
-  const canonicalUri = `ipfs://${cid}`;
-  await verifyGatewayAvailability(canonicalUri, storachaGatewayUrl, "Storacha gateway");
-}
-
 export async function verifyPinataGatewayAvailability(cid: string): Promise<void> {
-  const pgUrl = getPinataGatewayUrl();
-  if (!pgUrl) return;
-  await verifyGatewayAvailability(`ipfs://${cid}`, pgUrl, "Pinata gateway");
+  const gatewayBaseUrl = getPinataGatewayUrl() ?? getGatewayUrl();
+  await verifyGatewayAvailability(`ipfs://${cid}`, gatewayBaseUrl, "Pinata gateway");
 }

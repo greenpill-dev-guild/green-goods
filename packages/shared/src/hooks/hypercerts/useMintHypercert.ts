@@ -140,8 +140,8 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
     return mintHypercertMachine.provide({
       actors: {
         // Note: XState automatically stops actors if the machine transitions away (e.g., on CANCEL).
-        // Full cancellation of in-flight IPFS uploads would require Storacha library support
-        // for AbortSignal, which is not currently available.
+        // Full cancellation of in-flight IPFS uploads would require abortable support
+        // across the current upload chain, which is not yet wired through.
         uploadMetadata: createUploadMetadataActor(deps),
         uploadAllowlist: createUploadAllowlistActor(deps),
         buildAndSignUserOp: createBuildAndSignActor(deps),
@@ -256,7 +256,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
           error: ipfsStatus.error,
         });
         throw new Error(
-          `IPFS storage is not configured. Please check your Storacha credentials${errorDetail}`
+          `IPFS upload is not configured. Please check your Pinata credentials${errorDetail}`
         );
       }
 
