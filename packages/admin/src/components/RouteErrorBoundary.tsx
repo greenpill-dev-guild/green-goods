@@ -1,6 +1,7 @@
 import { Button, logger, trackErrorBoundary } from "@green-goods/shared";
 import { RiAlertLine, RiArrowLeftLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
+import { useIntl } from "react-intl";
 import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-dom";
 
 /**
@@ -18,6 +19,7 @@ import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-d
 export default function RouteErrorBoundary() {
   const error = useRouteError();
   const navigate = useNavigate();
+  const { formatMessage } = useIntl();
 
   const isChunkError = isChunkLoadError(error);
   const isNetwork = isNetworkError(error);
@@ -45,12 +47,13 @@ export default function RouteErrorBoundary() {
       <ErrorCard
         icon={<RiRefreshLine className="h-6 w-6 text-information-dark" />}
         iconBg="bg-information-lighter"
-        title="App Updated"
-        description="A new version has been deployed. Refreshing will load the latest version."
+        title={formatMessage({ id: "app.error.route.chunk.title" })}
+        description={formatMessage({ id: "app.error.route.chunk.description" })}
+        technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
         actions={
           <Button onClick={() => window.location.reload()}>
             <RiRefreshLine className="h-4 w-4" />
-            Refresh Page
+            {formatMessage({ id: "app.error.route.chunk.action" })}
           </Button>
         }
       />
@@ -62,12 +65,13 @@ export default function RouteErrorBoundary() {
       <ErrorCard
         icon={<RiWifiOffLine className="h-6 w-6 text-warning-dark" />}
         iconBg="bg-warning-lighter"
-        title="Connection Issue"
-        description="This page couldn't load. Check your connection and try again."
+        title={formatMessage({ id: "app.error.route.network.title" })}
+        description={formatMessage({ id: "app.error.route.network.description" })}
+        technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
         actions={
           <Button onClick={() => window.location.reload()}>
             <RiRefreshLine className="h-4 w-4" />
-            Retry
+            {formatMessage({ id: "app.error.route.network.action" })}
           </Button>
         }
       />
@@ -79,18 +83,19 @@ export default function RouteErrorBoundary() {
     <ErrorCard
       icon={<RiAlertLine className="h-6 w-6 text-error-dark" />}
       iconBg="bg-error-lighter"
-      title="Something went wrong"
-      description="An unexpected error occurred while loading this page."
+      title={formatMessage({ id: "app.error.route.generic.title" })}
+      description={formatMessage({ id: "app.error.route.generic.description" })}
+      technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
       details={import.meta.env.DEV ? extractMessage(error) : undefined}
       actions={
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => navigate(-1)}>
             <RiArrowLeftLine className="h-4 w-4" />
-            Go Back
+            {formatMessage({ id: "app.error.route.generic.actionBack" })}
           </Button>
           <Button onClick={() => window.location.reload()}>
             <RiRefreshLine className="h-4 w-4" />
-            Reload
+            {formatMessage({ id: "app.error.route.generic.actionReload" })}
           </Button>
         </div>
       }
@@ -106,6 +111,7 @@ function ErrorCard({
   title,
   description,
   details,
+  technicalDetailsLabel,
   actions,
 }: {
   icon: ReactNode;
@@ -113,6 +119,7 @@ function ErrorCard({
   title: string;
   description: string;
   details?: string;
+  technicalDetailsLabel: string;
   actions: ReactNode;
 }) {
   return (
@@ -129,7 +136,7 @@ function ErrorCard({
           {details && (
             <details className="mt-4 text-left">
               <summary className="cursor-pointer text-xs font-medium text-text-soft hover:text-text-sub">
-                Technical Details
+                {technicalDetailsLabel}
               </summary>
               <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-bg-soft p-3 text-xs text-text-sub">
                 {details}
