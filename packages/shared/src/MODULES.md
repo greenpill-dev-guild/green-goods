@@ -147,6 +147,7 @@ Current store folder contents: 7 stores plus shared workflow type definitions.
 | `gardens-subgraph.ts` | Gardens V2 subgraph URL resolver |
 | `passkeyServer.ts` | Passkey RP ID and availability helpers |
 | `pimlico.ts` | Pimlico client factories |
+| `query-keys/` | Centralized query keys, invalidation helpers, and schedules |
 | `query-persistence.ts` | Query persistence helpers |
 | `react-query.ts` | TanStack Query client and presets |
 | `sdg.ts` | Sustainable Development Goal metadata |
@@ -166,7 +167,6 @@ Current store folder contents: 7 stores plus shared workflow type definitions.
 | `errors/` | Error parsing, classification, formatting |
 | `form/` | Form normalizers |
 | `garden-detail.ts` | Garden detail tab parsing and badge aggregation |
-| `query-invalidation.ts` | Query invalidation scheduling (candidate to live closer to query keys/config) |
 | `scheduler.ts` | Cooperative task scheduling |
 | `storage/` | Draft persistence and storage quota helpers |
 | `styles/` | `cn()`, polymorphic helpers, theme management |

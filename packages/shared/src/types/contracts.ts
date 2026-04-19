@@ -29,6 +29,7 @@ export interface NetworkContracts {
   strategyHypercertFractionOffer: Address;
   // GreenWill
   greenWillRegistry: Address;
+  greenWillUnlockModule: Address;
   greenWillSupportRouter: Address;
 }
 

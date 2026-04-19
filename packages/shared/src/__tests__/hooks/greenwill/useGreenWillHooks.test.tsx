@@ -87,8 +87,7 @@ function createWrapper(queryClient: QueryClient) {
   };
 }
 
-// TODO: Enable when GreenWill query keys and contract surface are wired
-describe.skip("hooks/greenwill", () => {
+describe("hooks/greenwill", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

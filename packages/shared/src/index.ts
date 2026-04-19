@@ -292,6 +292,7 @@ export type {
   WorksQueryKey,
   CanvasSearchParamsResult,
   UseSheetOrchestratorReturn,
+  TxErrorMessages,
 } from "./hooks/index";
 export {
   assessmentFormSchema,
@@ -481,6 +482,7 @@ export {
   useTradeHistory,
   useTransactionSender,
   useTranslation,
+  useTxErrorMessages,
   useUpdateGardenBannerImage,
   useUpdateGardenDescription,
   useUpdateGardenLocation,

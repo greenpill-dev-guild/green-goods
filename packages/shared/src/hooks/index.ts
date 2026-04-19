@@ -364,6 +364,8 @@ export { useDocumentEvent, useEventListener, useWindowEvent } from "./utils/useE
 export { useMutationLock } from "./utils/useMutationLock";
 export { useSafeMutation } from "./utils/useSafeMutation";
 export { useDelayedInvalidation, useProgressiveInvalidation, useTimeout } from "./utils/useTimeout";
+export type { TxErrorMessages } from "./utils/useTxErrorMessages";
+export { useTxErrorMessages } from "./utils/useTxErrorMessages";
 export type { UseDepositFormResult } from "./vault/useDepositForm";
 export { useDepositForm } from "./vault/useDepositForm";
 // ============================================================================

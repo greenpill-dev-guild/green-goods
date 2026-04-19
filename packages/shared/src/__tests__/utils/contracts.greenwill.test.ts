@@ -6,8 +6,7 @@ import {
   GreenWillUnlockModuleABI,
 } from "../../utils/blockchain/contracts";
 
-// TODO: Enable when GreenWill contract ABIs and addresses are exported
-describe.skip("utils/blockchain/contracts GreenWill surface", () => {
+describe("utils/blockchain/contracts GreenWill surface", () => {
   it("includes GreenWill addresses in the network contracts map", () => {
     const contracts = getNetworkContracts(42161);
 

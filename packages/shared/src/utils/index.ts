@@ -282,7 +282,10 @@ export {
 // ============================================================================
 // QUERY INVALIDATION
 // ============================================================================
-export type { InvalidationDelay, ProgressiveInvalidationOptions } from "./query-invalidation";
+export type {
+  InvalidationDelay,
+  ProgressiveInvalidationOptions,
+} from "../config/query-keys/schedule";
 export {
   INVALIDATION_DELAYS,
   scheduleInvalidation,
