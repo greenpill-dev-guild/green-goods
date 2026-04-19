@@ -4,7 +4,7 @@ sidebar_position: 1
 slug: /builders/integrations/overview
 audience: developer
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-04-19
 feature_status: Live
 goal: "Complete Integrations with clear, role-specific next actions."
 difficulty: "standard"
@@ -41,7 +41,7 @@ graph TB
     GG --> CJ["CookieJar\nPayouts"]
     GG --> ENS["ENS\nGarden Names"]
     GG --> Envio["Envio\nIndexer"]
-    GG --> Storacha["Storacha\nIPFS"]
+    GG --> Pinata["Pinata-backed\nIPFS"]
     GG --> Pimlico["Pimlico\nAccount Abstraction"]
 ```
 
@@ -60,9 +60,9 @@ graph TB
 />
 
 <FeatureState
-  title="Storacha + Railway MCP"
+  title="Pinata-backed IPFS uploads"
   status="Live"
-  summary="Configured in `.mcp.json` for storage and deployment workflows."
+  summary="Shared hooks and deployment scripts use the Pinata-backed IPFS upload path for media and metadata."
 />
 
 <FeatureState

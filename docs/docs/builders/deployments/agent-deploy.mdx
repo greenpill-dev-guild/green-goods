@@ -4,7 +4,7 @@ sidebar_label: Agent
 slug: /builders/deployments/agent-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-19
 feature_status: Live
 keywords: [agent, Telegram, bot, Fastify, PM2, deployment]
 ---
@@ -30,13 +30,13 @@ graph TB
     subgraph Integrations
         TG["Telegram\nwebhooks"]
         Chain["Blockchain\nviem"]
-        IPFS["Storacha\nIPFS uploads"]
+        IPFS["Pinata-backed\nIPFS uploads"]
     end
 
     Runtime --> Integrations
 ```
 
-The agent package (`packages/agent/`) is a Fastify-based bot service that provides Telegram integration for the Green Goods protocol. It handles work submission via chat, blockchain interactions, and IPFS uploads.
+The agent package (`packages/agent/`) is a Fastify-based bot service that provides Telegram integration for the Green Goods protocol. It handles work submission via chat, blockchain interactions, and the shared Pinata-backed IPFS upload path used by the submission pipeline.
 
 ## Deployment Checklist
 
@@ -60,7 +60,7 @@ Key variables required for the agent service:
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot API token |
 | `DEPLOYER_PRIVATE_KEY` | Wallet key for on-chain transactions |
 | `VITE_CHAIN_ID` | Target chain for contract interactions |
-| `VITE_STORACHA_KEY` | Ed25519 principal for IPFS uploads |
+| `PINATA_JWT` | Pinata JWT for shared IPFS uploads |
 | `VITE_PIMLICO_API_KEY` | Account abstraction bundler/paymaster |
 
 The agent loads environment variables from the root `.env` file.
@@ -72,7 +72,7 @@ Sensitive keys should be managed through environment variables or a secrets mana
 - Never commit API keys to the repository
 - Rotate `TELEGRAM_BOT_TOKEN` if compromised
 - `DEPLOYER_PRIVATE_KEY` controls on-chain funds -- use a dedicated bot wallet with limited balance
-- `VITE_STORACHA_KEY` is an ed25519 principal -- generate with Storacha client tooling
+- `PINATA_JWT` controls authenticated uploads to the shared Pinata-backed IPFS path -- treat it like any other production secret
 
 ### Architecture
 
@@ -82,7 +82,7 @@ The agent runs as a long-lived Node.js/Bun process:
 - **Telegraf** for Telegram bot API interaction
 - **Pino** for structured logging (with `pino-pretty` for development)
 - **viem** for blockchain interactions
-- **@storacha/client** for IPFS uploads
+- **`@green-goods/shared`** for the shared Pinata-backed IPFS upload path
 - **@xenova/transformers** for local ML inference (classification tasks)
 
 ### Testing

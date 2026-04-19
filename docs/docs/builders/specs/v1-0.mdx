@@ -527,7 +527,7 @@ Green Goods v1 acts as a bridge. For the Gardener, it is a helpful WhatsApp cont
 1. **Capture** — Gardener sends photo to WhatsApp Bot.
 2. **Process** — AI Agent identifies object, cross-references with "Action Schema."
 3. **Sign** — Agent uses server-side Smart Account (signer controlled) to sign payload.
-4. **Store** — Data anchored on IPFS (Storacha) and stored onchain with EAS.
+4. **Store** — Data anchored on IPFS through the Pinata-backed upload path and stored onchain with EAS.
 
 #### Flow 2: Impact Report Minting and Evaluation (High Trust)
 
@@ -635,7 +635,7 @@ For an interactive version of these assumptions, use the [Protocol Revenue Explo
 | Item | Calculation | Cost |
 |------|-------------|------|
 | Pimlico gas sponsorship | 1,500 actions x $0.02 | $30 |
-| IPFS pinning (Storacha) | 1,500 images x $0.001 | $1.50 |
+| IPFS pinning (Pinata-backed path) | 1,500 images x $0.001 | $1.50 |
 | AI Agent API costs | 1,500 interactions x $0.01 | $15 |
 | Indexer and infrastructure | Flat | $100 |
 | **Total monthly infrastructure** | | **~$150** |
@@ -883,7 +883,7 @@ This section assesses privacy risks and documents data handling practices.
 |-----------|----------------|---------|---------|
 | Wallet Address | Passkey creation | On-chain (immutable) | Identification |
 | GPS Coordinates | Each action | IPFS (obfuscated to 3 decimal places) | Location verification |
-| Photos and Media | Submissions | IPFS via Storacha | Verification evidence |
+| Photos and Media | Submissions | IPFS via Pinata-backed path | Verification evidence |
 | Timestamps | Automatically | On-chain (attestations) | Provenance |
 | Action Metadata | Per schema | IPFS and on-chain | Impact tracking |
 | Device Information | Analytics | Anonymized | Usage patterns |
@@ -924,7 +924,7 @@ This section assesses privacy risks and documents data handling practices.
 | Location | Data | Characteristics |
 |----------|------|-----------------|
 | On-chain (Arbitrum) | Attestations, wallet addresses, transactions | Immutable, global |
-| IPFS (Storacha) | Images, metadata JSON, profile data | Immutable once pinned, global |
+| IPFS (Pinata-backed path) | Images, metadata JSON, profile data | Immutable once pinned, global |
 | Backend | Processing logs, session data | Ephemeral, deleted after processing |
 | Analytics | Anonymized usage data | Provider region |
 
@@ -960,7 +960,7 @@ This section assesses privacy risks and documents data handling practices.
 
 #### Third-Party Service Data Exposure
 
-- **Risk:** Data shared with Twilio, OpenAI, Pimlico, and Storacha creates exposure.
+- **Risk:** Data shared with Twilio, OpenAI, Pimlico, and Pinata creates exposure.
 - **Likelihood:** Low | **Impact:** High | **Level:** Medium
 - **Mitigations:** Data Processing Agreements with all processors; minimize data shared; review third-party policies; Twilio and OpenAI have SOC 2 compliance.
 - **Residual Risk:** Third-party policies may change, requiring ongoing monitoring.
@@ -1003,7 +1003,7 @@ This section assesses privacy risks and documents data handling practices.
 |----------|---------|----------|
 | Privacy Notice | User-facing, explaining data collection, use, and rights | Before launch |
 | Cookie Policy | Required if any cookies used (PWA may use local storage) | Before launch |
-| Data Processing Agreements | Contracts with Twilio, OpenAI, Pimlico, Storacha, Envio | Before launch |
+| Data Processing Agreements | Contracts with Twilio, OpenAI, Pimlico, Pinata, Envio | Before launch |
 | Data Retention Policy | Internal document specifying retention periods | Before launch |
 | Data Breach Response Plan | Internal procedure for handling security incidents | Before launch |
 
@@ -1172,7 +1172,7 @@ This section assesses privacy risks and documents data handling practices.
 | R-T1 | AI Hallucination | High | Medium | Agent prompts include strict bounds; Agent stages data for Operator review, never finalizes directly |
 | R-T2 | Passkey Adoption Friction | Medium | High | Fallback to email magic link for devices without biometric support; clear onboarding guidance |
 | R-T3 | Pimlico Downtime | Low | High | Queue transactions locally; secondary bundler fallback; alert on sponsorship failures |
-| R-T4 | IPFS Pinning Failures | Medium | Medium | Storacha with Filecoin backup; retry logic with exponential backoff; local queue preservation |
+| R-T4 | IPFS Pinning Failures | Medium | Medium | Pinata-backed uploads; retry logic with exponential backoff; local queue preservation |
 | R-T5 | Smart Contract Vulnerability | Low | Critical | Apply for Arbitrum audit program; formal verification of core flows; bug bounty program post-launch |
 | R-T6 | Envio Indexer Lag | Medium | Medium | Optimistic UI updates; background sync status indicators; fallback to direct RPC for critical queries |
 

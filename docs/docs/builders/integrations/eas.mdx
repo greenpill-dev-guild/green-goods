@@ -93,7 +93,7 @@ The client uses `encodeAbiParameters` / `SchemaEncoder` to encode attestation pa
 { name: "media",      type: "string[]" }  // IPFS CIDs for photos/videos
 ```
 
-Media files and metadata JSON are uploaded to IPFS (Storacha) before encoding. The encoder produces the hex-encoded `bytes` payload that EAS stores on-chain.
+Media files and metadata JSON are uploaded to IPFS through the Pinata-backed upload path before encoding. The encoder produces the hex-encoded `bytes` payload that EAS stores on-chain.
 
 ### Struct vs tuple encoding (critical)
 

@@ -39,7 +39,7 @@ sequenceDiagram
     participant UI as React UI
     participant JQ as Job Queue (IndexedDB)
     participant SW as Service Worker
-    participant IPFS as IPFS (Storacha)
+    participant IPFS as IPFS (Pinata-backed)
     participant Chain as EAS Contract
 
     User->>UI: Submit work (photos + details)
@@ -85,7 +85,7 @@ graph LR
     end
 
     subgraph Network["Network Layer"]
-        IPFS["IPFS / Storacha<br/><small>Media storage</small>"]
+        IPFS["IPFS / Pinata-backed path<br/><small>Media storage</small>"]
         Bundler["Bundler<br/><small>UserOperation relay</small>"]
     end
 

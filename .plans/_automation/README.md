@@ -36,6 +36,32 @@ Suggested weekly harness-GC sequence:
 - `node scripts/plan-hub.mjs list` computes lane readiness from `status.json` plus branch triggers
 - `qa_pass_2` must verify both the trigger branch and `qa_pass_1.status == "passed"`
 
+## Emit Contract
+
+When a lane automation actually runs, emit one JSONL record to `.plans/_automation/runs/` with:
+
+- the feature slug
+- the loop or lane id
+- the metric name from `.plans/active/<feature-slug>/metrics.md` when that file exists
+- metric before / after values
+- keep / revert / bail decision
+- warning deltas when warnings are part of the eval
+
+Use:
+
+```bash
+node scripts/log-automation-run.mjs \
+  --feature <feature-slug> \
+  --loop <lane-or-loop-id> \
+  --metric-name "<metric>" \
+  --metric-before <value> \
+  --metric-after <value> \
+  --decision keep|revert|bail|blocked \
+  --notes "<short summary>"
+```
+
+This is the durable per-run trace surface for local and scheduled automation work.
+
 ## Prompt Files
 
 - `claude-ui.prompt.md`

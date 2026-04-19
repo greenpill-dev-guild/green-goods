@@ -19,6 +19,8 @@
 | AC-5 | The inner-loop policy is explicit: targeted `bun run test -- <file>` or `bun run test` are the fast iterative gates, and coverage remains scheduled or pre-merge evidence | `state_api` | `.plans/README.md`, `plan.todo.md` |
 | AC-6 | The memory policy is explicit: `.plans/` is repo truth and any `.claude/agent-memory` pilot remains environment-local until freshness rules exist | `state_api` | `.plans/README.md`, `docs/docs/builders/agentic/context-engineering.mdx`, `plan.todo.md` |
 | AC-7 | The next execution step is explicit after control-surface work completes | `qa_pass_2` | `plan.todo.md`, `handoffs/codex-state-api.md` |
+| AC-8 | The rollout names one metric, one time budget, and one keep/revert rule per loop family | `state_api` | `metrics.md` |
+| AC-9 | Autonomous runs have a durable emit contract instead of only chat summaries | `state_api` | `.plans/_automation/README.md`, `.plans/_automation/runs/README.md`, `scripts/log-automation-run.mjs` |
 
 ## Test Strategy
 
@@ -28,6 +30,8 @@
 - Manual checks:
   - confirm the active hub and `.plans/README.md` agree on validation posture and repo truth
   - confirm memory guidance does not elevate `.claude/agent-memory` above `.plans/`
+  - confirm `metrics.md` names the active and deferred loop families honestly
+  - confirm automation runs can emit a JSONL record to `.plans/_automation/runs/`
   - compare unrouted legacy views against the live folded surface before deletion
   - if `packages/admin` build evidence is needed, explicitly unlock / authorize the local `varlock` / 1Password flow first
 

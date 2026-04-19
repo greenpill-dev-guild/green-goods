@@ -4,7 +4,7 @@ sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-04-08
+last_verified: 2026-04-19
 feature_status: Experimental
 ---
 
@@ -16,7 +16,7 @@ sequenceDiagram
     participant TG as Telegram
     participant Bot as Agent Bot<br/>(Fastify + Telegraf)
     participant Chain as Blockchain
-    participant IPFS as Storacha IPFS
+    participant IPFS as Pinata-backed IPFS
 
     G->>TG: /submit work
     TG->>Bot: Webhook
@@ -37,7 +37,7 @@ Platform-agnostic bot for Green Goods. Currently supports Telegram, with archite
 - Wallet creation and garden membership via `/start` and `/join`
 - Natural language work submission (text and voice via Whisper transcription)
 - Operator approval/rejection workflows
-- On-chain attestation creation and media upload to Storacha IPFS
+- On-chain attestation creation and media flows that resolve through the shared Pinata-backed IPFS path
 - Rate limiting, encrypted key storage, and analytics (PostHog)
 
 ## Sibling projects

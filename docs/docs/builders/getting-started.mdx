@@ -5,7 +5,7 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-19
 feature_status: Live
 goal: "Complete Developer Getting Started with clear, role-specific next actions."
 difficulty: "standard"
@@ -78,7 +78,7 @@ Green Goods uses a **single root `.env` bootstrap** plus committed `.env.schema`
 | `OP_ENVIRONMENT` | 1Password environment name/id used only for bulk injection in CI, service-account flows, or local beta-capable CLI installs |
 | `OP_SERVICE_ACCOUNT_TOKEN` | 1Password service account token (required in CI/deployed environments, optional locally if you want service-account auth) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (e.g. `11155111` for Sepolia, `42161` for Arbitrum) |
-| `VITE_STORACHA_KEY` | Ed25519 principal key for IPFS uploads via Storacha |
+| `PINATA_JWT` | Pinata JWT for the shared IPFS upload path |
 | `SEPOLIA_RPC_URL` | RPC endpoint for Sepolia fork tests |
 
 Use `.env.schema` as the full environment contract. Variables prefixed with `VITE_` are embedded into frontend bundles at build time.
