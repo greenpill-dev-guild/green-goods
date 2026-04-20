@@ -94,11 +94,9 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
   const isMainSheetReceded = isReceded || activeOverlayIds.size > 0;
 
   const recessionSpring = useSpring({
-    scale: isMainSheetReceded ? 0.96 : 1,
-    opacity: isMainSheetReceded ? 0.5 : 1,
-    blur: isMainSheetReceded ? 3 : 0,
-    y: isMainSheetReceded ? 8 : 0,
-    config: SPRING_CONFIGS.sheet,
+    opacity: isMainSheetReceded ? 0.65 : 1,
+    y: isMainSheetReceded ? 12 : 0,
+    config: SPRING_CONFIGS.recession,
   });
 
   return (
@@ -115,17 +113,12 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
         <div className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]">
           <animated.div
             className={cn(
-              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity,filter]",
+              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity]",
               "glass-surface"
             )}
             style={{
-              transform: recessionSpring.scale.to(
-                (s) => `translateY(${recessionSpring.y.get()}px) scale(${s})`
-              ),
+              transform: recessionSpring.y.to((y) => `translateY(${y}px)`),
               opacity: recessionSpring.opacity,
-              filter: recessionSpring.blur.to(
-                (b) => `blur(${b}px) saturate(${b > 0 ? 0.88 : 1}) brightness(${b > 0 ? 0.98 : 1})`
-              ),
             }}
             data-testid="main-sheet-content"
           >

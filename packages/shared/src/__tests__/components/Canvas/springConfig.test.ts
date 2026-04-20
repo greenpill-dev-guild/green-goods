@@ -17,4 +17,11 @@ describe("SPRING_CONFIGS", () => {
     expect(SPRING_CONFIGS.sheet.friction).toBeGreaterThan(SPRING_CONFIGS.gentle.friction);
     expect(SPRING_CONFIGS.gentle.mass).toBeGreaterThan(SPRING_CONFIGS.sheet.mass);
   });
+
+  it("places recession between sheet snap and gentle ambient motion", () => {
+    expect(SPRING_CONFIGS.sheet.tension).toBeGreaterThan(SPRING_CONFIGS.recession.tension);
+    expect(SPRING_CONFIGS.recession.tension).toBeGreaterThan(SPRING_CONFIGS.gentle.tension);
+    expect(SPRING_CONFIGS.recession.mass).toBeGreaterThan(SPRING_CONFIGS.sheet.mass);
+    expect(SPRING_CONFIGS.gentle.mass).toBeGreaterThan(SPRING_CONFIGS.recession.mass);
+  });
 });

@@ -144,16 +144,14 @@ export function BottomSheet({
       }}
       data-testid="bottom-sheet-dialog"
     >
-      {/* Custom overlay */}
+      {/* Custom overlay — static blur, opacity fade only */}
       <animated.div
         className={cn("absolute inset-0", isBounded ? "bg-transparent" : "")}
         style={{
           opacity: isBounded ? 0 : springs.overlay,
           backgroundColor: isBounded ? undefined : "rgba(10, 10, 10, 0.18)",
-          backdropFilter: isBounded ? undefined : springs.overlay.to((o) => `blur(${o * 2}px)`),
-          WebkitBackdropFilter: isBounded
-            ? undefined
-            : springs.overlay.to((o) => `blur(${o * 2}px)`),
+          backdropFilter: isBounded ? undefined : "blur(2px)",
+          WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
         onClick={handleOverlayClick}
         data-testid="bottom-sheet-overlay"
