@@ -316,7 +316,7 @@ export default function GardenView() {
 
                   <Surface
                     elevation="ground"
-                    padding="default"
+                    padding="compact"
                     className="space-y-2 text-sm text-text-sub"
                   >
                     <h3 className="label-md text-text-strong">

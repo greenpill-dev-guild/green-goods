@@ -342,7 +342,7 @@ export default function CommunityView() {
       ) : (
         <div className="mt-4 px-4 sm:px-6">
           <div className="mx-auto w-full max-w-[1400px]">
-            <Surface elevation="solid-raised" padding="default" className="overflow-hidden">
+            <Surface elevation="solid-raised" padding="none" className="overflow-hidden">
               <CommunityTab
                 garden={{ id: garden.id, name: garden.name }}
                 gardenId={gardenId}

@@ -231,8 +231,8 @@ export default function Actions() {
         {isLoading ? (
           <Surface
             elevation="solid-raised"
-            padding="default"
-            className="space-y-3"
+            padding="none"
+            className="space-y-3 p-4 sm:p-5"
             role="status"
             aria-live="polite"
           >
@@ -253,7 +253,7 @@ export default function Actions() {
         ) : null}
 
         {!isLoading && actions.length === 0 ? (
-          <Surface elevation="solid-raised" padding="default">
+          <Surface elevation="solid-raised" padding="none">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
               title={intl.formatMessage({
@@ -280,7 +280,7 @@ export default function Actions() {
         ) : null}
 
         {!isLoading && actions.length > 0 && stageFilteredActions.length === 0 ? (
-          <Surface elevation="solid-raised" padding="default">
+          <Surface elevation="solid-raised" padding="none">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
               title={intl.formatMessage({
