@@ -125,6 +125,8 @@
   "admin.gardens.unavailable.description": "Cannot load gardens due to indexer connection issues. Please check back later.",
   "admin.gardens.unavailable.title": "Gardens Unavailable",
   "admin.gardens.unknownError": "Error desconocido",
+  "admin.greenWill.invalidAddress": "Enter a valid Ethereum address.",
+  "admin.greenWill.lookupError": "Could not load badge ownership.{message, select, __none__ {} other { Technical hint: {message}}}",
   "admin.sidebar.closeMenu": "Cerrar menú de navegación",
   "admin.sidebar.group.finance": "Finanzas",
   "admin.sidebar.group.operations": "Operaciones",

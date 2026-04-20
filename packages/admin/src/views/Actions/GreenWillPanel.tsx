@@ -11,8 +11,9 @@ import {
   useGreenWillRecentGrants,
 } from "@green-goods/shared/hooks";
 import { RiAwardLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
+import { isAddress } from "viem";
 
 function badgeTitle(intl: ReturnType<typeof useIntl>, slug: string) {
   switch (slug) {
@@ -40,7 +41,10 @@ export function GreenWillPanel() {
   const intl = useIntl();
   const [lookupValue, setLookupValue] = useState("");
   const lookupAddress = lookupValue.trim();
-  const lookupEnabled = lookupAddress.length > 0;
+  const hasLookupInput = lookupAddress.length > 0;
+  const isLookupAddressValid = hasLookupInput && isAddress(lookupAddress);
+  const lookupAddressInvalid = hasLookupInput && !isLookupAddressValid;
+  const lookupEnabled = isLookupAddressValid;
 
   const {
     badgeDefinitions,
@@ -55,34 +59,84 @@ export function GreenWillPanel() {
     chainId: DEFAULT_CHAIN_ID,
     limit: 5,
   });
-  const { earnedBadges, isLoading: isLookupLoading } = useGreenWillBadges(
-    lookupAddress || undefined,
-    { enabled: lookupEnabled }
-  );
+  const {
+    earnedBadges,
+    isLoading: isLookupLoading,
+    isError: isLookupError,
+    error: lookupError,
+  } = useGreenWillBadges(isLookupAddressValid ? lookupAddress : undefined, {
+    enabled: lookupEnabled,
+  });
 
-  const badgeLookupSummary = useMemo(() => {
-    if (!lookupEnabled) {
-      return intl.formatMessage({
-        id: "admin.greenWill.lookupPrompt",
-        defaultMessage: "Enter an address to inspect badge ownership.",
-      });
+  const lookupErrorMessage =
+    lookupError && typeof lookupError === "object" && "message" in lookupError
+      ? String((lookupError as { message?: unknown }).message ?? "")
+      : "";
+
+  const badgeLookupFeedback = (() => {
+    if (!hasLookupInput) {
+      return {
+        message: intl.formatMessage({
+          id: "admin.greenWill.lookupPrompt",
+          defaultMessage: "Enter an address to inspect badge ownership.",
+        }),
+        role: "status" as const,
+        tone: "sub" as const,
+      };
+    }
+
+    if (lookupAddressInvalid) {
+      return {
+        message: intl.formatMessage({
+          id: "admin.greenWill.invalidAddress",
+          defaultMessage: "Enter a valid Ethereum address.",
+        }),
+        role: "alert" as const,
+        tone: "error" as const,
+      };
     }
 
     if (isLookupLoading) {
-      return intl.formatMessage({
-        id: "admin.greenWill.lookupLoading",
-        defaultMessage: "Loading badge ownership...",
-      });
+      return {
+        message: intl.formatMessage({
+          id: "admin.greenWill.lookupLoading",
+          defaultMessage: "Loading badge ownership...",
+        }),
+        role: "status" as const,
+        tone: "sub" as const,
+      };
     }
 
-    return intl.formatMessage(
-      {
-        id: "admin.greenWill.lookupResult",
-        defaultMessage: "{count} badge {count, plural, one {found} other {found}} for {address}",
-      },
-      { count: earnedBadges.length, address: lookupAddress }
-    );
-  }, [earnedBadges.length, intl, isLookupLoading, lookupAddress, lookupEnabled]);
+    if (isLookupError) {
+      return {
+        message: intl.formatMessage(
+          {
+            id: "admin.greenWill.lookupError",
+            defaultMessage:
+              "Could not load badge ownership.{message, select, __none__ {} other { Technical hint: {message}}}",
+          },
+          { message: lookupErrorMessage || "__none__" }
+        ),
+        role: "alert" as const,
+        tone: "error" as const,
+      };
+    }
+
+    return {
+      message: intl.formatMessage(
+        {
+          id: "admin.greenWill.lookupResult",
+          defaultMessage: "{count} badge {count, plural, one {found} other {found}} for {address}",
+        },
+        { count: earnedBadges.length, address: lookupAddress }
+      ),
+      role: "status" as const,
+      tone: "sub" as const,
+    };
+  })();
+
+  const badgeLookupFeedbackClassName =
+    badgeLookupFeedback.tone === "error" ? "text-sm text-error-base" : "text-sm text-text-sub-600";
 
   return (
     <Surface elevation="ground" padding="compact" className="flex flex-col gap-4">
@@ -248,11 +302,19 @@ export function GreenWillPanel() {
             id: "admin.greenWill.lookupPlaceholder",
             defaultMessage: "0x...",
           })}
+          aria-describedby="greenwill-lookup-feedback"
+          aria-invalid={lookupAddressInvalid || undefined}
         />
 
-        <p className="text-sm text-text-sub-600">{badgeLookupSummary}</p>
+        <p
+          id="greenwill-lookup-feedback"
+          className={badgeLookupFeedbackClassName}
+          role={badgeLookupFeedback.role}
+        >
+          {badgeLookupFeedback.message}
+        </p>
 
-        {lookupEnabled && earnedBadges.length > 0 ? (
+        {lookupEnabled && !isLookupLoading && !isLookupError && earnedBadges.length > 0 ? (
           <div className="space-y-3">
             {earnedBadges.map((badge) => (
               <div
