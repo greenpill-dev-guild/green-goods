@@ -7,7 +7,7 @@ import {
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
-import { CanvasStageTabRail } from "@green-goods/shared";
+import { AdminTabRail } from "@/components/AdminTabRail";
 import { PageHeader } from "./PageHeader";
 
 const meta: Meta<typeof PageHeader> = {
@@ -190,7 +190,7 @@ export const CanvasRoute: Story = {
     metadata: <span>Selected garden</span>,
     sticky: true,
     children: (
-      <CanvasStageTabRail
+      <AdminTabRail
         ariaLabel="Garden views"
         activeId="overview"
         onChange={() => {}}
