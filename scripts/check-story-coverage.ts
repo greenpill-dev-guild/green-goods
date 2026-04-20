@@ -38,6 +38,10 @@ const ADMIN_SYSTEM_COMPONENTS = [
   "Layout/PageTransition.tsx",
 ] as const;
 
+const NON_VISUAL_SHARED_COMPONENTS = new Set([
+  "Canvas/LeftSheetContext.tsx",
+]);
+
 // Files to skip entirely
 const SKIP_PATTERNS = [
   /^index\.tsx?$/, // barrel exports
@@ -105,6 +109,10 @@ async function main() {
     }
 
     const fullPath = join(COMPONENTS_DIR, match);
+
+    if (NON_VISUAL_SHARED_COMPONENTS.has(match)) {
+      continue;
+    }
 
     // Skip type-only files
     if (isTypeOnlyFile(fullPath)) {
