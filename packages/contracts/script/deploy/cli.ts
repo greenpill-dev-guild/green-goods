@@ -5,6 +5,8 @@ import { DeploymentAddresses } from "../utils/deployment-addresses";
 import { NetworkManager } from "../utils/network";
 import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
+import { BadgeLocksDeployer } from "./badge-locks";
+import { BadgeSchemasDeployer } from "./badge-schemas";
 import { CoreDeployer } from "./core";
 import { GardenDeployer } from "./gardens";
 import { GoodsDeployer } from "./goods";
@@ -30,6 +32,8 @@ export class DeploymentCLI {
   private hatsTreeDeployer: HatsTreeDeployer;
   private goodsDeployer: GoodsDeployer;
   private octantFactoryDeployer: OctantFactoryDeployer;
+  private badgeLocksDeployer: BadgeLocksDeployer;
+  private badgeSchemasDeployer: BadgeSchemasDeployer;
 
   constructor() {
     this.parser = new CliParser();
@@ -46,6 +50,8 @@ export class DeploymentCLI {
     this.hatsTreeDeployer = new HatsTreeDeployer(this.networkManager, this.deploymentAddresses);
     this.goodsDeployer = new GoodsDeployer(this.networkManager, this.anvilManager);
     this.octantFactoryDeployer = new OctantFactoryDeployer(this.networkManager, this.anvilManager);
+    this.badgeLocksDeployer = new BadgeLocksDeployer(this.networkManager, this.deploymentAddresses);
+    this.badgeSchemasDeployer = new BadgeSchemasDeployer(this.networkManager, this.deploymentAddresses);
   }
 
   /**
@@ -65,6 +71,8 @@ Commands:
   garden <config.json>     Deploy garden from config file
   actions <config.json>    Deploy actions from config file
   hats-tree                Create and configure the Hats protocol tree
+  badge-locks              Plan GreenWill reputation badge Unlock locks (planning only; broadcast blocked)
+  badge-schemas            Plan GreenWill reputation badge EAS schema registration (planning only; broadcast blocked)
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
 
@@ -99,6 +107,10 @@ Examples:
 
   # Create Hats tree
   bun deploy.ts hats-tree --network sepolia --broadcast
+
+  # Plan GreenWill reputation badge locks and schema
+  bun deploy.ts badge-locks --network arbitrum --dry-run
+  bun deploy.ts badge-schemas --network arbitrum --dry-run
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 
@@ -211,6 +223,16 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
 
         case "hats-tree": {
           await this.hatsTreeDeployer.setupHatsTree(options);
+          break;
+        }
+
+        case "badge-locks": {
+          await this.badgeLocksDeployer.deployBadgeLocks(options);
+          break;
+        }
+
+        case "badge-schemas": {
+          await this.badgeSchemasDeployer.deployBadgeSchemas(options);
           break;
         }
 
