@@ -3,6 +3,8 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { Attestation } from "@eas/IEAS.sol";
 
 import { GreenWillRegistry } from "../../src/registries/GreenWillRegistry.sol";
@@ -197,6 +199,67 @@ contract GreenWillRegistryTest is Test {
         registry.claimBadge(FIRST_WORK_BADGE, abi.encode(WORK_UID));
     }
 
+    function test_upgradeToV2_preservesConfiguredClassesAndIssuedRecords() public {
+        hats.setWearer(PROTOCOL_HAT_ID, ALICE, true);
+
+        vm.prank(ALICE);
+        registry.claimBadge(GENESIS_BADGE, "");
+
+        _setWorkAttestation(WORK_UID, WORK_SCHEMA_UID, ALICE);
+
+        vm.prank(ALICE);
+        registry.claimBadge(FIRST_WORK_BADGE, abi.encode(WORK_UID));
+
+        GreenWillRegistry.BadgeClass memory originalGenesisClass = registry.getBadgeClass(GENESIS_BADGE);
+        GreenWillRegistry.BadgeClass memory originalWorkClass = registry.getBadgeClass(FIRST_WORK_BADGE);
+        GreenWillRegistry.BadgeRecord memory originalGenesisRecord = registry.getBadgeRecord(GENESIS_BADGE, ALICE);
+        GreenWillRegistry.BadgeRecord memory originalWorkRecord = registry.getBadgeRecord(FIRST_WORK_BADGE, ALICE);
+        address originalOwner = registry.owner();
+        address originalUnlockModule = registry.unlockModule();
+
+        GreenWillRegistryV2 registryV2Implementation = new GreenWillRegistryV2();
+        registry.upgradeTo(address(registryV2Implementation));
+
+        GreenWillRegistryV2 upgraded = GreenWillRegistryV2(address(registry));
+
+        assertEq(upgraded.owner(), originalOwner, "owner should survive upgrade");
+        assertEq(upgraded.unlockModule(), originalUnlockModule, "unlock module should survive upgrade");
+
+        GreenWillRegistry.BadgeClass memory upgradedGenesisClass = upgraded.getBadgeClass(GENESIS_BADGE);
+        GreenWillRegistry.BadgeClass memory upgradedWorkClass = upgraded.getBadgeClass(FIRST_WORK_BADGE);
+        assertEq(upgradedGenesisClass.slug, originalGenesisClass.slug, "genesis slug should survive upgrade");
+        assertEq(
+            upgradedGenesisClass.metadataURI, originalGenesisClass.metadataURI, "genesis metadata should survive upgrade"
+        );
+        assertEq(upgradedGenesisClass.validator, originalGenesisClass.validator, "genesis validator should survive upgrade");
+        assertEq(upgradedGenesisClass.unlockLock, originalGenesisClass.unlockLock, "genesis lock should survive upgrade");
+        assertEq(upgradedGenesisClass.claimable, originalGenesisClass.claimable, "genesis claimable flag should survive");
+        assertEq(upgradedGenesisClass.active, originalGenesisClass.active, "genesis active flag should survive");
+        assertEq(upgradedWorkClass.slug, originalWorkClass.slug, "work slug should survive upgrade");
+        assertEq(upgradedWorkClass.validator, originalWorkClass.validator, "work validator should survive upgrade");
+        assertEq(upgradedWorkClass.claimable, originalWorkClass.claimable, "work claimable flag should survive");
+        assertEq(upgradedWorkClass.active, originalWorkClass.active, "work active flag should survive");
+
+        GreenWillRegistry.BadgeRecord memory upgradedGenesisRecord = upgraded.getBadgeRecord(GENESIS_BADGE, ALICE);
+        GreenWillRegistry.BadgeRecord memory upgradedWorkRecord = upgraded.getBadgeRecord(FIRST_WORK_BADGE, ALICE);
+        assertEq(upgradedGenesisRecord.issued, originalGenesisRecord.issued, "genesis issued flag should survive");
+        assertEq(upgradedGenesisRecord.issuedAt, originalGenesisRecord.issuedAt, "genesis issuedAt should survive");
+        assertEq(upgradedGenesisRecord.sourceRef, originalGenesisRecord.sourceRef, "genesis sourceRef should survive");
+        assertEq(
+            upgradedGenesisRecord.unlockTokenId, originalGenesisRecord.unlockTokenId, "genesis unlock token should survive"
+        );
+        assertEq(upgradedGenesisRecord.issuer, originalGenesisRecord.issuer, "genesis issuer should survive");
+        assertEq(upgradedWorkRecord.issued, originalWorkRecord.issued, "work issued flag should survive");
+        assertEq(upgradedWorkRecord.issuedAt, originalWorkRecord.issuedAt, "work issuedAt should survive");
+        assertEq(upgradedWorkRecord.sourceRef, originalWorkRecord.sourceRef, "work sourceRef should survive");
+        assertEq(upgradedWorkRecord.issuer, originalWorkRecord.issuer, "work issuer should survive");
+        assertTrue(upgraded.hasBadge(GENESIS_BADGE, ALICE), "genesis ownership should remain queryable");
+        assertTrue(upgraded.hasBadge(FIRST_WORK_BADGE, ALICE), "first-work ownership should remain queryable");
+
+        upgraded.setV2StorageMarker(20_260_420);
+        assertEq(upgraded.v2StorageMarker(), 20_260_420, "v2 storage slot should be writable");
+    }
+
     function _setWorkAttestation(bytes32 uid, bytes32 schemaUID, address attester) internal {
         eas.setAttestationByUID(
             uid,
@@ -214,4 +277,40 @@ contract GreenWillRegistryTest is Test {
             })
         );
     }
+}
+
+contract GreenWillRegistryV2 is OwnableUpgradeable, UUPSUpgradeable {
+    address public unlockModule;
+
+    mapping(bytes32 badgeId => GreenWillRegistry.BadgeClass badgeClass) private _badgeClasses;
+    mapping(bytes32 badgeId => mapping(address account => GreenWillRegistry.BadgeRecord badgeRecord)) private _badgeRecords;
+
+    uint256 public v2StorageMarker;
+
+    uint256[46] private __gap;
+
+    function setV2StorageMarker(uint256 marker) external onlyOwner {
+        v2StorageMarker = marker;
+    }
+
+    function hasBadge(bytes32 badgeId, address account) external view returns (bool) {
+        return _badgeRecords[badgeId][account].issued;
+    }
+
+    function getBadgeClass(bytes32 badgeId) external view returns (GreenWillRegistry.BadgeClass memory badgeClass) {
+        return _badgeClasses[badgeId];
+    }
+
+    function getBadgeRecord(
+        bytes32 badgeId,
+        address account
+    )
+        external
+        view
+        returns (GreenWillRegistry.BadgeRecord memory badgeRecord)
+    {
+        return _badgeRecords[badgeId][account];
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner { }
 }

@@ -3,9 +3,13 @@ pragma solidity ^0.8.25;
 
 import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { GreenWillRegistry } from "../../src/registries/GreenWillRegistry.sol";
 import { GreenWillSupportRouter } from "../../src/modules/GreenWillSupportRouter.sol";
+import { IGreenWillRegistry } from "../../src/interfaces/IGreenWillRegistry.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { MockOctantVault } from "../../src/mocks/Octant.sol";
 
@@ -139,4 +143,55 @@ contract GreenWillSupportRouterTest is Test {
 
         assertFalse(registry.hasBadge(FIRST_SUPPORT_BADGE, ALICE), "direct deposits must remain ineligible in v1");
     }
+
+    function test_upgradeToV2_preservesRoutingConfigurationAndIssuedSupportState() public {
+        vm.startPrank(ALICE);
+        asset.approve(address(router), type(uint256).max);
+        uint256 shares = router.fundVault(GARDEN, address(asset), 10 ether);
+        vm.stopPrank();
+
+        GreenWillRegistry.BadgeRecord memory originalRecord = registry.getBadgeRecord(FIRST_SUPPORT_BADGE, ALICE);
+        address originalOwner = router.owner();
+        address originalRegistry = address(router.registry());
+        address originalOctantModule = router.octantModule();
+        bytes32 originalSupportBadgeId = router.supportBadgeId();
+
+        GreenWillSupportRouterV2 routerV2Implementation = new GreenWillSupportRouterV2();
+        router.upgradeTo(address(routerV2Implementation));
+
+        GreenWillSupportRouterV2 upgraded = GreenWillSupportRouterV2(address(router));
+
+        assertEq(shares, 10 ether, "setup should mint vault shares");
+        assertEq(upgraded.owner(), originalOwner, "owner should survive upgrade");
+        assertEq(address(upgraded.registry()), originalRegistry, "registry should survive upgrade");
+        assertEq(upgraded.octantModule(), originalOctantModule, "octant module should survive upgrade");
+        assertEq(upgraded.supportBadgeId(), originalSupportBadgeId, "support badge id should survive upgrade");
+        assertEq(vault.balanceOf(ALICE), 10 ether, "external vault share state should remain intact");
+        assertTrue(registry.hasBadge(FIRST_SUPPORT_BADGE, ALICE), "support badge should remain issued");
+
+        GreenWillRegistry.BadgeRecord memory upgradedRecord = registry.getBadgeRecord(FIRST_SUPPORT_BADGE, ALICE);
+        assertEq(upgradedRecord.issued, originalRecord.issued, "issued flag should survive");
+        assertEq(upgradedRecord.issuedAt, originalRecord.issuedAt, "issuedAt should survive");
+        assertEq(upgradedRecord.sourceRef, originalRecord.sourceRef, "sourceRef should survive");
+        assertEq(upgradedRecord.issuer, originalRecord.issuer, "issuer should survive");
+
+        upgraded.setV2RoutingNonce(11);
+        assertEq(upgraded.v2RoutingNonce(), 11, "v2 storage slot should be writable");
+    }
+}
+
+contract GreenWillSupportRouterV2 is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpgradeable {
+    IGreenWillRegistry public registry;
+    address public octantModule;
+    bytes32 public supportBadgeId;
+
+    uint256 public v2RoutingNonce;
+
+    uint256[46] private __gap;
+
+    function setV2RoutingNonce(uint256 nonce) external onlyOwner {
+        v2RoutingNonce = nonce;
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner { }
 }
