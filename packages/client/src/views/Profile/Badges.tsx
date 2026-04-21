@@ -2,11 +2,13 @@ import {
   formatAddress,
   type Address,
   type GreenWillBadgeView,
+  useClaimFirstSupportBadge,
   useClaimFirstWorkBadge,
   useClaimGenesisBadge,
   useEnsName,
   useGreenGoodsEnsName,
   useGreenWillBadges,
+  useMyVaultDeposits,
   useMyOnlineWorks,
   usePrimaryAddress,
   useProtocolMemberStatus,
@@ -69,7 +71,7 @@ function badgeDescription(intl: ReturnType<typeof useIntl>, slug: string) {
     case "first-support":
       return intl.formatMessage({
         id: "app.profile.badges.firstSupport.description",
-        defaultMessage: "Awarded automatically after the first routed garden funding.",
+        defaultMessage: "Claimable after this address holds a live garden vault position.",
       });
     default:
       return "";
@@ -95,17 +97,20 @@ export const ProfileBadges: React.FC = () => {
   const { data: ensName } = useEnsName(primaryAddress);
   const { data: isProtocolMember = false } = useProtocolMemberStatus(primaryAddress ?? undefined);
   const { data: works = [] } = useMyOnlineWorks({ limit: 1 });
+  const { deposits = [] } = useMyVaultDeposits(primaryAddress ?? undefined);
   const { badges, earnedBadges, isLoading, isError } = useGreenWillBadges(
     primaryAddress ?? undefined
   );
   const genesisClaim = useClaimGenesisBadge();
   const firstWorkClaim = useClaimFirstWorkBadge();
+  const firstSupportClaim = useClaimFirstSupportBadge();
 
   const preferredEnsName = greenGoodsEnsName || ensName;
   const badgeIdentity = primaryAddress
     ? formatAddress(primaryAddress, { ensName: preferredEnsName ?? undefined })
     : null;
   const firstWorkUid = works[0]?.id as `0x${string}` | undefined;
+  const firstSupportPosition = deposits[0] ?? null;
 
   const earned = useMemo(() => sortBadges(earnedBadges), [earnedBadges]);
   const available = useMemo(
@@ -168,14 +173,39 @@ export const ProfileBadges: React.FC = () => {
       );
     }
 
-    return (
-      <p className="text-xs text-text-sub-600">
-        {intl.formatMessage({
-          id: "app.profile.badges.autoIssued",
-          defaultMessage: "Auto-issued after routed support.",
-        })}
-      </p>
-    );
+    if (badge.slug === "first-support") {
+      if (!firstSupportPosition) {
+        return (
+          <p className="text-xs text-text-sub-600">
+            {intl.formatMessage({
+              id: "app.profile.badges.notEligible",
+              defaultMessage: "Complete the qualifying action to unlock this badge.",
+            })}
+          </p>
+        );
+      }
+
+      return (
+        <Button
+          variant="primary"
+          mode="filled"
+          size="small"
+          label={intl.formatMessage({
+            id: "app.profile.badges.claimFirstSupport",
+            defaultMessage: "Claim First Support",
+          })}
+          onClick={() =>
+            firstSupportClaim.mutate({
+              gardenAddress: firstSupportPosition.garden,
+              assetAddress: firstSupportPosition.asset,
+            })
+          }
+          disabled={firstSupportClaim.isPending}
+        />
+      );
+    }
+
+    return null;
   };
 
   if (!primaryAddress) {

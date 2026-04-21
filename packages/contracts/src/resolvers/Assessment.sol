@@ -9,7 +9,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { AssessmentSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
-import { InvalidSchema } from "../errors/CommonErrors.sol";
+import { InvalidSchema } from "../CommonErrors.sol";
 
 /// @notice Thrown when attester is neither an evaluator nor an operator of the garden
 error NotAuthorizedAttester();

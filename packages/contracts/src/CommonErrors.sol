@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 /// @title CommonErrors
 /// @notice Shared custom errors used across Green Goods contracts
-/// @dev Import specific errors: `import { ZeroAddress, ... } from "../errors/CommonErrors.sol";`
+/// @dev Import specific errors: `import { ZeroAddress, ... } from "../CommonErrors.sol";`
 ///      Centralizing eliminates 35+ redundant declarations across the codebase.
 
 /// @notice Thrown when a zero address is provided where a valid address is required

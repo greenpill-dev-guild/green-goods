@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
-import { ZeroAddress } from "../errors/CommonErrors.sol";
+import { ZeroAddress } from "../CommonErrors.sol";
 
 error NameTaken();
 error InvalidSlug();

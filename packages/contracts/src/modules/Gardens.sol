@@ -9,7 +9,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
-import { ZeroAddress, NotGardenOperator } from "../errors/CommonErrors.sol";
+import { ZeroAddress, NotGardenOperator } from "../CommonErrors.sol";
 import {
     IRegistryFactory,
     IRegistryCommunity,

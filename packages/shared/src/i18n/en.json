@@ -1807,6 +1807,8 @@
   "app.pools.creating": "Creating pools...",
   "app.profile": "Profile",
   "app.profile.account": "Account",
+  "app.profile.badges.claimFirstSupport": "Claim First Support",
+  "app.profile.badges.firstSupport.description": "Claimable after this address holds a live garden vault position.",
   "app.profile.claimButton": "Claim",
   "app.profile.claimENSDescription": "Claim your personal .greengoods.eth subdomain",
   "app.profile.claimENSTitle": "Claim ENS Name",

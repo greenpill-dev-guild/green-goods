@@ -174,8 +174,18 @@ export { useProtocolMemberStatus } from "./ens/useProtocolMemberStatus";
 export { useSlugAvailability } from "./ens/useSlugAvailability";
 export type { SlugFormValues } from "./ens/useSlugForm";
 export { slugSchema, useSlugForm } from "./ens/useSlugForm";
-// GreenWill + useGreenGoodsEnsName: WIP — files exist but dependencies incomplete.
-// Re-export once contracts.ts has GreenWillRegistryABI, ERC20_ALLOWANCE_ABI, etc.
+export { useGreenGoodsEnsName } from "./ens/useGreenGoodsEnsName";
+// ============================================================================
+// GREENWILL
+// ============================================================================
+export {
+  useClaimFirstSupportBadge,
+  useClaimFirstWorkBadge,
+  useClaimGenesisBadge,
+} from "./greenwill/useClaimGreenWillBadge";
+export { useGreenWillBadgeDefinitions } from "./greenwill/useGreenWillBadgeDefinitions";
+export { useGreenWillBadges } from "./greenwill/useGreenWillBadges";
+export { useGreenWillRecentGrants } from "./greenwill/useGreenWillRecentGrants";
 // ============================================================================
 // GARDEN
 // ============================================================================

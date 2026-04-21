@@ -215,6 +215,47 @@ type HypercertClaim {
   txHash: String!
 }
 
+type GreenWillBadgeDefinition {
+  id: ID! # chainId-badgeId
+  chainId: Int!
+  badgeId: String!
+  slug: String!
+  metadataURI: String!
+  validator: String # Legacy field name; stores the onchain source contract for eligibility checks.
+  authorizedIssuer: String
+  unlockLock: String
+  claimable: Boolean!
+  active: Boolean!
+  holderCount: Int!
+  grantCount: Int!
+  updatedAt: Int!
+}
+
+type GreenWillBadgeGrant {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  badgeId: String!
+  owner: String!
+  sourceRef: String!
+  issuer: String!
+  unlockTokenId: BigInt!
+  txHash: String!
+  timestamp: Int!
+}
+
+type GreenWillBadgeOwnership {
+  id: ID! # chainId-badgeId-owner
+  chainId: Int!
+  badgeId: String!
+  owner: String!
+  sourceRef: String!
+  issuer: String!
+  unlockTokenId: BigInt!
+  issuedAt: Int!
+  definitionId: String!
+  lastGrantId: String!
+}
+
 # =============================================================================
 # EAS Attestation Data (NOT indexed here)
 # =============================================================================

@@ -53,6 +53,11 @@ contracts:
     events:
       - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
       - event: ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits)
+  - name: GreenWill
+    handler: src/EventHandlers.ts
+    events:
+      - event: BadgeClassConfigured(bytes32 indexed badgeId, string slug, address indexed validator, address indexed authorizedIssuer, address unlockLock, bool claimable, bool active, string metadataURI)
+      - event: BadgeIssued(bytes32 indexed badgeId, address indexed account, bytes32 indexed sourceRef, address issuer, uint256 unlockTokenId)
 networks:
   - id: 42161
     start_block: 433713812
@@ -73,6 +78,8 @@ networks:
         address: "0x90896C86108528abB600Da3C48a1aa054958bDeb"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: GreenWill
+        address: "0x0000000000000000000000000000000000000000"
   - id: 11155111
     start_block: 10291992
     contracts:
@@ -92,3 +99,5 @@ networks:
         address: "0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: GreenWill
+        address: "0x0000000000000000000000000000000000000000"

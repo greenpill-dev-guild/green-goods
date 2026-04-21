@@ -22,6 +22,17 @@ interface IUnlockFactory {
 /// @dev A "Lock" is a membership contract; "Keys" are the NFT memberships
 /// @custom:see https://docs.unlock-protocol.com/core-protocol/smart-contracts-api/PublicLock
 interface IPublicLock {
+    /// @notice Initializes a new lock instance
+    function initialize(
+        address lockCreator,
+        uint256 expirationDuration,
+        address tokenAddress,
+        uint256 keyPrice,
+        uint256 maxNumberOfKeys,
+        string calldata lockName
+    )
+        external;
+
     /// @notice Grants keys (badges/memberships) to recipients without payment
     /// @dev Only lock managers can call this function
     /// @param _recipients Array of addresses to receive keys
@@ -49,6 +60,10 @@ interface IPublicLock {
     /// @notice Adds a lock manager
     /// @param account Address to add as manager
     function addLockManager(address account) external;
+
+    /// @notice Disables or configures transferability policy
+    /// @param transferFeeBasisPoints Fee in basis points; 10000 disables transfers
+    function updateTransferFee(uint256 transferFeeBasisPoints) external;
 
     /// @notice Checks if an address is a lock manager
     /// @param account Address to check

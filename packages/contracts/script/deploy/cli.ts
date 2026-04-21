@@ -71,8 +71,8 @@ Commands:
   garden <config.json>     Deploy garden from config file
   actions <config.json>    Deploy actions from config file
   hats-tree                Create and configure the Hats protocol tree
-  badge-locks              Plan GreenWill reputation badge Unlock locks (planning only; broadcast blocked)
-  badge-schemas            Plan GreenWill reputation badge EAS schema registration (planning only; broadcast blocked)
+  badge-locks              Deploy or dry-run GreenWill reputation badge Unlock locks
+  badge-schemas            Deploy or dry-run GreenWill reputation badge EAS schema registration
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
 
@@ -111,6 +111,10 @@ Examples:
   # Plan GreenWill reputation badge locks and schema
   bun deploy.ts badge-locks --network arbitrum --dry-run
   bun deploy.ts badge-schemas --network arbitrum --dry-run
+
+  # Broadcast GreenWill badge locks and schema
+  bun deploy.ts badge-locks --network arbitrum --broadcast
+  bun deploy.ts badge-schemas --network arbitrum --broadcast
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 

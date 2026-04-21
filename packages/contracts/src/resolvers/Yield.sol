@@ -14,7 +14,7 @@ import { IJBMultiTerminal } from "../interfaces/IJuicebox.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
 import { IAccountant } from "@octant/interfaces/IAccountant.sol";
-import { ZeroAddress, UnauthorizedCaller } from "../errors/CommonErrors.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../CommonErrors.sol";
 
 /// @title YieldResolver
 /// @notice Splits yield from Octant ERC-4626 vaults into three configurable destinations:

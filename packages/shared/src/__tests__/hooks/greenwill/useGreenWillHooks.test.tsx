@@ -11,19 +11,18 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const TEST_CHAIN_ID = 42161;
 const TEST_USER = "0xABcDEFabcdefABCDEFabcdefAbcdefABcDefABCD" as Address;
-const TEST_REGISTRY = "0x1111111111111111111111111111111111111111" as Address;
-const TEST_ROUTER = "0x2222222222222222222222222222222222222222" as Address;
+const TEST_GREENWILL = "0x1111111111111111111111111111111111111111" as Address;
 const TEST_GARDEN = "0x3333333333333333333333333333333333333333" as Address;
 const TEST_ASSET = "0x4444444444444444444444444444444444444444" as Address;
 const TEST_WORK_UID = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
 const GENESIS_BADGE_ID = keccak256(stringToHex("GENESIS"));
 const FIRST_WORK_BADGE_ID = keccak256(stringToHex("FIRST_WORK"));
+const FIRST_SUPPORT_BADGE_ID = keccak256(stringToHex("FIRST_SUPPORT"));
 
 const mockGetGreenWillBadgeDefinitions = vi.fn();
 const mockGetGreenWillBadgesByOwner = vi.fn();
 const mockGetGreenWillRecentGrants = vi.fn();
 const mockSendContractCall = vi.fn();
-const mockReadContract = vi.fn();
 
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 42161,
@@ -54,31 +53,21 @@ vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   }),
 }));
 
-vi.mock("@wagmi/core", () => ({
-  readContract: (...args: unknown[]) => mockReadContract(...args),
-}));
-
 vi.mock("../../../utils/blockchain/contracts", () => ({
-  GreenWillRegistryABI: [{ type: "function", name: "claimBadge" }],
-  GreenWillSupportRouterABI: [{ type: "function", name: "fundVault" }],
-  ERC20_ALLOWANCE_ABI: [
-    { type: "function", name: "allowance" },
-    { type: "function", name: "approve" },
-  ],
+  GreenWillABI: [{ type: "function", name: "claimBadge" }],
   getNetworkContracts: () => ({
-    greenWillRegistry: TEST_REGISTRY,
-    greenWillSupportRouter: TEST_ROUTER,
+    greenWill: TEST_GREENWILL,
   }),
 }));
 
 import { queryKeys } from "../../../config/query-keys";
 import {
+  useClaimFirstSupportBadge,
   useClaimFirstWorkBadge,
   useClaimGenesisBadge,
   useGreenWillBadgeDefinitions,
   useGreenWillBadges,
   useGreenWillRecentGrants,
-  useGreenWillSupportDeposit,
 } from "../../../hooks/greenwill";
 
 function createWrapper(queryClient: QueryClient) {
@@ -100,9 +89,9 @@ describe("hooks/greenwill", () => {
         badgeId: GENESIS_BADGE_ID,
         slug: "genesis",
         metadataURI: "ipfs://genesis",
-        validator: TEST_REGISTRY,
-        authorizedIssuer: TEST_ROUTER,
-        unlockLock: TEST_ROUTER,
+        validator: TEST_GREENWILL,
+        authorizedIssuer: TEST_GREENWILL,
+        unlockLock: TEST_GREENWILL,
         claimable: true,
         active: true,
         holderCount: 1,
@@ -134,9 +123,9 @@ describe("hooks/greenwill", () => {
         badgeId: GENESIS_BADGE_ID,
         slug: "genesis",
         metadataURI: "ipfs://genesis",
-        validator: TEST_REGISTRY,
-        authorizedIssuer: TEST_ROUTER,
-        unlockLock: TEST_ROUTER,
+        validator: TEST_GREENWILL,
+        authorizedIssuer: TEST_GREENWILL,
+        unlockLock: TEST_GREENWILL,
         claimable: true,
         active: true,
         holderCount: 1,
@@ -149,9 +138,9 @@ describe("hooks/greenwill", () => {
         badgeId: FIRST_WORK_BADGE_ID,
         slug: "first-work",
         metadataURI: "ipfs://first-work",
-        validator: TEST_REGISTRY,
-        authorizedIssuer: TEST_ROUTER,
-        unlockLock: TEST_ROUTER,
+        validator: TEST_GREENWILL,
+        authorizedIssuer: TEST_GREENWILL,
+        unlockLock: TEST_GREENWILL,
         claimable: true,
         active: true,
         holderCount: 0,
@@ -161,13 +150,13 @@ describe("hooks/greenwill", () => {
       {
         id: "42161:first-support",
         chainId: TEST_CHAIN_ID,
-        badgeId: keccak256(stringToHex("FIRST_SUPPORT")),
+        badgeId: FIRST_SUPPORT_BADGE_ID,
         slug: "first-support",
         metadataURI: "ipfs://first-support",
-        validator: TEST_REGISTRY,
-        authorizedIssuer: TEST_ROUTER,
-        unlockLock: TEST_ROUTER,
-        claimable: false,
+        validator: TEST_GREENWILL,
+        authorizedIssuer: TEST_GREENWILL,
+        unlockLock: TEST_GREENWILL,
+        claimable: true,
         active: true,
         holderCount: 0,
         grantCount: 0,
@@ -181,7 +170,7 @@ describe("hooks/greenwill", () => {
         badgeId: GENESIS_BADGE_ID,
         owner: TEST_USER.toLowerCase(),
         sourceRef: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        issuer: TEST_REGISTRY,
+        issuer: TEST_GREENWILL,
         unlockTokenId: 1n,
         issuedAt: 1710000000,
         definitionId: "42161:genesis",
@@ -204,7 +193,10 @@ describe("hooks/greenwill", () => {
       TEST_CHAIN_ID
     );
     expect(result.current.earnedBadges.map((badge) => badge.slug)).toEqual(["genesis"]);
-    expect(result.current.claimableBadges.map((badge) => badge.slug)).toEqual(["first-work"]);
+    expect(result.current.claimableBadges.map((badge) => badge.slug)).toEqual([
+      "first-work",
+      "first-support",
+    ]);
     expect(result.current.badges.find((badge) => badge.slug === "genesis")?.owned).toBe(true);
   });
 
@@ -216,7 +208,7 @@ describe("hooks/greenwill", () => {
         badgeId: GENESIS_BADGE_ID,
         owner: TEST_USER.toLowerCase(),
         sourceRef: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        issuer: TEST_REGISTRY,
+        issuer: TEST_GREENWILL,
         unlockTokenId: 1n,
         txHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         timestamp: 1710000020,
@@ -258,7 +250,7 @@ describe("hooks/greenwill", () => {
 
     expect(mockSendContractCall).toHaveBeenCalledWith(
       expect.objectContaining({
-        address: TEST_REGISTRY,
+        address: TEST_GREENWILL,
         functionName: "claimBadge",
         args: [GENESIS_BADGE_ID, "0x"],
       })
@@ -288,24 +280,24 @@ describe("hooks/greenwill", () => {
 
     expect(mockSendContractCall).toHaveBeenCalledWith(
       expect.objectContaining({
-        address: TEST_REGISTRY,
+        address: TEST_GREENWILL,
         functionName: "claimBadge",
         args: [FIRST_WORK_BADGE_ID, encodeAbiParameters([{ type: "bytes32" }], [TEST_WORK_UID])],
       })
     );
   });
 
-  it("routes support funding through the support router and approves when needed", async () => {
-    mockReadContract.mockResolvedValueOnce(0n);
-    mockSendContractCall
-      .mockResolvedValueOnce({ hash: "0xapprove", sponsored: false })
-      .mockResolvedValueOnce({ hash: "0xdeposit", sponsored: false });
+  it("claims the first-support badge from an existing garden vault position", async () => {
+    mockSendContractCall.mockResolvedValueOnce({
+      hash: "0xsupport",
+      sponsored: false,
+    });
 
     const queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false } },
     });
 
-    const { result } = renderHook(() => useGreenWillSupportDeposit(), {
+    const { result } = renderHook(() => useClaimFirstSupportBadge(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -313,32 +305,20 @@ describe("hooks/greenwill", () => {
       await result.current.mutateAsync({
         gardenAddress: TEST_GARDEN,
         assetAddress: TEST_ASSET,
-        amount: 10n,
       });
     });
 
-    expect(mockReadContract).toHaveBeenCalledWith(
-      expect.anything(),
+    expect(mockSendContractCall).toHaveBeenCalledWith(
       expect.objectContaining({
-        address: TEST_ASSET,
-        functionName: "allowance",
-        args: [TEST_USER, TEST_ROUTER],
-      })
-    );
-    expect(mockSendContractCall).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        address: TEST_ASSET,
-        functionName: "approve",
-        args: [TEST_ROUTER, 10n],
-      })
-    );
-    expect(mockSendContractCall).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        address: TEST_ROUTER,
-        functionName: "fundVault",
-        args: [TEST_GARDEN, TEST_ASSET, 10n],
+        address: TEST_GREENWILL,
+        functionName: "claimBadge",
+        args: [
+          FIRST_SUPPORT_BADGE_ID,
+          encodeAbiParameters(
+            [{ type: "address" }, { type: "address" }],
+            [TEST_GARDEN, TEST_ASSET]
+          ),
+        ],
       })
     );
   });

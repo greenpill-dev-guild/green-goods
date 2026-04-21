@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { IHats } from "../interfaces/IHats.sol";
-import { ArrayLengthMismatch } from "../errors/CommonErrors.sol";
+import { ArrayLengthMismatch } from "../CommonErrors.sol";
 
 /// @title MockHats
 /// @notice Enhanced mock implementation of Hats Protocol for testing

@@ -30,6 +30,7 @@ contract MockPublicLock is IPublicLock {
     mapping(address => bool) public lockManagers;
     uint256 public nextTokenId = 1;
     uint256 public _totalSupply;
+    uint256 public transferFeeBasisPoints;
 
     string private _name = "Test Badge";
     string private _symbol = "TBADGE";
@@ -38,6 +39,23 @@ contract MockPublicLock is IPublicLock {
 
     constructor() {
         lockManagers[msg.sender] = true;
+    }
+
+    function initialize(
+        address lockCreator,
+        uint256 expirationDuration_,
+        address,
+        uint256,
+        uint256 maxNumberOfKeys_,
+        string calldata lockName
+    )
+        external
+        override
+    {
+        lockManagers[lockCreator] = true;
+        _expirationDuration = expirationDuration_;
+        _maxKeys = maxNumberOfKeys_;
+        _name = lockName;
     }
 
     /// @notice Grants keys to recipients
@@ -74,6 +92,10 @@ contract MockPublicLock is IPublicLock {
     /// @notice Adds lock manager
     function addLockManager(address account) external override {
         lockManagers[account] = true;
+    }
+
+    function updateTransferFee(uint256 transferFeeBasisPoints_) external override {
+        transferFeeBasisPoints = transferFeeBasisPoints_;
     }
 
     /// @notice Checks if account is lock manager

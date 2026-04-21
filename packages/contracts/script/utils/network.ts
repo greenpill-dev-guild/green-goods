@@ -21,7 +21,8 @@ export interface DeploymentDefaults {
   safe4337Module: string;
   greenGoodsSafe: string;
   multisig: string;
-  [key: string]: string;
+  badgeLockManagers?: string[];
+  [key: string]: string | string[] | undefined;
 }
 
 export interface NetworksFile {
@@ -277,6 +278,17 @@ export class NetworkManager {
    * @returns The address string, or undefined if not set
    */
   getDeploymentDefault(key: string): string | undefined {
-    return this.networksConfig.deploymentDefaults?.[key];
+    const value = this.networksConfig.deploymentDefaults?.[key];
+    return typeof value === "string" ? value : undefined;
+  }
+
+  /**
+   * Get deployment default address arrays (returns [] when missing or scalar)
+   * @param key - Default key name
+   * @returns Address array
+   */
+  getDeploymentDefaultAddresses(key: string): string[] {
+    const value = this.networksConfig.deploymentDefaults?.[key];
+    return Array.isArray(value) ? value : [];
   }
 }

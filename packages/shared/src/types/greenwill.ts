@@ -22,6 +22,7 @@ export interface GreenWillBadgeDefinition {
   badgeId: GreenWillBadgeId;
   slug: string;
   metadataURI: string;
+  // Legacy field name retained to match indexed/onchain surfaces; this is the eligibility source contract.
   validator: Address;
   authorizedIssuer: Address;
   unlockLock: Address;
@@ -63,8 +64,7 @@ export interface GreenWillBadgeView extends GreenWillBadgeDefinition {
   ownership: GreenWillBadgeOwnership | null;
 }
 
-export interface GreenWillSupportDepositParams {
+export interface GreenWillSupportClaimParams {
   gardenAddress: Address;
   assetAddress: Address;
-  amount: bigint;
 }

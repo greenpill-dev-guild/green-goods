@@ -9,7 +9,7 @@ import { IERC20Metadata } from "@openzeppelin/contracts@5.0.2/token/ERC20/extens
 import { SafeERC20 } from "@openzeppelin/contracts@5.0.2/token/ERC20/utils/SafeERC20.sol";
 
 import { IOctantStrategy } from "../interfaces/IOctantFactory.sol";
-import { ZeroAddress } from "../errors/CommonErrors.sol";
+import { ZeroAddress } from "../CommonErrors.sol";
 
 error InsufficientLiquidity(uint256 available, uint256 requested);
 

@@ -5,7 +5,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { IUnlockFactory, IPublicLock } from "../interfaces/IUnlock.sol";
-import { ZeroAddress, UnauthorizedCaller } from "../errors/CommonErrors.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../CommonErrors.sol";
 
 /// @title UnlockModule
 /// @notice Integration module for granting work badges via Unlock Protocol

@@ -12,7 +12,7 @@ import { IERC6551Account } from "../interfaces/IERC6551Account.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 import { NotInActionRegistry } from "./Work.sol";
-import { NotGardenOperator, InvalidSchema } from "../errors/CommonErrors.sol";
+import { NotGardenOperator, InvalidSchema } from "../CommonErrors.sol";
 
 error NotInWorkRegistry();
 error InvalidConfidence();

@@ -17,9 +17,7 @@ import ActionRegistryABIJson from "@green-goods/contracts/abis/ActionRegistry.js
 import GardenAccountABIJson from "@green-goods/contracts/abis/GardenAccount.json";
 import GardenTokenABIJson from "@green-goods/contracts/abis/GardenToken.json";
 import GreenGoodsENSABIJson from "@green-goods/contracts/abis/GreenGoodsENS.json";
-import GreenWillRegistryABIJson from "@green-goods/contracts/abis/GreenWillRegistry.json";
-import GreenWillSupportRouterABIJson from "@green-goods/contracts/abis/GreenWillSupportRouter.json";
-import GreenWillUnlockModuleABIJson from "@green-goods/contracts/abis/GreenWillUnlockModule.json";
+import GreenWillABIJson from "@green-goods/contracts/abis/GreenWill.json";
 import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
 import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
 // Import deployment configurations
@@ -35,9 +33,7 @@ export const ActionRegistryABI = ActionRegistryABIJson as Abi;
 export const EASABI = EASABIJson as Abi;
 export const GreenGoodsENSABI = GreenGoodsENSABIJson as Abi;
 export const HatsABI = IHatsABIJson as Abi;
-export const GreenWillRegistryABI = GreenWillRegistryABIJson as Abi;
-export const GreenWillSupportRouterABI = GreenWillSupportRouterABIJson as Abi;
-export const GreenWillUnlockModuleABI = GreenWillUnlockModuleABIJson as Abi;
+export const GreenWillABI = GreenWillABIJson as Abi;
 
 // Re-export ERC20_ALLOWANCE_ABI from abis barrel for backward compatibility
 export { ERC20_ALLOWANCE_ABI } from "./abis";
@@ -110,9 +106,7 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     hypercertsModule: asAddress(deployment.hypercertsModule),
     strategyHypercertFractionOffer: asAddress(deployment.strategyHypercertFractionOffer),
     // GreenWill
-    greenWillRegistry: asAddress(deployment.greenWillRegistry),
-    greenWillUnlockModule: asAddress(deployment.greenWillUnlockModule),
-    greenWillSupportRouter: asAddress(deployment.greenWillSupportRouter),
+    greenWill: asAddress(deployment.greenWill),
   };
 }
 

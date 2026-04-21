@@ -1,13 +1,11 @@
-import { GreenWillRegistry, GreenWillSupportRouter } from "../../generated";
+import { GreenWill } from "../../generated";
 
 import type {
   GreenWillBadgeDefinition,
   GreenWillBadgeGrant,
   GreenWillBadgeOwnership,
-  GreenWillRegistry_BadgeClassConfigured_handlerArgs,
-  GreenWillRegistry_BadgeIssued_handlerArgs,
-  GreenWillRoutedSupport,
-  GreenWillSupportRouter_SupportRouted_handlerArgs,
+  GreenWill_BadgeClassConfigured_handlerArgs,
+  GreenWill_BadgeIssued_handlerArgs,
 } from "../../generated/src/Types.gen";
 
 import {
@@ -28,8 +26,8 @@ function normalizeBytes32(value: string): string {
   return value.toLowerCase();
 }
 
-GreenWillRegistry.BadgeClassConfigured.handler(
-  async ({ event, context }: GreenWillRegistry_BadgeClassConfigured_handlerArgs<void>) => {
+GreenWill.BadgeClassConfigured.handler(
+  async ({ event, context }: GreenWill_BadgeClassConfigured_handlerArgs<void>) => {
     const badgeId = normalizeBytes32(event.params.badgeId);
     const definitionId = getGreenWillBadgeDefinitionId(event.chainId, badgeId);
     const existingDefinition = await context.GreenWillBadgeDefinition.get(definitionId);
@@ -54,8 +52,8 @@ GreenWillRegistry.BadgeClassConfigured.handler(
   }
 );
 
-GreenWillRegistry.BadgeIssued.handler(
-  async ({ event, context }: GreenWillRegistry_BadgeIssued_handlerArgs<void>) => {
+GreenWill.BadgeIssued.handler(
+  async ({ event, context }: GreenWill_BadgeIssued_handlerArgs<void>) => {
     const badgeId = normalizeBytes32(event.params.badgeId);
     const owner = normalizeAddress(event.params.account);
     const issuer = normalizeAddress(event.params.issuer);
@@ -115,28 +113,5 @@ GreenWillRegistry.BadgeIssued.handler(
       lastGrantId: grantId,
     };
     context.GreenWillBadgeOwnership.set(ownership);
-  }
-);
-
-GreenWillSupportRouter.SupportRouted.handler(
-  async ({ event, context }: GreenWillSupportRouter_SupportRouted_handlerArgs<void>) => {
-    const txHash = getTxHash(event.transaction);
-    const supportId = getVaultEventId(event.chainId, txHash, event.logIndex);
-
-    const routedSupport: GreenWillRoutedSupport = {
-      id: supportId,
-      chainId: event.chainId,
-      supporter: normalizeAddress(event.params.supporter),
-      garden: normalizeAddress(event.params.garden),
-      asset: normalizeAddress(event.params.asset),
-      vault: normalizeAddress(event.params.vault),
-      amount: event.params.amount,
-      shares: event.params.shares,
-      badgeIssued: event.params.badgeIssued,
-      txHash,
-      timestamp: event.block.timestamp,
-    };
-
-    context.GreenWillRoutedSupport.set(routedSupport);
   }
 );

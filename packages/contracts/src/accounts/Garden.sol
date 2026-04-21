@@ -12,7 +12,7 @@ import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { IRegistryCommunity } from "../interfaces/IGardensV2.sol";
-import { NotGardenOperator } from "../errors/CommonErrors.sol";
+import { NotGardenOperator } from "../CommonErrors.sol";
 
 error NotGardenOwner();
 error NotGardensModule();

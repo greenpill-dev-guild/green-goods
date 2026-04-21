@@ -9,7 +9,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.s
 
 import { OrderStructs, IHypercertExchange } from "../interfaces/IHypercertExchange.sol";
 import { IHypercertMarketplace } from "../interfaces/IHypercertMarketplace.sol";
-import { ZeroAddress, ArrayLengthMismatch } from "../errors/CommonErrors.sol";
+import { ZeroAddress, ArrayLengthMismatch } from "../CommonErrors.sol";
 
 /// @title HypercertMarketplaceAdapter
 /// @notice Wraps the deployed HypercertExchange for the YieldResolver, storing signed maker orders

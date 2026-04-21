@@ -5,7 +5,7 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const generated = require("../generated");
 const { TestHelpers } = generated;
-const { MockDb, Addresses, GreenWillRegistry, GreenWillSupportRouter } = TestHelpers;
+const { MockDb, Addresses, GreenWill } = TestHelpers;
 
 const CHAIN_ID = 42161;
 
@@ -40,15 +40,12 @@ const OWNER = addr(10);
 const VALIDATOR = addr(11);
 const ISSUER = addr(12);
 const LOCK = addr(13);
-const GARDEN = addr(14);
-const ASSET = addr(15);
-const VAULT = addr(16);
 
-describe("GreenWillRegistry.BadgeClassConfigured", () => {
+describe("GreenWill.BadgeClassConfigured", () => {
   it("stores badge definitions with chain-scoped ids", async () => {
     const mockDb = MockDb.createMockDb();
 
-    const event = GreenWillRegistry.BadgeClassConfigured.createMockEvent({
+    const event = GreenWill.BadgeClassConfigured.createMockEvent({
       badgeId: BADGE_ID,
       slug: "genesis",
       validator: VALIDATOR,
@@ -60,7 +57,7 @@ describe("GreenWillRegistry.BadgeClassConfigured", () => {
       mockEventData: mockEvent(CHAIN_ID, 10_000, { txHash: txHash(100), logIndex: 1 }),
     });
 
-    const result = await GreenWillRegistry.BadgeClassConfigured.processEvent({ event, mockDb });
+    const result = await GreenWill.BadgeClassConfigured.processEvent({ event, mockDb });
     const definition = result.entities.GreenWillBadgeDefinition.get(
       `${CHAIN_ID}-${BADGE_ID.toLowerCase()}`
     );
@@ -78,11 +75,11 @@ describe("GreenWillRegistry.BadgeClassConfigured", () => {
   });
 });
 
-describe("GreenWillRegistry.BadgeIssued", () => {
+describe("GreenWill.BadgeIssued", () => {
   it("materializes canonical ownership and grant history", async () => {
     let mockDb = MockDb.createMockDb();
 
-    const configureEvent = GreenWillRegistry.BadgeClassConfigured.createMockEvent({
+    const configureEvent = GreenWill.BadgeClassConfigured.createMockEvent({
       badgeId: BADGE_ID,
       slug: "genesis",
       validator: VALIDATOR,
@@ -93,12 +90,12 @@ describe("GreenWillRegistry.BadgeIssued", () => {
       metadataURI: "ipfs://genesis",
       mockEventData: mockEvent(CHAIN_ID, 10_000, { txHash: txHash(100), logIndex: 1 }),
     });
-    mockDb = await GreenWillRegistry.BadgeClassConfigured.processEvent({
+    mockDb = await GreenWill.BadgeClassConfigured.processEvent({
       event: configureEvent,
       mockDb,
     });
 
-    const issueEvent = GreenWillRegistry.BadgeIssued.createMockEvent({
+    const issueEvent = GreenWill.BadgeIssued.createMockEvent({
       badgeId: BADGE_ID,
       account: OWNER,
       sourceRef: bytes32("SOURCE"),
@@ -106,7 +103,7 @@ describe("GreenWillRegistry.BadgeIssued", () => {
       unlockTokenId: 1n,
       mockEventData: mockEvent(CHAIN_ID, 11_000, { txHash: txHash(101), logIndex: 2 }),
     });
-    const result = await GreenWillRegistry.BadgeIssued.processEvent({ event: issueEvent, mockDb });
+    const result = await GreenWill.BadgeIssued.processEvent({ event: issueEvent, mockDb });
 
     const ownership = result.entities.GreenWillBadgeOwnership.get(
       `${CHAIN_ID}-${BADGE_ID.toLowerCase()}-${OWNER.toLowerCase()}`
@@ -131,35 +128,5 @@ describe("GreenWillRegistry.BadgeIssued", () => {
     assert.ok(definition);
     assert.equal(definition.holderCount, 1);
     assert.equal(definition.grantCount, 1);
-  });
-});
-
-describe("GreenWillSupportRouter.SupportRouted", () => {
-  it("stores routed support history without depending on vault deposit logs", async () => {
-    const mockDb = MockDb.createMockDb();
-
-    const event = GreenWillSupportRouter.SupportRouted.createMockEvent({
-      supporter: OWNER,
-      garden: GARDEN,
-      asset: ASSET,
-      vault: VAULT,
-      amount: 25n,
-      shares: 25n,
-      badgeIssued: true,
-      mockEventData: mockEvent(CHAIN_ID, 12_000, { txHash: txHash(102), logIndex: 3 }),
-    });
-
-    const result = await GreenWillSupportRouter.SupportRouted.processEvent({ event, mockDb });
-    const support = result.entities.GreenWillRoutedSupport.get(`${CHAIN_ID}-${txHash(102)}-3`);
-
-    assert.ok(support);
-    assert.equal(support.chainId, CHAIN_ID);
-    assert.equal(support.supporter, OWNER.toLowerCase());
-    assert.equal(support.garden, GARDEN.toLowerCase());
-    assert.equal(support.asset, ASSET.toLowerCase());
-    assert.equal(support.vault, VAULT.toLowerCase());
-    assert.equal(support.amount, 25n);
-    assert.equal(support.shares, 25n);
-    assert.equal(support.badgeIssued, true);
   });
 });

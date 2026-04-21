@@ -50,7 +50,7 @@ export const DEPLOYMENT_REGISTRY_ABI = [
           { name: "octantFactory", type: "address" },
           { name: "unlockFactory", type: "address" },
           { name: "hypercerts", type: "address" },
-          { name: "greenWillRegistry", type: "address" },
+          { name: "greenWill", type: "address" },
         ],
       },
     ],
@@ -72,7 +72,7 @@ export const CREATE_ALLOWLIST_ABI = [
       { name: "metadataUri", type: "string" },
       { name: "transferRestrictions", type: "uint8" },
     ],
-    outputs: [{ name: "hypercertId", type: "uint256" }],
+    outputs: [],
   },
 ] as const;
 

@@ -12,7 +12,7 @@ import { IHats } from "../interfaces/IHats.sol";
 import { IHatsModuleFactory } from "../interfaces/IHatsModuleFactory.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { HatsLib } from "../lib/Hats.sol";
-import { ZeroAddress, ArrayLengthMismatch } from "../errors/CommonErrors.sol";
+import { ZeroAddress, ArrayLengthMismatch } from "../CommonErrors.sol";
 
 /// @title HatsModule
 /// @notice Adapts Hats Protocol for Green Goods access control

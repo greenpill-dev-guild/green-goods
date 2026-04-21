@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { EnumerableSetUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/structs/EnumerableSetUpgradeable.sol";
-import { UnauthorizedCaller } from "../errors/CommonErrors.sol";
+import { UnauthorizedCaller } from "../CommonErrors.sol";
 
 /// @title Deployment
 /// @notice A governance-controlled registry for managing contract deployments across networks
@@ -29,7 +29,7 @@ contract Deployment is OwnableUpgradeable, UUPSUpgradeable {
         address octantFactory; // Octant vault factory
         address unlockFactory; // Unlock Protocol lock factory
         address hypercerts; // Hypercerts contract
-        address greenWillRegistry; // GreenWill artifact registry
+        address greenWill; // GreenWill artifact registry
     }
 
     /// @notice Emitted when a network configuration is updated
@@ -322,10 +322,10 @@ contract Deployment is OwnableUpgradeable, UUPSUpgradeable {
         return getNetworkConfigForChain(block.chainid).hypercerts;
     }
 
-    /// @notice Gets the GreenWill Registry address for the current chain
-    /// @return The GreenWill Registry address (zero if not configured)
-    function getGreenWillRegistry() external view returns (address) {
-        return getNetworkConfigForChain(block.chainid).greenWillRegistry;
+    /// @notice Gets the GreenWill address for the current chain
+    /// @return The GreenWill address (zero if not configured)
+    function getGreenWill() external view returns (address) {
+        return getNetworkConfigForChain(block.chainid).greenWill;
     }
 
     /// @notice Updates the Action Registry address for the current chain
@@ -384,10 +384,10 @@ contract Deployment is OwnableUpgradeable, UUPSUpgradeable {
         emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
     }
 
-    /// @notice Updates the GreenWill Registry address for the current chain
+    /// @notice Updates the GreenWill address for the current chain
     /// @param contractAddress The new address
-    function updateGreenWillRegistry(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
-        networks[block.chainid].greenWillRegistry = contractAddress;
+    function updateGreenWill(address contractAddress) external onlyOwnerOrAllowlist whenNotPaused {
+        networks[block.chainid].greenWill = contractAddress;
         emit NetworkConfigUpdated(block.chainid, networks[block.chainid]);
     }
 

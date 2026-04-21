@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 import { IGap, IProjectResolver } from "../interfaces/IKarma.sol";
-import { ZeroAddress } from "../errors/CommonErrors.sol";
+import { ZeroAddress } from "../CommonErrors.sol";
 
 /// @title MockGAP
 /// @notice Enhanced mock implementation of Karma GAP protocol for testing

@@ -411,9 +411,14 @@ export {
   useGardenTabs,
   useGardenTranslation,
   useGardenVaults,
-  // GreenWill hooks: WIP — re-export once dependencies wired
-  // useGreenWillBadgeDefinitions, useGreenWillBadges, useGreenWillRecentGrants,
-  // useClaimGenesisBadge, useClaimFirstWorkBadge, useGreenWillSupportDeposit,
+  // GreenWill hooks
+  useClaimFirstSupportBadge,
+  useClaimFirstWorkBadge,
+  useClaimGenesisBadge,
+  useGreenGoodsEnsName,
+  useGreenWillBadgeDefinitions,
+  useGreenWillBadges,
+  useGreenWillRecentGrants,
   useHarvest,
   useHarvestableYield,
   useHasRole,

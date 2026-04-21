@@ -1807,6 +1807,8 @@
   "app.pools.creating": "Criando pools...",
   "app.profile": "Perfil",
   "app.profile.account": "Conta",
+  "app.profile.badges.claimFirstSupport": "Reivindicar Primeiro Apoio",
+  "app.profile.badges.firstSupport.description": "Pode ser reivindicado quando este endereço mantém uma posição ativa em um cofre de jardim.",
   "app.profile.claimButton": "Reivindicar",
   "app.profile.claimENSDescription": "Reivindique seu subdomínio pessoal .greengoods.eth",
   "app.profile.claimENSTitle": "Reivindicar Nome ENS",

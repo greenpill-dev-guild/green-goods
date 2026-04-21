@@ -1807,6 +1807,8 @@
   "app.pools.creating": "Creando pools...",
   "app.profile": "Perfil",
   "app.profile.account": "Cuenta",
+  "app.profile.badges.claimFirstSupport": "Reclamar Primer Apoyo",
+  "app.profile.badges.firstSupport.description": "Se puede reclamar cuando esta dirección mantiene una posición activa en un vault de jardín.",
   "app.profile.claimButton": "Reclamar",
   "app.profile.claimENSDescription": "Reclama tu subdominio personal .greengoods.eth",
   "app.profile.claimENSTitle": "Reclamar Nombre ENS",

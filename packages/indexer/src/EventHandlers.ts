@@ -11,6 +11,7 @@
  *   hatsModule.ts      -- HatsModule role events
  *   octantVault.ts     -- OctantModule + OctantVault events
  *   hypercerts.ts      -- HypercertMinter events
+ *   greenWill.ts       -- GreenWill badge events
  *   yieldSplitter.ts   -- YieldSplitter split events
  */
 import "./handlers/actionRegistry";
@@ -18,4 +19,5 @@ import "./handlers/garden";
 import "./handlers/hatsModule";
 import "./handlers/octantVault";
 import "./handlers/hypercerts";
+import "./handlers/greenWill";
 import "./handlers/yieldSplitter";

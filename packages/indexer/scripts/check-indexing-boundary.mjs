@@ -38,6 +38,7 @@ const ALLOWED_CONTRACT_EVENTS = {
   OctantVault: new Set(["Deposit", "Withdraw"]),
   YieldSplitter: new Set(["YieldSplit"]),
   HypercertMinter: new Set(["TransferSingle", "ClaimStored"]),
+  GreenWill: new Set(["BadgeClassConfigured", "BadgeIssued"]),
 };
 
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));

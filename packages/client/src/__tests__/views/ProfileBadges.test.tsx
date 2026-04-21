@@ -11,6 +11,8 @@ const GREENWILL_BADGE_IDS = {
   FIRST_WORK: "0xcf9804d3da2c8f716a32449c2b67e5dfa650d9335bc0be6c8a48b9a99ad1efde",
   FIRST_SUPPORT: "0x6fc67c6755ce3ed4ebb1672f2ee106e26f5ba6e37f0f76c2b2541991212dcdc4",
 } as const;
+const TEST_GARDEN = "0x00000000000000000000000000000000000000a1";
+const TEST_ASSET = "0x00000000000000000000000000000000000000b2";
 
 const sharedMocks = vi.hoisted(() => ({
   usePrimaryAddress: vi.fn(() => "0x1234567890abcdef1234567890abcdef12345678"),
@@ -18,7 +20,9 @@ const sharedMocks = vi.hoisted(() => ({
   useEnsName: vi.fn(() => ({ data: "river.eth" })),
   useGreenWillBadges: vi.fn(),
   useClaimGenesisBadge: vi.fn(),
+  useClaimFirstSupportBadge: vi.fn(),
   useClaimFirstWorkBadge: vi.fn(),
+  useMyVaultDeposits: vi.fn(),
   useMyOnlineWorks: vi.fn(),
   useProtocolMemberStatus: vi.fn(),
   formatAddress: vi.fn(
@@ -34,7 +38,9 @@ vi.mock("@green-goods/shared", () => ({
   useEnsName: sharedMocks.useEnsName,
   useGreenWillBadges: sharedMocks.useGreenWillBadges,
   useClaimGenesisBadge: sharedMocks.useClaimGenesisBadge,
+  useClaimFirstSupportBadge: sharedMocks.useClaimFirstSupportBadge,
   useClaimFirstWorkBadge: sharedMocks.useClaimFirstWorkBadge,
+  useMyVaultDeposits: sharedMocks.useMyVaultDeposits,
   useMyOnlineWorks: sharedMocks.useMyOnlineWorks,
   useProtocolMemberStatus: sharedMocks.useProtocolMemberStatus,
 }));
@@ -63,6 +69,7 @@ const wrap = (el: React.ReactElement) =>
 
 describe("ProfileBadges", () => {
   const mockGenesisClaim = vi.fn();
+  const mockFirstSupportClaim = vi.fn();
   const mockFirstWorkClaim = vi.fn();
 
   beforeEach(() => {
@@ -214,9 +221,17 @@ describe("ProfileBadges", () => {
       mutate: mockGenesisClaim,
       isPending: false,
     });
+    sharedMocks.useClaimFirstSupportBadge.mockReturnValue({
+      mutate: mockFirstSupportClaim,
+      isPending: false,
+    });
     sharedMocks.useClaimFirstWorkBadge.mockReturnValue({
       mutate: mockFirstWorkClaim,
       isPending: false,
+    });
+    sharedMocks.useMyVaultDeposits.mockReturnValue({
+      deposits: [{ garden: TEST_GARDEN, asset: TEST_ASSET }],
+      isLoading: false,
     });
     sharedMocks.useMyOnlineWorks.mockReturnValue({
       data: [{ id: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
@@ -240,18 +255,10 @@ describe("ProfileBadges", () => {
     expect(screen.getByText("Earned badges")).toBeInTheDocument();
   });
 
-  it("excludes non-claimable badges from the claimable section", () => {
+  it("keeps first-support out of the claimable list until the badge is actually claimable", () => {
     render(wrap(createElement(ProfileBadges)));
 
-    // first-support has claimableNow: false in the default mock —
-    // it should NOT appear under "Claimable badges"
-    const claimableHeading = screen.getByText("Claimable badges");
-    const claimableSection = claimableHeading.closest("div")!;
-    expect(claimableSection).not.toBeNull();
-
-    // "Auto-issued after routed support" is the renderAction text for first-support.
-    // With the claimableNow filter, first-support should be excluded entirely.
-    expect(screen.queryByText("Auto-issued after routed support.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Claim First Support" })).not.toBeInTheDocument();
   });
 
   it("allows claiming the genesis badge when eligible", async () => {
@@ -318,6 +325,65 @@ describe("ProfileBadges", () => {
 
     expect(mockFirstWorkClaim).toHaveBeenCalledWith({
       uid: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
+  });
+
+  it("allows claiming the first support badge from an existing vault position", async () => {
+    const user = userEvent.setup();
+    sharedMocks.useGreenWillBadges.mockReturnValueOnce({
+      badges: [
+        {
+          id: "def-first-support",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_SUPPORT,
+          slug: "first-support",
+          metadataURI: "ipfs://first-support",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 1,
+          grantCount: 1,
+          updatedAt: 1710002000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+      ],
+      earnedBadges: [],
+      claimableBadges: [
+        {
+          id: "def-first-support",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_SUPPORT,
+          slug: "first-support",
+          metadataURI: "ipfs://first-support",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 1,
+          grantCount: 1,
+          updatedAt: 1710002000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+      ],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+
+    await user.click(screen.getByRole("button", { name: "Claim First Support" }));
+
+    expect(mockFirstSupportClaim).toHaveBeenCalledWith({
+      gardenAddress: TEST_GARDEN,
+      assetAddress: TEST_ASSET,
     });
   });
 });

@@ -28,6 +28,10 @@ const ABI_SOURCES = [
     target: "GreenGoodsENS.json",
   },
   {
+    source: "GreenWill.sol/GreenWill.json",
+    target: "GreenWill.json",
+  },
+  {
     source: "IHats.sol/IHats.json",
     target: "IHats.json",
   },

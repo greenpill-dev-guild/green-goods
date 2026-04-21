@@ -5,7 +5,7 @@ import { CCIPReceiver } from "@chainlink/contracts-ccip/contracts/applications/C
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IENS, IENSResolver, INameWrapper } from "../interfaces/IENS.sol";
-import { ZeroAddress } from "../errors/CommonErrors.sol";
+import { ZeroAddress } from "../CommonErrors.sol";
 
 error UnauthorizedSender();
 error UnauthorizedSourceChain();

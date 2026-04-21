@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
-import { ZeroAddress, NotGardenOperator } from "../errors/CommonErrors.sol";
+import { ZeroAddress, NotGardenOperator } from "../CommonErrors.sol";
 
 error NotActionOwner();
 error EndTimeBeforeStartTime();

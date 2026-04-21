@@ -9,7 +9,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { WorkSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { ActionRegistry } from "../registries/Action.sol";
-import { InvalidSchema } from "../errors/CommonErrors.sol";
+import { InvalidSchema } from "../CommonErrors.sol";
 
 error NotActiveAction();
 /// @notice Thrown when the action's domain is not enabled for the target garden

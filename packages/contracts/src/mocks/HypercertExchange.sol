@@ -64,7 +64,7 @@ contract MockHypercertExchange is IHypercertExchange {
 
 /// @title MockHypercertMinter
 /// @notice Mock minter that simulates createAllowlist for testing
-/// @dev Returns incrementing claim IDs, tracks all mint calls
+/// @dev Creates incrementing hypercert type IDs, tracks all mint calls
 contract MockHypercertMinter is IHypercertMinter {
     struct MintRecord {
         address account;
@@ -77,6 +77,7 @@ contract MockHypercertMinter is IHypercertMinter {
     MintRecord[] public mints;
     uint256 private nextClaimId = 1;
     bool public shouldRevert;
+    mapping(uint256 tokenId => uint256 units) private _units;
 
     // Approval tracking
     mapping(address owner => mapping(address operator => bool approved)) private _approvals;
@@ -90,14 +91,23 @@ contract MockHypercertMinter is IHypercertMinter {
     )
         external
         override
-        returns (uint256 claimID)
     {
         require(!shouldRevert, "MockHypercertMinter: forced revert");
+        require(merkleRoot != bytes32(0), "MockHypercertMinter: invalid root");
 
-        claimID = nextClaimId++;
+        uint256 claimID = nextClaimId++ << 128;
+        _units[claimID] = units;
         mints.push(
             MintRecord({ account: account, units: units, merkleRoot: merkleRoot, uri: uri, restrictions: restrictions })
         );
+    }
+
+    function unitsOf(uint256 tokenID) external view override returns (uint256) {
+        return _units[tokenID];
+    }
+
+    function unitsOf(address, uint256 tokenID) external view override returns (uint256) {
+        return _units[tokenID];
     }
 
     function setApprovalForAll(address operator, bool approved) external override {
