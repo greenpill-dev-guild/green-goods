@@ -12,6 +12,7 @@
 | **debug** | `/debug` | When reality disagrees: reproduce, prove root cause, rank fixes by confidence |
 | **review** | `/review` | Before merge: inspect the diff, separate must-fix items from human call-outs |
 | **status** | `/status` | Resume and orient: branch state, blockers, continuity, and the next 1-3 moves |
+| **clean** | `/clean` | After findings are accepted: dispatch 8 parallel cleanup agents (use `--dry-run`, `--scope`, `--agents`) |
 
 ---
 
@@ -24,7 +25,6 @@ These are still available, but they are not the default starting points anymore.
 | architecture | Internal lens inside `plan` or `review` | Use when placement, boundaries, or structural refactors are the real question |
 | principles | Internal lens inside `review` | Use when simplicity, coupling, duplication, or reliability clarity need pressure-testing |
 | audit | Broader repo-health sweep | Follow-up when `status` or `review` reveals drift beyond a single change |
-| clean | Cleanup execution path | Use after findings are accepted and need implementation, not as discovery |
 | ship | Passive finishing flow | Validation and merge readiness when work is actually ready |
 | specialty package skills | React, UI, contracts, indexer, data-layer, ops, testing, design, web3, stitch | These load by context; you usually do not choose them manually |
 

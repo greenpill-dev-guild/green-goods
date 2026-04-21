@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, ready_for_review, reopened]
     paths:
       - "packages/contracts/src/**"
-      - ".github/workflows/claude-contracts-security-review.yml"
+      - ".github/workflows/contracts-security-review.yml"
 
 jobs:
   contracts-security:

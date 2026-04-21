@@ -13,7 +13,7 @@ on:
       - "packages/admin/src/views/Hub/components/CookieJarDepositModal.tsx"
       - "packages/admin/src/views/Hub/components/CookieJarManageModal.tsx"
       - "packages/admin/src/views/Hub/components/CookieJarWithdrawModal.tsx"
-      - ".github/workflows/claude-mutation-reliability-review.yml"
+      - ".github/workflows/mutation-reliability-review.yml"
 
 jobs:
   mutation-reliability:

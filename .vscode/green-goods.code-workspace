@@ -26,6 +26,9 @@
     },
     {
       "path": "../docs"
+    },
+    {
+      "path": "../../coop"
     }
   ],
   "settings": {

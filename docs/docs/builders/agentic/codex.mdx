@@ -16,7 +16,6 @@ graph TB
     subgraph Config["Codex Config"]
         TOML["config.toml\nfallback, model, sandbox"]
         ENV["environment.toml\nversioned env metadata"]
-        SYM[".agents/skills\nrepo symlink"]
     end
 
     subgraph Sandbox["Workspace Sandbox"]
@@ -27,7 +26,6 @@ graph TB
     Config --> Sandbox
 
     AGENTS["AGENTS.md"] -->|context| Sandbox
-    SYM -->|shared skills| Sandbox
 
     Sandbox -->|output| PR["Draft PR\nmax 20 files"]
 ```
@@ -94,13 +92,7 @@ When running automated maintenance tasks via Codex (or any automated agent), con
 
 ## Skills Discovery
 
-Codex can discover the shared skill library through the repo symlink:
-
-```bash
-.agents/skills -> ../.claude/skills
-```
-
-This keeps the Codex-visible skill path aligned with the same `.claude/skills/` tree used by Claude Code.
+Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, and admin paths). The repo no longer mirrors `.claude/skills` into a repo-scoped `.agents/skills` — Claude Code's project skills under `.claude/skills/` are intentionally not surfaced to Codex.
 
 ## Relationship to Claude Code
 

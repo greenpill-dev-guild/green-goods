@@ -1,6 +1,5 @@
 name: Task
 description: Detailed implementation task - links to specs, provides concrete guidance
-labels: ["task"]
 body:
   - type: markdown
     attributes:

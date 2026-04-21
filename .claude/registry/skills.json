@@ -1,6 +1,6 @@
 {
   "source": ".claude/skills/*/SKILL.md",
-  "canonical_commands": ["plan", "debug", "review", "status"],
+  "canonical_commands": ["plan", "debug", "review", "status", "clean"],
   "skills": [
     {
       "name": "plan",
@@ -346,15 +346,16 @@
     {
       "name": "clean",
       "status": "active",
-      "listed_in_index": false,
-      "default_mode": "passive",
-      "user_invocable": false,
-      "intent": "Internal cleanup execution path used after review or audit findings have been accepted and need implementation",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Cleanup execution path that dispatches 8 parallel subagents to fix high-confidence dedup, dead code, type strengthening, defensive code, legacy, and AI slop findings",
       "entry_file": ".claude/skills/clean/SKILL.md",
       "owned_skills": [],
       "modes": ["default", "dry-run", "scope", "agents"],
       "triggers": [
         "clean the codebase",
+        "/clean",
         "cleanup follow-up",
         "apply cleanup findings",
         "targeted cleanup"

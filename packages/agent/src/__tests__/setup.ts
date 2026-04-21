@@ -1,5 +1,57 @@
+import { createRequire } from "node:module";
 import { afterAll, beforeAll, vi } from "vitest";
 import { mockLogger } from "./utils/mocks";
+
+// ============================================================================
+// Node Compatibility Shims
+// ============================================================================
+// Fastify 5 calls diagnostics_channel.tracingChannel() at import time. Bun's
+// current node:diagnostics_channel implementation does not expose that helper,
+// so patch the CommonJS module before any test dynamically imports Fastify.
+
+type DiagnosticSubChannel = {
+  subscribe: () => void;
+  unsubscribe: () => void;
+  publish: (message?: unknown) => void;
+  hasSubscribers: boolean;
+};
+
+type DiagnosticsChannelModule = {
+  channel?: (name: string) => DiagnosticSubChannel;
+  tracingChannel?: (name: string) => {
+    subscribe: () => void;
+    unsubscribe: () => void;
+    start: DiagnosticSubChannel;
+    end: DiagnosticSubChannel;
+    asyncStart: DiagnosticSubChannel;
+    asyncEnd: DiagnosticSubChannel;
+    error: DiagnosticSubChannel;
+    hasSubscribers: boolean;
+  };
+};
+
+const require = createRequire(import.meta.url);
+const diagnosticsChannel = require("node:diagnostics_channel") as DiagnosticsChannelModule;
+
+const createDiagnosticSubChannel = (): DiagnosticSubChannel => ({
+  subscribe: () => {},
+  unsubscribe: () => {},
+  publish: () => {},
+  hasSubscribers: false,
+});
+
+if (typeof diagnosticsChannel.tracingChannel !== "function") {
+  diagnosticsChannel.tracingChannel = () => ({
+    subscribe: () => {},
+    unsubscribe: () => {},
+    start: createDiagnosticSubChannel(),
+    end: createDiagnosticSubChannel(),
+    asyncStart: createDiagnosticSubChannel(),
+    asyncEnd: createDiagnosticSubChannel(),
+    error: createDiagnosticSubChannel(),
+    hasSubscribers: false,
+  });
+}
 
 // ============================================================================
 // Browser Globals Mock (MUST be before any imports that use @green-goods/shared)

@@ -1,6 +1,5 @@
 name: Polish
 description: UI polish and UX improvements
-labels: ["polish"]
 body:
   - type: textarea
     id: current

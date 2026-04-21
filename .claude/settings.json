@@ -3,6 +3,9 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
+  "permissions": {
+    "allow": ["mcp__claude-in-chrome__tabs_context_mcp", "Bash(bunx knip *)"]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -104,7 +107,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /plan /debug /review /status' '  resume: /status --resume'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /plan /debug /review /status /clean' '  resume: /status --resume'",
             "once": true
           }
         ]
