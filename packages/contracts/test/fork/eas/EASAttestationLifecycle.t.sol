@@ -108,14 +108,14 @@ contract EASAttestationLifecycleForkTest is ForkTestBase {
         // Query the real SchemaRegistry to verify resolver addresses
         ISchemaRegistry registry = ISchemaRegistry(_schemaRegistry());
 
-        (, address workResolver_,) = registry.getSchema(workSchemaUID);
-        assertEq(workResolver_, address(workResolver), "Work schema resolver mismatch");
+        ISchemaRegistry.SchemaRecord memory workRecord = registry.getSchema(workSchemaUID);
+        assertEq(workRecord.resolver, address(workResolver), "Work schema resolver mismatch");
 
-        (, address workApprovalResolver_,) = registry.getSchema(workApprovalSchemaUID);
-        assertEq(workApprovalResolver_, address(workApprovalResolver), "WorkApproval schema resolver mismatch");
+        ISchemaRegistry.SchemaRecord memory workApprovalRecord = registry.getSchema(workApprovalSchemaUID);
+        assertEq(workApprovalRecord.resolver, address(workApprovalResolver), "WorkApproval schema resolver mismatch");
 
-        (, address assessmentResolver_,) = registry.getSchema(assessmentSchemaUID);
-        assertEq(assessmentResolver_, address(assessmentResolver), "Assessment schema resolver mismatch");
+        ISchemaRegistry.SchemaRecord memory assessmentRecord = registry.getSchema(assessmentSchemaUID);
+        assertEq(assessmentRecord.resolver, address(assessmentResolver), "Assessment schema resolver mismatch");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

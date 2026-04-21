@@ -7,29 +7,33 @@ import { AaveOctantForkBase } from "./helpers/AaveOctantForkBase.sol";
 
 /// @notice Runnable Arbitrum fork gate for YieldResolver split behavior using real Octant + Aave wiring.
 contract ArbitrumYieldResolverCoreForkTest is AaveOctantForkBase {
+    address internal yieldAsset = DAI;
+    address internal yieldAToken = ADAI;
+
     function _createHarvestableGarden(string memory gardenName) internal returns (address garden, address vault) {
-        _configureAaveVaultSupport("Yield Core Vaults", "Yield Core WETH", "ggaCORE");
+        _configureAaveVaultSupportForAsset(yieldAsset, yieldAToken, "Yield Core Vaults", "Yield Core DAI", "ggaCORE");
         (garden,) = _setupGardenWithRolesAndAction(gardenName);
-        vault = octantModule.getVaultForAsset(garden, WETH);
+        vault = octantModule.getVaultForAsset(garden, yieldAsset);
         if (vault == address(0)) {
-            vault = octantModule.createVaultForAsset(garden, WETH);
+            vault = octantModule.createVaultForAsset(garden, yieldAsset);
         }
         assertTrue(vault != address(0), "vault should exist");
         assertTrue(octantModule.vaultStrategies(vault) != address(0), "vault should have a live strategy");
 
-        _depositWethIntoVault(vault, 1 ether);
+        _depositLiveAaveAssetIntoVault(vault, yieldAsset, yieldAToken, 1 ether);
+        _assertLiveAaveDepositAccounted(
+            vault, yieldAsset, yieldAToken, 1 ether, "fork deposit should remain fully accounted"
+        );
         yieldSplitter.setMinYieldThreshold(0);
         _warpForHarvestWindow();
-        octantModule.harvest(garden, WETH);
-
-        assertGt(yieldSplitter.gardenShares(garden, vault), 0, "harvest should register resolver shares");
+        _harvestRegistersSharesWhenAaveHasYieldAsset(garden, yieldAsset, vault);
     }
 
-    function test_forkDeploy_initializesWithRealAaveWETH() public {
+    function test_forkDeploy_initializesWithRealAaveDai() public {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
 
-        assertGt(WETH.code.length, 0, "WETH should exist on Arbitrum");
+        assertGt(yieldAsset.code.length, 0, "DAI should exist on Arbitrum");
         assertEq(yieldSplitter.octantModule(), address(octantModule), "octant module should be wired");
     }
 
@@ -43,15 +47,15 @@ contract ArbitrumYieldResolverCoreForkTest is AaveOctantForkBase {
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, treasury);
 
-        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
-        uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
-        uint256 escrowedBefore = yieldSplitter.getEscrowedFractions(garden, WETH);
+        uint256 cookieJarBefore = IERC20(yieldAsset).balanceOf(cookieJar);
+        uint256 treasuryBefore = IERC20(yieldAsset).balanceOf(treasury);
+        uint256 escrowedBefore = yieldSplitter.getEscrowedFractions(garden, yieldAsset);
 
-        yieldSplitter.splitYield(garden, WETH, vault);
+        yieldSplitter.splitYield(garden, yieldAsset, vault);
 
-        uint256 cookieJarReceived = IERC20(WETH).balanceOf(cookieJar) - cookieJarBefore;
-        uint256 treasuryReceived = IERC20(WETH).balanceOf(treasury) - treasuryBefore;
-        uint256 escrowedReceived = yieldSplitter.getEscrowedFractions(garden, WETH) - escrowedBefore;
+        uint256 cookieJarReceived = IERC20(yieldAsset).balanceOf(cookieJar) - cookieJarBefore;
+        uint256 treasuryReceived = IERC20(yieldAsset).balanceOf(treasury) - treasuryBefore;
+        uint256 escrowedReceived = yieldSplitter.getEscrowedFractions(garden, yieldAsset) - escrowedBefore;
         uint256 totalDistributed = cookieJarReceived + treasuryReceived + escrowedReceived;
         uint256 expectedCookieJar = (totalDistributed * 4865) / 10_000;
         uint256 expectedFractions = (totalDistributed * 4865) / 10_000;
@@ -64,7 +68,7 @@ contract ArbitrumYieldResolverCoreForkTest is AaveOctantForkBase {
         assertEq(yieldSplitter.gardenShares(garden, vault), 0, "split should clear registered shares");
     }
 
-    function test_forkSplitYield_allowsEscrowWithdrawalAfterFallback() public {
+    function test_forkSplitYield_allowsEscrowWithdrawalWhenNoFractionPool() public {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
 
@@ -72,17 +76,17 @@ contract ArbitrumYieldResolverCoreForkTest is AaveOctantForkBase {
         yieldSplitter.setCookieJar(garden, address(0xC002));
         yieldSplitter.setGardenTreasury(garden, address(0x7EA6));
 
-        yieldSplitter.splitYield(garden, WETH, vault);
+        yieldSplitter.splitYield(garden, yieldAsset, vault);
 
-        uint256 escrowed = yieldSplitter.getEscrowedFractions(garden, WETH);
+        uint256 escrowed = yieldSplitter.getEscrowedFractions(garden, yieldAsset);
         address receiver = address(0xBEEF);
-        uint256 receiverBefore = IERC20(WETH).balanceOf(receiver);
+        uint256 receiverBefore = IERC20(yieldAsset).balanceOf(receiver);
 
-        yieldSplitter.withdrawEscrowedFractions(garden, WETH, escrowed, receiver);
+        yieldSplitter.withdrawEscrowedFractions(garden, yieldAsset, escrowed, receiver);
 
         assertGt(escrowed, 0, "split should escrow fractions when no pool is configured");
-        assertEq(IERC20(WETH).balanceOf(receiver) - receiverBefore, escrowed, "withdraw should release escrow");
-        assertEq(yieldSplitter.getEscrowedFractions(garden, WETH), 0, "escrow should be cleared");
+        assertEq(IERC20(yieldAsset).balanceOf(receiver) - receiverBefore, escrowed, "withdraw should release escrow");
+        assertEq(yieldSplitter.getEscrowedFractions(garden, yieldAsset), 0, "escrow should be cleared");
     }
 
     function test_forkSplitYield_preservesGardenIsolationAcrossVaults() public {
@@ -98,12 +102,12 @@ contract ArbitrumYieldResolverCoreForkTest is AaveOctantForkBase {
         yieldSplitter.setGardenTreasury(garden2, address(0x7EA8));
 
         uint256 garden2SharesBefore = yieldSplitter.gardenShares(garden2, vault2);
-        yieldSplitter.splitYield(garden1, WETH, vault1);
+        yieldSplitter.splitYield(garden1, yieldAsset, vault1);
 
         assertEq(yieldSplitter.gardenShares(garden1, vault1), 0, "garden 1 shares should be consumed");
         assertEq(yieldSplitter.gardenShares(garden2, vault2), garden2SharesBefore, "garden 2 shares should remain intact");
 
-        yieldSplitter.splitYield(garden2, WETH, vault2);
+        yieldSplitter.splitYield(garden2, yieldAsset, vault2);
         assertEq(yieldSplitter.gardenShares(garden2, vault2), 0, "garden 2 shares should be consumed independently");
     }
 }

@@ -7,20 +7,6 @@ import { GardenAccount } from "../../src/accounts/Garden.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 
-/// @title MockRevertingModule
-/// @notice A module that always reverts, used to test graceful degradation during mintGarden
-contract MockRevertingModule {
-    error AlwaysReverts();
-
-    fallback() external payable {
-        revert AlwaysReverts();
-    }
-
-    receive() external payable {
-        revert AlwaysReverts();
-    }
-}
-
 /// @title ArbitrumGardenTokenForkTest
 /// @notice Fork tests for GardenToken against Arbitrum mainnet.
 /// @dev Tests transfer restrictions, ENS refund accounting, sequential minting,
@@ -89,7 +75,8 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice When a single optional module reverts, mintGarden still succeeds.
-    /// @dev Sets KarmaGAP module to a reverting mock. Mint should succeed with all other
+    /// @dev Points KarmaGAP integration at another deployed protocol module with no
+    ///      createProject selector. Mint should succeed with all other
     ///      modules functional. This verifies the try/catch graceful degradation pattern.
     function testForkArbitrum_mintGarden_singleCallbackReverts_gracefulDegradation() public {
         if (!_tryChainFork("arbitrum")) {
@@ -98,9 +85,7 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
 
         _deployFullStackOnFork();
 
-        // Replace KarmaGAP with a reverting mock
-        MockRevertingModule revertingModule = new MockRevertingModule();
-        gardenToken.setKarmaGAPModule(address(revertingModule));
+        gardenToken.setKarmaGAPModule(address(gardensModule));
 
         // Mint should succeed despite KarmaGAP reverting
         address garden = _mintTestGarden("Degraded KarmaGAP Garden", 0x0F);
@@ -170,6 +155,7 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
         _mintTestGarden("OwnerOnly Garden 2", 0x02);
 
         // Non-owner attempts transfer — should revert
+        gardenToken.approve(forkGardener, 1);
         vm.prank(forkGardener);
         vm.expectRevert(GardenToken.TransfersRestricted.selector);
         gardenToken.transferFrom(address(this), forkGardener, 1);
@@ -180,7 +166,8 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice When ENS registration fails, ETH is queued for refund and claimable by minter.
-    /// @dev Replaces ENS module with a reverting mock, sends ETH with mint, then verifies
+    /// @dev Points ENS integration at another deployed protocol module with no
+    ///      registerGarden selector, sends ETH with mint, then verifies
     ///      failedENSRefunds mapping and claimENSRefund() flow.
     function testForkArbitrum_failedENSRefund_accounting() public {
         if (!_tryChainFork("arbitrum")) {
@@ -189,9 +176,7 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
 
         _deployFullStackOnFork();
 
-        // Replace ENS module with a reverting mock
-        MockRevertingModule revertingENS = new MockRevertingModule();
-        gardenToken.setENSModule(address(revertingENS));
+        gardenToken.setENSModule(address(karmaGAPModule));
 
         // Mint with ETH and a slug (triggers ENS registration path)
         uint256 mintValue = 0.01 ether;
@@ -290,33 +275,30 @@ contract ArbitrumGardenTokenForkTest is ForkTestBase {
 
         _deployFullStackOnFork();
 
-        // Non-owner attempts to set modules — all should revert with OwnableUnauthorizedAccount
-        bytes memory expectedRevert = abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", forkNonMember);
-
         vm.startPrank(forkNonMember);
 
-        vm.expectRevert(expectedRevert);
+        vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setHatsModule(address(0xDEAD));
 
-        vm.expectRevert(expectedRevert);
+        vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setKarmaGAPModule(address(0xDEAD));
 
-        vm.expectRevert(expectedRevert);
+        vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setOctantModule(address(0xDEAD));
 
-        vm.expectRevert(expectedRevert);
+        vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setGardensModule(address(0xDEAD));
 
-        vm.expectRevert(expectedRevert);
+        vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setActionRegistry(address(0xDEAD));
 
-        vm.expectRevert(expectedRevert);
+        vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setCookieJarModule(address(0xDEAD));
 
-        vm.expectRevert(expectedRevert);
+        vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setENSModule(address(0xDEAD));
 
-        vm.expectRevert(expectedRevert);
+        vm.expectRevert("Ownable: caller is not the owner");
         gardenToken.setTransferRestriction(GardenToken.TransferRestriction.Locked);
 
         vm.stopPrank();

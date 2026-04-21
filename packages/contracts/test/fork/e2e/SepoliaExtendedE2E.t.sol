@@ -7,7 +7,7 @@ import { GardenAccount } from "../../../src/accounts/Garden.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
 import { GreenGoodsENS } from "../../../src/registries/ENS.sol";
-import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
+import { IHats } from "../../../src/interfaces/IHats.sol";
 
 /// @title SepoliaExtendedE2EForkTest
 /// @notice Extended E2E fork tests covering ENS, CookieJar, and KarmaGAP integration
@@ -30,16 +30,10 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
         // Verify ENS module is wired to GardenToken
         assertTrue(address(gardenToken.ensModule()) != address(0), "ensModule should be wired");
 
-        // Mock CCIP send to avoid actual cross-chain message (real router validates)
-        address ccipRouter = address(greenGoodsENS.CCIP_ROUTER());
-        vm.mockCall(
-            ccipRouter, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-message-id"))
-        );
-
         // Mint garden with a valid slug
         string memory slug = "sepolia-e2e-garden";
         uint256 fee = greenGoodsENS.getRegistrationFee(slug, address(this), GreenGoodsENS.NameType.Garden);
-        assertGt(fee, 0, "CCIP fee should be non-zero from real router");
+        assertEq(fee, 0, "Sepolia local relay should return zero garden registration fee");
 
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
             name: "ENS Slug Garden",
@@ -80,16 +74,16 @@ contract SepoliaExtendedE2EForkTest is ForkTestBase {
         address garden = _mintTestGarden("ENS Member Garden", 0x0F);
         _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
 
-        // Mock CCIP send
-        address ccipRouter = address(greenGoodsENS.CCIP_ROUTER());
-        vm.mockCall(
-            ccipRouter, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-claim-id"))
-        );
+        // claimName is gated by protocol membership, not by the per-garden role alone.
+        uint256 protocolMembershipHatId = hatsModule.protocolGardenersHatId();
+        hatsEligibilityToggle.setWearerStatus(protocolMembershipHatId, forkGardener, true, true);
+        IHats(HATS_PROTOCOL).mintHat(protocolMembershipHatId, forkGardener);
+        greenGoodsENS.setProtocolHatId(protocolMembershipHatId);
 
         // Get fee for member name claim
         string memory memberSlug = "fork-gardener";
         uint256 fee = greenGoodsENS.getRegistrationFee(memberSlug, forkGardener, GreenGoodsENS.NameType.Gardener);
-        assertGt(fee, 0, "CCIP fee for member claim should be non-zero");
+        assertEq(fee, 0, "Sepolia local relay should return zero member claim fee");
 
         // Gardener claims name (must be protocol member via Hats)
         vm.deal(forkGardener, fee);

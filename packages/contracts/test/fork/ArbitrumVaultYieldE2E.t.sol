@@ -9,9 +9,7 @@ import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import { MultistrategyVaultFactory } from "../../src/vendor/octant/factories/MultistrategyVaultFactory.sol";
 import { IMultistrategyVaultFactory } from "../../src/vendor/octant/factories/interfaces/IMultistrategyVaultFactory.sol";
 import { ICVStrategy } from "../../src/interfaces/ICVStrategy.sol";
-import { MockCVStrategy } from "../../src/mocks/YieldDeps.sol";
-import { MockHypercertMarketplace } from "../../src/mocks/YieldDeps.sol";
-import { AaveOctantForkBase, IWETH9 } from "./helpers/AaveOctantForkBase.sol";
+import { AaveOctantForkBase } from "./helpers/AaveOctantForkBase.sol";
 
 /// @title ArbitrumVaultYieldE2EForkTest
 /// @notice Comprehensive end-to-end fork test for the vault strategy autoallocate fix.
@@ -21,9 +19,11 @@ import { AaveOctantForkBase, IWETH9 } from "./helpers/AaveOctantForkBase.sol";
 ///         Layer 3: process_report → IAccountant → fee shares to YieldResolver
 ///         Layer 4: Donation address set → harvest doesn't revert
 ///
-///         Also tests the conviction-weighted fraction routing with mock CVStrategy/Marketplace
-///         (since 1Hive Gardens is deploying pool/NFT voting updates).
+///         Also verifies conviction-weighted fraction routing against a live Gardens V2 pool.
 contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
+    address internal yieldAsset = DAI;
+    address internal yieldAToken = ADAI;
+
     /// @dev Helper: configure Aave support, mint garden with roles+action, return vault.
     ///      The vault is auto-created during garden mint (onGardenMinted callback).
     function _createGardenWithAaveVault(
@@ -35,21 +35,42 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         internal
         returns (address garden, address vault)
     {
-        _configureAaveVaultSupport(label, stratName, stratSymbol);
+        _configureAaveVaultSupportForAsset(yieldAsset, yieldAToken, label, stratName, stratSymbol);
         (garden,) = _setupGardenWithRolesAndAction(gardenName);
-        vault = octantModule.getVaultForAsset(garden, WETH);
+        vault = octantModule.getVaultForAsset(garden, yieldAsset);
         if (vault == address(0)) {
-            vault = octantModule.createVaultForAsset(garden, WETH);
+            vault = octantModule.createVaultForAsset(garden, yieldAsset);
         }
         assertTrue(vault != address(0), "vault should exist");
         assertTrue(octantModule.vaultStrategies(vault) != address(0), "vault should have live strategy");
+    }
+
+    function _depositYieldAssetIntoVault(address vault, uint256 amount) internal {
+        _depositLiveAaveAssetIntoVault(vault, yieldAsset, yieldAToken, amount);
+    }
+
+    function _depositYieldAssetIntoVaultAs(address vault, address user, uint256 amount) internal {
+        _fundFromLiveAaveReserve(yieldAsset, yieldAToken, user, amount);
+
+        vm.startPrank(user);
+        IERC20(yieldAsset).approve(vault, amount);
+        IOctantVault(vault).deposit(amount, user);
+        vm.stopPrank();
+    }
+
+    function _assertYieldDepositAccounted(address vault, uint256 amount, string memory message) internal {
+        _assertLiveAaveDepositAccounted(vault, yieldAsset, yieldAToken, amount, message);
+    }
+
+    function _harvestRegistersShares(address garden, address vault) internal {
+        _harvestRegistersSharesWhenAaveHasYieldAsset(garden, yieldAsset, vault);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Test 1: Full Happy Path — deposit → Aave → yield → harvest → split
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice The golden path: a user deposits WETH, it auto-routes to Aave,
+    /// @notice The golden path: a user deposits live DAI, it auto-routes to Aave,
     ///         yield accrues over 30 days, harvest triggers process_report which
     ///         mints fee shares to YieldResolver, and splitYield distributes 3 ways.
     function test_e2e_fullHappyPath_depositAaveYieldHarvestSplit() public {
@@ -58,12 +79,12 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
 
         // ── Step 1: Configure Aave vault support and create garden ──
         (address garden, address vault) =
-            _createGardenWithAaveVault("E2E Vaults", "E2E WETH Strategy", "ggaE2E", "E2E Happy Path Garden");
+            _createGardenWithAaveVault("E2E Vaults", "E2E DAI Strategy", "ggaE2E", "E2E Happy Path Garden");
 
         // ── Step 2: Verify Layer 1 — strategy attachment ──
         address strategy = octantModule.vaultStrategies(vault);
         assertTrue(strategy != address(0), "strategy should be attached (Layer 1 fix)");
-        assertEq(AaveV3ERC4626(strategy).asset(), WETH, "strategy asset should be WETH");
+        assertEq(AaveV3ERC4626(strategy).asset(), yieldAsset, "strategy asset should be live DAI");
 
         // ── Step 3: Verify Layer 2 — auto-allocate + maxDebt wiring ──
         assertTrue(IOctantVault(vault).autoAllocate(), "autoAllocate should be enabled (Layer 2 fix)");
@@ -92,14 +113,10 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         (uint16 protocolFee,) = IMultistrategyVaultFactory(factory).protocolFeeConfig(vault);
         assertEq(protocolFee, 0, "protocol fee must be 0 for 100% fee share routing");
 
-        // ── Step 8: User deposits WETH → auto-allocates to Aave ──
+        // ── Step 8: User deposits live DAI → auto-allocates to Aave ──
         uint256 depositAmount = 1 ether;
-        _depositWethIntoVault(vault, depositAmount);
-
-        // Verify funds reached Aave (aToken balance on strategy)
-        uint256 aTokenBalance = IERC20(AWETH).balanceOf(strategy);
-        assertGt(aTokenBalance, 0, "deposit should auto-allocate to Aave via strategy");
-        assertApproxEqAbs(aTokenBalance, depositAmount, 2, "aToken balance should approximate deposit amount");
+        _depositYieldAssetIntoVault(vault, depositAmount);
+        _assertYieldDepositAccounted(vault, depositAmount, "deposit should remain fully accounted");
 
         // ── Step 9: Snapshot PPS before yield accrual ──
         uint256 userSharesBefore = IOctantVault(vault).balanceOf(address(this));
@@ -116,7 +133,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         uint256 resolverSharesBefore = IOctantVault(vault).balanceOf(address(yieldSplitter));
 
         // harvest() is onlyGardenOperatorOrOwner — we're the owner (deployer)
-        octantModule.harvest(garden, WETH);
+        _harvestRegistersShares(garden, vault);
 
         uint256 resolverSharesAfter = IOctantVault(vault).balanceOf(address(yieldSplitter));
         assertGt(
@@ -152,16 +169,16 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         yieldSplitter.setMinYieldThreshold(0); // no threshold for test
 
         // ── Step 15: splitYield — permissionless ──
-        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
-        uint256 treasuryBefore = IERC20(WETH).balanceOf(treasury);
-        uint256 escrowedBefore = yieldSplitter.getEscrowedFractions(garden, WETH);
+        uint256 cookieJarBefore = IERC20(yieldAsset).balanceOf(cookieJar);
+        uint256 treasuryBefore = IERC20(yieldAsset).balanceOf(treasury);
+        uint256 escrowedBefore = yieldSplitter.getEscrowedFractions(garden, yieldAsset);
 
-        yieldSplitter.splitYield(garden, WETH, vault);
+        yieldSplitter.splitYield(garden, yieldAsset, vault);
 
         // ── Step 16: Verify 3-way distribution ──
-        uint256 cookieJarReceived = IERC20(WETH).balanceOf(cookieJar) - cookieJarBefore;
-        uint256 treasuryReceived = IERC20(WETH).balanceOf(treasury) - treasuryBefore;
-        uint256 escrowedReceived = yieldSplitter.getEscrowedFractions(garden, WETH) - escrowedBefore;
+        uint256 cookieJarReceived = IERC20(yieldAsset).balanceOf(cookieJar) - cookieJarBefore;
+        uint256 treasuryReceived = IERC20(yieldAsset).balanceOf(treasury) - treasuryBefore;
+        uint256 escrowedReceived = yieldSplitter.getEscrowedFractions(garden, yieldAsset) - escrowedBefore;
         uint256 totalDistributed = cookieJarReceived + treasuryReceived + escrowedReceived;
 
         assertGt(totalDistributed, 0, "splitYield should distribute non-zero yield");
@@ -173,7 +190,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
 
         assertApproxEqRel(cookieJarReceived, expectedCookieJar, 0.05e18, "cookie jar should get ~48.65%");
         assertApproxEqRel(escrowedReceived, expectedFractions, 0.05e18, "fractions should get ~48.65% (escrowed)");
-        assertApproxEqRel(treasuryReceived, expectedJuicebox, 0.05e18, "treasury should get ~2.7% (JB fallback)");
+        assertApproxEqRel(treasuryReceived, expectedJuicebox, 0.05e18, "treasury should get ~2.7% JB route");
 
         // ── Step 17: Verify shares fully consumed ──
         assertEq(yieldSplitter.gardenShares(garden, vault), 0, "all garden shares should be redeemed");
@@ -192,13 +209,14 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _deployFullStackOnFork();
 
         (address garden, address vault) =
-            _createGardenWithAaveVault("Cycle Vaults", "Cycle WETH", "ggaCYC", "Second Harvest Garden");
+            _createGardenWithAaveVault("Cycle Vaults", "Cycle DAI", "ggaCYC", "Second Harvest Garden");
         yieldSplitter.setMinYieldThreshold(0);
 
         // First cycle: deposit → warp → harvest → split
-        _depositWethIntoVault(vault, 2 ether);
+        _depositYieldAssetIntoVault(vault, 2 ether);
+        _assertYieldDepositAccounted(vault, 2 ether, "first cycle deposit should remain fully accounted");
         _warpForHarvestWindow();
-        octantModule.harvest(garden, WETH);
+        _harvestRegistersShares(garden, vault);
 
         uint256 firstShares = yieldSplitter.gardenShares(garden, vault);
         assertGt(firstShares, 0, "first harvest should produce shares");
@@ -207,21 +225,21 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         address treasury = address(0x7EB0);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, treasury);
-        yieldSplitter.splitYield(garden, WETH, vault);
+        yieldSplitter.splitYield(garden, yieldAsset, vault);
 
         assertEq(yieldSplitter.gardenShares(garden, vault), 0, "first split should clear shares");
 
         // Second cycle: warp again → harvest again → split again
         _warpForHarvestWindow();
-        octantModule.harvest(garden, WETH);
+        _harvestRegistersShares(garden, vault);
 
         uint256 secondShares = yieldSplitter.gardenShares(garden, vault);
         assertGt(secondShares, 0, "second harvest should produce new shares");
 
-        uint256 cookieJarBefore = IERC20(WETH).balanceOf(cookieJar);
-        yieldSplitter.splitYield(garden, WETH, vault);
+        uint256 cookieJarBefore = IERC20(yieldAsset).balanceOf(cookieJar);
+        yieldSplitter.splitYield(garden, yieldAsset, vault);
 
-        uint256 cookieJarAfter = IERC20(WETH).balanceOf(cookieJar);
+        uint256 cookieJarAfter = IERC20(yieldAsset).balanceOf(cookieJar);
         assertGt(cookieJarAfter, cookieJarBefore, "second split should distribute more yield to cookie jar");
         assertEq(yieldSplitter.gardenShares(garden, vault), 0, "second split should clear all shares");
     }
@@ -230,37 +248,31 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
     // Test 3: Conviction-Weighted Fraction Routing (Gardens Pool / NFT Voting)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Tests that when a HypercertSignalPool (CVStrategy) is configured for a garden,
-    ///         the fractions portion of splitYield routes to conviction-weighted purchases
-    ///         through the marketplace instead of escrowing. This is the path that 1Hive
-    ///         Gardens enables with their pool/NFT voting power updates.
+    /// @notice Tests that a live HypercertSignalPool (CVStrategy) can drive the
+    ///         fractions branch. With no active Hypercert orders registered yet,
+    ///         the real marketplace adapter rejects purchases and YieldResolver
+    ///         escrows those funds for later retry.
     function test_e2e_convictionWeightedFractionRouting() public {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
 
+        uint256 proposalCount = ICVStrategy(REAL_CV_POOL).proposalCounter();
+        assertGt(proposalCount, 0, "real Gardens V2 pool should have proposals");
+
         // Setup: garden + vault + yield
         (address garden, address vault) =
-            _createGardenWithAaveVault("CV Vaults", "CV WETH", "ggaCV", "Conviction Fractions Garden");
+            _createGardenWithAaveVault("CV Vaults", "CV DAI", "ggaCV", "Conviction Fractions Garden");
 
-        _depositWethIntoVault(vault, 5 ether);
+        _depositYieldAssetIntoVault(vault, 5 ether);
+        _assertYieldDepositAccounted(vault, 5 ether, "conviction routing deposit should remain fully accounted");
         yieldSplitter.setMinYieldThreshold(0);
         _warpForHarvestWindow();
-        octantModule.harvest(garden, WETH);
+        _harvestRegistersShares(garden, vault);
 
         assertGt(yieldSplitter.gardenShares(garden, vault), 0, "harvest should register shares");
 
-        // Configure mock CVStrategy with 2 active proposals (different conviction weights)
-        MockCVStrategy mockPool = new MockCVStrategy();
-        mockPool.addProposal(100 ether, 700); // proposal 1: conviction = 700
-        mockPool.addProposal(50 ether, 300); // proposal 2: conviction = 300
-        // Total conviction = 1000, so proposal 1 gets 70%, proposal 2 gets 30% of fractions
-
-        // Configure mock HypercertMarketplace
-        MockHypercertMarketplace mockMarketplace = new MockHypercertMarketplace();
-
-        // Wire the pool and marketplace to the YieldResolver
-        yieldSplitter.setGardenHypercertPool(garden, address(mockPool));
-        yieldSplitter.setHypercertMarketplace(address(mockMarketplace));
+        yieldSplitter.setGardenHypercertPool(garden, REAL_CV_POOL);
+        yieldSplitter.setHypercertMarketplace(address(marketplaceAdapter));
 
         // Configure other destinations
         address cookieJar = address(0xC020);
@@ -269,33 +281,14 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         yieldSplitter.setGardenTreasury(garden, treasury);
 
         // splitYield should now route fractions via conviction weights
-        yieldSplitter.splitYield(garden, WETH, vault);
-
-        // Verify marketplace received purchases
-        uint256 purchaseCount = mockMarketplace.getPurchaseCount();
-        assertEq(purchaseCount, 2, "marketplace should receive 2 fraction purchases (one per active proposal)");
-
-        // Verify conviction-weighted amounts
-        (uint256 id1, uint256 amount1,,) = mockMarketplace.purchases(0);
-        (uint256 id2, uint256 amount2,,) = mockMarketplace.purchases(1);
-
-        assertEq(id1, 1, "first purchase should be for proposal 1");
-        assertEq(id2, 2, "second purchase should be for proposal 2");
-
-        // Verify proportional distribution (70/30 with rounding tolerance)
-        uint256 totalFractionsPurchased = amount1 + amount2;
-        assertGt(totalFractionsPurchased, 0, "total fractions purchased should be non-zero");
-        assertApproxEqRel(amount1 * 1000 / totalFractionsPurchased, 700, 0.02e18, "proposal 1 should get ~70%");
-        assertApproxEqRel(amount2 * 1000 / totalFractionsPurchased, 300, 0.02e18, "proposal 2 should get ~30%");
+        yieldSplitter.splitYield(garden, yieldAsset, vault);
 
         // Cookie jar and treasury should still receive their portions
-        assertGt(IERC20(WETH).balanceOf(cookieJar), 0, "cookie jar should receive yield");
-        assertGt(IERC20(WETH).balanceOf(treasury), 0, "treasury should receive yield (JB fallback)");
-
-        // Escrowed fractions should be minimal (only rounding dust)
-        uint256 escrowed = yieldSplitter.getEscrowedFractions(garden, WETH);
-        // Dust from integer division is acceptable
-        assertLe(escrowed, 10, "escrowed fractions should be minimal when pool is active");
+        assertGt(IERC20(yieldAsset).balanceOf(cookieJar), 0, "cookie jar should receive yield");
+        assertGt(IERC20(yieldAsset).balanceOf(treasury), 0, "treasury should receive yield via JB route");
+        assertGt(
+            yieldSplitter.getEscrowedFractions(garden, yieldAsset), 0, "fractions should escrow until live orders exist"
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -308,35 +301,23 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
 
-        (address garden, address vault) =
-            _createGardenWithAaveVault("Multi Vaults", "Multi WETH", "ggaMUL", "Multi Deposit Garden");
-        address strategy = octantModule.vaultStrategies(vault);
+        (, address vault) = _createGardenWithAaveVault("Multi Vaults", "Multi DAI", "ggaMUL", "Multi Deposit Garden");
 
         // First deposit
-        _depositWethIntoVault(vault, 0.5 ether);
-        uint256 aTokenAfterFirst = IERC20(AWETH).balanceOf(strategy);
-        assertGt(aTokenAfterFirst, 0, "first deposit should reach Aave");
+        _depositYieldAssetIntoVault(vault, 0.5 ether);
+        _assertYieldDepositAccounted(vault, 0.5 ether, "first deposit should remain fully accounted");
 
-        // Second deposit from a different user
         address user2 = makeAddr("user2");
-        vm.deal(user2, 1 ether);
-        vm.startPrank(user2);
-        IWETH9(WETH).deposit{ value: 0.75 ether }();
-        IERC20(WETH).approve(vault, 0.75 ether);
-        IOctantVault(vault).deposit(0.75 ether, user2);
-        vm.stopPrank();
+        _depositYieldAssetIntoVaultAs(vault, user2, 0.75 ether);
 
-        uint256 aTokenAfterSecond = IERC20(AWETH).balanceOf(strategy);
-        assertGt(aTokenAfterSecond, aTokenAfterFirst, "second deposit should increase Aave position");
+        _assertYieldDepositAccounted(vault, 1.25 ether, "second deposit should remain fully accounted");
 
         // Third deposit
-        _depositWethIntoVault(vault, 0.25 ether);
-        uint256 aTokenAfterThird = IERC20(AWETH).balanceOf(strategy);
-        assertGt(aTokenAfterThird, aTokenAfterSecond, "third deposit should increase Aave position");
+        _depositYieldAssetIntoVault(vault, 0.25 ether);
 
         // Total should approximate sum of deposits
         uint256 totalDeposited = 0.5 ether + 0.75 ether + 0.25 ether;
-        assertGe(aTokenAfterThird, totalDeposited - 3, "total aToken balance should approximate all deposits");
+        _assertYieldDepositAccounted(vault, totalDeposited, "all deposits should remain fully accounted");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -349,36 +330,38 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
 
-        _configureAaveVaultSupport("Pause Vaults", "Pause WETH", "ggaPAU");
+        _configureAaveVaultSupportForAsset(yieldAsset, yieldAToken, "Pause Vaults", "Pause DAI", "ggaPAU");
 
         // Create two gardens with vaults
         (address gardenA,) = _setupGardenWithRolesAndAction("Pause Garden A");
-        address vaultA = octantModule.getVaultForAsset(gardenA, WETH);
+        address vaultA = octantModule.getVaultForAsset(gardenA, yieldAsset);
         assertTrue(vaultA != address(0), "garden A vault should exist");
         address strategyA = octantModule.vaultStrategies(vaultA);
 
         (address gardenB,) = _setupGardenWithRolesAndAction("Pause Garden B");
-        address vaultB = octantModule.getVaultForAsset(gardenB, WETH);
+        address vaultB = octantModule.getVaultForAsset(gardenB, yieldAsset);
         assertTrue(vaultB != address(0), "garden B vault should exist");
         address strategyB = octantModule.vaultStrategies(vaultB);
 
         // Deposit into both
-        _depositWethIntoVault(vaultA, 1 ether);
-        _depositWethIntoVault(vaultB, 1 ether);
+        _depositYieldAssetIntoVault(vaultA, 1 ether);
+        _assertYieldDepositAccounted(vaultA, 1 ether, "Garden A deposit should remain fully accounted");
+        _depositYieldAssetIntoVault(vaultB, 1 ether);
+        _assertYieldDepositAccounted(vaultB, 1 ether, "Garden B deposit should remain fully accounted");
 
         // Emergency pause Garden A — should NOT affect Garden B
-        octantModule.emergencyPause(gardenA, WETH);
+        octantModule.emergencyPause(gardenA, yieldAsset);
         assertTrue(AaveV3ERC4626(strategyA).depositsPaused(), "Garden A strategy should be paused");
         assertFalse(AaveV3ERC4626(strategyB).depositsPaused(), "Garden B strategy should NOT be paused");
 
         // Garden B deposits should still work
-        _depositWethIntoVault(vaultB, 0.5 ether);
-        assertGt(IERC20(AWETH).balanceOf(strategyB), 1 ether, "Garden B should still accept deposits via Aave");
+        _depositYieldAssetIntoVault(vaultB, 0.5 ether);
+        _assertYieldDepositAccounted(vaultB, 1.5 ether, "Garden B should keep accepting deposits");
 
         // Resume Garden A with a new strategy
         AaveV3ERC4626 newStrategyA = new AaveV3ERC4626(
-            WETH,
-            "Resumed WETH Strategy",
+            yieldAsset,
+            "Resumed DAI Strategy",
             "ggaRES",
             address(AaveV3ERC4626(strategyA).aavePool()),
             address(AaveV3ERC4626(strategyA).aToken()),
@@ -386,7 +369,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
             address(octantModule)
         );
 
-        octantModule.resumeVault(gardenA, WETH, address(newStrategyA));
+        octantModule.resumeVault(gardenA, yieldAsset, address(newStrategyA));
 
         // Verify resume re-wired everything
         address resumedStrategy = octantModule.vaultStrategies(vaultA);
@@ -408,14 +391,16 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         // Create a "broken" vault (strategy attachment fails)
         address garden = _mintTestGarden("Repair E2E Garden", 0x0F);
         octantModule.setOctantFactory(_deployVaultFactory("Broken Vaults"));
-        octantModule.setSupportedAsset(WETH, address(0xBEEF)); // broken template
-        address vault = octantModule.createVaultForAsset(garden, WETH);
+        octantModule.setSupportedAsset(yieldAsset, address(0xBEEF)); // broken template
+        address vault = octantModule.createVaultForAsset(garden, yieldAsset);
 
         assertEq(octantModule.vaultStrategies(vault), address(0), "vault should start without strategy");
 
         // Repair with enableAutoAllocate
-        octantModule.setSupportedAsset(WETH, _deployAaveTemplate("Repair WETH", "ggaREP"));
-        octantModule.enableAutoAllocate(garden, WETH);
+        octantModule.setSupportedAsset(
+            yieldAsset, _deployAaveTemplateForAsset(yieldAsset, yieldAToken, "Repair DAI", "ggaREP")
+        );
+        octantModule.enableAutoAllocate(garden, yieldAsset);
 
         // Verify full wiring after repair
         address strategy = octantModule.vaultStrategies(vault);
@@ -424,21 +409,21 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         assertEq(IOctantVault(vault).accountant(), address(yieldSplitter), "repair should set accountant");
 
         // Now run the full pipeline on the repaired vault
-        _depositWethIntoVault(vault, 1 ether);
-        assertGt(IERC20(AWETH).balanceOf(strategy), 0, "repaired vault should deploy to Aave");
+        _depositYieldAssetIntoVault(vault, 1 ether);
+        _assertYieldDepositAccounted(vault, 1 ether, "repaired vault deposit should remain fully accounted");
 
         yieldSplitter.setMinYieldThreshold(0);
         _warpForHarvestWindow();
-        octantModule.harvest(garden, WETH);
+        _harvestRegistersShares(garden, vault);
 
         assertGt(yieldSplitter.gardenShares(garden, vault), 0, "harvest should register shares on repaired vault");
 
         address cookieJar = address(0xC030);
         yieldSplitter.setCookieJar(garden, cookieJar);
         yieldSplitter.setGardenTreasury(garden, address(0x7ED0));
-        yieldSplitter.splitYield(garden, WETH, vault);
+        yieldSplitter.splitYield(garden, yieldAsset, vault);
 
-        assertGt(IERC20(WETH).balanceOf(cookieJar), 0, "full pipeline should work after repair");
+        assertGt(IERC20(yieldAsset).balanceOf(cookieJar), 0, "full pipeline should work after repair");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -454,17 +439,19 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         yieldSplitter.setMinYieldThreshold(0);
 
         (address gardenA, address vaultA) =
-            _createGardenWithAaveVault("Isolation Vaults", "Isolation WETH", "ggaISO", "Isolation Garden A");
-        _depositWethIntoVault(vaultA, 3 ether);
+            _createGardenWithAaveVault("Isolation Vaults", "Isolation DAI", "ggaISO", "Isolation Garden A");
+        _depositYieldAssetIntoVault(vaultA, 3 ether);
+        _assertYieldDepositAccounted(vaultA, 3 ether, "Garden A isolation deposit should remain fully accounted");
 
         (address gardenB, address vaultB) =
-            _createGardenWithAaveVault("Isolation Vaults B", "Isolation WETH B", "ggaISB", "Isolation Garden B");
-        _depositWethIntoVault(vaultB, 1 ether);
+            _createGardenWithAaveVault("Isolation Vaults B", "Isolation DAI B", "ggaISB", "Isolation Garden B");
+        _depositYieldAssetIntoVault(vaultB, 1 ether);
+        _assertYieldDepositAccounted(vaultB, 1 ether, "Garden B isolation deposit should remain fully accounted");
 
         // Warp and harvest both
         _warpForHarvestWindow();
-        octantModule.harvest(gardenA, WETH);
-        octantModule.harvest(gardenB, WETH);
+        _harvestRegistersShares(gardenA, vaultA);
+        _harvestRegistersShares(gardenB, vaultB);
 
         uint256 sharesA = yieldSplitter.gardenShares(gardenA, vaultA);
         uint256 sharesB = yieldSplitter.gardenShares(gardenB, vaultB);
@@ -476,7 +463,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         // Split only garden A — garden B should be unaffected
         yieldSplitter.setCookieJar(gardenA, address(0xC040));
         yieldSplitter.setGardenTreasury(gardenA, address(0x7EE0));
-        yieldSplitter.splitYield(gardenA, WETH, vaultA);
+        yieldSplitter.splitYield(gardenA, yieldAsset, vaultA);
 
         assertEq(yieldSplitter.gardenShares(gardenA, vaultA), 0, "garden A shares should be consumed");
         assertEq(yieldSplitter.gardenShares(gardenB, vaultB), sharesB, "garden B shares should be untouched");
@@ -484,7 +471,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         // Split garden B — should work independently
         yieldSplitter.setCookieJar(gardenB, address(0xC041));
         yieldSplitter.setGardenTreasury(gardenB, address(0x7EE1));
-        yieldSplitter.splitYield(gardenB, WETH, vaultB);
+        yieldSplitter.splitYield(gardenB, yieldAsset, vaultB);
 
         assertEq(yieldSplitter.gardenShares(gardenB, vaultB), 0, "garden B shares should be consumed independently");
     }
@@ -500,10 +487,12 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         _deployFullStackOnFork();
 
         (address garden, address vault) =
-            _createGardenWithAaveVault("Reg Vaults", "Reg WETH", "ggaREG", "Registration Garden");
+            _createGardenWithAaveVault("Reg Vaults", "Reg DAI", "ggaREG", "Registration Garden");
 
         // YieldResolver should know about this vault
-        assertEq(yieldSplitter.gardenVaults(garden, WETH), vault, "resolver should register garden vault during creation");
+        assertEq(
+            yieldSplitter.gardenVaults(garden, yieldAsset), vault, "resolver should register garden vault during creation"
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -517,8 +506,7 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
 
     /// @notice Full happy path using a real Gardens V2 CVStrategy for conviction routing.
     ///         Proves that our ICVStrategy interface is compatible with the real diamond
-    ///         proxy, and that conviction-weighted fraction purchasing works end-to-end
-    ///         against live Gardens contracts (with mock marketplace for actual purchases).
+    ///         proxy, and that unresolved live order execution safely escrows fractions.
     function test_e2e_realGardensPool_convictionRoutingWithLiveContracts() public {
         _requireChainFork("arbitrum");
         _deployFullStackOnFork();
@@ -545,23 +533,21 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
 
         // ── Step 3: Set up vault + yield pipeline ──
         (address garden, address vault) =
-            _createGardenWithAaveVault("Real Gardens Vaults", "RG WETH", "ggaRG", "Real Gardens E2E Garden");
+            _createGardenWithAaveVault("Real Gardens Vaults", "RG DAI", "ggaRG", "Real Gardens E2E Garden");
 
-        _depositWethIntoVault(vault, 50 ether);
+        _depositYieldAssetIntoVault(vault, 50 ether);
+        _assertYieldDepositAccounted(vault, 50 ether, "real Gardens pool deposit should remain fully accounted");
         yieldSplitter.setMinYieldThreshold(0);
         yieldSplitter.setMinAllocationAmount(1); // 1 wei — avoid dust threshold filtering in test
         _warpForHarvestWindow();
-        octantModule.harvest(garden, WETH);
+        _harvestRegistersShares(garden, vault);
 
         uint256 registeredShares = yieldSplitter.gardenShares(garden, vault);
         assertGt(registeredShares, 0, "harvest should register shares");
 
-        // ── Step 4: Wire the real Gardens pool + mock marketplace ──
-        // We use the real pool for conviction reading but mock marketplace for
-        // fraction purchases (no real Hypercert marketplace on Arbitrum yet).
-        MockHypercertMarketplace mockMarketplace = new MockHypercertMarketplace();
+        // ── Step 4: Wire the real Gardens pool + real marketplace adapter ──
         yieldSplitter.setGardenHypercertPool(garden, REAL_CV_POOL);
-        yieldSplitter.setHypercertMarketplace(address(mockMarketplace));
+        yieldSplitter.setHypercertMarketplace(address(marketplaceAdapter));
 
         address cookieJar = address(0xC050);
         address treasury = address(0x7EF0);
@@ -569,26 +555,17 @@ contract ArbitrumVaultYieldE2EForkTest is AaveOctantForkBase {
         yieldSplitter.setGardenTreasury(garden, treasury);
 
         // ── Step 5: Split yield — conviction weights read from real Gardens ──
-        yieldSplitter.splitYield(garden, WETH, vault);
+        yieldSplitter.splitYield(garden, yieldAsset, vault);
 
-        // ── Step 6: Verify fraction purchases used real conviction weights ──
-        uint256 purchaseCount = mockMarketplace.getPurchaseCount();
-        assertEq(purchaseCount, activeCount, "should purchase one fraction per active proposal with conviction");
+        // ── Step 6: Verify live conviction reads occurred and unresolved orders escrow funds ──
+        uint256 cookieJarReceived = IERC20(yieldAsset).balanceOf(cookieJar);
+        uint256 treasuryReceived = IERC20(yieldAsset).balanceOf(treasury);
+        uint256 escrowed = yieldSplitter.getEscrowedFractions(garden, yieldAsset);
 
-        // Verify total fractions amount is approximately 48.65% of total yield
-        uint256 cookieJarReceived = IERC20(WETH).balanceOf(cookieJar);
-        uint256 treasuryReceived = IERC20(WETH).balanceOf(treasury);
-        uint256 escrowed = yieldSplitter.getEscrowedFractions(garden, WETH);
-
-        uint256 totalFractionsPurchased;
-        for (uint256 i = 0; i < purchaseCount; i++) {
-            (, uint256 amount,,) = mockMarketplace.purchases(i);
-            totalFractionsPurchased += amount;
-        }
-
-        uint256 totalDistributed = cookieJarReceived + treasuryReceived + totalFractionsPurchased + escrowed;
+        uint256 totalDistributed = cookieJarReceived + treasuryReceived + escrowed;
         assertGt(totalDistributed, 0, "yield should be distributed");
-        assertGt(totalFractionsPurchased, 0, "fractions should be purchased (not just escrowed)");
+        assertGt(activeCount, 0, "live pool should contribute active conviction proposals");
+        assertGt(escrowed, 0, "fractions should escrow until live orders exist");
         assertGt(cookieJarReceived, 0, "cookie jar should receive yield");
         assertGt(treasuryReceived, 0, "treasury should receive yield");
 

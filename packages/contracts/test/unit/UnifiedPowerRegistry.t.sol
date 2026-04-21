@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import { UnifiedPowerRegistry } from "../../src/registries/Power.sol";
-import { ZeroAddress } from "../../src/errors/CommonErrors.sol";
+import { ZeroAddress } from "../../src/CommonErrors.sol";
 import { NFTPowerSource, NFTType } from "../../src/interfaces/IGardensV2.sol";
 
 import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";

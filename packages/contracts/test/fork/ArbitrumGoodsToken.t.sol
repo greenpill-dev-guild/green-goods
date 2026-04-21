@@ -80,15 +80,17 @@ contract ArbitrumGoodsTokenForkTest is ForkTestBase {
         }
 
         GoodsToken token = _deployStandaloneGoodsToken(0, 1_000_000e18);
+        address recipient = makeAddr("goodsRecipient");
+        address nonOwner = makeAddr("goodsNonOwner");
 
         // Owner (address(this)) can mint
-        token.mint(forkGardener, 100e18);
-        assertEq(token.balanceOf(forkGardener), 100e18, "owner mint should succeed");
+        token.mint(recipient, 100e18);
+        assertEq(token.balanceOf(recipient), 100e18, "owner mint should succeed");
 
         // Non-owner should revert
-        vm.prank(forkNonMember);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", forkNonMember));
-        token.mint(forkNonMember, 100e18);
+        vm.prank(nonOwner);
+        vm.expectRevert("Ownable: caller is not the owner");
+        token.mint(nonOwner, 100e18);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -113,9 +115,10 @@ contract ArbitrumGoodsTokenForkTest is ForkTestBase {
         assertEq(token.balanceOf(address(this)), 300e18, "holder balance should decrease");
 
         // Now can mint 200 more (freed capacity)
-        token.mint(forkGardener, 200e18);
+        address recipient = makeAddr("goodsBurnRecipient");
+        token.mint(recipient, 200e18);
         assertEq(token.totalSupply(), maxSup, "should be back at max after re-mint");
-        assertEq(token.balanceOf(forkGardener), 200e18, "gardener should receive minted tokens");
+        assertEq(token.balanceOf(recipient), 200e18, "recipient should receive minted tokens");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

@@ -7,7 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { AaveV3ERC4626 } from "../../src/strategies/AaveV3ERC4626.sol";
 import { MockGardenAccessControl } from "../../src/mocks/GardenAccessControl.sol";
-import { ZeroAddress, UnauthorizedCaller } from "../../src/errors/CommonErrors.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../../src/CommonErrors.sol";
 import {
     MockOctantFactory,
     MockOctantVault,

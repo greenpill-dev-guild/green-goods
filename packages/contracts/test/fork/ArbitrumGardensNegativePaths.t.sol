@@ -3,10 +3,11 @@ pragma solidity ^0.8.25;
 
 import { ForkTestBase } from "./helpers/ForkTestBase.sol";
 import { GardensModule } from "../../src/modules/Gardens.sol";
+import { HatsModule } from "../../src/modules/Hats.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { GardensV2Addresses } from "./helpers/GardensV2Addresses.sol";
-import { NotGardenOperator } from "../../src/errors/CommonErrors.sol";
+import { NotGardenOperator } from "../../src/CommonErrors.sol";
 
 /// @title ArbitrumGardensNegativePathsForkTest
 /// @notice Fork tests for GardensModule negative/error paths against Arbitrum mainnet.
@@ -65,7 +66,7 @@ contract ArbitrumGardensNegativePathsForkTest is ForkTestBase {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice createGardenPools requires operator role. A non-member calling it should revert.
-    ///         Uses real HatsModule role checks instead of a mock that always returns false.
+    ///         Uses real HatsModule role checks.
     function testForkArbitrum_gardens_poolCreation_nonOperatorReverts() public {
         if (!_tryChainFork("arbitrum")) {
             return;
@@ -90,8 +91,8 @@ contract ArbitrumGardensNegativePathsForkTest is ForkTestBase {
     // Test 3: Uninitialized Garden Reverts on Pool Creation
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice createGardenPools on an uninitialized garden address should revert.
-    ///         Even an operator cannot create pools for a non-existent garden.
+    /// @notice createGardenPools on an unconfigured garden address should revert.
+    ///         The real role check fails before pool creation because the fake garden has no Hats wiring.
     function testForkArbitrum_gardens_uninitializedGarden_reverts() public {
         if (!_tryChainFork("arbitrum")) {
             return;
@@ -106,9 +107,9 @@ contract ArbitrumGardensNegativePathsForkTest is ForkTestBase {
         // Use a different, non-existent garden address
         address fakeGarden = makeAddr("fakeGarden");
 
-        // forkOperator has the role for `garden`, but `fakeGarden` is not initialized
+        // forkOperator has the role for `garden`, but `fakeGarden` is not configured in Hats
         vm.prank(forkOperator);
-        vm.expectRevert(abi.encodeWithSelector(GardensModule.GardenNotInitialized.selector, fakeGarden));
+        vm.expectRevert(abi.encodeWithSelector(HatsModule.GardenNotConfigured.selector, fakeGarden));
         gardensModule.createGardenPools(fakeGarden);
     }
 }

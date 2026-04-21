@@ -6,7 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
-import { ZeroAddress, UnauthorizedCaller } from "../../src/errors/CommonErrors.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../../src/CommonErrors.sol";
 import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
 import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
 import { MockHypercertExchange } from "../../src/mocks/HypercertExchange.sol";

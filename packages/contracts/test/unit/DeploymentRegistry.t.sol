@@ -63,7 +63,7 @@ contract DeploymentTest is Test {
             octantFactory: address(0), // Optional
             unlockFactory: address(0), // Optional
             hypercerts: address(0), // Optional
-            greenWillRegistry: address(0) // Optional
+            greenWill: address(0) // Optional
          });
     }
 
@@ -273,8 +273,8 @@ contract DeploymentTest is Test {
         assertEq(registry.getHypercerts(), address(0xA4), "Hypercerts should be updated");
 
         // Update greenwill registry
-        registry.updateGreenWillRegistry(address(0xA5));
-        assertEq(registry.getGreenWillRegistry(), address(0xA5), "GreenWill registry should be updated");
+        registry.updateGreenWill(address(0xA5));
+        assertEq(registry.getGreenWill(), address(0xA5), "GreenWill should be updated");
     }
 
     function testNetworkNotConfiguredError() public {

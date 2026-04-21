@@ -9,7 +9,7 @@ import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IHatsModuleFactory } from "../../src/interfaces/IHatsModuleFactory.sol";
 import { ICVSyncPowerFacet } from "../../src/interfaces/ICVSyncPowerFacet.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
-import { ZeroAddress, ArrayLengthMismatch } from "../../src/errors/CommonErrors.sol";
+import { ZeroAddress, ArrayLengthMismatch } from "../../src/CommonErrors.sol";
 
 /// @notice Mock conviction strategy that records syncPower calls
 contract MockConvictionStrategy is ICVSyncPowerFacet {

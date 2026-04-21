@@ -11,8 +11,7 @@ import { IHats } from "../../src/interfaces/IHats.sol";
 /// @title ArbitrumGardensModuleForkTest
 /// @notice Fork tests for GardensModule against Arbitrum mainnet using real
 ///         HatsModule, Hats Protocol, and full protocol stack via ForkTestBase.
-/// @dev Replaces mock-based tests with real contract interactions. Uses
-///      _deployFullStackOnFork() for production-equivalent wiring and
+/// @dev Uses _deployFullStackOnFork() for production-equivalent wiring and
 ///      _configureRealGardensV2() for Gardens V2 addresses.
 contract ArbitrumGardensModuleForkTest is ForkTestBase {
     // ═══════════════════════════════════════════════════════════════════════════

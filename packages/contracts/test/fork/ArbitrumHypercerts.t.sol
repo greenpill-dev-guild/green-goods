@@ -7,6 +7,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
 import { HypercertsModule } from "../../src/modules/Hypercerts.sol";
 import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title ArbitrumHypercertsForkTest
 /// @notice Fork tests verifying HypercertMarketplaceAdapter against real HypercertExchange on Arbitrum.
@@ -30,6 +31,9 @@ contract ArbitrumHypercertsForkTest is Test {
     /// @notice Real WETH on Arbitrum
     address internal constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
+    /// @notice Live WETH holder verified on the pinned Arbitrum fork.
+    address internal constant WETH_HOLDER = 0x15c6eBD4175ffF9EE3c2615c556fCf62D2d9499c;
+
     HypercertMarketplaceAdapter public adapter;
     HypercertsModule public hypercertsModule;
 
@@ -42,18 +46,27 @@ contract ArbitrumHypercertsForkTest is Test {
 
     function _tryFork() internal returns (bool) {
         string memory rpc;
-        try vm.envString("ARBITRUM_RPC_URL") returns (string memory value) {
+        try vm.envString("ARBITRUM_FORK_RPC_URL") returns (string memory value) {
             rpc = value;
         } catch {
-            try vm.envString("ARBITRUM_RPC") returns (string memory fallback_) {
-                rpc = fallback_;
+            try vm.envString("ARBITRUM_RPC_URL") returns (string memory configuredRpc) {
+                rpc = configuredRpc;
             } catch {
-                return false;
+                try vm.envString("ARBITRUM_RPC") returns (string memory legacyRpc) {
+                    rpc = legacyRpc;
+                } catch {
+                    return false;
+                }
             }
         }
         if (bytes(rpc).length == 0) return false;
 
-        uint256 forkId = vm.createFork(rpc);
+        uint256 forkBlock;
+        try vm.envUint("ARBITRUM_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            forkBlock = value;
+        } catch { }
+
+        uint256 forkId = forkBlock == 0 ? vm.createFork(rpc) : vm.createFork(rpc, forkBlock);
         vm.selectFork(forkId);
         return true;
     }
@@ -70,6 +83,12 @@ contract ArbitrumHypercertsForkTest is Test {
         );
         ERC1967Proxy proxy = new ERC1967Proxy(address(impl), initData);
         adapter = HypercertMarketplaceAdapter(address(proxy));
+    }
+
+    function _fundBuyerWithLiveWeth(address buyer, uint256 amount) internal {
+        assertGe(IERC20(WETH).balanceOf(WETH_HOLDER), amount, "live WETH holder should fund buyer");
+        vm.prank(WETH_HOLDER);
+        assertTrue(IERC20(WETH).transfer(buyer, amount), "live WETH transfer should succeed");
     }
 
     /// @notice Build a test MakerAsk order with configurable parameters
@@ -342,16 +361,20 @@ contract ArbitrumHypercertsForkTest is Test {
 
         adapter.registerOrder(makerAsk, dummySignature, hypercertId);
 
-        // Fund buyer with WETH and approve adapter
+        // Fund buyer with live WETH and approve adapter
         address buyer = makeAddr("buyer");
-        deal(WETH, buyer, 1 ether);
+        _fundBuyerWithLiveWeth(buyer, 1 ether);
         vm.prank(buyer);
         (bool success,) = WETH.call(abi.encodeWithSignature("approve(address,uint256)", address(adapter), 1 ether));
         assertTrue(success, "WETH approve should succeed");
 
-        // buyFraction should revert with ExchangeExecutionFailed (real exchange rejects dummy signature)
+        // buyFraction should revert with ExchangeExecutionFailed wrapping the current
+        // live exchange invalid-signature selector.
         vm.prank(buyer);
-        vm.expectRevert(HypercertMarketplaceAdapter.ExchangeExecutionFailed.selector);
+        bytes memory exchangeReason = abi.encodeWithSelector(bytes4(0xf05a20c7));
+        vm.expectRevert(
+            abi.encodeWithSelector(HypercertMarketplaceAdapter.ExchangeExecutionFailed.selector, exchangeReason)
+        );
         adapter.buyFraction(hypercertId, pricePerUnit, WETH, buyer);
     }
 

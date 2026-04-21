@@ -11,16 +11,24 @@ import {
     NotAuthorizedCaller,
     NotProtocolMember
 } from "../../src/registries/ENS.sol";
-import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
+import { GreenGoodsENSReceiver } from "../../src/registries/ENSReceiver.sol";
+import { LocalCCIPRouter } from "../../src/registries/LocalCCIPRouter.sol";
+import { ForkTestEligibilityToggle } from "./helpers/ForkTestBase.sol";
 
 /// @title SepoliaENSForkTest
-/// @notice Fork tests for GreenGoodsENS against real CCIP Router and Hats Protocol on Sepolia.
+/// @notice Fork tests for GreenGoodsENS against real Hats Protocol on Sepolia and the same-chain relay used by deployment.
 contract SepoliaENSForkTest is Test {
     address internal constant HATS_PROTOCOL = 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137;
-    address internal constant CCIP_ROUTER = 0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59;
+    address internal constant ENS_REGISTRY = 0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e;
+    address internal constant ENS_RESOLVER = 0x8FADE66B79cC9f707aB26799354482EB93a5B7dD;
     uint64 internal constant SEPOLIA_CHAIN_SELECTOR = 16_015_286_601_757_825_753;
+    bytes32 internal constant BASE_NODE = 0x15ee556e39afd119101712c5ac4f1519d9f2f32780d4e1cf42b27fdfa73db841;
 
     GreenGoodsENS public ens;
+    GreenGoodsENSReceiver public receiver;
+    LocalCCIPRouter public localRouter;
+    ForkTestEligibilityToggle public eligibilityToggle;
+    address public ccipRouter;
 
     address public owner;
     address public l1Receiver;
@@ -32,66 +40,94 @@ contract SepoliaENSForkTest is Test {
 
     function _tryFork() internal returns (bool) {
         string memory rpc;
-        try vm.envString("SEPOLIA_RPC_URL") returns (string memory value) {
+        try vm.envString("SEPOLIA_FORK_RPC_URL") returns (string memory value) {
             rpc = value;
         } catch {
-            try vm.envString("SEPOLIA_RPC") returns (string memory fallback_) {
-                rpc = fallback_;
+            try vm.envString("SEPOLIA_FORK_RPC") returns (string memory forkRpc) {
+                rpc = forkRpc;
             } catch {
-                return false;
+                try vm.envString("SEPOLIA_RPC_URL") returns (string memory rpcUrl) {
+                    rpc = rpcUrl;
+                } catch {
+                    try vm.envString("SEPOLIA_RPC") returns (string memory legacyRpc) {
+                        rpc = legacyRpc;
+                    } catch {
+                        return false;
+                    }
+                }
             }
         }
         if (bytes(rpc).length == 0) return false;
 
-        vm.createSelectFork(rpc);
+        uint256 forkBlock;
+        try vm.envUint("SEPOLIA_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            forkBlock = value;
+        } catch {
+            try vm.envUint("SEPOLIA_BLOCK_NUMBER") returns (uint256 legacyBlock) {
+                forkBlock = legacyBlock;
+            } catch { }
+        }
+
+        if (forkBlock == 0) {
+            vm.createSelectFork(rpc);
+        } else {
+            vm.createSelectFork(rpc, forkBlock);
+        }
         return true;
     }
 
     function _deployENSOnFork() internal {
         owner = address(this);
-        l1Receiver = makeAddr("l1Receiver");
         gardenToken = makeAddr("gardenToken");
         member = makeAddr("member");
         nonMember = makeAddr("nonMember");
+        localRouter = new LocalCCIPRouter(SEPOLIA_CHAIN_SELECTOR);
+        ccipRouter = address(localRouter);
+        eligibilityToggle = new ForkTestEligibilityToggle(owner);
 
         (bool ok, bytes memory data) =
             HATS_PROTOCOL.call(abi.encodeWithSignature("mintTopHat(address,string,string)", owner, "ENS Test", ""));
         require(ok, "mintTopHat failed");
         uint256 topHat = abi.decode(data, (uint256));
 
+        address module = address(eligibilityToggle);
         (ok, data) = HATS_PROTOCOL.call(
             abi.encodeWithSignature(
                 "createHat(uint256,string,uint32,address,address,bool,string)",
                 topHat,
                 "Protocol Members",
                 uint32(100),
-                address(0xdead),
-                address(0xdead),
+                module,
+                module,
                 true,
                 ""
             )
         );
         require(ok, "createHat failed");
         protocolHatId = abi.decode(data, (uint256));
+        eligibilityToggle.setHatActive(protocolHatId, true);
+        eligibilityToggle.setWearerStatus(protocolHatId, member, true, true);
 
         (ok,) = HATS_PROTOCOL.call(abi.encodeWithSignature("mintHat(uint256,address)", protocolHatId, member));
         require(ok, "mintHat failed");
 
-        ens = new GreenGoodsENS(CCIP_ROUTER, SEPOLIA_CHAIN_SELECTOR, l1Receiver, HATS_PROTOCOL, protocolHatId, owner);
-        ens.setAuthorizedCaller(gardenToken, true);
-    }
-
-    function _mockCcipSend() internal {
-        vm.mockCall(
-            CCIP_ROUTER, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-message-id"))
+        receiver = new GreenGoodsENSReceiver(
+            ccipRouter, SEPOLIA_CHAIN_SELECTOR, address(0), ENS_REGISTRY, ENS_RESOLVER, BASE_NODE, owner, address(0)
         );
+        l1Receiver = address(receiver);
+
+        ens = new GreenGoodsENS(ccipRouter, SEPOLIA_CHAIN_SELECTOR, l1Receiver, HATS_PROTOCOL, protocolHatId, owner);
+        receiver.setL2Sender(address(ens));
+        ens.setAuthorizedCaller(gardenToken, true);
     }
 
     function test_forkDeploy_ccipRouterIsDeployed() public {
         if (!_tryFork()) {
             return;
         }
-        assertGt(CCIP_ROUTER.code.length, 0, "CCIP Router should be deployed on Sepolia");
+
+        _deployENSOnFork();
+        assertGt(ccipRouter.code.length, 0, "Local CCIP router should be deployed for Sepolia");
     }
 
     function test_forkDeploy_hatsProtocolIsDeployed() public {
@@ -108,7 +144,7 @@ contract SepoliaENSForkTest is Test {
 
         _deployENSOnFork();
 
-        assertEq(address(ens.CCIP_ROUTER()), CCIP_ROUTER);
+        assertEq(address(ens.CCIP_ROUTER()), ccipRouter);
         assertEq(ens.ETHEREUM_CHAIN_SELECTOR(), SEPOLIA_CHAIN_SELECTOR);
         assertEq(address(ens.HATS()), HATS_PROTOCOL);
         assertEq(ens.protocolHatId(), protocolHatId);
@@ -117,7 +153,7 @@ contract SepoliaENSForkTest is Test {
         assertTrue(ens.authorizedCallers(gardenToken));
     }
 
-    function test_forkDeploy_feeEstimationReturnsNonZero() public {
+    function test_forkDeploy_feeEstimationUsesZeroCostLocalRelay() public {
         if (!_tryFork()) {
             return;
         }
@@ -125,7 +161,7 @@ contract SepoliaENSForkTest is Test {
         _deployENSOnFork();
 
         uint256 fee = ens.getRegistrationFee("test-garden", member, GreenGoodsENS.NameType.Gardener);
-        assertGt(fee, 0, "CCIP fee should be non-zero from real router");
+        assertEq(fee, 0, "Sepolia local relay should return zero registration fee");
     }
 
     function test_forkSlug_validSlugCachesCorrectly() public {
@@ -134,7 +170,6 @@ contract SepoliaENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         string memory slug = "sepolia-garden";
         address gardenAccount = makeAddr("gardenAccount");
@@ -155,9 +190,8 @@ contract SepoliaENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
-        uint256 fee = 0.1 ether;
+        uint256 fee = 0;
 
         vm.prank(gardenToken);
         vm.expectRevert(InvalidSlug.selector);
@@ -178,7 +212,6 @@ contract SepoliaENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         string memory slug = "unique-garden";
         uint256 fee = ens.getRegistrationFee(slug, makeAddr("g1"), GreenGoodsENS.NameType.Garden);
@@ -197,7 +230,6 @@ contract SepoliaENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         address sameOwner = makeAddr("sameOwner");
         string memory slug1 = "first-name";
@@ -220,7 +252,6 @@ contract SepoliaENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         address unauthorized = makeAddr("unauthorized");
         vm.deal(unauthorized, 1 ether);
@@ -236,7 +267,6 @@ contract SepoliaENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         vm.deal(nonMember, 1 ether);
         vm.prank(nonMember);
@@ -252,6 +282,6 @@ contract SepoliaENSForkTest is Test {
         _deployENSOnFork();
 
         uint256 fee = ens.getReleaseFee("test-slug");
-        assertGt(fee, 0, "CCIP release fee should be non-zero from real router");
+        assertEq(fee, 0, "Sepolia local relay should return zero release fee");
     }
 }

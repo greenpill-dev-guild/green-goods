@@ -8,7 +8,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
 import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
 import { MockHypercertExchange, MockHypercertMinter } from "../../src/mocks/HypercertExchange.sol";
-import { ArrayLengthMismatch } from "../../src/errors/CommonErrors.sol";
+import { ArrayLengthMismatch } from "../../src/CommonErrors.sol";
 
 /// @title MockWETH for adapter testing
 contract MockWETH is ERC20 {

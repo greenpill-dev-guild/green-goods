@@ -101,7 +101,7 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
                 recipient: garden,
                 expirationTime: 0,
                 revocable: false,
-                refUID: fakeWorkUID,
+                refUID: bytes32(0),
                 data: abi.encode(
                     approval.actionUID,
                     approval.workUID,
@@ -242,13 +242,13 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
         }
 
         // First registration should succeed (via authorized caller)
-        address mockGarden1 = makeAddr("garden1");
-        greenGoodsENS.registerGarden{ value: 1 ether }("test-garden-slug", mockGarden1);
+        address gardenOne = makeAddr("garden1");
+        greenGoodsENS.registerGarden{ value: 1 ether }("test-garden-slug", gardenOne);
 
         // Second registration with the same slug should revert with NameTaken
-        address mockGarden2 = makeAddr("garden2");
+        address gardenTwo = makeAddr("garden2");
         vm.expectRevert(NameTaken.selector);
-        greenGoodsENS.registerGarden{ value: 1 ether }("test-garden-slug", mockGarden2);
+        greenGoodsENS.registerGarden{ value: 1 ether }("test-garden-slug", gardenTwo);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -269,6 +269,7 @@ contract SepoliaNegativePathsForkTest is ForkTestBase {
         }
 
         // forkNonMember does not wear the protocol hat — should revert
+        vm.deal(forkNonMember, 1 ether);
         vm.prank(forkNonMember);
         vm.expectRevert(NotProtocolMember.selector);
         greenGoodsENS.claimName{ value: 1 ether }("non-member-slug");

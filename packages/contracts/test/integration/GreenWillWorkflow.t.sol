@@ -6,16 +6,12 @@ import { Test } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Attestation } from "@eas/IEAS.sol";
 
-import { GreenWillRegistry } from "../../src/registries/GreenWillRegistry.sol";
-import { GreenWillUnlockModule } from "../../src/modules/GreenWillUnlockModule.sol";
-import { GreenWillSupportRouter } from "../../src/modules/GreenWillSupportRouter.sol";
-import { GenesisHatValidator } from "../../src/validators/GenesisHatValidator.sol";
-import { WorkAttestationValidator } from "../../src/validators/WorkAttestationValidator.sol";
+import { GreenWill } from "../../src/registries/GreenWill.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
 import { MockOctantVault } from "../../src/mocks/Octant.sol";
-import { MockPublicLock, MockUnlockFactory } from "../../src/mocks/Unlock.sol";
+import { MockPublicLock } from "../../src/mocks/Unlock.sol";
 
 contract GreenWillWorkflowVaultResolver {
     mapping(address garden => mapping(address asset => address vault)) internal vaults;
@@ -30,13 +26,9 @@ contract GreenWillWorkflowVaultResolver {
 }
 
 contract GreenWillWorkflowTest is Test {
-    GreenWillRegistry internal registry;
-    GreenWillUnlockModule internal unlockModule;
-    GreenWillSupportRouter internal supportRouter;
+    GreenWill internal greenWill;
 
     GreenWillWorkflowVaultResolver internal vaultResolver;
-    GenesisHatValidator internal genesisValidator;
-    WorkAttestationValidator internal workValidator;
     MockERC20 internal asset;
     MockEAS internal eas;
     MockHats internal hats;
@@ -44,7 +36,6 @@ contract GreenWillWorkflowTest is Test {
     MockPublicLock internal genesisLock;
     MockPublicLock internal firstWorkLock;
     MockPublicLock internal firstSupportLock;
-    MockUnlockFactory internal unlockFactory;
 
     bytes32 internal constant GENESIS_BADGE = keccak256("GENESIS");
     bytes32 internal constant FIRST_WORK_BADGE = keccak256("FIRST_WORK");
@@ -63,7 +54,6 @@ contract GreenWillWorkflowTest is Test {
 
         eas = new MockEAS();
         asset = new MockERC20();
-        unlockFactory = new MockUnlockFactory();
         vaultResolver = new GreenWillWorkflowVaultResolver();
 
         vault = new MockOctantVault(address(asset), "GreenWill Support Vault", "gwSVLT", address(this), 0);
@@ -73,112 +63,80 @@ contract GreenWillWorkflowTest is Test {
         genesisLock = new MockPublicLock();
         firstWorkLock = new MockPublicLock();
         firstSupportLock = new MockPublicLock();
-        genesisValidator = new GenesisHatValidator(address(hats), PROTOCOL_HAT_ID);
-        workValidator = new WorkAttestationValidator(address(eas), WORK_SCHEMA_UID);
 
-        GreenWillRegistry registryImplementation = new GreenWillRegistry();
-        registry = GreenWillRegistry(
+        GreenWill implementation = new GreenWill();
+        greenWill = GreenWill(
             address(
                 new ERC1967Proxy(
-                    address(registryImplementation),
-                    abi.encodeWithSelector(GreenWillRegistry.initialize.selector, address(this))
+                    address(implementation), abi.encodeWithSelector(GreenWill.initialize.selector, address(this))
                 )
             )
         );
 
-        GreenWillUnlockModule unlockImplementation = new GreenWillUnlockModule();
-        unlockModule = GreenWillUnlockModule(
-            address(
-                new ERC1967Proxy(
-                    address(unlockImplementation),
-                    abi.encodeWithSelector(
-                        GreenWillUnlockModule.initialize.selector,
-                        address(this),
-                        address(registry),
-                        address(unlockFactory),
-                        0
-                    )
-                )
-            )
+        greenWill.configureBadgeClass(
+            GENESIS_BADGE, "genesis", "ipfs://genesis", address(hats), address(0), address(genesisLock), true, true
         );
+        greenWill.configureBadgeRule(GENESIS_BADGE, GreenWill.BadgeRule.Hat, bytes32(PROTOCOL_HAT_ID), 0);
 
-        GreenWillSupportRouter routerImplementation = new GreenWillSupportRouter();
-        supportRouter = GreenWillSupportRouter(
-            address(
-                new ERC1967Proxy(
-                    address(routerImplementation),
-                    abi.encodeWithSelector(
-                        GreenWillSupportRouter.initialize.selector,
-                        address(this),
-                        address(registry),
-                        address(vaultResolver),
-                        FIRST_SUPPORT_BADGE
-                    )
-                )
-            )
-        );
-
-        registry.setUnlockModule(address(unlockModule));
-        registry.configureBadgeClass(
-            GENESIS_BADGE,
-            "genesis",
-            "ipfs://genesis",
-            address(genesisValidator),
-            address(0),
-            address(genesisLock),
-            true,
-            true
-        );
-        registry.configureBadgeClass(
+        greenWill.configureBadgeClass(
             FIRST_WORK_BADGE,
             "first-work",
             "ipfs://first-work",
-            address(workValidator),
+            address(eas),
             address(0),
             address(firstWorkLock),
             true,
             true
         );
-        registry.configureBadgeClass(
+        greenWill.configureBadgeRule(FIRST_WORK_BADGE, GreenWill.BadgeRule.WorkAttestation, WORK_SCHEMA_UID, 0);
+
+        greenWill.configureBadgeClass(
             FIRST_SUPPORT_BADGE,
             "first-support",
             "ipfs://first-support",
+            address(vaultResolver),
             address(0),
-            address(supportRouter),
             address(firstSupportLock),
-            false,
+            true,
             true
         );
+        greenWill.configureBadgeRule(FIRST_SUPPORT_BADGE, GreenWill.BadgeRule.VaultShares, bytes32(0), 0);
     }
 
-    function test_workflow_claimGenesisClaimFirstWorkThenRouteFirstSupport() public {
+    function test_workflow_claimGenesisClaimFirstWorkThenClaimFirstSupport() public {
         vm.prank(ALICE);
-        uint256 genesisTokenId = registry.claimBadge(GENESIS_BADGE, "");
+        uint256 genesisTokenId = greenWill.claimBadge(GENESIS_BADGE, "");
 
         _setWorkAttestation(WORK_UID, WORK_SCHEMA_UID, ALICE);
 
         vm.prank(ALICE);
-        uint256 firstWorkTokenId = registry.claimBadge(FIRST_WORK_BADGE, abi.encode(WORK_UID));
+        uint256 firstWorkTokenId = greenWill.claimBadge(FIRST_WORK_BADGE, abi.encode(WORK_UID));
 
-        vm.startPrank(ALICE);
-        asset.approve(address(supportRouter), type(uint256).max);
-        uint256 shares = supportRouter.fundVault(GARDEN, address(asset), 10 ether);
-        vm.stopPrank();
+        vm.prank(ALICE);
+        uint256 shares = vault.deposit(10 ether, ALICE);
 
-        GreenWillRegistry.BadgeRecord memory genesisRecord = registry.getBadgeRecord(GENESIS_BADGE, ALICE);
-        GreenWillRegistry.BadgeRecord memory firstWorkRecord = registry.getBadgeRecord(FIRST_WORK_BADGE, ALICE);
-        GreenWillRegistry.BadgeRecord memory firstSupportRecord = registry.getBadgeRecord(FIRST_SUPPORT_BADGE, ALICE);
+        vm.prank(ALICE);
+        uint256 firstSupportTokenId = greenWill.claimBadge(FIRST_SUPPORT_BADGE, abi.encode(GARDEN, address(asset)));
+
+        GreenWill.BadgeRecord memory genesisRecord = greenWill.getBadgeRecord(GENESIS_BADGE, ALICE);
+        GreenWill.BadgeRecord memory firstWorkRecord = greenWill.getBadgeRecord(FIRST_WORK_BADGE, ALICE);
+        GreenWill.BadgeRecord memory firstSupportRecord = greenWill.getBadgeRecord(FIRST_SUPPORT_BADGE, ALICE);
 
         assertEq(genesisTokenId, 1, "genesis should mint first lock token");
         assertEq(firstWorkTokenId, 1, "first-work should mint first lock token on its lock");
-        assertEq(firstSupportRecord.unlockTokenId, 1, "first-support should mint first lock token on its lock");
-        assertTrue(registry.hasBadge(GENESIS_BADGE, ALICE), "genesis should be issued");
-        assertTrue(registry.hasBadge(FIRST_WORK_BADGE, ALICE), "first-work should be issued");
-        assertTrue(registry.hasBadge(FIRST_SUPPORT_BADGE, ALICE), "first-support should be issued");
+        assertEq(firstSupportTokenId, 1, "first-support should mint first lock token on its lock");
+        assertTrue(greenWill.hasBadge(GENESIS_BADGE, ALICE), "genesis should be issued");
+        assertTrue(greenWill.hasBadge(FIRST_WORK_BADGE, ALICE), "first-work should be issued");
+        assertTrue(greenWill.hasBadge(FIRST_SUPPORT_BADGE, ALICE), "first-support should be issued");
         assertEq(genesisRecord.sourceRef, bytes32(PROTOCOL_HAT_ID), "genesis source ref should be hat id");
         assertEq(firstWorkRecord.sourceRef, WORK_UID, "first-work source ref should be work attestation");
-        assertEq(firstSupportRecord.issuer, address(supportRouter), "support router should be issuer");
-        assertEq(shares, 10 ether, "support route should mint vault shares");
+        assertEq(firstSupportRecord.issuer, ALICE, "claimer should be issuer for self-claims");
+        assertEq(
+            firstSupportRecord.sourceRef,
+            keccak256(abi.encode(GARDEN, address(asset), address(vault))),
+            "support source ref should key the vault"
+        );
+        assertEq(shares, 10 ether, "support deposit should mint vault shares");
         assertEq(vault.balanceOf(ALICE), 10 ether, "supporter should receive vault shares");
         assertTrue(genesisLock.getHasValidKey(ALICE), "genesis lock key should be valid");
         assertTrue(firstWorkLock.getHasValidKey(ALICE), "first-work lock key should be valid");

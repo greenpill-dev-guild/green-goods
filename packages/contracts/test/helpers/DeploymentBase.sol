@@ -24,21 +24,27 @@ import { OctantModule } from "../../src/modules/Octant.sol";
 import { GardensModule } from "../../src/modules/Gardens.sol";
 import { UnifiedPowerRegistry } from "../../src/registries/Power.sol";
 import { CookieJarModule } from "../../src/modules/CookieJar.sol";
-import { MockCookieJarFactory } from "./MockCookieJarFactory.sol";
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import { HypercertsModule } from "../../src/modules/Hypercerts.sol";
 import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
 import { GreenGoodsENS } from "../../src/registries/ENS.sol";
 import { GreenGoodsENSReceiver } from "../../src/registries/ENSReceiver.sol";
-import { LocalCCIPRouter } from "../../src/mocks/CCIPRouter.sol";
+import { LocalCCIPRouter } from "../../src/registries/LocalCCIPRouter.sol";
 import { IENS } from "../../src/interfaces/IENS.sol";
 import { GoodsToken } from "../../src/tokens/Goods.sol";
 import { HatsLib } from "../../src/lib/Hats.sol";
 
 /// @notice Schema registry interface
 interface ISchemaRegistry {
+    struct SchemaRecord {
+        bytes32 uid;
+        address resolver;
+        bool revocable;
+        string schema;
+    }
+
     function register(string calldata schema, address resolverAddress, bool revocable) external returns (bytes32);
-    function getSchema(bytes32 uid) external view returns (string memory schema, address resolver, bool revocable);
+    function getSchema(bytes32 uid) external view returns (SchemaRecord memory);
 }
 
 /// @notice EAS interface for attestations
@@ -288,11 +294,10 @@ abstract contract DeploymentBase is Test, DeployHelper {
         yieldSplitter =
             YieldResolver(_deployYieldResolver(owner, address(octantModule), address(hatsModule), 7e18, salt, factory));
 
-        // 12. Deploy CookieJarModule (prefer real CookieJarFactory on forked networks)
+        // 12. Deploy CookieJarModule. Fork tests must use a real deployed CookieJarFactory.
         address cookieJarFactory = _getCookieJarFactoryForChain(block.chainid);
         if (cookieJarFactory == address(0)) {
-            MockCookieJarFactory mockJarFactory = new MockCookieJarFactory();
-            cookieJarFactory = address(mockJarFactory);
+            revert UnsupportedChain();
         }
         cookieJarModule = CookieJarModule(
             _deployCookieJarModule(
@@ -1005,7 +1010,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
             octantFactory: address(0), // Phase 3+
             unlockFactory: address(0), // Phase 3+
             hypercerts: address(0), // Phase 4+
-            greenWillRegistry: address(0) // Phase 5+
+            greenWill: address(0) // Phase 5+
          });
 
         deploymentRegistry.setNetworkConfig(block.chainid, config);
@@ -1190,7 +1195,7 @@ abstract contract DeploymentBase is Test, DeployHelper {
     /// @dev Priority:
     ///      1) COOKIE_JAR_FACTORY_ADDRESS env override
     ///      2) chain defaults sourced from sibling cookie-jar repo broadcasts
-    ///      3) address(0) => caller falls back to MockCookieJarFactory
+    ///      3) address(0) => caller must fail closed
     function _getCookieJarFactoryForChain(uint256 chainId) internal view returns (address factory) {
         try vm.envAddress("COOKIE_JAR_FACTORY_ADDRESS") returns (address envFactory) {
             if (envFactory != address(0)) return envFactory;

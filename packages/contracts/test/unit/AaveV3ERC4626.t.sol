@@ -6,7 +6,7 @@ import { Test } from "forge-std/Test.sol";
 import { AaveV3ERC4626 } from "../../src/strategies/AaveV3ERC4626.sol";
 import { MockAavePool, MockAToken, MockPoolDataProvider } from "../../src/mocks/AavePool.sol";
 import { MockERC20 } from "../../src/mocks/ERC20.sol";
-import { ZeroAddress } from "../../src/errors/CommonErrors.sol";
+import { ZeroAddress } from "../../src/CommonErrors.sol";
 
 contract AaveV3ERC4626Test is Test {
     AaveV3ERC4626 internal strategy;

@@ -11,13 +11,12 @@ import {
     NotAuthorizedCaller,
     NotProtocolMember
 } from "../../src/registries/ENS.sol";
-import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
+import { ForkTestEligibilityToggle } from "./helpers/ForkTestBase.sol";
 
 /// @title ArbitrumENSForkTest
 /// @notice Fork tests for GreenGoodsENS against real CCIP Router and Hats Protocol on Arbitrum.
 /// @dev Standalone test (like ArbitrumYieldSplitter.t.sol). Deploys GreenGoodsENS wired to the
-/// real CCIP Router and Hats Protocol. Uses vm.mockCall for ccipSend (test contract not
-/// allowlisted on real router), but getFee hits the real router for actual fee estimation.
+/// real CCIP Router and Hats Protocol.
 contract ArbitrumENSForkTest is Test {
     /// @notice Real Hats Protocol canonical address (same on all EVM chains)
     address internal constant HATS_PROTOCOL = 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137;
@@ -44,19 +43,39 @@ contract ArbitrumENSForkTest is Test {
 
     function _tryFork() internal returns (bool) {
         string memory rpc;
-        try vm.envString("ARBITRUM_RPC_URL") returns (string memory value) {
+        try vm.envString("ARBITRUM_FORK_RPC_URL") returns (string memory value) {
             rpc = value;
         } catch {
-            try vm.envString("ARBITRUM_RPC") returns (string memory fallback_) {
-                rpc = fallback_;
+            try vm.envString("ARBITRUM_FORK_RPC") returns (string memory forkRpc) {
+                rpc = forkRpc;
             } catch {
-                return false;
+                try vm.envString("ARBITRUM_RPC_URL") returns (string memory primaryRpc) {
+                    rpc = primaryRpc;
+                } catch {
+                    try vm.envString("ARBITRUM_RPC") returns (string memory legacyRpc) {
+                        rpc = legacyRpc;
+                    } catch {
+                        return false;
+                    }
+                }
             }
         }
         if (bytes(rpc).length == 0) return false;
 
-        uint256 forkId = vm.createFork(rpc);
-        vm.selectFork(forkId);
+        uint256 forkBlock;
+        try vm.envUint("ARBITRUM_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            forkBlock = value;
+        } catch {
+            try vm.envUint("ARBITRUM_BLOCK_NUMBER") returns (uint256 legacyBlock) {
+                forkBlock = legacyBlock;
+            } catch { }
+        }
+
+        if (forkBlock == 0) {
+            vm.createSelectFork(rpc);
+        } else {
+            vm.createSelectFork(rpc, forkBlock);
+        }
         return true;
     }
 
@@ -64,7 +83,7 @@ contract ArbitrumENSForkTest is Test {
     // Deployment Helper
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Deploy GreenGoodsENS with real CCIP Router and a mock hat setup
+    /// @notice Deploy GreenGoodsENS with real CCIP Router and a test-owned Hats tree.
     function _deployENSOnFork() internal {
         owner = address(this);
         l1Receiver = makeAddr("l1Receiver");
@@ -79,6 +98,9 @@ contract ArbitrumENSForkTest is Test {
         require(ok, "mintTopHat failed");
         uint256 topHat = abi.decode(data, (uint256));
 
+        ForkTestEligibilityToggle hatsEligibilityToggle = new ForkTestEligibilityToggle(owner);
+        address module = address(hatsEligibilityToggle);
+
         // Create a child hat under top hat for protocol members
         (ok, data) = HATS_PROTOCOL.call(
             abi.encodeWithSignature(
@@ -86,14 +108,17 @@ contract ArbitrumENSForkTest is Test {
                 topHat,
                 "Protocol Members",
                 uint32(100),
-                address(0xdead), // permissive eligibility
-                address(0xdead), // permissive toggle
+                module,
+                module,
                 true,
                 ""
             )
         );
         require(ok, "createHat failed");
         protocolHatId = abi.decode(data, (uint256));
+
+        hatsEligibilityToggle.setHatActive(protocolHatId, true);
+        hatsEligibilityToggle.setWearerStatus(protocolHatId, member, true, true);
 
         // Mint hat to member
         (ok,) = HATS_PROTOCOL.call(abi.encodeWithSignature("mintHat(uint256,address)", protocolHatId, member));
@@ -104,14 +129,6 @@ contract ArbitrumENSForkTest is Test {
 
         // Authorize gardenToken as caller
         ens.setAuthorizedCaller(gardenToken, true);
-    }
-
-    /// @notice Mock ccipSend on the real router (test contract not allowlisted)
-    /// @dev getFee is NOT mocked — it hits the real router for actual fee estimation
-    function _mockCcipSend() internal {
-        vm.mockCall(
-            CCIP_ROUTER, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-message-id"))
-        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -178,20 +195,20 @@ contract ArbitrumENSForkTest is Test {
     // Test 5: Valid Slug Caches Correctly
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Register garden slug (mock ccipSend), verify L2 cache state
+    /// @notice Register garden slug through the live router and verify L2 cache state.
     function test_forkSlug_validSlugCachesCorrectly() public {
         if (!_tryFork()) {
             return;
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         string memory slug = "miyawaki-park";
         address gardenAccount = makeAddr("gardenAccount");
 
         // Get fee estimate from real router, then register with sufficient value
         uint256 fee = ens.getRegistrationFee(slug, gardenAccount, GreenGoodsENS.NameType.Garden);
+        vm.deal(gardenToken, fee);
 
         vm.prank(gardenToken);
         ens.registerGarden{ value: fee }(slug, gardenAccount);
@@ -214,7 +231,6 @@ contract ArbitrumENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         uint256 fee = 0.1 ether;
         vm.deal(gardenToken, 1 ether);
@@ -255,10 +271,10 @@ contract ArbitrumENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         string memory slug = "unique-garden";
         uint256 fee = ens.getRegistrationFee(slug, makeAddr("g1"), GreenGoodsENS.NameType.Garden);
+        vm.deal(gardenToken, fee * 2);
 
         // First registration succeeds
         vm.prank(gardenToken);
@@ -280,12 +296,12 @@ contract ArbitrumENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         address sameOwner = makeAddr("sameOwner");
 
         string memory slug1 = "first-name";
         uint256 fee1 = ens.getRegistrationFee(slug1, sameOwner, GreenGoodsENS.NameType.Garden);
+        vm.deal(gardenToken, fee1);
 
         vm.prank(gardenToken);
         ens.registerGarden{ value: fee1 }(slug1, sameOwner);
@@ -293,6 +309,7 @@ contract ArbitrumENSForkTest is Test {
         // Second name for same owner should revert
         string memory slug2 = "second-name";
         uint256 fee2 = ens.getRegistrationFee(slug2, sameOwner, GreenGoodsENS.NameType.Garden);
+        vm.deal(gardenToken, fee2);
 
         vm.prank(gardenToken);
         vm.expectRevert(AlreadyHasName.selector);
@@ -309,7 +326,6 @@ contract ArbitrumENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         address unauthorized = makeAddr("unauthorized");
         vm.deal(unauthorized, 1 ether);
@@ -330,7 +346,6 @@ contract ArbitrumENSForkTest is Test {
         }
 
         _deployENSOnFork();
-        _mockCcipSend();
 
         vm.deal(nonMember, 1 ether);
 

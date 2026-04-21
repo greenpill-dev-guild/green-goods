@@ -8,7 +8,7 @@ import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import { OctantModule } from "../../src/modules/Octant.sol";
 import { HypercertsModule } from "../../src/modules/Hypercerts.sol";
 import { NotProtocolMember } from "../../src/registries/ENS.sol";
-import { UnauthorizedCaller } from "../../src/errors/CommonErrors.sol";
+import { UnauthorizedCaller } from "../../src/CommonErrors.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 /// @title ArbitrumNegativePathsForkTest
@@ -117,7 +117,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
         // forkNonMember is not an operator — mintAndRegister should revert
         vm.prank(forkNonMember);
         vm.expectRevert(abi.encodeWithSelector(HypercertsModule.Unauthorized.selector, forkNonMember));
-        hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://QmTest");
+        hypercertsModule.createAllowlistAndRegister(garden, 1 << 128, 1000, bytes32(uint256(1)), "ipfs://QmTest");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -141,7 +141,7 @@ contract ArbitrumNegativePathsForkTest is ForkTestBase {
         // Even operator cannot mint when paused
         vm.prank(forkOperator);
         vm.expectRevert(HypercertsModule.NotActive.selector);
-        hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://QmPausedTest");
+        hypercertsModule.createAllowlistAndRegister(garden, 1 << 128, 1000, bytes32(uint256(1)), "ipfs://QmPausedTest");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

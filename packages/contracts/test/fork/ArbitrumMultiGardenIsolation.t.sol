@@ -2,11 +2,10 @@
 pragma solidity ^0.8.25;
 
 import { ForkTestBase } from "./helpers/ForkTestBase.sol";
-import { ActionRegistry } from "../../src/registries/Action.sol";
+import { ActionRegistry, Capital, Domain } from "../../src/registries/Action.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { GreenGoodsENS, NameTaken } from "../../src/registries/ENS.sol";
-import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 
 /// @title ArbitrumMultiGardenIsolationForkTest
 /// @notice Fork tests verifying isolation between 3 gardens deployed on a single Arbitrum fork.
@@ -27,6 +26,8 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
     address internal alphaOperator;
     address internal betaOperator;
     address internal gammaOperator;
+
+    uint256 private nextExpectedActionUID;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Setup
@@ -52,11 +53,30 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
         _grantGardenRole(gardenBeta, betaOperator, IHatsModule.GardenRole.Operator);
         _grantGardenRole(gardenGamma, gammaOperator, IHatsModule.GardenRole.Operator);
 
-        // Register 2 actions (global, not per-garden)
-        actionAlpha = _registerTestAction();
-        actionBeta = _registerTestAction();
+        // Register 2 actions (global, not per-garden) with domains matching
+        // the target gardens so resolver isolation tests reach role checks.
+        actionAlpha = _registerActionForDomain(Domain.SOLAR, "solar.alpha");
+        actionBeta = _registerActionForDomain(Domain.AGRO, "agro.beta");
 
         return true;
+    }
+
+    function _registerActionForDomain(Domain domain, string memory slug) internal returns (uint256 actionUID) {
+        actionUID = nextExpectedActionUID++;
+
+        Capital[] memory capitals = new Capital[](1);
+        capitals[0] = Capital.LIVING;
+
+        actionRegistry.registerAction(
+            block.timestamp,
+            block.timestamp + 90 days,
+            "Isolation Action",
+            slug,
+            "ipfs://QmIsolationInstructions",
+            capitals,
+            new string[](0),
+            domain
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -219,22 +239,21 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
             return;
         }
 
-        // Mock ccipSend (test contract not allowlisted on real router)
-        address ccipRouter = address(greenGoodsENS.CCIP_ROUTER());
-        vm.mockCall(ccipRouter, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-msg")));
-
         // Register slug for Alpha
         string memory alphaSlug = "alpha-garden";
-        uint256 fee = greenGoodsENS.getRegistrationFee(alphaSlug, gardenAlpha, GreenGoodsENS.NameType.Garden);
-        vm.deal(address(gardenToken), fee * 3);
+        uint256 alphaFee = greenGoodsENS.getRegistrationFee(alphaSlug, gardenAlpha, GreenGoodsENS.NameType.Garden);
+        vm.deal(address(gardenToken), alphaFee);
 
         vm.prank(address(gardenToken));
-        greenGoodsENS.registerGarden{ value: fee }(alphaSlug, gardenAlpha);
+        greenGoodsENS.registerGarden{ value: alphaFee }(alphaSlug, gardenAlpha);
 
         // Register different slug for Beta — should succeed
         string memory betaSlug = "beta-garden";
+        uint256 betaFee = greenGoodsENS.getRegistrationFee(betaSlug, gardenBeta, GreenGoodsENS.NameType.Garden);
+        vm.deal(address(gardenToken), alphaFee + betaFee);
+
         vm.prank(address(gardenToken));
-        greenGoodsENS.registerGarden{ value: fee }(betaSlug, gardenBeta);
+        greenGoodsENS.registerGarden{ value: betaFee }(betaSlug, gardenBeta);
 
         // Verify both registered
         assertFalse(greenGoodsENS.available(alphaSlug), "alphaSlug should be taken");
@@ -248,7 +267,7 @@ contract ArbitrumMultiGardenIsolationForkTest is ForkTestBase {
         // Attempt duplicate slug for Gamma — should revert with NameTaken
         vm.prank(address(gardenToken));
         vm.expectRevert(NameTaken.selector);
-        greenGoodsENS.registerGarden{ value: fee }(alphaSlug, gardenGamma);
+        greenGoodsENS.registerGarden{ value: alphaFee }(alphaSlug, gardenGamma);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

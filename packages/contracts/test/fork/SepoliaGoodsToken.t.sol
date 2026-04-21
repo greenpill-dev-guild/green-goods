@@ -71,21 +71,22 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
     // Test 3: Only Owner Can Mint
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Non-owner mint reverts with OwnableUnauthorizedAccount
+    /// @notice Non-owner mint reverts with the token's Ownable guard.
     function test_fork_sepolia_goodsToken_onlyOwnerCanMint() public {
         if (!_tryChainFork("sepolia")) {
             return;
         }
 
         GoodsToken token = _deployStandaloneGoodsToken(0, 1_000_000e18);
+        address recipient = makeAddr("standaloneGoodsRecipient");
 
         // Owner (address(this)) can mint
-        token.mint(forkGardener, 100e18);
-        assertEq(token.balanceOf(forkGardener), 100e18, "owner mint should succeed");
+        token.mint(recipient, 100e18);
+        assertEq(token.balanceOf(recipient), 100e18, "owner mint should succeed");
 
         // Non-owner should revert
         vm.prank(forkNonMember);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", forkNonMember));
+        vm.expectRevert("Ownable: caller is not the owner");
         token.mint(forkNonMember, 100e18);
     }
 
@@ -101,6 +102,7 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
 
         uint256 maxSup = 500e18;
         GoodsToken token = _deployStandaloneGoodsToken(maxSup, maxSup);
+        address recipient = makeAddr("standaloneGoodsRecipient");
 
         // At max supply - can't mint
         assertEq(token.totalSupply(), maxSup, "should be at max");
@@ -111,9 +113,9 @@ contract SepoliaGoodsTokenForkTest is ForkTestBase {
         assertEq(token.balanceOf(address(this)), 300e18, "holder balance should decrease");
 
         // Now can mint 200 more (freed capacity)
-        token.mint(forkGardener, 200e18);
+        token.mint(recipient, 200e18);
         assertEq(token.totalSupply(), maxSup, "should be back at max after re-mint");
-        assertEq(token.balanceOf(forkGardener), 200e18, "gardener should receive minted tokens");
+        assertEq(token.balanceOf(recipient), 200e18, "recipient should receive minted tokens");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

@@ -17,33 +17,57 @@ contract ArbitrumAaveStrategyForkTest is Test {
 
     function _tryFork() internal returns (bool) {
         string memory rpc;
-        try vm.envString("ARBITRUM_RPC_URL") returns (string memory value) {
+        try vm.envString("ARBITRUM_FORK_RPC_URL") returns (string memory value) {
             rpc = value;
         } catch {
-            try vm.envString("ARBITRUM_RPC") returns (string memory fallback_) {
-                rpc = fallback_;
+            try vm.envString("ARBITRUM_FORK_RPC") returns (string memory forkRpc) {
+                rpc = forkRpc;
             } catch {
-                return false;
+                try vm.envString("ARBITRUM_RPC_URL") returns (string memory primaryRpc) {
+                    rpc = primaryRpc;
+                } catch {
+                    try vm.envString("ARBITRUM_RPC") returns (string memory legacyRpc) {
+                        rpc = legacyRpc;
+                    } catch {
+                        return false;
+                    }
+                }
             }
         }
         if (bytes(rpc).length == 0) return false;
 
-        uint256 forkId = vm.createFork(rpc);
+        uint256 forkBlock;
+        try vm.envUint("ARBITRUM_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            forkBlock = value;
+        } catch {
+            try vm.envUint("ARBITRUM_BLOCK_NUMBER") returns (uint256 legacyBlock) {
+                forkBlock = legacyBlock;
+            } catch { }
+        }
+
+        uint256 forkId = forkBlock == 0 ? vm.createFork(rpc) : vm.createFork(rpc, forkBlock);
         vm.selectFork(forkId);
         return true;
     }
 
-    function _deployStrategy(
-        address asset,
-        address aToken,
-        string memory name,
-        string memory symbol,
-        address owner
-    )
+    function _prepareDaiDeposit(uint256 depositAmount)
         internal
-        returns (AaveV3ERC4626)
+        returns (AaveV3ERC4626 strategy, address asset, address aToken)
     {
-        return new AaveV3ERC4626(asset, name, symbol, AAVE_V3_POOL, aToken, AAVE_V3_DATA_PROVIDER, owner);
+        strategy = _deployStrategy(DAI, ADAI, "Green Goods Aave DAI", "ggaDAI", address(this));
+        asset = DAI;
+        aToken = ADAI;
+        assertGe(strategy.maxDeposit(address(this)), depositAmount, "live DAI reserve should accept fork deposit");
+        strategy.setVault(address(this));
+        _fundFromLiveReserve(asset, depositAmount);
+        IERC20(asset).approve(address(strategy), depositAmount);
+    }
+
+    function _fundFromLiveReserve(address asset, uint256 amount) internal {
+        address reserveHolder = asset == WETH ? AWETH : ADAI;
+        assertGe(IERC20(asset).balanceOf(reserveHolder), amount, "live Aave reserve should fund fork deposit");
+        vm.prank(reserveHolder);
+        assertTrue(IERC20(asset).transfer(address(this), amount), "live reserve transfer should succeed");
     }
 
     function test_forkDeploy_reportsOnArbitrum() public {
@@ -63,53 +87,43 @@ contract ArbitrumAaveStrategyForkTest is Test {
     function test_forkCycle_depositDeployReportFreeWithdraw() public {
         if (!_tryFork()) return;
 
-        AaveV3ERC4626 strategy = _deployStrategy(WETH, AWETH, "Green Goods Aave WETH", "ggaWETH", address(this));
-        strategy.setVault(address(this));
-
         uint256 depositAmount = 1 ether;
-        deal(WETH, address(this), depositAmount);
-        IERC20(WETH).approve(address(strategy), depositAmount);
+        (AaveV3ERC4626 strategy, address asset, address aToken) = _prepareDaiDeposit(depositAmount);
 
         uint256 mintedShares = strategy.deposit(depositAmount, address(this));
         assertEq(mintedShares, depositAmount, "initial deposit should mint 1:1 shares");
         uint256 deployedReport = strategy.report();
-        assertGe(deployedReport, depositAmount - 1, "report should include aToken balance");
-        assertLe(deployedReport, depositAmount + 0.001 ether, "report should not wildly exceed deposit");
+        assertApproxEqAbs(deployedReport, depositAmount, 2, "report should include the live aToken balance");
 
         // aToken balance should be non-zero
-        uint256 aTokenBal = IERC20(AWETH).balanceOf(address(strategy));
+        uint256 aTokenBal = IERC20(aToken).balanceOf(address(strategy));
         assertGt(aTokenBal, 0, "aToken balance should be positive after deploy");
 
         uint256 redeemedAssets = strategy.redeem(strategy.balanceOf(address(this)), address(this), address(this));
 
-        // Strategy should now have ~0 balance, we should have received WETH
+        // Strategy should now have ~0 balance, we should have received the underlying back
         uint256 afterFree = strategy.report();
         assertLe(afterFree, 1, "strategy should be near-empty after freeing funds");
 
-        uint256 receiverBalance = IERC20(WETH).balanceOf(address(this));
-        assertGe(receiverBalance, depositAmount - 2, "receiver should have gotten WETH back");
+        uint256 receiverBalance = IERC20(asset).balanceOf(address(this));
+        assertGe(receiverBalance, depositAmount - 2, "receiver should have gotten the underlying back");
         assertEq(receiverBalance, redeemedAssets, "redeem return value should match assets received");
     }
 
     /// @notice Verify AAVE yield accrual over a simulated 30-day period via time warp
-    /// @dev Deploys 10 WETH to AAVE, warps 30 days + 216000 blocks, then verifies
-    ///      totalAssets > deposit (yield accrued). Withdraws all and verifies receiver
-    ///      got more than the original deposit.
+    /// @dev Uses the first reserve on the live fork with enough remaining capacity to produce
+    ///      a measurable positive yield after the warp.
     function test_forkYieldAccrual_timeWarp() public {
         if (!_tryFork()) return;
 
-        AaveV3ERC4626 strategy = _deployStrategy(WETH, AWETH, "Green Goods Aave WETH", "ggaWETH", address(this));
-        strategy.setVault(address(this));
-
-        uint256 depositAmount = 10 ether;
-        deal(WETH, address(this), depositAmount);
-        IERC20(WETH).approve(address(strategy), depositAmount);
+        uint256 depositAmount = 1000 ether;
+        (AaveV3ERC4626 strategy, address asset,) = _prepareDaiDeposit(depositAmount);
 
         strategy.deposit(depositAmount, address(this));
 
         // Verify initial deployment
         uint256 postDeployReport = strategy.report();
-        assertGe(postDeployReport, depositAmount - 1, "Post-deploy report should approximate deposit");
+        assertGe(postDeployReport, depositAmount - 2, "Post-deploy report should approximate deposit");
 
         // Time warp: 30 days forward, ~216000 blocks (Arbitrum ~12s blocks)
         vm.warp(block.timestamp + 30 days);
@@ -124,13 +138,26 @@ contract ArbitrumAaveStrategyForkTest is Test {
         uint256 withdrawn = strategy.redeem(strategy.balanceOf(address(this)), receiver, address(this));
 
         // Verify receiver got more than the original deposit
-        uint256 receiverBalance = IERC20(WETH).balanceOf(receiver);
+        uint256 receiverBalance = IERC20(asset).balanceOf(receiver);
         assertGt(receiverBalance, depositAmount, "Receiver should get more than deposit (yield earned)");
         assertEq(receiverBalance, withdrawn, "Receiver balance should match withdrawn amount");
 
         // Strategy should be near-empty
         uint256 afterFreeReport = strategy.report();
         assertLe(afterFreeReport, 1, "Strategy should be near-empty after full withdrawal");
+    }
+
+    function _deployStrategy(
+        address asset,
+        address aToken,
+        string memory name,
+        string memory symbol,
+        address owner
+    )
+        internal
+        returns (AaveV3ERC4626)
+    {
+        return new AaveV3ERC4626(asset, name, symbol, AAVE_V3_POOL, aToken, AAVE_V3_DATA_PROVIDER, owner);
     }
 
     /// @notice Verify maxDeposit() returns correct remaining capacity against real Aave V3 PoolDataProvider

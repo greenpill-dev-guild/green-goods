@@ -8,7 +8,7 @@ import { HypercertsModule, IMarketplaceAdapter } from "../../src/modules/Hyperce
 import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
 import { MockHypercertMinter } from "../../src/mocks/HypercertExchange.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
-import { ArrayLengthMismatch } from "../../src/errors/CommonErrors.sol";
+import { ArrayLengthMismatch } from "../../src/CommonErrors.sol";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Test Mocks
@@ -99,6 +99,7 @@ contract HypercertsModuleTest is Test {
     address public stranger = address(0x400);
     address public actionPool = address(0x501);
     address public signalPool = address(0x500);
+    bytes32 internal constant MERKLE_ROOT = bytes32(uint256(1));
 
     function setUp() public {
         // Deploy mocks
@@ -146,35 +147,34 @@ contract HypercertsModuleTest is Test {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // mintAndRegister
+    // createAllowlistAndRegister
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_mintAndRegister_success() public {
-        vm.prank(operator);
-        uint256 hypercertId = hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://metadata");
+        uint256 hypercertId = _createAllowlistAs(operator, garden, 1000, "ipfs://metadata");
 
-        // Verify hypercert was minted (mock returns 1 for first mint)
-        assertEq(hypercertId, 1, "Should return first hypercert ID");
+        // Verify hypercert was minted (mock creates type IDs in upper 128 bits)
+        assertEq(hypercertId, 1 << 128, "Should return first hypercert type ID");
 
         // Verify tracking
         uint256[] memory ids = hypercertsModule.getGardenHypercerts(garden);
         assertEq(ids.length, 1, "Garden should have 1 hypercert");
-        assertEq(ids[0], 1, "Should track the hypercert ID");
-        assertEq(hypercertsModule.hypercertGarden(1), garden, "Hypercert should map to garden");
+        assertEq(ids[0], 1 << 128, "Should track the hypercert ID");
+        assertEq(hypercertsModule.hypercertGarden(1 << 128), garden, "Hypercert should map to garden");
     }
 
     function test_mintAndRegister_emitsHypercertPoolAtIndexOne() public {
+        uint256 expectedId = _nextHypercertId();
         vm.expectEmit(true, true, false, true);
-        emit HypercertsModule.HypercertMintedAndRegistered(garden, 1, signalPool);
+        emit HypercertsModule.HypercertMintedAndRegistered(garden, expectedId, signalPool);
 
-        vm.prank(operator);
-        hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://metadata");
+        _createAllowlistAs(operator, garden, 1000, "ipfs://metadata");
     }
 
     function test_mintAndRegister_onlyOperator() public {
         vm.prank(stranger);
         vm.expectRevert(abi.encodeWithSelector(HypercertsModule.Unauthorized.selector, stranger));
-        hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://metadata");
+        hypercertsModule.createAllowlistAndRegister(garden, 1 << 128, 1000, MERKLE_ROOT, "ipfs://metadata");
     }
 
     function test_mintAndRegister_whenPaused() public {
@@ -183,14 +183,13 @@ contract HypercertsModuleTest is Test {
 
         vm.prank(operator);
         vm.expectRevert(HypercertsModule.NotActive.selector);
-        hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://metadata");
+        hypercertsModule.createAllowlistAndRegister(garden, 1 << 128, 1000, MERKLE_ROOT, "ipfs://metadata");
     }
 
     function test_mintAndRegister_ownerCanCall() public {
-        vm.prank(owner);
-        uint256 hypercertId = hypercertsModule.mintAndRegister(garden, 500, bytes32(0), "ipfs://owner-mint");
+        uint256 hypercertId = _createAllowlistAs(owner, garden, 500, "ipfs://owner-mint");
 
-        assertEq(hypercertId, 1, "Owner should be able to mint");
+        assertEq(hypercertId, 1 << 128, "Owner should be able to mint");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -199,8 +198,7 @@ contract HypercertsModuleTest is Test {
 
     function test_listForYield_success() public {
         // First mint a hypercert for the garden
-        vm.prank(operator);
-        uint256 hypercertId = hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://metadata");
+        uint256 hypercertId = _createAllowlistAs(operator, garden, 1000, "ipfs://metadata");
 
         // Build a maker ask order
         OrderStructs.Maker memory makerAsk = _buildMakerAsk(hypercertId);
@@ -214,8 +212,7 @@ contract HypercertsModuleTest is Test {
 
     function test_listForYield_onlyOperator() public {
         // Mint first
-        vm.prank(operator);
-        uint256 hypercertId = hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://metadata");
+        uint256 hypercertId = _createAllowlistAs(operator, garden, 1000, "ipfs://metadata");
 
         OrderStructs.Maker memory makerAsk = _buildMakerAsk(hypercertId);
 
@@ -240,8 +237,8 @@ contract HypercertsModuleTest is Test {
     function test_batchListForYield_success() public {
         // Mint two hypercerts
         vm.startPrank(operator);
-        uint256 id1 = hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://1");
-        uint256 id2 = hypercertsModule.mintAndRegister(garden, 2000, bytes32(0), "ipfs://2");
+        uint256 id1 = _createAllowlist(garden, 1000, "ipfs://1");
+        uint256 id2 = _createAllowlist(garden, 2000, "ipfs://2");
 
         uint256[] memory ids = new uint256[](2);
         ids[0] = id1;
@@ -264,8 +261,7 @@ contract HypercertsModuleTest is Test {
     }
 
     function test_batchListForYield_revertsArrayMismatch() public {
-        vm.prank(operator);
-        uint256 id1 = hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://1");
+        uint256 id1 = _createAllowlistAs(operator, garden, 1000, "ipfs://1");
 
         uint256[] memory ids = new uint256[](1);
         ids[0] = id1;
@@ -287,7 +283,7 @@ contract HypercertsModuleTest is Test {
     function test_delistFromYield_success() public {
         // Mint and list first
         vm.startPrank(operator);
-        uint256 hypercertId = hypercertsModule.mintAndRegister(garden, 1000, bytes32(0), "ipfs://metadata");
+        uint256 hypercertId = _createAllowlist(garden, 1000, "ipfs://metadata");
         OrderStructs.Maker memory makerAsk = _buildMakerAsk(hypercertId);
         uint256 orderId = hypercertsModule.listForYield(garden, hypercertId, makerAsk, "sig");
 
@@ -304,16 +300,16 @@ contract HypercertsModuleTest is Test {
 
     function test_getGardenHypercerts_returnsTracked() public {
         vm.startPrank(operator);
-        hypercertsModule.mintAndRegister(garden, 100, bytes32(0), "ipfs://a");
-        hypercertsModule.mintAndRegister(garden, 200, bytes32(0), "ipfs://b");
-        hypercertsModule.mintAndRegister(garden, 300, bytes32(0), "ipfs://c");
+        _createAllowlist(garden, 100, "ipfs://a");
+        _createAllowlist(garden, 200, "ipfs://b");
+        _createAllowlist(garden, 300, "ipfs://c");
         vm.stopPrank();
 
         uint256[] memory ids = hypercertsModule.getGardenHypercerts(garden);
         assertEq(ids.length, 3, "Should have 3 hypercerts");
-        assertEq(ids[0], 1, "First hypercert ID");
-        assertEq(ids[1], 2, "Second hypercert ID");
-        assertEq(ids[2], 3, "Third hypercert ID");
+        assertEq(ids[0], 1 << 128, "First hypercert ID");
+        assertEq(ids[1], 2 << 128, "Second hypercert ID");
+        assertEq(ids[2], 3 << 128, "Third hypercert ID");
     }
 
     function test_getGardenHypercerts_emptyForUnknownGarden() public {
@@ -348,5 +344,28 @@ contract HypercertsModuleTest is Test {
             amounts: amounts,
             additionalParameters: ""
         });
+    }
+
+    function _nextHypercertId() internal view returns (uint256) {
+        return (minter.getMintCount() + 1) << 128;
+    }
+
+    function _createAllowlist(address _garden, uint256 units, string memory uri) internal returns (uint256) {
+        uint256 hypercertId = _nextHypercertId();
+        return hypercertsModule.createAllowlistAndRegister(_garden, hypercertId, units, MERKLE_ROOT, uri);
+    }
+
+    function _createAllowlistAs(
+        address caller,
+        address _garden,
+        uint256 units,
+        string memory uri
+    )
+        internal
+        returns (uint256)
+    {
+        uint256 hypercertId = _nextHypercertId();
+        vm.prank(caller);
+        return hypercertsModule.createAllowlistAndRegister(_garden, hypercertId, units, MERKLE_ROOT, uri);
     }
 }
