@@ -1,118 +1,130 @@
 ---
-title: Reviewing Work
-sidebar_label: Reviewing Work
+title: Approve Work
+sidebar_label: Approve Work
 slug: /community/operator-guide/reviewing-work
 audience: operator
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-20
 feature_status: Live
-goal: "Complete Review Work Submissions with clear, role-specific next actions."
+goal: "Walk an operator through approving or rejecting a gardener's submission, with the exact on-screen steps."
 difficulty: "standard"
 estimated_time: "2-10 minutes per submission."
-prereqs: "Pending work queue and review policy."
+prereqs: "Operator or evaluator role in the garden, pending work in the queue."
 next_steps: "./making-an-assessment"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+persona_context: "Operators clearing the work queue and giving gardeners timely feedback."
 source_of_truth:
-  - packages/admin/src/views/Gardens/Garden/WorkDetail.tsx
+  - packages/admin/src/views/Garden/WorkDetail/index.tsx
+  - packages/admin/src/views/Garden/WorkDetail/ReviewForm.tsx
+  - packages/admin/src/views/Garden/WorkDetail/SubmissionDetails.tsx
   - packages/shared/src/hooks/work/useWorkApproval.ts
   - packages/shared/src/hooks/work/useBatchWorkApproval.ts
 keywords:
-  - review work
-  - review work submissions
   - approve work
-  - approve submissions
+  - review work
+  - work queue
   - attestation
 ---
 
-import {
-  DecisionGuide,
-  JourneyMap,
-  NextBestAction,
-  StatusBadge,
-  StepFlow,
-} from "@site/src/components/docs";
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
-# Reviewing Work
+# Approve Work
 
 <StatusBadge status="Live" />
 
-<JourneyMap
-  role="Operator"
-  steps={[
-    {title: "Get started + roles", href: "/community/operator-guide/creating-a-garden", state: "complete"},
-    {title: "Manage actions", href: "/community/operator-guide/managing-actions", state: "complete"},
-    {title: "Review work", href: "/community/operator-guide/reviewing-work", state: "current", note: "Approve/reject with attestation traceability."},
-    {title: "Create assessments", href: "/community/operator-guide/making-an-assessment", state: "upcoming"},
-    {title: "Reporting and GAP", href: "/community/operator-guide/reporting-and-gap", state: "upcoming"},
-  ]}
-/>
+## What this helps you do
 
-## Overview
+Clear a pending work submission in your garden: look at the evidence, approve or reject it, and leave feedback the gardener can act on. Approvals turn into on-chain attestations that feed later assessments, so consistency here pays off downstream.
 
-When gardeners submit work through the MDR workflow, it enters your review queue. As an operator, you validate the evidence, approve or reject submissions, and provide feedback. Approved work creates permanent on-chain attestations via EAS and triggers Karma GAP impact attestations automatically.
+:::note Legacy admin vs. new admin
+During the Earth Week activation you may be on the **legacy admin** (left rail shows `Dashboard / Gardens / Assessments / Actions / Endowments`). The review surface there lives inside each garden's detail page under a **Work** tab, not inside a standalone **Hub** workspace. The evidence, approve, and reject controls behave the same — the nav path to reach them differs.
+:::
 
-<img src="/img/screenshots/admin-work-queue.png" alt="Work review queue — pending submissions with review command center" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+## Before you start
 
-<img src="/img/screenshots/admin-work-detail.png" alt="Work detail view — review submission evidence and make approval decisions" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+- You are signed in to Green Goods admin and have the **Operator** or **Evaluator** role in the garden.
+- There is at least one **pending** submission in the work queue.
+- You are online — approvals and rejections need a wallet signature.
 
-```mermaid
-graph TB
-    Queue["Work Queue\npending submissions"] --> Review["Review Submission\nmedia + details"]
-    Review --> Decide{"Approve?"}
-    Decide -->|yes| Approve["Approve\non-chain attestation"]
-    Decide -->|no| Reject["Reject\nwith feedback"]
-    Approve --> Notify["Notify Gardener"]
-    Reject --> Notify
-```
+:::tip
+If you are not sure whether you have review permissions, open any pending submission. If you only see the submission details and no approve/reject controls, you don't have the role yet — ask the garden owner to add you.
+:::
 
-## How It Works
+## Step-by-step flow
 
-<StepFlow
-  steps={[
-    {title: "Open submission", detail: "Navigate to the Work tab of your garden and select a pending submission. Check media, notes, and action alignment."},
-    {title: "Validate evidence", detail: "Confirm that the photos and details match the action requirements, that work quality meets your standards, and timing is within any action windows."},
-    {title: "Approve or reject", detail: "Submit your decision with concise feedback. Approvals create an on-chain attestation. Rejections should include specific correction steps."},
-    {title: "Verify status", detail: "Confirm the submission status updates to approved/rejected in the dashboard and that attestation linkage is correct."},
-  ]}
-/>
+### Step 1: Open the work queue
 
-<DecisionGuide
-  title="Make review decisions consistently"
-  items={[
-    {
-      when: "Evidence clearly matches action requirements",
-      do: "Approve and add concise verification notes.",
-      next: "Confirm approval status and attestation linkage.",
-    },
-    {
-      when: "Evidence is incomplete or unclear",
-      do: "Reject with explicit correction steps.",
-      next: "Point gardener to exact fields or media to update.",
-    },
-    {
-      when: "Submission appears valid but policy is unclear",
-      do: "Pause and escalate to assessment/governance policy owner.",
-      next: "Record decision rationale for consistency.",
-    },
-  ]}
-/>
+1. On the **canvas admin**: open the **Hub** workspace from the left rail — the default view lands on **Work**, pending across every garden you can review. Use the garden picker to narrow.
+2. On the **legacy admin**: open **Gardens** in the left rail, pick your garden, then switch to the **Work** tab inside the garden detail view.
+3. Either way, filter to **Pending** to see what still needs a decision.
 
-## Best Practices
+<img src="/img/screenshots/admin-work-queue.png" alt="Hub work queue — pending submissions ready for review" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
-- Review submissions within 24-48 hours to keep gardeners engaged and motivated
-- Be specific in rejection feedback — "photo is too dark to verify tree planting" is better than "insufficient evidence"
-- Use batch approval when multiple submissions clearly meet the same action's standards
-- Keep notes on edge cases so you maintain consistent review standards over time
-- Check that attestation linkage is correct after approving — the work UID and approval refUID should match
+> The queue only shows submissions in the **Pending** state. Approved and rejected items move to the history view.
 
-## What's Next
+### Step 2: Open one submission
+
+1. Click a submission. The Work Detail surface opens with the evidence on the left and the review controls on the right.
+2. Scroll through the media (photos, audio notes) and read the submission details.
+3. Cross-check the gardener's numbers or notes against the action's requirements.
+
+<img src="/img/screenshots/admin-work-detail.png" alt="Work Detail — media evidence on the left, review form on the right" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+
+> The status badge at the top of the page says **Pending** until you act.
+
+### Step 3: Approve or reject
+
+You'll see the review form on the right (or below, on narrow screens).
+
+**To approve:**
+
+1. Add a short verification note if it helps the next reviewer stay consistent.
+2. Click **Approve**.
+3. Sign the transaction in your wallet when prompted.
+
+**To reject:**
+
+1. Explain exactly what is wrong — which field, which photo, which count — and what the gardener should change.
+2. Click **Reject**.
+3. Sign the transaction.
+
+:::tip
+Be specific in rejection feedback. *"Photo is too dark to verify tree count — retake in daylight and resubmit against the same action"* will land much better than *"insufficient evidence."*
+:::
+
+### Step 4: Confirm the status update
+
+1. After the transaction confirms, the status badge flips to **Approved** or **Rejected**.
+2. The submission drops out of the pending queue.
+3. You can check it in the Hub **History** view if you want to verify.
+
+## How to know it worked
+
+- The status badge on the submission shows **Approved** (green) or **Rejected** (red), with the matching icon.
+- The submission no longer appears in the **Pending** Hub queue.
+- The gardener sees the new status (and your feedback, on a rejection) in their Work Dashboard.
+- For approvals, an on-chain attestation is recorded linking the work UID to your decision.
+
+### Behind the scenes
+
+Approvals create two linked attestations: one for the work itself and one for your review decision. That pair is what downstream assessments and Hypercerts reference when they prove the work happened and passed review.
+
+## If something goes wrong
+
+- **No Approve/Reject buttons visible.** You don't have the review role in this garden. Ask the garden owner.
+- **"Select a garden" style errors.** The garden didn't resolve from the submission — reload the page and open the submission from the queue again.
+- **Transaction cancelled.** You cancelled in your wallet. Nothing happens on-chain. Try again when you are ready.
+- **Transaction failed.** Check the wallet error. Common causes: insufficient gas, wrong chain, or the garden's permissions contract changed. Switch chain, top up, and retry.
+- **Evidence is inconclusive.** Reject with a specific request ("add a second photo showing the full bed") rather than guessing. It is faster to let the gardener resubmit than to approve a weak record you will regret at assessment time.
+- **You clicked the wrong decision.** Approvals and rejections are recorded on-chain and can't be flipped in place. If you rejected valid work, ask the gardener to resubmit; if you approved bad evidence, flag the case to the garden owner so it can be annotated in the next assessment.
+
+## Next step
 
 <NextBestAction
-  title="Next best action"
-  why="With work reviewed, assess your garden's overall impact."
-  actionLabel="Making An Assessment"
+  title="Turn approvals into an assessment"
+  why="Once you have a batch of approved work that belongs together, package it into a single impact statement."
+  actionLabel="Make an Assessment"
   actionHref="./making-an-assessment"
   alternatives={[
-    {label: "Reporting and GAP", href: "./reporting-and-gap"},
+    {label: "Create a Garden", href: "./creating-a-garden"},
   ]}
 />

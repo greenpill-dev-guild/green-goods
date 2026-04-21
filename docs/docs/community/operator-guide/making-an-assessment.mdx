@@ -1,99 +1,127 @@
 ---
-title: Making An Assessment
-sidebar_label: Making An Assessment
+title: Make an Assessment
+sidebar_label: Make an Assessment
 slug: /community/operator-guide/making-an-assessment
 audience: operator
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-04-20
 feature_status: Live
-goal: "Help operators create assessments using the current three-step assessment wizard, without promising fields that are not actually in the form."
+goal: "Walk an operator through the three-step assessment wizard without overpromising fields that are not in the form."
 difficulty: "standard"
 estimated_time: "15-30 minutes."
-prereqs: "Garden with active members and clear evaluation goals."
-next_steps: "./creating-impact-certificates"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+prereqs: "Approved work in the garden, a review role, and a clear idea of what the assessment is reporting."
+next_steps: "./reviewing-work"
+persona_context: "Operators packaging a body of approved work into a single, reviewable impact statement."
 source_of_truth:
-  - packages/admin/src/views/Gardens/Garden/Assessment.tsx
-  - packages/admin/src/views/Gardens/Garden/CreateAssessment.tsx
+  - packages/admin/src/views/Garden/Assessment.tsx
+  - packages/admin/src/views/Garden/CreateAssessment.tsx
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.tsx
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
   - packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.tsx
+  - packages/shared/src/workflows/createAssessment.ts
 keywords:
-  - assessments
-  - strategy
-  - operator
+  - assessment
   - smart outcomes
+  - strategy kernel
+  - operator
+  - garden impact
 ---
 
-import {DecisionGuide, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
-# Making An Assessment
+# Make an Assessment
 
 <StatusBadge status="Live" />
 
-## Overview
+## What this helps you do
 
-Assessments are garden-level impact statements that turn a set of approved work into something legible: a reporting window, a domain, a diagnosis, a strategy kernel, and a selected group of actions. In the current admin flow, the assessment wizard is organized into **Domain & Context**, **Strategy Kernel**, and **Actions & Harvest**.
+Turn a pile of approved work into one coherent impact statement your garden, funders, and evaluators can actually read. An assessment anchors a reporting window to a domain, a diagnosis, a set of outcomes, and the specific actions that did the work. It is the cleanest way to show progress after an approval spree.
 
-```mermaid
-graph LR
-    Context["Domain & Context\ntitle, description,\nlocation"] --> Kernel["Strategy Kernel\ndiagnosis, SMART outcomes,\nCynefin phase, SDGs"]
-    Kernel --> Harvest["Actions & Harvest\nselected actions,\nreporting period"]
-    Harvest --> Submit["Submit Assessment\non-chain attestation"]
-```
+:::note Legacy admin vs. new admin
+During the Earth Week activation you may be on the **legacy admin** (left rail shows `Dashboard / Gardens / Assessments / Actions / Endowments`). The assessment wizard lives under **Assessments** in the left rail there, not under a **Hub → Assess** tab. The three wizard steps (Domain & Context → Strategy Kernel → Actions & Harvest), fields, and submit action are the same.
+:::
 
-Use assessments when you need to formally evaluate your garden's progress, prepare for funding rounds, or create a baseline for comparing impact over time.
+## Before you start
 
-<img src="/img/screenshots/admin-garden-impact.png" alt="Garden impact tab — hypercert highlights and assessment summary" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+- You are signed in as an **operator** or **evaluator** in the garden.
+- The garden has enough **approved work** to tell an honest story — skip this until the queue is cleared.
+- You have a rough sense of:
+  - The **domain** you are reporting in (must be one this garden runs).
+  - A short **diagnosis** of the situation you acted on.
+  - One to three **SMART outcomes** you will report against.
+  - The **actions** you want to include.
+  - The **reporting window** (start and end date).
 
-## How It Works
+:::tip
+If the assessment button is disabled or the page warns "No permission", you are missing the review role in this garden. The wizard checks `canReviewGarden` before it opens.
+:::
 
-<StepFlow
-  steps={[
-    {title: "Open assessments", detail: "Navigate to your garden's Assessments view in admin and start a new assessment."},
-    {title: "Fill Domain & Context", detail: "Set the title, description, location, and domain. Keep the title stable enough that your team can reference it later."},
-    {title: "Build the strategy kernel", detail: "Add the diagnosis, SMART outcomes, Cynefin phase, and SDG targets. This is where you explain what changed and why it matters."},
-    {title: "Choose actions and reporting period", detail: "Select the actions that belong in this assessment and define the reporting window. Then submit and verify the assessment appears in the garden list and EAS view."},
-  ]}
-/>
+## Step-by-step flow
 
-<DecisionGuide
-  title="When to create assessments"
-  items={[
-    {
-      when: "You have accumulated a body of approved work and want one coherent impact story",
-      do: "Create an assessment with a clear reporting period and only the actions that genuinely belong together.",
-      next: "Use the assessment as a basis for hypercert minting or funding reports.",
-    },
-    {
-      when: "You are entering a funding round or grant cycle",
-      do: "Create a time-bounded assessment matching that reporting period.",
-      next: "Export the assessment data for inclusion in grant applications.",
-    },
-    {
-      when: "You need to adjust strategy mid-cycle",
-      do: "Create a follow-on assessment rather than editing the existing one.",
-      next: "Document how the new assessment builds on or diverges from the previous one.",
-    },
-  ]}
-/>
+The wizard has three steps: **Domain & Context → Strategy Kernel → Actions & Harvest**. Your progress is saved as a draft as you go, so you can close the tab and resume later.
 
-## Best Practices
+### Step 1: Open the assessment wizard
 
-- Keep assessment names stable and reporting dates explicit so they can be referenced consistently
-- Use diagnoses and SMART outcomes that a reviewer can understand quickly, not abstract strategy language
-- Use follow-on assessments for major scope changes rather than editing existing assessments
-- Align assessment timelines with your garden's natural work cycles (seasonal, quarterly, etc.)
-- Review approved work first so you are selecting actions from a complete set instead of a half-reviewed queue
+1. On the **canvas admin**: open the **Hub** workspace, switch to the **Assess** tab, and click **New assessment** (or go directly to `/hub/assess/create`).
+2. On the **legacy admin**: open **Assessments** in the left rail and click **Create assessment**.
+3. Pick the garden if you haven't already. The wizard refuses to open without one.
 
-## What's Next
+<img src="/img/screenshots/admin-garden-impact.png" alt="Garden Impact tab — hypercert highlights, routed yield, and the Assessments entry" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+
+> From a garden's detail page, switch to **Impact** and click **View Assessments** (or **Assessments** on the left rail for a global view). From there, **New Assessment** opens the three-step wizard: **Domain & Context → Strategy Kernel → Actions & Harvest**.
+
+### Step 2: Fill Domain & Context
+
+1. Pick the **Domain** this assessment reports against. Only domains enabled on this garden are selectable.
+2. Enter the **title** — keep it stable enough that you will still recognise it in six months.
+3. Enter a short **description** of what the assessment covers.
+4. Enter the **location** (specific enough that a reader can place it on a map).
+5. Click **Continue**.
+
+### Step 3: Build the Strategy Kernel
+
+1. Enter the **diagnosis** — one or two paragraphs on what was happening before the work started.
+2. Choose the **Cynefin phase** that matches the situation (clear, complicated, complex, chaotic, or confusion). This helps a reader read the assessment with the right frame.
+3. Add one or more **SMART outcomes**. Each outcome needs a description, a metric, and a numeric target. Keep them honest — "15 trees alive after 6 months" beats "trees planted."
+4. Select the **SDG targets** that apply. Don't blanket-select — pick what the work actually contributes to.
+5. Click **Continue**.
+
+### Step 4: Pick Actions & Harvest
+
+1. Select the **actions** to include in this assessment. Only actions run in this garden appear.
+2. Set the **reporting period** — start date and end date. Make it match the work you selected.
+3. Click **Submit assessment** and sign the transaction in your wallet.
+4. Wait for the transaction to confirm. The wizard stays on this step until it does.
+
+## How to know it worked
+
+- A success toast appears: *"Assessment submitted — Your assessment has been recorded on-chain."*
+- The wizard closes and you land on the garden **Impact → Assessments** view.
+- The new assessment appears in the grid with its title, domain badge, and reporting date range.
+- Clicking a card opens the attestation on EAS Explorer, where you can verify the decoded fields independently.
+
+### Behind the scenes
+
+Every assessment is a single EAS attestation with your domain, diagnosis, SMART outcomes, SDG targets, reporting window, and the selected action UIDs. The assessment attestation is what a downstream Hypercert references when it packages the work for funders.
+
+## If something goes wrong
+
+- **"No permission"** on the wizard. You are missing `canReviewGarden`. Ask the garden owner to add the evaluator role.
+- **Domain field missing options.** The garden doesn't have that domain enabled. Fix the garden settings first, or pick a domain the garden actually runs.
+- **"Incomplete form"** toast. The wizard highlights the failing field — scroll to the red label, fill it in, and retry.
+- **"We could not submit the assessment."** The form data didn't assemble into a valid payload — usually a missing garden reference. Reload the page and re-enter the wizard from the cockpit.
+- **Transaction cancelled.** You cancelled in your wallet. Click **Retry submission**.
+- **Transaction failed.** Check the inline error card. Common causes: wrong chain, insufficient gas, or a stale signer. Fix the cause and click **Retry submission**. If you need to edit the form, click **Edit details** instead.
+- **"Draft backup unavailable"** info toast. Your draft could not be saved to local storage, but submission still works — just don't close the tab mid-wizard.
+
+## Next step
 
 <NextBestAction
-  title="Next best action"
-  why="Turn your assessed impact into tradeable impact certificates."
-  actionLabel="Creating Impact Certificates"
-  actionHref="./creating-impact-certificates"
+  title="Keep the review queue clean"
+  why="Assessments only work if the queue behind them is healthy. Stay on top of incoming submissions."
+  actionLabel="Approve Work"
+  actionHref="./reviewing-work"
   alternatives={[
-    {label: "Reporting and GAP", href: "./reporting-and-gap"},
+    {label: "Create a Garden", href: "./creating-a-garden"},
   ]}
 />

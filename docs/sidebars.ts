@@ -34,64 +34,52 @@ const sidebars: SidebarsConfig = {
       label: "Where We're Headed",
     },
     // ── Gardener Guide ──
+    // Earth Week focus: only "Submit Work" is visible. Other pages remain in the repo
+    // for reference and will return to the sidebar after the live activation.
     {
       type: 'category',
       label: 'Gardener Guide',
       link: {
         type: 'generated-index',
         description:
-          'Gardeners document real-world conservation and regenerative work using the Green Goods app. Start with joining a garden, then move through submitting work, tracking status, payouts, governance, and reputation-building without guessing what comes next.',
+          'Gardeners document regenerative work from the field. The Earth Week activation highlights one core flow — submitting work — so you can complete your first entry end-to-end without branching out.',
       },
       items: [
-        {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Joining A Garden'},
-        {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Uploading Your Work'},
-        {type: 'doc', id: 'community/gardener-guide/track-status-and-attestations', label: 'Track Status & Attestations'},
-        {type: 'doc', id: 'community/gardener-guide/garden-payouts', label: 'Garden Payouts'},
-        {type: 'doc', id: 'community/gardener-guide/voting-governance', label: 'Voting & Governance'},
-        {type: 'doc', id: 'community/gardener-guide/earning-badges', label: 'Earning Badges & Rewards'},
-        {type: 'doc', id: 'community/gardener-guide/common-errors', label: 'Common Errors'},
+        {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
       ],
     },
 
     // ── Operator Guide ──
+    // Earth Week focus: create/approve/assess. Other operator pages stay in the repo
+    // and can be re-surfaced after the activation.
     {
       type: 'category',
       label: 'Operator Guide',
       link: {
         type: 'generated-index',
         description:
-          "Operators run the day-to-day garden workflow: garden setup, action readiness, work review, assessments, Hypercert creation, treasury operations, and governance. Where a flow also needs deployer access, the guide now calls that out directly.",
+          'Operators run the day-to-day garden workflow. For the Earth Week activation, the focus is the three tasks you will actually touch: create a garden, approve the work that comes in, and make an assessment when you have enough approved work to tell a story.',
       },
       items: [
-        {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Creating A Garden'},
-        {type: 'doc', id: 'community/operator-guide/managing-actions', label: 'Managing Actions'},
-        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Reviewing Work'},
-        {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Making An Assessment'},
-        {type: 'doc', id: 'community/operator-guide/creating-impact-certificates', label: 'Creating Impact Certificates'},
-        {type: 'doc', id: 'community/operator-guide/managing-endowments', label: 'Managing Endowments'},
-        {type: 'doc', id: 'community/operator-guide/managing-payouts', label: 'Managing Payouts'},
-        {type: 'doc', id: 'community/operator-guide/managing-governance', label: 'Managing Governance'},
-        {type: 'doc', id: 'community/operator-guide/reporting-and-gap', label: 'Reporting & GAP'},
-        {type: 'doc', id: 'community/operator-guide/troubleshooting', label: 'Troubleshooting'},
-        {type: 'doc', id: 'community/operator-guide/managing-certificates', label: 'Managing Certificates & Work'},
-        {type: 'doc', id: 'community/operator-guide/earning-recognition', label: 'Earning Recognition'},
+        {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Create a Garden'},
+        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Approve Work'},
+        {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Make an Assessment'},
       ],
     },
 
     // ── Funder Guide ──
+    // Earth Week focus: deposit + withdraw. Other funder pages stay in the repo.
     {
       type: 'category',
       label: 'Funder Guide',
       link: {
         type: 'generated-index',
         description:
-          'Funders support gardens through treasury deposits and, where available, Hypercert-backed impact opportunities. These guides focus on the clearest current flow first, then explain the more advanced certificate path without overpromising.',
+          'Funders support gardens by depositing into their vaults. For the Earth Week activation, the guide covers the two flows you need: depositing into a vault and withdrawing your position when you are ready.',
       },
       items: [
-        {type: 'doc', id: 'community/funder-guide/getting-started', label: 'Getting Started'},
-        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Funding A Garden'},
-        {type: 'doc', id: 'community/funder-guide/vaults-and-hypercerts', label: 'Vaults & Hypercerts'},
-        {type: 'doc', id: 'community/funder-guide/earning-recognition', label: 'Earning Recognition'},
+        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Deposit Into a Vault'},
+        {type: 'doc', id: 'community/funder-guide/withdraw-from-a-vault', label: 'Withdraw From a Vault'},
       ],
     },
 

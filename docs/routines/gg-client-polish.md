@@ -1,7 +1,8 @@
 ---
 routine-name: gg-client-polish
 trigger:
-  schedule: "0 5 * * 1-5"  # 05:00 local, Mon-Fri (after dream-on 03:00, before morning-watch 07:30)
+  schedule: "0 4 * * 1-5"  # 04:00 local, Mon-Fri. Scheduled with a 2h buffer before gg-auto-implement (06:30) to guarantee issue backlog is finalized before the implementer dispatches.
+max-duration: 2h  # hard ceiling — see in-prompt timeout guardrail in § Guardrails
 repos:
   - green-goods
 environment: green-goods-routines-extended
@@ -31,6 +32,31 @@ You are the client-polish routine for Green Goods. You run every weekday morning
 - The client package is at `packages/client/` (168 source files, 43 test files, 6 view domains).
 - Shared hooks/modules are at `packages/shared/` — the client depends heavily on this package.
 
+## Label scheme
+
+Every issue you create carries **four labels**: the `polish` umbrella, a **dimension or source**, the `client` package scope, and the `automated/claude` umbrella.
+
+- **User-reported** (go to Bug Board): `polish + source:discord + client + automated/claude`, `polish + source:telegram + client + automated/claude`.
+- **Audit findings** (go to Green Goods board): `polish + <dimension> + client + automated/claude` where `<dimension>` is `design`, `architecture`, `testing`, `performance`, or `quality`.
+- **Drive meeting notes**: `polish + source:drive + client + automated/claude`.
+
+Dedupe queries combine labels: `gh issue list --label polish --label client --label design --state open` returns the design-dimension client-polish backlog.
+
+## Project board attachment (applies to every issue you create)
+
+After creating any issue in the phases below, attach it to the appropriate GitHub Project under `greenpill-dev-guild` in its starting column. Do this even if the issue is a comment-append to an existing one (skip then — the existing issue is already on a board).
+
+- **User-reported bugs** (carries `source:discord` or `source:telegram`) → **Project #18 "Bug Board"**, Status = `To triage`.
+- **Audit findings + Drive notes** (carries `design`/`architecture`/`testing`/`performance`/`quality`/`source:drive`) → **Project #4 "Green Goods"**, Status = `Backlog`, Sprints = current active iteration.
+
+Use `gh project item-add <project-number> --owner greenpill-dev-guild --url <issue-url>` to attach, then set field values via `gh api graphql` against Projects v2. Read Status/Sprints field IDs + option IDs once per run via `gh project field-list <project-number> --owner greenpill-dev-guild --format json`.
+
+For Project #4, also set the `Sprints` iteration field to the currently active iteration (the one whose `startDate + duration > today`). If no iteration is currently active, skip the Sprints assignment and log a warning — do not fail the issue creation. Project #18 has no `Sprints` field; skip iteration assignment there.
+
+Board attachment is the handoff signal to `gg-auto-implement`:
+- `gg-auto-implement` reads Status = `Ready` as the human-approved-for-auto-fix signal for everything except user-reported p2 bugs (which it fast-lanes from `To triage`).
+- If attachment fails, log the failure in the run output but do not abort the issue creation — the issue still has the right labels.
+
 ## Phase 1: Inbound — Discord Bug Reports
 
 Read the bugs channel and create GitHub issues from community reports.
@@ -50,15 +76,15 @@ Read the bugs channel and create GitHub issues from community reports.
 
 3. **Dedupe against existing issues** — For each actionable message:
    ```
-   existing = gh issue list --label "routine:polish:discord" --state open --json number,title,body
+   existing = gh issue list --label "polish" --label "source:discord" --label "client" --state open --json number,title,body
    ```
    Check if a substantially similar issue already exists. Match on error messages, affected views, or described behavior. If a match exists, append the Discord message as a comment on the existing issue with a link to the new reporter.
 
 4. **Create issues** — For genuinely new bug reports:
    ```
    gh issue create \
-     --label "routine:polish:discord" \
-     --label "automated/claude-routine" \
+     --label "polish" --label "source:discord" --label "client" \
+     --label "automated/claude" \
      --title "<concise bug title>" \
      --body "<structured body>"
    ```
@@ -120,15 +146,15 @@ Read bug reports and feature ideas submitted by gardeners through the Telegram b
 
 3. **Dedupe against existing issues** — For each feedback item:
    ```
-   existing = gh issue list --label "routine:polish:telegram" --state open --json number,title,body
+   existing = gh issue list --label "polish" --label "source:telegram" --label "client" --state open --json number,title,body
    ```
    Check if a substantially similar issue already exists. If a match exists, append the Telegram feedback as a comment on the existing issue.
 
 4. **Create issues** — For genuinely new reports:
    ```
    gh issue create \
-     --label "routine:polish:telegram" \
-     --label "automated/claude-routine" \
+     --label "polish" --label "source:telegram" --label "client" \
+     --label "automated/claude" \
      --title "<concise title>" \
      --body "<structured body>"
    ```
@@ -195,13 +221,13 @@ Search for recent documents mentioning Green Goods and extract client-relevant i
 3. **Create issues** — For genuinely new items not already tracked:
    ```
    gh issue create \
-     --label "routine:polish:notes" \
-     --label "automated/claude-routine" \
+     --label "polish" --label "source:drive" --label "client" \
+     --label "automated/claude" \
      --title "<concise title>" \
      --body "<body with source document link and quoted context>"
    ```
 
-   Dedupe against all open `routine:polish:*` issues before creating.
+   Dedupe against all open `polish` issues before creating (`gh issue list --label polish --state open`).
 
 ## Phase 3: Rotating Client Audit
 
@@ -217,7 +243,7 @@ Determine today's focus using the day of the week:
 - **Thursday → Performance & PWA**
 - **Friday → Code Quality & Principles**
 
-### Monday: Design & Accessibility (`routine:polish:design`)
+### Monday: Design & Accessibility (`polish + design`)
 
 **Discord enrichment**: Before auditing, scan the last 7 days of the #design channel (`DISCORD_DESIGN_CHANNEL_ID`) for UI/UX feedback, mockups, and design discussions. Use these as targeted audit inputs — if someone posted "the work submission flow on mobile is weird," prioritize auditing that flow.
 
@@ -252,7 +278,7 @@ Audit `packages/client/src/` for design and accessibility issues:
 
 Pick 5-8 components or views to audit deeply. Rotate through different areas each week.
 
-### Tuesday: Architecture & Patterns (`routine:polish:architecture`)
+### Tuesday: Architecture & Patterns (`polish + architecture`)
 
 Audit for architectural violations against CLAUDE.md and AGENTS.md invariants:
 
@@ -284,7 +310,7 @@ Audit for architectural violations against CLAUDE.md and AGENTS.md invariants:
    - Missing error boundaries around fallible subtrees
    - Prop drilling more than 2 levels deep
 
-### Wednesday: Testing & Coverage (`routine:polish:testing`)
+### Wednesday: Testing & Coverage (`polish + testing`)
 
 Audit test health against the 80% coverage target:
 
@@ -311,7 +337,7 @@ Audit test health against the 80% coverage target:
    - Error states (network failure, contract revert)
    - Boundary values (very long text, missing data fields)
 
-### Thursday: Performance & PWA (`routine:polish:performance`)
+### Thursday: Performance & PWA (`polish + performance`)
 
 Audit performance and PWA characteristics:
 
@@ -342,7 +368,7 @@ Audit performance and PWA characteristics:
    - Appropriate `display` mode
    - Service worker update strategy
 
-### Friday: Code Quality & Principles (`routine:polish:quality`)
+### Friday: Code Quality & Principles (`polish + quality`)
 
 Audit code quality and adherence to software principles:
 
@@ -375,20 +401,24 @@ Audit code quality and adherence to software principles:
 
 ## Dedupe Logic
 
-For each category, before creating a new issue:
+For each dimension or source, before creating a new issue:
 
 ```
-open_issues = gh issue list --label "routine:polish:<category>" --state open --json number,title,body
+open_issues = gh issue list --label "polish" --label "<dimension-or-source>" --label "client" --state open --json number,title,body
 if a substantially similar issue exists:
   # Only comment if there's genuinely new information to add
   gh issue comment <issue number> --body "<dated append with new context>"
 else:
   gh issue create \
-    --label "routine:polish:<category>" \
-    --label "automated/claude-routine" \
+    --label "polish" \
+    --label "<dimension-or-source>" \
+    --label "client" \
+    --label "automated/claude" \
     --title "<title>" \
     --body "<body>"
 ```
+
+Where `<dimension-or-source>` is one of: `design`, `architecture`, `testing`, `performance`, `quality`, `source:discord`, `source:telegram`, `source:drive`.
 
 **Issue body standard format:**
 
@@ -437,7 +467,7 @@ Message format (use Discord markdown):
   2. [{title}]({issue_url}) (p{priority})
   3. [{title}]({issue_url}) (p{priority})
 
-📊 **Backlog**: {total open routine:polish:* issues} open polish issues
+📊 **Backlog**: {total open `polish` issues} open polish issues
 ```
 
 ## Guardrails
@@ -447,5 +477,6 @@ Message format (use Discord markdown):
 - **No bun install, no bun test, no bun build.** Analysis is static — read code, don't execute it.
 - **Respect CLAUDE.md invariants.** Your audit checks should enforce the same rules the team follows: hook boundary, barrel imports, Address typing, offline-first queue, error handling patterns.
 - **Cap issue volume.** Maximum 8 new issues per run across all phases. Quality over quantity.
+- **2-hour runtime cap.** Track elapsed time. At ~1h45m, stop starting new audit passes and begin wrapping up: post whatever issues you've already drafted, send the Discord summary for completed work, exit cleanly. The `gg-auto-implement` routine fires at 06:30 and expects the backlog to be fully written by then — an unfinished polish run that drags past 06:30 risks dispatching partial work.
 - **Rotate honestly.** If today is Tuesday, audit architecture — do not also audit design. Deep beats broad.
 - **Don't nag.** If an issue is already open and nothing has changed, don't comment on it just to show activity. Only comment when there's new information.

@@ -1,96 +1,135 @@
 ---
-title: Creating A Garden
-sidebar_label: Creating A Garden
+title: Create a Garden
+sidebar_label: Create a Garden
 slug: /community/operator-guide/creating-a-garden
 audience: operator
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-04-20
 feature_status: Live
 image: /img/social/creating-a-garden.webp
-goal: "Help operators understand the current garden-creation path, including when deployer access is required."
+goal: "Walk an operator through deploying a new garden end-to-end, including the deployer gate."
 difficulty: "standard"
 estimated_time: "10-25 minutes."
-prereqs: "Deployer access for brand-new gardens, plus clear garden metadata and initial team plan."
-next_steps: "./managing-actions"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+prereqs: "Deployer access, a name and short description, a location, and a rough list of the first team."
+next_steps: "./reviewing-work"
+persona_context: "Operators setting up a new garden so gardeners can start submitting work against it."
 source_of_truth:
-  - packages/admin/src/views/Gardens/CreateGarden.tsx
+  - packages/admin/src/views/Garden/CreateGarden.tsx
   - packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx
-  - packages/shared/src/workflows/createGardenMachine.ts
+  - packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.tsx
+  - packages/admin/src/components/Garden/CreateGardenSteps/ReviewStep.tsx
+  - packages/shared/src/workflows/createGarden.ts
 keywords:
   - create garden
-  - operator workflow
-  - deployer access
+  - operator
+  - deployer
+  - garden setup
 ---
 
-import {JourneyMap, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
-# Creating A Garden
+# Create a Garden
 
 <StatusBadge status="Live" />
 
-<JourneyMap
-  role="Operator"
-  steps={[
-    {title: "Get started + roles", href: "/community/operator-guide/creating-a-garden", state: "complete"},
-    {title: "Create garden", href: "/community/operator-guide/creating-a-garden", state: "current", note: "Define metadata, policy, and membership setup."},
-    {title: "Manage actions", href: "/community/operator-guide/managing-actions", state: "upcoming"},
-    {title: "Review work", href: "/community/operator-guide/reviewing-work", state: "upcoming"},
-  ]}
-/>
+## What this helps you do
 
-## Overview
+Deploy a brand-new garden in the Green Goods admin so your community can start submitting work against it. This is a one-time setup — you will not redo it once the garden is live.
 
-A garden is your community hub for regenerative work. Creating one sets up a community account that can hold assets, manage members, and coordinate impact. In the current admin flow, **creating a brand-new garden is a deployer-level action**. If you are already an operator inside an existing garden, you usually skip this page and jump straight to actions, reviews, and treasury work.
+Creating a garden is a **deployer-level action**. If you are already an operator inside an existing garden, you probably don't need this page. Jump straight to [Approve Work](./reviewing-work) or [Make an Assessment](./making-an-assessment).
 
-```mermaid
-graph LR
-    Meta["Details\nname, slug,\nlocation, banner"] --> Domains["Choose Domains\nwhat work fits this garden"]
-    Domains --> Team["Plan Team\noperators + gardeners"]
-    Team --> Create["Deploy Garden\nsign transaction"]
-    Create --> Live["Garden Live\nready for setup"]
-```
+:::note Legacy admin vs. new admin
+During the Earth Week activation you may be on the **legacy admin** (left rail shows `Dashboard / Gardens / Assessments / Actions / Endowments`). There, the route is `/gardens/create` (with an `s`), and the wizard labels step 2 **Community** instead of **Plan the initial team**. The step order, fields, and deploy action are the same — just the nav and a couple of labels differ. The screenshots in this guide are from the legacy admin because that is what is live today.
+:::
 
-<img src="/img/screenshots/admin-gardens.png" alt="Admin gardens list — browse, search, and create garden communities" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+## Before you start
 
-<img src="/img/screenshots/admin-create-garden.png" alt="Garden creation form — enter name, location, ENS subdomain, and description" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+Have these ready so you don't bounce around mid-form:
 
-## How It Works
+- **Deployer access** in Green Goods admin. If you hit a permissions error on `/garden/create`, ask the team to add you as a deployer.
+- A **name** and a short **description** of the garden.
+- A **location** (bioregion, city, or community).
+- A **banner image** (optional but recommended).
+- An **ENS subdomain** idea — the form suggests one from the name, but you can edit it.
+- A **domain selection** — Solar, Agro, Education, or Waste. Domains decide which actions gardeners can submit against later.
+- A rough list of the **first operators and gardeners** you want on board. You can add more later from Garden Members, but seeding a few at deploy time keeps things coherent.
+- A **funded wallet** on the target chain for the deployment transaction.
 
-<StepFlow
-  steps={[
-    {title: "Open Create Garden", detail: "In admin, navigate to `/gardens/create`. If you cannot open that route, you likely need deployer access."},
-    {title: "Complete Details", detail: "Enter name, slug, description, location, optional banner image, open-vs-restricted joining policy, and the garden's active domains."},
-    {title: "Plan the initial team", detail: "Add the operators and gardeners you expect to onboard first. This helps the setup stay coherent even if membership is finalized later."},
-    {title: "Review and deploy", detail: "Confirm the chain and transaction details, sign the deployment, then verify the garden appears in the garden cockpit."},
-  ]}
-/>
+:::tip
+You need to be online to deploy — the form will block submission if you lose connectivity.
+:::
 
-**What you need before you start:**
+## Step-by-step flow
 
-- Garden name, slug, and short description
-- Location and any banner/media assets you want on day one
-- Joining policy (open vs restricted)
-- Domain selection, because domains determine which actions appear to gardeners
-- A practical first-team plan for operators and gardeners
+### Step 1: Open the Create Garden form
 
-## Best Practices
+1. In admin, open **Gardens** in the left sidebar, then click **Create** (or go directly to `/gardens/create` on legacy admin / `/garden/create` on the new canvas admin).
+2. If you hit a 404 or a permissions warning, you don't have deployer access yet. Stop here and ask the team.
 
-- If you are an operator without deployer access, ask the platform admin to create the garden first instead of working around permissions
-- Choose a clear, descriptive garden name that reflects the bioregion or community focus
-- Set your joining policy thoughtfully — open gardens grow faster, restricted gardens maintain tighter quality control
-- Pick domains carefully — they control which actions gardeners can submit against later
-- Verify that metadata renders correctly in both admin and client before sharing the garden with your community
-- Confirm operator/admin permissions before inviting members, reviewing work, or touching treasury flows
+<img src="/img/screenshots/admin-create-garden.png" alt="Create Garden — step 1 Garden details with name, location, ENS subdomain, and description fields (legacy admin)" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
-## What's Next
+> The form opens on **Garden details**. Fill the required fields, pick the garden's domains, then click **Continue**. Step 2 (**Community** on legacy admin / **Plan the initial team** on the new canvas admin) is for operator + gardener planning notes. Step 3 (**Review & deploy**) summarises everything before you sign the deploy transaction.
+
+> The form opens on **Garden details**. You can return to earlier steps from the progress bar at the top.
+
+### Step 2: Fill in Garden details
+
+1. Enter the **Garden name**. The ENS subdomain field auto-suggests from the name — edit it if you want a cleaner handle.
+2. Enter the **location**.
+3. Add a **description**. Two or three lines is plenty.
+4. Attach a **banner image** if you have one.
+5. Choose the **joining policy**: open (anyone can join) or restricted (operators approve each gardener).
+6. Select the **domains** this garden will run. Pick only what you actually plan to use — adding a domain later is easier than explaining unused ones.
+7. Click **Continue**.
+
+### Step 3: Plan the initial team (labelled "Community" on legacy admin)
+
+1. Add the wallet addresses of the **operators** you want to seed the garden with.
+2. Add the **gardeners** who will be submitting work from day one.
+3. You can leave either list empty and add members later from Garden Members. Planned members are a coordination list, not on-chain role assignments — the form flags this with a reminder on success.
+4. Click **Continue**.
+
+### Step 4: Review and deploy
+
+1. Read back the summary: name, slug, description, joining policy, domains, and planned team.
+2. If anything is off, click back into the earlier step and fix it — don't edit by memory.
+3. When everything is right, click **Deploy garden** and approve the transaction in your wallet.
+4. Wait for the transaction to confirm. The wizard stays on this step until it does.
+
+## How to know it worked
+
+- You are redirected back to the garden list (`/garden` on the canvas admin, `/gardens` on legacy admin).
+- A success toast appears: *"Garden created — Your garden has been deployed successfully."*
+- If you planned any members at step 3, you also see a reminder toast: *"Add planned members next — N planned members were not assigned during deployment. Add them from Garden Members."*
+- The new garden appears in the garden list.
+- If you open it in the client app, the banner, location, and description all render as expected.
+
+## If something goes wrong
+
+- **404 on `/garden/create` or `/gardens/create`.** You are not a deployer, or you are on the wrong admin build. Contact the platform admin instead of working around it.
+- **"You're offline" toast on Deploy.** The form blocks deployment when the network is down. Reconnect and retry — the form keeps your progress.
+- **Transaction cancelled.** You cancelled the signature in your wallet. Click **Retry deployment** when you are ready.
+- **Transaction failed.** Check the inline error card — it shows the raw wallet message when one is available. Common causes are insufficient gas funds and a wrong chain. Fix the cause and click **Retry deployment**.
+- **Name or ENS collision.** Pick a different garden name or edit the ENS subdomain before retrying.
+- **"Cannot deploy yet."** The form isn't ready for submission. Go back through the earlier steps and look for fields marked as required that are still empty.
+
+After a successful deploy, finish setup by:
+
+- Adding members from Garden Members (if you planned any at step 3).
+- Confirming that metadata and banner render in both admin and the client app before sharing the garden link with your community.
+
+### Behind the scenes
+
+The deploy transaction creates the garden account on-chain, registers it in the Green Goods registry, and seeds it with the domains you chose. Roles (operator, gardener) are assigned separately after deployment, which is why planned members show up as a reminder rather than being auto-assigned.
+
+## Next step
 
 <NextBestAction
-  title="Next best action"
-  why="Once the garden exists, the next question is which actions will actually be available to your gardeners."
-  actionLabel="Managing Actions"
-  actionHref="./managing-actions"
+  title="Approve work that comes in"
+  why="Once gardeners start submitting work, the next thing you will do is approve or reject it."
+  actionLabel="Approve Work"
+  actionHref="./reviewing-work"
   alternatives={[
-    {label: "Reviewing Work", href: "./reviewing-work"},
+    {label: "Make an Assessment", href: "./making-an-assessment"},
   ]}
 />

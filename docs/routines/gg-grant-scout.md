@@ -245,19 +245,48 @@ Message format:
 {list any grant deadlines in next 14 days from Calendar}
 ```
 
-## Phase 6: GitHub Issue (deadlines only)
+## Phase 6: GitHub Issue — grant lifecycle
 
-If a high-fit opportunity has a deadline within 14 days, create a GitHub issue to ensure visibility:
+Create a GitHub issue for any high-fit opportunity (alignment score ≥3 from Phase 2), regardless of deadline. The issue tracks the full lifecycle on the Green Goods board.
+
+**New opportunity (Phase 1 discovery, no draft yet):**
 
 ```
 gh issue create \
-  --label "routine:grant:deadline" \
-  --label "automated/claude-routine" \
-  --title "Grant deadline: {Program Name} — {deadline date}" \
-  --body "{opportunity details, fit assessment, link to Drive draft}"
+  --label "grant" \
+  --label "grant:prospect" \
+  --label "automated/claude" \
+  --title "Grant: {Program Name}" \
+  --body "{opportunity details, fit assessment, deadline if any, Discord source link}"
 ```
 
-Dedupe: check `gh issue list --label "routine:grant:deadline" --state open` before creating.
+Dedupe: check `gh issue list --label grant --state open` before creating — one issue per program, even if the opportunity is re-mentioned in Discord.
+
+**Draft started (Phase 3 proposal drafting, Drive doc created):**
+
+After saving a Drive draft in Phase 3, update the tracking issue:
+
+```
+gh issue edit <issue-number> \
+  --remove-label "grant:prospect" \
+  --add-label "grant:drafting"
+
+gh issue comment <issue-number> --body "Draft saved → {Drive URL}"
+```
+
+**Submitted (human action, routine transitions label):**
+
+When the human team confirms submission (read from Discord or Drive status), the routine moves the label:
+
+```
+gh issue edit <issue-number> \
+  --remove-label "grant:drafting" \
+  --add-label "grant:submitted"
+
+gh issue comment <issue-number> --body "Submitted {date}. Awaiting response."
+```
+
+Awarded/rejected states are tracked on the Project board Status column, not via labels — keep the label set lean.
 
 ## Guardrails
 

@@ -184,7 +184,7 @@ This is the first official release of Green Goods — an offline-first platform 
 
 **Added:**
 - `bunfig.toml` — test preload configuration
-- Enhanced media service with Storacha/IPFS
+- Enhanced media service with IPFS uploads
 
 **Changed:**
 - Test setup improvements
@@ -271,7 +271,7 @@ This is the first official release of Green Goods — an offline-first platform 
 | wagmi | 2.19.5 |
 
 **New Dependencies:**
-- `@storacha/client` — IPFS storage
+- IPFS upload client — storage integration
 - `browser-image-compression` — client-side image optimization
 - `posthog-js` / `posthog-node` — analytics
 - `xstate` / `@xstate/react` — state machines
@@ -288,7 +288,7 @@ This is the first official release of Green Goods — an offline-first platform 
 
 **For Developers:**
 1. Run `bun install` to update dependencies
-2. Regenerate `.env` from `.env.schema` and add any new Storacha keys
+2. Regenerate `.env` from `.env.schema` and add any new IPFS upload keys
 3. Update any URQL imports to use `graphql-client`
 4. Test passkey flows on Android devices
 

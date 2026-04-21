@@ -7,6 +7,8 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 - `gg-pr-review.md` — GitHub-triggered inline PR review (replaces `claude-code-review.yml`)
 - `gg-morning-watch.md` — Scheduled weekday operational health checks; writes GitHub Issues + Discord #green-goods health summary
 - `gg-client-polish.md` — Daily client PWA audit with rotating focus + bi-directional Discord; writes GitHub Issues + Discord messages
+- `gg-admin-polish.md` — Daily admin workspace audit with rotating focus (M3 compliance, architecture, testing, UX, quality); writes GitHub Issues + Discord #design summary
+- `gg-auto-implement.md` — Weekday implementer; picks human-approved issues off the project boards (plus user-reported p2 client bugs in a fast lane), bundles related fixes, and opens PRs against `develop`. Handles both client AND admin packages.
 - `gg-dream-on.md` — Nightly cross-project exploration; reads Discord #research; session-only output
 - `gg-data-analyst.md` — Weekly Dune + PostHog maintenance; writes PR to develop + issues + Discord #funding highlights
 - `gg-grant-scout.md` — Weekly grant opportunity scouting + proposal drafting for Green Goods & Coop; writes Drive docs + Discord #funding + GitHub Issues
@@ -15,9 +17,9 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 
 - All routine PRs target `develop`, never `main`.
 - All routine branches use the `claude/<routine-name>/<topic>` prefix.
-- Dedupe issues by label `routine:<name>:<category>`.
+- Dedupe issues by category labels. `gg-morning-watch` uses `health:<category>`; `gg-data-analyst` uses `metrics:<category>`; `gg-grant-scout` uses `grant:<lifecycle>`; `gg-client-polish` uses the umbrella `polish` combined with a **dimension** (`design`, `testing`, `architecture`, `performance`, `quality`) or a **source** (`source:discord`, `source:telegram`, `source:drive`). The `automated/claude` umbrella carries the "this came from a routine" signal.
 - Loop prevention: PR-review filters on `head_branch` starting with `claude/` (not on author — routine PRs carry the user's GitHub author per docs).
-- See `docs/superpowers/specs/2026-04-14-claude-routines-design.md` for the full design and `docs/superpowers/plans/2026-04-14-claude-routines.md` for the rollout plan.
+- The original design and rollout plan (2026-04-14) lived under `docs/superpowers/` and were removed once the routines shipped; see git history for the source docs.
 
 ## Rebuilding a routine
 
@@ -31,27 +33,90 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 
 Ensure these GitHub labels exist before enabling the corresponding routines:
 
-| Label | Used by | Purpose | Color |
+**Automation umbrella** — every routine-authored issue/PR carries this:
+
+| Label | Purpose |
+|---|---|
+| `automated/claude` | Authored by a Claude automation |
+
+**`gg-morning-watch` — ops health checks** (dedupe: one open issue per category):
+
+| Label | Purpose |
+|---|---|
+| `health:indexer` | Envio indexer is lagging or unreachable |
+| `health:ci` | Recent CI failures on main |
+| `health:contracts` | On-chain state drift (vaults, yield split, garden activity) |
+
+**`gg-data-analyst` — metrics**:
+
+| Label | Purpose |
+|---|---|
+| `metrics:anomaly` | Metric anomaly in Dune or PostHog |
+
+**`gg-client-polish` and `gg-admin-polish` — polish umbrella + dimension + source + package**:
+
+Every polish issue carries `polish` plus a dimension/source plus a package-scope label (`client` or `admin`, repo-local) plus `automated/claude`. Dedupe queries combine labels: `gh issue list --label polish --label admin --label design` returns the design-dimension admin-polish backlog; swap `admin` for `client` to see the client side.
+
+| Label | Purpose |
+|---|---|
+| `polish` | Umbrella applied to every polish-routine output (client + admin) |
+| `design` | Design work — Figma, wireframes, mockups, visual polish |
+| `architecture` | Patterns, hook boundaries, state management |
+| `testing` | Test coverage, quality, or missing scenarios |
+| `performance` | Performance or PWA-specific concerns |
+| `quality` | Code quality, principles, dead code |
+| `source:discord` | Reported via Discord |
+| `source:telegram` | Reported via Telegram bot |
+| `source:drive` | Surfaced from Drive meeting notes |
+
+**`gg-grant-scout` — grant lifecycle**:
+
+| Label | Purpose |
+|---|---|
+| `grant` | Grant opportunity or application |
+| `grant:prospect` | Grant opportunity identified, not yet acted on |
+| `grant:drafting` | Grant proposal being drafted (see Drive link in body) |
+| `grant:submitted` | Grant proposal submitted, awaiting response |
+
+**Agent assignment**:
+
+| Label | Purpose |
+|---|---|
+| `agent:assigned:claude` | Claude is implementing this — remove to re-dispatch |
+
+Routines apply **both** a category label (for dedupe) and `automated/claude` (for discovery) on every issue or PR they author. The umbrella is what you filter on to see "everything any routine produced"; the category label is what the routine's code uses to decide "create new or append to existing."
+
+**Source of truth (Phase 2 rollout)**: the canonical definitions of every automation label above live in the guild-wide manifest at `greenpill-dev-guild/.github/labels.yml`. Once the guild's label-sync reusable workflow is wired up, this repo's labels will be synced from that file automatically. Until then, maintain parity manually: `gh label create "<name>" --color "<hex>" --description "<purpose>"`.
+
+## Project board coordination
+
+`gg-client-polish` and `gg-admin-polish` (producers) and `gg-auto-implement` (implementer) coordinate through two GitHub Projects under `greenpill-dev-guild`:
+
+| Project | Purpose | Starting column | Used by |
 |---|---|---|---|
-| `automated/claude-routine` | all routines | Umbrella: "authored by a Claude routine" — matches existing `automated/codex` precedent | `0075ca` |
-| `routine:watch:indexer` | gg-morning-watch | Dedupe: one open issue per category | `0e8a16` |
-| `routine:watch:pilot-activity` | gg-morning-watch | Dedupe | `0e8a16` |
-| `routine:watch:ci-pulse` | gg-morning-watch | Dedupe | `0e8a16` |
-| `routine:watch:onchain-sanity` | gg-morning-watch | Dedupe | `0e8a16` |
-| `routine:metrics:anomaly` | gg-data-analyst | Dedupe: one open anomaly issue | `d73a4a` |
-| `routine:polish:notes` | gg-client-polish | Dedupe: findings from Drive meeting notes | `c5def5` |
-| `routine:polish:discord` | gg-client-polish | Dedupe: bug reports sourced from Discord | `5865F2` |
-| `routine:polish:telegram` | gg-client-polish | Dedupe: bug reports sourced from Telegram bot | `229ED9` |
-| `routine:polish:design` | gg-client-polish | Dedupe: design & accessibility issues | `d4c5f9` |
-| `routine:polish:architecture` | gg-client-polish | Dedupe: architecture & pattern violations | `fbca04` |
-| `routine:polish:testing` | gg-client-polish | Dedupe: test coverage gaps & quality | `0e8a16` |
-| `routine:polish:performance` | gg-client-polish | Dedupe: performance & PWA issues | `e4e669` |
-| `routine:polish:quality` | gg-client-polish | Dedupe: code quality & principles issues | `f9d0c4` |
-| `routine:grant:deadline` | gg-grant-scout | Dedupe: grant deadlines within 14 days | `d93f0b` |
+| **#4 "Green Goods"** | General kanban — audit findings, ops anomalies, features | `Backlog` | Audit-dimension polish (`polish + {design, testing, architecture, performance, quality}`), health, metrics, grant |
+| **#18 "Bug Board"** | Dedicated triage for user-reported bugs | `To triage` | Source-tagged polish (`polish + source:discord`, `polish + source:telegram`) |
 
-Routines apply **both** a category label (for dedupe) and `automated/claude-routine` (for discovery) on every issue or PR they author. The umbrella is what you filter on to see "everything any routine produced"; the category label is what the routine's code uses to decide "create new or append to existing."
+Both boards share the lane structure `{starting} → Ready → In progress → In review → Done`.
 
-Create them with `gh label create "<name>" --color "<hex>" --description "<purpose>"`.
+### Lifecycle
+
+1. **Producer creates + attaches** — `gg-client-polish` or `gg-admin-polish` creates an issue, applies labels, attaches it to the matching board in the starting column (`Backlog` or `To triage`). Admin polish always goes to `Backlog` on #4 (no user-reported admin bugs, no fast lane).
+2. **Human triages (the only manual step)** — move items you want auto-fixed to `Ready`. That movement IS the approval signal; no comment, no label, just the column change.
+3. **Fast-lane bypass** — `gg-auto-implement` auto-dispatches issues carrying `polish + source:discord` or `polish + source:telegram` at priority p2 straight from `To triage`, because being reported by a user is already a triage act. All other issues require the `Ready` column.
+4. **Implementer dispatches + implements + opens PR** — `gg-auto-implement` moves the issue to `In progress`, opens a bundled PR against `develop`, applies `agent:assigned:claude`. GitHub's default project automation flips to `In review` when the PR opens.
+5. **Human reviews the PR** — merge, request changes, or close. The PR is where the user's other focal surface lives.
+6. **Done** — issue auto-closes on merge via `Closes #N` in the PR body; board moves to `Done`.
+
+### Never auto-dispatched
+
+- p1 from any source — skipped silently by gg-auto-implement. Needs human ownership.
+- Anything touching critical paths from the CLAUDE.md criticality matrix (contracts, providers, job-queue, auth/work/vault/blockchain hooks) — rejected up-front by gg-auto-implement's criticality gate.
+- Any issue with an existing linked PR (human- or agent-authored) — no dispatch racing.
+
+### Re-dispatching
+
+To force gg-auto-implement to retry an issue it already handled (bundle aborted, PR closed without merge, etc.), remove the `agent:assigned:claude` label manually. The issue becomes eligible again on the next run if all other gates still pass.
 
 ## Bot API environment
 

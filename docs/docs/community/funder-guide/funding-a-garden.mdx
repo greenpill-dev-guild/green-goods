@@ -1,76 +1,118 @@
 ---
-title: Funding A Garden
-sidebar_label: Funding A Garden
+title: Deposit Into a Vault
+sidebar_label: Deposit Into a Vault
 slug: /community/funder-guide/funding-a-garden
 audience: funder
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-04-20
 feature_status: Live
-goal: "Walk funders through the current live funding path without forcing them through admin-only or future-state assumptions."
+goal: "Walk a funder through depositing into a garden's vault, either from the authenticated app or the public /fund page."
 difficulty: "quickstart"
-estimated_time: "10-15 minutes for a first deposit."
-prereqs: "A garden you want to support and supported assets on the chain that garden uses."
-next_steps: "/community/funder-guide/vaults-and-hypercerts"
-persona_context: "Funders choosing a garden and making an initial treasury deposit."
+estimated_time: "5-10 minutes for a first deposit."
+prereqs: "Connected wallet, a supported asset on the target chain, a garden you want to support."
+next_steps: "./withdraw-from-a-vault"
+persona_context: "Funders making their first (or recurring) deposit into a garden vault."
 source_of_truth:
-  - packages/client/src/views/Home/Garden/index.tsx
   - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
+  - packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx
+  - packages/client/src/views/Public/Fund.tsx
   - packages/shared/src/hooks/vault/useVaultDeposit.ts
-  - packages/shared/src/hooks/vault/useVaultWithdraw.ts
 keywords:
-  - funding
-  - vault
+  - funder
   - deposit
+  - vault
   - octant
-  - hypercert
+  - treasury drawer
+  - fund page
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
-# Funding A Garden
+# Deposit Into a Vault
 
-The most reliable funding path in Green Goods today is **depositing into a garden vault**. Start there. Hypercerts matter in the ecosystem, but if you want a clear, repeatable user flow right now, open a garden and fund it through Treasury.
+<StatusBadge status="Live" />
 
-## How Funding Works
+## What this helps you do
 
-Funding in Green Goods currently has two layers:
+Support a specific garden by depositing a supported asset into its **Octant vault**. Your principal stays in the vault and harvested strategy yield is routed to garden operations — depositor claim value stays flat by design. You can withdraw at any time; see [Withdraw From a Vault](./withdraw-from-a-vault).
 
-### Vault Deposits
+There are two entry points and they do different things:
 
-**Octant Vaults** are impact-vault deposit contracts attached to each garden. When you deposit ERC-20 tokens:
+- **Authenticated app — Treasury drawer.** Full flow with your existing deposit position and a Cookie Jar tab. Mobile-first PWA surface. Recommended.
+- **Public `/fund` page.** Browser-first gallery that anyone can reach. **Deposit-only.** It does not show your existing position and does not let you withdraw.
 
-1. Your deposit adds principal to the garden endowment
-2. Strategies may generate yield in the background while depositor claim value stays flat by design
-3. When harvested, yield is split three ways:
-   - **Cookie Jar** — Petty cash for gardeners' daily operations
-   - **Hypercert Fractions** — Purchasing impact certificate fractions
-   - **Community Endowment** — Long-term community treasury
+## Before you start
 
-Your principal stays in the vault, and harvested yield funds garden operations through protocol routing rather than depositor share appreciation. You can withdraw your deposit at any time.
+- A **connected wallet** (passkey account or an external wallet). For `/fund` you'll be prompted to connect before the deposit dialog opens.
+- A **supported asset** on the target chain with enough balance, plus gas.
+- The **garden you want to support** already identified. If you aren't sure which one, browse `/fund` or the Home screen first.
+- You are **online** — both the drawer and the dialog refuse to submit while offline.
 
-### Hypercert Purchases
+:::tip
+If the Treasury button doesn't show on the garden, the garden hasn't enabled a vault yet. Pick a different garden or ask the operator to add a vault.
+:::
 
-**Hypercerts** are tokenized impact certificates that represent verified regenerative work. They are real, and operator-facing mint/list flows exist, but the smoothest funder journey in Green Goods is still the vault path first. Treat direct Hypercert buying as a more advanced path that depends on where a garden is listing and how that market is being surfaced.
+## Step-by-step flow
 
-- Use Hypercerts when you want claim-level exposure to a specific impact bundle
-- Use vaults when you want the clearest current in-product funding flow
+### Option A: Deposit from the authenticated app (recommended)
 
-## Getting Started
+This is the mobile PWA flow gardens use during Earth Week.
 
-1. **Open a garden you want to support** in the Green Goods app.
-2. **Review recent evidence** — check work volume, approvals, assessments, and any treasury activity that helps you judge cadence.
-3. **Open Treasury and deposit** the asset and amount you want to commit.
-4. **Track the garden over time** — look at approved work, assessment quality, and routed treasury activity, not just the act of depositing.
+1. Sign in to the Green Goods app and open the **Home** screen.
+2. Tap the garden you want to support. The garden detail page opens.
+3. Tap the **Treasury** button in the top bar (it only appears when the garden has a vault).
+4. The **Treasury drawer** slides up. Stay on the **Endowments** tab.
+5. Review the **Overview** (asset, net deposited, depositor count) so you know what you're adding to.
+6. Under **Deposit**, pick the asset from the selector (if the garden has more than one vault).
+7. Type the **amount**. Tap **Max** to auto-fill your wallet balance — the form won't let you exceed it.
+8. Check the **Estimated shares** line. This is how many vault shares you'll receive after the transaction confirms.
+9. Tap **Deposit** in the footer. Approve the token allowance and then the deposit transaction in your wallet.
+10. Wait for both transactions to confirm. The amount field clears on success.
 
----
+### Option B: Deposit from the public `/fund` page
+
+Use this when you want to support a garden without signing in first — for example, from a share link.
+
+1. Open `/fund` in the browser.
+2. Scroll the garden gallery and pick the garden you want to support.
+3. Click **Deposit** on the garden card.
+4. If you haven't connected a wallet yet, the app opens the wallet modal first — connect, then the deposit dialog opens.
+5. Pick the asset, type the amount (or tap **Max**), and submit.
+6. Approve the allowance and the deposit in your wallet.
+
+:::note
+The `/fund` page is **deposit-only**. It does not display your existing position or offer withdrawal controls. For those, use the authenticated Treasury drawer (Option A) or the [Withdraw From a Vault](./withdraw-from-a-vault) guide.
+:::
+
+## How to know it worked
+
+- The amount input clears after a successful deposit.
+- The **Overview** section in the Treasury drawer shows a higher **Net deposited** and an incremented **Depositor count** (on your first deposit).
+- Your deposit appears under **Active deposits** inside the Treasury drawer, with a share count you can later withdraw against.
+- The deposit transaction is visible in your wallet's transaction history on the target chain.
+
+### Behind the scenes
+
+Depositing into an Octant vault mints shares that track your principal claim. Strategies (for example, Aave v3) may generate yield in the background; when harvested, that yield is split across the Cookie Jar, Hypercert fractions, and the community endowment — your principal claim value stays flat by design. You can withdraw any time, up to your available balance.
+
+## If something goes wrong
+
+- **No Treasury button on the garden.** The garden hasn't enabled a vault. Pick a different garden or ask the operator.
+- **"You're offline" warning.** The drawer disables deposits while offline. Reconnect and retry.
+- **Amount exceeds wallet balance.** The Deposit button stays disabled. Tap **Max** to cap at your balance, or top up the asset.
+- **Invalid decimal input.** The field error shows which rule you tripped (for example, too many decimals). Match the asset's decimal precision.
+- **Approval transaction succeeded but deposit didn't fire.** Some wallets split allowance and deposit into two signatures. Tap **Deposit** again to trigger the second transaction.
+- **"Connect Wallet" button on `/fund`.** You're browsing as a guest. Click it to open the wallet modal and connect.
+- **Estimated shares show "--".** The preview is still loading or the amount is 0. Wait a second after typing, or enter a non-zero amount.
+
+## Next step
 
 <NextBestAction
-  title="Next: Vaults & Hypercerts"
-  why="Once you know the core funding flow, look more closely at how vault positions and Hypercert-backed impact differ."
-  actionLabel="Vaults & Hypercerts"
-  actionHref="/community/funder-guide/vaults-and-hypercerts"
+  title="Know how to pull funds back out"
+  why="Depositing is easy. Knowing exactly how to withdraw is what makes the commitment comfortable."
+  actionLabel="Withdraw From a Vault"
+  actionHref="./withdraw-from-a-vault"
   alternatives={[
-    { label: "Earning Recognition", href: "/community/funder-guide/earning-recognition" },
-    { label: "How It Works", href: "/community/how-it-works" }
+    {label: "Submit Work (for gardeners)", href: "/community/gardener-guide/uploading-your-work"},
   ]}
 />

@@ -1,22 +1,24 @@
 ---
 title: Submit Work
-sidebar_label: Uploading Your Work
+sidebar_label: Submit Work
 slug: /community/gardener-guide/uploading-your-work
 audience: gardener
 owner: docs
-last_verified: 2026-04-18
+last_verified: 2026-04-20
 feature_status: Live
 image: /img/social/uploading-your-work.webp
 goal: "Complete one work submission successfully on the first try, including in low-connectivity field conditions."
 difficulty: "standard"
 estimated_time: "3-8 minutes per submission."
 prereqs: "Signed in, joined a garden, an active action available, photos or notes ready."
-next_steps: "/community/gardener-guide/track-status-and-attestations"
+next_steps: "/community/operator-guide/reviewing-work"
 persona_context: "Gardeners documenting regenerative work from the field, often with spotty connectivity."
 source_of_truth:
   - packages/client/src/views/Garden/index.tsx
   - packages/client/src/views/Garden/Intro.tsx
-  - packages/client/src/views/Home/WorkDashboard/index.tsx
+  - packages/client/src/views/Garden/Media.tsx
+  - packages/client/src/views/Garden/Details.tsx
+  - packages/client/src/views/Garden/Review.tsx
   - packages/shared/src/hooks/work/useWorkForm.ts
   - packages/shared/src/hooks/work/useWorkMutation.ts
   - packages/shared/src/modules/job-queue
@@ -34,7 +36,6 @@ keywords:
 ---
 
 import {
-  JourneyMap,
   NextBestAction,
   StatusBadge,
 } from "@site/src/components/docs";
@@ -43,34 +44,29 @@ import {
 
 <StatusBadge status="Live" />
 
-<JourneyMap
-  role="Gardener"
-  steps={[
-    {title: "Join a garden", href: "./joining-a-garden", state: "complete"},
-    {title: "Submit work", href: "./uploading-your-work", state: "current", note: "Choose an action, add evidence, fill in details, and send it for review."},
-    {title: "Track status", href: "./track-status-and-attestations", state: "upcoming"},
-    {title: "Common errors", href: "./common-errors", state: "upcoming"},
-    {title: "Earning badges", href: "/community/gardener-guide/earning-badges", state: "upcoming"},
-  ]}
-/>
+## What this helps you do
 
-Use this guide when you're ready to record work you completed in the field. You'll choose the right action, add photos or other evidence, fill in the details, and send it for review. The flow is sometimes called **MDR** — Media, Details, Review — but you don't need to memorize that to finish a submission.
+Record work you just completed in the field so an operator can review it and sign it off on-chain. You'll pick the right action, attach photos or other evidence, fill in the details, and send it in.
 
-## Before You Start
+The flow is sometimes called **MDR** — Media, Details, Review — but you don't have to memorize that to finish a submission.
 
-A few quick checks will save you a redo later:
+## Before you start
 
-- You're signed in at greengoods.app (with your passkey or wallet).
-- You've already joined a garden. If not, [join one first](./joining-a-garden).
-- There's an active action available in that garden.
-- Your photos, notes, or measurements from the field are to hand.
-- If your signal is weak, you can still finish the whole flow — your work will sync when you're back online.
+A few quick checks save you a redo:
+
+- You're signed in to the Green Goods app (passkey or wallet).
+- You've already joined a garden. If you haven't, open the garden and tap **Join** before coming back.
+- There's an **active** action available in that garden.
+- Your photos, notes, or measurements are on your device and ready to attach.
+- Weak signal is fine — you can still finish the flow. Submissions queue on your device and sync when the network comes back.
 
 :::tip
-If you do not see any actions, go back and make sure you joined the right garden first. Actions belong to gardens, so switching gardens changes what you can submit against.
+If you don't see any actions, check that you joined the right garden. Actions belong to gardens, so switching gardens changes what you can submit against.
 :::
 
-## Step 1: Choose the action and garden
+## Step-by-step flow
+
+### Step 1: Choose the action and garden
 
 Every submission starts with picking what you did and where you did it. This happens before you touch a photo — it's the most common place gardeners miss a step.
 
@@ -86,7 +82,7 @@ Every submission starts with picking what you did and where you did it. This hap
 
 > Choose the action and garden before you add evidence. The Continue button only works after both are selected.
 
-## Step 2: Upload media
+### Step 2: Upload media
 
 Media is your evidence that the work happened. The action itself tells you what counts.
 
@@ -102,7 +98,7 @@ Media is your evidence that the work happened. The action itself tells you what 
 
 > Add clear evidence that matches the action requirements. If the action asks for more than one photo, stay on this step until you have all of them.
 
-## Step 3: Add details
+### Step 3: Add details
 
 Details are action-specific. Fill them in as if the person reviewing wasn't there with you — because they usually weren't.
 
@@ -118,7 +114,7 @@ Details are action-specific. Fill them in as if the person reviewing wasn't ther
 
 > Fill in the details for this action exactly as they happened in the field. Required fields must be completed before you can continue.
 
-## Step 4: Review and upload
+### Step 4: Review and upload
 
 One last look before you send.
 
@@ -132,7 +128,7 @@ One last look before you send.
 
 > Review your submission before you send it. This is your last chance to fix the wrong garden, wrong action, or missing evidence.
 
-## What happens if you're offline
+### What happens if you're offline
 
 Green Goods is built for the field, so the app doesn't throw your work away when the signal drops.
 
@@ -152,7 +148,7 @@ Green Goods is built for the field, so the app doesn't throw your work away when
 After you tap **Upload Work**, the app takes you home. To follow the submission from there:
 
 1. Open the **Work Dashboard** from your home screen.
-2. On the **Recent** tab, a new submission may first appear as *Uploading* or *Queued* — it's waiting on the network or on the queue to flush.
+2. On the **Recent** tab, a new submission may first appear as *Uploading* or *Queued* — it's waiting on the network or the queue to flush.
 3. Once it reaches the chain, it moves to **Pending** while an operator reviews it.
 4. Later, the same item shows up as **Approved** or **Rejected** in the Completed tab, along with any reviewer feedback.
 
@@ -162,26 +158,27 @@ After you tap **Upload Work**, the app takes you home. To follow the submission 
 
 > After you submit, check the Work Dashboard to see whether your work is still syncing, waiting for review, or already reviewed.
 
+### Behind the scenes
+
+Your submission becomes an on-chain **work attestation** once it's uploaded. When an operator approves it, a second attestation links their review decision back to your work. That pair is what assessments and Hypercerts reference later.
+
 ## If something goes wrong
 
 Quick fixes for the most common snags:
 
 - **The next button is disabled.** Something required is missing — scroll back and look for empty fields or a media count below what the action asks for.
 - **Media disappeared from a draft.** Reopen the draft from the Work Dashboard and confirm the attachments are still there. If not, reattach them before you submit.
-- **Upload keeps failing.** Wait for connectivity to return, then retry from the dashboard. Don't create a second draft for the same work.
+- **Upload keeps failing.** Wait for connectivity to return, then retry from the dashboard. Don't create a second draft for the same work — duplicates only give operators more to sort through.
 - **Your submission was rejected.** Open the operator feedback, correct what they flagged, and submit a new version for the same action.
-
-Still stuck? See [Common Errors](./common-errors) for a longer triage list, or [Track Status and Attestations](./track-status-and-attestations) to confirm where your work sits in the pipeline.
 
 ## Next step
 
 <NextBestAction
-  title="Next step"
-  why="Once your work is submitted, the next thing you'll want to know is whether it synced, whether it's waiting for review, and what to do if it gets rejected."
-  actionLabel="Track Status and Attestations"
-  actionHref="./track-status-and-attestations"
+  title="Wait for your operator to approve it"
+  why="Once you've submitted, an operator picks up the work from the queue and approves or rejects it. That's the next link in the chain."
+  actionLabel="Approve Work (for operators)"
+  actionHref="/community/operator-guide/reviewing-work"
   alternatives={[
-    {label: "Common Errors", href: "./common-errors"},
-    {label: "Joining a Garden", href: "./joining-a-garden"},
+    {label: "Deposit Into a Vault", href: "/community/funder-guide/funding-a-garden"},
   ]}
 />

@@ -1,0 +1,118 @@
+---
+title: Withdraw From a Vault
+sidebar_label: Withdraw From a Vault
+slug: /community/funder-guide/withdraw-from-a-vault
+audience: funder
+owner: docs
+last_verified: 2026-04-20
+feature_status: Live
+goal: "Walk a funder through withdrawing some or all of their existing position from a garden vault using the authenticated treasury drawer."
+difficulty: "quickstart"
+estimated_time: "3-5 minutes."
+prereqs: "Connected wallet with an existing deposit position in the garden's vault."
+next_steps: "./funding-a-garden"
+persona_context: "Funders pulling principal back out of a garden vault when they need it."
+source_of_truth:
+  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
+  - packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx
+  - packages/client/src/components/Dialogs/TreasuryDrawer/MyDepositRow.tsx
+  - packages/shared/src/hooks/vault/useVaultWithdraw.ts
+keywords:
+  - funder
+  - withdraw
+  - vault
+  - treasury drawer
+  - my deposits
+---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Withdraw From a Vault
+
+<StatusBadge status="Live" />
+
+## What this helps you do
+
+Pull principal back out of a garden's Octant vault, in part or in full, using the **authenticated Treasury drawer** in the Green Goods app. Your withdrawable balance is whatever vault shares you currently hold; the protocol burns those shares and returns the underlying asset to your wallet.
+
+:::caution
+The public `/fund` page is **deposit-only** and does not surface withdrawal controls. To withdraw, sign in to the Green Goods app first and open the Treasury drawer on the garden you funded.
+:::
+
+## Before you start
+
+- A **connected wallet** that holds the existing vault deposit (the same wallet you used to deposit, or one with the deposit's shares).
+- An **existing position** in the garden's vault. If "Active deposits" is empty, there's nothing to withdraw.
+- You are **online** — the withdrawal button is disabled offline.
+- A small amount of **gas** on the target chain to sign the withdrawal transaction.
+
+:::tip
+Your withdrawable amount may be slightly different from what you originally deposited because vault preview accounts for current share-to-asset rates. Check the **Available balance** line before you commit.
+:::
+
+## Step-by-step flow
+
+### Step 1: Open the Treasury drawer on the garden you funded
+
+1. Sign in to the Green Goods app and open **Home**.
+2. Tap the garden you previously deposited into.
+3. Tap the **Treasury** button in the top bar. The drawer slides up.
+4. Stay on the **Endowments** tab.
+
+### Step 2: Find your deposit under "Active deposits"
+
+1. Scroll to the **Active deposits** section.
+2. You will see one row per asset you currently hold a position in, showing the asset symbol, your **Available balance** (the maximum withdrawable amount in that asset), and your share count under **My shares**.
+3. If "Active deposits" is empty, you don't currently hold a position in this garden's vault. There is nothing to withdraw.
+
+:::info
+On a wallet with an active position, each asset row in **My deposits** shows the **Available balance**, **My shares**, an amount input with a **Max** button, and a **Withdraw** action. A wallet that hasn't deposited yet sees a "Support this garden…" placeholder in that section instead.
+:::
+
+### Step 3: Enter the amount to withdraw
+
+1. Type the amount in the row's input. Match the asset's decimal precision; an inline error appears if you don't.
+2. Tap **Max** if you want to withdraw your full available balance.
+3. The **Withdraw** button enables once the amount is greater than 0 and not above your available balance.
+
+### Step 4: Confirm and sign
+
+1. Tap **Withdraw**. A confirmation dialog summarises the amount and asset.
+2. Read the summary, then tap the confirm action in the dialog.
+3. Sign the withdrawal transaction in your wallet.
+4. Wait for the transaction to confirm. The amount field clears on success.
+
+## How to know it worked
+
+- The amount input clears after a successful withdrawal.
+- The row's **Available balance** drops by the amount you withdrew.
+- If you withdrew the full balance, the row disappears from **Active deposits** the next time the drawer refreshes.
+- The **Overview** section's **Net deposited** drops by the same amount.
+- The withdrawal transaction is visible in your wallet's transaction history.
+- The asset arrives back in your wallet on the target chain.
+
+### Behind the scenes
+
+Withdrawing burns vault shares and transfers the corresponding underlying asset back to the receiver address (your wallet). The strategy unwinds enough of its position to satisfy the withdrawal — usually instant, but timing depends on the vault's current liquidity and any cooldowns the strategy enforces. Harvested yield routed before your withdrawal stays with the garden; it does not reverse out with you.
+
+## If something goes wrong
+
+- **"Active deposits" is empty.** You have no position in this garden's vault. Either you withdrew already, you used a different wallet, or you are looking at the wrong garden.
+- **"You're offline" warning.** The drawer disables withdrawal while offline. Reconnect and retry.
+- **Withdraw button stays disabled.** The amount is 0, exceeds the available balance, or the input has a decimal error. Fix the input, or tap **Max** to auto-fill the safe maximum.
+- **"Invalid decimal" inline error.** Your entry has too many decimals for the asset. Reduce precision and retry.
+- **Confirmation dialog won't dismiss.** Wait for the transaction signature flow to finish or close the dialog and retry.
+- **Transaction failed.** Check the wallet error. Common causes: insufficient gas, wrong chain, or the strategy temporarily can't satisfy the requested amount. Reduce the amount and retry, or top up gas.
+- **The amount returned was slightly different from what you deposited.** That's expected — preview accounts for the current share-to-asset rate. The displayed **Available balance** is the source of truth.
+
+## Next step
+
+<NextBestAction
+  title="Top up another garden when you're ready"
+  why="Withdrawals don't lock you out — you can deposit again any time, into the same garden or a different one."
+  actionLabel="Deposit Into a Vault"
+  actionHref="./funding-a-garden"
+  alternatives={[
+    {label: "Submit Work (for gardeners)", href: "/community/gardener-guide/uploading-your-work"},
+  ]}
+/>

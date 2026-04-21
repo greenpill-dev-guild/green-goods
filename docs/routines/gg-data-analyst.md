@@ -73,17 +73,17 @@ Write `docs/metrics/YYYY-WW.md` (e.g., `docs/metrics/2026-15.md`). Structure:
 - …
 ```
 
-Open a PR to `develop`, title `metrics: week YYYY-WW digest`, label `automated/claude-routine`.
+Open a PR to `develop`, title `metrics: week YYYY-WW digest`, label `automated/claude`.
 
 ## Channel 3: Issue (anomalies only)
 
-If any of these are true, open a GitHub issue with **both** labels `routine:metrics:anomaly` (dedupe) and `automated/claude-routine` (umbrella):
+If any of these are true, open a GitHub issue with **both** labels `metrics:anomaly` (dedupe) and `automated/claude` (umbrella):
 - Action volume drops >40% WoW
 - Yield-split parameter drifts from its configured expected value
 - Vault balance changes >50% WoW without a clear cause
 - A Dune query that worked last week now errors
 
-Dedupe: before opening, query `gh issue list --label "routine:metrics:anomaly" --state open`. If an open anomaly issue exists, append a dated comment instead of creating a new one.
+Dedupe: before opening, query `gh issue list --label "metrics:anomaly" --state open`. If an open anomaly issue exists, append a dated comment instead of creating a new one.
 
 ## Context enrichment (connectors)
 
