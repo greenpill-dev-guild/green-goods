@@ -125,9 +125,9 @@ describe("modules/data/ipfs", () => {
     );
   });
 
-  it("ignores the retired Storacha gateway alias", async () => {
+  it("ignores unknown legacy gateway env keys", async () => {
     const initialized = await initializeIpfsFromEnv({
-      VITE_STORACHA_GATEWAY: "https://storacha.example",
+      VITE_LEGACY_IPFS_GATEWAY_URL: "https://legacy.example",
     });
 
     expect(initialized).toBe(false);

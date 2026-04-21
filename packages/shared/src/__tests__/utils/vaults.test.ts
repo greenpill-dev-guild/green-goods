@@ -5,6 +5,8 @@ import {
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
+  isUnlimitedVaultLimit,
+  MAX_UINT256,
   validateDecimalInput,
 } from "../../utils/blockchain/vaults";
 
@@ -159,6 +161,16 @@ describe("Vault Utilities", () => {
     });
   });
 
+  describe("isUnlimitedVaultLimit", () => {
+    it("treats uint256 max as an unlimited deposit sentinel", () => {
+      expect(isUnlimitedVaultLimit(MAX_UINT256)).toBe(true);
+    });
+
+    it("does not treat normal deposit limits as unlimited", () => {
+      expect(isUnlimitedVaultLimit(1_000_000n)).toBe(false);
+    });
+  });
+
   describe("formatTokenAmount", () => {
     const EN = "en-US";
 
@@ -225,6 +237,11 @@ describe("Vault Utilities", () => {
 
     it("respects maxFractionDigits in dust indicator", () => {
       expect(formatTokenAmount(1n, 6, 6, EN, true)).toBe("0.000001");
+    });
+
+    it("keeps tiny non-zero balances visible without the dust indicator", () => {
+      expect(formatTokenAmount(1n, 18, 4, EN)).toBe("0.000000000000000001");
+      expect(formatTokenAmount(12n, 8, 4, EN)).toBe("0.00000012");
     });
   });
 });

@@ -163,6 +163,7 @@ bun run test                        # Run the root test script across the worksp
 
 # Per package
 cd packages/shared && bun run test  # Shared package only
+cd packages/shared && bun run test:live  # Shared live RPC checks (explicit opt-in)
 cd packages/admin && bun run test   # Admin package only
 cd packages/client && bun run test  # Client package only
 cd packages/agent && bun run test   # Agent package only
@@ -185,6 +186,8 @@ cd packages/agent && bun run test:coverage
 cd packages/contracts && bun run test       # Unit tests
 cd packages/contracts && bun run test:fork  # Fork tests (needs RPC URLs)
 ```
+
+The default shared test command is intentionally hermetic. Live RPC coverage is excluded from `bun run test` and only runs through `bun run test:live`.
 
 ## Coverage thresholds
 

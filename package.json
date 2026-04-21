@@ -65,6 +65,7 @@
     "test:admin": "cd packages/admin && bun run test",
     "test:agent": "cd packages/agent && bun run test",
     "test:shared": "cd packages/shared && bun run test",
+    "test:shared:live": "cd packages/shared && bun run test:live",
     "test:indexer": "cd packages/indexer && bun run test",
     "test:contracts": "cd packages/contracts && bun run test",
     "anvil:start": "anvil --fork-url ${SEPOLIA_RPC_URL:-https://ethereum-sepolia.publicnode.com} --port 8545",

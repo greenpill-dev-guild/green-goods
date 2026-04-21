@@ -10,7 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type AnyActorRef, createActor, fromPromise } from "xstate";
 
 import { authMachine, type PasskeySessionResult } from "../../workflows/authMachine";
-import { createMockP256Credential, MOCK_ADDRESSES } from "../test-utils";
+import { createMockP256Credential, flushPromises, MOCK_ADDRESSES } from "../test-utils";
 
 // ============================================================================
 // MOCK SETUP (before imports that use localStorage)
@@ -99,7 +99,7 @@ async function startAndSettle(machine: ReturnType<typeof createTestMachine>): Pr
   actor.start();
 
   // Wait for initialization to complete
-  await new Promise((resolve) => setTimeout(resolve, 10));
+  await flushPromises();
   return actor;
 }
 
@@ -180,7 +180,7 @@ describe("workflows/authMachine", () => {
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
 
       // Wait for registration to complete
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches({ authenticated: "passkey" })).toBe(true);
@@ -195,7 +195,7 @@ describe("workflows/authMachine", () => {
       const actor = await startAndSettle(machine);
 
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.context.smartAccountAddress).toBe(mockSession.smartAccountAddress);
@@ -209,7 +209,7 @@ describe("workflows/authMachine", () => {
       const actor = await startAndSettle(machine);
 
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches("error")).toBe(true);
@@ -249,7 +249,7 @@ describe("workflows/authMachine", () => {
       expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
 
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches({ authenticated: "passkey" })).toBe(true);
@@ -263,7 +263,7 @@ describe("workflows/authMachine", () => {
       const actor = await startAndSettle(machine);
 
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.context.credential).toEqual(mockSession.credential);
@@ -277,7 +277,7 @@ describe("workflows/authMachine", () => {
       const actor = await startAndSettle(machine);
 
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches("error")).toBe(true);
@@ -429,7 +429,7 @@ describe("workflows/authMachine", () => {
 
       // Switch to passkey
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches({ authenticated: "passkey" })).toBe(true);
@@ -454,24 +454,24 @@ describe("workflows/authMachine", () => {
 
       // First attempt
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(actor.getSnapshot().matches("error")).toBe(true);
       expect(actor.getSnapshot().context.retryCount).toBe(1);
 
       // Retry 1
       actor.send({ type: "RETRY" });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
       expect(actor.getSnapshot().context.retryCount).toBe(2);
 
       // Retry 2
       actor.send({ type: "RETRY" });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
       expect(actor.getSnapshot().context.retryCount).toBe(3);
 
       // Retry 3 - should go to unauthenticated (max retries)
       actor.send({ type: "RETRY" });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
     });
@@ -484,7 +484,7 @@ describe("workflows/authMachine", () => {
 
       // Fail registration
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(actor.getSnapshot().matches("error")).toBe(true);
 
@@ -508,13 +508,13 @@ describe("workflows/authMachine", () => {
 
       // Try to authenticate (fails)
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(actor.getSnapshot().matches("error")).toBe(true);
 
       // Try registering instead
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(registerCalled).toBe(true);
       expect(actor.getSnapshot().matches({ authenticated: "passkey" })).toBe(true);
@@ -527,7 +527,7 @@ describe("workflows/authMachine", () => {
       const actor = await startAndSettle(machine);
 
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(actor.getSnapshot().context.error?.message).toBe("Custom error message");
     });
@@ -539,7 +539,7 @@ describe("workflows/authMachine", () => {
       const actor = await startAndSettle(machine);
 
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(actor.getSnapshot().context.error?.message).toBe("String error");
     });
@@ -551,7 +551,7 @@ describe("workflows/authMachine", () => {
       const actor = await startAndSettle(machine);
 
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(actor.getSnapshot().context.error?.message).toBe("Authentication failed");
     });
@@ -604,12 +604,12 @@ describe("workflows/authMachine", () => {
 
       // Create error
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
       expect(actor.getSnapshot().context.error).not.toBeNull();
 
       // Successful registration should clear error
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       expect(actor.getSnapshot().context.error).toBeNull();
     });
@@ -714,7 +714,7 @@ describe("workflows/authMachine", () => {
 
       // Should go through authenticating flow
       // Wait for authentication to complete
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
 
       const snapshot = actor.getSnapshot();
       expect(snapshot.matches({ authenticated: "passkey" })).toBe(true);
@@ -790,7 +790,7 @@ describe("workflows/authMachine", () => {
 
       // Create error state
       actor.send({ type: "LOGIN_PASSKEY_NEW", userName: MOCK_USERNAME });
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await flushPromises();
       expect(actor.getSnapshot().matches("error")).toBe(true);
 
       // Login with embedded

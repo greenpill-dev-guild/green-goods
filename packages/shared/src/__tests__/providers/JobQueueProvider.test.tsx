@@ -324,8 +324,9 @@ describe("providers/JobQueueProvider", () => {
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });
 
-      // Wait a bit to ensure flush wasn't called
-      await new Promise((r) => setTimeout(r, 100));
+      await waitFor(() => {
+        expect(mockJobQueue.getStats).toHaveBeenCalled();
+      });
 
       // Flush should not be called for wallet mode
       expect(mockJobQueue.flush).not.toHaveBeenCalled();
