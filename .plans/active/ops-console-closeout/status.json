@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "ops-console-closeout",
+    "title": "Ops Console Closeout",
+    "kind": "quality",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-04-19",
+    "updated_at": "2026-04-19"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Operational hub consolidating manual-only tails from four near-complete hubs: admin-ui-revamp, github-copilot-rollout, client-z-index-sweep, design-system-enforcement.",
+    "Parent hubs are closable once their agent-doable work lands; rows migrate here only after the parent's agent tail has merged (Decision 4 in plan.todo.md).",
+    "The agent's role on this hub is post-hoc verification via gh api / PostHog API / locale grep — not execution. Human operator (Afo) owns completion.",
+    ".plans/ is durable repo truth; status.json history[] carries each verification probe command + snippet as evidence."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/ops-console-closeout",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "No UI code changes. Chrome MCP spot-checks live in qa_pass_1 instead.",
+      "skill_tags": []
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/ops-console-closeout",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "No data-layer changes. The only repo change originating here is the native es/pt translator pass inside packages/shared/src/i18n/.",
+      "skill_tags": []
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/ops-console-closeout",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": []
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "ready",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "claude/qa-pass-1/ops-console-closeout",
+      "depends_on": [],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Runs after each Afo-completed manual item. Invokes the matching gh api / PostHog / locale probe in the same turn and records the command + output snippet in status.json history[].",
+      "skill_tags": ["review", "testing"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "codex/qa-pass-2/ops-console-closeout",
+      "branch_trigger": "claude/qa-pass-1/ops-console-closeout",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Starts once qa_pass_1 has green-checked every AC. Sweeps each parent hub's plan.todo.md + status.json and confirms migrated rows are struck and cross-linked.",
+      "skill_tags": ["review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-19T00:00:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "created",
+      "branch": null,
+      "note": "Hub created to consolidate manual-only tails from admin-ui-revamp (PostHog dashboards D54, native es/pt translation D56), github-copilot-rollout (rulesets, premium budget, security toggles, 2-week metrics review). client-z-index-sweep and design-system-enforcement have no rows here — their tails are agent-closable via Chrome MCP on the parent hub."
+    }
+  ]
+}

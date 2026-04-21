@@ -3,7 +3,7 @@
 **Feature Slug**: `rwa-yield-expansion`
 **Epic**: [#463](https://github.com/greenpill-dev-guild/green-goods/issues/463)
 **Outcome Milestone**: [Outcome: Octant Vault APY >= 5% sustained](https://github.com/greenpill-dev-guild/green-goods/milestone/13) (#13)
-**Spec**: [docs/superpowers/specs/2026-04-17-rwa-yield-expansion-design.md](../../../docs/superpowers/specs/2026-04-17-rwa-yield-expansion-design.md)
+**Spec**: [spec.md](./spec.md)
 **Status**: `ACTIVE`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-04-17` (initial plan)

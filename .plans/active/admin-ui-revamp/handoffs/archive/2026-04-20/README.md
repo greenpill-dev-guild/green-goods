@@ -8,7 +8,7 @@ Do not re-dispatch them as-is:
 - The baseline preconditions they assume (e.g., "rsynced Day 1 GreenWill test files") no longer hold — those artifacts are in the main tree.
 - All deliverables from these dispatches have been merged; re-running would duplicate or conflict.
 
-For live orchestration, use the operational inputs in the parent directory:
+For live orchestration, use the operational inputs in the `handoffs/` directory two levels up:
 
 - `../../orchestration.md` — phase-agnostic playbook.
 - `../../codex-tasks.md` — long-lived phase-organized task catalog.
@@ -24,4 +24,4 @@ For live orchestration, use the operational inputs in the parent directory:
 | `codex-lane-b-day2-2026-04-20.md` | Day 2 Lane B | GreenWillPanel invalid-address + lookup-error UX + padding ownership cleanup |
 | `codex-lane-c-day2-2026-04-20.md` | Day 2 Lane C | Agent `feedback.test.ts` tracingChannel (dispatched, terminated — blocker unreproducible in main env) |
 
-Sprint board: `../../execution-board-2026-04-20.md`.
+Sprint board: `../../../execution-board-2026-04-20.md`.

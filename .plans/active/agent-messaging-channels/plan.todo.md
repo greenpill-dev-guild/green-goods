@@ -3,7 +3,7 @@
 **Feature Slug**: `agent-messaging-channels`
 **Epic**: [#464](https://github.com/greenpill-dev-guild/green-goods/issues/464)
 **Outcome Milestone**: [Outcome: Agent reachable on 2 non-web channels](https://github.com/greenpill-dev-guild/green-goods/milestone/14) (#14)
-**Spec**: [docs/superpowers/specs/2026-04-17-agent-messaging-channels-design.md](../../../docs/superpowers/specs/2026-04-17-agent-messaging-channels-design.md)
+**Spec**: [spec.md](./spec.md)
 **Status**: `ACTIVE`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-04-17` (initial plan)

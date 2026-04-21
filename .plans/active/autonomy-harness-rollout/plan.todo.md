@@ -80,7 +80,7 @@
   - contracts-side Storacha upload paths are now removed and `packages/contracts` no longer depends on `@storacha/client`
   - root repo Storacha maintenance scripts are now Pinata-only and the root workspace no longer depends on `@storacha/client`
   - `.env.schema` and `env.d.ts` now reflect Pinata-only repo truth without editing the operator-local root `.env`, and `packages/shared/src/modules/data/ipfs/client.ts` no longer carries the retired `VITE_STORACHA_GATEWAY` fallback
-  - remaining Storacha work is now limited to historical changelog / reporting surfaces plus the deliberate negative regression string in the shared IPFS env test, rather than any active harness control surface
+  - source docs/reporting copy and the shared IPFS regression test no longer use Storacha-specific strings; remaining Storacha mentions are now limited to operator-local `.env` residue plus historical/internal audit records outside the live control surface
   - direct `ipfs:repin:audit` smoke validation now completes after removing nested `varlock/auto-load` from `scripts/repin-ipfs-media.ts`
 
 ### Harness contract
@@ -228,6 +228,7 @@
 - [x] `bun scripts/upload-action-images.ts --dry-run`
 - [x] `bun install` updated the workspace lockfile after removing root `@storacha/client`
 - [x] `bun run ipfs:repin:audit -- --chain 42161 --include input --input /dev/null --out /tmp/ipfs-repin-audit-codex.json` completes after removing nested `varlock/auto-load` from `scripts/repin-ipfs-media.ts`
+- [x] `bun run docs:audit` after removing the stale Storacha references from source docs/reporting copy
 - [x] `node scripts/ci-local.js --quick` now passes end to end after clearing the unrelated format drift in `.plans/backlog/harness-hardening-wave-1/status.json`
 - [x] `packages/admin` default `bun run test` exits cleanly with the package-contract exclusions for legacy `src/__tests__/views/**` and `src/__tests__/components/assessment/StrategyKernelStep.test.tsx`
 - [x] `node scripts/log-automation-run.mjs --feature autonomy-harness-rollout --loop state_api --metric-name route_truth --metric-before 1 --metric-after 0 --tests-passed true --warning-count-before 0 --warning-count-after 0 --decision keep --notes "dry-run validation" --dry-run`

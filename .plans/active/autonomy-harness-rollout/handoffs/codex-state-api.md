@@ -40,15 +40,16 @@ In progress.
 - Removed the root Storacha repo-script path by converting `scripts/lib/ipfs-hybrid.ts`, `scripts/upload-action-images.ts`, and `scripts/repin-ipfs-media.ts` to Pinata-only flows, then dropping root `@storacha/client` from `package.json`.
 - Fixed the remaining script-surface TypeScript objection in `scripts/lib/ipfs-hybrid.ts` by copying upload bytes into a plain `ArrayBuffer` before constructing the `Blob`, so the Bun scripts now pass a targeted `tsc` probe under bundler-style module resolution.
 - Aligned `.env.schema` and the generated `env.d.ts` to Pinata-only repo truth without editing the operator-local root `.env`, so the repo-owned env contract no longer advertises Storacha keys.
-- Removed the retired `VITE_STORACHA_GATEWAY` fallback from `packages/shared/src/modules/data/ipfs/client.ts` and added focused shared IPFS tests for Vite-prefixed Pinata env plus the retired-alias negative case.
+- Removed the retired `VITE_STORACHA_GATEWAY` fallback from `packages/shared/src/modules/data/ipfs/client.ts`, then generalized the remaining shared IPFS regression to a behavior-based unknown-legacy-key assertion so tracked test code no longer carries Storacha-specific strings.
 - Fixed the repin wrapper smoke by removing nested `varlock/auto-load` from `scripts/repin-ipfs-media.ts`, then verified `bun run ipfs:repin:audit -- --chain 42161 --include input --input /dev/null --out /tmp/ipfs-repin-audit-codex.json` completes.
+- Removed the remaining source-doc Storacha references from the changelog and NLnet grant reporting copy so live source docs now match the Pinata-backed harness.
 
 ## Remaining
 
-1. Cull the remaining historical Storacha references from changelog / reporting surfaces when that bounded docs loop is chosen; keep the negative shared IPFS regression string unless the retired-alias behavior contract changes.
-2. Decide whether the excluded legacy admin view-heavy surface needs a dedicated hardening loop or should remain outside the default gate until a dedicated view runner exists.
-3. Continue cleanup only on bounded dead-infrastructure surfaces.
-4. Keep full-view parity review as a deletion precondition for dormant admin surfaces.
+1. Decide whether the excluded legacy admin view-heavy surface needs a dedicated hardening loop or should remain outside the default gate until a dedicated view runner exists.
+2. Continue cleanup only on bounded dead-infrastructure surfaces.
+3. Keep full-view parity review as a deletion precondition for dormant admin surfaces.
+4. Leave operator-local `.env` residue and historical/internal audit records alone unless a later loop explicitly scopes those non-control-surface artifacts.
 
 ## Validation Run
 
@@ -77,6 +78,7 @@ In progress.
 - `bun run test -- src/__tests__/components/Primitives.test.tsx src/__tests__/components/MainSheet.test.tsx src/__tests__/hooks/auth/usePrimaryAddress.test.ts` in `packages/shared` (`19` tests, without the Lit dev-mode banner)
 - `bun run test -- src/__tests__/modules/ipfs.module.test.ts` in `packages/shared` (`8` tests) after the Pinata-only IPFS cutover and legacy-gateway retirement
 - `bun run typecheck` in `packages/shared` after removing the retired `VITE_STORACHA_GATEWAY` fallback from `packages/shared/src/modules/data/ipfs/client.ts`
+- `bun run docs:audit` after removing the stale Storacha references from source docs/reporting copy
 - `bun run typecheck` in `packages/agent` after deleting `src/services/media.ts`
 - `bun install` after removing `@storacha/client` from `packages/shared` and `packages/agent`
 - `bunx tsc --noEmit -p packages/contracts/tsconfig.json` after removing the contracts-side Storacha upload path

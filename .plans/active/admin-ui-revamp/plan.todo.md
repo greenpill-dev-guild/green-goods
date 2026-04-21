@@ -204,7 +204,7 @@ Routes consolidated, redirects live, command palette updated.
 - [x] Dead code cleanup (partial — `/clean` pass 2026-04-16)
 - [x] Wire deployer sections in AccountSurface — completed differently than planned: AccountProfilePanel shows deployer role label; deployer-only CRUD (`/garden/create`, `/actions/create`, `/actions/:id/edit`) is guarded by `RequireRole` route wrappers. Original "deployer tools panel" idea obsolete after 2026-04-16 Deployment view retirement.
 - [x] Decompose Deployment view into AccountSurface sub-sections (D52) — n/a after the 2026-04-16 `/clean` pass removed the Deployment view (commit 56076023).
-- [ ] i18n formalization — English keys exist inline but not in structured locale files
+- [x] i18n formalization — **Closed 2026-04-19.** Sweep found admin Phase 2/3 components (CommandPalette, EmptyStateShell, GardenChip, CanvasGardenAccessState, SheetErrorBoundary, AccountSurface) already formalized with `app.admin.*` / `app.common.*` / `cockpit.*` keys present in all three locale files. Remaining inline strings lived in `packages/admin/src/components/RouteErrorBoundary.tsx` (3 error scenarios × title/description/action plus the "Technical Details" summary = 11 strings). Added `app.error.route.*` keys to `en.json` / `es.json` / `pt.json` (English fallbacks per D56) and refactored `RouteErrorBoundary.tsx` to use `useIntl().formatMessage`. Validation: locale-coverage test exit 0, admin lint exit 0, admin typecheck exit 0.
 
 ### Phase 2: Cockpit Intelligence — IN PROGRESS (~70%)
 
@@ -231,7 +231,7 @@ Core state management and transitions done. Mobile polish and promotions remaini
 - [x] Promote getDepositLimitLabel to shared utils (already in `shared/utils/blockchain/vaults.ts`)
 - [x] Bundle size verification — admin builds clean, VaultPositionCard tree-shaken out of admin bundle; client has no promoted-export imports yet (Phase 3)
 - [x] Accessibility audit — AdminDialog close label i18n'd (`app.common.close`); Canvas sheets (RightSheet, LeftSheet, BottomSheet) use native `<dialog>` providing focus trap + Escape; icon-only buttons (AppBar, NavigationBar, AdminSearchToolbar, AdminDialog, DialogShell, ConfirmDialog) all aria-labelled
-- [ ] i18n formalization (~15 strings for empty states, toasts, palette labels)
+- [x] i18n formalization — **Closed 2026-04-19**, see Phase 1b note above. Empty states / toasts / palette labels were already keyed (cockpit.*, app.admin.*, app.common.*); the outstanding set was in `RouteErrorBoundary.tsx` (11 strings added under `app.error.route.*`).
 
 ### Phase 3: Public Platform (greengoods.app) — COMPLETE (2026-04-17)
 
@@ -278,10 +278,10 @@ Extended `packages/client` with public routes (no new package). PublicShell layo
 
 ## Manual / Human Tasks
 
-- [ ] **PostHog dashboard updates:** Update dashboards/funnels for new route paths (D54).
-- [ ] **i18n translation pass:** Review and translate es/pt locale files after each phase (D56).
+- [ ] **PostHog dashboard updates:** Update dashboards/funnels for new route paths (D54). **Migrated 2026-04-19 → `.plans/active/ops-console-closeout` Section 2.**
+- [ ] **i18n translation pass:** Review and translate es/pt locale files after each phase (D56). **Migrated 2026-04-19 → `.plans/active/ops-console-closeout` Section 3** (gated on agent-side en.json formalization, which is scheduled for the 2026-04-22 ship-sprint Wednesday Codex lane per `execution-board-2026-04-20.md`).
 - [x] ~~**Audit prerequisite H1:**~~ OCTANT_VAULT_ABI export — fixed.
-- [ ] **Audit prerequisite H2:** Update stale test assertions in ReviewStep/TeamStep (D51).
+- [x] **Audit prerequisite H2:** Update stale test assertions in ReviewStep/TeamStep (D51). **Resolved 2026-04-19:** both `src/__tests__/components/Garden/ReviewStep.test.tsx` and `src/__tests__/components/Garden/TeamStep.test.tsx` pass in the default admin `bun run test` gate (exit 0). Assertions were refreshed in an earlier sweep; the row was stale relative to current test state.
 
 ## Deferred (Future)
 

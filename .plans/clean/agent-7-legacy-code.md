@@ -55,7 +55,7 @@ Files:
 Zero runtime reads of `import.meta.env.VITE_ENABLE_RPC_BG_SYNC` in any package. Type-only carcass from a feature that never landed (or was ripped). Safe to delete all three lines. (Compare to `VITE_ENABLE_SW_DEV` which is actively read in `service-worker.ts` and `useServiceWorkerUpdate.ts`.)
 
 ### 2.5 `describe.skip` blocks with permanently-stale predicates
-- `packages/shared/src/__tests__/utils/contracts.greenwill.test.ts:10` — `describe.skip("utils/blockchain/contracts GreenWill surface", …)` predicated on "when ABIs and addresses are exported". `GreenWillRegistryABI` and `GreenWillSupportRouterABI` exist in `contracts.ts`, but `GreenWillUnlockModuleABI` and `getNetworkContracts(chainId).greenWill*` fields don't. The describe predicate will never flip true without new contract surface.
+- `packages/shared/src/__tests__/utils/contracts.greenwill.test.ts:10` — historical note from the pre-rename surface. The live shared export is now `GreenWillABI`, and `getNetworkContracts(chainId).greenWill` is the current address field.
 - `packages/shared/src/__tests__/hooks/greenwill/useGreenWillHooks.test.tsx:91` — same pattern. The hooks (`useGreenWillBadges`, `useGreenWillBadgeDefinitions`, `useGreenWillRecentGrants`, `useGreenWillSupportDeposit`) DO exist, so this skip is even staler.
 - `packages/admin/src/__tests__/components/MembersModal.test.tsx:103,214,222` — three `it.skip` on backdrop-click and body-scroll behavior. No predicate, no issue link. Stale.
 

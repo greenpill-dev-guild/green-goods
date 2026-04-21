@@ -3,7 +3,7 @@
 **Feature Slug**: `external-data-partnerships`
 **Epic**: [#465](https://github.com/greenpill-dev-guild/green-goods/issues/465)
 **Outcome Milestone**: [Outcome: 2 external data partners indexed](https://github.com/greenpill-dev-guild/green-goods/milestone/15) (#15)
-**Spec**: [docs/superpowers/specs/2026-04-17-external-data-partnerships-design.md](../../../docs/superpowers/specs/2026-04-17-external-data-partnerships-design.md)
+**Spec**: [spec.md](./spec.md)
 **Status**: `ACTIVE`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-04-17` (initial plan)

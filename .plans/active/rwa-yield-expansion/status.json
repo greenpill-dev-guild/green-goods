@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "rwa-yield-expansion",
+    "title": "RWA Yield Expansion (Conservative + Balanced presets)",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p0",
+    "created_at": "2026-04-17",
+    "updated_at": "2026-04-19"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Outcome milestone #13 — Octant Vault APY >= 5% sustained 30 days; due 2026-06-30.",
+    "Epic #463. Hard deadline: contract freeze 2026-05-30; mainnet deploy 2026-06-30.",
+    "Policy layer ONLY — MultistrategyVault + YieldResolver are untouched in Q2 (decision 1). This preserves Octant audit heritage.",
+    "Presets are immutable; new ID per version (decision 7). 48h timelock on operator-initiated preset switches (decision 8).",
+    "Audit engagement bundled with SessionKeyValidator.sol from agent-messaging-channels (one audit firm, one contract freeze).",
+    "Mutation test target on RebalancePolicy: 95%+ (stretch 99%, decision 12). This is a p0 quality bar.",
+    "Aggressive preset deferred to Q3 (decision 4). Auto-migrate existing vaults to Conservative on upgrade (decision 6).",
+    "Emergency withdraw only after 14 days of vault pause (decision 10)."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/rwa-yield-expansion",
+      "depends_on": ["state_api", "contracts"],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Admin PresetPicker (48h timelock countdown + cancel) + VaultPositionCard wiring for buffer %, queued withdrawal, preset badge. bun run lint:vocab on all copy (no leaderboard / FOMO / growth-hacking language).",
+      "skill_tags": ["ui", "react", "web3"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/rwa-yield-expansion",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "Extend useVaultOperations + add useVaultPreset in @green-goods/shared. Hats V2 role wiring (PRESET_ADMIN / OPERATOR / PAUSER) via existing admin surfaces.",
+      "skill_tags": ["react", "tanstack-query", "data-layer", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/contracts/rwa-yield-expansion",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "PresetRegistry (UUPS) + RedemptionQueue + RebalancePolicy (pure library) + Morpho Metamorpho + Ondo USDY strategy adapters. Mutation score >=95% on RebalancePolicy (stretch 99%). Audit-bundled with SessionKeyValidator; contract freeze 2026-05-30. Upgrade path auto-migrates existing vault to Conservative in single atomic tx.",
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "claude/qa-pass-1/rwa-yield-expansion",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Blocked on audit report delivery. Storybook + Chrome MCP spot-check of preset picker + queued-withdrawal UX; lint:vocab on yield copy; audit report archived to artifacts/.",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "codex/qa-pass-2/rwa-yield-expansion",
+      "branch_trigger": "claude/qa-pass-1/rwa-yield-expansion",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Runs only after audit is green. Re-run mainnet-fork invariants + Gelato keeper dry-run + confirm RebalancePolicy mutation score >=95%. Snapshot mainnet APY at deploy + 30 days for AC-9 evidence before closing outcome milestone #13.",
+      "skill_tags": ["testing", "review", "contracts"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-17T00:00:00Z",
+      "actor": "afo",
+      "lane": "system",
+      "status": "created",
+      "branch": null,
+      "note": "Hub created from superpowers spec + plan. Epic #463; outcome milestone #13. 12 decisions locked: policy-layer-on-top approach, Conservative + Balanced Q2 scope, immutable presets, on-flow + Gelato rebalance, 48h switch timelock, 14-day emergency-withdraw gate, external audit before 2026-05-30 contract freeze, 95%+ mutation score on RebalancePolicy."
+    },
+    {
+      "timestamp": "2026-04-19T00:00:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "brief.md + eval.md + status.json scaffolded; spec.md migrated from docs/superpowers/specs/ (legacy folder deleted). plan.todo.md spec link rewired to ./spec.md. Audit engagement bundled with agent-messaging-channels SessionKeyValidator. plan-hub.mjs validate green."
+    }
+  ]
+}

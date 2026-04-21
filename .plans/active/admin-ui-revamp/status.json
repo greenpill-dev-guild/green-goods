@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "repo_backed_complete_pending_manual_console",
     "priority": "p1",
     "created_at": "2026-03-26",
-    "updated_at": "2026-04-12T02:12:11Z"
+    "updated_at": "2026-04-19T19:00:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -22,7 +22,10 @@
     "Phase 1 (cockpit shell) can start immediately — no contract changes needed.",
     "Phase 3 (public platform) depends on shared component promotion (early Phase 2).",
     "Govern renamed to Community (RiTeamLine icon). 60 decisions logged.",
-    "Spatial/circular layouts deferred to future iteration."
+    "Spatial/circular layouts deferred to future iteration.",
+    "Current sprint orchestration lives in execution-board-2026-04-20.md; brief/spec/plan.todo remain the architecture source.",
+    "For the 2026-04-20 admin ship sprint, GreenWill is live-data only and bugs #385/#428/#431 are triage-only.",
+    "GreenWill Arbitrum broadcast is blocked on a contracts confidence gate: unit upgrade coverage, a workflow test, and an Arbitrum fork support-flow test."
   ],
   "lanes": {
     "ui": {
@@ -129,6 +132,26 @@
       "date": "2026-03-27",
       "event": "plan_review_corrections",
       "details": "Independent plan review found 1 critical, 2 high, 3 medium issues. C1: useAdminStore already exists in packages/shared/src/stores/useAdminStore.ts (D46 said it didn't) — all references updated to 'extend existing', store location corrected (shared not admin), selectedGarden typed as Garden object not Address. H1: interface contract added — ui lane reads selectedGarden?.id for scope. H2: brief corrected from '3 new hooks/stores' to '2 new + 1 extended'. M2: eval regression criterion added for 5 existing useAdminStore consumers. M3: eval criterion added for createBaseListHook factory blast radius. status.json decision count corrected (49→60)."
+    },
+    {
+      "date": "2026-04-19",
+      "event": "sprint_board_reframed",
+      "details": "execution-board-2026-04-20.md was rewritten as a sprint-specific orchestration artifact instead of a second master plan. The saved board now fixes lane ownership conflicts, removes the feedback_browser_vs_pwa reference and the prior new badge-shelf requirement, keeps GreenWill on live-data-only existing surfaces, and limits bugs #385/#428/#431 to triage scope."
+    },
+    {
+      "date": "2026-04-19",
+      "event": "manual_tasks_migrated",
+      "details": "PostHog dashboard updates (D54) and es/pt translation pass (D56) migrated to .plans/active/ops-console-closeout (Sections 2 and 3). Audit prerequisite H2 (ReviewStep/TeamStep stale test assertions, D51) closed — both suites pass in the default admin `bun run test` gate (exit 0 verified 2026-04-19)."
+    },
+    {
+      "date": "2026-04-19",
+      "event": "i18n_formalization_closed",
+      "details": "Sweep confirmed admin Phase 2/3 surfaces (CommandPalette, EmptyStateShell, GardenChip, CanvasGardenAccessState, SheetErrorBoundary, AccountSurface) already keyed against all three locales. The outstanding inline strings lived in `packages/admin/src/components/RouteErrorBoundary.tsx` — 11 strings covering the three error scenarios (chunk/network/generic) and the `Technical Details` summary. Added `app.error.route.*` keys to en.json / es.json / pt.json (English fallbacks per D56) and refactored RouteErrorBoundary to use `useIntl().formatMessage`. Validation: locale-coverage test, admin lint, admin typecheck, full admin test suite all exit 0. Agent-doable tail now fully closed; remaining work is all human-operator (PostHog + native translators) and lives in ops-console-closeout."
+    },
+    {
+      "date": "2026-04-19",
+      "event": "greenwill_contract_gate_added",
+      "details": "Sprint orchestration and reputation-badging Phase 0 now explicitly block GreenWill broadcast on contracts confidence: upgrade-preservation unit coverage, GreenWill workflow integration coverage, and an Arbitrum fork support-flow test."
     }
   ]
 }

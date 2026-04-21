@@ -177,16 +177,15 @@ Scope:
    - transferrable=false
    - expirations per readiness note (active-contributor=1y, garden-operator=0,
      others=lifetime)
-   - Greenwill issuer address set as lock manager + key granter
+   - default lock managers sourced from `deploymentDefaults.badgeLockManagers`
 2. Register one shared `GreenGoodsBadge` EAS schema per reputation-badging D11
    (distinguish per badge by the `badgeType` field, not per-badge schema UID).
    Schema string: `string badgeType, address recipient, uint40 earnedAt,
    string evidenceUri, uint8 tier`. Resolver `0x0`, `revocable=true`.
 3. Record addresses in `packages/contracts/deployments/42161-latest.json` using the
    repo-true deployment-file convention:
-   - lock address persistence shape per readiness artifact pre-broadcast blocker 2
-     (either flat `greenWillLock*` keys or a grouped `greenWillLocks` object — the
-     writer in the broadcast path resolves this when the Unlock factory address lands)
+   - `unlock.factory`, `unlock.publicLockVersion`, `unlock.managerDefaults`, and
+     `unlock.locks.{verifiedGardener,activeContributor,stewardship,gardenOperator,communityBuilder,impactVerified}`
    - `schemas.greenGoodsBadgeSchemaUID` for the shared schema UID, with sibling
      `schemas.greenGoodsBadgeSchema`, `schemas.greenGoodsBadgeName`, and
      `schemas.greenGoodsBadgeDescription` — mirroring the existing

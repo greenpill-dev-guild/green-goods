@@ -1,5 +1,21 @@
 # Admin UI Revamp Evaluation Criteria
 
+## Sprint Gate — Admin Ship Sprint (2026-04-20 to 2026-04-22)
+
+- [ ] The active sprint artifact is `execution-board-2026-04-20.md`; `brief.md`, `spec.md`, and `plan.todo.md` remain the long-lived architecture source.
+- [ ] Shared canvas motion is simplified: static overlay blur + opacity fade, and `MainSheet` recession uses translate + opacity only.
+- [ ] Padding ownership is applied consistently to `/hub`, `/garden`, `/community`, and `/actions`, with no nested default-padded `Surface` stacks left in the composed route shells.
+- [ ] Story coverage for touched admin layout shells and shared visual canvas components is added and `cd packages/shared && bun run build-storybook` passes.
+- [ ] `cd packages/shared && bun run check:stories` is reviewed during the sprint; any remaining failures are explicitly limited to non-visual exclusions or intentionally deferred untouched components.
+- [ ] `/hub`, `/garden`, `/community`, and `/actions` pass a connected, disconnected, empty, loading, error, and permission-state sweep.
+- [ ] `GreenWill` remains live-data only on `packages/admin/src/views/Actions/GreenWillPanel.tsx` and `packages/client/src/views/Profile/Badges.tsx`.
+- [ ] Bugs `#385`, `#428`, and `#431` have triage notes with suspected files, complexity, and ownership-collision assessment.
+- [ ] `cd packages/admin && bun run test:all`
+- [ ] `cd packages/admin && bun run build`
+- [ ] `node scripts/ci-local.js --quick`
+- [ ] `bun run check:design-tokens`
+- [ ] `bun run lint:vocab`
+
 ## Acceptance Criteria
 
 ### Phase 1a: Shell Foundation

@@ -414,8 +414,15 @@ Only replace section-level and content-level gaps, not within-card micro-spacing
 
 ## Validation
 
-- [ ] `bun format && bun lint`
-- [ ] `bun run test`
-- [ ] `VITE_CHAIN_ID=11155111 bun run build`
+- [x] `bun --cwd packages/shared run lint` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/admin run lint` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/client run lint` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/shared run test` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/admin run test` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/client run test` — exit 0 (2026-04-19)
+- [x] `VITE_CHAIN_ID=11155111 bun --cwd packages/client run build` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/shared run check:design-tokens` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/admin run lint:vocab` — exit 0 (2026-04-19)
+- [ ] `VITE_CHAIN_ID=11155111 bun --cwd packages/admin run build` — **env-gated by varlock / 1Password** (see autonomy-harness-rollout blocker list); not agent-runnable until varlock bootstrap is repaired.
 - [x] Storybook: Surface variants ✅ (pre-existing), **DialogShell sizes** (md/lg/xl/2xl) ✅ (2026-04-17), **glass effects** (ground/raised/floating/overlay/surface + dark mode) ✅ (2026-04-17 `Surface/Glass.stories.tsx`), **13 Admin\* components** ✅ (2026-04-17 all 13 `Admin*.stories.tsx` in `packages/admin/src/components/`)
-- [ ] Manual: admin dashboard at 375px (mobile), 768px (tablet), 1024px (desktop), 1440px (wide)
+- [ ] Manual: admin dashboard at 375px (mobile), 768px (tablet), 1024px (desktop), 1440px (wide) — **live-browser sweep migrated to `.plans/active/ops-console-closeout` Section 5** (code evidence accepted: design-tokens pass + all lint/test gates green).

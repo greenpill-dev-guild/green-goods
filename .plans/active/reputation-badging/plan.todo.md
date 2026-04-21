@@ -3,7 +3,7 @@
 **Feature Slug**: `reputation-badging`
 **Epic**: [#466](https://github.com/greenpill-dev-guild/green-goods/issues/466)
 **Outcome Milestone**: [Outcome: Badges live across 3+ pilot gardens](https://github.com/greenpill-dev-guild/green-goods/milestone/16) (#16)
-**Spec**: [docs/superpowers/specs/2026-04-17-reputation-badging-design.md](../../../docs/superpowers/specs/2026-04-17-reputation-badging-design.md)
+**Spec**: [spec.md](./spec.md)
 **Groundwork Issue**: [#457 — feat(greenwill): async badge issuer service](https://github.com/greenpill-dev-guild/green-goods/issues/457)
 **Status**: `ACTIVE`
 **Created**: `2026-04-17`
@@ -25,7 +25,7 @@
 | 6 | Soulbound (non-transferable) Unlock locks | Reputation must be non-tradeable; configured at lock creation (Unlock supports `transferrable=false`). |
 | 7 | Green Goods trusted attester address writes EAS attestations | Single canonical attester simplifies sibling-project trust model; key held by Greenwill service, rotatable via deployment artifact. |
 | 8 | Portability = ship issuance side only | EAS is universal by design; Unlock keys are ERC-721. Sibling-project recognition is demo-level in Q2; may slip to Q3 (risk #3 in spec). |
-| 9 | 6 lock addresses + 6 EAS schema UIDs recorded in `deployments/{chainId}-latest.json` | Canonical source for sibling projects; matches repo convention. |
+| 9 | 6 lock addresses + 1 shared `GreenGoodsBadge` schema UID recorded in `deployments/{chainId}-latest.json` | Canonical source for sibling projects; matches repo convention. |
 | 10 | Indexer stays out of EAS/Unlock — admin queries EAS directly via `useBadges` | Respects CLAUDE.md indexer boundary; EAS has public GraphQL API. |
 | 11 | `BadgeDefinition` registry at `packages/agent/src/badges/_registry.ts` | Underscore prefix = internal; evaluators imported and registered explicitly (no dynamic glob). |
 
@@ -34,7 +34,7 @@
 | Spec Requirement | Planned Phase · Task | Status |
 |---|---|---|
 | Deploy 6 soulbound Unlock locks on Arbitrum | 0.2 | ⬜ |
-| Register 6 EAS schemas (`GreenGoodsBadge` shape) | 0.3 | ⬜ |
+| Register 1 shared EAS schema (`GreenGoodsBadge` shape; badge-specific meaning lives in `badgeType`) | 0.3 | ⬜ |
 | `BadgeDefinition` interface + `_registry.ts` | 1.1 | ⬜ |
 | `greenwillIssuer.ts` main loop (builds on #457) | 1.2 | ⬜ |
 | Envio GraphQL subscription wiring | 1.3 | ⬜ |
@@ -79,6 +79,22 @@
 - [ ] Create `packages/agent/src/services/` (verify exists) and reserve `greenwillIssuer.ts`, `unlockClient.ts`, `easBadgeWriter.ts` slots
 - [ ] Commit scaffolding: `feat(agent): scaffold reputation-badging module dirs`
 
+### 0.1a Contract confidence gate
+
+**Files:**
+- Modify: `packages/contracts/test/unit/GreenWill.t.sol`
+- Create: `packages/contracts/test/integration/GreenWillWorkflow.t.sol`
+- Create: `packages/contracts/test/fork/ArbitrumGreenWillSupport.t.sol`
+
+- [ ] Add upgrade-preservation coverage for `GreenWill`
+- [ ] Add one workflow test covering genesis claim, first-work claim, and first-support issuance in a single contracts path
+- [ ] Add one Arbitrum fork test that routes live WETH support through an Octant vault and asserts `FIRST_SUPPORT` issuance
+- [ ] Broadcast is blocked until these pass:
+  - `cd packages/contracts && bun run test:match 'test/unit/GreenWill*.t.sol'`
+  - `cd packages/contracts && bun run test:match 'test/integration/GreenWillWorkflow.t.sol'`
+  - `cd packages/contracts && FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumGreenWillSupport.t.sol'`
+- [ ] Commit: `test(contracts): add GreenWill deployment confidence coverage`
+
 ### 0.2 Deploy 6 Unlock locks on Arbitrum
 
 **Files:**
@@ -89,19 +105,18 @@
 - [ ] Expirations: `active-contributor`=1y, `garden-operator`=0 (manager-revoked), others=0 (lifetime)
 - [ ] Set Greenwill issuer address as lock manager + key granter
 - [ ] Dry-run first; broadcast second
-- [ ] Record 6 lock addresses under `unlock.locks.<badgeId>` in `packages/contracts/deployments/42161-latest.json`
+- [ ] Record 6 lock addresses under `unlock.locks.<camelCaseKey>` in `packages/contracts/deployments/42161-latest.json`, where `<camelCaseKey>` is one of `verifiedGardener`, `activeContributor`, `stewardship`, `gardenOperator`, `communityBuilder`, `impactVerified`. Each entry holds `{ badgeId, address, name, expirationDuration, transferrable }`.
 - [ ] Commit: `feat(contracts): deploy 6 soulbound Unlock locks for reputation badges`
 
-### 0.3 Register 6 EAS schemas
+### 0.3 Register shared EAS schema
 
 **Files:**
 - Create: `packages/contracts/script/register-badge-schemas.ts`
 
 - [ ] Define schema string: `string badgeType, address recipient, uint40 earnedAt, string evidenceUri, uint8 tier`
 - [ ] Register 1 shared `GreenGoodsBadge` schema via EAS SchemaRegistry (resolver=0, revocable=true)
-- [ ] Per-badge schema UIDs derived from same shape — record all 6 under `eas.schemas.<badgeId>` (same UID shared if all badges use same shape; spec permits per-badge UID — decide locked: share 1 UID, distinguish by `badgeType` field to minimize schema sprawl)
-- [ ] Update decision log if schema-sharing confirmed (amend Decision 11 note)
-- [ ] Record UID(s) in `packages/contracts/deployments/42161-latest.json` under `eas.schemas.greenGoodsBadge`
+- [ ] Distinguish badges by `badgeType` inside the attestation payload rather than per-badge schema UIDs
+- [ ] Record the shared schema UID in `packages/contracts/deployments/42161-latest.json` under `schemas.greenGoodsBadgeSchemaUID` with sibling `schemas.greenGoodsBadgeSchema`, `schemas.greenGoodsBadgeName`, and `schemas.greenGoodsBadgeDescription`
 - [ ] Commit: `feat(contracts): register EAS schema for reputation badges`
 
 ### 0.4 Dependency check

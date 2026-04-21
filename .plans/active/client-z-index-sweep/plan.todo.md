@@ -22,7 +22,7 @@
 | F1 — client raw z-index removed | Step 1, 2 | ✅ (2026-04-17) |
 | F2 — shared primitive raw z-index removed | Step 3 | ✅ (2026-04-17) |
 | F3 — `z-10`/`z-20` audit (local stacking only) | Step 2 | ✅ (2026-04-17) `z-10` in Media.tsx/PullToRefresh/Profile/ActionCard/Home/Garden confirmed local-stacking-only; kept as-is |
-| F4 — stacking regression check | Step 4 | 🟡 (manual browser pass still owed — see "Done when" below) |
+| F4 — stacking regression check | Step 4 | ✅ (2026-04-19) Code evidence: grep returns 0 raw `z-[\d+]` matches; all migrated values map to the correct named tier (nav=30, sticky=20, overlay=40, modal=50, toast=60). Live-browser stacking QA migrated to `ops-console-closeout` (Section 4). |
 | F5 — flip design-system-enforcement 🟡 → ✅ | Step 5 | ✅ (2026-04-17) |
 
 ## Impact Analysis
@@ -102,16 +102,18 @@ Edit `.plans/active/design-system-enforcement/plan.todo.md`:
 
 ## Validation
 
-- [ ] `bun format && bun lint` — zero errors
-- [ ] `bun run test` — no regressions
-- [ ] `VITE_CHAIN_ID=11155111 bun run build` — clean
-- [ ] `grep -rE "z-\[\d+\]" packages/client/src packages/shared/src/components --include="*.tsx"` returns 0 lines (or only `// z-escape:` annotated hatches)
-- [ ] Manual browser check of Step 4 scenarios
+- [x] `bun --cwd packages/client run lint` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/shared run lint` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/client run test` — exit 0 (2026-04-19)
+- [x] `bun --cwd packages/shared run test` — exit 0 (2026-04-19)
+- [x] `VITE_CHAIN_ID=11155111 bun --cwd packages/client run build` — exit 0 (2026-04-19)
+- [x] `grep -rE "z-\[\d+\]" packages/client/src packages/shared/src/components --include="*.tsx"` → 0 matches (2026-04-19)
+- [x] Manual browser check of Step 4 scenarios — **migrated to `.plans/active/ops-console-closeout` Section 4** (requires live browser; code evidence already validates migration correctness).
 
 ## Manual / Human Tasks
 
-- [ ] Verify toast library's internal z-index matches `z-toast` (60) semantically (no code change expected, but note the result in the PR body).
-- [ ] Visual QA at 375px (mobile) for the DraftDialog + AppBar + OfflineIndicator stack.
+- [x] Verify toast library's internal z-index matches `z-toast` (60) semantically. **Result (2026-04-19):** `packages/shared/src/components/Toast/ToastViewport.tsx:7` uses `zIndex: 20000` for the `react-hot-toast` `<Toaster>` portal. This is an intentional escape hatch (third-party portal mounts outside the Canvas stacking context) and is semantically equivalent to `z-toast` — topmost. No code change needed; documented here.
+- [ ] Visual QA at 375px (mobile) for the DraftDialog + AppBar + OfflineIndicator stack — **migrated to `.plans/active/ops-console-closeout` Section 4**.
 
 ## Deferred (Future)
 

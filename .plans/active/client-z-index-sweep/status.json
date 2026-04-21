@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "repo_backed_complete_pending_manual_qa",
     "priority": "p2",
     "created_at": "2026-04-17",
-    "updated_at": "2026-04-18T20:30:00Z"
+    "updated_at": "2026-04-19T00:00:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,11 +26,11 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "branch": "claude/ui/client-z-index-sweep",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Single-lane sweep with manual browser stacking verification still outstanding.",
+      "handoff_note": "Code migration merged 2026-04-17. Validation ladder green 2026-04-19 (lint/test/build across client+shared, grep returns 0 raw z-[n] literals, toast portal escape hatch documented). Live-browser stacking QA migrated to ops-console-closeout Section 4.",
       "skill_tags": ["ui", "react"],
       "manual_blocked": false
     },
@@ -79,6 +79,16 @@
       "date": "2026-04-17",
       "event": "created",
       "details": "Scoped as spin-off from design-system-enforcement Step 4 deferral. ~12 files identified (9 client + 3-4 shared). Single atomic PR recommended per Decision 1."
+    },
+    {
+      "date": "2026-04-17",
+      "event": "code_migration_merged",
+      "details": "All 13 files migrated (ModalDrawer, DraftDialog, Gardeners, TopNav, SiteHeader, Hero, AppBar, WorkDashboard, Work, OfflineIndicator; ImagePreviewDialog, WorkCard fullscreen, SyncStatusBar, Select). Raw z-[n] literals removed from client and shared. F1/F2/F3/F5 closed."
+    },
+    {
+      "date": "2026-04-19",
+      "event": "validation_ladder_green",
+      "details": "grep returns 0 raw z-[n] matches in packages/client/src and packages/shared/src/components. `bun run lint` exit 0 (client + shared). `bun run test` exit 0 (client + shared). `VITE_CHAIN_ID=11155111 bun --cwd packages/client run build` exit 0. Toast escape hatch documented: ToastViewport.tsx:7 uses zIndex: 20000 for react-hot-toast portal (semantically topmost — intentional). F4 code evidence accepted; live-browser stacking QA + mobile 375px visual migrated to ops-console-closeout Section 4 (Decision 4 satisfied — agent-doable tail landed before migration)."
     }
   ]
 }

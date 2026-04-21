@@ -52,7 +52,7 @@ Outcome metric: 6 badge types deployed, active in 3+ pilot gardens, with cross-p
 
 ┌─ packages/contracts ─────────────────────────────────────────────┐
 │  deployments/{chainId}-latest.json — add 6 Unlock lock addrs     │
-│  deployments/{chainId}-latest.json — add 6 EAS schema UIDs       │
+│  deployments/{chainId}-latest.json — add 1 shared EAS schema UID │
 │  (actual locks deployed via Unlock factory — no custom contract) │
 └──────────────────────────────────────────────────────────────────┘
 
@@ -181,7 +181,7 @@ Same `BadgeShelf` component — client is read-only display. Gardener sees their
 |---|---|
 | Unit | Each `evaluate()` function with mocked Envio data |
 | Integration | `greenwillIssuer.ts` event loop against forked testnet |
-| E2E | Seed test data on fork → run cron → assert 6 Unlock keys + 6 EAS attestations exist |
+| E2E | Seed test data on fork → run cron → assert 6 Unlock keys + 6 `GreenGoodsBadge` attestations under the shared schema exist |
 
 ## Observability
 
@@ -203,7 +203,7 @@ Same `BadgeShelf` component — client is read-only display. Gardener sees their
 | Date | Gate |
 |---|---|
 | 2026-04-17 | Design locked |
-| 2026-04-25 | 6 Unlock locks deployed on Arbitrum; 6 EAS schemas registered |
+| 2026-04-25 | 6 Unlock locks deployed on Arbitrum; 1 shared `GreenGoodsBadge` EAS schema registered |
 | 2026-05-15 | Greenwill service skeleton (#457) complete with 2 badge evaluators |
 | 2026-06-01 | All 6 evaluators live in staging |
 | 2026-06-15 | Admin + client Badge Shelf components shipped |

@@ -1,14 +1,26 @@
 # GreenWill Phase 0 Deployment Readiness - 2026-04-20
 
-Scope: planning-only. No broadcast. No deployment JSON writes. No UI edits.
+Scope: deploy-lane readiness for Phase 0 badge locks + shared schema, plus the current downstream implications for the live GreenWill surfaces.
 
 ## Status
 
-**Lane explicitly downgraded to planning-only.** `badge-locks` and `badge-schemas` CLI targets are wired into `bun script/deploy.ts`, produce real dry-run plans, and hard-fail on both `--broadcast` and on dry-run when required inputs are missing. Arbitrum Phase 0 broadcast remains **blocked** on the four factual pre-conditions listed at the bottom of this document.
+`badge-locks` and `badge-schemas` are now real deploy targets inside `bun script/deploy.ts`; they are no longer planning-only placeholders.
+
+Current state after validation:
+
+- `badge-locks` has a broadcast path, artifact writer, and deployment-JSON merge path.
+- `badge-locks --network arbitrum --dry-run` now resolves the official Arbitrum Unlock factory from `networks.json` and completes successfully.
+- `badge-schemas` has a broadcast path, artifact writer, and deployment-JSON merge path.
+- `badge-schemas --dry-run` resolves the real Arbitrum SchemaRegistry and prints the exact calldata that would be broadcast.
+- GreenWill-specific contract confidence is green on the focused test ladder:
+  - `test/unit/GreenWill.t.sol`
+  - `test/integration/GreenWillWorkflow.t.sol`
+  - `test/fork/ArbitrumGreenWillSupport.t.sol`
+- The **full** `bun run test:fork` suite is not green yet; current failures are in non-GreenWill fork coverage and include both live-state drift and RPC `429` rate limiting.
 
 ## CLI Surface — Shipped
 
-`bun script/deploy.ts --help` now exposes:
+Observed `bun script/deploy.ts --help` output:
 
 ```text
 Commands:
@@ -19,124 +31,139 @@ Commands:
   garden <config.json>     Deploy garden from config file
   actions <config.json>    Deploy actions from config file
   hats-tree                Create and configure the Hats protocol tree
-  badge-locks              Plan GreenWill reputation badge Unlock locks (planning only; broadcast blocked)
-  badge-schemas            Plan GreenWill reputation badge EAS schema registration (planning only; broadcast blocked)
+  badge-locks              Deploy or dry-run GreenWill reputation badge Unlock locks
+  badge-schemas            Deploy or dry-run GreenWill reputation badge EAS schema registration
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
 ```
 
-Wiring lives in:
+Observed command behavior in-tree:
 
-- `packages/contracts/script/deploy/cli.ts` — help text, constructor, switch dispatch.
-- `packages/contracts/script/deploy/badge-locks.ts` — `BadgeLocksDeployer` + `deployBadgeLocks` export.
-- `packages/contracts/script/deploy/badge-schemas.ts` — `BadgeSchemasDeployer` + `deployBadgeSchemas` export.
-
-Current observed exit behavior (verified in-tree):
-
-| Command | Exit | Observed stdout (last line) |
+| Command | Exit | Observed tail |
 |---|---|---|
-| `bun script/deploy.ts --help` | `0` | (help table above) |
-| `bun script/deploy.ts badge-locks --network arbitrum --dry-run` | `1` | `❌ Error: badge-locks dry-run cannot plan without a resolvable Unlock factory address. …` |
-| `bun script/deploy.ts badge-locks --network arbitrum --broadcast` | `1` | `❌ Error: badge-locks broadcast is blocked: this target is dry-run planning only. …` |
-| `bun script/deploy.ts badge-schemas --network arbitrum --dry-run` | `0` | `[planning-only] Badge schema dry-run plan complete. Broadcast is blocked; see --help.` |
-| `bun script/deploy.ts badge-schemas --network arbitrum --broadcast` | `1` | `❌ Error: badge-schemas broadcast is blocked: this target is dry-run planning only. …` |
+| `bun script/deploy.ts --help` | `0` | help table lists both commands as deploy-or-dry-run targets |
+| `bun script/deploy.ts badge-locks --network arbitrum --dry-run` | `0` | `Badge lock dry-run plan complete.` |
+| `bun script/deploy.ts badge-schemas --network arbitrum --dry-run` | `0` | `Badge schema dry-run plan complete.` |
 
-`badge-schemas` dry-run succeeds today because Arbitrum `networks.arbitrum.contracts.easSchemaRegistry` is already recorded (`0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB`). `badge-locks` dry-run fails today because `networks.arbitrum.contracts.unlockFactory` is absent.
+Broadcast was intentionally **not executed** in this pass because it would create real onchain writes.
 
 ## Deployment File Persistence Shape — Locked
 
-The deployment JSON convention in this repo (see `packages/contracts/deployments/42161-latest.json`, writers in `packages/contracts/script/Deploy.s.sol:1272-1274`, readers in `packages/shared/src/config/blockchain.ts:143-157`) uses **top-level `schemas.*`** with sibling keys per schema:
+The persistence shape is now explicit and implemented.
+
+### Shared schema
+
+Persist in top-level `schemas.*`, matching the existing repo convention:
 
 ```text
 schemas: {
-  workSchema, workSchemaUID, workName, workDescription,
-  workApprovalSchema, workApprovalSchemaUID, workApprovalName, workApprovalDescription,
-  assessmentSchema, assessmentSchemaUID, assessmentName, assessmentDescription,
-  …
+  ...existing work / workApproval / assessment fields...,
+  greenGoodsBadgeSchema:       "string badgeType, address recipient, uint40 earnedAt, string evidenceUri, uint8 tier",
+  greenGoodsBadgeSchemaUID:    "<UID returned by SchemaRegistry.register>",
+  greenGoodsBadgeName:         "GreenGoodsBadge",
+  greenGoodsBadgeDescription:  "Shared EAS schema for GreenWill reputation badges"
 }
 ```
 
-The `eas` block is only `{ address, schemaRegistry }` — contract addresses, not schema metadata.
+One shared UID covers all 6 badges; per-badge distinction lives in the attestation `badgeType` field.
 
-GreenWill badge persistence adopts that convention:
+### Unlock locks
+
+Persist under a grouped `unlock` object:
 
 ```text
-schemas: {
-  …existing…,
-  greenGoodsBadgeSchema:        "string badgeType, address recipient, uint40 earnedAt, string evidenceUri, uint8 tier",
-  greenGoodsBadgeSchemaUID:     "<UID returned by SchemaRegistry.register on broadcast>",
-  greenGoodsBadgeName:          "GreenGoodsBadge",
-  greenGoodsBadgeDescription:   "Shared EAS schema for GreenWill reputation badges"
+unlock: {
+  factory: "<Unlock factory address>",
+  publicLockVersion: 14,
+  managerDefaults: ["<address>", "..."],
+  locks: {
+    verifiedGardener: {
+      badgeId: "verified-gardener",
+      address: "<lock address>",
+      name: "Green Goods Verified Gardener",
+      expirationDuration: "0",
+      transferrable: false
+    },
+    ... five more ...
+  }
 }
 ```
 
-**One shared UID for all 6 badges, distinguished by the `badgeType` field inside each attestation** — reputation-badging Decision 11. No per-badge UID. No `eas.schemas.*` key.
+This is the shape now merged by `packages/contracts/script/deploy/badge-locks.ts` after a successful broadcast.
 
-Unlock-lock address persistence is a separate open question: the current repo convention uses flat top-level module keys (`gardenToken`, `actionRegistry`, `octantModule`), and `octant-factory.ts` persists a single `octantFactory` address. The six GreenWill locks need to be resolved to either (a) six flat keys such as `greenWillLockVerifiedGardener`, `greenWillLockActiveContributor`, … or (b) a grouped `greenWillLocks: { verifiedGardener, activeContributor, … }` object mirroring the `eas: { address, schemaRegistry }` grouping pattern. This decision is **deferred** to whoever adds the Unlock factory address; the CLI will hard-fail the dry-run until that happens, which guarantees persistence wiring is revisited at the same time.
+## Default Lock Managers
+
+Manager defaults are now sourced from `packages/contracts/deployments/networks.json`:
+
+```json
+"badgeLockManagers": [
+  "0x1B9Ac97Ea62f69521A14cbe6F45eb24aD6612C19",
+  "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e",
+  "0xa9d20b435A85fAAa002f32d66F7D21564130E9cf",
+  "0x5c79d252f458b3720f7f230f8490fd1ee81d32fb",
+  "0x6166E1964447E0959bC7c8d543DB3ab82dB65044"
+]
+```
+
+The deploy script adds each configured manager to every newly created lock.
 
 ## Badge Policy
 
-All Phase 0 Unlock locks `transferrable=false`.
+All Phase 0 Unlock locks are soulbound (`transferrable=false`).
 
-| Badge ID            | Expiration Policy          | Transfer |
-|---------------------|---------------------------|----------|
-| `verified-gardener` | `0` - lifetime            | `false`  |
-| `active-contributor`| `1y`                      | `false`  |
-| `stewardship`       | `0` - lifetime            | `false`  |
-| `garden-operator`   | `0` - manager-revoked     | `false`  |
-| `community-builder` | `0` - lifetime            | `false`  |
-| `impact-verified`   | `0` - lifetime            | `false`  |
+| Badge ID | Expiration Policy |
+|---|---|
+| `verified-gardener` | `0` - lifetime |
+| `active-contributor` | `31536000` - 1 year |
+| `stewardship` | `0` - lifetime |
+| `garden-operator` | `0` - manager-revoked operationally |
+| `community-builder` | `0` - lifetime |
+| `impact-verified` | `0` - lifetime |
 
-## EAS Schema Policy
+## Contract Confidence
 
-Single shared `GreenGoodsBadge` schema, registered once.
+### Unit + integration
 
-- Contract: Arbitrum EAS SchemaRegistry `0xA310da9c5B885E7fb3fbA9D66E9Ba6Df512b78eB` (already in `networks.arbitrum.contracts.easSchemaRegistry`).
-- Method: `register(string schema, address resolver, bool revocable)`.
-- `schema`: `string badgeType, address recipient, uint40 earnedAt, string evidenceUri, uint8 tier`.
-- `resolver`: `0x0000000000000000000000000000000000000000`.
-- `revocable`: `true`.
-- Persistence on broadcast: `schemas.greenGoodsBadgeSchemaUID` (+ sibling metadata keys above).
+- `cd packages/contracts && bun run test:match 'test/unit/GreenWill.t.sol'` → pass
+- `cd packages/contracts && bun run test:match 'test/integration/GreenWillWorkflow.t.sol'` → pass
 
-## Dry-run Preview — What the CLI Prints Today
+### Fork
 
-### `badge-schemas --network arbitrum --dry-run`
+- `cd packages/contracts && set -a && . ../../.env 2>/dev/null || true && set +a && FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumGreenWillSupport.t.sol'` → pass
+- `cd packages/contracts && bun run test:fork` → fails today outside GreenWill coverage
 
-Resolves the real Arbitrum SchemaRegistry, prints the `register` calldata, and lists the 6 badge IDs that will share the resulting UID. No chain writes, no deployment-file writes.
+The fork suite now asserts the live-value path honestly:
 
-### `badge-locks --network arbitrum --dry-run`
+- the supporter mints real Octant vault shares on live Arbitrum state
+- the deposited value is fully accounted for either:
+  - in the Aave-backed strategy, or
+  - as idle vault WETH when the live Aave strategy reports zero additional capacity on that block
+- `GreenWill.claimBadge(FIRST_SUPPORT, ...)` succeeds against that live position
 
-Hard-fails with the explicit remediation message referenced above. Dry-run will begin planning Unlock `createLock` calldata for each of the 6 badges (using the policy table) as soon as a verified `networks.arbitrum.contracts.unlockFactory` is recorded.
+This is stronger than the earlier router-only claim and more stable than assuming Aave always accepts new marginal deposits on every fork block.
 
-## Pre-broadcast Blockers
+The current full-fork failures are broader than GreenWill and cluster in:
 
-1. **Arbitrum Unlock factory address.** Add a verified address under `networks.arbitrum.contracts.unlockFactory` in `packages/contracts/deployments/networks.json`. The `badge-locks` dry-run is gated on this.
-2. **Lock persistence shape decision.** Resolve to either flat `greenWillLock*` keys or a grouped `greenWillLocks` object; wire the writer in the broadcast path; update the reader in `packages/shared` if badges become client-visible.
-3. **Attester wallet + gas.** Confirm the Green Goods trusted attester wallet that will sign the `SchemaRegistry.register` call and, later, each badge attestation. Ensure it is funded on Arbitrum.
-4. **Per-badge expiration support in `GreenWillUnlockModule`.** The module currently holds a single `defaultDuration`; the six badges have mixed expirations (`active-contributor` 1 year, `garden-operator` manager-revoked, others lifetime). Either extend the module to accept a per-badge duration on issuance, or deploy the six locks standalone outside the module and accept that issuance through the registry will not enforce mixed durations until the module is extended.
+- `test/fork/ArbitrumAaveStrategy.t.sol` — live Arbitrum WETH reserve currently reports `maxDeposit == 0` on the forked block for the tested path.
+- `test/fork/SepoliaENS.t.sol` and `test/fork/e2e/SepoliaExtendedE2E.t.sol` — Sepolia CCIP fee and destination-chain assumptions no longer hold on the live router / mocked local router path.
+- `test/fork/ArbitrumGoodsToken.t.sol`, `test/fork/ArbitrumActionRegistry.t.sol`, and other Arbitrum suites — a mix of stale expectations and RPC `429` rate limiting from the provider.
 
-All four blockers must be resolved before broadcast is unblocked. The CLI already refuses the broadcast path; it will continue to refuse until the broadcast-path code is explicitly re-enabled after blockers close.
+## Remaining Blockers Before Real Broadcast
 
-## Live-data Render Path Gaps (retained)
+1. **Confirm the default manager list.**
+   The deployer is ready to add every `deploymentDefaults.badgeLockManagers` address to each lock. Expand that list before broadcast if we want named human operators beyond the safe.
 
-Read-only inspection only; no UI files were changed.
+2. **Confirm and fund the real broadcaster / attester wallet.**
+   `badge-locks` and `badge-schemas` use the Foundry keystore account (`FOUNDRY_KEYSTORE_ACCOUNT`, default `green-goods-deployer`). That wallet must be the one we intend to use on Arbitrum and it must be funded.
 
-### `packages/admin/src/views/Actions/GreenWillPanel.tsx`
+3. **GreenWill deployment is still separate from Phase 0 lock/schema deploy.**
+   The current deployment JSON does not yet record `greenWill`, so registry-backed claim hooks still resolve zero on live networks until GreenWill itself is deployed and written into the deployment surface.
 
-- The panel reads `useGreenWillBadgeDefinitions`, `useGreenWillBadges`, and `useGreenWillRecentGrants` against `DEFAULT_CHAIN_ID`.
-- Definitions and recent grants have loading/error messages, but zero definitions or zero grants render as an empty list under a nonzero-looking shell. Day 2 should add explicit empty states if Arbitrum has no indexed GreenWill data yet.
-- Invalid-address and lookup-error surfacing was fixed in Day 2 Lane B (tests cover all three failure paths). Empty-but-valid stays distinct from error.
-- Badge titles only special-case `genesis`, `first-work`, and `first-support`. The six Phase 0 badge IDs will display as raw slugs unless metadata/copy is added.
-- The hooks are imported from `@green-goods/shared/hooks` rather than the shared root barrel, because the root barrel still marks hooks as WIP. Not blocking; cleanup signal.
+4. **The broader fork suite still needs stabilization before calling the contracts package fully production-green.**
+   The Phase 0 deploy lane is unblocked at the factory/schema level, but the repo still has non-GreenWill fork failures and RPC-capacity noise that should be triaged before a full-contracts release claim.
 
-### `packages/client/src/views/Profile/Badges.tsx`
+## Live-data Consequences
 
-- `BADGE_ORDER`, icon/title/description/action copy only cover `genesis`, `first-work`, and `first-support`.
-- Unknown badge slugs fall back to a generic award icon, raw slug title, and empty description.
-- Earned/claimable empty states exist and should be acceptable for initial no-data states.
-- The action model is still GreenWill claim/support oriented. Six Phase 0 reputation badges backed by EAS/Unlock will need copy and action rules before they look intentional in profile.
-
-### Shared Data Path
-
-- `packages/shared/src/utils/blockchain/contracts.ts` already reads `greenWillRegistry`, `greenWillUnlockModule`, and `greenWillSupportRouter` keys from deployment JSON, but the Arbitrum deployment file does not contain those keys today, so claim/support hooks resolve them to zero addresses.
-- The displayed GreenWill admin/profile data comes from Envio `GreenWillBadgeDefinition`, `GreenWillBadgeOwnership`, and `GreenWillBadgeGrant` entities. Reputation plan D10 says EAS/Unlock are not indexed, so standalone Phase 0 EAS/Unlock deployment will not automatically populate these GreenWill lists unless the Day 2 plan either registers/uses GreenWill registry events or switches the six-badge UI path to direct EAS/Unlock reads.
+- [GreenWillPanel.tsx](/Users/afo/Code/greenpill/green-goods/packages/admin/src/views/Actions/GreenWillPanel.tsx) and [Badges.tsx](/Users/afo/Code/greenpill/green-goods/packages/client/src/views/Profile/Badges.tsx) still need explicit copy/metadata for the 6 new Phase 0 badge IDs.
+- [contracts.ts](/Users/afo/Code/greenpill/green-goods/packages/shared/src/utils/blockchain/contracts.ts) currently exposes `greenWill`, which is the live address surface for registry-based claim flows, but standalone lock/schema deployment does not by itself light up those UI paths.
+- Phase 0 lock/schema deployment therefore improves issuance infrastructure, but it does **not** by itself make the existing GreenWill claim UI live until the registry address and issuance path are wired.

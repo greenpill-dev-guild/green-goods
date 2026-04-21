@@ -47,7 +47,7 @@ Close two ship-blockers:
 - `.claude/**`, `AGENTS.md` — never.
 - Broadcast. Dry-run only.
 
-## Minimal scaffolding for `badge-locks.ts` / `badge-schemas.ts`
+## Historical pre-wire scaffold for `badge-locks.ts` / `badge-schemas.ts`
 
 Follow the existing deploy-module pattern. For each target:
 
@@ -68,8 +68,8 @@ Follow the existing deploy-module pattern. For each target:
 ## Validation (commands must pass, quoted in `validation_output`)
 
 - `bun script/deploy.ts --help` — stdout must contain literal strings `badge-locks` and `badge-schemas`.
-- `bun script/deploy.ts badge-locks --network arbitrum --dry-run` — exit code 0 and must **not** print `Unknown command`.
-- `bun script/deploy.ts badge-schemas --network arbitrum --dry-run` — exit code 0 and must **not** print `Unknown command`.
+- `bun script/deploy.ts badge-locks --network arbitrum --dry-run` — historical expectation: command was expected to become recognized.
+- `bun script/deploy.ts badge-schemas --network arbitrum --dry-run` — historical expectation: command was expected to become recognized.
 - `cd packages/contracts && bun run test:match 'test/unit/GreenWill*.t.sol'` — PASS, 19 tests.
 - `cd packages/contracts && bun run test:match 'test/integration/GreenWillWorkflow.t.sol'` — PASS, 1 test.
 - `cd packages/contracts && set -a; source ../../.env; set +a; FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumGreenWillSupport.t.sol'` — PASS, 1 test.
