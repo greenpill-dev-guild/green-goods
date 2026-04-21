@@ -3,7 +3,7 @@ import { RiArrowRightSLine, RiLeafLine, RiUserLine } from "@remixicon/react";
 import { AdminListItem } from "./AdminListItem";
 
 const meta: Meta<typeof AdminListItem> = {
-  title: "Admin/AdminListItem",
+  title: "Admin/Primitives/AdminListItem",
   component: AdminListItem,
   tags: ["autodocs"],
   parameters: {

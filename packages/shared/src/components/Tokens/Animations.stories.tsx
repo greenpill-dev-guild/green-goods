@@ -267,7 +267,7 @@ function StaggerDemo() {
 /* -------------------------------------------------------------------------- */
 
 const meta: Meta = {
-  title: "Design Tokens/Animation",
+  title: "Shared/Tokens/Animations",
   tags: ["autodocs"],
   parameters: {
     docs: {

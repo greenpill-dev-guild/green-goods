@@ -1,6 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
-import { RiClipboardLine, RiFlashlightLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiClipboardLine,
+  RiFlashlightLine,
+  RiLeafLine,
+  RiSeedlingLine,
+  RiTeamLine,
+} from "@remixicon/react";
 import { NavigationBar, type ToolbarSlot } from "./NavigationBar";
 
 const workSlot: ToolbarSlot = {
@@ -41,12 +48,32 @@ const actionsSlot: ToolbarSlot = {
 
 const primarySlots: ToolbarSlot[] = [workSlot, gardenSlot, communitySlot, actionsSlot];
 
+const submitWorkFab = {
+  icon: RiAddLine,
+  label: "Create",
+  actions: [
+    {
+      id: "submit-work",
+      icon: RiLeafLine,
+      label: "Submit work",
+      labelId: "app.admin.work.submitWork",
+    },
+  ],
+  onAction: fn(),
+};
+
 const meta = {
-  title: "Canvas/NavigationBar",
+  title: "Shared/Canvas/NavigationBar",
   component: NavigationBar,
   tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
+    docs: {
+      description: {
+        component:
+          "Floating canvas navigation dock. Stories cover visible route slots, permission-driven hidden slots, and the optional create FAB.",
+      },
+    },
   },
   argTypes: {
     slots: {
@@ -59,6 +86,10 @@ const meta = {
     },
     onNavigate: {
       description: "Called when a navigation slot is selected.",
+    },
+    fab: {
+      control: false,
+      description: "Optional create-action FAB shown beside desktop nav or above mobile nav.",
     },
   },
 } satisfies Meta<typeof NavigationBar>;
@@ -82,12 +113,18 @@ export const CommunityActive: Story = {
   },
 };
 
-export const SingleSlot: Story = {
+export const SingleVisibleSlotHidden: Story = {
   args: {
     slots: [workSlot, { ...gardenSlot, visible: false }, { ...communitySlot, visible: false }],
     activePath: "/hub",
     onNavigate: fn(),
   },
+  render: (args) => (
+    <div className="p-8 text-sm text-text-sub">
+      NavigationBar intentionally renders nothing when there is only one visible route and no FAB.
+      <NavigationBar {...args} />
+    </div>
+  ),
 };
 
 export const HiddenActions: Story = {
@@ -98,57 +135,11 @@ export const HiddenActions: Story = {
   },
 };
 
-export const AllHidden: Story = {
-  args: {
-    slots: primarySlots.map((slot) => ({ ...slot, visible: false })),
-    activePath: "/hub",
-    onNavigate: fn(),
-  },
-};
-
-export const Gallery: Story = {
+export const WithFab: Story = {
   args: {
     slots: primarySlots,
     activePath: "/hub",
     onNavigate: fn(),
+    fab: submitWorkFab,
   },
-  render: () => (
-    <div className="flex min-h-screen flex-col gap-12 p-8">
-      <section>
-        <h3 className="mb-4 text-sm font-semibold text-text-sub">Four slots, Hub active</h3>
-        <NavigationBar slots={primarySlots} activePath="/hub" onNavigate={fn()} />
-      </section>
-      <section>
-        <h3 className="mb-4 text-sm font-semibold text-text-sub">Community active</h3>
-        <NavigationBar slots={primarySlots} activePath="/community" onNavigate={fn()} />
-      </section>
-      <section>
-        <h3 className="mb-4 text-sm font-semibold text-text-sub">Single visible slot</h3>
-        <NavigationBar
-          slots={[
-            workSlot,
-            { ...gardenSlot, visible: false },
-            { ...communitySlot, visible: false },
-          ]}
-          activePath="/hub"
-          onNavigate={fn()}
-        />
-      </section>
-    </div>
-  ),
-};
-
-export const DarkMode: Story = {
-  args: {
-    slots: primarySlots,
-    activePath: "/actions",
-    onNavigate: fn(),
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 min-h-screen p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

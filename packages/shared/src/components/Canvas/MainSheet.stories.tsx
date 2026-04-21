@@ -1,10 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { withCanvasFrame } from "../../../.storybook/decorators";
 import { MainSheet } from "./MainSheet";
 
 const meta: Meta<typeof MainSheet> = {
-  title: "Canvas/MainSheet",
+  title: "Shared/Canvas/MainSheet",
   component: MainSheet,
   tags: ["autodocs"],
+  decorators: [withCanvasFrame({ className: "p-4", heightClassName: "min-h-[460px]" })],
   argTypes: {
     isReceded: {
       control: "boolean",
@@ -20,7 +22,7 @@ export const Default: Story = {
     isReceded: false,
   },
   render: (args) => (
-    <div className="h-[420px] rounded-[1.5rem] bg-bg-weak p-4">
+    <div className="h-[420px]">
       <MainSheet {...args}>
         <div className="flex h-full flex-col gap-4 overflow-auto p-6">
           <div className="text-title-sm text-text-strong-950">Primary canvas surface</div>

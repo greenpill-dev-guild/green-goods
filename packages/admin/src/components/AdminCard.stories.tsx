@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { AdminCard } from "./AdminCard";
 
 const meta: Meta<typeof AdminCard> = {
-  title: "Admin/AdminCard",
+  title: "Admin/Primitives/AdminCard",
   component: AdminCard,
   tags: ["autodocs"],
   parameters: {
@@ -67,7 +67,7 @@ export const Interactive: Story = {
   ),
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="grid gap-3 sm:grid-cols-3">
       {(["filled", "elevated", "outlined"] as const).map((variant) => (

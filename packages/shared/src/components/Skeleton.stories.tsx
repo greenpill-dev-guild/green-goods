@@ -4,7 +4,7 @@ import { SkeletonCard, SkeletonGrid, SkeletonText } from "./Skeleton";
 // --- SkeletonText ---
 
 const textMeta: Meta<typeof SkeletonText> = {
-  title: "Admin/UI/SkeletonText",
+  title: "Shared/Primitives/Skeleton",
   component: SkeletonText,
   tags: ["autodocs"],
   argTypes: {

@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { withCanvasFrame } from "../../../.storybook/decorators";
 import { AppBar } from "./AppBar";
 import { GardenChip } from "./GardenChip";
 
@@ -27,9 +28,10 @@ const gardenChipElement = (
 // ---------------------------------------------------------------------------
 
 const meta = {
-  title: "Canvas/AppBar",
+  title: "Shared/Canvas/AppBar",
   component: AppBar,
   tags: ["autodocs"],
+  decorators: [withCanvasFrame({ heightClassName: "min-h-[240px]" })],
   argTypes: {
     gardenChip: {
       control: false,
@@ -45,6 +47,10 @@ const meta = {
     },
     onOpenSettings: {
       description: "Callback for the settings button. When provided, the settings icon appears.",
+    },
+    onOpenNotifications: {
+      description:
+        "Callback for the notification button. When omitted, the button opens the local popover fallback.",
     },
     onOpenProfile: {
       description: "Callback for the profile button. When provided, the person icon appears.",
@@ -64,12 +70,13 @@ export const Default: Story = {
   args: {
     gardenChip: gardenChipElement,
     onOpenSearch: fn(),
+    onOpenNotifications: fn(),
     onOpenSettings: fn(),
     onOpenProfile: fn(),
   },
 };
 
-/** Sheet context active: back arrow + "Work Detail" label replaces the garden chip. */
+/** Detail sheet active: back arrow + label replaces the garden chip. */
 export const WithSheetContext: Story = {
   args: {
     gardenChip: gardenChipElement,
@@ -78,15 +85,18 @@ export const WithSheetContext: Story = {
       onBack: fn(),
     },
     onOpenSearch: fn(),
+    onOpenNotifications: fn(),
     onOpenSettings: fn(),
     onOpenProfile: fn(),
   },
 };
 
-/** Mobile layout: no search button (only settings + profile visible). */
-export const MinimalMobile: Story = {
+/** Mobile layout: search is hidden; notifications, settings, and profile remain reachable. */
+export const MobileActions: Story = {
   args: {
     gardenChip: gardenChipElement,
+    onOpenSearch: fn(),
+    onOpenNotifications: fn(),
     onOpenSettings: fn(),
     onOpenProfile: fn(),
   },
@@ -95,11 +105,12 @@ export const MinimalMobile: Story = {
   },
 };
 
-/** All variants side-by-side for visual comparison. */
-export const Gallery: Story = {
+/** Agent state catalog for the app bar's primary shell states. */
+export const StateCatalog: Story = {
   args: {
     gardenChip: gardenChipElement,
     onOpenSearch: fn(),
+    onOpenNotifications: fn(),
     onOpenSettings: fn(),
     onOpenProfile: fn(),
   },
@@ -112,6 +123,7 @@ export const Gallery: Story = {
         <AppBar
           gardenChip={gardenChipElement}
           onOpenSearch={fn()}
+          onOpenNotifications={fn()}
           onOpenSettings={fn()}
           onOpenProfile={fn()}
         />
@@ -125,6 +137,7 @@ export const Gallery: Story = {
           gardenChip={gardenChipElement}
           sheetContext={{ label: "Work Detail", onBack: fn() }}
           onOpenSearch={fn()}
+          onOpenNotifications={fn()}
           onOpenSettings={fn()}
           onOpenProfile={fn()}
         />
@@ -132,27 +145,10 @@ export const Gallery: Story = {
 
       <section>
         <h3 className="mb-3 px-4 text-sm font-semibold text-text-sub">
-          Minimal (no search, no profile)
+          Local notifications popover fallback
         </h3>
-        <AppBar gardenChip={gardenChipElement} onOpenSettings={fn()} />
+        <AppBar gardenChip={gardenChipElement} onOpenSearch={fn()} onOpenSettings={fn()} />
       </section>
     </div>
   ),
-};
-
-/** Dark mode rendering for visual verification. */
-export const DarkMode: Story = {
-  args: {
-    gardenChip: gardenChipElement,
-    onOpenSearch: fn(),
-    onOpenSettings: fn(),
-    onOpenProfile: fn(),
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

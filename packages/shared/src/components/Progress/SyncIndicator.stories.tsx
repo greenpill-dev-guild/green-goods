@@ -9,7 +9,7 @@ const failedStats: QueueStats = { total: 8, pending: 1, failed: 2, synced: 5 };
 const emptyStats: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
 
 const meta: Meta<typeof SyncIndicator> = {
-  title: "Progress/SyncIndicator",
+  title: "Shared/Progress/SyncIndicator",
   component: SyncIndicator,
   tags: ["autodocs"],
   parameters: {

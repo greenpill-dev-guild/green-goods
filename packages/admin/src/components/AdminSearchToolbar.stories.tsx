@@ -5,7 +5,7 @@ import { AdminFilterChip } from "./AdminFilterChip";
 import { AdminSearchToolbar } from "./AdminSearchToolbar";
 
 const meta: Meta<typeof AdminSearchToolbar> = {
-  title: "Admin/AdminSearchToolbar",
+  title: "Admin/Primitives/AdminSearchToolbar",
   component: AdminSearchToolbar,
   tags: ["autodocs"],
   parameters: {

@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
 const meta: Meta = {
-  title: "Primitives/Glass",
+  title: "Shared/Primitives/Glass",
   tags: ["autodocs"],
   parameters: {
     docs: {
       description: {
         component:
-          "Glass material tiers — `.glass-ground`, `.glass-raised`, `.glass-floating`, `.glass-overlay`, and `.glass-surface`. Reserved for navigation-tier chrome and overlays (TopContextBar, NavigationBar, sheets, MainSheet). Content surfaces stay solid by default. All tiers flatten to solid --neutral-0 / --neutral-900 with 1px high-contrast stroke under `@media (prefers-contrast: more)`.",
+          "Glass material tiers — `.glass-ground`, `.glass-raised`, `.glass-floating`, `.glass-overlay`, and `.glass-surface`. Reserved for navigation-tier chrome and overlays (AppBar, NavigationBar, sheets, MainSheet). Content surfaces stay solid by default. All tiers flatten to solid --neutral-0 / --neutral-900 with 1px high-contrast stroke under `@media (prefers-contrast: more)`.",
       },
     },
   },

@@ -11,7 +11,7 @@ const mockOnAdd = fn(async (_address: Address) => {
 });
 
 const meta: Meta<typeof AddMemberModal> = {
-  title: "Admin/Garden/AddMemberModal",
+  title: "Admin/Workflows/Garden/AddMemberModal",
   component: AddMemberModal,
   tags: ["autodocs"],
   argTypes: {
@@ -99,27 +99,10 @@ export const Closed: Story = {
   },
 };
 
-export const DarkMode: Story = {
-  args: {
-    isOpen: true,
-    onClose: fn(),
-    memberType: "gardener",
-    onAdd: mockOnAdd,
-    isLoading: false,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4 min-h-[400px]">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
 /**
- * Gallery showing all role variants of the modal.
+ * Consolidated state catalog — use the theme toolbar for dark mode.
  */
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => {
     const roles: GardenRole[] = ["gardener", "operator", "evaluator"];
     return (

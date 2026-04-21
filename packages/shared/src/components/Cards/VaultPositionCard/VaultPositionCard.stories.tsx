@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { VaultPositionCard } from "./index";
 
 const meta: Meta<typeof VaultPositionCard> = {
-  title: "Cards/VaultPositionCard",
+  title: "Shared/Cards/VaultPositionCard",
   component: VaultPositionCard,
   tags: ["autodocs"],
   argTypes: {

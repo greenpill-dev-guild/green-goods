@@ -10,21 +10,14 @@ import { PageTransition } from "./PageTransition";
  * 2. Triggers `document.startViewTransition()` for a cross-fade
  * 3. Calls `onNavigateArrive` to restore any saved sheet state
  *
- * The CSS view-transition keyframes (`view-fade-out` / `view-fade-in`) are
- * defined in `index.css` and applied automatically via `::view-transition-*`.
+ * The app supplies view-transition keyframes. This Storybook story focuses on
+ * route orchestration and route state, not CI interaction coverage.
  */
 
 const meta: Meta<typeof PageTransition> = {
-  title: "Admin/UI/PageTransition",
+  title: "Admin/Shell/PageTransition",
   component: PageTransition,
   tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <MemoryRouter initialEntries={["/page-a"]}>
-        <Story />
-      </MemoryRouter>
-    ),
-  ],
 };
 
 export default meta;
@@ -85,61 +78,4 @@ export const Default: Story = {
       </Routes>
     </MemoryRouter>
   ),
-  decorators: [],
-};
-
-export const Gallery: Story = {
-  render: () => (
-    <div className="space-y-6">
-      <section>
-        <h3 className="mb-3 text-sm font-medium text-text-sub">Interactive Route Transition</h3>
-        <p className="mb-4 text-xs text-text-soft">
-          Click buttons to navigate between routes. Each navigation triggers a View Transitions API
-          cross-fade. If a sheet is open, it closes first (300ms), then the view fades.
-        </p>
-        <MemoryRouter initialEntries={["/page-a"]}>
-          <NavControls />
-          <Routes>
-            <Route element={<PageTransition />}>
-              <Route
-                path="/page-a"
-                element={<MockPage title="Page A - Gardens" color="bg-bg-weak" />}
-              />
-              <Route
-                path="/page-b"
-                element={<MockPage title="Page B - Endowments" color="bg-success-lighter" />}
-              />
-              <Route
-                path="/page-c"
-                element={<MockPage title="Page C - Actions" color="bg-warning-lighter" />}
-              />
-            </Route>
-          </Routes>
-        </MemoryRouter>
-      </section>
-    </div>
-  ),
-  decorators: [],
-};
-
-export const DarkMode: Story = {
-  render: () => (
-    <MemoryRouter initialEntries={["/page-a"]}>
-      <NavControls />
-      <Routes>
-        <Route element={<PageTransition />}>
-          <Route path="/page-a" element={<MockPage title="Page A" color="bg-bg-weak" />} />
-          <Route path="/page-b" element={<MockPage title="Page B" color="bg-success-lighter" />} />
-          <Route path="/page-c" element={<MockPage title="Page C" color="bg-warning-lighter" />} />
-        </Route>
-      </Routes>
-    </MemoryRouter>
-  ),
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

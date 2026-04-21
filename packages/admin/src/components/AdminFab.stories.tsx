@@ -3,7 +3,7 @@ import { RiAddLine, RiEditLine } from "@remixicon/react";
 import { AdminFab } from "./AdminFab";
 
 const meta: Meta<typeof AdminFab> = {
-  title: "Admin/AdminFab",
+  title: "Admin/Primitives/AdminFab",
   component: AdminFab,
   tags: ["autodocs"],
   parameters: {

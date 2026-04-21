@@ -18,7 +18,7 @@ const roles = [
 ];
 
 const meta: Meta = {
-  title: "Tokens/Material Roles",
+  title: "Shared/Tokens/MaterialRoles",
   tags: ["autodocs"],
   parameters: {
     docs: {

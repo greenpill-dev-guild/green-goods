@@ -162,7 +162,7 @@ function ShadowGroup({ label, tokens }: { label: string; tokens: ShadowToken[] }
 /* -------------------------------------------------------------------------- */
 
 const meta: Meta = {
-  title: "Design Tokens/Shadows & Elevation",
+  title: "Shared/Tokens/Shadows",
   tags: ["autodocs"],
   parameters: {
     docs: {

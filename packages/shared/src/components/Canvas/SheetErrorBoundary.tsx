@@ -11,7 +11,7 @@ export interface SheetErrorBoundaryProps {
 }
 
 /**
- * Error boundary designed for sheet (SideSheet/BottomSheet) contexts.
+ * Error boundary designed for sheet (LeftSheet/RightSheet/BottomSheet) contexts.
  *
  * Renders a compact error card within sheet dimensions instead of a full-page
  * fallback. Errors are caught and logged but never propagate to the parent,

@@ -3,7 +3,7 @@ import { RiAddLine, RiArrowRightLine, RiDeleteBinLine } from "@remixicon/react";
 import { AdminButton } from "./AdminButton";
 
 const meta: Meta<typeof AdminButton> = {
-  title: "Admin/AdminButton",
+  title: "Admin/Primitives/AdminButton",
   component: AdminButton,
   tags: ["autodocs"],
   parameters: {

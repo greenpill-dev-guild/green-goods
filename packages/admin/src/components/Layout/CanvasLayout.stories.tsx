@@ -10,6 +10,7 @@ import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
 import { fn } from "storybook/test";
+import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
 
 const gardens = [
   { id: "garden-1", name: "Comunidad Verde" },
@@ -73,10 +74,7 @@ function MockCanvasLayout({ empty = false, activePath }: MockCanvasLayoutProps) 
   );
 
   return (
-    <div
-      data-component="CanvasLayout"
-      className="admin-m3 workspace-canvas workspace-canvas-grid h-[680px]"
-    >
+    <>
       <div className="canvas-area-top">
         <AppBar
           gardenChip={gardenChip}
@@ -117,17 +115,30 @@ function MockCanvasLayout({ empty = false, activePath }: MockCanvasLayoutProps) 
       <RightSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
         <div className="p-5 text-sm text-text-sub">Account settings and network details.</div>
       </RightSheet>
-    </div>
+    </>
   );
 }
 
 const meta: Meta<typeof MockCanvasLayout> = {
-  title: "Admin/Layout/CanvasLayout",
+  title: "Admin/Shell/CanvasLayout",
   component: MockCanvasLayout,
   tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
+    docs: {
+      description: {
+        component:
+          "State catalog for the admin canvas shell: AppBar, MainSheet, NavigationBar, and a right-sheet recession state inside the Storybook-owned canvas frame.",
+      },
+    },
   },
+  decorators: [
+    withCanvasFrame({
+      className: "admin-m3 workspace-canvas-grid",
+      heightClassName: "h-[680px]",
+      workspace: "hub",
+    }),
+  ],
   args: {
     empty: false,
     activePath: "/hub",

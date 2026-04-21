@@ -1,5 +1,6 @@
 import { Domain, type Work } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
+import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../../shared/.storybook/fixtures";
 import { HubWorkCard } from "./HubWorkCard";
 
 const BASE_WORK: Work = {
@@ -10,17 +11,23 @@ const BASE_WORK: Work = {
   gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
   feedback: "Good quality work with clear photos",
   metadata: "{}",
-  media: ["ipfs://QmExamplePhoto1", "ipfs://QmExamplePhoto2", "ipfs://QmExamplePhoto3"],
-  createdAt: Math.floor(Date.now() / 1000) - 7200, // 2 hours ago
+  media: FIXTURE_WORK_MEDIA.slice(0, 3),
+  createdAt: hoursAgo(2),
   status: "pending",
 };
 
 const meta: Meta<typeof HubWorkCard> = {
-  title: "Admin/Work/HubWorkCard",
+  title: "Admin/Workflows/Hub/HubWorkCard",
   component: HubWorkCard,
   tags: ["autodocs"],
   parameters: {
     layout: "centered",
+    docs: {
+      description: {
+        component:
+          "Hub workbench card state catalog. Stories focus on media layout, domain badge presence, title truncation, and identity fallback states.",
+      },
+    },
   },
   decorators: [
     (Story) => (
@@ -55,34 +62,42 @@ export const Default: Story = {
   },
 };
 
-// Solar domain variant
-export const Solar: Story = {
-  args: {
-    ...Default.args,
-    actionDomain: Domain.SOLAR,
-    work: { ...BASE_WORK, title: "Installed 2 solar panels" },
-    gardenerDisplayName: "ana.eth",
-  },
-};
-
-// Education domain variant
-export const Education: Story = {
-  args: {
-    ...Default.args,
-    actionDomain: Domain.EDU,
-    work: { ...BASE_WORK, title: "Composting workshop completed" },
-    gardenerDisplayName: "juan.eth",
-  },
-};
-
-// Waste domain variant
-export const Waste: Story = {
-  args: {
-    ...Default.args,
-    actionDomain: Domain.WASTE,
-    work: { ...BASE_WORK, title: "Sorted 40kg of recyclables" },
-    gardenerDisplayName: "diego.eth",
-  },
+export const DomainCatalog: Story = {
+  render: () => (
+    <div className="flex flex-col gap-4">
+      {[
+        {
+          domain: Domain.AGRO,
+          title: "Planted 50 native saplings",
+          gardener: "maria.eth",
+        },
+        {
+          domain: Domain.SOLAR,
+          title: "Installed 2 solar panels",
+          gardener: "ana.eth",
+        },
+        {
+          domain: Domain.EDU,
+          title: "Composting workshop completed",
+          gardener: "juan.eth",
+        },
+        {
+          domain: Domain.WASTE,
+          title: "Sorted 40kg of recyclables",
+          gardener: "diego.eth",
+        },
+      ].map(({ domain, title, gardener }) => (
+        <HubWorkCard
+          key={domain}
+          work={{ ...BASE_WORK, title }}
+          actionDomain={domain}
+          gardenName="Milpa Alta"
+          gardenerDisplayName={gardener}
+          eagerImages
+        />
+      ))}
+    </div>
+  ),
 };
 
 // Single image — spans full width
@@ -91,7 +106,7 @@ export const SingleImage: Story = {
     ...Default.args,
     work: {
       ...BASE_WORK,
-      media: ["ipfs://QmExamplePhoto1"],
+      media: FIXTURE_WORK_MEDIA.slice(0, 1),
       title: "Built 3 raised garden beds",
     },
   },

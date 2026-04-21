@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { EmptyStateShell } from "./EmptyStateShell";
 
 const meta: Meta<typeof EmptyStateShell> = {
-  title: "Canvas/EmptyStateShell",
+  title: "Shared/Canvas/EmptyStateShell",
   component: EmptyStateShell,
   tags: ["autodocs"],
   argTypes: {

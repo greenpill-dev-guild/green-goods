@@ -1,11 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
 import { CanvasGardenAccessState } from "./CanvasGardenAccessState";
 
 const meta: Meta<typeof CanvasGardenAccessState> = {
-  title: "Admin/Layout/CanvasGardenAccessState",
+  title: "Admin/Shell/CanvasGardenAccessState",
   component: CanvasGardenAccessState,
   tags: ["autodocs"],
+  decorators: [
+    withCanvasFrame({
+      className: "flex items-center justify-center p-6",
+      heightClassName: "min-h-[440px]",
+      workspace: "garden",
+    }),
+  ],
   args: {
     onCreateGarden: fn(),
     canCreateGarden: true,

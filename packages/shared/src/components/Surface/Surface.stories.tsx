@@ -3,7 +3,7 @@ import { RiArrowRightLine, RiLeafLine } from "@remixicon/react";
 import { Surface } from "./Surface";
 
 const meta: Meta<typeof Surface> = {
-  title: "Primitives/Surface",
+  title: "Shared/Primitives/Surface",
   component: Surface,
   tags: ["autodocs"],
   argTypes: {

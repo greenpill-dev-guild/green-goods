@@ -3,7 +3,7 @@ import { RiInformationLine, RiSettings4Line } from "@remixicon/react";
 import { AdminTooltip } from "./AdminTooltip";
 
 const meta: Meta<typeof AdminTooltip> = {
-  title: "Admin/AdminTooltip",
+  title: "Admin/Primitives/AdminTooltip",
   component: AdminTooltip,
   tags: ["autodocs"],
   parameters: {

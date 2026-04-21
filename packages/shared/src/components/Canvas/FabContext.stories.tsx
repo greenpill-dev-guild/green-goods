@@ -43,7 +43,7 @@ function FabContextPreview({ hidden = false }: { hidden?: boolean }) {
 }
 
 const meta = {
-  title: "Canvas/FabContext",
+  title: "Shared/Canvas/FabContext",
   tags: ["autodocs"],
 } satisfies Meta;
 

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { CheckboxGroup, FormCheckbox } from "./FormCheckbox";
 
 const meta: Meta<typeof FormCheckbox> = {
-  title: "Form Controls/FormCheckbox",
+  title: "Shared/Form/FormCheckbox",
   component: FormCheckbox,
   tags: ["autodocs"],
   argTypes: {

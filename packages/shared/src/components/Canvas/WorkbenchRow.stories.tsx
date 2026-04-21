@@ -4,7 +4,7 @@ import { fn } from "storybook/test";
 import { WorkbenchRow } from "./WorkbenchRow";
 
 const meta: Meta<typeof WorkbenchRow> = {
-  title: "Canvas/WorkbenchRow",
+  title: "Shared/Canvas/WorkbenchRow",
   component: WorkbenchRow,
   tags: ["autodocs"],
   args: {

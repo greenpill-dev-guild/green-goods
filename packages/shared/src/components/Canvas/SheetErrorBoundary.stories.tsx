@@ -7,7 +7,7 @@ function ThrowOnRender(): never {
 }
 
 const meta: Meta<typeof SheetErrorBoundary> = {
-  title: "Canvas/SheetErrorBoundary",
+  title: "Shared/Canvas/SheetErrorBoundary",
   component: SheetErrorBoundary,
   tags: ["autodocs"],
 };

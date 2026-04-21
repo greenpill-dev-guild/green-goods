@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { CenteredSpinner, Spinner } from "./Spinner";
 
 const meta: Meta<typeof Spinner> = {
-  title: "Primitives/Spinner",
+  title: "Shared/Primitives/Spinner",
   component: Spinner,
   tags: ["autodocs"],
   argTypes: {

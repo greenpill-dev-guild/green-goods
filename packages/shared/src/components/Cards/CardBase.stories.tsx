@@ -10,7 +10,7 @@ import {
 } from "./CardBase";
 
 const meta: Meta<typeof CardBase> = {
-  title: "Cards/CardBase",
+  title: "Shared/Cards/CardBase",
   component: CardBase,
   tags: ["autodocs"],
   argTypes: {

@@ -3,7 +3,7 @@ import { RiMailLine, RiSearchLine } from "@remixicon/react";
 import { AdminTextField } from "./AdminTextField";
 
 const meta: Meta<typeof AdminTextField> = {
-  title: "Admin/AdminTextField",
+  title: "Admin/Primitives/AdminTextField",
   component: AdminTextField,
   tags: ["autodocs"],
   parameters: {
@@ -94,7 +94,7 @@ export const Disabled: Story = {
   ),
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="grid max-w-2xl gap-4 sm:grid-cols-2">
       <AdminTextField label="Filled (empty)" variant="filled" />

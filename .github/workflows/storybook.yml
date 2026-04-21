@@ -3,9 +3,18 @@ name: Storybook
 on:
   pull_request:
     paths:
-      - "packages/shared/src/components/**"
+      - ".github/workflows/storybook.yml"
+      - "AGENTS.md"
+      - "packages/shared/AGENTS.md"
+      - "packages/admin/AGENTS.md"
+      - "docs/docs/builders/packages/admin.mdx"
+      - "docs/docs/builders/testing/storybook.mdx"
+      - "scripts/check-story-coverage.ts"
       - "packages/shared/.storybook/**"
+      - "packages/shared/src/components/**"
+      - "packages/shared/src/styles/**"
       - "packages/admin/src/components/**"
+      - "packages/admin/src/views/**"
       - "packages/client/src/components/**"
 
 permissions:

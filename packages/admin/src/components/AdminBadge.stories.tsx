@@ -3,7 +3,7 @@ import { RiNotification3Line } from "@remixicon/react";
 import { AdminBadge } from "./AdminBadge";
 
 const meta: Meta<typeof AdminBadge> = {
-  title: "Admin/AdminBadge",
+  title: "Admin/Primitives/AdminBadge",
   component: AdminBadge,
   tags: ["autodocs"],
   parameters: {

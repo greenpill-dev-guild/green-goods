@@ -3,7 +3,7 @@ import { expect, fn, userEvent, within } from "storybook/test";
 import { ConfirmDialog, DialogShell } from "./ConfirmDialog";
 
 const meta: Meta<typeof ConfirmDialog> = {
-  title: "Feedback/ConfirmDialog",
+  title: "Shared/Feedback/ConfirmDialog",
   component: ConfirmDialog,
   tags: ["autodocs"],
   parameters: {

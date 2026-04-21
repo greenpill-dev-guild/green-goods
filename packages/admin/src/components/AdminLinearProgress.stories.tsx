@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { AdminLinearProgress } from "./AdminLinearProgress";
 
 const meta: Meta<typeof AdminLinearProgress> = {
-  title: "Admin/AdminLinearProgress",
+  title: "Admin/Primitives/AdminLinearProgress",
   component: AdminLinearProgress,
   tags: ["autodocs"],
   parameters: {
@@ -39,7 +39,7 @@ export const Determinate: Story = {
   ),
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="max-w-md space-y-4">
       <div className="space-y-1">

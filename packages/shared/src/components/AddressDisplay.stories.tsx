@@ -11,7 +11,7 @@ const SAMPLE_ADDRESSES = {
 };
 
 const meta: Meta<typeof AddressDisplay> = {
-  title: "Admin/UI/AddressDisplay",
+  title: "Shared/Primitives/AddressDisplay",
   component: AddressDisplay,
   tags: ["autodocs"],
   argTypes: {

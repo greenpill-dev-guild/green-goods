@@ -2,7 +2,7 @@ import { RiInboxLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 /**
- * Notification panel — rendered inside the right SideSheet.
+ * Notification panel — rendered inside the RightSheet.
  *
  * Groups notifications by type: work submissions, assessments, system alerts.
  * Currently a placeholder skeleton — notification data source TBD.

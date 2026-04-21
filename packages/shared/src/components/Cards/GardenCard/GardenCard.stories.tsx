@@ -13,7 +13,7 @@ const mockGarden: GardenCardData = {
 };
 
 const meta: Meta<typeof GardenCard> = {
-  title: "Cards/GardenCard",
+  title: "Shared/Cards/GardenCard",
   component: GardenCard,
   tags: ["autodocs"],
   argTypes: {

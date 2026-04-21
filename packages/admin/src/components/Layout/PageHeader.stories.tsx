@@ -6,21 +6,15 @@ import {
   RiSettings3Line,
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { MemoryRouter } from "react-router-dom";
 import { AdminTabRail } from "@/components/AdminTabRail";
+import { withCanvasFrame, withRouter } from "../../../../shared/.storybook/decorators";
 import { PageHeader } from "./PageHeader";
 
 const meta: Meta<typeof PageHeader> = {
-  title: "Admin/Layout/PageHeader",
+  title: "Admin/Shell/PageHeader",
   component: PageHeader,
   tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <MemoryRouter initialEntries={["/"]}>
-        <Story />
-      </MemoryRouter>
-    ),
-  ],
+  decorators: [withRouter()],
   argTypes: {
     title: { control: "text", description: "Main heading text" },
     description: { control: "text", description: "Subtitle below the title" },
@@ -183,6 +177,13 @@ export const Sticky: Story = {
 };
 
 export const CanvasRoute: Story = {
+  decorators: [
+    withCanvasFrame({
+      className: "p-6",
+      heightClassName: "min-h-[360px]",
+      workspace: "garden",
+    }),
+  ],
   args: {
     title: "Garden",
     description: "Manage your garden overview, impact metrics, and settings.",
@@ -269,7 +270,7 @@ export const FullFeatured: Story = {
   },
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-8">
       <PageHeader title="Title Only" />

@@ -35,7 +35,7 @@ const rows = [
 ];
 
 const meta: Meta<typeof WorkbenchList> = {
-  title: "Canvas/WorkbenchList",
+  title: "Shared/Canvas/WorkbenchList",
   component: WorkbenchList,
   tags: ["autodocs"],
   argTypes: {

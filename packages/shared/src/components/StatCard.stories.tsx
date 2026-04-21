@@ -10,7 +10,7 @@ import { MemoryRouter } from "react-router-dom";
 import { StatCard } from "./StatCard";
 
 const meta: Meta<typeof StatCard> = {
-  title: "Admin/UI/StatCard",
+  title: "Shared/Cards/StatCard",
   component: StatCard,
   tags: ["autodocs"],
   argTypes: {

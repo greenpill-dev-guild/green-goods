@@ -26,7 +26,7 @@ function ToolbarPreview() {
 }
 
 const meta: Meta<typeof ListToolbar> = {
-  title: "Admin Foundations/List Primitives",
+  title: "Shared/Primitives/ListPrimitives",
   component: ListToolbar,
   tags: ["autodocs"],
   parameters: {

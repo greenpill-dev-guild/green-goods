@@ -70,7 +70,7 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
 }
 
 const meta: Meta<typeof MockAccountSettingsPanel> = {
-  title: "Admin/Layout/AccountSettingsPanel",
+  title: "Admin/Shell/AccountSettingsPanel",
   component: MockAccountSettingsPanel,
   tags: ["autodocs"],
   args: {

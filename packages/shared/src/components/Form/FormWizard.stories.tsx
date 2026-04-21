@@ -38,7 +38,7 @@ function MockStepContent({ stepIndex }: { stepIndex: number }) {
 }
 
 const meta: Meta<typeof FormWizard> = {
-  title: "Admin/UI/FormWizard",
+  title: "Shared/Form/FormWizard",
   component: FormWizard,
   tags: ["autodocs"],
   argTypes: {

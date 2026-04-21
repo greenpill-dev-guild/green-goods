@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { MetaStrip } from "./MetaStrip";
 
 const meta: Meta<typeof MetaStrip> = {
-  title: "Canvas/MetaStrip",
+  title: "Shared/Canvas/MetaStrip",
   component: MetaStrip,
   tags: ["autodocs"],
   args: {

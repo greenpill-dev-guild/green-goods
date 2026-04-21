@@ -3,7 +3,7 @@ import { Domain } from "../types/domain";
 import { DomainBadge } from "./DomainBadge";
 
 const meta: Meta<typeof DomainBadge> = {
-  title: "Shared/DomainBadge",
+  title: "Shared/Primitives/DomainBadge",
   component: DomainBadge,
   tags: ["autodocs"],
   args: {

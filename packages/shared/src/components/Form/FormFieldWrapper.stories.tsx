@@ -3,7 +3,7 @@ import { expect, userEvent, within } from "storybook/test";
 import { FormField, FormFieldWrapper } from "./FormFieldWrapper";
 
 const meta: Meta<typeof FormFieldWrapper> = {
-  title: "Form Controls/FormFieldWrapper",
+  title: "Shared/Form/FormFieldWrapper",
   component: FormFieldWrapper,
   tags: ["autodocs"],
   parameters: {

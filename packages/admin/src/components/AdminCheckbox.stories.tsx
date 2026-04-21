@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { AdminCheckbox } from "./AdminCheckbox";
 
 const meta: Meta<typeof AdminCheckbox> = {
-  title: "Admin/AdminCheckbox",
+  title: "Admin/Primitives/AdminCheckbox",
   component: AdminCheckbox,
   tags: ["autodocs"],
   parameters: {
@@ -53,7 +53,7 @@ export const Disabled: Story = {
   args: { label: "Automatic deployments", defaultChecked: true, disabled: true },
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-2">
       <AdminCheckbox label="Unchecked" />

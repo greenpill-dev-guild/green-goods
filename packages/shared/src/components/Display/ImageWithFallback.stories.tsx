@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { ImageWithFallback } from "./ImageWithFallback";
 
 const meta: Meta<typeof ImageWithFallback> = {
-  title: "Media/ImageWithFallback",
+  title: "Shared/Display/ImageWithFallback",
   component: ImageWithFallback,
   tags: ["autodocs"],
   argTypes: {

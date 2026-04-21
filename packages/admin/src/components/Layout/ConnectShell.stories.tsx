@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { ConnectShell } from "./ConnectShell";
 
 const meta: Meta<typeof ConnectShell> = {
-  title: "Admin/Layout/ConnectShell",
+  title: "Admin/Shell/ConnectShell",
   component: ConnectShell,
   tags: ["autodocs"],
   parameters: {

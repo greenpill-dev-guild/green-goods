@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AdminFilterChip } from "./AdminFilterChip";
 
 const meta: Meta<typeof AdminFilterChip> = {
-  title: "Admin/AdminFilterChip",
+  title: "Admin/Primitives/AdminFilterChip",
   component: AdminFilterChip,
   tags: ["autodocs"],
   parameters: {

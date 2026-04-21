@@ -51,7 +51,7 @@ function writeString(view: DataView, offset: number, str: string) {
 const SILENT_WAV = createSilentWavDataUrl();
 
 const meta: Meta<typeof AudioPlayer> = {
-  title: "Media/AudioPlayer",
+  title: "Shared/Display/AudioPlayer",
   component: AudioPlayer,
   tags: ["autodocs"],
   parameters: {

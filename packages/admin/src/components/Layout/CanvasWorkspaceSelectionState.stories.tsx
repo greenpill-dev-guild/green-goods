@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { MemoryRouter } from "react-router-dom";
 import { fn } from "storybook/test";
+import { withCanvasFrame, withRouter } from "../../../../shared/.storybook/decorators";
 import { CanvasWorkspaceSelectionState } from "./CanvasWorkspaceSelectionState";
 
 const gardens = [
@@ -10,15 +10,16 @@ const gardens = [
 ];
 
 const meta: Meta<typeof CanvasWorkspaceSelectionState> = {
-  title: "Admin/Layout/CanvasWorkspaceSelectionState",
+  title: "Admin/Shell/CanvasWorkspaceSelectionState",
   component: CanvasWorkspaceSelectionState,
   tags: ["autodocs"],
   decorators: [
-    (Story) => (
-      <MemoryRouter initialEntries={["/hub"]}>
-        <Story />
-      </MemoryRouter>
-    ),
+    withRouter(["/hub"]),
+    withCanvasFrame({
+      className: "flex items-center justify-center p-6",
+      heightClassName: "min-h-[480px]",
+      workspace: "community",
+    }),
   ],
   args: {
     workspaceLabel: "community",

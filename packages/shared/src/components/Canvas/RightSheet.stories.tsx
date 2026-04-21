@@ -16,7 +16,7 @@ const sampleContent = (
 );
 
 const meta: Meta<typeof RightSheet> = {
-  title: "Canvas/RightSheet",
+  title: "Shared/Canvas/RightSheet",
   component: RightSheet,
   tags: ["autodocs"],
   parameters: {
@@ -73,7 +73,8 @@ export const BoundedCanvas: Story = {
     return (
       <div
         id="right-sheet-story-container"
-        className="relative h-[520px] overflow-hidden rounded-xl bg-bg-weak p-6"
+        data-workspace="profile"
+        className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
       >
         <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
         <RightSheet {...args} container={container}>
@@ -82,14 +83,4 @@ export const BoundedCanvas: Story = {
       </div>
     );
   },
-};
-
-export const DarkMode: Story = {
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="min-h-screen bg-bg-white-0">
-        <Story />
-      </div>
-    ),
-  ],
 };

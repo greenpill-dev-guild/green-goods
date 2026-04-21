@@ -3,7 +3,7 @@ import { IntlProvider } from "react-intl";
 import { NotificationPanel } from "./NotificationPanel";
 
 const meta: Meta<typeof NotificationPanel> = {
-  title: "Canvas/NotificationPanel",
+  title: "Shared/Canvas/NotificationPanel",
   component: NotificationPanel,
   tags: ["autodocs"],
 };

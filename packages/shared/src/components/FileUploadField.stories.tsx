@@ -33,7 +33,7 @@ function StatefulPreview({
 }
 
 const meta: Meta<typeof FileUploadField> = {
-  title: "Admin/UI/FileUploadField",
+  title: "Shared/Form/FileUploadField",
   component: FileUploadField,
   tags: ["autodocs"],
   argTypes: {

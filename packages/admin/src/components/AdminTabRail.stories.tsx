@@ -4,7 +4,7 @@ import { useState } from "react";
 import { AdminTabRail } from "./AdminTabRail";
 
 const meta: Meta<typeof AdminTabRail> = {
-  title: "Admin/AdminTabRail",
+  title: "Admin/Primitives/AdminTabRail",
   component: AdminTabRail,
   tags: ["autodocs"],
   parameters: {

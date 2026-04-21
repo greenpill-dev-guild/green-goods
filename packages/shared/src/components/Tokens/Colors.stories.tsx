@@ -362,7 +362,7 @@ function StateColorRow({ group }: { group: StateGroup }) {
 /* -------------------------------------------------------------------------- */
 
 const meta: Meta = {
-  title: "Design Tokens/Colors",
+  title: "Shared/Tokens/Colors",
   tags: ["autodocs"],
   parameters: {
     docs: {

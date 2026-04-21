@@ -5,7 +5,7 @@ import { AdminButton } from "./AdminButton";
 import { AdminDialog } from "./AdminDialog";
 
 const meta: Meta<typeof AdminDialog> = {
-  title: "Admin/AdminDialog",
+  title: "Admin/Primitives/AdminDialog",
   component: AdminDialog,
   tags: ["autodocs"],
   parameters: {

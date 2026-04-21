@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { ImagePreviewDialog } from "./ImagePreviewDialog";
 
 const meta: Meta<typeof ImagePreviewDialog> = {
-  title: "Feedback/ImagePreviewDialog",
+  title: "Shared/Feedback/ImagePreviewDialog",
   component: ImagePreviewDialog,
   tags: ["autodocs"],
   argTypes: {

@@ -89,7 +89,7 @@ function MockUserMenu({
 }
 
 const meta: Meta<typeof MockUserMenu> = {
-  title: "Admin/Layout/UserMenu",
+  title: "Admin/Shell/UserMenu",
   component: MockUserMenu,
   tags: ["autodocs"],
   args: {

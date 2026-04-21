@@ -5,7 +5,7 @@ import type { Meta, StoryObj } from "@storybook/react";
  * These stories show the visual appearance of the badge component.
  */
 const meta: Meta = {
-  title: "Primitives/TranslationBadge",
+  title: "Shared/Primitives/TranslationBadge",
   tags: ["autodocs"],
 };
 

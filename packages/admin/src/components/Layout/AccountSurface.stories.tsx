@@ -36,7 +36,7 @@ function MockAccountSurface({ initialTab }: MockAccountSurfaceProps) {
 }
 
 const meta: Meta<typeof MockAccountSurface> = {
-  title: "Admin/Layout/AccountSurface",
+  title: "Admin/Shell/AccountSurface",
   component: MockAccountSurface,
   tags: ["autodocs"],
   args: {

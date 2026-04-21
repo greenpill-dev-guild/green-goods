@@ -37,7 +37,7 @@ const mockVaults: GardenVault[] = [
 ];
 
 const meta: Meta<typeof DepositModal> = {
-  title: "Admin/Vault/DepositModal",
+  title: "Admin/Workflows/Vault/DepositModal",
   component: DepositModal,
   tags: ["autodocs"],
   argTypes: {
@@ -125,26 +125,10 @@ export const Closed: Story = {
   },
 };
 
-export const DarkMode: Story = {
-  args: {
-    isOpen: true,
-    onClose: fn(),
-    gardenAddress: MOCK_GARDEN_ADDRESS,
-    vaults: mockVaults,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4 min-h-[500px]">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
 /**
- * Gallery showing single-vault and multi-vault scenarios.
+ * Consolidated state catalog — use the theme toolbar for dark mode.
  */
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-6">
       <p className="text-sm text-text-sub">

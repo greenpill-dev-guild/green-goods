@@ -31,7 +31,7 @@ const availableData: ENSRegistrationData = {
 };
 
 const meta: Meta<typeof ENSProgressTimeline> = {
-  title: "Progress/ENSProgressTimeline",
+  title: "Shared/Progress/ENSProgressTimeline",
   component: ENSProgressTimeline,
   tags: ["autodocs"],
   parameters: {

@@ -12,11 +12,12 @@ foundations.
 
 - Read `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` before changing routes, layouts, or page structure.
 - The canonical shell is `CanvasLayout`.
-- The Wave 3 shell is `TopContextBar + .workspace-canvas + MainSheet + NavigationBar`, with sheets layered off that canvas instead of separate page chrome.
+- The Wave 3 shell is `TopContextBar + .workspace-canvas + MainSheet + NavigationBar`, with `LeftSheet`, `RightSheet`, and `BottomSheet` layered off that canvas instead of separate page chrome.
 - `TopContextBar` is the sticky `z-40 h-14` context region: `GardenChip` on the left; desktop search, settings, and `UserAvatar` on the right.
 - `NavigationBar` is pure navigation only. Use the canonical items `Hub`, `Garden`, `Community`, and `Actions`; do not add leading or trailing slots.
+- `AppBar` is client/PWA chrome, not admin chrome. Keep admin navigation on `NavigationBar`.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
-- Shared owns `TopContextBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `SideSheet`, `BottomSheet`, and `SheetErrorBoundary`. Admin owns `CanvasLayout`, `AccountSheet`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
+- Shared owns `TopContextBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, and `SheetErrorBoundary`. Admin owns `CanvasLayout`, `AccountSheet`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
 - Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
@@ -38,13 +39,15 @@ foundations.
 - `TopContextBar`
 - `NavigationBar`
 - `MainSheet`
+- `LeftSheet`
+- `RightSheet`
+- `BottomSheet`
 - `GardenChip`
 - `CommandPalette`
 - `AccountSheet`
 - `AccountSettingsPanel`
 - `UserAvatar`
 - `ConnectShell`
-- `SideSheet`
 - `PageHeader`
 - `ListToolbar`
 - `SortSelect`

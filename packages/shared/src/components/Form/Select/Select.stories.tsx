@@ -11,7 +11,7 @@ import {
 } from "./Select";
 
 const meta: Meta<typeof Select> = {
-  title: "Form Controls/Select",
+  title: "Shared/Form/Select",
   component: Select,
   tags: ["autodocs"],
 };

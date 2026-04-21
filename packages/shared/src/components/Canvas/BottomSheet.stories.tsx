@@ -29,7 +29,7 @@ const sampleContent = (
 // ---------------------------------------------------------------------------
 
 const meta = {
-  title: "Canvas/BottomSheet",
+  title: "Shared/Canvas/BottomSheet",
   component: BottomSheet,
   tags: ["autodocs"],
   parameters: {
@@ -87,8 +87,8 @@ export const NoTitle: Story = {
   },
 };
 
-/** All variants shown for visual comparison. */
-export const Gallery: Story = {
+/** Agent state catalog for the mobile sheet anatomy. */
+export const StateCatalog: Story = {
   args: {
     open: true,
     onClose: fn(),
@@ -112,21 +112,4 @@ export const Gallery: Story = {
       </BottomSheet>
     </div>
   ),
-};
-
-/** Dark mode rendering for visual verification. */
-export const DarkMode: Story = {
-  args: {
-    open: true,
-    onClose: fn(),
-    title: "Work Detail",
-    children: sampleContent,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 min-h-screen">
-        <Story />
-      </div>
-    ),
-  ],
 };

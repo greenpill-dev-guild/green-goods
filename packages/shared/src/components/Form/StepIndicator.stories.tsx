@@ -10,7 +10,7 @@ const steps: Step[] = [
 ];
 
 const meta: Meta<typeof StepIndicator> = {
-  title: "Admin/UI/StepIndicator",
+  title: "Shared/Form/StepIndicator",
   component: StepIndicator,
   tags: ["autodocs"],
   argTypes: {

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { GardenBannerFallback } from "./GardenBannerFallback";
 
 const meta: Meta<typeof GardenBannerFallback> = {
-  title: "Media/GardenBannerFallback",
+  title: "Shared/Display/GardenBannerFallback",
   component: GardenBannerFallback,
   tags: ["autodocs"],
   decorators: [

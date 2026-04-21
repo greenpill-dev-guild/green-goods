@@ -21,7 +21,7 @@ const sampleContent = (
 );
 
 const meta: Meta<typeof LeftSheet> = {
-  title: "Canvas/LeftSheet",
+  title: "Shared/Canvas/LeftSheet",
   component: LeftSheet,
   tags: ["autodocs"],
   parameters: {
@@ -78,7 +78,8 @@ export const BoundedCanvas: Story = {
     return (
       <div
         id="left-sheet-story-container"
-        className="relative h-[520px] overflow-hidden rounded-xl bg-bg-weak p-6"
+        data-workspace="hub"
+        className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
       >
         <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
         <LeftSheet {...args} container={container}>
@@ -87,14 +88,4 @@ export const BoundedCanvas: Story = {
       </div>
     );
   },
-};
-
-export const DarkMode: Story = {
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="min-h-screen bg-bg-white-0">
-        <Story />
-      </div>
-    ),
-  ],
 };

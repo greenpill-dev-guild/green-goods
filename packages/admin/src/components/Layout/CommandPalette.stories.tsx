@@ -292,9 +292,17 @@ function MockCommandPalette({
 // ─── Meta ────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof MockCommandPalette> = {
-  title: "Admin/Layout/CommandPalette",
+  title: "Admin/Shell/CommandPalette",
   component: MockCommandPalette,
   tags: ["autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Isolated command-palette state catalog. The play story is a local interaction aid; CI only builds stories and does not execute play functions.",
+      },
+    },
+  },
   args: {
     defaultOpen: false,
     gardens: ["Community Forest", "Urban Rooftop", "Riverside Restoration"],
@@ -339,43 +347,15 @@ export const NoResults: Story = {
   },
 };
 
-export const Gallery: Story = {
-  render: () => (
-    <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-xs text-text-sub-600 mb-2">Closed state (search icon button)</p>
-        <MockCommandPalette />
-      </div>
-      <div>
-        <p className="text-xs text-text-sub-600 mb-2">
-          Open with results (click the icon above to see the palette)
-        </p>
-        <MockCommandPalette
-          defaultOpen={true}
-          gardens={["Community Forest", "Urban Rooftop"]}
-          actions={["Plant Trees"]}
-        />
-      </div>
-    </div>
-  ),
-};
-
-export const DarkMode: Story = {
-  args: {
-    defaultOpen: true,
-    gardens: ["Community Forest", "Urban Rooftop"],
-    actions: ["Plant Trees"],
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4 min-h-[400px]">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
 export const Interactive: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Local-only interaction aid: opens the palette, verifies grouped results, then filters by typing.",
+      },
+    },
+  },
   args: {
     gardens: ["Community Forest", "Urban Rooftop"],
     actions: ["Plant Trees"],

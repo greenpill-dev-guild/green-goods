@@ -21,7 +21,7 @@ function MockUserAvatar({ role, onOpenProfile }: MockUserAvatarProps) {
 }
 
 const meta: Meta<typeof MockUserAvatar> = {
-  title: "Admin/Layout/UserAvatar",
+  title: "Admin/Shell/UserAvatar",
   component: MockUserAvatar,
   tags: ["autodocs"],
   args: {

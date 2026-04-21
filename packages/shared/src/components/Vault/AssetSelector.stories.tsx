@@ -46,7 +46,7 @@ const mockVaults: GardenVault[] = [
 ] as unknown as GardenVault[];
 
 const meta: Meta<typeof AssetSelector> = {
-  title: "Vault/AssetSelector",
+  title: "Shared/Form/AssetSelector",
   component: AssetSelector,
   tags: ["autodocs"],
   argTypes: {

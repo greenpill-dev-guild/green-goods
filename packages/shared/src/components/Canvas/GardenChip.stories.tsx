@@ -27,9 +27,17 @@ const longNameGarden = [
 // ---------------------------------------------------------------------------
 
 const meta = {
-  title: "Canvas/GardenChip",
+  title: "Shared/Canvas/GardenChip",
   component: GardenChip,
   tags: ["autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Garden context selector used in the canvas AppBar. Stories cover single-garden, multi-garden, all-gardens, and truncation states.",
+      },
+    },
+  },
   argTypes: {
     gardens: {
       control: "object",
@@ -97,8 +105,8 @@ export const LongName: Story = {
   },
 };
 
-/** All variants side-by-side for visual comparison. */
-export const Gallery: Story = {
+/** Agent state catalog for the selector states agents most often need before tests. */
+export const StateCatalog: Story = {
   args: {
     gardens: multipleGardens,
     selectedGarden: multipleGardens[0],
@@ -145,21 +153,4 @@ export const Gallery: Story = {
       </section>
     </div>
   ),
-};
-
-/** Dark mode rendering for visual verification. */
-export const DarkMode: Story = {
-  args: {
-    gardens: multipleGardens,
-    selectedGarden: multipleGardens[0],
-    onSelectGarden: fn(),
-    onCreateGarden: fn(),
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

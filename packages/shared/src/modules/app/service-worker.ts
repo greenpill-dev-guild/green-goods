@@ -205,13 +205,26 @@ export const serviceWorkerManager = new ServiceWorkerManager();
 // Auto-register service worker only in production, or when explicitly enabled for tests
 if (typeof window !== "undefined") {
   const enableDevServiceWorker = import.meta.env?.VITE_ENABLE_SW_DEV === "true";
+  // Storybook's Vite builder defines `import.meta.env.STORYBOOK` (see
+  // `@storybook/builder-vite` `allowedEnvVariables`). The built Storybook
+  // is otherwise a Vite `import.meta.env.PROD === true` bundle, so
+  // without this guard the production branch would register `/sw.js` —
+  // which Storybook does not serve, yielding a 404 and a console error
+  // on every story. Real client/admin production builds do NOT set this
+  // flag, so their SW behavior is unchanged.
+  const isStorybook = Boolean((import.meta.env as Record<string, unknown> | undefined)?.STORYBOOK);
 
-  if (import.meta.env?.PROD || enableDevServiceWorker) {
+  if (!isStorybook && (import.meta.env?.PROD || enableDevServiceWorker)) {
     serviceWorkerManager.register();
   }
 
   // In development (and when not explicitly enabled), ensure no SW interferes with HMR
-  if (import.meta.env?.DEV && !enableDevServiceWorker && "serviceWorker" in navigator) {
+  if (
+    !isStorybook &&
+    import.meta.env?.DEV &&
+    !enableDevServiceWorker &&
+    "serviceWorker" in navigator
+  ) {
     // Best-effort cleanup: unregister existing SWs and clear caches
     navigator.serviceWorker
       .getRegistrations()

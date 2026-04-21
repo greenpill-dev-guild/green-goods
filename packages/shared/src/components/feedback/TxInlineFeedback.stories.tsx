@@ -3,7 +3,7 @@ import { Button } from "../Button";
 import { TxInlineFeedback } from "./TxInlineFeedback";
 
 const meta: Meta<typeof TxInlineFeedback> = {
-  title: "Feedback/TxInlineFeedback",
+  title: "Shared/Feedback/TxInlineFeedback",
   component: TxInlineFeedback,
   tags: ["autodocs"],
   argTypes: {

@@ -48,7 +48,7 @@ function MockAccountProfilePanel({
 }
 
 const meta: Meta<typeof MockAccountProfilePanel> = {
-  title: "Admin/Layout/AccountProfilePanel",
+  title: "Admin/Shell/AccountProfilePanel",
   component: MockAccountProfilePanel,
   tags: ["autodocs"],
   args: {
