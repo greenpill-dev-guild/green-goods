@@ -210,6 +210,34 @@ SOL
     assert_json "const r=require('$TMP_DIR/output/report.json'); if(!r.status.pass){process.exit(1)}"
 }
 
+scenario_6_exact_reverts_count_as_specific() {
+    reset_fixture
+    mkdir -p "$TMP_DIR/packages/contracts/test/fork"
+    cat > "$TMP_DIR/packages/contracts/test/fork/Scenario6.t.sol" <<'SOL'
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.25;
+contract Scenario6 {
+    function t(address target) external {
+        vm.expectRevert("Ownable: caller is not the owner");
+        target.call("");
+
+        vm.expectRevert(abi.encodeWithSignature("UnauthorizedSender()"));
+        target.call("");
+    }
+}
+SOL
+    write_allowlist '[]'
+    (
+        cd "$TMP_DIR"
+        REALISM_REVERT_THRESHOLD=1.00 "$TMP_DIR/scripts/check-contract-test-realism.sh" \
+            --mode enforce-should-fix \
+            --report-md output/report.md \
+            --report-json output/report.json
+    )
+
+    assert_json "const r=require('$TMP_DIR/output/report.json'); const m=r.metrics; if(m.expect_revert_total!==2||m.expect_revert_selector_specific!==2||!r.status.pass){process.exit(1)}"
+}
+
 main() {
     scenario_1_unallowlisted_mockcall_fails
     echo "[ok] scenario_1_unallowlisted_mockcall_fails"
@@ -225,6 +253,9 @@ main() {
 
     scenario_5_valid_allowlisted_mock_passes
     echo "[ok] scenario_5_valid_allowlisted_mock_passes"
+
+    scenario_6_exact_reverts_count_as_specific
+    echo "[ok] scenario_6_exact_reverts_count_as_specific"
 
     echo "All realism audit tooling scenarios passed."
 }

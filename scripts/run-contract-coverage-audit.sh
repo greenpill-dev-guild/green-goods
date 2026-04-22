@@ -44,21 +44,6 @@ run_with_timeout() {
     return "$cmd_exit"
 }
 
-summarize_lcov() {
-    local file="$1"
-    awk -F: '
-        /^LF:/ { lf += $2 }
-        /^LH:/ { lh += $2 }
-        /^BRF:/ { brf += $2 }
-        /^BRH:/ { brh += $2 }
-        END {
-            linePct = (lf > 0 ? (lh / lf) * 100 : 100)
-            branchPct = (brf > 0 ? (brh / brf) * 100 : 100)
-            printf "%d %d %.2f %d %d %.2f\n", lh, lf, linePct, brh, brf, branchPct
-        }
-    ' "$file"
-}
-
 pushd "$CONTRACTS_DIR" >/dev/null
 
 unitCoverageOk=true
@@ -94,110 +79,12 @@ fi
 
 popd >/dev/null
 
-unitLH=0
-unitLF=0
-unitLinePct=0
-unitBRH=0
-unitBRF=0
-unitBranchPct=0
-intLH=0
-intLF=0
-intLinePct=0
-intBRH=0
-intBRF=0
-intBranchPct=0
-
-if [[ "$unitCoverageOk" == true ]]; then
-    read -r unitLH unitLF unitLinePct unitBRH unitBRF unitBranchPct < <(summarize_lcov "$UNIT_LCOV")
-fi
-
-if [[ "$integrationCoverageOk" == true ]]; then
-    read -r intLH intLF intLinePct intBRH intBRF intBranchPct < <(summarize_lcov "$INTEGRATION_LCOV")
-fi
-
-unitLineTarget=85
-unitBranchTarget=75
-integrationLineTarget=80
-integrationBranchTarget=70
-
-unitStatus="PASS"
-integrationStatus="PASS"
-overallStatus="PASS"
-
-if [[ "$unitCoverageOk" != true ]]; then
-    unitStatus="ERROR"
-    overallStatus="FAIL"
-elif ! awk "BEGIN { exit !($unitLinePct >= $unitLineTarget && $unitBranchPct >= $unitBranchTarget) }"; then
-    unitStatus="FAIL"
-    overallStatus="FAIL"
-fi
-
-if [[ "$integrationCoverageOk" != true ]]; then
-    integrationStatus="ERROR"
-    overallStatus="FAIL"
-elif ! awk "BEGIN { exit !($intLinePct >= $integrationLineTarget && $intBranchPct >= $integrationBranchTarget) }"; then
-    integrationStatus="FAIL"
-    overallStatus="FAIL"
-fi
-
-cat > "$SUMMARY_MD" <<MARKDOWN
-# Contracts Coverage Summary
-
-Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-| Suite | Line Coverage | Branch Coverage | Target | Status |
-|---|---:|---:|---|---|
-| Unit (test/unit/**) | ${unitLinePct}% (${unitLH}/${unitLF}) | ${unitBranchPct}% (${unitBRH}/${unitBRF}) | line >= ${unitLineTarget}%, branch >= ${unitBranchTarget}% | ${unitStatus} |
-| Integration (test/integration/**) | ${intLinePct}% (${intLH}/${intLF}) | ${intBranchPct}% (${intBRH}/${intBRF}) | line >= ${integrationLineTarget}%, branch >= ${integrationBranchTarget}% | ${integrationStatus} |
-
-Execution Notes:
-- Unit: ${unitError:-OK}
-- Integration: ${integrationError:-OK}
-- Overall status: ${overallStatus}
-
-Artifacts:
-- output/contracts-test-audit/lcov-unit.info
-- output/contracts-test-audit/lcov-integration.info
-- output/contracts-test-audit/coverage-unit.log
-- output/contracts-test-audit/coverage-integration.log
-MARKDOWN
-
-cat > "$SUMMARY_JSON" <<JSON
-{
-  "generated_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "thresholds": {
-    "unit": { "line": ${unitLineTarget}, "branch": ${unitBranchTarget} },
-    "integration": { "line": ${integrationLineTarget}, "branch": ${integrationBranchTarget} }
-  },
-  "unit": {
-    "ok": ${unitCoverageOk},
-    "line_covered": ${unitLH},
-    "line_total": ${unitLF},
-    "line_percent": ${unitLinePct},
-    "branch_covered": ${unitBRH},
-    "branch_total": ${unitBRF},
-    "branch_percent": ${unitBranchPct},
-    "status": "${unitStatus}",
-    "error": "${unitError}"
-  },
-  "integration": {
-    "ok": ${integrationCoverageOk},
-    "line_covered": ${intLH},
-    "line_total": ${intLF},
-    "line_percent": ${intLinePct},
-    "branch_covered": ${intBRH},
-    "branch_total": ${intBRF},
-    "branch_percent": ${intBranchPct},
-    "status": "${integrationStatus}",
-    "error": "${integrationError}"
-  },
-  "overall_status": "${overallStatus}"
-}
-JSON
-
-echo "Coverage summary written: $SUMMARY_MD"
-echo "Coverage JSON written: $SUMMARY_JSON"
-
-if [[ "$overallStatus" != "PASS" ]]; then
-    exit 1
-fi
+node "$ROOT_DIR/scripts/contract-coverage-policy.mjs" \
+    --unit-lcov "$UNIT_LCOV" \
+    --integration-lcov "$INTEGRATION_LCOV" \
+    --summary-md "$SUMMARY_MD" \
+    --summary-json "$SUMMARY_JSON" \
+    --unit-ok "$unitCoverageOk" \
+    --integration-ok "$integrationCoverageOk" \
+    --unit-error "$unitError" \
+    --integration-error "$integrationError"

@@ -2,6 +2,7 @@
 // solhint-disable one-contract-per-file
 pragma solidity ^0.8.25;
 
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IOctantFactory, IOctantStrategy, IOctantVault } from "../interfaces/IOctantFactory.sol";
 
 /// @title MockOctantFactory
@@ -134,7 +135,7 @@ contract MockOctantVault is IOctantVault {
 
     function withdraw(
         uint256 assets,
-        address,
+        address receiver,
         address owner,
         uint256,
         address[] calldata
@@ -148,6 +149,7 @@ contract MockOctantVault is IOctantVault {
         _totalAssets -= assets;
         totalSupply -= shares;
         balances[owner] -= shares;
+        _transferAssetsIfFunded(receiver, assets);
     }
 
     function totalAssets() external view override returns (uint256) {
@@ -156,7 +158,7 @@ contract MockOctantVault is IOctantVault {
 
     function redeem(
         uint256 shares,
-        address,
+        address receiver,
         address owner,
         uint256,
         address[] calldata
@@ -173,6 +175,7 @@ contract MockOctantVault is IOctantVault {
         _totalAssets -= assets;
         totalSupply -= shares;
         balances[owner] -= shares;
+        _transferAssetsIfFunded(receiver, assets);
     }
 
     function balanceOf(address account) external view override returns (uint256) {
@@ -263,10 +266,20 @@ contract MockOctantVault is IOctantVault {
         if (processReportShareAmount > 0 && recipient != address(0)) {
             balances[recipient] += processReportShareAmount;
             totalSupply += processReportShareAmount;
+            _totalAssets += processReportShareAmount;
             processReportShareAmount = 0; // Consume pending yield
         }
 
         return (0, 0);
+    }
+
+    function _transferAssetsIfFunded(address receiver, uint256 assets) private {
+        if (assets == 0 || asset.code.length == 0) return;
+
+        uint256 fundedBalance = IERC20(asset).balanceOf(address(this));
+        if (fundedBalance >= assets) {
+            IERC20(asset).transfer(receiver, assets);
+        }
     }
 
     function set_role(address account, uint256 role) external override {

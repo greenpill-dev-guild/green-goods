@@ -92,6 +92,17 @@ function percentage(numerator, denominator) {
     return (numerator / denominator) * 100;
 }
 
+function hasSpecificExpectRevertAssertion(inner) {
+    return (
+        // Custom-error selectors, including local constants such as NOT_AUTHORIZED_SELECTOR.
+        /(?:\.selector|\bselector\b|_SELECTOR\b|bytes4\s*\()/i.test(inner) ||
+        // ABI signature encodes exact custom-error bytes and is equivalent to selector specificity.
+        /abi\.encodeWith(?:Selector|Signature)\s*\(/.test(inner) ||
+        // Exact revert reason strings are specific for legacy Error(string) reverts.
+        /^["'][^"']+["']$/.test(inner.trim())
+    );
+}
+
 const forkDir = path.join(rootDir, 'packages/contracts/test/fork');
 const contractsTestDir = path.join(rootDir, 'packages/contracts/test');
 
@@ -188,7 +199,7 @@ for (const file of targetFiles) {
                 message: 'Fork/E2E test uses generic vm.expectRevert() without selector'
             });
         }
-        if (/(selector|abi\.encodeWithSelector|bytes4\s*\()/.test(inner)) {
+        if (hasSpecificExpectRevertAssertion(inner)) {
             metrics.expect_revert_selector_specific += 1;
         }
     }
@@ -564,7 +575,12 @@ const summary = {
     metrics,
     thresholds: {
         selector_specificity_percent: selectorSpecificity,
-        selector_specificity_threshold_percent: configuredThreshold
+        selector_specificity_threshold_percent: configuredThreshold,
+        selector_specificity_policy: [
+            'custom-error selector',
+            'ABI-encoded error signature',
+            'exact revert reason string'
+        ]
     },
     allowlist: {
         entries: allowlistEntries.length,
@@ -622,6 +638,7 @@ const md = `# Contract Test Realism Audit\n\n` +
 `- Inventory: ${metrics.total_test_files} total Solidity test files, ${metrics.fork_e2e_files} fork/e2e files\n` +
 `- Mock primitives: ${metrics.mock_import_lines} src/mocks imports, ${metrics.vm_mock_lines} vm.mockCall* calls, ${metrics.vm_store_lines} vm.store calls, ${metrics.vm_etch_lines} vm.etch calls\n` +
 `- Revert specificity: ${metrics.expect_revert_selector_specific}/${metrics.expect_revert_total} selector-specific (${selectorSpecificity.toFixed(2)}%)\n` +
+`- Specificity policy: custom-error selectors, ABI-encoded error signatures, and exact revert reason strings count as specific\n` +
 `- Generic expectRevert: ${metrics.expect_revert_generic}\n` +
 `- Skip logs: ${metrics.skip_logs}, skip-return blocks: ${metrics.skip_return_blocks} (mandatory networks: ${metrics.skip_return_blocks_mandatory_networks})\n` +
 `- Allowlist: ${allowlistEntries.length} entries, ${allowlistedFindings.length} matched, ${expiredEntries.length} expired\n\n` +

@@ -99,10 +99,8 @@ contract GoodsProjectTest is Test {
     function test_launchProject_storesRulesetMetadata() public {
         uint256 projectId = _launchDefaultProject();
 
-        (uint16 reservedPercent, uint16 cashOutTaxRate,,,,,,,,,,,,,,,,,) = controller.projectMetadata(projectId);
-
-        assertEq(reservedPercent, RESERVED_PERCENT, "Reserved percent should be 20%");
-        assertEq(cashOutTaxRate, CASH_OUT_TAX_RATE, "Cash out tax rate should be 50%");
+        assertEq(controller.getProjectReservedPercent(projectId), RESERVED_PERCENT, "Reserved percent should be 20%");
+        assertEq(controller.getProjectCashOutTaxRate(projectId), CASH_OUT_TAX_RATE, "Cash out tax rate should be 50%");
     }
 
     function test_launchProject_storesReservedSplits() public {
@@ -149,8 +147,9 @@ contract GoodsProjectTest is Test {
         uint256 projectId = _launchDefaultProject();
 
         // Verify allowOwnerMinting is true (required for free mint buffer)
-        (,,,,, bool allowOwnerMinting,,,,,,,,,,,,,) = controller.projectMetadata(projectId);
-        assertTrue(allowOwnerMinting, "allowOwnerMinting should be true for free mint buffer");
+        assertTrue(
+            controller.getProjectAllowOwnerMinting(projectId), "allowOwnerMinting should be true for free mint buffer"
+        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

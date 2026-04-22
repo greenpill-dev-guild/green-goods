@@ -6,6 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { Attestation } from "@eas/IEAS.sol";
 
 import { GreenWill } from "../../src/registries/GreenWill.sol";
+import { ArrayLengthMismatch } from "../../src/CommonErrors.sol";
 import { MockHats } from "../../src/mocks/Hats.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockOctantVault } from "../../src/mocks/Octant.sol";
@@ -37,9 +38,11 @@ contract GreenWillTest is Test {
     bytes32 internal constant GENESIS_BADGE = keccak256("GENESIS");
     bytes32 internal constant FIRST_WORK_BADGE = keccak256("FIRST_WORK");
     bytes32 internal constant FIRST_SUPPORT_BADGE = keccak256("FIRST_SUPPORT");
+    bytes32 internal constant AUTHORIZED_BADGE = keccak256("AUTHORIZED");
     bytes32 internal constant WORK_SCHEMA_UID = keccak256("WORK_SCHEMA_UID");
     bytes32 internal constant WORK_UID = keccak256("WORK_UID");
     uint256 internal constant PROTOCOL_HAT_ID = 42;
+    uint256 internal constant TEMPORARY_UNLOCK_DURATION = 30 days;
 
     address internal constant ALICE = address(0xA11CE);
     address internal constant BOB = address(0xB0B);
@@ -119,6 +122,98 @@ contract GreenWillTest is Test {
         greenWill.claimBadge(GENESIS_BADGE, "");
     }
 
+    function test_previewClaim_returnsSourceRefWithoutIssuing() public {
+        hats.setWearer(PROTOCOL_HAT_ID, ALICE, true);
+
+        bytes32 sourceRef = greenWill.previewClaim(GENESIS_BADGE, ALICE, "");
+
+        assertEq(sourceRef, bytes32(PROTOCOL_HAT_ID), "preview should return the eligibility source");
+        assertFalse(greenWill.hasBadge(GENESIS_BADGE, ALICE), "preview should not issue a badge");
+        assertEq(genesisLock.totalSupply(), 0, "preview should not mint an unlock key");
+    }
+
+    function test_claimBadge_revertsWhenBadgeIsAlreadyOwned() public {
+        hats.setWearer(PROTOCOL_HAT_ID, ALICE, true);
+
+        vm.startPrank(ALICE);
+        greenWill.claimBadge(GENESIS_BADGE, "");
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.BadgeAlreadyOwned.selector, GENESIS_BADGE, ALICE));
+        greenWill.claimBadge(GENESIS_BADGE, "");
+        vm.stopPrank();
+    }
+
+    function test_claimBadge_usesConfiguredUnlockDuration() public {
+        hats.setWearer(PROTOCOL_HAT_ID, ALICE, true);
+        greenWill.configureBadgeRule(
+            GENESIS_BADGE, GreenWill.BadgeRule.Hat, bytes32(PROTOCOL_HAT_ID), TEMPORARY_UNLOCK_DURATION
+        );
+
+        vm.prank(ALICE);
+        greenWill.claimBadge(GENESIS_BADGE, "");
+
+        assertEq(
+            genesisLock.keyExpirationTimestampFor(ALICE),
+            block.timestamp + TEMPORARY_UNLOCK_DURATION,
+            "temporary badge should mint a time-bound unlock key"
+        );
+    }
+
+    function test_claimBadge_revertsWhenBadgeIsNotConfigured() public {
+        bytes32 unknownBadge = keccak256("UNKNOWN_BADGE");
+
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.BadgeClassNotConfigured.selector, unknownBadge));
+        greenWill.claimBadge(unknownBadge, "");
+    }
+
+    function test_claimBadge_revertsWhenBadgeIsInactive() public {
+        greenWill.configureBadgeClass(
+            GENESIS_BADGE, "genesis", "ipfs://genesis", address(hats), address(0), address(genesisLock), true, false
+        );
+
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.BadgeInactive.selector, GENESIS_BADGE));
+        greenWill.claimBadge(GENESIS_BADGE, "");
+    }
+
+    function test_claimBadge_revertsWhenBadgeIsNotClaimable() public {
+        greenWill.configureBadgeClass(
+            GENESIS_BADGE, "genesis", "ipfs://genesis", address(hats), address(0), address(genesisLock), false, true
+        );
+
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.BadgeNotClaimable.selector, GENESIS_BADGE));
+        greenWill.claimBadge(GENESIS_BADGE, "");
+    }
+
+    function test_claimBadge_revertsWhenRuleIsNotConfigured() public {
+        bytes32 manualBadge = keccak256("MANUAL_BADGE");
+        greenWill.configureBadgeClass(
+            manualBadge, "manual", "ipfs://manual", address(hats), address(0), address(0), true, true
+        );
+
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.BadgeRuleNotConfigured.selector, manualBadge));
+        greenWill.claimBadge(manualBadge, "");
+    }
+
+    function test_configureBadgeRule_revertsWhenBadgeClassIsMissing() public {
+        bytes32 unknownBadge = keccak256("UNKNOWN_BADGE");
+
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.BadgeClassNotConfigured.selector, unknownBadge));
+        greenWill.configureBadgeRule(unknownBadge, GreenWill.BadgeRule.Hat, bytes32(PROTOCOL_HAT_ID), 0);
+    }
+
+    function test_batchIssueEligible_revertsWhenInputLengthsMismatch() public {
+        address[] memory recipients = new address[](1);
+        recipients[0] = ALICE;
+
+        bytes[] memory claimData = new bytes[](0);
+
+        vm.expectRevert(ArrayLengthMismatch.selector);
+        greenWill.batchIssueEligible(GENESIS_BADGE, recipients, claimData);
+    }
+
     function test_batchIssueEligible_issuesOnlyEligibleRecipientsWithoutDoubleIssuing() public {
         hats.setWearer(PROTOCOL_HAT_ID, ALICE, true);
         hats.setWearer(PROTOCOL_HAT_ID, CAROL, true);
@@ -158,6 +253,26 @@ contract GreenWillTest is Test {
         assertTrue(firstWorkLock.getHasValidKey(ALICE), "first-work lock should be minted");
     }
 
+    function test_claimBadge_revertsForMalformedWorkClaimData() public {
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.InvalidClaimData.selector, FIRST_WORK_BADGE));
+        greenWill.claimBadge(FIRST_WORK_BADGE, abi.encode(WORK_UID, bytes32("extra")));
+    }
+
+    function test_claimBadge_revertsWhenWorkAttestationIsMissing() public {
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.AttestationNotFound.selector, WORK_UID));
+        greenWill.claimBadge(FIRST_WORK_BADGE, abi.encode(WORK_UID));
+    }
+
+    function test_claimBadge_revertsWhenWorkAttestationIsRevoked() public {
+        _setWorkAttestation(WORK_UID, WORK_SCHEMA_UID, ALICE, uint64(block.timestamp));
+
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.AttestationRevoked.selector, WORK_UID));
+        greenWill.claimBadge(FIRST_WORK_BADGE, abi.encode(WORK_UID));
+    }
+
     function test_claimBadge_revertsForWrongWorkSchema() public {
         _setWorkAttestation(WORK_UID, keccak256("WRONG_SCHEMA_UID"), ALICE);
 
@@ -195,6 +310,57 @@ contract GreenWillTest is Test {
         vm.prank(ALICE);
         vm.expectRevert(abi.encodeWithSelector(GreenWill.NoVaultShares.selector, ALICE, address(vault)));
         greenWill.claimBadge(FIRST_SUPPORT_BADGE, abi.encode(GARDEN, ASSET));
+    }
+
+    function test_claimBadge_revertsForMalformedSupportClaimData() public {
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.InvalidClaimData.selector, FIRST_SUPPORT_BADGE));
+        greenWill.claimBadge(FIRST_SUPPORT_BADGE, abi.encode(GARDEN));
+    }
+
+    function test_claimBadge_revertsWhenSupportVaultIsMissing() public {
+        address unknownAsset = address(0x1234);
+
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.VaultNotFound.selector, GARDEN, unknownAsset));
+        greenWill.claimBadge(FIRST_SUPPORT_BADGE, abi.encode(GARDEN, unknownAsset));
+    }
+
+    function test_issueByAuthorizedIssuer_issuesActiveBadgeWithoutClaimRuleOrUnlockLock() public {
+        bytes32 sourceRef = keccak256("manual-source");
+        greenWill.configureBadgeClass(
+            AUTHORIZED_BADGE, "authorized", "ipfs://authorized", address(0), CAROL, address(0), false, true
+        );
+
+        vm.prank(CAROL);
+        uint256 tokenId = greenWill.issueByAuthorizedIssuer(AUTHORIZED_BADGE, ALICE, sourceRef);
+
+        GreenWill.BadgeRecord memory record = greenWill.getBadgeRecord(AUTHORIZED_BADGE, ALICE);
+        assertEq(tokenId, 0, "manual badge without lock should not mint an unlock key");
+        assertTrue(record.issued, "authorized issuer should record badge ownership");
+        assertEq(record.sourceRef, sourceRef, "manual source should be stored");
+        assertEq(record.issuer, CAROL, "authorized issuer should be recorded");
+    }
+
+    function test_issueByAuthorizedIssuer_revertsWhenCallerIsNotAuthorized() public {
+        bytes32 sourceRef = keccak256("manual-source");
+
+        vm.prank(ALICE);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.UnauthorizedIssuer.selector, GENESIS_BADGE, ALICE));
+        greenWill.issueByAuthorizedIssuer(GENESIS_BADGE, BOB, sourceRef);
+    }
+
+    function test_issueByAuthorizedIssuer_revertsWhenAccountAlreadyOwnsBadge() public {
+        bytes32 sourceRef = keccak256("manual-source");
+        greenWill.configureBadgeClass(
+            AUTHORIZED_BADGE, "authorized", "ipfs://authorized", address(0), CAROL, address(0), false, true
+        );
+
+        vm.startPrank(CAROL);
+        greenWill.issueByAuthorizedIssuer(AUTHORIZED_BADGE, ALICE, sourceRef);
+        vm.expectRevert(abi.encodeWithSelector(GreenWill.BadgeAlreadyOwned.selector, AUTHORIZED_BADGE, ALICE));
+        greenWill.issueByAuthorizedIssuer(AUTHORIZED_BADGE, ALICE, sourceRef);
+        vm.stopPrank();
     }
 
     function test_upgradeToV2_preservesConfiguredClassesRulesAndIssuedRecords() public {
@@ -272,6 +438,10 @@ contract GreenWillTest is Test {
     }
 
     function _setWorkAttestation(bytes32 uid, bytes32 schemaUID, address attester) internal {
+        _setWorkAttestation(uid, schemaUID, attester, 0);
+    }
+
+    function _setWorkAttestation(bytes32 uid, bytes32 schemaUID, address attester, uint64 revocationTime) internal {
         eas.setAttestationByUID(
             uid,
             Attestation({
@@ -279,7 +449,7 @@ contract GreenWillTest is Test {
                 schema: schemaUID,
                 time: uint64(block.timestamp),
                 expirationTime: 0,
-                revocationTime: 0,
+                revocationTime: revocationTime,
                 refUID: bytes32(0),
                 recipient: GARDEN,
                 attester: attester,

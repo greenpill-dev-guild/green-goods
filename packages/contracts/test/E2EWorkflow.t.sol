@@ -12,7 +12,7 @@ import { AssessmentResolver } from "../src/resolvers/Assessment.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
 
 /// @title RevertingKarmaGAPModule
-/// @notice Fault-injection mock that always reverts on createMilestone()
+/// @notice Fault-injection module that always reverts on createMilestone()
 /// @dev Used to test the try-catch in AssessmentResolver._createGAPProjectMilestone()
 contract RevertingKarmaGAPModule {
     function createMilestone(
@@ -71,18 +71,19 @@ contract E2EWorkflowForkTest is ForkTestBase {
         _grantGardenRole(garden, forkEvaluator, IHatsModule.GardenRole.Evaluator);
     }
 
+    /// @notice Select Sepolia fork and deploy the full protocol stack.
+    function _deploySepoliaStack() internal {
+        _requireChainFork("sepolia");
+        _deployFullStackOnFork();
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Test: Complete protocol flow via real EAS
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Full lifecycle: Mint -> Roles -> Register -> Submit work -> Approve work (all via real EAS)
     function test_fork_completeProtocolWorkflow() public {
-        if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
-            return;
-        }
-
-        _deployFullStackOnFork();
+        _deploySepoliaStack();
 
         address garden = _mintGarden(false);
         GardenAccount gardenAccount = GardenAccount(payable(garden));
@@ -110,12 +111,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
 
     /// @notice Non-member revert -> operator granted -> authorized update
     function test_fork_accessControlEnforcement() public {
-        if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
-            return;
-        }
-
-        _deployFullStackOnFork();
+        _deploySepoliaStack();
 
         address garden = _mintGarden(false);
         GardenAccount gardenAccount = GardenAccount(payable(garden));
@@ -144,12 +140,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
 
     /// @notice Open joining grants gardener hat via real HatsModule
     function test_fork_joinGardenOpenJoining() public {
-        if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
-            return;
-        }
-
-        _deployFullStackOnFork();
+        _deploySepoliaStack();
 
         address garden = _mintGarden(true);
         GardenAccount gardenAccount = GardenAccount(payable(garden));
@@ -167,12 +158,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
 
     /// @notice Assessment via evaluator succeeds through real EAS -> AssessmentResolver
     function test_fork_assessmentAttestation_validEvaluator_succeeds() public {
-        if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
-            return;
-        }
-
-        _deployFullStackOnFork();
+        _deploySepoliaStack();
 
         address garden = _mintGarden(false);
         _grantRoles(garden);
@@ -183,12 +169,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
 
     /// @notice Assessment via operator succeeds (operators have assessment rights)
     function test_fork_assessmentAttestation_validOperator_succeeds() public {
-        if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
-            return;
-        }
-
-        _deployFullStackOnFork();
+        _deploySepoliaStack();
 
         address garden = _mintGarden(false);
         _grantRoles(garden);
@@ -199,12 +180,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
 
     /// @notice Non-member cannot create assessment (reverts in real AssessmentResolver callback)
     function test_fork_assessmentAttestation_nonMember_reverts() public {
-        if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
-            return;
-        }
-
-        _deployFullStackOnFork();
+        _deploySepoliaStack();
 
         address garden = _mintGarden(false);
         _grantRoles(garden);
@@ -217,12 +193,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
     /// @notice FAULT INJECTION: KarmaGAPModule reverts on createMilestone, assessment still succeeds
     /// @dev Tests the try-catch in AssessmentResolver._createGAPProjectMilestone()
     function test_fork_assessmentAttestation_karmaGAPModuleFails_assessmentStillSucceeds() public {
-        if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
-            return;
-        }
-
-        _deployFullStackOnFork();
+        _deploySepoliaStack();
 
         address garden = _mintGarden(false);
         _grantRoles(garden);
@@ -238,12 +209,7 @@ contract E2EWorkflowForkTest is ForkTestBase {
 
     /// @notice Assessment with invalid domain (>3) reverts in real AssessmentResolver
     function test_fork_assessmentAttestation_invalidDomain_reverts() public {
-        if (!_tryChainFork("sepolia")) {
-            emit log("SKIPPED: No Sepolia RPC URL configured");
-            return;
-        }
-
-        _deployFullStackOnFork();
+        _deploySepoliaStack();
 
         address garden = _mintGarden(false);
         _grantRoles(garden);
