@@ -1,13 +1,12 @@
 import {
   type Address,
   Button,
-  classifyTxError,
   formatTokenAmount,
   getVaultAssetSymbol,
-  isMeaningfulTxErrorMessage,
   TxInlineFeedback,
   useCookieJarWithdraw,
   useGardenCookieJars,
+  useTxErrorMessages,
   validateDecimalInput,
 } from "@green-goods/shared";
 import { AdminButton } from "@/components/AdminButton";
@@ -76,27 +75,7 @@ export function CookieJarWithdrawModal({
     resetWithdrawMutation();
   }, [withdrawAmount, withdrawJar, withdrawPurpose, withdrawMutation.error, resetWithdrawMutation]);
 
-  const withdrawTxErrorView = useMemo(
-    () => classifyTxError(withdrawMutation.error),
-    [withdrawMutation.error]
-  );
-  const withdrawTxTitle = formatMessage({
-    id: withdrawTxErrorView.titleKey,
-    defaultMessage:
-      withdrawTxErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
-  });
-  const withdrawTxMessage =
-    withdrawTxErrorView.kind === "cancelled"
-      ? formatMessage({
-          id: withdrawTxErrorView.messageKey,
-          defaultMessage: "Transaction was cancelled. Please try again when ready.",
-        })
-      : isMeaningfulTxErrorMessage(withdrawTxErrorView.rawMessage)
-        ? withdrawTxErrorView.rawMessage
-        : formatMessage({
-            id: withdrawTxErrorView.messageKey,
-            defaultMessage: "Something went wrong. Please try again.",
-          });
+  const withdrawTxError = useTxErrorMessages(withdrawMutation.error);
 
   const activeJars = jars.filter((j) => !j.isPaused);
   const isPending = withdrawMutation.isPending;
@@ -230,9 +209,9 @@ export function CookieJarWithdrawModal({
         {/* Error feedback */}
         <TxInlineFeedback
           visible={Boolean(withdrawMutation.error)}
-          severity={withdrawTxErrorView.severity}
-          title={withdrawTxTitle}
-          message={withdrawTxMessage}
+          severity={withdrawTxError.view.severity}
+          title={withdrawTxError.title}
+          message={withdrawTxError.message}
           reserveClassName="min-h-[5.5rem]"
         />
       </div>

@@ -2,7 +2,6 @@ import {
   type Address,
   AssetSelector,
   Button,
-  classifyTxError,
   DialogShell,
   FormField,
   formatTokenAmount,
@@ -11,10 +10,10 @@ import {
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
-  isMeaningfulTxErrorMessage,
   TxInlineFeedback,
   useDebouncedValue,
   useDepositForm,
+  useTxErrorMessages,
   useUser,
   useVaultDeposit,
   useVaultPreview,
@@ -140,27 +139,7 @@ export function DepositModal({
     query: { enabled: isOpen && Boolean(estimatedGas) },
   });
   const estimatedGasCost = estimatedGas && gasPrice ? estimatedGas * gasPrice : undefined;
-  const txErrorView = useMemo(
-    () => classifyTxError(depositMutation.error),
-    [depositMutation.error]
-  );
-  const txErrorTitle = formatMessage({
-    id: txErrorView.titleKey,
-    defaultMessage:
-      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
-  });
-  const txErrorMessage =
-    txErrorView.kind === "cancelled"
-      ? formatMessage({
-          id: txErrorView.messageKey,
-          defaultMessage: "Transaction was cancelled. Please try again when ready.",
-        })
-      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-        ? txErrorView.rawMessage
-        : formatMessage({
-            id: txErrorView.messageKey,
-            defaultMessage: "Something went wrong. Please try again.",
-          });
+  const txError = useTxErrorMessages(depositMutation.error);
   const depositLimitLabel =
     healthCheck?.maxDeposit && healthCheck.maxDeposit > 0n
       ? getDepositLimitLabel(healthCheck.maxDeposit, {
@@ -338,9 +317,9 @@ export function DepositModal({
           )}
           <TxInlineFeedback
             visible={Boolean(depositMutation.error)}
-            severity={txErrorView.severity}
-            title={txErrorTitle}
-            message={txErrorMessage}
+            severity={txError.view.severity}
+            title={txError.title}
+            message={txError.message}
             reserveClassName="min-h-[5.5rem]"
           />
           <Button

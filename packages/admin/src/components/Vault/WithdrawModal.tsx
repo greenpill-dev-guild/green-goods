@@ -3,16 +3,15 @@ import {
   Alert,
   AssetSelector,
   Button,
-  classifyTxError,
   DialogShell,
   FormField,
   formatTokenAmount,
   type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
-  isMeaningfulTxErrorMessage,
   TxInlineFeedback,
   useDebouncedValue,
+  useTxErrorMessages,
   useUser,
   useVaultDeposits,
   useVaultPreview,
@@ -113,27 +112,7 @@ export function WithdrawModal({
   }, [amountInput, inputError, amount, maxWithdrawable]);
 
   const amountError = inputError ?? exceedsBalanceError;
-  const txErrorView = useMemo(
-    () => classifyTxError(withdrawMutation.error),
-    [withdrawMutation.error]
-  );
-  const txErrorTitle = formatMessage({
-    id: txErrorView.titleKey,
-    defaultMessage:
-      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
-  });
-  const txErrorMessage =
-    txErrorView.kind === "cancelled"
-      ? formatMessage({
-          id: txErrorView.messageKey,
-          defaultMessage: "Transaction was cancelled. Please try again when ready.",
-        })
-      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-        ? txErrorView.rawMessage
-        : formatMessage({
-            id: txErrorView.messageKey,
-            defaultMessage: "Something went wrong. Please try again.",
-          });
+  const txError = useTxErrorMessages(withdrawMutation.error);
 
   const onSubmit = () => {
     if (!selectedVault || !primaryAddress || amount <= 0n || amountError) return;
@@ -262,9 +241,9 @@ export function WithdrawModal({
         </div>
         <TxInlineFeedback
           visible={Boolean(withdrawMutation.error)}
-          severity={txErrorView.severity}
-          title={txErrorTitle}
-          message={txErrorMessage}
+          severity={txError.view.severity}
+          title={txError.title}
+          message={txError.message}
           reserveClassName="min-h-[5.5rem]"
         />
 

@@ -1,10 +1,9 @@
 import {
-  classifyTxError,
   cn,
   DEFAULT_CHAIN_ID,
   getNetworkConfig,
-  isMeaningfulTxErrorMessage,
   type MintingState,
+  useTxErrorMessages,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef } from "react";
@@ -62,11 +61,8 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
   const currentStepIndex = useMemo(() => getStepIndex(state.status), [state.status]);
   const isFailed = state.status === "failed";
   const isComplete = state.status === "confirmed";
-  const txErrorView = useMemo(
-    () => (state.status === "failed" ? classifyTxError(state.error) : null),
-    [state.error, state.status]
-  );
-  const isFailureWarning = isFailed && txErrorView?.severity === "warning";
+  const txError = useTxErrorMessages(isFailed ? state.error : null);
+  const isFailureWarning = isFailed && txError.view.severity === "warning";
 
   // Screen reader announcement for status changes
   const srAnnouncement = useMemo(() => {
@@ -221,28 +217,13 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
         <div
           className={cn(
             "rounded-lg border p-4 text-sm",
-            txErrorView?.severity === "warning"
+            txError.view.severity === "warning"
               ? "border-warning-light bg-warning-lighter text-warning-dark"
               : "border-error-light bg-error-lighter text-error-dark"
           )}
         >
-          <p>
-            {formatMessage({
-              id: txErrorView?.titleKey ?? "app.txFeedback.failed.title",
-              defaultMessage:
-                txErrorView?.severity === "warning"
-                  ? "Transaction cancelled"
-                  : "Transaction failed",
-            })}
-          </p>
-          <p className="mt-1 text-xs">
-            {isMeaningfulTxErrorMessage(state.error) && txErrorView?.kind !== "cancelled"
-              ? state.error
-              : formatMessage({
-                  id: txErrorView?.messageKey ?? "app.errors.blockchain.unknown.message",
-                  defaultMessage: "Something went wrong. Please try again.",
-                })}
-          </p>
+          <p>{txError.title}</p>
+          <p className="mt-1 text-xs">{txError.message}</p>
         </div>
       )}
     </div>

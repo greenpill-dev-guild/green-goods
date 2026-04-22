@@ -1,13 +1,12 @@
 import {
   type Address,
   Button,
-  classifyTxError,
   formatTokenAmount,
   getVaultAssetSymbol,
-  isMeaningfulTxErrorMessage,
   TxInlineFeedback,
   useCookieJarDeposit,
   useGardenCookieJars,
+  useTxErrorMessages,
   useUser,
   validateDecimalInput,
 } from "@green-goods/shared";
@@ -82,27 +81,7 @@ export function CookieJarDepositModal({
     resetDepositMutation();
   }, [depositAmount, depositJar, depositMutation.error, resetDepositMutation]);
 
-  const depositTxErrorView = useMemo(
-    () => classifyTxError(depositMutation.error),
-    [depositMutation.error]
-  );
-  const depositTxTitle = formatMessage({
-    id: depositTxErrorView.titleKey,
-    defaultMessage:
-      depositTxErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
-  });
-  const depositTxMessage =
-    depositTxErrorView.kind === "cancelled"
-      ? formatMessage({
-          id: depositTxErrorView.messageKey,
-          defaultMessage: "Transaction was cancelled. Please try again when ready.",
-        })
-      : isMeaningfulTxErrorMessage(depositTxErrorView.rawMessage)
-        ? depositTxErrorView.rawMessage
-        : formatMessage({
-            id: depositTxErrorView.messageKey,
-            defaultMessage: "Something went wrong. Please try again.",
-          });
+  const depositTxError = useTxErrorMessages(depositMutation.error);
 
   const belowMinDeposit =
     selectedDepositJar &&
@@ -247,9 +226,9 @@ export function CookieJarDepositModal({
         {/* Error feedback */}
         <TxInlineFeedback
           visible={Boolean(depositMutation.error)}
-          severity={depositTxErrorView.severity}
-          title={depositTxTitle}
-          message={depositTxMessage}
+          severity={depositTxError.view.severity}
+          title={depositTxError.title}
+          message={depositTxError.message}
           reserveClassName="min-h-[5.5rem]"
         />
       </div>

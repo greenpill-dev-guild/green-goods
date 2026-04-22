@@ -14,6 +14,11 @@ vi.mock("@green-goods/shared", () => ({
     rawMessage: "",
   }),
   isMeaningfulTxErrorMessage: () => false,
+  useTxErrorMessages: () => ({
+    view: { kind: "error", severity: "error" as const },
+    title: "Transaction failed",
+    message: "Something went wrong. Please try again.",
+  }),
   AssetSelector: ({
     vaults,
     selectedAsset,
