@@ -7,7 +7,7 @@ import {
 } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
-import { daysAgo } from "../../../../../shared/.storybook/fixtures";
+import { STORYBOOK_NOW_SECONDS, daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { AttestationSelector } from "./AttestationSelector";
 
 function attestation(
@@ -52,11 +52,14 @@ const ASSESSMENT: GardenAssessment = {
   cynefinPhase: CynefinPhase.COMPLEX,
   domain: Domain.AGRO,
   selectedActionUIDs: [],
-  reportingPeriod: { start: NOW - 90 * 86_400, end: NOW },
+  reportingPeriod: {
+    start: STORYBOOK_NOW_SECONDS - 90 * 86_400,
+    end: STORYBOOK_NOW_SECONDS,
+  },
   sdgTargets: [],
   attachments: [],
   location: "",
-  createdAt: NOW - 2 * 86_400,
+  createdAt: STORYBOOK_NOW_SECONDS - 2 * 86_400,
 };
 
 const meta: Meta<typeof AttestationSelector> = {

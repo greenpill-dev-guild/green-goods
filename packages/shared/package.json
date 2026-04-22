@@ -45,7 +45,9 @@
     "coverage": "vitest run --coverage",
     "storybook": "bun --bun ./node_modules/.bin/storybook dev -p 6006 --ci",
     "build-storybook": "bun --bun ./node_modules/.bin/storybook build -o storybook-static",
-    "check:stories": "bun run ../../scripts/check-story-coverage.ts"
+    "check:stories": "bun run ../../scripts/check-story-coverage.ts",
+    "test:stories:ci": "vitest run --config vitest.storybook.config.ts --project=storybook",
+    "chromatic": "chromatic --storybook-build-dir storybook-static"
   },
   "dependencies": {
     "@green-goods/contracts": "workspace:*",
@@ -96,11 +98,19 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "5.1.2",
     "@graphql-typed-document-node/core": "^3.2.0",
-    "@storybook/addon-a11y": "10.2.8",
-    "@storybook/react": "10.2.8",
-    "@storybook/react-vite": "10.2.8",
+    "@storybook/addon-a11y": "10.3.5",
+    "@storybook/addon-docs": "10.3.5",
+    "@storybook/addon-mcp": "0.6.0",
+    "@storybook/addon-vitest": "10.3.5",
+    "@storybook/react": "10.3.5",
+    "@storybook/react-vite": "10.3.5",
     "@tailwindcss/vite": "^4.1.11",
-    "storybook": "10.2.8"
+    "@vitest/browser": "4.0.18",
+    "@vitest/browser-playwright": "4.0.18",
+    "@vitest/runner": "4.0.18",
+    "chromatic": "16.5.0",
+    "storybook": "10.3.5"
   }
 }

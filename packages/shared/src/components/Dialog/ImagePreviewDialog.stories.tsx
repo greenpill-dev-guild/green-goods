@@ -1,10 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import {
+  FIXTURE_IMAGE_AGROFORESTRY,
+  FIXTURE_IMAGE_EDU,
+  FIXTURE_IMAGE_SOLAR,
+} from "../../../.storybook/fixtures";
 import { ImagePreviewDialog } from "./ImagePreviewDialog";
 
 const meta: Meta<typeof ImagePreviewDialog> = {
   title: "Shared/Feedback/ImagePreviewDialog",
   component: ImagePreviewDialog,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   argTypes: {
     isOpen: {
       control: "boolean",
@@ -32,9 +37,9 @@ export default meta;
 type Story = StoryObj<typeof ImagePreviewDialog>;
 
 const sampleImages = [
-  "https://picsum.photos/800/600?random=1",
-  "https://picsum.photos/800/600?random=2",
-  "https://picsum.photos/800/600?random=3",
+  FIXTURE_IMAGE_AGROFORESTRY,
+  FIXTURE_IMAGE_SOLAR,
+  FIXTURE_IMAGE_EDU,
 ];
 
 export const Default: Story = {
@@ -50,7 +55,7 @@ export const SingleImage: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    images: ["https://picsum.photos/800/600?random=4"],
+    images: [FIXTURE_IMAGE_AGROFORESTRY],
     initialIndex: 0,
   },
 };

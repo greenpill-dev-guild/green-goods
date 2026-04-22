@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, fn, userEvent, within } from "storybook/test";
+import { STORYBOOK_NOW_SECONDS } from "../../../.storybook/fixtures";
 import type { GardenVault } from "../../types/vaults";
 import { AssetSelector } from "./AssetSelector";
 
@@ -15,7 +16,7 @@ const mockVaults: GardenVault[] = [
     totalAssets: BigInt(1000000),
     totalSupply: BigInt(1000000),
     paused: false,
-    createdAt: BigInt(Math.floor(Date.now() / 1000)),
+    createdAt: BigInt(STORYBOOK_NOW_SECONDS),
   },
   {
     id: "vault-2",
@@ -28,7 +29,7 @@ const mockVaults: GardenVault[] = [
     totalAssets: BigInt("5000000000000000000000"),
     totalSupply: BigInt("5000000000000000000000"),
     paused: false,
-    createdAt: BigInt(Math.floor(Date.now() / 1000)),
+    createdAt: BigInt(STORYBOOK_NOW_SECONDS),
   },
   {
     id: "vault-3",
@@ -41,14 +42,14 @@ const mockVaults: GardenVault[] = [
     totalAssets: BigInt(2500000),
     totalSupply: BigInt(2500000),
     paused: false,
-    createdAt: BigInt(Math.floor(Date.now() / 1000)),
+    createdAt: BigInt(STORYBOOK_NOW_SECONDS),
   },
 ] as unknown as GardenVault[];
 
 const meta: Meta<typeof AssetSelector> = {
   title: "Shared/Form/AssetSelector",
   component: AssetSelector,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   argTypes: {
     selectedAsset: {
       control: "text",

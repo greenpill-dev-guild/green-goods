@@ -4,13 +4,16 @@ on:
   pull_request:
     paths:
       - ".github/workflows/storybook.yml"
+      - "bun.lock"
       - "AGENTS.md"
       - "packages/shared/AGENTS.md"
       - "packages/admin/AGENTS.md"
       - "docs/docs/builders/packages/admin.mdx"
       - "docs/docs/builders/testing/storybook.mdx"
       - "scripts/check-story-coverage.ts"
+      - "packages/shared/package.json"
       - "packages/shared/.storybook/**"
+      - "packages/shared/vitest.storybook.config.ts"
       - "packages/shared/src/components/**"
       - "packages/shared/src/styles/**"
       - "packages/admin/src/components/**"
@@ -27,6 +30,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,6 +47,12 @@ jobs:
       - name: Check story coverage
         run: bun run --filter @green-goods/shared check:stories
 
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run Storybook interaction smoke tests
+        run: bun run --filter @green-goods/shared test:stories:ci
+
       - name: Build Storybook
         run: bun run --filter @green-goods/shared build-storybook
 
@@ -50,3 +61,7 @@ jobs:
         with:
           name: storybook-static
           path: packages/shared/storybook-static
+
+      - name: Publish Storybook to Chromatic
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        run: bun run --filter @green-goods/shared chromatic -- --exit-zero-on-changes

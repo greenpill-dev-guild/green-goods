@@ -4,7 +4,7 @@ sidebar_label: Storybook
 slug: /builders/testing/storybook
 audience: developer
 owner: docs
-last_verified: 2026-04-08
+last_verified: 2026-04-22
 feature_status: Live
 keywords:
   - storybook
@@ -33,9 +33,9 @@ graph TB
 
     A11y["addon-a11y"]
 
-    Stories --> SB["Storybook 10.2.8\nCSF3 format"]
+    Stories --> SB["Storybook 10.3.5\nCSF3 format"]
     A11y --> SB
-    SB -->|CI| Gates["check:stories\nbuild-storybook"]
+    SB -->|CI| Gates["check:stories\ntest:stories:ci\nbuild-storybook"]
 ```
 
 Storybook serves as the component documentation and local interaction layer. Stories span all three UI packages (shared, admin, client) and are aggregated into a single Storybook instance hosted from `packages/shared`.
@@ -44,7 +44,7 @@ Storybook serves as the component documentation and local interaction layer. Sto
 
 Storybook stories serve two practical purposes: living component documentation and a fast local surface for exploring component states. The philosophy is that every shared foundation should have a story, and stories should demonstrate the component's range of states — default, edge cases, responsive behavior, and error states.
 
-Storybook is not currently a standalone regression gate. The repo CI verifies the required Storybook contract for shared foundations plus curated admin surfaces, then builds the unified Storybook to catch compile-time issues. `play()` functions are valuable local interaction checks, but they are not executed in CI today.
+Storybook is now a light regression gate. The repo CI verifies the required Storybook contract for shared foundations plus curated admin surfaces, runs a small browser-mode Storybook test lane for `storybook-ci` stories, then builds the unified Storybook to catch compile-time issues. Keep the CI tag curated; do not tag every story by default.
 
 ### Architecture
 
@@ -67,6 +67,10 @@ The preview CSS imports the shared theme plus the admin M3 token/override CSS us
 The current Storybook config enables:
 
 1. `@storybook/addon-a11y` -- Accessibility audits via axe-core
+2. `@storybook/addon-docs` -- Autodocs pages for `tags: ["autodocs"]`
+3. `@storybook/addon-vitest` -- Browser-mode story smoke and `play()` tests
+4. `@storybook/addon-mcp` -- Local MCP endpoint for agent access to Storybook knowledge
+5. `@chromatic-com/storybook` -- Visual testing UI integration when Chromatic is configured
 
 ## Completing Test Coverage
 
@@ -109,6 +113,17 @@ Stories are organized by package and ownership in the sidebar:
 
 For consolidated state views, prefer a `StateCatalog` story name over generic `Gallery`. Keep individual stories for states that agents need to link to directly, and use the theme toolbar instead of adding one-off dark-mode duplicates unless the component has a dark-mode-specific behavior.
 
+### Deterministic Fixtures
+
+Admin stories and shared stories consumed by admin must be deterministic:
+
+- Use fixture helpers from `packages/shared/.storybook/fixtures.ts`.
+- Do not use `Date.now()`, zero-argument `new Date()`, `picsum.photos`, or placeholder IPFS CIDs.
+- Use the frozen Storybook clock (`STORYBOOK_NOW_SECONDS`, `hoursAgo`, `daysAgo`, `daysFromNow`) for relative-time or expiry states.
+- Use data URL fixture images (`FIXTURE_WORK_MEDIA`, `FIXTURE_IMAGE_*`) instead of live external media.
+
+This is the model for future shared/client cleanup. Full cleanup can happen incrementally, but anything that backs admin review should follow it now.
+
 ### Design Token Stories
 
 The `packages/shared/src/components/Tokens/` directory contains stories that document the design system's visual language:
@@ -126,7 +141,9 @@ For agent-driven TDD, treat Storybook as the state catalog and Vitest/RTL as the
 
 1. add or update the story that expresses the intended state
 2. write the focused Vitest/RTL test for the behavior or contract
-3. use Storybook locally to inspect the resulting UI states and interaction paths
+3. add a `play()` interaction only when it catches meaningful behavior without making the story brittle
+4. tag only stable, high-value story files with `storybook-ci`
+5. use Storybook locally to inspect the resulting UI states and interaction paths
 
 That keeps stories useful for exploration without turning CI into a slow, brittle browser harness.
 
@@ -163,6 +180,9 @@ Admin components use standard responsive breakpoints (`sm:`, `md:`, `lg:`), whil
 # Development server
 cd packages/shared && bun run storybook
 
+# Curated browser-mode Storybook smoke / play tests
+cd packages/shared && bun run test:stories:ci
+
 # Build static site
 cd packages/shared && bun run build-storybook
 
@@ -172,12 +192,15 @@ cd packages/shared && bun run check:stories
 
 ### CI Integration
 
-The `storybook.yml` workflow triggers on PRs that modify Storybook config, story files, the curated story coverage contract, and component or view files that feed the unified Storybook build. It runs two checks:
+The `storybook.yml` workflow triggers on PRs that modify Storybook config, story files, the curated story coverage contract, and component or view files that feed the unified Storybook build. It runs three required checks:
 
 1. **Storybook contract** (`check:stories`) -- Ensures shared foundations plus curated admin surfaces have corresponding stories
-2. **Build verification** (`build-storybook`) -- Confirms the static Storybook site compiles without errors across shared, admin, and client stories
+2. **Storybook interaction smoke** (`test:stories:ci`) -- Runs browser-mode Vitest against curated `storybook-ci` stories
+3. **Build verification** (`build-storybook`) -- Confirms the static Storybook site compiles without errors across shared, admin, and client stories
 
 The built artifact is uploaded via `actions/upload-artifact@v4` for review.
+
+Chromatic publishing is optional. The workflow publishes only when `CHROMATIC_PROJECT_TOKEN` is configured, and uses `--exit-zero-on-changes` so first-pass visual baselines do not block functional Storybook checks.
 
 ## Resources
 
