@@ -53,7 +53,7 @@ export const USER_FRIENDLY_ERRORS: Record<string, string> = {
   storage: "Storage error - please try again",
 
   // IPFS / upload errors
-  "storacha not initialized": "Media upload service unavailable - please reload and try again",
+  "media upload not initialized": "Media upload service unavailable - please reload and try again",
   "ipfs upload service is not configured":
     "Media upload service unavailable - please reload and try again",
   "pinata jwt is not configured": "Media upload service unavailable - please reload and try again",

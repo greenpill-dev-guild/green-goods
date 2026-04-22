@@ -477,7 +477,6 @@ export function parseContractError(error: unknown): ParsedContractError {
   // Check for IPFS/upload errors (recoverable)
   const lowerStr = errorStr.toLowerCase();
   if (
-    lowerStr.includes("storacha") ||
     lowerStr.includes("ipfs") ||
     lowerStr.includes("failed to upload") ||
     lowerStr.includes("failed to verify")

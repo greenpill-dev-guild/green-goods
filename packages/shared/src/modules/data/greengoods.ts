@@ -208,7 +208,7 @@ export async function getActions(): Promise<Action[]> {
           const resolvedMedia =
             media && Array.isArray(media) ? media.map((cid: string) => resolveIPFSUrl(cid)) : [];
 
-          // Fetch action instructions from IPFS using Storacha module
+          // Fetch action instructions from the Pinata-backed IPFS path
           let actionConfig = fallbackConfig;
           try {
             if (instructions) {

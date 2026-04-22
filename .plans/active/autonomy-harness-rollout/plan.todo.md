@@ -80,7 +80,7 @@
   - contracts-side Storacha upload paths are now removed and `packages/contracts` no longer depends on `@storacha/client`
   - root repo Storacha maintenance scripts are now Pinata-only and the root workspace no longer depends on `@storacha/client`
   - `.env.schema` and `env.d.ts` now reflect Pinata-only repo truth without editing the operator-local root `.env`, and `packages/shared/src/modules/data/ipfs/client.ts` no longer carries the retired `VITE_STORACHA_GATEWAY` fallback
-  - source docs/reporting copy and the shared IPFS regression test no longer use Storacha-specific strings; remaining Storacha mentions are now limited to operator-local `.env` residue plus historical/internal audit records outside the live control surface
+  - source docs/reporting copy and the shared IPFS regression test were not the full tail: this repair also closed stale env type blocks, shared error-handling wording, source/test comments, and `packages/contracts/config/ACTIONS_README` drift, leaving only operator-local `.env` residue plus historical/internal audit records outside the live source paths
   - direct `ipfs:repin:audit` smoke validation now completes after removing nested `varlock/auto-load` from `scripts/repin-ipfs-media.ts`
 
 ### Harness contract

@@ -43,6 +43,7 @@ In progress.
 - Removed the retired `VITE_STORACHA_GATEWAY` fallback from `packages/shared/src/modules/data/ipfs/client.ts`, then generalized the remaining shared IPFS regression to a behavior-based unknown-legacy-key assertion so tracked test code no longer carries Storacha-specific strings.
 - Fixed the repin wrapper smoke by removing nested `varlock/auto-load` from `scripts/repin-ipfs-media.ts`, then verified `bun run ipfs:repin:audit -- --chain 42161 --include input --input /dev/null --out /tmp/ipfs-repin-audit-codex.json` completes.
 - Removed the remaining source-doc Storacha references from the changelog and NLnet grant reporting copy so live source docs now match the Pinata-backed harness.
+- Closed the targeted Pinata / Storacha drift repair by manually removing stale Storacha env type blocks from generated `env.d.ts`, generalizing shared upload/storage error wording, and updating stale IPFS comments/tests plus `packages/contracts/config/ACTIONS_README` to Pinata-backed IPFS / `VITE_PINATA_JWT`.
 
 ## Remaining
 
@@ -90,6 +91,11 @@ In progress.
 - `bun scripts/upload-action-images.ts --dry-run`
 - `bun install` after removing root `@storacha/client`
 - `bun run ipfs:repin:audit -- --chain 42161 --include input --input /dev/null --out /tmp/ipfs-repin-audit-codex.json`
+- `PATH="/Applications/Codex.app/Contents/Resources:$PATH" node scripts/plan-hub.mjs validate` after the targeted Pinata / Storacha drift repair (`16` feature hubs validated; plain `node` is gated by untrusted `mise` config in this worktree)
+- `cd packages/shared && bun run test -- src/__tests__/modules/ipfs.module.test.ts` attempted after the targeted drift repair; env-gated because this worktree has no local `vitest` binary and no install was allowed
+- `cd packages/shared && bun run test -- src/__tests__/utils/errors/categorize-error.test.ts` attempted after the targeted drift repair; env-gated because this worktree has no local `vitest` binary and no install was allowed
+- `bun run ipfs:repin:audit -- --chain 42161 --include input --input /dev/null --out /tmp/ipfs-review-audit.json` attempted after the targeted drift repair; env-gated because `varlock` is not available in this worktree
+- `rg -n "STORACHA|Storacha|storacha" env.d.ts packages/shared/src/utils/errors packages/shared/src/modules/data packages/shared/src/__tests__ packages/contracts/config` returned no hits after the targeted drift repair
 - `bun x @biomejs/biome format .plans/backlog/harness-hardening-wave-1/status.json`
 - `bash scripts/check-test-quality.sh`
 - focused repo-truth doc updates in `.plans/README.md`, `.plans/_templates/feature/status.json`, and `docs/docs/builders/agentic/context-engineering.mdx`

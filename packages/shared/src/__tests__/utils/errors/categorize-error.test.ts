@@ -115,7 +115,7 @@ describe("categorizeError", () => {
       "IndexedDB transaction aborted",
       "localStorage is not available",
       "IPFS upload timed out",
-      "Storacha upload error",
+      "Media upload failed",
       "Upload failed for image.png",
       "Invalid CID returned from storage",
       "Storage service not initialized. Call initializeIpfs first",

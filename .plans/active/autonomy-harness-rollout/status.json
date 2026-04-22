@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-18T21:43:55.778Z",
-    "updated_at": "2026-04-19T07:25:09Z"
+    "updated_at": "2026-04-22T00:28:28Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,7 @@
     ".plans/ is the durable repo truth; any .claude/agent-memory pilot remains environment-local until freshness, expiry, and ownership rules exist.",
     "Baseline refresh report: reports/2026-04-18-baseline-refresh.md; all three verified silent-failure mutation loops are now closed and a bounded shared cleanup loop landed.",
     "The packages/client test-runner stall is closed: full client `bun run test` now exits cleanly after aliasing the EAS SDK test surface and replacing the mock-heavy Cards omnibus with split behavior tests.",
-    "Repo-quick validation now passes end to end with packages/admin `bun run test:hub`, the default admin `bun run test` gate now exits cleanly after being aligned with the package contract, the active env/runtime/script Storacha control surfaces are now Pinata-only, `bun run ipfs:repin:audit -- --chain 42161 --include input --input /dev/null --out /tmp/ipfs-repin-audit-codex.json` completes cleanly, and the remaining source-doc/test Storacha strings have been removed; the remaining validation debt is the separately excluded legacy admin view-heavy surface plus operator-local `.env` residue and historical/internal audit records outside the live control surface."
+    "Repo-quick validation now passes end to end with packages/admin `bun run test:hub`, the default admin `bun run test` gate now exits cleanly after being aligned with the package contract, the active runtime/script Storacha control surfaces are Pinata-only, and this repair closed additional drift in generated env types, shared error-handling wording, stale source/test comments, and `packages/contracts/config/ACTIONS_README`; the remaining validation debt is the separately excluded legacy admin view-heavy surface plus operator-local `.env` residue and historical/internal audit records outside the live source paths."
   ],
   "lanes": {
     "ui": {
@@ -45,7 +45,7 @@
       "branch": "codex/state-api/autonomy-harness-rollout",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Tier 0 control-surface work is complete, all three verified silent-failure mutation loops are closed, bounded cleanup loops landed in shared, in the shared/client/agent Storacha runtime path, in the contracts-side Storacha upload path, and in the root repo-script Storacha path, the packages/client runner now exits cleanly, repo-quick passes via admin `test:hub`, the default admin `bun run test` gate now exits cleanly, the shared Lit dev-mode banner, JobQueueProvider, useDraftAutoSave, useActionOperations, useDepositForm, and useHypercertDraft `act(...)` warnings are closed, the repo-owned env/runtime/script Storacha surfaces are now Pinata-only, the source docs/reporting copy and shared IPFS regression no longer use Storacha-specific strings, and the repin audit wrapper runs cleanly; the next blocker to tighten is a dedicated hardening loop for the excluded legacy admin view-heavy surface.",
+      "handoff_note": "Tier 0 control-surface work is complete, all three verified silent-failure mutation loops are closed, bounded cleanup loops landed in shared, in the shared/client/agent Storacha runtime path, in the contracts-side Storacha upload path, and in the root repo-script Storacha path, the packages/client runner now exits cleanly, repo-quick passes via admin `test:hub`, the default admin `bun run test` gate now exits cleanly, the shared Lit dev-mode banner, JobQueueProvider, useDraftAutoSave, useActionOperations, useDepositForm, and useHypercertDraft `act(...)` warnings are closed, the repo-owned env/runtime/script Storacha surfaces are now Pinata-only, and this repair closed stale env.d.ts blocks, shared upload/storage error wording, source/test comments, and ACTIONS_README references; the next blocker to tighten is a dedicated hardening loop for the excluded legacy admin view-heavy surface.",
       "skill_tags": ["plan", "clean", "testing", "debug", "review"],
       "manual_blocked": false
     },
@@ -283,6 +283,14 @@
       "status": "in_progress",
       "branch": null,
       "note": "Removed the remaining source-doc Storacha references from changelog/grant reporting copy, generalized the shared IPFS regression to a behavior-based unknown legacy env-key assertion, and narrowed the remaining non-control-surface residue to operator-local .env entries plus historical/internal audit records."
+    },
+    {
+      "timestamp": "2026-04-22T00:28:28Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": null,
+      "note": "Closed the human-triggered Pinata / Storacha drift repair by manually removing stale generated env.d.ts Storacha blocks without regeneration, generalizing shared upload/storage error wording, updating stale IPFS comments/tests and ACTIONS_README references to Pinata-backed IPFS, and refreshing the live plan/status/handoff truth."
     }
   ]
 }
