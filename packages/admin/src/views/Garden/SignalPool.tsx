@@ -5,7 +5,7 @@ import {
   ConfirmDialog,
   formatAddress,
   PoolType,
-  useAdminStore,
+  useAdminGardenWorkspaceSelection,
   useDeregisterHypercert,
   useGardenPermissions,
   useGardenPools,
@@ -22,7 +22,11 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
-import { PageHeader } from "@/components/Layout/PageHeader";
+import {
+  CanvasRouteContent,
+  CanvasRouteFrame,
+  CanvasRouteHeader,
+} from "@/components/Layout/CanvasRouteFrame";
 
 /**
  * Unified signal pool management view.
@@ -45,7 +49,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
   const [newItemId, setNewItemId] = useState("");
   const [inputError, setInputError] = useState("");
   const [confirmDeregister, setConfirmDeregister] = useState<bigint | null>(null);
-  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
 
   const isActionPool = poolTypeParam === "action";
@@ -103,6 +107,24 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
   const confirmDeregisterDescKey = isActionPool
     ? "app.signal.actionPool.confirmDeregisterDescription"
     : "app.signal.hypercertPool.confirmDeregisterDescription";
+  const communityBackLink = {
+    to: adminRoutes.communityGovernance(),
+    label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
+  };
+  const poolTabs = [
+    {
+      id: "hypercert",
+      label: formatMessage({ id: "app.signal.viewHypercertPool" }),
+    },
+    {
+      id: "action",
+      label: formatMessage({ id: "app.signal.viewActionPool" }),
+    },
+  ];
+  const handlePoolTabChange = (nextPoolType: string) =>
+    navigate(
+      adminRoutes.communityGovernanceSignalPool(nextPoolType === "action" ? "action" : "hypercert")
+    );
 
   if (gardensLoading) {
     if (layout === "sheet") {
@@ -110,16 +132,14 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     }
 
     return (
-      <div className="pb-6">
-        <PageHeader
+      <CanvasRouteFrame>
+        <CanvasRouteHeader
+          maxWidthClassName="max-w-4xl"
           title={formatMessage({ id: titleKey })}
           description={formatMessage({ id: "app.signal.loading" })}
-          backLink={{
-            to: adminRoutes.communityGovernance(),
-            label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
-          }}
+          backLink={communityBackLink}
         />
-      </div>
+      </CanvasRouteFrame>
     );
   }
 
@@ -131,16 +151,14 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     }
 
     return (
-      <div className="pb-6">
-        <PageHeader
+      <CanvasRouteFrame>
+        <CanvasRouteHeader
+          maxWidthClassName="max-w-4xl"
           title={formatMessage({ id: titleKey })}
           description={formatMessage({ id: "app.conviction.gardenNotFound" })}
-          backLink={{
-            to: adminRoutes.communityGovernance(),
-            label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
-          }}
+          backLink={communityBackLink}
         />
-      </div>
+      </CanvasRouteFrame>
     );
   }
 
@@ -190,241 +208,216 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     return Number((weight * 100n) / totalWeight);
   };
 
-  const pageHeader =
-    layout === "page" ? (
-      <PageHeader
+  const content = (
+    <>
+      {layout === "sheet" ? (
+        <AdminTabRail
+          ariaLabel={formatMessage({ id: "app.community.pools" })}
+          activeId={isActionPool ? "action" : "hypercert"}
+          onChange={handlePoolTabChange}
+          tabs={poolTabs}
+        />
+      ) : null}
+
+      {/* Pool not deployed */}
+      {!poolAddress && (
+        <Alert variant="info">{formatMessage({ id: "app.signal.poolNotFound" })}</Alert>
+      )}
+
+      {(itemsError || weightsError) && (
+        <Alert variant="error">{formatMessage({ id: "app.conviction.errorLoadingFailed" })}</Alert>
+      )}
+
+      {poolAddress && (
+        <>
+          {/* Stats */}
+          <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="surface-inset">
+              <p className="text-xs text-text-soft">
+                {formatMessage({ id: "app.conviction.poolAddress" })}
+              </p>
+              <p className="mt-1 font-mono text-sm font-medium text-text-strong">
+                {formatAddress(poolAddress, { variant: "card" })}
+              </p>
+            </div>
+            <div className="surface-inset">
+              <p className="text-xs text-text-soft">
+                {formatMessage({ id: countKey }, { count: 0 }).replace(/^0\s*/, "")}
+              </p>
+              <p className="mt-1 text-xl font-semibold text-text-strong">
+                {itemsLoading ? formatMessage({ id: "app.common.loading" }) : registeredIds.length}
+              </p>
+            </div>
+            <div className="surface-inset">
+              <p className="text-xs text-text-soft">
+                {formatMessage({ id: "app.signal.conviction" })}
+              </p>
+              <p className="mt-1 text-xl font-semibold text-text-strong">
+                {weightsLoading
+                  ? formatMessage({ id: "app.common.loading" })
+                  : weights.length > 0
+                    ? formatMessage({ id: "app.signal.conviction" })
+                    : formatMessage({ id: emptyKey })}
+              </p>
+            </div>
+          </section>
+
+          {/* Conviction weights */}
+          <section className="surface-inset p-0">
+            <div className="border-b border-stroke-soft p-4 sm:p-6">
+              <h3 className="text-base font-medium text-text-strong sm:text-lg">
+                {formatMessage({ id: "app.signal.conviction" })}
+              </h3>
+              <p className="mt-1 text-sm text-text-sub">
+                {formatMessage({ id: "app.conviction.convictionWeightsDescription" })}
+              </p>
+            </div>
+
+            <div className="p-4 sm:p-6">
+              {itemsLoading || weightsLoading ? (
+                <p className="py-4 text-center text-sm text-text-soft" role="status">
+                  {formatMessage({ id: "app.signal.loading" })}
+                </p>
+              ) : registeredIds.length === 0 ? (
+                <p className="py-4 text-center text-sm text-text-soft">
+                  {formatMessage({ id: emptyKey })}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {registeredIds.map((itemId) => {
+                    const pct = getWeightPercentage(itemId);
+                    return (
+                      <div
+                        key={itemId.toString()}
+                        className="flex items-center justify-between gap-3 rounded-md bg-bg-weak p-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-sm font-medium text-text-strong">
+                            #{itemId.toString()}
+                          </p>
+                          <div className="mt-1 flex items-center gap-2">
+                            <AdminLinearProgress
+                              value={Math.min(pct, 100)}
+                              ariaLabel={formatMessage(
+                                { id: "app.signal.weightFor" },
+                                { id: itemId.toString() }
+                              )}
+                              className="flex-1"
+                            />
+                            <span className="text-xs text-text-sub">{pct}%</span>
+                          </div>
+                        </div>
+                        {canManage && (
+                          <AdminButton
+                            type="button"
+                            variant="danger"
+                            size="sm"
+                            className="h-9 w-9 min-w-0 rounded p-0"
+                            onClick={() => setConfirmDeregister(itemId)}
+                            disabled={deregisterMutation.isPending}
+                            aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
+                          >
+                            <RiDeleteBinLine className="h-4 w-4" />
+                          </AdminButton>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Register item form */}
+              {canManage && (
+                <div className="mt-4 flex gap-2">
+                  <AdminTextField
+                    label={formatMessage({
+                      id: isActionPool
+                        ? "app.signal.actionPool.actionIdPlaceholder"
+                        : "app.signal.hypercertPool.hypercertIdPlaceholder",
+                    })}
+                    variant="outlined"
+                    value={newItemId}
+                    onChange={(e) => {
+                      setNewItemId(e.target.value);
+                      setInputError("");
+                    }}
+                    placeholder={formatMessage({
+                      id: isActionPool
+                        ? "app.signal.actionPool.actionIdPlaceholder"
+                        : "app.signal.hypercertPool.hypercertIdPlaceholder",
+                    })}
+                    error={inputError || undefined}
+                    className="flex-1"
+                  />
+                  <AdminButton
+                    type="button"
+                    variant="filled"
+                    onClick={handleRegister}
+                    disabled={!newItemId.trim() || registerMutation.isPending}
+                    loading={registerMutation.isPending}
+                  >
+                    {registerMutation.isPending
+                      ? formatMessage({ id: "app.common.processing" })
+                      : formatMessage({ id: "app.conviction.register" })}
+                  </AdminButton>
+                </div>
+              )}
+            </div>
+          </section>
+        </>
+      )}
+    </>
+  );
+
+  const dialog = (
+    <ConfirmDialog
+      isOpen={confirmDeregister !== null}
+      onClose={() => setConfirmDeregister(null)}
+      title={formatMessage({ id: confirmDeregisterKey })}
+      description={formatMessage({ id: confirmDeregisterDescKey })}
+      variant="danger"
+      onConfirm={() => {
+        if (poolAddress && confirmDeregister !== null) {
+          deregisterMutation.mutate(
+            { poolAddress, hypercertId: confirmDeregister },
+            { onSettled: () => setConfirmDeregister(null) }
+          );
+        }
+      }}
+    />
+  );
+
+  if (layout === "sheet") {
+    return (
+      <div className="space-y-6">
+        {content}
+        {dialog}
+      </div>
+    );
+  }
+
+  return (
+    <CanvasRouteFrame>
+      <CanvasRouteHeader
+        maxWidthClassName="max-w-4xl"
         title={formatMessage({ id: titleKey })}
         description={formatMessage({ id: descriptionKey }, { gardenName: garden.name })}
         variant="canvas"
-        backLink={{
-          to: adminRoutes.communityGovernance(),
-          label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
-        }}
+        backLink={communityBackLink}
         sticky
       >
         <AdminTabRail
           ariaLabel={formatMessage({ id: "app.community.pools" })}
           activeId={isActionPool ? "action" : "hypercert"}
-          onChange={(nextPoolType) =>
-            navigate(
-              adminRoutes.communityGovernanceSignalPool(
-                nextPoolType === "action" ? "action" : "hypercert"
-              )
-            )
-          }
-          tabs={[
-            {
-              id: "hypercert",
-              label: formatMessage({ id: "app.signal.viewHypercertPool" }),
-            },
-            {
-              id: "action",
-              label: formatMessage({ id: "app.signal.viewActionPool" }),
-            },
-          ]}
+          onChange={handlePoolTabChange}
+          tabs={poolTabs}
         />
-      </PageHeader>
-    ) : null;
-  const contentClassName =
-    layout === "page" ? "mx-auto mt-6 max-w-4xl space-y-6 px-4 sm:px-6" : "space-y-6";
+      </CanvasRouteHeader>
 
-  return (
-    <div className="pb-6">
-      {pageHeader}
-
-      <div className={contentClassName}>
-        {layout === "sheet" ? (
-          <AdminTabRail
-            ariaLabel={formatMessage({ id: "app.community.pools" })}
-            activeId={isActionPool ? "action" : "hypercert"}
-            onChange={(nextPoolType) =>
-              navigate(
-                adminRoutes.communityGovernanceSignalPool(
-                  nextPoolType === "action" ? "action" : "hypercert"
-                )
-              )
-            }
-            tabs={[
-              {
-                id: "hypercert",
-                label: formatMessage({ id: "app.signal.viewHypercertPool" }),
-              },
-              {
-                id: "action",
-                label: formatMessage({ id: "app.signal.viewActionPool" }),
-              },
-            ]}
-          />
-        ) : null}
-
-        {/* Pool not deployed */}
-        {!poolAddress && (
-          <Alert variant="info">{formatMessage({ id: "app.signal.poolNotFound" })}</Alert>
-        )}
-
-        {(itemsError || weightsError) && (
-          <Alert variant="error">
-            {formatMessage({ id: "app.conviction.errorLoadingFailed" })}
-          </Alert>
-        )}
-
-        {poolAddress && (
-          <>
-            {/* Stats */}
-            <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="surface-inset">
-                <p className="text-xs text-text-soft">
-                  {formatMessage({ id: "app.conviction.poolAddress" })}
-                </p>
-                <p className="mt-1 font-mono text-sm font-medium text-text-strong">
-                  {formatAddress(poolAddress, { variant: "card" })}
-                </p>
-              </div>
-              <div className="surface-inset">
-                <p className="text-xs text-text-soft">
-                  {formatMessage({ id: countKey }, { count: 0 }).replace(/^0\s*/, "")}
-                </p>
-                <p className="mt-1 text-xl font-semibold text-text-strong">
-                  {itemsLoading
-                    ? formatMessage({ id: "app.common.loading" })
-                    : registeredIds.length}
-                </p>
-              </div>
-              <div className="surface-inset">
-                <p className="text-xs text-text-soft">
-                  {formatMessage({ id: "app.signal.conviction" })}
-                </p>
-                <p className="mt-1 text-xl font-semibold text-text-strong">
-                  {weightsLoading
-                    ? formatMessage({ id: "app.common.loading" })
-                    : weights.length > 0
-                      ? formatMessage({ id: "app.signal.conviction" })
-                      : formatMessage({ id: emptyKey })}
-                </p>
-              </div>
-            </section>
-
-            {/* Conviction weights */}
-            <section className="surface-inset p-0">
-              <div className="border-b border-stroke-soft p-4 sm:p-6">
-                <h3 className="text-base font-medium text-text-strong sm:text-lg">
-                  {formatMessage({ id: "app.signal.conviction" })}
-                </h3>
-                <p className="mt-1 text-sm text-text-sub">
-                  {formatMessage({ id: "app.conviction.convictionWeightsDescription" })}
-                </p>
-              </div>
-
-              <div className="p-4 sm:p-6">
-                {itemsLoading || weightsLoading ? (
-                  <p className="py-4 text-center text-sm text-text-soft" role="status">
-                    {formatMessage({ id: "app.signal.loading" })}
-                  </p>
-                ) : registeredIds.length === 0 ? (
-                  <p className="py-4 text-center text-sm text-text-soft">
-                    {formatMessage({ id: emptyKey })}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {registeredIds.map((itemId) => {
-                      const pct = getWeightPercentage(itemId);
-                      return (
-                        <div
-                          key={itemId.toString()}
-                          className="flex items-center justify-between gap-3 rounded-md bg-bg-weak p-3"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="font-mono text-sm font-medium text-text-strong">
-                              #{itemId.toString()}
-                            </p>
-                            <div className="mt-1 flex items-center gap-2">
-                              <AdminLinearProgress
-                                value={Math.min(pct, 100)}
-                                ariaLabel={formatMessage(
-                                  { id: "app.signal.weightFor" },
-                                  { id: itemId.toString() }
-                                )}
-                                className="flex-1"
-                              />
-                              <span className="text-xs text-text-sub">{pct}%</span>
-                            </div>
-                          </div>
-                          {canManage && (
-                            <AdminButton
-                              type="button"
-                              variant="danger"
-                              size="sm"
-                              className="h-9 w-9 min-w-0 rounded p-0"
-                              onClick={() => setConfirmDeregister(itemId)}
-                              disabled={deregisterMutation.isPending}
-                              aria-label={formatMessage({ id: "app.conviction.removeStrategy" })}
-                            >
-                              <RiDeleteBinLine className="h-4 w-4" />
-                            </AdminButton>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Register item form */}
-                {canManage && (
-                  <div className="mt-4 flex gap-2">
-                    <AdminTextField
-                      label={formatMessage({
-                        id: isActionPool
-                          ? "app.signal.actionPool.actionIdPlaceholder"
-                          : "app.signal.hypercertPool.hypercertIdPlaceholder",
-                      })}
-                      variant="outlined"
-                      value={newItemId}
-                      onChange={(e) => {
-                        setNewItemId(e.target.value);
-                        setInputError("");
-                      }}
-                      placeholder={formatMessage({
-                        id: isActionPool
-                          ? "app.signal.actionPool.actionIdPlaceholder"
-                          : "app.signal.hypercertPool.hypercertIdPlaceholder",
-                      })}
-                      error={inputError || undefined}
-                      className="flex-1"
-                    />
-                    <AdminButton
-                      type="button"
-                      variant="filled"
-                      onClick={handleRegister}
-                      disabled={!newItemId.trim() || registerMutation.isPending}
-                      loading={registerMutation.isPending}
-                    >
-                      {registerMutation.isPending
-                        ? formatMessage({ id: "app.common.processing" })
-                        : formatMessage({ id: "app.conviction.register" })}
-                    </AdminButton>
-                  </div>
-                )}
-              </div>
-            </section>
-          </>
-        )}
-      </div>
-
-      <ConfirmDialog
-        isOpen={confirmDeregister !== null}
-        onClose={() => setConfirmDeregister(null)}
-        title={formatMessage({ id: confirmDeregisterKey })}
-        description={formatMessage({ id: confirmDeregisterDescKey })}
-        variant="danger"
-        onConfirm={() => {
-          if (poolAddress && confirmDeregister !== null) {
-            deregisterMutation.mutate(
-              { poolAddress, hypercertId: confirmDeregister },
-              { onSettled: () => setConfirmDeregister(null) }
-            );
-          }
-        }}
-      />
-    </div>
+      <CanvasRouteContent maxWidthClassName="max-w-4xl" className="mt-6 space-y-6">
+        {content}
+      </CanvasRouteContent>
+      {dialog}
+    </CanvasRouteFrame>
   );
 }

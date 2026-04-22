@@ -24,7 +24,11 @@ import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { adminCardVariants } from "@/components/AdminCard";
-import { PageHeader } from "@/components/Layout/PageHeader";
+import {
+  CanvasRouteContent,
+  CanvasRouteFrame,
+  CanvasRouteHeader,
+} from "@/components/Layout/CanvasRouteFrame";
 
 /** EAS decoded field structure from attestation JSON */
 interface EASDecodedField {
@@ -189,8 +193,9 @@ export default function GardenAssessment() {
   }
 
   return (
-    <div className="pb-6">
-      <PageHeader
+    <CanvasRouteFrame>
+      <CanvasRouteHeader
+        maxWidthClassName="max-w-6xl"
         title={formatMessage({ id: "app.garden.admin.assessmentsTitle" })}
         description={formatMessage({ id: "app.garden.admin.assessmentsDescription" })}
         backLink={{
@@ -206,8 +211,10 @@ export default function GardenAssessment() {
           </Button>
         }
       />
-      <div className="mt-6 space-y-6 px-4 sm:px-6">{content}</div>
-    </div>
+      <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6 space-y-6">
+        {content}
+      </CanvasRouteContent>
+    </CanvasRouteFrame>
   );
 }
 

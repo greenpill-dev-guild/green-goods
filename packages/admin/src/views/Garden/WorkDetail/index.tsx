@@ -2,7 +2,7 @@ import {
   Alert,
   DEFAULT_CHAIN_ID,
   adminRoutes,
-  useAdminStore,
+  useAdminGardenWorkspaceSelection,
   useActions,
   useGardenPermissions,
   useGardens,
@@ -12,7 +12,12 @@ import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react"
 import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
-import { PageHeader } from "@/components/Layout/PageHeader";
+import {
+  CanvasRouteContent,
+  CanvasRouteFrame,
+  CanvasRouteHeader,
+} from "@/components/Layout/CanvasRouteFrame";
+import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
 import { MediaEvidence } from "@/views/Hub/components/MediaEvidence";
 import { parseWorkMetadata } from "./helpers";
 import { ReviewForm } from "./ReviewForm";
@@ -37,8 +42,7 @@ function parseHubContext(search: string) {
 
 function useResolvedWorkDetail(workId: string | undefined) {
   const gardenPermissions = useGardenPermissions();
-  const selectedGarden = useAdminStore((state) => state.selectedGarden);
-  const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
+  const { selectedGarden, setSelectedGarden } = useAdminGardenWorkspaceSelection();
   const selectedGardenId = selectedGarden?.id ?? null;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
@@ -154,7 +158,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
     }
 
     return (
-      <div className="mt-6 px-4 sm:px-6">
+      <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
           <div className="space-y-4 lg:col-span-3">
             <div className="h-64 animate-pulse rounded-lg bg-bg-soft" />
@@ -164,7 +168,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
             <div className="h-96 animate-pulse rounded-lg bg-bg-soft" />
           </div>
         </div>
-      </div>
+      </CanvasRouteContent>
     );
   }
 
@@ -178,9 +182,9 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
     }
 
     return (
-      <div className="mt-6 px-4 sm:px-6">
+      <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6">
         <Alert variant="error">{formatMessage({ id: "app.work.detail.notFound" })}</Alert>
-      </div>
+      </CanvasRouteContent>
     );
   }
 
@@ -227,7 +231,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
   }
 
   return (
-    <div className="mt-6 px-4 sm:px-6">
+    <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
           <section className="surface-inset sm:p-6">
@@ -259,7 +263,7 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
           onSuccess={onSuccess}
         />
       </div>
-    </div>
+    </CanvasRouteContent>
   );
 }
 
@@ -280,22 +284,25 @@ export default function WorkDetail() {
 
   if (!workId) {
     return (
-      <div className="pb-6">
-        <PageHeader
+      <CanvasRouteFrame>
+        <CanvasRouteHeader
+          maxWidthClassName="max-w-6xl"
           title={formatMessage({ id: "app.work.detail.title" })}
           description={formatMessage({ id: "app.work.detail.notFoundDescription" })}
           {...baseHeaderProps}
         />
-        <div className="mt-6 px-4 sm:px-6">
-          <Alert variant="error">{formatMessage({ id: "app.work.detail.notFound" })}</Alert>
-        </div>
-      </div>
+        <CanvasRouteErrorState
+          message={formatMessage({ id: "app.work.detail.notFound" })}
+          maxWidthClassName="max-w-6xl"
+        />
+      </CanvasRouteFrame>
     );
   }
 
   return (
-    <div className="pb-6">
-      <PageHeader
+    <CanvasRouteFrame>
+      <CanvasRouteHeader
+        maxWidthClassName="max-w-6xl"
         title={formatMessage({ id: "app.work.detail.reviewTitle" })}
         description={
           resolved.action?.title ??
@@ -308,6 +315,6 @@ export default function WorkDetail() {
         {...baseHeaderProps}
       />
       <WorkDetailPanel workId={workId} layout="page" />
-    </div>
+    </CanvasRouteFrame>
   );
 }

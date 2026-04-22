@@ -26,6 +26,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { ADMIN_COMMAND_ROUTES } from "@/routes/views";
 import { dispatchOpenAccountSheet } from "./accountSheet.events";
 
 interface SearchResult {
@@ -83,27 +84,7 @@ const CATEGORY_ICONS: Record<
   assessments: RiFileList3Line,
 };
 
-const STATIC_ROUTES: { id: string; labelId: string; defaultLabel: string; href: string }[] = [
-  { id: "page-hub", labelId: "cockpit.nav.hub", defaultLabel: "Hub", href: adminRoutes.hub() },
-  {
-    id: "page-garden",
-    labelId: "cockpit.nav.garden",
-    defaultLabel: "Garden",
-    href: adminRoutes.garden(),
-  },
-  {
-    id: "page-community",
-    labelId: "cockpit.nav.community",
-    defaultLabel: "Community",
-    href: adminRoutes.community(),
-  },
-  {
-    id: "page-actions",
-    labelId: "app.admin.nav.actions",
-    defaultLabel: "Actions",
-    href: adminRoutes.actions(),
-  },
-];
+const STATIC_ROUTES = ADMIN_COMMAND_ROUTES;
 
 export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPaletteProps = {}) {
   const [internalOpen, setInternalOpen] = useState(false);

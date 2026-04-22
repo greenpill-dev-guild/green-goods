@@ -102,10 +102,7 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Actions/index.tsx",
   "Community/index.tsx",
   "Garden/Assessment.tsx",
-  "Garden/CreateAssessment.tsx",
   "Garden/CreateGarden.tsx",
-  "Garden/CreateHypercert.tsx",
-  "Garden/Hypercerts.tsx",
   "Garden/HypercertDetail.tsx",
   "Garden/SignalPool.tsx",
   "Garden/Strategies.tsx",
@@ -113,6 +110,8 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Garden/Vault.tsx",
   "Garden/WorkTab.tsx",
   "Garden/index.tsx",
+  "Hub/CreateAssessment.tsx",
+  "Hub/CreateHypercert.tsx",
   "Hub/index.tsx",
   "NotFound.tsx",
   "Profile/index.tsx",
@@ -131,7 +130,16 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
 
   // Non-visual descriptor that calls `useLeftSheetConfig` and returns null
   // — it has no UI to review in Storybook.
+  "Community/components/CommunitySheetDescriptor.tsx",
+  "Garden/components/GardenSheetDescriptor.tsx",
   "Hub/components/HubSheetDescriptor.tsx",
+
+  // Thin route/controller adapters. They switch between reusable shell states
+  // and already-covered tab/queue stories, but do not own a distinct visual
+  // contract worth snapshotting as another full composition layer.
+  "Community/components/CommunityWorkspaceContent.tsx",
+  "Garden/components/GardenWorkspaceContent.tsx",
+  "Hub/components/HubStageContent.tsx",
 ]);
 
 const NON_VISUAL_SHARED_COMPONENTS = new Set([

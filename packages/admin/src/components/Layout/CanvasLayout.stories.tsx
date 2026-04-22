@@ -9,7 +9,7 @@ import {
 import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
 
 const gardens = [
@@ -158,10 +158,30 @@ const meta: Meta<typeof MockCanvasLayout> = {
 export default meta;
 type Story = StoryObj<typeof MockCanvasLayout>;
 
-export const Populated: Story = {};
+export const Populated: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("banner")).toHaveAttribute("data-component", "AppBar");
+    await userEvent.click(canvas.getByRole("button", { name: /open settings/i }));
+    await expect(await canvas.findByTestId("right-sheet")).toHaveAttribute(
+      "data-component",
+      "RightSheet"
+    );
+    await userEvent.click(canvas.getByTestId("right-sheet-close"));
+  },
+};
 
 export const Empty: Story = {
   args: {
     empty: true,
+  },
+};
+
+export const Mobile: Story = {
+  args: {
+    activePath: "/garden",
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
   },
 };

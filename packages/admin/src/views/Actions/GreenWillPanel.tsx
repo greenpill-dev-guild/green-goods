@@ -4,12 +4,10 @@ import {
   formatAddress,
   formatDate,
   Surface,
-} from "@green-goods/shared";
-import {
   useGreenWillBadgeDefinitions,
   useGreenWillBadges,
   useGreenWillRecentGrants,
-} from "@green-goods/shared/hooks";
+} from "@green-goods/shared";
 import { RiAwardLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";

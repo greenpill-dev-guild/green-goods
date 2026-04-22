@@ -25,12 +25,17 @@ vi.mock("@green-goods/shared", () => ({
     MEDIUM: "MEDIUM",
     HIGH: "HIGH",
   },
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   DEFAULT_CHAIN_ID: 11155111,
   useAdminStore: (selector: (state: any) => any) =>
     selector({
       selectedGarden: mockSelectedGarden,
       setSelectedGarden: mockSetSelectedGarden,
     }),
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: mockSelectedGarden,
+    setSelectedGarden: mockSetSelectedGarden,
+  }),
   useActions: () => mockUseActions(),
   useGardenPermissions: () => mockUseGardenPermissions(),
   useGardens: () => mockUseGardens(),
@@ -38,6 +43,8 @@ vi.mock("@green-goods/shared", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) =>
+    React.createElement("a", { href: to }, children),
   useParams: () => ({ workId: "0xWork" }),
 }));
 

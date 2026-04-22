@@ -3,6 +3,34 @@ import { renderWithProviders, screen, userEvent } from "../../test-utils";
 
 const VALID_LOOKUP_ADDRESS = "0x1234567890123456789012345678901234567890";
 
+const greenWillMocks = vi.hoisted(() => {
+  const state = {
+    definitions: {
+      badgeDefinitions: [],
+      isLoading: false,
+      isError: false,
+    },
+    grants: {
+      grants: [],
+      isLoading: false,
+      isError: false,
+    },
+    badges: {
+      earnedBadges: [],
+      isLoading: false,
+      isError: false,
+      error: null as Error | null,
+    },
+  };
+
+  return {
+    state,
+    mockUseGreenWillBadgeDefinitions: vi.fn(() => state.definitions),
+    mockUseGreenWillRecentGrants: vi.fn(() => state.grants),
+    mockUseGreenWillBadges: vi.fn(() => state.badges),
+  };
+});
+
 vi.mock("@green-goods/shared", async () => {
   const React = await import("react");
 
@@ -41,42 +69,11 @@ vi.mock("@green-goods/shared", async () => {
     }) => React.createElement(Component, { className, ...props }, children),
     formatAddress: (address: string) => address,
     formatDate: (timestamp: number) => String(timestamp),
+    useGreenWillBadgeDefinitions: greenWillMocks.mockUseGreenWillBadgeDefinitions,
+    useGreenWillBadges: greenWillMocks.mockUseGreenWillBadges,
+    useGreenWillRecentGrants: greenWillMocks.mockUseGreenWillRecentGrants,
   };
 });
-
-const greenWillMocks = vi.hoisted(() => {
-  const state = {
-    definitions: {
-      badgeDefinitions: [],
-      isLoading: false,
-      isError: false,
-    },
-    grants: {
-      grants: [],
-      isLoading: false,
-      isError: false,
-    },
-    badges: {
-      earnedBadges: [],
-      isLoading: false,
-      isError: false,
-      error: null as Error | null,
-    },
-  };
-
-  return {
-    state,
-    mockUseGreenWillBadgeDefinitions: vi.fn(() => state.definitions),
-    mockUseGreenWillRecentGrants: vi.fn(() => state.grants),
-    mockUseGreenWillBadges: vi.fn(() => state.badges),
-  };
-});
-
-vi.mock("@green-goods/shared/hooks", () => ({
-  useGreenWillBadgeDefinitions: greenWillMocks.mockUseGreenWillBadgeDefinitions,
-  useGreenWillBadges: greenWillMocks.mockUseGreenWillBadges,
-  useGreenWillRecentGrants: greenWillMocks.mockUseGreenWillRecentGrants,
-}));
 
 import { GreenWillPanel } from "@/views/Actions/GreenWillPanel";
 

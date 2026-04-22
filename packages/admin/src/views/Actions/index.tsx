@@ -1,160 +1,35 @@
 import {
-  type Action,
-  type ActionFiltersState,
-  type ActionSortOrder,
+  adminRoutes,
   Button,
+  DOMAIN_CONFIG,
+  EmptyState,
+  formatDate,
+  Surface,
   WorkbenchList,
   WorkbenchRow,
-  EmptyState,
-  Surface,
-  DEFAULT_CHAIN_ID,
-  DOMAIN_CONFIG,
-  Domain,
-  adminRoutes,
-  useActions,
-  useFabConfig,
-  useFilteredActions,
-  useRole,
-  useUrlFilters,
-  formatDate,
 } from "@green-goods/shared";
-import { AdminTabRail } from "@/components/AdminTabRail";
-import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
-import { RiAddLine, RiFileListLine, RiRefreshLine } from "@remixicon/react";
-import { useMemo } from "react";
-import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
+import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { AdminTabRail } from "@/components/AdminTabRail";
+import { CanvasRouteContent, CanvasRouteFrame } from "@/components/Layout/CanvasRouteFrame";
 import { PageHeader } from "@/components/Layout/PageHeader";
-
-const DOMAIN_FILTER_OPTIONS = (
-  Object.entries(DOMAIN_CONFIG) as [string, (typeof DOMAIN_CONFIG)[Domain]][]
-).map(([key, config]) => ({
-  value: Number(key) as Domain,
-  labelId: config.labelId,
-  colors: config.colors,
-}));
-
-const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
-  sort: "default",
-  domain: undefined,
-  search: undefined,
-  lifecycle: "all",
-};
-
-type LifecycleStage = "all" | "active" | "upcoming" | "completed";
-
-const LIFECYCLE_TABS: { id: LifecycleStage; labelId: string; defaultLabel: string }[] = [
-  { id: "all", labelId: "cockpit.actions.stage.all", defaultLabel: "All" },
-  { id: "active", labelId: "cockpit.actions.stage.active", defaultLabel: "Active" },
-  { id: "upcoming", labelId: "cockpit.actions.stage.upcoming", defaultLabel: "Upcoming" },
-  { id: "completed", labelId: "cockpit.actions.stage.completed", defaultLabel: "Completed" },
-];
-
-function normalizeTimestamp(value: number): number {
-  return value > 10_000_000_000 ? value : value * 1000;
-}
-
-function getActionLifecycleState(action: Pick<Action, "startTime" | "endTime">) {
-  const now = Date.now();
-  const start = normalizeTimestamp(action.startTime);
-  const end = normalizeTimestamp(action.endTime);
-
-  if (now < start) {
-    return "upcoming" as const;
-  }
-
-  if (now > end) {
-    return "completed" as const;
-  }
-
-  return "active" as const;
-}
-
-function getWorkbenchTone(action: Pick<Action, "startTime" | "endTime">) {
-  const lifecycle = getActionLifecycleState(action);
-  if (lifecycle === "upcoming") return "pending" as const;
-  if (lifecycle === "active") return "approved" as const;
-  return "history" as const;
-}
+import { RiFileListLine, RiRefreshLine } from "@remixicon/react";
+import { useIntl } from "react-intl";
+import {
+  DOMAIN_FILTER_OPTIONS,
+  getActionLifecycleState,
+  getWorkbenchTone,
+  LIFECYCLE_TABS,
+} from "./actions.utils";
+import { useActionsController } from "./useActionsController";
 
 export default function Actions() {
   const intl = useIntl();
-  const navigate = useNavigate();
-  const { role } = useRole();
-  const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
-  const canManageActions = role === "deployer";
-
-  const actionsFabConfig = useMemo(() => {
-    if (!canManageActions) return null;
-    return {
-      icon: RiAddLine,
-      label: "Create Action",
-      actions: [
-        {
-          id: "create-action",
-          icon: RiAddLine,
-          label: "Create Action",
-          labelId: "cockpit.actions.fab.createAction",
-        },
-      ],
-      onAction: (actionId: string) => {
-        if (actionId === "create-action") {
-          navigate(adminRoutes.actionCreate());
-        }
-      },
-    };
-  }, [canManageActions, navigate]);
-  useFabConfig(actionsFabConfig);
-
-  const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(ACTION_FILTER_DEFAULTS);
-  const filters: ActionFiltersState = {
-    sort: (urlFilters.sort as ActionSortOrder) ?? "default",
-    domain: urlFilters.domain ? (Number(urlFilters.domain) as Domain) : undefined,
-    search: urlFilters.search,
-  };
-  const lifecycle = (urlFilters.lifecycle as LifecycleStage) ?? "all";
-  const isRefreshing = isFetching && !isLoading;
-
-  const { filteredActions } = useFilteredActions(actions, filters);
-
-  const lifecycleCounts = useMemo(() => {
-    const counts = { all: actions.length, active: 0, upcoming: 0, completed: 0 };
-    for (const action of actions) {
-      counts[getActionLifecycleState(action)] += 1;
-    }
-    return counts;
-  }, [actions]);
-
-  const stageFilteredActions = useMemo(() => {
-    if (lifecycle === "all") return filteredActions;
-    return filteredActions.filter((action) => getActionLifecycleState(action) === lifecycle);
-  }, [filteredActions, lifecycle]);
-
-  const toggleDomain = (domain: Domain) => {
-    setFilter("domain", filters.domain === domain ? undefined : String(domain));
-  };
-
-  const sortOptions = [
-    {
-      value: "default" as const,
-      label: intl.formatMessage({ id: "admin.actions.sort.default", defaultMessage: "Default" }),
-    },
-    {
-      value: "title" as const,
-      label: intl.formatMessage({ id: "admin.actions.sort.title", defaultMessage: "Title" }),
-    },
-    {
-      value: "recent" as const,
-      label: intl.formatMessage({ id: "admin.actions.sort.recent", defaultMessage: "Recent" }),
-    },
-  ];
-
-  const showToolbar = !isLoading && actions.length > 0;
+  const actions = useActionsController();
 
   return (
-    <div className="pb-6">
-      <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-4 px-4 sm:px-6">
+    <CanvasRouteFrame>
+      <CanvasRouteContent maxWidthClassName="max-w-[1400px]" className="flex flex-col gap-4">
         <PageHeader
           title={intl.formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
           description={intl.formatMessage({
@@ -168,58 +43,60 @@ export default function Actions() {
             <Button
               size="sm"
               variant="secondary"
-              loading={isRefreshing}
+              loading={actions.isRefreshing}
               onClick={() => {
-                void refetch();
+                void actions.refetch();
               }}
             >
-              {!isRefreshing && <RiRefreshLine className="h-4 w-4" />}
+              {!actions.isRefreshing && <RiRefreshLine className="h-4 w-4" />}
               {intl.formatMessage({
-                id: isRefreshing ? "app.common.refreshing" : "app.common.refresh",
+                id: actions.isRefreshing ? "app.common.refreshing" : "app.common.refresh",
               })}
             </Button>
           }
           toolbar={
-            showToolbar ? (
+            actions.showToolbar ? (
               <div className="flex flex-col gap-3">
                 <AdminTabRail
                   ariaLabel={intl.formatMessage({
                     id: "cockpit.actions.lifecycleSwitcher",
                     defaultMessage: "Filter actions by lifecycle",
                   })}
-                  activeId={lifecycle}
-                  onChange={(next) => setFilter("lifecycle", next === "all" ? undefined : next)}
+                  activeId={actions.lifecycle}
+                  onChange={(next) =>
+                    actions.setFilter("lifecycle", next === "all" ? undefined : next)
+                  }
                   tabs={LIFECYCLE_TABS.map((tab) => ({
                     id: tab.id,
                     label: intl.formatMessage({
                       id: tab.labelId,
                       defaultMessage: tab.defaultLabel,
                     }),
-                    count: lifecycleCounts[tab.id] || undefined,
+                    count: actions.lifecycleCounts[tab.id] || undefined,
                   }))}
                 />
                 <AdminSearchToolbar
-                  search={filters.search ?? ""}
-                  onSearchChange={(value) => setFilter("search", value || undefined)}
+                  search={actions.filters.search ?? ""}
+                  onSearchChange={(value) => actions.setFilter("search", value || undefined)}
                   placeholder={intl.formatMessage({
                     id: "admin.actions.searchPlaceholder",
                     defaultMessage: "Search actions...",
                   })}
                 >
-                  {sortOptions.map((option) => (
+                  {actions.sortOptions.map((option) => (
                     <AdminFilterChip
                       key={option.value}
                       label={option.label}
-                      selected={filters.sort === option.value}
-                      onToggle={() => setFilter("sort", option.value)}
+                      selected={actions.filters.sort === option.value}
+                      onToggle={() => actions.setFilter("sort", option.value)}
                     />
                   ))}
                   {DOMAIN_FILTER_OPTIONS.map((tag) => (
                     <AdminFilterChip
                       key={tag.value}
                       label={intl.formatMessage({ id: tag.labelId })}
-                      selected={filters.domain === tag.value}
-                      onToggle={() => toggleDomain(tag.value)}
+                      selected={actions.filters.domain === tag.value}
+                      onToggle={() => actions.toggleDomain(tag.value)}
                     />
                   ))}
                 </AdminSearchToolbar>
@@ -228,7 +105,7 @@ export default function Actions() {
           }
         />
 
-        {isLoading ? (
+        {actions.isLoading ? (
           <Surface
             elevation="solid-raised"
             padding="none"
@@ -252,7 +129,7 @@ export default function Actions() {
           </Surface>
         ) : null}
 
-        {!isLoading && actions.length === 0 ? (
+        {!actions.isLoading && actions.actions.length === 0 ? (
           <Surface elevation="solid-raised" padding="none">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
@@ -265,13 +142,13 @@ export default function Actions() {
                 defaultMessage: "Get started by creating your first action.",
               })}
               action={
-                canManageActions
+                actions.canManageActions
                   ? {
                       label: intl.formatMessage({
                         id: "app.actions.createFirst",
                         defaultMessage: "Create your first action",
                       }),
-                      onClick: () => navigate(adminRoutes.actionCreate()),
+                      onClick: () => actions.navigate(adminRoutes.actionCreate()),
                     }
                   : undefined
               }
@@ -279,7 +156,9 @@ export default function Actions() {
           </Surface>
         ) : null}
 
-        {!isLoading && actions.length > 0 && stageFilteredActions.length === 0 ? (
+        {!actions.isLoading &&
+        actions.actions.length > 0 &&
+        actions.stageFilteredActions.length === 0 ? (
           <Surface elevation="solid-raised" padding="none">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
@@ -292,15 +171,15 @@ export default function Actions() {
                   id: "admin.actions.resetFilters",
                   defaultMessage: "Reset filters",
                 }),
-                onClick: resetFilters,
+                onClick: actions.resetFilters,
               }}
             />
           </Surface>
         ) : null}
 
-        {!isLoading && stageFilteredActions.length > 0 ? (
+        {!actions.isLoading && actions.stageFilteredActions.length > 0 ? (
           <WorkbenchList aria-label={intl.formatMessage({ id: "app.admin.nav.actions" })}>
-            {stageFilteredActions.map((action) => {
+            {actions.stageFilteredActions.map((action) => {
               const stage = getActionLifecycleState(action);
               const domainLabel = intl.formatMessage({
                 id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
@@ -347,13 +226,13 @@ export default function Actions() {
                   statusTone={getWorkbenchTone(action)}
                   leadingIcon={RiFileListLine}
                   thumbnailSrc={action.media[0] ?? undefined}
-                  onClick={() => navigate(adminRoutes.actionDetail(action.id))}
+                  onClick={() => actions.navigate(adminRoutes.actionDetail(action.id))}
                 />
               );
             })}
           </WorkbenchList>
         ) : null}
-      </div>
-    </div>
+      </CanvasRouteContent>
+    </CanvasRouteFrame>
   );
 }

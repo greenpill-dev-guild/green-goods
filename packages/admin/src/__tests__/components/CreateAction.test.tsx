@@ -21,6 +21,7 @@ let capturedProps: Record<string, unknown> = {};
 vi.mock("@green-goods/shared", () => ({
   DEFAULT_CHAIN_ID: 42161,
   Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   adminRoutes: {
     actions: () => "/actions",
   },
@@ -47,6 +48,51 @@ vi.mock("@green-goods/shared", () => ({
     registerAction: mockRegisterAction,
     isLoading: false,
   }),
+  useFormWizardStepValidation: ({
+    currentStep,
+    steps,
+    stepFields,
+    trigger,
+    onValidNext,
+    onBack,
+    onStepClick,
+  }: {
+    currentStep: number;
+    steps: Array<{ id: string }>;
+    stepFields?: Record<string, string[]>;
+    trigger?: (fields?: string[], options?: { shouldFocus?: boolean }) => Promise<boolean>;
+    onValidNext: () => void;
+    onBack?: () => void;
+    onStepClick?: (stepIndex: number) => void;
+  }) => {
+    const [showValidation, setShowValidation] = React.useState(false);
+    React.useEffect(() => setShowValidation(false), [currentStep]);
+
+    const validateCurrentStep = async () => {
+      setShowValidation(true);
+      const fields = stepFields?.[steps[currentStep]?.id ?? ""];
+      if (!trigger || !fields?.length) return true;
+      return trigger(fields, { shouldFocus: true });
+    };
+
+    return {
+      showValidation,
+      setShowValidation,
+      validateCurrentStep,
+      validateAll: async () => (trigger ? trigger(undefined, { shouldFocus: true }) : true),
+      handleNext: async () => {
+        if (await validateCurrentStep()) onValidNext();
+      },
+      handleBack: () => {
+        setShowValidation(false);
+        onBack?.();
+      },
+      handleStepClick: (stepIndex: number) => {
+        setShowValidation(false);
+        onStepClick?.(stepIndex);
+      },
+    };
+  },
   FormWizard: (props: {
     steps: Array<{ id: string; title: string }>;
     currentStep: number;

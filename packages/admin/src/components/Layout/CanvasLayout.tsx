@@ -23,7 +23,7 @@ import {
   useStaleGardenGuard,
   type ToolbarSlot,
 } from "@green-goods/shared";
-import { RiAppsLine, RiHammerFill, RiSeedlingLine, RiTeamLine, RiUserLine } from "@remixicon/react";
+import { RiUserLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -31,6 +31,7 @@ import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
+import { ADMIN_WORKSPACE_VIEWS } from "@/routes/views";
 import {
   ACCOUNT_TAB_SEARCH_PARAM,
   PROFILE_SHEET_CONTENT_ID,
@@ -123,38 +124,14 @@ export function CanvasLayout() {
   // Build toolbar slots — visibility driven by role-adaptive permissions
   const slots: ToolbarSlot[] = useMemo(
     () => [
-      {
-        id: "hub",
-        label: "Hub",
-        labelId: "cockpit.nav.hub",
-        icon: RiAppsLine,
-        path: "/hub",
-        visible: permissions.showWork,
-      },
-      {
-        id: "garden",
-        label: "Garden",
-        labelId: "cockpit.nav.garden",
-        icon: RiSeedlingLine,
-        path: "/garden",
-        visible: permissions.showGarden,
-      },
-      {
-        id: "community",
-        label: "Community",
-        labelId: "cockpit.nav.community",
-        icon: RiTeamLine,
-        path: "/community",
-        visible: permissions.showCommunity,
-      },
-      {
-        id: "actions",
-        label: "Actions",
-        labelId: "app.admin.nav.actions",
-        icon: RiHammerFill,
-        path: "/actions",
-        visible: permissions.showActions,
-      },
+      ...ADMIN_WORKSPACE_VIEWS.map((view) => ({
+        id: view.id,
+        label: view.label,
+        labelId: view.labelId,
+        icon: view.icon,
+        path: view.rootPath,
+        visible: permissions[view.permission],
+      })),
       {
         id: "profile",
         label: "Profile",
@@ -165,12 +142,7 @@ export function CanvasLayout() {
         mobileOnly: true,
       },
     ],
-    [
-      permissions.showActions,
-      permissions.showCommunity,
-      permissions.showGarden,
-      permissions.showWork,
-    ]
+    [permissions]
   );
 
   // Determine active path and workspace identity from current route

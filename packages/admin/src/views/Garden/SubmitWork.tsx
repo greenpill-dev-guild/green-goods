@@ -19,7 +19,7 @@ import {
   queryKeys,
   submitWorkDirectly,
   toastService,
-  useAdminStore,
+  useAdminGardenWorkspaceSelection,
   useActions,
   useAuthState,
   useBeforeUnloadWhilePending,
@@ -36,7 +36,11 @@ import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminTextField } from "@/components/AdminTextField";
-import { PageHeader } from "@/components/Layout/PageHeader";
+import {
+  CanvasRouteContent,
+  CanvasRouteFrame,
+  CanvasRouteHeader,
+} from "@/components/Layout/CanvasRouteFrame";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24";
@@ -216,7 +220,7 @@ export interface SubmitWorkPanelProps {
 export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: SubmitWorkPanelProps) {
   const { formatMessage } = useIntl();
   const queryClient = useQueryClient();
-  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
 
   const { data: gardens = [] } = useGardens();
@@ -342,11 +346,17 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
     setImages([]);
   };
 
-  const renderState = (variant: "error" | "warning", messageId: string) => (
-    <div className={layout === "page" ? "mt-6 px-6" : undefined}>
-      <Alert variant={variant}>{formatMessage({ id: messageId })}</Alert>
-    </div>
-  );
+  const renderState = (variant: "error" | "warning", messageId: string) => {
+    const state = <Alert variant={variant}>{formatMessage({ id: messageId })}</Alert>;
+
+    return layout === "page" ? (
+      <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
+        {state}
+      </CanvasRouteContent>
+    ) : (
+      state
+    );
+  };
 
   if (!garden) {
     return renderState("error", "app.garden.admin.notFound");
@@ -479,7 +489,9 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
   );
 
   return layout === "page" ? (
-    <div className="mx-auto mt-6 max-w-2xl px-4 sm:px-6">{formCard}</div>
+    <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
+      {formCard}
+    </CanvasRouteContent>
   ) : (
     <div className="p-1">{formCard}</div>
   );
@@ -493,8 +505,9 @@ export default function SubmitWork() {
   const hubContext = parseHubContext(location.search);
 
   return (
-    <div className="pb-6">
-      <PageHeader
+    <CanvasRouteFrame>
+      <CanvasRouteHeader
+        maxWidthClassName="max-w-2xl"
         title={formatMessage({ id: "app.admin.work.submit.title" })}
         description={formatMessage({ id: "app.admin.work.submit.description" })}
         backLink={{
@@ -508,6 +521,6 @@ export default function SubmitWork() {
         onSuccess={() => navigate(adminRoutes.hub(hubContext))}
         onCancel={() => navigate(adminRoutes.hub(hubContext))}
       />
-    </div>
+    </CanvasRouteFrame>
   );
 }

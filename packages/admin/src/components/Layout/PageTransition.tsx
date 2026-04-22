@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useOutlet } from "react-router-dom";
 import { useSheetOrchestrator } from "@green-goods/shared";
-
-function isRoutedDetailSheet(contentId: string | null, search: string) {
-  if (!contentId?.startsWith("work-detail:")) return false;
-  return new URLSearchParams(search).has("item");
-}
+import { isRouteSheetRestorable } from "@/routes/sheetContentIds";
 
 export function PageTransition() {
   const location = useLocation();
@@ -57,8 +53,7 @@ export function PageTransition() {
       const savedState = orch.onNavigateArrive(newPath);
       if (savedState?.sheetOpen) {
         if (
-          savedState.sheetContentId?.startsWith("work-detail:") &&
-          !isRoutedDetailSheet(savedState.sheetContentId, location.search)
+          !isRouteSheetRestorable(savedState.sheetContentId, location.pathname, location.search)
         ) {
           return;
         }

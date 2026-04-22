@@ -160,15 +160,20 @@
 }
 
 /* Bottom Sheet — M3 shape + surface */
-.admin-m3 [role="dialog"][data-state="open"] .rounded-t-xl {
+.admin-m3 [data-component="BottomSheet"][data-slot="surface"] {
   border-radius: var(--m3-shape-xl) var(--m3-shape-xl) 0 0;
+  box-shadow: var(--m3-elevation-4);
 }
 
-/* Side Sheet — narrower */
-.admin-m3 [role="dialog"][data-state="open"] .rounded-l-xl,
-.admin-m3 [role="dialog"][data-state="open"] .rounded-r-xl {
-  max-width: 256px;
+/* Side Sheet — M3 directional shape */
+.admin-m3 [data-component="RightSheet"][data-slot="surface"] {
   border-radius: var(--m3-shape-lg) 0 0 var(--m3-shape-lg);
+  box-shadow: var(--m3-elevation-3);
+}
+
+.admin-m3 [data-component="LeftSheet"][data-slot="surface"] {
+  border-radius: 0 var(--m3-shape-lg) var(--m3-shape-lg) 0;
+  box-shadow: var(--m3-elevation-3);
 }
 
 /* Toast / Snackbar — M3 inverse surface */
@@ -203,16 +208,16 @@
  * ============================================================================ */
 
 /* MainSheet content — solid surface */
-.admin-m3 [data-testid="main-sheet-content"].glass-surface {
+.admin-m3 [data-component="MainSheet"][data-slot="surface"].glass-surface {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   background: rgb(var(--m3-surface));
 }
 
 /* Sheets — solid surface-container */
-.admin-m3 [data-testid="right-sheet"].glass-floating,
-.admin-m3 [data-testid="left-sheet"].glass-floating,
-.admin-m3 [data-testid="bottom-sheet"].glass-floating {
+.admin-m3 [data-component="RightSheet"][data-slot="surface"].glass-floating,
+.admin-m3 [data-component="LeftSheet"][data-slot="surface"].glass-floating,
+.admin-m3 [data-component="BottomSheet"][data-slot="surface"].glass-floating {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   background: rgb(var(--m3-surface-container));

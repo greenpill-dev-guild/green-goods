@@ -1,39 +1,29 @@
 import {
   type Address,
-  Alert,
   adminRoutes,
   assessmentStepFields,
   type CreateAssessmentFormData,
-  classifyTxError,
-  ErrorBoundary,
-  FormWizard,
-  isMeaningfulTxErrorMessage,
   type Step,
-  TxInlineFeedback,
   toastService,
+  useAdminStore,
   useCreateAssessmentForm,
   useCreateAssessmentStore,
   useCreateAssessmentWorkflow,
-  useAdminStore,
+  useFormWizardStepValidation,
   useGardenDomains,
   useGardenPermissions,
   useGardens,
+  useTxErrorMessages,
   type CreateAssessmentForm as WorkflowAssessmentForm,
 } from "@green-goods/shared";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useShallow } from "zustand/react/shallow";
-import { AdminButton } from "@/components/AdminButton";
-import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
-import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
-import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
-import { PageHeader } from "@/components/Layout/PageHeader";
 
-// Exception to hook boundary: view-specific i18n config, non-exported, single-use
-function useStepConfigs(): Step[] {
+function useCreateAssessmentStepConfigs(): Step[] {
   const { formatMessage } = useIntl();
   return [
     {
@@ -95,10 +85,10 @@ function toUnixSeconds(value: string): number {
   return Math.floor(timestamp / 1000);
 }
 
-export default function CreateAssessment() {
+export function useCreateAssessmentController() {
   const intl = useIntl();
   const { formatMessage } = intl;
-  const stepConfigs = useStepConfigs();
+  const stepConfigs = useCreateAssessmentStepConfigs();
   const navigate = useNavigate();
   const { address } = useAccount();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
@@ -108,18 +98,22 @@ export default function CreateAssessment() {
   const garden = useMemo(() => gardens.find((item) => item.id === gardenId), [gardens, gardenId]);
   const canReview = garden ? permissions.canReviewGarden(garden) : false;
 
-  // ── Zustand store (source of truth for form data) ──────
   const form = useCreateAssessmentStore(useShallow((state) => state.form));
   const currentStep = useCreateAssessmentStore((state) => state.currentStep);
   const setField = useCreateAssessmentStore((state) => state.setField);
   const nextStep = useCreateAssessmentStore((state) => state.nextStep);
   const previousStep = useCreateAssessmentStore((state) => state.previousStep);
   const resetStore = useCreateAssessmentStore((state) => state.reset);
-
-  // ── RHF form (validation-only layer — just trigger + reset) ──
   const { trigger, reset: resetValidationForm } = useCreateAssessmentForm();
-
-  const [showValidation, setShowValidation] = useState(false);
+  const stepValidation = useFormWizardStepValidation({
+    currentStep,
+    steps: stepConfigs,
+    stepFields: assessmentStepFields,
+    trigger: (fields, options) => trigger(fields as Parameters<typeof trigger>[0], options),
+    onValidNext: nextStep,
+    onBack: previousStep,
+    clearValidationAfterValidNext: true,
+  });
 
   const { data: gardenDomainMask } = useGardenDomains(
     (gardenId ?? undefined) as Address | undefined
@@ -143,14 +137,10 @@ export default function CreateAssessment() {
   const { loadDraft, saveDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
 
-  // ── Sync Zustand store → RHF validation form ──────────
-  // Every store change clears all RHF errors and updates values.
-  // This is the key pattern from CreateGarden that prevents stale errors.
   useEffect(() => {
     resetValidationForm(form);
   }, [form, resetValidationForm]);
 
-  // ── Draft restore on mount ─────────────────────────────
   const initializedRef = useRef(false);
   useEffect(() => {
     if (initializedRef.current) return;
@@ -162,7 +152,6 @@ export default function CreateAssessment() {
       const savedDraft = await loadDraft();
       if (!savedDraft || cancelled) return;
 
-      // Parse draft into form fields and set each in the store
       const metrics =
         typeof savedDraft.metrics === "string"
           ? (() => {
@@ -253,10 +242,8 @@ export default function CreateAssessment() {
     [gardenId]
   );
 
-  // ── Save draft on store changes ────────────────────────
   const prevFormRef = useRef(form);
   useEffect(() => {
-    // Skip the initial render
     if (prevFormRef.current === form) return;
     prevFormRef.current = form;
 
@@ -295,26 +282,8 @@ export default function CreateAssessment() {
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
-  const txErrorView = useMemo(() => classifyTxError(state.context.error), [state.context.error]);
-  const errorTitle = formatMessage({
-    id: txErrorView.titleKey,
-    defaultMessage:
-      txErrorView.severity === "warning" ? "Transaction cancelled" : "Transaction failed",
-  });
-  const errorMessage =
-    txErrorView.kind === "cancelled"
-      ? formatMessage({
-          id: txErrorView.messageKey,
-          defaultMessage: "Transaction was cancelled. Please try again when ready.",
-        })
-      : isMeaningfulTxErrorMessage(txErrorView.rawMessage)
-        ? txErrorView.rawMessage
-        : formatMessage({
-            id: txErrorView.messageKey,
-            defaultMessage: "Please review the details and try again.",
-          });
+  const txError = useTxErrorMessages(state.context.error);
 
-  // Navigate on success
   useEffect(() => {
     if (isSuccess) {
       toastService.success({
@@ -332,41 +301,14 @@ export default function CreateAssessment() {
       resetStore();
       navigate(adminRoutes.gardenImpact({ section: "assessments" }));
     }
-  }, [isSuccess, navigate, gardenId, formatMessage, resetStore]);
-
-  // Reset validation display when step changes
-  useEffect(() => {
-    setShowValidation(false);
-  }, [currentStep]);
-
-  // ── Step validation (Garden pattern: trigger returns boolean) ──
-  const handleNext = async () => {
-    setShowValidation(true);
-    const currentStepId = stepConfigs[currentStep]?.id;
-    if (currentStepId) {
-      const fields = assessmentStepFields[currentStepId as keyof typeof assessmentStepFields];
-      if (fields) {
-        const isStepValid = await trigger([...fields], { shouldFocus: true });
-        if (!isStepValid) return;
-      }
-    }
-    setShowValidation(false);
-    nextStep();
-  };
-
-  const handleBack = () => {
-    setShowValidation(false);
-    previousStep();
-  };
+  }, [isSuccess, navigate, formatMessage, resetStore]);
 
   const handleCancel = () => {
     navigate(adminRoutes.gardenImpact({ section: "assessments" }));
   };
 
-  // ── Final submission (validate all fields) ─────────────
   const handleSubmit = async () => {
-    setShowValidation(true);
-    const isFormValid = await trigger(undefined, { shouldFocus: true });
+    const isFormValid = await stepValidation.validateAll();
     if (!isFormValid) {
       toastService.error({
         title: formatMessage({
@@ -383,198 +325,77 @@ export default function CreateAssessment() {
       return;
     }
 
-    const onValid = async () => {
-      if (!address) {
-        toastService.error({
-          title: formatMessage({
-            id: "app.assessment.walletRequired",
-            defaultMessage: "Wallet required",
-          }),
-          message: formatMessage({
-            id: "app.assessment.walletRequiredMessage",
-            defaultMessage: "Please connect your wallet before submitting an assessment.",
-          }),
-          context: "assessment submission",
-          suppressLogging: true,
-        });
-        return;
-      }
+    if (!address) {
+      toastService.error({
+        title: formatMessage({
+          id: "app.assessment.walletRequired",
+          defaultMessage: "Wallet required",
+        }),
+        message: formatMessage({
+          id: "app.assessment.walletRequiredMessage",
+          defaultMessage: "Please connect your wallet before submitting an assessment.",
+        }),
+        context: "assessment submission",
+        suppressLogging: true,
+      });
+      return;
+    }
 
-      const payload = buildWorkflowPayload(form);
-      if (!payload) {
-        toastService.error({
-          title: formatMessage({
-            id: "app.assessment.selectGarden",
-            defaultMessage: "Select a garden",
-          }),
-          message: formatMessage({
-            id: "app.assessment.selectGardenMessage",
-            defaultMessage: "Choose a garden to link this assessment.",
-          }),
-          context: "assessment submission",
-          suppressLogging: true,
-        });
-        return;
-      }
+    const payload = buildWorkflowPayload(form);
+    if (!payload) {
+      toastService.error({
+        title: formatMessage({
+          id: "app.assessment.selectGarden",
+          defaultMessage: "Select a garden",
+        }),
+        message: formatMessage({
+          id: "app.assessment.selectGardenMessage",
+          defaultMessage: "Choose a garden to link this assessment.",
+        }),
+        context: "assessment submission",
+        suppressLogging: true,
+      });
+      return;
+    }
 
-      const started = startCreation(payload);
-      if (!started) {
-        toastService.error({
-          title: formatMessage({
-            id: "app.assessment.couldNotSubmit",
-            defaultMessage: "We could not submit the assessment",
-          }),
-          message: formatMessage({
-            id: "app.assessment.submissionFailedMessage",
-            defaultMessage: "Something went wrong. Please try again.",
-          }),
-          context: "assessment submission",
-          suppressLogging: true,
-        });
-        return;
-      }
+    const started = startCreation(payload);
+    if (!started) {
+      toastService.error({
+        title: formatMessage({
+          id: "app.assessment.couldNotSubmit",
+          defaultMessage: "We could not submit the assessment",
+        }),
+        message: formatMessage({
+          id: "app.assessment.submissionFailedMessage",
+          defaultMessage: "Something went wrong. Please try again.",
+        }),
+        context: "assessment submission",
+        suppressLogging: true,
+      });
+      return;
+    }
 
-      submitCreation();
-    };
-
-    void onValid();
+    submitCreation();
   };
 
-  if (!garden) {
-    return (
-      <div className="pb-6">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <PageHeader
-            title={formatMessage({
-              id: "app.assessment.submitAssessment",
-              defaultMessage: "Submit assessment",
-            })}
-            description={formatMessage({ id: "app.garden.admin.notFound" })}
-            variant="canvas"
-            backLink={{
-              to: "/garden",
-              label: formatMessage({ id: "app.garden.admin.backToGardens" }),
-            }}
-            sticky
-          />
-        </div>
-        <div className="mt-6 px-4 sm:px-6">
-          <div className="mx-auto w-full max-w-6xl">
-            <Alert variant="error">{formatMessage({ id: "app.garden.admin.notFound" })}</Alert>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!canReview) {
-    return (
-      <div className="pb-6">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-          <PageHeader
-            title={formatMessage({
-              id: "app.assessment.submitAssessment",
-              defaultMessage: "Submit assessment",
-            })}
-            description={formatMessage({ id: "app.admin.auth.noPermission" })}
-            variant="canvas"
-            backLink={{
-              to: adminRoutes.garden(),
-              label: formatMessage({ id: "app.garden.admin.backToGardens" }),
-            }}
-            sticky
-          />
-        </div>
-        <div className="mt-6 px-4 sm:px-6">
-          <div className="mx-auto w-full max-w-6xl">
-            <Alert variant="warning">{formatMessage({ id: "app.admin.auth.noPermission" })}</Alert>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="pb-6">
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <PageHeader
-          title={formatMessage({
-            id: "app.assessment.submitAssessment",
-            defaultMessage: "Submit assessment",
-          })}
-          description={formatMessage({
-            id: "cockpit.assessment.createDescription",
-            defaultMessage:
-              "Capture the context, strategy kernel, and harvest window for a new assessment.",
-          })}
-          variant="canvas"
-          backLink={{
-            to: adminRoutes.hubAssess(),
-            label: formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" }),
-          }}
-          sticky
-        />
-      </div>
-      <ErrorBoundary context="CreateAssessment.Wizard">
-        <FormWizard
-          steps={stepConfigs}
-          currentStep={currentStep}
-          onNext={handleNext}
-          onBack={handleBack}
-          onCancel={handleCancel}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          nextLabel={formatMessage({ id: "app.assessment.continue", defaultMessage: "Continue" })}
-          submitLabel={formatMessage({
-            id: "app.assessment.submitAssessment",
-            defaultMessage: "Submit assessment",
-          })}
-        >
-          <TxInlineFeedback
-            visible={hasError}
-            severity={txErrorView.severity}
-            title={errorTitle}
-            message={errorMessage}
-            reserveClassName="min-h-[8.5rem]"
-            className="mb-4"
-            action={
-              <div className="flex flex-wrap gap-2">
-                <AdminButton
-                  type="button"
-                  variant="outlined"
-                  size="sm"
-                  onClick={retry}
-                  disabled={!canRetry || isSubmitting}
-                >
-                  {formatMessage({
-                    id: "app.assessment.retrySubmission",
-                    defaultMessage: "Retry submission",
-                  })}
-                </AdminButton>
-                <AdminButton type="button" variant="text" size="sm" onClick={() => resetWorkflow()}>
-                  {formatMessage({
-                    id: "app.assessment.editDetails",
-                    defaultMessage: "Edit details",
-                  })}
-                </AdminButton>
-              </div>
-            }
-          />
-          {stepConfigs[currentStep]?.id === "domainContext" && (
-            <DomainContextStep
-              showValidation={showValidation}
-              isSubmitting={isSubmitting}
-              gardenDomainMask={normalizedGardenDomainMask}
-            />
-          )}
-          {stepConfigs[currentStep]?.id === "strategy" && (
-            <StrategyKernelStep showValidation={showValidation} isSubmitting={isSubmitting} />
-          )}
-          {stepConfigs[currentStep]?.id === "actionsHarvest" && (
-            <ActionsHarvestStep showValidation={showValidation} isSubmitting={isSubmitting} />
-          )}
-        </FormWizard>
-      </ErrorBoundary>
-    </div>
-  );
+  return {
+    canRetry,
+    canReview,
+    currentStep,
+    errorMessage: txError.message,
+    errorTitle: txError.title,
+    garden,
+    handleBack: stepValidation.handleBack,
+    handleCancel,
+    handleNext: stepValidation.handleNext,
+    handleSubmit,
+    hasError,
+    isSubmitting,
+    normalizedGardenDomainMask,
+    resetWorkflow,
+    retry,
+    showValidation: stepValidation.showValidation,
+    stepConfigs,
+    txErrorView: txError.view,
+  };
 }

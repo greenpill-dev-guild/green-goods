@@ -3,6 +3,7 @@ import {
   Button,
   DEFAULT_CHAIN_ID,
   type Domain,
+  adminRoutes,
   StatusBadge,
   Surface,
   formatDateTime,
@@ -14,7 +15,11 @@ import { RiEditLine, RiFileListLine, RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { AdminCard } from "@/components/AdminCard";
-import { PageHeader } from "@/components/Layout/PageHeader";
+import {
+  CanvasRouteContent,
+  CanvasRouteFrame,
+  CanvasRouteHeader,
+} from "@/components/Layout/CanvasRouteFrame";
 
 interface ActionDetailMediaTileProps {
   src?: string;
@@ -75,18 +80,19 @@ export default function ActionDetail() {
 
   if (isLoading) {
     return (
-      <div className="pb-6">
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 sm:px-6">
-          <PageHeader
-            title={formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
-            description={formatMessage({
-              id: "cockpit.actions.detailDescription",
-              defaultMessage:
-                "Review lifecycle details and the submission requirements for this action.",
-            })}
-            variant="canvas"
-            sticky
-          />
+      <CanvasRouteFrame>
+        <CanvasRouteHeader
+          maxWidthClassName="max-w-[1200px]"
+          title={formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
+          description={formatMessage({
+            id: "cockpit.actions.detailDescription",
+            defaultMessage:
+              "Review lifecycle details and the submission requirements for this action.",
+          })}
+          variant="canvas"
+          sticky
+        />
+        <CanvasRouteContent maxWidthClassName="max-w-[1200px]" className="mt-4">
           <div className="space-y-4" role="status" aria-live="polite">
             <span className="sr-only">{formatMessage({ id: "app.actions.loading" })}</span>
             <div className="h-28 rounded-[1.4rem] skeleton-shimmer" />
@@ -95,37 +101,38 @@ export default function ActionDetail() {
               <div className="h-80 rounded-[1.4rem] skeleton-shimmer" />
             </div>
           </div>
-        </div>
-      </div>
+        </CanvasRouteContent>
+      </CanvasRouteFrame>
     );
   }
 
   if (!action) {
     return (
-      <div className="pb-6">
-        <div className="mx-auto flex w-full max-w-[960px] flex-col gap-4 px-4 sm:px-6">
-          <PageHeader
-            title={formatMessage({ id: "app.actions.notFound" })}
-            description={formatMessage({
-              id: "cockpit.actions.detailDescription",
-              defaultMessage:
-                "Review lifecycle details and the submission requirements for this action.",
-            })}
-            variant="canvas"
-            backLink={{
-              to: "/actions",
-              label: formatMessage({
-                id: "app.actions.backToActions",
-                defaultMessage: "Back to actions",
-              }),
-            }}
-            sticky
-          />
+      <CanvasRouteFrame>
+        <CanvasRouteHeader
+          maxWidthClassName="max-w-[960px]"
+          title={formatMessage({ id: "app.actions.notFound" })}
+          description={formatMessage({
+            id: "cockpit.actions.detailDescription",
+            defaultMessage:
+              "Review lifecycle details and the submission requirements for this action.",
+          })}
+          variant="canvas"
+          backLink={{
+            to: adminRoutes.actions(),
+            label: formatMessage({
+              id: "app.actions.backToActions",
+              defaultMessage: "Back to actions",
+            }),
+          }}
+          sticky
+        />
+        <CanvasRouteContent maxWidthClassName="max-w-[960px]" className="mt-4">
           <Surface elevation="raised" padding="default" className="text-center">
             <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
           </Surface>
-        </div>
-      </div>
+        </CanvasRouteContent>
+      </CanvasRouteFrame>
     );
   }
 
@@ -137,40 +144,41 @@ export default function ActionDetail() {
   });
 
   return (
-    <div className="pb-6">
-      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 sm:px-6">
-        <PageHeader
-          title={action.title}
-          description={action.description || formatMessage({ id: "admin.actions.noDescription" })}
-          variant="canvas"
-          backLink={{
-            to: "/actions",
-            label: formatMessage({
-              id: "app.actions.backToActions",
-              defaultMessage: "Back to actions",
-            }),
-          }}
-          metadata={
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge variant={getLifecycleVariant(lifecycle)}>{lifecycleLabel}</StatusBadge>
-              <span className="text-xs text-text-soft">
-                {formatMessage({ id: "cockpit.actions.lifecycle", defaultMessage: "Lifecycle" })}
-              </span>
-            </div>
-          }
-          actions={
-            canManageActions ? (
-              <Button size="sm" asChild>
-                <Link to={`/actions/${id}/edit`}>
-                  <RiEditLine className="h-4 w-4" />
-                  {formatMessage({ id: "app.actions.edit" })}
-                </Link>
-              </Button>
-            ) : undefined
-          }
-          sticky
-        />
+    <CanvasRouteFrame>
+      <CanvasRouteHeader
+        maxWidthClassName="max-w-[1200px]"
+        title={action.title}
+        description={action.description || formatMessage({ id: "admin.actions.noDescription" })}
+        variant="canvas"
+        backLink={{
+          to: adminRoutes.actions(),
+          label: formatMessage({
+            id: "app.actions.backToActions",
+            defaultMessage: "Back to actions",
+          }),
+        }}
+        metadata={
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge variant={getLifecycleVariant(lifecycle)}>{lifecycleLabel}</StatusBadge>
+            <span className="text-xs text-text-soft">
+              {formatMessage({ id: "cockpit.actions.lifecycle", defaultMessage: "Lifecycle" })}
+            </span>
+          </div>
+        }
+        actions={
+          canManageActions ? (
+            <Button size="sm" asChild>
+              <Link to={adminRoutes.actionEdit(id)}>
+                <RiEditLine className="h-4 w-4" />
+                {formatMessage({ id: "app.actions.edit" })}
+              </Link>
+            </Button>
+          ) : undefined
+        }
+        sticky
+      />
 
+      <CanvasRouteContent maxWidthClassName="max-w-[1200px]" className="mt-4">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
           <Surface elevation="raised" padding="default" className="space-y-6">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
@@ -324,7 +332,7 @@ export default function ActionDetail() {
             </Surface>
           </div>
         </div>
-      </div>
-    </div>
+      </CanvasRouteContent>
+    </CanvasRouteFrame>
   );
 }

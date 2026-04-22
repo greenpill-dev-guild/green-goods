@@ -1,13 +1,11 @@
 /**
  * Route Folding Tests
  *
- * RED phase — static file analysis verifying that routes have been
- * folded into canvas surfaces:
+ * Static file analysis verifying that routes have been folded into canvas surfaces:
  *   stable Hub/Garden/Community modes are path-based
  *   focused tasks stay namespaced under the owning surface
  *   no top-level legacy route families remain
  *
- * These tests WILL FAIL because route folding hasn't been implemented yet.
  * Pattern: readFileSync + string assertions (same as surface-classes.test.ts).
  */
 
@@ -17,9 +15,10 @@ import { describe, expect, it } from "vitest";
 
 const srcDir = resolve(__dirname, "../../");
 const routerPath = resolve(srcDir, "router.tsx");
+const routeViewsPath = resolve(srcDir, "routes/views.tsx");
 const workViewPath = resolve(srcDir, "views/Hub/index.tsx");
 const hubSheetDescriptorPath = resolve(srcDir, "views/Hub/components/HubSheetDescriptor.tsx");
-const hubUtilsPath = resolve(srcDir, "views/Hub/hub.utils.ts");
+const sheetContentIdsPath = resolve(srcDir, "routes/sheetContentIds.ts");
 const communityViewPath = resolve(srcDir, "views/Community/index.tsx");
 const profileViewPath = resolve(srcDir, "views/Profile/index.tsx");
 const sharedAdminRoutesPath = resolve(srcDir, "../../shared/src/utils/navigation/admin-routes.ts");
@@ -52,9 +51,9 @@ describe("route folding", () => {
   });
 
   it("Hub deep links resolve through the same Work controller", () => {
-    const router = readSource(routerPath);
+    const routeViews = readSource(routeViewsPath);
     const hubRouteBlock =
-      router.match(/path:\s*"hub"[\s\S]*?(?=\n\s*\{\s*path:\s*"garden")/)?.[0] ?? "";
+      routeViews.match(/path:\s*"hub"[\s\S]*?(?=\n\s*\{\s*path:\s*"garden")/)?.[0] ?? "";
 
     expect(hubRouteBlock).toContain('path: "work"');
     expect(hubRouteBlock).toContain('path: ":workId"');
@@ -62,20 +61,21 @@ describe("route folding", () => {
     expect(hubRouteBlock).toContain('path: "assess"');
     expect(hubRouteBlock).toContain('path: "certify"');
     expect(hubRouteBlock).toContain('path: "history"');
-    expect(hubRouteBlock.match(/import\("@\/views\/Hub"\)/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(routeViews).toContain('const hubView = lazyView(() => import("@/views/Hub"));');
+    expect(hubRouteBlock.match(/lazy:\s*hubView/g)?.length).toBeGreaterThanOrEqual(5);
     expect(hubRouteBlock).not.toMatch(/WorkDetail/);
     expect(hubRouteBlock).not.toMatch(/SubmitWork/);
   });
 
   it("Work view owns the bounded Hub detail and submit panels", () => {
-    // Panels are composed in the Hub sheet descriptor; content-id constants live in hub.utils.
+    // Panels are composed in the Hub sheet descriptor; content-id constants live with route helpers.
     const hubSheetDescriptor = readSource(hubSheetDescriptorPath);
-    const hubUtils = readSource(hubUtilsPath);
+    const sheetContentIds = readSource(sheetContentIdsPath);
 
     expect(hubSheetDescriptor).toContain("WorkDetailPanel");
     expect(hubSheetDescriptor).toContain("SubmitWorkPanel");
-    expect(hubUtils).toContain("hub:submit-work");
-    expect(hubUtils).toContain("hub:work-detail:");
+    expect(sheetContentIds).toContain("hub:submit-work");
+    expect(sheetContentIds).toContain("hub:work-detail:");
   });
 
   it("Hub canonical builders preserve only garden, sort, and item context", () => {
@@ -115,41 +115,43 @@ describe("route folding", () => {
   });
 
   it("router exposes strategies only as a /community nested route", () => {
-    const router = readSource(routerPath);
+    const routeViews = readSource(routeViewsPath);
 
     // Strategy display belongs to Community/Governance.
-    expect(router).toMatch(/path:\s*["']community["']/);
-    expect(router).toMatch(/path:\s*["']governance["']/);
-    expect(router).toMatch(/path:\s*["']strategies["']/);
-    expect(router).not.toMatch(/path:\s*["']gardens["']/);
+    expect(routeViews).toMatch(/path:\s*["']community["']/);
+    expect(routeViews).toMatch(/path:\s*["']governance["']/);
+    expect(routeViews).toMatch(/path:\s*["']strategies["']/);
+    expect(routeViews).not.toMatch(/path:\s*["']gardens["']/);
   });
 
   it("Garden and Community task routes resolve through their owning surface controllers", () => {
-    const router = readSource(routerPath);
+    const routeViews = readSource(routeViewsPath);
     const gardenBlock =
-      router.match(/path:\s*"garden"[\s\S]*?(?=\n\s*\{\s*path:\s*"community")/)?.[0] ?? "";
+      routeViews.match(/path:\s*"garden"[\s\S]*?(?=\n\s*\{\s*path:\s*"community")/)?.[0] ?? "";
     const communityBlock =
-      router.match(/path:\s*"community"[\s\S]*?(?=\n\s*\/\/ ── Actions canvas surface)/)?.[0] ?? "";
+      routeViews.match(/path:\s*"community"[\s\S]*?(?=\n\s*\{\s*path:\s*"actions")/)?.[0] ?? "";
 
     expect(gardenBlock).toContain('path: "hypercerts/:hypercertId"');
-    expect(gardenBlock).toContain('import("@/views/Garden")');
+    expect(routeViews).toContain('const gardenView = lazyView(() => import("@/views/Garden"));');
+    expect(gardenBlock).toContain("lazy: gardenView");
     expect(gardenBlock).not.toContain('import("@/views/Gardens/Garden/HypercertDetail")');
 
     expect(communityBlock).toContain('path: "vault"');
     expect(communityBlock).toContain('path: "strategies"');
     expect(communityBlock).toContain('path: "signal-pool/:poolType"');
-    expect(communityBlock.match(/import\("@\/views\/Community"\)/g)?.length).toBeGreaterThanOrEqual(
-      4
+    expect(routeViews).toContain(
+      'const communityView = lazyView(() => import("@/views/Community"));'
     );
+    expect(communityBlock.match(/lazy:\s*communityView/g)?.length).toBeGreaterThanOrEqual(4);
     expect(communityBlock).not.toContain('import("@/views/Gardens/Garden/Vault")');
     expect(communityBlock).not.toContain('import("@/views/Gardens/Garden/Strategies")');
     expect(communityBlock).not.toContain('import("@/views/Gardens/Garden/SignalPool")');
   });
 
   it("router exposes a /profile route for the mobile account workspace", () => {
-    const router = readSource(routerPath);
+    const routeViews = readSource(routeViewsPath);
 
-    const pathDefinitions = router.match(/path:\s*["']profile["']/g) ?? [];
+    const pathDefinitions = routeViews.match(/path:\s*["']profile["']/g) ?? [];
     expect(pathDefinitions.length).toBe(1);
   });
 

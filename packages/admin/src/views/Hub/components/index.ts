@@ -8,6 +8,7 @@ export { HubCertificationQueue } from "./HubCertificationQueue";
 export { HubHistoryInspector } from "./HubHistoryInspector";
 export { HubHistoryQueue } from "./HubHistoryQueue";
 export { HubSheetDescriptor } from "./HubSheetDescriptor";
+export { HubStageContent } from "./HubStageContent";
 export { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 export { HubWorkQueue } from "./HubWorkQueue";
 export { MediaEvidence } from "./MediaEvidence";

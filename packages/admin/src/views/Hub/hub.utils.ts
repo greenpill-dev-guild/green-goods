@@ -6,6 +6,7 @@ import {
   RiMedalLine,
 } from "@remixicon/react";
 import { adminRoutes, type useGardenDerivedState } from "@green-goods/shared";
+import { resolveAdminWorkspaceSectionRoute } from "@/routes/workspaceNavigation";
 
 // ============================================================================
 // Types
@@ -14,15 +15,24 @@ import { adminRoutes, type useGardenDerivedState } from "@green-goods/shared";
 export type HubPipelineStage = "work" | "assess" | "certify" | "history";
 export type SortDirection = "newest" | "oldest";
 export type ActivityEvent = ReturnType<typeof useGardenDerivedState>["activityEvents"][number];
+export {
+  CERTIFICATION_CONTENT_ID_PREFIX,
+  HISTORY_CONTENT_ID_PREFIX,
+  isRouteSheetContentId,
+  parseCertificationContentId,
+  parseHistoryContentId,
+  parseWorkDetailContentId,
+  SUBMIT_WORK_CONTENT_ID,
+  toCertificationContentId,
+  toHistoryContentId,
+  toWorkDetailContentId,
+  WORK_DETAIL_CONTENT_ID_PREFIX,
+} from "@/routes/sheetContentIds";
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-export const WORK_DETAIL_CONTENT_ID_PREFIX = "hub:work-detail:";
-export const CERTIFICATION_CONTENT_ID_PREFIX = "hub:certify:";
-export const HISTORY_CONTENT_ID_PREFIX = "hub:history:";
-export const SUBMIT_WORK_CONTENT_ID = "hub:submit-work";
 export const HUB_STAGE_RAIL_ID = "hub-stage";
 
 export const HUB_META_PILL_CLASSNAME =
@@ -45,41 +55,6 @@ export function resolvePipelineStageFromPath(pathname: string): HubPipelineStage
 
 export function parseSortDirection(value: string | null): SortDirection {
   return value === "oldest" ? "oldest" : "newest";
-}
-
-export function toWorkDetailContentId(workId: string) {
-  return `${WORK_DETAIL_CONTENT_ID_PREFIX}${workId}`;
-}
-
-export function parseWorkDetailContentId(contentId: string | null) {
-  if (!contentId?.startsWith(WORK_DETAIL_CONTENT_ID_PREFIX)) return null;
-  return contentId.slice(WORK_DETAIL_CONTENT_ID_PREFIX.length) || null;
-}
-
-export function toCertificationContentId(assessmentId: string) {
-  return `${CERTIFICATION_CONTENT_ID_PREFIX}${assessmentId}`;
-}
-
-export function parseCertificationContentId(contentId: string | null) {
-  if (!contentId?.startsWith(CERTIFICATION_CONTENT_ID_PREFIX)) return null;
-  return contentId.slice(CERTIFICATION_CONTENT_ID_PREFIX.length) || null;
-}
-
-export function toHistoryContentId(eventId: string) {
-  return `${HISTORY_CONTENT_ID_PREFIX}${eventId}`;
-}
-
-export function parseHistoryContentId(contentId: string | null) {
-  if (!contentId?.startsWith(HISTORY_CONTENT_ID_PREFIX)) return null;
-  return contentId.slice(HISTORY_CONTENT_ID_PREFIX.length) || null;
-}
-
-export function isRouteSheetContentId(contentId: string | null) {
-  return (
-    contentId === SUBMIT_WORK_CONTENT_ID ||
-    Boolean(parseWorkDetailContentId(contentId)) ||
-    Boolean(parseCertificationContentId(contentId))
-  );
 }
 
 // ============================================================================
@@ -192,24 +167,12 @@ export function resolveOpenSectionRoute(
   sortDirection: SortDirection,
   itemId?: string
 ): string {
-  if (tab === "work") {
-    return section === "decisions"
-      ? adminRoutes.hubHistory({ sort: sortDirection, item: itemId })
-      : adminRoutes.hubWork({ sort: sortDirection, item: itemId });
-  }
-
-  if (tab === "impact" || tab === "overview") {
-    return tab === "impact"
-      ? adminRoutes.gardenImpact({ item: itemId, section })
-      : adminRoutes.gardenOverview({ item: itemId, section });
-  }
-
-  if (section === "members") return adminRoutes.communityMembers({ item: itemId });
-  if (section === "cookie-jars" || section === "payouts")
-    return adminRoutes.communityPayouts({ item: itemId });
-  if (section === "pools" || section === "governance")
-    return adminRoutes.communityGovernance({ item: itemId });
-  return adminRoutes.communityTreasury({ item: itemId });
+  return resolveAdminWorkspaceSectionRoute({
+    tab,
+    section,
+    itemId,
+    hubSort: sortDirection,
+  });
 }
 
 // ============================================================================

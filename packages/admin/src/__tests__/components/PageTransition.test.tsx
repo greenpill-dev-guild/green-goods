@@ -74,6 +74,7 @@ function renderPageTransition(initialPath = "/page-a", navTargets = ["/page-a", 
         <Route element={<PageTransition />}>
           <Route path="/page-a" element={<PageA />} />
           <Route path="/page-b" element={<PageB />} />
+          <Route path="/hub/work/:workId" element={<PageB />} />
         </Route>
       </Routes>
     </MemoryRouter>
@@ -181,10 +182,10 @@ describe("PageTransition", () => {
     expect(mockOrchestrator.openSheet).not.toHaveBeenCalled();
   });
 
-  it("does not restore work detail sheets unless the target URL still carries an item param", async () => {
+  it("does not restore Hub detail sheets unless the target URL still owns the sheet", async () => {
     mockOrchestrator.onNavigateArrive.mockReturnValue({
-      sheetOpen: "right",
-      sheetContentId: "work-detail:item-7",
+      sheetOpen: "left",
+      sheetContentId: "hub:work-detail:item-7",
       formState: {},
       scrollPosition: 0,
     });
@@ -200,21 +201,21 @@ describe("PageTransition", () => {
     expect(mockOrchestrator.openSheet).not.toHaveBeenCalled();
   });
 
-  it("restores work detail sheets when the target URL still has an item param", async () => {
+  it("restores Hub detail sheets when the target URL still owns the sheet", async () => {
     mockOrchestrator.onNavigateArrive.mockReturnValue({
-      sheetOpen: "right",
-      sheetContentId: "work-detail:item-7",
+      sheetOpen: "left",
+      sheetContentId: "hub:work-detail:item-7",
       formState: {},
       scrollPosition: 0,
     });
 
-    renderPageTransition("/page-a", ["/page-a", "/page-b?item=item-7"]);
+    renderPageTransition("/page-a", ["/page-a", "/hub/work/item-7"]);
     const user = userEvent.setup();
 
-    await user.click(screen.getByTestId("nav-/page-b?item=item-7"));
+    await user.click(screen.getByTestId("nav-/hub/work/item-7"));
 
     await waitFor(() => {
-      expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("right", "work-detail:item-7");
+      expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("left", "hub:work-detail:item-7");
     });
   });
 
