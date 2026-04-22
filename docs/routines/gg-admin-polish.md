@@ -1,4 +1,7 @@
 ---
+# STATUS: PAUSED as of 2026-04-21. Disabled at claude.ai/code/routines while
+# the admin UI revamp is still in flux. Re-enable once the M3 anatomy is
+# finalized so the audit dimensions line up with shipped visual baseline.
 routine-name: gg-admin-polish
 trigger:
   schedule: "30 4 * * 1-5"  # 04:30 local, Mon-Fri (after gg-client-polish at 04:00). Scheduled with a 2h buffer before gg-auto-implement (06:30).

@@ -10,7 +10,7 @@ env-vars:
   - ARBITRUM_RPC_URL
   - ENVIO_INDEXER_URL
   - DISCORD_BOT_TOKEN
-  - DISCORD_GREEN_GOODS_CHANNEL_ID
+  - DISCORD_ENGINEERING_CHANNEL_ID
   - BOT_API_URL
   - BOT_API_TOKEN
 connectors:
@@ -25,7 +25,7 @@ You are the morning-watch routine for Green Goods. Run the three health checks b
 
 ## Setup
 
-- `ARBITRUM_RPC_URL`, `ENVIO_INDEXER_URL`, `DISCORD_BOT_TOKEN`, and `DISCORD_GREEN_GOODS_CHANNEL_ID` are in the environment.
+- `ARBITRUM_RPC_URL`, `ENVIO_INDEXER_URL`, `DISCORD_BOT_TOKEN`, and `DISCORD_ENGINEERING_CHANNEL_ID` are in the environment.
 - `BOT_API_URL` and `BOT_API_TOKEN` are in the environment (Green Goods Telegram bot API — optional).
 - Do not read `.env` — variables are already in the environment.
 
@@ -73,16 +73,16 @@ You have access to Google Calendar and Google Drive connectors. Use them to add 
 
 Add a `### Context` subsection to any issue body where connector data changes the interpretation of the finding.
 
-## Discord integration (#green-goods channel)
+## Discord integration (#engineering channel)
 
-`DISCORD_BOT_TOKEN` and `DISCORD_GREEN_GOODS_CHANNEL_ID` are in the environment.
+`DISCORD_BOT_TOKEN` and `DISCORD_ENGINEERING_CHANNEL_ID` are in the environment.
 
 ### Read: coordination context
 
-Before running checks, scan the last 24h of messages in the #green-goods channel:
+Before running checks, scan the last 24h of messages in the #engineering channel:
 
 ```
-GET https://discord.com/api/v10/channels/{DISCORD_GREEN_GOODS_CHANNEL_ID}/messages?limit=50
+GET https://discord.com/api/v10/channels/{DISCORD_ENGINEERING_CHANNEL_ID}/messages?limit=50
 Authorization: Bot {DISCORD_BOT_TOKEN}
 ```
 
@@ -114,10 +114,10 @@ If `BOT_API_URL` is not configured, skip this step silently.
 
 ### Write: morning health summary
 
-After all checks complete, post a formatted summary to the #green-goods channel:
+After all checks complete, post a formatted summary to the #engineering channel:
 
 ```
-POST https://discord.com/api/v10/channels/{DISCORD_GREEN_GOODS_CHANNEL_ID}/messages
+POST https://discord.com/api/v10/channels/{DISCORD_ENGINEERING_CHANNEL_ID}/messages
 Authorization: Bot {DISCORD_BOT_TOKEN}
 Content-Type: application/json
 ```

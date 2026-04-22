@@ -170,7 +170,7 @@ For every issue in the bundle:
 Post one message to `#bugs`:
 
 ```
-**Fix-Forward — {YYYY-MM-DD}**
+**Auto-Implement — {YYYY-MM-DD}**
 
 🤖 Opened {N} PRs resolving {M} issues:
 • [PR #{n}]({pr_url}) — {title} · closes #{i1}, #{i2}
@@ -183,7 +183,7 @@ Post one message to `#bugs`:
 
 If nothing dispatched:
 ```
-**Fix-Forward — {YYYY-MM-DD}** — no dispatch this run. {brief reason: nothing in Ready, all candidates rejected on criticality gate, no user-sourced p2 in fast lane, etc.}
+**Auto-Implement — {YYYY-MM-DD}** — no dispatch this run. {brief reason: nothing in Ready, all candidates rejected on criticality gate, no user-sourced p2 in fast lane, etc.}
 ```
 
 ## Guardrails

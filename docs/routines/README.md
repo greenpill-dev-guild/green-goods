@@ -5,10 +5,11 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 ## Files
 
 - `gg-pr-review.md` — GitHub-triggered inline PR review (replaces `claude-code-review.yml`)
-- `gg-morning-watch.md` — Scheduled weekday operational health checks; writes GitHub Issues + Discord #green-goods health summary
+- `gg-morning-watch.md` — Scheduled weekday operational health checks; writes GitHub Issues + Discord #engineering health summary
 - `gg-client-polish.md` — Daily client PWA audit with rotating focus + bi-directional Discord; writes GitHub Issues + Discord messages
-- `gg-admin-polish.md` — Daily admin workspace audit with rotating focus (M3 compliance, architecture, testing, UX, quality); writes GitHub Issues + Discord #design summary
+- `gg-admin-polish.md` — **PAUSED (2026-04-21)** while admin UI revamp is in flux. Daily admin workspace audit with rotating focus (M3 compliance, architecture, testing, UX, quality); writes GitHub Issues + Discord summary. Re-enable once revamp ships.
 - `gg-auto-implement.md` — Weekday implementer; picks human-approved issues off the project boards (plus user-reported p2 client bugs in a fast lane), bundles related fixes, and opens PRs against `develop`. Handles both client AND admin packages.
+- `gg-hotfix.md` — Every 4h during waking hours, Mon-Fri. Narrow hotfix path: takes user-reported p2 bugs moved to `Ready` on the Bug Board, opens solo PRs against `main` with full-suite validation. No fast-lane, no bundling, no critical paths. Complements `gg-auto-implement` (which targets `develop`).
 - `gg-dream-on.md` — Nightly cross-project exploration; reads Discord #research; session-only output
 - `gg-data-analyst.md` — Weekly Dune + PostHog maintenance; writes PR to develop + issues + Discord #funding highlights
 - `gg-grant-scout.md` — Weekly grant opportunity scouting + proposal drafting for Green Goods & Coop; writes Drive docs + Discord #funding + GitHub Issues
@@ -90,7 +91,7 @@ Routines apply **both** a category label (for dedupe) and `automated/claude` (fo
 
 ## Project board coordination
 
-`gg-client-polish` and `gg-admin-polish` (producers) and `gg-auto-implement` (implementer) coordinate through two GitHub Projects under `greenpill-dev-guild`:
+`gg-client-polish` and `gg-admin-polish` (producers) and `gg-auto-implement` + `gg-hotfix` (implementers) coordinate through two GitHub Projects under `greenpill-dev-guild`:
 
 | Project | Purpose | Starting column | Used by |
 |---|---|---|---|
@@ -104,14 +105,18 @@ Both boards share the lane structure `{starting} → Ready → In progress → I
 1. **Producer creates + attaches** — `gg-client-polish` or `gg-admin-polish` creates an issue, applies labels, attaches it to the matching board in the starting column (`Backlog` or `To triage`). Admin polish always goes to `Backlog` on #4 (no user-reported admin bugs, no fast lane).
 2. **Human triages (the only manual step)** — move items you want auto-fixed to `Ready`. That movement IS the approval signal; no comment, no label, just the column change.
 3. **Fast-lane bypass** — `gg-auto-implement` auto-dispatches issues carrying `polish + source:discord` or `polish + source:telegram` at priority p2 straight from `To triage`, because being reported by a user is already a triage act. All other issues require the `Ready` column.
-4. **Implementer dispatches + implements + opens PR** — `gg-auto-implement` moves the issue to `In progress`, opens a bundled PR against `develop`, applies `agent:assigned:claude`. GitHub's default project automation flips to `In review` when the PR opens.
+4. **Implementer dispatches + implements + opens PR** — one of two paths:
+   - **`gg-auto-implement` (morning)** — picks audit findings + user-reported p2 (fast lane) from `Ready`/`To triage`, bundles related fixes, opens PRs against `develop`.
+   - **`gg-hotfix` (every 4h during the day)** — picks user-reported p2 from `Ready` ONLY (no fast lane), solo PRs against `main`, full-suite validation. For bugs affecting live gardeners that shouldn't wait for the next develop→release cycle.
+
+   Both apply `agent:assigned:claude` and move Status to `In progress`. GitHub's default project automation flips to `In review` when the linked PR opens.
 5. **Human reviews the PR** — merge, request changes, or close. The PR is where the user's other focal surface lives.
 6. **Done** — issue auto-closes on merge via `Closes #N` in the PR body; board moves to `Done`.
 
 ### Never auto-dispatched
 
-- p1 from any source — skipped silently by gg-auto-implement. Needs human ownership.
-- Anything touching critical paths from the CLAUDE.md criticality matrix (contracts, providers, job-queue, auth/work/vault/blockchain hooks) — rejected up-front by gg-auto-implement's criticality gate.
+- p1 from any source — skipped silently by both implementers (gg-auto-implement + gg-hotfix). Needs human ownership.
+- Anything touching critical paths from the CLAUDE.md criticality matrix (contracts, providers, job-queue, auth/work/vault/blockchain hooks) — rejected up-front by both implementers' criticality gates.
 - Any issue with an existing linked PR (human- or agent-authored) — no dispatch racing.
 
 ### Re-dispatching
