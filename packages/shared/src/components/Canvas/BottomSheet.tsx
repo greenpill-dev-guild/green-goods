@@ -38,6 +38,8 @@ export function BottomSheet({
   container,
 }: BottomSheetProps) {
   const isBounded = container !== undefined && container !== null;
+  const sheetState = open ? "open" : "closed";
+  const sheetBoundary = isBounded ? "bounded" : "viewport";
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
 
@@ -142,6 +144,10 @@ export function BottomSheet({
       style={{
         zIndex: isBounded ? 45 : 50,
       }}
+      data-component="BottomSheet"
+      data-slot="dialog"
+      data-state={sheetState}
+      data-boundary={sheetBoundary}
       data-testid="bottom-sheet-dialog"
     >
       {/* Custom overlay — static blur, opacity fade only */}
@@ -149,11 +155,14 @@ export function BottomSheet({
         className={cn("absolute inset-0", isBounded ? "bg-transparent" : "")}
         style={{
           opacity: isBounded ? 0 : springs.overlay,
-          backgroundColor: isBounded ? undefined : "rgba(10, 10, 10, 0.18)",
+          backgroundColor: isBounded ? undefined : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
           backdropFilter: isBounded ? undefined : "blur(2px)",
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
         onClick={handleOverlayClick}
+        data-component="BottomSheet"
+        data-slot="overlay"
+        data-state={sheetState}
         data-testid="bottom-sheet-overlay"
       />
 
@@ -168,15 +177,21 @@ export function BottomSheet({
         style={{
           maxHeight: isBounded ? `${maxHeight}%` : `${maxHeight}dvh`,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
-          boxShadow: "var(--elevation-4)",
+          boxShadow: "var(--m3-elevation-4, var(--elevation-4))",
           transform: springs.y.to((y) => `translateY(${y}%)`),
           zIndex: isBounded ? 46 : 51,
         }}
+        data-component="BottomSheet"
+        data-slot="surface"
+        data-state={sheetState}
+        data-boundary={sheetBoundary}
         data-testid="bottom-sheet"
       >
         {/* Drag handle */}
         <div
           className="flex cursor-grab touch-none justify-center pb-1 pt-3 active:cursor-grabbing"
+          data-slot="drag-handle"
+          data-state={sheetState}
           data-testid="bottom-sheet-drag-handle"
           {...bind()}
         >
@@ -185,8 +200,13 @@ export function BottomSheet({
 
         {/* Header */}
         {title ? (
-          <div className="flex items-center justify-between border-b border-stroke-soft/80 px-4 pb-3">
-            <h2 className="text-lg font-semibold text-text-strong">{title}</h2>
+          <div
+            className="flex items-center justify-between border-b border-stroke-soft/80 px-4 pb-3"
+            data-slot="header"
+          >
+            <h2 className="text-lg font-semibold text-text-strong" data-slot="title">
+              {title}
+            </h2>
             <button
               type="button"
               onClick={onClose}
@@ -196,6 +216,7 @@ export function BottomSheet({
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
               )}
               aria-label={closeLabel}
+              data-slot="close-button"
               data-testid="bottom-sheet-close"
             >
               <RiCloseLine className="h-5 w-5" />
@@ -206,7 +227,7 @@ export function BottomSheet({
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" data-slot="body">
           <SheetErrorBoundary onClose={onClose}>{children}</SheetErrorBoundary>
         </div>
       </animated.div>

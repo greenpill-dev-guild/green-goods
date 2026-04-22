@@ -165,6 +165,24 @@ describe.each(sheetCases)("$name", (sheet) => {
     expect(screen.getByText("Sheet content")).toBeInTheDocument();
   });
 
+  it("exposes semantic component, slot, and open-state hooks", () => {
+    renderWithIntl(sheet.renderSheet(vi.fn(), "Work Detail"));
+
+    const dialog = screen.getByTestId(sheet.dialogTestId);
+    const overlay = screen.getByTestId(sheet.overlayTestId);
+    const surface =
+      sheet.name === "BottomSheet"
+        ? screen.getByTestId("bottom-sheet")
+        : screen.getByTestId(sheet.dragTargetTestId);
+
+    expect(dialog).toHaveAttribute("data-component", sheet.name);
+    expect(dialog).toHaveAttribute("data-slot", "dialog");
+    expect(dialog).toHaveAttribute("data-state", "open");
+    expect(overlay).toHaveAttribute("data-slot", "overlay");
+    expect(surface).toHaveAttribute("data-slot", "surface");
+    expect(surface).toHaveAttribute("data-state", "open");
+  });
+
   it("fires onClose when the overlay is clicked", () => {
     const onClose = vi.fn();
     renderWithIntl(sheet.renderSheet(onClose, "Work Detail"));

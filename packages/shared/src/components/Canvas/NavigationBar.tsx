@@ -65,13 +65,17 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
         mobile
           ? "min-h-[3.75rem] min-w-0 flex-1 flex-col rounded-[1.15rem] px-1.5 py-2"
           : "min-w-[4.25rem] rounded-[1.1rem] px-3 py-2",
-        "transition-all duration-250",
+        "transition-all duration-[var(--spring-effects-duration,250ms)]",
         "motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))]",
         isActive
           ? "bg-[rgb(var(--ws-primary-container,var(--blue-100)))] text-[rgb(var(--ws-on-primary-container,var(--blue-900)))] shadow-[inset_0_0_0_1px_rgb(var(--workspace-tint,59_130_246)/0.18),0_16px_30px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
           : "text-text-sub hover:bg-white/60 hover:text-text-strong"
       )}
+      data-component="NavigationBar"
+      data-slot="item"
+      data-state={isActive ? "active" : "inactive"}
+      data-item-id={slot.id}
     >
       <span
         className={cn(
@@ -81,6 +85,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
             ? "bg-white/78 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.58),0_6px_16px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
             : "bg-black/3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)] group-hover:bg-white/72"
         )}
+        data-slot="icon"
       >
         <Icon className="h-5 w-5" />
       </span>
@@ -90,6 +95,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
           mobile && "truncate",
           isActive ? "text-[rgb(var(--ws-on-primary-container,var(--blue-900)))]" : "text-text-soft"
         )}
+        data-slot="label"
       >
         {label}
       </span>
@@ -133,7 +139,13 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   );
 
   return (
-    <div className={cn("group/fab relative flex items-center", !mobileFloating && "ml-auto")}>
+    <div
+      className={cn("group/fab relative flex items-center", !mobileFloating && "ml-auto")}
+      data-component="NavigationBar"
+      data-slot={mobileFloating ? "mobile-fab" : "desktop-fab"}
+      data-state={speedDialOpen ? "open" : "closed"}
+      data-mode={isSingleAction ? "single-action" : "speed-dial"}
+    >
       {/* Tooltip — shows on hover for single-action mode */}
       {isSingleAction && (
         <div
@@ -143,13 +155,18 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
             "opacity-0 transition-opacity group-hover/fab:opacity-100",
             "motion-reduce:transition-none"
           )}
+          data-slot="tooltip"
         >
           {floatingActionLabel}
         </div>
       )}
       {/* Speed dial items — animate upward from FAB */}
       {speedDialOpen && !isSingleAction && (
-        <div className="absolute bottom-full right-0 mb-2 flex flex-col-reverse items-end gap-2">
+        <div
+          className="absolute bottom-full right-0 mb-2 flex flex-col-reverse items-end gap-2"
+          data-slot="speed-dial"
+          data-state="open"
+        >
           {config.actions.map((action, index) => {
             const ActionIcon = action.icon;
             return (
@@ -167,9 +184,11 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   "motion-reduce:animate-none"
                 )}
                 style={{
-                  animation: `speed-dial-in 200ms var(--spring-spatial-easing, cubic-bezier(0.16, 1, 0.3, 1)) ${index * 50}ms both`,
+                  animation: `speed-dial-in var(--spring-spatial-fast) ${index * 50}ms both`,
                 }}
                 aria-label={formatMessage({ id: action.labelId })}
+                data-slot="speed-dial-item"
+                data-item-id={action.id}
               >
                 <ActionIcon className="h-4 w-4" />
                 <span>{formatMessage({ id: action.labelId })}</span>
@@ -185,6 +204,8 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         onClick={handleClick}
         aria-label={config.label}
         aria-expanded={speedDialOpen || undefined}
+        data-slot="fab-button"
+        data-state={speedDialOpen ? "open" : "closed"}
         className={cn(
           "flex cursor-pointer items-center justify-center rounded-full border border-white/35",
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
@@ -199,7 +220,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       >
         <FabIcon
           className={cn(
-            "h-5 w-5 transition-transform duration-200",
+            "h-5 w-5 transition-transform duration-[var(--spring-effects-fast-duration,150ms)]",
             "motion-reduce:transition-none",
             speedDialOpen && "rotate-45"
           )}
@@ -217,6 +238,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           onClick={() => setSpeedDialOpen(false)}
           aria-hidden="true"
           tabIndex={-1}
+          data-slot="speed-dial-backdrop"
         />
       )}
     </div>
@@ -276,7 +298,11 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
   return (
     <>
       {!isDesktop && fab && !hideMobileChrome ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-nav px-4 min-[600px]:hidden">
+        <div
+          className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-nav px-4 min-[600px]:hidden"
+          data-component="NavigationBar"
+          data-slot="mobile-fab-layer"
+        >
           <div className="mx-auto flex w-full max-w-[1400px] justify-end">
             <div className="pointer-events-auto">
               <FabButton config={fab} mobileFloating />
@@ -288,6 +314,9 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
       {isDesktop && desktopSlots.length > 1 && (
         <nav
           aria-label={navLabel}
+          data-component="NavigationBar"
+          data-slot="desktop"
+          data-state="visible"
           className={cn(
             // Centering without transform: left:0 + right:0 + mx-auto on a w-max
             // child produces horizontal centering that survives entrance animations
@@ -322,6 +351,8 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
             "animate-[nav-bar-enter_var(--spring-spatial)_both]",
             "motion-reduce:animate-none"
           )}
+          data-component="NavigationBar"
+          data-slot="desktop-fab-layer"
         >
           <FabButton config={fab} />
         </div>
@@ -330,6 +361,9 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
       {!isDesktop && mobileSlots.length > 1 && !hideMobileChrome && (
         <nav
           aria-label={navLabel}
+          data-component="NavigationBar"
+          data-slot="mobile"
+          data-state="visible"
           className={cn(
             "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-2xl px-2 py-2",
             "glass-ground",

@@ -169,6 +169,19 @@ describe("NavigationBar", () => {
     expect(activeButtons).toHaveLength(1);
   });
 
+  it("exposes semantic nav and item state hooks", () => {
+    render(<NavigationBar slots={createSlots()} activePath="/actions" onNavigate={() => {}} />);
+
+    const nav = screen.getByRole("navigation");
+    const activeButton = screen.getByRole("button", { current: "page" });
+
+    expect(nav).toHaveAttribute("data-component", "NavigationBar");
+    expect(nav).toHaveAttribute("data-slot", "desktop");
+    expect(activeButton).toHaveAttribute("data-slot", "item");
+    expect(activeButton).toHaveAttribute("data-state", "active");
+    expect(activeButton).toHaveAttribute("data-item-id", "actions");
+  });
+
   it("does not set aria-current on inactive slots", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 

@@ -54,6 +54,9 @@ export function GardenChip({
           "shadow-[var(--edge-rest),_var(--elevation-1)]",
           "text-label-lg font-medium text-text-main"
         )}
+        data-component="GardenChip"
+        data-slot="root"
+        data-state={selectedGarden ? "selected" : "empty"}
       >
         {selectedGarden ? (
           <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
@@ -87,6 +90,9 @@ export function GardenChip({
             "hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-3)]",
             "focus-visible:outline-none focus-visible:shadow-[var(--edge-focus),_var(--elevation-1)]"
           )}
+          data-component="GardenChip"
+          data-slot="trigger"
+          data-selection-state={selectedGarden ? "selected" : "all-gardens"}
         >
           {selectedGarden ? (
             <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
@@ -112,6 +118,8 @@ export function GardenChip({
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
             "motion-reduce:animate-none"
           )}
+          data-component="GardenChip"
+          data-slot="menu"
         >
           {/* All Gardens option */}
           <GardenDropdownItem
@@ -153,6 +161,8 @@ export function GardenChip({
                   "motion-reduce:transition-none",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
                 )}
+                data-component="GardenChip"
+                data-slot="create-action"
               >
                 <RiAddLine className="h-4 w-4" />
                 {formatMessage({ id: "cockpit.gardenChip.createGarden" })}
@@ -189,6 +199,9 @@ function GardenDropdownItem({ label, isSelected, onClick }: GardenDropdownItemPr
           ? "bg-primary-alpha-10 font-medium text-primary-dark"
           : "text-text-main hover:bg-bg-weak"
       )}
+      data-component="GardenChip"
+      data-slot="option"
+      data-state={isSelected ? "selected" : "unselected"}
     >
       <span className="truncate" title={label}>
         {label}

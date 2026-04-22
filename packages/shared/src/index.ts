@@ -226,6 +226,8 @@ export type {
   CreateActionFormData,
   CreateAssessmentForm,
   CreateAssessmentFormData,
+  AdminGardenWorkspaceOption,
+  AdminGardenWorkspaceSelection,
   // Garden hook types
   CreateGardenFormData,
   DebugModeState,
@@ -293,6 +295,11 @@ export type {
   CanvasSearchParamsResult,
   UseSheetOrchestratorReturn,
   TxErrorMessages,
+  FormWizardStepFields,
+  FormWizardTrigger,
+  FormWizardValidationStep,
+  UseFormWizardStepValidationOptions,
+  UseFormWizardStepValidationResult,
 } from "./hooks/index";
 export {
   assessmentFormSchema,
@@ -328,6 +335,7 @@ export {
   useActionOperations,
   useActions,
   useActionTranslation,
+  useAdminGardenWorkspaceSelection,
   useAddressInput,
   useAllocateHypercertSupport,
   useAllocateYield,
@@ -393,6 +401,7 @@ export {
   useEventListener,
   useFilteredActions,
   useFilteredGardens,
+  useFormWizardStepValidation,
   useGardenAssessments,
   useGardenCommunity,
   // Cookie jar hooks

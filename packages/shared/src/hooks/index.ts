@@ -221,6 +221,11 @@ export { useGardenDetailData } from "./garden/useGardenDetailData";
 export { useGardenDomains } from "./garden/useGardenDomains";
 export type { EligibleAdminGardensResult } from "./garden/useEligibleAdminGardens";
 export { useEligibleAdminGardens } from "./garden/useEligibleAdminGardens";
+export type {
+  AdminGardenWorkspaceOption,
+  AdminGardenWorkspaceSelection,
+} from "./garden/useAdminGardenWorkspaceSelection";
+export { useAdminGardenWorkspaceSelection } from "./garden/useAdminGardenWorkspaceSelection";
 export type { GardenDraft, UseGardenDraftResult } from "./garden/useGardenDraft";
 export { useGardenDraft } from "./garden/useGardenDraft";
 export type { GardenInvite } from "./garden/useGardenInvites";
@@ -376,6 +381,14 @@ export { useSafeMutation } from "./utils/useSafeMutation";
 export { useDelayedInvalidation, useProgressiveInvalidation, useTimeout } from "./utils/useTimeout";
 export type { TxErrorMessages } from "./utils/useTxErrorMessages";
 export { useTxErrorMessages } from "./utils/useTxErrorMessages";
+export type {
+  FormWizardStepFields,
+  FormWizardTrigger,
+  FormWizardValidationStep,
+  UseFormWizardStepValidationOptions,
+  UseFormWizardStepValidationResult,
+} from "./ui/useFormWizardStepValidation";
+export { useFormWizardStepValidation } from "./ui/useFormWizardStepValidation";
 export type { UseDepositFormResult } from "./vault/useDepositForm";
 export { useDepositForm } from "./vault/useDepositForm";
 // ============================================================================

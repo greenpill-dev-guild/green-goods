@@ -92,6 +92,8 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
   );
 
   const isMainSheetReceded = isReceded || activeOverlayIds.size > 0;
+  const mainSheetState = isMainSheetReceded ? "receded" : "resting";
+  const overlayState = activeOverlayIds.size > 0 ? "active" : "idle";
 
   const recessionSpring = useSpring({
     opacity: isMainSheetReceded ? 0.65 : 1,
@@ -108,9 +110,15 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
           justifySelf: "center",
           marginBottom: "1rem",
         }}
+        data-component="MainSheet"
+        data-slot="root"
+        data-state={mainSheetState}
         data-testid="main-sheet"
       >
-        <div className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]">
+        <div
+          className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]"
+          data-slot="frame"
+        >
           <animated.div
             className={cn(
               "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity]",
@@ -120,6 +128,9 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
               transform: recessionSpring.y.to((y) => `translateY(${y}px)`),
               opacity: recessionSpring.opacity,
             }}
+            data-component="MainSheet"
+            data-slot="surface"
+            data-state={mainSheetState}
             data-testid="main-sheet-content"
           >
             {children}
@@ -129,6 +140,9 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
         <div
           ref={handlePortalTargetRef}
           className="pointer-events-none absolute inset-0 z-raised overflow-hidden rounded-[1.25rem]"
+          data-component="MainSheet"
+          data-slot="overlay-root"
+          data-state={overlayState}
           data-testid="main-sheet-overlay-root"
         />
       </div>

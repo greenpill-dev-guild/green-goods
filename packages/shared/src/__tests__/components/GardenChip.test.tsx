@@ -49,6 +49,8 @@ describe("GardenChip", () => {
     render(<GardenChip gardens={[GARDEN_A]} selectedGarden={GARDEN_A} onSelectGarden={() => {}} />);
 
     expect(screen.getByText("Wildflower Meadow")).toBeTruthy();
+    const chip = screen.getByText("Wildflower Meadow").closest("[data-component='GardenChip']");
+    expect(chip).toHaveAttribute("data-state", "selected");
     // Should be a span, not a button
     expect(screen.queryByRole("button")).toBeNull();
   });
@@ -76,6 +78,8 @@ describe("GardenChip", () => {
     const trigger = screen.getByRole("button");
     expect(trigger).toBeTruthy();
     expect(trigger.textContent).toContain("Wildflower Meadow");
+    expect(trigger).toHaveAttribute("data-component", "GardenChip");
+    expect(trigger).toHaveAttribute("data-slot", "trigger");
   });
 
   it("shows 'All Gardens' when selectedGarden is null", () => {
@@ -105,6 +109,10 @@ describe("GardenChip", () => {
     expect(screen.getAllByText("Wildflower Meadow").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Urban Composting")).toBeTruthy();
     expect(screen.getByText("Create Garden")).toBeTruthy();
+    expect(screen.getByText("All Gardens").closest("button")).toHaveAttribute(
+      "data-slot",
+      "option"
+    );
   });
 
   it("calls onSelectGarden(null) when 'All Gardens' is clicked", async () => {

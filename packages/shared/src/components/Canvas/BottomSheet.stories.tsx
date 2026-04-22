@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { useState, type ComponentProps } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { BottomSheet } from "./BottomSheet";
 
 // ---------------------------------------------------------------------------
@@ -76,6 +77,11 @@ export const Default: Story = {
     title: "Work Detail",
     children: sampleContent,
   },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByTestId("bottom-sheet-close"));
+    await expect(args.onClose).toHaveBeenCalled();
+  },
 };
 
 /** Open bottom sheet without a title — only the drag handle is visible. */
@@ -85,6 +91,49 @@ export const NoTitle: Story = {
     onClose: fn(),
     children: sampleContent,
   },
+};
+
+export const Closed: Story = {
+  args: {
+    open: false,
+    onClose: fn(),
+    title: "Work Detail",
+    children: sampleContent,
+  },
+  render: (args) => (
+    <div className="p-6 text-sm text-text-sub">
+      BottomSheet is unmounted when closed.
+      <BottomSheet {...args}>{sampleContent}</BottomSheet>
+    </div>
+  ),
+};
+
+function BoundedBottomSheetStory(args: ComponentProps<typeof BottomSheet>) {
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
+  return (
+    <div
+      ref={setContainer}
+      data-workspace="hub"
+      className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
+    >
+      <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
+      <BottomSheet {...args} container={container}>
+        {sampleContent}
+      </BottomSheet>
+    </div>
+  );
+}
+
+export const BoundedCanvas: Story = {
+  args: {
+    open: true,
+    onClose: fn(),
+    title: "Work Detail",
+    children: sampleContent,
+    maxHeight: 70,
+  },
+  render: (args) => <BoundedBottomSheetStory {...args} />,
 };
 
 /** Agent state catalog for the mobile sheet anatomy. */

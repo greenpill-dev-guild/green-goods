@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { useState, type ComponentProps } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { RightSheet } from "./RightSheet";
 
 const sampleContent = (
@@ -58,7 +59,13 @@ const meta: Meta<typeof RightSheet> = {
 export default meta;
 type Story = StoryObj<typeof RightSheet>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByTestId("right-sheet-close"));
+    await expect(args.onClose).toHaveBeenCalled();
+  },
+};
 
 export const NoTitle: Story = {
   args: {
@@ -67,20 +74,35 @@ export const NoTitle: Story = {
   },
 };
 
-export const BoundedCanvas: Story = {
-  render: (args) => {
-    const container = document.getElementById("right-sheet-story-container");
-    return (
-      <div
-        id="right-sheet-story-container"
-        data-workspace="profile"
-        className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
-      >
-        <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
-        <RightSheet {...args} container={container}>
-          {sampleContent}
-        </RightSheet>
-      </div>
-    );
+export const Closed: Story = {
+  args: {
+    open: false,
   },
+  render: (args) => (
+    <div className="p-6 text-sm text-text-sub">
+      RightSheet is unmounted when closed.
+      <RightSheet {...args}>{sampleContent}</RightSheet>
+    </div>
+  ),
+};
+
+function BoundedRightSheetStory(args: ComponentProps<typeof RightSheet>) {
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
+  return (
+    <div
+      ref={setContainer}
+      data-workspace="profile"
+      className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
+    >
+      <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
+      <RightSheet {...args} container={container}>
+        {sampleContent}
+      </RightSheet>
+    </div>
+  );
+}
+
+export const BoundedCanvas: Story = {
+  render: (args) => <BoundedRightSheetStory {...args} />,
 };

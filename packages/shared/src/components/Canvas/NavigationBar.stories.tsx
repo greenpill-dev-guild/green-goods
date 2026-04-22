@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import {
   RiAddLine,
   RiClipboardLine,
@@ -103,6 +103,15 @@ export const Default: Story = {
     activePath: "/hub",
     onNavigate: fn(),
   },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("button", { name: /hub/i })).toHaveAttribute(
+      "data-state",
+      "active"
+    );
+    await userEvent.click(canvas.getByRole("button", { name: /garden/i }));
+    await expect(args.onNavigate).toHaveBeenCalledWith("/garden");
+  },
 };
 
 export const CommunityActive: Story = {
@@ -142,4 +151,33 @@ export const WithFab: Story = {
     onNavigate: fn(),
     fab: submitWorkFab,
   },
+};
+
+export const Mobile: Story = {
+  args: {
+    slots: primarySlots,
+    activePath: "/garden",
+    onNavigate: fn(),
+    fab: submitWorkFab,
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+};
+
+export const StateCatalog: Story = {
+  args: {
+    slots: primarySlots,
+    activePath: "/community",
+    onNavigate: fn(),
+    fab: submitWorkFab,
+  },
+  render: (args) => (
+    <div className="relative min-h-[420px] p-6">
+      <div className="max-w-sm rounded-lg bg-bg-soft p-4 text-sm text-text-sub shadow-[var(--edge-rest)]">
+        Desktop dock with Community active and a single-action FAB.
+      </div>
+      <NavigationBar {...args} />
+    </div>
+  ),
 };

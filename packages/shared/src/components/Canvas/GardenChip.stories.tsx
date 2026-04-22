@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { GardenChip } from "./GardenChip";
 
 // ---------------------------------------------------------------------------
@@ -82,6 +82,15 @@ export const MultiGarden: Story = {
     selectedGarden: multipleGardens[0],
     onSelectGarden: fn(),
     onCreateGarden: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const trigger = canvas.getByRole("button", { name: /garden alpha/i });
+    await expect(trigger).toHaveAttribute("data-component", "GardenChip");
+    await userEvent.click(trigger);
+    const menu = await within(document.body).findByText("Jardim Botafogo");
+    await userEvent.click(menu);
+    await expect(args.onSelectGarden).toHaveBeenCalledWith(multipleGardens[1]);
   },
 };
 

@@ -62,6 +62,22 @@ describe("MainSheet", () => {
     expect(screen.getByTestId("main-sheet").className).toContain("canvas-area-main");
   });
 
+  it("exposes design-readable slots and resting state", () => {
+    render(
+      <MainSheet isReceded={false}>
+        <div>Content</div>
+      </MainSheet>
+    );
+
+    expect(screen.getByTestId("main-sheet")).toHaveAttribute("data-component", "MainSheet");
+    expect(screen.getByTestId("main-sheet")).toHaveAttribute("data-state", "resting");
+    expect(screen.getByTestId("main-sheet-content")).toHaveAttribute("data-slot", "surface");
+    expect(screen.getByTestId("main-sheet-overlay-root")).toHaveAttribute(
+      "data-slot",
+      "overlay-root"
+    );
+  });
+
   it("recedes the main sheet content when a bounded overlay is active", async () => {
     render(
       <MainSheet isReceded={false}>

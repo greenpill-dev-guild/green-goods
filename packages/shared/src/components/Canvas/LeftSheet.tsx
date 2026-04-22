@@ -36,6 +36,8 @@ export function LeftSheet({
   container,
 }: LeftSheetProps) {
   const isBounded = container !== undefined && container !== null;
+  const sheetState = open ? "open" : "closed";
+  const sheetBoundary = isBounded ? "bounded" : "viewport";
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -142,6 +144,10 @@ export function LeftSheet({
       style={{
         zIndex: isBounded ? 45 : 50,
       }}
+      data-component="LeftSheet"
+      data-slot="dialog"
+      data-state={sheetState}
+      data-boundary={sheetBoundary}
       data-testid="left-sheet-dialog"
     >
       {description ? <p className="sr-only">{description}</p> : null}
@@ -151,11 +157,14 @@ export function LeftSheet({
         className={cn("absolute inset-0", isBounded ? "bg-transparent" : "")}
         style={{
           opacity: isBounded ? 0 : springs.overlay,
-          backgroundColor: isBounded ? undefined : "rgba(10, 10, 10, 0.18)",
+          backgroundColor: isBounded ? undefined : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
           backdropFilter: isBounded ? undefined : "blur(2px)",
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
         onClick={handleOverlayClick}
+        data-component="LeftSheet"
+        data-slot="overlay"
+        data-state={sheetState}
         data-testid="left-sheet-overlay"
       />
 
@@ -174,13 +183,22 @@ export function LeftSheet({
           transform: springs.x.to((x) => `translateX(${x}%)`),
           zIndex: isBounded ? 46 : 51,
         }}
+        data-component="LeftSheet"
+        data-slot="surface"
+        data-state={sheetState}
+        data-boundary={sheetBoundary}
         data-testid="left-sheet"
         {...bind()}
       >
         {/* Header — close button on left, title on right (mirrored from RightSheet) */}
         {title ? (
-          <div className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3 flex-row-reverse">
-            <h2 className="text-lg font-semibold text-text-strong">{title}</h2>
+          <div
+            className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3 flex-row-reverse"
+            data-slot="header"
+          >
+            <h2 className="text-lg font-semibold text-text-strong" data-slot="title">
+              {title}
+            </h2>
             <button
               type="button"
               onClick={onClose}
@@ -190,6 +208,7 @@ export function LeftSheet({
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
               )}
               aria-label={closeLabel}
+              data-slot="close-button"
               data-testid="left-sheet-close"
             >
               <RiCloseLine className="h-5 w-5" />
@@ -198,7 +217,7 @@ export function LeftSheet({
         ) : (
           <>
             <h2 className="sr-only">{closeLabel}</h2>
-            <div className="flex px-4 pt-3 justify-start">
+            <div className="flex px-4 pt-3 justify-start" data-slot="header">
               <button
                 type="button"
                 onClick={onClose}
@@ -208,6 +227,7 @@ export function LeftSheet({
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
                 )}
                 aria-label={closeLabel}
+                data-slot="close-button"
                 data-testid="left-sheet-close"
               >
                 <RiCloseLine className="h-5 w-5" />
@@ -217,7 +237,7 @@ export function LeftSheet({
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" data-slot="body">
           <SheetErrorBoundary onClose={onClose}>{children}</SheetErrorBoundary>
         </div>
       </animated.div>

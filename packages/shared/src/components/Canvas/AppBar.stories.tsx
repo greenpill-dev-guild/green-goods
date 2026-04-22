@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { withCanvasFrame } from "../../../.storybook/decorators";
 import { AppBar } from "./AppBar";
 import { GardenChip } from "./GardenChip";
@@ -88,6 +88,12 @@ export const WithSheetContext: Story = {
     onOpenNotifications: fn(),
     onOpenSettings: fn(),
     onOpenProfile: fn(),
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("banner")).toHaveAttribute("data-state", "sheet-context");
+    await userEvent.click(canvas.getByRole("button", { name: /back/i }));
+    await expect(args.sheetContext?.onBack).toHaveBeenCalled();
   },
 };
 

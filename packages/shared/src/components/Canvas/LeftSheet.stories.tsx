@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { useState, type ComponentProps } from "react";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { LeftSheet } from "./LeftSheet";
 
 const sampleContent = (
@@ -63,7 +64,13 @@ const meta: Meta<typeof LeftSheet> = {
 export default meta;
 type Story = StoryObj<typeof LeftSheet>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByTestId("left-sheet-close"));
+    await expect(args.onClose).toHaveBeenCalled();
+  },
+};
 
 export const NoTitle: Story = {
   args: {
@@ -72,20 +79,35 @@ export const NoTitle: Story = {
   },
 };
 
-export const BoundedCanvas: Story = {
-  render: (args) => {
-    const container = document.getElementById("left-sheet-story-container");
-    return (
-      <div
-        id="left-sheet-story-container"
-        data-workspace="hub"
-        className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
-      >
-        <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
-        <LeftSheet {...args} container={container}>
-          {sampleContent}
-        </LeftSheet>
-      </div>
-    );
+export const Closed: Story = {
+  args: {
+    open: false,
   },
+  render: (args) => (
+    <div className="p-6 text-sm text-text-sub">
+      LeftSheet is unmounted when closed.
+      <LeftSheet {...args}>{sampleContent}</LeftSheet>
+    </div>
+  ),
+};
+
+function BoundedLeftSheetStory(args: ComponentProps<typeof LeftSheet>) {
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+
+  return (
+    <div
+      ref={setContainer}
+      data-workspace="hub"
+      className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
+    >
+      <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
+      <LeftSheet {...args} container={container}>
+        {sampleContent}
+      </LeftSheet>
+    </div>
+  );
+}
+
+export const BoundedCanvas: Story = {
+  render: (args) => <BoundedLeftSheetStory {...args} />,
 };

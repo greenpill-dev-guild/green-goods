@@ -54,6 +54,15 @@ describe("AppBar", () => {
     expect(header.className).toContain("z-sticky");
   });
 
+  it("exposes semantic root and default state hooks", () => {
+    render(<AppBar gardenChip={<span>Chip</span>} />);
+
+    const header = screen.getByRole("banner");
+    expect(header).toHaveAttribute("data-component", "AppBar");
+    expect(header).toHaveAttribute("data-slot", "root");
+    expect(header).toHaveAttribute("data-state", "default");
+  });
+
   it("has h-14 height class", () => {
     render(<AppBar gardenChip={<span>Chip</span>} />);
 
@@ -77,9 +86,11 @@ describe("AppBar", () => {
     // Back button should be visible
     const backBtn = screen.getByRole("button", { name: "Back" });
     expect(backBtn).toBeTruthy();
+    expect(backBtn).toHaveAttribute("data-slot", "back-button");
 
     // Sheet label should be visible
     expect(screen.getByText("Settings Panel")).toBeTruthy();
+    expect(screen.getByRole("banner")).toHaveAttribute("data-state", "sheet-context");
 
     // Garden chip should be hidden
     expect(screen.queryByTestId("garden-chip")).toBeNull();

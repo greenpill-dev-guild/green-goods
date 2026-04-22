@@ -29,11 +29,13 @@ const ICON_BTN = cn(
 // ----------------------------------------------------------------------------
 
 function TopBarIconButton({
+  slot,
   tooltip,
   onClick,
   children,
   className,
 }: {
+  slot: string;
   tooltip: string;
   onClick: () => void;
   children: React.ReactNode;
@@ -45,6 +47,8 @@ function TopBarIconButton({
       onClick={onClick}
       aria-label={tooltip}
       className={cn(ICON_BTN, className)}
+      data-component="AppBar"
+      data-slot={slot}
     >
       {children}
       <span
@@ -55,6 +59,7 @@ function TopBarIconButton({
           "motion-reduce:transition-none"
         )}
         role="tooltip"
+        data-slot="tooltip"
       >
         {tooltip}
       </span>
@@ -107,9 +112,16 @@ export function AppBar({
         "sticky top-0 z-sticky flex h-14 w-full items-center justify-between",
         "bg-transparent px-4"
       )}
+      data-component="AppBar"
+      data-slot="root"
+      data-state={sheetContext ? "sheet-context" : "default"}
     >
       {/* Left side */}
-      <div className="flex min-w-0 items-center gap-2">
+      <div
+        className="flex min-w-0 items-center gap-2"
+        data-slot="leading"
+        data-state={sheetContext ? "sheet-context" : "garden-context"}
+      >
         {sheetContext ? (
           <>
             <button
@@ -117,10 +129,14 @@ export function AppBar({
               onClick={sheetContext.onBack}
               aria-label={formatMessage({ id: "cockpit.topBar.back" })}
               className={ICON_BTN}
+              data-component="AppBar"
+              data-slot="back-button"
             >
               <RiArrowLeftLine className="h-5 w-5" />
             </button>
-            <span className="truncate text-title-md text-text-main">{sheetContext.label}</span>
+            <span className="truncate text-title-md text-text-main" data-slot="sheet-label">
+              {sheetContext.label}
+            </span>
           </>
         ) : (
           gardenChip
@@ -128,10 +144,11 @@ export function AppBar({
       </div>
 
       {/* Right side — all icons share ICON_BTN styling via TopBarIconButton */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1" data-slot="actions">
         {/* Search — hidden on mobile */}
         {onOpenSearch && (
           <TopBarIconButton
+            slot="search-button"
             tooltip={formatMessage({ id: "cockpit.topBar.openSearch", defaultMessage: "Search" })}
             onClick={onOpenSearch}
             className="hidden min-[600px]:flex"
@@ -143,6 +160,7 @@ export function AppBar({
         {/* Notification bell — desktop: opens right sheet, mobile: popover fallback */}
         {onOpenNotifications ? (
           <TopBarIconButton
+            slot="notifications-button"
             tooltip={formatMessage({
               id: "cockpit.topBar.notifications",
               defaultMessage: "Notifications",
@@ -161,6 +179,8 @@ export function AppBar({
                   defaultMessage: "Notifications",
                 })}
                 className={ICON_BTN}
+                data-component="AppBar"
+                data-slot="notifications-button"
               >
                 <RiNotification3Line className="h-5 w-5" />
               </button>
@@ -177,6 +197,8 @@ export function AppBar({
                   "duration-200"
                 )}
                 style={{ boxShadow: "var(--edge-rest), var(--elevation-3)" }}
+                data-component="AppBar"
+                data-slot="notifications-popover"
               >
                 {formatMessage({
                   id: "cockpit.topBar.noNotifications",
@@ -190,6 +212,7 @@ export function AppBar({
         {/* Settings */}
         {onOpenSettings && (
           <TopBarIconButton
+            slot="settings-button"
             tooltip={formatMessage({
               id: "cockpit.topBar.openSettings",
               defaultMessage: "Settings",
@@ -203,6 +226,7 @@ export function AppBar({
         {/* Profile */}
         {onOpenProfile && (
           <TopBarIconButton
+            slot="profile-button"
             tooltip={formatMessage({ id: "cockpit.topBar.openProfile", defaultMessage: "Profile" })}
             onClick={onOpenProfile}
           >
