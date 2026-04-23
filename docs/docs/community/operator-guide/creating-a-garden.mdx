@@ -18,7 +18,9 @@ source_of_truth:
   - packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.tsx
   - packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.tsx
   - packages/admin/src/components/Garden/CreateGardenSteps/ReviewStep.tsx
+  - packages/shared/src/hooks/garden/useCreateGardenWorkflow.ts
   - packages/shared/src/workflows/createGarden.ts
+  - packages/contracts/src/tokens/Garden.sol
 keywords:
   - create garden
   - operator
@@ -38,8 +40,8 @@ Deploy a brand-new garden in the Green Goods admin so your community can start s
 
 Creating a garden is a **deployer-level action**. If you are already an operator inside an existing garden, you probably don't need this page. Jump straight to [Approve Work](./reviewing-work) or [Make an Assessment](./making-an-assessment).
 
-:::note Legacy admin vs. new admin
-During the Earth Week activation you may be on the **legacy admin** (left rail shows `Dashboard / Gardens / Assessments / Actions / Endowments`). There, the route is `/gardens/create` (with an `s`), and the wizard labels step 2 **Community** instead of **Plan the initial team**. The step order, fields, and deploy action are the same — just the nav and a couple of labels differ. The screenshots in this guide are from the legacy admin because that is what is live today.
+:::note Admin route
+The current canvas admin create route is `/garden/create`. If you are still on an older admin build, the equivalent route may appear as `/gardens/create` and the team step may be labelled **Community**. The fields and deploy action are the same.
 :::
 
 ## Before you start
@@ -52,7 +54,7 @@ Have these ready so you don't bounce around mid-form:
 - A **banner image** (optional but recommended).
 - An **ENS subdomain** idea — the form suggests one from the name, but you can edit it.
 - A **domain selection** — Solar, Agro, Education, or Waste. Domains decide which actions gardeners can submit against later.
-- A rough list of the **first operators and gardeners** you want on board. You can add more later from Garden Members, but seeding a few at deploy time keeps things coherent.
+- A rough list of the **first operators and gardeners** you want on board. These addresses are included in the deploy transaction, and you can add or fix members later from Garden Members.
 - A **funded wallet** on the target chain for the deployment transaction.
 
 :::tip
@@ -63,14 +65,10 @@ You need to be online to deploy — the form will block submission if you lose c
 
 ### Step 1: Open the Create Garden form
 
-1. In admin, open **Gardens** in the left sidebar, then click **Create** (or go directly to `/gardens/create` on legacy admin / `/garden/create` on the new canvas admin).
+1. In admin, open **Gardens** in the left sidebar, then click **Create** (or go directly to `/garden/create`).
 2. If you hit a 404 or a permissions warning, you don't have deployer access yet. Stop here and ask the team.
 
-<img src="/img/screenshots/admin-create-garden.png" alt="Create Garden — step 1 Garden details with name, location, ENS subdomain, and description fields (legacy admin)" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-
-> The form opens on **Garden details**. Fill the required fields, pick the garden's domains, then click **Continue**. Step 2 (**Community** on legacy admin / **Plan the initial team** on the new canvas admin) is for operator + gardener planning notes. Step 3 (**Review & deploy**) summarises everything before you sign the deploy transaction.
-
-> The form opens on **Garden details**. You can return to earlier steps from the progress bar at the top.
+The form opens on **Garden details**. Fill the required fields, pick the garden's domains, then click **Continue**. Step 2 plans the initial team and joining policy. Step 3 reviews everything before you sign the deploy transaction.
 
 ### Step 2: Fill in Garden details
 
@@ -78,16 +76,16 @@ You need to be online to deploy — the form will block submission if you lose c
 2. Enter the **location**.
 3. Add a **description**. Two or three lines is plenty.
 4. Attach a **banner image** if you have one.
-5. Choose the **joining policy**: open (anyone can join) or restricted (operators approve each gardener).
-6. Select the **domains** this garden will run. Pick only what you actually plan to use — adding a domain later is easier than explaining unused ones.
-7. Click **Continue**.
+5. Select the **domains** this garden will run. Pick only what you actually plan to use — adding a domain later is easier than explaining unused ones.
+6. Click **Continue**.
 
 ### Step 3: Plan the initial team (labelled "Community" on legacy admin)
 
 1. Add the wallet addresses of the **operators** you want to seed the garden with.
 2. Add the **gardeners** who will be submitting work from day one.
-3. You can leave either list empty and add members later from Garden Members. Planned members are a coordination list, not on-chain role assignments — the form flags this with a reminder on success.
-4. Click **Continue**.
+3. Choose the **joining policy**: open means gardeners can join themselves; restricted means operators add or invite gardeners.
+4. You can leave either address list empty and add members later from Garden Members. If you include addresses, the deploy transaction passes them to the contract and the contract attempts to seed their roles during deployment.
+5. Click **Continue**.
 
 ### Step 4: Review and deploy
 
@@ -100,7 +98,7 @@ You need to be online to deploy — the form will block submission if you lose c
 
 - You are redirected back to the garden list (`/garden` on the canvas admin, `/gardens` on legacy admin).
 - A success toast appears: *"Garden created — Your garden has been deployed successfully."*
-- If you planned any members at step 3, you also see a reminder toast: *"Add planned members next — N planned members were not assigned during deployment. Add them from Garden Members."*
+- If you seeded members at step 3, you see a reminder to verify those roles in Garden Members after indexing catches up.
 - The new garden appears in the garden list.
 - If you open it in the client app, the banner, location, and description all render as expected.
 
@@ -115,12 +113,12 @@ You need to be online to deploy — the form will block submission if you lose c
 
 After a successful deploy, finish setup by:
 
-- Adding members from Garden Members (if you planned any at step 3).
+- Verifying seeded members in Garden Members, then adding any missing operators or gardeners.
 - Confirming that metadata and banner render in both admin and the client app before sharing the garden link with your community.
 
 ### Behind the scenes
 
-The deploy transaction creates the garden account on-chain, registers it in the Green Goods registry, and seeds it with the domains you chose. Roles (operator, gardener) are assigned separately after deployment, which is why planned members show up as a reminder rather than being auto-assigned.
+The deploy transaction creates the garden account on-chain, registers it in the Green Goods registry, seeds it with the domains you chose, and passes the initial gardener/operator lists to the contract. The contract attempts those role grants during deployment on a best-effort basis, so verify Garden Members afterward in case a grant failed or the indexer has not caught up yet.
 
 ## Next step
 

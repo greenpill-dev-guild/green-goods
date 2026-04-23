@@ -44,7 +44,7 @@ The public `/fund` page is **deposit-only** and does not surface withdrawal cont
 - A **connected wallet** that holds the existing vault deposit (the same wallet you used to deposit, or one with the deposit's shares).
 - An **existing position** in the garden's vault. If "Active deposits" is empty, there's nothing to withdraw.
 - You are **online** — the withdrawal button is disabled offline.
-- A small amount of **gas** on the target chain to sign the withdrawal transaction.
+- A small amount of **gas** on the target chain if you are using an external wallet. Passkey/smart-account withdrawals may be sponsored when paymaster support is configured.
 
 :::tip
 Your withdrawable amount may be slightly different from what you originally deposited because vault preview accounts for current share-to-asset rates. Check the **Available balance** line before you commit.

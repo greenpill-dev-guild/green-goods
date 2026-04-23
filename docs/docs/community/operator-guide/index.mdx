@@ -1,0 +1,77 @@
+---
+title: Operator Guide
+sidebar_label: Overview
+slug: /community/operator-guide/
+audience: operator
+owner: docs
+last_verified: 2026-04-21
+feature_status: Live
+goal: "Give operators the three live Earth Week flows: create a garden, approve work, and make an assessment."
+difficulty: "standard"
+estimated_time: "Varies by flow."
+prereqs: "An operator or deployer account, depending on the task."
+next_steps: "./creating-a-garden"
+persona_context: "Operators setting up gardens, keeping the work queue clean, and packaging approved work into assessments."
+source_of_truth:
+  - docs/sidebars.ts
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/resolvers/Assessment.sol
+  - docs/docs/community/operator-guide/creating-a-garden.mdx
+  - docs/docs/community/operator-guide/reviewing-work.mdx
+  - docs/docs/community/operator-guide/making-an-assessment.mdx
+keywords:
+  - operator
+  - create garden
+  - approve work
+  - assessment
+  - earth week
+---
+
+import {RolePathCard, StatusBadge} from "@site/src/components/docs";
+import styles from "@site/src/components/docs/styles.module.css";
+
+# Operator Guide
+
+<StatusBadge status="Live" />
+
+## What this helps you do
+
+This is the operator path for Earth Week. Use it to stand up a garden, approve or reject incoming work, and turn approved work into an assessment.
+
+The key permission boundary is simple: work approval requires garden owner/operator authority. Evaluators can make assessments, but they do not approve or reject work unless they also have the operator or owner role.
+
+<div className={styles.roleGrid}>
+  <RolePathCard
+    title="Create a Garden"
+    href="/community/operator-guide/creating-a-garden"
+    icon="🧭"
+    audience="Deployers"
+    time="10-25 min"
+    description="Deploy a new garden, set its core details and domains, and understand what still needs to be configured after launch."
+    ctaLabel="Create"
+  />
+  <RolePathCard
+    title="Approve Work"
+    href="/community/operator-guide/reviewing-work"
+    icon="✅"
+    audience="Operators"
+    time="2-10 min"
+    description="Review a gardener submission from the app or admin, leave useful feedback, and create the approval or rejection attestation."
+    ctaLabel="Review"
+  />
+  <RolePathCard
+    title="Make an Assessment"
+    href="/community/operator-guide/making-an-assessment"
+    icon="📝"
+    audience="Operators and evaluators"
+    time="15-30 min"
+    description="Package approved work into an EAS assessment attestation with domain, context, outcomes, reporting dates, and evidence-backed actions."
+    ctaLabel="Assess"
+  />
+</div>
+
+## Good operating rhythm
+
+1. Keep the pending queue short so gardeners get quick feedback.
+2. Reject weak submissions with specific instructions instead of vague comments.
+3. Make assessments only after the approved work tells a coherent story.

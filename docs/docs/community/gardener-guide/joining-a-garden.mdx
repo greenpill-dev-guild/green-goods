@@ -1,10 +1,10 @@
 ---
-title: "Joining A Garden"
-sidebar_label: "Joining A Garden"
+title: "Join a Garden"
+sidebar_label: "Join a Garden"
 slug: /community/gardener-guide/joining-a-garden
 audience: all
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-04-21
 feature_status: Live
 image: /img/social/joining-a-garden.webp
 goal: "Help gardeners find, join, and begin working in a garden community."
@@ -14,9 +14,10 @@ prereqs: "A smartphone with a camera and an internet connection for initial setu
 next_steps: "/community/gardener-guide/uploading-your-work"
 persona_context: "New gardeners discovering and joining garden communities for the first time."
 source_of_truth:
-  - packages/client/src/views/Home/index.tsx
+  - packages/client/src/views/Public/GardenDetail.tsx
+  - packages/client/src/views/Profile/GardensList.tsx
+  - packages/client/src/views/Home/Garden/index.tsx
   - packages/shared/src/hooks/garden/useJoinGarden.ts
-  - packages/shared/src/hooks/garden/useAutoJoinRootGarden.ts
 keywords:
   - join garden
   - gardener role
@@ -31,66 +32,82 @@ import {
   StepFlow,
 } from "@site/src/components/docs";
 
-# Joining A Garden
+# Join a Garden
 
 <StatusBadge status="Live" />
 
-## Overview
+## What this helps you do
 
-Gardens are community hubs for regenerative work, each focused on a specific bioregion or initiative. As a gardener, you join a garden to access its actions, document your work, and build a verifiable contribution history. On first sign-in, Green Goods prompts you to join the Community Garden so you can get moving quickly, but you can also skip that prompt and join later from your profile.
+Join the garden where your work belongs so its actions appear in the app and your submissions can be reviewed by the right operators.
+
+Open gardens can be joined directly. Restricted gardens do not show a join button until an operator invites or adds you.
 
 <div style={{maxWidth: '280px', margin: '1rem auto'}}>
   <img src="/img/screenshots/client-passkey-login.png" alt="Green Goods login — sign in with passkey or wallet" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 </div>
 
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-garden-home.png" alt="Garden home — browse available garden communities" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
+## Before you start
 
-## How It Works
+- Sign in with the passkey or wallet address you plan to keep using.
+- Make sure you are online. Joining a garden is an on-chain action.
+- If you are using an external wallet, keep a little gas available on the target chain.
+- If someone sent you a public garden link, open **Join this Garden** and sign in when prompted. After login, the app takes you to the authenticated garden page.
+
+## Step-by-step flow
 
 <StepFlow
   steps={[
-    {title: "Sign in", detail: "Open greengoods.app and sign in with a passkey or connect a wallet. Passkeys create a smart account automatically; wallet users keep using their existing address."},
-    {title: "Join the Community Garden prompt", detail: "On first login, Green Goods asks whether you want to join the Community Garden. Accept if you want an immediate place to start, or skip and join later from your profile."},
-    {title: "Find additional gardens", detail: "Browse the gardens list to find communities matching your interests or bioregion. Open gardens let you join directly. Restricted gardens do not show a join path until an operator invites you."},
-    {title: "Start working", detail: "Once you are in a garden, open an active action and begin documenting your work with the MDR workflow (Media, Details, Review)."},
+    {title: "Open your gardens list", detail: "In the app, open Profile and find the Gardens section. It lists gardens you already belong to and open gardens you can join."},
+    {title: "Pick the right garden", detail: "Check the name and location before joining. Garden actions, operators, and work history are scoped to that garden."},
+    {title: "Tap Join", detail: "For an open garden, tap Join, review the confirmation, and sign the transaction. Passkey users use their smart account; wallet users sign with their connected wallet."},
+    {title: "Confirm membership", detail: "After the transaction starts, the garden shows as joined in the app. Indexer updates can take a moment, so refresh if the status looks stale."},
+    {title: "Open the garden", detail: "Go to the garden page and check the Work tab. If active actions are available, you are ready to submit work."},
   ]}
 />
-
-<div style={{maxWidth: '320px', margin: '1rem auto'}}>
-  <img src="/img/screenshots/client-action-list.png" alt="Action list — select an action category and begin documenting work" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-</div>
 
 <DecisionGuide
   title="Open vs restricted gardens"
   items={[
     {
       when: "The garden has an open joining policy",
-      do: "Join directly from the gardens list. No approval needed.",
-      next: "Browse active actions and start documenting your work.",
+      do: "Join directly from Profile or from the authenticated garden page.",
+      next: "Open the garden's Work tab and pick an active action.",
     },
     {
       when: "The garden has a restricted joining policy",
-      do: "Request an invitation from the garden operator or wait for one to be sent to you.",
-      next: "Once accepted, the garden and its actions will appear in your dashboard.",
+      do: "Ask the garden operator to add you. The app will not show a direct join path.",
+      next: "Once added, the garden appears in your app and its actions become available.",
     },
     {
-      when: "You are not sure which garden to join",
-      do: "Start with the Community Garden if you were offered it during onboarding, or join it later from your profile.",
-      next: "Explore other gardens as you get comfortable with the workflow.",
+      when: "A public garden link sent you here",
+      do: "Use the public page's Join this Garden button. If you are signed out, login redirects you back to the garden.",
+      next: "Finish the join from the authenticated app page.",
     },
   ]}
 />
 
-## Best Practices
+## How to know it worked
 
-- Start with the Community Garden to learn the MDR submission workflow before joining specialized gardens
-- When joining a restricted garden, reach out to the operator directly to express your interest and experience
+- The garden appears in your Profile gardens list.
+- The garden page no longer shows the join action for your account.
+- The Work tab shows actions you can submit against, if the operator has active actions configured.
+- If the app still looks unchanged right after signing, refresh once. The transaction may have confirmed before the indexer caught up.
+
+## If something goes wrong
+
+- **No Join button.** The garden may be restricted, you may already be a member, or you may be signed out.
+- **Transaction fails.** Check the wallet message. Common causes are the wrong chain, no gas for an external wallet, or a garden that is no longer open for joining.
+- **Joined but still not showing.** Refresh the app. The join is optimistic first and then confirmed by the garden indexer.
+- **Wrong garden.** Contact the operator before submitting work. Your submissions should be tied to the garden that will review them.
+
+## Best practices
+
+- Confirm the garden location and operator before joining if several gardens have similar names
+- When joining a restricted garden, reach out to the operator directly and share the address you use in Green Goods
 - You can belong to multiple gardens at once — each garden tracks your contributions independently
 - Check a garden's active actions before joining to make sure it matches your interests and availability
 
-## What's Next
+## Next step
 
 <NextBestAction
   title="Next best action"

@@ -6,10 +6,10 @@ audience: operator
 owner: docs
 last_verified: 2026-04-20
 feature_status: Live
-goal: "Walk an operator through the three-step assessment wizard without overpromising fields that are not in the form."
+goal: "Walk an operator or evaluator through the three-step assessment wizard without confusing assessments with hypercerts."
 difficulty: "standard"
 estimated_time: "15-30 minutes."
-prereqs: "Approved work in the garden, a review role, and a clear idea of what the assessment is reporting."
+prereqs: "Approved work in the garden, assessment permission, and a clear reporting window."
 next_steps: "./reviewing-work"
 persona_context: "Operators packaging a body of approved work into a single, reviewable impact statement."
 source_of_truth:
@@ -35,10 +35,12 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 ## What this helps you do
 
-Turn a pile of approved work into one coherent impact statement your garden, funders, and evaluators can actually read. An assessment anchors a reporting window to a domain, a diagnosis, a set of outcomes, and the specific actions that did the work. It is the cleanest way to show progress after an approval spree.
+Create a standalone **EAS assessment attestation** for a garden. The assessment records the domain, title, description, location, reporting dates, selected actions, metrics, evidence, and strategy context for a body of approved work.
 
-:::note Legacy admin vs. new admin
-During the Earth Week activation you may be on the **legacy admin** (left rail shows `Dashboard / Gardens / Assessments / Actions / Endowments`). The assessment wizard lives under **Assessments** in the left rail there, not under a **Hub → Assess** tab. The three wizard steps (Domain & Context → Strategy Kernel → Actions & Harvest), fields, and submit action are the same.
+An assessment can support later impact reporting or hypercert work, but it is not itself a hypercert and it is not created from the public Impact page.
+
+:::important Protocol permission
+The assessment resolver accepts attestations from garden evaluators or operators. Owners/operators can manage the garden; evaluators can submit assessments when they have the evaluator role.
 :::
 
 ## Before you start
@@ -49,11 +51,11 @@ During the Earth Week activation you may be on the **legacy admin** (left rail s
   - The **domain** you are reporting in (must be one this garden runs).
   - A short **diagnosis** of the situation you acted on.
   - One to three **SMART outcomes** you will report against.
-  - The **actions** you want to include.
+  - The **domain actions** you want to include.
   - The **reporting window** (start and end date).
 
 :::tip
-If the assessment button is disabled or the page warns "No permission", you are missing the review role in this garden. The wizard checks `canReviewGarden` before it opens.
+If the assessment page says "No permission", you are missing operator/evaluator permission for this garden.
 :::
 
 ## Step-by-step flow
@@ -65,10 +67,6 @@ The wizard has three steps: **Domain & Context → Strategy Kernel → Actions &
 1. On the **canvas admin**: open the **Hub** workspace, switch to the **Assess** tab, and click **New assessment** (or go directly to `/hub/assess/create`).
 2. On the **legacy admin**: open **Assessments** in the left rail and click **Create assessment**.
 3. Pick the garden if you haven't already. The wizard refuses to open without one.
-
-<img src="/img/screenshots/admin-garden-impact.png" alt="Garden Impact tab — hypercert highlights, routed yield, and the Assessments entry" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
-
-> From a garden's detail page, switch to **Impact** and click **View Assessments** (or **Assessments** on the left rail for a global view). From there, **New Assessment** opens the three-step wizard: **Domain & Context → Strategy Kernel → Actions & Harvest**.
 
 ### Step 2: Fill Domain & Context
 
@@ -83,12 +81,12 @@ The wizard has three steps: **Domain & Context → Strategy Kernel → Actions &
 1. Enter the **diagnosis** — one or two paragraphs on what was happening before the work started.
 2. Choose the **Cynefin phase** that matches the situation (clear, complicated, complex, chaotic, or confusion). This helps a reader read the assessment with the right frame.
 3. Add one or more **SMART outcomes**. Each outcome needs a description, a metric, and a numeric target. Keep them honest — "15 trees alive after 6 months" beats "trees planted."
-4. Select the **SDG targets** that apply. Don't blanket-select — pick what the work actually contributes to.
+4. Select only the metrics that match the garden's domain. Don't add metrics just to make the assessment look bigger.
 5. Click **Continue**.
 
 ### Step 4: Pick Actions & Harvest
 
-1. Select the **actions** to include in this assessment. Only actions run in this garden appear.
+1. Select the **actions** to include in this assessment. The wizard filters actions by the domain you chose in step 1.
 2. Set the **reporting period** — start date and end date. Make it match the work you selected.
 3. Click **Submit assessment** and sign the transaction in your wallet.
 4. Wait for the transaction to confirm. The wizard stays on this step until it does.
@@ -96,20 +94,20 @@ The wizard has three steps: **Domain & Context → Strategy Kernel → Actions &
 ## How to know it worked
 
 - A success toast appears: *"Assessment submitted — Your assessment has been recorded on-chain."*
-- The wizard closes and you land on the garden **Impact → Assessments** view.
+- The wizard closes and you return to the assessment list.
 - The new assessment appears in the grid with its title, domain badge, and reporting date range.
 - Clicking a card opens the attestation on EAS Explorer, where you can verify the decoded fields independently.
 
 ### Behind the scenes
 
-Every assessment is a single EAS attestation with your domain, diagnosis, SMART outcomes, SDG targets, reporting window, and the selected action UIDs. The assessment attestation is what a downstream Hypercert references when it packages the work for funders.
+Every assessment submits one EAS attestation to the garden address. The on-chain schema stores title, description, assessment config CID, domain, start date, end date, and location. The richer assessment config on IPFS stores the assessment type, capitals, metrics CID, evidence media CIDs, report documents, linked impact attestations, and tags.
 
 ## If something goes wrong
 
-- **"No permission"** on the wizard. You are missing `canReviewGarden`. Ask the garden owner to add the evaluator role.
+- **"No permission"** on the wizard. You are missing operator/evaluator permission. Ask the garden owner to add the right role.
 - **Domain field missing options.** The garden doesn't have that domain enabled. Fix the garden settings first, or pick a domain the garden actually runs.
 - **"Incomplete form"** toast. The wizard highlights the failing field — scroll to the red label, fill it in, and retry.
-- **"We could not submit the assessment."** The form data didn't assemble into a valid payload — usually a missing garden reference. Reload the page and re-enter the wizard from the cockpit.
+- **"We could not submit the assessment."** The form data didn't assemble into a valid payload — usually a missing garden reference. Reload the page and re-enter the wizard from the Hub.
 - **Transaction cancelled.** You cancelled in your wallet. Click **Retry submission**.
 - **Transaction failed.** Check the inline error card. Common causes: wrong chain, insufficient gas, or a stale signer. Fix the cause and click **Retry submission**. If you need to edit the form, click **Edit details** instead.
 - **"Draft backup unavailable"** info toast. Your draft could not be saved to local storage, but submission still works — just don't close the tab mid-wizard.

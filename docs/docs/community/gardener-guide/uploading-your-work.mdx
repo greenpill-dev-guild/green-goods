@@ -11,7 +11,7 @@ goal: "Complete one work submission successfully on the first try, including in 
 difficulty: "standard"
 estimated_time: "3-8 minutes per submission."
 prereqs: "Signed in, joined a garden, an active action available, photos or notes ready."
-next_steps: "/community/operator-guide/reviewing-work"
+next_steps: "/community/gardener-guide/track-status-and-attestations"
 persona_context: "Gardeners documenting regenerative work from the field, often with spotty connectivity."
 source_of_truth:
   - packages/client/src/views/Garden/index.tsx
@@ -55,7 +55,7 @@ The flow is sometimes called **MDR** — Media, Details, Review — but you don'
 A few quick checks save you a redo:
 
 - You're signed in to the Green Goods app (passkey or wallet).
-- You've already joined a garden. If you haven't, open the garden and tap **Join** before coming back.
+- You've already joined a garden. If you haven't, start with [Join a Garden](./joining-a-garden).
 - There's an **active** action available in that garden.
 - Your photos, notes, or measurements are on your device and ready to attach.
 - Weak signal is fine — you can still finish the flow. Submissions queue on your device and sync when the network comes back.
@@ -174,11 +174,12 @@ Quick fixes for the most common snags:
 ## Next step
 
 <NextBestAction
-  title="Wait for your operator to approve it"
-  why="Once you've submitted, an operator picks up the work from the queue and approves or rejects it. That's the next link in the chain."
-  actionLabel="Approve Work (for operators)"
-  actionHref="/community/operator-guide/reviewing-work"
+  title="Track your submission"
+  why="Once you've submitted, watch the status change from uploading or pending to approved or rejected."
+  actionLabel="Track Status"
+  actionHref="/community/gardener-guide/track-status-and-attestations"
   alternatives={[
+    {label: "Join a Garden", href: "/community/gardener-guide/joining-a-garden"},
     {label: "Deposit Into a Vault", href: "/community/funder-guide/funding-a-garden"},
   ]}
 />

@@ -34,17 +34,17 @@ const sidebars: SidebarsConfig = {
       label: "Where We're Headed",
     },
     // ── Gardener Guide ──
-    // Earth Week focus: only "Submit Work" is visible. Other pages remain in the repo
-    // for reference and will return to the sidebar after the live activation.
+    // Earth Week focus: join + submit. Other pages remain in the repo for reference
+    // and can return to the sidebar after the live activation.
     {
       type: 'category',
       label: 'Gardener Guide',
       link: {
-        type: 'generated-index',
-        description:
-          'Gardeners document regenerative work from the field. The Earth Week activation highlights one core flow — submitting work — so you can complete your first entry end-to-end without branching out.',
+        type: 'doc',
+        id: 'community/gardener-guide/index',
       },
       items: [
+        {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Join a Garden'},
         {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
       ],
     },
@@ -56,9 +56,8 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Operator Guide',
       link: {
-        type: 'generated-index',
-        description:
-          'Operators run the day-to-day garden workflow. For the Earth Week activation, the focus is the three tasks you will actually touch: create a garden, approve the work that comes in, and make an assessment when you have enough approved work to tell a story.',
+        type: 'doc',
+        id: 'community/operator-guide/index',
       },
       items: [
         {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Create a Garden'},
@@ -73,9 +72,8 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Funder Guide',
       link: {
-        type: 'generated-index',
-        description:
-          'Funders support gardens by depositing into their vaults. For the Earth Week activation, the guide covers the two flows you need: depositing into a vault and withdrawing your position when you are ready.',
+        type: 'doc',
+        id: 'community/funder-guide/index',
       },
       items: [
         {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Deposit Into a Vault'},

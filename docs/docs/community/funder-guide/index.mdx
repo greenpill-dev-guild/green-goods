@@ -1,0 +1,65 @@
+---
+title: Funder Guide
+sidebar_label: Overview
+slug: /community/funder-guide/
+audience: funder
+owner: docs
+last_verified: 2026-04-21
+feature_status: Live
+goal: "Help funders deposit into a garden vault and withdraw their position when ready."
+difficulty: "quickstart"
+estimated_time: "5-10 minutes."
+prereqs: "A wallet or passkey account, supported assets, and a garden with an active vault."
+next_steps: "./funding-a-garden"
+persona_context: "Funders supporting garden operations through Octant vault deposits."
+source_of_truth:
+  - docs/sidebars.ts
+  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
+  - packages/client/src/views/Public/Fund.tsx
+  - docs/docs/community/funder-guide/funding-a-garden.mdx
+  - docs/docs/community/funder-guide/withdraw-from-a-vault.mdx
+keywords:
+  - funder
+  - deposit
+  - withdraw
+  - vault
+  - earth week
+---
+
+import {RolePathCard, StatusBadge} from "@site/src/components/docs";
+import styles from "@site/src/components/docs/styles.module.css";
+
+# Funder Guide
+
+<StatusBadge status="Live" />
+
+## What this helps you do
+
+This is the funder path for Earth Week: deposit into a garden vault, then know exactly where to withdraw your position later.
+
+The public `/fund` page is deposit-only. To see your active position or withdraw, use the authenticated app and open the garden's Treasury drawer.
+
+<div className={styles.roleGrid}>
+  <RolePathCard
+    title="Deposit Into a Vault"
+    href="/community/funder-guide/funding-a-garden"
+    icon="🏦"
+    audience="Funders"
+    time="5-10 min"
+    description="Choose a garden, pick a supported asset, submit a vault deposit, and confirm your shares appear in the treasury."
+    ctaLabel="Deposit"
+  />
+  <RolePathCard
+    title="Withdraw From a Vault"
+    href="/community/funder-guide/withdraw-from-a-vault"
+    icon="↩️"
+    audience="Funders"
+    time="3-5 min"
+    description="Open the authenticated Treasury drawer, find your active deposit, choose an amount, and withdraw principal back to your wallet."
+    ctaLabel="Withdraw"
+  />
+</div>
+
+## Good funding habit
+
+Before depositing, open the garden and look at its recent approved work. After depositing, check the Treasury drawer so you know where your position and withdrawal controls live.
