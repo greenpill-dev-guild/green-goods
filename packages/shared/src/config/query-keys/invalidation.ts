@@ -1,4 +1,4 @@
-import { queryKeys } from "./index";
+import { queryKeys } from "./registry";
 import { financeInvalidation } from "./invalidation-finance";
 
 export const queryInvalidation = {

@@ -1,4 +1,4 @@
-import { queryKeys } from "./index";
+import { queryKeys } from "./registry";
 
 export const financeInvalidation = {
   invalidateCommunity: (gardenAddress: string, chainId: number) => [

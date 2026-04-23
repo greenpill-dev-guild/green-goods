@@ -1,4 +1,4 @@
-import type { queryKeys } from "./index";
+import type { queryKeys } from "./registry";
 
 export type QueryKey =
   | typeof queryKeys.all
