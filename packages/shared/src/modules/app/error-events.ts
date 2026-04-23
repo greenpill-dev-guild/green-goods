@@ -246,22 +246,18 @@ export function trackUploadSuccess(context: {
   source?: string;
   gardenAddress?: string;
 }): void {
-  // Import track here to avoid circular dependency issues
-  // This is fine since it's a lazy import for analytics only
-  import("./posthog").then(({ track }) => {
-    track("upload_success", {
-      upload_category: context.uploadCategory,
-      upload_batch_id: context.uploadBatchId,
-      file_index: context.fileIndex,
-      total_files: context.totalFiles,
-      file_size_bytes: context.fileSize,
-      file_size_kb: context.fileSize ? Math.round(context.fileSize / 1024) : undefined,
-      file_type: context.fileType,
-      upload_duration_ms: context.uploadDurationMs,
-      cid: context.cid,
-      source: context.source,
-      garden_address: context.gardenAddress,
-    });
+  track("upload_success", {
+    upload_category: context.uploadCategory,
+    upload_batch_id: context.uploadBatchId,
+    file_index: context.fileIndex,
+    total_files: context.totalFiles,
+    file_size_bytes: context.fileSize,
+    file_size_kb: context.fileSize ? Math.round(context.fileSize / 1024) : undefined,
+    file_type: context.fileType,
+    upload_duration_ms: context.uploadDurationMs,
+    cid: context.cid,
+    source: context.source,
+    garden_address: context.gardenAddress,
   });
 }
 
@@ -280,20 +276,18 @@ export function trackUploadBatchProgress(context: {
   gardenAddress?: string;
   error?: string;
 }): void {
-  import("./posthog").then(({ track }) => {
-    track("upload_batch_progress", {
-      stage: context.stage,
-      upload_batch_id: context.uploadBatchId,
-      total_files: context.totalFiles,
-      completed_files: context.completedFiles,
-      failed_files: context.failedFiles,
-      total_size_bytes: context.totalSizeBytes,
-      total_size_kb: Math.round(context.totalSizeBytes / 1024),
-      elapsed_ms: context.elapsedMs,
-      source: context.source,
-      garden_address: context.gardenAddress,
-      error: context.error,
-    });
+  track("upload_batch_progress", {
+    stage: context.stage,
+    upload_batch_id: context.uploadBatchId,
+    total_files: context.totalFiles,
+    completed_files: context.completedFiles,
+    failed_files: context.failedFiles,
+    total_size_bytes: context.totalSizeBytes,
+    total_size_kb: Math.round(context.totalSizeBytes / 1024),
+    elapsed_ms: context.elapsedMs,
+    source: context.source,
+    garden_address: context.gardenAddress,
+    error: context.error,
   });
 }
 
