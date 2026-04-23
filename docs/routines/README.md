@@ -10,7 +10,7 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 - `gg-admin-polish.md` — **PAUSED (2026-04-21)** while admin UI revamp is in flux. Daily admin workspace audit with rotating focus (M3 compliance, architecture, testing, UX, quality); writes GitHub Issues + Discord summary. Re-enable once revamp ships.
 - `gg-auto-implement.md` — Weekday implementer; picks human-approved issues off the project boards (plus user-reported p2 client bugs in a fast lane), bundles related fixes, and opens PRs against `develop`. Handles both client AND admin packages.
 - `gg-hotfix.md` — Every 4h during waking hours, Mon-Fri. Narrow hotfix path: takes user-reported p2 bugs moved to `Ready` on the Bug Board, opens solo PRs against `main` with full-suite validation. No fast-lane, no bundling, no critical paths. Complements `gg-auto-implement` (which targets `develop`).
-- `gg-dream-on.md` — Nightly cross-project exploration; reads Discord #research; session-only output
+- `gg-dream-on.md` — Nightly 03:00 cross-project exploration across 5 active guild repos. **Output: session-only markdown brief** — final message in the routine's session history, pleasant to read with morning coffee. Explicitly NEVER opens PRs, issues, branches, files, email, Drive docs, or Discord posts; reads Discord #research + Drive + Calendar + GitHub API read-only.
 - `gg-data-analyst.md` — Weekly Dune + PostHog maintenance; writes PR to develop + issues + Discord #funding highlights
 - `gg-grant-scout.md` — Weekly grant opportunity scouting + proposal drafting for Green Goods & Coop; writes Drive docs + Discord #funding + GitHub Issues
 

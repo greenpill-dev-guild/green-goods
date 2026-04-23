@@ -17,9 +17,73 @@ bun run dev
 bun run build && bun run start
 ```
 
-## Deploy to Railway
+## Deploy to Fly.io (recommended)
 
-> Cheapest/quickest path: start in polling mode so you don't need HTTPS/Webhook yet.
+> Production deployment. Webhook mode. Routines consume the deployed URL as `BOT_API_URL`.
+
+**Prereqs**
+- Telegram token (`TELEGRAM_BOT_TOKEN`) from BotFather
+- 32+ char `ENCRYPTION_SECRET`
+- 32+ char `BOT_API_TOKEN` (bearer token that routines use to call `/api/feedback` and `/api/notify`)
+- [`flyctl`](https://fly.io/docs/flyctl/install/) installed and authenticated
+- Config file: `packages/agent/fly.toml` (co-located with the package; invoke flyctl from **repo root** so the Docker build context includes the workspace's root `package.json`, `bun.lock`, `packages/`, `docs/`, `scripts/`)
+
+**One-time setup**
+
+Run from the repo root:
+
+```bash
+# Create the app without deploying (allows secrets + volume first)
+flyctl launch --no-deploy --config packages/agent/fly.toml --dockerfile packages/agent/Dockerfile
+
+# Persistent volume for the SQLite database
+flyctl volumes create agent_data --config packages/agent/fly.toml --region iad --size 1
+
+# Secrets (these never land in packages/agent/fly.toml)
+flyctl secrets set --config packages/agent/fly.toml \
+  TELEGRAM_BOT_TOKEN=<botfather-token> \
+  ENCRYPTION_SECRET=<32+-char-secret> \
+  BOT_API_TOKEN=<routine-auth-bearer-token> \
+  POSTHOG_AGENT_KEY=<optional> \
+  TELEGRAM_WEBHOOK_SECRET=<random-string>
+
+# First deploy
+flyctl deploy --config packages/agent/fly.toml
+```
+
+**After first deploy**
+
+```bash
+# Confirm the URL
+flyctl status --config packages/agent/fly.toml
+
+# Set the webhook URL now that we know the hostname
+flyctl secrets set --config packages/agent/fly.toml \
+  WEBHOOK_URL=https://green-goods-agent.fly.dev/webhook/telegram
+
+# Re-deploy to pick up the webhook URL
+flyctl deploy --config packages/agent/fly.toml
+
+# Verify health
+curl https://green-goods-agent.fly.dev/health
+
+# Talk to the bot in Telegram (/start, /status)
+```
+
+**Plug into routines**
+
+In `claude.ai/code/routines` under the `green-goods-routines-extended` environment, set:
+
+```
+BOT_API_URL = https://green-goods-agent.fly.dev
+BOT_API_TOKEN = <same value as the deployed secret>
+```
+
+`gg-client-polish` (Phase 1b) and `gg-morning-watch` (Telegram read-only enrichment) will start ingesting `/bug` and `/idea` reports from the gardener Telegram channel on their next scheduled runs.
+
+## Deploy to Railway (legacy)
+
+> Alternate path. Use Fly.io for new deployments; this section is retained for existing Railway-hosted instances. Cheapest/quickest path on Railway: start in polling mode so you don't need HTTPS/Webhook yet.
 
 **Prereqs**
 - Telegram token (`TELEGRAM_BOT_TOKEN`) from BotFather
