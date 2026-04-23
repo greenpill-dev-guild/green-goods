@@ -27,7 +27,7 @@ export {
   toHistoryContentId,
   toWorkDetailContentId,
   WORK_DETAIL_CONTENT_ID_PREFIX,
-} from "@/routes/sheetContentIds";
+} from "@/routes/sheetRegistry";
 
 // ============================================================================
 // Constants
@@ -184,7 +184,7 @@ export function buildHubFabConfig(
   canManage: boolean,
   canReview: boolean,
   navigate: (path: string) => void,
-  hubContext: { sort: SortDirection; item: undefined }
+  hubContext: { sort: SortDirection }
 ) {
   if (stage === "work" && canManage) {
     return {

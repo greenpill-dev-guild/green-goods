@@ -136,11 +136,11 @@ describe("Workspace State Integration", () => {
     });
   });
 
-  it("deep URL /hub?gardenAddress=X&item=Y opens correct state", () => {
+  it("deep URL /hub/work/:workId opens correct state without legacy item query", () => {
     mockUseGardenUrlSync.mockReturnValue({
       gardenId: "garden-x",
       tab: null,
-      item: "item-y",
+      item: null,
       setTab: vi.fn(),
       setFilter: vi.fn(),
       openItem: vi.fn(),
@@ -148,7 +148,7 @@ describe("Workspace State Integration", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter initialEntries={["/hub?gardenAddress=0xgardenx&item=item-y"]}>
+      <MemoryRouter initialEntries={["/hub/work/item-y?gardenAddress=0xgardenx"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
@@ -160,13 +160,13 @@ describe("Workspace State Integration", () => {
     expect(screen.getByTestId("page-content")).toBeInTheDocument();
   });
 
-  it("browser Back closes side sheet without navigating away", () => {
+  it("keeps legacy item helpers out of Hub route ownership", () => {
     const mockCloseItem = vi.fn();
 
     mockUseGardenUrlSync.mockReturnValue({
       gardenId: "garden-x",
       tab: null,
-      item: "item-open",
+      item: null,
       setTab: vi.fn(),
       setFilter: vi.fn(),
       openItem: vi.fn(),
@@ -174,22 +174,14 @@ describe("Workspace State Integration", () => {
     });
 
     renderWithProviders(
-      <MemoryRouter
-        initialEntries={[
-          "/hub?gardenAddress=0xgardenx",
-          "/hub?gardenAddress=0xgardenx&item=item-open",
-        ]}
-      >
+      <MemoryRouter initialEntries={["/hub/work/item-open?gardenAddress=0xgardenx"]}>
         <CanvasLayout />
       </MemoryRouter>
     );
 
-    // The closeItem function should be available for browser back handling
-    // When the integration layer is wired, popstate will call closeItem
-    // For now, verify the hook exposes closeItem correctly
     const hookResult = mockUseGardenUrlSync.mock.results[0]?.value;
     expect(hookResult.closeItem).toBeDefined();
-    expect(hookResult.item).toBe("item-open");
+    expect(hookResult.item).toBeNull();
   });
 
   it("switching gardens preserves per-garden tab state", () => {

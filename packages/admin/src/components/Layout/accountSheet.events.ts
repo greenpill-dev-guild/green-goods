@@ -1,7 +1,7 @@
+export { PROFILE_SHEET_CONTENT_ID, SETTINGS_SHEET_CONTENT_ID } from "@/routes/sheetRegistry";
+
 export type AccountSheetTab = "profile" | "settings";
 
-export const PROFILE_SHEET_CONTENT_ID = "profile";
-export const SETTINGS_SHEET_CONTENT_ID = "settings";
 export const ACCOUNT_TAB_SEARCH_PARAM = "tab";
 export const OPEN_ACCOUNT_SHEET_EVENT = "open-account-sheet";
 

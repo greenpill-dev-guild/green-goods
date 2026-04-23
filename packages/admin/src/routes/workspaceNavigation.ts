@@ -16,9 +16,17 @@ export function resolveAdminWorkspaceSectionRoute({
   hubSort,
 }: AdminWorkspaceSectionRouteOptions) {
   if (tab === "work") {
+    if (section === "work" && itemId) {
+      return adminRoutes.hubWorkDetail(itemId, { sort: hubSort });
+    }
+
+    if (section === "decisions" && itemId) {
+      return adminRoutes.hubHistoryDetail(itemId, { sort: hubSort });
+    }
+
     return section === "decisions"
-      ? adminRoutes.hubHistory({ sort: hubSort, item: itemId })
-      : adminRoutes.hubWork({ sort: hubSort, item: itemId });
+      ? adminRoutes.hubHistory({ sort: hubSort })
+      : adminRoutes.hubWork({ sort: hubSort });
   }
 
   if (tab === "impact") {

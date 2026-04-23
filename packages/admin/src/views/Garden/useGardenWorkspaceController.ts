@@ -94,7 +94,7 @@ export function useGardenWorkspaceController() {
       if (event.category === "work") {
         return {
           ...event,
-          href: adminRoutes.hubWork({ item: event.itemId }),
+          href: event.itemId ? adminRoutes.hubWorkDetail(event.itemId) : adminRoutes.hubWork(),
         };
       }
 
@@ -157,14 +157,14 @@ export function useGardenWorkspaceController() {
     [navigate, range]
   );
 
-  const handleCloseHypercertSheet = useCallback(() => {
-    navigate(
+  const hypercertSheetCloseTo = useMemo(
+    () =>
       adminRoutes.gardenImpact({
         range,
         section: section ?? "hypercerts",
-      })
-    );
-  }, [navigate, range, section]);
+      }),
+    [range, section]
+  );
 
   return {
     activityFilter,
@@ -182,7 +182,7 @@ export function useGardenWorkspaceController() {
     fetchingAssessments,
     garden,
     gardenOptions,
-    handleCloseHypercertSheet,
+    hypercertSheetCloseTo,
     handleSelectGarden,
     handleTabChange,
     hypercertId,

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useOutlet } from "react-router-dom";
 import { useSheetOrchestrator } from "@green-goods/shared";
-import { isRouteSheetRestorable } from "@/routes/sheetContentIds";
+import { isRouteSheetRestorable } from "@/routes/sheetRegistry";
 
 export function PageTransition() {
   const location = useLocation();
@@ -52,9 +52,7 @@ export function PageTransition() {
       // Check for saved sheet state on the new path and restore if present
       const savedState = orch.onNavigateArrive(newPath);
       if (savedState?.sheetOpen) {
-        if (
-          !isRouteSheetRestorable(savedState.sheetContentId, location.pathname, location.search)
-        ) {
+        if (!isRouteSheetRestorable(savedState.sheetContentId, location.pathname)) {
           return;
         }
         orch.openSheet(savedState.sheetOpen, savedState.sheetContentId ?? "");

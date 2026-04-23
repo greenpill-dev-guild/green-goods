@@ -8,6 +8,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
+import { useSheetOrchestratorStore } from "@green-goods/shared";
 
 const {
   mockUseGardenUrlSync,
@@ -81,6 +82,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
               Open Settings
             </button>
           ) : null}
+          {props.onOpenNotifications ? (
+            <button type="button" onClick={props.onOpenNotifications}>
+              Open Notifications
+            </button>
+          ) : null}
           {props.onOpenProfile ? (
             <button type="button" onClick={props.onOpenProfile}>
               Open Profile
@@ -100,6 +106,35 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         setSelectedGarden: mockSetSelectedGarden,
       }),
     useAuth: () => mockAuthState.current,
+    NotificationPanel: ({
+      items = [],
+      isLoading = false,
+    }: {
+      items?: Array<{ id: string; title: string }>;
+      isLoading?: boolean;
+    }) => (
+      <div
+        data-testid="notification-panel"
+        data-count={String(items.length)}
+        data-loading={String(isLoading)}
+      >
+        {items.map((item) => (
+          <div key={item.id}>{item.title}</div>
+        ))}
+      </div>
+    ),
+    formatRelativeTime: () => "5 minutes ago",
+    useAdminGardenWorkspaceSelection: () => ({
+      eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+      selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+      setSelectedGarden: mockSetSelectedGarden,
+      gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((garden) => ({
+        id: garden.id,
+        name: garden.name,
+        location: garden.location,
+      })),
+      handleSelectGarden: vi.fn(),
+    }),
     useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
     useEffectiveToolbarPermissions: () => ({
       showWork: true,
@@ -107,6 +142,54 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       showCommunity: true,
       showActions: true,
       isLoading: false,
+    }),
+    useGardenDetailData: (id?: string) => ({
+      garden: id ? { id: "garden-1", name: "Garden One", chainId: 10 } : undefined,
+      fetching: false,
+      error: null,
+      assessments: [],
+      fetchingAssessments: false,
+      assessmentsError: null,
+      roleMembers: {
+        owner: [],
+        operator: [],
+        evaluator: [],
+        gardener: [],
+        funder: [],
+        community: [],
+      },
+      gardenVaults: [],
+      vaultsLoading: false,
+      vaultNetDeposited: 0n,
+      allocations: [],
+      allocationsLoading: false,
+      works: [],
+      worksLoading: false,
+      hypercerts: [],
+      hypercertsLoading: false,
+    }),
+    useGardenDerivedState: ({
+      openSection,
+    }: {
+      openSection: (tab: "work", section: string) => void;
+    }) => ({
+      overviewAlerts: [
+        {
+          key: "work-critical",
+          severity: "critical",
+          label: "3 work submissions need review",
+          onAction: () => openSection("work", "queue"),
+        },
+      ],
+      activityEvents: [
+        {
+          id: "activity-1",
+          title: "Impact report minted",
+          description: "Hypercert created",
+          timestamp: Date.now(),
+          href: "/garden/impact/hypercerts/hc-1",
+        },
+      ],
     }),
     useGardenUrlSync: mockUseGardenUrlSync,
     useStaleGardenGuard: mockUseStaleGardenGuard,
@@ -166,6 +249,11 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
     };
+    useSheetOrchestratorStore.setState({
+      activeSheet: null,
+      activeContentId: null,
+      viewStates: {},
+    });
   });
 
   it("mounts canvas state sync hooks and exposes Actions in the toolbar", () => {
@@ -303,6 +391,66 @@ describe("CanvasLayout", () => {
     await waitFor(() => {
       expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
     });
+  });
+
+  it("opens RightSheet with data-backed notifications content", async () => {
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open Notifications" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-loading", "false");
+    expect(screen.getByText("3 work submissions need review")).toBeInTheDocument();
+    expect(screen.getByText("Impact report minted")).toBeInTheDocument();
+  });
+
+  it("keeps notifications empty until a garden detail record exists", async () => {
+    mockEligibleAdminGardens.current = {
+      eligibleGardens: [],
+      resolvedDefaultGarden: null,
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    };
+
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open Notifications" }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+    });
+    expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-count", "0");
+  });
+
+  it("clears stale unregistered right-sheet content", async () => {
+    useSheetOrchestratorStore.getState().openSheet("right", "legacy-right-panel");
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(useSheetOrchestratorStore.getState().activeSheet).toBeNull();
+    });
+    expect(screen.queryByTestId("right-sheet")).not.toBeInTheDocument();
   });
 
   it("does not apply pl-20 padding on main content", () => {

@@ -25,7 +25,6 @@ import {
   getStageTitle,
   isRouteSheetContentId,
   parseCertificationContentId,
-  parseHistoryContentId,
   parseSortDirection,
   parseWorkDetailContentId,
   PIPELINE_STAGE_CONFIG,
@@ -47,9 +46,14 @@ export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
-  const { workId: routedWorkIdParam, assessmentId: routedAssessmentIdParam } = useParams<{
+  const {
+    workId: routedWorkIdParam,
+    assessmentId: routedAssessmentIdParam,
+    historyEventId: routedHistoryEventIdParam,
+  } = useParams<{
     workId?: string;
     assessmentId?: string;
+    historyEventId?: string;
   }>();
   const { searchParams, updateSearch } = useCanvasSearchParams();
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
@@ -62,7 +66,6 @@ export function useHubWorkbenchController() {
 
   const requestedStage = resolvePipelineStageFromPath(location.pathname);
   const sortDirection = parseSortDirection(searchParams.get("sort"));
-  const legacyItemId = searchParams.get("item") ?? undefined;
   const isSubmitRoute = location.pathname.endsWith("/work/submit");
   const isDesktop = useMediaQuery("(min-width: 600px)");
 
@@ -212,31 +215,11 @@ export function useHubWorkbenchController() {
     [historyEvents]
   );
 
-  const legacyWorkId = useMemo(() => {
-    if (!legacyItemId) return undefined;
-    return works.some((work) => work.id === legacyItemId) ? legacyItemId : undefined;
-  }, [legacyItemId, works]);
-
-  const legacyCertificationId = useMemo(() => {
-    if (!legacyItemId) return undefined;
-    return certificationQueue.some((assessment) => assessment.id === legacyItemId)
-      ? legacyItemId
-      : undefined;
-  }, [certificationQueue, legacyItemId]);
-
-  const legacyHistoryEventId = useMemo(() => {
-    if (!legacyItemId) return undefined;
-    return historyEvents.some((event) => event.id === legacyItemId) ? legacyItemId : undefined;
-  }, [historyEvents, legacyItemId]);
-
-  const routeWorkId =
-    routedWorkIdParam ??
-    (stage === "work" || stage === "assess" || stage === "history" ? legacyWorkId : undefined);
-  const routeCertificationId =
-    routedAssessmentIdParam ?? (stage === "certify" ? legacyCertificationId : undefined);
+  const routeWorkId = routedWorkIdParam;
+  const routeCertificationId = routedAssessmentIdParam;
+  const routeHistoryEventId = routedHistoryEventIdParam;
   const activeWorkDetailId = parseWorkDetailContentId(activeContentId);
   const activeCertificationId = parseCertificationContentId(activeContentId);
-  const activeHistoryId = parseHistoryContentId(activeContentId);
 
   const selectedWork = useMemo(() => {
     const resolvedId = routeWorkId ?? activeWorkDetailId;
@@ -251,28 +234,30 @@ export function useHubWorkbenchController() {
   }, [activeCertificationId, certificationQueue, routeCertificationId]);
 
   const selectedHistoryEvent = useMemo(() => {
-    const resolvedId =
-      stage === "history" && legacyHistoryEventId ? legacyHistoryEventId : activeHistoryId;
-    return resolvedId ? historyEventMap.get(resolvedId) : undefined;
-  }, [activeHistoryId, historyEventMap, legacyHistoryEventId, stage]);
+    return routeHistoryEventId ? historyEventMap.get(routeHistoryEventId) : undefined;
+  }, [historyEventMap, routeHistoryEventId]);
 
   const hasOpenHubInspector = Boolean(
     routeWorkId ||
       routeCertificationId ||
+      routeHistoryEventId ||
       isSubmitRoute ||
       selectedWork ||
       selectedCertification ||
       selectedHistoryEvent
   );
 
-  const routeSheetSide = isSubmitRoute || routeWorkId || routeCertificationId ? "left" : null;
+  const routeSheetSide =
+    isSubmitRoute || routeWorkId || routeCertificationId || routeHistoryEventId ? "left" : null;
   const routeSheetContentId = isSubmitRoute
     ? SUBMIT_WORK_CONTENT_ID
     : routeWorkId
       ? toWorkDetailContentId(routeWorkId)
       : routeCertificationId
         ? toCertificationContentId(routeCertificationId)
-        : null;
+        : routeHistoryEventId
+          ? toHistoryContentId(routeHistoryEventId)
+          : null;
 
   useEffect(() => {
     if (!routeSheetContentId || !routeSheetSide) {
@@ -290,7 +275,6 @@ export function useHubWorkbenchController() {
   const hubContext = useMemo(
     () => ({
       sort: sortDirection,
-      item: undefined,
     }),
     [sortDirection]
   );
@@ -299,13 +283,14 @@ export function useHubWorkbenchController() {
     navigate(adminRoutes.hubMode(stage, hubContext));
   }, [hubContext, navigate, stage]);
 
+  const routeSheetCloseTo = useMemo(
+    () => adminRoutes.hubMode(stage, hubContext),
+    [hubContext, stage]
+  );
+
   const handleCloseSheet = useCallback(() => {
     closeSheet();
-
-    if (routeSheetContentId || legacyItemId) {
-      navigateToHubBase();
-    }
-  }, [closeSheet, legacyItemId, navigateToHubBase, routeSheetContentId]);
+  }, [closeSheet]);
 
   const handleOpenWorkDetail = useCallback(
     (workId: string) => {
@@ -324,14 +309,31 @@ export function useHubWorkbenchController() {
   const handleOpenHistoryEvent = useCallback(
     (event: ActivityEvent) => {
       if (event.category === "work" && event.itemId) {
-        openSheet("left", toWorkDetailContentId(event.itemId));
+        navigate(adminRoutes.hubWorkDetail(event.itemId, hubContext));
         return;
       }
 
-      openSheet("left", toHistoryContentId(event.id));
+      navigate(adminRoutes.hubHistoryDetail(event.id, hubContext));
     },
-    [openSheet]
+    [hubContext, navigate]
   );
+
+  useEffect(() => {
+    if (!routedHistoryEventIdParam) return;
+    if (worksLoading || fetchingAssessments || hypercertsLoading || allocationsLoading) return;
+    if (selectedHistoryEvent) return;
+
+    navigate(adminRoutes.hubHistory(hubContext), { replace: true });
+  }, [
+    allocationsLoading,
+    fetchingAssessments,
+    hubContext,
+    hypercertsLoading,
+    navigate,
+    routedHistoryEventIdParam,
+    selectedHistoryEvent,
+    worksLoading,
+  ]);
 
   const handleRefresh = useCallback(() => {
     void refreshWorks().finally(() => setLastRefreshAt(Date.now()));
@@ -424,6 +426,7 @@ export function useHubWorkbenchController() {
     refreshAgoText,
     resultCount,
     routeSheetContentId,
+    routeSheetCloseTo,
     routeWorkId,
     searchPlaceholder,
     searchTerm,

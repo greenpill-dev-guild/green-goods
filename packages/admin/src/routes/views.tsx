@@ -193,7 +193,16 @@ export const adminCanvasRoutes: RouteObject[] = [
       },
       {
         path: "history",
-        lazy: hubView,
+        children: [
+          {
+            index: true,
+            lazy: hubView,
+          },
+          {
+            path: ":historyEventId",
+            lazy: hubView,
+          },
+        ],
       },
     ],
   },

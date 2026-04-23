@@ -23,7 +23,7 @@ export interface GardenUrlSyncResult {
  * - URL -> store: reads `?gardenAddress=<address>`.
  * - Store -> URL: does not mirror garden selection during normal browsing.
  * - Tab/filter updates use replace to avoid history pollution.
- * - Item open/close uses push so browser back closes the side sheet first.
+ * - Non-Hub item open/close uses push so browser back clears focused query state first.
  */
 export function useGardenUrlSync(): GardenUrlSyncResult {
   const [searchParams, setSearchParams] = useSearchParams();

@@ -16,7 +16,7 @@ export default function GardenView() {
     <CanvasRouteFrame ref={garden.containerRef}>
       <GardenSheetDescriptor
         hypercertId={garden.hypercertId}
-        onCloseHypercertSheet={garden.handleCloseHypercertSheet}
+        closeTo={garden.hypercertSheetCloseTo}
       />
 
       <CanvasRouteHeader

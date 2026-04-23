@@ -123,8 +123,8 @@ describe("useGardenUrlSync", () => {
     expect(result.current.tab).toBe("actions");
   });
 
-  it("openItem adds ?item= param to URL", () => {
-    const wrapper = createRouterWrapper(["/hub"]);
+  it("openItem adds ?item= param to URL for non-Hub canvas filters", () => {
+    const wrapper = createRouterWrapper(["/garden/overview"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -135,8 +135,8 @@ describe("useGardenUrlSync", () => {
     expect(result.current.item).toBe("item-456");
   });
 
-  it("closeItem removes ?item= param", () => {
-    const wrapper = createRouterWrapper(["/hub?item=item-789"]);
+  it("closeItem removes ?item= param for non-Hub canvas filters", () => {
+    const wrapper = createRouterWrapper(["/garden/overview?item=item-789"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 

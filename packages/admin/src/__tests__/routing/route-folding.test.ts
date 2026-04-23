@@ -17,10 +17,13 @@ const srcDir = resolve(__dirname, "../../");
 const routerPath = resolve(srcDir, "router.tsx");
 const routeViewsPath = resolve(srcDir, "routes/views.tsx");
 const workViewPath = resolve(srcDir, "views/Hub/index.tsx");
+const hubControllerPath = resolve(srcDir, "views/Hub/useHubWorkbenchController.ts");
 const hubSheetDescriptorPath = resolve(srcDir, "views/Hub/components/HubSheetDescriptor.tsx");
-const sheetContentIdsPath = resolve(srcDir, "routes/sheetContentIds.ts");
+const sheetRegistryPath = resolve(srcDir, "routes/sheetRegistry.ts");
 const communityViewPath = resolve(srcDir, "views/Community/index.tsx");
 const profileViewPath = resolve(srcDir, "views/Profile/index.tsx");
+const canvasLayoutPath = resolve(srcDir, "components/Layout/CanvasLayout.tsx");
+const rightSheetRegistryPath = resolve(srcDir, "components/Layout/RightSheetRegistry.tsx");
 const sharedAdminRoutesPath = resolve(srcDir, "../../shared/src/utils/navigation/admin-routes.ts");
 
 function readSource(path: string): string {
@@ -61,6 +64,7 @@ describe("route folding", () => {
     expect(hubRouteBlock).toContain('path: "assess"');
     expect(hubRouteBlock).toContain('path: "certify"');
     expect(hubRouteBlock).toContain('path: "history"');
+    expect(hubRouteBlock).toContain('path: ":historyEventId"');
     expect(routeViews).toContain('const hubView = lazyView(() => import("@/views/Hub"));');
     expect(hubRouteBlock.match(/lazy:\s*hubView/g)?.length).toBeGreaterThanOrEqual(5);
     expect(hubRouteBlock).not.toMatch(/WorkDetail/);
@@ -70,22 +74,37 @@ describe("route folding", () => {
   it("Work view owns the bounded Hub detail and submit panels", () => {
     // Panels are composed in the Hub sheet descriptor; content-id constants live with route helpers.
     const hubSheetDescriptor = readSource(hubSheetDescriptorPath);
-    const sheetContentIds = readSource(sheetContentIdsPath);
+    const sheetRegistry = readSource(sheetRegistryPath);
 
     expect(hubSheetDescriptor).toContain("WorkDetailPanel");
     expect(hubSheetDescriptor).toContain("SubmitWorkPanel");
-    expect(sheetContentIds).toContain("hub:submit-work");
-    expect(sheetContentIds).toContain("hub:work-detail:");
+    expect(sheetRegistry).toContain("hub:submit-work");
+    expect(sheetRegistry).toContain("hub:work-detail:");
+    expect(sheetRegistry).toContain("hub:history:");
+    expect(sheetRegistry).toContain("ADMIN_ROUTE_SHEET_REGISTRY");
   });
 
-  it("Hub canonical builders preserve only garden, sort, and item context", () => {
+  it("global right sheet content is resolved through the admin sheet registry", () => {
+    const sheetRegistry = readSource(sheetRegistryPath);
+    const canvasLayout = readSource(canvasLayoutPath);
+    const rightSheetRegistry = readSource(rightSheetRegistryPath);
+
+    expect(sheetRegistry).toContain("ADMIN_RIGHT_SHEET_REGISTRY");
+    expect(sheetRegistry).toContain("notifications");
+    expect(canvasLayout).toContain("useAdminRightSheetDescriptor");
+    expect(canvasLayout).not.toContain("RIGHT_SHEET_TITLES");
+    expect(rightSheetRegistry).toContain("AccountSurface");
+    expect(rightSheetRegistry).toContain("NotificationPanel");
+  });
+
+  it("Hub canonical builders preserve only garden and sort context", () => {
     const adminRoutesSource = readSource(sharedAdminRoutesPath);
     const contextBlock =
       adminRoutesSource.match(/export interface AdminHubRouteContext \{([\s\S]*?)\n\}/)?.[1] ?? "";
 
     expect(contextBlock).toContain("gardenAddress?: Address | string;");
     expect(contextBlock).toContain("sort?: AdminHubSort;");
-    expect(contextBlock).toContain("item?: string;");
+    expect(contextBlock).not.toContain("item?: string;");
     expect(adminRoutesSource).toContain("hubMode(mode: AdminHubMode");
     expect(adminRoutesSource).toContain("return this.hubWork(context);");
     expect(adminRoutesSource).toContain(
@@ -93,6 +112,24 @@ describe("route folding", () => {
     );
     expect(adminRoutesSource).toContain(
       'return buildAdminHref("/hub/work/submit", buildHubContextSearch(context));'
+    );
+    expect(adminRoutesSource).toContain("hubHistoryDetail(eventId: string");
+    expect(adminRoutesSource).toContain("`/hub/history/${encodeSegment(eventId)}`");
+  });
+
+  it("Hub history row inspectors are route-backed instead of transient sheet opens", () => {
+    const hubController = readSource(hubControllerPath);
+
+    expect(hubController).toContain("historyEventId: routedHistoryEventIdParam");
+    expect(hubController).toContain(
+      "navigate(adminRoutes.hubWorkDetail(event.itemId, hubContext));"
+    );
+    expect(hubController).toContain(
+      "navigate(adminRoutes.hubHistoryDetail(event.id, hubContext));"
+    );
+    expect(hubController).not.toContain('openSheet("left", toHistoryContentId(event.id))');
+    expect(hubController).toContain(
+      "navigate(adminRoutes.hubHistory(hubContext), { replace: true });"
     );
   });
 

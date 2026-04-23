@@ -14,7 +14,6 @@ export type AdminSearchValue = string | number | boolean | null | undefined;
 export interface AdminHubRouteContext {
   gardenAddress?: Address | string;
   sort?: AdminHubSort;
-  item?: string;
 }
 
 export interface AdminGardenRouteContext {
@@ -70,7 +69,6 @@ function buildHubContextSearch(
   return {
     [ADMIN_GARDEN_SHARE_PARAM]: context.gardenAddress,
     sort: context.sort,
-    item: context.item,
   };
 }
 
@@ -116,6 +114,9 @@ export const adminRoutes = {
   },
   hubHistory(context?: AdminHubRouteContext) {
     return this.hubMode("history", context);
+  },
+  hubHistoryDetail(eventId: string, context?: AdminHubRouteContext) {
+    return buildAdminHref(`/hub/history/${encodeSegment(eventId)}`, buildHubContextSearch(context));
   },
   hubWorkDetail(workId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));

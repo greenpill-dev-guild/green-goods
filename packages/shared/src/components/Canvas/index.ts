@@ -20,7 +20,9 @@ export {
   LeftSheetProvider,
   useLeftSheetConfig,
   useLeftSheetConfigValue,
+  useRouteBackedLeftSheetConfig,
   type LeftSheetConfig,
+  type RouteBackedLeftSheetConfig,
 } from "./LeftSheetContext";
 export { GardenChip, type GardenChipProps } from "./GardenChip";
 export {
@@ -30,7 +32,12 @@ export {
   type FabConfig,
   type ToolbarSlot,
 } from "./NavigationBar";
-export { NotificationPanel } from "./NotificationPanel";
+export {
+  NotificationPanel,
+  type NotificationPanelItem,
+  type NotificationPanelProps,
+  type NotificationPanelTone,
+} from "./NotificationPanel";
 export { SheetErrorBoundary, type SheetErrorBoundaryProps } from "./SheetErrorBoundary";
 export {
   SPRING_CONFIGS,

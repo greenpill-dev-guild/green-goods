@@ -75,6 +75,8 @@ function renderPageTransition(initialPath = "/page-a", navTargets = ["/page-a", 
           <Route path="/page-a" element={<PageA />} />
           <Route path="/page-b" element={<PageB />} />
           <Route path="/hub/work/:workId" element={<PageB />} />
+          <Route path="/hub/history" element={<PageB />} />
+          <Route path="/hub/history/:historyEventId" element={<PageB />} />
         </Route>
       </Routes>
     </MemoryRouter>
@@ -217,6 +219,43 @@ describe("PageTransition", () => {
     await waitFor(() => {
       expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("left", "hub:work-detail:item-7");
     });
+  });
+
+  it("restores Hub history sheets when the target URL owns the sheet", async () => {
+    mockOrchestrator.onNavigateArrive.mockReturnValue({
+      sheetOpen: "left",
+      sheetContentId: "hub:history:allocation-1",
+      formState: {},
+      scrollPosition: 0,
+    });
+
+    renderPageTransition("/page-a", ["/page-a", "/hub/history/allocation-1"]);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId("nav-/hub/history/allocation-1"));
+
+    await waitFor(() => {
+      expect(mockOrchestrator.openSheet).toHaveBeenCalledWith("left", "hub:history:allocation-1");
+    });
+  });
+
+  it("does not restore Hub history sheets from legacy item query state", async () => {
+    mockOrchestrator.onNavigateArrive.mockReturnValue({
+      sheetOpen: "left",
+      sheetContentId: "hub:history:allocation-1",
+      formState: {},
+      scrollPosition: 0,
+    });
+
+    renderPageTransition("/page-a", ["/page-a", "/hub/history?item=allocation-1"]);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId("nav-/hub/history?item=allocation-1"));
+
+    await waitFor(() => {
+      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/hub/history");
+    });
+    expect(mockOrchestrator.openSheet).not.toHaveBeenCalled();
   });
 
   it("does not wrap outlet in animate-page-slide-in class", () => {

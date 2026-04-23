@@ -1,4 +1,13 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { useNavigate } from "react-router-dom";
 
 // ----------------------------------------------------------------------------
 // Types
@@ -11,6 +20,13 @@ export interface LeftSheetConfig {
   content: ReactNode;
   /** Called when the sheet is closed (e.g., navigate back) */
   onClose: () => void;
+}
+
+export interface RouteBackedLeftSheetConfig {
+  title: string;
+  content: ReactNode;
+  closeTo: string;
+  onBeforeClose?: () => void;
 }
 
 // ----------------------------------------------------------------------------
@@ -76,4 +92,28 @@ export function useLeftSheetConfig(config: LeftSheetConfig | null) {
 
 export function useLeftSheetConfigValue(): LeftSheetConfig | null {
   return useContext(LeftSheetContext).config;
+}
+
+export function useRouteBackedLeftSheetConfig(config: RouteBackedLeftSheetConfig | null) {
+  const navigate = useNavigate();
+
+  const handleClose = useCallback(() => {
+    if (!config) return;
+    config.onBeforeClose?.();
+    navigate(config.closeTo);
+  }, [config, navigate]);
+
+  const leftSheetConfig = useMemo<LeftSheetConfig | null>(
+    () =>
+      config
+        ? {
+            title: config.title,
+            content: config.content,
+            onClose: handleClose,
+          }
+        : null,
+    [config, handleClose]
+  );
+
+  useLeftSheetConfig(leftSheetConfig);
 }

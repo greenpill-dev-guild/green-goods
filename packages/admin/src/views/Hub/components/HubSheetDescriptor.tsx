@@ -1,10 +1,5 @@
-import {
-  adminRoutes,
-  useLeftSheetConfig,
-  type LeftSheetConfig,
-  type Work,
-} from "@green-goods/shared";
-import { useMemo } from "react";
+import { adminRoutes, useRouteBackedLeftSheetConfig, type Work } from "@green-goods/shared";
+import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { SubmitWorkPanel } from "@/views/Garden/SubmitWork";
@@ -29,8 +24,9 @@ interface HubSheetDescriptorProps {
     | undefined;
   selectedHistoryEvent: ActivityEvent | undefined;
   canManage: boolean;
+  closeTo: string;
   onNavigateToBase: () => void;
-  onClose: () => void;
+  onBeforeClose: () => void;
 }
 
 /**
@@ -45,17 +41,28 @@ export function HubSheetDescriptor({
   selectedCertification,
   selectedHistoryEvent,
   canManage,
+  closeTo,
   onNavigateToBase,
-  onClose,
+  onBeforeClose,
 }: HubSheetDescriptorProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
+  const handlePanelClose = useCallback(() => {
+    onBeforeClose();
+    onNavigateToBase();
+  }, [onBeforeClose, onNavigateToBase]);
 
   const sheetDescriptor = useMemo(() => {
     if (routeSheetContentId === SUBMIT_WORK_CONTENT_ID) {
       return {
         title: formatMessage({ id: "app.admin.work.submit.title", defaultMessage: "Submit Work" }),
-        content: <SubmitWorkPanel layout="sheet" onSuccess={onNavigateToBase} onCancel={onClose} />,
+        content: (
+          <SubmitWorkPanel
+            layout="sheet"
+            onSuccess={handlePanelClose}
+            onCancel={handlePanelClose}
+          />
+        ),
       };
     }
 
@@ -70,7 +77,7 @@ export function HubSheetDescriptor({
           <WorkDetailPanel
             workId={resolvedWorkDetailId}
             layout="sheet"
-            onSuccess={onNavigateToBase}
+            onSuccess={handlePanelClose}
           />
         ),
       };
@@ -105,9 +112,8 @@ export function HubSheetDescriptor({
   }, [
     canManage,
     formatMessage,
+    handlePanelClose,
     navigate,
-    onClose,
-    onNavigateToBase,
     activeWorkDetailId,
     routeSheetContentId,
     routeWorkId,
@@ -116,14 +122,19 @@ export function HubSheetDescriptor({
     selectedWork,
   ]);
 
-  const leftSheetConfig = useMemo<LeftSheetConfig | null>(
+  const routeBackedSheetConfig = useMemo(
     () =>
       sheetDescriptor
-        ? { title: sheetDescriptor.title, content: sheetDescriptor.content, onClose }
+        ? {
+            title: sheetDescriptor.title,
+            content: sheetDescriptor.content,
+            closeTo,
+            onBeforeClose,
+          }
         : null,
-    [sheetDescriptor, onClose]
+    [closeTo, onBeforeClose, sheetDescriptor]
   );
-  useLeftSheetConfig(leftSheetConfig);
+  useRouteBackedLeftSheetConfig(routeBackedSheetConfig);
 
   return null;
 }

@@ -6,7 +6,6 @@ import {
   LeftSheetProvider,
   MainSheet,
   NavigationBar,
-  NotificationPanel,
   RightSheet,
   AppBar,
   useAdminStore,
@@ -29,18 +28,21 @@ import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
-import { AccountProfilePanel } from "./AccountProfilePanel";
-import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { ADMIN_WORKSPACE_VIEWS } from "@/routes/views";
 import {
   ACCOUNT_TAB_SEARCH_PARAM,
-  PROFILE_SHEET_CONTENT_ID,
-  SETTINGS_SHEET_CONTENT_ID,
   OPEN_ACCOUNT_SHEET_EVENT,
   parseAccountSheetTab,
   type AccountSheetTab,
   type OpenAccountSheetEventDetail,
 } from "./accountSheet.events";
+import {
+  NOTIFICATIONS_SHEET_CONTENT_ID,
+  PROFILE_SHEET_CONTENT_ID,
+  SETTINGS_SHEET_CONTENT_ID,
+  type AdminRightSheetContentId,
+} from "@/routes/sheetRegistry";
+import { toAccountSheetContentId, useAdminRightSheetDescriptor } from "./RightSheetRegistry";
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(
@@ -66,12 +68,6 @@ function useMediaQuery(query: string): boolean {
  *
  * Paradigm: Command Surface — thick material, controls visible and ready.
  */
-const RIGHT_SHEET_TITLES: Record<string, { id: string; defaultMessage: string }> = {
-  profile: { id: "cockpit.profile.title", defaultMessage: "Profile" },
-  settings: { id: "cockpit.settings.title", defaultMessage: "Settings" },
-  notifications: { id: "cockpit.notifications.title", defaultMessage: "Notifications" },
-};
-
 export function CanvasLayout() {
   const intl = useIntl();
   const navigate = useNavigate();
@@ -89,6 +85,7 @@ export function CanvasLayout() {
 
   // Sheet orchestrator — manages pane-scoped sheets + main-sheet recession
   const orchestrator = useSheetOrchestrator();
+  const { activeContentId, activeSheet, closeSheet, isReceded, openSheet } = orchestrator;
   // State-driven overlay root: sheets need to re-render once MainSheet mounts
   // its overlay container so `container` flips from null to the bounded div.
   // A plain ref wouldn't trigger re-renders, leaving sheets in unbounded mode
@@ -98,27 +95,38 @@ export function CanvasLayout() {
     setOverlayRoot(node);
   }, []);
   const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
+  const openRightSheetContent = useCallback(
+    (contentId: AdminRightSheetContentId) => {
+      openSheet("right", contentId);
+    },
+    [openSheet]
+  );
+  const rightSheetDescriptor = useAdminRightSheetDescriptor(activeContentId, openRightSheetContent);
+
+  useEffect(() => {
+    if (activeSheet === "right" && rightSheetDescriptor === null) {
+      closeSheet();
+    }
+  }, [activeSheet, closeSheet, rightSheetDescriptor]);
 
   useEffect(() => {
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<OpenAccountSheetEventDetail>).detail;
-      const contentId =
-        detail?.tab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID;
-      orchestrator.openSheet("right", contentId);
+      openRightSheetContent(toAccountSheetContentId(detail?.tab ?? "profile"));
     };
 
     window.addEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
     return () => window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
-  }, [orchestrator]);
+  }, [openRightSheetContent]);
 
   const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
   const openProfile = useCallback(
-    () => orchestrator.openSheet("right", PROFILE_SHEET_CONTENT_ID),
-    [orchestrator]
+    () => openRightSheetContent(PROFILE_SHEET_CONTENT_ID),
+    [openRightSheetContent]
   );
   const openSettings = useCallback(
-    () => orchestrator.openSheet("right", SETTINGS_SHEET_CONTENT_ID),
-    [orchestrator]
+    () => openRightSheetContent(SETTINGS_SHEET_CONTENT_ID),
+    [openRightSheetContent]
   );
 
   // Build toolbar slots — visibility driven by role-adaptive permissions
@@ -185,11 +193,9 @@ export function CanvasLayout() {
       return;
     }
 
-    const contentId =
-      pendingTab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID;
-    orchestrator.openSheet("right", contentId);
+    openRightSheetContent(toAccountSheetContentId(pendingTab));
     pendingDesktopAccountTabRef.current = null;
-  }, [isDesktop, orchestrator, rawWorkspaceId]);
+  }, [isDesktop, openRightSheetContent, rawWorkspaceId]);
 
   // Redirect users with no gardens to home — they see the garden creation CTA there.
   // Hoisted above the early-return ladder below so hook count stays stable across renders.
@@ -277,13 +283,13 @@ export function CanvasLayout() {
               gardenChip={gardenChipNode}
               onOpenSearch={handleOpenSearch}
               onOpenSettings={isDesktop ? openSettings : undefined}
-              onOpenNotifications={() => orchestrator.openSheet("right", "notifications")}
+              onOpenNotifications={() => openRightSheetContent(NOTIFICATIONS_SHEET_CONTENT_ID)}
               onOpenProfile={isDesktop ? openProfile : undefined}
             />
           </div>
 
           {/* ── Body 2: MainSheet — Content Zone (Z2) ── */}
-          <MainSheet isReceded={orchestrator.isReceded} overlayRef={overlayRootRef}>
+          <MainSheet isReceded={isReceded} overlayRef={overlayRootRef}>
             <main
               id="main-content"
               data-region="main-scroll-area"
@@ -314,28 +320,13 @@ export function CanvasLayout() {
           </div>
 
           {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
-          {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
           <RightSheet
-            open={orchestrator.activeSheet === "right"}
-            onClose={() => orchestrator.closeSheet()}
-            title={
-              orchestrator.activeContentId && RIGHT_SHEET_TITLES[orchestrator.activeContentId]
-                ? intl.formatMessage(RIGHT_SHEET_TITLES[orchestrator.activeContentId])
-                : undefined
-            }
+            open={activeSheet === "right" && rightSheetDescriptor !== null}
+            onClose={() => closeSheet()}
+            title={rightSheetDescriptor?.title}
             container={overlayRoot}
           >
-            {orchestrator.activeContentId === PROFILE_SHEET_CONTENT_ID && (
-              <div className="p-5">
-                <AccountProfilePanel />
-              </div>
-            )}
-            {orchestrator.activeContentId === SETTINGS_SHEET_CONTENT_ID && (
-              <div className="p-5">
-                <AccountSettingsPanel />
-              </div>
-            )}
-            {orchestrator.activeContentId === "notifications" && <NotificationPanel />}
+            {rightSheetDescriptor?.content}
           </RightSheet>
 
           {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}

@@ -1,20 +1,17 @@
-import { useLeftSheetConfig, type LeftSheetConfig } from "@green-goods/shared";
+import { useRouteBackedLeftSheetConfig } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import HypercertDetail from "@/views/Garden/HypercertDetail";
 
 interface GardenSheetDescriptorProps {
   hypercertId: string | undefined;
-  onCloseHypercertSheet: () => void;
+  closeTo: string;
 }
 
-export function GardenSheetDescriptor({
-  hypercertId,
-  onCloseHypercertSheet,
-}: GardenSheetDescriptorProps) {
+export function GardenSheetDescriptor({ hypercertId, closeTo }: GardenSheetDescriptorProps) {
   const { formatMessage } = useIntl();
 
-  const gardenLeftSheetConfig = useMemo<LeftSheetConfig | null>(
+  const gardenLeftSheetConfig = useMemo(
     () =>
       hypercertId
         ? {
@@ -23,13 +20,13 @@ export function GardenSheetDescriptor({
               defaultMessage: "Hypercert",
             }),
             content: <HypercertDetail layout="sheet" hypercertId={hypercertId} />,
-            onClose: onCloseHypercertSheet,
+            closeTo,
           }
         : null,
-    [formatMessage, hypercertId, onCloseHypercertSheet]
+    [closeTo, formatMessage, hypercertId]
   );
 
-  useLeftSheetConfig(gardenLeftSheetConfig);
+  useRouteBackedLeftSheetConfig(gardenLeftSheetConfig);
 
   return null;
 }

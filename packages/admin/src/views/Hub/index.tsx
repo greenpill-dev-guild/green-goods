@@ -24,8 +24,9 @@ export default function HubView() {
         selectedCertification={hub.selectedCertification}
         selectedHistoryEvent={hub.selectedHistoryEvent}
         canManage={hub.canManage}
+        closeTo={hub.routeSheetCloseTo}
         onNavigateToBase={hub.navigateToHubBase}
-        onClose={hub.handleCloseSheet}
+        onBeforeClose={hub.handleCloseSheet}
       />
       {!hub.selectedGarden && !hub.routeWorkId && !hub.isSubmitRoute ? (
         <CanvasWorkspaceSelectionState

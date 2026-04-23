@@ -1,11 +1,13 @@
 // packages/shared/src/__tests__/components/Canvas/LeftSheetContext.test.tsx
-import { act, render, renderHook } from "@testing-library/react";
+import { act, render, renderHook, waitFor } from "@testing-library/react";
 import { useEffect, useRef, type ReactNode } from "react";
-import { describe, it, expect } from "vitest";
+import { MemoryRouter, useLocation } from "react-router-dom";
+import { describe, it, expect, vi } from "vitest";
 import {
   LeftSheetProvider,
   useLeftSheetConfig,
   useLeftSheetConfigValue,
+  useRouteBackedLeftSheetConfig,
   type LeftSheetConfig,
 } from "../../../components/Canvas/LeftSheetContext";
 
@@ -191,5 +193,89 @@ describe("useLeftSheetConfig", () => {
     // Each distinct value shows up exactly once.
     expect(snapshots.filter((s) => s?.title === "First")).toHaveLength(1);
     expect(snapshots.filter((s) => s?.title === "Second")).toHaveLength(1);
+  });
+});
+
+describe("useRouteBackedLeftSheetConfig", () => {
+  it("clears the provider config when null is passed", () => {
+    const { result } = renderHook(
+      () => {
+        useRouteBackedLeftSheetConfig(null);
+        return useLeftSheetConfigValue();
+      },
+      {
+        wrapper: ({ children }) => (
+          <MemoryRouter>
+            <LeftSheetProvider>{children}</LeftSheetProvider>
+          </MemoryRouter>
+        ),
+      }
+    );
+
+    expect(result.current).toBeNull();
+  });
+
+  it("maps route-backed sheet config to left sheet config", () => {
+    const content = <div data-testid="content">body</div>;
+    const routeConfig = {
+      title: "Route Sheet",
+      content,
+      closeTo: "/hub/history",
+    };
+
+    const { result } = renderHook(
+      () => {
+        useRouteBackedLeftSheetConfig(routeConfig);
+        return useLeftSheetConfigValue();
+      },
+      {
+        wrapper: ({ children }) => (
+          <MemoryRouter>
+            <LeftSheetProvider>{children}</LeftSheetProvider>
+          </MemoryRouter>
+        ),
+      }
+    );
+
+    expect(result.current?.title).toBe("Route Sheet");
+    expect(result.current?.content).toBe(content);
+    expect(result.current?.onClose).toEqual(expect.any(Function));
+  });
+
+  it("runs onBeforeClose and navigates to closeTo when closed", async () => {
+    const onBeforeClose = vi.fn();
+    const routeConfig = {
+      title: "Route Sheet",
+      content: <div>body</div>,
+      closeTo: "/hub/history?sort=oldest",
+      onBeforeClose,
+    };
+    let config: LeftSheetConfig | null = null;
+    let pathname = "";
+
+    function Consumer() {
+      useRouteBackedLeftSheetConfig(routeConfig);
+      config = useLeftSheetConfigValue();
+      const location = useLocation();
+      pathname = location.pathname + location.search;
+      return null;
+    }
+
+    render(
+      <MemoryRouter initialEntries={["/hub/history/event-1"]}>
+        <LeftSheetProvider>
+          <Consumer />
+        </LeftSheetProvider>
+      </MemoryRouter>
+    );
+
+    expect(config?.onClose).toEqual(expect.any(Function));
+
+    act(() => {
+      config?.onClose();
+    });
+
+    expect(onBeforeClose).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(pathname).toBe("/hub/history?sort=oldest"));
   });
 });

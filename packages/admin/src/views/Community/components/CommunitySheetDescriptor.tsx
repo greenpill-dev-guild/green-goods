@@ -1,7 +1,6 @@
-import { adminRoutes, useLeftSheetConfig, type LeftSheetConfig } from "@green-goods/shared";
+import { adminRoutes, useRouteBackedLeftSheetConfig } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
 import GardenStrategiesView from "@/views/Garden/Strategies";
 import GardenVaultView from "@/views/Garden/Vault";
@@ -20,14 +19,13 @@ export function CommunitySheetDescriptor({
   poolType,
 }: CommunitySheetDescriptorProps) {
   const { formatMessage } = useIntl();
-  const navigate = useNavigate();
 
-  const communitySheet = useMemo<LeftSheetConfig | null>(() => {
+  const communitySheet = useMemo(() => {
     if (isVaultRoute) {
       return {
         title: formatMessage({ id: "app.treasury.title" }),
         content: <GardenVaultView layout="sheet" />,
-        onClose: () => navigate(adminRoutes.communityTreasury()),
+        closeTo: adminRoutes.communityTreasury(),
       };
     }
 
@@ -35,7 +33,7 @@ export function CommunitySheetDescriptor({
       return {
         title: formatMessage({ id: "app.conviction.title" }),
         content: <GardenStrategiesView layout="sheet" />,
-        onClose: () => navigate(adminRoutes.communityGovernance()),
+        closeTo: adminRoutes.communityGovernance(),
       };
     }
 
@@ -48,14 +46,14 @@ export function CommunitySheetDescriptor({
               : "app.signal.hypercertPool.title",
         }),
         content: <GardenSignalPoolView layout="sheet" />,
-        onClose: () => navigate(adminRoutes.communityGovernance()),
+        closeTo: adminRoutes.communityGovernance(),
       };
     }
 
     return null;
-  }, [formatMessage, isSignalPoolRoute, isStrategiesRoute, isVaultRoute, navigate, poolType]);
+  }, [formatMessage, isSignalPoolRoute, isStrategiesRoute, isVaultRoute, poolType]);
 
-  useLeftSheetConfig(communitySheet);
+  useRouteBackedLeftSheetConfig(communitySheet);
 
   return null;
 }
