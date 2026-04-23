@@ -1,6 +1,6 @@
 import { useGardens } from "@green-goods/shared";
 import { useIntl } from "react-intl";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 /**
  * Read-only garden detail with "Join" CTA.
@@ -61,15 +61,15 @@ export default function GardenDetail() {
       </div>
 
       <div className="mt-6">
-        <button
-          type="button"
+        <Link
+          to={`/home/${garden.id}`}
           className="rounded-lg bg-primary-base px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark active:scale-95"
         >
           {formatMessage({
             id: "public.gardens.join",
             defaultMessage: "Join this Garden",
           })}
-        </button>
+        </Link>
       </div>
     </div>
   );

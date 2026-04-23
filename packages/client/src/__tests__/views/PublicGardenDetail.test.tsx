@@ -97,9 +97,12 @@ describe("GardenDetail", () => {
     expect(screen.getByText("2 works")).toBeInTheDocument();
   });
 
-  it("renders Join CTA button", () => {
+  it("routes the Join CTA into the authenticated app garden", () => {
     renderView();
-    expect(screen.getByRole("button", { name: /join this garden/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /join this garden/i })).toHaveAttribute(
+      "href",
+      "/home/garden-1"
+    );
   });
 
   it("shows not-found message for unknown garden", () => {

@@ -37,7 +37,7 @@ describe("useRolePermissions", () => {
 
     expect(result.current).toEqual({
       canSubmitWork: false,
-      canApproveWork: true,
+      canApproveWork: false,
       canCreateAssessment: true,
       canManageRoles: false,
       canManageGarden: false,
@@ -73,7 +73,7 @@ describe("useRolePermissions", () => {
 
     expect(result.current).toEqual({
       canSubmitWork: true,
-      canApproveWork: true,
+      canApproveWork: false,
       canCreateAssessment: true,
       canManageRoles: false,
       canManageGarden: false,

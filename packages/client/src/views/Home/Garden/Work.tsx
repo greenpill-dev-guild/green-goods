@@ -1,11 +1,9 @@
 import {
-  type Address,
   ConfidenceSelector,
   cn,
   DEFAULT_CHAIN_ID,
   downloadWorkData,
   downloadWorkMedia,
-  isAddressInList,
   isValidAttestationId,
   jobQueue,
   openEASExplorer,
@@ -13,8 +11,8 @@ import {
   shareWork,
   toastService,
   useActions,
+  useGardenPermissions,
   useGardens,
-  useHasRole,
   useNavigateToTop,
   useUser,
   useWorkApprovalActions,
@@ -71,25 +69,20 @@ export const GardenWork: React.FC = () => {
 
   const { user, smartAccountClient } = useUser();
   const activeAddress = user?.id;
+  const gardenPermissions = useGardenPermissions();
   const [isRetrying, setIsRetrying] = useState(false);
-  const { hasRole: canReviewOnChain } = useHasRole(
-    garden?.id as Address | undefined,
-    activeAddress as Address | undefined,
-    "evaluator"
-  );
 
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
-    const isOperator = isAddressInList(activeAddress, garden.operators);
-    const canReview = isOperator || canReviewOnChain;
+    const canApproveWork = gardenPermissions.canManageGarden(garden);
     const isGardener = sharedIsUserAddress(work.gardenerAddress, activeAddress);
 
-    if (canReview) return "operator";
+    if (canApproveWork) return "operator";
     if (isGardener) return "gardener";
     return "viewer";
-  }, [garden, work, activeAddress, canReviewOnChain]);
+  }, [garden, work, activeAddress, gardenPermissions]);
 
   // Approval interaction state (extracted to shared hook)
   const {
