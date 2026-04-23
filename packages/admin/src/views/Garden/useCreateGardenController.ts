@@ -104,13 +104,13 @@ export function useCreateGardenController() {
         toastService.info({
           title: intl.formatMessage({
             id: "app.admin.garden.create.teamAssignmentReminder.title",
-            defaultMessage: "Add planned members next",
+            defaultMessage: "Verify planned members",
           }),
           message: intl.formatMessage(
             {
               id: "app.admin.garden.create.teamAssignmentReminder.message",
               defaultMessage:
-                "{count} planned members were not assigned during deployment. Add them from Garden Members.",
+                "{count} planned members were included in deployment. Verify their roles from Garden Members after indexing catches up.",
             },
             { count: plannedMemberCount }
           ),

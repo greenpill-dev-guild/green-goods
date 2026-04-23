@@ -27,7 +27,7 @@ export function TeamStep() {
           {formatMessage({
             id: "app.admin.garden.create.teamAdvisory.message",
             defaultMessage:
-              "These addresses are planning notes. Add them on-chain from Garden Members after deployment.",
+              "These addresses are included in deployment. Verify the role grants from Garden Members after the garden is created.",
           })}
         </p>
         <p className="mt-1">

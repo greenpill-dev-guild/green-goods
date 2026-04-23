@@ -43,7 +43,7 @@ describe("components/Garden/CreateGardenSteps/ReviewStep", () => {
     expect(screen.getByText("Planned operators")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Planned members are not assigned during deployment. Add them from Garden Members after creation."
+        "Planned members are included in deployment. Verify role grants from Garden Members after creation."
       )
     ).toBeInTheDocument();
   });
