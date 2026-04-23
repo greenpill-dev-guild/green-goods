@@ -29,7 +29,7 @@ const longNameGarden = [
 const meta = {
   title: "Shared/Canvas/GardenChip",
   component: GardenChip,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     docs: {
       description: {

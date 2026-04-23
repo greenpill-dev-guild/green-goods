@@ -32,7 +32,7 @@ const sampleContent = (
 const meta = {
   title: "Shared/Canvas/BottomSheet",
   component: BottomSheet,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     viewport: { defaultViewport: "mobile1" },
     layout: "fullscreen",

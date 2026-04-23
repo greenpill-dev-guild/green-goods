@@ -30,7 +30,7 @@ const gardenChipElement = (
 const meta = {
   title: "Shared/Canvas/AppBar",
   component: AppBar,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   decorators: [withCanvasFrame({ heightClassName: "min-h-[240px]" })],
   argTypes: {
     gardenChip: {

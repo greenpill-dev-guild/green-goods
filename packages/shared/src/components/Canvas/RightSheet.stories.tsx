@@ -19,7 +19,7 @@ const sampleContent = (
 const meta: Meta<typeof RightSheet> = {
   title: "Shared/Canvas/RightSheet",
   component: RightSheet,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
   },

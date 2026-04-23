@@ -65,7 +65,7 @@ const submitWorkFab = {
 const meta = {
   title: "Shared/Canvas/NavigationBar",
   component: NavigationBar,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
     docs: {

@@ -36,11 +36,7 @@ const meta: Meta<typeof ImagePreviewDialog> = {
 export default meta;
 type Story = StoryObj<typeof ImagePreviewDialog>;
 
-const sampleImages = [
-  FIXTURE_IMAGE_AGROFORESTRY,
-  FIXTURE_IMAGE_SOLAR,
-  FIXTURE_IMAGE_EDU,
-];
+const sampleImages = [FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_SOLAR, FIXTURE_IMAGE_EDU];
 
 export const Default: Story = {
   args: {

@@ -122,7 +122,7 @@ function MockCanvasLayout({ empty = false, activePath }: MockCanvasLayoutProps) 
 const meta: Meta<typeof MockCanvasLayout> = {
   title: "Admin/Shell/CanvasLayout",
   component: MockCanvasLayout,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
     docs: {

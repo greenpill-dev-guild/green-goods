@@ -6,7 +6,7 @@ import { MainSheet } from "./MainSheet";
 const meta: Meta<typeof MainSheet> = {
   title: "Shared/Canvas/MainSheet",
   component: MainSheet,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   decorators: [withCanvasFrame({ className: "p-4", heightClassName: "min-h-[460px]" })],
   argTypes: {
     isReceded: {

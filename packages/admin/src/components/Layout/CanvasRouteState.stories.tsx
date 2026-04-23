@@ -23,7 +23,10 @@ function CanvasRouteStateCatalog() {
       />
       <CanvasWorkspaceLoadingState />
       <CanvasRouteErrorState message="Unable to load this workspace." />
-      <CanvasRouteErrorState variant="warning" message="You do not have access to this workspace." />
+      <CanvasRouteErrorState
+        variant="warning"
+        message="You do not have access to this workspace."
+      />
     </div>
   );
 }

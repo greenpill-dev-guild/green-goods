@@ -24,7 +24,7 @@ const sampleContent = (
 const meta: Meta<typeof LeftSheet> = {
   title: "Shared/Canvas/LeftSheet",
   component: LeftSheet,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
   },

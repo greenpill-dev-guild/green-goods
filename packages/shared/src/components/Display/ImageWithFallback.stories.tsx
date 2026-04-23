@@ -1,6 +1,10 @@
 import { RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_EDU, FIXTURE_IMAGE_SOLAR } from "../../../.storybook/fixtures";
+import {
+  FIXTURE_IMAGE_AGROFORESTRY,
+  FIXTURE_IMAGE_EDU,
+  FIXTURE_IMAGE_SOLAR,
+} from "../../../.storybook/fixtures";
 import { ImageWithFallback } from "./ImageWithFallback";
 
 const meta: Meta<typeof ImageWithFallback> = {
@@ -55,11 +59,7 @@ export const Gallery: Story = {
         alt="Image 1"
         className="w-24 h-24 rounded-lg object-cover"
       />
-      <ImageWithFallback
-        src=""
-        alt="Image 2 (will fail)"
-        className="w-24 h-24 rounded-lg"
-      />
+      <ImageWithFallback src="" alt="Image 2 (will fail)" className="w-24 h-24 rounded-lg" />
       <ImageWithFallback
         src={FIXTURE_IMAGE_SOLAR}
         alt="Image 3"
