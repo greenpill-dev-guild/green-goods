@@ -51,7 +51,7 @@ This is the core operator path. Use it to stand up a garden, define the assessme
 
 The key permission boundary is simple: work approval requires garden owner/operator authority. Evaluators can make assessments, but they do not approve or reject work unless they also have the operator or owner role.
 
-<div className={styles.roleGrid}>
+<div className={[styles.roleGrid, styles.roleGridTwo].join(" ")}>
   <RolePathCard
     title="Create a Garden"
     href="/community/operator-guide/creating-a-garden"

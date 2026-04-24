@@ -4,6 +4,10 @@
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
 }
 
+.roleGridTwo {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .roleCard {
   --docs-role-accent: var(--ifm-color-primary);
   --docs-role-accent-bg: color-mix(
@@ -918,6 +922,10 @@
 
 @media (max-width: 560px) {
   .roleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .roleGridTwo {
     grid-template-columns: 1fr;
   }
 }
