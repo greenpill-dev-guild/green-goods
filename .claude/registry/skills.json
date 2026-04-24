@@ -8,16 +8,25 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "user_invocable": true,
-      "intent": "Primary planning entry point for execution steps and team coordination, with architecture judgment pulled in internally when boundaries or placement are unclear",
+      "_user_invocable_note": "true for internal routing (bundles + aliases target /plan). SKILL.md frontmatter sets user-invocable:false so the slash is not advertised — activation is passive-only from the triggers below.",
+      "intent": "Passive planning skill — fires automatically on planning or orchestration intent. Routes to teams mode on orchestration signals (teammates, parallel lanes, mixed codex+claude), default mode on standard planning intent, brainstorm mode on fuzzy intent. Bundles + /teams alias continue to route internally through /plan.",
       "entry_file": ".claude/skills/plan/SKILL.md",
       "owned_skills": ["architecture", "testing"],
-      "modes": ["default", "check", "execute", "cleanup", "teams"],
+      "modes": ["default", "check", "execute", "cleanup", "teams", "brainstorm"],
       "triggers": [
-        "/plan",
         "plan this",
+        "break down",
         "create implementation plan",
-        "break down feature",
-        "phased implementation"
+        "phased implementation",
+        "orchestrate",
+        "coordinate a team",
+        "team of agents",
+        "spawn teammates",
+        "parallel lanes",
+        "fire off agents",
+        "multi-agent",
+        "mixed codex and claude",
+        "run this in parallel"
       ],
       "dependencies": [],
       "sub_files": ["teams.md", "brainstorm.md"]
@@ -28,6 +37,7 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "user_invocable": true,
+      "_user_invocable_note": "true for internal routing (aliases + bundles may target /debug). SKILL.md frontmatter sets user-invocable:false so the slash is not advertised — activation is passive-only from the triggers below.",
       "intent": "Root cause investigation and systematic debugging with evidence before fixes",
       "entry_file": ".claude/skills/debug/SKILL.md",
       "owned_skills": ["testing"],
@@ -381,22 +391,6 @@
         "open PR"
       ],
       "dependencies": ["ops", "testing"]
-    },
-    {
-      "name": "stitch",
-      "status": "active",
-      "listed_in_index": false,
-      "default_mode": "interactive",
-      "user_invocable": false,
-      "triggers": [
-        "stitch",
-        "build from stitch",
-        "stitch prompt",
-        "stitch screen",
-        "implement screen"
-      ],
-      "dependencies": ["ui", "design"],
-      "sub_files": []
     }
   ],
   "aliases": {

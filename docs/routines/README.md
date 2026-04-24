@@ -12,13 +12,14 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 - `gg-hotfix.md` — Every 4h during waking hours, Mon-Fri. Narrow hotfix path: takes user-reported p2 bugs moved to `Ready` on the Bug Board, opens solo PRs against `main` with full-suite validation. No fast-lane, no bundling, no critical paths. Complements `gg-auto-implement` (which targets `develop`).
 - `gg-dream-on.md` — Nightly 03:00 cross-project exploration across 5 active guild repos. **Output: session-only markdown brief** — final message in the routine's session history, pleasant to read with morning coffee. Explicitly NEVER opens PRs, issues, branches, files, email, Drive docs, or Discord posts; reads Discord #research + Drive + Calendar + GitHub API read-only.
 - `gg-data-analyst.md` — Weekly Dune + PostHog maintenance; writes PR to develop + issues + Discord #funding highlights
-- `gg-grant-scout.md` — Weekly grant opportunity scouting + proposal drafting for Green Goods & Coop; writes Drive docs + Discord #funding + GitHub Issues
+
+> Grant scouting is no longer a Green Goods routine — it lives at guild level in `greenpill-dev-guild/.github/routines/claude/guild-grant-scout.md`. Green Goods grant/data evidence stays with `gg-data-analyst.md`.
 
 ## Conventions
 
 - All routine PRs target `develop`, never `main`.
 - All routine branches use the `claude/<routine-name>/<topic>` prefix.
-- Dedupe issues by category labels. `gg-morning-watch` uses `health:<category>`; `gg-data-analyst` uses `metrics:<category>`; `gg-grant-scout` uses `grant:<lifecycle>`; `gg-client-polish` uses the umbrella `polish` combined with a **dimension** (`design`, `testing`, `architecture`, `performance`, `quality`) or a **source** (`source:discord`, `source:telegram`, `source:drive`). The `automated/claude` umbrella carries the "this came from a routine" signal.
+- Dedupe issues by category labels. `gg-morning-watch` uses `health:<category>`; `gg-data-analyst` uses `metrics:<category>`; guild-level `guild-grant-scout` uses `grant:<lifecycle>` in the central `.github` repo; `gg-client-polish` uses the umbrella `polish` combined with a **dimension** (`design`, `testing`, `architecture`, `performance`, `quality`) or a **source** (`source:discord`, `source:telegram`, `source:drive`). The `automated/claude` umbrella carries the "this came from a routine" signal.
 - Loop prevention: PR-review filters on `head_branch` starting with `claude/` (not on author — routine PRs carry the user's GitHub author per docs).
 - The original design and rollout plan (2026-04-14) lived under `docs/superpowers/` and were removed once the routines shipped; see git history for the source docs.
 
@@ -70,7 +71,9 @@ Every polish issue carries `polish` plus a dimension/source plus a package-scope
 | `source:telegram` | Reported via Telegram bot |
 | `source:drive` | Surfaced from Drive meeting notes |
 
-**`gg-grant-scout` — grant lifecycle**:
+**`guild-grant-scout` — grant lifecycle**:
+
+Green Goods no longer runs a live project-local grant scout. New grant opportunity tracking is centralized in `greenpill-dev-guild/.github` issues by the guild-level routine. Green Goods data and evidence maintenance remains owned by `gg-data-analyst`.
 
 | Label | Purpose |
 |---|---|
@@ -95,7 +98,7 @@ Routines apply **both** a category label (for dedupe) and `automated/claude` (fo
 
 | Project | Purpose | Starting column | Used by |
 |---|---|---|---|
-| **#4 "Green Goods"** | General kanban — audit findings, ops anomalies, features | `Backlog` | Audit-dimension polish (`polish + {design, testing, architecture, performance, quality}`), health, metrics, grant |
+| **#4 "Green Goods"** | General kanban — audit findings, ops anomalies, features | `Backlog` | Audit-dimension polish (`polish + {design, testing, architecture, performance, quality}`), health, metrics |
 | **#18 "Bug Board"** | Dedicated triage for user-reported bugs | `To triage` | Source-tagged polish (`polish + source:discord`, `polish + source:telegram`) |
 
 Both boards share the lane structure `{starting} → Ready → In progress → In review → Done`.

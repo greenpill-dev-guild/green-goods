@@ -4,16 +4,16 @@ One-page map. Read this first when you need design context — it points to the 
 
 ---
 
-## The four-skill stack
+## The two-skill stack
 
 | Layer | Skill | Owns |
 |-------|-------|------|
-| Direction (what/why) | **`design`** (project, v2.3.3) | Paradigms, Warm Earth language, prompt contracts, 4-lens review, spec, stack self-audit |
-| Implementation (how) | **`ui`** (project, v1.4.1, depends on design) | Tailwind v4, Radix, Storybook, a11y, i18n, 10-step component runbook |
-| AI code pipeline | **`stitch`** (project, v1.1.0) | Fetch from Stitch MCP → implement using existing components |
-| AI prompt work | **`stitch-design`** (user, v2.0.0) | Prompt enhancement, DESIGN.md synthesis, generate/edit screens |
+| Direction (what/why) | **`design`** (project) | Paradigms, Warm Earth language, prompt contracts, 4-lens review, spec, stack self-audit |
+| Implementation (how) | **`ui`** (project, depends on design) | Tailwind v4, Radix, Storybook, a11y, i18n, 10-step component runbook |
 
-Dependency chain: `stitch → ui + design → language.md → theme.css`.
+Dependency chain: `ui → design → language.md → theme.css`.
+
+**AI design tools** (Stitch, Claude Design, Figma Make, Antigravity, etc.) are platform-agnostic consumers of this stack — fed `DESIGN.md` + the surface-specific prompt contract, their output is mapped back to existing components. No platform-specific skill — see `design/SKILL.md § Working with AI Design Tools` for the contract.
 
 ---
 
@@ -38,7 +38,8 @@ Dependency chain: `stitch → ui + design → language.md → theme.css`.
 | I need… | Start here |
 |---------|-----------|
 | Token values (radius, spring, color, material) | `design/quick-reference.md` → `language.md` for full detail |
-| Prompt vocabulary for Stitch / Claude Design / Antigravity / Figma Make | `design/prompt-contract.md` (admin) or `client-prompt-contract.md` |
+| Prompt vocabulary for any AI design tool | `design/prompt-contract.md` (admin) or `client-prompt-contract.md` (client) |
+| How to feed an AI design tool the right context | `design/SKILL.md § Working with AI Design Tools` |
 | Decision: which paradigm for this surface? | `design/SKILL.md § Paradigm Selection` |
 | Decision: which component / primitive? | `ui/SKILL.md § New Component Runbook` (10 steps) |
 | Surface-specific brief | `packages/{admin,client}/DESIGN.md` |
@@ -47,8 +48,6 @@ Dependency chain: `stitch → ui + design → language.md → theme.css`.
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |
 | Regenerative lens specifics | `design/regenerative.md` |
 | Inspiration / books / designers | `design/SKILL.md § Appendix` |
-| Build a screen from a Stitch project | `stitch` skill (triggers on "build from stitch" / "implement screen") |
-| Write or enhance a Stitch prompt | `stitch-design` user skill (symlink at `~/.claude/skills/stitch-design`) |
 | View transitions API | `ui/view-transitions.md` |
 
 ---
@@ -76,7 +75,7 @@ bun run lint:vocab            # banned terms in i18n strings (streak/countdown/l
 AI design tools should map output to these exports. Full palette lives in the prompt contracts; here's the quick locator.
 
 **Admin** (`packages/admin/src/components/`):
-- Layout shell: `CanvasLayout`, `TopContextBar` (AppBar), `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, `NavigationBar`, `AdminFab`
+- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, `NavigationBar`, `AdminFab`
 - M3 wrappers (13): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
@@ -112,4 +111,3 @@ If you're editing more than one component, changing layout composition, creating
 - [client-prompt-contract.md](./client-prompt-contract.md) — Client AI prompt vocabulary + palette
 - Root `DESIGN.md`, `packages/{admin,client}/DESIGN.md` — creative briefs
 - `../ui/SKILL.md` — implementation skill + runbook
-- `../stitch/SKILL.md` — Stitch-to-code pipeline
