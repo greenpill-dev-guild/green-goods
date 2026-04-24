@@ -2,10 +2,12 @@
 title: Funder Guide
 sidebar_label: Overview
 slug: /community/funder-guide/
+description: "Core path for funders: deposit into a garden vault and withdraw when ready."
 audience: funder
 owner: docs
 last_verified: 2026-04-21
 feature_status: Live
+image: /img/social/funder-overview.webp
 goal: "Help funders deposit into a garden vault and withdraw their position when ready."
 difficulty: "quickstart"
 estimated_time: "5-10 minutes."
@@ -23,9 +25,10 @@ keywords:
   - deposit
   - withdraw
   - vault
-  - earth week
+  - user guide
 ---
 
+import {RiArrowGoBackLine, RiWallet3Line} from "@remixicon/react";
 import {RolePathCard, StatusBadge} from "@site/src/components/docs";
 import styles from "@site/src/components/docs/styles.module.css";
 
@@ -35,7 +38,7 @@ import styles from "@site/src/components/docs/styles.module.css";
 
 ## What this helps you do
 
-This is the funder path for Earth Week: deposit into a garden vault, then know exactly where to withdraw your position later.
+This is the core funder path: deposit into a garden vault, then know exactly where to withdraw your position later.
 
 The public `/fund` page is deposit-only. To see your active position or withdraw, use the authenticated app and open the garden's Treasury drawer.
 
@@ -43,7 +46,10 @@ The public `/fund` page is deposit-only. To see your active position or withdraw
   <RolePathCard
     title="Deposit Into a Vault"
     href="/community/funder-guide/funding-a-garden"
-    icon="🏦"
+    image="/img/social/funding-a-garden.webp"
+    imageAlt="Illustrated funders reviewing a garden funding plan"
+    icon={<RiWallet3Line />}
+    roleAccent="funder"
     audience="Funders"
     time="5-10 min"
     description="Choose a garden, pick a supported asset, submit a vault deposit, and confirm your shares appear in the treasury."
@@ -52,7 +58,10 @@ The public `/fund` page is deposit-only. To see your active position or withdraw
   <RolePathCard
     title="Withdraw From a Vault"
     href="/community/funder-guide/withdraw-from-a-vault"
-    icon="↩️"
+    image="/img/social/withdraw-from-a-vault.webp"
+    imageAlt="Illustrated funder checking vault position details"
+    icon={<RiArrowGoBackLine />}
+    roleAccent="funder"
     audience="Funders"
     time="3-5 min"
     description="Open the authenticated Treasury drawer, find your active deposit, choose an amount, and withdraw principal back to your wallet."

@@ -2,10 +2,12 @@
 title: Gardener Guide
 sidebar_label: Overview
 slug: /community/gardener-guide/
+description: "Short path for gardeners: join a garden, submit work, and track review readiness."
 audience: gardener
 owner: docs
 last_verified: 2026-04-21
 feature_status: Live
+image: /img/social/gardener-overview.webp
 goal: "Help gardeners join a garden and submit their first piece of work without getting lost in secondary guides."
 difficulty: "quickstart"
 estimated_time: "10-15 minutes."
@@ -20,9 +22,10 @@ keywords:
   - gardener
   - join garden
   - submit work
-  - earth week
+  - user guide
 ---
 
+import {RiImageLine, RiSeedlingLine} from "@remixicon/react";
 import {RolePathCard, StatusBadge} from "@site/src/components/docs";
 import styles from "@site/src/components/docs/styles.module.css";
 
@@ -32,7 +35,7 @@ import styles from "@site/src/components/docs/styles.module.css";
 
 ## What this helps you do
 
-This is the short path for gardeners during Earth Week: join the right garden, then submit work with clear evidence so an operator can review it.
+This is the short path for gardeners: join the right garden, then submit work with clear evidence so an operator can review it.
 
 You do not need to read every gardener page to get started. These two flows are the ones that matter first.
 
@@ -40,7 +43,10 @@ You do not need to read every gardener page to get started. These two flows are 
   <RolePathCard
     title="Join a Garden"
     href="/community/gardener-guide/joining-a-garden"
-    icon="🌱"
+    image="/img/social/joining-a-garden.webp"
+    imageAlt="Illustrated gardeners joining a garden community"
+    icon={<RiSeedlingLine />}
+    roleAccent="gardener"
     audience="Gardeners"
     time="5 min"
     description="Find the garden you belong to, understand open versus restricted joining, and confirm the garden appears in your app."
@@ -49,7 +55,10 @@ You do not need to read every gardener page to get started. These two flows are 
   <RolePathCard
     title="Submit Work"
     href="/community/gardener-guide/uploading-your-work"
-    icon="📸"
+    image="/img/social/uploading-your-work.webp"
+    imageAlt="Illustrated gardener documenting completed work"
+    icon={<RiImageLine />}
+    roleAccent="gardener"
     audience="Gardeners"
     time="3-8 min"
     description="Choose an action, add media and details, review the submission, and track it while it waits for operator approval."

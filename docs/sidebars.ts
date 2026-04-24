@@ -34,8 +34,8 @@ const sidebars: SidebarsConfig = {
       label: "Where We're Headed",
     },
     // ── Gardener Guide ──
-    // Earth Week focus: join + submit. Other pages remain in the repo for reference
-    // and can return to the sidebar after the live activation.
+    // Current guide focus: join + submit. Other pages remain in the repo for
+    // reference and can return to the sidebar after this week's user-guide pass.
     {
       type: 'category',
       label: 'Gardener Guide',
@@ -50,8 +50,8 @@ const sidebars: SidebarsConfig = {
     },
 
     // ── Operator Guide ──
-    // Earth Week focus: create/approve/assess. Other operator pages stay in the repo
-    // and can be re-surfaced after the activation.
+    // Current guide focus: create/assess/approve/certify. Other operator pages stay in
+    // the repo and can be re-surfaced after this week's user-guide pass.
     {
       type: 'category',
       label: 'Operator Guide',
@@ -61,13 +61,14 @@ const sidebars: SidebarsConfig = {
       },
       items: [
         {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Create a Garden'},
-        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Approve Work'},
         {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Make an Assessment'},
+        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Approve Work'},
+        {type: 'doc', id: 'community/operator-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
       ],
     },
 
     // ── Funder Guide ──
-    // Earth Week focus: deposit + withdraw. Other funder pages stay in the repo.
+    // Current guide focus: deposit + withdraw. Other funder pages stay in the repo.
     {
       type: 'category',
       label: 'Funder Guide',

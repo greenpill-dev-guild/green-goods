@@ -2,15 +2,17 @@
 title: Approve Work
 sidebar_label: Approve Work
 slug: /community/operator-guide/reviewing-work
+description: "Review gardener submissions, approve or reject evidence, and create work approval attestations."
 audience: operator
 owner: docs
 last_verified: 2026-04-20
 feature_status: Live
+image: /img/social/approving-work.webp
 goal: "Walk an operator through approving or rejecting a gardener's submission, with the exact on-screen steps."
 difficulty: "standard"
 estimated_time: "2-10 minutes per submission."
 prereqs: "Garden owner/operator authority, pending work in the queue, and a signer on the target chain."
-next_steps: "./making-an-assessment"
+next_steps: "./creating-impact-certificates"
 persona_context: "Operators clearing the work queue and giving gardeners timely feedback."
 source_of_truth:
   - packages/client/src/views/Home/Garden/Work.tsx
@@ -26,15 +28,26 @@ keywords:
   - attestation
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/src/components/docs";
 
 # Approve Work
 
 <StatusBadge status="Live" />
 
+<OperatorPathNav />
+
+<GuideOpener
+  image="/img/social/approving-work.webp"
+  alt="An operator comparing field evidence with notes before approving work"
+  label="Operator chapter"
+  roleAccent="operator"
+>
+  Review the evidence, choose approve or reject, then sign.
+</GuideOpener>
+
 ## What this helps you do
 
-Clear a pending work submission in your garden: look at the evidence, approve or reject it, and leave feedback the gardener can act on. Approvals turn into on-chain attestations that feed later assessments, so consistency here pays off downstream.
+Clear a pending work submission in your garden: look at the evidence, approve or reject it, and leave feedback the gardener can act on. Approvals turn into on-chain attestations that should match the assessment frame you set earlier and can later be bundled into an impact certificate.
 
 You can approve work from either the mobile app/PWA or the admin. Use the app when you are already in the garden flow. Use admin when you are clearing a queue across gardens.
 
@@ -70,9 +83,11 @@ Use this when you are on mobile or already looking at the garden.
 
 Use this when you are clearing a larger queue or need desktop context.
 
-1. On the **canvas admin**: open the **Hub** workspace from the left rail — the default view lands on **Work**, pending across every garden you can review. Use the garden picker to narrow.
-2. On the **legacy admin**: open **Gardens** in the left rail, pick your garden, then switch to the **Work** tab inside the garden detail view.
-3. Either way, filter to **Pending** to see what still needs a decision.
+1. Open the **Hub** workspace from the left rail. The default view lands on **Work**, pending across every garden you can review.
+2. Use the garden picker to narrow the queue when you only want one garden.
+3. Filter to **Pending** to see what still needs a decision.
+
+<img src="/img/screenshots/admin-work-queue.png" alt="Admin work queue filtered to pending submissions" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 > The queue only shows submissions in the **Pending** state. Approved and rejected items move to the history view.
 
@@ -81,6 +96,8 @@ Use this when you are clearing a larger queue or need desktop context.
 1. Click a submission. The Work Detail surface opens with the evidence on the left and the review controls on the right.
 2. Scroll through the media (photos, audio notes) and read the submission details.
 3. Cross-check the gardener's numbers or notes against the action's requirements.
+
+<img src="/img/screenshots/admin-work-detail.png" alt="Admin work detail page with submission evidence and review controls" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 > The status badge at the top of the page says **Pending** until you act.
 
@@ -133,11 +150,11 @@ The gardener's submission creates a work attestation. Your approval or rejection
 ## Next step
 
 <NextBestAction
-  title="Turn approvals into an assessment"
-  why="Once you have a batch of approved work that belongs together, package it into a single impact statement."
-  actionLabel="Make an Assessment"
-  actionHref="./making-an-assessment"
+  title="Mint an impact certificate"
+  why="Once the assessment frame and approved work tell a coherent story, package them into the certificate flow."
+  actionLabel="Mint Impact Certificate"
+  actionHref="./creating-impact-certificates"
   alternatives={[
-    {label: "Create a Garden", href: "./creating-a-garden"},
+    {label: "Make an Assessment", href: "./making-an-assessment"},
   ]}
 />

@@ -2,6 +2,7 @@
 title: Create a Garden
 sidebar_label: Create a Garden
 slug: /community/operator-guide/creating-a-garden
+description: "Deploy a Green Goods garden from admin with current details, domains, and initial team guidance."
 audience: operator
 owner: docs
 last_verified: 2026-04-20
@@ -11,7 +12,7 @@ goal: "Walk an operator through deploying a new garden end-to-end, including the
 difficulty: "standard"
 estimated_time: "10-25 minutes."
 prereqs: "Deployer access, a name and short description, a location, and a rough list of the first team."
-next_steps: "./reviewing-work"
+next_steps: "./making-an-assessment"
 persona_context: "Operators setting up a new garden so gardeners can start submitting work against it."
 source_of_truth:
   - packages/admin/src/views/Garden/CreateGarden.tsx
@@ -28,20 +29,31 @@ keywords:
   - garden setup
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/src/components/docs";
 
 # Create a Garden
 
 <StatusBadge status="Live" />
 
+<OperatorPathNav />
+
+<GuideOpener
+  image="/img/social/creating-a-garden.webp"
+  alt="An operator preparing garden setup materials beside maps and planting plans"
+  label="Operator chapter"
+  roleAccent="operator"
+>
+  Set garden details, seed the first team, then deploy.
+</GuideOpener>
+
 ## What this helps you do
 
 Deploy a brand-new garden in the Green Goods admin so your community can start submitting work against it. This is a one-time setup — you will not redo it once the garden is live.
 
-Creating a garden is a **deployer-level action**. If you are already an operator inside an existing garden, you probably don't need this page. Jump straight to [Approve Work](./reviewing-work) or [Make an Assessment](./making-an-assessment).
+Creating a garden is a **deployer-level action**. If you are already an operator inside an existing garden, you probably don't need this page. Jump straight to [Make an Assessment](./making-an-assessment) to set the reporting frame, or [Approve Work](./reviewing-work) if the garden already has one.
 
 :::note Admin route
-The current canvas admin create route is `/garden/create`. If you are still on an older admin build, the equivalent route may appear as `/gardens/create` and the team step may be labelled **Community**. The fields and deploy action are the same.
+The current admin create route is `/garden/create`. Use that route when you need to open the form directly.
 :::
 
 ## Before you start
@@ -68,7 +80,9 @@ You need to be online to deploy — the form will block submission if you lose c
 1. In admin, open **Gardens** in the left sidebar, then click **Create** (or go directly to `/garden/create`).
 2. If you hit a 404 or a permissions warning, you don't have deployer access yet. Stop here and ask the team.
 
-The form opens on **Garden details**. Fill the required fields, pick the garden's domains, then click **Continue**. Step 2 plans the initial team and joining policy. Step 3 reviews everything before you sign the deploy transaction.
+The form opens on **Garden details**. Fill the required fields, pick the garden's domains, then click **Continue**. Step 2 plans the initial team. Step 3 reviews everything before you sign the deploy transaction.
+
+<img src="/img/screenshots/admin-create-garden.png" alt="Admin create garden form showing garden details and domain selection" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 ### Step 2: Fill in Garden details
 
@@ -79,24 +93,24 @@ The form opens on **Garden details**. Fill the required fields, pick the garden'
 5. Select the **domains** this garden will run. Pick only what you actually plan to use — adding a domain later is easier than explaining unused ones.
 6. Click **Continue**.
 
-### Step 3: Plan the initial team (labelled "Community" on legacy admin)
+### Step 3: Plan the initial team
 
 1. Add the wallet addresses of the **operators** you want to seed the garden with.
 2. Add the **gardeners** who will be submitting work from day one.
-3. Choose the **joining policy**: open means gardeners can join themselves; restricted means operators add or invite gardeners.
-4. You can leave either address list empty and add members later from Garden Members. If you include addresses, the deploy transaction passes them to the contract and the contract attempts to seed their roles during deployment.
+3. You can leave either address list empty and add members later from Garden Members. If you include addresses, the deploy transaction passes them to the contract and the contract attempts to seed their roles during deployment.
+4. The current create form does not expose a joining-policy selector in this step. Treat new gardens as invite-only unless your admin build explicitly shows **Open joining** enabled in review.
 5. Click **Continue**.
 
 ### Step 4: Review and deploy
 
-1. Read back the summary: name, slug, description, joining policy, domains, and planned team.
+1. Read back the summary: name, slug, description, Open joining value, domains, and planned team.
 2. If anything is off, click back into the earlier step and fix it — don't edit by memory.
 3. When everything is right, click **Deploy garden** and approve the transaction in your wallet.
 4. Wait for the transaction to confirm. The wizard stays on this step until it does.
 
 ## How to know it worked
 
-- You are redirected back to the garden list (`/garden` on the canvas admin, `/gardens` on legacy admin).
+- You are redirected back to the garden list at `/garden`.
 - A success toast appears: *"Garden created — Your garden has been deployed successfully."*
 - If you seeded members at step 3, you see a reminder to verify those roles in Garden Members after indexing catches up.
 - The new garden appears in the garden list.
@@ -104,7 +118,7 @@ The form opens on **Garden details**. Fill the required fields, pick the garden'
 
 ## If something goes wrong
 
-- **404 on `/garden/create` or `/gardens/create`.** You are not a deployer, or you are on the wrong admin build. Contact the platform admin instead of working around it.
+- **404 on `/garden/create`.** You are not a deployer, or the route is not available in the current admin build. Contact the platform admin instead of working around it.
 - **"You're offline" toast on Deploy.** The form blocks deployment when the network is down. Reconnect and retry — the form keeps your progress.
 - **Transaction cancelled.** You cancelled the signature in your wallet. Click **Retry deployment** when you are ready.
 - **Transaction failed.** Check the inline error card — it shows the raw wallet message when one is available. Common causes are insufficient gas funds and a wrong chain. Fix the cause and click **Retry deployment**.
@@ -123,11 +137,11 @@ The deploy transaction creates the garden account on-chain, registers it in the 
 ## Next step
 
 <NextBestAction
-  title="Approve work that comes in"
-  why="Once gardeners start submitting work, the next thing you will do is approve or reject it."
-  actionLabel="Approve Work"
-  actionHref="./reviewing-work"
+  title="Set the assessment frame"
+  why="Before the review queue fills up, define the baseline, domain, outcomes, and reporting window that later approvals should support."
+  actionLabel="Make an Assessment"
+  actionHref="./making-an-assessment"
   alternatives={[
-    {label: "Make an Assessment", href: "./making-an-assessment"},
+    {label: "Approve Work", href: "./reviewing-work"},
   ]}
 />

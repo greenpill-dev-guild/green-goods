@@ -1,20 +1,77 @@
 .roleGrid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
 }
 
 .roleCard {
+  --docs-role-accent: var(--ifm-color-primary);
+  --docs-role-accent-bg: color-mix(
+    in srgb,
+    var(--docs-role-accent) 7%,
+    var(--ifm-background-surface-color)
+  );
+
   border: 1px solid var(--ifm-color-emphasis-200);
-  border-radius: 14px;
-  padding: 1rem;
-  background: var(--ifm-background-surface-color);
+  border-radius: 8px;
+  padding: 0.9rem;
+  background: var(--docs-role-accent-bg);
+  position: relative;
+  overflow: hidden;
   transition: border-color 150ms ease, box-shadow 150ms ease;
+  min-width: 0;
+}
+
+.roleCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--docs-role-accent);
+  opacity: 0.72;
+}
+
+.roleCard[data-role-accent="gardener"],
+.guideOpener[data-role-accent="gardener"] {
+  --docs-role-accent: var(--docs-role-gardener);
+}
+
+.roleCard[data-role-accent="operator"],
+.guideOpener[data-role-accent="operator"] {
+  --docs-role-accent: var(--docs-role-operator);
+}
+
+.roleCard[data-role-accent="assessment"],
+.guideOpener[data-role-accent="assessment"] {
+  --docs-role-accent: var(--docs-role-assessment);
+}
+
+.roleCard[data-role-accent="funder"],
+.guideOpener[data-role-accent="funder"] {
+  --docs-role-accent: var(--docs-role-funder);
+}
+
+.roleCard[data-role-accent="builder"],
+.guideOpener[data-role-accent="builder"] {
+  --docs-role-accent: var(--docs-role-builder);
 }
 
 .roleCard:hover {
-  border-color: var(--ifm-color-primary-light);
-  box-shadow: 0 2px 12px color-mix(in srgb, var(--ifm-color-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--docs-role-accent) 45%, var(--ifm-color-emphasis-200));
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--docs-role-accent) 8%, transparent);
+}
+
+.roleCardMedia {
+  margin: -0.9rem -0.9rem 0.75rem;
+  border-bottom: 1px solid var(--ifm-color-emphasis-200);
+  background: color-mix(in srgb, var(--docs-role-accent) 8%, var(--ifm-background-surface-color));
+}
+
+.roleCardImage {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
 }
 
 .roleCardHeader {
@@ -22,6 +79,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .roleCardTitleWrap {
@@ -30,19 +88,28 @@
 
 .roleCardTitle {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  overflow-wrap: anywhere;
 }
 
 .roleCardIcon {
+  display: inline-flex;
+  color: var(--docs-role-accent);
   line-height: 1;
 }
 
+.roleCardIcon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
 .roleCardBody {
-  margin: 0.8rem 0;
+  margin: 0.7rem 0;
   color: var(--ifm-font-color-secondary);
+  font-size: 0.92rem;
 }
 
 .metaList {
@@ -68,7 +135,131 @@
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
+  color: var(--docs-role-accent);
   font-weight: 700;
+}
+
+.guideOpener {
+  --docs-role-accent: var(--ifm-color-primary);
+
+  margin: 0.75rem 0 1.35rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+  background: var(--ifm-background-surface-color);
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(12rem, 18rem) 1fr;
+  align-items: stretch;
+}
+
+.guideOpenerImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: 12rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.guideOpenerCaption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  padding: 0.7rem 0.85rem;
+  border-left: 3px solid var(--docs-role-accent);
+  color: var(--ifm-font-color-secondary);
+  font-size: 0.9rem;
+}
+
+.guideOpenerLabel {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--docs-role-accent) 35%, transparent);
+  border-radius: 999px;
+  padding: 0.18rem 0.55rem;
+  color: var(--docs-role-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.guideOpenerText {
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.pathNav {
+  --docs-role-accent: var(--docs-role-operator);
+
+  margin: 0.75rem 0 1.25rem;
+  padding: 0.6rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--docs-role-accent) 6%, var(--ifm-background-surface-color));
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.pathNavLabel {
+  flex: 0 0 auto;
+  color: var(--docs-role-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pathNavList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.pathNavItem {
+  min-width: 0;
+}
+
+.pathNavLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--ifm-color-emphasis-200);
+  border-radius: 999px;
+  padding: 0.35rem 0.55rem;
+  background: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.pathNavLink:hover,
+.pathNavLink[data-active="true"] {
+  border-color: color-mix(in srgb, var(--docs-role-accent) 52%, var(--ifm-color-emphasis-200));
+  color: var(--docs-role-accent);
+  text-decoration: none;
+}
+
+.pathNavIndex {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--docs-role-accent) 12%, var(--ifm-background-surface-color));
+  color: var(--docs-role-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
 }
 
 .stepFlow {
@@ -476,21 +667,19 @@
 }
 
 .nextAction {
-  border: 1px solid var(--ifm-color-primary-light);
-  border-radius: 14px;
-  padding: 1.25rem;
+  border-top: 1px solid var(--ifm-color-emphasis-200);
+  padding: 1rem 0 0;
   margin-top: 3rem;
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--ifm-color-primary) 6%, var(--ifm-background-surface-color)),
-    color-mix(in srgb, var(--ifm-color-primary) 3%, var(--ifm-background-surface-color))
-  );
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  background: transparent;
 }
 
-.nextAction:hover {
-  border-color: var(--ifm-color-primary);
-  box-shadow: 0 2px 16px color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
+.nextActionMarker {
+  margin: 0 0 0.35rem;
+  color: var(--ifm-color-emphasis-700);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .nextActionTitle {
@@ -507,30 +696,26 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  border-radius: 999px;
-  padding: 0.45rem 1rem;
-  background: var(--ifm-color-primary);
-  color: #fff;
+  border: 1px solid color-mix(in srgb, var(--ifm-color-primary) 35%, var(--ifm-color-emphasis-200));
+  border-radius: 8px;
+  padding: 0.42rem 0.75rem;
+  background: color-mix(in srgb, var(--ifm-color-primary) 6%, transparent);
+  color: var(--ifm-color-primary);
   font-weight: 700;
   text-decoration: none;
-  transition: transform 120ms ease, filter 120ms ease;
+  transition: border-color 120ms ease, background-color 120ms ease;
 }
 
-.nextActionPrimary::after {
-  content: "\2192";
-  font-size: 1.1em;
-  transition: transform 150ms ease;
+.nextActionPrimary svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .nextActionPrimary:hover {
-  color: #fff;
+  color: var(--ifm-color-primary);
   text-decoration: none;
-  filter: brightness(0.92);
-  transform: scale(1.02);
-}
-
-.nextActionPrimary:hover::after {
-  transform: translateX(3px);
+  border-color: var(--ifm-color-primary);
+  background: color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
 }
 
 .nextActionAlternatives {
@@ -553,8 +738,8 @@
 .nextActionPrimary:focus-visible {
   outline: 2px solid var(--ifm-color-primary);
   outline-offset: 2px;
-  filter: brightness(0.92);
-  transform: scale(1.02);
+  border-color: var(--ifm-color-primary);
+  background: color-mix(in srgb, var(--ifm-color-primary) 10%, transparent);
 }
 
 @keyframes cardEnter {
@@ -679,6 +864,32 @@
 }
 
 @media (max-width: 768px) {
+  .roleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guideOpener {
+    grid-template-columns: 1fr;
+  }
+
+  .guideOpenerImage {
+    max-height: 9rem;
+  }
+
+  .guideOpenerCaption {
+    border-left: 0;
+    border-top: 3px solid var(--docs-role-accent);
+  }
+
+  .pathNav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pathNavList {
+    width: 100%;
+  }
+
   .heroHeading {
     font-size: 2rem;
   }
@@ -701,6 +912,12 @@
   }
 
   .atAGlanceGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .roleGrid {
     grid-template-columns: 1fr;
   }
 }

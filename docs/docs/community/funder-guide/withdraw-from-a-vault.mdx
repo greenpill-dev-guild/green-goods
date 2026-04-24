@@ -2,10 +2,12 @@
 title: Withdraw From a Vault
 sidebar_label: Withdraw From a Vault
 slug: /community/funder-guide/withdraw-from-a-vault
+description: "Withdraw part or all of an existing garden vault position from the authenticated Treasury drawer."
 audience: funder
 owner: docs
 last_verified: 2026-04-20
 feature_status: Live
+image: /img/social/withdraw-from-a-vault.webp
 goal: "Walk a funder through withdrawing some or all of their existing position from a garden vault using the authenticated treasury drawer."
 difficulty: "quickstart"
 estimated_time: "3-5 minutes."
@@ -25,11 +27,20 @@ keywords:
   - my deposits
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Withdraw From a Vault
 
 <StatusBadge status="Live" />
+
+<GuideOpener
+  image="/img/social/withdraw-from-a-vault.webp"
+  alt="A funder closing a funding ledger beside garden tools and sunlight"
+  label="Funder chapter"
+  roleAccent="funder"
+>
+  Open your deposit row, choose an amount, then sign withdrawal.
+</GuideOpener>
 
 ## What this helps you do
 
@@ -108,7 +119,7 @@ Withdrawing burns vault shares and transfers the corresponding underlying asset 
 ## Next step
 
 <NextBestAction
-  title="Top up another garden when you're ready"
+  title="Deposit into a vault"
   why="Withdrawals don't lock you out — you can deposit again any time, into the same garden or a different one."
   actionLabel="Deposit Into a Vault"
   actionHref="./funding-a-garden"

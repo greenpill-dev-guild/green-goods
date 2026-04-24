@@ -2,16 +2,18 @@
 title: Make an Assessment
 sidebar_label: Make an Assessment
 slug: /community/operator-guide/making-an-assessment
+description: "Define the garden assessment baseline and reporting frame that approved work should support."
 audience: operator
 owner: docs
 last_verified: 2026-04-20
 feature_status: Live
-goal: "Walk an operator or evaluator through the three-step assessment wizard without confusing assessments with hypercerts."
+image: /img/social/making-an-assessment.webp
+goal: "Walk an operator or evaluator through the three-step assessment wizard as a baseline and reporting-frame attestation."
 difficulty: "standard"
 estimated_time: "15-30 minutes."
-prereqs: "Approved work in the garden, assessment permission, and a clear reporting window."
+prereqs: "Assessment permission, a clear reporting window, and enough context to define the baseline; approved work is needed before final packaging."
 next_steps: "./reviewing-work"
-persona_context: "Operators packaging a body of approved work into a single, reviewable impact statement."
+persona_context: "Operators setting the baseline and reporting frame that later approvals and impact certificates should support."
 source_of_truth:
   - packages/admin/src/views/Garden/Assessment.tsx
   - packages/admin/src/views/Hub/CreateAssessment.tsx
@@ -27,17 +29,28 @@ keywords:
   - garden impact
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/src/components/docs";
 
 # Make an Assessment
 
 <StatusBadge status="Live" />
 
+<OperatorPathNav />
+
+<GuideOpener
+  image="/img/social/making-an-assessment.webp"
+  alt="Operators organizing approved work evidence into an assessment packet"
+  label="Assessment chapter"
+  roleAccent="assessment"
+>
+  Set the baseline, reporting window, and evidence frame.
+</GuideOpener>
+
 ## What this helps you do
 
-Create a standalone **EAS assessment attestation** for a garden. The assessment records the domain, title, description, location, reporting dates, selected actions, metrics, evidence, and strategy context for a body of approved work.
+Create a standalone **EAS assessment attestation** for a garden. In the operator path, this is the baseline and reporting frame: it records the domain, title, description, location, reporting dates, selected actions, metrics, evidence, and strategy context that later approval work should line up against.
 
-An assessment can support later impact reporting or hypercert work, but it is not itself a hypercert and it is not created from the public Impact page.
+An assessment can support later impact reporting and impact certificates, but it is created from the admin assessment wizard, not from the public Impact page.
 
 :::important Protocol permission
 The assessment resolver accepts attestations from garden evaluators or operators. Owners/operators can manage the garden; evaluators can submit assessments when they have the evaluator role.
@@ -46,7 +59,7 @@ The assessment resolver accepts attestations from garden evaluators or operators
 ## Before you start
 
 - You are signed in as an **operator** or **evaluator** in the garden.
-- The garden has enough **approved work** to tell an honest story — skip this until the queue is cleared.
+- The garden has enough context to set a responsible baseline. If you are making a final evidence-backed assessment rather than an initial frame, wait until the related work is approved.
 - You have a rough sense of:
   - The **domain** you are reporting in (must be one this garden runs).
   - A short **diagnosis** of the situation you acted on.
@@ -64,9 +77,8 @@ The wizard has three steps: **Domain & Context → Strategy Kernel → Actions &
 
 ### Step 1: Open the assessment wizard
 
-1. On the **canvas admin**: open the **Hub** workspace, switch to the **Assess** tab, and click **New assessment** (or go directly to `/hub/assess/create`).
-2. On the **legacy admin**: open **Assessments** in the left rail and click **Create assessment**.
-3. Pick the garden if you haven't already. The wizard refuses to open without one.
+1. Open the **Hub** workspace, switch to the **Assess** tab, and click **New assessment** (or go directly to `/hub/assess/create`).
+2. Pick the garden if you haven't already. The wizard refuses to open without one.
 
 ### Step 2: Fill Domain & Context
 
@@ -95,8 +107,8 @@ The wizard has three steps: **Domain & Context → Strategy Kernel → Actions &
 
 - A success toast appears: *"Assessment submitted — Your assessment has been recorded on-chain."*
 - The wizard closes and you return to the assessment list.
-- The new assessment appears in the grid with its title, domain badge, and reporting date range.
-- Clicking a card opens the attestation on EAS Explorer, where you can verify the decoded fields independently.
+- After indexing catches up, the new assessment appears with its title, domain badge, and reporting date range.
+- If the card exposes an EAS Explorer link, you can open it to verify the attestation independently.
 
 ### Behind the scenes
 
@@ -116,7 +128,7 @@ Every assessment submits one EAS attestation to the garden address. The on-chain
 
 <NextBestAction
   title="Keep the review queue clean"
-  why="Assessments only work if the queue behind them is healthy. Stay on top of incoming submissions."
+  why="With the baseline set, approve or reject incoming submissions against the frame you just created."
   actionLabel="Approve Work"
   actionHref="./reviewing-work"
   alternatives={[

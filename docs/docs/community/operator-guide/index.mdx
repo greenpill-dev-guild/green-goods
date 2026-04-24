@@ -2,31 +2,42 @@
 title: Operator Guide
 sidebar_label: Overview
 slug: /community/operator-guide/
+description: "Core path for operators: create gardens, define the assessment frame, approve work, and mint impact certificates."
 audience: operator
 owner: docs
 last_verified: 2026-04-21
 feature_status: Live
-goal: "Give operators the three live Earth Week flows: create a garden, approve work, and make an assessment."
+image: /img/social/operator-overview.webp
+goal: "Give operators the live path: create a garden, make an assessment, approve work, and mint an impact certificate."
 difficulty: "standard"
 estimated_time: "Varies by flow."
 prereqs: "An operator or deployer account, depending on the task."
 next_steps: "./creating-a-garden"
-persona_context: "Operators setting up gardens, keeping the work queue clean, and packaging approved work into assessments."
+persona_context: "Operators setting up gardens, setting assessment baselines, keeping the work queue clean, and packaging verified work into impact certificates."
 source_of_truth:
   - docs/sidebars.ts
   - packages/contracts/src/resolvers/WorkApproval.sol
   - packages/contracts/src/resolvers/Assessment.sol
   - docs/docs/community/operator-guide/creating-a-garden.mdx
-  - docs/docs/community/operator-guide/reviewing-work.mdx
   - docs/docs/community/operator-guide/making-an-assessment.mdx
+  - docs/docs/community/operator-guide/reviewing-work.mdx
+  - docs/docs/community/operator-guide/creating-impact-certificates.mdx
 keywords:
   - operator
   - create garden
   - approve work
   - assessment
-  - earth week
+  - impact certificate
+  - hypercert
+  - user guide
 ---
 
+import {
+  RiAddLine,
+  RiMedalLine,
+  RiCheckboxCircleLine,
+  RiFileList3Line,
+} from "@remixicon/react";
 import {RolePathCard, StatusBadge} from "@site/src/components/docs";
 import styles from "@site/src/components/docs/styles.module.css";
 
@@ -36,7 +47,7 @@ import styles from "@site/src/components/docs/styles.module.css";
 
 ## What this helps you do
 
-This is the operator path for Earth Week. Use it to stand up a garden, approve or reject incoming work, and turn approved work into an assessment.
+This is the core operator path. Use it to stand up a garden, define the assessment frame or baseline, approve incoming work against that frame, and then mint an impact certificate when the evidence is ready.
 
 The key permission boundary is simple: work approval requires garden owner/operator authority. Evaluators can make assessments, but they do not approve or reject work unless they also have the operator or owner role.
 
@@ -44,34 +55,56 @@ The key permission boundary is simple: work approval requires garden owner/opera
   <RolePathCard
     title="Create a Garden"
     href="/community/operator-guide/creating-a-garden"
-    icon="🧭"
+    image="/img/social/creating-a-garden.webp"
+    imageAlt="Illustrated operator preparing a new garden"
+    icon={<RiAddLine />}
+    roleAccent="operator"
     audience="Deployers"
     time="10-25 min"
     description="Deploy a new garden, set its core details and domains, and understand what still needs to be configured after launch."
     ctaLabel="Create"
   />
   <RolePathCard
+    title="Make an Assessment"
+    href="/community/operator-guide/making-an-assessment"
+    image="/img/social/making-an-assessment.webp"
+    imageAlt="Illustrated operators organizing assessment evidence"
+    icon={<RiFileList3Line />}
+    roleAccent="assessment"
+    audience="Operators and evaluators"
+    time="15-30 min"
+    description="Set the reporting context, outcomes, and evidence frame that later approvals and certificates should line up against."
+    ctaLabel="Assess"
+  />
+  <RolePathCard
     title="Approve Work"
     href="/community/operator-guide/reviewing-work"
-    icon="✅"
+    image="/img/social/approving-work.webp"
+    imageAlt="Illustrated operator reviewing submitted garden work"
+    icon={<RiCheckboxCircleLine />}
+    roleAccent="operator"
     audience="Operators"
     time="2-10 min"
     description="Review a gardener submission from the app or admin, leave useful feedback, and create the approval or rejection attestation."
     ctaLabel="Review"
   />
   <RolePathCard
-    title="Make an Assessment"
-    href="/community/operator-guide/making-an-assessment"
-    icon="📝"
-    audience="Operators and evaluators"
-    time="15-30 min"
-    description="Package approved work into an EAS assessment attestation with domain, context, outcomes, reporting dates, and evidence-backed actions."
-    ctaLabel="Assess"
+    title="Mint Impact Certificate"
+    href="/community/operator-guide/creating-impact-certificates"
+    image="/img/social/mint-impact-certificate.webp"
+    imageAlt="Illustrated operator minting an impact certificate from verified work"
+    icon={<RiMedalLine />}
+    roleAccent="assessment"
+    audience="Operators"
+    time="20-40 min"
+    description="Bundle approved work and assessment context into the Hypercert-backed certificate flow, then review and mint."
+    ctaLabel="Mint"
   />
 </div>
 
 ## Good operating rhythm
 
-1. Keep the pending queue short so gardeners get quick feedback.
-2. Reject weak submissions with specific instructions instead of vague comments.
-3. Make assessments only after the approved work tells a coherent story.
+1. Create the garden and confirm its domains before inviting a wider group.
+2. Define the assessment frame early so the review queue has a clear baseline.
+3. Approve or reject submissions with feedback that maps back to that frame.
+4. Mint an impact certificate only after the evidence chain is strong enough to defend.

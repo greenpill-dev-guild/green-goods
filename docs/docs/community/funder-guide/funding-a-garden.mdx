@@ -2,10 +2,12 @@
 title: Deposit Into a Vault
 sidebar_label: Deposit Into a Vault
 slug: /community/funder-guide/funding-a-garden
+description: "Deposit supported assets into a garden Octant vault from the authenticated app or public fund page."
 audience: funder
 owner: docs
 last_verified: 2026-04-20
 feature_status: Live
+image: /img/social/funding-a-garden.webp
 goal: "Walk a funder through depositing into a garden's vault, either from the authenticated app or the public /fund page."
 difficulty: "quickstart"
 estimated_time: "5-10 minutes for a first deposit."
@@ -26,11 +28,20 @@ keywords:
   - fund page
 ---
 
-import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Deposit Into a Vault
 
 <StatusBadge status="Live" />
+
+<GuideOpener
+  image="/img/social/funding-a-garden.webp"
+  alt="Hands placing a small gold marker beside garden funding notes and seedlings"
+  label="Funder chapter"
+  roleAccent="funder"
+>
+  Choose a garden, enter an amount, then confirm the deposit.
+</GuideOpener>
 
 ## What this helps you do
 
@@ -56,7 +67,7 @@ If the Treasury button doesn't show on the garden, the garden hasn't enabled a v
 
 ### Option A: Deposit from the authenticated app (recommended)
 
-This is the mobile PWA flow gardens use during Earth Week.
+This is the mobile PWA flow for signed-in funders.
 
 1. Sign in to the Green Goods app and open the **Home** screen.
 2. Tap the garden you want to support. The garden detail page opens.
@@ -93,7 +104,7 @@ The `/fund` page is **deposit-only**. It does not display your existing position
 
 ### Behind the scenes
 
-Depositing into an Octant vault mints shares that track your principal claim. Strategies (for example, Aave v3) may generate yield in the background; when harvested, that yield is split across the Cookie Jar, Hypercert fractions, and the community endowment — your principal claim value stays flat by design. You can withdraw any time, up to your available balance.
+Depositing into an Octant vault mints shares that track your principal claim. Strategies (for example, Aave v3) may generate yield in the background; when harvested, that yield is routed through the garden's configured funding paths — your principal claim value stays flat by design. You can withdraw any time, up to your available balance.
 
 ## If something goes wrong
 
@@ -108,7 +119,7 @@ Depositing into an Octant vault mints shares that track your principal claim. St
 ## Next step
 
 <NextBestAction
-  title="Know how to pull funds back out"
+  title="Withdraw from a vault"
   why="Depositing is easy. Knowing exactly how to withdraw is what makes the commitment comfortable."
   actionLabel="Withdraw From a Vault"
   actionHref="./withdraw-from-a-vault"

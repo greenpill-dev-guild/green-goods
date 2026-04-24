@@ -23,6 +23,10 @@ const statusClassByLabel: Record<FeatureStatus, string> = {
 };
 
 export function StatusBadge({status, children}: StatusBadgeProps) {
+  if (status === "Live") {
+    return null;
+  }
+
   return (
     <span className={clsx(styles.statusBadge, statusClassByLabel[status])}>
       {children ?? status}
