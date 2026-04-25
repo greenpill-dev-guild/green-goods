@@ -4,8 +4,16 @@ sidebar_position: 3
 slug: /builders/architecture
 audience: developer
 owner: docs
-last_verified: 2026-03-07
+last_verified: 2026-04-25
 feature_status: Live
+source_of_truth:
+  - AGENTS.md
+  - package.json
+  - docs/sidebars.ts
+  - packages/client/AGENTS.md
+  - packages/admin/AGENTS.md
+  - packages/shared/AGENTS.md
+  - packages/indexer/AGENTS.md
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -14,7 +22,7 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
-Green Goods is an **offline-first, single-chain** platform for documenting regenerative work on-chain. The system is built as a Bun monorepo with six packages that communicate through clearly defined boundaries.
+Green Goods is an **offline-first, single-chain** platform for documenting regenerative work on-chain. The system is built as a Bun monorepo with seven documented package surfaces that communicate through clearly defined boundaries.
 
 ## Package boundaries
 
@@ -26,6 +34,7 @@ Green Goods is an **offline-first, single-chain** platform for documenting regen
 | `packages/contracts` | Solidity modules + deployment scripts |
 | `packages/indexer` | Envio event indexing and GraphQL surface |
 | `packages/agent` | Automation/bot workflows |
+| `packages/ops` | Authenticated local operations service for deploy/upgrade/script jobs |
 
 ## Architecture principles
 
@@ -99,17 +108,6 @@ graph TB
     style Data fill:#fff3e0,stroke:#ef6c00
     style Chain fill:#fce4ec,stroke:#c62828
 ```
-
-## Sibling projects
-
-Green Goods is part of a trio of Greenpill projects that share identity, chain, and attestation infrastructure:
-
-| Project | What it adds | Integration point |
-| --- | --- | --- |
-| **[Coop](https://coop.town)** | Browser-first knowledge capture, local AI refinement, group memory | `Roost` workspace embeds Green Goods member flows; evidence packaging feeds Hypercerts |
-| **[WEFA](https://wefa.app)** | Gamified plant care and nature education | Plant verification creates attestation-grade nurture evidence; energy economy maps to impact |
-
-All three share passkey-first identity, ERC-4337 smart accounts, offline-first architecture, and EAS attestations on Arbitrum. See the [Agent package docs](./packages/agent) for details on how the projects connect.
 
 ## Deep dives
 

@@ -4,20 +4,37 @@ sidebar_label: Hats Protocol
 slug: /builders/integrations/hats
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Live
+source_of_truth:
+  - packages/contracts/src/modules/Hats.sol
+  - packages/contracts/src/interfaces/IHatsModule.sol
+  - packages/shared/src/utils/blockchain/abis/hats.ts
+  - packages/indexer/src/handlers/hatsModule.ts
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Hats Protocol
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+<StatusBadge status="Live" />
 
 ## Overview
-Hats Protocol integration for hierarchical role management in gardens.
+Hats Protocol is the live role-management layer for Green Goods gardens. The contracts define per-garden roles, the indexer listens for role grant/revoke events, and shared/admin surfaces use those roles to determine who can approve work, assess, operate, fund, or submit.
 
-## What to Expect
-- Hat tree structure (Community -> Gardens -> Roles)
-- Role assignment and revocation
-- Authorization model and admin hierarchy
+## Builder notes
+
+- Role logic belongs in shared hooks/utilities before admin or client consume it.
+- Indexer entities should include `chainId` when reflecting role events.
+- Be precise about the admin hierarchy: wearing a role hat is not the same thing as administering that hat.
+- Update deployment docs if tree IDs or community hat addresses change.
+
+<NextBestAction
+  title="Next best action"
+  why="Entity relationships show how Hats roles map onto gardens, work, and approvals."
+  actionLabel="Open entity matrix"
+  actionHref="./entity-matrix"
+  alternatives={[
+    {label: "Architecture ERD", href: "../architecture/erd"},
+  ]}
+/>

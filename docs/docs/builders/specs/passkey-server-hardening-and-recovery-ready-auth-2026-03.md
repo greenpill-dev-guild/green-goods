@@ -2,10 +2,11 @@
 title: "Passkey Server Hardening and Recovery-Ready Auth (March 2026)"
 sidebar_label: Passkey Server Hardening
 slug: /builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03
+unlisted: true
 audience: developer
 owner: docs
 last_verified: 2026-03-26
-feature_status: Proposed
+feature_status: Planned
 ---
 
 # Passkey Server Hardening and Recovery-Ready Authentication

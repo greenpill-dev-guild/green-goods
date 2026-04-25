@@ -5,10 +5,19 @@ slug: /builders/packages/agent
 audience: developer
 owner: docs
 last_verified: 2026-04-19
-feature_status: Experimental
+feature_status: Live
+source_of_truth:
+  - packages/agent/AGENTS.md
+  - packages/agent/package.json
+  - packages/agent/src/index.ts
+  - packages/agent/README.md
 ---
 
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
 # Agent Package
+
+<StatusBadge status="Live" />
 
 ```mermaid
 sequenceDiagram
@@ -30,84 +39,37 @@ sequenceDiagram
 
 ## Overview
 
-Platform-agnostic bot for Green Goods. Currently supports Telegram, with architecture designed for Discord and WhatsApp. Gardeners can submit work via text or voice, operators can approve/reject, and the bot coordinates attestation creation on-chain.
+Bot and webhook service for Green Goods. The current package centers on Telegram, Fastify, AI-assisted media/text handling, rate limiting, persistence, analytics, and blockchain initialization paths.
 
 ### Current capabilities
 
-- Wallet creation and garden membership via `/start` and `/join`
-- Natural language work submission (text and voice via Whisper transcription)
-- Operator approval/rejection workflows
-- On-chain attestation creation and media flows that resolve through the shared Pinata-backed IPFS path
-- Rate limiting, encrypted key storage, and analytics (PostHog)
-
-## Sibling projects
-
-Green Goods is one of three sibling projects in the Greenpill ecosystem. Each occupies a distinct surface and audience, but they share infrastructure, identity, and the attestation chain.
-
-| Project | Surface | Audience | Core loop |
-| --- | --- | --- | --- |
-| **Green Goods** | Offline-first PWA + admin dashboard | Gardeners, operators, evaluators, funders | Document work → verify → certify → fund |
-| **[Coop](https://coop.town)** | Browser extension + companion PWA | Groups, research teams, contributor circles | Capture → refine → review → share |
-| **[WEFA](https://wefa.app)** | Mobile-first game PWA | Young learners (4-12), eco-conscious adults | Nurture plants → evolve creatures → play games → expand |
-
-### How they connect
-
-```mermaid
-graph LR
-    subgraph Identity["Shared Identity"]
-        Passkey["Passkey Auth"]
-        SA["Smart Accounts<br/><small>ERC-4337 + Safe</small>"]
-    end
-
-    subgraph GG["Green Goods"]
-        Attestations["EAS Attestations"]
-        Hypercerts["Hypercerts"]
-        Gardens["Gardens"]
-    end
-
-    subgraph CoopExt["Coop"]
-        Capture["Browser Capture"]
-        Agent["In-browser AI Agent"]
-        CoopFeed["Coop Feed + Archive"]
-        Roost["Roost<br/><small>GG member workspace</small>"]
-    end
-
-    subgraph WEFAApp["WEFA"]
-        PlantCare["Plant Care + Verification"]
-        Creatures["Creature Evolution"]
-        ECS["bitECS Game Engine"]
-    end
-
-    Passkey --> SA
-    SA --> GG
-    SA --> CoopExt
-    SA --> WEFAApp
-
-    Roost -->|"work submission<br/>approvals, assessments"| Attestations
-    CoopFeed -->|"evidence packaging"| Hypercerts
-    PlantCare -->|"nurture attestations"| Attestations
-    Creatures -->|"impact → energy"| Gardens
-```
-
-**Coop → Green Goods**: Coop's `Roost` tab is a full Green Goods member workspace embedded in the extension. Members submit work, operators approve and assess, and Hypercerts are packaged — all from within the browser extension. Coop's shared feed and archive also serve as evidence packaging for impact certificates. The `greengoods` shared module in Coop handles garden maintenance, member provisioning, and GAP reconciliation.
-
-**WEFA → Green Goods**: WEFA turns real-world plant care into game progression (plant → reward → creature → game). Plant verification through Plant.ID creates attestation-grade evidence of nurture activities. WEFA's energy economy (earned through care, spent on creatures) provides a gamified onramp to the same impact documentation pipeline Green Goods tracks on-chain.
-
-**Shared foundations**: All three projects use passkey-first identity (no wallet extensions required), ERC-4337 smart accounts, offline-first architecture, local-first data, and EAS attestations. They share the Greenpill philosophy that impact should equal profit, and they target the same chain (Arbitrum in production).
-
-### The knowledge compounding pattern
-
-Each project captures a different kind of knowledge about regenerative work:
-
-- **Green Goods** captures structured impact evidence (attestations, assessments, Hypercerts)
-- **Coop** captures contextual knowledge (research, links, discussions, evidence packages)
-- **WEFA** captures engagement and learning (plant care records, game progression, skill development)
-
-Together they form a compounding knowledge base: raw field work feeds into structured attestations, contextual research enriches impact certificates, and gamified engagement brings new participants into the documentation pipeline. Each layer makes the others more valuable over time.
+- Telegram bot startup and webhook handling through the package entrypoint.
+- Fastify HTTP server support around the bot runtime.
+- AI-assisted transcription/photo/text processing paths.
+- Rate limiting, database integration, analytics, and structured logging.
+- Blockchain service initialization for Green Goods transaction flows.
 
 ## What to expect
 
-- Ports and adapters architecture for multi-platform support
-- Integration with Claude and other LLMs for natural language parsing
-- Automation workflows for attestation lifecycle
-- Cross-project agent coordination with Coop and WEFA
+- Keep platform claims tied to implemented handlers in this package.
+- Keep analytics privacy boundaries aligned with the package README.
+- Validate agent changes through package tests before claiming bot behavior is live.
+
+## Commands
+
+```bash
+cd packages/agent
+bun run test
+bun run build
+```
+
+<NextBestAction
+  title="Next best action"
+  why="The agent package depends on deployment artifacts and shared data paths for on-chain work."
+  actionLabel="Open API index"
+  actionHref="./api-index"
+  alternatives={[
+    {label: "Agent deploy", href: "../deployments/agent-deploy"},
+    {label: "MCP guide", href: "../agentic/mcp-guide"},
+  ]}
+/>

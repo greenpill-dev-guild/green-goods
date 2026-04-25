@@ -4,8 +4,14 @@ sidebar_label: Status
 slug: /builders/deployments/status
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-25
 feature_status: Live
+source_of_truth:
+  - packages/contracts/deployments/42161-latest.json
+  - packages/contracts/deployments/11155111-latest.json
+  - packages/contracts/deployments/42220-latest.json
+  - packages/indexer/config.yaml
+  - docs/src/data/endpoints.ts
 keywords: [deployment, status, endpoints, chains, contracts, health]
 ---
 
@@ -25,17 +31,18 @@ graph TB
         DC["Docs\ndocs.greengoods.app"]
     end
 
-    subgraph Chains["Contract Chains"]
+    subgraph Chains["Contract Artifacts"]
         Sep["Sepolia 11155111\ntestnet"]
         Arb["Arbitrum 42161\nmainnet"]
-        Celo["Celo 42220\nmainnet"]
+        Celo["Celo 42220\npartial mainnet"]
     end
 
-    Artifacts["deployments/\n{chainId}-latest.json"] -->|addresses| Services
-    Chains -->|events| IX
+    Artifacts["contracts/deployments\n{chainId}-latest.json"] -->|addresses| Services
+    Arb -->|events| IX
+    Sep -->|events| IX
 ```
 
-Overview of all deployed Green Goods services, live endpoints, and chain contract addresses.
+Overview of deployed Green Goods services, chain artifacts, and activation boundaries. A chain can have contract artifacts without having every schema, optional module, frontend build, or indexer surface active.
 
 ## Service Endpoints
 
@@ -51,15 +58,27 @@ Overview of all deployed Green Goods services, live endpoints, and chain contrac
 
 Contract addresses are stored in deployment artifacts at `packages/contracts/deployments/{chainId}-latest.json`. This file is the single source of truth for all addresses.
 
-### Supported Chains
+### Chain Readiness
 
-| Chain | Chain ID | Status | Notes |
-|-------|----------|--------|-------|
-| Sepolia | 11155111 | Active (testnet) | Primary development chain |
-| Arbitrum | 42161 | Active | Production mainnet |
-| Celo | 42220 | Active | Production mainnet |
+| Chain | Chain ID | Contract artifact | EAS schemas | Indexer coverage | Notes |
+|-------|----------|-------------------|-------------|------------------|-------|
+| Sepolia | 11155111 | Present | Work / WorkApproval / Assessment configured in artifact | Present in `packages/indexer/config.yaml` | Primary testnet/development chain |
+| Arbitrum | 42161 | Present | Work / WorkApproval / Assessment configured in artifact | Present in `packages/indexer/config.yaml` | Primary production mainnet target |
+| Celo | 42220 | Present | Work schema UID present; Assessment and WorkApproval schema UIDs are zero in artifact | Not present in `packages/indexer/config.yaml` | Partial mainnet artifact; do not describe as fully indexed/activated |
 
 The target chain is set by `VITE_CHAIN_ID` at build time. Each frontend build is single-chain.
+
+### Optional Module Readiness
+
+Zero addresses in deployment artifacts mean the module is not active on that chain. Optional modules should not be described as live until the relevant module address, schema/indexer state, and UI route are all verified.
+
+| Surface | Current docs posture | Activation signal |
+| --- | --- | --- |
+| Hats roles | Live | Non-zero Hats module + role events indexed for the target chain |
+| Cookie Jar | Implemented, activation pending deployment | Non-zero Cookie Jar module plus active admin/shared flows |
+| Octant vaults | Implemented, activation pending deployment | Non-zero vault/module addresses and indexed vault events |
+| Hypercerts | Implemented, activation pending deployment | Non-zero Hypercert module/marketplace addresses and supported chain path |
+| GreenWill | Implemented, activation pending deployment | Non-zero GreenWill registry in artifacts and indexer config |
 
 ### Deployment Artifact Structure
 

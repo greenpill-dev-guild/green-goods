@@ -6,6 +6,13 @@ audience: developer
 owner: docs
 last_verified: 2026-03-01
 feature_status: Live
+source_of_truth:
+  - packages/client/src
+  - packages/shared/src/modules/auth
+  - packages/shared/src/modules/data
+  - packages/shared/src/hooks/roles
+  - packages/indexer/config.yaml
+  - packages/contracts/src
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -267,7 +274,7 @@ EAS attestations are cryptographic proofs that record and verify specific action
 
 ## Conclusion
 
-Green Goods has the potential to redefine the biodiversity ecosystem by bringing it on-chain with hypercerts and attestations. By using these two primitives and providing a user-friendly experience to create and capture impact, we can help expand the demand for web3 public goods infrastructure and make impact equal profit with retroactive and proactive rewards.
+Green Goods v0.4 moved the earlier biodiversity reporting loop toward a more complete passkey-first stack: field evidence, EAS attestations, tokenbound accounts, Karma reporting, and Hypercert-oriented recognition. The builder takeaway is that each user-facing workflow should stay grounded in simple capture and review steps while preserving the on-chain evidence needed for later funding and reputation surfaces.
 
 ## Resources
 

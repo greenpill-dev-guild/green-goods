@@ -30,7 +30,11 @@ import {NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
 
 ---
 
-## Setting Up Your Work Environment
+## What this helps you do
+
+Use this page to prepare a local Green Goods checkout, choose the right development profile, start the services you need, and verify that the web stack responds before you begin package work.
+
+## Before you start
 
 Before cloning, make sure these tools are installed:
 
@@ -185,7 +189,7 @@ adb reverse tcp:3001 tcp:3001
 Then navigate to `https://localhost:3001` on Android Chrome. Since `localhost` is a secure context, the service worker registers without a trusted CA certificate.
 :::
 
-## First-run checklist
+## How to know it worked
 
 <StepFlow
   steps={[
@@ -222,7 +226,7 @@ bun format
 
 ---
 
-## Troubleshooting & Common Issues
+## If something goes wrong
 
 | Symptom | Cause | Fix |
 | --- | --- | --- |

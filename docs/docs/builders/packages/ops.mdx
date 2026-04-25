@@ -5,42 +5,87 @@ slug: /builders/packages/ops
 audience: developer
 owner: docs
 last_verified: 2026-04-19
-feature_status: Planned
+feature_status: Live
+source_of_truth:
+  - packages/ops/package.json
+  - packages/ops/src/index.ts
+  - packages/ops/src/auth.ts
+  - packages/ops/src/forge.ts
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Ops Package
 
+<StatusBadge status="Live" />
+
 ```mermaid
 graph TB
-    subgraph Scripts["Ops Scripts"]
-        D["deploy.ts\nContract deploy"]
-        U["upgrade.ts\nUUPS upgrades"]
-        V["verify.ts\nPost-deploy checks"]
-        I["ipfs-uploader.ts\nMetadata upload"]
-        R["repin-ipfs-media.ts\nIPFS maintenance"]
+    subgraph Ops["Fastify Ops Service"]
+        Health["GET /health"]
+        Auth["/auth/challenge\n/auth/verify"]
+        Scripts["GET /scripts\nPOST /scripts/run"]
+        Deploy["/deploy/plan\n/deploy/finalize"]
+        Upgrade["/upgrade/plan\n/upgrade/finalize"]
+        Jobs["/jobs\n/jobs/:id/logs"]
     end
 
-    subgraph Targets
-        Chains["Sepolia / Arbitrum / Celo"]
-        IPFS["Pinata-backed IPFS"]
-        ES["Etherscan"]
+    subgraph Runtime
+        Queue["JobQueue"]
+        Executor["executeJob"]
+        Artifacts["artifactOutputDir"]
     end
 
-    D -->|broadcast| Chains
-    U -->|"upgradeTo()"| Chains
-    V -->|verify| ES
-    I -->|upload| IPFS
-    R -->|repin| IPFS
+    Deploy --> Queue
+    Upgrade --> Queue
+    Scripts --> Queue
+    Queue --> Executor
+    Executor --> Artifacts
+    Jobs --> Queue
 ```
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+The ops package is a local Fastify service for authenticated operational jobs. It is not the contract deployment script directory and it is not infrastructure-as-code documentation. It wraps deploy/upgrade/script requests in a queued HTTP surface so an authorized operator can plan, finalize, run, inspect, and stream job logs.
 
-## Overview
-Infrastructure and operations tooling for the Green Goods platform.
+## Service surface
 
-## What to Expect
-- CI/CD pipeline configuration
-- Monitoring and alerting
-- Infrastructure as code
+| Route | Purpose |
+| --- | --- |
+| `GET /health` | Returns service host, port, artifact output directory, and server time. |
+| `POST /auth/challenge` | Creates a wallet-signable challenge for a valid address. |
+| `POST /auth/verify` | Verifies the signature and returns a session token. |
+| `GET /scripts` | Lists allowed script definitions for authenticated sessions. |
+| `POST /deploy/plan` | Queues a deploy planning job. |
+| `POST /deploy/finalize` | Queues a deploy finalization job. |
+| `POST /upgrade/plan` | Queues an upgrade planning job. |
+| `POST /upgrade/finalize` | Queues an upgrade finalization job. |
+| `POST /scripts/run` | Queues an allowed script execution. |
+| `GET /jobs` / `GET /jobs/:jobId` | Lists jobs or returns one job. |
+| `GET /jobs/:jobId/logs` | Streams job logs and status as server-sent events. |
+
+## Builder contract
+
+- Treat auth state, request parsing, queueing, execution, and job serialization as separate surfaces.
+- Keep allowed script definitions explicit; do not add arbitrary shell execution.
+- Preserve the plan/finalize split for deploys and upgrades so operators can inspect before broadcast.
+- Keep generated artifacts under the configured artifact output directory.
+
+## Commands
+
+```bash
+cd packages/ops
+bun run dev
+bun run test
+bun run typecheck
+bun run build
+```
+
+<NextBestAction
+  title="Next best action"
+  why="Contract deployment docs explain the underlying deploy and verification wrappers that ops jobs call into."
+  actionLabel="Open contract deployments"
+  actionHref="../deployments/contracts-deploy"
+  alternatives={[
+    {label: "Deployment status", href: "../deployments/status"},
+    {label: "Contracts package", href: "./contracts"},
+  ]}
+/>

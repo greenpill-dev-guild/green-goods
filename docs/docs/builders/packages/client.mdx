@@ -4,11 +4,20 @@ sidebar_label: Client
 slug: /builders/packages/client
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Live
+source_of_truth:
+  - packages/client/AGENTS.md
+  - packages/client/package.json
+  - packages/client/src/router.tsx
+  - packages/client/vite.config.ts
 ---
 
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
 # Client PWA
+
+<StatusBadge status="Live" />
 
 ```mermaid
 graph TB
@@ -27,21 +36,37 @@ graph TB
     Auth -->|bundler| Pimlico["Pimlico AA"]
 ```
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+The client package is the end-user Green Goods web app. It owns browser/public routes and the installed PWA shell, while hooks, providers, stores, auth helpers, domain logic, and shared components come from `@green-goods/shared`.
 
-## Overview
-Progressive Web App for gardeners to document and submit work.
+## What this package owns
+
+- Public/browser routes through the public shell path.
+- Installed/authenticated PWA routes through the protected app shell and bottom app bar.
+- Mobile-first work submission surfaces, offline queue UX, install guidance, profile/settings, and route composition.
+- Package-local views and components only when the behavior is client-specific.
 
 <div style={{maxWidth: '320px', margin: '1rem auto'}}>
   <img src="/img/screenshots/client-profile.png" alt="Client profile page — user identity, theme settings, and language preferences" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 </div>
 
-## What to Expect
-- Offline-first architecture
-- Passkey authentication flow
-- Job queue and background sync
+## Builder contract
+
+- Keep reusable hooks and providers in `@green-goods/shared`; do not add client-local copies.
+- Preserve the offline-first queue flow for work submissions, including passkey users.
+- Use shared auth APIs and app defaults; do not treat wallet chain state as the app source of truth.
+- Manage media object URLs through shared media utilities so preview blobs are cleaned up.
+- Add any user-facing string to `en`, `es`, and `pt`.
+
+## Commands
+
+```bash
+cd packages/client
+bun run test
+bun run build
+bun run lint
+```
+
+Run repo-level quick verification when a client change reaches into `packages/shared`.
 
 ## Testing on a real device
 
@@ -66,3 +91,14 @@ The client uses `vite-plugin-pwa` with `registerType: "prompt"` — users contro
 4. React Query's IndexedDB cache is busted via `VITE_APP_VERSION` to prevent stale data hydration
 
 The `ipfs-cache` and `image-cache` are preserved across updates since IPFS CIDs are immutable and images are static.
+
+<NextBestAction
+  title="Next best action"
+  why="Most client behavior depends on shared hooks and app-wide domain models."
+  actionLabel="Open shared package"
+  actionHref="./shared"
+  alternatives={[
+    {label: "Client deployment", href: "../deployments/client-deploy"},
+    {label: "Authentication integration", href: "../integrations/passkey"},
+  ]}
+/>

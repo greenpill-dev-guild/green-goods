@@ -4,20 +4,43 @@ sidebar_label: Hypercerts
 slug: /builders/integrations/hypercerts
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Implemented (activation pending deployment)
+source_of_truth:
+  - packages/contracts/src/modules/Hypercerts.sol
+  - packages/contracts/src/markets/HypercertMarketplaceAdapter.sol
+  - packages/shared/src/hooks/hypercerts
+  - packages/admin/src/components/Hypercerts
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Hypercerts
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+<StatusBadge status="Implemented (activation pending deployment)" />
 
 ## Overview
-Hypercert integration for tokenized impact certificates.
+Hypercert support exists across contract modules, marketplace adapter code, shared mint/listing hooks, metadata helpers, and admin wizard surfaces. Production claims should remain deployment-aware because marketplace/module addresses and chain support decide which flows are usable.
 
-## What to Expect
-- Minting flow from assessments
-- Metadata and capital mapping
-- Marketplace listing
+## Current surfaces
+
+- Admin Hypercert wizard and preview components.
+- Shared hooks for minting, allowlists, drafts, listings, approvals, trade history, and marketplace services.
+- Shared metadata, validation, distribution, and Merkle helpers.
+- Indexer events for Hypercert transfers and stored claims.
+
+## Builder notes
+
+- Keep certificate copy aligned with operator guide language.
+- Use shared Hypercert hooks for data and transaction workflows.
+- Treat marketplace-derived support badges and listings as chain-aware; do not imply universal marketplace support.
+
+<NextBestAction
+  title="Next best action"
+  why="The operator-facing certificate guide explains the current user journey this integration supports."
+  actionLabel="Create impact certificates"
+  actionHref="../../community/operator-guide/creating-impact-certificates"
+  alternatives={[
+    {label: "Integrations overview", href: "./overview"},
+  ]}
+/>

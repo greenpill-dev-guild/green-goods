@@ -4,11 +4,20 @@ sidebar_label: Shared
 slug: /builders/packages/shared
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Live
+source_of_truth:
+  - packages/shared/AGENTS.md
+  - packages/shared/package.json
+  - packages/shared/src/MODULES.md
+  - packages/shared/.storybook/main.ts
 ---
 
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
 # Shared Library
+
+<StatusBadge status="Live" />
 
 ```mermaid
 graph TB
@@ -32,14 +41,44 @@ graph TB
     Shared --> Agent
 ```
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+`@green-goods/shared` is the single home for cross-app hooks, providers, stores, modules, types, i18n, utility functions, and Storybook-backed UI foundations. Client, admin, and agent packages should consume shared behavior through the package barrel instead of rebuilding local versions.
 
-## Overview
-Shared hooks, types, utilities, and modules used across all frontend packages.
+## What this package owns
 
-## What to Expect
-- Hook boundary pattern
-- Domain type system
-- i18n and localization
+- Reusable React hooks for gardens, work, actions, roles, auth, media, and async data.
+- Domain types including address-shaped values and shared entity models.
+- Data modules for EAS, Envio GraphQL, IPFS/media, marketplaces, vaults, and other protocol reads.
+- Shared UI foundations, canvas primitives, cards, form helpers, feedback components, and token documentation.
+- i18n dictionaries for all user-facing frontend strings.
+- Storybook aggregation for shared, admin, and client stories.
+
+## Builder contract
+
+- Put reusable hooks and providers here before app packages consume them.
+- Export public APIs through package barrels; avoid teaching downstream packages deep import paths.
+- Use centralized query keys and app chain helpers rather than ad-hoc arrays or wallet-chain defaults.
+- Add tests and Storybook coverage when changing shared UI primitives or major variants.
+- Keep admin-facing primitives aligned with the admin package contract before adding local admin shims.
+
+## Commands
+
+```bash
+cd packages/shared
+bun run test
+bun run typecheck
+bun run coverage
+bun run check:stories
+```
+
+Run `check:story-quality`, `test:stories:ci`, or `build-storybook` when a change touches curated Storybook surfaces.
+
+<NextBestAction
+  title="Next best action"
+  why="Storybook is the review surface for shared UI foundations and curated admin/client states."
+  actionLabel="Open Storybook testing"
+  actionHref="../testing/storybook"
+  alternatives={[
+    {label: "Admin package contract", href: "./admin"},
+    {label: "Client package", href: "./client"},
+  ]}
+/>

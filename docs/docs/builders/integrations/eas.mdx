@@ -6,6 +6,12 @@ audience: developer
 owner: docs
 last_verified: 2026-03-08
 feature_status: Live
+source_of_truth:
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/resolvers/Assessment.sol
+  - packages/shared/src/modules/data/eas.ts
+  - docs/src/data/endpoints.ts
 keywords:
   - eas
   - attestation
@@ -15,6 +21,7 @@ keywords:
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {EAS_GRAPHQL_ENDPOINTS} from "@site/src/data/endpoints";
 
 # EAS (Ethereum Attestation Service)
 
@@ -76,9 +83,9 @@ const easConfig = getEASConfig(chainId);
 ```
 
 **EAS GraphQL endpoints** per chain:
-- Arbitrum: `https://arbitrum.easscan.org/graphql`
-- Celo: `https://celo.easscan.org/graphql`
-- Sepolia: `https://sepolia.easscan.org/graphql`
+- Arbitrum: <code>{EAS_GRAPHQL_ENDPOINTS[42161]}</code>
+- Celo: <code>{EAS_GRAPHQL_ENDPOINTS[42220]}</code>
+- Sepolia: <code>{EAS_GRAPHQL_ENDPOINTS[11155111]}</code>
 
 ### Encoding attestation data
 

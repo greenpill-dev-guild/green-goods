@@ -7,6 +7,11 @@ audience: developer
 owner: docs
 last_verified: 2026-03-07
 feature_status: Live
+source_of_truth:
+  - AGENTS.md
+  - CLAUDE.md
+  - package.json
+  - docs/scripts/docs-audit.mjs
 keywords:
   - contributing
   - pull request
@@ -128,7 +133,7 @@ When contributing documentation:
 - **Use action verbs** in headings
 - **End with one clear next action** using the `NextBestAction` component
 - **Include `source_of_truth`** in frontmatter with real file paths
-- **Use approved status labels** only: `Live`, `Planned`, `Beta`, `Deprecated`
+- **Use approved status labels** only: `Live`, `Live (external source)`, `Implemented (activation pending indexing)`, `Implemented (activation pending deployment)`, `Planned`
 
 Available docs components:
 

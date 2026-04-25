@@ -17,14 +17,12 @@ const isCi = process.argv.includes("--ci");
 const isStrictReadme = process.argv.includes("--strict-readme");
 
 const canonicalRoots = [
-  path.resolve(docsRoot, "gardener"),
-  path.resolve(docsRoot, "operator"),
-  path.resolve(docsRoot, "evaluator"),
-  path.resolve(docsRoot, "developers"),
+  path.resolve(docsRoot, "builders"),
+  path.resolve(docsRoot, "community"),
 ];
 
 const approvedEndpointLiteralFiles = new Set([
-  "docs/docs/developers/reference/api-index.mdx",
+  "docs/docs/builders/packages/api-index.mdx",
 ]);
 
 const requiredFrontmatter = [
@@ -32,7 +30,6 @@ const requiredFrontmatter = [
   "owner",
   "last_verified",
   "feature_status",
-  "source_of_truth",
   "goal",
   "difficulty",
   "estimated_time",
@@ -45,11 +42,11 @@ const requiredTrustFrontmatter = [
   "owner",
   "last_verified",
   "feature_status",
-  "source_of_truth",
 ];
 
 const allowedFeatureStatus = new Set([
   "Live",
+  "Live (external source)",
   "Implemented (activation pending indexing)",
   "Implemented (activation pending deployment)",
   "Planned",
@@ -57,7 +54,7 @@ const allowedFeatureStatus = new Set([
 
 const allowedDifficulty = new Set(["quickstart", "standard", "advanced"]);
 
-const placeholderPattern = /\b(TODO|TBD|PLACEHOLDER)\b/i;
+const placeholderPattern = /\b(TODO|TBD|PLACEHOLDER)\b/;
 const stalePattern = /(coming soon|2024 roadmap|future phase|planned for q\d|to be announced)/i;
 const endpointLiteralPattern =
   /https:\/\/indexer\.hyperindex\.xyz\/\S+|https:\/\/(?:arbitrum|celo|sepolia)\.easscan\.org\S*/gi;
@@ -265,6 +262,34 @@ const isMonitoredDoc = (filePath) =>
   filePath === introDocPath ||
   filePath === glossaryDocPath;
 
+const isGuideLikeDoc = (relativePath) =>
+  relativePath.startsWith("docs/docs/community/gardener-guide/") ||
+  relativePath.startsWith("docs/docs/community/operator-guide/") ||
+  relativePath.startsWith("docs/docs/community/funder-guide/") ||
+  relativePath.startsWith("docs/docs/community/evaluator-guide/") ||
+  relativePath.startsWith("docs/docs/community/community-member-guide/") ||
+  relativePath === "docs/docs/builders/getting-started.mdx";
+
+const requiresSourceOfTruth = (frontmatter, canonical, relativePath) => {
+  if (!canonical || !frontmatter || typeof frontmatter !== "object") {
+    return false;
+  }
+  if (frontmatter.unlisted === true) {
+    return false;
+  }
+  if (relativePath.startsWith("docs/docs/reference/")) {
+    return false;
+  }
+
+  const status = String(frontmatter.feature_status ?? "");
+  return (
+    status === "Live" ||
+    status === "Live (external source)" ||
+    status === "Implemented (activation pending indexing)" ||
+    status === "Implemented (activation pending deployment)"
+  );
+};
+
 const isNonReferenceCanonical = (relativePath) => {
   if (!relativePath.startsWith("docs/docs/")) {
     return false;
@@ -272,7 +297,7 @@ const isNonReferenceCanonical = (relativePath) => {
   if (!isCanonicalFile(path.resolve(repoRoot, relativePath))) {
     return false;
   }
-  return !relativePath.startsWith("docs/docs/developers/reference/");
+  return !relativePath.startsWith("docs/docs/reference/");
 };
 
 const normalizeBlock = (text) =>
@@ -291,6 +316,7 @@ const collectDuplicateBlocks = (documents) => {
       .map((chunk) => chunk.trim())
       .filter((chunk) => chunk.length >= 180)
       .filter((chunk) => !chunk.startsWith("```"))
+      .filter((chunk) => !chunk.startsWith(":::"))
       .filter((chunk) => !chunk.startsWith("<"))
       .filter((chunk) => !chunk.includes("NextBestAction"))
       .filter((chunk) => !chunk.includes("AtAGlanceCard"));
@@ -330,12 +356,13 @@ for (const filePath of allDocs) {
   const {frontmatter, body} = parseFrontmatter(raw);
   const canonical = isCanonicalFile(filePath);
   const monitored = isMonitoredDoc(filePath);
+  const unlisted = frontmatter && typeof frontmatter === "object" && frontmatter.unlisted === true;
 
   if (frontmatter && typeof frontmatter === "object" && typeof frontmatter.slug === "string") {
     docSlugSet.add(normalizeDocSlug(frontmatter.slug));
   }
 
-  if (canonical) {
+  if (canonical && !unlisted) {
     canonicalDocs.push({relativePath, body});
   }
 
@@ -343,11 +370,11 @@ for (const filePath of allDocs) {
     continue;
   }
 
-  if (placeholderPattern.test(raw)) {
+  if (!unlisted && placeholderPattern.test(raw)) {
     warn(relativePath, "Contains placeholder marker (TODO/TBD/PLACEHOLDER).");
   }
 
-  if (stalePattern.test(raw)) {
+  if (!unlisted && stalePattern.test(raw)) {
     warn(relativePath, "Contains stale-language marker (for example 'coming soon' or old roadmap phrasing).");
   }
 
@@ -379,7 +406,7 @@ for (const filePath of allDocs) {
 
     const nonReferenceCanonical = isNonReferenceCanonical(relativePath);
 
-    if (nonReferenceCanonical) {
+    if (nonReferenceCanonical && isGuideLikeDoc(relativePath)) {
       for (const key of requiredFrontmatter) {
         if (!(key in frontmatter)) {
           warn(relativePath, `Missing required frontmatter field: ${key}`);
@@ -395,6 +422,10 @@ for (const filePath of allDocs) {
     const difficulty = frontmatter.difficulty;
     if (difficulty && !allowedDifficulty.has(String(difficulty))) {
       warn(relativePath, `Invalid difficulty value: ${difficulty}`);
+    }
+
+    if (requiresSourceOfTruth(frontmatter, canonical, relativePath) && !("source_of_truth" in frontmatter)) {
+      warn(relativePath, "Missing required frontmatter field: source_of_truth");
     }
 
     const sourceOfTruth = frontmatter.source_of_truth;

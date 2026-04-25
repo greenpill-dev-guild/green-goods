@@ -6,6 +6,11 @@ audience: developer
 owner: docs
 last_verified: 2026-04-08
 feature_status: Live
+source_of_truth:
+  - packages/contracts/AGENTS.md
+  - packages/contracts/package.json
+  - packages/contracts/src
+  - packages/contracts/deployments
 keywords: [solidity, smart contracts, foundry, EAS resolvers, deployment, UUPS, CREATE2, hats protocol]
 ---
 
@@ -60,10 +65,14 @@ Solidity smart contracts for the Green Goods protocol: resolver contracts for on
 ```
 packages/contracts/
   src/            # Solidity contracts
-    core/         # GardenToken, GardenAccount, ActionRegistry
+    accounts/     # Garden account implementation
+    tokens/       # Garden and Goods tokens
+    registries/   # Action, deployment, ENS, power, and GreenWill registries
     modules/      # HatsModule, OctantModule, CookieJarModule, etc.
     resolvers/    # Work, WorkApproval, Assessment EAS resolvers
-    libraries/    # HatsLib (per-chain constants), shared helpers
+    lib/          # Hats, Karma, JSON, string, and TBA helpers
+    strategies/   # Strategy implementations such as AaveV3ERC4626
+    markets/      # Hypercert marketplace adapter
   script/         # TypeScript deploy CLI + Solidity deploy scripts
     deploy/       # core.ts, actions.ts, hats.ts, goods.ts, etc.
     utils/        # build-adaptive.ts, envio-integration.ts, ipfs-uploader.ts

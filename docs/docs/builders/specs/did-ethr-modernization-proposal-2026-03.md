@@ -1,3 +1,14 @@
+---
+title: "DID-ETHR Modernization Proposal (March 2026)"
+sidebar_label: DID-ETHR Modernization
+slug: /builders/specs/did-ethr-modernization-proposal-2026-03
+unlisted: true
+audience: developer
+owner: docs
+last_verified: 2026-04-25
+feature_status: Planned
+---
+
 # Proposal: Modernizing Ethereum DID Standards for AA, Interop, Privacy, and Security
 
 Date: 2026-03-20  
@@ -21,7 +32,7 @@ The goal is to align Ethereum DID usage with current production wallet/account p
 
 - `DID Core v1.0` remains the W3C Recommendation from July 19, 2022.  
   Source: [W3C DID Core](https://www.w3.org/TR/did-core/)
-- `DID v1.1` is active work and currently published as a Candidate Recommendation Snapshot (Feb 21, 2026).  
+- `DID v1.1` is active work and currently published as a Candidate Recommendation Snapshot (Mar 5, 2026). The Feb 21, 2026 publication was a Working Draft.
   Source: [W3C DID v1.1](https://www.w3.org/TR/did-1.1/)
 - `DID Resolution v0.3` is a W3C Working Draft (Mar 9, 2026).  
   Source: [W3C DID Resolution](https://www.w3.org/TR/did-resolution/)

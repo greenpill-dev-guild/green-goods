@@ -2,10 +2,11 @@
 title: "OpenCred VC Login for Geographic Garden Access (March 2026)"
 sidebar_label: OpenCred VC Login
 slug: /builders/specs/opencred-vc-login-for-geographic-garden-access-2026-03
+unlisted: true
 audience: developer
 owner: docs
 last_verified: 2026-03-26
-feature_status: Proposed
+feature_status: Planned
 ---
 
 # OpenCred / Verifiable Credential Login for Geographic Garden Access

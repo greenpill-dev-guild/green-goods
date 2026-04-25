@@ -2,10 +2,11 @@
 title: "GreenWill Implementation Spec (March 2026)"
 sidebar_label: GreenWill Implementation
 slug: /builders/specs/greenwill-gif-implementation-spec-2026-03
+unlisted: true
 audience: developer
 owner: docs
 last_verified: 2026-03-25
-feature_status: Proposed
+feature_status: Planned
 ---
 
 # GreenWill Implementation Spec
@@ -51,7 +52,7 @@ This implementation spec covers GreenWill v1 and the immediate follow-on phase.
 - badge-weighted governance power
 - a full generalized onchain rule engine
 - marketplace parity on every chain
-- leaderboards
+- ranked comparison views
 - streak systems
 - broad garden competition mechanics
 
