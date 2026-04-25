@@ -5,7 +5,7 @@ slug: /builders/integrations/ens
 audience: developer
 owner: docs
 last_verified: 2026-04-25
-feature_status: Implemented (activation pending deployment)
+feature_status: Implemented (activation pending indexing)
 source_of_truth:
   - packages/contracts/src/registries/ENS.sol
   - packages/contracts/src/interfaces/IENS.sol
@@ -17,10 +17,10 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # ENS (Name Service)
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Implemented (activation pending indexing)" />
 
 ## Overview
-ENS support exists in contract registry code and shared ENS hooks/utilities. Activation depends on deployed registry wiring, resolver setup, and the target chain's ENS posture.
+ENS support exists in contract registry code and shared ENS hooks/utilities. Arbitrum and Sepolia artifacts include Green Goods ENS registry addresses, while Celo keeps the module address at zero. Green Goods ENS events are not currently configured in the indexer, so chain claims should stay resolver/indexing-aware.
 
 ## Builder notes
 

@@ -7,11 +7,13 @@ owner: docs
 last_verified: 2026-03-01
 feature_status: Live
 source_of_truth:
-  - packages/client/src
+  - packages/client/src/views/Garden/index.tsx
+  - packages/client/src/views/Home/Garden/Work.tsx
   - packages/shared/src/modules/auth
   - packages/shared/src/modules/data
   - packages/shared/src/hooks/hypercerts
-  - packages/contracts/src
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";

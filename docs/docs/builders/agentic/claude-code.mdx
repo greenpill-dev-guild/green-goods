@@ -8,9 +8,10 @@ last_verified: 2026-04-23
 feature_status: Live
 source_of_truth:
   - CLAUDE.md
-  - .claude/agents
-  - .claude/context
-  - .claude/skills
+  - .claude/agents/cracked-coder.md
+  - .claude/context/shared.md
+  - .claude/context/contracts.md
+  - .claude/skills/index.md
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -145,7 +146,7 @@ Multi-agent teams use the `agent-teams` skill and `/teams` command to spin up pa
   actionLabel="Codex"
   actionHref="./codex"
   alternatives={[
-    {label: "OpenClaw", href: "./openclaw"},
+    {label: "Gemini", href: "./gemini"},
     {label: "MCP Guide", href: "./mcp-guide"},
   ]}
 />

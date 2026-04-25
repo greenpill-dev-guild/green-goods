@@ -5,7 +5,7 @@ slug: /builders/integrations/octant
 audience: developer
 owner: docs
 last_verified: 2026-04-25
-feature_status: Implemented (activation pending deployment)
+feature_status: Live
 source_of_truth:
   - packages/contracts/src/modules/Octant.sol
   - packages/contracts/src/strategies/AaveV3ERC4626.sol
@@ -17,10 +17,10 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Octant Vaults
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Live" />
 
 ## Overview
-Octant-style vault support is implemented in the contracts, shared vault hooks, admin vault views, and indexer handlers. Activation depends on deployed vault/module addresses, strategy configuration, and chain readiness.
+Octant-style vault support is deployed on Arbitrum and Sepolia and implemented in contracts, shared vault hooks, admin vault views, and indexer handlers. Celo artifacts keep the module/factory addresses at zero. Per-garden availability still depends on vault creation, strategy configuration, and chain readiness.
 
 ## Current surfaces
 
@@ -31,7 +31,7 @@ Octant-style vault support is implemented in the contracts, shared vault hooks, 
 
 ## Builder notes
 
-- Gate live docs and UI states on non-zero vault/module addresses.
+- Gate live docs and UI states on non-zero vault/module addresses plus a created garden vault for the target chain.
 - Keep yield and deposit displays sourced from shared vault hooks.
 - Update deployment status when a chain becomes vault-active.
 

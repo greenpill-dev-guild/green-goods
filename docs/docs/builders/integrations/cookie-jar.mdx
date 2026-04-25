@@ -5,7 +5,7 @@ slug: /builders/integrations/cookie-jar
 audience: developer
 owner: docs
 last_verified: 2026-04-25
-feature_status: Implemented (activation pending deployment)
+feature_status: Implemented (activation pending indexing)
 source_of_truth:
   - packages/contracts/src/modules/CookieJar.sol
   - packages/shared/src/hooks/cookie-jar
@@ -17,10 +17,10 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Cookie Jar Allocations
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Implemented (activation pending indexing)" />
 
 ## Overview
-Cookie Jar support is implemented across contracts, shared hooks, and admin Hub components, but production availability depends on deployed module addresses and the connected garden configuration. Treat the code surface as real and the live product surface as activation-gated.
+Cookie Jar support is implemented across contracts, shared hooks, and admin Hub components. Arbitrum and Sepolia artifacts have non-zero Cookie Jar module addresses; Celo does not. The remaining readiness gap is dedicated indexer coverage for Cookie Jar module events and per-garden configuration.
 
 ## Current surfaces
 
@@ -31,13 +31,13 @@ Cookie Jar support is implemented across contracts, shared hooks, and admin Hub 
 
 ## Builder notes
 
-- Gate UI claims on non-zero module addresses and garden eligibility.
+- Gate UI claims on non-zero module addresses, garden eligibility, and chain-specific indexer coverage.
 - Keep deposit/withdraw behavior routed through shared hooks rather than route-local contract calls.
 - Align user-facing status with the community Cookie Jar guide when activation state changes.
 
 <NextBestAction
   title="Next best action"
-  why="Check deployment status before treating Cookie Jar flows as live on a chain."
+  why="Check deployment status before treating Cookie Jar events or payouts as fully active on a chain."
   actionLabel="Deployment status"
   actionHref="../deployments/status"
   alternatives={[

@@ -5,7 +5,7 @@ slug: /builders/integrations/karma
 audience: developer
 owner: docs
 last_verified: 2026-04-25
-feature_status: Implemented (activation pending deployment)
+feature_status: Implemented (activation pending indexing)
 source_of_truth:
   - packages/contracts/src/modules/Karma.sol
   - packages/contracts/src/lib/Karma.sol
@@ -17,10 +17,10 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Karma GAP
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Implemented (activation pending indexing)" />
 
 ## Overview
-Karma GAP support exists in contract modules, libraries, interfaces, and shared error handling. It should be described as activation-gated until the deployed module addresses and user-facing reporting surfaces are confirmed for the target chain.
+Karma GAP support exists in deployed Arbitrum/Sepolia contract modules, libraries, interfaces, and shared error handling. Celo artifacts keep the module at the zero address. Dedicated Karma GAP module events are not currently configured in the indexer, so reporting claims should remain indexing- and UI-gated.
 
 ## Builder notes
 

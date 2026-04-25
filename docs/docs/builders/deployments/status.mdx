@@ -68,17 +68,20 @@ Contract addresses are stored in deployment artifacts at `packages/contracts/dep
 
 The target chain is set by `VITE_CHAIN_ID` at build time. Each frontend build is single-chain.
 
-### Optional Module Readiness
+### Module Readiness By Surface
 
-Zero addresses in deployment artifacts mean the module is not active on that chain. Optional modules should not be described as live until the relevant module address, schema/indexer state, and UI route are all verified.
+Deployment artifacts, indexer config, and UI routes are separate readiness signals. A non-zero module address means the contract surface is deployed on that chain; it does not automatically mean every event is indexed or every user-facing route is production-ready.
 
-| Surface | Current docs posture | Activation signal |
-| --- | --- | --- |
-| Hats roles | Live | Non-zero Hats module + role events indexed for the target chain |
-| Cookie Jar | Implemented, activation pending deployment | Non-zero Cookie Jar module plus active admin/shared flows |
-| Octant vaults | Implemented, activation pending deployment | Non-zero vault/module addresses and indexed vault events |
-| Hypercerts | Implemented, activation pending deployment | Non-zero Hypercert module/marketplace addresses and supported chain path |
-| GreenWill | Implemented, activation pending deployment | Non-zero GreenWill registry in artifacts and indexer config |
+| Surface | Arbitrum 42161 | Sepolia 11155111 | Celo 42220 | Indexer coverage | UI/code surface |
+| --- | --- | --- | --- | --- | --- |
+| Hats roles | Module deployed | Module deployed | Module not deployed | `HatsModule` events configured for Arbitrum/Sepolia | Shared role hooks and admin role views |
+| Cookie Jar | Module deployed | Module deployed | Module not deployed | No dedicated `CookieJarModule` contract in `config.yaml`; yield split amounts are indexed through `YieldSplitter` | Admin Hub Cookie Jar modals and shared Cookie Jar hooks |
+| Octant vaults | Module/factory deployed | Module/factory deployed | Module not deployed | `OctantModule`, dynamic `OctantVault`, and `YieldSplitter` events configured for Arbitrum/Sepolia | Admin vault views and shared vault hooks |
+| Hypercerts | Module and marketplace adapter deployed | Module and marketplace adapter deployed | Module not deployed | `HypercertMinter` events configured; marketplace adapter events are not currently configured | Admin Hypercert wizard/listing components and shared Hypercert hooks |
+| Gardens V2 | Module deployed | Module deployed | Module not deployed | `GardensModule` events are not currently configured | Admin signal-pool view and shared conviction hooks |
+| Karma GAP | Module deployed | Module deployed | Module not deployed | No dedicated `KarmaGAPModule` contract in `config.yaml`; resolver calls are not indexed as module events | Contract/resolver support; no standalone reporting UI verified |
+| ENS | `greenGoodsENS` deployed; `ensReceiver` zero | `greenGoodsENS` and `ensReceiver` deployed | Not deployed | `GreenGoodsENS` events are not currently configured | Shared ENS/profile hooks |
+| GreenWill | No deployment artifact field; indexer address zero | No deployment artifact field; indexer address zero | No deployment artifact field; indexer address zero | Handlers exist, but `GreenWill` address is zero in `config.yaml` | Admin/client badge surfaces are implementation-gated |
 
 ### Deployment Artifact Structure
 
@@ -91,11 +94,11 @@ Each `{chainId}-latest.json` file contains addresses for all deployed contracts:
 - `rootGarden` -- Root garden address and token ID
 - `hats.*` -- Hats Protocol tree addresses
 
-Zero addresses indicate a module has not been deployed yet. This is not a blocker for optional modules.
+Zero addresses or missing module keys indicate a module has not been deployed or wired for that chain yet. This is not a blocker for unrelated protocol surfaces.
 
 ## Hats Protocol Trees
 
-Each chain has a dedicated Hats tree for role management:
+Hats tree constants are defined in `packages/contracts/src/lib/Hats.sol`; module deployment determines whether they are active for a chain:
 
 | Chain | Tree ID | Community Hat |
 |-------|---------|---------------|

@@ -2,16 +2,11 @@
 sidebar_position: 2
 title: Entity Matrix
 slug: /builders/integrations/entity-matrix
+unlisted: true
 audience: developer
 owner: docs
-last_verified: 2026-03-08
-feature_status: Live
-source_of_truth:
-  - docs/docs/builders/integrations/entity-matrix.mdx
-  - packages/shared/src/types
-  - packages/shared/src/hooks
-  - packages/contracts/src/modules
-  - packages/indexer/schema.graphql
+last_verified: 2026-04-25
+feature_status: Planned
 keywords:
   - entity matrix
   - protocol mapping
@@ -24,9 +19,9 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Entity Matrix
 
-<StatusBadge status="Live" />
+<StatusBadge status="Planned" />
 
-A cross-protocol mapping of Green Goods domain entities to their equivalents across 12 partner protocols. Use this as a Rosetta Stone when integrating with external systems or translating between protocol vocabularies.
+This matrix is intentionally unlisted while it waits for a tracked source artifact. Treat it as a draft vocabulary aid, not a canonical integration contract or public source of truth.
 
 ## How to read this table
 
@@ -56,7 +51,7 @@ A cross-protocol mapping of Green Goods domain entities to their equivalents acr
 
 ### Active integrations
 
-These protocols have established entity mappings and active or planned code integrations:
+These protocols have draft entity mappings and active or planned code integrations:
 
 - **Karma GAP**: Project reporting and milestone tracking. Maps all 5 core entities (Garden through Work Approval) and all role types.
 - **Hypercerts**: Impact certification tokens. Maps core entities to Hypercert Data and roles to Creator/Funder/Evaluator.
@@ -87,7 +82,7 @@ When a task involves a partner protocol, use this matrix to translate between vo
 
 ### Maintenance
 
-This matrix is sourced from CharmVerse and should be reviewed quarterly. When new protocol partnerships are established, add columns here and update the CharmVerse source.
+Before listing this page publicly, move the underlying mapping into a tracked source artifact or replace this table with mappings derived directly from repo code and public protocol documentation. When new protocol partnerships are established, add columns only after their source-backed implementation or specification exists.
 
 <NextBestAction
   title="Next best action"

@@ -157,7 +157,7 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // ── Integrations (12 items) ──
+    // ── Integrations ──
     {
       type: 'category',
       label: 'Integrations',
@@ -167,7 +167,6 @@ const sidebars: SidebarsConfig = {
           'External protocols and services integrated into Green Goods.',
       },
       items: [
-        {type: 'doc', id: 'builders/integrations/entity-matrix', label: 'Entity Matrix'},
         {type: 'doc', id: 'builders/integrations/overview', label: 'Overview'},
         {type: 'doc', id: 'builders/integrations/eas', label: 'EAS'},
         {type: 'doc', id: 'builders/integrations/tokenbound', label: 'Tokenbound Accounts'},
@@ -210,7 +209,6 @@ const sidebars: SidebarsConfig = {
           items: [
             {type: 'doc', id: 'builders/agentic/claude-code', label: 'Claude Code'},
             {type: 'doc', id: 'builders/agentic/codex', label: 'Codex'},
-            {type: 'doc', id: 'builders/agentic/openclaw', label: 'OpenClaw'},
             {type: 'doc', id: 'builders/agentic/gemini', label: 'Gemini'},
           ],
         },

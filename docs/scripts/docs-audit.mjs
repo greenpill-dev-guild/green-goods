@@ -60,6 +60,10 @@ const endpointLiteralPattern =
   /https:\/\/indexer\.hyperindex\.xyz\/\S+|https:\/\/(?:arbitrum|celo|sepolia)\.easscan\.org\S*/gi;
 const emptyMarkdownLinkPattern = /\[\s*]\([^)]+\)/;
 const incompletePhrasePattern = /\bsee the\s+for\b/i;
+const broadSourcePathPattern = /^(?:packages\/[^/]+\/src|\.plans|\.claude\/(?:agents|context|skills))$/;
+const projectSpecificExternalClaimPattern =
+  /\b(?:Green Goods (?:uses|relies on|runs|operates|deploys|integrates|adopts)|we (?:use|run|operate|deploy|integrate|adopt)|standing pipeline|production pipeline)\b/i;
+const negatedProjectClaimPattern = /\b(?:that Green Goods|does not|not currently|intentionally not made)\b/i;
 
 const readmeRequiredHeadings = [
   "Quick Start",
@@ -123,6 +127,7 @@ const walk = async (dir) => {
 
 const isExternalHref = (href) =>
   /^https?:\/\//i.test(href) || /^mailto:/i.test(href) || /^tel:/i.test(href);
+const isExternalSourceOfTruth = (sourcePath) => /^https?:\/\//i.test(sourcePath);
 
 const stripHashAndQuery = (href) => href.split("#")[0].split("?")[0];
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -196,6 +201,25 @@ const fileExists = async (relativePath) => {
     return false;
   }
 };
+
+const isWeakSourceOfTruth = (sourcePath, relativePath) => {
+  if (sourcePath === relativePath) {
+    return "source_of_truth cannot cite the document itself.";
+  }
+  if (broadSourcePathPattern.test(sourcePath)) {
+    return `source_of_truth path is too broad: ${sourcePath}`;
+  }
+  return null;
+};
+
+const makesProjectSpecificExternalClaim = (body) =>
+  body
+    .split("\n")
+    .some(
+      (line) =>
+        projectSpecificExternalClaimPattern.test(line) &&
+        !negatedProjectClaimPattern.test(line),
+    );
 
 const auditReadme = async (docSlugSet) => {
   const relativePath = "README.md";
@@ -436,12 +460,35 @@ for (const filePath of allDocs) {
           warn(relativePath, "source_of_truth contains a non-string entry.");
           continue;
         }
-        if (sourcePath.startsWith("http://") || sourcePath.startsWith("https://")) {
+        if (isExternalSourceOfTruth(sourcePath)) {
+          continue;
+        }
+        const weakSourceMessage = isWeakSourceOfTruth(sourcePath, relativePath);
+        if (weakSourceMessage) {
+          warn(relativePath, weakSourceMessage);
           continue;
         }
         if (!(await fileExists(sourcePath))) {
           warn(relativePath, `source_of_truth path not found: ${sourcePath}`);
         }
+      }
+
+      const hasOnlyExternalSources = sourcePaths.every(
+        (sourcePath) => typeof sourcePath === "string" && isExternalSourceOfTruth(sourcePath),
+      );
+      if (
+        hasOnlyExternalSources &&
+        featureStatus !== "Live (external source)" &&
+        requiresSourceOfTruth(frontmatter, canonical, relativePath)
+      ) {
+        warn(relativePath, "source_of_truth needs at least one local source for repo-backed Live or Implemented claims.");
+      }
+      if (
+        hasOnlyExternalSources &&
+        featureStatus === "Live (external source)" &&
+        makesProjectSpecificExternalClaim(body)
+      ) {
+        warn(relativePath, "Live external page makes project-specific usage claims without a local source_of_truth.");
       }
     }
   }

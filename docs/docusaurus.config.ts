@@ -253,7 +253,7 @@ const config: Config = {
           {from: ['/developers/build-patterns'], to: '/builders/build-patterns'},
           {from: ['/developers/operations'], to: '/builders/operations'},
           {from: ['/developers/reference'], to: '/builders/getting-started'},
-          {from: ['/developers/reference/entity-matrix'], to: '/builders/integrations/entity-matrix'},
+          {from: ['/developers/reference/entity-matrix'], to: '/builders/integrations/overview'},
           {from: ['/developers/reference/api-index'], to: '/builders/packages/api-index'},
           {from: ['/developers/reference/docs-writing-guide'], to: '/builders/how-to-contribute'},
           {from: ['/developers/reference/deployment-indexer-status'], to: '/builders/deployments/status'},
