@@ -199,12 +199,12 @@ export default function GardenAssessment() {
         title={formatMessage({ id: "app.garden.admin.assessmentsTitle" })}
         description={formatMessage({ id: "app.garden.admin.assessmentsDescription" })}
         backLink={{
-          to: adminRoutes.gardenImpact({ section: "assessments" }),
+          to: adminRoutes.gardenImpact({ gardenAddress: id, section: "assessments" }),
           label: formatMessage({ id: "app.garden.admin.backToGardens" }),
         }}
         actions={
           <Button size="sm" asChild>
-            <Link to={adminRoutes.hubAssessCreate()}>
+            <Link to={adminRoutes.hubAssessCreate({ gardenAddress: id })}>
               <RiAddLine className="mr-1.5 h-4 w-4" />
               {formatMessage({ id: "app.garden.admin.newAssessment" })}
             </Link>

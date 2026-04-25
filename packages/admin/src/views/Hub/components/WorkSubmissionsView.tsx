@@ -1,4 +1,12 @@
-import { Card, cn, EmptyState, formatRelativeTime, useWorks, type Work } from "@green-goods/shared";
+import {
+  type AdminHubRouteContext,
+  Card,
+  cn,
+  EmptyState,
+  formatRelativeTime,
+  useWorks,
+  type Work,
+} from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
   RiCloseLine,
@@ -22,6 +30,7 @@ interface WorkSubmissionsViewProps {
   lastUpdatedAt?: number;
   initialFilter?: FilterType;
   highlightWorkId?: string;
+  hubContext?: AdminHubRouteContext;
 }
 
 type FilterType = "all" | "pending" | "approved" | "rejected";
@@ -37,6 +46,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
   lastUpdatedAt,
   initialFilter = "pending",
   highlightWorkId,
+  hubContext,
 }) => {
   const intl = useIntl();
   const [activeFilter, setActiveFilter] = useState<FilterType>(initialFilter);
@@ -208,7 +218,7 @@ export const WorkSubmissionsView: React.FC<WorkSubmissionsViewProps> = ({
                   highlightWorkId === work.id && "ring-1 ring-primary-base shadow-sm"
                 )}
               >
-                <WorkCard work={work} canReview={canReview} />
+                <WorkCard work={work} canReview={canReview} hubContext={hubContext} />
               </div>
             ))}
           </div>

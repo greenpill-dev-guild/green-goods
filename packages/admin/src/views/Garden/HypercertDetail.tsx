@@ -94,6 +94,7 @@ export default function HypercertDetail({
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { data: gardens = [] } = useGardens();
   const garden = gardens.find((item) => item.id === selectedGarden?.id);
+  const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id };
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
   const [listingDialogOpen, setListingDialogOpen] = useState(false);
@@ -127,7 +128,7 @@ export default function HypercertDetail({
           title={formatMessage({ id: "app.hypercerts.detail.title" })}
           description={formatMessage({ id: "app.hypercerts.detail.notFound" })}
           backLink={{
-            to: adminRoutes.gardenImpact({ section: "hypercerts" }),
+            to: adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" }),
             label: formatMessage({ id: "app.hypercerts.backToGardens" }),
           }}
         />
@@ -360,7 +361,7 @@ export default function HypercertDetail({
           { gardenName: garden.name }
         )}
         backLink={{
-          to: adminRoutes.gardenImpact({ section: "hypercerts" }),
+          to: adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" }),
           label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
         }}
         sticky

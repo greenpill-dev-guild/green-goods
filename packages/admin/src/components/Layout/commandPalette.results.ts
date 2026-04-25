@@ -189,28 +189,27 @@ export function buildCommandPaletteResults({
   for (const assessment of assessments) {
     const title = assessment.title || `Assessment ${assessment.id.slice(0, 8)}`;
     const matchedGarden = eligibleGardens.find(
-      (garden) => garden.tokenAddress.toLowerCase() === assessment.gardenAddress.toLowerCase()
+      (garden) =>
+        (garden.tokenAddress ?? garden.id).toLowerCase() === assessment.gardenAddress.toLowerCase()
     );
-    const gardenName = matchedGarden?.name;
+    if (!matchedGarden) continue;
+
+    const gardenAddress = matchedGarden.tokenAddress ?? matchedGarden.id;
+    const gardenName = matchedGarden.name;
     pushIfMatches(
       {
         id: `assessment-${assessment.id}`,
         label: title,
-        href: matchedGarden
-          ? adminRoutes.gardenImpact({
-              gardenAddress: matchedGarden.tokenAddress,
-              section: "assessments",
-              item: assessment.id,
-            })
-          : adminRoutes.gardenImpact({
-              section: "assessments",
-              item: assessment.id,
-            }),
-        onSelect: matchedGarden ? () => selectGarden(matchedGarden) : undefined,
+        href: adminRoutes.gardenImpact({
+          gardenAddress,
+          section: "assessments",
+          item: assessment.id,
+        }),
+        onSelect: () => selectGarden(matchedGarden),
         category: "assessments",
-        subtitle: gardenName ? gardenName : `Garden ${assessment.gardenAddress.slice(0, 8)}...`,
+        subtitle: gardenName,
       },
-      [title, gardenName ?? ""]
+      [title, gardenName, assessment.gardenAddress]
     );
   }
 

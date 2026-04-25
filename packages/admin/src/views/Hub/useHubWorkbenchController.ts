@@ -453,6 +453,7 @@ export function useHubWorkbenchController() {
     hasDataError,
     headerDescription,
     historyEvents,
+    hubContext,
     hypercertsLoading,
     isSubmitRoute,
     normalizedSearch,

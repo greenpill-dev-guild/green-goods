@@ -32,7 +32,10 @@ export default function CreateHypercert() {
           description={formatMessage({ id: "app.hypercerts.create.unauthorized" })}
           variant="canvas"
           backLink={{
-            to: adminRoutes.gardenImpact({ section: "hypercerts" }),
+            to: adminRoutes.gardenImpact({
+              ...createHypercert.gardenRouteContext,
+              section: "hypercerts",
+            }),
             label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
           }}
         />
@@ -50,7 +53,10 @@ export default function CreateHypercert() {
         )}
         variant="canvas"
         backLink={{
-          to: adminRoutes.gardenImpact({ section: "hypercerts" }),
+          to: adminRoutes.gardenImpact({
+            ...createHypercert.gardenRouteContext,
+            section: "hypercerts",
+          }),
           label: formatMessage({ id: "app.hypercerts.backToHypercerts" }),
         }}
         sticky

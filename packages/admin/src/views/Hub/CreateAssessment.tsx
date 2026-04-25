@@ -97,7 +97,7 @@ export default function CreateAssessment() {
         })}
         variant="canvas"
         backLink={{
-          to: adminRoutes.hubAssess(),
+          to: adminRoutes.hubAssess(createAssessment.hubContext),
           label: formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" }),
         }}
         sticky

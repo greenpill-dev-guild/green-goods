@@ -13,6 +13,11 @@
       "source": "/gardens/:gardenId",
       "destination": "https://greengoods.app/gardens/:gardenId",
       "permanent": true
+    },
+    {
+      "source": "/gardens/:gardenId/:path*",
+      "destination": "https://greengoods.app/gardens/:gardenId/:path*",
+      "permanent": true
     }
   ],
   "rewrites": [

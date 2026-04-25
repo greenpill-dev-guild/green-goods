@@ -22,13 +22,14 @@ interface GardenHypercertsPanelProps {
 }
 
 export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
-  gardenId: _gardenId,
+  gardenId,
   gardenAddress,
   hypercerts,
   isLoading,
   canManage,
 }) => {
   const { formatMessage } = useIntl();
+  const gardenRouteContext = { gardenAddress: gardenAddress ?? gardenId };
 
   return (
     <Card>
@@ -37,7 +38,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
           {formatMessage({ id: "app.hypercerts.list.title" })}
         </h3>
         <Link
-          to={adminRoutes.gardenImpact({ section: "hypercerts" })}
+          to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })}
           className="inline-flex items-center rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
         >
           {formatMessage({ id: "app.garden.admin.viewAll" })}
@@ -103,7 +104,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <Link
-                        to={adminRoutes.gardenHypercertDetail(record.id)}
+                        to={adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)}
                         className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
                       >
                         {formatMessage({ id: "app.hypercerts.list.viewDetails" })}

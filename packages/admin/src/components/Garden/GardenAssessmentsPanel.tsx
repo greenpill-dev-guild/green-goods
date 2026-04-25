@@ -29,7 +29,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
   assessments,
   isLoading,
   error,
-  gardenId: _gardenId,
+  gardenId,
   chainId,
 }) => {
   const { formatMessage } = useIntl();
@@ -42,7 +42,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
         </h3>
         <Button variant="secondary" size="sm" asChild>
           <Link
-            to={adminRoutes.gardenImpact({ section: "assessments" })}
+            to={adminRoutes.gardenImpact({ gardenAddress: gardenId, section: "assessments" })}
             aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
           >
             {formatMessage({ id: "app.garden.admin.viewAll" })}

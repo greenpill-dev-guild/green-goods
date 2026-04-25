@@ -96,6 +96,10 @@ export function useCreateAssessmentController() {
   const permissions = useGardenPermissions();
   const gardenId = selectedGarden?.id ?? null;
   const garden = useMemo(() => gardens.find((item) => item.id === gardenId), [gardens, gardenId]);
+  const gardenRouteContext = useMemo(
+    () => ({ gardenAddress: garden?.tokenAddress ?? garden?.id }),
+    [garden?.id, garden?.tokenAddress]
+  );
   const canReview = garden ? permissions.canReviewGarden(garden) : false;
 
   const form = useCreateAssessmentStore(useShallow((state) => state.form));
@@ -299,12 +303,12 @@ export function useCreateAssessmentController() {
         suppressLogging: true,
       });
       resetStore();
-      navigate(adminRoutes.gardenImpact({ section: "assessments" }));
+      navigate(adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" }));
     }
-  }, [isSuccess, navigate, formatMessage, resetStore]);
+  }, [formatMessage, gardenRouteContext, isSuccess, navigate, resetStore]);
 
   const handleCancel = () => {
-    navigate(adminRoutes.gardenImpact({ section: "assessments" }));
+    navigate(adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" }));
   };
 
   const handleSubmit = async () => {
@@ -385,6 +389,8 @@ export function useCreateAssessmentController() {
     errorMessage: txError.message,
     errorTitle: txError.title,
     garden,
+    gardenRouteContext,
+    hubContext: gardenRouteContext,
     handleBack: stepValidation.handleBack,
     handleCancel,
     handleNext: stepValidation.handleNext,

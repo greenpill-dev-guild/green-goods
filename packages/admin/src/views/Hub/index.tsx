@@ -24,6 +24,7 @@ export default function HubView() {
         selectedCertification={hub.selectedCertification}
         selectedHistoryEvent={hub.selectedHistoryEvent}
         canManage={hub.canManage}
+        hubContext={hub.hubContext}
         closeTo={hub.routeSheetCloseTo}
         onNavigateToBase={hub.navigateToHubBase}
         onBeforeClose={hub.handleCloseSheet}

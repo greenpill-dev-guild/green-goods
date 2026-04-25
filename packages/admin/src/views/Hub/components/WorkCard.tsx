@@ -1,4 +1,5 @@
 import {
+  type AdminHubRouteContext,
   type EASWork,
   adminRoutes,
   formatAddress,
@@ -14,10 +15,16 @@ import { Link } from "react-router-dom";
 interface WorkCardProps {
   work: EASWork & { status?: "pending" | "approved" | "rejected" };
   canReview?: boolean;
+  hubContext?: AdminHubRouteContext;
 }
 
-export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
+export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview, hubContext }) => {
   const intl = useIntl();
+  const workHubContext: AdminHubRouteContext = {
+    gardenAddress: hubContext?.gardenAddress ?? work.gardenAddress,
+    sort: hubContext?.sort,
+  };
+  const workDetailHref = adminRoutes.hubWorkDetail(work.id, workHubContext);
 
   // Transform EASWork to WorkCardData for the shared component
   const workData: WorkCardData = {
@@ -60,7 +67,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
           {work.status === "pending" && canReview && (
             <>
               <Link
-                to={adminRoutes.hubWorkDetail(work.id)}
+                to={workDetailHref}
                 className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-success-dark bg-success-lighter hover:bg-success-light transition-colors"
                 aria-label={intl.formatMessage(
                   {
@@ -78,7 +85,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
                 })}
               </Link>
               <Link
-                to={adminRoutes.hubWorkDetail(work.id)}
+                to={workDetailHref}
                 className="inline-flex min-h-9 items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-error-dark bg-error-lighter hover:bg-error-light transition-colors"
                 aria-label={intl.formatMessage(
                   {
@@ -98,7 +105,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
             </>
           )}
           <Link
-            to={adminRoutes.hubWorkDetail(work.id)}
+            to={workDetailHref}
             className="inline-flex min-h-9 items-center text-xs font-medium text-primary-base hover:text-primary-darker transition-colors ml-auto"
           >
             {intl.formatMessage({

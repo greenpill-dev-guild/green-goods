@@ -224,6 +224,7 @@ export function useGardenDerivedState({
     } => entry !== null
   );
 
+  const gardenAddress = garden.id;
   const activityEvents: GardenActivityEvent[] = [
     ...works.map((work) => ({
       id: `work-${work.id}`,
@@ -237,7 +238,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(work.createdAt),
-      href: adminRoutes.hubWorkDetail(work.id),
+      href: adminRoutes.hubWorkDetail(work.id, { gardenAddress }),
       itemId: work.id,
     })),
     ...assessments.map((assessment) => ({
@@ -253,6 +254,7 @@ export function useGardenDerivedState({
       ),
       timestamp: toMs(assessment.createdAt),
       href: adminRoutes.gardenImpact({
+        gardenAddress,
         section: "assessments",
         item: assessment.id,
       }),
@@ -271,7 +273,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
-      href: adminRoutes.gardenHypercertDetail(hypercert.id),
+      href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenAddress }),
       itemId: hypercert.id,
     })),
     ...allocations.map((allocation) => ({
@@ -287,7 +289,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: adminRoutes.communityTreasury({ item: allocation.txHash }),
+      href: adminRoutes.communityTreasury({ gardenAddress, item: allocation.txHash }),
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);

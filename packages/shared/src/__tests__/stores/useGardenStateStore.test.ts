@@ -107,6 +107,43 @@ describe("stores/useGardenStateStore", () => {
     );
   });
 
+  it("normalizes legacy persisted state without workspace buckets", () => {
+    useGardenStateStore.setState({
+      gardenStates: {
+        "garden-legacy": {
+          activeTab: "impact",
+          filter: "work",
+          selectedItem: "item-1",
+          scrollPosition: 120,
+          sheetOpen: true,
+        } as ReturnType<typeof useGardenStateStore.getState>["gardenStates"][string],
+      },
+    });
+
+    const workspaceState = useGardenStateStore
+      .getState()
+      .getGardenWorkspaceState("garden-legacy", "hub");
+
+    expect(workspaceState).toEqual({
+      activeMode: "",
+      filter: "",
+      search: "",
+      selectedItem: null,
+      scrollPosition: 0,
+      sheetOpen: false,
+    });
+
+    expect(() =>
+      useGardenStateStore.getState().setGardenWorkspaceState("garden-legacy", "hub", {
+        search: "soil",
+      })
+    ).not.toThrow();
+
+    expect(
+      useGardenStateStore.getState().getGardenWorkspaceState("garden-legacy", "hub").search
+    ).toBe("soil");
+  });
+
   it("'__all__' key stores All Gardens mode state", () => {
     const store = useGardenStateStore.getState();
 

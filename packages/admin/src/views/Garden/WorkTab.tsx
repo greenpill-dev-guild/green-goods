@@ -16,7 +16,7 @@ import { WorkSubmissionsView } from "@/views/Hub/components/WorkSubmissionsView"
 import { SectionStateCard } from "@/views/Garden/components/GardenDetailHelpers";
 
 export interface WorkTabProps {
-  garden: { id: string };
+  garden: { id: string; tokenAddress?: string | null };
   canReview: boolean;
   section: string | undefined;
   showSectionStateCard?: boolean;
@@ -173,6 +173,7 @@ export function WorkTab({
               lastUpdatedAt={lastWorkRefreshAt}
               initialFilter={section === "history" ? "all" : "pending"}
               highlightWorkId={selectedItem}
+              hubContext={{ gardenAddress: garden.tokenAddress ?? garden.id }}
             />
           )}
         </div>

@@ -59,7 +59,35 @@ const createDefaultGardenState = (): GardenState => ({
   workspaces: {},
 });
 
+const GARDEN_WORKSPACE_KEYS: GardenWorkspaceKey[] = ["hub", "garden", "community", "actions"];
+
 const normalizeGardenKey = (gardenKey: string): string => gardenKey || ALL_GARDENS_KEY;
+
+function normalizeGardenWorkspaceState(
+  state?: Partial<GardenWorkspaceState>
+): GardenWorkspaceState {
+  return {
+    ...createDefaultGardenWorkspaceState(),
+    ...(state ?? {}),
+  };
+}
+
+function normalizeGardenState(state?: Partial<GardenState>): GardenState {
+  const workspaceEntries = state?.workspaces ?? {};
+  const workspaces = GARDEN_WORKSPACE_KEYS.reduce<GardenState["workspaces"]>((next, key) => {
+    const workspaceState = workspaceEntries[key];
+    if (workspaceState) {
+      next[key] = normalizeGardenWorkspaceState(workspaceState);
+    }
+    return next;
+  }, {});
+
+  return {
+    ...createDefaultGardenState(),
+    ...(state ?? {}),
+    workspaces,
+  };
+}
 
 export const useGardenStateStore = create<GardenStateStore>()(
   subscribeWithSelector(
@@ -69,7 +97,7 @@ export const useGardenStateStore = create<GardenStateStore>()(
 
         getGardenState: (gardenKey) => {
           const normalizedKey = normalizeGardenKey(gardenKey);
-          return get().gardenStates[normalizedKey] ?? createDefaultGardenState();
+          return normalizeGardenState(get().gardenStates[normalizedKey]);
         },
 
         setGardenState: (gardenKey, partial) => {
@@ -77,10 +105,10 @@ export const useGardenStateStore = create<GardenStateStore>()(
           set((state) => ({
             gardenStates: {
               ...state.gardenStates,
-              [normalizedKey]: {
-                ...(state.gardenStates[normalizedKey] ?? createDefaultGardenState()),
+              [normalizedKey]: normalizeGardenState({
+                ...normalizeGardenState(state.gardenStates[normalizedKey]),
                 ...partial,
-              },
+              }),
             },
           }));
         },
@@ -93,7 +121,7 @@ export const useGardenStateStore = create<GardenStateStore>()(
         setGardenWorkspaceState: (gardenKey, workspaceKey, partial) => {
           const normalizedKey = normalizeGardenKey(gardenKey);
           set((state) => {
-            const gardenState = state.gardenStates[normalizedKey] ?? createDefaultGardenState();
+            const gardenState = normalizeGardenState(state.gardenStates[normalizedKey]);
             const workspaceState =
               gardenState.workspaces[workspaceKey] ?? createDefaultGardenWorkspaceState();
 

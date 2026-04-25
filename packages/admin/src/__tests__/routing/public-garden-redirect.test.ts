@@ -18,4 +18,16 @@ describe("public garden redirects", () => {
       )
     ).toBe("https://greengoods.app/gardens/0xGarden%2FSeason%20One?utm_source=admin#impact");
   });
+
+  it("builds nested public garden redirects", () => {
+    expect(
+      buildClientGardenRedirectUrl(
+        "0xGarden",
+        "?utm_source=admin",
+        "#evidence",
+        "https://greengoods.app/",
+        "work/soil sample"
+      )
+    ).toBe("https://greengoods.app/gardens/0xGarden/work/soil%20sample?utm_source=admin#evidence");
+  });
 });

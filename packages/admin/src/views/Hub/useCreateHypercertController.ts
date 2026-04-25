@@ -11,12 +11,16 @@ export function useCreateHypercertController() {
     () => gardens.find((item) => item.id === selectedGarden?.id),
     [gardens, selectedGarden?.id]
   );
+  const gardenRouteContext = useMemo(
+    () => ({ gardenAddress: garden?.tokenAddress ?? garden?.id }),
+    [garden?.id, garden?.tokenAddress]
+  );
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
 
   const handleComplete = useCallback(
     (data: HypercertCompletionData) => {
-      navigate(adminRoutes.gardenHypercertDetail(data.hypercertId), {
+      navigate(adminRoutes.gardenHypercertDetail(data.hypercertId, gardenRouteContext), {
         state: {
           optimisticData: {
             id: data.hypercertId,
@@ -31,17 +35,18 @@ export function useCreateHypercertController() {
         },
       });
     },
-    [navigate]
+    [gardenRouteContext, navigate]
   );
 
   const handleCancel = useCallback(
-    () => navigate(adminRoutes.gardenImpact({ section: "hypercerts" })),
-    [navigate]
+    () => navigate(adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })),
+    [gardenRouteContext, navigate]
   );
 
   return {
     canManage,
     garden,
+    gardenRouteContext,
     handleCancel,
     handleComplete,
   };

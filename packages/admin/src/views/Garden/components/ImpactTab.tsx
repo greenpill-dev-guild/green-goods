@@ -17,7 +17,7 @@ import { SectionStateCard } from "./GardenDetailHelpers";
 import { SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
 
 export interface ImpactTabProps {
-  garden: { id: string; chainId: number };
+  garden: { id: string; chainId: number; tokenAddress?: string | null };
   gardenId: string;
   canManage: boolean;
   canReview: boolean;
@@ -55,6 +55,7 @@ export function ImpactTab({
 
   const recentAssessments = assessments.slice(0, 5);
   const recentHypercerts = hypercerts.slice(0, 4);
+  const gardenRouteContext = { gardenAddress: garden.tokenAddress ?? garden.id };
 
   return (
     <div className="garden-tab-shell">
@@ -85,7 +86,9 @@ export function ImpactTab({
                   </p>
                 </div>
                 <Button size="sm" variant="secondary" asChild>
-                  <Link to={adminRoutes.gardenImpact({ section: "hypercerts" })}>
+                  <Link
+                    to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })}
+                  >
                     {formatMessage({ id: "app.garden.admin.viewAll" })}
                   </Link>
                 </Button>
@@ -136,7 +139,7 @@ export function ImpactTab({
                           </p>
                         </div>
                         <Link
-                          to={adminRoutes.gardenHypercertDetail(record.id)}
+                          to={adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)}
                           className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
                         >
                           {formatMessage({ id: "app.actions.view" })}
@@ -179,7 +182,9 @@ export function ImpactTab({
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
                 </h3>
                 <Button size="sm" variant="secondary" asChild>
-                  <Link to={adminRoutes.gardenImpact({ section: "assessments" })}>
+                  <Link
+                    to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" })}
+                  >
                     {formatMessage({ id: "app.garden.admin.viewAll" })}
                   </Link>
                 </Button>

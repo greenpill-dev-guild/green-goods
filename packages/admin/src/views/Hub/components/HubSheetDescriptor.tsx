@@ -1,4 +1,9 @@
-import { adminRoutes, useRouteBackedLeftSheetConfig, type Work } from "@green-goods/shared";
+import {
+  type AdminHubRouteContext,
+  adminRoutes,
+  useRouteBackedLeftSheetConfig,
+  type Work,
+} from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +29,7 @@ interface HubSheetDescriptorProps {
     | undefined;
   selectedHistoryEvent: ActivityEvent | undefined;
   canManage: boolean;
+  hubContext: AdminHubRouteContext;
   closeTo: string;
   onNavigateToBase: () => void;
   onBeforeClose: () => void;
@@ -41,6 +47,7 @@ export function HubSheetDescriptor({
   selectedCertification,
   selectedHistoryEvent,
   canManage,
+  hubContext,
   closeTo,
   onNavigateToBase,
   onBeforeClose,
@@ -95,7 +102,7 @@ export function HubSheetDescriptor({
           <HubCertificationInspector
             assessment={selectedCertification}
             canMint={canManage}
-            onOpenMintFlow={() => navigate(adminRoutes.hubCertifyCreate())}
+            onOpenMintFlow={() => navigate(adminRoutes.hubCertifyCreate(hubContext))}
           />
         ),
       };
@@ -113,6 +120,7 @@ export function HubSheetDescriptor({
     canManage,
     formatMessage,
     handlePanelClose,
+    hubContext,
     navigate,
     activeWorkDetailId,
     routeSheetContentId,

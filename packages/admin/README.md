@@ -8,7 +8,7 @@ Operator canvas for Green Goods stewards and deployers.
 - Canonical shell: `CanvasLayout`
 - Canonical routes: `/hub`, `/garden`, `/community`, `/actions`, `/profile`
 - Secondary admin flows stay under `/garden/create`, `/garden/impact/*`, and `/community/*`
-- Public garden URLs (`/gardens`, `/gardens/:id`) redirect to the client app
+- Public garden URLs (`/gardens`, `/gardens/:id`, `/gardens/:id/*`) redirect to the client app
 
 ## Ownership
 
