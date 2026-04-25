@@ -12,6 +12,14 @@
 |---|---|---|
 | 1 | | |
 
+## Research / Plan Gate
+
+- [ ] Record research evidence in `spec.md`
+- [ ] Identify the existing repo pattern to mirror
+- [ ] List human judgment points before implementation
+- [ ] Define what is out of scope
+- [ ] Choose the lightest honest validation commands
+
 ## Requirements Coverage
 
 | Requirement | Lane | Planned Step | Status |

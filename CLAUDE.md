@@ -5,9 +5,14 @@ This file provides guidance to Claude Code when working with this repository.
 ## Commands
 
 ```bash
-bun setup                    # Initial setup (deps, packages, .env)
-bun dev                      # Start all services via PM2
-bun dev:stop                 # Stop all services
+npm run setup                # First-clone setup bridge before Bun is available
+bun run setup                # Setup after Bun is available
+bun run dev:doctor -- --profile web   # Non-mutating local environment readiness check
+bun run dev:web              # Start client, admin, and docs via PM2
+bun run dev:smoke:web        # Check web doctor plus client/admin/docs health
+bun run dev:full             # Start all services via PM2
+bun run dev                  # Alias for dev:full
+bun run dev:stop             # Stop all services
 bun format && bun lint       # Format and lint workspace
 bun run test                 # Run all tests (CRITICAL: not `bun test`)
 bun build                    # Build everything (respects dependency order)
@@ -104,6 +109,8 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Investigate Before Answering**: Never speculate about code you have not opened. If referencing a specific file, you MUST read it before answering. Give grounded, hallucination-free answers based on actual file contents, not assumptions about what code might look like.
 
+**Research, Plan, Implement**: For ambiguous, multi-package, or high-risk work, research first, record evidence, plan the smallest implementation path, surface human judgment points, then edit. If the session goes down the wrong path, summarize only the useful findings and restart with clean context instead of carrying contaminated assumptions forward.
+
 **Subagent Discipline**: Spawn teammates when tasks can run in parallel, require isolated context, or involve independent workstreams. Work directly (no subagent) for single-file edits, sequential operations, tasks sharing state across steps, or any task needing fewer than 10 tool calls. Prefer the simplest approach that completes the task.
 
 ## Design System
@@ -113,7 +120,7 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 **Language**: Warm Earth — M3 Expressive × Liquid Glass. Canonical spec: `.claude/skills/design/language.md`. Scannable cheat sheet: `.claude/skills/design/quick-reference.md`. Ecosystem map: `.claude/skills/design/ARCHITECTURE.md`.
 
 **Surface identities (never mix)**:
-- **Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192), Plus Jakarta Sans, glass only on `TopContextBar`, solid surfaces everywhere else. Use `Admin*` wrappers. Litmus: appropriate for Linear / GitHub / Stripe Dashboard?
+- **Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192), Plus Jakarta Sans, glass only on the admin `AppBar`, solid surfaces everywhere else. Use `Admin*` wrappers. Litmus: appropriate for Linear / GitHub / Stripe Dashboard?
 - **Client PWA** (`packages/client`) — warm garden-journal feel. Full Warm Earth expression. Inter typography. Bottom `AppBar` (installed PWA) / `SiteHeader` hamburger (browser). Hero moments live here, never in admin.
 - **Shared** (`packages/shared`) — primitives + tokens in `src/styles/theme.css`. All React hooks live here (`@green-goods/shared`).
 
@@ -123,11 +130,11 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 
 **Banned vocabulary** (enforced by `bun run lint:vocab` on i18n strings):
 - Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language.
-- Admin only: `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, glass outside `TopContextBar`.
+- Admin only: `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, glass outside the admin `AppBar`.
 - Client only: `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
 
 **Component palettes** (do not invent component names — flag missing primitives instead):
-- Admin: 13 `Admin*` wrappers + `CanvasLayout` / `TopContextBar` / `MainSheet` / `{Left,Right,Bottom}Sheet` / `NavigationBar` / `AdminFab`. Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
+- Admin: 13 `Admin*` wrappers + `CanvasLayout` / `AppBar` / `MainSheet` / `LeftSheet` / `RightSheet` / `BottomSheet` / `NavigationBar` / `AdminFab`. Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
 - Client: `@green-goods/shared` primitives + `PlatformRouter` / `SiteHeader` / `AppBar`. Full list: `.claude/skills/design/client-prompt-contract.md § Canonical Component Palette`.
 
 **Validation**: `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (banned terms).

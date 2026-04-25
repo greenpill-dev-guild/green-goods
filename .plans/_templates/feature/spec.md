@@ -15,6 +15,19 @@ Write the feature summary in one paragraph.
 2. Requirement:
 3. Requirement:
 
+## Research Evidence
+
+- Existing pattern references:
+- Source files, tests, or docs reviewed:
+- Evidence confirmed:
+- Open inferences or assumptions:
+
+## Human Judgment Points
+
+- Decisions that need maintainer judgment:
+- Protected or high-risk surfaces:
+- Tradeoffs to keep visible during review:
+
 ## Non-Functional Constraints
 
 - Package boundaries:

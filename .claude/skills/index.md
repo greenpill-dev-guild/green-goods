@@ -1,6 +1,6 @@
 # Skills Quick Reference
 
-> Start with one of four verbs. Everything else is routed internally when it is actually needed.
+> Start with one of four verbs, or just describe planning / orchestration intent and `plan` will fire passively.
 
 ---
 
@@ -8,11 +8,20 @@
 
 | Skill | Invoke With | Use For |
 |-------|-------------|---------|
-| **plan** | `/plan` | Before a change: shape the work, constrain scope, surface judgment points |
-| **debug** | `/debug` | When reality disagrees: reproduce, prove root cause, rank fixes by confidence |
-| **review** | `/review` | Before merge: inspect the diff, separate must-fix items from human call-outs |
+| **review** | `/review [package|PR|file]` | Before merge: inspect the diff, separate must-fix items from human call-outs. Positional arg scopes the review (`/review admin`, `/review #123`, `/review packages/shared/...`) |
 | **status** | `/status` | Resume and orient: branch state, blockers, continuity, and the next 1-3 moves |
 | **clean** | `/clean` | After findings are accepted: dispatch 8 parallel cleanup agents (use `--dry-run`, `--scope`, `--agents`) |
+
+---
+
+## Passive Skills (Intent-Triggered, No Slash)
+
+These fire automatically when the prompt matches. No slash command exposed.
+
+| Skill | Fires On | Use For |
+|-------|----------|---------|
+| **plan** | "plan this", "break down X", "orchestrate", "coordinate a team", "parallel lanes", "spawn teammates", "mixed codex and claude", cross-package work | Shape work, constrain scope, surface judgment points. Routes to teams mode on orchestration signals, brainstorm on fuzzy intent. |
+| **debug** | "debug this", pasted stack traces or errors, reported unexpected behavior, failing tests, "production is down", "hotfix" | Systematic root cause investigation. Routes to incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports. |
 
 ---
 
@@ -25,8 +34,7 @@ These are still available, but they are not the default starting points anymore.
 | architecture | Internal lens inside `plan` or `review` | Use when placement, boundaries, or structural refactors are the real question |
 | principles | Internal lens inside `review` | Use when simplicity, coupling, duplication, or reliability clarity need pressure-testing |
 | audit | Broader repo-health sweep | Follow-up when `status` or `review` reveals drift beyond a single change |
-| ship | Passive finishing flow | Validation and merge readiness when work is actually ready |
-| specialty package skills | React, UI, contracts, indexer, data-layer, ops, testing, design, web3, stitch | These load by context; you usually do not choose them manually |
+| specialty package skills | React, UI, contracts, indexer, data-layer, ops, testing, design, web3 | These load by context; you usually do not choose them manually |
 
 ---
 
@@ -34,13 +42,15 @@ These are still available, but they are not the default starting points anymore.
 
 If you are unsure where to start:
 
-- planning a change -> `/plan`
-- investigating a bug -> `/debug`
-- judging a change -> `/review`
+- planning a change -> just describe the intent ("plan this", "break down X")
+- orchestrating a multi-lane build -> describe orchestration intent ("coordinate a team across contracts + shared + admin")
+- investigating a bug -> describe the bug or paste the error (no slash)
+- judging a change -> `/review [package|PR|file]` (or describe it in words)
 - picking up work -> `/status --resume`
 
 Shortcuts that remain useful:
 
-- `/teams` -> `/plan --mode teams`
-- `tdd bugfix` -> `/debug --mode tdd_bugfix`
-- `cross-package-verify-mode` -> `/review --mode verify_only --scope cross-package`
+- `/review admin` -> scope review to the admin package
+- `/review --mode verify_only --scope cross-package` -> cross-package impact pass
+- "this test is failing:" -> routes debug to tdd_bugfix mode
+- "production is down" / "incident" / "hotfix" -> routes debug to incident_hotfix mode

@@ -104,13 +104,15 @@ When sources conflict, do not average them -- investigate WHY they conflict. The
 When passing findings to another agent:
 ```markdown
 **Decision**: [One sentence]
+**Research Evidence**: [Source-backed facts, not assumptions]
 **Affected Files** (dependency order): ...
 **Constraints Discovered**: ...
+**Human Judgment Points**: ...
 **Recommended Approach**: [Brief]
 **Risk Level**: Low/Medium/High
 ```
 
-Keep under 20 lines. List files in dependency order (contracts, indexer, shared, client/admin). Include constraints that cause silent failures if missed.
+Keep under 25 lines. List files in dependency order (contracts, indexer, shared, client/admin). Include constraints that cause silent failures if missed.
 
 ## Few-Shot Example
 
@@ -135,8 +137,8 @@ IndexedDB was chosen because the job queue stores binary `File` objects (media u
 **Confidence**: High — indexes are defined in the schema, and `index.ts` uses cursor-based iteration.
 
 #### Finding 3: Service worker access
-**Source**: `packages/shared/src/modules/service-worker/sw.ts` (background sync handler)
-**Evidence**: The service worker reads from `jobQueueDB` during `sync` events. localStorage is not available in service worker context (Web API limitation).
+**Source**: `packages/shared/src/modules/app/service-worker.ts` (background sync manager) + `packages/shared/src/modules/job-queue/event-bus.ts`
+**Evidence**: The service worker manager reads from `jobQueueDB` during `sync` events via the event bus. localStorage is not available in service worker context (Web API limitation).
 **Confidence**: High — this is a platform constraint, not a design choice.
 
 #### Finding 4: Storage quota
@@ -187,16 +189,22 @@ When investigating data flow, attestation, or domain questions, consult these do
 
 | Source | Path | Use For |
 |--------|------|---------|
-| Entity matrix | `docs/docs/developers/integrations.mdx` | Cross-protocol entity relationships |
-| EAS query patterns | `docs/docs/evaluator/verify-attestation-chains.mdx` | Attestation query templates |
-| Envio query patterns | `docs/docs/evaluator/verify-attestation-chains.mdx` | GraphQL query templates |
-| System architecture | `docs/docs/developers/architecture.mdx` | Data flow diagrams (7 Mermaid charts) |
-| Error lookup | `docs/docs/gardener/submit-work-mdr.mdx` | User-facing error-to-fix mapping |
-| Domain glossary | `docs/docs/glossary.md` | Term definitions (35+ entries) |
-| Impact model | `docs/docs/concepts/impact-model.mdx` | CIDS framework, action domains |
-| Strategy & goals | `docs/docs/concepts/strategy-and-goals.mdx` | Success metrics, feature scope |
+| System architecture | `docs/docs/builders/architecture.mdx` (+ `docs/docs/builders/architecture/`) | Data flow, component boundaries |
+| Entity matrix | `docs/docs/builders/integrations/entity-matrix.mdx` | Cross-protocol entity relationships |
+| Integration references | `docs/docs/builders/integrations/{eas,ens,hats,hypercerts,gardens,greenwill,karma,octant,passkey,silvi,tokenbound,unlock,cookie-jar}.mdx` | Protocol-specific behavior and APIs |
+| Builders glossary | `docs/docs/builders/glossary.mdx` | Builder-facing term definitions |
+| Community glossary | `docs/docs/reference/glossary-community.md` | Community-facing term definitions |
+| Regenerative framework | `docs/docs/reference/regenerative-design-framework.md` (+ `regenerative-design-principles.md`) | Impact model, CIDS framing, action domains |
+| Operator guides | `docs/docs/community/operator-guide/*.mdx` | Operator workflows (gardens, assessments, certificates, payouts, governance) |
+| Gardener guides | `docs/docs/community/gardener-guide/*.mdx` | Submission, drafts/sync, attestations, errors |
+| Evaluator guides | `docs/docs/community/evaluator-guide/*.mdx` | Assessment workflows, EAS + Envio query patterns |
+| Funder guides | `docs/docs/community/funder-guide/*.mdx` | Vault, hypercert, withdrawal flows |
+| Error lookup | `docs/docs/community/gardener-guide/common-errors.mdx`, `docs/docs/community/operator-guide/troubleshooting.mdx`, `docs/docs/community/evaluator-guide/troubleshooting.mdx` | User-facing error-to-fix mapping |
+| Attestation tracking | `docs/docs/community/gardener-guide/track-status-and-attestations.mdx` | Attestation lifecycle and verification |
+| EAS queries | `docs/docs/community/evaluator-guide/query-eas.mdx` | EAS query templates |
+| Indexer queries | `docs/docs/community/evaluator-guide/query-indexer.mdx` | Envio GraphQL query templates |
 
-These count as valid research paths for the 3-path minimum requirement.
+These count as valid research paths for the 3-path minimum requirement. Verify with `ls` before citing — docs structure shifts; if a path no longer resolves, search `docs/docs/` and update both your finding and this table.
 
 ## Constraints
 

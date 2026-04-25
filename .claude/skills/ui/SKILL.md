@@ -69,7 +69,7 @@ UI-level implementation rules that follow from that identity:
 
 ## Part 2: Component Development Workflow
 
-1. **Check existing patterns** (`CanvasLayout`, `AccountSheet`, `PageHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
+1. **Check existing patterns** (`CanvasLayout`, `AccountSurface`, `RightSheet`, `PageHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
 2. **Develop reusable components in Storybook first** (`bun run storybook` in packages/shared)
 3. **Follow Radix UI + tailwind-variants patterns** (see [radix-ui.md](./radix-ui.md))
 4. **Run compliance checklist** before integration (see [compliance.md](./compliance.md))

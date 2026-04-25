@@ -90,7 +90,7 @@ bun audit                       # Security vulnerability scan
 
 ### Migration Rule
 
-For cross-package breaking changes, use `/plan` to create or update the owning feature hub first, then follow [migration.md](./migration.md). Migration notes belong in that hub's `reports/` directory, not in a separate global migrations folder.
+For cross-package breaking changes, plan the work and create or update the owning feature hub first, then follow [migration.md](./migration.md). Migration notes belong in that hub's `reports/` directory, not in a separate global migrations folder.
 
 ---
 
@@ -221,7 +221,7 @@ What ops work?
 |
 +-- Breaking change / multi-package rollout?
 |     --> migration.md
-|     --> create or update the owning /plan hub first
+|     --> create or update the owning plan hub first
 |
 +-- Pre-commit validation? ---------> Quick Reference (Part 1)
       bun format && bun lint && bun run test && bun build

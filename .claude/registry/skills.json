@@ -43,12 +43,15 @@
       "owned_skills": ["testing"],
       "modes": ["default", "incident_hotfix", "tdd_bugfix"],
       "triggers": [
-        "/debug",
         "debug this",
         "investigate this bug",
         "root cause",
         "why is this failing",
-        "unexpected error"
+        "unexpected error",
+        "production is down",
+        "incident",
+        "hotfix",
+        "this test is failing"
       ],
       "dependencies": [],
       "sub_files": ["monitoring.md", "posthog.md", "health-diagnostics.md"]

@@ -1,7 +1,7 @@
 ---
 name: architecture
 user-invocable: false
-description: Internal architecture lens for Green Goods. Prefer this inside `/plan` or `/review` when boundaries, placement, or structural refactors need focused judgment. Use a dedicated pass only when the user explicitly asks for it.
+description: Internal architecture lens for Green Goods. Prefer this inside planning or `/review` flows when boundaries, placement, or structural refactors need focused judgment. Use a dedicated pass only when the user explicitly asks for it.
 effort: high
 version: "3.0.0"
 status: active
@@ -15,7 +15,7 @@ last_verified: "2026-04-18"
 
 Read-only architecture analysis for Green Goods.
 
-Prefer `/plan` or `/review` first. This skill exists as a deeper internal lens or as a dedicated pass when the user explicitly asks for architecture work.
+Prefer planning or `/review` first. This skill exists as a deeper internal lens or as a dedicated pass when the user explicitly asks for architecture work.
 
 This skill exists to answer:
 
@@ -28,7 +28,7 @@ This skill exists to answer:
 
 Use when:
 
-- `/plan` or `/review` needs a focused boundary or placement pass
+- planning or `/review` needs a focused boundary or placement pass
 - a user asks for architecture analysis or structural refactoring guidance
 - you need a package or module boundary map before planning changes
 - you need to decide where a feature belongs

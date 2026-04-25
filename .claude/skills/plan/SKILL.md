@@ -1,42 +1,68 @@
 ---
 name: plan
-user-invocable: true
-description: Planning & Execution - create structured implementation plans, check progress, execute in batches, manage lifecycle, and coordinate agent teams. Use when the user says 'plan this', asks to break down a feature into steps, needs a phased implementation strategy, or wants to coordinate multiple agents.
+user-invocable: false
+description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed codex and claude', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
-version: "1.1.0"
+version: "1.2.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-04-12"
-last_verified: "2026-04-12"
+last_updated: "2026-04-24"
+last_verified: "2026-04-24"
 ---
 
 # Plan Skill
 
-Planning lifecycle for Green Goods: create plans, check progress, execute in batches.
+Planning lifecycle for Green Goods: create plans, check progress, execute in batches, coordinate agent teams.
 
 **References**: See `CLAUDE.md` for entry points, agent routing, and Green Goods conventions.
 
-This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, pull the architecture lens into `/plan` rather than bouncing the user to a separate starting command.
+This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, pull the architecture lens into planning work rather than bouncing the user to a separate starting command.
 
 ---
 
 ## Activation
 
-| Trigger | Action |
-|---------|--------|
-| `/plan` | Create new implementation plan |
-| `/plan --mode teams` | Coordinate a multi-agent execution plan |
-| "plan this" / "break down X" | Create new implementation plan |
-| Fuzzy request, no clear "done when" | Brainstorm first — see [brainstorm.md](./brainstorm.md) |
-| Plan exists, check progress | Audit progress against plan |
-| Plan approved, ready to execute | Execute in batches |
-| `.plans/` feels stale | Audit — archive implemented, flag stale |
-| Team coordination needed | See [teams.md](./teams.md) |
-| Starting new feature | Brainstorm → brief → plan → code |
-| Cross-package breaking change | Create or update the owning feature hub, then route execution through `ops/migration` |
+This skill is **passive-only**. There is no `/plan` slash command. Fire automatically when the user's prompt matches any signal below — do not wait for an explicit trigger.
 
-`/plan` is the explicit entry point. The skill should also fire passively when the user clearly describes planning intent. For the brainstorm-before-plan flow on fuzzy requirements, see [brainstorm.md](./brainstorm.md).
+### Orchestration signals → Teams mode
+
+Any of these route directly to [teams.md](./teams.md):
+
+- Words/phrases: `orchestrate`, `coordinate a team`, `team of agents`, `spawn teammates`, `parallel lanes`, `fire off agents`, `multi-agent`, `run this in parallel`
+- "mixed codex and claude" / "claude team agents plus codex" / "some lanes with codex"
+- Cross-package work spanning 3+ packages (contracts + shared + client/admin)
+- Competing hypotheses to investigate in parallel
+- New module with independent pieces buildable concurrently
+
+Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose team → assign lanes → spawn teammates (Claude-only or codex-driving per [teams.md § Part 11](./teams.md#part-11-codex-lanes--teammates-that-dispatch-codex)).
+
+### Standard planning signals → Default mode
+
+- "plan this", "break down X", "write a plan for..."
+- "how should we approach Y"
+- Starting a new feature with clear requirements
+- Feature that won't fit in a single implementation session
+
+### Fuzzy / vision signals → Brainstorm first
+
+- No clear "done when"
+- "maybe we should...", "what if we...", "I'm thinking about..."
+- Vision or exploration phase — route through [brainstorm.md](./brainstorm.md)
+
+### Lifecycle / maintenance signals → Audit mode
+
+- "check progress on [plan]", "what's in flight?", "what plans are still relevant?"
+- `.plans/` feels stale (older than 14 days without updates)
+
+### Cross-package breaking change → ops/migration
+
+- "breaking change", schema migrations, deployment-affecting work
+- Create/update the owning feature hub first, then route execution through `ops/migration`
+
+### Legacy slash (deprecated)
+
+`/plan` and `/plan --mode teams` are no longer advertised. If a user explicitly types one, honor it — but normal flow is passive activation from the signals above.
 
 ## Progress Tracking (REQUIRED)
 
@@ -259,7 +285,7 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 4. **Divergence notes**: If implementation diverges from the plan (different approach, dropped scope), add a `## Implementation Notes` section explaining what changed and why. Don't leave the plan as-if it was followed when it wasn't.
 
-5. **Stale plan cleanup** (`/plan cleanup`): Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or delete it.
+5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or delete it.
 
 6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/` or issue comments, not `.plans/`. Plans must be actionable specs.
 
@@ -300,7 +326,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 
 | Scenario | Do Instead |
 |----------|------------|
-| Single-file bug fix with clear root cause | `/debug` → fix → test |
+| Single-file bug fix with clear root cause | describe the bug → fix → test |
 | Typo or copy changes | Direct edit |
 | Config change (env var, build flag) | Direct edit → verify build |
 | Adding a test for existing behavior | `testing` skill directly |
@@ -320,7 +346,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 
 - **Over-planning polish work** — Small UI tweaks don't need 10-step plans
 - **Planning without reading code first** — Always audit existing patterns before writing a plan
-- **Planning what you don't understand** — Use `oracle` agent or `/debug` to investigate first
+- **Planning what you don't understand** — Use `oracle` agent or describe the bug to investigate first
 - **Stale plans** — If a plan sits untouched for 14+ days, reassess before executing
 - **Vision creep** — Keep architecture exploration separate from implementation plans; a plan with 60 decisions is a spec, not a plan
 

@@ -8,7 +8,7 @@ parent: ops
 
 Thin wrapper around the canonical migration protocol.
 
-- Canonical migration protocol: this file + `/plan` feature hub lifecycle
+- Canonical migration protocol: this file + the planning feature hub lifecycle
 
 ## Activation
 
@@ -73,7 +73,7 @@ When a migration needs a compatibility window, apply these rules explicitly:
 
 ## Part 3: Handoff and Output
 
-Use `/plan` to create or update the owning feature hub before execution if one does not already exist.
+Plan the work and create or update the owning feature hub before execution if one does not already exist.
 
 This file is the canonical migration output contract. Use this section order:
 
@@ -100,7 +100,7 @@ When handing migration work between people or tools, pass a concise brief with:
 
 ## Anti-Patterns
 
-- Maintaining a second migration protocol outside this file and `/plan`
+- Maintaining a second migration protocol outside this file and the planning feature hub
 - Skipping blast-radius mapping before edits
 - Migrating packages out of dependency order
 - Claiming completion without cross-package validation evidence

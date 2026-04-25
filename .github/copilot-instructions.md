@@ -6,7 +6,7 @@ This repository's Copilot rollout is GitHub-native and CI/CD-first. Focus on pul
 
 Repo-wide invariants:
 
-- Use `bun` for scripts and package operations. Do not introduce `npm` or `yarn`.
+- Use `bun` for scripts and package operations. The only `npm` exception is `npm run setup` on a fresh machine before Bun is available.
 - Use `bun run test`, never `bun test`.
 - Never use raw `forge`; use the repo `bun` scripts for contract build, test, deploy, and upgrade flows.
 - Keep reusable hooks, providers, stores, modules, and shared UI primitives in `@green-goods/shared`.
@@ -16,6 +16,8 @@ Repo-wide invariants:
 - Use Remixicon (`Ri*Line`), never lucide.
 - Add every new user-facing string to `en`, `es`, and `pt`.
 - Respect build dependency order: `contracts -> shared -> indexer -> client/admin/agent`.
+
+For ambiguous, multi-package, or high-risk work, follow the same research-plan-implement loop as other agents: read the relevant source and package guidance, record evidence and open assumptions, surface human judgment points, then implement the smallest scoped change.
 
 High-risk paths remain human-governed even when Copilot review runs automatically:
 

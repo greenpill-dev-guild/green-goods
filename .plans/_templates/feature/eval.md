@@ -5,6 +5,8 @@
 1. Correctness:
 2. Usability:
 3. Regression safety:
+4. Evidence quality: research evidence and open assumptions are recorded before implementation.
+5. Human judgment: protected surfaces and maintainer-call decisions are called out before merge.
 
 ## Acceptance Checks
 

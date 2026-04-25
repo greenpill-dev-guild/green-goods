@@ -85,7 +85,7 @@ Rather than crafting perfect one-shot prompts, we invest in structuring the repo
 
 - **`CLAUDE.md`** at the root defines commands, architecture, patterns, and constraints in a format agents can parse.
 - **`.claude/context/*.md`** files provide package-specific context (shared hooks, contract patterns, indexer boundaries).
-- **Agent specs** in `.claude/agents/` define role-specific behavior for code review, implementation, and documentation tasks.
+- **Agent specs** in `.claude/agents/` define the two committed specialist roles: read-only research (`oracle`) and TDD implementation (`cracked-coder`). Review, migration, triage, and documentation work route through skills and workflow prompts.
 
 The goal is that context does the heavy lifting, not the prompt.
 

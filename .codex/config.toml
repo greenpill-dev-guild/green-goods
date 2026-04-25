@@ -8,12 +8,12 @@ project_doc_fallback_filenames = ["CLAUDE.md"]
 # Slightly larger limit to accommodate CLAUDE.md (~4KB) + AGENTS.md (~2KB)
 project_doc_max_bytes = 40960
 
-# Default model — gpt-5.4 at max reasoning effort for all tasks.
-model = "gpt-5.4"
+# Default model — gpt-5.5 at max reasoning effort for all tasks.
+model = "gpt-5.5"
 model_reasoning_effort = "xhigh"
 
 [features]
-codex_hooks = true
+codex_hooks = false
 
 # Agent sandbox: no network access during execution (safer for automated tasks).
 # Setup scripts still get network access for dependency installation.

@@ -9,7 +9,6 @@ on:
       - ".mcp.json"
       - ".claude/**"
       - ".claude/registry/**"
-      - ".claude/standards/**"
       - "package.json"
       - ".github/workflows/claude-guidance.yml"
   pull_request:
@@ -20,7 +19,6 @@ on:
       - ".mcp.json"
       - ".claude/**"
       - ".claude/registry/**"
-      - ".claude/standards/**"
       - "package.json"
       - ".github/workflows/claude-guidance.yml"
 

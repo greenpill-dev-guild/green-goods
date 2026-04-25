@@ -5,7 +5,7 @@ description: Pre-plan exploration when requirements are fuzzy — turns a vague 
 
 # Brainstorm Before Plan
 
-Turn ideas into designs through collaborative dialogue before committing to a plan. Fires when requirements are too fuzzy to start `/plan` directly.
+Turn ideas into designs through collaborative dialogue before committing to a plan. Fires when requirements are too fuzzy to start planning directly.
 
 ## When to brainstorm
 
@@ -33,7 +33,7 @@ This applies regardless of perceived simplicity. "Simple" projects are where une
 ```
 Explore context → Ask clarifiers one at a time → Propose 2-3 approaches
   → Present design in sections → User approves → Write brief → User reviews brief
-  → Invoke /plan to create implementation plan
+  → Move to planning to create implementation plan
 ```
 
 ### 1. Explore project context (before asking anything)
@@ -131,7 +131,7 @@ Then ask the user to review:
 
 > "Brief written to `.plans/ideas/<slug>/brief.md`. Review it — any changes before we move it to `.plans/active/` and write the plan?"
 
-On approval, move the brief to `.plans/active/<slug>/brief.md`, then invoke `/plan` to create `spec.md`, `plan.todo.md`, `status.json`.
+On approval, move the brief to `.plans/active/<slug>/brief.md`, then move to planning to create `spec.md`, `plan.todo.md`, `status.json`.
 
 ## Key principles
 
@@ -154,4 +154,4 @@ On approval, move the brief to `.plans/active/<slug>/brief.md`, then invoke `/pl
 
 ## Transition
 
-The terminal state of brainstorming is invoking `/plan`. Do NOT invoke `ui`, `contracts`, `stitch`, or any other implementation skill directly — `/plan` owns the path from approved brief to execution.
+The terminal state of brainstorming is the planning skill. Do NOT invoke `ui`, `contracts`, or any other implementation skill directly — planning owns the path from approved brief to execution.

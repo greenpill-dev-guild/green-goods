@@ -16,13 +16,16 @@ Coordinate multiple Claude Code instances working together. One session leads, t
 
 ## Activation
 
-| Trigger | Action |
-|---------|--------|
-| `/plan --mode teams` | Start a team for the current task |
-| `/plan --mode teams-build <target>` | Parallel implementation team |
-| `/plan --mode teams-review <target>` | Parallel review team (no implementation) |
-| `/plan --mode teams-investigate <target>` | Competing-hypothesis debugging team |
-| `/teams` | Legacy alias — routes to `/plan --mode teams` |
+Fires when the plan skill routes to teams. Plan detects orchestration intent (see plan `SKILL.md` Activation) and selects the mode from the user's framing:
+
+| Mode | Selection signal |
+|------|------------------|
+| `teams` (default) | Orchestration intent: "coordinate a team", "spawn teammates", "parallel lanes" |
+| `teams-build` | Orchestration + implementation framing |
+| `teams-review` | Orchestration + review framing ("parallel review", "team review") |
+| `teams-investigate` | Orchestration + investigation framing ("competing hypotheses", "test theories in parallel") |
+
+Legacy slash forms (`/plan --mode teams-*`, `/teams`) still work if typed explicitly but are not advertised.
 
 Before spawning, run preflight:
 
@@ -41,6 +44,8 @@ If preflight fails, fall back to subagents (Task tool) with the same ownership m
 - New modules or features where teammates each own a separate piece
 - Debugging with competing hypotheses tested in parallel
 - Cross-layer coordination (contracts + shared + client changes)
+
+For mixed-worker teams — some lanes design-sensitive (Claude's strength), others spec-clear implementation (Codex's strength) — spawn codex-driving teammates rather than having the lead dispatch Codex directly. See [Part 11: Codex Lanes](#part-11-codex-lanes--teammates-that-dispatch-codex).
 
 **Use subagents (Task tool) instead when:**
 - Tasks are sequential or have many dependencies
@@ -235,9 +240,9 @@ This project uses `"in-process"` by default (configured in `.claude/settings.jso
 
 ## Part 10: Shortcut Templates
 
-### `/plan --mode teams-build <target>`
+### Build mode (parallel implementation)
 
-Parallel implementation. Teammates each own a piece, build independently, lead integrates.
+Teammates each own a piece, build independently, lead integrates.
 
 ```
 Create a team to implement <TARGET>.
@@ -247,9 +252,9 @@ Create a team to implement <TARGET>.
 - Wait for teammates to finish before integrating
 ```
 
-### `/plan --mode teams-review <target>`
+### Review mode (parallel lenses)
 
-Parallel review. Each teammate applies a different lens. No implementation.
+Each teammate applies a different lens. No implementation.
 
 ```
 Create a team to review <TARGET>.
@@ -258,9 +263,9 @@ Create a team to review <TARGET>.
 - Synthesize into a severity-ranked report (Critical/High/Medium/Low)
 ```
 
-### `/plan --mode teams-investigate <target>`
+### Investigate mode (competing hypotheses)
 
-Competing hypotheses. Teammates test different theories and debate.
+Teammates test different theories and debate.
 
 ```
 Create a team to investigate <TARGET>.
@@ -268,6 +273,135 @@ Create a team to investigate <TARGET>.
 - Have them actively try to disprove each other's theories
 - The theory that survives is most likely the root cause
 ```
+
+---
+
+## Part 11: Codex Lanes — Teammates That Dispatch Codex
+
+For cross-package work that mixes design-sensitive UI (Claude's strength) with spec-clear implementation (Codex's strength), spawn Claude teammates that dispatch Codex internally rather than having the lead coordinate two worker kinds.
+
+**Why teammates drive Codex, not the lead:**
+- Keeps the lead's context clean — no codex JSON, worktree paths, or cleanup bash
+- Codex output flows through the same `TeammateIdle` / `TaskCompleted` hook gates
+- Lead coordination stays uniform: it manages teammates, not processes
+- The teammate with task context reviews codex output in the right place
+
+### Preflight
+
+Run before spawning a team that uses codex lanes:
+
+```bash
+bash .claude/scripts/check-codex-lane-readiness.sh
+```
+
+Validates codex binary, canonical schema (`.codex/output-schema.json`), jq, and the worktree parent. Fails clearly if any piece is missing.
+
+### Lane Assignment
+
+Shape lanes to each worker's strengths. Lane owner is a hint, not a rigid contract.
+
+| Lane type | Claude teammate | Codex-driving teammate |
+|---|---|---|
+| UI components, layouts, design iteration | ✓ | |
+| Responsive / a11y polish | ✓ | |
+| State machines with cross-cutting concerns | ✓ | |
+| Contract implementation from clear spec | | ✓ |
+| Hooks, stores, mechanical transforms | | ✓ |
+| Test scaffolding from eval criteria | | ✓ |
+| i18n string extraction / translation pass | | ✓ |
+| Reviewer / QA pass after integration | either | ✓ |
+
+If a lane's nature is ambiguous, give it to a Claude teammate — it can decide whether to delegate to codex on the fly.
+
+### Spawning a Codex-Driving Teammate
+
+The teammate's spawn prompt tells it to use the dispatch script. It does NOT need to know the dispatch mechanics — the script handles worktree + env symlink + output schema.
+
+Good spawn prompt:
+
+```
+Spawn a codex-driving teammate with this prompt:
+"You own the `factory` lane for phase-1a. Dispatch codex via:
+
+  bash .claude/scripts/dispatch-codex-lane.sh \
+    --lane factory \
+    --base feature/admin-ui-revamp \
+    --phase phase-1a \
+    --prompt-file .plans/active/admin-ui-revamp/handoffs/codex-tasks/factory.md
+
+Run it via Bash with run_in_background=true. When it completes, read the JSON
+from stdout, open result_file, and verify status == success and tests_passed == true.
+If status is partial or failed, read the issues array and either re-dispatch with
+a refined prompt or report back to the lead with the blocker.
+
+On success: review the diff in the worktree, merge into feature/admin-ui-revamp
+with --no-ff, then clean up:
+
+  git worktree remove /tmp/gg-codex-factory
+  git branch -d codex/factory/phase-1a
+
+Report the merge SHA, files changed, and any deviations from the original prompt."
+```
+
+Bad spawn prompt (missing the lane mechanics):
+
+```
+Spawn a teammate to run codex on the factory task.
+```
+
+### Dispatcher Contract
+
+`.claude/scripts/dispatch-codex-lane.sh` is the single entry point.
+
+- Required args: `--lane`, `--base`, and either `--prompt` or `--prompt-file`
+- Optional: `--phase` (default `main`), `--schema` (default `.codex/output-schema.json`)
+- Side effects: creates `/tmp/gg-codex-<lane>` worktree on branch `codex/<lane>/<phase>`, symlinks root `.env`, runs `codex exec --full-auto`
+- Stdout: JSON with `result_file`, `worktree`, `branch`, `dispatch_exit`
+- Does NOT clean up — that is the teammate's job after review and merge
+- Env overrides: `CODEX` (binary path), `CODEX_WORKTREE_PARENT` (default `/tmp`)
+
+### File Ownership With Codex Lanes
+
+Codex teammates follow the same ownership rules as Part 5. Assign each lane to exactly one teammate. A codex-driving teammate owns:
+
+- Its worktree path (`/tmp/gg-codex-<lane>`)
+- Its branch (`codex/<lane>/<phase>`)
+- The files codex edits within the worktree
+- Merging the worktree back to the base branch
+
+Two codex-driving teammates must NOT target overlapping files, same rule as two Claude teammates editing the same file. The lead enforces this via lane assignment.
+
+### Parallel Dispatch
+
+Multiple codex-driving teammates run in parallel. Each owns a separate lane and worktree. The shared task list coordinates them — tasks can declare `depends_on` so downstream lanes wait for upstream merges.
+
+Example phase structure:
+
+```
+Lane A (codex):  contracts implementation    — no deps
+Lane B (codex):  hooks implementation        — no deps
+Lane C (claude): UI components               — depends on A, B merged
+Lane D (codex):  integration tests           — depends on A, B, C merged
+```
+
+### Codex Prompt Hygiene
+
+Codex teammates hand prompts to codex via `--prompt-file`. Follow the [Codex Prompting Guide](https://developers.openai.com/codex/prompting):
+
+- State the goal, not the steps — codex is autonomous, not a step-runner
+- Name which files to read, which plan docs reference (codex reads them itself)
+- Declare what NOT to do (scope boundaries) explicitly
+- Include a "Done when" section with validation commands
+- Do NOT ask codex for upfront plans or status updates (causes early stopping)
+- Do NOT repeat info from `AGENTS.md` (codex loads it automatically)
+
+### Canonical References
+
+- Dispatcher: `.claude/scripts/dispatch-codex-lane.sh`
+- Preflight: `.claude/scripts/check-codex-lane-readiness.sh`
+- Output schema: `.codex/output-schema.json`
+- Codex config: `.codex/config.toml`
+- Proven pattern: `.plans/active/admin-ui-revamp/handoffs/orchestration.md`
 
 ---
 

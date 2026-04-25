@@ -8,328 +8,308 @@ Dedicated story authoring routes through the `ui` skill. The old `storybook-auth
 
 ## Project Setup
 
+Storybook is the local component documentation, state catalog, and light regression surface for Green Goods UI work. The unified Storybook instance is hosted from `packages/shared`, but it indexes stories from `packages/shared`, `packages/admin`, and `packages/client`.
+
 ### Commands
 
 | Command | Purpose |
 |---------|---------|
-| `cd packages/shared && bun run storybook` | Start dev server (port 6006) |
-| `cd packages/shared && bun run build-storybook` | Build static Storybook |
-| `bun dev` | Starts Storybook via PM2 (alongside other services) |
+| `cd packages/shared && bun run storybook` | Start the unified Storybook dev server on port 6006 |
+| `cd packages/shared && bun run build-storybook` | Build the static Storybook artifact |
+| `cd packages/shared && bun run check:stories` | Verify required shared and curated admin surfaces have stories |
+| `cd packages/shared && bun run check:story-quality` | Verify admin/shared Canvas stories are deterministic and agent-readable |
+| `cd packages/shared && bun run test:stories:ci` | Run curated browser-mode story smoke and `play()` tests |
 
 ### Directory Structure
 
 ```text
 packages/shared/
   .storybook/
-    main.ts           # Storybook configuration
-    preview.ts         # Global decorators and parameters
-    manager.ts         # UI customization
-  src/
-    components/
-      Button/
-        Button.tsx
-        Button.stories.tsx   # Stories co-located with component
-        index.ts
-      Card/
-        Card.tsx
-        Card.stories.tsx
+    main.ts              # Unified Storybook config and cross-package aliases
+    preview.tsx          # Global decorators and toolbar parameters
+    decorators.tsx       # Router, theme, query, auth, wagmi, and canvas helpers
+    fixtures.ts          # Shared deterministic fixtures
+    adminFixtures.ts     # Admin-specific deterministic seeds
+  src/components/
+    Button.tsx
+    Button.stories.tsx
+
+packages/admin/src/
+  components/
+    AdminButton.tsx
+    AdminButton.stories.tsx
+  views/**/components/
+    WorkflowComponent.tsx
+    WorkflowComponent.stories.tsx
 ```
 
-- Check `packages/shared/` for existing stories and component patterns.
-- Storybook runs on port 6006.
-- All shared components should have stories.
-- Package-local components in `packages/admin` and `packages/client` may keep package-local stories when that is the established pattern.
-- Load `.claude/context/shared.md` for component patterns.
+- Co-locate stories with the component or workflow surface they document.
+- Package-local components in `packages/admin` and `packages/client` keep package-local stories.
+- Shared primitives, Canvas foundations, and reusable hooks belong in `packages/shared` and should be consumed through package barrels.
+- Storybook config and reusable story harness helpers live under `packages/shared/.storybook`.
 
 ## Green Goods Story Conventions
 
-### Required Exports
+### Storybook-First Component Flow
 
-Every story file includes at minimum:
+When an agent builds or changes an admin UI component:
 
-1. `Default`
-2. `DarkMode`
-3. `Gallery`
+1. Read `packages/admin/AGENTS.md`, `docs/docs/builders/packages/admin.mdx`, and this file.
+2. Decide ownership before coding: reusable primitive or hook goes in shared; admin-only workflow or shell composition goes in admin.
+3. Build from existing shared/admin primitives before adding a new wrapper.
+4. Add or update the story in the same change, before wiring the component deeply into a route.
+5. Use deterministic fixtures and Storybook decorators instead of live services or ad-hoc mocks.
+6. Inspect the component in Storybook, then wire it into the admin route.
+7. Add focused Vitest/RTL tests for behavior that Storybook cannot honestly prove.
+8. Run the lightest validation loop that covers the touched surface.
 
-Interactive components also include:
+### Required Story Shape
 
-4. `Interactive` with a `play()` function
+Every story file should use CSF3 and include:
+
+1. A `meta` default export with `tags: ["autodocs"]`.
+2. A `Default` story or the nearest meaningful baseline state.
+3. Explicit loading, empty, error, permission, and edge states when the component can render them.
+4. A `StateCatalog` story for state matrices or consolidated visual review.
+5. Viewport-specific stories when responsive behavior changes meaningfully.
+6. A `play()` function only when it catches meaningful behavior without making the story brittle.
+
+Do not add duplicate `DarkMode` stories just to prove theme support. Use the Storybook theme toolbar unless the component has a distinct dark-mode-specific behavior. Prefer `StateCatalog` over generic `Gallery`; keep axis catalogs such as `VariantCatalog`, `SizeCatalog`, or `ToneCatalog` only when the axis itself is the review target.
 
 ### Title Hierarchy
 
-Use the established title families already present in the repo:
+Use the title families enforced by the current Storybook docs:
 
 | Prefix | Typical Scope |
 |---|---|
-| `Primitives/` | Basic shared UI foundations |
-| `Form Controls/` | Inputs, selectors, wrappers, field helpers |
-| `Cards/` | Reusable card patterns and domain cards |
-| `Feedback/` | Toasts, dialogs, boundaries, status states |
-| `Media/` | Image, audio, upload, capture surfaces |
-| `Progress/` | Sync, submission, timeline, progress indicators |
-| `Admin/...` | Admin-only or admin-framed stories |
-| `Client/...` | Client-only or client-framed stories |
-| `Design Tokens/` | Colors, typography, spacing, animation docs |
+| `Shared/Primitives/*` | Basic shared UI foundations |
+| `Shared/Canvas/*` | Canvas shell pieces, sheets, navigation, workbench rows |
+| `Shared/Form/*` | Inputs, selectors, wrappers, field helpers |
+| `Shared/Feedback/*` | Toasts, dialogs, boundaries, status states |
+| `Shared/Display/*` | Image, media, fallback, and preview surfaces |
+| `Shared/Cards/*` | Reusable card patterns and domain cards |
+| `Shared/Progress/*` | Sync, submission, timeline, progress indicators |
+| `Shared/Tokens/*` | Color, typography, material, shadow, animation docs |
+| `Admin/Primitives/*` | Admin-only `Admin*` wrappers |
+| `Admin/Shell/*` | Admin-owned canvas shell and account surfaces |
+| `Admin/Workflows/*` | Curated reusable admin workflow surfaces |
+| `Client/*` | Client-only component stories |
 
 Match the closest existing category before inventing a new one.
 
 ### Project-Specific Rules
 
 - Use Remixicon (`@remixicon/react`), not lucide.
-- Dark mode uses `data-theme="dark"`, not class toggles.
+- Dark mode uses `data-theme="dark"`, controlled by the global Storybook theme toolbar.
 - Use semantic tokens from `theme.css`, not hardcoded colors.
+- Use deterministic fixture helpers from `packages/shared/.storybook/fixtures.ts` and `adminFixtures.ts`.
+- Do not use `Date.now()`, zero-argument `new Date()`, `picsum.photos`, live IPFS URLs, or placeholder CIDs.
+- Use `STORYBOOK_NOW_SECONDS`, `hoursAgo`, `daysAgo`, and `daysFromNow` for relative-time states.
+- Use data URL fixture images such as `FIXTURE_WORK_MEDIA` and `FIXTURE_IMAGE_*`.
 - Do not duplicate global Storybook decorators already configured in preview.
 - Give public props useful `argTypes` with controls and descriptions.
 - For wizard or multi-step UI, add a story per meaningful step plus a full-flow story when interaction coverage matters.
-- Client-facing components are mobile-first. Add viewport coverage when layout meaningfully changes on small screens.
+- Client-facing components are mobile-first. Admin components use standard responsive breakpoints and should add viewport coverage when layout changes on small screens.
+
+### Real Components vs Harnesses
+
+Stories should render real components by default.
+
+Use `visual-harness` only when a real component cannot be rendered deterministically because it terminates in wallet-bound wagmi reads, contract writes, live services, or route/provider seams that do not yet have a stable story harness. Harness stories are useful for visual review, but they do not prove real-component coverage unless the coverage script has an explicit audited exception.
+
+For provider-dependent stories, prefer helpers from `packages/shared/.storybook/decorators.tsx`:
+
+- `withRouter([...])` for route context.
+- `withCanvasFrame(...)` for admin canvas sizing and workspace tint.
+- `withAdminIdentity` for mock wagmi plus dev auth.
+- `withSeededQueryClient(...)` for React Query data.
+- `withWagmi` or `withDevAuth` only when the story needs that narrower layer.
 
 ## Story Definition of Done
 
 Treat a story task as complete only when all of these are true:
 
-1. The story file is co-located with the component.
-2. The meta block uses CSF3 plus `tags: ["autodocs"]`.
-3. Minimum exports are present: `Default`, `DarkMode`, and `Gallery`.
-4. Interactive components add an `Interactive` story with a `play()` function.
-5. Public props have useful `argTypes` with controls and descriptions.
-6. Mock data is realistic and uses project factories or domain-shaped objects, not placeholders.
-7. `cd packages/shared && bun run build-storybook` passes before completion.
+1. The story file is co-located with the component or workflow surface.
+2. The story renders the real component unless it is explicitly tagged `visual-harness`.
+3. The meta block uses CSF3 plus `tags: ["autodocs"]`.
+4. The states a reviewer needs are covered as named stories or a `StateCatalog`.
+5. Responsive variants exist where layout meaningfully changes.
+6. Fixture data is deterministic and domain-shaped.
+7. Focused `play()` interactions exist only for stable high-value behavior.
+8. The relevant Storybook gates pass.
 
 ## Writing Stories (CSF3)
 
 ### Basic Story
 
 ```typescript
-// Button.stories.tsx
 import type { Meta, StoryObj } from "@storybook/react";
-import { Button } from "./Button";
+import { AdminButton } from "./AdminButton";
 
 const meta = {
-  title: "Components/Button",
-  component: Button,
-  tags: ["autodocs"],  // Auto-generate docs
+  title: "Admin/Primitives/AdminButton",
+  component: AdminButton,
+  tags: ["autodocs"],
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "destructive", "ghost"],
+      options: ["filled", "tonal", "elevated", "outlined", "text", "danger"],
     },
     size: {
       control: "select",
       options: ["sm", "md", "lg"],
     },
   },
-} satisfies Meta<typeof Button>;
-
-export default meta;
-type Story = StoryObj<typeof meta>;
-
-// Named exports = individual stories
-export const Primary: Story = {
-  args: {
-    variant: "primary",
-    children: "Click me",
-  },
-};
-
-export const Secondary: Story = {
-  args: {
-    variant: "secondary",
-    children: "Secondary",
-  },
-};
-
-export const Loading: Story = {
-  args: {
-    variant: "primary",
-    children: "Saving...",
-    disabled: true,
-  },
-};
-```
-
-### Story with Decorators
-
-```typescript
-// Wrap story in providers or layout
-export const WithTheme: Story = {
-  decorators: [
-    (Story) => (
-      <div className="p-8 bg-background">
-        <Story />
-      </div>
-    ),
-  ],
-  args: {
-    children: "Themed Button",
-  },
-};
-```
-
-### Interactive Stories (Play Functions)
-
-```typescript
-import { within, userEvent, expect } from "@storybook/test";
-
-export const ClickInteraction: Story = {
-  args: { children: "Click me" },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const button = canvas.getByRole("button");
-
-    await userEvent.click(button);
-    await expect(button).toHaveFocus();
-  },
-};
-```
-
-### Stories for Complex Components
-
-```typescript
-// GardenCard.stories.tsx
-import type { Meta, StoryObj } from "@storybook/react";
-import { GardenCard } from "./GardenCard";
-import { createMockGarden } from "../../__tests__/test-utils/mock-factories";
-
-const meta = {
-  title: "Domain/GardenCard",
-  component: GardenCard,
-  tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <div className="max-w-sm">
-        <Story />
-      </div>
-    ),
-  ],
-} satisfies Meta<typeof GardenCard>;
+} satisfies Meta<typeof AdminButton>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    garden: createMockGarden(),
+    children: "Review work",
   },
 };
 
-export const WithManyActions: Story = {
+export const Loading: Story = {
   args: {
-    garden: createMockGarden({ actionCount: 12 }),
-  },
-};
-
-export const Offline: Story = {
-  args: {
-    garden: createMockGarden(),
-    isOffline: true,
+    children: "Saving",
+    loading: true,
   },
 };
 ```
 
-## Global Configuration
-
-### Preview (Decorators & Parameters)
+### Story with Admin Context
 
 ```typescript
-// .storybook/preview.ts
-import type { Preview } from "@storybook/react";
-import "../src/styles/globals.css";
+import type { Meta, StoryObj } from "@storybook/react";
+import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import {
+  withAdminIdentity,
+  withCanvasFrame,
+  withRouter,
+  withSeededQueryClient,
+} from "../../../../shared/.storybook/decorators";
+import { MyAdminWorkflow } from "./MyAdminWorkflow";
 
-const preview: Preview = {
-  parameters: {
-    actions: { argTypesRegex: "^on[A-Z].*" },
-    controls: {
-      matchers: {
-        color: /(background|color)$/i,
-        date: /Date$/i,
-      },
-    },
-    layout: "centered",
-    backgrounds: {
-      default: "light",
-      values: [
-        { name: "light", value: "#ffffff" },
-        { name: "dark", value: "#0a0a0a" },
-        { name: "green", value: "#f0fdf4" },
-      ],
-    },
-  },
+const meta = {
+  title: "Admin/Workflows/MyAdminWorkflow",
+  component: MyAdminWorkflow,
+  tags: ["autodocs"],
   decorators: [
-    // Global decorator for all stories
-    (Story) => (
-      <div className="font-sans antialiased">
-        <Story />
-      </div>
-    ),
+    withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withRouter(["/hub/work"]),
+    withCanvasFrame({ workspace: "hub", heightClassName: "h-[720px]" }),
   ],
-};
+} satisfies Meta<typeof MyAdminWorkflow>;
 
-export default preview;
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = {};
+```
+
+### Interactive Story
+
+```typescript
+import { expect, userEvent, within } from "storybook/test";
+
+export const OpensInspector: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: /open details/i }));
+    await expect(await canvas.findByRole("heading", { name: /details/i })).toBeVisible();
+  },
+};
+```
+
+## Validation
+
+Run the checks that match the touched surface:
+
+```bash
+# Required for new or changed admin/shared stories
+cd packages/shared && bun run check:stories
+cd packages/shared && bun run check:story-quality
+
+# Required when Storybook config, tokens, or broad story surfaces change
+cd packages/shared && bun run build-storybook
+
+# Required only when adding or changing curated storybook-ci coverage
+cd packages/shared && bun run test:stories:ci
+```
+
+For frontend token or copy changes, also run:
+
+```bash
+bun run check:design-tokens
+bun run lint:vocab
 ```
 
 ## Reference Files
 
-For detailed addon configuration, design system documentation, and testing patterns:
-
-- **[storybook-addons.md](./storybook-addons.md)** -- Essential addon configuration (a11y, themes, interactions), accessibility addon rules, theme switching setup, component API documentation with JSDoc, MDX documentation pages, and story organization hierarchy.
-
-- **[storybook-testing.md](./storybook-testing.md)** -- Visual snapshot testing, responsive stories, component state coverage checklist, Chromatic visual regression setup and CI integration, Storybook test runner, multi-step play functions, async state testing, error state testing, offline scenario testing, and play function best practices.
+- `docs/docs/builders/testing/storybook.mdx` -- canonical live Storybook contract and CI gate description.
+- `packages/shared/.storybook/main.ts` -- unified Storybook config.
+- `packages/shared/.storybook/decorators.tsx` -- reusable story harness helpers.
+- `packages/shared/.storybook/fixtures.ts` -- deterministic shared fixture helpers.
+- `packages/shared/.storybook/adminFixtures.ts` -- deterministic admin fixture seeds.
+- `scripts/check-story-coverage.ts` -- required coverage contract.
+- `scripts/check-story-quality.ts` -- deterministic story guardrails.
+- **[storybook-addons.md](./storybook-addons.md)** -- addon configuration reference.
+- **[storybook-testing.md](./storybook-testing.md)** -- extended interaction and visual testing notes.
 
 ## Anti-Patterns
 
-- **Never skip `tags: ["autodocs"]`** -- all components need auto-generated docs
-- **Never hardcode data in stories** -- use mock factories from test-utils
-- **Never skip a11y addon checks** -- accessibility is mandatory
-- **Never invent a new title family when an existing one fits** -- keep Storybook navigation stable
-- **Never forget loading/error/empty states** -- cover all UI states
-- **Never inline styles in stories** -- use Tailwind classes matching production
+- Rendering a mock component as `meta.component` without `visual-harness`.
+- Tagging every story with `storybook-ci`; keep the CI lane curated.
+- Using `Date.now()`, zero-argument `new Date()`, live media URLs, or placeholder IPFS data.
+- Adding one-off decorators when a shared Storybook helper already exists.
+- Adding duplicate dark-mode stories instead of using the theme toolbar.
+- Naming consolidated matrices `Gallery` instead of `StateCatalog`.
+- Inventing a new title family when an existing one fits.
+- Treating Storybook as a replacement for focused tests of permissions, routing, mutation behavior, or data transforms.
 
 ## Quick Reference Checklist
 
 ### Before Adding a New Component
 
-- [ ] Story file co-located with component
-- [ ] `tags: ["autodocs"]` for auto-documentation
-- [ ] Default, DarkMode, and Gallery exports present
-- [ ] All variants shown as separate stories
-- [ ] Loading, error, empty states covered
-- [ ] Play function for key interactions
-- [ ] Passes a11y addon checks
-- [ ] Works in both light and dark themes
-- [ ] Responsive viewports tested
-- [ ] Mock data from test-utils factories
+- [ ] Ownership decided: shared reusable foundation or admin-only workflow.
+- [ ] Component uses existing shared/admin primitives before new wrappers.
+- [ ] Story file co-located with component.
+- [ ] `tags: ["autodocs"]` present.
+- [ ] Real component rendered by default.
+- [ ] Deterministic fixtures and shared decorators used.
+- [ ] `StateCatalog` or named states cover loading, empty, error, permissions, and edge cases where applicable.
+- [ ] Responsive story added when behavior changes by viewport.
+- [ ] `play()` added only for stable high-value interactions.
+- [ ] `check:stories`, `check:story-quality`, and any necessary build/smoke gates pass.
 
 ## Decision Tree
 
-```
+```text
 What Storybook work?
 |
-+--> New component? ----------------> Writing Stories (above)
-|                                      -> Co-locate story with component
-|                                      -> Add tags: ["autodocs"]
-|                                      -> Cover all variants
-|                                      -> Add play function for interactions
++--> New admin component? ---------> Storybook-first component flow
+|                                    -> Decide shared vs admin ownership
+|                                    -> Build from existing primitives
+|                                    -> Add real-component story + StateCatalog
+|                                    -> Wire route only after story is coherent
 |
-+--> Design system docs? -----------> storybook-addons.md
-|                                      -> MDX pages for tokens/patterns
-|                                      -> ColorPalette, Typeset blocks
-|                                      -> Organize under Design System/
++--> Shared primitive? ------------> Shared story + barrel export + focused tests
+|                                    -> Use Shared/* title family
+|                                    -> Run check:stories
 |
-+--> Visual regression? ------------> storybook-testing.md
-|                                      -> Chromatic for CI
-|                                      -> Test runner for local
-|                                      -> Review diffs on PR
++--> Provider-driven workflow? ----> Use decorators.tsx helpers
+|                                    -> Seed React Query data
+|                                    -> Prefer real component
+|                                    -> Tag visual-harness only for audited exceptions
 |
-+--> Accessibility check? ----------> storybook-addons.md
-|                                      -> a11y addon (mandatory)
-|                                      -> axe-core rules in preview.ts
-|                                      -> Every story must pass
++--> CI story smoke? --------------> Add storybook-ci only for stable high-value behavior
+|                                    -> Add a meaningful play() assertion
+|                                    -> Run test:stories:ci
 |
-+--> Theme testing? ----------------> storybook-addons.md
-|                                      -> withThemeByClassName decorator
-|                                      -> Test light + dark
++--> Visual regression? -----------> storybook-testing.md / Chromatic notes
 |
-+--> Responsive testing? -----------> storybook-testing.md
-                                       -> Viewport parameters
-                                       -> Mobile, tablet, desktop stories
++--> Accessibility check? ---------> addon-a11y in Storybook UI
 ```

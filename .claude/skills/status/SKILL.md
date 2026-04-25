@@ -147,8 +147,8 @@ This mode is for "what was I doing here?" not "what is the whole repo doing?"
 
 If `status` shows uncertainty, route to the right next verb:
 
-- use `/plan` when the next move is not yet shaped
-- use `/debug` when the branch is blocked by a failing symptom
+- describe the planning intent ("plan this", "break down X") when the next move is not yet shaped
+- describe the bug or paste the error when the branch is blocked by a failing symptom
 - use `/review` when the branch mostly needs judgment on the current diff
 
 Do not jump to broader repo-health or architecture work unless the evidence actually points there.

@@ -15,7 +15,8 @@ their subtree.
 
 ## Global Invariants
 
-- Use `bun` for repo scripts and package operations. Do not introduce npm/yarn commands.
+- Use `bun` for repo scripts and package operations. The only npm exception is `npm run setup`
+  on a fresh machine before Bun is available.
 - Use `bun run test`, never `bun test`.
 - Never use raw `forge`; use the repo's bun scripts for build, test, deploy, and upgrade flows.
 - Hooks live in `@green-goods/shared` only.
@@ -34,6 +35,16 @@ their subtree.
 3. Run the lightest validation loop that still proves the change.
 4. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
+## Research, Plan, Implement
+
+For ambiguous, multi-package, or high-risk work, do not jump straight into edits.
+
+1. Research first: read the relevant source, tests, docs, and nearest package guide.
+2. Record the evidence: cite the existing patterns, affected files, and any inference that is not directly proven.
+3. Plan the smallest implementation path, including explicit out-of-scope items and validation commands.
+4. Surface human judgment points before editing protected or irreversible surfaces.
+5. Implement only after the research and plan are coherent. If the session went down the wrong path, summarize the useful findings and restart with clean context.
+
 ## Admin UI Defaults
 
 - For `packages/admin`, read `docs/docs/builders/packages/admin.mdx` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
@@ -46,7 +57,7 @@ their subtree.
 
 Single design language across all frontend packages, two dialects. Full detail in `.claude/skills/design/`. One-page map: `.claude/skills/design/ARCHITECTURE.md`.
 
-**Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. Glass only on `TopContextBar`. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (13 total: `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`). Litmus: Linear / GitHub / Stripe-appropriate?
+**Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. Glass only on the admin `AppBar`. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (13 total: `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`). Litmus: Linear / GitHub / Stripe-appropriate?
 
 **Client** (`packages/client`) — adaptive shell. Browser = `SiteHeader` + hamburger. Installed PWA = bottom `AppBar` (Home / Garden / Profile). Never mix. Inter across PWA; editorial serif only on public browser site. Hero moments (garden creation, first submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone) live here, never in admin.
 
@@ -54,7 +65,7 @@ Single design language across all frontend packages, two dialects. Full detail i
 
 **Banned vocabulary** (enforced in i18n by `bun run lint:vocab`):
 - Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`.
-- Admin only: `hero moment`, `gallery`, `decorative gradient`, glass outside `TopContextBar`.
+- Admin only: `hero moment`, `gallery`, `decorative gradient`, glass outside the admin `AppBar`.
 - Client only: `operator cockpit`, `utility copy`, `Plus Jakarta Sans`, `KPI tile`, `dashboard`.
 
 **Additional validation steps**: `bun run check:design-tokens` (Warm Earth spec ↔ `theme.css` drift + version coupling), `bun run lint:vocab`. Add both to the Validation Ladder for frontend work.

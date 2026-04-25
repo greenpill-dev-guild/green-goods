@@ -1,13 +1,13 @@
 ---
 name: review
 description: Diff-scoped code review for Green Goods. Use when reviewing a PR, branch diff, working-copy change, or cross-package change. Focus on correctness, boundary violations, missing tests, and judgment-heavy callouts such as dependencies, permissions, migrations, and destructive operations. Avoid broad style commentary and keep findings high-confidence.
-argument-hint: "[file-or-PR]"
-version: "2.0.0"
+argument-hint: "[package|PR|file ...] [--mode report_only|verify_only|apply_fixes] [--scope cross-package]"
+version: "2.1.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-04-18"
-last_verified: "2026-04-18"
+last_updated: "2026-04-24"
+last_verified: "2026-04-24"
 ---
 
 # Review Skill
@@ -29,6 +29,49 @@ Use when:
 - a PR, diff, or working-copy change needs structured findings
 - a cross-package change needs a scoped verification pass
 
+Invocation forms (all equivalent — pick whichever is easiest):
+
+| Form | Example |
+|------|---------|
+| Slash + positional | `/review admin`, `/review shared admin`, `/review #123`, `/review packages/shared/src/hooks/garden/useGardens.ts` |
+| Slash + flags | `/review --scope cross-package --mode verify_only`, `/review admin --mode apply_fixes` |
+| Natural language | "review the shared package", "review the admin changes in this diff", "review PR 42" |
+
+## Scoping
+
+Always resolve scope **before** inspecting code, and state the resolved scope in the Summary so the user can redirect.
+
+### Resolution order
+
+1. **Explicit positional arg(s)** — a package name, PR ref, or file path. Multiple allowed; they combine (union, not intersection).
+2. **Natural-language scope** — "review the shared package", "review admin changes", "review PR 42". Resolve the same way as positional.
+3. **Working-copy auto-inference** — when no scope given, run `git diff --name-only` against the merge-base and infer packages touched. Print the inferred scope. If nothing is staged/modified, ask the user what to review instead of guessing.
+
+### Valid package scopes
+
+| Scope | Paths |
+|-------|-------|
+| `contracts` | `packages/contracts/**` |
+| `indexer` | `packages/indexer/**` |
+| `shared` | `packages/shared/**` |
+| `client` | `packages/client/**` |
+| `admin` | `packages/admin/**` |
+| `agent` | `packages/agent/**` |
+| `docs` | `docs/**` |
+
+### Scope combinators
+
+- `/review shared admin` — files touching either package (union)
+- `/review --scope cross-package` — special lens: only findings that cross package boundaries
+- `/review #123` — restrict to files in the PR's diff
+- `/review packages/shared/src/hooks/garden/useGardens.ts` — single-file review (narrowest)
+
+### When to ask vs infer
+
+- Multiple packages touched and user gave no scope → print inferred scope, proceed with all of them unless the user redirects
+- Zero files touched in working tree and no scope given → ask what to review
+- Scope resolves to >800 LOC → warn and offer to narrow before continuing
+
 ## Scope Lock
 
 Default mode is read-only. Only switch into a fix flow when the user explicitly asks for one.
@@ -48,7 +91,92 @@ Default mode is read-only. Only switch into a fix flow when the user explicitly 
 
 ### Internal Lenses
 
-When a diff exposes a boundary problem, use the `architecture` lens inside this review. When it exposes a coherence, simplicity, or duplication problem, use the `principles` lens inside this review. Do not make the user switch commands unless they explicitly ask for a dedicated pass.
+Review folds in the `architecture`, `principles`, `testing`, and `audit` lenses *when the diff exposes their signals* — not on every review. See the Lens Activation Matrix below for concrete trigger rules. Do not make the user switch commands unless they explicitly ask for a dedicated pass.
+
+## Lens Activation Matrix
+
+Predictable lens activation. Scan the diff against these signals *before* producing findings, and declare which lenses fired (and what triggered each) in the Summary.
+
+Each lens has **hard signals** (any match → lens MUST run) and **soft signals** (≥2 matches → lens SHOULD run). If no signals match, review runs core-only.
+
+### architecture
+
+**Hard signals** (any → fire):
+
+- Hook added/modified outside `packages/shared/src/hooks/` (violates repo invariant)
+- File created outside a valid package directory
+- Cross-package import path added for the first time (e.g., admin first import from client)
+- Barrel export moved between packages
+
+**Soft signals** (≥2 → fire):
+
+- Diff touches ≥3 packages
+- File size grows ≥30% AND public exports expand
+- New module has no clear owning package
+- Placement decision visible in the diff (new top-level file, first usage of a capability)
+- New import path that may close a cycle (verify with `madge --circular` if suspected)
+
+### principles
+
+**Hard signals:**
+
+- Silent `catch (_)` or `catch (err) {}` block with no error-handling path
+- User-affecting fallback added with no visible decision trail
+- Permission check wrapped, moved, or removed without adjacent test update
+- Deprecated pattern added (see CLAUDE.md invariants)
+
+**Soft signals:**
+
+- Diff adds code near existing code doing ~80% similar work (duplication scent)
+- Function exceeds 40 lines OR carries ≥3 distinct concerns
+- Nested conditional depth ≥3 OR ternary chain ≥3 levels
+- Abstraction (wrapper/adapter/util) added with only one call site
+- Public interface grows by ≥2 new methods/properties
+
+### testing
+
+**Hard signals:**
+
+- Critical surface (CLAUDE.md Criticality Matrix) modified without corresponding test change
+- Public hook/module API changed without test update
+- Bugfix with no regression test reproducing the bug
+- Contract function signature changes without test update
+
+**Soft signals:**
+
+- New mutation or state transition without coverage
+- Rewrite of a function with existing tests, no test changes
+- Assertion removed without replacement
+
+### audit
+
+**Hard signals:**
+
+- `package.json` dependency version change
+- Env var added or removed in `.env.schema`
+- Public export removed (breaking change to API surface)
+
+**Soft signals:**
+
+- Symbol usage removed but symbol remains exported (dead-code scent)
+- Deprecated API usage adjacent to the diff left untouched
+- Circular dependency created
+- Large deletion block without corresponding cleanup of callers
+
+### How to apply
+
+1. Scan the diff against **hard signals** first. Any match → fire that lens.
+2. Count **soft signals** per lens. ≥2 matches → fire that lens.
+3. If no signals fire, review runs core-only.
+4. The Summary MUST declare which lenses fired and cite the triggering signal(s). Example:
+
+   ```
+   Lenses applied: architecture (hard: cross-package import admin→client at packages/admin/src/views/Hub.tsx:12),
+                   testing (hard: useGardens public API change with no test update)
+   Lenses skipped: principles, audit (no signals matched)
+   ```
+
+5. When only one lens fires with one soft signal, mention it but keep the finding count proportional — do not turn a narrow review into a deep audit.
 
 ## Review Model
 
@@ -79,17 +207,17 @@ Do not blur these categories.
 
 ## Workflow
 
-### 1. Explain the Change
+### 1. Confirm the Scope
 
-Start with:
+Start by stating the resolved scope explicitly before inspecting anything:
 
 ```text
-Review scope: [PR | branch diff | working tree | file set]
-Blast radius: [packages touched]
+Review scope: [package(s) | PR #N | file set | full working tree]
+Files in scope: [count] (packages touched: ...)
 Review mode: report_only | verify_only | apply_fixes
 ```
 
-If the change is too large to review honestly, say so and ask for a narrower scope.
+If the resolved scope doesn't match the user's intent, ask before diving in. If the change is too large to review honestly (>800 LOC without a tight focus), say so and ask for a narrower scope.
 
 ### 2. Check Requirement Coverage
 
@@ -163,7 +291,7 @@ Use this exact ordered output shape:
 
 ### Summary
 
-What changed, blast radius, and whether the review scope is trustworthy enough to judge.
+What changed, blast radius, whether the review scope is trustworthy enough to judge, and which internal lenses fired (per the Lens Activation Matrix) with the triggering signals cited.
 
 ### Severity Mapping
 

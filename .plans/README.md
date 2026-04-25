@@ -37,8 +37,8 @@ Every new feature or polish effort should live in a dedicated folder:
 The Markdown files are the human-readable context:
 
 - `brief.md`: the idea in one page
-- `spec.md`: product and technical scope
-- `plan.todo.md`: implementation sequencing
+- `spec.md`: product and technical scope, research evidence, and human judgment points
+- `plan.todo.md`: research/plan gate and implementation sequencing
 - `eval.md`: release gates, QA, and acceptance checks
 - `handoffs/`: short lane-to-lane handoff files
 - `reports/`: verification outputs, follow-up notes, release summaries
@@ -109,7 +109,7 @@ That split keeps scheduling platform-specific while keeping instructions, branch
 ## Lifecycle
 
 1. Create a new feature hub in `.plans/backlog/<feature-slug>/`
-2. Fill out `brief.md`, `spec.md`, `plan.todo.md`, and `eval.md`
+2. Fill out `brief.md`, `spec.md`, `plan.todo.md`, and `eval.md`, including research evidence and human judgment points for non-trivial work
 3. Move the hub to `.plans/active/<feature-slug>/` when it is ready for automation
 4. Mark unused lanes as `n/a` in `status.json`
 5. Let lane automations claim work from `.plans/active/`

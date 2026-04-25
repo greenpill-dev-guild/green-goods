@@ -107,7 +107,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /plan /debug /review /status /clean' '  resume: /status --resume'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /status /clean' '  planning, debugging: describe the intent (no slash)' '  resume: /status --resume'",
             "once": true
           }
         ]
@@ -118,17 +118,6 @@
           {
             "type": "command",
             "command": "echo '## Post-Compaction Reminders\\n- Use `bun run test` (NEVER `bun test`) — bun test ignores vitest config\\n- Never use `forge build`/`forge test` directly — always use bun wrappers\\n- ALL hooks MUST live in packages/shared/src/hooks/ (not client or admin)\\n- Single .env at root only — never create package-specific .env files\\n- Import from `@green-goods/shared` barrel only — never deep paths\\n- Use `Address` type (not string) for Ethereum addresses\\n- Use `logger` from shared (not console.log)\\n- Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors\\n- Critical surfaces require line-by-line review; log-only failure handling is never enough on auth, queue, or contract paths'"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "REPO=$(cd \"$(git rev-parse --git-common-dir)/..\" && pwd); /usr/bin/python3 \"$REPO/.codex/hooks/user_prompt_submit_normalize.py\"",
-            "statusMessage": "Normalizing prompt contract..."
           }
         ]
       }

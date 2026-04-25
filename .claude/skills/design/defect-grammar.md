@@ -85,7 +85,7 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 | `responsive` | Breaks at a specific width/container size, overflow, missing truncation. | Container queries (`@[Npx]:`), Rule 11 breakpoints. |
 | `a11y` | Missing `aria-label`, role, focus trap, keyboard trap, missing `prefers-reduced-motion`. | StatusBadge + FormField + Alert components. |
 | `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check:design-tokens` / `bun run lint:vocab`. | `CLAUDE.md § Design System` banned vocabulary. |
-| `surface-identity` | Admin has glass outside `TopContextBar`, or client copy leaks into admin, or vice versa. | `prompt-contract.md § Never Use`. |
+| `surface-identity` | Admin has glass outside the admin `AppBar`, or client copy leaks into admin, or vice versa. | `prompt-contract.md § Never Use`. |
 | `missing-primitive` | A composition that SHOULD use a canonical `Admin*` wrapper uses raw HTML instead. | 13 `Admin*` wrappers in `prompt-contract.md`. |
 
 ## Casual → resolved examples
@@ -95,7 +95,7 @@ The left column is what the user says. The right column is the internal statemen
 | User says | Agent's internal statement |
 |-----------|----------------------------|
 | "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16dp) per M3 card anatomy, currently p-3 (12dp)` |
-| "The top bar looks flat on Garden." | `canvas-area-top in /garden → hierarchy: TopContextBar lacks elevation-3 + --blur-material-regular separation from MainSheet below` |
+| "The top bar looks flat on Garden." | `canvas-area-top in /garden → hierarchy: AppBar lacks elevation-3 + --blur-material-regular separation from MainSheet below` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: sliding indicator uses ease-out 200ms instead of --spring-medium-* tokens` |
 | "The input label looks wrong at phone width." | `AdminTextField (outlined) in LeftSheet create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |
 | "Something's off but I can't tell what." | Tier 3 — agent asks which workspace/region to focus on, then Tier 1s again. |

@@ -88,11 +88,22 @@ Before implementing anything, agents find the most similar existing file in the 
 
 Agent workflows have explicit phases (SCOPE, GATHER, PLAN, TEST, IMPLEMENT, VERIFY) with gates between them. A user asking for "just a plan" stops at PLAN and saves to `.plans/`. This prevents agents from executing prematurely.
 
+### Research, Plan, Implement
+
+Use the research-plan-implement loop for ambiguous, multi-package, or high-risk work:
+
+1. Research the existing system and record the source evidence.
+2. Plan the smallest credible path, including out-of-scope items, human judgment points, and validation.
+3. Implement from the accepted plan in a focused session.
+
+If the context has accumulated wrong assumptions, stop and summarize only the useful findings for a fresh session.
+
 ### Thinking Checkpoints
 
 Between phases, agents reflect on tool results before proceeding:
 
 - After GATHER: "Do I have sufficient context? If I cannot explain the existing pattern in one sentence, I need to read more."
+- After PLAN: "Did I record evidence, assumptions, and the human judgment points before editing?"
 - After TEST failure: "Is this failing for the RIGHT reason?"
 - After IMPLEMENT pass: "Am I testing the behavior or just the happy path?"
 
@@ -123,6 +134,7 @@ Patterns that produce poor agent outputs in this codebase:
 - Reference specific files and line numbers when describing issues
 - Use imperative voice for actions ("implement", "fix", "add test for")
 - Include acceptance criteria that can be mechanically verified
+- For plans, include research evidence and human judgment points before implementation steps
 
 <NextBestAction
   title="Next best action"

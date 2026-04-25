@@ -30,7 +30,7 @@ The admin UI is finalizing a major revamp toward strict Material 3 anatomy × Wa
 - `DISCORD_BOT_TOKEN` and `DISCORD_DESIGN_CHANNEL_ID` are in the environment.
 - Google Drive connector is available for searching shared documents.
 - Do not read `.env` — variables are already in the environment.
-- The admin package is at `packages/admin/` — operator cockpit. Plus Jakarta Sans typography, M3 strict anatomy, glass material ONLY on `TopContextBar`, solid surfaces everywhere else. Uses the 13 canonical `Admin*` wrapper components + `CanvasLayout` + `{Top,Left,Right,Bottom}Sheet` + `MainSheet` + `NavigationBar` + `AdminFab`.
+- The admin package is at `packages/admin/` — operator cockpit. Plus Jakarta Sans typography, M3 strict anatomy, glass material ONLY on the admin `AppBar`, solid surfaces everywhere else. Uses the 13 canonical `Admin*` wrapper components + `CanvasLayout` + `AppBar` + `LeftSheet` + `RightSheet` + `BottomSheet` + `MainSheet` + `NavigationBar` + `AdminFab`.
 - Admin ≠ Client. Never propose client-PWA patterns (hero moments, garden-journal warmth, Inter typography, bottom AppBar) for admin. The design split is intentional; enforce it.
 - Shared primitives live in `packages/shared/`.
 
@@ -96,7 +96,7 @@ Audit `packages/admin/src/` against the strict M3 × Warm Earth spec:
 
 1. **M3 strict anatomy** — verify:
    - Plus Jakarta Sans everywhere (no Inter, no serifs)
-   - Glass material (`--blur-material-*`) ONLY on `TopContextBar`; solid surfaces elsewhere
+   - Glass material (`--blur-material-*`) ONLY on the admin `AppBar`; solid surfaces elsewhere
    - `Admin*` wrappers used instead of shared primitives where the M3 anatomy requires it
    - No decorative gradients, hero moments, or garden-journal warmth
 
@@ -108,11 +108,11 @@ Audit `packages/admin/src/` against the strict M3 × Warm Earth spec:
 
 3. **Workspace identity** — verify:
    - Each workspace (Hub, Garden, Community, Actions) uses its distinct workspace color tint
-   - `TopContextBar` reflects workspace color; nav indicators pick it up
+   - `AppBar` reflects workspace color; nav indicators pick it up
 
 4. **Admin-banned vocabulary** — grep for infractions:
    - "hero moment", "gallery", "decorative gradient", "marketing banner"
-   - Glass material references outside `TopContextBar`
+   - Glass material references outside the admin `AppBar`
    - Typography references to Inter (should be Plus Jakarta Sans)
 
 5. **WCAG compliance**:
@@ -209,7 +209,7 @@ Audit admin for code hygiene:
 
 4. **Type safety** — no `any`, proper `Address` typing for Ethereum addresses, return types on exported functions.
 
-5. **Vocabulary compliance** — `bun run lint:vocab` catches banned terms in i18n strings; additionally check admin-banned vocabulary in component files (glass outside TopContextBar, hero-moment language, etc.).
+5. **Vocabulary compliance** — `bun run lint:vocab` catches banned terms in i18n strings; additionally check admin-banned vocabulary in component files (glass outside the admin `AppBar`, hero-moment language, etc.).
 
 ## Dedupe logic
 

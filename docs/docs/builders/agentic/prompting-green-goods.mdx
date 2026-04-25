@@ -4,7 +4,7 @@ sidebar_label: Prompting Green Goods
 slug: /builders/agentic/prompting-green-goods
 audience: developer
 owner: docs
-last_verified: 2026-04-18
+last_verified: 2026-04-23
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -13,10 +13,21 @@ import {NextBestAction} from "@site/src/components/docs";
 
 Prompt by work stage, not by internal tool names.
 
-Start with one of four verbs:
+## Portable Contract vs Tool Adapters
 
-- `/plan` to shape work
-- `/debug` to find root cause
+Use the same work contract across Claude Code, Codex, Cursor, Copilot, Gemini, or another coding agent:
+
+- `AGENTS.md` and package-local `AGENTS.md` are the portable runtime rules.
+- `.plans/active/<feature>/` is the durable place for specs, plans, task state, and handoffs.
+- `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` mirror the same repo rules for GitHub-native tools.
+- `.claude/**` and `.codex/**` are adapters for their native tools. They can add prompts, skills, or hooks, but they are not required for Cursor or another IDE to work in the repo.
+
+Do not depend on prompt-rewriting hooks to clean up intent. If a prompt includes a transcript, source material, logs, or another large reference block, state the actual request before the pasted material and let the agent ground itself from repo context.
+
+Start with one of four entry points:
+
+- describe planning intent ("plan this", "break down X") to shape work
+- describe the bug or paste the error to find root cause
 - `/review` to judge a diff
 - `/status --resume` to pick work back up
 
@@ -55,10 +66,20 @@ Ask for:
 - narrow validation, not a broad scan
 - clear separation between what is proven and what is inferred
 
+## Research, Plan, Implement
+
+For ambiguous, multi-package, or high-risk work, split the prompt into stages:
+
+1. **Research** -- ask the agent to read source, tests, docs, and package guidance before proposing changes.
+2. **Plan** -- require research evidence, open assumptions, out-of-scope items, human judgment points, and validation commands.
+3. **Implement** -- start from the accepted plan with only the context needed for the next step.
+
+If the session goes down the wrong path, ask for a short handoff summary and restart with clean context instead of trying to steer through stale assumptions.
+
 ## Examples
 
 ```text
-/plan
+plan this:
 Goal: Add gardener invite flow
 Scope: Keep it inside shared + client if possible
 Constraints: avoid new abstractions unless they remove real complexity
@@ -67,7 +88,7 @@ Done when: small implementation plan with clear judgment points
 ```
 
 ```text
-/debug
+debug this:
 Goal: Find why wallet reconnect fails
 Scope: reproduce first, then isolate root cause
 Constraints: no speculative fixes
