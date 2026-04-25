@@ -1,5 +1,6 @@
 ---
 name: react
+user-invocable: false
 description: React patterns - component architecture, state management (Zustand, TanStack Query), hook composition, error handling, state machines, render performance. Use for React components, hooks, data fetching, mutations, error boundaries, state machines, or performance optimization.
 version: "2.0.0"
 status: active

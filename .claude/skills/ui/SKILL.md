@@ -1,5 +1,6 @@
 ---
 name: ui
+user-invocable: false
 description: UI implementation — TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Implements the direction set by the `design` skill. Use for theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
 version: "1.4.1"
 design_token_version: "2.3.0"

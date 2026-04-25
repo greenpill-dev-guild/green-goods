@@ -1,5 +1,5 @@
 ---
-routine-name: gg-pr-review
+routine-name: pr-review
 triggers:
   github:
     events: [pull_request.opened, pull_request.ready_for_review]

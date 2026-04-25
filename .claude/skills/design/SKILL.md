@@ -1,5 +1,6 @@
 ---
 name: design
+user-invocable: false
 description: "Design philosophy for adaptive, spatial interfaces. Paradigm selection, material language, interaction patterns, inclusive design, ecosystem thinking, and progressive immersion strategy. Use for design direction, visual language decisions, and spatial UI planning."
 version: "2.4.0"
 token_version: "2.3.0"

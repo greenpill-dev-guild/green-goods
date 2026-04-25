@@ -1,5 +1,6 @@
 ---
 name: testing
+user-invocable: false
 description: Testing patterns - TDD workflow, Vitest unit tests, Playwright E2E, mock strategies, and coverage targets. Use when writing tests, setting up test infrastructure, following TDD, or diagnosing test failures.
 version: "1.0.0"
 status: active

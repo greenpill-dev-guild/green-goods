@@ -1,5 +1,6 @@
 ---
 name: indexer
+user-invocable: false
 description: Envio blockchain indexer development with Docker Compose stack. Use for event handlers, schema.graphql design, Docker workflow, and GraphQL patterns.
 version: "1.0.0"
 status: active

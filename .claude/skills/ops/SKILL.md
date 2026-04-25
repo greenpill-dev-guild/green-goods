@@ -1,5 +1,6 @@
 ---
 name: ops
+user-invocable: false
 description: Operations - deployment pipeline, CI/CD, git workflow, dependency management, code formatting, Vite build, and cross-package migrations. Use for deploying, CI configuration, git operations, branch strategy, dependency upgrades, formatting, build tooling, and release management.
 version: "1.1.0"
 status: active
