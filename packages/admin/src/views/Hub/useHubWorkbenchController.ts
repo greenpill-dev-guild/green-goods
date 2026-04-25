@@ -29,13 +29,8 @@ import {
   parseCertificationContentId,
   parseSortDirection,
   parseWorkDetailContentId,
-  PIPELINE_STAGE_CONFIG,
   resolveOpenSectionRoute,
   resolvePipelineStageFromPath,
-  SUBMIT_WORK_CONTENT_ID,
-  toCertificationContentId,
-  toHistoryContentId,
-  toWorkDetailContentId,
 } from "./hub.utils";
 import {
   filterAssessmentQueue,
@@ -43,6 +38,12 @@ import {
   filterHistoryEvents,
   filterPendingWorks,
 } from "./hub.filters";
+import {
+  buildHubStageModel,
+  getHubResultCount,
+  resolveHubRouteSelection,
+  resolveHubRouteSheet,
+} from "./hub.workbenchModel";
 import {
   bindCanvasScrollPositionPersistence,
   restoreCanvasScrollPosition,
@@ -129,41 +130,29 @@ export function useHubWorkbenchController() {
   const canCertify = canReview;
   const canBrowseHistory = canManage || canReview;
 
-  const stageCounts: Record<HubPipelineStage, number | undefined> = useMemo(
-    () => ({
-      work: works.filter((w) => w.status === "pending").length,
-      assess: works.filter((w) => w.status === "approved").length,
-      certify: assessments.filter((a) => !hypercerts.some((h) => h.id === a.id)).length,
-      history: undefined,
-    }),
-    [assessments, hypercerts, works]
-  );
-
-  const stageVisibility: Record<HubPipelineStage, boolean> = useMemo(
-    () => ({
-      work: canManage,
-      assess: canAssess,
-      certify: canCertify,
-      history: canBrowseHistory,
-    }),
-    [canAssess, canBrowseHistory, canCertify, canManage]
-  );
-
-  const allStages = useMemo(
+  const { stage, stages } = useMemo(
     () =>
-      PIPELINE_STAGE_CONFIG.map((cfg) => ({
-        ...cfg,
-        count: stageCounts[cfg.id],
-        visible: stageVisibility[cfg.id],
-      })),
-    [stageCounts, stageVisibility]
+      buildHubStageModel({
+        requestedStage,
+        canManage,
+        canAssess,
+        canCertify,
+        canBrowseHistory,
+        works,
+        assessments,
+        hypercerts,
+      }),
+    [
+      assessments,
+      canAssess,
+      canBrowseHistory,
+      canCertify,
+      canManage,
+      hypercerts,
+      requestedStage,
+      works,
+    ]
   );
-
-  const stages = useMemo(() => allStages.filter((stageOption) => stageOption.visible), [allStages]);
-  const fallbackStage = stages[0]?.id ?? "history";
-  const stage = stages.some((option) => option.id === requestedStage)
-    ? requestedStage
-    : fallbackStage;
 
   useEffect(() => {
     if (!selectedGarden) return;
@@ -264,22 +253,17 @@ export function useHubWorkbenchController() {
     return routeHistoryEventId ? historyEventMap.get(routeHistoryEventId) : undefined;
   }, [historyEventMap, routeHistoryEventId]);
 
-  const hasOpenHubInspector = Boolean(
-    routeWorkId ||
-      routeCertificationId ||
-      routeHistoryEventId ||
-      isSubmitRoute ||
-      selectedWork ||
-      selectedCertification ||
-      selectedHistoryEvent
-  );
-  const persistedSelectedItem =
-    routeWorkId ??
-    routeCertificationId ??
-    routeHistoryEventId ??
-    activeWorkDetailId ??
-    activeCertificationId ??
-    null;
+  const { hasOpenHubInspector, persistedSelectedItem } = resolveHubRouteSelection({
+    routeWorkId,
+    routeCertificationId,
+    routeHistoryEventId,
+    activeWorkDetailId,
+    activeCertificationId,
+    isSubmitRoute,
+    selectedWork,
+    selectedCertification,
+    selectedHistoryEvent,
+  });
 
   useEffect(() => {
     if (!selectedGarden) return;
@@ -310,17 +294,12 @@ export function useHubWorkbenchController() {
     });
   }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
-  const routeSheetSide =
-    isSubmitRoute || routeWorkId || routeCertificationId || routeHistoryEventId ? "left" : null;
-  const routeSheetContentId = isSubmitRoute
-    ? SUBMIT_WORK_CONTENT_ID
-    : routeWorkId
-      ? toWorkDetailContentId(routeWorkId)
-      : routeCertificationId
-        ? toCertificationContentId(routeCertificationId)
-        : routeHistoryEventId
-          ? toHistoryContentId(routeHistoryEventId)
-          : null;
+  const { routeSheetContentId, routeSheetSide } = resolveHubRouteSheet({
+    isSubmitRoute,
+    routeWorkId,
+    routeCertificationId,
+    routeHistoryEventId,
+  });
 
   useEffect(() => {
     if (!routeSheetContentId || !routeSheetSide) {
@@ -407,14 +386,12 @@ export function useHubWorkbenchController() {
     blocked: hasOpenHubInspector,
   });
 
-  const resultCount =
-    stage === "work"
-      ? pendingWorks.length
-      : stage === "assess"
-        ? assessmentQueue.length
-        : stage === "certify"
-          ? certificationQueue.length
-          : historyEvents.length;
+  const resultCount = getHubResultCount(stage, {
+    pendingWorks: pendingWorks.length,
+    assessmentQueue: assessmentQueue.length,
+    certificationQueue: certificationQueue.length,
+    historyEvents: historyEvents.length,
+  });
 
   const refreshAgoText = useMemo(() => formatRelativeTime(lastRefreshAt), [lastRefreshAt]);
   const hasDataError = Boolean(error || assessmentsError);

@@ -2,6 +2,7 @@ import type { Garden, GardenAssessment } from "@green-goods/shared";
 import type { IntlShape } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
 import { buildCommandPaletteResults } from "./commandPalette.results";
+import { groupCommandPaletteResults } from "./useCommandPaletteData";
 
 const formatMessage = ((descriptor: { defaultMessage?: string; id: string }) =>
   descriptor.defaultMessage ?? descriptor.id) as IntlShape["formatMessage"];
@@ -65,5 +66,28 @@ describe("buildCommandPaletteResults", () => {
     });
 
     expect(results.some((result) => result.id === "assessment-assessment-2")).toBe(false);
+  });
+
+  it("groups results in stable command palette category order", () => {
+    const groups = groupCommandPaletteResults(
+      [
+        { id: "action-1", label: "Action", href: "/actions/1", category: "actions" },
+        { id: "page-hub", label: "Hub", href: "/hub/work", category: "pages" },
+        {
+          id: "garden-1",
+          label: "Garden",
+          href: "/garden/overview",
+          category: "gardens",
+        },
+      ],
+      formatMessage
+    );
+
+    expect(groups.map((group) => group.category)).toEqual(["pages", "gardens", "actions"]);
+    expect(groups.map((group) => group.items.map((item) => item.id))).toEqual([
+      ["page-hub"],
+      ["garden-1"],
+      ["action-1"],
+    ]);
   });
 });

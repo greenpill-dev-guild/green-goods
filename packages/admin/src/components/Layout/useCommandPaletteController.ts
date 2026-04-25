@@ -1,48 +1,16 @@
-import {
-  adminRoutes,
-  DEFAULT_CHAIN_ID,
-  useActions,
-  useAdminStore,
-  useAllAssessments,
-  useEligibleAdminGardens,
-  useRole,
-} from "@green-goods/shared";
-import { useCallback, useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { adminRoutes, useAdminStore } from "@green-goods/shared";
+import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { ADMIN_COMMAND_ROUTES } from "@/routes/views";
 import { dispatchOpenAccountSheet } from "./accountSheet.events";
-import { buildCommandPaletteResults, type SearchResult } from "./commandPalette.results";
+import type { SearchResult } from "./commandPalette.results";
+import { useCommandPaletteData } from "./useCommandPaletteData";
+import { useCommandPaletteShortcuts } from "./useCommandPaletteShortcuts";
 
 interface CommandPaletteControllerOptions {
   externalOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
-
-export interface CommandPaletteGroup {
-  category: SearchResult["category"];
-  label: string;
-  items: SearchResult[];
-}
-
-const CATEGORY_LABELS: Record<SearchResult["category"], { id: string; defaultMessage: string }> = {
-  "quick-actions": {
-    id: "app.admin.nav.searchQuickActions",
-    defaultMessage: "Quick Actions",
-  },
-  pages: { id: "app.admin.nav.searchPages", defaultMessage: "Pages" },
-  gardens: { id: "app.admin.nav.searchGardens", defaultMessage: "Gardens" },
-  actions: { id: "app.admin.nav.searchActions", defaultMessage: "Actions" },
-  assessments: { id: "app.admin.nav.searchAssessments", defaultMessage: "Assessments" },
-};
-
-const RESULT_CATEGORY_ORDER: SearchResult["category"][] = [
-  "quick-actions",
-  "pages",
-  "gardens",
-  "actions",
-  "assessments",
-];
 
 export function useCommandPaletteController({
   externalOpen,
@@ -55,10 +23,6 @@ export function useCommandPaletteController({
 
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
-  const { eligibleGardens } = useEligibleAdminGardens();
-  const { data: actions } = useActions(DEFAULT_CHAIN_ID);
-  const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
-  const { role } = useRole();
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
 
   const open = externalOpen ?? internalOpen;
@@ -77,63 +41,18 @@ export function useCommandPaletteController({
     return () => clearTimeout(timer);
   }, [inputValue]);
 
-  useEffect(() => {
-    function handleDocumentKeyDown(event: globalThis.KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key === "k") {
-        event.preventDefault();
-        setOpen(!open);
-        return;
-      }
+  const { eligibleGardens, groups, results } = useCommandPaletteData({
+    query: debouncedQuery,
+    formatMessage,
+    selectGarden: setSelectedGarden,
+  });
 
-      if (!(event.metaKey || event.ctrlKey) || event.altKey || event.shiftKey) return;
-      const digit = Number.parseInt(event.key, 10);
-      if (!Number.isInteger(digit) || digit < 1 || digit > 9) return;
-
-      const activeElement = document.activeElement as HTMLElement | null;
-      if (activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(activeElement.tagName)) return;
-      if (activeElement?.isContentEditable) return;
-
-      const targetGarden = eligibleGardens[digit - 1];
-      if (!targetGarden) return;
-      event.preventDefault();
-      setSelectedGarden(targetGarden);
-    }
-
-    document.addEventListener("keydown", handleDocumentKeyDown);
-    return () => document.removeEventListener("keydown", handleDocumentKeyDown);
-  }, [eligibleGardens, open, setOpen, setSelectedGarden]);
-
-  const results = useMemo(
-    () =>
-      buildCommandPaletteResults({
-        query: debouncedQuery,
-        role,
-        formatMessage,
-        staticRoutes: ADMIN_COMMAND_ROUTES,
-        eligibleGardens,
-        actions: actions ?? [],
-        assessments: assessments ?? [],
-        selectGarden: setSelectedGarden,
-      }),
-    [actions, assessments, debouncedQuery, eligibleGardens, formatMessage, role, setSelectedGarden]
-  );
-
-  const groups = useMemo<CommandPaletteGroup[]>(
-    () =>
-      RESULT_CATEGORY_ORDER.flatMap((category) => {
-        const items = results.filter((result) => result.category === category);
-        return items.length > 0
-          ? [
-              {
-                category,
-                label: formatMessage(CATEGORY_LABELS[category]),
-                items,
-              },
-            ]
-          : [];
-      }),
-    [formatMessage, results]
-  );
+  useCommandPaletteShortcuts({
+    eligibleGardens,
+    open,
+    selectGarden: setSelectedGarden,
+    setOpen,
+  });
 
   const handleOpenChange = useCallback(
     (nextOpen: boolean) => {
