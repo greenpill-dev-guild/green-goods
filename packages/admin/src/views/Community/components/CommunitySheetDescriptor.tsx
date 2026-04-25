@@ -1,4 +1,4 @@
-import { adminRoutes, useRouteBackedLeftSheetConfig } from "@green-goods/shared";
+import { type Address, adminRoutes, useRouteBackedLeftSheetConfig } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
@@ -10,6 +10,7 @@ interface CommunitySheetDescriptorProps {
   isStrategiesRoute: boolean;
   isSignalPoolRoute: boolean;
   poolType: string | undefined;
+  gardenAddress?: Address | string;
 }
 
 export function CommunitySheetDescriptor({
@@ -17,6 +18,7 @@ export function CommunitySheetDescriptor({
   isStrategiesRoute,
   isSignalPoolRoute,
   poolType,
+  gardenAddress,
 }: CommunitySheetDescriptorProps) {
   const { formatMessage } = useIntl();
 
@@ -25,7 +27,7 @@ export function CommunitySheetDescriptor({
       return {
         title: formatMessage({ id: "app.treasury.title" }),
         content: <GardenVaultView layout="sheet" />,
-        closeTo: adminRoutes.communityTreasury(),
+        closeTo: adminRoutes.communityTreasury({ gardenAddress }),
       };
     }
 
@@ -33,7 +35,7 @@ export function CommunitySheetDescriptor({
       return {
         title: formatMessage({ id: "app.conviction.title" }),
         content: <GardenStrategiesView layout="sheet" />,
-        closeTo: adminRoutes.communityGovernance(),
+        closeTo: adminRoutes.communityGovernance({ gardenAddress }),
       };
     }
 
@@ -46,12 +48,12 @@ export function CommunitySheetDescriptor({
               : "app.signal.hypercertPool.title",
         }),
         content: <GardenSignalPoolView layout="sheet" />,
-        closeTo: adminRoutes.communityGovernance(),
+        closeTo: adminRoutes.communityGovernance({ gardenAddress }),
       };
     }
 
     return null;
-  }, [formatMessage, isSignalPoolRoute, isStrategiesRoute, isVaultRoute, poolType]);
+  }, [formatMessage, gardenAddress, isSignalPoolRoute, isStrategiesRoute, isVaultRoute, poolType]);
 
   useRouteBackedLeftSheetConfig(communitySheet);
 

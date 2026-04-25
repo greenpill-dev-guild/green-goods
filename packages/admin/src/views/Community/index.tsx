@@ -18,6 +18,7 @@ export default function CommunityView() {
         isStrategiesRoute={community.isStrategiesRoute}
         isSignalPoolRoute={community.isSignalPoolRoute}
         poolType={community.poolType}
+        gardenAddress={community.selectedGardenAddress}
       />
 
       <CanvasRouteHeader

@@ -57,6 +57,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === gardenId);
+  const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id ?? gardenId };
   const permissions = useGardenPermissions();
 
   // Load pools from GardensModule — typed with PoolType
@@ -108,7 +109,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     ? "app.signal.actionPool.confirmDeregisterDescription"
     : "app.signal.hypercertPool.confirmDeregisterDescription";
   const communityBackLink = {
-    to: adminRoutes.communityGovernance(),
+    to: adminRoutes.communityGovernance(gardenRouteContext),
     label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
   };
   const poolTabs = [
@@ -123,7 +124,10 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
   ];
   const handlePoolTabChange = (nextPoolType: string) =>
     navigate(
-      adminRoutes.communityGovernanceSignalPool(nextPoolType === "action" ? "action" : "hypercert")
+      adminRoutes.communityGovernanceSignalPool(
+        nextPoolType === "action" ? "action" : "hypercert",
+        gardenRouteContext
+      )
     );
 
   if (gardensLoading) {

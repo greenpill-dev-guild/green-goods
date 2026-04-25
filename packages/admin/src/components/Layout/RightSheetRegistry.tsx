@@ -35,6 +35,7 @@ function AdminNotificationPanel() {
   const navigate = useNavigate();
   const closeSheet = useSheetOrchestratorStore((state) => state.closeSheet);
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
+  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
   const workspace = useGardenDetailData(selectedGarden?.id);
 
   const navigateFromNotification = useCallback(
@@ -47,9 +48,16 @@ function AdminNotificationPanel() {
 
   const openSection = useCallback(
     (tab: AdminWorkspaceSectionTab, section: string, itemId?: string) => {
-      navigateFromNotification(resolveAdminWorkspaceSectionRoute({ tab, section, itemId }));
+      navigateFromNotification(
+        resolveAdminWorkspaceSectionRoute({
+          tab,
+          section,
+          itemId,
+          gardenAddress: selectedGardenAddress,
+        })
+      );
     },
-    [navigateFromNotification]
+    [navigateFromNotification, selectedGardenAddress]
   );
 
   const derived = useGardenDerivedState({

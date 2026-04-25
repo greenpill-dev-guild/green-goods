@@ -19,6 +19,10 @@ import {
   type AdminWorkspaceSectionTab,
 } from "@/routes/workspaceNavigation";
 import { buildGardenFabConfig, resolveGardenView } from "./garden.utils";
+import {
+  bindCanvasScrollPositionPersistence,
+  restoreCanvasScrollPosition,
+} from "../workspaceScroll";
 
 type ActivityFilter = "all" | "work" | "impact" | "community";
 
@@ -51,6 +55,7 @@ export function useGardenWorkspaceController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "garden");
     setActivityFilterState(parseActivityFilter(persistedState.filter));
+    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -60,8 +65,26 @@ export function useGardenWorkspaceController() {
     setGardenWorkspaceState(gardenStateKey, "garden", {
       activeMode: view,
       filter: activityFilter,
+      selectedItem: selectedItem ?? hypercertId ?? null,
+      sheetOpen: Boolean(hypercertId),
     });
-  }, [activityFilter, gardenStateKey, selectedGarden, setGardenWorkspaceState, view]);
+  }, [
+    activityFilter,
+    gardenStateKey,
+    hypercertId,
+    selectedGarden,
+    selectedItem,
+    setGardenWorkspaceState,
+    view,
+  ]);
+
+  useEffect(() => {
+    if (!selectedGarden) return;
+
+    return bindCanvasScrollPositionPersistence((scrollPosition) => {
+      setGardenWorkspaceState(gardenStateKey, "garden", { scrollPosition });
+    });
+  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   const {
     garden,
@@ -84,8 +107,11 @@ export function useGardenWorkspaceController() {
 
   useFabConfig(
     useMemo(
-      () => buildGardenFabConfig(view, canManage, Boolean(selectedGarden), navigate),
-      [canManage, navigate, selectedGarden, view]
+      () =>
+        buildGardenFabConfig(view, canManage, Boolean(selectedGarden), navigate, {
+          gardenAddress: selectedGardenAddress,
+        }),
+      [canManage, navigate, selectedGarden, selectedGardenAddress, view]
     )
   );
 

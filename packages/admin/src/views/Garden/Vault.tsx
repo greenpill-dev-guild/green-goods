@@ -60,6 +60,10 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === resolvedGardenId);
+  const gardenRouteContext = {
+    gardenAddress:
+      garden?.tokenAddress ?? garden?.id ?? selectedGarden?.tokenAddress ?? resolvedGardenId,
+  };
   const permissions = useGardenPermissions();
   const { primaryAddress } = useUser();
   const chainId = useCurrentChain();
@@ -135,7 +139,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     };
   }, [formatMessage, routeState?.returnLabelId, routeState?.returnTo]);
   const treasuryBackLink = contextualBackLink ?? {
-    to: adminRoutes.communityTreasury(),
+    to: adminRoutes.communityTreasury(gardenRouteContext),
     label: formatMessage({ id: "app.admin.nav.treasury" }),
   };
 

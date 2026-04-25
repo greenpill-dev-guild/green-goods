@@ -43,6 +43,10 @@ import {
   filterHistoryEvents,
   filterPendingWorks,
 } from "./hub.filters";
+import {
+  bindCanvasScrollPositionPersistence,
+  restoreCanvasScrollPosition,
+} from "../workspaceScroll";
 
 export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -88,6 +92,7 @@ export function useHubWorkbenchController() {
     const persistedState = getGardenWorkspaceState(gardenStateKey, "hub");
     setSearchTerm(persistedState.search);
     setDebouncedSearch(persistedState.search);
+    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -165,15 +170,6 @@ export function useHubWorkbenchController() {
     if (requestedStage === stage) return;
     navigate(adminRoutes.hubMode(stage, hubContext), { replace: true });
   }, [hubContext, navigate, requestedStage, selectedGarden, stage]);
-
-  useEffect(() => {
-    if (!selectedGarden) return;
-
-    setGardenWorkspaceState(gardenStateKey, "hub", {
-      activeMode: stage,
-      filter: sortDirection,
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState, sortDirection, stage]);
 
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
@@ -277,6 +273,42 @@ export function useHubWorkbenchController() {
       selectedCertification ||
       selectedHistoryEvent
   );
+  const persistedSelectedItem =
+    routeWorkId ??
+    routeCertificationId ??
+    routeHistoryEventId ??
+    activeWorkDetailId ??
+    activeCertificationId ??
+    null;
+
+  useEffect(() => {
+    if (!selectedGarden) return;
+
+    setGardenWorkspaceState(gardenStateKey, "hub", {
+      activeMode: stage,
+      filter: sortDirection,
+      search: searchTerm,
+      selectedItem: persistedSelectedItem,
+      sheetOpen: hasOpenHubInspector,
+    });
+  }, [
+    gardenStateKey,
+    hasOpenHubInspector,
+    persistedSelectedItem,
+    searchTerm,
+    selectedGarden,
+    setGardenWorkspaceState,
+    sortDirection,
+    stage,
+  ]);
+
+  useEffect(() => {
+    if (!selectedGarden) return;
+
+    return bindCanvasScrollPositionPersistence((scrollPosition) => {
+      setGardenWorkspaceState(gardenStateKey, "hub", { scrollPosition });
+    });
+  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   const routeSheetSide =
     isSubmitRoute || routeWorkId || routeCertificationId || routeHistoryEventId ? "left" : null;

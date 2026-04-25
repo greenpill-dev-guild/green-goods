@@ -1,4 +1,4 @@
-import { adminRoutes, type FabConfig } from "@green-goods/shared";
+import { adminRoutes, type AdminCommunityRouteContext, type FabConfig } from "@green-goods/shared";
 import { RiAddLine, RiMoneyDollarCircleLine, RiUserLine } from "@remixicon/react";
 
 export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";
@@ -19,7 +19,8 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 export function buildCommunityFabConfig(
   canManage: boolean,
   hasSelectedGarden: boolean,
-  navigate: (path: string) => void
+  navigate: (path: string) => void,
+  routeContext?: AdminCommunityRouteContext
 ): FabConfig | null {
   if (!hasSelectedGarden || !canManage) return null;
 
@@ -41,8 +42,9 @@ export function buildCommunityFabConfig(
       },
     ],
     onAction: (actionId: string) => {
-      if (actionId === "add-member") navigate(adminRoutes.communityMembers());
-      else if (actionId === "manage-vault") navigate(adminRoutes.communityTreasuryVault());
+      if (actionId === "add-member") navigate(adminRoutes.communityMembers(routeContext));
+      else if (actionId === "manage-vault")
+        navigate(adminRoutes.communityTreasuryVault(routeContext));
     },
   };
 }

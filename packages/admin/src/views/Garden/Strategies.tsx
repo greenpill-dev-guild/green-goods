@@ -36,6 +36,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === gardenId);
+  const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id ?? gardenId };
   const permissions = useGardenPermissions();
 
   const {
@@ -48,7 +49,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
   const { mutate: setStrategies, isPending: isSaving } = useSetConvictionStrategies();
   const communityBackLink = {
-    to: adminRoutes.communityGovernance(),
+    to: adminRoutes.communityGovernance(gardenRouteContext),
     label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
   };
 

@@ -2,6 +2,7 @@ import {
   adminRoutes,
   toastService,
   useAdminGardenWorkspaceSelection,
+  useCanvasSearchParams,
   useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
@@ -20,6 +21,10 @@ import {
   communitySectionForMode,
   resolveCommunityMode,
 } from "./community.utils";
+import {
+  bindCanvasScrollPositionPersistence,
+  restoreCanvasScrollPosition,
+} from "../workspaceScroll";
 
 export function useCommunityWorkspaceController() {
   const { formatMessage } = useIntl();
@@ -52,6 +57,7 @@ export function useCommunityWorkspaceController() {
     autoSelectFirstGarden: true,
     onAutoSelectGarden: handleAutoSelectGarden,
   });
+  const { searchParams } = useCanvasSearchParams();
   const { containerRef } = useSheetWidth();
   const gardenStateKey = selectedGarden?.id ?? "";
   const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
@@ -64,12 +70,15 @@ export function useCommunityWorkspaceController() {
   const isVaultRoute = location.pathname.startsWith("/community/treasury/vault");
   const isStrategiesRoute = location.pathname.startsWith("/community/governance/strategies");
   const isSignalPoolRoute = location.pathname.startsWith("/community/governance/signal-pool/");
+  const selectedItem = searchParams.get("item") ?? poolType ?? null;
+  const sheetOpen = isVaultRoute || isStrategiesRoute || isSignalPoolRoute;
 
   useEffect(() => {
     if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "community");
     setMemberSearchState(persistedState.search);
+    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -79,8 +88,26 @@ export function useCommunityWorkspaceController() {
     setGardenWorkspaceState(gardenStateKey, "community", {
       activeMode: mode,
       search: memberSearch,
+      selectedItem,
+      sheetOpen,
     });
-  }, [gardenStateKey, memberSearch, mode, selectedGarden, setGardenWorkspaceState]);
+  }, [
+    gardenStateKey,
+    memberSearch,
+    mode,
+    selectedGarden,
+    selectedItem,
+    setGardenWorkspaceState,
+    sheetOpen,
+  ]);
+
+  useEffect(() => {
+    if (!selectedGarden) return;
+
+    return bindCanvasScrollPositionPersistence((scrollPosition) => {
+      setGardenWorkspaceState(gardenStateKey, "community", { scrollPosition });
+    });
+  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   const {
     garden,
@@ -108,8 +135,11 @@ export function useCommunityWorkspaceController() {
 
   useFabConfig(
     useMemo(
-      () => buildCommunityFabConfig(canManage, Boolean(selectedGarden), navigate),
-      [canManage, navigate, selectedGarden]
+      () =>
+        buildCommunityFabConfig(canManage, Boolean(selectedGarden), navigate, {
+          gardenAddress: selectedGardenAddress,
+        }),
+      [canManage, navigate, selectedGarden, selectedGardenAddress]
     )
   );
 
@@ -212,6 +242,7 @@ export function useCommunityWorkspaceController() {
     scheduleBackgroundRefetch,
     section,
     selectedGarden,
+    selectedGardenAddress,
     setMemberSearch,
     vaultNetDeposited,
     vaultsLoading,

@@ -1,13 +1,4 @@
-import {
-  adminRoutes,
-  cn,
-  DEFAULT_CHAIN_ID,
-  useActions,
-  useAdminStore,
-  useAllAssessments,
-  useEligibleAdminGardens,
-  useRole,
-} from "@green-goods/shared";
+import { cn } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiArrowDownLine,
@@ -20,22 +11,16 @@ import {
   RiPlantLine,
   RiSearchLine,
 } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
-import { ADMIN_COMMAND_ROUTES } from "@/routes/views";
-import { dispatchOpenAccountSheet } from "./accountSheet.events";
-import { buildCommandPaletteResults, type SearchResult } from "./commandPalette.results";
+import { useEffect, useRef, type ComponentType } from "react";
+import type { SearchResult } from "./commandPalette.results";
+import { useCommandPaletteController } from "./useCommandPaletteController";
 
 interface CommandPaletteProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-const CATEGORY_ICONS: Record<
-  SearchResult["category"],
-  React.ComponentType<{ className?: string }>
-> = {
+const CATEGORY_ICONS: Record<SearchResult["category"], ComponentType<{ className?: string }>> = {
   "quick-actions": RiFlashlightLine,
   pages: RiDashboardLine,
   gardens: RiPlantLine,
@@ -43,181 +28,22 @@ const CATEGORY_ICONS: Record<
   assessments: RiFileList3Line,
 };
 
-const STATIC_ROUTES = ADMIN_COMMAND_ROUTES;
-
 export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPaletteProps = {}) {
-  const [internalOpen, setInternalOpen] = useState(false);
-
-  // Support both controlled and uncontrolled modes
-  const open = externalOpen ?? internalOpen;
-  const setOpen = useCallback(
-    (next: boolean) => {
-      onOpenChange?.(next);
-      setInternalOpen(next);
-    },
-    [onOpenChange]
-  );
-
-  const [inputValue, setInputValue] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
+  const {
+    activeIndex,
+    formatMessage,
+    groups,
+    handleKeyDown,
+    handleOpenChange,
+    inputValue,
+    open,
+    results,
+    selectResult,
+    setActiveIndex,
+    setInputValue,
+  } = useCommandPaletteController({ externalOpen, onOpenChange });
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-
-  // Debounce the search query by 300ms
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(inputValue);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [inputValue]);
-
-  const navigate = useNavigate();
-  const { formatMessage } = useIntl();
-  const { eligibleGardens } = useEligibleAdminGardens();
-  const { data: actions } = useActions(DEFAULT_CHAIN_ID);
-  const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
-  const { role } = useRole();
-  const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
-
-  // Global keyboard shortcuts:
-  // - Cmd/Ctrl+K: toggle palette
-  // - Cmd/Ctrl+1..9: jump to nth garden (skipped when typing in an input)
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setOpen(!open);
-        return;
-      }
-
-      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
-      const digit = Number.parseInt(e.key, 10);
-      if (!Number.isInteger(digit) || digit < 1 || digit > 9) return;
-
-      const activeEl = document.activeElement as HTMLElement | null;
-      if (activeEl && /^(INPUT|TEXTAREA|SELECT)$/.test(activeEl.tagName)) return;
-      if (activeEl?.isContentEditable) return;
-
-      const target = eligibleGardens[digit - 1];
-      if (!target) return;
-      e.preventDefault();
-      setSelectedGarden(target);
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [eligibleGardens, open, setOpen, setSelectedGarden]);
-
-  // Build filtered results using debounced query (fuzzy subsequence match)
-  const results = useMemo(
-    () =>
-      buildCommandPaletteResults({
-        query: debouncedQuery,
-        role,
-        formatMessage,
-        staticRoutes: STATIC_ROUTES,
-        eligibleGardens,
-        actions: actions ?? [],
-        assessments: assessments ?? [],
-        selectGarden: setSelectedGarden,
-      }),
-    [actions, assessments, debouncedQuery, eligibleGardens, formatMessage, role, setSelectedGarden]
-  );
-
-  // Group results by category
-  const grouped = useMemo(() => {
-    const groups: { category: string; label: string; items: SearchResult[] }[] = [];
-
-    const categoryLabels: Record<SearchResult["category"], { id: string; defaultMessage: string }> =
-      {
-        "quick-actions": {
-          id: "app.admin.nav.searchQuickActions",
-          defaultMessage: "Quick Actions",
-        },
-        pages: { id: "app.admin.nav.searchPages", defaultMessage: "Pages" },
-        gardens: { id: "app.admin.nav.searchGardens", defaultMessage: "Gardens" },
-        actions: { id: "app.admin.nav.searchActions", defaultMessage: "Actions" },
-        assessments: { id: "app.admin.nav.searchAssessments", defaultMessage: "Assessments" },
-      };
-
-    for (const cat of ["quick-actions", "pages", "gardens", "actions", "assessments"] as const) {
-      const items = results.filter((r) => r.category === cat);
-      if (items.length > 0) {
-        groups.push({
-          category: cat,
-          label: formatMessage(categoryLabels[cat]),
-          items,
-        });
-      }
-    }
-
-    return groups;
-  }, [results, formatMessage]);
-
-  // Reset state when dialog opens/closes
-  const handleOpenChange = useCallback(
-    (isOpen: boolean) => {
-      setOpen(isOpen);
-      if (isOpen) {
-        setInputValue("");
-        setDebouncedQuery("");
-        setActiveIndex(0);
-      }
-    },
-    [setOpen]
-  );
-
-  // Navigate to a result or dispatch a sheet-opening action
-  const selectResult = useCallback(
-    (result: SearchResult) => {
-      setOpen(false);
-
-      if (result.actionId) {
-        const isDesktop =
-          typeof window !== "undefined"
-            ? (window.matchMedia?.("(min-width: 600px)").matches ?? false)
-            : false;
-
-        if (isDesktop) {
-          const nextTab = result.actionId === "open-settings-sheet" ? "settings" : "profile";
-          dispatchOpenAccountSheet(nextTab);
-          return;
-        }
-
-        navigate(
-          result.actionId === "open-settings-sheet"
-            ? adminRoutes.profile({ tab: "settings" })
-            : adminRoutes.profile()
-        );
-        return;
-      }
-
-      result.onSelect?.();
-
-      if (result.href) {
-        navigate(result.href);
-      }
-    },
-    [navigate, setOpen]
-  );
-
-  // Keyboard navigation within results
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "ArrowDown") {
-        e.preventDefault();
-        setActiveIndex((prev) => (prev + 1) % Math.max(results.length, 1));
-      } else if (e.key === "ArrowUp") {
-        e.preventDefault();
-        setActiveIndex((prev) => (prev - 1 + results.length) % Math.max(results.length, 1));
-      } else if (e.key === "Enter" && results[activeIndex]) {
-        e.preventDefault();
-        selectResult(results[activeIndex]);
-      }
-    },
-    [results, activeIndex, selectResult]
-  );
 
   // Scroll active item into view
   useEffect(() => {
@@ -225,11 +51,6 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
     const activeEl = listRef.current.querySelector(`[data-index="${activeIndex}"]`);
     activeEl?.scrollIntoView({ block: "nearest" });
   }, [activeIndex]);
-
-  // Reset active index on debounced query change
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [debouncedQuery]);
 
   let flatIndex = 0;
 
@@ -284,7 +105,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
                   })}
                 </p>
               ) : (
-                grouped.map((group) => (
+                groups.map((group) => (
                   <div key={group.category} role="group" aria-label={group.label}>
                     <div className="px-2 py-1.5 text-label-sm text-text-soft">{group.label}</div>
                     {group.items.map((result) => {

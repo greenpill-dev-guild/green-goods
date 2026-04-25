@@ -1,4 +1,4 @@
-import { adminRoutes, type FabConfig } from "@green-goods/shared";
+import { adminRoutes, type AdminGardenRouteContext, type FabConfig } from "@green-goods/shared";
 import { RiAddLine, RiSettings3Line } from "@remixicon/react";
 
 export type GardenWorkspaceView = "overview" | "impact" | "settings";
@@ -13,7 +13,8 @@ export function buildGardenFabConfig(
   view: GardenWorkspaceView,
   canManage: boolean,
   hasSelectedGarden: boolean,
-  navigate: (path: string) => void
+  navigate: (path: string) => void,
+  routeContext?: AdminGardenRouteContext
 ): FabConfig | null {
   if (!hasSelectedGarden || !canManage || view === "settings") return null;
 
@@ -29,7 +30,7 @@ export function buildGardenFabConfig(
       },
     ],
     onAction: (actionId: string) => {
-      if (actionId === "edit-garden") navigate(adminRoutes.gardenSettings());
+      if (actionId === "edit-garden") navigate(adminRoutes.gardenSettings(routeContext));
     },
   };
 }
