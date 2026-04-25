@@ -5,12 +5,12 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-04-19
+last_verified: 2026-04-23
 feature_status: Live
 goal: "Complete Developer Getting Started with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "20-40 minutes."
-prereqs: "Node 22+, Bun, Foundry, Git, Docker."
+prereqs: "Node 22+, Bun, Git; Docker and Foundry for full-stack/indexer/contracts work."
 next_steps: "./architecture"
 persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
 source_of_truth:
@@ -37,13 +37,23 @@ Before cloning, make sure these tools are installed:
 | Tool | Min Version | Purpose | Install |
 | --- | --- | --- | --- |
 | **Node.js** | 22+ | Runtime for scripts and tooling | [nodejs.org](https://nodejs.org) |
-| **Bun** | 1.x+ | Package manager and monorepo runner | `curl -fsSL https://bun.sh/install \| bash` |
+| **Bun** | 1.x+ | Package manager and monorepo runner after setup | `curl -fsSL https://bun.sh/install \| bash` |
 | **Git** | any | Version control | [git-scm.com](https://git-scm.com) |
 | **Foundry** | any | Solidity compiler and testing (`forge`) | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
 | **Docker** | any | Runs the Envio indexer locally | [docker.com](https://www.docker.com/get-started/) |
 | **cloudflared** | any | HTTPS tunnel for mobile device testing | `brew install cloudflared` |
 
 Foundry, Docker, and cloudflared are only required for their respective workflows (contracts, indexer, mobile testing). The setup script warns but does not block if they are missing.
+
+### Operating system support
+
+| OS | Support level | Notes |
+| --- | --- | --- |
+| macOS | Native | Standard local path. Full stack uses the Docker-backed indexer to avoid native Envio/Rust issues. |
+| Linux | Native | Good path for native indexer work, provided Docker and generated indexer dependencies are ready. |
+| Windows | WSL2 or dev container | Native PowerShell is not a supported target yet because repo scripts use POSIX shell tools such as `sh`, `bash`, `lsof`, `xargs`, `pkill`, and shell env syntax. |
+
+Use WSL2 for Windows contributors until a dedicated native Windows script pass lands.
 
 ---
 
@@ -52,18 +62,33 @@ Foundry, Docker, and cloudflared are only required for their respective workflow
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-bun setup   # checks deps, installs packages, creates .env
-bun dev     # starts all services via PM2
+npm run setup                         # first-clone bridge: deps, packages, .env
+bun run dev:doctor -- --profile web   # non-mutating web readiness check
+bun run dev:web                       # starts client, admin, and docs
+bun run dev:smoke:web                 # confirms client/admin/docs respond locally
 ```
 
-### What `bun setup` does
+`npm run setup` is the only npm entrypoint in the normal workflow. It exists because a fresh machine may not have Bun installed yet. After setup, use `bun` for package operations and repo scripts.
+
+### What `npm run setup` does
 
 The setup script (`scripts/setup.js`) runs through four steps:
 
 1. **Dependency check** -- verifies Node.js 22+, Bun 1.x, Git, Docker, and Foundry are available. Missing optional tools produce warnings, not errors.
 2. **Install packages** -- runs `bun install` across all workspaces if `node_modules` does not exist yet.
 3. **Environment file** -- generates `.env` from `.env.schema` defaults if no `.env` exists. For standard local 1Password CLI installs, prefer root-only `*_OP_REF=op://...` entries in `.env`. Reserve `OP_ENVIRONMENT` bulk loading for CI, service-account flows, or newer CLI builds that support it.
-4. **Next steps** -- prints the commands to start developing.
+4. **Next steps** -- prints the doctor, frontend stack, full stack, and test commands.
+
+### Role profiles
+
+| Role | Required local state | First command |
+| --- | --- | --- |
+| Frontend QA | Node.js, Bun, Git, root `.env`, ports 3001/3002/3003 available | `bun run dev:doctor -- --profile web` |
+| Full-stack / indexer | Frontend QA plus Docker, `packages/indexer/generated`, and generated dependencies | `bun run dev:doctor -- --profile full` |
+| Contracts | Frontend QA plus Foundry | `bun run dev:doctor -- --profile contracts` |
+| Upload-capable QA | Frontend QA plus `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
+
+Run `bun run dev:doctor -- --profile web|full|contracts|upload` any time you need a non-mutating check of the current machine. It reports missing tools, Docker state, Pinata readiness, passkey RP ID posture, indexer generated state, stale environment keys, and port conflicts without printing secret values. Add `--json` for machine-readable output in CI, containers, or agent workflows.
 
 ---
 
@@ -78,6 +103,7 @@ Green Goods uses a **single root `.env` bootstrap** plus committed `.env.schema`
 | `OP_ENVIRONMENT` | 1Password environment name/id used only for bulk injection in CI, service-account flows, or local beta-capable CLI installs |
 | `OP_SERVICE_ACCOUNT_TOKEN` | 1Password service account token (required in CI/deployed environments, optional locally if you want service-account auth) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (e.g. `11155111` for Sepolia, `42161` for Arbitrum) |
+| `VITE_PASSKEY_RP_ID` | Optional passkey relying-party override. Leave blank for localhost development fallback; set `localhost` for explicit local passkey QA. |
 | `PINATA_JWT` | Pinata JWT for the shared IPFS upload path |
 | `SEPOLIA_RPC_URL` | RPC endpoint for Sepolia fork tests |
 
@@ -89,9 +115,23 @@ For CI workflows or local service-account usage, set `OP_SERVICE_ACCOUNT_TOKEN`,
 
 ## Running services
 
-### All at once
+### Frontend stack
 
-`bun dev` launches every service through PM2:
+`bun run dev:web` launches the frontend developer stack through PM2:
+
+| PM2 process | Package | Default port |
+| --- | --- | --- |
+| `client` | `packages/client` | 3001 |
+| `admin` | `packages/admin` | 3002 |
+| `docs` | `docs` | 3003 |
+
+This is the recommended first target for onboarding and frontend QA because it avoids Docker, indexer generated-code setup, and agent credentials.
+
+After the processes are up, run `bun run dev:smoke:web` in another terminal. It reruns the web doctor, then checks that the client, admin, and docs respond on their local ports.
+
+### Full stack
+
+`bun run dev:full` launches every service through PM2:
 
 | PM2 process | Package | Default port |
 | --- | --- | --- |
@@ -100,32 +140,36 @@ For CI workflows or local service-account usage, set `OP_SERVICE_ACCOUNT_TOKEN`,
 | `docs` | `docs` | 3003 |
 | `indexer` | `packages/indexer` (Docker / GraphQL) | 8080 |
 | `agent` | `packages/agent` | -- |
+| `ops` | `packages/ops` | 8787 |
 | `tunnel` | cloudflared HTTPS tunnel | -- |
+| `browser` | local URL opener | -- |
 | `storybook` | `packages/shared` | 6006 |
 
-Stop everything with `bun dev:stop`.
+Stop everything with `bun run dev:stop`.
+
+`bun run dev` is an alias for `bun run dev:full`.
 
 ### Individual packages
 
 You can also run packages directly without PM2:
 
 ```bash
-bun dev:client      # Gardener PWA
-bun dev:admin       # Operator dashboard
-bun dev:docs        # Docusaurus site
-bun dev:indexer     # Envio indexer (Docker Compose)
-bun dev:contracts   # Anvil local chain
-bun dev:agent       # Agent bot
+bun run dev:client      # Gardener PWA
+bun run dev:admin       # Operator dashboard
+bun run dev:docs        # Docusaurus site
+bun run dev:indexer     # Envio indexer (Docker Compose)
+bun run dev:contracts   # Anvil local chain
+bun run dev:agent       # Agent bot
 ```
 
 ### Mobile device testing
 
-Green Goods is a mobile-first PWA, so testing on a real phone is essential. When you run `bun dev`, a cloudflared tunnel starts automatically alongside the other services. It creates a temporary public HTTPS URL (e.g. `https://random-words.trycloudflare.com`) that points to your local client on port 3001.
+Green Goods is a mobile-first PWA, so testing on a real phone is essential. When you run `bun run dev:full`, a cloudflared tunnel starts automatically alongside the other services. It creates a temporary public HTTPS URL (e.g. `https://random-words.trycloudflare.com`) that points to your local client on port 3001.
 
 Once the tunnel is ready, the **landing page QR code** automatically switches to the tunnel URL. Open `https://localhost:3001` on your laptop and scan the QR code with your phone — you'll get the full PWA experience including service worker, install prompts, and passkey auth.
 
 ```bash
-# Tunnel starts automatically with bun dev.
+# Tunnel starts automatically with bun run dev:full.
 # To run it standalone (e.g. for the admin dashboard):
 bun run dev:tunnel                    # default: port 3001
 bun run dev:tunnel -- --port 3002     # admin on port 3002
@@ -147,7 +191,9 @@ Then navigate to `https://localhost:3001` on Android Chrome. Since `localhost` i
   steps={[
     {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*` for conventions."},
     {title: "Configure env bootstrap", detail: "Set `APP_ENV` in root `.env`. For local 1Password on the stable CLI, add `*_OP_REF=op://...` entries there and keep `OP_ENABLE_ENVIRONMENT_LOAD=false`. Use root `.env` only -- never add package-level env files."},
-    {title: "Start services", detail: "Run `bun dev` and verify client, admin, indexer, and docs start cleanly."},
+    {title: "Check role readiness", detail: "Run `bun run dev:doctor -- --profile web` before debugging setup. It does not mutate files or start services."},
+    {title: "Start services", detail: "Run `bun run dev:web` for frontend QA or `bun run dev:full` for the full Docker-backed stack."},
+    {title: "Smoke the web stack", detail: "Run `bun run dev:smoke:web` once client/admin/docs are starting. It verifies local HTTP/HTTPS reachability."},
     {title: "Run the quality gate", detail: "Run `bun run test`, `bun lint`, and `bun build` before pushing changes."},
   ]}
 />
@@ -181,12 +227,16 @@ bun format
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `forge: command not found` | Foundry not installed | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
-| Indexer fails to start | Docker not running | Start Docker Desktop, then retry `bun dev:indexer` |
-| `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `bun setup` or run `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env` |
+| Indexer fails to start | Docker not running | Start Docker Desktop, then retry `bun run dev:indexer` |
+| `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `npm run setup` or run `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env` |
+| `Pinata forbidden` or upload fails | Missing Pinata JWT | Add `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` to root `.env`, then rerun `bun run dev:doctor -- --profile upload` |
+| Client PM2 process is online but `localhost:3001` does not respond | Varlock env validation failed before Vite bound the port | Run `bun run dev:doctor -- --profile web`; remove stale `STORACHA_*` entries, then sign in to `op` or remove OP refs not needed for your role |
+| `bun run dev:smoke:web` fails before checking ports | Web doctor failed | Fix the doctor failures first; smoke only probes services after the web profile is ready. |
+| Passkey registration fails on localhost | RP ID mismatch | Leave `VITE_PASSKEY_RP_ID` blank for fallback behavior, or set `VITE_PASSKEY_RP_ID=localhost` for local passkey QA |
 | Port 3001/3002 in use | Another dev server running | Kill the process or change the port in the package's Vite config |
-| `bun install` hangs | Stale lockfile | Delete `node_modules` and `bun.lockb`, then `bun install` |
-| No QR code on landing page | cloudflared not installed | `brew install cloudflared`, then restart `bun dev` |
-| Tunnel URL not appearing | Client not ready yet | The tunnel waits up to 60s for port 3001 — check PM2 logs with `npx pm2 logs tunnel` |
+| `bun install` hangs | Stale dependency state | Delete `node_modules`, then `bun install` |
+| No QR code on landing page | cloudflared not installed | `brew install cloudflared`, then restart `bun run dev:full` |
+| Tunnel URL not appearing | Client not ready yet | The tunnel waits up to 60s for port 3001 — check PM2 logs with `bunx pm2 logs tunnel` |
 
 ## Non-negotiables
 

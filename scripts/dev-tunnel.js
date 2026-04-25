@@ -76,7 +76,7 @@ for (const signal of ["exit", "SIGINT", "SIGTERM"]) {
 const ready = await waitForPort(port);
 if (!ready) {
   console.error(
-    `\x1b[31m✗ No server running on port ${port} after 60s.\x1b[0m Start it first:\n\n  bun dev\n`
+    `\x1b[31m✗ No server running on port ${port} after 60s.\x1b[0m Start it first:\n\n  bun run dev:web\n\nFor the full stack, use:\n\n  bun run dev:full\n`
   );
   process.exit(1);
 }

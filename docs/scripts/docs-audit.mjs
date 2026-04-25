@@ -72,8 +72,11 @@ const readmeRequiredHeadings = [
 ];
 
 const readmeRequiredSnippets = [
-  "bun setup",
-  "bun dev",
+  "npm run setup",
+  "bun run dev:doctor -- --profile web",
+  "bun run dev:web",
+  "bun run dev:smoke:web",
+  "bun run dev:full",
   "bun run test",
   "https://docs.greengoods.app/builders/getting-started",
   "https://docs.greengoods.app/builders/agentic/prompting-green-goods",

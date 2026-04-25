@@ -4,7 +4,7 @@ sidebar_label: Husky
 slug: /builders/quality/husky
 audience: developer
 owner: docs
-last_verified: 2026-04-07
+last_verified: 2026-04-23
 feature_status: Live
 keywords: [husky, git hooks, pre-commit, pre-push, lint-staged, biome, formatting]
 ---
@@ -68,7 +68,7 @@ fi
 {
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
-      "npx @biomejs/biome format --write"
+      "bunx @biomejs/biome format --write"
     ]
   }
 }

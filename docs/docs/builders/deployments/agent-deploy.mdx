@@ -127,8 +127,8 @@ bun run dev     # Start with --watch for hot reload
 In production, the agent runs under PM2 (configured in the monorepo root):
 
 ```bash
-bun dev        # Starts all services including agent via PM2
-bun dev:stop   # Stops all PM2 processes
+bun run dev:full  # Starts all services including agent via PM2
+bun run dev:stop  # Stops all PM2 processes
 ```
 
 For standalone deployment, run the compiled output:

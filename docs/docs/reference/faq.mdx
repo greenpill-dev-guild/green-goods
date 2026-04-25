@@ -3,7 +3,7 @@ title: Frequently Asked Questions
 slug: /reference/faq
 audience: all
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-04-23
 feature_status: Live
 source_of_truth:
   - docs/docs/community/welcome.mdx
@@ -156,8 +156,10 @@ Yes. Repository: [greenpill-dev-guild/green-goods](https://github.com/greenpill-
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-bun setup
-bun dev
+npm run setup
+bun run dev:doctor -- --profile web
+bun run dev:web
+bun run dev:smoke:web
 ```
 
 See [Developer Getting Started](../builders/getting-started).

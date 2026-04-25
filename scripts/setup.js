@@ -7,7 +7,7 @@
  */
 
 import fs from "fs";
-import { execSync } from "child_process";
+import { execFileSync, execSync, spawnSync } from "child_process";
 
 // Simple color helpers
 const c = {
@@ -27,13 +27,13 @@ const log = {
 };
 
 function checkCommand(cmd, name) {
-  try {
-    execSync(`which ${cmd}`, { stdio: "ignore" });
-    return true;
-  } catch {
+  const probe = process.platform === "win32" ? `where ${cmd}` : `command -v ${cmd}`;
+  const result = spawnSync(probe, { shell: true, stdio: "ignore" });
+  if (result.status !== 0) {
     log.error(`${name} not found`);
     return false;
   }
+  return true;
 }
 
 function installBun() {
@@ -50,9 +50,10 @@ function installBun() {
     }
 
     // Add to PATH for current session
-    if (!isWindows) {
-      process.env.PATH = `${process.env.HOME}/.bun/bin:${process.env.PATH}`;
-    }
+    const bunBin = isWindows
+      ? `${process.env.USERPROFILE || ""}\\.bun\\bin`
+      : `${process.env.HOME}/.bun/bin`;
+    process.env.PATH = `${bunBin}:${process.env.PATH}`;
 
     log.success("Bun installed successfully\n");
     return true;
@@ -65,7 +66,7 @@ function installBun() {
 
 function checkVersion(cmd, minVersion, name) {
   try {
-    const version = execSync(`${cmd} --version`, { encoding: "utf8" }).trim();
+    const version = execFileSync(cmd, ["--version"], { encoding: "utf8" }).trim();
     const match = version.match(/(\d+)/);
     if (match && parseInt(match[1]) >= minVersion) {
       log.success(`${name} ${version.split("\n")[0]}`);
@@ -81,8 +82,8 @@ function checkVersion(cmd, minVersion, name) {
 
 function checkDocker() {
   try {
-    execSync("docker ps", { stdio: "ignore" });
-    const version = execSync("docker --version", { encoding: "utf8" }).trim();
+    execFileSync("docker", ["ps"], { stdio: "ignore" });
+    const version = execFileSync("docker", ["--version"], { encoding: "utf8" }).trim();
     log.success(version);
     return true;
   } catch {
@@ -182,11 +183,14 @@ console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
 console.log(`${c.cyan}Next steps:${c.reset}
   1. Set APP_ENV in .env, then either add \`*_OP_REF=op://...\` entries for local secrets or configure OP_ENVIRONMENT + OP_ENABLE_ENVIRONMENT_LOAD=true for service-account/bulk loading
      • WalletConnect local secret: \`WALLETCONNECT_PROJECT_ID_OP_REF=op://<vault>/<item>/credential\`
-  2. Start services: bun dev
-  3. Run tests: bun run test
+  2. Check role readiness: bun run dev:doctor -- --profile web
+  3. Start frontend services: bun run dev:web
+     • Full stack with Docker/indexer/agent: bun run dev:full
+  4. Smoke frontend services: bun run dev:smoke:web
+  5. Run tests: bun run test
 
 ${c.dim}Individual packages:${c.reset}
-  • bun dev:client    - React PWA (port 3001)
-  • bun dev:indexer   - Blockchain indexer (port 8081)
-  • bun dev:contracts - Local blockchain (Anvil)
+  • bun run dev:client    - React PWA (port 3001)
+  • bun run dev:indexer   - Blockchain indexer (port 8080)
+  • bun run dev:contracts - Local blockchain (Anvil)
 `);

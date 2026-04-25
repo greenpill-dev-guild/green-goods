@@ -146,6 +146,51 @@ const NON_VISUAL_SHARED_COMPONENTS = new Set([
   "Canvas/LeftSheetContext.tsx",
 ]);
 
+/**
+ * Visual harness stories are useful, but they do not prove real-component
+ * coverage. Entries here are audited harness-only exceptions that remain
+ * intentionally excluded from the "real story" contract until those
+ * components get provider seams that can be exercised deterministically.
+ */
+const AUDITED_HARNESS_ONLY_STORIES = new Map<string, string>([
+  [
+    "admin/components/Garden/GardenDomainEditor.tsx",
+    "wallet-bound wagmi read/write hooks; visual dialog states are explicit fixtures",
+  ],
+  [
+    "admin/components/Hypercerts/HypercertWizard/index.tsx",
+    "full wizard depends on useWizardData, draft persistence, attestations, and mint mutations",
+  ],
+  [
+    "admin/components/Vault/GardenSupporters.tsx",
+    "leaderboard data terminates in wagmi contract reads that are not seedable in Storybook",
+  ],
+  [
+    "admin/components/Vault/ImpactFunders.tsx",
+    "protocol-wide supporter data terminates in wagmi contract reads that are not seedable in Storybook",
+  ],
+  [
+    "admin/components/Vault/PositionCard.tsx",
+    "real card reads several vault, balance, and transaction hooks; visual state matrix is fixture-driven",
+  ],
+  [
+    "admin/views/Hub/components/CookieJarDepositModal.tsx",
+    "real modal reads wallet balances and garden cookie jars before mutating deposit flows",
+  ],
+  [
+    "admin/views/Hub/components/CookieJarManageModal.tsx",
+    "real modal wires cookie-jar reads plus pause, resume, edit, and emergency-withdraw mutations",
+  ],
+  [
+    "admin/views/Hub/components/CookieJarPayoutPanel.tsx",
+    "real panel is gated by garden cookie-jar wagmi reads",
+  ],
+  [
+    "admin/views/Hub/components/CookieJarWithdrawModal.tsx",
+    "real modal reads garden cookie jars and mutates withdraw flows through wagmi hooks",
+  ],
+]);
+
 // Files to skip unconditionally — never represent a visual component.
 const SKIP_PATTERNS = [
   /\.stories\.tsx$/, // story files themselves
@@ -231,6 +276,84 @@ function isBarrelIndex(filePath: string): boolean {
     return false;
   }
   return true;
+}
+
+function extractMetaBlock(source: string): string {
+  const metaIndex = source.search(/\bconst\s+meta\b/);
+  if (metaIndex === -1) return "";
+
+  const objectStart = source.indexOf("{", metaIndex);
+  if (objectStart === -1) return "";
+
+  let depth = 0;
+  let quote: '"' | "'" | "`" | null = null;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = objectStart; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+    const prev = source[i - 1];
+
+    if (inLineComment) {
+      if (char === "\n") inLineComment = false;
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (char === "*" && next === "/") {
+        inBlockComment = false;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (quote) {
+      if (char === quote && prev !== "\\") quote = null;
+      continue;
+    }
+
+    if (char === "/" && next === "/") {
+      inLineComment = true;
+      i += 1;
+      continue;
+    }
+
+    if (char === "/" && next === "*") {
+      inBlockComment = true;
+      i += 1;
+      continue;
+    }
+
+    if (char === '"' || char === "'" || char === "`") {
+      quote = char;
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}") {
+      depth -= 1;
+      if (depth === 0) return source.slice(objectStart, i + 1);
+    }
+  }
+
+  return "";
+}
+
+function isVisualHarnessOnlyStory(filePath: string): boolean {
+  const source = readFileSync(filePath, "utf-8");
+  const meta = extractMetaBlock(source);
+  if (!meta) return false;
+
+  const metaTagsVisualHarness = /tags\s*:\s*\[[^\]]*["']visual-harness["'][^\]]*\]/.test(meta);
+  const metaSaysNotReal =
+    /not\s+the\s+real(?:\s+component|\s+[`"']?[A-Z][A-Za-z0-9_$]*)/i.test(meta);
+
+  return metaTagsVisualHarness || metaSaysNotReal;
 }
 
 interface Target {
@@ -342,6 +465,8 @@ async function main() {
 
   const covered: string[] = [];
   const uncovered: string[] = [];
+  const harnessOnly: string[] = [];
+  const auditedHarnessOnly: Array<{ label: string; reason: string }> = [];
 
   for (const target of targets) {
     const dir = dirname(target.relativePath);
@@ -359,14 +484,25 @@ async function main() {
       }
     }
 
-    const hasStory = candidates.some((candidate) =>
-      existsSync(join(target.cwd, candidate)),
-    );
+    const storyPath =
+      candidates.map((candidate) => join(target.cwd, candidate)).find((candidate) => existsSync(candidate)) ??
+      null;
 
-    if (hasStory) {
-      covered.push(target.label);
-    } else {
+    if (storyPath === null) {
       uncovered.push(target.label);
+      continue;
+    }
+
+    if (isVisualHarnessOnlyStory(storyPath)) {
+      const reason = AUDITED_HARNESS_ONLY_STORIES.get(target.label);
+      if (reason) {
+        covered.push(target.label);
+        auditedHarnessOnly.push({ label: target.label, reason });
+      } else {
+        harnessOnly.push(target.label);
+      }
+    } else {
+      covered.push(target.label);
     }
   }
 
@@ -391,8 +527,24 @@ async function main() {
     console.log();
   }
 
-  if (uncovered.length > 0) {
-    console.log(`FAIL: ${uncovered.length} required Storybook surface(s) missing stories.\n`);
+  if (harnessOnly.length > 0) {
+    console.log("Harness-only stories cannot satisfy real-component coverage:");
+    for (const f of harnessOnly) console.log(`  - ${f}`);
+    console.log();
+  }
+
+  if (auditedHarnessOnly.length > 0) {
+    console.log("Audited harness-only coverage exceptions:");
+    for (const entry of auditedHarnessOnly) {
+      console.log(`  ! ${entry.label} — ${entry.reason}`);
+    }
+    console.log();
+  }
+
+  if (uncovered.length > 0 || harnessOnly.length > 0) {
+    console.log(
+      `FAIL: ${uncovered.length + harnessOnly.length} required Storybook surface(s) missing real stories.\n`,
+    );
     process.exit(1);
   }
 
