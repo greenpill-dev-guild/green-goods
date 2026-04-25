@@ -1,9 +1,10 @@
 /**
  * Story Quality Checker
  *
- * Keeps the admin Storybook surface deterministic and agent-readable without
+ * Keeps the design-system Storybook surface deterministic and agent-readable without
  * turning coverage into a broad visual-audit pass. Scope is intentionally
- * narrow: admin stories plus shared Canvas stories consumed by admin shell work.
+ * narrow: admin stories, shared Canvas stories consumed by admin shell work,
+ * and curated client PWA/public shell stories.
  *
  * Usage: bun run scripts/check-story-quality.ts
  */
@@ -24,6 +25,11 @@ const TARGET_FILES = [
   "packages/shared/src/components/Display/ImageWithFallback.stories.tsx",
   "packages/shared/src/components/Dialog/ImagePreviewDialog.stories.tsx",
   "packages/shared/src/components/Vault/AssetSelector.stories.tsx",
+  "packages/client/src/components/Layout/AppBar.stories.tsx",
+  "packages/client/src/components/Communication/Offline/OfflineIndicator.stories.tsx",
+  "packages/client/src/components/Navigation/SiteHeader.stories.tsx",
+  "packages/client/src/views/PwaProtectedSurfaces.stories.tsx",
+  "packages/client/src/views/PublicBrowserSurfaces.stories.tsx",
 ] as const;
 
 interface Finding {
@@ -338,7 +344,7 @@ async function main() {
     checkFile(file, readFileSync(join(REPO_ROOT, file), "utf8")),
   );
 
-  console.log("\n--- Storybook Story Quality (admin + admin-used shared stories) ---\n");
+  console.log("\n--- Storybook Story Quality (design-system stories) ---\n");
   console.log(`Checked ${files.length} story file(s).\n`);
 
   if (findings.length > 0) {

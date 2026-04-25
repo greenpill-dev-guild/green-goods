@@ -3,6 +3,8 @@
  * Uses [data-theme] attribute for theme switching
  */
 
+@import "./design-md.generated.css";
+
 /* ============================================================================
  * CSS @property Definitions (Baseline July 2024)
  * Type-safe custom properties with syntax validation and animation support
@@ -39,8 +41,8 @@
  * NOTE: the name `--color-primary` is an internal token label. In the Warm Earth
  * role hierarchy (canvas / ink / stone / green-as-tertiary) this resolves to the
  * **tertiary role** — garden green accent, used for 1–3% of screen volume
- * (CTAs, active states, value-flow moments). The "primary" name is historical;
- * see .claude/skills/design/language.md § Color Direction for the role model.
+ * (active states, icons, badges, progress, and value-flow moments). The "primary" name is historical;
+ * see root DESIGN.md for the role model.
  */
 @property --color-primary {
   syntax: "<color>";
@@ -327,14 +329,14 @@
   --social-zendesk: 22 20 13;
 
   /* Primary (brand) colors */
-  --primary-dark: var(--green-800);
-  --primary-darker: var(--green-700);
-  --primary-base: var(--green-500);
+  --primary-dark: var(--gg-design-tertiary-action, var(--green-800));
+  --primary-darker: var(--gg-design-tertiary-action-hover, var(--green-700));
+  --primary-base: var(--gg-design-tertiary, var(--green-500));
   --primary-foreground: var(--neutral-0);  /* White text on dark green bg */
-  --primary-accent-foreground: var(--green-950);
-  --primary-action: var(--green-800);
-  --primary-action-hover: var(--green-900);
-  --primary-action-foreground: var(--neutral-0);
+  --primary-accent-foreground: var(--gg-design-on-tertiary, var(--green-950));
+  --primary-action: var(--gg-design-tertiary-action, var(--green-800));
+  --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
+  --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
   --primary-alpha-24: var(--green-alpha-24);
   --primary-alpha-16: var(--green-alpha-16);
   --primary-alpha-10: var(--green-alpha-10);
@@ -424,9 +426,16 @@
   --z-raised: 10;
   --z-sticky: 20;
   --z-nav: 30;
-  --z-overlay: 40;
-  --z-modal: 50;
-  --z-toast: 60;
+	  --z-overlay: 40;
+	  --z-modal: 50;
+	  --z-toast: 60;
+
+  /* ── Radius Aliases ── Public runtime aliases for DesignMD-generated radii. */
+  --radius-md: var(--gg-radius-md);
+  --radius-lg: var(--gg-radius-lg);
+  --radius-xl: var(--gg-radius-xl);
+  --radius-2xl: var(--gg-radius-2xl);
+  --radius-full: var(--gg-radius-full);
 
   /* ── Glass Material ── Blur + transparency tokens for navigation-tier surfaces
    * Applied via .glass-surface utility or per-component backdrop-filter.
@@ -463,12 +472,38 @@
    * Canonical spec: .claude/skills/design/language.md § Motion System.
    * Two families: spatial (layout/physics) and effects (opacity/color/blur).
    */
-  --spring-spatial: cubic-bezier(0.16, 1, 0.3, 1) 300ms;
-  --spring-spatial-fast: cubic-bezier(0.34, 1.56, 0.64, 1) 200ms;
-  --spring-spatial-slow: cubic-bezier(0.16, 1, 0.3, 1) 400ms;
-  --spring-effects: cubic-bezier(0.2, 0, 0, 1) 250ms;
-  --spring-effects-fast: cubic-bezier(0.2, 0, 0, 1) 150ms;
-  --spring-effects-slow: cubic-bezier(0.2, 0, 0, 1) 500ms;
+	  --spring-spatial-easing: cubic-bezier(0.16, 1, 0.3, 1);
+	  --spring-spatial-duration: 300ms;
+	  --spring-spatial-fast-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
+	  --spring-spatial-fast-duration: 200ms;
+	  --spring-spatial-slow-easing: cubic-bezier(0.16, 1, 0.3, 1);
+	  --spring-spatial-slow-duration: 400ms;
+	  --spring-effects-easing: cubic-bezier(0.2, 0, 0, 1);
+	  --spring-effects-duration: 250ms;
+	  --spring-effects-fast-easing: cubic-bezier(0.2, 0, 0, 1);
+	  --spring-effects-fast-duration: 150ms;
+	  --spring-effects-slow-easing: cubic-bezier(0.2, 0, 0, 1);
+	  --spring-effects-slow-duration: 500ms;
+
+	  --spring-spatial: var(--spring-spatial-easing) var(--spring-spatial-duration);
+	  --spring-spatial-fast: var(--spring-spatial-fast-easing) var(--spring-spatial-fast-duration);
+	  --spring-spatial-slow: var(--spring-spatial-slow-easing) var(--spring-spatial-slow-duration);
+	  --spring-effects: var(--spring-effects-easing) var(--spring-effects-duration);
+	  --spring-effects-fast: var(--spring-effects-fast-easing) var(--spring-effects-fast-duration);
+	  --spring-effects-slow: var(--spring-effects-slow-easing) var(--spring-effects-slow-duration);
+
+	  /* Compatibility aliases for older component classes. Prefer the six named
+	   * spring families above for new CSS. */
+	  --spring-micro-easing: var(--spring-effects-fast-easing);
+	  --spring-micro-duration: var(--spring-effects-fast-duration);
+	  --spring-fast-easing: var(--spring-spatial-fast-easing);
+	  --spring-fast-duration: var(--spring-spatial-fast-duration);
+	  --spring-medium-easing: var(--spring-spatial-easing);
+	  --spring-medium-duration: var(--spring-spatial-duration);
+	  --spring-slow-easing: var(--spring-spatial-slow-easing);
+	  --spring-slow-duration: var(--spring-spatial-slow-duration);
+	  --spring-dramatic-easing: var(--spring-effects-slow-easing);
+	  --spring-dramatic-duration: var(--spring-effects-slow-duration);
 
   /* Material 3 role aliases - documentation layer only
    * Green Goods semantic tokens remain canonical for component authors.
@@ -545,7 +580,8 @@
 }
 
 /* Dark theme overrides using data-theme attribute */
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+[data-theme="dark"] {
   /* Backgrounds — M3-aligned dark surface ladder (tones 6→22, ceiling at 24) */
   --bg-white-0: var(--neutral-950);      /* 12 10 9  — surface / surfaceDim (tone 6) */
   --bg-weak-50: var(--neutral-925);      /* 22 20 18 — surfaceContainerLow (tone 10) */
@@ -575,15 +611,15 @@
   --faded-light: var(--neutral-alpha-24);
   --faded-lighter: var(--neutral-alpha-16);
 
-  /* Primary (brand) colors - very light for dark mode accessibility */
-  --primary-dark: var(--green-400);
-  --primary-darker: var(--green-300);
-  --primary-base: var(--green-200);  /* 194 245 218 - pale mint for maximum contrast */
+  /* Primary aliases stay tied to generated DesignMD PWA accent/action roles. */
+  --primary-dark: var(--gg-design-tertiary-action, var(--green-800));
+  --primary-darker: var(--gg-design-tertiary-action-hover, var(--green-900));
+  --primary-base: var(--gg-design-tertiary, var(--green-500));
   --primary-foreground: var(--green-950);  /* Dark green text on light green bg */
-  --primary-accent-foreground: var(--green-950);
-  --primary-action: var(--green-200);
-  --primary-action-hover: var(--green-100);
-  --primary-action-foreground: var(--green-950);
+  --primary-accent-foreground: var(--gg-design-on-tertiary, var(--green-950));
+  --primary-action: var(--gg-design-tertiary-action, var(--green-800));
+  --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
+  --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
 
   /* Focus rings - Dark theme */
   --focus-ring: var(--blue-400);
@@ -726,7 +762,7 @@
   /* Theme base colors - use semantic tokens for dark mode support.
    * `--color-primary` is an internal token name that maps to the **tertiary role**
    * in the Warm Earth role hierarchy (accent green, 1-3% screen volume). See
-   * .claude/skills/design/language.md § Color Direction for the role model.
+   * root DESIGN.md for the role model.
    */
   --color-primary: rgb(var(--primary-base));
   --color-primary-foreground: rgb(var(--primary-foreground));

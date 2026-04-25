@@ -14,7 +14,7 @@ changelog:
   - "2.3.2 — review-checklist.md § Closing the Loop rewritten to mark each lens's automation as Wired / Partial / Proposed, with evidence. Dropped two broken commands from the Quick wiring reference (`bun --filter @green-goods/shared test-storybook --failOnA11yIssues` and `bun --filter @green-goods/shared chromatic` — neither script exists in `packages/shared/package.json`). Added a Roadmap subsection listing what's needed to move each Proposed row to Wired. No token changes."
   - "2.3.1 — Spring motion tokens shipped to packages/shared/src/styles/theme.css (previously spec'd as aspirational in language.md; AI tools can now safely emit var(--spring-*)). prompt-contract.md clarifies admin = restrained Warm Earth (not raw M3) and that hero moments are client-only. materials.md stale 'not yet in theme.css' note removed. review-checklist.md references new scripts bun run lint:vocab and bun run check:design-tokens instead of the unwritten biome rule. Registry token_version synced to 2.3.0 (was drifted at 2.2.0)."
   - "2.3.0 — Added client-prompt-contract.md (closes admin/client asymmetry). Material tokens now implemented in theme.css (no longer aspirational). Added quick-reference.md cheat sheet. Closing-the-loop section added to review-checklist.md. implementation.md split — generative UI stayed, view transitions moved to ui/, progressive immersion folded into SKILL.md, references.md folded into SKILL.md appendix. Registry triggers expanded for finer activation routing. Bumped token_version — coupled ui skill should revisit compliance guidance."
-  - "2.2.0 — Consolidated token spec to language.md (single source of truth). Reconciled colour model on canvas/ink/stone/green-as-tertiary. Collapsed per-file checklists into review-checklist.md. DESIGN.md rewritten as terse creative brief."
+  - "2.2.0 — Consolidated the legacy implementation token guide into language.md. Reconciled colour model on canvas/ink/stone/green-as-tertiary. Collapsed per-file checklists into review-checklist.md. DESIGN.md rewritten as terse creative brief."
 ---
 
 # Design Skill
@@ -23,7 +23,7 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 
 > **Paradigm**: The Adaptive Surface.
 > **Aesthetic direction**: **Warm Earth** — architectural warmth, handmade precision, garden journal over trading terminal (see root `DESIGN.md`).
-> **Design language**: the **Warm Earth** language — Material 3 Expressive × Liquid Glass structural precision. Content-forward hierarchy, concentric geometry, spring physics, organic color. See [language.md](./language.md) for the full spec.
+> **Design language**: the **Warm Earth** language — Material 3 Expressive × Liquid Glass structural precision. Content-forward hierarchy, concentric geometry, spring physics, organic color. Root `DESIGN.md` front matter is the canonical DesignMD token source; see [language.md](./language.md) for implementation guidance.
 
 ## Route to another skill when…
 
@@ -34,6 +34,7 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 - You need the **client** AI prompt contract → [client-prompt-contract.md](./client-prompt-contract.md).
 - You need to **report a UI defect** on an admin surface (grammar, component identifiers, browser workflow) → [defect-grammar.md](./defect-grammar.md).
 - You just need a scannable token cheat sheet → [quick-reference.md](./quick-reference.md).
+- You are doing a **full design-system alignment review** across DesignMD files, tokens, Storybook, admin, client, docs, and agentic guidance → [system-alignment-review.md](./system-alignment-review.md). Use [stack-review.md](./stack-review.md) instead when the target is only the `design/` + `ui/` skill stack.
 
 ## Version coupling with `ui`
 
@@ -66,7 +67,8 @@ If the two versions drift, you have a token consistency bug: the design says one
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
 | **Regenerative** | regenerative, regen, degen, mycofi, commons, biomimicry, succession, growth-agnostic, capability | [regenerative.md](./regenerative.md) |
 | **Review Checklist** | review, PR, audit, compliance, checklist, design review, before merging | [review-checklist.md](./review-checklist.md) |
-| **Stack Review** | stack review, review design system, audit skill stack, meta-review, system health | [stack-review.md](./stack-review.md) |
+| **Stack Review** | stack review, audit skill stack, meta-review, design skill stack health | [stack-review.md](./stack-review.md) |
+| **System Alignment Review** | design system alignment, design-system alignment, UI drift, Storybook alignment, admin client docs alignment, full repo design-system review | [system-alignment-review.md](./system-alignment-review.md) |
 | **Inspiration & Frameworks** | inspiration, design books, designers, studios, research | § Appendix below |
 
 When invoked:
@@ -155,7 +157,7 @@ For `packages/admin` and operator dashboards, do not treat the Warm Earth langua
 
 The platforms come and go (Stitch, Claude Design, Figma Make, Antigravity, whatever ships next quarter). The contract is platform-agnostic:
 
-1. **Feed the right context** — root `DESIGN.md` + the matching surface DESIGN.md (`packages/admin/DESIGN.md` or `packages/client/DESIGN.md`) + the matching prompt contract (`prompt-contract.md` admin / `client-prompt-contract.md` client).
+1. **Feed the right context** — root `DESIGN.md` + the matching surface DESIGN.md (`packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, or `docs/DESIGN.md`) + the matching prompt contract when one exists (`prompt-contract.md` admin / `client-prompt-contract.md` client).
 2. **One screen per pass** — quality degrades when multiple screens get bundled into a single prompt.
 3. **Screenshot is the source of truth** — generated HTML is reference only. Map output back to existing components; never accept generic React.
 4. **Use the canonical palette** — `Admin*` wrappers (admin) or `@green-goods/shared` primitives (client). Flag missing primitives instead of inventing component names.

@@ -35,7 +35,8 @@ Invocation forms (all equivalent — pick whichever is easiest):
 |------|---------|
 | Slash + positional | `/review admin`, `/review shared admin`, `/review #123`, `/review packages/shared/src/hooks/garden/useGardens.ts` |
 | Slash + flags | `/review --scope cross-package --mode verify_only`, `/review admin --mode apply_fixes` |
-| Natural language | "review the shared package", "review the admin changes in this diff", "review PR 42" |
+| Slash + domain scope | `/review design-system`, `/review --mode verify_only --scope design-system` |
+| Natural language | "review the shared package", "review the admin changes in this diff", "review PR 42", "review design-system alignment" |
 
 ## Scoping
 
@@ -63,6 +64,7 @@ Always resolve scope **before** inspecting code, and state the resolved scope in
 
 - `/review shared admin` — files touching either package (union)
 - `/review --scope cross-package` — special lens: only findings that cross package boundaries
+- `/review --scope design-system` (or `/review design-system`) — domain lens: full-repo design-system alignment. Delegates to [`design/system-alignment-review.md`](../design/system-alignment-review.md). Read-only by default; does not turn ordinary diff reviews into design audits. Activation rules live in the Lens Activation Matrix § design-system below.
 - `/review #123` — restrict to files in the PR's diff
 - `/review packages/shared/src/hooks/garden/useGardens.ts` — single-file review (narrowest)
 
@@ -162,6 +164,24 @@ Each lens has **hard signals** (any match → lens MUST run) and **soft signals*
 - Deprecated API usage adjacent to the diff left untouched
 - Circular dependency created
 - Large deletion block without corresponding cleanup of callers
+
+### design-system
+
+Narrow by design. Do not let ordinary UI diffs trigger a full-repo design-system audit.
+
+**Hard signals** (any → fire, delegate to [`design/system-alignment-review.md`](../design/system-alignment-review.md)):
+
+- Explicit invocation: `/review design-system`, `/review --scope design-system`, or natural-language phrasing "design-system alignment", "design system alignment", "UI drift review", "Storybook alignment", "admin client docs alignment"
+- Diff touches root `DESIGN.md` front matter or any surface DESIGN.md dialect (`packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`) AND at least one of: `packages/shared/src/styles/theme.css`, `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`
+- Diff touches ≥2 surfaces out of {admin visual layer, client PWA shell, client browser surface, docs UI, Storybook Tokens surface} in a single change
+
+**Soft signals** (do **not** fire this lens; they belong in `review-checklist.md` instead):
+
+- A single component's padding / copy / token swap
+- One-file theme.css edit with no surface DESIGN.md change
+- A single-story addition or update
+
+**Scope when fired:** read-only protocol from `design/system-alignment-review.md`. Do not mix its output into the diff-review must-fix / should-fix buckets — return its Sections 1-5 directly to the user. If the user then asks for fixes, route through the normal `apply_fixes` gate.
 
 ### How to apply
 

@@ -1,0 +1,139 @@
+packages/admin/src/components/AdminCheckbox.tsx "h-[18px] w-[18px] shrink-0 rounded-[2px]",
+packages/admin/src/components/AdminCheckbox.tsx * - Container: 18dp (h-[18px] w-[18px]), 2dp radius (rounded-[2px])
+packages/admin/src/components/Garden/GardenMetadata.tsx "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",
+packages/admin/src/components/Garden/GardenSettingsEditor.tsx "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-bg-white shadow ring-0 transition duration-200 ease-in-out",
+packages/admin/src/components/Garden/GardenSettingsEditor.tsx "relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2",
+packages/admin/src/components/Hypercerts/Steps/AttestationSelector.tsx "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-200 focus:ring-2 focus:ring-primary-lighter focus:border-primary-base",
+packages/admin/src/components/Hypercerts/Steps/AttestationSelector.tsx className="block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-200 focus:ring-2 focus:ring-primary-lighter focus:border-primary-base"
+packages/admin/src/components/Layout/AccountProfilePanel.tsx <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[1.1rem] bg-[linear-gradient(135deg,rgba(var(--workspace-tint,124_58_237),0.2),rgba(var(--workspace-accent,124_58_237),0.36))] text-[rgb(var(--workspace-accent,124_58_237))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.5),0_18px_32px_rgba(15,23,42,0.16)]">
+packages/admin/src/components/Layout/AccountSettingsPanel.tsx "flex items-center justify-between rounded-2xl px-4 py-3 text-left transition-all duration-200",
+packages/admin/src/components/Layout/AccountSettingsPanel.tsx "flex w-full items-center justify-between rounded-[1.25rem] px-4 py-3",
+packages/admin/src/components/Layout/AccountSettingsPanel.tsx "shadow-[var(--edge-rest),0_10px_20px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0",
+packages/admin/src/components/Layout/UserAvatar.tsx "border border-white/65 bg-[rgba(255,255,255,0.64)] text-text-sub",
+packages/admin/src/components/Layout/UserAvatar.tsx "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45),0_8px_18px_rgba(15,23,42,0.08)]",
+packages/admin/src/components/Layout/UserAvatar.tsx "transition-all duration-200 hover:border-[rgb(var(--workspace-tint,59_130_246)/0.24)]",
+packages/admin/src/components/Vault/FunderRow.tsx className="h-full rounded-full bg-success-base transition-all duration-300"
+packages/admin/src/views/Actions/ActionDetail.tsx <div className="h-28 rounded-[1.4rem] skeleton-shimmer" />
+packages/admin/src/views/Actions/ActionDetail.tsx <div className="h-80 rounded-[1.4rem] skeleton-shimmer" />
+packages/admin/src/views/Hub/components/HubWorkbenchSkeletonRows.tsx <div className="h-14 w-14 rounded-2xl skeleton-shimmer max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]" />
+packages/admin/src/views/Hub/components/HubWorkCard.tsx className="h-full w-full object-cover transition-transform duration-300 ease-out hover:scale-105 motion-reduce:hover:scale-100"
+packages/client/src/components/Actions/Button/Base.tsx "transition-all duration-200 ease-out",
+packages/client/src/components/Cards/Action/ActionCard.tsx className="p-3 @[300px]:p-4 @[400px]:p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-300 flex-1"
+packages/client/src/components/Cards/Action/ActionCard.tsx className={cn(classes, "@container tap-feedback transition-all duration-300")}
+packages/client/src/components/Cards/Action/ActionCardSkeleton.tsx <div className="p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-400 flex-1">
+packages/client/src/components/Cards/Base/Card.tsx "active:brightness-102 active:bg-primary/1.5 transition-all duration-200 ease-in-out",
+packages/client/src/components/Cards/Garden/GardenCardSkeleton.tsx "p-5 flex flex-col gap-2 border border-border rounded-lg transition-all duration-400 flex-1",
+packages/client/src/components/Cards/Work/DraftCard.tsx "flex items-stretch gap-0 border border-warning-light rounded-lg overflow-hidden transition-all duration-300 cursor-pointer bg-warning-lighter/50 w-full text-left tap-feedback hover:border-warning-base/40 hover:bg-warning-lighter",
+packages/client/src/components/Communication/Progress/Progress.tsx "relative grid place-items-center w-5 h-5 font-medium rounded-full transition-colors ease-in-out duration-50 border border-stroke-soft-200",
+packages/client/src/components/Dialogs/ConvictionDrawer.tsx className="h-full rounded-full bg-primary-base transition-all duration-500"
+packages/client/src/components/Dialogs/DraftDialog.tsx "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200"
+packages/client/src/components/Dialogs/DraftDialog.tsx "duration-300 focus:outline-none"
+packages/client/src/components/Dialogs/DraftDialog.tsx "p-1.5 rounded-full border border-stroke-soft-200 transition-all duration-200",
+packages/client/src/components/Dialogs/ModalDrawer.tsx "flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0 tap-feedback",
+packages/client/src/components/Display/Accordion/Faq.tsx "overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down duration-1000",
+packages/client/src/components/Display/Accordion/Faq.tsx <RiAddLine className="h-5 w-5 shrink-0 transition-transform duration-200 text-[#9A9FAD] flex text-right " />
+packages/client/src/components/Errors/AppErrorBoundary.tsx className="w-full border-2 hover:bg-bg-weak-50 transform hover:scale-[1.02] transition-all duration-200"
+packages/client/src/components/Errors/AppErrorBoundary.tsx className="w-full shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+packages/client/src/components/Features/Garden/Gardeners.tsx className="cv-member relative flex items-center gap-3 border-stroke-soft-200 border rounded-lg p-2 bg-bg-white-0 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm w-full text-left tap-feedback"
+packages/client/src/components/Features/Garden/Gardeners.tsx className="p-1 rounded-full border border-stroke-soft-200 transition-all duration-200 flex-shrink-0 tap-feedback focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600 active:scale-95"
+packages/client/src/components/Inputs/Clipboard/AddressCopy.tsx "flex w-full items-center justify-between gap-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm transition-all duration-150 tap-feedback",
+packages/client/src/components/Inputs/PullToRefresh.tsx "transition-all duration-200 ease-out"
+packages/client/src/components/Layout/Hero.tsx bgColor={isDark ? "#1a1a1a" : "#ffffff"}
+packages/client/src/components/Layout/Hero.tsx fgColor={isDark ? "#ffffff" : "#000000"}
+packages/client/src/components/Layout/Splash.tsx <h3 className="text-center font-bold text-primary transition-all duration-200">
+packages/client/src/components/Layout/Splash.tsx className="w-full transition-all duration-200"
+packages/client/src/components/Layout/Splash.tsx className={`absolute left-0 right-0 top-0 w-full transition-all duration-200 ${
+packages/client/src/components/Layout/Splash.tsx className={`max-w-sm text-center text-sm text-text-sub-600 transition-opacity duration-200 ${
+packages/client/src/components/Layout/Splash.tsx className={`mt-2 text-center text-xs text-text-sub-600 transition-opacity duration-200 ${
+packages/client/src/components/Layout/Splash.tsx className={`text-xs underline transition-all duration-200 ${
+packages/client/src/components/Layout/Splash.tsx className={`transition-opacity duration-300 ${loadingState ? "animate-pulse" : ""}`}
+packages/client/src/components/Layout/Splash.tsx className={`w-full overflow-hidden transition-all duration-300 ease-in-out ${
+packages/client/src/components/Layout/Splash.tsx className={`w-full transition-all duration-200 ${
+packages/client/src/components/Navigation/Tabs/StandardTabs.tsx "flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0 tap-feedback",
+packages/client/src/components/Navigation/TopNav.tsx "transition-all duration-200 tap-feedback tap-target-lg",
+packages/client/src/styles/typography.css --color-header-text: #254d31; /* Dark forest green for light mode */
+packages/client/src/views/Garden/Media.tsx <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
+packages/client/src/views/Garden/Media.tsx className="bg-primary-base h-2 rounded-full transition-all duration-300"
+packages/client/src/views/Home/Garden/Notifications.tsx className="cv-notification w-full flex flex-col gap-2 p-4 bg-warning-lighter rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border border-warning-light cursor-pointer group"
+packages/client/src/views/Home/Garden/Notifications.tsx className="inline-flex items-center gap-2 px-4 py-2 bg-primary-action text-primary-action-foreground font-medium text-sm rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-action/20"
+packages/client/src/views/Home/Garden/Work.tsx "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-2xl shadow-xl overflow-hidden transition-transform duration-300 ease-out origin-bottom",
+packages/client/src/views/Home/Garden/Work.tsx "fixed inset-0 bg-black/30 backdrop-blur-sm z-overlay transition-opacity duration-300",
+packages/client/src/views/Home/Garden/Work.tsx <div className="bg-bg-white-0 border-t border-stroke-soft-200 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
+packages/client/src/views/Home/GardenFilters/index.tsx "w-full rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm transition-all duration-200 min-h-[56px] flex flex-col justify-center tap-feedback",
+packages/client/src/views/Home/index.tsx "relative p-1 rounded-lg border transition-all duration-200 tap-feedback",
+packages/client/src/views/Home/WalletDrawer/Icon.tsx "relative p-1 rounded-lg border transition-all duration-200 tap-feedback",
+packages/client/src/views/Home/WorkDashboard/Icon.tsx "relative p-1 rounded-lg border transition-all duration-200",
+packages/client/src/views/Home/WorkDashboard/Uploading.tsx className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback disabled:opacity-50 disabled:cursor-not-allowed"
+packages/client/src/views/Login/components/LoadingSplash.tsx <h3 className="text-center font-bold text-primary transition-all duration-200">
+packages/client/src/views/Login/components/LoadingSplash.tsx className="transition-opacity duration-300 animate-pulse"
+packages/client/src/views/Profile/GardensList.tsx className="p-1.5 rounded-lg text-text-sub-600 hover:text-primary active:scale-95 transition-all duration-200 disabled:opacity-50"
+packages/shared/src/components/Audio/AudioPlayer.tsx background: `linear-gradient(to right, var(--color-primary-base, #3b82f6) ${progress}%, var(--color-bg-soft-200, #e5e7eb) ${progress}%)`,
+packages/shared/src/components/Canvas/AppBar.tsx "duration-200"
+packages/shared/src/components/Canvas/EmptyStateShell.tsx "bg-[linear-gradient(180deg,rgb(255_255_255/0.62)_0%,rgb(249_247_242/0.82)_100%)] dark:bg-bg-soft/60",
+packages/shared/src/components/Canvas/MainSheet.tsx className="pointer-events-none absolute inset-0 z-raised overflow-hidden rounded-[1.25rem]"
+packages/shared/src/components/Canvas/MainSheet.tsx className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]"
+packages/shared/src/components/Canvas/NavigationBar.tsx : "bg-black/3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)] group-hover:bg-white/72"
+packages/shared/src/components/Canvas/NavigationBar.tsx : "min-w-[4.25rem] rounded-[1.1rem] px-3 py-2",
+packages/shared/src/components/Canvas/NavigationBar.tsx ? "bg-white/78 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.58),0_6px_16px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
+packages/shared/src/components/Canvas/NavigationBar.tsx ? "min-h-[3.75rem] min-w-0 flex-1 flex-col rounded-[1.15rem] px-1.5 py-2"
+packages/shared/src/components/Canvas/NavigationBar.tsx "bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
+packages/shared/src/components/Canvas/NavigationBar.tsx "border border-white/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.86)_100%)] shadow-[0_16px_30px_rgba(15,23,42,0.14)]",
+packages/shared/src/components/Canvas/NavigationBar.tsx "dark:border-stroke-soft dark:bg-[linear-gradient(180deg,rgb(var(--bg-soft-200)/0.88)_0%,rgb(var(--bg-white-0)/0.76)_100%)]",
+packages/shared/src/components/Canvas/NavigationBar.tsx "dark:border-stroke-soft dark:bg-[linear-gradient(180deg,rgb(var(--bg-soft-200)/0.92)_0%,rgb(var(--bg-weak-50)/0.86)_100%)] dark:shadow-[0_16px_30px_rgba(0,0,0,0.3)]",
+packages/shared/src/components/Canvas/NavigationBar.tsx "shadow-[0_24px_44px_rgb(var(--workspace-tint,59_130_246)/0.32),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
+packages/shared/src/components/Canvas/NavigationBar.tsx "transition-all hover:scale-105 hover:shadow-[0_24px_40px_rgba(15,23,42,0.28),inset_0_0_0_1px_rgba(255,255,255,0.28)]",
+packages/shared/src/components/Canvas/NavigationBar.tsx "transition-all hover:shadow-[0_20px_34px_rgba(15,23,42,0.18)]",
+packages/shared/src/components/Canvas/NavigationBar.tsx boxShadow: "0 22px 44px rgba(15, 23, 42, 0.2), inset 0 0 0 1px rgba(255,255,255,0.12)",
+packages/shared/src/components/Canvas/NavigationBar.tsx boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18), inset 0 0 0 1px rgba(255,255,255,0.18)",
+packages/shared/src/components/Canvas/WorkbenchRow.tsx "bg-[rgb(var(--ws-primary-container)/0.12)] shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.22),0_10px_24px_rgba(38,28,18,0.05)]",
+packages/shared/src/components/Canvas/WorkbenchRow.tsx "relative grid w-full items-center gap-[0.875rem] px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-200 ease-out motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]",
+packages/shared/src/components/Canvas/WorkbenchRow.tsx <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-soft dark:bg-bg-sub text-primary-base shadow-[var(--edge-rest),0_10px_18px_rgba(38,28,18,0.05)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]">
+packages/shared/src/components/Canvas/WorkbenchRow.tsx className="h-14 w-14 rounded-2xl object-cover shadow-[var(--edge-rest),0_10px_18px_rgba(38,28,18,0.08)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]"
+packages/shared/src/components/Cards/CardBase.tsx true: "cursor-pointer transition-all duration-200 active:brightness-102 active:bg-primary/1.5",
+packages/shared/src/components/Cards/GardenCard/GardenCard.tsx "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity duration-300 z-10 pointer-events-none",
+packages/shared/src/components/Cards/GardenCard/GardenCard.tsx "flex flex-col gap-2 border border-border rounded-lg transition-all duration-400 flex-1",
+packages/shared/src/components/Cards/GardenCard/GardenCard.tsx base: "@container relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 transition-all duration-300",
+packages/shared/src/components/Cards/WorkCard/WorkCard.tsx base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-300 @[480px]:flex-row",
+packages/shared/src/components/Dialog/ConfirmDialog.tsx "fixed z-modal w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden glass-floating focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300",
+packages/shared/src/components/Dialog/ConfirmDialog.tsx <Dialog.Overlay className="fixed inset-0 z-overlay bg-neutral-950/18 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
+packages/shared/src/components/Dialog/ConfirmDialog.tsx className="fixed inset-0 z-overlay bg-neutral-950/18 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150"
+packages/shared/src/components/Dialog/ConfirmDialog.tsx className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden glass-floating focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300"
+packages/shared/src/components/Dialog/ImagePreviewDialog.tsx "animate-in fade-in duration-200",
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #052e16 0%, #16a34a 100%)", // Canopy
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #0c4a6e 0%, #0ea5e9 100%)", // Stream
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #14532d 0%, #22c55e 100%)", // Growth
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #1e1b4b 0%, #6366f1 100%)", // Cosmos
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #1e3a5f 0%, #3b82f6 100%)", // Knowledge
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #365314 0%, #84cc16 100%)", // Orchard
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #431407 0%, #ea580c 100%)", // Ember
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #451a03 0%, #d97706 100%)", // Desert Sun
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #78350f 0%, #f59e0b 100%)", // Sunrise
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #7c2d12 0%, #f97316 100%)", // Reclaim
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #92400e 0%, #fbbf24 100%)", // Golden Hour
+packages/shared/src/components/Display/ActionBannerFallback.tsx "linear-gradient(135deg, #9a3412 0%, #fb923c 100%)", // Terracotta
+packages/shared/src/components/Display/ActionBannerFallback.tsx const DOT_PATTERN = "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)";
+packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #065f46 0%, #0d9488 100%)", // Forest
+packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #14532d 0%, #16a34a 100%)", // Meadow
+packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #164e63 0%, #0891b2 100%)", // Ocean
+packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%)", // Sky
+packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #312e81 0%, #7c3aed 100%)", // Twilight
+packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #365314 0%, #65a30d 100%)", // Spring
+packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #4c1d95 0%, #a78bfa 100%)", // Lavender
+packages/shared/src/components/Display/GardenBannerFallback.tsx "linear-gradient(135deg, #78350f 0%, #d97706 100%)", // Autumn
+packages/shared/src/components/Display/GardenBannerFallback.tsx const DOT_PATTERN = "radial-gradient(circle, rgba(255,255,255,0.12) 1px, transparent 1px)";
+packages/shared/src/components/Form/FormTextarea.tsx "transition-all duration-200 resize-none overflow-y-auto [touch-action:pan-y] [overscroll-behavior-y:auto]",
+packages/shared/src/components/Form/Select/FormSelect.tsx boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+packages/shared/src/components/Form/Select/FormSelect.tsx boxShadow: state.isFocused ? "0 0 0 3px rgba(var(--primary-base), 0.1)" : "none",
+packages/shared/src/components/Progress/SubmissionProgress.tsx h-full transition-all duration-300 ease-out rounded-full
+packages/shared/src/components/Progress/SubmissionProgress.tsx transition-all duration-300
+packages/shared/src/components/Progress/SubmissionProgress.tsx transition-all duration-500
+packages/shared/src/components/StatCard.tsx "block h-full rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4",
+packages/shared/src/components/Tokens/foundation.ts "transition-[background-color,border-color,box-shadow,color,transform] duration-150 ease-out",
+packages/shared/src/components/Tokens/foundation.ts true: "transition-[background-color,border-color,box-shadow,transform] duration-200 hover:border-stroke-sub-300 hover:shadow-regular-sm active:translate-y-px",
+packages/shared/src/config/appkit.ts "--w3m-accent": "#367D42", // Green Goods primary green
+packages/shared/src/lib/hypercerts/metadata.ts ? `<text x="600" y="600" text-anchor="middle" font-family="'Inter', sans-serif" font-size="32" fill="#4b5563">${safeGarden}</text>`
+packages/shared/src/lib/hypercerts/metadata.ts <rect x="120" y="120" width="960" height="960" rx="48" fill="#ffffff" fill-opacity="0.92" />
+packages/shared/src/lib/hypercerts/metadata.ts <stop offset="0%" stop-color="#e5f8e5" />
+packages/shared/src/lib/hypercerts/metadata.ts <stop offset="100%" stop-color="#cde6ff" />
+packages/shared/src/lib/hypercerts/metadata.ts <text x="600" y="520" text-anchor="middle" font-family="'Inter', sans-serif" font-size="56" fill="#1f2937">
+packages/shared/src/lib/hypercerts/metadata.ts <text x="600" y="760" text-anchor="middle" font-family="'Inter', sans-serif" font-size="24" fill="#9ca3af">Green Goods Hypercert</text>

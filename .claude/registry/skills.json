@@ -180,7 +180,13 @@
         "quick reference",
         "cheat sheet",
         "stack review",
-        "design system review"
+        "design system review",
+        "design system alignment",
+        "design-system alignment",
+        "UI drift",
+        "Storybook alignment",
+        "admin client docs alignment",
+        "full repo design system review"
       ],
       "dependencies": [],
       "token_version": "2.3.0",
@@ -197,7 +203,8 @@
         "ecosystem.md",
         "regenerative.md",
         "review-checklist.md",
-        "stack-review.md"
+        "stack-review.md",
+        "system-alignment-review.md"
       ]
     },
     {
@@ -431,6 +438,8 @@
     "/onboard": "/status --mode resume",
     "/teams": "/plan --mode teams",
     "cross-package-verify-mode": "/review --mode verify_only --scope cross-package",
+    "design-system-review": "/review --mode verify_only --scope design-system",
+    "design system alignment": "/review --mode verify_only --scope design-system",
     "autonomous review": "/review --mode apply_fixes",
     "tdd bugfix": "/debug --mode tdd_bugfix"
   },

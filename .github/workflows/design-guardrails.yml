@@ -5,12 +5,19 @@ on:
     branches: [main, develop]
     paths:
       - "CLAUDE.md"
+      - "DESIGN.md"
       - ".claude/registry/skills.json"
       - ".claude/skills/design/**"
       - ".claude/skills/ui/**"
+      - "packages/admin/DESIGN.md"
+      - "packages/client/DESIGN.md"
+      - "packages/client/DESIGN.pwa.md"
+      - "packages/client/DESIGN.browser.md"
+      - "docs/DESIGN.md"
       - "packages/admin/src/**"
       - "packages/client/src/**"
       - "packages/shared/src/**"
+      - "scripts/design-md-generate.mjs"
       - "scripts/check-design-tokens.sh"
       - "scripts/check-i18n-vocab.sh"
       - ".github/workflows/design-guardrails.yml"
@@ -18,12 +25,19 @@ on:
     branches: [main, develop]
     paths:
       - "CLAUDE.md"
+      - "DESIGN.md"
       - ".claude/registry/skills.json"
       - ".claude/skills/design/**"
       - ".claude/skills/ui/**"
+      - "packages/admin/DESIGN.md"
+      - "packages/client/DESIGN.md"
+      - "packages/client/DESIGN.pwa.md"
+      - "packages/client/DESIGN.browser.md"
+      - "docs/DESIGN.md"
       - "packages/admin/src/**"
       - "packages/client/src/**"
       - "packages/shared/src/**"
+      - "scripts/design-md-generate.mjs"
       - "scripts/check-design-tokens.sh"
       - "scripts/check-i18n-vocab.sh"
       - ".github/workflows/design-guardrails.yml"
@@ -46,6 +60,12 @@ jobs:
 
       - name: Setup Bun
         uses: ./.github/workflows/setup-bun-action
+
+      - name: Check DesignMD
+        run: bun run check:design-md
+
+      - name: Check generated DesignMD artifacts
+        run: bun run check:design-generated
 
       - name: Check design tokens
         run: bun run check:design-tokens

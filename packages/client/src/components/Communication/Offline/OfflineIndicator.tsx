@@ -56,7 +56,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
 
   const renderIndicator = useCallback(() => {
     const baseBarClasses =
-      "w-full flex items-center justify-center gap-2 px-3 py-0.5 text-[8px] font-medium transition-all duration-300 ease-in-out backdrop-blur-md shadow-sm";
+      "w-full flex items-center justify-center gap-2 px-3 py-0.5 text-[8px] font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] backdrop-blur-md shadow-sm";
 
     switch (displayPriority) {
       case "offline":
@@ -75,7 +75,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-primary text-primary-accent-foreground pointer-events-auto pulse-success`}
+            className={`${baseBarClasses} bg-primary/95 text-primary-accent-foreground pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
             aria-label="App is back online"
@@ -125,7 +125,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   }, [displayPriority, navigate, formatMessage]);
 
   const containerClasses = cn(
-    "fixed top-0 left-0 right-0 z-nav transition-all duration-500 ease-out pointer-events-none",
+    "fixed top-0 left-0 right-0 z-nav transition-all duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] pointer-events-none",
     displayPriority ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full",
     className
   );

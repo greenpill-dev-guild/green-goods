@@ -105,14 +105,21 @@
   --text-label-md: var(--type-label-md);
   --text-label-sm: var(--type-label-sm);
 
-  /* M3 Shape Scale — adapted rounder aesthetic */
-  --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 28px;
-  --radius-full: 9999px;
+  /* M3 Shape Scale — admin-prefixed values keep M3 geometry explicit.
+     Shared radius aliases stay aligned with DesignMD-generated --gg-radius-* tokens. */
+  --admin-radius-xs: 4px;
+  --admin-radius-sm: 8px;
+  --admin-radius-md: 12px;
+  --admin-radius-lg: 16px;
+  --admin-radius-xl: 28px;
+  --admin-radius-full: 9999px;
+  --radius-xs: var(--admin-radius-xs);
+  --radius-sm: var(--admin-radius-sm);
+  --radius-md: var(--gg-radius-md);
+  --radius-lg: var(--gg-radius-lg);
+  --radius-xl: var(--gg-radius-xl);
+  --radius-2xl: var(--gg-radius-2xl);
+  --radius-full: var(--gg-radius-full);
 }
 
 /* Base layer: Admin-specific element resets */

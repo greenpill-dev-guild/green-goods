@@ -22,6 +22,15 @@ const GENERATED_AUDIT_PATH = join(
 
 const TOKEN_PATTERN =
   /\b(?:bg-primary(?:-[\w-]+)?|text-primary(?:-[\w-]+)?|border-primary(?:-[\w-]+)?|ring-primary(?:-[\w-]+)?|outline-primary(?:-[\w-]+)?|primary-base|primary-action(?:-[\w-]+)?|green-[0-9]{2,3}|emerald-[0-9]{2,3})\b/g;
+const PWA_AUDIT_EXCLUDED_FILES = new Set([
+  "packages/client/src/components/Layout/Hero.tsx",
+  "packages/client/src/views/Landing/index.tsx",
+]);
+const BRIGHT_GREEN_BACKGROUND_PATTERN =
+  /\b(?:bg-primary(?:-base)?|bg-green-(?:400|500|600)|bg-emerald-(?:400|500|600))\b/;
+const APPROVED_BRIGHT_GREEN_FOREGROUND_PATTERN = /\btext-primary-accent-foreground\b/;
+const UNAPPROVED_BRIGHT_GREEN_FOREGROUND_PATTERN =
+  /\b(?:text-white|text-white-0|text-primary-foreground|text-neutral-0|text-static-white)\b/;
 
 function readDesignFrontMatter() {
   const source = readFileSync(DESIGN_PATH, "utf8");
@@ -158,26 +167,29 @@ function walkFiles(dir) {
 function isPwaRuntimeFile(file) {
   const rel = relative(REPO_ROOT, file);
   if (!rel.startsWith("packages/client/src/")) return false;
+  if (PWA_AUDIT_EXCLUDED_FILES.has(rel)) return false;
   if (rel.includes("/__tests__/")) return false;
-  if (rel.endsWith(".stories.tsx") || rel.endsWith(".test.tsx") || rel.endsWith(".test.ts")) {
-    return false;
-  }
-  if (rel.includes("/views/Public/")) return false;
-  if (rel.includes("/components/Navigation/SiteHeader.tsx")) return false;
-  if (rel.includes("/components/Navigation/LandingHeader.tsx")) return false;
-  return [".ts", ".tsx", ".css"].includes(extname(file));
-}
+	  if (rel.endsWith(".stories.tsx") || rel.endsWith(".test.tsx") || rel.endsWith(".test.ts")) {
+	    return false;
+	  }
+	  if (rel.includes("/views/Landing/")) return false;
+	  if (rel.includes("/views/Public/")) return false;
+	  if (rel.includes("/routes/PublicShell.tsx")) return false;
+	  if (rel.includes("/components/Navigation/SiteHeader.tsx")) return false;
+	  return [".ts", ".tsx", ".css"].includes(extname(file));
+	}
 
 function classifyUsage({ file, line, token }) {
   const rel = relative(REPO_ROOT, file);
   const lowerLine = line.toLowerCase();
-  if (token.includes("primary-action")) return "action";
-  if (
-    /(bg-primary|bg-primary-base|bg-emerald|bg-green)/.test(token) &&
-    /(text-white|text-bg-white|text-primary-foreground)/.test(line)
-  ) {
+  const hasBrightGreenBackground = BRIGHT_GREEN_BACKGROUND_PATTERN.test(line);
+  if (hasBrightGreenBackground && UNAPPROVED_BRIGHT_GREEN_FOREGROUND_PATTERN.test(line)) {
     return "contrast-risk";
   }
+  if (hasBrightGreenBackground && APPROVED_BRIGHT_GREEN_FOREGROUND_PATTERN.test(line)) {
+    return "contrast-exception";
+  }
+  if (token.includes("primary-action")) return "action";
   if (/(focus|ring|border|outline|active|selected|data-state|aria-selected)/.test(lowerLine)) {
     return "state";
   }
@@ -214,18 +226,34 @@ function auditPwaTokenUsage() {
   return rows;
 }
 
+function escapeMdxTableCode(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("|", "\\|")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("`", "&#96;")
+    .replaceAll("{", "&#123;")
+    .replaceAll("}", "&#125;");
+}
+
 function generateAuditMarkdown(rows) {
   const counts = rows.reduce((acc, row) => {
     acc[row.classification] = (acc[row.classification] ?? 0) + 1;
     return acc;
   }, {});
-  const countLine = ["accent", "action", "state", "contrast-risk"]
+  const countLine = ["accent", "action", "state", "contrast-exception", "contrast-risk"]
     .map((key) => `${key}: ${counts[key] ?? 0}`)
     .join(", ");
+  const contrastRiskRows = rows.filter((row) => row.classification === "contrast-risk");
+  const riskLine =
+    contrastRiskRows.length > 0
+      ? `Unapproved bright-green text-bearing combinations: ${contrastRiskRows.length}.`
+      : "Unapproved bright-green text-bearing combinations: 0.";
   const table = rows
     .map((row) => {
       const rel = relative(REPO_ROOT, row.file);
-      return `| \`${rel}:${row.lineNumber}\` | \`${row.token}\` | ${row.classification} | \`${row.line.replaceAll("|", "\\|")}\` |`;
+      return `| \`${rel}:${row.lineNumber}\` | \`${row.token}\` | ${row.classification} | <code>${escapeMdxTableCode(row.line)}</code> |`;
     })
     .join("\n");
 
@@ -236,16 +264,19 @@ Scope: installed-PWA runtime files in \`packages/client/src\`. Public browser ro
 
 Summary: ${rows.length} token references (${countLine}).
 
+${riskLine}
+
 Classification rules:
 - \`accent\`: bright tertiary green should stay visually bright.
 - \`action\`: filled text actions should use \`primary-action\` aliases.
 - \`state\`: focus, border, selected, or active state usage.
-- \`contrast-risk\`: text or icons currently placed directly on a bright green surface.
+- \`contrast-exception\`: approved tiny text on bright green using \`text-primary-accent-foreground\`.
+- \`contrast-risk\`: unapproved white/light foreground currently placed directly on a bright green surface.
 
-Contrast exceptions fixed in this pass:
+Approved contrast exceptions:
 - Tiny count badges keep bright \`bg-primary\` / \`bg-primary-base\` backgrounds but use \`text-primary-accent-foreground\`.
 - Selected chips keep bright \`bg-primary-base\` backgrounds but use \`text-primary-accent-foreground\`.
-- The back-online bar keeps a bright green background but uses \`text-primary-accent-foreground\`.
+- The back-online bar keeps a bright green material background but uses \`text-primary-accent-foreground\`.
 
 | Location | Token | Classification | Source Line |
 |---|---:|---|---|
@@ -267,13 +298,32 @@ function writeOrCheck(filePath, expected) {
 const design = readDesignFrontMatter();
 const generatedJson = `${JSON.stringify(getExpectedTokenData(design), null, 2)}\n`;
 const generatedCss = generateCss(design);
-const generatedAudit = generateAuditMarkdown(auditPwaTokenUsage());
+const pwaAuditRows = auditPwaTokenUsage();
+const generatedAudit = generateAuditMarkdown(pwaAuditRows);
+const contrastRisks = pwaAuditRows.filter((row) => row.classification === "contrast-risk");
 
 const changed = [
   writeOrCheck(GENERATED_JSON_PATH, generatedJson),
   writeOrCheck(GENERATED_CSS_PATH, generatedCss),
   writeOrCheck(GENERATED_AUDIT_PATH, generatedAudit),
 ].some(Boolean);
+
+if (contrastRisks.length > 0) {
+  console.error(
+    `PWA token audit found ${contrastRisks.length} unapproved bright-green text-bearing combination(s):`
+  );
+  for (const row of contrastRisks.slice(0, 20)) {
+    console.error(
+      `- ${relative(REPO_ROOT, row.file)}:${row.lineNumber} ${row.token} ${row.line}`
+    );
+  }
+  if (contrastRisks.length > 20) {
+    console.error(`...and ${contrastRisks.length - 20} more.`);
+  }
+  if (CHECK_MODE) {
+    process.exit(1);
+  }
+}
 
 if (CHECK_MODE && changed) {
   console.error("Run `bun run design:generate` and commit the updated generated artifacts.");

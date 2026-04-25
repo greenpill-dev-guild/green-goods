@@ -5,6 +5,22 @@ description: Restrained M3 cockpit overlay for Green Goods admin surfaces. Exten
 extends: ../../DESIGN.md
 surface: admin
 dialect: cockpit
+typography:
+  body-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 16px
+    fontWeight: 400
+    lineHeight: 1.5
+  label-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 12px
+    fontWeight: 500
+    lineHeight: 16px
+  app-title:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 22px
+    fontWeight: 600
+    lineHeight: 28px
 ---
 
 # Green Goods Admin — Design Brief
@@ -35,7 +51,7 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone** �
 
 - All components follow M3 dimensions exactly
 - State layers: hover (8%), focus (12%), pressed (12%), dragged (16%)
-- Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), xl (28px), full (9999px)
+- Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), xl (28px), full (9999px). Use admin-prefixed `--admin-radius-*` tokens for these M3-only shapes; shared `--radius-*` aliases remain the DesignMD-generated Warm Earth runtime scale.
 - M3 elevation scale (0-5) with specific shadow values
 - **Spring motion (`--spring-*`) is the sole permitted deviation** from M3 standard easing
 - **Liquid Glass on AppBar only** — no blur/translucency on M3 components

@@ -54,18 +54,7 @@ export const HiddenOnWorkDetailRoute: Story = {
   decorators: [withRouter(["/work/1"])],
 };
 
-export const DarkMode: Story = {
-  decorators: [
-    withRouter(["/home"]),
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-8">
       <div>

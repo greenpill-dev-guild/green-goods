@@ -104,6 +104,8 @@ When running automated maintenance tasks via Codex (or any automated agent), con
 
 Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, and admin paths). The repo no longer mirrors `.claude/skills` into a repo-scoped `.agents/skills` — Claude Code's project skills under `.claude/skills/` are intentionally not surfaced to Codex.
 
+For design-system work, Codex should still follow the repo design source path explicitly: start with `AGENTS.md`, then read the root `DESIGN.md`, the affected surface `DESIGN.md`, `.claude/skills/design/ARCHITECTURE.md`, and the relevant Storybook or package builder doc before editing UI. Treat those files as repository documentation, not as auto-loaded Codex skills.
+
 ## Relationship to Claude Code
 
 Codex and Claude Code serve complementary roles:

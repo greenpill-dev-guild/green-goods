@@ -11,24 +11,27 @@ One-page map. Read this first when you need design context — it points to the 
 | Direction (what/why) | **`design`** (project) | Paradigms, Warm Earth language, prompt contracts, 4-lens review, spec, stack self-audit |
 | Implementation (how) | **`ui`** (project, depends on design) | Tailwind v4, Radix, Storybook, a11y, i18n, 10-step component runbook |
 
-Dependency chain: `ui → design → language.md → theme.css`.
+Dependency chain: `ui → design → root DESIGN.md front matter → generated artifacts → runtime projections`.
 
 **AI design tools** (Stitch, Claude Design, Figma Make, Antigravity, etc.) are platform-agnostic consumers of this stack — fed `DESIGN.md` + the surface-specific prompt contract, their output is mapped back to existing components. No platform-specific skill — see `design/SKILL.md § Working with AI Design Tools` for the contract.
 
 ---
 
-## Creative briefs vs canonical token spec
+## DesignMD Source And Projections
 
-`DESIGN.md` files set **atmosphere** and **role hierarchy** (prose-first, AI-feedable). `language.md` is the **exhaustive token spec**. When they disagree, `language.md` wins.
+Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `DESIGN.md` files extend it with dialect rules. `language.md`, prompt contracts, generated CSS/JSON, and `theme.css` are projections that explain or consume those sources; if prose and root DesignMD front matter disagree, update the projection or regenerate the artifact.
 
 | Artifact | Role |
 |----------|------|
-| Root `DESIGN.md` | Warm Earth creative brief + 4-role color volume hierarchy |
+| Root `DESIGN.md` | Canonical Warm Earth DesignMD front matter + creative brief |
 | `packages/admin/DESIGN.md` | Restrained operator cockpit, M3 strict anatomy, Plus Jakarta Sans |
-| `packages/client/DESIGN.md` | Dual-mode adaptive shell (browser vs installed PWA), Inter |
-| `design/language.md` | Canonical token spec — shape, motion, color, material, hero moments |
+| `packages/client/DESIGN.pwa.md` | Installed PWA field tool, Inter, bottom AppBar |
+| `packages/client/DESIGN.browser.md` | Public browser site, editorial browser treatment |
+| `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |
+| `design/language.md` | Implementation guide — shape, motion, color, material, hero moments |
 | `design/quick-reference.md` | One-page scannable cheat sheet (derivative of language.md) |
-| `packages/shared/src/styles/theme.css` | Actual implementation — springs, materials, blur, colors |
+| `packages/shared/src/styles/design-md.generated.css` | Generated DesignMD CSS projection |
+| `packages/shared/src/styles/theme.css` | Runtime consumer — springs, materials, blur, colors |
 | `packages/client/src/styles/typography.css` | Client type scale utilities |
 
 ---
@@ -37,14 +40,16 @@ Dependency chain: `ui → design → language.md → theme.css`.
 
 | I need… | Start here |
 |---------|-----------|
-| Token values (radius, spring, color, material) | `design/quick-reference.md` → `language.md` for full detail |
+| DesignMD color/radius values | Root `DESIGN.md` front matter |
+| Runtime spring/material usage | `design/quick-reference.md` → `language.md` for full detail |
 | Prompt vocabulary for any AI design tool | `design/prompt-contract.md` (admin) or `client-prompt-contract.md` (client) |
 | How to feed an AI design tool the right context | `design/SKILL.md § Working with AI Design Tools` |
 | Decision: which paradigm for this surface? | `design/SKILL.md § Paradigm Selection` |
 | Decision: which component / primitive? | `ui/SKILL.md § New Component Runbook` (10 steps) |
-| Surface-specific brief | `packages/{admin,client}/DESIGN.md` |
-| PR review | `design/review-checklist.md` (4 lenses: Regenerative → Spatial → Ecosystem → Compliance) |
-| Self-audit the design-system skill stack | `design/stack-review.md` (meta-review of `design/` + `ui/` only — not other skills) |
+| Surface-specific brief | `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` |
+| PR review (per-change, 4 lenses) | `design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance |
+| Self-audit the design-system skill stack (narrow) | `design/stack-review.md` — meta-review of `design/` + `ui/` infrastructure only |
+| Full design-system alignment across the repo | `design/system-alignment-review.md` — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions |
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |
 | Regenerative lens specifics | `design/regenerative.md` |
 | Inspiration / books / designers | `design/SKILL.md § Appendix` |
@@ -52,19 +57,21 @@ Dependency chain: `ui → design → language.md → theme.css`.
 
 ---
 
-## Version coupling
+## Version Coupling
 
-`design/SKILL.md` carries `token_version`. `ui/SKILL.md` carries `design_token_version`. They **must match**.
+`design/SKILL.md` carries `token_version`. `ui/SKILL.md` carries `design_token_version`. They **must match**. Root DesignMD front matter changes also require regenerating DesignMD artifacts.
 
 | When you change… | Bump |
 |------------------|------|
+| Root `DESIGN.md` front matter tokens or token implementation aliases | Regenerate artifacts; bump both `token_version` and `design_token_version` if implementation guidance changes |
 | Tokens in `language.md` (radii, springs, materials, color roles) | Both `token_version` and `design_token_version` |
 | Only implementation guidance in `ui/` sub-files | `ui/SKILL.md version` only |
 | Only direction in `design/` | `design/SKILL.md version` only |
 
 **Drift detection** (wire into CI + pre-commit):
 ```bash
-bun run check:design-tokens   # verifies tokens spec'd in language.md exist in theme.css AND versions are synced
+bun run check:design-generated # verifies DesignMD generated artifacts are current
+bun run check:design-tokens   # verifies implementation tokens and versions are synced
 bun run lint:vocab            # banned terms in i18n strings (streak/countdown/leaderboard/FOMO/…)
 ```
 
@@ -103,11 +110,12 @@ If you're editing more than one component, changing layout composition, creating
 ## Related
 
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, decision tree
-- [language.md](./language.md) — Canonical token spec
+- [language.md](./language.md) — Implementation guide
 - [quick-reference.md](./quick-reference.md) — One-page cheat sheet
-- [review-checklist.md](./review-checklist.md) — 4-lens PR review
-- [stack-review.md](./stack-review.md) — Design-system self-audit (meta-review of `design/` + `ui/`)
+- [review-checklist.md](./review-checklist.md) — 4-lens PR review (per-change)
+- [stack-review.md](./stack-review.md) — Narrow self-audit of `design/` + `ui/` skill stack only
+- [system-alignment-review.md](./system-alignment-review.md) — Full-repo design-system alignment review (DesignMD, tokens, Storybook, admin/client/docs, agentic guidance)
 - [prompt-contract.md](./prompt-contract.md) — Admin AI prompt vocabulary + palette
 - [client-prompt-contract.md](./client-prompt-contract.md) — Client AI prompt vocabulary + palette
-- Root `DESIGN.md`, `packages/{admin,client}/DESIGN.md` — creative briefs
+- Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` — DesignMD source and dialect briefs
 - `../ui/SKILL.md` — implementation skill + runbook

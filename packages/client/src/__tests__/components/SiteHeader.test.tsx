@@ -11,19 +11,25 @@
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mocks ---
 
-const mockOpenWalletModal = vi.fn();
+const { mockGetAppKit, mockOpenWalletModal } = vi.hoisted(() => ({
+  mockGetAppKit: vi.fn(),
+  mockOpenWalletModal: vi.fn(),
+}));
 
 vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
-  useAppKit: () => ({ open: mockOpenWalletModal }),
+}));
+
+vi.mock("@green-goods/shared/config", () => ({
+  getAppKit: mockGetAppKit,
 }));
 
 import { SiteHeader } from "../../components/Navigation/SiteHeader";
@@ -38,12 +44,12 @@ const messages: Record<string, string> = {
   "public.nav.closeMenu": "Close menu",
 };
 
-function renderHeader(initialRoute = "/gardens") {
+function renderHeader(initialRoute = "/gardens", props: ComponentProps<typeof SiteHeader> = {}) {
   return render(
     createElement(
       MemoryRouter,
       { initialEntries: [initialRoute] },
-      createElement(IntlProvider, { locale: "en", messages }, createElement(SiteHeader))
+      createElement(IntlProvider, { locale: "en", messages }, createElement(SiteHeader, props))
     )
   );
 }
@@ -51,6 +57,7 @@ function renderHeader(initialRoute = "/gardens") {
 describe("SiteHeader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetAppKit.mockReturnValue({ open: mockOpenWalletModal });
   });
 
   afterEach(() => {
@@ -109,5 +116,25 @@ describe("SiteHeader", () => {
 
     // Drawer should be closed
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("opens AppKit wallet modal when no wallet handler is injected", () => {
+    renderHeader();
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
+
+    expect(mockGetAppKit).toHaveBeenCalledTimes(1);
+    expect(mockOpenWalletModal).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the injected wallet handler instead of AppKit fallback", () => {
+    const onConnectWallet = vi.fn();
+    renderHeader("/gardens", { onConnectWallet });
+
+    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
+
+    expect(onConnectWallet).toHaveBeenCalledTimes(1);
+    expect(mockGetAppKit).not.toHaveBeenCalled();
+    expect(mockOpenWalletModal).not.toHaveBeenCalled();
   });
 });

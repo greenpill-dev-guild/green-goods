@@ -105,8 +105,8 @@ All follow M3 v0.192 anatomy exactly — do not override dimensions, state layer
 
 - [language.md](./language.md) — Full Warm Earth design language (shapes, motion, color, hero moments, material behaviors)
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, admin carve-out
-- Root `DESIGN.md` — Aesthetic direction (Warm Earth) + surface-agnostic tokens
-- `packages/admin/DESIGN.md` — Admin-specific design system snapshot
+- Root `DESIGN.md` — Canonical Warm Earth DesignMD tokens + creative brief
+- `packages/admin/DESIGN.md` — Admin-specific DesignMD dialect
 - `.stitch/config.json` — Surface routing for AI design tools
 
 ## Why This Contract Exists

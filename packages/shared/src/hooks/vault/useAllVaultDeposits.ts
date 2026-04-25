@@ -14,7 +14,7 @@ interface UseAllVaultDepositsOptions {
 
 /**
  * Fetches all vault deposits across all gardens for a chain.
- * Used for the protocol-wide funder leaderboard.
+ * Used for the protocol-wide ranked funder view.
  */
 export function useAllVaultDeposits(options: UseAllVaultDepositsOptions = {}) {
   const chainId = options.chainId ?? DEFAULT_CHAIN_ID;

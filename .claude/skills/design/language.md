@@ -4,7 +4,7 @@
 
 **Warm Earth** is Green Goods' design language — a synthesis of [M3 Expressive](https://m3.material.io/) and [Liquid Glass](https://developer.apple.com/design/) that creates interfaces feeling alive, friendly, and spatially precise. It builds on the existing Adaptive Surface paradigm, Z-layer model, and material system. Those foundations remain — the Warm Earth language adds the visual/interaction identity.
 
-This file is the **canonical token spec** for shape, motion, color, material behavior, component patterns, and hero moments. The root `DESIGN.md` sets atmosphere and role hierarchy; sibling sub-files (`spatial.md`, `interaction.md`, `materials.md`) describe paradigm-level patterns and link back here for token values.
+This file is the detailed Warm Earth implementation guide. The root `DESIGN.md` YAML front matter is the canonical DesignMD token source; this file, sibling sub-files (`spatial.md`, `interaction.md`, `materials.md`), generated artifacts, and runtime CSS are projections that explain or consume that source for implementation.
 
 ---
 

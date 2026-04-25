@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Green Goods Warm Earth Core
-description: Core semantic tokens and reasoning for Warm Earth across admin cockpit, installed PWA, and public browser surfaces.
+description: Core semantic tokens and reasoning for Warm Earth across admin cockpit, installed PWA, public browser, and docs surfaces.
 colors:
   primary: "#292524"
   primary-inverse: "#F5F5F4"
@@ -33,6 +33,8 @@ typography:
 rounded:
   md: 8px
   lg: 16px
+  xl: 20px
+  2xl: 24px
   full: 9999px
 spacing:
   sm: 8px
@@ -81,9 +83,9 @@ components:
 
 > Creative brief for AI design tools. Paste this file (plus a surface-specific DESIGN.md) into Stitch, Figma AI, or Claude Design to produce on-brand output.
 >
-> **Usage:** pair this root file with a dialect file: `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, or `packages/client/DESIGN.browser.md`.
+> **Usage:** pair this root file with a dialect file: `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, or `docs/DESIGN.md`.
 >
-> **Token contract lives in** the YAML front matter above. Full implementation guidance lives in `.claude/skills/design/language.md`. When prose and implementation details disagree, `language.md` and `packages/shared/src/styles/theme.css` win.
+> **Token contract lives in** the YAML front matter above. The root `DESIGN.md` front matter is the canonical DesignMD source; dialect files such as `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, and `docs/DESIGN.md` extend it. Generated artifacts and runtime documentation should be regenerated from this source. `packages/shared/src/styles/theme.css` is the runtime projection that consumes generated DesignMD tokens; it is not the source of truth.
 
 ## Relationship to Codebase
 

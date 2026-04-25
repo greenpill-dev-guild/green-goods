@@ -21,13 +21,20 @@
       "designSystem": "warm-earth-browser",
       "runtimeMode": "browser"
     },
+    "docs": {
+      "designMd": "docs/DESIGN.md",
+      "rootDesignMd": "DESIGN.md",
+      "viewsDir": "docs/docs",
+      "componentsDir": "docs/src/components/docs",
+      "designSystem": "warm-earth-docs",
+      "runtimeMode": "documentation"
+    },
     "client": {
-      "aliasFor": "client-pwa",
-      "designMd": "packages/client/DESIGN.pwa.md",
+      "description": "Neutral client index only. Choose client-pwa or client-browser for runtime surface work.",
+      "designMd": "packages/client/DESIGN.md",
       "rootDesignMd": "DESIGN.md",
       "viewsDir": "packages/client/src/views",
-      "designSystem": "warm-earth-pwa",
-      "runtimeMode": "installed-pwa"
+      "designSystem": "warm-earth-client-index"
     }
   },
   "projects": {}

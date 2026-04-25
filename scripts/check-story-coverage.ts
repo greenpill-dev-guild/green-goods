@@ -1,7 +1,7 @@
 /**
  * Story Coverage Checker
  *
- * Walks two surfaces and fails if a visual component is missing a sibling
+ * Walks required surfaces and fails if a visual component is missing a sibling
  * .stories.tsx file:
  *
  *   1. `packages/shared/src/components/**` — shared UI primitives and canvas
@@ -15,6 +15,11 @@
  *      `NON_VISUAL_ADMIN_VIEWS` with an inline comment explaining *why*
  *      a file is excluded (helpers, hooks, route-level glue with no
  *      reviewable "state catalog" of its own, etc.).
+ *
+ *   3. Curated client dialect surfaces — PWA chrome/status and public browser
+ *      chrome/route frames. Client still has legacy component stories outside
+ *      this contract; the files in `REQUIRED_CLIENT_STORIES` are the protected
+ *      design-system surfaces that must not regress silently.
  *
  * Skip rules (applied before exclusion sets):
  *   - `*.stories.tsx`, `*.test.tsx(.tsx)`, `*.service.tsx` — not components.
@@ -63,6 +68,31 @@ const ADMIN_VIEWS_DIR = join(
   "src",
   "views",
 );
+
+const CLIENT_SRC_DIR = join(import.meta.dir, "..", "packages", "client", "src");
+
+const REQUIRED_CLIENT_STORIES = [
+  {
+    path: "components/Layout/AppBar.stories.tsx",
+    reason: "installed-PWA bottom navigation",
+  },
+  {
+    path: "components/Communication/Offline/OfflineIndicator.stories.tsx",
+    reason: "PWA online/offline/install status material",
+  },
+  {
+    path: "components/Navigation/SiteHeader.stories.tsx",
+    reason: "public browser header and mobile drawer",
+  },
+  {
+    path: "views/PwaProtectedSurfaces.stories.tsx",
+    reason: "protected PWA route shell catalog",
+  },
+  {
+    path: "views/PublicBrowserSurfaces.stories.tsx",
+    reason: "public browser route shell catalog",
+  },
+] as const;
 
 /**
  * Admin files that intentionally do NOT require a sibling story.
@@ -161,10 +191,10 @@ const AUDITED_HARNESS_ONLY_STORIES = new Map<string, string>([
     "admin/components/Hypercerts/HypercertWizard/index.tsx",
     "full wizard depends on useWizardData, draft persistence, attestations, and mint mutations",
   ],
-  [
-    "admin/components/Vault/GardenSupporters.tsx",
-    "leaderboard data terminates in wagmi contract reads that are not seedable in Storybook",
-  ],
+	  [
+	    "admin/components/Vault/GardenSupporters.tsx",
+	    "ranked supporter data terminates in wagmi contract reads that are not seedable in Storybook",
+	  ],
   [
     "admin/components/Vault/ImpactFunders.tsx",
     "protocol-wide supporter data terminates in wagmi contract reads that are not seedable in Storybook",
@@ -453,8 +483,24 @@ function verifyExclusionsExist() {
   }
 }
 
+function verifyRequiredClientStories() {
+  const missing: string[] = [];
+  for (const story of REQUIRED_CLIENT_STORIES) {
+    const abs = join(CLIENT_SRC_DIR, story.path);
+    if (!existsSync(abs)) missing.push(`client/${story.path} — ${story.reason}`);
+  }
+  if (missing.length > 0) {
+    console.error(
+      "Required client design-system stories are missing. Add the story or update REQUIRED_CLIENT_STORIES with an audited reason:",
+    );
+    for (const m of missing) console.error(`  - ${m}`);
+    process.exit(1);
+  }
+}
+
 async function main() {
   verifyExclusionsExist();
+  verifyRequiredClientStories();
 
   const targets: Target[] = [
     ...(await collectShared()),
@@ -510,10 +556,13 @@ async function main() {
   const count = covered.length;
   const percentage = total > 0 ? Math.round((count / total) * 100) : 100;
 
-  console.log(
-    "\n--- Required Storybook Contract (shared foundations + admin primitives, shell, workflows) ---\n",
-  );
+  console.log("\n--- Required Storybook Contract ---\n");
   console.log(`${count}/${total} required Storybook surfaces have stories (${percentage}%)\n`);
+  console.log("Client dialect stories:");
+  for (const story of REQUIRED_CLIENT_STORIES) {
+    console.log(`  + client/${story.path} — ${story.reason}`);
+  }
+  console.log();
 
   if (covered.length > 0) {
     console.log("Covered:");

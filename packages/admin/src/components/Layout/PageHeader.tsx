@@ -47,7 +47,7 @@ export function PageHeader({
     <header
       className={cn(
         isCanvas
-          ? "bg-bg-white relative overflow-hidden rounded-[1.6rem] border border-[rgb(var(--workspace-tint,59_130_246)/0.18)] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_18px_36px_rgba(15,23,42,0.12)] sm:px-6 sm:py-5"
+          ? "bg-bg-white relative overflow-hidden rounded-[var(--admin-radius-xl)] border border-[rgb(var(--workspace-tint)/0.18)] px-4 py-4 shadow-regular-md sm:px-6 sm:py-5"
           : cn(
               "border-b border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
               sticky
@@ -110,7 +110,7 @@ export function PageHeader({
           className={cn(
             "mt-3 flex flex-wrap items-center gap-3 sm:mt-4",
             isCanvas &&
-              "rounded-[1.2rem] border border-[rgb(var(--workspace-tint,59_130_246)/0.14)] bg-[linear-gradient(180deg,rgba(255,255,255,0.76)_0%,rgba(var(--workspace-tint,59_130_246),0.06)_100%)] px-3 py-3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.72),0_8px_20px_rgba(15,23,42,0.08)]"
+              "rounded-[var(--radius-lg)] border border-[rgb(var(--workspace-tint)/0.14)] bg-[rgb(var(--workspace-tint)/0.06)] px-3 py-3 shadow-regular-sm"
           )}
         >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">{toolbar}</div>
@@ -123,9 +123,7 @@ export function PageHeader({
       ) : null}
 
       {children ? (
-        <div
-          className={cn("mt-3 sm:mt-4", isCanvas && "border-t border-[rgba(133,109,70,0.12)] pt-4")}
-        >
+        <div className={cn("mt-3 sm:mt-4", isCanvas && "border-t border-stroke-soft-200 pt-4")}>
           {children}
         </div>
       ) : null}

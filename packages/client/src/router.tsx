@@ -22,10 +22,6 @@ export const router = createRouter([
         lazy: async () => ({ Component: (await import("@/routes/PlatformRouter")).default }),
       },
       {
-        path: "landing",
-        lazy: async () => ({ Component: (await import("@/views/Landing")).default }),
-      },
-      {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).Login }),
       },
@@ -34,6 +30,10 @@ export const router = createRouter([
       {
         lazy: async () => ({ Component: (await import("@/routes/PublicShell")).default }),
         children: [
+          {
+            path: "landing",
+            lazy: async () => ({ Component: (await import("@/views/Landing")).default }),
+          },
           {
             path: "gardens",
             lazy: async () => ({

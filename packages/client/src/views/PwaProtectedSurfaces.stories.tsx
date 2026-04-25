@@ -5,10 +5,17 @@ import { useState } from "react";
 import { MemoryRouter } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../shared/.storybook/decorators";
+import tokens from "../../../shared/src/styles/design-md.generated.json";
 import { OfflineIndicator } from "../components/Communication/Offline/OfflineIndicator";
 import { FormProgress } from "../components/Communication/Progress/Progress";
 import { AppBar } from "../components/Layout/AppBar";
 import { StandardTabs, type StandardTab } from "../components/Navigation/Tabs/StandardTabs";
+
+function hexToRgb(hex: string) {
+  const clean = hex.replace("#", "");
+  const parts = [0, 2, 4].map((offset) => parseInt(clean.slice(offset, offset + 2), 16));
+  return `rgb(${parts.join(", ")})`;
+}
 
 const tabs: StandardTab[] = [
   { id: "activity", label: "Activity", count: 6, icon: <RiLeafLine className="h-4 w-4" /> },
@@ -36,7 +43,7 @@ function PwaRouteFrame({ route, children }: { route: string; children: React.Rea
 
 const meta: Meta = {
   title: "Client/PWA/ProtectedSurfaces",
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     layout: "fullscreen",
     viewport: { defaultViewport: "mobile1" },
@@ -59,7 +66,10 @@ export const Home: Story = {
             aria-label="Filters"
           >
             <RiFilterLine className="h-4 w-4" />
-            <span className="absolute -right-1.5 -top-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-accent-foreground">
+            <span
+              data-testid="pwa-filter-badge"
+              className="absolute -right-1.5 -top-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-accent-foreground"
+            >
               2
             </span>
           </button>
@@ -68,7 +78,10 @@ export const Home: Story = {
         <div className="mt-6 rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 p-4">
           <p className="text-sm font-medium text-text-strong-950">Community garden queue</p>
           <div className="mt-3 h-2 rounded-full bg-bg-soft-200">
-            <div className="h-full w-2/3 rounded-full bg-primary" />
+            <div
+              data-testid="pwa-queue-progress"
+              className="h-full w-2/3 rounded-full bg-primary"
+            />
           </div>
         </div>
 
@@ -83,7 +96,12 @@ export const Home: Story = {
     const nav = canvas.getByTestId("authenticated-nav");
     await expect(nav).toBeVisible();
     expect(nav.className).not.toContain("translate-y-full");
-    expect(canvas.getAllByText("2")[0]?.className).toContain("text-primary-accent-foreground");
+    const badge = canvas.getByTestId("pwa-filter-badge");
+    const progress = canvas.getByTestId("pwa-queue-progress");
+    expect(badge.className).toContain("text-primary-accent-foreground");
+    expect(getComputedStyle(badge).color).toBe(hexToRgb(tokens.colors["on-tertiary"]));
+    expect(getComputedStyle(badge).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
+    expect(getComputedStyle(progress).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
   },
 };
 
@@ -94,6 +112,9 @@ export const GardenWorkCapture: Story = {
         <h1 className="text-lg font-semibold">Garden</h1>
         <div className="mt-5">
           <FormProgress currentStep={2} steps={["Details", "Media", "Review"]} />
+        </div>
+        <div className="mt-5 h-2 rounded-full bg-bg-soft-200" aria-hidden="true">
+          <div data-testid="pwa-work-progress" className="h-full w-1/2 rounded-full bg-primary" />
         </div>
         <div className="mt-6">
           <SubmissionProgress
@@ -115,6 +136,9 @@ export const GardenWorkCapture: Story = {
     const nav = canvas.getByTestId("authenticated-nav");
     expect(nav.className).toContain("translate-y-full");
     await expect(canvas.getAllByRole("progressbar")[0]).toBeVisible();
+    expect(getComputedStyle(canvas.getByTestId("pwa-work-progress")).backgroundColor).toBe(
+      hexToRgb(tokens.colors.tertiary)
+    );
   },
 };
 

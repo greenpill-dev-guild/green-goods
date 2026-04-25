@@ -8,7 +8,7 @@ Stable vocabulary and never-use list for prompting AI design tools (Stitch, Anti
 
 Paste this sentence (or a trimmed version) into every AI design prompt for client surfaces:
 
-> Green Goods client is a **PWA in an adaptive shell**. Installed PWA uses a **bottom `NavigationBar`**; browser uses a **hamburger + top header**. Never mix. Use **Inter** for all typography (editorial serif only appears on the public browser site, never in the PWA). Surfaces follow the **Warm Earth** language — concentric geometry, expressive spring motion, garden-journal feel. Materials are **permitted to be expressive** (liquid glass, organic shapes, hero moments). **Real content over lorem ipsum.** Copy tone is **warm, first-person-community** — "our garden", "what's in season", "how the work grew" — not operator-facing task framing.
+> Green Goods client is a **PWA in an adaptive shell**. Installed PWA uses a **bottom `AppBar`**; browser uses a **hamburger + `SiteHeader`**. Never mix. Use **Inter** for all typography (editorial serif only appears on the public browser site, never in the PWA). Surfaces follow the **Warm Earth** language — concentric geometry, expressive spring motion, garden-journal feel. Materials are **permitted to be expressive** (liquid glass, organic shapes, hero moments). **Real content over lorem ipsum.** Copy tone is **warm, first-person-community** — "our garden", "what's in season", "how the work grew" — not operator-facing task framing.
 
 ## Required Vocabulary
 
@@ -99,8 +99,9 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 - [prompt-contract.md](./prompt-contract.md) — Admin cockpit prompt contract (sister file)
 - [language.md](./language.md) — Full Warm Earth design language (shapes, motion, color, hero moments)
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, client/admin carve-outs
-- Root `DESIGN.md` — Aesthetic direction + role hierarchy
-- `packages/client/DESIGN.md` — Client-specific design system snapshot
+- Root `DESIGN.md` — Canonical Warm Earth DesignMD tokens + creative brief
+- `packages/client/DESIGN.pwa.md` — Installed PWA DesignMD dialect
+- `packages/client/DESIGN.browser.md` — Public browser DesignMD dialect
 - `.stitch/config.json` — Surface routing for AI design tools
 
 ## Why This Contract Exists

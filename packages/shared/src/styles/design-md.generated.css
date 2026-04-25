@@ -20,9 +20,11 @@
     --gg-design-tertiary-action: 26 117 68;
     --gg-design-tertiary-action-hover: 22 100 59;
 
+    --gg-radius-2xl: 24px;
     --gg-radius-full: 9999px;
     --gg-radius-lg: 16px;
     --gg-radius-md: 8px;
+    --gg-radius-xl: 20px;
 
     --gg-space-lg: 24px;
     --gg-space-md: 16px;

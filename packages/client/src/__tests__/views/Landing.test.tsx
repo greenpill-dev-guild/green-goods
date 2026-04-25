@@ -36,10 +36,6 @@ vi.mock("@/components/Layout", () => ({
     ),
 }));
 
-vi.mock("@/components/Navigation", () => ({
-  LandingHeader: () => createElement("header", { "data-testid": "landing-header" }, "Green Goods"),
-}));
-
 import Landing from "../../views/Landing";
 
 describe("Landing View", () => {
@@ -49,13 +45,6 @@ describe("Landing View", () => {
 
   afterEach(() => {
     cleanup();
-  });
-
-  it("renders landing header", () => {
-    renderWithIntl(createElement(Landing));
-
-    expect(screen.getByTestId("landing-header")).toBeInTheDocument();
-    expect(screen.getByText("Green Goods")).toBeInTheDocument();
   });
 
   it("renders hero section with subscribe form", () => {

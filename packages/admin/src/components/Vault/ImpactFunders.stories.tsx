@@ -114,7 +114,7 @@ const meta: Meta<typeof ImpactFundersHarness> = {
     docs: {
       description: {
         component:
-          "⚠ **Visual harness** — not the real `ImpactFunders`. Protocol-wide supporter leaderboard with expand/collapse. Same constraint as GardenSupporters: the leaderboard chain terminates in wagmi reads, so this renders a visual-only fixture.",
+          "⚠ **Visual harness** — not the real `ImpactFunders`. Protocol-wide ranked supporter view with expand/collapse. Same constraint as GardenSupporters: the ranked supporter data chain terminates in wagmi reads, so this renders a visual-only fixture.",
       },
     },
   },

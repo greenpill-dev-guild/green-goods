@@ -22,6 +22,9 @@ on:
       - "packages/admin/src/components/**"
       - "packages/admin/src/views/**"
       - "packages/client/src/components/**"
+      - "packages/client/src/views/**"
+      - "packages/client/DESIGN*.md"
+      - "docs/DESIGN.md"
 
 permissions:
   contents: read

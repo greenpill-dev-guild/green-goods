@@ -87,7 +87,7 @@ const meta: Meta<typeof GardenSupportersHarness> = {
     docs: {
       description: {
         component:
-          "⚠ **Visual harness** — not the real `GardenSupporters`. Renders the same leaderboard layout with plain props so every state is reviewable. The real component resolves yield per funder through a chain that terminates in wagmi `useReadContracts`, which isn't seedable in Storybook.",
+          "⚠ **Visual harness** — not the real `GardenSupporters`. Renders the same ranked supporter layout with plain props so every state is reviewable. The real component resolves yield per funder through a chain that terminates in wagmi `useReadContracts`, which isn't seedable in Storybook.",
       },
     },
   },

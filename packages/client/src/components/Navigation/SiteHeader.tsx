@@ -1,4 +1,5 @@
-import { APP_NAME, cn, useAppKit } from "@green-goods/shared";
+import { APP_NAME, cn } from "@green-goods/shared";
+import { getAppKit } from "@green-goods/shared/config";
 import { RiMenuLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
@@ -11,6 +12,10 @@ const NAV_ITEMS = [
   { path: "/fund", labelId: "public.nav.fund", defaultLabel: "Fund" },
 ] as const;
 
+type SiteHeaderProps = {
+  onConnectWallet?: () => void;
+};
+
 /**
  * SiteHeader — public website header for browser mode.
  *
@@ -19,10 +24,9 @@ const NAV_ITEMS = [
  *
  * Sticky, with backdrop blur. No bottom nav in browser mode (D6).
  */
-export const SiteHeader = () => {
+export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
   const intl = useIntl();
   const { pathname } = useLocation();
-  const { open: openWalletModal } = useAppKit();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Close drawer on route change
@@ -54,8 +58,12 @@ export const SiteHeader = () => {
   }, [isDrawerOpen]);
 
   const handleConnectWallet = useCallback(() => {
-    openWalletModal();
-  }, [openWalletModal]);
+    if (onConnectWallet) {
+      onConnectWallet();
+      return;
+    }
+    getAppKit()?.open();
+  }, [onConnectWallet]);
 
   return (
     <>

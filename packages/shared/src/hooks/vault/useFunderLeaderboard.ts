@@ -16,7 +16,7 @@ interface UseFunderLeaderboardOptions {
 }
 
 /**
- * Aggregates vault deposits into a funder leaderboard, ranked by yield generated.
+ * Aggregates vault deposits into ranked funder totals by yield generated.
  *
  * When `gardenAddress` is provided, scopes to a single garden.
  * Otherwise, aggregates across all gardens (protocol-wide).

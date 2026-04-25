@@ -41,7 +41,7 @@ const meta: Meta<typeof FunderRow> = {
     docs: {
       description: {
         component:
-          "Single funder row for the leaderboard. Shows ENS name or truncated address, cumulative yield generated, gardens supported count, and a proportional yield bar keyed to the leaderboard maximum. ENS lookup uses wagmi and returns `null` in Storybook — the address fallback is exercised instead.",
+          "Single funder row for the ranked supporter view. Shows ENS name or truncated address, cumulative yield generated, gardens supported count, and a proportional yield bar keyed to the current maximum. ENS lookup uses wagmi and returns `null` in Storybook — the address fallback is exercised instead.",
       },
     },
   },

@@ -16,9 +16,11 @@
     "tertiary-action-hover": "#16643B"
   },
   "rounded": {
+    "2xl": "24px",
     "full": "9999px",
     "lg": "16px",
-    "md": "8px"
+    "md": "8px",
+    "xl": "20px"
   },
   "spacing": {
     "lg": "24px",

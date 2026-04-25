@@ -19,8 +19,8 @@ This audit covers **only** the following surfaces. Anything outside is out of sc
 - `.claude/skills/design/**` (every sub-file)
 - `.claude/skills/ui/**` (every sub-file)
 - The `design` and `ui` entries in `.claude/registry/skills.json` (frontmatter coupling, `sub_files` ↔ disk parity, `token_version` ↔ `design_token_version`)
-- Warm Earth token implementation in `packages/shared/src/styles/theme.css`
-- Root `DESIGN.md` and `packages/{admin,client}/DESIGN.md` creative briefs (as consumers of `language.md`)
+- Warm Earth token implementation in `packages/shared/src/styles/theme.css` and generated DesignMD artifacts
+- Root `DESIGN.md` plus `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, and `docs/DESIGN.md` dialect briefs
 - Validators `scripts/check-design-tokens.sh` and `scripts/check-i18n-vocab.sh`
 
 **Out of scope — REJECT these patterns in Section 1, even if the evidence is rock-solid:**
@@ -42,7 +42,8 @@ HARD CONSTRAINTS — read before producing any finding.
 
 3. **Run the actual validators before claiming drift:**
    ```bash
-   bun run check:design-tokens   # spec ↔ theme.css ↔ version coupling
+   bun run check:design-generated # root DesignMD front matter ↔ generated artifacts
+   bun run check:design-tokens   # implementation tokens ↔ theme.css ↔ version coupling
    bun run lint:vocab            # banned terms in i18n strings
    ```
    If both pass, "token drift" and "vocabulary drift" are not real findings. Verify the registry matches the directory:
@@ -89,7 +90,7 @@ If nothing in Section 1 meets all constraints, say so. "No changes needed right 
 - [SKILL.md](./SKILL.md) — what's being reviewed
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — the skill-stack map
 - [review-checklist.md](./review-checklist.md) — PR-level review (different scope)
-- [language.md](./language.md) — canonical token spec
+- [language.md](./language.md) — implementation guide projected from root DesignMD
 - `.claude/registry/skills.json` — registry source of truth
 - `scripts/check-design-tokens.sh` — token-drift validator
 - `scripts/check-i18n-vocab.sh` — vocabulary validator

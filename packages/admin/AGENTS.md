@@ -13,7 +13,7 @@ foundations.
 - Read `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` before changing routes, layouts, or page structure.
 - The canonical shell is `CanvasLayout`.
 - The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with `LeftSheet`, `RightSheet`, and `BottomSheet` layered off that canvas instead of separate page chrome.
-- In admin docs, `AppBar` means the shared Canvas top context bar: sticky `z-40 h-14`, `GardenChip` on the left, and desktop search, settings, notifications, and `UserAvatar` on the right.
+- In admin docs, `AppBar` means the shared Canvas top context bar: sticky `z-sticky h-14`, `GardenChip` on the left, and desktop search, settings, notifications, and `UserAvatar` on the right.
 - `NavigationBar` is pure navigation only. Use the canonical items `Hub`, `Garden`, `Community`, and `Actions`; do not add leading or trailing slots.
 - Do not use the client/PWA `AppBar` pattern for admin. Keep admin workspace navigation on `NavigationBar`.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.

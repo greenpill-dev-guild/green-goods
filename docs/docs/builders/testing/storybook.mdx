@@ -44,7 +44,7 @@ Storybook serves as the component documentation and local interaction layer. Sto
 
 Storybook stories serve two practical purposes: living component documentation and a fast local surface for exploring component states. The philosophy is that every shared foundation should have a story, and stories should demonstrate the component's range of states — default, edge cases, responsive behavior, and error states.
 
-Storybook is now a light regression gate. The repo CI verifies the design-token contract, required Storybook coverage for shared foundations plus curated admin surfaces, story-quality guardrails for admin and shared Canvas stories, a small browser-mode Storybook test lane for `storybook-ci` stories, then builds the unified Storybook to catch compile-time issues. Keep the CI tag curated; do not tag every story by default.
+Storybook is now a light regression gate. The repo CI verifies the design-token contract, required Storybook coverage for shared foundations plus curated admin surfaces and client dialect shell stories, story-quality guardrails for admin, shared Canvas, and curated client PWA/public stories, a small browser-mode Storybook test lane for `storybook-ci` stories, then builds the unified Storybook to catch compile-time issues. Keep the CI tag curated; do not tag every story by default.
 
 ### Architecture
 
@@ -109,7 +109,9 @@ Stories are organized by package and ownership in the sidebar:
 - `Admin/Primitives/*` -- Admin-only `Admin*` wrappers
 - `Admin/Shell/*` -- Admin-owned canvas shell and account surfaces
 - `Admin/Workflows/*` -- Curated reusable admin workflow surfaces
-- `Client/*` -- Existing client component stories only
+- `Client/PWA/*` -- Installed-PWA shell, status, and protected route state catalogs
+- `Client/Public/*` -- Public browser shell, route frames, and website navigation
+- `Client/*` -- Legacy client component stories outside the required contract until they are migrated
 
 For consolidated state views, prefer a `StateCatalog` story name over generic `Gallery`. Keep individual stories for states that agents need to link to directly, and use the theme toolbar instead of adding one-off dark-mode duplicates unless the component has a dark-mode-specific behavior.
 
@@ -122,7 +124,7 @@ Admin stories and shared stories consumed by admin must be deterministic:
 - Use the frozen Storybook clock (`STORYBOOK_NOW_SECONDS`, `hoursAgo`, `daysAgo`, `daysFromNow`) for relative-time or expiry states.
 - Use data URL fixture images (`FIXTURE_WORK_MEDIA`, `FIXTURE_IMAGE_*`) instead of live external media.
 
-This is the model for future shared/client cleanup. Full cleanup can happen incrementally, but anything that backs admin review should follow it now.
+This is the model for future shared/client cleanup. Full cleanup can happen incrementally, but anything that backs admin review or the client PWA/public shell contract should follow it now.
 
 ### Design Token Stories
 
@@ -203,10 +205,11 @@ cd packages/shared && bun run test:stories:ci
 # Build static site
 cd packages/shared && bun run build-storybook
 
-# Check the required Storybook contract for shared foundations + curated admin surfaces (CI gate)
+# Check the required Storybook contract for shared foundations, curated admin surfaces,
+# and required client PWA/public shell stories (CI gate)
 cd packages/shared && bun run check:stories
 
-# Check admin/shared Canvas story determinism and harness conventions
+# Check admin/shared Canvas plus curated client shell story determinism and harness conventions
 cd packages/shared && bun run check:story-quality
 ```
 
@@ -214,9 +217,9 @@ cd packages/shared && bun run check:story-quality
 
 The `storybook.yml` workflow triggers on PRs that modify Storybook config, story files, the curated story coverage contract, and component or view files that feed the unified Storybook build. It runs five required checks:
 
-1. **Design-token contract** (`check:design-tokens`) -- Confirms Warm Earth token expectations match the shared theme implementation
-2. **Storybook contract** (`check:stories`) -- Ensures shared foundations plus curated admin surfaces have corresponding stories
-3. **Story quality** (`check:story-quality`) -- Catches nondeterministic admin fixtures, unmarked mock harnesses, generic gallery exports, and dark-mode duplicate stories
+1. **Design-token contract** (`check:design-generated`, `check:design-tokens`) -- Confirms root DesignMD artifacts are current and the shared theme runtime projection still exposes the expected Warm Earth tokens
+2. **Storybook contract** (`check:stories`) -- Ensures shared foundations, curated admin surfaces, and required client PWA/public shell stories have corresponding stories
+3. **Story quality** (`check:story-quality`) -- Catches nondeterministic fixtures, unmarked mock harnesses, generic gallery exports, and dark-mode duplicate stories across the protected Storybook surface
 4. **Storybook interaction smoke** (`test:stories:ci`) -- Runs browser-mode Vitest against curated `storybook-ci` stories
 5. **Build verification** (`build-storybook`) -- Confirms the static Storybook site compiles without errors across shared, admin, and client stories
 

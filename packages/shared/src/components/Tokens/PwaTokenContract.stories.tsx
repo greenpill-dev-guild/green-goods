@@ -10,7 +10,11 @@ function hexToRgb(hex: string) {
 
 function TokenRow({ theme }: { theme: "light" | "dark" }) {
   return (
-    <div data-theme={theme} className="bg-bg-white-0 p-4 text-text-strong-950">
+    <div
+      data-testid={`${theme}-row`}
+      data-theme={theme}
+      className="bg-bg-white-0 p-4 text-text-strong-950"
+    >
       <div className="flex items-center gap-3">
         <span
           data-testid={`${theme}-accent`}
@@ -53,6 +57,20 @@ const meta: Meta = {
 export default meta;
 type Story = StoryObj;
 
+function expectPwaAliasRow(canvas: ReturnType<typeof within>, theme: "light" | "dark") {
+  const accent = canvas.getByTestId(`${theme}-accent`);
+  const action = canvas.getByTestId(`${theme}-action`);
+  const active = canvas.getByTestId(`${theme}-active`);
+  const progress = canvas.getByTestId(`${theme}-progress`);
+
+  expect(getComputedStyle(accent).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
+  expect(getComputedStyle(accent).color).toBe(hexToRgb(tokens.colors["on-tertiary"]));
+  expect(getComputedStyle(active).color).toBe(hexToRgb(tokens.colors.tertiary));
+  expect(getComputedStyle(progress).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
+  expect(getComputedStyle(action).backgroundColor).toBe(hexToRgb(tokens.colors["tertiary-action"]));
+  expect(getComputedStyle(action).color).toBe(hexToRgb(tokens.colors["on-tertiary-action"]));
+}
+
 export const AccentAndActionAliases: Story = {
   render: () => (
     <div className="w-[360px] overflow-hidden rounded-lg border border-stroke-soft-200">
@@ -62,17 +80,7 @@ export const AccentAndActionAliases: Story = {
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const accent = canvas.getByTestId("light-accent");
-    const action = canvas.getByTestId("light-action");
-    const active = canvas.getByTestId("light-active");
-    const progress = canvas.getByTestId("light-progress");
-
-    expect(getComputedStyle(accent).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
-    expect(getComputedStyle(active).color).toBe(hexToRgb(tokens.colors.tertiary));
-    expect(getComputedStyle(progress).backgroundColor).toBe(hexToRgb(tokens.colors.tertiary));
-    expect(getComputedStyle(action).backgroundColor).toBe(
-      hexToRgb(tokens.colors["tertiary-action"])
-    );
-    expect(getComputedStyle(action).color).toBe(hexToRgb(tokens.colors["on-tertiary-action"]));
+    expectPwaAliasRow(canvas, "light");
+    expectPwaAliasRow(canvas, "dark");
   },
 };

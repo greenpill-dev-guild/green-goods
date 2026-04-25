@@ -52,5 +52,6 @@ Shortcuts that remain useful:
 
 - `/review admin` -> scope review to the admin package
 - `/review --mode verify_only --scope cross-package` -> cross-package impact pass
+- `/review design-system` (or `/review --mode verify_only --scope design-system`) -> full-repo design-system alignment review (DesignMD + tokens + Storybook + admin/client/docs). Read-only; delegates to `.claude/skills/design/system-alignment-review.md`
 - "this test is failing:" -> routes debug to tdd_bugfix mode
 - "production is down" / "incident" / "hotfix" -> routes debug to incident_hotfix mode

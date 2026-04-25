@@ -29,7 +29,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 
 - `CanvasLayout` is the canonical shell.
 - The shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`.
-- `AppBar` is the sticky `z-40 h-14` context region with `GardenChip` on the left and search, settings, notifications, and profile controls on the right.
+- `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, settings, notifications, and profile controls on the right.
 - `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions`.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
 - Admin owns `CanvasLayout`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, and `PageHeader`.

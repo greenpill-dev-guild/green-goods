@@ -32,7 +32,7 @@
     "design:generate": "node scripts/design-md-generate.mjs",
     "check:design-generated": "node scripts/design-md-generate.mjs --check",
     "check:design-tokens": "bash scripts/check-design-tokens.sh",
-    "check:design-md": "design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md",
+    "check:design-md": "design.md lint --format json DESIGN.md && design.md lint --format json packages/admin/DESIGN.md && design.md lint --format json packages/client/DESIGN.pwa.md && design.md lint --format json packages/client/DESIGN.browser.md && design.md lint --format json docs/DESIGN.md",
     "check:source-structure": "node scripts/check-source-structure.js",
     "lint:vocab": "bash scripts/check-i18n-vocab.sh",
     "prepare": "husky",

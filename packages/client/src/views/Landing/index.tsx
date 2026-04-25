@@ -2,7 +2,6 @@ import { toastService } from "@green-goods/shared";
 import React from "react";
 import { useIntl } from "react-intl";
 import { Hero } from "@/components/Layout";
-import { LandingHeader } from "@/components/Navigation";
 
 const Landing: React.FC = () => {
   const { formatMessage } = useIntl();
@@ -52,7 +51,6 @@ const Landing: React.FC = () => {
 
   return (
     <div id="landing-root" className="px-8">
-      <LandingHeader />
       <Hero handleSubscribe={handleSubscribe} />
     </div>
   );
