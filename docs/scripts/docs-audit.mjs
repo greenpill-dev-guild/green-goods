@@ -384,17 +384,20 @@ for (const filePath of allDocs) {
   const canonical = isCanonicalFile(filePath);
   const monitored = isMonitoredDoc(filePath);
   const unlisted = frontmatter && typeof frontmatter === "object" && frontmatter.unlisted === true;
+  const docId = relativePath.replace(/^docs\/docs\//, "").replace(/\.(md|mdx)$/, "");
+  let docSlug = null;
 
   if (frontmatter && typeof frontmatter === "object" && typeof frontmatter.slug === "string") {
-    const docSlug = normalizeDocSlug(frontmatter.slug);
+    docSlug = normalizeDocSlug(frontmatter.slug);
     docSlugSet.add(docSlug);
-    if (unlisted) {
-      unlistedDocTargets.push({
-        docId: relativePath.replace(/^docs\/docs\//, "").replace(/\.(md|mdx)$/, ""),
-        relativePath,
-        slug: docSlug,
-      });
-    }
+  }
+
+  if (unlisted) {
+    unlistedDocTargets.push({
+      docId,
+      relativePath,
+      slug: docSlug,
+    });
   }
 
   if (canonical && !unlisted) {
@@ -516,13 +519,13 @@ const auditUnlistedPublicReferences = async () => {
       absPath: sidebarsPath,
       label: "sidebar",
       relativePath: "docs/sidebars.ts",
-      targetFor: ({docId}) => docId,
+      targetFor: ({docId}) => [docId],
     },
     {
       absPath: docusaurusConfigPath,
       label: "redirect/config",
       relativePath: "docs/docusaurus.config.ts",
-      targetFor: ({slug}) => slug,
+      targetFor: ({slug}) => (slug ? [slug] : []),
     },
   ];
 
@@ -535,8 +538,10 @@ const auditUnlistedPublicReferences = async () => {
     }
 
     for (const target of unlistedDocTargets) {
-      const publicTarget = surface.targetFor(target);
-      if (publicTarget && raw.includes(publicTarget)) {
+      for (const publicTarget of surface.targetFor(target)) {
+        if (!raw.includes(publicTarget)) {
+          continue;
+        }
         warn(
           surface.relativePath,
           `Public ${surface.label} references unlisted doc ${target.relativePath}: ${publicTarget}`,
