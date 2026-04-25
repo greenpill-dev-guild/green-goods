@@ -1,23 +1,7 @@
-# fly.toml — Green Goods agent deployment config
+# fly.toml app configuration file generated for green-goods on 2026-04-25T12:25:08Z
 #
-# Placed at repo root so the Docker build context is the full workspace.
-# The Dockerfile at packages/agent/Dockerfile COPYs workspace-root files
-# (package.json, bun.lock, packages/, docs/package.json, scripts/) which
-# only resolve when fly.toml — and therefore the build context — sits here.
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
-# Deploy (from repo root):
-#
-#   flyctl volumes create agent_data --region ams --size 1
-#   flyctl secrets set \
-#       TELEGRAM_BOT_TOKEN=<botfather-token> \
-#       ENCRYPTION_SECRET=<32+-char-secret> \
-#       BOT_API_TOKEN=<routine-auth-bearer-token>
-#   flyctl deploy
-#
-# After deploy, set the webhook URL as a secret:
-#   flyctl secrets set \
-#     WEBHOOK_URL=https://green-goods.fly.dev/webhook/telegram \
-#     TELEGRAM_WEBHOOK_SECRET=<secret>
 
 app = 'green-goods'
 primary_region = 'ams'
