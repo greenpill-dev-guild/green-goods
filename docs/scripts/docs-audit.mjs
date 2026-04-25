@@ -12,6 +12,8 @@ const referenceRoot = path.resolve(docsRoot, "reference");
 const introDocPath = path.resolve(docsRoot, "intro.md");
 const glossaryDocPath = path.resolve(docsRoot, "glossary.md");
 const readmePath = path.resolve(repoRoot, "README.md");
+const docusaurusConfigPath = path.resolve(repoRoot, "docs/docusaurus.config.ts");
+const sidebarsPath = path.resolve(repoRoot, "docs/sidebars.ts");
 
 const isCi = process.argv.includes("--ci");
 const isStrictReadme = process.argv.includes("--strict-readme");
@@ -373,6 +375,7 @@ const allDocs = await walk(docsRoot);
 const docFileSet = new Set(allDocs.map((filePath) => path.normalize(filePath)));
 const docSlugSet = new Set();
 const canonicalDocs = [];
+const unlistedDocTargets = [];
 
 for (const filePath of allDocs) {
   const relativePath = path.relative(repoRoot, filePath).replace(/\\/g, "/");
@@ -383,7 +386,15 @@ for (const filePath of allDocs) {
   const unlisted = frontmatter && typeof frontmatter === "object" && frontmatter.unlisted === true;
 
   if (frontmatter && typeof frontmatter === "object" && typeof frontmatter.slug === "string") {
-    docSlugSet.add(normalizeDocSlug(frontmatter.slug));
+    const docSlug = normalizeDocSlug(frontmatter.slug);
+    docSlugSet.add(docSlug);
+    if (unlisted) {
+      unlistedDocTargets.push({
+        docId: relativePath.replace(/^docs\/docs\//, "").replace(/\.(md|mdx)$/, ""),
+        relativePath,
+        slug: docSlug,
+      });
+    }
   }
 
   if (canonical && !unlisted) {
@@ -499,7 +510,44 @@ for (const filePath of allDocs) {
   }
 }
 
+const auditUnlistedPublicReferences = async () => {
+  const publicSurfaces = [
+    {
+      absPath: sidebarsPath,
+      label: "sidebar",
+      relativePath: "docs/sidebars.ts",
+      targetFor: ({docId}) => docId,
+    },
+    {
+      absPath: docusaurusConfigPath,
+      label: "redirect/config",
+      relativePath: "docs/docusaurus.config.ts",
+      targetFor: ({slug}) => slug,
+    },
+  ];
+
+  for (const surface of publicSurfaces) {
+    let raw;
+    try {
+      raw = await fs.readFile(surface.absPath, "utf8");
+    } catch {
+      continue;
+    }
+
+    for (const target of unlistedDocTargets) {
+      const publicTarget = surface.targetFor(target);
+      if (publicTarget && raw.includes(publicTarget)) {
+        warn(
+          surface.relativePath,
+          `Public ${surface.label} references unlisted doc ${target.relativePath}: ${publicTarget}`,
+        );
+      }
+    }
+  }
+};
+
 collectDuplicateBlocks(canonicalDocs);
+await auditUnlistedPublicReferences();
 await auditReadme(docSlugSet);
 
 const sortedWarnings = warnings.sort((a, b) => {

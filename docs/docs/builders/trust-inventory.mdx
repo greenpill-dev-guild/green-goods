@@ -1,0 +1,104 @@
+---
+title: Builders Trust Inventory
+sidebar_label: Builders Trust Inventory
+slug: /builders/trust-inventory
+unlisted: true
+audience: developer
+owner: docs
+last_verified: 2026-04-25
+feature_status: Planned
+---
+
+# Builders Trust Inventory
+
+This page is intentionally unlisted. It is a working trust inventory for builder documentation, not public guidance.
+
+The table records the current status label, visibility, source posture, main trust risk, and recommended maintenance action for each builder page. It is based on frontmatter, `source_of_truth`, the current docs audit rules, and the review findings addressed in this trust pass.
+
+## Maintenance Rules
+
+- Listed `Live` and `Implemented` pages should stay source-backed.
+- External pages should not make Green Goods usage claims without a local source.
+- Draft, generated, proposal, or private-operational pages stay unlisted until a tracked source artifact exists.
+- Deployment and integration pages must keep deployment artifacts, indexer config, and UI readiness separate.
+
+## Inventory
+
+| Page | Status | Visibility | Source posture | Risk to watch | Recommended action |
+| --- | --- | --- | --- | --- | --- |
+| `docs/docs/builders/trust-inventory.mdx` | Planned | Unlisted | Operational inventory | Inventory can drift after docs changes | Keep unlisted; refresh after each trust pass |
+| `docs/docs/builders/agentic/claude-code.mdx` | Live | Listed | 5 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/codex.mdx` | Live | Listed | 3 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/context-engineering.mdx` | Live | Listed | 7 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/core-philosophies.mdx` | Live | Listed | 4 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/friction-engineering.mdx` | Live | Listed | 3 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/gemini.mdx` | Live (external source) | Listed | 3 external only | External tool capability claims only | Do not add project-usage claims without local source |
+| `docs/docs/builders/agentic/intent-engineering.mdx` | Live | Listed | 5 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/mcp-guide.mdx` | Live | Listed | 2 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/openclaw.mdx` | Planned | Unlisted | Draft/private; source not required while unlisted | Private-operational surface | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/agentic/prompt-engineering.mdx` | Live | Listed | 5 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/prompting-green-goods.mdx` | Live | Listed | 3 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/agentic/spec-engineering.mdx` | Live | Listed | 6 local | Agent workflow claims can drift from repo guidance | Keep claims tied to AGENTS/CLAUDE/.claude files |
+| `docs/docs/builders/architecture.mdx` | Live | Listed | 7 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/architecture/erd.mdx` | Live | Listed | 7 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/architecture/local-vs-global.mdx` | Live | Listed | 4 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/architecture/modular-approach.mdx` | Live | Listed | 4 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/architecture/sequence-diagrams.mdx` | Live | Listed | 7 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/build-patterns.mdx` | Live | Listed | 3 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/deployments/admin-deploy.mdx` | Live | Listed | 3 local | Deployment/readiness claims can drift by chain | Keep per-chain artifact/indexer/UI split current |
+| `docs/docs/builders/deployments/agent-deploy.mdx` | Live | Listed | 3 local | Deployment/readiness claims can drift by chain | Keep per-chain artifact/indexer/UI split current |
+| `docs/docs/builders/deployments/client-deploy.mdx` | Live | Listed | 3 local | Deployment/readiness claims can drift by chain | Keep per-chain artifact/indexer/UI split current |
+| `docs/docs/builders/deployments/contracts-deploy.mdx` | Live | Listed | 4 local | Deployment/readiness claims can drift by chain | Keep per-chain artifact/indexer/UI split current |
+| `docs/docs/builders/deployments/indexer-deploy.mdx` | Live | Listed | 3 local | Deployment/readiness claims can drift by chain | Keep per-chain artifact/indexer/UI split current |
+| `docs/docs/builders/deployments/status.mdx` | Live | Listed | 5 local | Deployment/readiness claims can drift by chain | Keep per-chain artifact/indexer/UI split current |
+| `docs/docs/builders/ethereum-alignment.mdx` | Live | Listed | 7 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/getting-started.mdx` | Live | Listed | 3 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/glossary.mdx` | Live | Listed | 2 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/how-to-contribute.mdx` | Live | Listed | 4 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/integrations/cookie-jar.mdx` | Implemented (activation pending indexing) | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/eas.mdx` | Live | Listed | 5 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/ens.mdx` | Implemented (activation pending indexing) | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/entity-matrix.mdx` | Planned | Unlisted | Draft/private; source not required while unlisted | Draft mapping without tracked source artifact | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/integrations/gardens.mdx` | Implemented (activation pending indexing) | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/greenwill.mdx` | Implemented (activation pending deployment) | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/hats.mdx` | Live | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/hypercerts.mdx` | Implemented (activation pending indexing) | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/karma.mdx` | Implemented (activation pending indexing) | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/octant.mdx` | Live | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/overview.mdx` | Live | Listed | 3 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/passkey.mdx` | Live | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/silvi.mdx` | Planned | Listed | Planned; source optional | Planned integration scope could be mistaken for active code | Keep status Planned until source-backed implementation exists |
+| `docs/docs/builders/integrations/tokenbound.mdx` | Live | Listed | 4 local | Integration readiness can differ across deployment, indexing, and UI | Keep status tied to artifacts, config, and UI evidence |
+| `docs/docs/builders/integrations/unlock.mdx` | Planned | Listed | Planned; source optional | Planned integration scope could be mistaken for active code | Keep status Planned until source-backed implementation exists |
+| `docs/docs/builders/operations.mdx` | Live | Listed | 3 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/packages/admin.mdx` | Live | Listed | 5 local | Package surface and commands can drift with source | Keep summaries tied to package manifests and entrypoints |
+| `docs/docs/builders/packages/agent.mdx` | Live | Listed | 4 local | Package surface and commands can drift with source | Keep summaries tied to package manifests and entrypoints |
+| `docs/docs/builders/packages/api-index.mdx` | Live | Listed | 3 local | Package surface and commands can drift with source | Keep summaries tied to package manifests and entrypoints |
+| `docs/docs/builders/packages/client.mdx` | Live | Listed | 4 local | Package surface and commands can drift with source | Keep summaries tied to package manifests and entrypoints |
+| `docs/docs/builders/packages/client-pwa-token-audit.generated.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Generated audit page | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/packages/contracts.mdx` | Live | Listed | 8 local | Package surface and commands can drift with source | Keep summaries tied to package manifests and entrypoints |
+| `docs/docs/builders/packages/indexer.mdx` | Live | Listed | 4 local | Package surface and commands can drift with source | Keep summaries tied to package manifests and entrypoints |
+| `docs/docs/builders/packages/ops.mdx` | Live | Listed | 4 local | Package surface and commands can drift with source | Keep summaries tied to package manifests and entrypoints |
+| `docs/docs/builders/packages/shared.mdx` | Live | Listed | 4 local | Package surface and commands can drift with source | Keep summaries tied to package manifests and entrypoints |
+| `docs/docs/builders/quality/agentic-eval.mdx` | Live | Listed | 4 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/quality/gh-actions.mdx` | Live | Listed | 3 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/quality/husky.mdx` | Live | Listed | 2 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/quality/regression.mdx` | Live | Listed | 3 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/quality/test-cases.mdx` | Planned | Listed | Planned; source optional | Planned quality page can be mistaken for enforced checks | Keep status Planned until source-backed checks exist |
+| `docs/docs/builders/specs/did-ethr-modernization-proposal-2026-03.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Proposal/spec draft | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/specs/greenwill-badging-impact-framework-2026-03.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Proposal/spec draft | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/specs/greenwill-gif-analysis-2026-03.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Proposal/spec draft | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/specs/greenwill-gif-evaluation-plan-2026-03.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Proposal/spec draft | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/specs/greenwill-gif-implementation-spec-2026-03.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Proposal/spec draft | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/specs/greenwill-gif-one-pager-2026-03.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Proposal/spec draft | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/specs/opencred-vc-login-for-geographic-garden-access-2026-03.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Proposal/spec draft | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03.md` | Planned | Unlisted | Draft/private; source not required while unlisted | Proposal/spec draft | Keep unlisted until backed by tracked source artifact |
+| `docs/docs/builders/specs/revenue-explorer.mdx` | Live | Listed | 4 local | Spec/strategy pages may include aspirational roadmap claims | Recheck status against implemented surfaces before promoting claims |
+| `docs/docs/builders/specs/v0-1.mdx` | Live | Listed | 7 local | Spec/strategy pages may include aspirational roadmap claims | Recheck status against implemented surfaces before promoting claims |
+| `docs/docs/builders/specs/v0-4.mdx` | Live | Listed | 9 local | Spec/strategy pages may include aspirational roadmap claims | Recheck status against implemented surfaces before promoting claims |
+| `docs/docs/builders/specs/v1-0.mdx` | Live | Listed | 7 local | Spec/strategy pages may include aspirational roadmap claims | Recheck status against implemented surfaces before promoting claims |
+| `docs/docs/builders/testing/forge.mdx` | Live | Listed | 3 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/testing/playwright.mdx` | Live | Listed | 3 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/testing/rtl.mdx` | Live | Listed | 3 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/testing/storybook.mdx` | Live | Listed | 4 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
+| `docs/docs/builders/testing/vitest.mdx` | Live | Listed | 4 local | Audit-clean; maintain source links when claims change | Keep listed; reverify with source changes |
