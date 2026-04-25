@@ -1,19 +1,33 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ReactNode } from "react";
-import { MemoryRouter } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import { withClientAppRuntime } from "../../../shared/.storybook/decorators";
-import { SiteHeader } from "../components/Navigation/SiteHeader";
+import PublicShell from "../routes/PublicShell";
 import Landing from "./Landing";
 
-function PublicBrowserFrame({ route, children }: { route: string; children: ReactNode }) {
+function PublicBrowserRoute({ route, children }: { route: string; children: ReactNode }) {
+  const router = createMemoryRouter(
+    [
+      {
+        element: <PublicShell />,
+        children: [
+          {
+            path: route,
+            element: children,
+          },
+        ],
+      },
+    ],
+    {
+      initialEntries: [route],
+    }
+  );
+
   return (
-    <MemoryRouter initialEntries={[route]}>
-      <div className="min-h-[720px] bg-bg-white-0 text-text-strong-950">
-        <SiteHeader onConnectWallet={() => {}} />
-        {children}
-      </div>
-    </MemoryRouter>
+    <div className="min-h-screen bg-bg-white-0 text-text-strong-950">
+      <RouterProvider router={router} />
+    </div>
   );
 }
 
@@ -31,9 +45,9 @@ type Story = StoryObj<typeof meta>;
 
 export const LandingRoute: Story = {
   render: () => (
-    <PublicBrowserFrame route="/landing">
+    <PublicBrowserRoute route="/landing">
       <Landing />
-    </PublicBrowserFrame>
+    </PublicBrowserRoute>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -50,7 +64,7 @@ export const LandingRoute: Story = {
 
 export const GardensRouteShell: Story = {
   render: () => (
-    <PublicBrowserFrame route="/gardens">
+    <PublicBrowserRoute route="/gardens">
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-semibold text-text-strong-950">Gardens</h1>
         <p className="mt-2 max-w-2xl text-base text-text-sub-600">
@@ -58,7 +72,7 @@ export const GardensRouteShell: Story = {
           stewards.
         </p>
       </main>
-    </PublicBrowserFrame>
+    </PublicBrowserRoute>
   ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

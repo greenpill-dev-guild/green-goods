@@ -46,7 +46,7 @@
 
 /* Header color with dark mode support */
 :root {
-  --color-header-text: #254d31; /* Dark forest green for light mode */
+  --color-header-text: rgb(var(--green-900)); /* Dark forest green for light mode */
 }
 
 :root[data-theme="dark"] {
@@ -461,8 +461,9 @@
   .btn-icon {
     @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
     @apply bg-bg-white-0 border-stroke-soft-200 text-text-soft-400;
-    @apply transition-all duration-200 active:scale-95;
+    @apply active:scale-95;
     @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
+    transition: all var(--spring-spatial-fast);
   }
 
   .btn-icon svg {
@@ -548,16 +549,18 @@
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in-up var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing)
+    forwards;
 }
 
 .animate-fade-in-scale {
-  animation: fade-in-scale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in-scale var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
 }
 
 .stagger-item {
   opacity: 0;
-  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in-up var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing)
+    forwards;
 }
 
 /* Shimmer skeleton - Dark mode friendly */
@@ -592,7 +595,7 @@
 
 /* Micro-interactions */
 .tap-feedback {
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--spring-spatial-fast);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
@@ -627,11 +630,12 @@
 }
 
 .toast-enter {
-  animation: toastSlideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toastSlideInRight var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
 }
 
 .toast-exit {
-  animation: toastSlideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: toastSlideOutRight var(--spring-effects-fast-duration) var(--spring-effects-fast-easing)
+    forwards;
 }
 
 /* Modal animations */
@@ -662,11 +666,13 @@
 }
 
 .modal-backdrop-enter {
-  animation: modalBackdropFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalBackdropFadeIn var(--spring-effects-duration) var(--spring-effects-easing)
+    forwards;
 }
 
 .modal-slide-enter {
-  animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalSlideIn var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing)
+    forwards;
   transform: translate3d(0, 0, 0);
   will-change: transform;
 }

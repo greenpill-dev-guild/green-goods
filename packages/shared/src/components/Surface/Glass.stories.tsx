@@ -32,8 +32,6 @@ const Backdrop: React.FC<React.PropsWithChildren<{ className?: string }>> = ({
   <div
     className={`relative overflow-hidden rounded-2xl ${className ?? ""}`}
     style={{
-      backgroundImage:
-        "radial-gradient(circle at 20% 20%, rgba(34,197,94,0.35), transparent 40%), radial-gradient(circle at 80% 30%, rgba(59,130,246,0.35), transparent 40%), radial-gradient(circle at 50% 80%, rgba(245,158,11,0.3), transparent 45%)",
       backgroundColor: "rgb(var(--neutral-100))",
     }}
   >

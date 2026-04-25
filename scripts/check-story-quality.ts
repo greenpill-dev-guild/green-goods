@@ -4,7 +4,7 @@
  * Keeps the design-system Storybook surface deterministic and agent-readable without
  * turning coverage into a broad visual-audit pass. Scope is intentionally
  * narrow: admin stories, shared Canvas stories consumed by admin shell work,
- * and curated client PWA/public shell stories.
+ * token contract stories, and curated client PWA/public shell stories.
  *
  * Usage: bun run scripts/check-story-quality.ts
  */
@@ -24,6 +24,7 @@ const TARGET_FILES = [
   "packages/shared/src/components/Cards/WorkCard/WorkCard.stories.tsx",
   "packages/shared/src/components/Display/ImageWithFallback.stories.tsx",
   "packages/shared/src/components/Dialog/ImagePreviewDialog.stories.tsx",
+  "packages/shared/src/components/Tokens/Animations.stories.tsx",
   "packages/shared/src/components/Vault/AssetSelector.stories.tsx",
   "packages/client/src/components/Layout/AppBar.stories.tsx",
   "packages/client/src/components/Communication/Offline/OfflineIndicator.stories.tsx",

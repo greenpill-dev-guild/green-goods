@@ -48,15 +48,15 @@
  * ============================================================================ */
 
 ::view-transition-group(main) {
-  animation-duration: 0.2s;
+  animation-duration: var(--spring-spatial-fast-duration);
 }
 
 ::view-transition-old(main) {
-  animation: 0.15s cubic-bezier(0.4, 0, 1, 1) both vt-fade-out;
+  animation: var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both vt-fade-out;
 }
 
 ::view-transition-new(main) {
-  animation: 0.25s cubic-bezier(0.16, 1, 0.3, 1) both vt-fade-in;
+  animation: var(--spring-effects-duration) var(--spring-effects-easing) both vt-fade-in;
 }
 
 /* ============================================================================
@@ -67,33 +67,35 @@
 /* Forward navigation - slide left */
 html:active-view-transition-type(forwards) {
   &::view-transition-old(main) {
-    animation: 0.15s cubic-bezier(0.4, 0, 1, 1) both vt-slide-out-left;
+    animation: var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both
+      vt-slide-out-left;
   }
 
   &::view-transition-new(main) {
-    animation: 0.25s cubic-bezier(0.16, 1, 0.3, 1) both vt-slide-in-right;
+    animation: var(--spring-spatial-duration) var(--spring-spatial-easing) both vt-slide-in-right;
   }
 }
 
 /* Back navigation - slide right */
 html:active-view-transition-type(backwards) {
   &::view-transition-old(main) {
-    animation: 0.15s cubic-bezier(0.4, 0, 1, 1) both vt-slide-out-right;
+    animation: var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both
+      vt-slide-out-right;
   }
 
   &::view-transition-new(main) {
-    animation: 0.25s cubic-bezier(0.16, 1, 0.3, 1) both vt-slide-in-left;
+    animation: var(--spring-spatial-duration) var(--spring-spatial-easing) both vt-slide-in-left;
   }
 }
 
 /* Fade transition - for modals and overlays */
 html:active-view-transition-type(fade) {
   &::view-transition-old(main) {
-    animation: 0.1s ease-out both vt-fade-out;
+    animation: var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both vt-fade-out;
   }
 
   &::view-transition-new(main) {
-    animation: 0.2s ease-out both vt-fade-in;
+    animation: var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both vt-fade-in;
   }
 }
 

@@ -323,14 +323,11 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
             // which end with `transform: none`.
             "canvas-navigation-bar fixed bottom-4 inset-x-0 mx-auto z-nav flex w-max items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
-            "glass-ground",
-            "dark:border-stroke-soft dark:bg-[linear-gradient(180deg,rgb(var(--bg-soft-200)/0.88)_0%,rgb(var(--bg-white-0)/0.76)_100%)]",
+            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-2)]",
+            "dark:border-stroke-soft dark:bg-bg-sub dark:shadow-[var(--edge-rest),_var(--elevation-3)]",
             "animate-[nav-bar-enter_var(--spring-spatial)_both]",
             "motion-reduce:animate-none"
           )}
-          style={{
-            boxShadow: "0 24px 48px rgba(15, 23, 42, 0.18), inset 0 0 0 1px rgba(255,255,255,0.18)",
-          }}
         >
           {desktopSlots.map((slot) => (
             <NavItem
@@ -366,13 +363,11 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           data-state="visible"
           className={cn(
             "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-2xl px-2 py-2",
-            "glass-ground",
+            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-3)]",
+            "dark:border-stroke-soft dark:bg-bg-sub",
             "animate-[nav-bar-enter_var(--spring-spatial)_both]",
             "motion-reduce:animate-none"
           )}
-          style={{
-            boxShadow: "0 22px 44px rgba(15, 23, 42, 0.2), inset 0 0 0 1px rgba(255,255,255,0.12)",
-          }}
         >
           {mobileSlots.map((slot) => (
             <NavItem

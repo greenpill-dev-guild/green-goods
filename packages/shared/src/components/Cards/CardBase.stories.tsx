@@ -191,7 +191,7 @@ export const DarkMode: Story = {
 export const AdminSurfaceCard: Story = {
   render: () => (
     <Card variant="interactive" className="group overflow-hidden max-w-md">
-      <div className="h-32 bg-[linear-gradient(135deg,rgb(var(--green-200)),rgb(var(--green-50)))]" />
+      <div className="h-32 bg-success-lighter" />
       <Card.Body>
         <h3 className="text-lg font-medium text-text-strong group-hover:text-primary-dark">
           Garden overview

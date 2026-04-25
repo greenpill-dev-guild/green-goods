@@ -4,8 +4,8 @@ import React from "react";
 /**
  * Visual documentation of the Green Goods shadow / elevation system.
  *
- * Shadows are defined in `storybook.css` via `@theme` blocks and consumed
- * through both Tailwind `shadow-*` utilities and CSS utility classes
+ * Shadows are defined in `theme.css` and consumed through both Tailwind
+ * `shadow-*` utilities and CSS utility classes
  * (`.shadow-regular-xs`, `.shadow-fancy-buttons-primary`, etc.).
  *
  * Three tiers: regular elevation, button focus rings, and fancy button borders.
@@ -28,19 +28,19 @@ const regularShadows: ShadowToken[] = [
     name: "Regular XS",
     cssVar: "--shadow-regular-xs",
     className: "shadow-regular-xs",
-    value: "0 1px 2px 0 rgba(10, 13, 20, 0.03)",
+    value: "var(--shadow-regular-xs)",
   },
   {
     name: "Regular SM",
     cssVar: "--shadow-regular-sm",
     className: "shadow-regular-sm",
-    value: "0 2px 4px rgba(27, 28, 29, 0.04)",
+    value: "var(--shadow-regular-sm)",
   },
   {
     name: "Regular MD",
     cssVar: "--shadow-regular-md",
     className: "shadow-regular-md",
-    value: "0 16px 32px -12px rgba(14, 18, 27, 0.1)",
+    value: "var(--shadow-regular-md)",
   },
 ];
 
@@ -70,25 +70,25 @@ const fancyShadows: ShadowToken[] = [
     name: "Fancy Neutral",
     cssVar: "--shadow-fancy-buttons-neutral",
     className: "shadow-fancy-buttons-neutral",
-    value: "0 1px 2px 0 rgba(27, 28, 29, 0.48), 0 0 0 1px #242628",
+    value: "var(--shadow-fancy-buttons-neutral)",
   },
   {
     name: "Fancy Primary",
     cssVar: "--shadow-fancy-buttons-primary",
     className: "shadow-fancy-buttons-primary",
-    value: "0 1px 2px 0 rgba(14, 18, 27, 0.24), 0 0 0 1px primary-base",
+    value: "var(--shadow-fancy-buttons-primary)",
   },
   {
     name: "Fancy Error",
     cssVar: "--shadow-fancy-buttons-error",
     className: "shadow-fancy-buttons-error",
-    value: "0 1px 2px 0 rgba(14, 18, 27, 0.24), 0 0 0 1px error-base",
+    value: "var(--shadow-fancy-buttons-error)",
   },
   {
     name: "Fancy Stroke",
     cssVar: "--shadow-fancy-buttons-stroke",
     className: "shadow-fancy-buttons-stroke",
-    value: "0 1px 3px 0 rgba(14, 18, 27, 0.12), 0 0 0 1px stroke-soft-200",
+    value: "var(--shadow-fancy-buttons-stroke)",
   },
 ];
 
@@ -97,19 +97,19 @@ const componentShadows: ShadowToken[] = [
     name: "Toggle Switch",
     cssVar: "--shadow-toggle-switch",
     className: "shadow-toggle-switch",
-    value: "0 6px 10px 0 rgba(14, 18, 27, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.03)",
+    value: "var(--shadow-toggle-switch)",
   },
   {
     name: "Switch Thumb",
     cssVar: "--shadow-switch-thumb",
     className: "shadow-switch-thumb",
-    value: "0 4px 8px 0 rgba(27, 28, 29, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.08)",
+    value: "var(--shadow-switch-thumb)",
   },
   {
     name: "Tooltip",
     cssVar: "--shadow-tooltip",
     className: "shadow-tooltip",
-    value: "0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03)",
+    value: "var(--shadow-tooltip)",
   },
 ];
 
@@ -185,8 +185,8 @@ export const Default: Story = {
   render: () => (
     <div>
       <p className="text-paragraph-sm text-text-sub-600 mb-6">
-        Shadows are defined as <code>@theme</code> tokens in <code>storybook.css</code> and applied
-        via utility classes. They use low-opacity, cool-tinted rgba values for a natural depth feel.
+        Shadows are defined as runtime tokens in <code>theme.css</code> and applied via utility
+        classes. This story shows token names and utility classes, not copied raw shadow recipes.
       </p>
       {allGroups.map((g) => (
         <ShadowGroup key={g.label} label={g.label} tokens={g.tokens} />
@@ -302,9 +302,8 @@ export const DarkMode: Story = {
   render: () => (
     <div>
       <p className="text-paragraph-sm text-text-sub-600 mb-6">
-        Shadows in dark mode rely on the same rgba values, but they sit on darker backgrounds. Some
-        shadows (like focus rings) reference semantic tokens that adapt automatically. Use the
-        toolbar theme toggle to compare.
+        Shadows in dark mode use the same token names against darker backgrounds. Some shadows
+        reference semantic tokens that adapt automatically. Use the toolbar theme toggle to compare.
       </p>
       {allGroups.map((g) => (
         <ShadowGroup key={g.label} label={g.label} tokens={g.tokens} />

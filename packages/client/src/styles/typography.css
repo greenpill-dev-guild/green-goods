@@ -2,7 +2,7 @@
 
 /* Header color with dark mode support */
 :root {
-  --color-header-text: #254d31; /* Dark forest green for light mode */
+  --color-header-text: rgb(var(--green-900)); /* Dark forest green for light mode */
 }
 
 :root[data-theme="dark"] {

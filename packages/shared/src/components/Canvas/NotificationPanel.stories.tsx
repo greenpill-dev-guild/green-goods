@@ -14,7 +14,7 @@ type Story = StoryObj<typeof NotificationPanel>;
 export const Default: Story = {
   render: () => (
     <IntlProvider locale="en" messages={{}}>
-      <div className="max-w-sm rounded-[1.25rem] bg-bg-white">
+      <div className="max-w-sm rounded-2xl bg-bg-white">
         <NotificationPanel />
       </div>
     </IntlProvider>

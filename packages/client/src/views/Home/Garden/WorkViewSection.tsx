@@ -335,7 +335,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             onClick: onDownloadMedia,
             icon: <RiDownloadLine className="w-6 h-6" />,
             className:
-              "!bg-bg-white-0 !border-2 !border-orange-500 !text-orange-600 hover:!bg-orange-alpha-10 !outline-none",
+              "!bg-bg-white-0 !border-2 !border-warning-base !text-warning-dark hover:!bg-warning-lighter !outline-none",
           },
         ]
       : []),
@@ -358,7 +358,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             onClick: onViewAttestation,
             icon: <RiExternalLinkLine className="w-6 h-6" />,
             className:
-              "!bg-bg-white-0 !border-2 !border-sky-500 !text-sky-700 hover:!bg-sky-alpha-10 !outline-none",
+              "!bg-bg-white-0 !border-2 !border-verified-base !text-verified-dark hover:!bg-verified-lighter !outline-none",
           },
         ]
       : []),

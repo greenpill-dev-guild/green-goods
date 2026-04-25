@@ -202,8 +202,8 @@
 }
 
 /* ============================================================================
- * D1: Solid M3 surfaces — glass on chrome only
- * Glass material (backdrop-filter) stays on NavigationBar and GardenChip (Z3).
+ * D1: Solid M3 surfaces — admin AppBar is the only glass chrome
+ * NavigationBar stays solid M3 chrome; GardenChip remains scoped inside AppBar.
  * All content surfaces (MainSheet, sheets, lists, cards) use solid M3 colors.
  * ============================================================================ */
 

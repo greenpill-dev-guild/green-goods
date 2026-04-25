@@ -241,6 +241,16 @@ describe("NavigationBar", () => {
     }
   });
 
+  it("keeps nav surfaces solid instead of glass-backed", () => {
+    render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
+
+    for (const nav of getNavs()) {
+      expect(nav.className).toContain("canvas-navigation-bar");
+      expect(nav.className).not.toMatch(/\bglass-/);
+      expect(nav.getAttribute("style") ?? "").not.toMatch(/box-shadow/i);
+    }
+  });
+
   it("renders mobile-only slots only in the mobile navigation surface", () => {
     const slots = [
       ...createSlots(),

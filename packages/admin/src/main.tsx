@@ -13,7 +13,6 @@ import {
   queryClient,
   trackErrorBoundary,
 } from "@green-goods/shared";
-import { registerServiceWorkerFromEnv } from "@green-goods/shared/service-worker";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -42,7 +41,6 @@ const cleanupTheme = initTheme();
 initGlobalErrorHandlers();
 
 void initializeIpfsFromEnv(import.meta.env);
-void registerServiceWorkerFromEnv(import.meta.env);
 
 export const Root = () => (
   <PersistQueryClientProvider
