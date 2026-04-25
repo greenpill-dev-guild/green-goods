@@ -44,4 +44,4 @@ should come from `@green-goods/shared`.
 ## Validation
 
 - Package loop: `bun run test && bun run build`
-- Shared impact or cross-package changes: from repo root run `node scripts/ci-local.js --quick`
+- Shared impact or cross-package changes: from repo root run `node scripts/dev/ci-local.js --quick`

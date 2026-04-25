@@ -36,7 +36,7 @@ Workflow:
    - what would count as `keep`, `revert`, `bail`, or `blocked`
 3. Delegate implementation to Codex CLI on branch `codex/state-api/cleanup-loop-v1`.
 4. Require Codex CLI to:
-   - mark the lane in progress with `node scripts/plan-hub.mjs set-lane --feature cleanup-loop-v1 --lane state_api --status in_progress --actor codex --branch codex/state-api/cleanup-loop-v1`
+   - mark the lane in progress with `node scripts/harness/plan-hub.mjs set-lane --feature cleanup-loop-v1 --lane state_api --status in_progress --actor codex --branch codex/state-api/cleanup-loop-v1`
    - edit only the declared cleanup surface
    - avoid these out-of-scope surfaces entirely:
      - `packages/admin/src/views/**`
@@ -49,9 +49,9 @@ Workflow:
      - `packages/indexer/**`
      - dependency churn unless directly required by the declared cleanup surface
    - run the declared targeted package tests
-   - run `node scripts/ci-local.js --quick`
-   - run `node scripts/plan-hub.mjs validate` if any plan files changed
-   - emit exactly one JSONL run record with `node scripts/log-automation-run.mjs`
+   - run `node scripts/dev/ci-local.js --quick`
+   - run `node scripts/harness/plan-hub.mjs validate` if any plan files changed
+   - emit exactly one JSONL run record with `node scripts/harness/log-automation-run.mjs`
    - mark the lane `passed` or `blocked`
 5. If Codex reports validation failure or scope drift, require `revert` and stop.
 6. If Codex reports parity uncertainty, route uncertainty, or behavioral ambiguity, record `bail` and stop.

@@ -142,7 +142,7 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 - [prompt-contract.md](./prompt-contract.md), [client-prompt-contract.md](./client-prompt-contract.md) — AI-tool vocabulary
 - Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` — DesignMD sources
 - `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json` — runtime projections
-- `scripts/check-design-tokens.sh`, `scripts/check-i18n-vocab.sh`, `scripts/design-md-generate.mjs` — validators and generator
+- `scripts/design/check-tokens.sh`, `scripts/design/check-vocab.sh`, `scripts/design/md-generate.mjs` — validators and generator
 - `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**` — Storybook surface for the design system
 - `docs/docs/builders/packages/admin.mdx`, `docs/docs/builders/testing/storybook.mdx` — live UI and Storybook contracts
 - `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — Design-System / Design-Language sections agents load by default

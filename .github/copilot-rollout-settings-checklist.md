@@ -41,7 +41,7 @@ Apply these settings in GitHub after the repo-backed rollout files are merged. T
   - `.env*`
   - `packages/contracts/src/**`, `packages/contracts/test/**`, `packages/contracts/script/**`, `packages/contracts/deployments/**`, `packages/contracts/config/**`
   - `packages/indexer/schema.graphql`, `packages/indexer/config.yaml`
-  - `scripts/verify-production.sh`
+  - `scripts/contracts/verify-production.sh`
 
 ## 5. Signed Commits, Runner Controls, Firewall Controls
 

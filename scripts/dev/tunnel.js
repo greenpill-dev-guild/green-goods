@@ -25,7 +25,7 @@ const args = process.argv.slice(2);
 const portIndex = args.indexOf("--port");
 const port = portIndex !== -1 ? args[portIndex + 1] : "3001";
 
-const ROOT = resolve(import.meta.dirname, "..");
+const ROOT = resolve(import.meta.dirname, "../..");
 const URL_FILE = resolve(ROOT, ".tunnel-url");
 
 // -- Preflight checks --------------------------------------------------------

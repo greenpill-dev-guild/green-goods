@@ -17,9 +17,9 @@ on:
       - "packages/admin/src/**"
       - "packages/client/src/**"
       - "packages/shared/src/**"
-      - "scripts/design-md-generate.mjs"
-      - "scripts/check-design-tokens.sh"
-      - "scripts/check-i18n-vocab.sh"
+      - "scripts/design/md-generate.mjs"
+      - "scripts/design/check-tokens.sh"
+      - "scripts/design/check-vocab.sh"
       - ".github/workflows/design-guardrails.yml"
   pull_request:
     branches: [main, develop]
@@ -37,9 +37,9 @@ on:
       - "packages/admin/src/**"
       - "packages/client/src/**"
       - "packages/shared/src/**"
-      - "scripts/design-md-generate.mjs"
-      - "scripts/check-design-tokens.sh"
-      - "scripts/check-i18n-vocab.sh"
+      - "scripts/design/md-generate.mjs"
+      - "scripts/design/check-tokens.sh"
+      - "scripts/design/check-vocab.sh"
       - ".github/workflows/design-guardrails.yml"
 
 permissions:

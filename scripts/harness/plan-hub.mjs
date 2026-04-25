@@ -15,7 +15,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(SCRIPT_DIR, "..");
+const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
 const PLANS_ROOT = join(REPO_ROOT, ".plans");
 const STAGES = ["ideas", "backlog", "active"];
 const STAGE_TO_STATUS = {
@@ -56,12 +56,12 @@ const LANE_BRANCHES = {
 
 function usage() {
   console.log(`Usage:
-  node scripts/plan-hub.mjs scaffold <feature-slug> [--title "Feature Title"] [--stage backlog]
-  node scripts/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active>
-  node scripts/plan-hub.mjs list --agent <claude|codex> --lane <lane> [--stage active] [--json]
-  node scripts/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
-  node scripts/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
-  node scripts/plan-hub.mjs validate`);
+  node scripts/harness/plan-hub.mjs scaffold <feature-slug> [--title "Feature Title"] [--stage backlog]
+  node scripts/harness/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active>
+  node scripts/harness/plan-hub.mjs list --agent <claude|codex> --lane <lane> [--stage active] [--json]
+  node scripts/harness/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
+  node scripts/harness/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
+  node scripts/harness/plan-hub.mjs validate`);
 }
 
 function parseArgs(argv) {

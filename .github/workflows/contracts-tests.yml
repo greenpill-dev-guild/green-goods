@@ -5,17 +5,17 @@ on:
     branches: [main, develop]
     paths:
       - "packages/contracts/**"
-      - "scripts/check-contract-test-realism.sh"
-      - "scripts/run-contract-coverage-audit.sh"
-      - "scripts/validate-contract-test-realism-tooling.sh"
+      - "scripts/contracts/check-test-realism.sh"
+      - "scripts/contracts/run-coverage-audit.sh"
+      - "scripts/contracts/validate-test-realism-tooling.sh"
       - ".github/workflows/contracts-tests.yml"
   pull_request:
     branches: [main, develop]
     paths:
       - "packages/contracts/**"
-      - "scripts/check-contract-test-realism.sh"
-      - "scripts/run-contract-coverage-audit.sh"
-      - "scripts/validate-contract-test-realism-tooling.sh"
+      - "scripts/contracts/check-test-realism.sh"
+      - "scripts/contracts/run-coverage-audit.sh"
+      - "scripts/contracts/validate-test-realism-tooling.sh"
       - ".github/workflows/contracts-tests.yml"
 
 permissions:

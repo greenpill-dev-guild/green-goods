@@ -9,13 +9,14 @@
 # actual CSS — catches silent drift before it ships.
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 CANONICAL_DESIGN="DESIGN.md"
 GENERATED_CSS="packages/shared/src/styles/design-md.generated.css"
 IMPL="packages/shared/src/styles/theme.css"
-USAGE_BASELINE="scripts/design-token-usage-baseline.tsv"
+USAGE_BASELINE="scripts/data/design-token-usage-baseline.tsv"
+BASELINE_EXPIRY_MAX_DAYS=120
 
 if [[ ! -f "$CANONICAL_DESIGN" ]]; then
   echo "❌ Canonical DesignMD source not found: $CANONICAL_DESIGN"
@@ -142,6 +143,15 @@ validate_usage_baseline() {
 
   local today
   today="$(date +%F)"
+  local max_expires
+  max_expires="$(
+    node -e '
+      const [year, month, day] = process.argv[1].split("-").map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      date.setUTCDate(date.getUTCDate() + Number(process.argv[2]));
+      console.log(date.toISOString().slice(0, 10));
+    ' "$today" "$BASELINE_EXPIRY_MAX_DAYS"
+  )"
   local invalid=()
   local line_no=0
   local allowed_categories='^(legacy-runtime|storybook-fixture|storybook-theme|generated-media|third-party-theme)$'
@@ -170,6 +180,8 @@ validate_usage_baseline() {
       invalid+=("line ${line_no}: expires must use YYYY-MM-DD")
     elif [[ "$expires" < "$today" ]]; then
       invalid+=("line ${line_no}: baseline entry expired on ${expires}")
+    elif [[ "$expires" > "$max_expires" ]]; then
+      invalid+=("line ${line_no}: baseline expiry ${expires} exceeds ${BASELINE_EXPIRY_MAX_DAYS}-day limit (${max_expires})")
     fi
     if [[ ${#note} -lt 12 ]]; then
       invalid+=("line ${line_no}: note must explain the exception")
@@ -182,6 +194,7 @@ validate_usage_baseline() {
     echo
     echo "Format: <raw usage hit><TAB><category><TAB><owner><TAB><expires><TAB><note>"
     echo "Categories: legacy-runtime, storybook-fixture, storybook-theme, generated-media, third-party-theme."
+    echo "Expiry must be within ${BASELINE_EXPIRY_MAX_DAYS} days."
     exit 1
   fi
 

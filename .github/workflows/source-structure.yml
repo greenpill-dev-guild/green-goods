@@ -8,7 +8,7 @@ on:
       - "packages/**/src/**/*.ts"
       - "packages/**/src/**/*.tsx"
       - "packages/**/src/**/*.sol"
-      - "scripts/check-source-structure.js"
+      - "scripts/quality/check-source-structure.js"
       - ".github/workflows/source-structure.yml"
   pull_request:
     branches: [main, develop]
@@ -17,7 +17,7 @@ on:
       - "packages/**/src/**/*.ts"
       - "packages/**/src/**/*.tsx"
       - "packages/**/src/**/*.sol"
-      - "scripts/check-source-structure.js"
+      - "scripts/quality/check-source-structure.js"
       - ".github/workflows/source-structure.yml"
 
 permissions:

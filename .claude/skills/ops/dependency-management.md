@@ -100,7 +100,7 @@ bun run test                   # Run all tests
 ```bash
 # Root postinstall script patches a known issue
 # with the multiformats package (CID encoding)
-"postinstall": "node scripts/fix-multiformats.js"
+"postinstall": "node scripts/postinstall/fix-multiformats.js"
 ```
 
 This runs automatically on `bun install`. Never remove it without verifying the upstream fix.

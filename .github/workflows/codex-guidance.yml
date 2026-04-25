@@ -8,7 +8,7 @@ on:
       - "packages/*/AGENTS.md"
       - ".codex/**"
       - "docs/docs/builders/agentic/codex.mdx"
-      - "scripts/check-codex-consistency.js"
+      - "scripts/quality/check-codex-docs.js"
       - "package.json"
       - "packages/*/package.json"
       - ".github/workflows/codex-guidance.yml"
@@ -19,7 +19,7 @@ on:
       - "packages/*/AGENTS.md"
       - ".codex/**"
       - "docs/docs/builders/agentic/codex.mdx"
-      - "scripts/check-codex-consistency.js"
+      - "scripts/quality/check-codex-docs.js"
       - "package.json"
       - "packages/*/package.json"
       - ".github/workflows/codex-guidance.yml"
@@ -44,4 +44,4 @@ jobs:
           node-version: "22"
 
       - name: Check Codex consistency
-        run: node scripts/check-codex-consistency.js
+        run: node scripts/quality/check-codex-docs.js

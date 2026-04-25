@@ -21,12 +21,12 @@ This audit covers **only** the following surfaces. Anything outside is out of sc
 - The `design` and `ui` entries in `.claude/registry/skills.json` (frontmatter coupling, `sub_files` ↔ disk parity, `token_version` ↔ `design_token_version`)
 - Warm Earth token implementation in `packages/shared/src/styles/theme.css` and generated DesignMD artifacts
 - Root `DESIGN.md` plus `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, and `docs/DESIGN.md` dialect briefs
-- Validators `scripts/check-design-tokens.sh` and `scripts/check-i18n-vocab.sh`
+- Validators `scripts/design/check-tokens.sh` and `scripts/design/check-vocab.sh`
 
 **Out of scope — REJECT these patterns in Section 1, even if the evidence is rock-solid:**
 - Other skills' health (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, `principles`, `status`, etc.) — not our stack.
 - Registry-wide shape: `canonical_commands`, aliases, bundles, `listed_in_index`, `user_invocable` consistency — belongs to `/audit` or `check:claude-guidance`.
-- `check-guidance-consistency.js` behaviour (it governs all skills, not the design stack).
+- `check-skill-frontmatter.js` behaviour (it governs all skills, not the design stack).
 - `.claude/skills/index.md` structure beyond whether `design` / `ui` rows are accurate.
 - Anything in `packages/*/src/**` that isn't a design token, prompt contract, or palette reference.
 
@@ -92,5 +92,5 @@ If nothing in Section 1 meets all constraints, say so. "No changes needed right 
 - [review-checklist.md](./review-checklist.md) — PR-level review (different scope)
 - [language.md](./language.md) — implementation guide projected from root DesignMD
 - `.claude/registry/skills.json` — registry source of truth
-- `scripts/check-design-tokens.sh` — token-drift validator
-- `scripts/check-i18n-vocab.sh` — vocabulary validator
+- `scripts/design/check-tokens.sh` — token-drift validator
+- `scripts/design/check-vocab.sh` — vocabulary validator

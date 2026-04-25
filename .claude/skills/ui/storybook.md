@@ -254,8 +254,8 @@ bun run lint:vocab
 - `packages/shared/.storybook/decorators.tsx` -- reusable story harness helpers.
 - `packages/shared/.storybook/fixtures.ts` -- deterministic shared fixture helpers.
 - `packages/shared/.storybook/adminFixtures.ts` -- deterministic admin fixture seeds.
-- `scripts/check-story-coverage.ts` -- required coverage contract.
-- `scripts/check-story-quality.ts` -- deterministic story guardrails.
+- `scripts/quality/check-story-coverage.ts` -- required coverage contract.
+- `scripts/quality/check-story-quality.ts` -- deterministic story guardrails.
 - **[storybook-addons.md](./storybook-addons.md)** -- addon configuration reference.
 - **[storybook-testing.md](./storybook-testing.md)** -- extended interaction and visual testing notes.
 

@@ -9,9 +9,9 @@ feature_status: Live
 source_of_truth:
   - AGENTS.md
   - CLAUDE.md
-  - scripts/check-codex-consistency.js
-  - scripts/ci-local.js
-keywords: [agentic evaluation, acceptance cases, guidance consistency, inner loop, test generation]
+  - scripts/quality/check-codex-docs.js
+  - scripts/dev/ci-local.js
+keywords: [agentic evaluation, acceptance cases, guidance guardrails, inner loop, test generation]
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -39,7 +39,7 @@ flowchart LR
 | Surface | Purpose | Status |
 |-------|---------|--------|
 | `.claude/evals/acceptance/` | Product acceptance cases and workflow-level checks | Live |
-| `node .claude/scripts/check-guidance-consistency.js` | Guidance drift detection across committed agent surfaces | Live |
+| `node .claude/scripts/check-skill-frontmatter.js` | Skill registry/frontmatter, command route, bundle, and retired-surface checks | Live |
 | `.github/workflows/claude-agent-evals.yml` | CI sync check for the committed agent/eval surface | Live |
 
 The only live eval directory under `.claude/evals/` today is `acceptance/`. Automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` are retired, and the current CI workflow checks that this repo stays aligned with that retirement state. The committed agent surface is currently `cracked-coder` plus `oracle`; specialization otherwise routes through skills and plan-hub lanes.
@@ -83,22 +83,22 @@ If an agent fails to fix an issue after three attempts:
 
 This prevents agents from burning context window on unproductive loops.
 
-### Guidance Consistency
+### Claude Guidance Surface Check
 
-The `check-guidance-consistency.js` script validates that agent instructions across `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, and `.claude/rules/` do not contradict each other:
+The `check-skill-frontmatter.js` script validates the Claude-owned guidance structure: skill frontmatter, skills registry records, command aliases, command bundles, retired guidance surfaces, and selected forbidden guidance patterns.
 
 ```bash
-node .claude/scripts/check-guidance-consistency.js
+node .claude/scripts/check-skill-frontmatter.js
 ```
 
-This runs in CI via `.github/workflows/claude-guidance.yml` to catch drift between guidance files.
+This runs in CI via `.github/workflows/claude-guidance.yml`. It is a structural guardrail, not a semantic contradiction checker for every line in `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, and `.claude/rules/`.
 
 ### Inner-Loop Policy
 
 For iterative agent work, use the fastest honest loop:
 
 - targeted `bun run test -- <file>` while shaping a change
-- `bash scripts/check-test-quality.sh` when touching test governance
+- `bash scripts/quality/check-test-quality.sh` when touching test governance
 - broader package or repo gates only once the local loop is green
 
 Coverage remains a scheduled floor on package CI and pre-merge validation, not the per-change inner loop.
@@ -128,7 +128,7 @@ Diff-scoped automated review still happens through the dedicated review workflow
 - [GitHub Actions](./gh-actions) -- CI pipeline including the eval surface sync
 - [Test Cases](./test-cases) -- Test case strategy that agents follow during TDD
 - Agent specs: `.claude/agents/*.md`
-- Guidance consistency script: `.claude/scripts/check-guidance-consistency.js`
+- Claude guidance surface check: `.claude/scripts/check-skill-frontmatter.js`
 
 <NextBestAction
   title="Next best action"

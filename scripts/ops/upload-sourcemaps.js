@@ -32,7 +32,7 @@ import { fileURLToPath } from "node:url";
 // Get project root
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = resolve(__dirname, "..");
+const projectRoot = resolve(__dirname, "../..");
 
 // ANSI color codes
 const colors = {

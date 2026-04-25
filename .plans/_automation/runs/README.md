@@ -3,7 +3,7 @@
 Each automation run should write one JSONL file in this directory using:
 
 ```bash
-node scripts/log-automation-run.mjs ...
+node scripts/harness/log-automation-run.mjs ...
 ```
 
 Expected payload fields:

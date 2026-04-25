@@ -76,7 +76,7 @@ bun run dev:smoke:web                 # confirms client/admin/docs respond local
 
 ### What `npm run setup` does
 
-The setup script (`scripts/setup.js`) runs through four steps:
+The setup script (`scripts/dev/setup.js`) runs through four steps:
 
 1. **Dependency check** -- verifies Node.js 22+, Bun 1.x, Git, Docker, and Foundry are available. Missing optional tools produce warnings, not errors.
 2. **Install packages** -- runs `bun install` across all workspaces if `node_modules` does not exist yet.

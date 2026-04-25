@@ -115,7 +115,7 @@ module.exports = {
     {
       name: "tunnel",
       script: "node",
-      args: "scripts/dev-tunnel.js",
+      args: "scripts/dev/tunnel.js",
       cwd: ".",
       env: {
         NODE_ENV: "development",
@@ -130,7 +130,7 @@ module.exports = {
     {
       name: "browser",
       script: "bash",
-      args: "scripts/open-dev-urls.sh",
+      args: "scripts/dev/open-urls.sh",
       cwd: ".",
       merge_logs: true,
       autorestart: false,

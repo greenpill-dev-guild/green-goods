@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 VIOLATIONS=0
 
 # Unit/integration test directories — enforced for ALL checks.

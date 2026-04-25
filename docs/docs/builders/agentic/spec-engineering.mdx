@@ -168,7 +168,7 @@ Before handing a spec to an agent:
 
 ## Governance
 
-Specs are version-controlled alongside the code they describe. The guidance consistency check (`node .claude/scripts/check-guidance-consistency.js`) validates that specs do not contradict the rules and constraints defined in `CLAUDE.md` and `.claude/rules/`.
+Specs are version-controlled alongside the code they describe. The Claude guidance check (`node .claude/scripts/check-skill-frontmatter.js`) validates skill frontmatter, the skills registry, command routes, bundles, and retired guidance surfaces. It does not prove that specs semantically agree with every rule, so specs still need source-backed evidence and explicit acceptance criteria.
 
 <NextBestAction
   title="Next best action"

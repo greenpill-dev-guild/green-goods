@@ -88,4 +88,4 @@ foundations.
 ## Validation
 
 - Package loop: `bun run test && bun run build`
-- Broader impact: from repo root run `node scripts/ci-local.js --quick`
+- Broader impact: from repo root run `node scripts/dev/ci-local.js --quick`

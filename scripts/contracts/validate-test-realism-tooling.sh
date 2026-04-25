@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SOURCE_AUDIT_SCRIPT="$ROOT_DIR/scripts/check-contract-test-realism.sh"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+SOURCE_AUDIT_SCRIPT="$ROOT_DIR/scripts/contracts/check-test-realism.sh"
 TMP_DIR="$(mktemp -d)"
 
 cleanup() {
@@ -49,10 +49,10 @@ JSON
 
 reset_fixture() {
     rm -rf "$TMP_DIR/packages" "$TMP_DIR/output" "$TMP_DIR/scripts"
-    mkdir -p "$TMP_DIR/scripts"
-    cp "$SOURCE_AUDIT_SCRIPT" "$TMP_DIR/scripts/check-contract-test-realism.sh"
-    cp "$ROOT_DIR/scripts/check-contract-test-realism-worker.cjs" "$TMP_DIR/scripts/check-contract-test-realism-worker.cjs"
-    chmod +x "$TMP_DIR/scripts/check-contract-test-realism.sh"
+    mkdir -p "$TMP_DIR/scripts/contracts"
+    cp "$SOURCE_AUDIT_SCRIPT" "$TMP_DIR/scripts/contracts/check-test-realism.sh"
+    cp "$ROOT_DIR/scripts/contracts/check-test-realism-worker.cjs" "$TMP_DIR/scripts/contracts/check-test-realism-worker.cjs"
+    chmod +x "$TMP_DIR/scripts/contracts/check-test-realism.sh"
     write_common_matrix_files
 }
 
@@ -61,7 +61,7 @@ run_audit() {
     shift || true
     (
         cd "$TMP_DIR"
-        "$TMP_DIR/scripts/check-contract-test-realism.sh" \
+        "$TMP_DIR/scripts/contracts/check-test-realism.sh" \
             --mode "$mode" \
             --report-md "output/report.md" \
             --report-json "output/report.json" \
@@ -139,7 +139,7 @@ SOL
     set +e
     (
         cd "$TMP_DIR"
-        CI=true "$TMP_DIR/scripts/check-contract-test-realism.sh" \
+        CI=true "$TMP_DIR/scripts/contracts/check-test-realism.sh" \
             --mode enforce-should-fix \
             --report-md output/report.md \
             --report-json output/report.json
@@ -229,7 +229,7 @@ SOL
     write_allowlist '[]'
     (
         cd "$TMP_DIR"
-        REALISM_REVERT_THRESHOLD=1.00 "$TMP_DIR/scripts/check-contract-test-realism.sh" \
+        REALISM_REVERT_THRESHOLD=1.00 "$TMP_DIR/scripts/contracts/check-test-realism.sh" \
             --mode enforce-should-fix \
             --report-md output/report.md \
             --report-json output/report.json

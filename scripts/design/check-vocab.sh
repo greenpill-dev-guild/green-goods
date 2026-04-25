@@ -7,7 +7,7 @@
 # Runs as `bun run lint:vocab` from repo root. Intended for pre-commit and CI.
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 # Word-boundary banned terms. "\b" anchors prevent false positives on substrings

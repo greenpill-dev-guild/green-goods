@@ -20,8 +20,8 @@ Create or update Claude automations for:
 3. Docs pass 2
 
 Use these branch and queue contracts exactly:
-- UI lane claims work from node scripts/plan-hub.mjs list --agent claude --lane ui --json
-- QA pass 1 claims work from node scripts/plan-hub.mjs list --agent claude --lane qa_pass_1 --json
+- UI lane claims work from node scripts/harness/plan-hub.mjs list --agent claude --lane ui --json
+- QA pass 1 claims work from node scripts/harness/plan-hub.mjs list --agent claude --lane qa_pass_1 --json
 - Docs pass 2 only runs after the trigger branch codex/docs-pass-1/<date> exists and the Codex report file for that date is present
 
 Suggested cadence:

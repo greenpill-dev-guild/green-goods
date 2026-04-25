@@ -33,7 +33,7 @@ Suggested weekly harness-GC sequence:
 
 - Branch names are the wake-up signal
 - `status.json` is the real source of truth for explicit state
-- `node scripts/plan-hub.mjs list` computes lane readiness from `status.json` plus branch triggers
+- `node scripts/harness/plan-hub.mjs list` computes lane readiness from `status.json` plus branch triggers
 - `qa_pass_2` must verify both the trigger branch and `qa_pass_1.status == "passed"`
 
 ## Emit Contract
@@ -50,7 +50,7 @@ When a lane automation actually runs, emit one JSONL record to `.plans/_automati
 Use:
 
 ```bash
-node scripts/log-automation-run.mjs \
+node scripts/harness/log-automation-run.mjs \
   --feature <feature-slug> \
   --loop <lane-or-loop-id> \
   --metric-name "<metric>" \

@@ -36,5 +36,5 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check guidance consistency
-        run: node .claude/scripts/check-guidance-consistency.js
+      - name: Check skill frontmatter
+        run: node .claude/scripts/check-skill-frontmatter.js

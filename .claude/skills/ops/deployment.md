@@ -17,7 +17,7 @@ cast balance $(cast wallet address --account deployer) --rpc-url $RPC
 cast block-number --rpc-url $RPC
 ```
 
-> `verify:contracts` runs `scripts/verify-production.sh` which handles build, lint, unit tests, E2E workflow, and dry runs for Sepolia, Arbitrum, and Celo in one command. Use `bun run verify:contracts:fast` to skip E2E and dry runs for quick iteration.
+> `verify:contracts` runs `scripts/contracts/verify-production.sh` which handles build, lint, unit tests, E2E workflow, and dry runs for Sepolia, Arbitrum, and Celo in one command. Use `bun run verify:contracts:fast` to skip E2E and dry runs for quick iteration.
 
 ---
 

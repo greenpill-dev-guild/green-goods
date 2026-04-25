@@ -103,7 +103,7 @@ This requires a live admin dashboard at multiple viewport widths.
 
 ## Validation
 
-- [ ] `node scripts/plan-hub.mjs validate` after every edit to `status.json` here or on a parent hub.
+- [ ] `node scripts/harness/plan-hub.mjs validate` after every edit to `status.json` here or on a parent hub.
 - [ ] After each Afo-completed item, the matching `gh api` / PostHog API read / locale grep passes and is recorded in `status.json` `history[]`.
 
 ## Deferred

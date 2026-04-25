@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const repoRoot = resolve(new URL("..", import.meta.url).pathname);
+const repoRoot = resolve(new URL("../..", import.meta.url).pathname);
 const NEW_FILE_MAX_LINES = 350;
 const MODIFIED_FILE_MAX_LINES = 500;
 const ZERO_SHA = "0000000000000000000000000000000000000000";

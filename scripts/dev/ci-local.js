@@ -24,7 +24,7 @@ import { fileURLToPath } from "node:url";
 // Get project root (one level up from scripts/)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = resolve(__dirname, "..");
+const projectRoot = resolve(__dirname, "../..");
 
 const ABI_EXPORT_SOURCES = {
   "ActionRegistry.json": "Action.sol/ActionRegistry.json",

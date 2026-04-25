@@ -33,12 +33,12 @@ import {
 	loadPinataConfigFromEnv,
 	uploadBufferWithPinata,
 	verifyGatewayAvailability,
-} from "./lib/ipfs-hybrid";
+} from "../lib/ipfs-hybrid";
 
 // --- Paths ---
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const ROOT_DIR = path.join(SCRIPT_DIR, "..");
+const ROOT_DIR = path.join(SCRIPT_DIR, "../..");
 const IMAGES_DIR = path.join(CONFIG_ROOT, "action-images");
 const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
 const CACHE_FILE = ACTION_IMAGES_CACHE_PATH;

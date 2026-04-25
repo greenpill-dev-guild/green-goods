@@ -29,8 +29,8 @@ High-risk paths remain human-governed even when Copilot review runs automaticall
 
 Use the lightest validation that proves the change:
 
-- `node scripts/check-codex-consistency.js`
-- `node scripts/ci-local.js --quick`
+- `node scripts/quality/check-codex-docs.js`
+- `node scripts/dev/ci-local.js --quick`
 - `bun run format:check && bun lint`
 - `bun run test`
 - `VITE_CHAIN_ID=11155111 bun run build`

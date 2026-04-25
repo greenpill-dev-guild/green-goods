@@ -8,4 +8,4 @@ applyTo: "packages/shared/**"
 - Use centralized `queryKeys`, event-driven invalidation, `useCurrentChain()` or `DEFAULT_CHAIN_ID`, `logger`, and typed domain models such as `Address`.
 - New user-facing strings must be added to `src/i18n/en.json`, `src/i18n/es.json`, and `src/i18n/pt.json`.
 - Shared UI primitive changes should ship with tests, barrel updates, and Storybook coverage in the same change when applicable.
-- Validate with `cd packages/shared && bun run test && bun run typecheck`; if shared exports, hook signatures, or cross-package contracts move, also run `node scripts/ci-local.js --quick` from the repo root.
+- Validate with `cd packages/shared && bun run test && bun run typecheck`; if shared exports, hook signatures, or cross-package contracts move, also run `node scripts/dev/ci-local.js --quick` from the repo root.

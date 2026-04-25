@@ -30,7 +30,7 @@ bun run check:stories
 When shared exports or public contracts move, also run from the repo root:
 
 ```bash
-node scripts/ci-local.js --quick
+node scripts/dev/ci-local.js --quick
 ```
 
 ## Architecture Map

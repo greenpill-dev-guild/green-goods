@@ -32,7 +32,7 @@ bun run verify:contracts:fast
 Guidance checks:
 
 ```bash
-node .claude/scripts/check-guidance-consistency.js
+node .claude/scripts/check-skill-frontmatter.js
 ```
 
 ## Output Format

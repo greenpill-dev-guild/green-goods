@@ -8,7 +8,7 @@ ALLOWLIST_PATH="packages/contracts/test/audit/mock-allowlist.json"
 
 usage() {
     cat <<'USAGE'
-Usage: scripts/check-contract-test-realism.sh [options]
+Usage: scripts/contracts/check-test-realism.sh [options]
 
 Options:
   --mode advisory|enforce-must-fix|enforce-should-fix
@@ -59,14 +59,14 @@ case "$MODE" in
         ;;
 esac
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 REPORT_MD="${REPORT_MD:-$ROOT_DIR/output/contracts-test-audit/realism-report.md}"
 REPORT_JSON="${REPORT_JSON:-$ROOT_DIR/output/contracts-test-audit/realism-report.json}"
 
 mkdir -p "$(dirname "$REPORT_MD")" "$(dirname "$REPORT_JSON")"
 
 # Resolve the worker script relative to this script's directory
-WORKER_SCRIPT="$(cd "$(dirname "$0")" && pwd)/check-contract-test-realism-worker.cjs"
+WORKER_SCRIPT="$(cd "$(dirname "$0")" && pwd)/check-test-realism-worker.cjs"
 
 MODE="$MODE" \
 ROOT_DIR="$ROOT_DIR" \

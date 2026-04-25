@@ -6,7 +6,7 @@
  * and CI skip-return blocks. Validates against an allowlist and produces
  * Markdown + JSON reports.
  *
- * Called by scripts/check-contract-test-realism.sh which sets:
+ * Called by scripts/contracts/check-test-realism.sh which sets:
  *   MODE, ROOT_DIR, REPORT_MD, REPORT_JSON, ALLOWLIST_PATH
  *
  * Optional env:
@@ -650,7 +650,7 @@ const md = `# Contract Test Realism Audit\n\n` +
 `## Should-Fix\n${renderFindings(shouldFix)}\n\n` +
 `## Nice-to-Have\n${renderFindings(niceToHave)}\n\n` +
 `## Verification\n` +
-`- Command: \`bash scripts/check-contract-test-realism.sh --mode ${mode} --report-md ${toPosix(reportMdPath)} --report-json ${toPosix(reportJsonPath)}\`\n` +
+`- Command: \`bash scripts/contracts/check-test-realism.sh --mode ${mode} --report-md ${toPosix(reportMdPath)} --report-json ${toPosix(reportJsonPath)}\`\n` +
 `- Allowlist source: \`${rel(allowlistPath)}\`\n` +
 `- Mandatory networks: Sepolia, Arbitrum\n\n` +
 `## Recommendation\n` +

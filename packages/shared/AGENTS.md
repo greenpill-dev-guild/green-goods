@@ -43,4 +43,4 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 - Package loop: `bun run test && bun run typecheck`
 - UI/stories touched: `bun run check:stories`
-- Cross-package impact: from repo root run `node scripts/ci-local.js --quick`
+- Cross-package impact: from repo root run `node scripts/dev/ci-local.js --quick`

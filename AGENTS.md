@@ -74,9 +74,9 @@ Single design language across all frontend packages, two dialects. Full detail i
 
 ## Validation Ladder
 
-- Codex drift check: `node scripts/check-codex-consistency.js`
-- Quick repo verification: `node scripts/ci-local.js --quick`
-- Test-quality guardrail: `bash scripts/check-test-quality.sh`
+- Codex drift check: `node scripts/quality/check-codex-docs.js`
+- Quick repo verification: `node scripts/dev/ci-local.js --quick`
+- Test-quality guardrail: `bash scripts/quality/check-test-quality.sh`
 - Lint check: `bun run format:check && bun lint`
 - Lint fix: `bun format && bun lint`
 - Full tests: `bun run test`
@@ -106,3 +106,12 @@ When Codex is running unattended maintenance work:
 - Project config: `.codex/config.toml`
 - Environment and actions: `.codex/environments/environment.toml`
 - Reference doc: `docs/docs/builders/agentic/codex.mdx`
+
+## Scripts
+
+A script earns a place in `scripts/` only if it has a durable caller: root `package.json`, a `.github/workflows/*.yml`, `ecosystem.config.cjs` (PM2), or a Claude/Codex harness path. If a new script doesn't fit any of those, do not add it.
+
+- One-shot ops (single-deploy fixes, batch migrations, ad-hoc audits) live in `.plans/<feature>/` or get deleted after use — never in `scripts/`.
+- Every new script in `scripts/` gets a one-line entry in [`scripts/README.md`](scripts/README.md) under the right caller-bucket, in the same PR.
+- Do not create a script when a `package.json` script + an existing CLI already does the job.
+- Data files (baselines, fixtures consumed by scripts) belong in `scripts/data/`, not at the root of `scripts/`.

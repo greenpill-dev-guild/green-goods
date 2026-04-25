@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 CONTRACTS_DIR="$ROOT_DIR/packages/contracts"
 OUTPUT_DIR="$ROOT_DIR/output/contracts-test-audit"
 COVERAGE_TIMEOUT_SECONDS="${COVERAGE_TIMEOUT_SECONDS:-900}"
@@ -79,7 +79,7 @@ fi
 
 popd >/dev/null
 
-node "$ROOT_DIR/scripts/contract-coverage-policy.mjs" \
+node "$ROOT_DIR/scripts/contracts/coverage-policy.mjs" \
     --unit-lcov "$UNIT_LCOV" \
     --integration-lcov "$INTEGRATION_LCOV" \
     --summary-md "$SUMMARY_MD" \

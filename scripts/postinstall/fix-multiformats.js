@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 
 // Create multiformats/basics.js compatibility shim
 function createMultiformatsBasicsShim() {
-  const multiformatsPath = path.join(__dirname, "..", "node_modules", "multiformats");
+  const multiformatsPath = path.join(__dirname, "../..", "node_modules", "multiformats");
   const basicsShimPath = path.join(multiformatsPath, "basics.js");
   const packageJsonPath = path.join(multiformatsPath, "package.json");
 
@@ -79,7 +79,7 @@ export * from './dist/src/basics.js';
 
 // Patch uint8arrays to use correct import path
 function patchUint8arrays() {
-  const uint8arraysPath = path.join(__dirname, "..", "node_modules", "uint8arrays");
+  const uint8arraysPath = path.join(__dirname, "../..", "node_modules", "uint8arrays");
 
   if (!fs.existsSync(uint8arraysPath)) {
     console.log("⏭️  uint8arrays not found, skipping patch");
@@ -117,7 +117,7 @@ function patchUint8arrays() {
 // Patch @walletconnect/utils if needed
 function patchWalletConnect() {
   // Find all @walletconnect packages
-  const walletConnectBase = path.join(__dirname, "..", "node_modules", "@walletconnect");
+  const walletConnectBase = path.join(__dirname, "../..", "node_modules", "@walletconnect");
 
   if (!fs.existsSync(walletConnectBase)) {
     console.log("⏭️  @walletconnect not found, skipping patch");
@@ -170,7 +170,7 @@ function patchWalletConnect() {
  * - @walletconnect/utils requires uint8arrays
  */
 function fixBunCacheSymlinks() {
-  const nodeModules = path.join(__dirname, "..", "node_modules");
+  const nodeModules = path.join(__dirname, "../..", "node_modules");
   const bunCache = path.join(nodeModules, ".bun");
 
   if (!fs.existsSync(bunCache)) {
@@ -306,7 +306,7 @@ function readPackageVersion(pkgPath) {
  * .bun cache entries pinned to a different patch version.
  */
 function synchronizeBunReactRuntime() {
-  const nodeModules = path.join(__dirname, "..", "node_modules");
+  const nodeModules = path.join(__dirname, "../..", "node_modules");
   const bunCache = path.join(nodeModules, ".bun");
 
   if (!fs.existsSync(bunCache)) {
@@ -414,7 +414,7 @@ function main() {
   console.log("🔧 Applying multiformats compatibility fixes...");
 
   // Skip in CI if node_modules is cached and already patched
-  const basicsPath = path.join(__dirname, "..", "node_modules", "multiformats", "basics.js");
+  const basicsPath = path.join(__dirname, "../..", "node_modules", "multiformats", "basics.js");
   if (fs.existsSync(basicsPath) && process.env.CI) {
     console.log("✅ Multiformats already patched (found basics.js), skipping...");
     return;

@@ -14,7 +14,7 @@
 /.claude/** @greenpill-dev-guild/engineering-leads
 
 /.env* @greenpill-dev-guild/engineering-leads
-/scripts/verify-production.sh @greenpill-dev-guild/engineering-leads
+/scripts/contracts/verify-production.sh @greenpill-dev-guild/engineering-leads
 
 /packages/contracts/src/** @greenpill-dev-guild/engineering-leads
 /packages/contracts/test/** @greenpill-dev-guild/engineering-leads

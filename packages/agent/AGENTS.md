@@ -34,4 +34,4 @@ routes them through handlers, and coordinates service dependencies.
 
 - Package loop: `bun run test && bun run typecheck`
 - Security-sensitive or handler-heavy changes: `bun run test:coverage`
-- Shared impact: from repo root run `node scripts/ci-local.js --quick`
+- Shared impact: from repo root run `node scripts/dev/ci-local.js --quick`

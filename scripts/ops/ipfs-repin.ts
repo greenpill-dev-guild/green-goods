@@ -7,7 +7,7 @@ import { parseArgs } from "node:util";
 import {
   ensurePinataCidAvailability,
   loadPinataConfigFromEnv,
-} from "./lib/ipfs-hybrid";
+} from "../lib/ipfs-hybrid";
 
 const DEFAULT_GATEWAYS = ["https://greengoods.mypinata.cloud", "https://gateway.pinata.cloud", "https://ipfs.io"];
 const DEFAULT_INDEXER_URL =

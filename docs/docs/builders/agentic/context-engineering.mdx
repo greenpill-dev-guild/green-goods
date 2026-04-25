@@ -131,13 +131,13 @@ This enables context recovery after compaction or session handoff.
 
 ## Guidance Governance
 
-A consistency check script validates that guidance across all context files does not contradict:
+A Claude guidance check validates skill frontmatter, the skills registry, command aliases, command bundles, retired guidance surfaces, and a small set of forbidden guidance patterns:
 
 ```bash
-node .claude/scripts/check-guidance-consistency.js
+node .claude/scripts/check-skill-frontmatter.js
 ```
 
-This runs in CI to catch drift between `CLAUDE.md`, `AGENTS.md`, agent specs, and rules files.
+This runs in CI to catch structural drift in Claude-owned guidance surfaces. It is not a semantic proof that every guidance file agrees with every other file.
 
 ## Design Principles
 
@@ -145,7 +145,7 @@ This runs in CI to catch drift between `CLAUDE.md`, `AGENTS.md`, agent specs, an
 2. **Single source of truth** -- Each fact lives in one place, referenced from others
 3. **Machine-readable structure** -- Use frontmatter, tables, and consistent headers
 4. **Version controlled** -- All context files are committed to the repository
-5. **Testable consistency** -- CI validates that guidance files do not contradict
+5. **Testable consistency** -- CI validates that guidance registries and surface lists stay aligned
 
 <NextBestAction
   title="Next best action"

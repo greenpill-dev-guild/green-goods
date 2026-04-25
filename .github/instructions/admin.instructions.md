@@ -8,4 +8,4 @@ applyTo: "packages/admin/**,docs/docs/builders/packages/admin.mdx"
 - Prefer shared/admin primitives such as `AppBar`, `NavigationBar`, `MainSheet`, `GardenChip`, `LeftSheet`, `RightSheet`, `BottomSheet`, `DialogShell`, `ListToolbar`, `SortSelect`, `PageHeader`, and `AccountSurface` before inventing one-off wrappers.
 - Admin is an operator cockpit, not a marketing surface. Favor utility copy, one dominant workspace surface, and explicit task hierarchy over card mosaics or promo treatments.
 - Every privileged action must keep permission checks such as `useRole` or `useGardenPermissions`, and user-visible write actions should stay inside the shared toast workflow.
-- Validate admin route or view work with `cd packages/admin && bun run test && bun run build`; if shared contracts or shared hooks move, also run `node scripts/ci-local.js --quick` from the repo root.
+- Validate admin route or view work with `cd packages/admin && bun run test && bun run build`; if shared contracts or shared hooks move, also run `node scripts/dev/ci-local.js --quick` from the repo root.

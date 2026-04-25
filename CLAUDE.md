@@ -195,6 +195,22 @@ Before context compaction or ending a long session, write a `session-state.md` i
 
 This is distinct from any local project memory, which is untracked and not canonical. Session state captures execution context for the next context window.
 
+## Scripts
+
+A script earns a place in `scripts/` only if it has a durable caller:
+
+1. Wired into root `package.json` (a `bun run X` someone will type), or
+2. Called by a `.github/workflows/*.yml`, or
+3. Referenced by `ecosystem.config.cjs` (PM2), or
+4. Invoked by a Claude skill or planning harness (`.claude/**`, `.plans/_automation/**`).
+
+If a new script doesn't fit any of those, it doesn't belong here.
+
+- One-shot ops (single-deploy fixes, batch migrations, ad-hoc audits) live in `.plans/<feature>/` or get deleted after use — not in `scripts/`.
+- Every new script in `scripts/` gets a one-line entry in [`scripts/README.md`](scripts/README.md) (under the right caller-bucket), in the same PR.
+- Don't create a script when a `package.json` script + an existing CLI already does the job.
+- Data files (baselines, fixtures consumed by scripts) belong in `scripts/data/`, not at the root of `scripts/`.
+
 ## Cleanup
 
 If you create temporary files, scripts, or helpers during iteration, remove them before reporting task completion.

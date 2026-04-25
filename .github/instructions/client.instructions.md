@@ -9,4 +9,4 @@ applyTo: "packages/client/**"
 - Manage blob URLs through shared utilities such as `mediaResourceManager`; do not leave orphaned `URL.createObjectURL` values behind.
 - Prefer event-driven invalidation over polling.
 - New user-facing strings must be added to all three locale files.
-- Validate with `cd packages/client && bun run test && bun run build`; if the change reaches into shared hooks or providers, also run `node scripts/ci-local.js --quick` from the repo root.
+- Validate with `cd packages/client && bun run test && bun run build`; if the change reaches into shared hooks or providers, also run `node scripts/dev/ci-local.js --quick` from the repo root.

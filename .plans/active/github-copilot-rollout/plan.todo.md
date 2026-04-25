@@ -162,5 +162,5 @@
 - [x] Agent pilot has test, typecheck, and security-sensitive checks in the instruction surface
 - [x] Shared, contracts, and indexer each have explicit coverage or protected-path policy
 - [ ] Premium request budget and alerts are configured before rollout goes live
-- [ ] `node scripts/check-codex-consistency.js`
-- [ ] `node scripts/ci-local.js --quick` once rollout files move from plan to implementation
+- [ ] `node scripts/quality/check-codex-docs.js`
+- [ ] `node scripts/dev/ci-local.js --quick` once rollout files move from plan to implementation

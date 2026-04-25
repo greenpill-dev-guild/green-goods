@@ -175,8 +175,8 @@ To move rows out of **Proposed** / **Partial**:
 A checklist agents run once per PR catches what we remember. Automated checks catch what we forget. The combination is the whole system — manual review for judgment, CI for vigilance. Keep this table honest: every row marked **Wired** must execute without error from a clean checkout.
 
 **Implementation notes**:
-- `lint:vocab` runs `scripts/check-i18n-vocab.sh` against `packages/*/src/i18n/*.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
-- `check:design-tokens` runs `scripts/check-design-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in `theme.css` AND that `token_version` is in sync across `design/SKILL.md`, `ui/SKILL.md`, and `.claude/registry/skills.json`.
+- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
+- `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in `theme.css` AND that `token_version` is in sync across `design/SKILL.md`, `ui/SKILL.md`, and `.claude/registry/skills.json`.
 
 ---
 
