@@ -7,11 +7,27 @@
       "viewsDir": "packages/admin/src/views",
       "designSystem": "m3-strict"
     },
-    "client": {
-      "designMd": "packages/client/DESIGN.md",
+    "client-pwa": {
+      "designMd": "packages/client/DESIGN.pwa.md",
       "rootDesignMd": "DESIGN.md",
       "viewsDir": "packages/client/src/views",
-      "designSystem": "warm-earth"
+      "designSystem": "warm-earth-pwa",
+      "runtimeMode": "installed-pwa"
+    },
+    "client-browser": {
+      "designMd": "packages/client/DESIGN.browser.md",
+      "rootDesignMd": "DESIGN.md",
+      "viewsDir": "packages/client/src/views/Public",
+      "designSystem": "warm-earth-browser",
+      "runtimeMode": "browser"
+    },
+    "client": {
+      "aliasFor": "client-pwa",
+      "designMd": "packages/client/DESIGN.pwa.md",
+      "rootDesignMd": "DESIGN.md",
+      "viewsDir": "packages/client/src/views",
+      "designSystem": "warm-earth-pwa",
+      "runtimeMode": "installed-pwa"
     }
   },
   "projects": {}

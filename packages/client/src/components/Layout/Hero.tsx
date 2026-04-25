@@ -188,7 +188,7 @@ export const Hero: FC<HeroProps> = () => {
             /* Already installed - show open app button */
             <a
               href="/home"
-              className="px-6 py-4 bg-primary text-primary-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline"
+              className="px-6 py-4 bg-primary-action text-primary-action-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline"
             >
               <RiExternalLinkLine className="w-5 h-5" />
               {intl.formatMessage({
@@ -227,7 +227,7 @@ export const Hero: FC<HeroProps> = () => {
               <button
                 type="button"
                 onClick={handlePrimaryAction}
-                className="px-6 py-4 bg-primary text-primary-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+                className="px-6 py-4 bg-primary-action text-primary-action-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
               >
                 {guidance.primaryAction.type === "native-install" && (
                   <RiDownloadLine className="w-5 h-5" />

@@ -1,0 +1,86 @@
+{
+  "source": "DESIGN.md",
+  "designMdVersion": "alpha",
+  "name": "Green Goods Warm Earth Core",
+  "colors": {
+    "neutral": "#FAF8F5",
+    "neutral-dark": "#1C1917",
+    "on-tertiary": "#0B4627",
+    "on-tertiary-action": "#FFFFFF",
+    "primary": "#292524",
+    "primary-inverse": "#F5F5F4",
+    "secondary": "#78716C",
+    "secondary-inverse": "#A8A29E",
+    "tertiary": "#1FC16B",
+    "tertiary-action": "#1A7544",
+    "tertiary-action-hover": "#16643B"
+  },
+  "rounded": {
+    "full": "9999px",
+    "lg": "16px",
+    "md": "8px"
+  },
+  "spacing": {
+    "lg": "24px",
+    "md": "16px",
+    "sm": "8px"
+  },
+  "typography": {
+    "app-title": {
+      "fontFamily": "Inter",
+      "fontSize": "22px",
+      "fontWeight": 600,
+      "lineHeight": "28px"
+    },
+    "body-md": {
+      "fontFamily": "Inter",
+      "fontSize": "16px",
+      "fontWeight": 400,
+      "lineHeight": 1.5
+    },
+    "label-md": {
+      "fontFamily": "Inter",
+      "fontSize": "12px",
+      "fontWeight": 500,
+      "lineHeight": "16px"
+    }
+  },
+  "implementationAliases": [
+    {
+      "designToken": "colors.tertiary",
+      "implementation": "--color-primary, --primary-base, bg-primary, text-primary, text-primary-base",
+      "purpose": "Protected PWA accent rhythm for active nav, icons, badges, progress, filters, and highlights."
+    },
+    {
+      "designToken": "colors.on-tertiary",
+      "implementation": "--primary-accent-foreground, text-primary-accent-foreground",
+      "purpose": "Readable foreground for tiny text on bright tertiary accents; keeps the bright green background intact."
+    },
+    {
+      "designToken": "colors.tertiary-action",
+      "implementation": "--primary-action, --color-primary-action, bg-primary-action",
+      "purpose": "Contrast-safe filled text actions."
+    },
+    {
+      "designToken": "colors.tertiary-action-hover",
+      "implementation": "--primary-action-hover, bg-primary-action-hover",
+      "purpose": "Hover state for contrast-safe filled text actions."
+    },
+    {
+      "designToken": "colors.on-tertiary-action",
+      "implementation": "--primary-action-foreground, --color-primary-action-foreground, text-primary-action-foreground",
+      "purpose": "Foreground for contrast-safe filled text actions."
+    },
+    {
+      "designToken": "rounded.*",
+      "implementation": "--gg-radius-* only; no shared Tailwind rounded-* override",
+      "purpose": "Canonical radius outputs without changing existing client rounded utilities."
+    }
+  ],
+  "pwaProtection": {
+    "primaryRole": "DesignMD colors.primary is ink/charcoal and must not be mapped to --color-primary.",
+    "tertiaryRole": "DesignMD colors.tertiary is the existing bright PWA green accent implementation.",
+    "actionRole": "DesignMD colors.tertiary-action is reserved for filled text actions that need white foreground contrast.",
+    "shellFreeze": "Token generation must not change AppShell height, bottom AppBar behavior, safe-area padding, or /garden and /work/:id AppBar hiding."
+  }
+}

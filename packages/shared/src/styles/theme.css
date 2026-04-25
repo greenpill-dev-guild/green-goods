@@ -331,6 +331,10 @@
   --primary-darker: var(--green-700);
   --primary-base: var(--green-500);
   --primary-foreground: var(--neutral-0);  /* White text on dark green bg */
+  --primary-accent-foreground: var(--green-950);
+  --primary-action: var(--green-800);
+  --primary-action-hover: var(--green-900);
+  --primary-action-foreground: var(--neutral-0);
   --primary-alpha-24: var(--green-alpha-24);
   --primary-alpha-16: var(--green-alpha-16);
   --primary-alpha-10: var(--green-alpha-10);
@@ -576,6 +580,10 @@
   --primary-darker: var(--green-300);
   --primary-base: var(--green-200);  /* 194 245 218 - pale mint for maximum contrast */
   --primary-foreground: var(--green-950);  /* Dark green text on light green bg */
+  --primary-accent-foreground: var(--green-950);
+  --primary-action: var(--green-200);
+  --primary-action-hover: var(--green-100);
+  --primary-action-foreground: var(--green-950);
 
   /* Focus rings - Dark theme */
   --focus-ring: var(--blue-400);
@@ -978,6 +986,10 @@
   --color-primary-dark: rgb(var(--primary-dark));
   --color-primary-darker: rgb(var(--primary-darker));
   --color-primary-base: rgb(var(--primary-base));
+  --color-primary-accent-foreground: rgb(var(--primary-accent-foreground));
+  --color-primary-action: rgb(var(--primary-action));
+  --color-primary-action-hover: rgb(var(--primary-action-hover));
+  --color-primary-action-foreground: rgb(var(--primary-action-foreground));
   /* Alpha variants using relative color syntax */
   --color-primary-alpha-24: rgb(from rgb(var(--primary-base)) r g b / 24%);
   --color-primary-alpha-16: rgb(from rgb(var(--primary-base)) r g b / 16%);

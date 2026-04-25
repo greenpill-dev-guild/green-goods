@@ -64,8 +64,8 @@ const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
   <div className="absolute -top-1.5 -right-1.5">
     <div
       className={cn(
-        "inline-flex items-center justify-center text-xs font-semibold text-white rounded-full",
-        "min-w-[18px] h-[18px] px-1 bg-gradient-to-r from-emerald-500 to-emerald-600",
+        "inline-flex items-center justify-center text-xs font-semibold text-primary-accent-foreground rounded-full",
+        "min-w-[18px] h-[18px] px-1 bg-primary",
         "shadow-sm border-2 border-white"
       )}
     >
@@ -210,7 +210,7 @@ export const TopNav: React.FC<TopNavProps> = ({
     <div className={containerClasses} {...htmlProps}>
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-toast focus:px-4 focus:py-2 focus:bg-primary-base focus:text-white focus:rounded-lg focus:text-sm focus:font-medium"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-toast focus:px-4 focus:py-2 focus:bg-primary-action focus:text-primary-action-foreground focus:rounded-lg focus:text-sm focus:font-medium"
       >
         Skip to content
       </a>

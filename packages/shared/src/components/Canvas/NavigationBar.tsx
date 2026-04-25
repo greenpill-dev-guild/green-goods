@@ -209,12 +209,12 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         className={cn(
           "flex cursor-pointer items-center justify-center rounded-full border border-white/35",
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
-          "bg-[rgb(var(--ws-primary,var(--primary-base)))] text-[rgb(var(--ws-on-primary,255_255_255))] shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
+          "bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "transition-all hover:scale-105 hover:shadow-[0_24px_40px_rgba(15,23,42,0.28),inset_0_0_0_1px_rgba(255,255,255,0.28)]",
           mobileFloating &&
             "shadow-[0_24px_44px_rgb(var(--workspace-tint,59_130_246)/0.32),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "active:scale-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))] focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-action,var(--primary-action)))] focus-visible:ring-offset-2",
           "motion-reduce:transition-none"
         )}
       >

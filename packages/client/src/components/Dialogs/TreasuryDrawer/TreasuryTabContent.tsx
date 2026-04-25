@@ -76,7 +76,7 @@ export function TreasuryTabContent({
           <button
             type="button"
             onClick={() => refetchVaults?.()}
-            className="mt-2 rounded-lg bg-primary-base px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover active:scale-95"
+            className="mt-2 rounded-lg bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover active:scale-95"
           >
             {formatMessage({ id: "app.common.tryAgain" })}
           </button>

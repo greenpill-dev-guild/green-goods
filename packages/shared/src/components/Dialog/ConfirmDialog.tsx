@@ -210,7 +210,7 @@ export function ConfirmDialog({
 
   const variantStyles = {
     default: {
-      confirmBtn: "bg-primary hover:bg-primary/90 text-white",
+      confirmBtn: "bg-primary-action hover:bg-primary-action-hover text-primary-action-foreground",
       iconBg: "bg-primary/10",
       iconColor: "text-primary",
     },

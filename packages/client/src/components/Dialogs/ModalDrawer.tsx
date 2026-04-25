@@ -151,7 +151,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                 {tab.icon && <span className="text-base flex-shrink-0">{tab.icon}</span>}
                 <span className="truncate">{tab.label}</span>
                 {tab.count !== undefined && tab.count > 0 && (
-                  <span className="inline-flex items-center justify-center text-xs font-medium text-white bg-primary rounded-full min-w-[16px] h-4 px-1 flex-shrink-0">
+                  <span className="inline-flex items-center justify-center text-xs font-medium text-primary-accent-foreground bg-primary rounded-full min-w-[16px] h-4 px-1 flex-shrink-0">
                     {tab.count > 99 ? "99+" : tab.count}
                   </span>
                 )}

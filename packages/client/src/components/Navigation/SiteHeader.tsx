@@ -94,7 +94,7 @@ export const SiteHeader = () => {
             <button
               type="button"
               onClick={handleConnectWallet}
-              className="hidden rounded-lg bg-primary-base px-4 py-2 text-sm font-medium text-bg-white-0 transition-colors hover:bg-primary-dark md:block"
+              className="hidden rounded-lg bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover md:block"
             >
               {intl.formatMessage({
                 id: "public.nav.connectWallet",
@@ -197,7 +197,7 @@ export const SiteHeader = () => {
                   setIsDrawerOpen(false);
                   handleConnectWallet();
                 }}
-                className="w-full rounded-lg bg-primary-base px-4 py-3 text-sm font-medium text-bg-white-0 transition-colors hover:bg-primary-dark"
+                className="w-full rounded-lg bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
               >
                 {intl.formatMessage({
                   id: "public.nav.connectWallet",

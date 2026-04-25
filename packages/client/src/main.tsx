@@ -8,6 +8,7 @@ import {
   updateToasts,
   useServiceWorkerUpdate,
 } from "@green-goods/shared";
+import { registerServiceWorkerFromEnv } from "@green-goods/shared/service-worker";
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
@@ -23,28 +24,7 @@ initTheme();
 // Initialize global error handlers for PostHog exception tracking
 // This catches unhandled errors and promise rejections that escape Error Boundaries
 initGlobalErrorHandlers();
-
-// In development, ensure no stale service worker or caches make the app appear to run offline
-if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
-  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .getRegistrations()
-      .then((registrations) =>
-        Promise.all(registrations.map((registration) => registration.unregister()))
-      )
-      .catch(() => {
-        // ignore
-      });
-  }
-  if (typeof caches !== "undefined" && caches?.keys) {
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
-      .catch(() => {
-        // ignore
-      });
-  }
-}
+void registerServiceWorkerFromEnv(import.meta.env);
 
 /**
  * PWA Update Notifier Component

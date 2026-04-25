@@ -204,7 +204,7 @@ const Home: React.FC = () => {
               >
                 <RiFilterLine className="h-4 w-4" />
                 {isFilterActive && (
-                  <span className="absolute -top-1.5 -right-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-white">
+                  <span className="absolute -top-1.5 -right-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-accent-foreground">
                     {activeFilterCount}
                   </span>
                 )}

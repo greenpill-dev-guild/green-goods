@@ -83,7 +83,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
               onClose?.();
               navigate("/garden", { state: { gardenId: garden.id } });
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-medium text-sm rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-action text-primary-action-foreground font-medium text-sm rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-action/20"
           >
             <RiSeedlingFill className="w-4 h-4" />
             {intl.formatMessage({

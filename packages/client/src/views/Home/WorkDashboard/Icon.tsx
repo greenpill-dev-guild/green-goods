@@ -79,8 +79,8 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
           <div className="absolute -top-1.5 -right-1.5">
             <div
               className={cn(
-                "inline-flex items-center justify-center text-xs font-semibold text-white rounded-full min-w-[18px] h-[18px] px-1",
-                "bg-gradient-to-r from-emerald-500 to-emerald-600 shadow-sm border-2 border-white"
+                "inline-flex items-center justify-center text-xs font-semibold text-primary-accent-foreground rounded-full min-w-[18px] h-[18px] px-1",
+                "bg-primary shadow-sm border-2 border-white"
               )}
               data-testid="notification-badge"
             >

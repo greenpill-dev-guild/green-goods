@@ -24,11 +24,11 @@ export const FormProgress = ({ currentStep, steps }: FormProgressProps) => {
                 )}
               >
                 {isFutureStep ? (
-                  <RiCheckFill className="w-3 h-3 text-primary-foreground" />
+                  <RiCheckFill className="w-3 h-3 text-primary-accent-foreground" />
                 ) : (
                   <div
                     className={cn(
-                      isCurrentStep ? "text-primary-foreground" : "text-text-strong-950"
+                      isCurrentStep ? "text-primary-accent-foreground" : "text-text-strong-950"
                     )}
                   >
                     {index + 1}

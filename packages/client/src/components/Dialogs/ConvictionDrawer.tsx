@@ -151,7 +151,7 @@ function SupportInput({
             type="button"
             onClick={handleAllocate}
             disabled={disabled || isPending || !input.trim()}
-            className="min-h-11 min-w-11 rounded-md bg-primary-base px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 min-w-11 rounded-md bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition hover:bg-primary-action-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending
               ? formatMessage({ id: "app.signal.allocating" })
@@ -294,7 +294,7 @@ export function ConvictionDrawer({
                 refetchWeights?.();
                 refetchPower?.();
               }}
-              className="mt-2 rounded-lg bg-primary-base px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover active:scale-95"
+              className="mt-2 rounded-lg bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover active:scale-95"
             >
               {formatMessage({ id: "app.common.tryAgain" })}
             </button>

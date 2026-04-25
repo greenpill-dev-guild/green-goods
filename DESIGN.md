@@ -1,14 +1,97 @@
+---
+version: alpha
+name: Green Goods Warm Earth Core
+description: Core semantic tokens and reasoning for Warm Earth across admin cockpit, installed PWA, and public browser surfaces.
+colors:
+  primary: "#292524"
+  primary-inverse: "#F5F5F4"
+  secondary: "#78716C"
+  secondary-inverse: "#A8A29E"
+  tertiary: "#1FC16B"
+  on-tertiary: "#0B4627"
+  tertiary-action: "#1A7544"
+  tertiary-action-hover: "#16643B"
+  on-tertiary-action: "#FFFFFF"
+  neutral: "#FAF8F5"
+  neutral-dark: "#1C1917"
+typography:
+  body-md:
+    fontFamily: Inter
+    fontSize: 16px
+    fontWeight: 400
+    lineHeight: 1.5
+  label-md:
+    fontFamily: Inter
+    fontSize: 12px
+    fontWeight: 500
+    lineHeight: 16px
+  app-title:
+    fontFamily: Inter
+    fontSize: 22px
+    fontWeight: 600
+    lineHeight: 28px
+rounded:
+  md: 8px
+  lg: 16px
+  full: 9999px
+spacing:
+  sm: 8px
+  md: 16px
+  lg: 24px
+components:
+  surface-canvas:
+    backgroundColor: "{colors.neutral}"
+    textColor: "{colors.primary}"
+    typography: "{typography.body-md}"
+    padding: "{spacing.lg}"
+    rounded: "{rounded.lg}"
+  surface-canvas-dark:
+    backgroundColor: "{colors.neutral-dark}"
+    textColor: "{colors.primary-inverse}"
+    typography: "{typography.body-md}"
+  metadata-label:
+    textColor: "{colors.secondary}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.sm}"
+  metadata-label-dark:
+    textColor: "{colors.secondary-inverse}"
+    typography: "{typography.label-md}"
+  accent-indicator:
+    backgroundColor: "{colors.tertiary}"
+    textColor: "{colors.on-tertiary}"
+    rounded: "{rounded.full}"
+  button-primary:
+    backgroundColor: "{colors.tertiary-action}"
+    textColor: "{colors.on-tertiary-action}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.md}"
+    rounded: "{rounded.full}"
+  button-primary-hover:
+    backgroundColor: "{colors.tertiary-action-hover}"
+    textColor: "{colors.on-tertiary-action}"
+    typography: "{typography.label-md}"
+    rounded: "{rounded.full}"
+  app-title:
+    textColor: "{colors.primary}"
+    typography: "{typography.app-title}"
+    rounded: "{rounded.md}"
+---
+
 # Green Goods Design System
 
 > Creative brief for AI design tools. Paste this file (plus a surface-specific DESIGN.md) into Stitch, Figma AI, or Claude Design to produce on-brand output.
 >
-> **Usage:** `cat DESIGN.md packages/client/DESIGN.md | pbcopy` (client) or `cat DESIGN.md packages/admin/DESIGN.md | pbcopy` (admin).
+> **Usage:** pair this root file with a dialect file: `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, or `packages/client/DESIGN.browser.md`.
 >
-> **Token spec lives in** `.claude/skills/design/language.md`. This file sets atmosphere and role hierarchy; language.md is the exhaustive specification. When the two disagree, language.md wins.
+> **Token contract lives in** the YAML front matter above. Full implementation guidance lives in `.claude/skills/design/language.md`. When prose and implementation details disagree, `language.md` and `packages/shared/src/styles/theme.css` win.
 
 ## Relationship to Codebase
 
-This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming — `--color-primary` is a label that resolves to the **tertiary role (garden green, used 1-3%)**. Neither renames — this file translates between them.
+This file uses **role vocabulary** (neutral/primary/secondary/tertiary = canvas/ink/stone/accent). The codebase uses its own internal token naming — `--color-primary`, `bg-primary`, and `bg-primary-base` are historical implementation labels that resolve to the **green accent/action family**, not the DesignMD `primary` role. Neither renames — this file translates between them.
+
+Text-bearing filled CTAs use the darker `tertiary-action` role so white text passes contrast. The brighter `tertiary` garden green stays available for icons, active nav, badges, progress, soft highlights, and low-volume brand accents.
+
+Tiny text on bright `tertiary` surfaces uses `on-tertiary` so count badges and selected chips can stay visually bright without failing contrast.
 
 ---
 
@@ -69,7 +152,7 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 
 - **Shape** — *Fixed* (badges, avatars), *Capsule* (primary CTA, icon buttons), *Concentric* (nested: `child_radius = parent_radius − padding`). Shape alone creates hierarchy — capsule reads as primary next to squircle secondary.
 - **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
-- **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to `TopContextBar` only.
+- **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to the admin `AppBar` only.
 - **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Canvas recedes on sheet open (`scale(0.97) + opacity(0.85) + blur(2px)`). No dark scrims.
 - **Progressive disclosure** — Four layers: Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
 - **Hero moments** — Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.

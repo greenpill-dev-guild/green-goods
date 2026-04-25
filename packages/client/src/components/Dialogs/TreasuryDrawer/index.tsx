@@ -136,7 +136,7 @@ export function EndowmentDrawer({
           amount > (balance?.value ?? 0n) ||
           depositMutation.isPending
         }
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-base px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-60"
       >
         {depositMutation.isPending
           ? formatMessage({ id: "app.treasury.depositing" })

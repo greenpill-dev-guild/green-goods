@@ -92,7 +92,7 @@ export const AppBar = () => {
                   <InactiveIcon className="w-6 h-6" />
                 )}
                 {showBadge && (
-                  <span className="absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-bg-white-0 text-[10px] font-bold leading-none px-1">
+                  <span className="absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-primary-accent-foreground text-[10px] font-bold leading-none px-1">
                     {pendingCount > 9 ? "9+" : pendingCount}
                   </span>
                 )}

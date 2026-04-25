@@ -103,7 +103,7 @@ export default function FundPage() {
                 <button
                   type="button"
                   onClick={() => handleOpenDialog("vault", garden.id, garden.name)}
-                  className="flex-1 rounded-lg bg-primary-base px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
+                  className="flex-1 rounded-lg bg-primary-action px-3 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover active:scale-[0.98]"
                 >
                   {formatMessage({ id: "public.fund.deposit", defaultMessage: "Deposit" })}
                 </button>
@@ -126,7 +126,7 @@ export default function FundPage() {
           <button
             type="button"
             onClick={handleConnectWallet}
-            className="rounded-lg bg-primary-base px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-dark active:scale-[0.98]"
+            className="rounded-lg bg-primary-action px-6 py-3 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover active:scale-[0.98]"
           >
             {formatMessage({
               id: "public.fund.connectWallet",

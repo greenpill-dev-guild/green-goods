@@ -297,8 +297,8 @@ export function AudioRecorder({
               aria-label="Confirm recording"
               className={cn(
                 "inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-medium",
-                "bg-primary-base text-white hover:bg-primary-dark transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+                "bg-primary-action text-primary-action-foreground hover:bg-primary-action-hover transition-colors",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
               )}
             >
               <RiCheckLine className="h-4 w-4" aria-hidden="true" />

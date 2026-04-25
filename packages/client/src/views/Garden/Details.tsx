@@ -239,7 +239,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                       onClick={() => toggleMultiSelectOption(key, option)}
                       className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
                         isSelected
-                          ? "bg-primary-base text-white border-primary-base"
+                          ? "bg-primary-base text-primary-accent-foreground border-primary-base"
                           : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
                       }`}
                     >

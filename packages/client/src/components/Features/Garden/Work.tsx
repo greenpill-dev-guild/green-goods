@@ -169,7 +169,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
               <button
                 onClick={onRefresh}
                 disabled={isFetching}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-base rounded-lg hover:bg-primary-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-action-foreground bg-primary-action rounded-lg hover:bg-primary-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isFetching ? (
                   <>

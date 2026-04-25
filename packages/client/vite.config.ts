@@ -364,6 +364,10 @@ export default defineConfig(async () => {
       dedupe: ["react", "react-dom", "posthog-js"],
       alias: {
         "@": resolve(__dirname, "./src"),
+        "@green-goods/shared/service-worker": resolve(
+          __dirname,
+          "../shared/src/modules/app/service-worker-registration.ts"
+        ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),

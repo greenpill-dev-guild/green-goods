@@ -21,6 +21,7 @@
     "./mocks/browser": "./src/__mocks__/browser/index.ts",
     "./mocks/server": "./src/__mocks__/server/index.ts",
     "./modules": "./src/modules/index.ts",
+    "./service-worker": "./src/modules/app/service-worker-registration.ts",
     "./providers": "./src/providers/index.ts",
     "./stores": "./src/stores/index.ts",
     "./styles": "./src/styles/theme.css",

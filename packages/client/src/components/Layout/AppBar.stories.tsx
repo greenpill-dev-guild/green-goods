@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { MemoryRouter } from "react-router-dom";
+import { withClientAppRuntime, withInstalledPwa } from "../../../../shared/.storybook/decorators";
 import { AppBar } from "./AppBar";
 
 /**
@@ -29,7 +30,7 @@ const meta: Meta<typeof AppBar> = {
     viewport: { defaultViewport: "mobile1" },
     layout: "fullscreen",
   },
-  decorators: [withRouter(["/home"])],
+  decorators: [withInstalledPwa(), withClientAppRuntime, withRouter(["/home"])],
 };
 
 export default meta;
@@ -41,12 +42,16 @@ export const HomeActive: Story = {
   decorators: [withRouter(["/home"])],
 };
 
-export const GardenActive: Story = {
+export const HiddenOnGardenRoute: Story = {
   decorators: [withRouter(["/garden"])],
 };
 
 export const ProfileActive: Story = {
   decorators: [withRouter(["/profile"])],
+};
+
+export const HiddenOnWorkDetailRoute: Story = {
+  decorators: [withRouter(["/work/1"])],
 };
 
 export const DarkMode: Story = {

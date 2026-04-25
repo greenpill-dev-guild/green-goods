@@ -63,7 +63,7 @@ export default function GardenDetail() {
       <div className="mt-6">
         <Link
           to={`/home/${garden.id}`}
-          className="rounded-lg bg-primary-base px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-dark active:scale-95"
+          className="rounded-lg bg-primary-action px-6 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover active:scale-95"
         >
           {formatMessage({
             id: "public.gardens.join",
