@@ -28,6 +28,18 @@ export const router = createRouter([
         element: <LoginRedirect />,
       },
       {
+        path: "gardens",
+        lazy: async () => ({
+          Component: (await import("@/routes/PublicGardenRedirect")).default,
+        }),
+      },
+      {
+        path: "gardens/:gardenId",
+        lazy: async () => ({
+          Component: (await import("@/routes/PublicGardenRedirect")).default,
+        }),
+      },
+      {
         // Home — explicit terminal states (spinner / redirect / no-access /
         // connect prompt). Lives outside CanvasShell because none of those
         // states need the hub chrome; IndexRoute provides its own visual shell.

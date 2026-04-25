@@ -8,9 +8,10 @@ import {
   useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
+  useGardenStateStore,
   useSheetWidth,
 } from "@green-goods/shared";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -18,6 +19,12 @@ import {
   type AdminWorkspaceSectionTab,
 } from "@/routes/workspaceNavigation";
 import { buildGardenFabConfig, resolveGardenView } from "./garden.utils";
+
+type ActivityFilter = "all" | "work" | "impact" | "community";
+
+function parseActivityFilter(value: string): ActivityFilter {
+  return value === "work" || value === "impact" || value === "community" ? value : "all";
+}
 
 export function useGardenWorkspaceController() {
   const { formatMessage } = useIntl();
@@ -27,14 +34,34 @@ export function useGardenWorkspaceController() {
   const { searchParams, updateSearch } = useCanvasSearchParams();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const { containerRef } = useSheetWidth();
-  const [activityFilter, setActivityFilter] = useState<"all" | "work" | "impact" | "community">(
-    "all"
-  );
+  const gardenStateKey = selectedGarden?.id ?? "";
+  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
+  const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
+  const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
+  const [activityFilter, setActivityFilterState] = useState<ActivityFilter>("all");
 
   const view = resolveGardenView(location.pathname);
   const range = parseGardenRange(searchParams.get("range"));
   const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
+
+  useEffect(() => {
+    if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
+
+    const persistedState = getGardenWorkspaceState(gardenStateKey, "garden");
+    setActivityFilterState(parseActivityFilter(persistedState.filter));
+    lastHydratedGardenStateKeyRef.current = gardenStateKey;
+  }, [gardenStateKey, getGardenWorkspaceState]);
+
+  useEffect(() => {
+    if (!selectedGarden) return;
+
+    setGardenWorkspaceState(gardenStateKey, "garden", {
+      activeMode: view,
+      filter: activityFilter,
+    });
+  }, [activityFilter, gardenStateKey, selectedGarden, setGardenWorkspaceState, view]);
 
   const {
     garden,
@@ -65,9 +92,16 @@ export function useGardenWorkspaceController() {
   const openSection = useCallback(
     (tab: AdminWorkspaceSectionTab, nextSection: string, itemId?: string) => {
       if (!selectedGarden) return;
-      navigate(resolveAdminWorkspaceSectionRoute({ tab, section: nextSection, itemId }));
+      navigate(
+        resolveAdminWorkspaceSectionRoute({
+          tab,
+          section: nextSection,
+          itemId,
+          gardenAddress: selectedGardenAddress,
+        })
+      );
     },
-    [navigate, selectedGarden]
+    [navigate, selectedGarden, selectedGardenAddress]
   );
 
   const derived = useGardenDerivedState({
@@ -94,23 +128,28 @@ export function useGardenWorkspaceController() {
       if (event.category === "work") {
         return {
           ...event,
-          href: event.itemId ? adminRoutes.hubWorkDetail(event.itemId) : adminRoutes.hubWork(),
+          href: event.itemId
+            ? adminRoutes.hubWorkDetail(event.itemId, { gardenAddress: selectedGardenAddress })
+            : adminRoutes.hubWork({ gardenAddress: selectedGardenAddress }),
         };
       }
 
       if (event.category === "impact") {
         return {
           ...event,
-          href: adminRoutes.gardenImpact({ item: event.itemId }),
+          href: adminRoutes.gardenImpact({
+            gardenAddress: selectedGardenAddress,
+            item: event.itemId,
+          }),
         };
       }
 
       return {
         ...event,
-        href: adminRoutes.communityTreasury(),
+        href: adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress }),
       };
     });
-  }, [derived.filteredActivityEvents, selectedGarden]);
+  }, [derived.filteredActivityEvents, selectedGarden, selectedGardenAddress]);
 
   const clearSection = useCallback(
     () => updateSearch({ section: undefined, item: undefined }, false),
@@ -148,22 +187,31 @@ export function useGardenWorkspaceController() {
     (nextView: string) => {
       navigate(
         nextView === "impact"
-          ? adminRoutes.gardenImpact({ range })
+          ? adminRoutes.gardenImpact({ gardenAddress: selectedGardenAddress, range })
           : nextView === "settings"
-            ? adminRoutes.gardenSettings()
-            : adminRoutes.gardenOverview({ range })
+            ? adminRoutes.gardenSettings({ gardenAddress: selectedGardenAddress })
+            : adminRoutes.gardenOverview({ gardenAddress: selectedGardenAddress, range })
       );
     },
-    [navigate, range]
+    [navigate, range, selectedGardenAddress]
   );
 
   const hypercertSheetCloseTo = useMemo(
     () =>
       adminRoutes.gardenImpact({
+        gardenAddress: selectedGardenAddress,
         range,
         section: section ?? "hypercerts",
       }),
-    [range, section]
+    [range, section, selectedGardenAddress]
+  );
+
+  const setActivityFilter = useCallback(
+    (nextActivityFilter: ActivityFilter) => {
+      setActivityFilterState(nextActivityFilter);
+      setGardenWorkspaceState(gardenStateKey, "garden", { filter: nextActivityFilter });
+    },
+    [gardenStateKey, setGardenWorkspaceState]
   );
 
   return {

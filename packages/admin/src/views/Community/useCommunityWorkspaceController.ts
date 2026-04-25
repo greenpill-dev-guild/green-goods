@@ -5,9 +5,10 @@ import {
   useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
+  useGardenStateStore,
   useSheetWidth,
 } from "@green-goods/shared";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -52,12 +53,34 @@ export function useCommunityWorkspaceController() {
     onAutoSelectGarden: handleAutoSelectGarden,
   });
   const { containerRef } = useSheetWidth();
-  const [memberSearch, setMemberSearch] = useState("");
+  const gardenStateKey = selectedGarden?.id ?? "";
+  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
+  const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
+  const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
+  const [memberSearch, setMemberSearchState] = useState("");
 
   const mode = resolveCommunityMode(location.pathname);
   const isVaultRoute = location.pathname.startsWith("/community/treasury/vault");
   const isStrategiesRoute = location.pathname.startsWith("/community/governance/strategies");
   const isSignalPoolRoute = location.pathname.startsWith("/community/governance/signal-pool/");
+
+  useEffect(() => {
+    if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
+
+    const persistedState = getGardenWorkspaceState(gardenStateKey, "community");
+    setMemberSearchState(persistedState.search);
+    lastHydratedGardenStateKeyRef.current = gardenStateKey;
+  }, [gardenStateKey, getGardenWorkspaceState]);
+
+  useEffect(() => {
+    if (!selectedGarden) return;
+
+    setGardenWorkspaceState(gardenStateKey, "community", {
+      activeMode: mode,
+      search: memberSearch,
+    });
+  }, [gardenStateKey, memberSearch, mode, selectedGarden, setGardenWorkspaceState]);
 
   const {
     garden,
@@ -93,9 +116,16 @@ export function useCommunityWorkspaceController() {
   const openSection = useCallback(
     (tab: AdminWorkspaceSectionTab, section: string, itemId?: string) => {
       if (!selectedGarden) return;
-      navigate(resolveAdminWorkspaceSectionRoute({ tab, section, itemId }));
+      navigate(
+        resolveAdminWorkspaceSectionRoute({
+          tab,
+          section,
+          itemId,
+          gardenAddress: selectedGardenAddress,
+        })
+      );
     },
-    [navigate, selectedGarden]
+    [navigate, selectedGarden, selectedGardenAddress]
   );
 
   const section = communitySectionForMode(mode);
@@ -120,21 +150,35 @@ export function useCommunityWorkspaceController() {
     (nextMode: string) =>
       navigate(
         nextMode === "governance"
-          ? adminRoutes.communityGovernance()
+          ? adminRoutes.communityGovernance({ gardenAddress: selectedGardenAddress })
           : nextMode === "payouts"
-            ? adminRoutes.communityPayouts()
+            ? adminRoutes.communityPayouts({ gardenAddress: selectedGardenAddress })
             : nextMode === "members"
-              ? adminRoutes.communityMembers()
-              : adminRoutes.communityTreasury()
+              ? adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })
+              : adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })
       ),
-    [navigate]
+    [navigate, selectedGardenAddress]
   );
 
-  const clearSection = useCallback(() => navigate(adminRoutes.communityTreasury()), [navigate]);
-  const openMembersModal = useCallback(() => navigate(adminRoutes.communityMembers()), [navigate]);
+  const clearSection = useCallback(
+    () => navigate(adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })),
+    [navigate, selectedGardenAddress]
+  );
+  const openMembersModal = useCallback(
+    () => navigate(adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })),
+    [navigate, selectedGardenAddress]
+  );
   const createPoolsAsync = useCallback(async () => {
     createPools();
   }, [createPools]);
+
+  const setMemberSearch = useCallback(
+    (nextMemberSearch: string) => {
+      setMemberSearchState(nextMemberSearch);
+      setGardenWorkspaceState(gardenStateKey, "community", { search: nextMemberSearch });
+    },
+    [gardenStateKey, setGardenWorkspaceState]
+  );
 
   return {
     allocations,

@@ -18,6 +18,12 @@ import { OPEN_ACCOUNT_SHEET_EVENT } from "@/components/Layout/accountSheet.event
 
 const mockNavigate = vi.fn();
 const mockSetSelectedGarden = vi.fn();
+const mockEligibleGardens = vi.hoisted(() => ({
+  current: [
+    { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
+    { id: "garden-2", name: "Solar Orchard", location: "Lima", tokenAddress: "0xBBB" },
+  ],
+}));
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
@@ -41,11 +47,13 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ) => selector({ selectedGarden: null, setSelectedGarden: mockSetSelectedGarden }),
     useActions: () => ({ data: [] }),
     useAllAssessments: () => ({ data: [] }),
-    useGardens: () => ({
-      data: [
-        { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
-        { id: "garden-2", name: "Solar Orchard", location: "Lima", tokenAddress: "0xBBB" },
-      ],
+    useEligibleAdminGardens: () => ({
+      eligibleGardens: mockEligibleGardens.current,
+      resolvedDefaultGarden: mockEligibleGardens.current[0] ?? null,
+      persistedGardenId: null,
+      scopeKey: "0x123:11155111",
+      canCreateGarden: true,
+      isLoaded: true,
     }),
     useRole: () => ({ role: "deployer" as const }),
   };
@@ -58,6 +66,10 @@ import { CommandPalette } from "@/components/Layout/CommandPalette";
 describe("CommandPalette Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEligibleGardens.current = [
+      { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
+      { id: "garden-2", name: "Solar Orchard", location: "Lima", tokenAddress: "0xBBB" },
+    ];
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -254,7 +266,25 @@ describe("CommandPalette Routes", () => {
     expect(mockSetSelectedGarden).toHaveBeenCalledWith(
       expect.objectContaining({ id: "garden-1", tokenAddress: "0xAAA" })
     );
-    expect(mockNavigate).toHaveBeenCalledWith("/garden/overview");
+    expect(mockNavigate).toHaveBeenCalledWith("/garden/overview?gardenAddress=0xAAA");
+  });
+
+  it("does not expose gardens outside the eligible admin set", async () => {
+    mockEligibleGardens.current = [
+      { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
+    ];
+
+    renderWithProviders(
+      <MemoryRouter>
+        <CommandPalette open={true} />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Chakra Farm")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Solar Orchard")).not.toBeInTheDocument();
   });
 
   it("Cmd+K toggles palette open/closed", async () => {

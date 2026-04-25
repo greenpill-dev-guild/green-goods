@@ -680,6 +680,8 @@ export {
   useCreateGardenStore,
   type GardenState,
   type GardenStateStore,
+  type GardenWorkspaceKey,
+  type GardenWorkspaceState,
   ALL_GARDENS_KEY,
   useGardenStateStore,
   useHypercertWizardStore,

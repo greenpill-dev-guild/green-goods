@@ -1,4 +1,5 @@
 import {
+  type AdminHubRouteContext,
   adminRoutes,
   formatRelativeTime,
   type SortOption,
@@ -9,6 +10,7 @@ import {
   useGardenDerivedState,
   useGardenDetailData,
   useGardenPermissions,
+  useGardenStateStore,
   useMediaQuery,
   useSheetOrchestrator,
 } from "@green-goods/shared";
@@ -59,6 +61,10 @@ export function useHubWorkbenchController() {
   const { activeSheet, activeContentId, closeSheet, openSheet } = useSheetOrchestrator();
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const gardenPermissions = useGardenPermissions();
+  const gardenStateKey = selectedGarden?.id ?? "";
+  const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
+  const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
+  const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [lastRefreshAt, setLastRefreshAt] = useState(() => Date.now());
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -68,6 +74,22 @@ export function useHubWorkbenchController() {
   const sortDirection = parseSortDirection(searchParams.get("sort"));
   const isSubmitRoute = location.pathname.endsWith("/work/submit");
   const isDesktop = useMediaQuery("(min-width: 600px)");
+  const hubContext = useMemo<AdminHubRouteContext>(
+    () => ({
+      gardenAddress: selectedGarden?.tokenAddress ?? selectedGarden?.id,
+      sort: sortDirection,
+    }),
+    [selectedGarden?.id, selectedGarden?.tokenAddress, sortDirection]
+  );
+
+  useEffect(() => {
+    if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
+
+    const persistedState = getGardenWorkspaceState(gardenStateKey, "hub");
+    setSearchTerm(persistedState.search);
+    setDebouncedSearch(persistedState.search);
+    lastHydratedGardenStateKeyRef.current = gardenStateKey;
+  }, [gardenStateKey, getGardenWorkspaceState]);
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
@@ -141,15 +163,24 @@ export function useHubWorkbenchController() {
   useEffect(() => {
     if (!selectedGarden) return;
     if (requestedStage === stage) return;
-    navigate(adminRoutes.hubMode(stage, { sort: sortDirection }), { replace: true });
-  }, [navigate, requestedStage, selectedGarden, sortDirection, stage]);
+    navigate(adminRoutes.hubMode(stage, hubContext), { replace: true });
+  }, [hubContext, navigate, requestedStage, selectedGarden, stage]);
+
+  useEffect(() => {
+    if (!selectedGarden) return;
+
+    setGardenWorkspaceState(gardenStateKey, "hub", {
+      activeMode: stage,
+      filter: sortDirection,
+    });
+  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState, sortDirection, stage]);
 
   const openSection = useCallback(
     (tab: "overview" | "impact" | "work" | "community", section: string, itemId?: string) => {
       if (!selectedGarden) return;
-      navigate(resolveOpenSectionRoute(tab, section, sortDirection, itemId));
+      navigate(resolveOpenSectionRoute(tab, section, sortDirection, itemId, hubContext));
     },
-    [navigate, selectedGarden, sortDirection]
+    [hubContext, navigate, selectedGarden, sortDirection]
   );
 
   const derived = useGardenDerivedState({
@@ -272,13 +303,6 @@ export function useHubWorkbenchController() {
     }
   }, [activeContentId, activeSheet, closeSheet, openSheet, routeSheetContentId, routeSheetSide]);
 
-  const hubContext = useMemo(
-    () => ({
-      sort: sortDirection,
-    }),
-    [sortDirection]
-  );
-
   const navigateToHubBase = useCallback(() => {
     navigate(adminRoutes.hubMode(stage, hubContext));
   }, [hubContext, navigate, stage]);
@@ -384,18 +408,28 @@ export function useHubWorkbenchController() {
   const handleClearSearch = useCallback(() => {
     setSearchTerm("");
     setDebouncedSearch("");
-  }, []);
+    setGardenWorkspaceState(gardenStateKey, "hub", { search: "" });
+  }, [gardenStateKey, setGardenWorkspaceState]);
+
+  const handleSearchTermChange = useCallback(
+    (nextSearchTerm: string) => {
+      setSearchTerm(nextSearchTerm);
+      setGardenWorkspaceState(gardenStateKey, "hub", { search: nextSearchTerm });
+    },
+    [gardenStateKey, setGardenWorkspaceState]
+  );
 
   const handleStageChange = useCallback(
     (nextStage: string) => {
       closeSheet();
       navigate(
         adminRoutes.hubMode(nextStage as HubPipelineStage, {
+          gardenAddress: hubContext.gardenAddress,
           sort: nextStage === "work" || nextStage === "history" ? sortDirection : undefined,
         })
       );
     },
-    [closeSheet, navigate, sortDirection]
+    [closeSheet, hubContext.gardenAddress, navigate, sortDirection]
   );
 
   return {
@@ -434,7 +468,7 @@ export function useHubWorkbenchController() {
     selectedGarden,
     selectedHistoryEvent,
     selectedWork,
-    setSearchTerm,
+    setSearchTerm: handleSearchTermChange,
     sortDirection,
     sortOptions,
     stage,

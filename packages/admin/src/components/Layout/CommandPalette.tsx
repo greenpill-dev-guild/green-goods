@@ -5,9 +5,8 @@ import {
   useActions,
   useAdminStore,
   useAllAssessments,
-  useGardens,
+  useEligibleAdminGardens,
   useRole,
-  type UserRole,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -20,53 +19,13 @@ import {
   RiHammerFill,
   RiPlantLine,
   RiSearchLine,
-  RiSettings3Line,
-  RiUserLine,
 } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { ADMIN_COMMAND_ROUTES } from "@/routes/views";
 import { dispatchOpenAccountSheet } from "./accountSheet.events";
-
-interface SearchResult {
-  id: string;
-  label: string;
-  href?: string;
-  onSelect?: () => void;
-  actionId?: "open-profile-sheet" | "open-settings-sheet";
-  icon?: React.ComponentType<{ className?: string }>;
-  category: "quick-actions" | "pages" | "gardens" | "actions" | "assessments";
-  subtitle?: string;
-  /** Match score — higher is a better fuzzy match. Used for ranking. */
-  score?: number;
-}
-
-/**
- * Lightweight subsequence-based fuzzy match.
- * Returns a positive score when all query chars appear in order in text,
- * biased toward consecutive matches and matches near the start.
- * Returns 0 when the query doesn't match.
- */
-function fuzzyScore(query: string, text: string): number {
-  if (!query) return 1;
-  const q = query.toLowerCase();
-  const t = text.toLowerCase();
-  let score = 0;
-  let qi = 0;
-  let lastMatchIdx = -1;
-  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
-    if (t[ti] === q[qi]) {
-      // Consecutive match bonus; proximity-to-start bonus
-      const consecutive = lastMatchIdx === ti - 1 ? 5 : 0;
-      const head = ti < 4 ? 3 - ti : 0;
-      score += 1 + consecutive + head;
-      lastMatchIdx = ti;
-      qi++;
-    }
-  }
-  return qi === q.length ? score : 0;
-}
+import { buildCommandPaletteResults, type SearchResult } from "./commandPalette.results";
 
 interface CommandPaletteProps {
   open?: boolean;
@@ -115,7 +74,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
 
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
-  const { data: gardens } = useGardens();
+  const { eligibleGardens } = useEligibleAdminGardens();
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
@@ -140,7 +99,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
       if (activeEl && /^(INPUT|TEXTAREA|SELECT)$/.test(activeEl.tagName)) return;
       if (activeEl?.isContentEditable) return;
 
-      const target = gardens?.[digit - 1];
+      const target = eligibleGardens[digit - 1];
       if (!target) return;
       e.preventDefault();
       setSelectedGarden(target);
@@ -148,165 +107,23 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [gardens, open, setOpen, setSelectedGarden]);
+  }, [eligibleGardens, open, setOpen, setSelectedGarden]);
 
   // Build filtered results using debounced query (fuzzy subsequence match)
-  const results = useMemo(() => {
-    const rawQuery = debouncedQuery.trim();
-    const hasQuery = rawQuery.length > 0;
-    const items: SearchResult[] = [];
-
-    const pushIfMatches = (item: Omit<SearchResult, "score">, haystacks: string[]) => {
-      if (!hasQuery) {
-        items.push(item);
-        return;
-      }
-      const score = haystacks.reduce((max, hay) => Math.max(max, fuzzyScore(rawQuery, hay)), 0);
-      if (score > 0) items.push({ ...item, score });
-    };
-
-    // Quick actions (role-gated)
-    const quickActions: Array<{
-      id: string;
-      label: string;
-      href?: string;
-      actionId?: SearchResult["actionId"];
-      icon?: React.ComponentType<{ className?: string }>;
-      roles: UserRole[];
-    }> = [
-      {
-        id: "quick-pending-reviews",
-        label: formatMessage({
-          id: "app.admin.nav.quickAction.pendingReviews",
-          defaultMessage: "Go to Pending Reviews",
-        }),
-        href: adminRoutes.hubWork(),
-        roles: ["deployer", "operator"],
-      },
-      {
-        id: "quick-create-garden",
-        label: formatMessage({
-          id: "app.admin.nav.quickAction.createGarden",
-          defaultMessage: "Create Garden",
-        }),
-        href: adminRoutes.gardenCreate(),
-        roles: ["deployer"],
-      },
-      {
-        id: "open-profile-sheet",
-        label: formatMessage({
-          id: "cockpit.nav.profile",
-          defaultMessage: "Profile",
-        }),
-        actionId: "open-profile-sheet",
-        icon: RiUserLine,
-        roles: ["deployer", "operator", "user"],
-      },
-      {
-        id: "open-settings-sheet",
-        label: formatMessage({
-          id: "cockpit.settings.title",
-          defaultMessage: "Settings",
-        }),
-        actionId: "open-settings-sheet",
-        icon: RiSettings3Line,
-        roles: ["deployer", "operator", "user"],
-      },
-    ];
-
-    for (const qa of quickActions) {
-      if (!qa.roles.includes(role)) continue;
-      pushIfMatches(
-        {
-          id: qa.id,
-          label: qa.label,
-          href: qa.href,
-          actionId: qa.actionId,
-          icon: qa.icon,
-          category: "quick-actions",
-        },
-        [qa.label]
-      );
-    }
-
-    // Static pages
-    for (const route of STATIC_ROUTES) {
-      const label = formatMessage({ id: route.labelId, defaultMessage: route.defaultLabel });
-      pushIfMatches({ id: route.id, label, href: route.href, category: "pages" }, [label]);
-    }
-
-    // Gardens
-    if (gardens) {
-      for (const garden of gardens) {
-        pushIfMatches(
-          {
-            id: `garden-${garden.id}`,
-            label: garden.name,
-            href: adminRoutes.garden(),
-            onSelect: () => setSelectedGarden(garden),
-            category: "gardens",
-            subtitle: garden.location || undefined,
-          },
-          [garden.name, garden.location ?? ""]
-        );
-      }
-    }
-
-    // Actions
-    if (actions) {
-      for (const action of actions) {
-        pushIfMatches(
-          {
-            id: `action-${action.id}`,
-            label: action.title,
-            href: adminRoutes.actionDetail(action.id),
-            category: "actions",
-            subtitle: action.startTime
-              ? new Date(action.startTime * 1000).toLocaleDateString()
-              : undefined,
-          },
-          [action.title]
-        );
-      }
-    }
-
-    // Assessments
-    if (assessments) {
-      for (const assessment of assessments) {
-        const title = assessment.title || `Assessment ${assessment.id.slice(0, 8)}`;
-        const matchedGarden = gardens?.find(
-          (g) => g.tokenAddress.toLowerCase() === assessment.gardenAddress.toLowerCase()
-        );
-        const gardenName = matchedGarden?.name;
-        pushIfMatches(
-          {
-            id: `assessment-${assessment.id}`,
-            label: title,
-            href: matchedGarden
-              ? adminRoutes.share(adminRoutes.gardenImpact(), matchedGarden.tokenAddress, {
-                  section: "assessments",
-                  item: assessment.id,
-                })
-              : adminRoutes.gardenImpact({
-                  section: "assessments",
-                  item: assessment.id,
-                }),
-            onSelect: matchedGarden ? () => setSelectedGarden(matchedGarden) : undefined,
-            category: "assessments",
-            subtitle: gardenName ? gardenName : `Garden ${assessment.gardenAddress.slice(0, 8)}...`,
-          },
-          [title, gardenName ?? ""]
-        );
-      }
-    }
-
-    // Rank by score when a query is active; preserve insertion order otherwise
-    if (hasQuery) {
-      items.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-    }
-
-    return items;
-  }, [actions, assessments, debouncedQuery, formatMessage, gardens, role, setSelectedGarden]);
+  const results = useMemo(
+    () =>
+      buildCommandPaletteResults({
+        query: debouncedQuery,
+        role,
+        formatMessage,
+        staticRoutes: STATIC_ROUTES,
+        eligibleGardens,
+        actions: actions ?? [],
+        assessments: assessments ?? [],
+        selectGarden: setSelectedGarden,
+      }),
+    [actions, assessments, debouncedQuery, eligibleGardens, formatMessage, role, setSelectedGarden]
+  );
 
   // Group results by category
   const grouped = useMemo(() => {

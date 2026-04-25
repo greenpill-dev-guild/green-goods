@@ -29,6 +29,7 @@ describe("stores/useGardenStateStore", () => {
       selectedItem: null,
       scrollPosition: 0,
       sheetOpen: false,
+      workspaces: {},
     });
   });
 
@@ -68,6 +69,42 @@ describe("stores/useGardenStateStore", () => {
     const parsed = JSON.parse(raw!);
     expect(parsed.state.gardenStates["garden-persist"].activeTab).toBe("garden");
     expect(parsed.state.gardenStates["garden-persist"].selectedItem).toBe("item-42");
+  });
+
+  it("persists non-shareable workspace state per garden and workspace", () => {
+    const store = useGardenStateStore.getState();
+
+    store.setGardenWorkspaceState("garden-a", "hub", {
+      activeMode: "history",
+      search: "mulch",
+    });
+    store.setGardenWorkspaceState("garden-a", "community", {
+      activeMode: "members",
+      search: "alex",
+    });
+    store.setGardenWorkspaceState("garden-b", "hub", {
+      activeMode: "work",
+      search: "solar",
+    });
+
+    expect(useGardenStateStore.getState().getGardenWorkspaceState("garden-a", "hub")).toMatchObject(
+      {
+        activeMode: "history",
+        search: "mulch",
+      }
+    );
+    expect(
+      useGardenStateStore.getState().getGardenWorkspaceState("garden-a", "community")
+    ).toMatchObject({
+      activeMode: "members",
+      search: "alex",
+    });
+    expect(useGardenStateStore.getState().getGardenWorkspaceState("garden-b", "hub")).toMatchObject(
+      {
+        activeMode: "work",
+        search: "solar",
+      }
+    );
   });
 
   it("'__all__' key stores All Gardens mode state", () => {
@@ -125,6 +162,7 @@ describe("stores/useGardenStateStore", () => {
       selectedItem: null,
       scrollPosition: 0,
       sheetOpen: false,
+      workspaces: {},
     });
   });
 });

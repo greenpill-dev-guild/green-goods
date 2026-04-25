@@ -111,7 +111,6 @@ export default defineConfig({
     setupFiles: ["./src/__tests__/setup.ts"],
     exclude: [
       "**/node_modules/**",
-      "src/__tests__/workflows/unauthorized-actions.test.tsx",
       "src/__tests__/components/WithdrawModal.test.tsx",
     ],
     coverage: {

@@ -7,7 +7,7 @@
     "predev": "lsof -t -iTCP:3002 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
     "dev": "cd ../.. && APP_ENV=development bun --bun vite --config packages/admin/vite.config.ts",
     "test": "APP_ENV=test vitest run --exclude \"src/__tests__/views/**\" --exclude \"src/__tests__/components/assessment/StrategyKernelStep.test.tsx\"",
-    "test:hub": "APP_ENV=test vitest run src/__tests__/routing/command-palette-routes.test.tsx src/__tests__/routing/route-folding.test.ts src/__tests__/routing/toolbar-visibility.test.tsx src/__tests__/workspace-state.test.tsx src/__tests__/components/CanvasLayout.test.tsx src/__tests__/components/mobile-nav.test.tsx src/__tests__/components/empty-state.test.tsx src/__tests__/views/HubDetail.test.tsx",
+    "test:hub": "APP_ENV=test vitest run src/__tests__/routing/command-palette-routes.test.tsx src/__tests__/routing/public-garden-redirect.test.ts src/__tests__/routing/route-folding.test.ts src/__tests__/routing/toolbar-visibility.test.tsx src/__tests__/workspace-state.test.tsx src/__tests__/components/CanvasLayout.test.tsx src/__tests__/components/mobile-nav.test.tsx src/__tests__/components/empty-state.test.tsx src/__tests__/views/HubDetail.test.tsx",
     "test:legacy": "APP_ENV=test vitest run src/__tests__/views/HubDetail.test.tsx src/__tests__/views/GardenVaultView.test.tsx src/__tests__/views/Actions/GreenWillPanel.test.tsx",
     "test:all": "bun run test && bun run test:legacy",
     "test:watch": "APP_ENV=test vitest --standalone",

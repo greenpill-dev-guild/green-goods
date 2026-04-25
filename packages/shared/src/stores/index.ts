@@ -43,7 +43,12 @@ export { type UIState, useUIStore } from "./useUIStore";
 export type { WorkDraftState, WorkFlowState } from "./useWorkFlowStore";
 export { useWorkFlowStore } from "./useWorkFlowStore";
 // Garden State Store (per-garden UI state — Phase 2)
-export type { GardenState, GardenStateStore } from "./useGardenStateStore";
+export type {
+  GardenState,
+  GardenStateStore,
+  GardenWorkspaceKey,
+  GardenWorkspaceState,
+} from "./useGardenStateStore";
 export {
   ALL_GARDENS_KEY,
   GARDEN_STATE_STORAGE_KEY,

@@ -5,7 +5,11 @@ import {
   RiFileList3Line,
   RiMedalLine,
 } from "@remixicon/react";
-import { adminRoutes, type useGardenDerivedState } from "@green-goods/shared";
+import {
+  type AdminHubRouteContext,
+  adminRoutes,
+  type useGardenDerivedState,
+} from "@green-goods/shared";
 import { resolveAdminWorkspaceSectionRoute } from "@/routes/workspaceNavigation";
 
 // ============================================================================
@@ -165,13 +169,15 @@ export function resolveOpenSectionRoute(
   tab: "overview" | "impact" | "work" | "community",
   section: string,
   sortDirection: SortDirection,
-  itemId?: string
+  itemId?: string,
+  hubContext?: AdminHubRouteContext
 ): string {
   return resolveAdminWorkspaceSectionRoute({
     tab,
     section,
     itemId,
     hubSort: sortDirection,
+    gardenAddress: hubContext?.gardenAddress,
   });
 }
 
@@ -184,7 +190,7 @@ export function buildHubFabConfig(
   canManage: boolean,
   canReview: boolean,
   navigate: (path: string) => void,
-  hubContext: { sort: SortDirection }
+  hubContext: AdminHubRouteContext
 ) {
   if (stage === "work" && canManage) {
     return {
@@ -217,7 +223,7 @@ export function buildHubFabConfig(
         },
       ],
       onAction: (actionId: string) => {
-        if (actionId === "create-assessment") navigate(adminRoutes.hubAssessCreate());
+        if (actionId === "create-assessment") navigate(adminRoutes.hubAssessCreate(hubContext));
       },
     };
   }
@@ -235,7 +241,7 @@ export function buildHubFabConfig(
         },
       ],
       onAction: (actionId: string) => {
-        if (actionId === "mint-hypercert") navigate(adminRoutes.hubCertifyCreate());
+        if (actionId === "mint-hypercert") navigate(adminRoutes.hubCertifyCreate(hubContext));
       },
     };
   }

@@ -3,6 +3,18 @@
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/gardens",
+      "destination": "https://greengoods.app/gardens",
+      "permanent": true
+    },
+    {
+      "source": "/gardens/:gardenId",
+      "destination": "https://greengoods.app/gardens/:gardenId",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
