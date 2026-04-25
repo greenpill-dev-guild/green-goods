@@ -28,7 +28,7 @@ export function AdminLinearProgress({ value, ariaLabel, className }: AdminLinear
           "h-full bg-[rgb(var(--m3-primary))]",
           isIndeterminate
             ? "w-1/3 animate-[m3-indeterminate_2s_linear_infinite]"
-            : "transition-[width] duration-200"
+            : "transition-[width] duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]"
         )}
         style={isIndeterminate ? undefined : { width: `${clamped}%` }}
       />

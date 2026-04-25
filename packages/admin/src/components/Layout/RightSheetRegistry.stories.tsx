@@ -2,10 +2,12 @@ import { RightSheet } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
+import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
   withCanvasFrame,
   withRouter,
+  withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
 import {
   NOTIFICATIONS_SHEET_CONTENT_ID,
@@ -107,6 +109,7 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
 
 const meta: Meta<typeof RightSheetRegistryHarness> = {
   title: "Admin/Shell/RightSheetRegistry",
+  // storybook-quality-allow state-harness: owns open state while exercising the real descriptor hook and RightSheet.
   component: RightSheetRegistryHarness,
   tags: ["autodocs", "storybook-ci"],
   parameters: {
@@ -120,6 +123,7 @@ const meta: Meta<typeof RightSheetRegistryHarness> = {
   },
   decorators: [
     withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     withRouter(["/hub"]),
     withCanvasFrame({
       className: "admin-m3 workspace-canvas-grid",

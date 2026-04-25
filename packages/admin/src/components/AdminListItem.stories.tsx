@@ -1,16 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { RiArrowRightSLine, RiLeafLine, RiUserLine } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
+import type { ReactNode } from "react";
+import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminListItem } from "./AdminListItem";
 
 const meta: Meta<typeof AdminListItem> = {
   title: "Admin/Primitives/AdminListItem",
   component: AdminListItem,
   tags: ["autodocs"],
+  decorators: [withAdminPrimitiveFrame],
   parameters: {
     docs: {
       description: {
         component:
-          "M3 List Item with auto-detected line count. 1-line (56dp) is label only, 2-line (72dp) adds supportingText, 3-line (88dp) adds overline or long supporting text. Renders as <button> when onClick is provided.",
+          "M3 list item with 1-line, 2-line, and 3-line heights. Renders as a button when an action is provided.",
       },
     },
   },
@@ -23,62 +26,56 @@ const meta: Meta<typeof AdminListItem> = {
 export default meta;
 type Story = StoryObj<typeof AdminListItem>;
 
+function ListSurface({ children }: { children: ReactNode }) {
+  return (
+    <div className="max-w-xl overflow-hidden rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-low))]">
+      {children}
+    </div>
+  );
+}
+
 export const OneLine: Story = {
   args: { label: "Settings", leadingIcon: RiUserLine, trailingIcon: RiArrowRightSLine },
   render: (args) => (
-    <div className="max-w-md rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-low))]">
+    <ListSurface>
       <AdminListItem {...args} onClick={() => {}} />
-    </div>
+    </ListSurface>
   ),
 };
 
 export const TwoLine: Story = {
   args: {
     label: "North Meadow Garden",
-    supportingText: "12 active gardeners · 3 pending reviews",
+    supportingText: "12 active gardeners, 3 pending reviews",
     leadingIcon: RiLeafLine,
     trailingIcon: RiArrowRightSLine,
   },
   render: (args) => (
-    <div className="max-w-md rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-low))]">
+    <ListSurface>
       <AdminListItem {...args} onClick={() => {}} />
-    </div>
+    </ListSurface>
   ),
 };
 
 export const ThreeLine: Story = {
   args: {
-    overline: "Garden · Sepolia",
+    overline: "Garden / Sepolia",
     label: "North Meadow Garden",
     supportingText:
-      "A regenerative pilot in the Pacific Northwest with 12 active gardeners, 3 pending reviews, and 2 endowments.",
+      "A regenerative pilot with active field work, pending reviews, and recurring treasury coordination.",
     leadingIcon: RiLeafLine,
     trailingIcon: RiArrowRightSLine,
   },
   render: (args) => (
-    <div className="max-w-md rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-low))]">
+    <ListSurface>
       <AdminListItem {...args} onClick={() => {}} />
-    </div>
+    </ListSurface>
   ),
 };
 
-export const Selected: Story = {
-  args: {
-    label: "Selected item",
-    supportingText: "Highlighted with primary/8 tint",
-    selected: true,
-    leadingIcon: RiLeafLine,
-  },
-  render: (args) => (
-    <div className="max-w-md rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-low))]">
-      <AdminListItem {...args} onClick={() => {}} />
-    </div>
-  ),
-};
-
-export const List: Story = {
+export const StateCatalog: Story = {
   render: () => (
-    <div className="max-w-md divide-y divide-[rgb(var(--m3-outline-variant))] rounded-[var(--m3-shape-md)] bg-[rgb(var(--m3-surface-container-low))]">
+    <ListSurface>
       <AdminListItem
         label="Alice"
         supportingText="alice@example.org"
@@ -86,6 +83,7 @@ export const List: Story = {
         trailingText="Gardener"
         onClick={() => {}}
       />
+      <div className="h-px bg-[rgb(var(--m3-outline-variant))]" />
       <AdminListItem
         label="Bob"
         supportingText="bob@example.org"
@@ -94,12 +92,14 @@ export const List: Story = {
         selected
         onClick={() => {}}
       />
+      <div className="h-px bg-[rgb(var(--m3-outline-variant))]" />
       <AdminListItem
         label="Charlie"
         supportingText="charlie@example.org"
         leadingIcon={RiUserLine}
+        trailingText="Disabled"
         disabled
       />
-    </div>
+    </ListSurface>
   ),
 };

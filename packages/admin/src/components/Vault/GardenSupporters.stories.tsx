@@ -82,7 +82,7 @@ const MOCK_FUNDERS = [
 const meta: Meta<typeof GardenSupportersHarness> = {
   title: "Admin/Workflows/Vault/GardenSupporters",
   component: GardenSupportersHarness,
-  tags: ["autodocs"],
+  tags: ["autodocs", "visual-harness"],
   parameters: {
     docs: {
       description: {

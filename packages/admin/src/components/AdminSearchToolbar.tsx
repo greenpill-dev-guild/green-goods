@@ -54,24 +54,27 @@ export function AdminSearchToolbar({
   });
 
   return (
-    <div data-component="AdminSearchToolbar" className={cn("flex items-center gap-2", className)}>
+    <div
+      data-component="AdminSearchToolbar"
+      className={cn("flex w-full flex-col gap-3 sm:flex-row sm:items-center", className)}
+    >
       {/* M3 Search Bar pill */}
       <div
         className={cn(
           // Shape: pill
           "rounded-[var(--m3-shape-full)]",
-          // Height: compact for admin density (M3 spec is 56dp, reduced to 40dp)
-          "h-10",
+          // Height: M3 search bar uses 56dp.
+          "h-14 min-w-0",
           // Background + elevation
           "bg-[rgb(var(--m3-surface-container-high))]",
           "shadow-[var(--m3-elevation-3)]",
           // Layout
-          "flex flex-1 items-center"
+          "flex w-full items-center sm:flex-1"
         )}
       >
         {/* Leading search icon */}
         <RiSearchLine
-          className="ml-3 h-4 w-4 shrink-0 text-[rgb(var(--m3-on-surface))]"
+          className="ml-4 h-6 w-6 shrink-0 text-[rgb(var(--m3-on-surface))]"
           aria-hidden
         />
 
@@ -83,8 +86,8 @@ export function AdminSearchToolbar({
           placeholder={placeholder}
           aria-label={placeholder}
           className={cn(
-            "flex-1 bg-transparent px-3",
-            "text-body-md text-[rgb(var(--m3-on-surface))]",
+            "h-full min-w-0 flex-1 bg-transparent px-4",
+            "text-body-lg text-[rgb(var(--m3-on-surface))]",
             "placeholder:text-[rgb(var(--m3-on-surface-variant))]",
             "outline-none border-none focus:outline-none"
           )}
@@ -98,7 +101,7 @@ export function AdminSearchToolbar({
             aria-label={clearLabel}
             className={cn(
               // 40dp circular touch target
-              "mr-1.5 h-8 w-8 shrink-0 rounded-full",
+              "mr-2 h-10 w-10 shrink-0 rounded-full",
               // State layer
               "m3-state-layer",
               "[--state-layer-color:var(--m3-on-surface-variant)]",
@@ -108,13 +111,13 @@ export function AdminSearchToolbar({
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]"
             )}
           >
-            <RiCloseLine className="h-4 w-4" aria-hidden />
+            <RiCloseLine className="h-5 w-5" aria-hidden />
           </button>
         ) : null}
       </div>
 
-      {/* Filter chip children — flex shrink-0, no wrapping */}
-      {children ? <div className="flex shrink-0 items-center gap-2">{children}</div> : null}
+      {/* Filter chip children — wrap below on narrow canvases. */}
+      {children ? <div className="flex flex-wrap items-center gap-2">{children}</div> : null}
     </div>
   );
 }

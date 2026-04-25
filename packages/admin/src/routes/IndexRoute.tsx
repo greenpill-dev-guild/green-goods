@@ -63,7 +63,7 @@ export default function IndexRoute() {
           <button
             type="button"
             onClick={() => signOut()}
-            className="inline-flex items-center justify-center rounded-md bg-primary-base px-6 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+            className="inline-flex items-center justify-center rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-6 py-3 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-action,var(--primary-action)))] focus-visible:ring-offset-2"
           >
             {intl.formatMessage({
               id: "app.admin.auth.signOutAndReconnect",

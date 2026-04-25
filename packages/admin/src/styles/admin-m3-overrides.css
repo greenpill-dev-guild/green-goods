@@ -10,7 +10,7 @@
  * so the label never shifts vertically between states.
  * ============================================================================ */
 
-/* Shared anatomy — solid M3 surface, no glass (glass is Chrome/TopContextBar only) */
+/* Shared anatomy — solid M3 surface, no glass (glass is admin AppBar only) */
 .admin-m3 .canvas-navigation-bar {
   background: rgb(var(--m3-surface-container));
   box-shadow: var(--m3-elevation-2);

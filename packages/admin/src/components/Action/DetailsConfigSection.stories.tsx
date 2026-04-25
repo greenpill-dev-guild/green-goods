@@ -51,6 +51,7 @@ function DetailsConfigHarness({ initial }: { initial: DetailsConfig }) {
 
 const meta: Meta<typeof DetailsConfigHarness> = {
   title: "Admin/Workflows/Action/DetailsConfigSection",
+  // storybook-quality-allow state-harness: owns local state while rendering the real DetailsConfigSection.
   component: DetailsConfigHarness,
   tags: ["autodocs"],
   parameters: {

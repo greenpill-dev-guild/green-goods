@@ -145,7 +145,7 @@ function PositionCardHarness({
 const meta: Meta<typeof PositionCardHarness> = {
   title: "Admin/Workflows/Vault/PositionCard",
   component: PositionCardHarness,
-  tags: ["autodocs"],
+  tags: ["autodocs", "visual-harness"],
   parameters: {
     docs: {
       description: {

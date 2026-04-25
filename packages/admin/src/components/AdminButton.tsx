@@ -15,7 +15,7 @@ export const adminButtonVariants = tv({
     // Typography
     "text-label-lg font-medium",
     // Motion
-    "transition-all duration-[var(--spring-fast-duration,200ms)] ease-[var(--spring-fast-easing,ease-out)]",
+    "transition-all duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
     // State layer (pseudo-element overlay defined in admin-m3-tokens.css)
     "m3-state-layer",
     // Focus ring
@@ -28,9 +28,9 @@ export const adminButtonVariants = tv({
     variant: {
       // Filled — highest emphasis
       filled: [
-        "bg-[rgb(var(--m3-primary))] text-[rgb(var(--m3-on-primary))]",
+        "bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))]",
         "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
-        "[--state-layer-color:var(--m3-on-primary)]",
+        "[--state-layer-color:var(--ws-on-action,var(--primary-action-foreground))]",
       ],
       // Tonal — medium emphasis
       tonal: [

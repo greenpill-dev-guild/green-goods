@@ -10,6 +10,9 @@ import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
 import { useGlobals } from "storybook/preview-api";
 import { WagmiProvider, createConfig, http, mock } from "wagmi";
 import { arbitrum, arbitrumSepolia, mainnet, sepolia } from "wagmi/chains";
+import { JobQueueProvider } from "../src/providers/JobQueue";
+import { WorkProvider } from "../src/providers/Work";
+import { AppContext, supportedLanguages } from "../src/providers/App";
 import { DevAuthProvider } from "../src/providers/DevAuthProvider";
 import { STORYBOOK_NOW_SECONDS } from "./fixtures";
 import messages from "../src/i18n/en.json";
@@ -149,6 +152,93 @@ export function withCanvasFrame({
   );
 }
 
+const installedPwaContext = {
+  isMobile: true,
+  isInstalled: true,
+  isStandalone: true,
+  wasInstalled: true,
+  platform: "ios",
+  locale: "en",
+  availableLocales: supportedLanguages,
+  deferredPrompt: null,
+  promptInstall: () => {},
+  handleInstallCheck: () => {},
+  switchLanguage: () => {},
+} satisfies React.ContextType<typeof AppContext>;
+
+function InstalledPwaFrame({
+  children,
+  className = "",
+  heightClassName = "min-h-[720px]",
+}: {
+  children: React.ReactNode;
+  className?: string;
+  heightClassName?: string;
+}) {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const originalMatchMedia = window.matchMedia.bind(window);
+
+    window.matchMedia = (query: string) => {
+      if (query.includes("display-mode: standalone")) {
+        return {
+          matches: true,
+          media: query,
+          onchange: null,
+          addListener: () => {},
+          removeListener: () => {},
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => false,
+        };
+      }
+      return originalMatchMedia(query);
+    };
+
+    document.documentElement.dataset.displayMode = "standalone";
+    document.body.classList.add("storybook-installed-pwa");
+
+    return () => {
+      window.matchMedia = originalMatchMedia;
+      delete document.documentElement.dataset.displayMode;
+      document.body.classList.remove("storybook-installed-pwa");
+    };
+  }, []);
+
+  return (
+    <AppContext.Provider value={installedPwaContext}>
+      <div className={`storybook-installed-pwa-frame ${heightClassName} ${className}`.trim()}>
+        {children}
+      </div>
+    </AppContext.Provider>
+  );
+}
+
+export function withInstalledPwa({
+  className = "",
+  heightClassName = "min-h-[720px]",
+}: {
+  className?: string;
+  heightClassName?: string;
+} = {}): Decorator {
+  return (Story) => (
+    <InstalledPwaFrame className={className} heightClassName={heightClassName}>
+      <Story />
+    </InstalledPwaFrame>
+  );
+}
+
+export const withAdminPrimitiveFrame: Decorator = (Story) => (
+  <div
+    data-workspace="hub"
+    className="admin-m3 storybook-canvas-frame min-h-[520px] overflow-auto p-6 text-[rgb(var(--m3-on-surface))] sm:p-8"
+  >
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 rounded-[var(--m3-shape-lg)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-6 shadow-[var(--m3-elevation-1)]">
+      <Story />
+    </div>
+  </div>
+);
+
 /**
  * Minimal WagmiProvider for Storybook. Uses a mock connector so that
  * `useAccount`, `useReadContract`, and wagmi mutation hooks resolve
@@ -202,6 +292,23 @@ export const withAdminIdentity: Decorator = (Story, context) => (
   <WagmiProvider config={storybookWagmiConfig} reconnectOnMount={false}>
     <DevAuthProvider>
       <Story {...context} />
+    </DevAuthProvider>
+  </WagmiProvider>
+);
+
+/**
+ * Client runtime harness for protected PWA/client stories that render the real
+ * shell widgets. It mirrors the auth + queue + work providers used by
+ * `AppShell` while keeping wallet reads mocked and inert.
+ */
+export const withClientAppRuntime: Decorator = (Story, context) => (
+  <WagmiProvider config={storybookWagmiConfig} reconnectOnMount={false}>
+    <DevAuthProvider>
+      <JobQueueProvider>
+        <WorkProvider>
+          <Story {...context} />
+        </WorkProvider>
+      </JobQueueProvider>
     </DevAuthProvider>
   </WagmiProvider>
 );

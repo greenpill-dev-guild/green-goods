@@ -71,6 +71,7 @@ function BasicsStepHarness({
 
 const meta: Meta<typeof BasicsStepHarness> = {
   title: "Admin/Workflows/Action/BasicsStep",
+  // storybook-quality-allow state-harness: supplies React Hook Form state while rendering the real BasicsStep.
   component: BasicsStepHarness,
   tags: ["autodocs"],
   parameters: {

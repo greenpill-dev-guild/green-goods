@@ -100,7 +100,7 @@ const JARS: MockJarChip[] = [
 const meta: Meta<typeof CookieJarPayoutPanelHarness> = {
   title: "Admin/Workflows/Hub/CookieJarPayoutPanel",
   component: CookieJarPayoutPanelHarness,
-  tags: ["autodocs"],
+  tags: ["autodocs", "visual-harness"],
   parameters: {
     docs: {
       description: {

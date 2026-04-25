@@ -40,6 +40,7 @@ function RouteErrorBoundaryHarness({ kind }: StoryArgs) {
 
 const meta: Meta<typeof RouteErrorBoundaryHarness> = {
   title: "Admin/Shell/RouteErrorBoundary",
+  // storybook-quality-allow state-harness: mounts a memory router while rendering the real route error boundary.
   component: RouteErrorBoundaryHarness,
   tags: ["autodocs"],
   argTypes: {

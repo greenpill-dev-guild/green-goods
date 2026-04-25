@@ -92,6 +92,7 @@ function MetadataEditorHarness({
 
 const meta: Meta<typeof MetadataEditorHarness> = {
   title: "Admin/Workflows/Hypercerts/Steps/MetadataEditor",
+  // storybook-quality-allow state-harness: owns draft state while rendering the real MetadataEditor.
   component: MetadataEditorHarness,
   tags: ["autodocs"],
   parameters: {

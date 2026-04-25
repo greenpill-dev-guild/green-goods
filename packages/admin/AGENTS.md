@@ -12,21 +12,21 @@ foundations.
 
 - Read `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` before changing routes, layouts, or page structure.
 - The canonical shell is `CanvasLayout`.
-- The Wave 3 shell is `TopContextBar + .workspace-canvas + MainSheet + NavigationBar`, with `LeftSheet`, `RightSheet`, and `BottomSheet` layered off that canvas instead of separate page chrome.
-- `TopContextBar` is the sticky `z-40 h-14` context region: `GardenChip` on the left; desktop search, settings, and `UserAvatar` on the right.
+- The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with `LeftSheet`, `RightSheet`, and `BottomSheet` layered off that canvas instead of separate page chrome.
+- In admin docs, `AppBar` means the shared Canvas top context bar: sticky `z-40 h-14`, `GardenChip` on the left, and desktop search, settings, notifications, and `UserAvatar` on the right.
 - `NavigationBar` is pure navigation only. Use the canonical items `Hub`, `Garden`, `Community`, and `Actions`; do not add leading or trailing slots.
-- `AppBar` is client/PWA chrome, not admin chrome. Keep admin navigation on `NavigationBar`.
+- Do not use the client/PWA `AppBar` pattern for admin. Keep admin workspace navigation on `NavigationBar`.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
-- Shared owns `TopContextBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, and `SheetErrorBoundary`. Admin owns `CanvasLayout`, `AccountSheet`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
+- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, and `SheetErrorBoundary`. Admin owns `CanvasLayout`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
 - Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
-- Use `AccountSheet` for authenticated account/profile/settings flows; otherwise prefer shared `SideSheet`.
+- Use `AccountSurface` inside the admin `RightSheet` registry for authenticated account/profile/settings flows; otherwise prefer `LeftSheet`, `RightSheet`, `BottomSheet`, or `DialogShell`.
 
 ## Cockpit UI Mode
 
 - Admin is an operator cockpit, not a marketing surface. Default to utility copy, not brand or campaign copy.
-- Default route composition is `PageHeader` -> primary workspace -> optional secondary inspector (`SideSheet` or `BottomSheet`).
+- Default route composition is `PageHeader` -> primary workspace -> optional secondary inspector (`LeftSheet`, `RightSheet`, or `BottomSheet`).
 - Start from task flow and information hierarchy, not from `Card`.
 - Use cards or elevated surfaces only when they represent a discrete record, action target, or bounded interactive unit.
 - Prefer one dominant workspace surface per route. Avoid nested stacks of bordered panels that turn the page into a card mosaic.
@@ -36,7 +36,7 @@ foundations.
 
 ## Preferred Primitives
 
-- `TopContextBar`
+- `AppBar`
 - `NavigationBar`
 - `MainSheet`
 - `LeftSheet`
@@ -44,7 +44,7 @@ foundations.
 - `BottomSheet`
 - `GardenChip`
 - `CommandPalette`
-- `AccountSheet`
+- `AccountProfilePanel`
 - `AccountSettingsPanel`
 - `UserAvatar`
 - `ConnectShell`
@@ -72,8 +72,9 @@ foundations.
 - Every privileged action must flow through permission checks such as `useRole` or
   `useGardenPermissions`.
 - Wrap user-visible write actions in the shared toast workflow instead of ad-hoc transaction UI.
-- Use `DialogShell`, `AccountSheet`, `SideSheet`, or `BottomSheet` for modal and sheet flows instead of ad-hoc shells.
+- Use `DialogShell`, `RightSheet`, `LeftSheet`, or `BottomSheet` for modal and sheet flows instead of ad-hoc shells.
 - New user-facing strings must be translated in all three locale files.
+- New or changed admin UI components/views must add or update Storybook stories in the same change. Run `bun run --filter @green-goods/shared check:stories`; run `bun run --filter @green-goods/shared test:stories:ci` when adding `storybook-ci` stories; run `bun run --filter @green-goods/shared build-storybook` for Storybook-impacting changes.
 
 ## Codex Notes
 

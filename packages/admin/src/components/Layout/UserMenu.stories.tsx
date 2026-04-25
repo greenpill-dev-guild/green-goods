@@ -8,6 +8,9 @@ import {
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
+import { UserMenu } from "./UserMenu";
 
 interface MockUserMenuProps {
   role: "deployer" | "operator" | "user";
@@ -88,34 +91,46 @@ function MockUserMenu({
   );
 }
 
-const meta: Meta<typeof MockUserMenu> = {
+const meta: Meta<typeof UserMenu> = {
   title: "Admin/Shell/UserMenu",
-  component: MockUserMenu,
+  component: UserMenu,
   tags: ["autodocs"],
-  args: {
-    role: "operator",
-    address: "0x2aa6...35e",
-    open: true,
-    onOpenSettings: fn(),
+  decorators: [
+    withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    (Story) => (
+      <div className="flex justify-end p-16">
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Real `UserMenu` rendered with Storybook auth, theme, and deterministic query seeds. The open dropdown reference is an explicit visual harness because the production component owns Radix menu state.",
+      },
+    },
   },
-  argTypes: {
-    role: {
-      control: "select",
-      options: ["deployer", "operator", "user"],
-    },
-    open: {
-      control: "boolean",
-    },
+  args: {
+    onOpenSettings: fn(),
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof MockUserMenu>;
+type Story = StoryObj<typeof UserMenu>;
 
-export const Open: Story = {};
+export const Closed: Story = {};
 
-export const Closed: Story = {
-  args: {
-    open: false,
+export const Open: Story = {
+  tags: ["visual-harness"],
+  render: () => <MockUserMenu role="operator" address="0x2aa6...35e" open onOpenSettings={fn()} />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Visual harness for the open menu panel. The closed/default story above renders the real production dropdown trigger.",
+      },
+    },
   },
 };

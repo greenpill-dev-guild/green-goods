@@ -51,7 +51,7 @@ export const CustomFallbackIcon: Story = {
   },
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="grid grid-cols-3 gap-4">
       <ImageWithFallback
@@ -92,19 +92,4 @@ export const AvatarStyle: Story = {
       />
     </div>
   ),
-};
-
-export const DarkMode: Story = {
-  args: {
-    src: FIXTURE_IMAGE_SOLAR,
-    alt: "Sample image",
-    className: "w-32 h-32 rounded-lg object-cover",
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

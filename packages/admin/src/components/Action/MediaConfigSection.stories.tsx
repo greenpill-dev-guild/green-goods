@@ -32,6 +32,7 @@ function MediaConfigHarness({ initial }: { initial: MediaConfig }) {
 
 const meta: Meta<typeof MediaConfigHarness> = {
   title: "Admin/Workflows/Action/MediaConfigSection",
+  // storybook-quality-allow state-harness: owns local state while rendering the real MediaConfigSection.
   component: MediaConfigHarness,
   tags: ["autodocs"],
   parameters: {

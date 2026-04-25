@@ -109,7 +109,7 @@ const MANY_FUNDERS = [
 const meta: Meta<typeof ImpactFundersHarness> = {
   title: "Admin/Workflows/Vault/ImpactFunders",
   component: ImpactFundersHarness,
-  tags: ["autodocs"],
+  tags: ["autodocs", "visual-harness"],
   parameters: {
     docs: {
       description: {

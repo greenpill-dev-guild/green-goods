@@ -61,6 +61,7 @@ function InstructionsBuilderHarness({ initial }: { initial: ActionInstructionCon
 
 const meta: Meta<typeof InstructionsBuilderHarness> = {
   title: "Admin/Workflows/Action/InstructionsBuilder",
+  // storybook-quality-allow state-harness: owns local state while rendering the real InstructionsBuilder.
   component: InstructionsBuilderHarness,
   tags: ["autodocs"],
   parameters: {

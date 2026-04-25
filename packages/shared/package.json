@@ -46,6 +46,7 @@
     "storybook": "bun --bun ./node_modules/.bin/storybook dev -p 6006 --ci",
     "build-storybook": "bun --bun ./node_modules/.bin/storybook build -o storybook-static",
     "check:stories": "bun run ../../scripts/check-story-coverage.ts",
+    "check:story-quality": "bun run ../../scripts/check-story-quality.ts",
     "test:stories:ci": "vitest run --config vitest.storybook.config.ts --project=storybook",
     "chromatic": "chromatic --storybook-build-dir storybook-static"
   },

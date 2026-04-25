@@ -41,6 +41,7 @@ function CapitalsStepHarness({ capitals = [] }: { capitals?: number[] }) {
 
 const meta: Meta<typeof CapitalsStepHarness> = {
   title: "Admin/Workflows/Action/CapitalsStep",
+  // storybook-quality-allow state-harness: supplies form state while rendering the real CapitalsStep.
   component: CapitalsStepHarness,
   tags: ["autodocs"],
   parameters: {

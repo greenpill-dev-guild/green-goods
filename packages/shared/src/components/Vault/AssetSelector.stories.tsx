@@ -100,7 +100,7 @@ export const SingleVault: Story = {
   },
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-6">
       <div>
@@ -159,17 +159,4 @@ export const Interactive: Story = {
 
     await userEvent.click(radios[1]);
   },
-};
-
-export const DarkMode: Story = {
-  args: {
-    ...Default.args,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

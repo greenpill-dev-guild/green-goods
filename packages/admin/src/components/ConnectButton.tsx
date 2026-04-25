@@ -1,11 +1,13 @@
-import { cn, useAuthActions } from "@green-goods/shared";
-import { RiLoader4Line, RiWallet3Line } from "@remixicon/react";
+import { useAuthActions } from "@green-goods/shared";
+import { RiWallet3Line } from "@remixicon/react";
+import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { useAccount } from "wagmi";
+import { AdminButton, type AdminButtonProps } from "./AdminButton";
 
 interface ConnectButtonProps {
   className?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   variant?: "primary" | "secondary";
   size?: "sm" | "md" | "lg";
 }
@@ -20,54 +22,29 @@ export function ConnectButton({
   const { isConnecting } = useAccount();
   const { loginWithWallet } = useAuthActions();
 
-  const baseStyles =
-    "inline-flex items-center justify-center font-medium rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
-
-  const variantStyles = {
-    primary:
-      "border border-transparent text-primary-foreground bg-primary-base hover:bg-primary-darker shadow-sm hover:shadow-md focus:ring-primary-base",
-    secondary:
-      "border border-stroke-sub text-text-sub bg-bg-white hover:bg-bg-weak focus:ring-primary-base",
-  };
-
-  const sizeStyles = {
-    sm: "px-3 py-1.5 text-sm",
-    md: "px-4 py-2 text-sm",
-    lg: "px-6 py-3 text-base",
-  };
+  const adminVariant: AdminButtonProps["variant"] = variant === "secondary" ? "outlined" : "filled";
 
   return (
-    <button
+    <AdminButton
       type="button"
       onClick={() => loginWithWallet()}
-      disabled={isConnecting}
-      aria-busy={isConnecting}
+      loading={isConnecting}
+      leadingIcon={children || isConnecting ? undefined : <RiWallet3Line />}
+      variant={adminVariant}
+      size={size}
       data-testid="connect-wallet-button"
-      className={cn(baseStyles, variantStyles[variant], sizeStyles[size], className)}
+      className={className}
     >
-      <div className="flex items-center">
-        {isConnecting ? (
-          <>
-            <RiLoader4Line className="animate-spin -ml-1 mr-2 h-4 w-4" aria-hidden="true" />
-            {formatMessage({
-              id: "admin.connectButton.connecting",
-              defaultMessage: "Connecting...",
-            })}
-          </>
-        ) : (
-          <>
-            {children || (
-              <>
-                <RiWallet3Line className="mr-2 h-4 w-4" aria-hidden="true" />
-                {formatMessage({
-                  id: "admin.connectButton.connect",
-                  defaultMessage: "Connect Wallet",
-                })}
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </button>
+      {isConnecting
+        ? formatMessage({
+            id: "admin.connectButton.connecting",
+            defaultMessage: "Connecting...",
+          })
+        : children ||
+          formatMessage({
+            id: "admin.connectButton.connect",
+            defaultMessage: "Connect Wallet",
+          })}
+    </AdminButton>
   );
 }

@@ -231,7 +231,7 @@ export function CreateListingDialog({
             </button>
             <button
               type="submit"
-              className="flex items-center gap-1.5 rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
+              className="flex items-center gap-1.5 rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))]"
             >
               {formatMessage({
                 id: "app.listing.signAndList",
@@ -275,7 +275,7 @@ export function CreateListingDialog({
                   reset();
                   setPhase("configure");
                 }}
-                className="rounded-md bg-primary-base px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker"
+                className="rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))]"
               >
                 {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
               </button>

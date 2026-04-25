@@ -1,6 +1,15 @@
+---
+version: alpha
+name: Green Goods Admin Cockpit Dialect
+description: Restrained M3 cockpit overlay for Green Goods admin surfaces. Extends the Warm Earth core DesignMD tokens.
+extends: ../../DESIGN.md
+surface: admin
+dialect: cockpit
+---
+
 # Green Goods Admin — Design Brief
 
-> Surface-specific creative direction for the admin dashboard. **Must be combined with the root DESIGN.md** when feeding to AI tools: `cat ../../DESIGN.md DESIGN.md | pbcopy`
+> Surface-specific creative direction for the admin dashboard. Use with the root `DESIGN.md`; lint this overlay and the root file separately.
 
 ## Surface Identity
 
@@ -29,7 +38,7 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone** �
 - Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), xl (28px), full (9999px)
 - M3 elevation scale (0-5) with specific shadow values
 - **Spring motion (`--spring-*`) is the sole permitted deviation** from M3 standard easing
-- **Liquid Glass on TopContextBar (AppBar) only** — no blur/translucency on M3 components
+- **Liquid Glass on AppBar only** — no blur/translucency on M3 components
 
 **Why strict:** M3+Liquid Glass hybrid produced inconsistent UI. Strict M3 provides discipline; glass limited to where spatial depth cues actually help.
 
@@ -71,17 +80,17 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-Existing tokens (`--ws-primary`, `--ws-on-primary`) support per-workspace color atmosphere:
+Existing tokens (`--ws-primary`, `--ws-on-primary`, `--ws-action`, `--ws-on-action`) support per-workspace color atmosphere and contrast-safe actions:
 
-| Workspace | Primary Color | Purpose |
-|-----------|---------------|---------|
-| Hub | Blue (`--blue-500`) | Work pipeline, review queue |
-| Garden | Green (`--green-500`) | Garden management, brand color |
-| Community | Orange (`--orange-500`) | Members, roles, social activity |
-| Actions | Red (`--red-500`) | Action configuration, templates |
-| Home | Stone/Neutral (`120 113 108`) | Unauthenticated landing |
+| Workspace | Tint Color | Action Color | Purpose |
+|-----------|------------|--------------|---------|
+| Hub | Blue (`--blue-500`) | Blue (`--blue-500`) | Work pipeline, review queue |
+| Garden | Green (`--green-500`) | Deep green (`--green-800`) | Garden management, brand color |
+| Community | Orange (`--orange-500`) | Deep orange (`--orange-800`) | Members, roles, social activity |
+| Actions | Red (`--red-500`) | Deep red (`--red-700`) | Action configuration, templates |
+| Home | Stone/Neutral (`120 113 108`) | Deep stone (`68 64 60`) | Unauthenticated landing |
 
-The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar.
+The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar. Filled text-bearing actions use the action color so white text passes contrast.
 
 ---
 
@@ -95,7 +104,7 @@ Components: AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminL
 
 ## Navigation
 
-- **AppBar** (top, Z3): GardenChip selector, search, settings, notifications, avatar
+- **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
 - **AdminFab**: Per-workspace primary action, capsule shape. Integrated into NavigationBar via FabProvider.
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens RightSheet with profile content.
@@ -117,5 +126,5 @@ Components: AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminL
 - Add decorative gradients or hero imagery behind routine UI
 - Write homepage, campaign, or executive-summary copy
 - Nest multiple layers of rounded bordered panels
-- Apply glass/blur/translucency to M3 components (TopContextBar only)
+- Apply glass/blur/translucency to M3 components (AppBar only)
 - Use Inter — admin uses Plus Jakarta Sans

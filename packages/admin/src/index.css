@@ -307,6 +307,9 @@
 [data-workspace="hub"] {
   --ws-primary: var(--blue-500);
   --ws-on-primary: 255 255 255;
+  --ws-action: var(--blue-500);
+  --ws-action-hover: var(--blue-700);
+  --ws-on-action: 255 255 255;
   --ws-primary-container: var(--blue-100);
   --ws-on-primary-container: var(--blue-900);
   --ws-secondary: var(--blue-300);
@@ -320,6 +323,9 @@
 [data-workspace="garden"] {
   --ws-primary: var(--green-500);
   --ws-on-primary: 255 255 255;
+  --ws-action: var(--green-800);
+  --ws-action-hover: var(--green-900);
+  --ws-on-action: 255 255 255;
   --ws-primary-container: var(--green-100);
   --ws-on-primary-container: var(--green-900);
   --ws-secondary: var(--green-300);
@@ -333,6 +339,9 @@
 [data-workspace="community"] {
   --ws-primary: var(--orange-500);
   --ws-on-primary: 255 255 255;
+  --ws-action: var(--orange-800);
+  --ws-action-hover: var(--orange-900);
+  --ws-on-action: 255 255 255;
   --ws-primary-container: var(--orange-100);
   --ws-on-primary-container: var(--orange-900);
   --ws-secondary: var(--orange-300);
@@ -346,6 +355,9 @@
 [data-workspace="actions"] {
   --ws-primary: var(--red-500);
   --ws-on-primary: 255 255 255;
+  --ws-action: var(--red-700);
+  --ws-action-hover: var(--red-800);
+  --ws-on-action: 255 255 255;
   --ws-primary-container: var(--red-100);
   --ws-on-primary-container: var(--red-900);
   --ws-secondary: var(--red-300);
@@ -359,6 +371,9 @@
 [data-workspace="home"] {
   --ws-primary: 120 113 108;
   --ws-on-primary: 255 255 255;
+  --ws-action: 68 64 60;
+  --ws-action-hover: 41 37 36;
+  --ws-on-action: 255 255 255;
   --ws-primary-container: 231 229 228;
   --ws-on-primary-container: 41 37 36;
   --ws-secondary: 168 162 158;
@@ -372,6 +387,9 @@
 [data-theme="dark"] [data-workspace="hub"] {
   --ws-primary: var(--blue-200);
   --ws-on-primary: var(--blue-900);
+  --ws-action: var(--blue-200);
+  --ws-action-hover: var(--blue-100);
+  --ws-on-action: var(--blue-900);
   --ws-primary-container: var(--blue-900);
   --ws-on-primary-container: var(--blue-100);
   --ws-secondary: var(--blue-400);
@@ -384,6 +402,9 @@
 [data-theme="dark"] [data-workspace="garden"] {
   --ws-primary: var(--green-200);
   --ws-on-primary: var(--green-900);
+  --ws-action: var(--green-200);
+  --ws-action-hover: var(--green-100);
+  --ws-on-action: var(--green-900);
   --ws-primary-container: var(--green-900);
   --ws-on-primary-container: var(--green-100);
   --ws-secondary: var(--green-400);
@@ -396,6 +417,9 @@
 [data-theme="dark"] [data-workspace="community"] {
   --ws-primary: var(--orange-200);
   --ws-on-primary: var(--orange-900);
+  --ws-action: var(--orange-200);
+  --ws-action-hover: var(--orange-100);
+  --ws-on-action: var(--orange-900);
   --ws-primary-container: var(--orange-900);
   --ws-on-primary-container: var(--orange-100);
   --ws-secondary: var(--orange-400);
@@ -408,6 +432,9 @@
 [data-theme="dark"] [data-workspace="actions"] {
   --ws-primary: var(--red-200);
   --ws-on-primary: var(--red-900);
+  --ws-action: var(--red-200);
+  --ws-action-hover: var(--red-100);
+  --ws-on-action: var(--red-900);
   --ws-primary-container: var(--red-900);
   --ws-on-primary-container: var(--red-100);
   --ws-secondary: var(--red-400);
@@ -420,6 +447,9 @@
 [data-theme="dark"] [data-workspace="home"] {
   --ws-primary: 214 211 209;
   --ws-on-primary: 41 37 36;
+  --ws-action: 214 211 209;
+  --ws-action-hover: 231 229 228;
+  --ws-on-action: 41 37 36;
   --ws-primary-container: 68 64 60;
   --ws-on-primary-container: 231 229 228;
   --ws-secondary: 168 162 158;
@@ -1067,7 +1097,7 @@
   }
 
   /* ── Glass Surface ── Frosted glass treatment for navigation-tier surfaces
-   * Matches NavigationBar's existing pattern. Apply to TopContextBar, sticky PageHeader.
+   * Matches NavigationBar's existing pattern. Apply to AppBar, sticky PageHeader.
    * Solid fallback for prefers-contrast: more.
    */
   .glass-surface {

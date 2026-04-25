@@ -1,16 +1,18 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { RiAddLine, RiEditLine } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
+import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminFab } from "./AdminFab";
 
 const meta: Meta<typeof AdminFab> = {
   title: "Admin/Primitives/AdminFab",
   component: AdminFab,
   tags: ["autodocs"],
+  decorators: [withAdminPrimitiveFrame],
   parameters: {
     docs: {
       description: {
         component:
-          "M3 Floating Action Button with small (40dp), standard (56dp, default), and large (96dp) sizes. When a label is provided, renders as an extended FAB with icon + label.",
+          "M3 floating action button with small, standard, large, and extended forms. Uses primary-container color, M3 shapes, and elevation.",
       },
     },
   },
@@ -47,13 +49,13 @@ export const Extended: Story = {
   },
 };
 
-export const SizeGallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
-    <div className="flex items-end gap-4">
+    <div className="flex flex-wrap items-end gap-5">
       <AdminFab icon={RiAddLine} size="small" onClick={() => {}} />
       <AdminFab icon={RiAddLine} size="standard" onClick={() => {}} />
       <AdminFab icon={RiAddLine} size="large" onClick={() => {}} />
-      <AdminFab icon={RiEditLine} label="Submit" onClick={() => {}} />
+      <AdminFab icon={RiEditLine} label="Submit work" onClick={() => {}} />
     </div>
   ),
 };

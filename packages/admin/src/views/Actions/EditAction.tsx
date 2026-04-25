@@ -24,7 +24,11 @@ import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminTextField } from "@/components/AdminTextField";
-import { PageHeader } from "@/components/Layout/PageHeader";
+import {
+  CanvasRouteContent,
+  CanvasRouteFrame,
+  CanvasRouteHeader,
+} from "@/components/Layout/CanvasRouteFrame";
 
 const editActionSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -218,121 +222,125 @@ export default function EditAction() {
   };
 
   return (
-    <div>
-      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
-        <PageHeader
-          title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
-          description={formatMessage({
-            id: "cockpit.actions.editDescription",
-            defaultMessage: "Update lifecycle details and the submission contract for this action.",
-          })}
-          variant="canvas"
-          backLink={{
-            to: `/actions/${id}`,
-            label: formatMessage({
-              id: "app.actions.backToAction",
-              defaultMessage: "Back to action",
-            }),
-          }}
-          sticky
-        />
-      </div>
+    <CanvasRouteFrame>
+      <CanvasRouteHeader
+        maxWidthClassName="max-w-5xl"
+        title={formatMessage({ id: "app.actions.edit.title" }, { name: action.title })}
+        description={formatMessage({
+          id: "cockpit.actions.editDescription",
+          defaultMessage: "Update lifecycle details and the submission contract for this action.",
+        })}
+        variant="canvas"
+        backLink={{
+          to: `/actions/${id}`,
+          label: formatMessage({
+            id: "app.actions.backToAction",
+            defaultMessage: "Back to action",
+          }),
+        }}
+        sticky
+      />
 
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="mx-auto mt-4 max-w-5xl space-y-4 px-4 sm:px-6"
-      >
-        <Surface elevation="raised" padding="default" className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-text-strong">
-              {formatMessage({ id: "app.actions.edit.basicInfo" })}
-            </h3>
-            <p className="mt-1 text-sm text-text-sub">
-              {formatMessage({
-                id: "cockpit.actions.detailDescription",
-                defaultMessage:
-                  "Review lifecycle details and the submission requirements for this action.",
-              })}
-            </p>
-          </div>
-          <div className="space-y-4">
-            <AdminTextField
-              label={formatMessage({ id: "app.assessment.table.title" })}
-              id="action-title"
-              variant="outlined"
-              error={form.formState.errors.title?.message}
-              {...form.register("title")}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <AdminTextField
-                label={formatMessage({ id: "app.actions.detail.startTime" })}
-                id="action-start-time"
-                type="datetime-local"
-                variant="outlined"
-                value={toDateTimeLocalValue(form.watch("startTime").getTime())}
-                onChange={(e) => form.setValue("startTime", fromDateTimeLocalValue(e.target.value))}
-              />
-
-              <AdminTextField
-                label={formatMessage({ id: "app.actions.detail.endTime" })}
-                id="action-end-time"
-                type="datetime-local"
-                variant="outlined"
-                value={toDateTimeLocalValue(form.watch("endTime").getTime())}
-                onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
-              />
+      <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Surface elevation="raised" padding="default" className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold text-text-strong">
+                {formatMessage({ id: "app.actions.edit.basicInfo" })}
+              </h3>
+              <p className="mt-1 text-sm text-text-sub">
+                {formatMessage({
+                  id: "cockpit.actions.detailDescription",
+                  defaultMessage:
+                    "Review lifecycle details and the submission requirements for this action.",
+                })}
+              </p>
             </div>
-          </div>
-        </Surface>
+            <div className="space-y-4">
+              <AdminTextField
+                label={formatMessage({ id: "app.assessment.table.title" })}
+                id="action-title"
+                variant="outlined"
+                error={form.formState.errors.title?.message}
+                {...form.register("title")}
+              />
 
-        <Surface elevation="raised" padding="default" className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-text-strong">
-              {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
-            </h3>
-            {!isLoadingInstructions && (
-              <AdminButton
-                type="button"
-                variant="text"
-                size="sm"
-                onClick={() => setIsEditingInstructions(!isEditingInstructions)}
-              >
-                {isEditingInstructions
-                  ? formatMessage({ id: "app.actions.edit.cancelEditing" })
-                  : formatMessage({ id: "app.actions.edit.editInstructions" })}
-              </AdminButton>
+              <div className="grid grid-cols-2 gap-4">
+                <AdminTextField
+                  label={formatMessage({ id: "app.actions.detail.startTime" })}
+                  id="action-start-time"
+                  type="datetime-local"
+                  variant="outlined"
+                  value={toDateTimeLocalValue(form.watch("startTime").getTime())}
+                  onChange={(e) =>
+                    form.setValue("startTime", fromDateTimeLocalValue(e.target.value))
+                  }
+                />
+
+                <AdminTextField
+                  label={formatMessage({ id: "app.actions.detail.endTime" })}
+                  id="action-end-time"
+                  type="datetime-local"
+                  variant="outlined"
+                  value={toDateTimeLocalValue(form.watch("endTime").getTime())}
+                  onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
+                />
+              </div>
+            </div>
+          </Surface>
+
+          <Surface elevation="raised" padding="default" className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-strong">
+                {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
+              </h3>
+              {!isLoadingInstructions && (
+                <AdminButton
+                  type="button"
+                  variant="text"
+                  size="sm"
+                  onClick={() => setIsEditingInstructions(!isEditingInstructions)}
+                >
+                  {isEditingInstructions
+                    ? formatMessage({ id: "app.actions.edit.cancelEditing" })
+                    : formatMessage({ id: "app.actions.edit.editInstructions" })}
+                </AdminButton>
+              )}
+            </div>
+
+            {isLoadingInstructions ? (
+              <p className="text-text-sub text-sm">
+                {formatMessage({ id: "app.actions.edit.loadingInstructions" })}
+              </p>
+            ) : isEditingInstructions ? (
+              <InstructionsBuilder value={instructionConfig} onChange={setInstructionConfig} />
+            ) : (
+              <p className="text-text-sub text-sm">
+                {formatMessage({ id: "app.actions.edit.instructionsHint" })}
+              </p>
             )}
-          </div>
+          </Surface>
 
-          {isLoadingInstructions ? (
-            <p className="text-text-sub text-sm">
-              {formatMessage({ id: "app.actions.edit.loadingInstructions" })}
-            </p>
-          ) : isEditingInstructions ? (
-            <InstructionsBuilder value={instructionConfig} onChange={setInstructionConfig} />
-          ) : (
-            <p className="text-text-sub text-sm">
-              {formatMessage({ id: "app.actions.edit.instructionsHint" })}
-            </p>
-          )}
-        </Surface>
-
-        <Surface
-          elevation="raised"
-          padding="default"
-          className="flex flex-col gap-3 sm:flex-row sm:justify-end"
-        >
-          <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
-            {isLoading
-              ? formatMessage({ id: "app.actions.edit.saving" })
-              : formatMessage({ id: "app.actions.edit.saveChanges" })}
-          </AdminButton>
-          <AdminButton type="button" variant="outlined" onClick={() => navigate(`/actions/${id}`)}>
-            {formatMessage({ id: "app.common.cancel" })}
-          </AdminButton>
-        </Surface>
-      </form>
-    </div>
+          <Surface
+            elevation="raised"
+            padding="default"
+            className="flex flex-col gap-3 sm:flex-row sm:justify-end"
+          >
+            <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
+              {isLoading
+                ? formatMessage({ id: "app.actions.edit.saving" })
+                : formatMessage({ id: "app.actions.edit.saveChanges" })}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              variant="outlined"
+              onClick={() => navigate(`/actions/${id}`)}
+            >
+              {formatMessage({ id: "app.common.cancel" })}
+            </AdminButton>
+          </Surface>
+        </form>
+      </CanvasRouteContent>
+    </CanvasRouteFrame>
   );
 }

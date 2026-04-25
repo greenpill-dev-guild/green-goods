@@ -71,7 +71,7 @@ function HypercertWizardHarness({
 const meta: Meta<typeof HypercertWizardHarness> = {
   title: "Admin/Workflows/Hypercerts/HypercertWizard",
   component: HypercertWizardHarness,
-  tags: ["autodocs"],
+  tags: ["autodocs", "visual-harness"],
   parameters: {
     docs: {
       description: {

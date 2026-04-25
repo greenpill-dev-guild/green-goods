@@ -1,6 +1,8 @@
 import { RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
+import { UserAvatar } from "./UserAvatar";
 
 interface MockUserAvatarProps {
   role: "deployer" | "operator" | "user";
@@ -20,29 +22,45 @@ function MockUserAvatar({ role, onOpenProfile }: MockUserAvatarProps) {
   );
 }
 
-const meta: Meta<typeof MockUserAvatar> = {
+const meta: Meta<typeof UserAvatar> = {
   title: "Admin/Shell/UserAvatar",
-  component: MockUserAvatar,
+  component: UserAvatar,
   tags: ["autodocs"],
-  args: {
-    role: "operator",
-    onOpenProfile: fn(),
-  },
-  argTypes: {
-    role: {
-      control: "select",
-      options: ["deployer", "operator", "user"],
+  decorators: [
+    withAdminIdentity,
+    (Story) => (
+      <div className="p-4">
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Real `UserAvatar` rendered with Storybook auth. Role-only static references are marked as visual harnesses.",
+      },
     },
+  },
+  args: {
+    onOpenProfile: fn(),
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof MockUserAvatar>;
+type Story = StoryObj<typeof UserAvatar>;
 
 export const Operator: Story = {};
 
 export const Deployer: Story = {
-  args: {
-    role: "deployer",
+  tags: ["visual-harness"],
+  render: () => <MockUserAvatar role="deployer" onOpenProfile={fn()} />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Visual harness for the deployer aria-label variant. The default story above renders the real avatar.",
+      },
+    },
   },
 };

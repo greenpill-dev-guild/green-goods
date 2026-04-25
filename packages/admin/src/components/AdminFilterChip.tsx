@@ -42,36 +42,37 @@ export function AdminFilterChip({
     <button
       data-component="AdminFilterChip"
       type="button"
-      role="checkbox"
-      aria-checked={selected}
+      aria-pressed={selected}
       onClick={onToggle}
       disabled={disabled}
       className={cn(
         // Shape & layout
         "inline-flex items-center gap-1.5 px-3",
-        "h-7 rounded-[var(--m3-shape-sm)]",
-        // Typography: compact for admin
-        "text-label-sm font-medium whitespace-nowrap",
+        "h-8 rounded-[var(--m3-shape-sm)]",
+        // Typography
+        "text-label-lg font-medium whitespace-nowrap",
         // State layer
         "m3-state-layer",
         // Focus ring
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]",
         // Motion
-        "transition-colors duration-[var(--spring-fast-duration,200ms)] ease-[var(--spring-fast-easing,ease-out)]",
+        "transition-colors duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
         // Disabled
         disabled && "pointer-events-none opacity-[0.38]",
         // State-based styles
         selected
           ? [
               // Selected: secondary-container fill, no outline
+              "border border-transparent",
               "bg-[rgb(var(--m3-secondary-container))]",
               "text-[rgb(var(--m3-on-secondary-container))]",
               "[--state-layer-color:var(--m3-on-secondary-container)]",
             ]
           : [
-              // Unselected: subtle surface fill, no border
-              "bg-[rgb(var(--m3-surface-container))]",
-              "text-[rgb(var(--m3-on-surface-variant))]",
+              // Unselected: transparent fill with outline
+              "border border-[rgb(var(--m3-outline))]",
+              "bg-transparent",
+              "text-[rgb(var(--m3-on-surface))]",
               "[--state-layer-color:var(--m3-on-surface-variant)]",
             ],
         className

@@ -13,7 +13,7 @@ export const adminCardVariants = tv({
     // Padding
     "p-4",
     // Transition
-    "transition-shadow duration-[var(--spring-fast-duration,200ms)] ease-[var(--spring-fast-easing,ease-out)]",
+    "transition-shadow duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
   ],
   variants: {
     variant: {

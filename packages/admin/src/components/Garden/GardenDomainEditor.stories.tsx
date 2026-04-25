@@ -135,7 +135,7 @@ function GardenDomainEditorHarness({
 const meta: Meta<typeof GardenDomainEditorHarness> = {
   title: "Admin/Workflows/Garden/GardenDomainEditor",
   component: GardenDomainEditorHarness,
-  tags: ["autodocs"],
+  tags: ["autodocs", "visual-harness"],
   parameters: {
     docs: {
       description: {

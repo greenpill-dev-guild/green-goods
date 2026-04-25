@@ -36,6 +36,7 @@ function DistributionConfigHarness({
 
 const meta: Meta<typeof DistributionConfigHarness> = {
   title: "Admin/Workflows/Hypercerts/Steps/DistributionConfig",
+  // storybook-quality-allow state-harness: owns draft state while rendering the real DistributionConfig.
   component: DistributionConfigHarness,
   tags: ["autodocs"],
   parameters: {

@@ -33,7 +33,7 @@ export interface AdminTabRailProps {
  * - Flat surface container (corner-none) with bottom border
  * - 3dp active indicator underline that slides between tabs via spring animation
  * - State layer on each button (m3-state-layer from admin-m3-tokens.css)
- * - Compact density: 36dp (label) or 40dp (icon + label) for admin information density
+ * - 48dp tab height with M3 label-large typography
  * - M3 notification badge on count prop (16dp, corner-full, error bg)
  *
  * Accepts the same data contract as the shared shared stage tab rail so
@@ -95,8 +95,8 @@ export function AdminTabRail({
         style={{
           left: indicator.left,
           width: indicator.width,
-          transition: `left var(--spring-medium-duration,300ms) var(--spring-medium-easing,cubic-bezier(0.16,1,0.3,1)),
-                       width var(--spring-medium-duration,300ms) var(--spring-medium-easing,cubic-bezier(0.16,1,0.3,1))`,
+          transition: `left var(--spring-medium-duration) var(--spring-medium-easing),
+                       width var(--spring-medium-duration) var(--spring-medium-easing)`,
         }}
       />
 
@@ -125,9 +125,9 @@ export function AdminTabRail({
               // Layout: equal share, column or row depending on icon presence
               "m3-state-layer",
               "relative flex flex-1 items-center justify-center",
-              hasIcons ? "h-10 flex-row gap-1.5 px-3" : "h-9 flex-row gap-1.5 px-3",
-              // Typography: label-large (compact density for admin)
-              "text-[0.8125rem] font-medium leading-snug",
+              hasIcons ? "h-12 flex-row gap-2 px-4" : "h-12 flex-row gap-1.5 px-4",
+              // Typography: M3 label-large
+              "text-label-lg font-medium leading-snug",
               // Color: active vs inactive
               active
                 ? "text-[rgb(var(--m3-primary))] [--state-layer-color:var(--m3-primary)]"
@@ -139,7 +139,7 @@ export function AdminTabRail({
               // No transition on tab button itself (indicator handles motion)
             )}
           >
-            {/* Icon — 18dp compact, inherits text color */}
+            {/* Icon — 18dp, inherits text color */}
             {Icon ? (
               <Icon
                 className={cn(
@@ -155,7 +155,7 @@ export function AdminTabRail({
             {/* Label */}
             <span className="truncate">{tab.label}</span>
 
-            {/* Inline count badge — compact style */}
+            {/* Inline count badge */}
             {tab.count !== undefined ? (
               <span
                 className={cn(

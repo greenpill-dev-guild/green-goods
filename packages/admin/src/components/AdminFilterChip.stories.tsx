@@ -1,17 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { RiLeafLine, RiTimeLine } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminFilterChip } from "./AdminFilterChip";
 
 const meta: Meta<typeof AdminFilterChip> = {
   title: "Admin/Primitives/AdminFilterChip",
   component: AdminFilterChip,
   tags: ["autodocs"],
+  decorators: [withAdminPrimitiveFrame],
   parameters: {
     docs: {
       description: {
         component:
-          "M3 Filter Chip with selected/unselected states. Selected shows a leading checkmark; unselected shows an optional leading icon. Compact h-7 height for admin information density.",
+          "M3 filter chip with 32dp height, outlined unselected state, selected secondary-container fill, optional leading icon, and selected checkmark.",
       },
     },
   },
@@ -47,10 +49,10 @@ export const Disabled: Story = {
   },
 };
 
-export const FilterRow: Story = {
+export const StateCatalog: Story = {
   render: () => {
-    const Row = () => {
-      const [active, setActive] = useState<Set<string>>(new Set(["pending"]));
+    const Catalog = () => {
+      const [active, setActive] = useState<Set<string>>(new Set(["pending", "approved"]));
       const toggle = (id: string) =>
         setActive((prev) => {
           const next = new Set(prev);
@@ -58,6 +60,7 @@ export const FilterRow: Story = {
           else next.add(id);
           return next;
         });
+
       return (
         <div className="flex flex-wrap gap-2">
           <AdminFilterChip
@@ -77,9 +80,11 @@ export const FilterRow: Story = {
             selected={active.has("approved")}
             onToggle={() => toggle("approved")}
           />
+          <AdminFilterChip label="Archived" selected={false} disabled onToggle={() => {}} />
         </div>
       );
     };
-    return <Row />;
+
+    return <Catalog />;
   },
 };

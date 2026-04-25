@@ -71,6 +71,7 @@ function ReviewStepHarness({ overrides }: { overrides?: Partial<CreateActionForm
 
 const meta: Meta<typeof ReviewStepHarness> = {
   title: "Admin/Workflows/Action/ReviewStep",
+  // storybook-quality-allow state-harness: supplies form state while rendering the real ReviewStep.
   component: ReviewStepHarness,
   tags: ["autodocs"],
   parameters: {

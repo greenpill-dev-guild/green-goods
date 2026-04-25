@@ -1,17 +1,19 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { RiCheckboxCircleLine, RiLeafLine, RiListCheck2, RiTimeLine } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminTabRail } from "./AdminTabRail";
 
 const meta: Meta<typeof AdminTabRail> = {
   title: "Admin/Primitives/AdminTabRail",
   component: AdminTabRail,
   tags: ["autodocs"],
+  decorators: [withAdminPrimitiveFrame],
   parameters: {
     docs: {
       description: {
         component:
-          "M3 Primary Navigation Tabs with sliding 3dp active indicator underline and spring animation. Compact 36dp (label) / 40dp (icon + label) density for admin views. Accepts the same contract as the shared stage tab rail.",
+          "M3 primary tabs with 48dp tab height, surface container, bottom divider, sliding 3dp active indicator, optional icons, disabled tabs, and count badges.",
       },
     },
   },
@@ -25,19 +27,17 @@ export const LabelsOnly: Story = {
     const Demo = () => {
       const [active, setActive] = useState("overview");
       return (
-        <div className="max-w-xl">
-          <AdminTabRail
-            ariaLabel="Garden sections"
-            activeId={active}
-            onChange={setActive}
-            tabs={[
-              { id: "overview", label: "Overview" },
-              { id: "impact", label: "Impact" },
-              { id: "work", label: "Work" },
-              { id: "community", label: "Community" },
-            ]}
-          />
-        </div>
+        <AdminTabRail
+          ariaLabel="Garden sections"
+          activeId={active}
+          onChange={setActive}
+          tabs={[
+            { id: "overview", label: "Overview" },
+            { id: "impact", label: "Impact" },
+            { id: "work", label: "Work" },
+            { id: "community", label: "Community" },
+          ]}
+        />
       );
     };
     return <Demo />;
@@ -49,42 +49,39 @@ export const WithIconsAndCounts: Story = {
     const Demo = () => {
       const [active, setActive] = useState("pending");
       return (
-        <div className="max-w-2xl">
-          <AdminTabRail
-            ariaLabel="Work queue"
-            activeId={active}
-            onChange={setActive}
-            tabs={[
-              { id: "pending", label: "Pending", icon: RiTimeLine, count: 14 },
-              { id: "harvested", label: "Harvested", icon: RiLeafLine, count: 3 },
-              { id: "approved", label: "Approved", icon: RiCheckboxCircleLine, count: 42 },
-              { id: "all", label: "All", icon: RiListCheck2 },
-            ]}
-          />
-        </div>
+        <AdminTabRail
+          ariaLabel="Work queue"
+          activeId={active}
+          onChange={setActive}
+          tabs={[
+            { id: "pending", label: "Pending", icon: RiTimeLine, count: 14 },
+            { id: "harvested", label: "Harvested", icon: RiLeafLine, count: 3 },
+            { id: "approved", label: "Approved", icon: RiCheckboxCircleLine, count: 42 },
+            { id: "all", label: "All", icon: RiListCheck2 },
+          ]}
+        />
       );
     };
     return <Demo />;
   },
 };
 
-export const WithDisabledTab: Story = {
+export const StateCatalog: Story = {
   render: () => {
     const Demo = () => {
       const [active, setActive] = useState("overview");
       return (
-        <div className="max-w-xl">
-          <AdminTabRail
-            ariaLabel="Sections"
-            activeId={active}
-            onChange={setActive}
-            tabs={[
-              { id: "overview", label: "Overview" },
-              { id: "impact", label: "Impact" },
-              { id: "treasury", label: "Treasury", disabled: true },
-            ]}
-          />
-        </div>
+        <AdminTabRail
+          ariaLabel="Sections"
+          activeId={active}
+          onChange={setActive}
+          tabs={[
+            { id: "overview", label: "Overview", count: 2 },
+            { id: "impact", label: "Impact", icon: RiLeafLine },
+            { id: "treasury", label: "Treasury", disabled: true },
+            { id: "history", label: "History", count: 128 },
+          ]}
+        />
       );
     };
     return <Demo />;

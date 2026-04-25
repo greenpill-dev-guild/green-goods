@@ -1,6 +1,8 @@
 import { RiComputerLine, RiLogoutBoxLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
+import { AccountSettingsPanel } from "./AccountSettingsPanel";
 
 type ThemeValue = "light" | "dark" | "system";
 
@@ -69,29 +71,42 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
   );
 }
 
-const meta: Meta<typeof MockAccountSettingsPanel> = {
+const meta: Meta<typeof AccountSettingsPanel> = {
   title: "Admin/Shell/AccountSettingsPanel",
-  component: MockAccountSettingsPanel,
+  component: AccountSettingsPanel,
   tags: ["autodocs"],
-  args: {
-    initialTheme: "system",
-    network: "Sepolia",
-  },
-  argTypes: {
-    initialTheme: {
-      control: "inline-radio",
-      options: ["light", "dark", "system"],
+  decorators: [
+    withAdminIdentity,
+    (Story) => (
+      <div className="mx-auto max-w-xl p-4">
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Real `AccountSettingsPanel` rendered with Storybook auth and theme state. Static selected-theme references are marked as visual harnesses.",
+      },
     },
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof MockAccountSettingsPanel>;
+type Story = StoryObj<typeof AccountSettingsPanel>;
 
 export const Default: Story = {};
 
 export const DarkSelected: Story = {
-  args: {
-    initialTheme: "dark",
+  tags: ["visual-harness"],
+  render: () => <MockAccountSettingsPanel initialTheme="dark" network="Sepolia" />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Visual harness for the selected dark theme row. Use the global Storybook theme toolbar for actual light/dark rendering.",
+      },
+    },
   },
 };

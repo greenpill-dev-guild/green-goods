@@ -12,6 +12,7 @@ function ReviewConfigHarness({ initial }: { initial: ReviewConfig }) {
 
 const meta: Meta<typeof ReviewConfigHarness> = {
   title: "Admin/Workflows/Action/ReviewConfigSection",
+  // storybook-quality-allow state-harness: owns local state while rendering the real ReviewConfigSection.
   component: ReviewConfigHarness,
   tags: ["autodocs"],
   parameters: {

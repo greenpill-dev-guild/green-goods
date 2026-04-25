@@ -5,6 +5,12 @@
 
 @import "tailwindcss";
 
+/* Storybook renders admin package stories through the shared preview, so the
+ * Tailwind source graph must include admin files or admin-only M3 utilities
+ * like 56dp search bars and arbitrary M3 token colors can be dropped. */
+@source "../../admin/src";
+@source "../../client/src";
+
 /* Configure dark mode to use data-theme attribute (matching shared theme system) */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -106,8 +112,11 @@
 
 @layer utilities {
   /* Storybook-owned canvas frame for isolated canvas/shell primitives.
-     Mirrors the admin workspace ground without depending on admin-only
-     CSS that is not loaded by the shared Storybook preview.
+     Intentional runtime duplication: compare workspace role values here
+     against `packages/admin/src/index.css` and the M3 aliases in
+     `packages/admin/src/styles/admin-m3-tokens.css`. Storybook imports
+     admin M3 token/override CSS, but not the admin app entrypoint because
+     that would leak runtime document resets into every package story.
 
      Design notes:
      - NO base `--ws-*` defaults here. The per-workspace rules below are
@@ -227,6 +236,27 @@
     --workspace-tint: 168 85 247;
     --workspace-tint-2: 196 181 253;
     --workspace-accent: 147 51 234;
+  }
+
+  .storybook-installed-pwa-frame {
+    position: relative;
+    isolation: isolate;
+    width: min(100%, 430px);
+    min-height: 720px;
+    margin-inline: auto;
+    overflow: hidden;
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--text-strong-950));
+    box-shadow:
+      0 0 0 1px rgb(var(--stroke-soft-200)),
+      0 24px 56px rgb(15 23 42 / 14%);
+  }
+
+  [data-theme="dark"] .storybook-installed-pwa-frame {
+    background: rgb(var(--bg-white-0));
+    box-shadow:
+      0 0 0 1px rgb(var(--stroke-soft-200)),
+      0 24px 56px rgb(0 0 0 / 32%);
   }
 
   [data-theme="dark"] .storybook-canvas-frame {

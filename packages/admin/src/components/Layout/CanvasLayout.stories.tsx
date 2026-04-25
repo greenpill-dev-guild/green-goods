@@ -9,8 +9,16 @@ import {
 import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
+import { Route, Routes } from "react-router-dom";
 import { expect, fn, userEvent, within } from "storybook/test";
-import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
+import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import {
+  withAdminIdentity,
+  withCanvasFrame,
+  withRouter,
+  withSeededQueryClient,
+} from "../../../../shared/.storybook/decorators";
+import { CanvasLayout } from "./CanvasLayout";
 
 const gardens = [
   { id: "garden-1", name: "Comunidad Verde" },
@@ -22,7 +30,7 @@ interface MockCanvasLayoutProps {
   activePath: string;
 }
 
-function MockCanvasLayout({ empty = false, activePath }: MockCanvasLayoutProps) {
+function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayoutProps) {
   const [selectedGarden, setSelectedGarden] = useState(gardens[0]);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -119,26 +127,54 @@ function MockCanvasLayout({ empty = false, activePath }: MockCanvasLayoutProps) 
   );
 }
 
-const meta: Meta<typeof MockCanvasLayout> = {
+function StorybookRouteContent({ title }: { title: string }) {
+  return (
+    <section className="space-y-4 p-6" data-testid="storybook-route-content">
+      <div>
+        <p className="text-label-sm text-text-soft">Storybook route</p>
+        <h1 className="text-title-lg text-text-strong">{title}</h1>
+      </div>
+      <div className="surface-section p-4">
+        <p className="text-body-md text-text-sub">
+          Real CanvasLayout shell content rendered through React Router outlet.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function RealCanvasLayoutStory() {
+  return (
+    <Routes>
+      <Route element={<CanvasLayout />}>
+        <Route path="/hub/*" element={<StorybookRouteContent title="Hub workbench" />} />
+        <Route path="/garden/*" element={<StorybookRouteContent title="Garden overview" />} />
+        <Route
+          path="/community/*"
+          element={<StorybookRouteContent title="Community operations" />}
+        />
+        <Route path="/actions/*" element={<StorybookRouteContent title="Action registry" />} />
+        <Route path="/profile/*" element={<StorybookRouteContent title="Profile" />} />
+      </Route>
+    </Routes>
+  );
+}
+
+type CanvasLayoutStoryArgs = MockCanvasLayoutProps;
+
+const meta: Meta<CanvasLayoutStoryArgs> = {
   title: "Admin/Shell/CanvasLayout",
-  component: MockCanvasLayout,
-  tags: ["autodocs", "storybook-ci"],
+  component: CanvasLayout,
+  tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
     docs: {
       description: {
         component:
-          "State catalog for the admin canvas shell: AppBar, MainSheet, NavigationBar, and a right-sheet recession state inside the Storybook-owned canvas frame.",
+          "Admin canvas shell coverage. The CI story renders the real CanvasLayout through router, auth, wagmi, and seeded React Query providers; the visual harness stories keep focused shell state catalogs available without satisfying CI coverage.",
       },
     },
   },
-  decorators: [
-    withCanvasFrame({
-      className: "admin-m3 workspace-canvas-grid",
-      heightClassName: "h-[680px]",
-      workspace: "hub",
-    }),
-  ],
   args: {
     empty: false,
     activePath: "/hub",
@@ -156,9 +192,66 @@ const meta: Meta<typeof MockCanvasLayout> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof MockCanvasLayout>;
+type Story = StoryObj<CanvasLayoutStoryArgs>;
+
+export const RealProviderShell: Story = {
+  tags: ["storybook-ci"],
+  render: () => <RealCanvasLayoutStory />,
+  decorators: [
+    withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withRouter(["/hub/work"]),
+    withCanvasFrame({
+      className: "p-0",
+      heightClassName: "h-[760px]",
+      workspace: "hub",
+    }),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "CI-covered real CanvasLayout composition. It exercises auth, router outlet rendering, garden selection, navigation chrome, right-sheet orchestration, and the real CommandPalette entry point against deterministic Storybook seeds.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("banner")).toHaveAttribute("data-component", "AppBar");
+    await expect(await canvas.findByRole("heading", { name: "Hub workbench" })).toBeVisible();
+    await expect(await canvas.findByRole("button", { name: "Botanic Commons" })).toBeVisible();
+
+    await userEvent.click(canvas.getByRole("button", { name: "Open search" }));
+    const body = within(document.body);
+    const palette = await body.findByRole("dialog", { name: "Command palette" });
+    const paletteCanvas = within(palette);
+    const searchInput = await paletteCanvas.findByPlaceholderText(
+      /search pages, gardens, actions/i
+    );
+    await expect(searchInput).toBeInTheDocument();
+    await userEvent.type(searchInput, "rain");
+    const rioMatches = await paletteCanvas.findAllByText("Rio Rainforest Lab");
+    await expect(rioMatches.length).toBeGreaterThan(0);
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.click(canvas.getByRole("button", { name: "Open settings" }));
+    const rightSheet = await canvas.findByTestId("right-sheet");
+    await expect(rightSheet).toHaveAttribute("data-component", "RightSheet");
+    await expect(within(rightSheet).getByRole("heading", { name: "Settings" })).toBeVisible();
+    await userEvent.click(within(rightSheet).getByRole("button", { name: "Close" }));
+  },
+};
 
 export const Populated: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <CanvasLayoutVisualHarness {...args} />,
+  decorators: [
+    withCanvasFrame({
+      className: "admin-m3 workspace-canvas-grid",
+      heightClassName: "h-[680px]",
+      workspace: "hub",
+    }),
+  ],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("banner")).toHaveAttribute("data-component", "AppBar");
@@ -172,12 +265,30 @@ export const Populated: Story = {
 };
 
 export const Empty: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <CanvasLayoutVisualHarness {...args} />,
+  decorators: [
+    withCanvasFrame({
+      className: "admin-m3 workspace-canvas-grid",
+      heightClassName: "h-[680px]",
+      workspace: "hub",
+    }),
+  ],
   args: {
     empty: true,
   },
 };
 
 export const Mobile: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <CanvasLayoutVisualHarness {...args} />,
+  decorators: [
+    withCanvasFrame({
+      className: "admin-m3 workspace-canvas-grid",
+      heightClassName: "h-[680px]",
+      workspace: "hub",
+    }),
+  ],
   args: {
     activePath: "/garden",
   },

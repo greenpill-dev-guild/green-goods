@@ -65,23 +65,7 @@ export const StartAtSecondImage: Story = {
   },
 };
 
-export const DarkMode: Story = {
-  args: {
-    isOpen: true,
-    onClose: () => {},
-    images: sampleImages,
-    initialIndex: 0,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-text-secondary">

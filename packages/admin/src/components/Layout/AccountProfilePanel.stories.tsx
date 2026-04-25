@@ -1,5 +1,8 @@
 import { RiWallet3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
+import { AccountProfilePanel } from "./AccountProfilePanel";
 
 interface MockAccountProfilePanelProps {
   role: "deployer" | "operator" | "user";
@@ -47,39 +50,56 @@ function MockAccountProfilePanel({
   );
 }
 
-const meta: Meta<typeof MockAccountProfilePanel> = {
+const meta: Meta<typeof AccountProfilePanel> = {
   title: "Admin/Shell/AccountProfilePanel",
-  component: MockAccountProfilePanel,
+  component: AccountProfilePanel,
   tags: ["autodocs"],
-  args: {
-    role: "operator",
-    displayName: "garden.eth",
-    wallet: "0x2aa6...35e",
-  },
-  argTypes: {
-    role: {
-      control: "select",
-      options: ["deployer", "operator", "user"],
+  decorators: [
+    withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    (Story) => (
+      <div className="mx-auto max-w-md p-4">
+        <Story />
+      </div>
+    ),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Real `AccountProfilePanel` rendered against Storybook auth, wagmi, and deterministic ENS/query seeds. Harness stories are tagged separately for role-only static references.",
+      },
     },
   },
 };
 
 export default meta;
-type Story = StoryObj<typeof MockAccountProfilePanel>;
+type Story = StoryObj<typeof AccountProfilePanel>;
 
 export const Operator: Story = {};
 
 export const Deployer: Story = {
-  args: {
-    role: "deployer",
-    displayName: "deployer.eth",
+  tags: ["visual-harness"],
+  render: () => <MockAccountProfilePanel role="deployer" displayName="deployer.eth" />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Visual harness for the deployer role label. The default story above renders the real account panel.",
+      },
+    },
   },
 };
 
 export const NoEnsName: Story = {
-  args: {
-    role: "user",
-    displayName: "Wallet",
-    wallet: "0x04D6...2503",
+  tags: ["visual-harness"],
+  render: () => <MockAccountProfilePanel role="user" displayName="Wallet" wallet="0x04D6...2503" />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Visual harness for the wallet-only fallback. The default story above renders the real account panel.",
+      },
+    },
   },
 };

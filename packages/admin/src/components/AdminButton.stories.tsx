@@ -1,16 +1,18 @@
+import { RiAddLine, RiArrowRightLine, RiDeleteBinLine, RiSave3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { RiAddLine, RiArrowRightLine, RiDeleteBinLine } from "@remixicon/react";
+import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminButton } from "./AdminButton";
 
 const meta: Meta<typeof AdminButton> = {
   title: "Admin/Primitives/AdminButton",
   component: AdminButton,
   tags: ["autodocs"],
+  decorators: [withAdminPrimitiveFrame],
   parameters: {
     docs: {
       description: {
         component:
-          "M3 common button with filled, tonal, elevated, outlined, text, and danger variants. Rounded-full shape, label-lg typography, M3 state layer, spring motion.",
+          "M3 common button with filled, tonal, elevated, outlined, text, and danger variants. Uses full-round shape, label-large typography, M3 state layers, and tokenized spring motion.",
       },
     },
   },
@@ -40,16 +42,7 @@ export const Outlined: Story = {
   args: { variant: "outlined", size: "md", children: "Cancel" },
 };
 
-export const Danger: Story = {
-  args: {
-    variant: "danger",
-    size: "md",
-    leadingIcon: <RiDeleteBinLine />,
-    children: "Remove member",
-  },
-};
-
-export const WithLeadingIcon: Story = {
+export const WithIcon: Story = {
   args: {
     variant: "filled",
     size: "md",
@@ -59,30 +52,38 @@ export const WithLeadingIcon: Story = {
 };
 
 export const Loading: Story = {
-  args: { variant: "filled", loading: true, children: "Submitting…" },
+  args: { variant: "filled", loading: true, children: "Submitting" },
 };
 
-export const VariantGallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
-    <div className="flex flex-wrap gap-3">
-      <AdminButton variant="filled">Filled</AdminButton>
-      <AdminButton variant="tonal">Tonal</AdminButton>
-      <AdminButton variant="elevated">Elevated</AdminButton>
-      <AdminButton variant="outlined">Outlined</AdminButton>
-      <AdminButton variant="text" leadingIcon={<RiArrowRightLine />}>
-        Text
-      </AdminButton>
-      <AdminButton variant="danger">Danger</AdminButton>
-    </div>
-  ),
-};
-
-export const SizeGallery: Story = {
-  render: () => (
-    <div className="flex items-end gap-3">
-      <AdminButton size="sm">Small</AdminButton>
-      <AdminButton size="md">Medium</AdminButton>
-      <AdminButton size="lg">Large</AdminButton>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <AdminButton variant="filled" leadingIcon={<RiSave3Line />}>
+          Filled
+        </AdminButton>
+        <AdminButton variant="tonal">Tonal</AdminButton>
+        <AdminButton variant="elevated">Elevated</AdminButton>
+        <AdminButton variant="outlined">Outlined</AdminButton>
+        <AdminButton variant="text" leadingIcon={<RiArrowRightLine />}>
+          Text
+        </AdminButton>
+        <AdminButton variant="danger" leadingIcon={<RiDeleteBinLine />}>
+          Danger
+        </AdminButton>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <AdminButton disabled>Disabled</AdminButton>
+        <AdminButton loading>Saving</AdminButton>
+        <AdminButton variant="outlined" disabled>
+          Disabled outline
+        </AdminButton>
+      </div>
+      <div className="flex flex-wrap items-end gap-3">
+        <AdminButton size="sm">Small</AdminButton>
+        <AdminButton size="md">Medium</AdminButton>
+        <AdminButton size="lg">Large</AdminButton>
+      </div>
     </div>
   ),
 };

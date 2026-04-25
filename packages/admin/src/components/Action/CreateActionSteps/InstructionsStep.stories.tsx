@@ -58,6 +58,7 @@ function InstructionsStepHarness() {
 
 const meta: Meta<typeof InstructionsStepHarness> = {
   title: "Admin/Workflows/Action/InstructionsStep",
+  // storybook-quality-allow state-harness: supplies form state while rendering the real InstructionsStep.
   component: InstructionsStepHarness,
   tags: ["autodocs"],
   parameters: {

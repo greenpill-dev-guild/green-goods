@@ -10,6 +10,14 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import {
+  withAdminIdentity,
+  withCanvasFrame,
+  withRouter,
+  withSeededQueryClient,
+} from "../../../../shared/.storybook/decorators";
+import { CommandPalette } from "./CommandPalette";
 
 // ─── Mock CommandPalette ─────────────────────────────────────────────
 // The real component uses useNavigate, useGardens, and useActions which
@@ -291,15 +299,17 @@ function MockCommandPalette({
 
 // ─── Meta ────────────────────────────────────────────────────────────
 
-const meta: Meta<typeof MockCommandPalette> = {
+type CommandPaletteStoryArgs = MockCommandPaletteProps;
+
+const meta: Meta<CommandPaletteStoryArgs> = {
   title: "Admin/Shell/CommandPalette",
-  component: MockCommandPalette,
+  component: CommandPalette,
   tags: ["autodocs"],
   parameters: {
     docs: {
       description: {
         component:
-          "Isolated command-palette state catalog. The play story is a local interaction aid; CI only builds stories and does not execute play functions.",
+          "Admin command palette coverage. The CI story renders the real CommandPalette with router, auth, wagmi, and seeded React Query providers; harness stories keep isolated state catalogs explicit.",
       },
     },
   },
@@ -329,17 +339,64 @@ const meta: Meta<typeof MockCommandPalette> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof MockCommandPalette>;
+type Story = StoryObj<CommandPaletteStoryArgs>;
 
-export const Default: Story = {};
+function RealCommandPaletteStory() {
+  const [open, setOpen] = useState(true);
+  return <CommandPalette open={open} onOpenChange={setOpen} />;
+}
+
+export const RealProviderOpen: Story = {
+  tags: ["storybook-ci"],
+  render: () => <RealCommandPaletteStory />,
+  decorators: [
+    withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withRouter(["/hub/work"]),
+    withCanvasFrame({
+      workspace: "hub",
+      className: "p-6",
+      heightClassName: "min-h-[360px]",
+    }),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "CI-covered real CommandPalette. It uses deterministic garden, action, assessment, and role seeds so search categories render without live indexer calls.",
+      },
+    },
+  },
+  play: async () => {
+    const body = within(document.body);
+    const palette = await body.findByRole("dialog", { name: "Command palette" });
+    const paletteCanvas = within(palette);
+    const input = await paletteCanvas.findByPlaceholderText(/search pages, gardens, actions/i);
+    await expect(input).toBeInTheDocument();
+    await expect(await paletteCanvas.findByText("Quick Actions")).toBeInTheDocument();
+    await expect(await paletteCanvas.findByText("Gardens")).toBeInTheDocument();
+
+    await userEvent.type(input, "water");
+    await expect(await paletteCanvas.findByText("Water quality check")).toBeInTheDocument();
+  },
+};
+
+export const Default: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <MockCommandPalette {...args} />,
+};
 
 export const Open: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <MockCommandPalette {...args} />,
   args: {
     defaultOpen: true,
   },
 };
 
 export const NoResults: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <MockCommandPalette {...args} />,
   args: {
     defaultOpen: true,
     gardens: [],
@@ -348,6 +405,8 @@ export const NoResults: Story = {
 };
 
 export const Interactive: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <MockCommandPalette {...args} />,
   parameters: {
     docs: {
       description: {

@@ -143,7 +143,7 @@ const JARS: MockJar[] = [
 const meta: Meta<typeof CookieJarDepositModalHarness> = {
   title: "Admin/Workflows/Hub/CookieJarDepositModal",
   component: CookieJarDepositModalHarness,
-  tags: ["autodocs"],
+  tags: ["autodocs", "visual-harness"],
   parameters: {
     docs: {
       description: {

@@ -193,10 +193,10 @@ export function AddMemberModal({
             type="submit"
             disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
             className={cn(
-              "px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-primary-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:text-text-soft disabled:opacity-50",
+              "px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--ws-action,var(--primary-action)))] disabled:text-text-soft disabled:opacity-50",
               isLoading || !trimmed || (shouldResolveEns && resolvingEns)
                 ? "bg-bg-surface cursor-not-allowed"
-                : "bg-primary-base hover:bg-primary-darker"
+                : "bg-[rgb(var(--ws-action,var(--primary-action)))] hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))]"
             )}
           >
             {isLoading

@@ -55,7 +55,7 @@ export function AdminFab({
         // Elevation
         "shadow-[var(--m3-elevation-3)] hover:shadow-[var(--m3-elevation-4)]",
         // Transition
-        "transition-shadow duration-[var(--spring-fast-duration,200ms)] ease-[var(--spring-fast-easing,ease-out)]",
+        "transition-shadow duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
         // Focus
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]",
         // Size + shape variants

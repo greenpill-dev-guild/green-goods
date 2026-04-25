@@ -35,7 +35,7 @@ graph TB
 
     Stories --> SB["Storybook 10.3.5\nCSF3 format"]
     A11y --> SB
-    SB -->|CI| Gates["check:stories\ntest:stories:ci\nbuild-storybook"]
+    SB -->|CI| Gates["check:design-tokens\ncheck:stories\ncheck:story-quality\ntest:stories:ci\nbuild-storybook"]
 ```
 
 Storybook serves as the component documentation and local interaction layer. Stories span all three UI packages (shared, admin, client) and are aggregated into a single Storybook instance hosted from `packages/shared`.
@@ -44,7 +44,7 @@ Storybook serves as the component documentation and local interaction layer. Sto
 
 Storybook stories serve two practical purposes: living component documentation and a fast local surface for exploring component states. The philosophy is that every shared foundation should have a story, and stories should demonstrate the component's range of states — default, edge cases, responsive behavior, and error states.
 
-Storybook is now a light regression gate. The repo CI verifies the required Storybook contract for shared foundations plus curated admin surfaces, runs a small browser-mode Storybook test lane for `storybook-ci` stories, then builds the unified Storybook to catch compile-time issues. Keep the CI tag curated; do not tag every story by default.
+Storybook is now a light regression gate. The repo CI verifies the design-token contract, required Storybook coverage for shared foundations plus curated admin surfaces, story-quality guardrails for admin and shared Canvas stories, a small browser-mode Storybook test lane for `storybook-ci` stories, then builds the unified Storybook to catch compile-time issues. Keep the CI tag curated; do not tag every story by default.
 
 ### Architecture
 
@@ -139,13 +139,30 @@ These are not interactive components -- they serve as living documentation of th
 
 For agent-driven TDD, treat Storybook as the state catalog and Vitest/RTL as the assertion layer:
 
-1. add or update the story that expresses the intended state
-2. write the focused Vitest/RTL test for the behavior or contract
-3. add a `play()` interaction only when it catches meaningful behavior without making the story brittle
-4. tag only stable, high-value story files with `storybook-ci`
-5. use Storybook locally to inspect the resulting UI states and interaction paths
+1. add or update a real component story by default; use a mock-only render only when the story is clearly tagged `visual-harness`
+2. use deterministic fixtures from `packages/shared/.storybook/fixtures.ts` or `adminFixtures.ts`
+3. use `StateCatalog` for state matrices instead of generic `Gallery`; keep axis catalogs such as `VariantGallery` and `SizeGallery`
+4. write the focused Vitest/RTL test for the behavior or contract
+5. add a `play()` interaction only when it catches meaningful behavior without making the story brittle
+6. tag only stable, high-value story files with `storybook-ci`
+7. use Storybook locally to inspect the resulting UI states and interaction paths
 
 That keeps stories useful for exploration without turning CI into a slow, brittle browser harness.
+
+### New Admin Component Flow
+
+When adding an admin UI component, build the Storybook state catalog before wiring the component deeply into a route:
+
+1. decide ownership first: reusable primitive, hook, provider, store, or config goes in `@green-goods/shared`; admin-only workflow or shell composition stays in `packages/admin`
+2. compose from existing shared Canvas primitives and admin `Admin*` wrappers before adding a new wrapper
+3. add a co-located CSF3 story with deterministic fixtures and the relevant `packages/shared/.storybook` decorators
+4. render the real component by default; use `visual-harness` only for audited wallet-bound or provider-bound exceptions
+5. cover the useful state catalog: default, loading, empty, error, permission/role, edge, and responsive states where applicable
+6. add focused Vitest/RTL tests for behavior Storybook cannot prove, such as permissions, routing, mutation handling, and data transforms
+7. wire the component into the admin route after the Storybook surface is coherent
+8. run `check:stories`, `check:story-quality`, and `build-storybook`; run `test:stories:ci` only when adding or changing curated `storybook-ci` coverage
+
+This keeps Storybook as the first operator-visible review surface while preserving tests as the assertion layer.
 
 ### Mock Patterns in Stories
 
@@ -188,15 +205,20 @@ cd packages/shared && bun run build-storybook
 
 # Check the required Storybook contract for shared foundations + curated admin surfaces (CI gate)
 cd packages/shared && bun run check:stories
+
+# Check admin/shared Canvas story determinism and harness conventions
+cd packages/shared && bun run check:story-quality
 ```
 
 ### CI Integration
 
-The `storybook.yml` workflow triggers on PRs that modify Storybook config, story files, the curated story coverage contract, and component or view files that feed the unified Storybook build. It runs three required checks:
+The `storybook.yml` workflow triggers on PRs that modify Storybook config, story files, the curated story coverage contract, and component or view files that feed the unified Storybook build. It runs five required checks:
 
-1. **Storybook contract** (`check:stories`) -- Ensures shared foundations plus curated admin surfaces have corresponding stories
-2. **Storybook interaction smoke** (`test:stories:ci`) -- Runs browser-mode Vitest against curated `storybook-ci` stories
-3. **Build verification** (`build-storybook`) -- Confirms the static Storybook site compiles without errors across shared, admin, and client stories
+1. **Design-token contract** (`check:design-tokens`) -- Confirms Warm Earth token expectations match the shared theme implementation
+2. **Storybook contract** (`check:stories`) -- Ensures shared foundations plus curated admin surfaces have corresponding stories
+3. **Story quality** (`check:story-quality`) -- Catches nondeterministic admin fixtures, unmarked mock harnesses, generic gallery exports, and dark-mode duplicate stories
+4. **Storybook interaction smoke** (`test:stories:ci`) -- Runs browser-mode Vitest against curated `storybook-ci` stories
+5. **Build verification** (`build-storybook`) -- Confirms the static Storybook site compiles without errors across shared, admin, and client stories
 
 The built artifact is uploaded via `actions/upload-artifact@v4` for review.
 
