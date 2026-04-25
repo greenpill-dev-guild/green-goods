@@ -5,7 +5,7 @@
 **Status**: `BACKLOG`
 **Created**: `2026-04-12`
 **Last Updated**: `2026-04-12`
-**Replaces**: `web2-auth-and-gas-sponsorship` (archived broad plan)
+**Replaces**: broad web2 auth and gas sponsorship scope
 
 ## Decision Log
 

@@ -64,7 +64,7 @@
       "branch": "claude/qa-pass-1/rwa-yield-expansion",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Blocked on audit report delivery. Storybook + Chrome MCP spot-check of preset picker + queued-withdrawal UX; lint:vocab on yield copy; audit report archived to artifacts/.",
+      "handoff_note": "Blocked on audit report delivery. Storybook + Chrome MCP spot-check of preset picker + queued-withdrawal UX; lint:vocab on yield copy; audit report saved to artifacts/.",
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {

@@ -4,8 +4,7 @@
 **Stage**: `backlog`
 **Priority**: `p1`
 **Created**: `2026-04-18`
-**Research Map**: `.plans/ideas/autonomous-harness-map-2026-04-18.md`
-**Active Rollout**: `.plans/active/autonomy-harness-rollout/`
+**Source Context**: prior autonomy harness rollout is closed; this hub owns the follow-on hardening wave.
 **Next Follow-On Hub**: `Telegram trace capture`
 
 ## Problem
@@ -33,7 +32,7 @@ The active autonomy rollout is focused on control-surface repair and honest repo
   - `Telegram trace capture`
   - Chromatic wiring
   - design-lane rollout
-  - changing the scope of `.plans/active/autonomy-harness-rollout/`
+  - reopening or widening the prior autonomy harness rollout
   - making Claude review workflows required in this wave
 
 ## Success Signal

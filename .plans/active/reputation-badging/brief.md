@@ -22,7 +22,7 @@ Season One participation today has no persistent signal beyond on-chain work his
   - `packages/agent` (or new `packages/greenwill`) badge registry + per-badge evaluators + Greenwill issuer loop + Unlock client + EAS writer.
   - `packages/contracts/deployments/{chainId}-latest.json` — 6 Unlock lock addresses + 1 shared `GreenGoodsBadge` EAS schema UID.
   - `packages/shared/src/hooks/useBadges.ts` + `modules/badges.ts` (display metadata, tier formatting).
-  - GreenWill broadcast contract-confidence gate: upgrade-preservation unit coverage, workflow integration coverage, Arbitrum fork support-flow test (per admin-ui-revamp history, 2026-04-19).
+  - GreenWill broadcast contract-confidence gate: upgrade-preservation unit coverage, workflow integration coverage, Arbitrum fork support-flow test.
 - Out of scope:
   - Custom badge-issuance contracts — Unlock factory + existing EAS contracts cover the surface.
   - Client-side badge minting flows — all issuance is service-side.

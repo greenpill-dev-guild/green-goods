@@ -20,7 +20,7 @@
   },
   "notes": [
     "Wave 1 is limited to harness hardening: deterministic guardrails, split advisory reviewers, source-structure ratchet, explicit criticality, and weekly harness GC.",
-    "Do not widen `.plans/active/autonomy-harness-rollout/`; use this backlog hub for the follow-on hardening wave only.",
+    "Do not reopen or widen the prior autonomy harness rollout; use this backlog hub for the follow-on hardening wave only.",
     "Blocking in Wave 1 comes from deterministic scripts, not from Claude review pass/fail semantics.",
     "Telegram trace capture is the next follow-on hub after Wave 1 lands."
   ],
@@ -86,7 +86,7 @@
       "lane": "system",
       "status": "wave_1_scoped",
       "branch": null,
-      "note": "Scoped Wave 1 to harness hardening and left autonomy-harness-rollout unchanged."
+      "note": "Scoped Wave 1 to harness hardening as its own backlog hub."
     }
   ]
 }

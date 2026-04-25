@@ -3,7 +3,7 @@
 **Feature Slug**: `github-copilot-rollout`
 **Status**: `ACTIVE`
 **Created**: `2026-04-11`
-**Last Updated**: `2026-04-11`
+**Last Updated**: `2026-04-25`
 **Branch**: `feature/github-copilot-rollout`
 
 ## Implementation Progress
@@ -22,7 +22,8 @@
   - `.github/workflows/codeql.yml`
   - `.github/copilot-rollout-settings-checklist.md`
 - `.github/dependabot.yml` now keeps npm update PRs disabled while allowing conservative GitHub Actions update PRs.
-- Manual GitHub UI work is still required for automatic Copilot review rulesets, security toggles, premium-request budgets, and alerting.
+- GitHub API verification on 2026-04-25 confirms the automatic review rulesets and core security toggles are live.
+- Remaining manual work is now limited to develop draft-review parity, premium-request budget/alerts, Dependabot remediation routing, autonomous-agent controls, and the two-week pilot review.
 
 ## Decision Log
 
@@ -43,12 +44,12 @@
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
 | Existing guidance is surfaced to Copilot without new agents or skills | `state_api` | Steps 1-3 | ✅ |
-| Automatic Copilot review runs on open pull requests targeting `main` or `develop`, and reruns on new pushes where configured | `state_api` | Step 4 | 🟡 Repo files landed; GitHub ruleset/settings still manual |
+| Automatic Copilot review runs on pull requests targeting `main` or `develop`, and reruns on new pushes where configured | `state_api` | Step 4 | 🟡 Verified live on 2026-04-25; `develop` still reviews drafts and must be adjusted if drafts should stay excluded |
 | All packages are covered with package-appropriate review depth and guardrails | `contracts` | Steps 5-8 | ✅ |
 | `packages/admin` has explicit rollout goals and guardrails | `ui` | Step 5 | ✅ |
 | `packages/client` has explicit rollout goals and guardrails | `ui` | Step 6 | ✅ |
 | `packages/agent` has explicit rollout goals and guardrails | `state_api` | Step 7 | ✅ |
-| GitHub-native security is enabled with remediation flow | `state_api` | Step 8 | 🟡 CodeQL/workflow files landed; GitHub Security toggles still manual |
+| GitHub-native security is enabled with remediation flow | `state_api` | Step 8 | 🟡 Security toggles verified 2026-04-25; remediation routing still open because 14 Dependabot alerts remain |
 | Protected paths remain human-governed | `contracts` | Step 9 | ✅ |
 | Rollout is measured and re-tuned after pilots | `qa_pass_1` | Step 10 | ⏳ |
 
@@ -109,6 +110,8 @@
 **Target Files / Surfaces**: GitHub repository rulesets and Copilot code review settings
 **Change**: Enable automatic Copilot code review on open pull requests that target `main` or `develop`. Do not run it on draft pull requests. Turn on reruns when new commits are pushed to a qualifying pull request, which is the current GitHub-native equivalent of commit-level review.
 
+**Verification 2026-04-25:** active `main` and `dev` rulesets target `refs/heads/main` and `refs/heads/develop`, include `copilot_code_review`, and set `review_on_push: true`. Follow-up: `main` has `review_draft_pull_requests: false`, but `develop` has `review_draft_pull_requests: true`.
+
 ### Step 5: Run the `packages/admin` CI/CD pilot
 **Target Files / Surfaces**: `packages/admin/**`, `docs/docs/builders/packages/admin.mdx`, Copilot review settings
 **Change**: Make admin a first-class automatic-review package. Ensure the instructions explicitly teach `CanvasLayout`, preferred shared primitives, permission checks, and required build validation for route/view changes. Review should rerun on new pushes to admin-heavy pull requests.
@@ -125,6 +128,8 @@
 **Target Files / Surfaces**: GitHub Security & quality settings, CodeQL configuration, secret scanning, Dependabot alerts
 **Change**: Enable dependency graph, Dependabot alerts, secret scanning, push protection where feasible, and CodeQL for JS/TS plus Actions. Use Code Security risk assessment and Ask Copilot in assessments to prioritize work. Use `@copilot` on pull requests to fix failing tests or address review comments, and assign suitable Dependabot alerts to coding agents for remediation. Keep version-update churn conservative until the remediation loop is stable.
 
+**Verification 2026-04-25:** CodeQL default setup is configured for `actions`, `javascript`, `javascript-typescript`, `python`, and `typescript`; vulnerability alerts endpoint returns enabled; secret scanning and push protection are enabled. Follow-up: 14 Dependabot alerts are still open, so remediation/routing is not closed.
+
 ### Step 9: Add repo guardrails and protected-path policy
 **Target Files**: `.github/CODEOWNERS`, repo rulesets, branch protection settings
 **Change**: Protect AI config, workflows, deploy/upgrade paths, contracts, and indexer schema/config with code-owner review. Automatic Copilot review still applies across these areas, but merge policy stays human-governed. Enable Copilot cloud-agent signed commits, runner controls, and firewall settings before expanding autonomous features.
@@ -137,12 +142,21 @@
 **Target Files / Surfaces**: GitHub Copilot usage metrics, PR review data, security dashboard, this feature hub
 **Change**: After two weeks of pilot use, review package-level signal across all packages: PR review coverage, rerun usefulness on new pushes, reopened bugs, alert remediation speed, type or security issues caught earlier, and maintainers' trust in admin/client/agent/shared/contracts/indexer output. Include premium-request consumption and budget pressure in the review. Use that review to decide whether to broaden or narrow the rollout.
 
+## Remaining GitHub-Side Items
+
+- [ ] Adjust `develop` ruleset draft behavior if the rollout should exclude draft PRs everywhere (`main` already does; `develop` currently does not).
+- [ ] Set premium-request budget and alert thresholds with the repo/org owner.
+- [ ] Route/remediate the 14 open Dependabot alerts and decide which are suitable for Copilot coding-agent remediation.
+- [ ] Confirm signed commits, runner controls, and firewall posture before enabling broader Copilot cloud-agent/autonomous remediation.
+- [ ] Run the two-week pilot review and record metrics in `status.json`.
+
 ## Validation
 
 - [x] Instruction files map cleanly back to `AGENTS.md`, package guides, and `admin.mdx`
 - [x] Protected paths are identified before broader Copilot enablement
-- [ ] Automatic Copilot review is limited to open PRs targeting `main` or `develop` in GitHub rulesets
-- [ ] Automatic Copilot review is configured to rerun on new pushes to qualifying pull requests in GitHub settings
+- [x] Automatic Copilot review is limited to PRs targeting `main` or `develop` in GitHub rulesets
+- [x] Automatic Copilot review is configured to rerun on new pushes to qualifying pull requests in GitHub settings
+- [ ] Draft PR exclusion is consistent on both target branches
 - [x] Admin pilot has build-sensitive validation and UI-contract checks in the instruction surface
 - [x] Client pilot has offline/auth/media checks in the instruction surface
 - [x] Agent pilot has test, typecheck, and security-sensitive checks in the instruction surface

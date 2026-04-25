@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "manual-ops-closeout",
+    "title": "Manual Ops Closeout",
+    "kind": "quality",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-04-19",
+    "updated_at": "2026-04-25T05:15:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Operational hub consolidating remaining human/operator tails that should not keep old implementation plans alive.",
+    "This hub is the source of truth for admin PostHog/i18n, client stacking QA, design breakpoint QA, and GitHub Copilot operator checks.",
+    "The agent's role on this hub is post-hoc verification via gh api / PostHog API / locale grep — not execution. Human operator (Afo) owns completion.",
+    "GitHub API verification on 2026-04-25 narrowed Copilot rollout leftovers to draft-review parity on develop, budget/alerts, Dependabot remediation routing, autonomous-agent controls, and the two-week pilot review.",
+    ".plans/ is durable repo truth; status.json history[] carries each verification probe command + snippet as evidence."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/manual-ops-closeout",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "No UI code changes. Chrome MCP spot-checks live in qa_pass_1 instead.",
+      "skill_tags": []
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/manual-ops-closeout",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "No data-layer changes. The only repo change originating here is the native es/pt translator pass inside packages/shared/src/i18n/.",
+      "skill_tags": []
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/manual-ops-closeout",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": []
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "ready",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "claude/qa-pass-1/manual-ops-closeout",
+      "depends_on": [],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Runs after each Afo-completed manual item. Invokes the matching gh api / PostHog / locale probe in the same turn and records the command + output snippet in status.json history[].",
+      "skill_tags": ["review", "testing"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "codex/qa-pass-2/manual-ops-closeout",
+      "branch_trigger": "claude/qa-pass-1/manual-ops-closeout",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Starts once qa_pass_1 has green-checked every AC. Confirms no deleted-plan path remains necessary for the manual-ops evidence trail.",
+      "skill_tags": ["review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-19T00:00:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "created",
+      "branch": null,
+      "note": "Hub created to consolidate manual-only tails: admin PostHog dashboards, native es/pt translation, GitHub Copilot rulesets/budget/security checks, client stacking QA, and design breakpoint QA."
+    },
+    {
+      "timestamp": "2026-04-25T05:15:00.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "partial_verified",
+      "branch": "claude/qa-pass-1/manual-ops-closeout",
+      "note": "GitHub API reads verified active main/develop rulesets with copilot_code_review and review_on_push, CodeQL default setup configured, vulnerability alerts enabled, secret scanning enabled with push protection, and 14 open Dependabot alerts. develop still reviews draft PRs; budget/autonomous-agent controls remain manual."
+    }
+  ]
+}

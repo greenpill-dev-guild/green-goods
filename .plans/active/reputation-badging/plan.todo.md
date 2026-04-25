@@ -7,11 +7,13 @@
 **Groundwork Issue**: [#457 — feat(greenwill): async badge issuer service](https://github.com/greenpill-dev-guild/green-goods/issues/457)
 **Status**: `ACTIVE`
 **Created**: `2026-04-17`
-**Last Updated**: `2026-04-17` (initial plan)
+**Last Updated**: `2026-04-25`
 **Hard Deadline**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**
 **Branch Strategy**: `feature/reputation-badging` with phase commits for independent rollback
 
 > **For agentic workers:** Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
+
+> 2026-04-25 cleanup note: GreenWill Phase 0 badge lock/schema deployment, the contracts confidence gate, and portable badge rendering remain owned here. Do not chase deleted admin UI planning paths for this work.
 
 ## Decision Log
 

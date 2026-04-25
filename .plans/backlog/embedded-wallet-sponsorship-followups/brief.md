@@ -23,4 +23,4 @@ AppKit email/social auth, embedded wallet session restore, and progressive discl
 
 ## Success Signal
 
-The remaining embedded/wallet auth gaps are represented as a small, code-grounded backlog hub instead of the archived broad “web2 auth from scratch” plan.
+The remaining embedded/wallet auth gaps are represented as a small, code-grounded backlog hub instead of a broad “web2 auth from scratch” scope.

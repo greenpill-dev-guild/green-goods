@@ -2,17 +2,17 @@
 
 Date: 2026-04-12
 Status: Idea note
-Source: archived `2026-02-19-local-first-extended-tooling`
+Source: prior local-first extended tooling research
 
 ## Why this moved out of backlog
 
-The archived hub is substantive, but it is a discovery document, not an execution-ready feature. It mixes media handling, AI, browser APIs, mapping, sync alternatives, and authentication ideas that should not sit in the live backlog together.
+The prior research is substantive, but it is a discovery document, not an execution-ready feature. It mixes media handling, AI, browser APIs, mapping, sync alternatives, and authentication ideas that should not sit in the live backlog together.
 
 ## Most promising follow-up ideas
 
 ### 1. Offchain EAS attestations
 
-The cleanest product idea in the archived research is offchain attestation signing with later timestamping. It aligns with the existing job queue and could materially improve offline work submission.
+The cleanest product idea in the prior research is offchain attestation signing with later timestamping. It aligns with the existing job queue and could materially improve offline work submission.
 
 ### 2. Media storage upgrades
 
@@ -28,4 +28,4 @@ WebGPU, transcription, and on-device models are interesting, but they should rem
 
 ## Re-entry rule
 
-If any one of these areas becomes important enough to build, create a new, narrowly scoped backlog hub for that single capability rather than restoring the archived umbrella plan.
+If any one of these areas becomes important enough to build, create a new, narrowly scoped backlog hub for that single capability rather than restoring a broad umbrella plan.

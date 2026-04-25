@@ -11,7 +11,7 @@ Wave 1 hardens the harness in five places only: deterministic blocking guardrail
 
 ## Functional Requirements
 
-1. Create `.plans/backlog/harness-hardening-wave-1/` as the canonical hub for this wave and keep `.plans/active/autonomy-harness-rollout/` unchanged in scope.
+1. Keep `.plans/backlog/harness-hardening-wave-1/` as the canonical hub for this wave and do not reopen the prior autonomy harness rollout.
 2. Add blocking deterministic workflows for design guardrails and `bun run check:source-structure`.
 3. Add advisory diff-scoped reviewer workflows for `contracts-security` and `mutation-reliability`.
 4. Document explicit criticality classes in repo guidance and add edit-time warnings for critical surfaces.

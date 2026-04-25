@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "repo_backed_complete_pending_manual_settings",
+    "overall_status": "active_pending_manual_settings_review",
     "priority": "p1",
     "created_at": "2026-04-11",
-    "updated_at": "2026-04-11T21:15:00Z"
+    "updated_at": "2026-04-25T05:15:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,11 +26,13 @@
     "Protect high-risk paths before enabling broader Copilot review or cloud-agent behavior.",
     "Automatic PR review with reruns on new pushes is the current GitHub-native fit for commit-level review.",
     "Automatic review is limited to open pull requests targeting main or develop, and cost controls are required before rollout.",
-    "Repo-backed rollout artifacts are implemented under .github; automatic review rulesets, Security & quality toggles, and premium-request budgets still require manual GitHub configuration."
+    "Repo-backed rollout artifacts are implemented under .github.",
+    "GitHub API verification on 2026-04-25 confirms active main/develop Copilot review rulesets, review-on-push, CodeQL default setup, vulnerability alerts, secret scanning, and push protection.",
+    "Remaining manual settings: develop draft PR review should be disabled to match plan intent, premium-request budget/alerts need owner decision, open Dependabot alerts need remediation/routing, autonomous-agent controls need signoff before expansion, and the two-week pilot review still needs evidence."
   ],
   "implementation": {
     "repo_backed": "complete",
-    "manual_github_settings": "pending",
+    "manual_github_settings": "partially_verified",
     "artifacts": [
       ".github/copilot-instructions.md",
       ".github/instructions/*.instructions.md",
@@ -101,6 +103,14 @@
       "date": "2026-04-11",
       "event": "repo_backed_rollout_implemented",
       "details": "Added repo-wide and package-specific Copilot instruction files, CODEOWNERS protection, CodeQL scanning for JavaScript/TypeScript plus GitHub Actions, a manual GitHub settings checklist, and conservative GitHub Actions Dependabot updates."
+    },
+    {
+      "timestamp": "2026-04-25T05:15:00.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "settings_partially_verified",
+      "branch": "claude/qa-pass-1/github-copilot-rollout",
+      "note": "gh api verified rulesets main/develop active with copilot_code_review and review_on_push, CodeQL default setup configured, vulnerability alerts endpoint 204, secret scanning and push protection enabled, Copilot billing visible. Remaining: develop reviews drafts, premium budget/alerts are not evidenced by repo API, 14 Dependabot alerts open, and autonomous-agent controls/pilot review remain manual."
     }
   ]
 }

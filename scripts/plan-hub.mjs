@@ -17,12 +17,11 @@ import { fileURLToPath } from "node:url";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "..");
 const PLANS_ROOT = join(REPO_ROOT, ".plans");
-const STAGES = ["ideas", "backlog", "active", "archive"];
+const STAGES = ["ideas", "backlog", "active"];
 const STAGE_TO_STATUS = {
   ideas: "idea",
   backlog: "backlog",
   active: "active",
-  archive: "archived",
 };
 const VALID_PRIORITIES = new Set(["p0", "p1", "p2", "p3"]);
 const VALID_LANE_STATUSES = new Set([
@@ -58,7 +57,7 @@ const LANE_BRANCHES = {
 function usage() {
   console.log(`Usage:
   node scripts/plan-hub.mjs scaffold <feature-slug> [--title "Feature Title"] [--stage backlog]
-  node scripts/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active|archive>
+  node scripts/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active>
   node scripts/plan-hub.mjs list --agent <claude|codex> --lane <lane> [--stage active] [--json]
   node scripts/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
   node scripts/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
@@ -169,7 +168,7 @@ function findFeature(slug) {
     }
   }
 
-  fail(`Could not find feature "${slug}" in .plans/{ideas,backlog,active,archive}/`);
+  fail(`Could not find feature "${slug}" in .plans/{ideas,backlog,active}/`);
 }
 
 function templatePath(relativePath) {
@@ -287,18 +286,13 @@ function refreshLaneStatuses(status) {
     }
   }
 
-  if (stage === "archive") {
-    status.workflow.overall_status = "archived";
-    return status;
-  }
-
   const allDone = Object.values(status.lanes).every((lane) => DONE_LANE_STATUSES.has(lane.status));
   if (allDone) {
     status.workflow.overall_status = "done";
     return status;
   }
 
-  if (status.workflow.overall_status === "archived" || status.workflow.overall_status === "done") {
+  if (status.workflow.overall_status === "done") {
     status.workflow.overall_status = STAGE_TO_STATUS[stage];
   }
 
