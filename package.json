@@ -19,6 +19,7 @@
   ],
   "scripts": {
     "setup": "node scripts/setup.js",
+    "setup:cloud": "node scripts/setup.js --cloud",
     "ci:local": "node scripts/ci-local.js",
     "env:validate:development": "APP_ENV=development varlock load --path .env.schema",
     "env:validate:test": "APP_ENV=test varlock load --path .env.schema",
