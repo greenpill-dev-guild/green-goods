@@ -635,6 +635,22 @@ describe("queryKeys", () => {
         TEST_CHAIN_ID,
       ]);
     });
+
+    it("generates protocolSummary and gardenSummary keys", () => {
+      expect(queryKeys.yield.protocolSummary(TEST_CHAIN_ID)).toEqual([
+        "greengoods",
+        "yield",
+        "protocolSummary",
+        TEST_CHAIN_ID,
+      ]);
+      expect(queryKeys.yield.gardenSummary(TEST_GARDEN, TEST_CHAIN_ID)).toEqual([
+        "greengoods",
+        "yield",
+        "gardenSummary",
+        TEST_GARDEN,
+        TEST_CHAIN_ID,
+      ]);
+    });
   });
 
   // ------------------------------------------

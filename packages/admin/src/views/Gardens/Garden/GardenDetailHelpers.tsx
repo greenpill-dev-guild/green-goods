@@ -119,20 +119,26 @@ export function GardenHeroBanner({
               ) : null}
             </div>
           ) : null}
-          {domains.length > 0 ? (
+          {domains.length > 0 || (canManage && onEditDomains) ? (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              {domains.map((domain) => (
-                <span
-                  key={domain}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm"
-                >
+              {domains.length > 0 ? (
+                domains.map((domain) => (
                   <span
-                    className="h-2 w-2 rounded-full"
-                    style={{ backgroundColor: DOMAIN_COLORS[domain] }}
-                  />
-                  {formatMessage({ id: DOMAIN_LABEL_IDS[domain] })}
+                    key={domain}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm"
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: DOMAIN_COLORS[domain] }}
+                    />
+                    {formatMessage({ id: DOMAIN_LABEL_IDS[domain] })}
+                  </span>
+                ))
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-xs font-medium text-white/80 backdrop-blur-sm">
+                  {formatMessage({ id: "app.garden.detail.domainsNone" })}
                 </span>
-              ))}
+              )}
               {canManage && onEditDomains ? (
                 <button
                   type="button"

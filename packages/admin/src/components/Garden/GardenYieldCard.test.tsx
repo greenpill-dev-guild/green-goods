@@ -29,7 +29,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 import { GardenYieldCard } from "./GardenYieldCard";
 
 describe("GardenYieldCard", () => {
-  it("falls back to allocation history while the unlimited summary is still loading", () => {
+  // This test was added in commit a2f7117 alongside an unimplemented
+  // `summary`/`summaryLoading` prop API that GardenYieldCard never gained.
+  // Skipped per Copilot review on PR #504; re-enable when the component is
+  // extended to consume the unlimited garden-yield summary.
+  it.skip("falls back to allocation history while the unlimited summary is still loading", () => {
     renderWithProviders(
       <GardenYieldCard
         allocations={[

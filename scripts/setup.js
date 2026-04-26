@@ -7,7 +7,15 @@
  */
 
 import fs from "fs";
+import os from "os";
+import path from "path";
 import { execSync } from "child_process";
+
+// `--cloud` skips human-onboarding steps (Docker check, .env generation via
+// the 1Password CLI) and runs faster on repeat invocations. Intended for
+// Claude Code on the web and other ephemeral cloud environments where bun is
+// preinstalled and secrets are injected by the platform, not resolved from op.
+const isCloud = process.argv.includes("--cloud");
 
 // Simple color helpers
 const c = {
@@ -63,6 +71,132 @@ function installBun() {
   }
 }
 
+function installFoundry() {
+  log.info("Installing Foundry...\n");
+
+  if (process.platform === "win32") {
+    log.error("Automatic Foundry install is not supported on Windows");
+    console.log(`${c.dim}Install via WSL: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+    return false;
+  }
+
+  // Need curl to download and tar to extract — fail fast with a clear message
+  // on minimal environments (e.g. slim Docker images) rather than emit the
+  // generic "Failed to install Foundry automatically" later.
+  for (const tool of ["curl", "tar"]) {
+    try {
+      execSync(`which ${tool}`, { stdio: "ignore" });
+    } catch {
+      log.error(`${tool} not found — required to install Foundry`);
+      console.log(`${c.dim}Install ${tool} via your package manager (e.g. apt-get install ${tool}) and re-run setup.${c.reset}\n`);
+      return false;
+    }
+  }
+
+  const arch = os.arch();
+  const platform = process.platform === "darwin" ? "darwin" : "linux";
+  const archMap = { x64: "amd64", arm64: "arm64" };
+  const assetArch = archMap[arch];
+  if (!assetArch) {
+    log.error(`Unsupported architecture: ${arch}`);
+    return false;
+  }
+
+  const asset = `foundry_stable_${platform}_${assetArch}.tar.gz`;
+  const url = `https://github.com/foundry-rs/foundry/releases/download/stable/${asset}`;
+  const home = os.homedir();
+  const binDir = path.join(home, ".foundry", "bin");
+  const tmpFile = path.join(os.tmpdir(), `foundry-${Date.now()}.tar.gz`);
+
+  try {
+    fs.mkdirSync(binDir, { recursive: true });
+    execSync(`curl -fsSL --retry 3 --retry-delay 2 -o "${tmpFile}" "${url}"`, { stdio: "inherit" });
+    execSync(`tar -xzf "${tmpFile}" -C "${binDir}"`, { stdio: "inherit" });
+    fs.rmSync(tmpFile, { force: true });
+
+    process.env.PATH = `${binDir}:${process.env.PATH}`;
+
+    // Persist for future shells. Prefer symlinking into a writable system bin
+    // dir on PATH — this works for every shell (including non-interactive
+    // husky hooks, where ~/.bashrc skips its body via `[ -z "$PS1" ] && return`).
+    // Fall back to a PATH export in ~/.bashrc/~/.zshrc if no system dir is writable.
+    const binaries = ["forge", "cast", "anvil", "chisel"];
+    const userLocalBin = path.join(home, ".local", "bin");
+    const candidateDirs = ["/usr/local/bin", userLocalBin];
+    const resolvedBinDir = fs.realpathSync(binDir);
+    let symlinked = false;
+    let symlinkedDir = null;
+    for (const dir of candidateDirs) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+
+        // Only replace existing entries that are symlinks into our Foundry bin
+        // dir — never overwrite a real binary the user installed elsewhere.
+        const conflict = binaries.find((name) => {
+          const link = path.join(dir, name);
+          if (!fs.existsSync(link)) return false;
+          try {
+            const stat = fs.lstatSync(link);
+            if (!stat.isSymbolicLink()) return true;
+            const resolved = fs.realpathSync(link);
+            return !(resolved === resolvedBinDir || resolved.startsWith(`${resolvedBinDir}${path.sep}`));
+          } catch {
+            return true;
+          }
+        });
+        if (conflict) {
+          log.warning(`Skipping symlink in ${dir}: ${conflict} already exists and is not a Foundry-managed link.`);
+          continue;
+        }
+
+        for (const name of binaries) {
+          const target = path.join(binDir, name);
+          const link = path.join(dir, name);
+          try { fs.unlinkSync(link); } catch {}
+          fs.symlinkSync(target, link);
+        }
+        symlinked = true;
+        symlinkedDir = dir;
+        break;
+      } catch {
+        // try next candidate
+      }
+    }
+
+    // Also write the PATH export if we landed in ~/.local/bin (not always on
+    // PATH in non-interactive shells like husky hooks) or if no symlink dir
+    // was writable at all.
+    const needsRcExport = !symlinked || symlinkedDir === userLocalBin;
+    if (needsRcExport) {
+      const exportDir = symlinked ? symlinkedDir : binDir;
+      const pathLine = `export PATH="${exportDir}:$PATH"`;
+      const rcFiles = [path.join(home, ".bashrc")];
+      // Always write zshrc on macOS (default shell) and on any platform where
+      // the user's login shell is zsh (common on Linux too).
+      const usesZsh = platform === "darwin" || (process.env.SHELL || "").endsWith("/zsh");
+      if (usesZsh) rcFiles.push(path.join(home, ".zshrc"));
+      for (const rc of rcFiles) {
+        try {
+          const existing = fs.existsSync(rc) ? fs.readFileSync(rc, "utf8") : "";
+          if (!existing.includes(pathLine)) {
+            fs.appendFileSync(rc, `\n${pathLine}\n`);
+          }
+        } catch {
+          // best-effort — user can add the line manually
+        }
+      }
+    }
+
+    log.success("Foundry installed successfully\n");
+    return true;
+  } catch (err) {
+    log.error("Failed to install Foundry automatically");
+    console.log(`${c.dim}Install manually: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+    fs.rmSync(tmpFile, { force: true });
+    return false;
+  }
+}
+
 function checkVersion(cmd, minVersion, name) {
   try {
     const version = execSync(`${cmd} --version`, { encoding: "utf8" }).trim();
@@ -91,14 +225,14 @@ function checkDocker() {
   }
 }
 
-console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}\n`);
+console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}${isCloud ? `${c.dim} (cloud)${c.reset}` : ""}\n`);
 
 // Check dependencies
 log.info("Checking dependencies...\n");
 const hasNode = checkVersion("node", 22, "Node.js");
 let hasBun = checkVersion("bun", 1, "bun");
 const hasGit = checkCommand("git", "Git");
-const hasDocker = checkDocker();
+const hasDocker = isCloud ? false : checkDocker();
 const hasForge = checkCommand("forge", "Foundry");
 
 console.log("");
@@ -112,6 +246,10 @@ if (!hasNode || !hasGit) {
 }
 
 if (!hasBun) {
+  if (isCloud) {
+    log.error("Bun missing in cloud environment — expected to be preinstalled.\n");
+    process.exit(1);
+  }
   log.warning("Bun not found. Attempting to install...\n");
   hasBun = installBun();
   if (!hasBun) {
@@ -121,15 +259,19 @@ if (!hasBun) {
   }
 }
 
-if (!hasDocker) {
+if (!isCloud && !hasDocker) {
   log.warning("Docker not running. Required for indexer development.");
 }
 
 if (!hasForge) {
-  log.warning("Foundry not found. Required for contract development.");
-  console.log(
-    `${c.dim}Install: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`
-  );
+  log.warning("Foundry not found. Attempting to install...\n");
+  if (!installFoundry()) {
+    if (isCloud) {
+      log.error("Foundry install failed — pre-push hooks will fail until resolved.\n");
+      process.exit(1);
+    }
+    log.warning("Continuing without Foundry — contract scripts and pre-push hooks will fail until installed.\n");
+  }
 }
 
 // Install dependencies
@@ -146,8 +288,11 @@ if (!fs.existsSync("node_modules")) {
   log.success("Dependencies already installed\n");
 }
 
-// Setup environment
-if (!fs.existsSync(".env")) {
+// Setup environment — skipped in cloud since secrets are injected directly by
+// the platform and the 1Password CLI is unavailable.
+if (isCloud) {
+  log.info("Skipping .env generation in cloud mode (secrets are injected by the platform)\n");
+} else if (!fs.existsSync(".env")) {
   if (fs.existsSync(".env.schema")) {
     try {
       const generatedEnv = execSync("APP_ENV=development bunx varlock load --path .env.schema --format env --compact", {
@@ -179,7 +324,8 @@ See .env.schema for the full environment contract.\n`);
 
 // Next steps
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
-console.log(`${c.cyan}Next steps:${c.reset}
+if (!isCloud) {
+  console.log(`${c.cyan}Next steps:${c.reset}
   1. Set APP_ENV in .env, then either add \`*_OP_REF=op://...\` entries for local secrets or configure OP_ENVIRONMENT + OP_ENABLE_ENVIRONMENT_LOAD=true for service-account/bulk loading
   2. Start services: bun dev
   3. Run tests: bun run test
@@ -189,3 +335,4 @@ ${c.dim}Individual packages:${c.reset}
   • bun dev:indexer   - Blockchain indexer (port 8081)
   • bun dev:contracts - Local blockchain (Anvil)
 `);
+}
