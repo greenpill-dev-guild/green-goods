@@ -61,7 +61,7 @@ i18n catalogs, and Storybook-backed UI primitives.
 | `marketplace/` | HypercertExchange SDK integration -- maker ask signing, approvals, validation | `getMarketplaceClient`, `buildMakerAsk`, `signMakerAsk`, `checkMarketplaceApprovals` |
 | `transactions/` | Abstract transaction sending -- passkey, wallet, and embedded sender strategies | `createTransactionSender`, `PasskeySender`, `WalletSender`, `EmbeddedSender` |
 | `translation/` | Browser translation engine -- LibreTranslate client, IndexedDB cache, diagnostics | `browserTranslator`, `translationCache`, `runTranslationDiagnostics` |
-| `work/` | Work submission pipelines -- bot, passkey, wallet, validation helpers | `submitWorkBot`, `submitWorkWithPasskey`, `submitWorkDirectly`, `validateWorkDraft` |
+| `work/` | Work submission pipelines -- bot, passkey, wallet, validation helpers | `submitWorkBot`, `submitWorkWithPasskey`, `submitWorkDirectly`, `validateWorkSubmissionContext` |
 
 ### hooks/ -- React hooks (21 domain folders)
 

@@ -59,11 +59,15 @@ setInterval(() => queryClient.invalidateQueries(), 5000);
 All work submissions go through the job queue for offline support:
 
 ```typescript
-import { submitWorkToQueue, processWorkJobInline } from "@green-goods/shared";
+import {
+  submitWorkToQueue,
+  processWorkJobInline,
+  validateWorkSubmissionContext,
+} from "@green-goods/shared";
 
 const handleSubmit = async () => {
   // 1. Validate
-  const errors = validateWorkDraft(draft, gardenAddress, actionUID, images);
+  const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images);
   if (errors.length > 0) {
     toast.error(errors[0]);
     return;

@@ -31,18 +31,18 @@
   - `packages/admin/src/components/hypercerts/TradeHistoryTable.tsx:34-36` (local `truncateAddress` helper — directly shadows shared export)
   - `packages/admin/src/views/Assessments/index.tsx:94` (garden filter option label)
   - `packages/client/src/components/Dialogs/ConvictionDrawer.tsx:508` (tx hash truncation — same pattern, works on any 0x string)
-- **Why this is safe**: 
+- **Why this is safe**:
   - Shared `truncateAddress(address, startChars=6, endChars=4)` already exists at `packages/shared/src/utils/blockchain/address.ts` and is exported via the barrel.
   - Default args (6, -4) match the inline pattern exactly.
   - `TradeHistoryTable.tsx` defines `function truncateAddress(address: Address): string` locally — same signature, same behavior.
   - All affected files already import from `@green-goods/shared` (only need to add `truncateAddress` to the existing import).
   - No recent commits diverged these files (last touches were "consolidation" / "extract from monolithic" — supports the dedup direction).
-- **Change**: 
+- **Change**:
   - Replaced inline slice expressions with `truncateAddress(...)` calls.
   - Removed local `truncateAddress` helper from `TradeHistoryTable.tsx`.
   - For `GardenMetadata.tsx`, used `truncateAddress(addr, 10, 8)` for the tablet breakpoint variant (shared util supports custom char counts).
   - Skipped `RecentActivitySection.tsx:161` (uses Unicode ellipsis `…` instead of `...` — visual divergence, classified as MEDIUM).
-- **Tests**: 
+- **Tests**:
   - No tests assert the truncated string format — visual rendering equivalent.
   - `bun run test` in admin and client packages — see test results section.
 
@@ -108,7 +108,7 @@
 - **Why skipped**: File contains an explicit comment ("intentionally a local implementation matching @green-goods/shared behavior to avoid pulling in browser-only dependencies in the Node.js agent environment"). Deliberate divergence — leave alone (`agent` is `sensitive` per criticality matrix).
 
 ### L2. Test mock helpers replicating shared truncation
-- **Locations**: 
+- **Locations**:
   - `packages/admin/src/__tests__/views/EndowmentsOverview.test.tsx:16` (`formatAddress: (value: string) => value.slice(0, 6)`)
   - `packages/admin/src/views/Endowments/index.test.tsx:16` (same)
   - `packages/client/src/__tests__/components/Cards.test.tsx:18-21` (mock `formatAddress` and `truncateAddress`)

@@ -43,7 +43,7 @@ export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
 
     // Resolve GardensModule address from deployment config
     const contracts = getNetworkContracts(currentChainId);
-    const gardensModuleAddr = contracts.gardensModule as Address;
+    const gardensModuleAddr = contracts.gardensModule;
 
     if (!gardensModuleAddr || isZeroAddress(gardensModuleAddr)) {
       logger.info("[useMintHypercert] No GardensModule deployed, skipping pool registration", {

@@ -40,7 +40,6 @@ export function CookieJarDepositModal({
   const [depositJar, setDepositJar] = useState<string>("");
   const [depositAmount, setDepositAmount] = useState("");
 
-  // Reset form state when modal opens/closes
   useEffect(() => {
     if (!isOpen) return;
     setDepositJar("");
@@ -75,7 +74,6 @@ export function CookieJarDepositModal({
     }
   }, [depositAmount, depositInputError, depositDecimals]);
 
-  // Clear mutation error when inputs change
   useEffect(() => {
     if (!depositMutation.error) return;
     resetDepositMutation();

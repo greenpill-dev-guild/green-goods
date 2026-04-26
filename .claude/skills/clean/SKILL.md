@@ -4,12 +4,12 @@ description: Comprehensive codebase cleanup with 8 parallel subagents — dedupl
 argument-hint: "[--dry-run] [--scope package-name] [--agents 1,3,5] [--no-codex]"
 context: worktree
 effort: very-high
-version: "1.1.0"
+version: "1.2.0"
 status: active
 packages: ["all"]
 dependencies: ["audit", "principles"]
-last_updated: "2026-04-25"
-last_verified: "2026-04-25"
+last_updated: "2026-04-26"
+last_verified: "2026-04-26"
 ---
 
 # Clean Skill
@@ -40,12 +40,31 @@ Before dispatching agents:
 2. **Run baseline**: `bun format && bun lint && bun run test` — capture pass/fail counts
 3. **Load prior audit**: `ls -t .plans/audits/*-audit.md | head -1` — feed findings to relevant agents
 4. **Create checkpoint branch**: `git switch -c clean/$(date +%Y%m%d-%H%M%S)` from current HEAD
+5. **Record checkpoint SHA**: `CHECKPOINT_SHA="$(git rev-parse HEAD)"` — every agent worktree must be based on this exact checkpoint
 
 ---
 
 ## The 8 Agents
 
-Dispatch ALL agents in parallel using the Agent tool. Each agent runs in `isolation: "worktree"` to avoid conflicts. Each agent follows the same three-phase protocol:
+Dispatch ALL agents in parallel using the Agent tool. Each agent runs in `isolation: "worktree"` to avoid conflicts. Each worktree MUST branch from the checkpoint SHA, not `main`, `origin/main`, or the tool's default branch. Each agent follows the same three-phase protocol:
+
+### Worktree Base Invariant
+
+Before an agent starts implementation, verify its worktree base from the orchestrator:
+
+```bash
+test "$(git -C "$WORKTREE" merge-base "$CHECKPOINT_SHA" HEAD)" = "$CHECKPOINT_SHA"
+```
+
+If any agent worktree fails this check, stop and re-dispatch that agent from the checkpoint. Do not continue a stale-base run by default.
+
+Salvage is allowed only when the human explicitly approves a stale-base salvage after seeing:
+- checkpoint SHA and stale worktree SHA
+- commit gap (`git rev-list --count "$STALE_BASE..$CHECKPOINT_SHA"`)
+- affected file list
+- planned validation and conflict audit steps
+
+When stale-base salvage is approved, create `.plans/clean/merge-audit.md` and record every conflict and every dropped/ported agent insight.
 
 ### Agent Protocol (all agents)
 
@@ -57,6 +76,17 @@ Phase 3: IMPLEMENT — Fix all HIGH-CONFIDENCE findings. Skip MEDIUM and LOW.
 ```
 
 Each agent outputs a report at `.plans/clean/agent-{N}-{name}.md` before implementing. In `--dry-run` mode, agents stop after Phase 2.
+
+Every report must include a provenance block:
+
+```md
+## Provenance
+- checkpoint_sha:
+- worktree_base_sha:
+- worktree_head_sha:
+- merge_base_with_checkpoint:
+- stale_base: yes/no
+```
 
 ### Agent 1: Deduplication & DRY
 
@@ -297,12 +327,54 @@ digraph clean_flow {
 ### After agents complete:
 
 1. **Collect reports** from `.plans/clean/agent-*.md`
-2. **Merge worktrees** — if conflicts arise, prefer the agent whose concern is more central (e.g., Agent 2's type move over Agent 1's dedup of that same type)
-3. **Full validation**: `bun format && bun lint && bun run test && bun build`
-4. **Fix regressions** — if tests fail, revert the specific change that broke them
-5. **Codex final review** — dispatch the two Codex lanes (see § Codex Final Review). Skipped under `--dry-run` or `--no-codex`.
-6. **Triage Codex findings** — auto-revert HIGH-confidence regressions; surface miss-hunt findings to the user, do not auto-apply
-7. **Summary** — present to user: files changed, findings per agent, what was skipped (MEDIUM/LOW), Codex callouts
+2. **Verify provenance** — each report must show `stale_base: no`; if not, stop for re-dispatch or explicit stale-base salvage approval
+3. **Merge worktrees** — if conflicts arise, prefer the agent whose concern is more central (e.g., Agent 2's type move over Agent 1's dedup of that same type), but never apply blanket "take ours" / "take theirs" without a recorded reason
+4. **Write merge audit** — if any conflict, stale-base salvage, dropped stash, or no-op cherry-pick occurred, write `.plans/clean/merge-audit.md`
+5. **Full validation**: `bun format && bun lint && bun run test && bun build`
+6. **Post-merge residue checks**: `git diff --check`, targeted removed-symbol scans, package `bunx tsc --noEmit`, and `bunx knip --reporter compact` for unused export/dependency drift
+7. **Fix regressions** — if tests fail, revert the specific change that broke them
+8. **Codex final review** — dispatch the two Codex lanes (see § Codex Final Review). Skipped under `--dry-run` or `--no-codex`.
+9. **Triage Codex findings** — auto-revert HIGH-confidence regressions; surface miss-hunt findings to the user, do not auto-apply
+10. **Summary** — present to user: files changed, findings per agent, what was skipped (MEDIUM/LOW), Codex callouts, merge-audit callouts
+
+---
+
+### Merge Audit Format
+
+Use this format in `.plans/clean/merge-audit.md` whenever a merge is not a clean fast-forward/cherry-pick with no conflicts:
+
+```md
+# Clean Merge Audit
+
+## Base Provenance
+- checkpoint_sha:
+- expected_base:
+- stale_agent_worktrees:
+
+## Conflict Resolutions
+| Agent | File | Agent intent | Resolution | Develop already covered it? | Follow-up needed |
+|-------|------|--------------|------------|-----------------------------|------------------|
+
+## Auto-Merge / Stash Events
+| Event | Files | Action | Residual risk |
+|-------|-------|--------|---------------|
+
+## Validation
+- command:
+- result:
+```
+
+For each conflict, inspect the agent diff before resolving. "Ours" is valid only when the checkpoint/develop side already contains the same improvement or the agent hunk is obsolete. If it drops a real cleanup, either port the cleanup immediately or record it as a follow-up in the audit.
+
+### Commit Hygiene
+
+Use source-change subjects only when source changes landed. If an agent's final merged diff is report-only or no-op on the checkpoint branch, use a docs/plans subject such as:
+
+```text
+docs(plans): record agent-2 type consolidation no-op
+```
+
+Avoid `--no-verify`. If a hook is broken or irrelevant for a docs-only commit, run the equivalent manual checks first (`git diff --check` at minimum), record the reason in the commit body, and prefer a normal verified commit whenever possible.
 
 ---
 
@@ -401,6 +473,7 @@ Use `--no-codex` when:
 ## Post-Clean Validation
 
 ```bash
+git diff --check              # Whitespace / conflict marker sanity
 bun format && bun lint          # Style
 bun run test                    # Correctness
 bun build                       # Build integrity
@@ -408,18 +481,23 @@ npx madge --circular --extensions ts,tsx packages/  # Zero circular deps
 bunx knip --reporter compact    # Reduced dead code
 ```
 
-All must pass before reporting completion. If any fail, fix or revert. Codex regression-revert (above) runs **before** this final validation, so the post-clean numbers reflect the corrected state.
+All must pass or be explicitly documented as a pre-existing/known false-positive before reporting completion. If any fail, fix or revert. Codex regression-revert (above) runs **before** this final validation, so the post-clean numbers reflect the corrected state.
+
+For symbol-removal agents (dead code, legacy, type consolidation), add targeted scans for every removed public symbol across `packages/`, `docs/`, `.plans/`, and active agent guidance. Source references must be fixed; docs references must either be updated or recorded as intentionally historical.
 
 ---
 
 ## Safety Rules
 
 - **Checkpoint branch** — always create before any changes
+- **Checkpoint base** — every agent worktree must use the checkpoint SHA as its merge base
 - **Worktree isolation** — each agent works in its own worktree
+- **No stale-base default** — re-dispatch stale worktrees unless the human explicitly approves stale-base salvage
 - **Test after implement** — each agent runs `bun run test` in affected packages
 - **No cross-agent dependencies** — agents don't depend on each other's output
 - **HIGH-confidence only** — agents only implement findings they're confident about
 - **Preserve invariants** — all CLAUDE.md rules apply (hook boundary, barrel imports, Address types, single .env)
+- **Conflict audit** — every conflict resolution records agent intent, chosen side, and whether any cleanup insight was dropped
 - **Never remove offline-first code** — the job queue, IndexedDB persistence, and service worker are intentional complexity
 - **Codex reviews the merge, not the worktrees** — dispatch only after merge + validation, so Codex sees the same code the user will ship
 - **Codex is read-only by default** — only auto-applies regression-reverts (HIGH); miss-hunt findings always go to the user
@@ -451,7 +529,10 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 | Don't | Why |
 |-------|-----|
 | Run without checkpoint branch | No rollback if agents break things |
+| Let agent worktrees branch from main/origin/main | Stale diffs can silently drop or obsolete cleanup on develop |
+| Resolve conflicts with blanket "take ours" | Can discard the agent's real cleanup insight without audit |
 | Skip `bun run test` validation | Silent regressions |
+| Skip `git diff --check` after docs/report commits | Plan-file whitespace and conflict-marker residue can bypass source validation |
 | Remove offline-first fallbacks | They're intentional, not legacy |
 | Consolidate 2 slightly-different things | Premature abstraction; need 3+ duplicates |
 | Use grep to find dead code | ~80% false-positive rate; use knip |
@@ -460,6 +541,7 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 | Remove catch blocks in contract interactions | They use parseContractError() intentionally |
 | Strengthen types in test mocks to exact shapes | Test mocks are intentionally partial |
 | Run all 8 agents on a tiny change | Use `--agents` to pick relevant ones |
+| Use source-change commit subjects for report-only/no-op merges | Misleads reviewers about what actually landed |
 | Auto-apply Codex miss-hunt findings | Need human judgment; surface them, don't merge them |
 | Run Codex review before merge/validation | Codex needs to see the merged result, not partial worktrees |
 | Use Codex review to vet visual/UX cleanup | Codex is weak at visual judgment — that's a Claude job |

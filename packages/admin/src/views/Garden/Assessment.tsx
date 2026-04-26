@@ -4,6 +4,7 @@ import {
   Button,
   DEFAULT_CHAIN_ID,
   Domain,
+  type EASDecodedField,
   EmptyState,
   adminRoutes,
   formatDateRange,
@@ -29,14 +30,6 @@ import {
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-
-/** EAS decoded field structure from attestation JSON */
-interface EASDecodedField {
-  name: string;
-  value: {
-    value: unknown;
-  };
-}
 
 interface ParsedAssessment {
   title: unknown;
