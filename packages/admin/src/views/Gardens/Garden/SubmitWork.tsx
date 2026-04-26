@@ -441,6 +441,7 @@ export default function SubmitWork() {
                     action={
                       canSubmit ? (
                         <Button
+                          type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => navigate(`/gardens/${gardenId}`)}

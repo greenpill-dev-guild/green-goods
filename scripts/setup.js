@@ -109,10 +109,31 @@ function installFoundry() {
     // Fall back to a PATH export in ~/.bashrc/~/.zshrc if no system dir is writable.
     const binaries = ["forge", "cast", "anvil", "chisel"];
     const candidateDirs = ["/usr/local/bin", path.join(home, ".local", "bin")];
+    const resolvedBinDir = fs.realpathSync(binDir);
     let symlinked = false;
     for (const dir of candidateDirs) {
       try {
         fs.mkdirSync(dir, { recursive: true });
+
+        // Only replace existing entries that are symlinks into our Foundry bin
+        // dir — never overwrite a real binary the user installed elsewhere.
+        const conflict = binaries.find((name) => {
+          const link = path.join(dir, name);
+          if (!fs.existsSync(link)) return false;
+          try {
+            const stat = fs.lstatSync(link);
+            if (!stat.isSymbolicLink()) return true;
+            const resolved = fs.realpathSync(link);
+            return !(resolved === resolvedBinDir || resolved.startsWith(`${resolvedBinDir}${path.sep}`));
+          } catch {
+            return true;
+          }
+        });
+        if (conflict) {
+          log.warning(`Skipping symlink in ${dir}: ${conflict} already exists and is not a Foundry-managed link.`);
+          continue;
+        }
+
         for (const name of binaries) {
           const target = path.join(binDir, name);
           const link = path.join(dir, name);
@@ -218,11 +239,9 @@ if (!isCloud && !hasDocker) {
   log.warning("Docker not running. Required for indexer development.");
 }
 
-let foundryInstalled = hasForge;
 if (!hasForge) {
   log.warning("Foundry not found. Attempting to install...\n");
-  foundryInstalled = installFoundry();
-  if (!foundryInstalled) {
+  if (!installFoundry()) {
     if (isCloud) {
       log.error("Foundry install failed — pre-push hooks will fail until resolved.\n");
       process.exit(1);
