@@ -11,6 +11,12 @@ import os from "os";
 import path from "path";
 import { execSync } from "child_process";
 
+// `--cloud` skips human-onboarding steps (Docker check, .env generation via
+// the 1Password CLI) and runs faster on repeat invocations. Intended for
+// Claude Code on the web and other ephemeral cloud environments where bun is
+// preinstalled and secrets are injected by the platform, not resolved from op.
+const isCloud = process.argv.includes("--cloud");
+
 // Simple color helpers
 const c = {
   reset: "\x1b[0m",
@@ -174,14 +180,14 @@ function checkDocker() {
   }
 }
 
-console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}\n`);
+console.log(`\n${c.green}🌱 Green Goods Setup${c.reset}${isCloud ? `${c.dim} (cloud)${c.reset}` : ""}\n`);
 
 // Check dependencies
 log.info("Checking dependencies...\n");
 const hasNode = checkVersion("node", 22, "Node.js");
 let hasBun = checkVersion("bun", 1, "bun");
 const hasGit = checkCommand("git", "Git");
-const hasDocker = checkDocker();
+const hasDocker = isCloud ? false : checkDocker();
 const hasForge = checkCommand("forge", "Foundry");
 
 console.log("");
@@ -195,6 +201,10 @@ if (!hasNode || !hasGit) {
 }
 
 if (!hasBun) {
+  if (isCloud) {
+    log.error("Bun missing in cloud environment — expected to be preinstalled.\n");
+    process.exit(1);
+  }
   log.warning("Bun not found. Attempting to install...\n");
   hasBun = installBun();
   if (!hasBun) {
@@ -204,7 +214,7 @@ if (!hasBun) {
   }
 }
 
-if (!hasDocker) {
+if (!isCloud && !hasDocker) {
   log.warning("Docker not running. Required for indexer development.");
 }
 
@@ -213,6 +223,10 @@ if (!hasForge) {
   log.warning("Foundry not found. Attempting to install...\n");
   foundryInstalled = installFoundry();
   if (!foundryInstalled) {
+    if (isCloud) {
+      log.error("Foundry install failed — pre-push hooks will fail until resolved.\n");
+      process.exit(1);
+    }
     log.warning("Continuing without Foundry — contract scripts and pre-push hooks will fail until installed.\n");
   }
 }
@@ -231,8 +245,11 @@ if (!fs.existsSync("node_modules")) {
   log.success("Dependencies already installed\n");
 }
 
-// Setup environment
-if (!fs.existsSync(".env")) {
+// Setup environment — skipped in cloud since secrets are injected directly by
+// the platform and the 1Password CLI is unavailable.
+if (isCloud) {
+  log.info("Skipping .env generation in cloud mode (secrets are injected by the platform)\n");
+} else if (!fs.existsSync(".env")) {
   if (fs.existsSync(".env.schema")) {
     try {
       const generatedEnv = execSync("APP_ENV=development bunx varlock load --path .env.schema --format env --compact", {
@@ -264,7 +281,8 @@ See .env.schema for the full environment contract.\n`);
 
 // Next steps
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
-console.log(`${c.cyan}Next steps:${c.reset}
+if (!isCloud) {
+  console.log(`${c.cyan}Next steps:${c.reset}
   1. Set APP_ENV in .env, then either add \`*_OP_REF=op://...\` entries for local secrets or configure OP_ENVIRONMENT + OP_ENABLE_ENVIRONMENT_LOAD=true for service-account/bulk loading
   2. Start services: bun dev
   3. Run tests: bun run test
@@ -274,3 +292,4 @@ ${c.dim}Individual packages:${c.reset}
   • bun dev:indexer   - Blockchain indexer (port 8081)
   • bun dev:contracts - Local blockchain (Anvil)
 `);
+}
