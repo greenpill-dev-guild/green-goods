@@ -14,6 +14,8 @@ next_steps: "./eas"
 persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
 source_of_truth:
   - packages/shared/src/modules/data/eas.ts
+  - packages/shared/src/modules/data/ipfs/upload.ts
+  - packages/contracts/script/utils/update-action-metadata.ts
   - packages/indexer/config.yaml
   - .mcp.json
 keywords:
@@ -62,7 +64,7 @@ graph TB
 <FeatureState
   title="Pinata-backed IPFS uploads"
   status="Live"
-  summary="Shared hooks and deployment scripts use the Pinata-backed IPFS upload path for media and metadata."
+  summary="Shared IPFS upload utilities and contract metadata utilities use the Pinata-backed upload path for media and metadata."
 />
 
 <FeatureState

@@ -16,6 +16,8 @@ Guild-level routines (research-synthesis, design-synthesis, routine-issue-cleanu
 
 > `dream-on` is a **local Claude Code skill** (`/dream-on`), not a cloud routine — invoke it manually from Claude Code when you want overnight exploration. Not scheduled.
 
+See [`workflows.md`](./workflows.md) for human-in-the-loop touchpoints, gating signals, and mermaid diagrams of each pipeline.
+
 ## Channel mapping
 
 | Channel | Used by | Why |
@@ -45,6 +47,12 @@ The env var `DISCORD_USER_ID_AFO` holds Afo's Discord snowflake ID. Use `<@${DIS
 - All routine branches use `claude/<routine-name>/<topic>`.
 - Loop prevention on `pr-review`: filter on `head_branch` starting with `claude/` (NOT on author — routine PRs carry the user's GitHub author per the docs).
 - **Sprints field is mandatory** on every issue created on Project #4. Without it, issues are invisible in the user's filtered view of the active iteration.
+
+## Scope discipline (Drive + channel guards)
+
+Routines that read Google Drive (`bug-intake`, `metrics`) carry an explicit folder allow-list and reject docs outside it — content keywords alone are too loose. Drive is enrichment, not a substitute when the primary on-chain or Discord source is quiet.
+
+Every Discord post in a routine is preceded by a `Channel guard` that pins the post target to one env-var-driven channel. If the env var is unset, the routine logs and skips that post — it does not pick an alternate channel. The guild-side routines (in [`greenpill-dev-guild/.github/routines/claude/`](https://github.com/greenpill-dev-guild/.github/tree/main/routines/claude)) follow the same discipline; see that README for the dev-guild scope-contract template.
 
 ## Required labels
 

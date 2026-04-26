@@ -16,7 +16,7 @@ source_of_truth:
   - packages/shared/src/hooks/yield/useGardenYieldSummary.ts
   - packages/shared/src/hooks/yield/useSplitConfig.ts
   - packages/shared/src/hooks/vault/useHarvest.ts
-  - packages/shared/src/hooks/public/usePublicVolume.ts
+  - docs/docs/builders/specs/v1-0.mdx (§ 1.5, § 6.3)
   - packages/admin/src/views/Garden/Strategies.tsx
   - packages/admin/src/views/Community/index.tsx
   - packages/indexer/schema.graphql (Hypercert, HypercertClaim, YieldAllocation)
@@ -100,8 +100,8 @@ stateDiagram-v2
 
 | # | State | Persona | Surface (package + view) | Hook / Service | Side effects | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| 12 | Finalize Season | B | (not built) | `usePublicVolume` exists for read; no `useCloseSeason` orchestration hook | Spec § 1.5 "Season One" + § 6.3 reference a Season primitive but there is no admin UI to declare a Season closed and freeze the work / assessment / hypercert set | aspirational |
-| 13 | Publish Season record | B | (not built) | `usePublicVolume` returns Volume data shape but is not wired to a publish mutation | Read path exists; the write path (operator declares Season N closed → Volume record minted) is not in the codebase | aspirational |
+| 12 | Finalize Season | B | (not built) | No `useCloseSeason` orchestration hook | Spec § 1.5 "Season One" + § 6.3 reference a Season primitive but there is no admin UI to declare a Season closed and freeze the work / assessment / hypercert set | aspirational |
+| 13 | Publish Season record | B | (not built) | Public Season read shape is planned; no publish mutation exists | The write path (operator declares Season N closed → Season record materialized) is not in the codebase | aspirational |
 
 ## Failure / recovery paths
 
@@ -125,5 +125,4 @@ stateDiagram-v2
 - The 3-way split (`cookieJarAmount` / `fractionsAmount` / `juiceboxAmount`) is per-garden and lives on the `YieldAllocation` indexer entity. Always read aggregated yield via `useGardenYieldSummary` and `useProtocolYieldSummary`, not by re-summing individual events client-side.
 - `Hypercert.attestationUIDs` is the canonical link from a hypercert back to its EAS work + assessment attestations. The hypercert is the bundle; the attestations are the evidence. Don't deep-link from hypercerts to individual works without going through this field.
 - Octant Vault auto-buy of listed hypercerts is described in spec § 3.3 but there is no automation in this codebase. If you build it, model it as an off-chain bot that watches `useHypercertListings` and submits buy transactions when funded — not as a contract change.
-- A "Season close" primitive does not exist in the contract surface today. If you scope the orchestration: use `usePublicVolume` shape as the read model, and define a write path (operator-callable, gated by Owner hat) that snapshots the works + assessments + hypercerts set and emits a Season event the indexer can materialize.
-- `usePublicVolume` returns Volume data — name kept canonical inside the hook because the hook predates the harness. When wiring a Season-close UI, surface the user-facing label as "Season" and keep "Volume" as the hook-internal data shape name.
+- A "Season close" primitive does not exist in the contract surface today. If you scope the orchestration: define a public Season read model and a write path (operator-callable, gated by Owner hat) that snapshots the works + assessments + hypercerts set and emits a Season event the indexer can materialize.

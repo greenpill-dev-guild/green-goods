@@ -4,8 +4,8 @@ sidebar_label: v1.0
 slug: /builders/specs/v1-0
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Live
+last_verified: 2026-04-25
+feature_status: In progress
 source_of_truth:
   - packages/contracts/src/modules
   - packages/shared/src/hooks/hypercerts
@@ -20,19 +20,23 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # v1.0 — Hypercerts, Octant, Gardens, Cookie Jar
 
-<StatusBadge status="Live" />
+<StatusBadge status="In progress" />
+
+:::info Active v1 spec
+Green Goods is currently working through v1. Some modules are implemented, while deployment, indexing, and UI readiness still vary by surface. Use Deployment Status and the integration pages for current chain readiness.
+:::
 
 ## 1. Overview
 
 ### 1.1 One-Liner
 
-Green Goods is a Regenerative Compliance and Local First Impact Reporting Platform that enables verifiable tracking of ecological actions, tokenization of impact via Hypercerts, and capital formation through Octant Vaults and Revnets.
+The v1.0 strategy frames Green Goods as a Regenerative Compliance and Local First Impact Reporting Platform for verifiable ecological actions, Hypercert-based impact certification, Octant-style vaults, and future capital-formation surfaces.
 
 ```mermaid
 flowchart TD
     Client[Client PWA - Offline-First] --> Shared[Shared Package]
     Admin[Admin Dashboard] --> Shared
-    Agent[AI Agent - WhatsApp/SMS] --> Shared
+    Agent[Agent Service - Telegram now; WhatsApp/SMS planned] --> Shared
     Shared --> Contracts[Smart Contracts]
     Shared --> Indexer[Envio Indexer]
     Contracts --> EAS[EAS Attestations]
@@ -61,11 +65,11 @@ Green Goods differentiates from Silvi (trees only, centralized, enterprise prici
 
 **Key moats:** Network effects from Greenpill chapters, switching costs from attestation history, data moat from accumulated actions, and community ownership through local tokens.
 
-### 1.5 Target Release
+### 1.5 Original Target Release
 
 - **Release:** Green Goods Protocol v1 (Beta Candidate)
-- **Season:** Q1 2026 (Transition from Alpha to Beta)
-- **Network Deployment:** Arbitrum One and Ethereum
+- **Original season assumption:** Q1 2026 (Transition from Alpha to Beta)
+- **Original network assumption:** Arbitrum One and Ethereum
 
 ### 1.6 Owners
 
@@ -90,16 +94,18 @@ The accessibility goal is to ensure the protocol is available to the "Last Mile"
 
 #### Goal 3: Onchain Governance and Reputation (High Coordination)
 
-The governance goal is to implement a robust badging and reputation system built on Unlock Protocol (GreenWill) and Hats Protocol. These tools serve as the permission layer for the Gardens platform, ensuring that governance is driven by those who create value. By using Conviction Voting, the protocol empowers reputation holders to signal distinct priorities: deciding on hypercert yield allocation and prioritizing specific garden actions.
+The governance goal is to implement a robust badging and reputation system built on GreenWill and Hats Protocol. These tools serve as the permission layer for the Gardens platform, ensuring that governance is driven by those who create value. By using Conviction Voting, the protocol empowers reputation holders to signal distinct priorities: deciding on hypercert yield allocation and prioritizing specific garden actions.
 
-### 2.2 Success Metrics
+### 2.2 Original Success Metrics
 
-| Metric | Definition | Target |
+The numeric targets below came from the original Q1 2026 beta planning assumption. They are retained as historical planning context, not as current April 25, 2026 delivery commitments. Update them from current program tracking before using this table for grant, launch, or status reporting.
+
+| Metric | Definition | Original target |
 |--------|------------|--------|
 | **Total Verified Impact Value (TVIV)** | Cumulative dollar value of all Hypercerts minted, sold, or held within the protocol ecosystem | $40,000 by end of Q1 2026 |
 | **Vault TVL** | Total value locked in Octant Vaults | $20,000 |
 | **Active Gardeners** | Unique wallet addresses (including Smart Accounts via AI Agent) submitting verified actions in 30-day window | 150 users on a rolling 30-day basis |
-| **Reputation Density** | Number of active users holding a GreenWill "Steward" or "Sprout" badge via Unlock Protocol | 32+ users |
+| **Reputation Density** | Number of active users holding a GreenWill "Steward" or "Sprout" badge | 32+ users |
 | **Verification Efficiency** | Percentage of submitted actions processed (Approved/Rejected) by Evaluators/Operators within 72 hours | >90% |
 | **Conviction Participation** | Percentage of token holders actively signaling/voting on yield allocation via Conviction Voting | >48% |
 | **Hypercerts Minted** | Number of ERC-1155 impact certificates created from verified actions | 12+ by end of Q1 2026 |
@@ -317,7 +323,7 @@ Rural farmers often lack access to credit due to inability to verify their produ
 | Farms Registered | Total verified farms |
 | Harvest Volume | Total kg documented |
 | Commitment Fulfillment Rate | Percentage meeting stated targets |
-| Credit Unlocked | Value of credit lines enabled |
+| Credit Enabled | Value of credit lines enabled |
 | Yield per Hectare | Productivity metrics by crop |
 
 ### 3.5 Action Schema Registry
@@ -442,7 +448,7 @@ Before launch, all action schemas must be validated with actual users in each do
 - **Conviction Voting** — Module for yield allocation and action prioritization
 
 **Identity and Reputation:**
-- **Unlock Protocol** — Minting of GreenWill reputation badges (NFTs) based on user activity
+- **GreenWill** — Reputation badge registry and claim surfaces based on user activity
 - **Hats Protocol** — Management of on-chain roles (e.g., Operator, Evaluator) and permissions
 
 **Verification:**
@@ -568,7 +574,7 @@ Green Goods v1 acts as a bridge. For the Gardener, it is a helpful WhatsApp cont
 | FR-P-004 | Hypercerts Minting | Minting logic for verified impact claims as ERC-1155 certificates |
 | FR-P-005 | Revnet Configuration | Deployment of Juicebox V4 Revnets with configurable redemption rates (80-90%) and reserved rates |
 | FR-P-006 | Conviction Voting | Implementation of the Gardens Conviction Voting module for yield allocation and signaling action priorities |
-| FR-P-007 | GreenWill Badging | Integration with Unlock Protocol to mint NFT badges based on user activity thresholds |
+| FR-P-007 | GreenWill Badging | GreenWill badge registry and claim surfaces based on user activity thresholds |
 | FR-P-008 | Role Management | Integration with Hats Protocol to assign and manage on-chain permissions for Operators and Evaluators |
 | FR-P-009 | Smart Account Automation | Backend infrastructure to manage Safe accounts for users interacting solely via AI Agents |
 | FR-P-010 | Karma GAP Sync | Bi-directional sync between Green Goods actions and Karma GAP milestone updates |
@@ -603,7 +609,7 @@ Green Goods v1 acts as a bridge. For the Gardener, it is a helpful WhatsApp cont
 | GG-FEAT-006 | Octant Vault Integration | High | Planned | 4 weeks | ERC-4626, DeFi strategies | Yield-generating deposits |
 | GG-FEAT-007 | Revnet Configuration | Medium | Planned | 3 weeks | Juicebox V4 | Garden treasury management |
 | GG-FEAT-008 | Conviction Voting Module | Medium | Planned | 3 weeks | Gardens Protocol | Yield allocation governance |
-| GG-FEAT-009 | GreenWill Badging | Medium | Planned | 2 weeks | Unlock Protocol | Reputation NFTs |
+| GG-FEAT-009 | GreenWill Badging | Medium | Planned | 2 weeks | GreenWill registry | Reputation badges |
 | GG-FEAT-010 | Hats Protocol Roles | Medium | Planned | 2 weeks | Hats Protocol | Operator/Evaluator permissions |
 | GG-FEAT-011 | Karma GAP Sync | High | In Progress | 2 weeks | EAS, Karma API | CIDS-compliant reporting |
 | GG-FEAT-012 | Localization (ES/PT) | Medium | In Progress | 2 weeks | i18n framework | Brazilian and LatAm access |
@@ -629,8 +635,8 @@ For an interactive version of these assumptions, use the [Protocol Revenue Explo
 - Enhanced yield with DeFi strategies at 6-8% APY
 - Yield distribution: 80% to Hypercert purchases, 20% to protocol operations
 
-**Activity Assumptions (per Arbitrum grant targets):**
-- Active Gardeners: 150 by end of Q1 2026
+**Original activity assumptions (per Arbitrum grant target model):**
+- Active Gardeners: 150 by end of Q1 2026 original target
 - Actions per Gardener per month: 10 average
 - Total actions per month: 1,500
 - Actions per Hypercert bundle: 50 average
@@ -1036,7 +1042,7 @@ This section assesses privacy risks and documents data handling practices.
 | **Hypercerts** | Impact certificates |
 | **Juicebox** | Revnet infrastructure |
 | **Karma GAP** | Compliance reporting |
-| **Unlock Protocol** | Reputation (GreenWill) |
+| **GreenWill** | Reputation badges |
 | **Hats Protocol** | Permission layer |
 | **Gardens Protocol** | Conviction Voting |
 
@@ -1052,7 +1058,7 @@ This section assesses privacy risks and documents data handling practices.
 | M4 | Months 1-2 | Community Activations | $4,000 |
 | M5 | Month 3 | Final Reporting | $1,000 |
 
-**Celo Builders Fund x Unlock Protocol** — funding scope not yet finalized
+**Celo Builders Fund** — funding scope not yet finalized
 
 ---
 
@@ -1222,8 +1228,10 @@ This section assesses privacy risks and documents data handling practices.
 
 ## 15. Open Questions
 
-| # | Question | Owner | Due |
-|---|----------|-------|-----|
+The due dates below are original planning dates from the v1 draft. Reconfirm owners and dates before treating them as active commitments.
+
+| # | Question | Owner | Original due |
+|---|----------|-------|--------------|
 | Q1 | What is the legal framework for Evaluator liability if they verify false data? | Legal Lead | Q1 2026 |
 | Q2 | Can the WhatsApp Agent support dialects (e.g., Pidgin, Portuguese) effectively at launch? | Product Lead | Feb 2026 |
 | Q3 | How do we incentivize Community Members to signal without creating a "pay-to-complain" market? | Community Lead | Feb 2026 |
@@ -1248,7 +1256,7 @@ This section assesses privacy risks and documents data handling practices.
 | **MDR** | Monitoring, Data, Reporting — the protocol's internal term for the action capture-to-attestation-to-reporting pipeline |
 | **Hypercert** | An ERC-1155 impact certificate that bundles verified Actions into a tradable asset |
 | **Revnet** | A Juicebox V4 project with programmatic issuance, redemption, and revenue routing |
-| **GreenWill** | Reputation tokens (Unlock Protocol NFTs) earned through verified regenerative actions |
+| **GreenWill** | Reputation badges earned through verified regenerative actions |
 | **Conviction Voting** | A continuous governance mechanism where voting power compounds over time based on stake duration |
 | **CIDS** | Common Impact Data Standard — a structured format for describing impact work |
 | **TVIV** | Total Verified Impact Value — the North Star metric for protocol health |

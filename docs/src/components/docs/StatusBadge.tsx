@@ -5,6 +5,8 @@ import styles from "./styles.module.css";
 export type FeatureStatus =
   | "Live"
   | "Live (external source)"
+  | "Complete"
+  | "In progress"
   | "Implemented (activation pending indexing)"
   | "Implemented (activation pending deployment)"
   | "Planned";
@@ -17,6 +19,8 @@ type StatusBadgeProps = {
 const statusClassByLabel: Record<FeatureStatus, string> = {
   Live: styles.statusLive,
   "Live (external source)": styles.statusExternal,
+  Complete: styles.statusComplete,
+  "In progress": styles.statusInProgress,
   "Implemented (activation pending indexing)": styles.statusImplementedIndexing,
   "Implemented (activation pending deployment)": styles.statusImplemented,
   Planned: styles.statusPlanned,

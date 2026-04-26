@@ -162,16 +162,33 @@ If `BOT_API_URL` is not configured, skip this phase silently.
 
 ## Phase 3: Google Drive notes
 
-1. **Search Drive** — documents modified in last 48h mentioning "Green Goods", focused on:
+The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modifiedTime` query terms — no folder/path globs. Use a content query, then a rejection step.
+
+1. **Drive query (entry point):**
+
+   ```
+   title contains 'Notes by Gemini' and modifiedTime > '<48h-ago RFC3339>' and (title contains 'Green Goods' or fullText contains 'Green Goods' or fullText contains 'gardener' or fullText contains 'operator')
+   ```
+
+   This pattern matches Gemini-generated meeting notes (the canonical naming is `<topic> - YYYY/MM/DD HH:MM PDT - Notes by Gemini`) that are project-relevant. Operator-onboarding sessions, Green Goods syncs, and pilot-garden calls all match.
+
+2. **Rejection step — drop the doc if any of these hold.** This routine owns user-reported pain from Green Goods. It does NOT own grants, strategy, or partnership content even when those docs mention Green Goods. Drop docs whose primary topic is:
+
+   - `'proposal'`, `'grant'`, `'NLnet'`, `'Octant'`, `'Gitcoin'`, `'budget'`, `'milestone'` → owned by `guild-grant-scout`
+   - `'treasury'`, `'multisig'`, `'runway'`, `'working capital'`, `'payment'` → owned by `guild-daily-synthesis` private appendix
+   - `'agreement'`, `'MoU'`, `'partnership contract'` → owned by `guild-daily-synthesis` private appendix
+   - `'roadmap'`, `'integration evaluation'`, `'partnership strategy'` → owned by `guild-product-development-synthesis`
+   - `'weekly checkin'`, `'weekly recap'`, `'guild health'` → owned by `guild-weekly-checkin`
+
+3. **Filter to actionable user-reported pain only:**
    - Bug reports or "X doesn't work"
    - Operator pain points from Season One pilot gardens
    - Specific UX feedback ("the flow for Y is awkward")
+   - Skip aspirations, feature requests framed as strategy, partnership asks, anything that needs a human product call.
 
-2. **Extract actionable items**.
+4. **Dedupe** against open `polish` issues across all sources.
 
-3. **Dedupe** against open `polish` issues across all sources.
-
-4. **Create issues** with labels `polish + source:drive + <client|admin> + automated/claude`. Include source document link in body.
+5. **Create issues** with labels `polish + source:drive + <client|admin> + automated/claude`. Include source document link in body.
 
 ## Phase 4: Daily summary to #product
 

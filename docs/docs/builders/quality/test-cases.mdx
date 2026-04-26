@@ -4,14 +4,32 @@ sidebar_label: Test Cases
 slug: /builders/quality/test-cases
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-25
 feature_status: Planned
+source_of_truth:
+  - package.json
+  - .github/workflows/e2e-tests.yml
+  - .github/workflows/client-tests.yml
+  - .github/workflows/admin-tests.yml
+  - .github/workflows/shared-tests.yml
+  - .github/workflows/contracts-tests.yml
+  - .github/workflows/agent-tests.yml
+  - .github/workflows/indexer-tests.yml
+  - packages/client/vitest.config.ts
+  - packages/admin/vitest.config.ts
+  - packages/shared/vitest.config.ts
+  - packages/agent/vitest.config.ts
+  - scripts/quality/check-test-quality.sh
 keywords: [test cases, QA, quality assurance, coverage, E2E, regression, critical paths]
 ---
 
+import {StatusBadge} from "@site/src/components/docs";
+
 # Test Cases
 
-Structured test case tracking for Green Goods QA. This page outlines the categories, critical paths, and automation strategy for ensuring protocol correctness.
+<StatusBadge status="Planned" />
+
+Structured test case tracking is planned. Today, the source of truth is the package test scripts, GitHub Actions workflows, Vitest configs, contracts test scripts, Playwright config, and test-quality guardrail. Use this page as an orientation map, not as proof that every listed workflow has full automated coverage.
 
 ```mermaid
 flowchart LR
@@ -25,9 +43,20 @@ flowchart LR
     WAR --> |Attest| Done[Verified]
 ```
 
-## Scope
+## Current source-backed test surfaces
 
-The test case system covers end-to-end user journeys and integration points across the platform:
+| Surface | Current source-backed state |
+| --- | --- |
+| Root unit/integration loop | `bun run test` fans out to shared, client, admin, indexer, contracts, and agent package test scripts. |
+| Package CI workflows | Client, admin, shared, agent, indexer, and contracts each have dedicated workflows with path filters or package-specific jobs. |
+| Playwright E2E | `.github/workflows/e2e-tests.yml` runs on push/PR to `main` and `develop`; its default CI projects are `chromium`, `chromium-client`, `critical-path`, and `performance`. Mobile projects are manual/optional. |
+| Contract fork tests | `contracts-tests.yml` has fork jobs that require RPC secrets and run a targeted protocol fork subset. They are not part of the default local `bun run test` loop. |
+| Coverage thresholds | Coverage is V8-based where configured, but thresholds differ by package: client is higher than 70%, admin/shared use 70%, and agent intentionally uses lower thresholds. |
+| Test-quality guardrail | `bash scripts/quality/check-test-quality.sh` checks test-quality patterns across test directories. |
+
+## Planned catalog scope
+
+The future structured catalog should map test cases to source-backed scripts, workflows, or acceptance artifacts before it presents them as enforced coverage. Candidate categories are:
 
 - **Work submission flows** -- gardener creates work, uploads media to IPFS, submits EAS attestation, resolver validates
 - **Garden lifecycle** -- minting, module initialization, role assignment, metadata updates, action publishing
@@ -39,8 +68,8 @@ The test case system covers end-to-end user journeys and integration points acro
 
 ## Test Cases
 
-:::info Under Development
-Test cases are being populated from GitHub issues and structured QA reviews. The categories below define the planned coverage.
+:::info Planned catalog
+Test cases are not yet maintained as a canonical checked-in test-case repository. Add links to concrete tests, workflows, or acceptance artifacts before treating a category as covered.
 :::
 
 ### Critical Path: Work Submission to Attestation
@@ -86,36 +115,37 @@ The core user journey that must never break:
 - Marketplace listing and trading (LooksRare protocol integration)
 - Conviction voting on registered hypercerts via Gardens V2 signal pools
 
-## Automation
+## Automation boundaries
 
-### CI Pipeline
+### CI pipeline
 
-- **GitHub Actions** runs vitest (all packages) and Playwright (E2E) on every pull request
-- **Contract tests** run via `bun run test` in the contracts package (Forge test runner)
-- **Fork tests** run against live chain state for resolver validation
+- GitHub Actions are split by package and workflow, not a single universal "all packages" job.
+- Playwright E2E runs on push/PR to `main` and `develop`, with a curated default project set.
+- Contract tests run through package scripts; fork tests need RPC secrets and run targeted fork coverage.
 
 ### Pre-commit
 
-- **Husky hooks** enforce formatting (`bun format`) and linting (`bun lint`) before commits
-- Prevents common issues: console.log usage, missing type annotations, import ordering
+- **Pre-commit** runs `lint-staged`, which currently formats staged JS/TS/JSON files and excludes generated/out contract paths.
+- **Pre-push** runs broader repo checks, including `format:contracts`, `format`, and `lint`.
+- Treat hooks as formatting and lint guardrails, not as proof that tests, typecheck, or full quality gates have run.
 
 ### E2E (Playwright)
 
-- Critical user journeys: navigation, work submission, auth flows, offline sync
-- Performance benchmarks: page load times, interaction responsiveness
-- Fork-based tests: submit real attestations against forked chain state
+- Curated CI projects cover admin smoke, client smoke, critical-path flows, and performance.
+- Manual projects can run broader browser/mobile coverage when needed.
+- Fork-backed browser coverage is a separate path from the default CI E2E project set.
 
 ### Coverage
 
-- All packages target 70% minimum coverage (branches, functions, lines, statements)
-- V8 coverage provider with text + HTML + JSON reporters
-- Coverage reports generated per package and aggregated in CI
+- Coverage thresholds are package-specific, not one universal 70% rule.
+- Client, admin, shared, and agent use V8 coverage configs; indexer coverage is informational in CI.
+- Treat coverage as one signal alongside realism checks, E2E coverage, and human review.
 
 ## Status
 
-Current test infrastructure is operational across all packages. Key gaps being addressed:
+Current test infrastructure is operational, but the structured catalog is still planned. Known gaps:
 
-- Structured test case repository (this page) is being built out
-- E2E coverage for hypercert minting and marketplace flows
-- Cross-chain deployment verification tests
-- Load testing for job queue under high-volume offline scenarios
+- This page is not yet generated from or linked to a canonical test-case source.
+- Planned categories need explicit links to current tests before they can be described as covered.
+- E2E and fork coverage remain curated and environment-dependent.
+- Load testing and broad cross-chain verification should not be implied unless a checked-in workflow or script proves them.

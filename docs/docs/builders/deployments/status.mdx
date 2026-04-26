@@ -12,6 +12,9 @@ source_of_truth:
   - packages/contracts/deployments/42220-latest.json
   - packages/indexer/config.yaml
   - docs/src/data/endpoints.ts
+  - packages/agent/package.json
+  - packages/agent/src/index.ts
+  - packages/agent/README.md
 keywords: [deployment, status, endpoints, chains, contracts, health]
 ---
 
@@ -23,11 +26,11 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 ```mermaid
 graph TB
-    subgraph Services["Live Services"]
+    subgraph Services["Service Surfaces"]
         CL["Client PWA\ngreengoods.app"]
         AD["Admin Dashboard\nadmin.greengoods.app"]
         IX["Envio Indexer\nGraphQL API"]
-        AG["Agent Bot\nTelegram"]
+        AG["Agent Bot\noperator-configured"]
         DC["Docs\ndocs.greengoods.app"]
     end
 
@@ -52,7 +55,7 @@ Overview of deployed Green Goods services, chain artifacts, and activation bound
 | Admin Dashboard | Production | `admin.greengoods.app` |
 | Documentation | Production | `docs.greengoods.app` |
 | Envio Indexer | Production | Hosted by Envio (GraphQL endpoint in `.env`) |
-| Agent Bot | Production | Telegram bot service |
+| Agent Bot | Operator-configured | Telegram bot runtime; package README includes deployment examples and a Fly.io hostname, but no checked-in Fly config or deployment manifest verifies an active production endpoint |
 
 ## Chain Deployments
 

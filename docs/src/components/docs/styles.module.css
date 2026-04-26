@@ -349,6 +349,18 @@
   border-color: #93c5fd;
 }
 
+.statusComplete {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.statusInProgress {
+  color: #7c2d12;
+  background: #fff7ed;
+  border-color: #fdba74;
+}
+
 .statusImplemented {
   color: #1d4ed8;
   background: #eef4ff;
@@ -379,6 +391,18 @@
   color: #93c5fd;
   background: rgba(29, 78, 216, 0.2);
   border-color: rgba(147, 197, 253, 0.3);
+}
+
+:global([data-theme="dark"]) .statusComplete {
+  color: #86efac;
+  background: rgba(22, 101, 52, 0.25);
+  border-color: rgba(134, 239, 172, 0.3);
+}
+
+:global([data-theme="dark"]) .statusInProgress {
+  color: #fdba74;
+  background: rgba(124, 45, 18, 0.25);
+  border-color: rgba(253, 186, 116, 0.3);
 }
 
 :global([data-theme="dark"]) .statusImplementedIndexing {

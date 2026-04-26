@@ -103,9 +103,26 @@ Read field IDs once via `gh project field-list 4 --owner greenpill-dev-guild --f
 Use Calendar and Drive as optional enrichment.
 
 - **Calendar**: note significant events in the digest (demos, grant milestones, operator syncs). 40% drop during a holiday week is expected, not an anomaly.
-- **Drive**: cross-reference meeting notes for metrics commitments or targets. If a recent meeting set "100 actions by month-end", include progress toward it.
+- **Drive (content-scoped)**: cross-reference meeting notes for **explicit metrics commitments or targets** that were stated in calls. If a recent meeting set "100 actions by month-end", include progress toward it.
+
+  The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modifiedTime` query terms (no path globs). Use a content query then a rejection step:
+
+  **Drive query:**
+  ```
+  title contains 'Notes by Gemini' and modifiedTime > '<14d-ago RFC3339>' and (fullText contains 'target' or fullText contains 'commitment' or fullText contains 'KPI' or fullText contains 'metric')
+  ```
+
+  **Rejection step — drop the doc if its primary topic is:**
+  - `'proposal'`, `'grant'`, `'NLnet'`, `'Octant'`, `'Gitcoin'`, `'budget'`, `'milestone'` → owned by `guild-grant-scout`
+  - `'treasury'`, `'multisig'`, `'runway'`, `'working capital'` → owned by `guild-daily-synthesis` private appendix
+  - `'roadmap'`, `'partnership strategy'` → owned by `guild-product-development-synthesis`
+  - `'weekly checkin'`, `'weekly recap'` → owned by `guild-weekly-checkin`
+
+  The digest reflects what production data shows; Drive only confirms targets that were already explicitly stated. Do not pull strategy memos, grant proposal drafts, partner notes, or treasury docs to fabricate "context."
 
 ## Discord post: #product (primary)
+
+**Channel guard:** the only allowed primary `POST` target for this routine is `${DISCORD_PRODUCT_CHANNEL_ID}`. The `#funding` cross-post below is a separate, conditional second post — never a substitute. If `${DISCORD_PRODUCT_CHANNEL_ID}` is unset or invalid, abort and log — do not pick an alternate channel.
 
 After the digest PR is open and any anomaly issues are filed, post to `#product`:
 
@@ -133,7 +150,13 @@ Determine if @mention is needed: any new `metrics:anomaly` issue created OR any 
 
 ## Discord cross-post: #funding (grant-relevant only)
 
-If this week's metrics include numbers that map to active or upcoming grant criteria (e.g., active users for an Octant round, transaction volume for a Gitcoin round), post to `#funding`:
+**Channel guard:** the only allowed `POST` target for this conditional cross-post is `${DISCORD_FUNDING_CHANNEL_ID}`. Never post the cross-post to `#design`, `#research`, `#community`, `#engineering`, or any other channel. The `#product` post above is the unconditional output; this `#funding` post is conditional and must satisfy ALL of the following:
+
+1. There is at least one **named, currently-tracked** grant program with criteria the metric directly maps to (look up active `grant:prospect`, `grant:drafting`, or `grant:submitted` issues in `greenpill-dev-guild/.github`).
+2. The metric this week meaningfully changes that program's case (new threshold crossed, anomaly that affects the narrative, etc.).
+3. The mapping can be stated in one sentence without speculation.
+
+If any of those conditions fails, **do not post**. Silence is the default; the `#product` post + digest PR are the canonical outputs.
 
 ```
 POST https://discord.com/api/v10/channels/${DISCORD_FUNDING_CHANNEL_ID}/messages
@@ -141,10 +164,10 @@ POST https://discord.com/api/v10/channels/${DISCORD_FUNDING_CHANNEL_ID}/messages
 **Grant-relevant metrics — week {YYYY-WW}**
 📈 {1-3 bullets of grant-relevant growth}
 📊 [Full digest]({pr_url})
-{if applicable: "💡 Aligns with {grant program} criteria for {criteria}"}
+💡 Aligns with {grant program issue} for {criteria}
 ```
 
-Only post when there's something genuinely grant-relevant. **Silence is fine** when metrics are flat or the week's signal isn't grant-aligned. Don't @mention here — `#funding` is for the wider team's grant-scout context.
+Don't @mention here — `#funding` is for the wider team's grant-scout context.
 
 If `#funding` posting fails, the PR + `#product` post are sufficient — log and continue.
 

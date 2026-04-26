@@ -4,13 +4,18 @@ sidebar_label: Agent
 slug: /builders/deployments/agent-deploy
 audience: developer
 owner: docs
-last_verified: 2026-04-19
+last_verified: 2026-04-25
 feature_status: Live
 source_of_truth:
   - packages/agent/package.json
   - packages/agent/src/index.ts
+  - packages/agent/src/config.ts
+  - packages/agent/src/api/server.ts
+  - packages/agent/Dockerfile
+  - .env.schema
+  - ecosystem.config.cjs
   - packages/agent/README.md
-keywords: [agent, Telegram, bot, Fastify, PM2, deployment]
+keywords: [agent, Telegram, bot, Fastify, deployment]
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -21,7 +26,7 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 ```mermaid
 graph TB
-    Build["bun build\ntsc → dist/"] --> Start["bun start"]
+    Build["bun run build\ntsc → dist/"] --> Start["bun run start"]
 
     subgraph Runtime["Agent Runtime"]
         Fastify["Fastify\nHTTP + health"]
@@ -29,7 +34,7 @@ graph TB
         Pino["Pino\nstructured logs"]
     end
 
-    Start -->|PM2| Runtime
+    Start --> Runtime
 
     subgraph Integrations
         TG["Telegram\nwebhooks"]
@@ -45,29 +50,34 @@ The agent package (`packages/agent/`) is a Fastify-based bot service that provid
 ## Deployment Checklist
 
 1. Ensure all required environment variables are set in the root `.env` (see [Build Environments](#build-environments))
-2. Build the agent: `cd packages/agent && bun build`
+2. Build the agent: `cd packages/agent && bun run build`
 3. Run tests: `cd packages/agent && bun run test`
-4. Start the compiled output: `cd packages/agent && bun start`
+4. Start the compiled output: `cd packages/agent && bun run start`
 5. Verify Telegram webhook delivery status
 6. Check Fastify health endpoint responds
-7. Monitor process uptime and memory usage via PM2
+7. Monitor process uptime and memory usage through the selected host or process manager
 8. Confirm blockchain RPC connectivity and error rates in Pino structured logs
 
 ## Build Environments
 
 ### Environment Variables
 
-Key variables required for the agent service:
+Key variables used by the current agent runtime:
 
-| Variable | Purpose |
-|----------|---------|
-| `TELEGRAM_BOT_TOKEN` | Telegram Bot API token |
-| `DEPLOYER_PRIVATE_KEY` | Wallet key for on-chain transactions |
-| `VITE_CHAIN_ID` | Target chain for contract interactions |
-| `PINATA_JWT` | Pinata JWT for shared IPFS uploads |
-| `VITE_PIMLICO_API_KEY` | Account abstraction bundler/paymaster |
+| Variable | Required when | Purpose |
+|----------|---------------|---------|
+| `TELEGRAM_BOT_TOKEN` | Always | Telegram Bot API token; the agent fails startup if missing. |
+| `ENCRYPTION_SECRET` | Production | Encrypts bot-managed secrets and wallet material; development can derive a fallback with a warning. |
+| `VITE_CHAIN_ID` | Chain selection | Selects the target chain through shared `getDefaultChain()`. |
+| `BOT_MODE` | Optional | `polling` or `webhook`; defaults to `webhook` in production and `polling` in development. |
+| `WEBHOOK_URL` | Webhook mode | Base URL used when registering the Telegram webhook. |
+| `TELEGRAM_WEBHOOK_SECRET` | Production webhook mode | Secret token used to verify Telegram webhook requests. |
+| `BOT_API_TOKEN` | Routine-facing API enabled | Bearer token for protected `/api/*` routes. |
+| `DB_PATH` | Optional | SQLite database path; defaults to `data/agent.db`. |
+| `POSTHOG_AGENT_KEY` | Optional production analytics | Enables agent analytics when production analytics are enabled. |
 
 The agent loads environment variables from the root `.env` file.
+Shared submission code can also read `PINATA_JWT` or `VITE_PINATA_JWT` when a bot submission includes media buffers and needs the shared IPFS upload path. The current agent config does not load `DEPLOYER_PRIVATE_KEY` or `VITE_PIMLICO_API_KEY` as required service variables.
 
 ### API Key Management
 
@@ -75,8 +85,8 @@ Sensitive keys should be managed through environment variables or a secrets mana
 
 - Never commit API keys to the repository
 - Rotate `TELEGRAM_BOT_TOKEN` if compromised
-- `DEPLOYER_PRIVATE_KEY` controls on-chain funds -- use a dedicated bot wallet with limited balance
-- `PINATA_JWT` controls authenticated uploads to the shared Pinata-backed IPFS path -- treat it like any other production secret
+- Use a strong `ENCRYPTION_SECRET`; rotate it if exposed and plan for stored secret recovery before changing it in production
+- Treat `BOT_API_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and any media-upload `PINATA_JWT` as production secrets
 
 ### Architecture
 
@@ -113,8 +123,8 @@ Test utilities in `packages/agent/src/__tests__/utils/` include mock factories a
 
 ```bash
 cd packages/agent
-bun build       # TypeScript compilation
-bun start       # Run compiled output from dist/
+bun run build   # TypeScript compilation
+bun run start   # Run compiled output from dist/
 ```
 
 The build step uses `tsc` to compile TypeScript to the `dist/` directory.
@@ -128,24 +138,27 @@ bun run dev     # Start with --watch for hot reload
 
 ### Process Management
 
-In production, the agent runs under PM2 (configured in the monorepo root):
+The monorepo PM2 config is a local full-stack development convenience. It starts the
+agent in watch mode when `TELEGRAM_BOT_TOKEN` is present and idles the service when the
+token is missing:
 
 ```bash
 bun run dev:full  # Starts all services including agent via PM2
 bun run dev:stop  # Stops all PM2 processes
 ```
 
-For standalone deployment, run the compiled output:
+Do not treat local PM2 as the production deployment contract. For a standalone server or
+container host, build the package and run the compiled output with production env vars:
 
 ```bash
-cd packages/agent && bun start
+cd packages/agent && bun run start
 ```
 
 ### Health Monitoring
 
 The Fastify server exposes health check endpoints. Monitor:
 
-- Process uptime and memory usage via PM2
+- Process uptime and memory usage through the selected host or process manager
 - Telegram webhook delivery status
 - Blockchain RPC connectivity
 - Error rates in Pino structured logs

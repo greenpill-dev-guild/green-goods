@@ -49,6 +49,8 @@ const requiredTrustFrontmatter = [
 const allowedFeatureStatus = new Set([
   "Live",
   "Live (external source)",
+  "Complete",
+  "In progress",
   "Implemented (activation pending indexing)",
   "Implemented (activation pending deployment)",
   "Planned",
@@ -204,11 +206,21 @@ const fileExists = async (relativePath) => {
   }
 };
 
+const normalizeSourcePathForAudit = (sourcePath) =>
+  sourcePath
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/\/+$/, "");
+
 const isWeakSourceOfTruth = (sourcePath, relativePath) => {
-  if (sourcePath === relativePath) {
+  const normalizedSourcePath = normalizeSourcePathForAudit(sourcePath);
+  const normalizedRelativePath = normalizeSourcePathForAudit(relativePath);
+
+  if (normalizedSourcePath === normalizedRelativePath) {
     return "source_of_truth cannot cite the document itself.";
   }
-  if (broadSourcePathPattern.test(sourcePath)) {
+  if (broadSourcePathPattern.test(normalizedSourcePath)) {
     return `source_of_truth path is too broad: ${sourcePath}`;
   }
   return null;
@@ -311,6 +323,8 @@ const requiresSourceOfTruth = (frontmatter, canonical, relativePath) => {
   return (
     status === "Live" ||
     status === "Live (external source)" ||
+    status === "Complete" ||
+    status === "In progress" ||
     status === "Implemented (activation pending indexing)" ||
     status === "Implemented (activation pending deployment)"
   );
