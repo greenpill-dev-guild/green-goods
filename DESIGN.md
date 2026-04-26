@@ -12,6 +12,8 @@ colors:
   tertiary-action: "#1A7544"
   tertiary-action-hover: "#16643B"
   on-tertiary-action: "#FFFFFF"
+  amber: "#D97706"
+  sky: "#3B82F6"
   neutral: "#FAF8F5"
   neutral-dark: "#1C1917"
 typography:
@@ -30,6 +32,11 @@ typography:
     fontSize: 22px
     fontWeight: 600
     lineHeight: 28px
+  editorial:
+    fontFamily: Fraunces
+    fontSize: 48px
+    fontWeight: 700
+    lineHeight: 1.1
 rounded:
   md: 8px
   lg: 16px
@@ -147,6 +154,68 @@ Four roles, defined by **how much of the screen each occupies** — not a palett
 | **Labels / timestamps** | Inter (client) / Plus Jakarta Sans (admin) | 500 | Utility text, metadata |
 
 **Rationale:** The serif headline only appears on the public browser site where editorial weight matters. PWA and admin stay utilitarian with their respective sans-serif workhorses.
+
+## Voice & Copy
+
+> Companion to the visual creative direction. Same brief — verbal expression instead of visual.
+
+**Voice:** Green Goods speaks like a knowledgeable neighbor who runs the community garden. Warm but not gushing. Practical but not clinical. Knows soil science but explains it by pointing at the compost pile.
+
+### Voice Pillars
+
+| Pillar | Means | Doesn't Mean |
+|--------|-------|------------|
+| **Grounded** | Concrete, specific, rooted in real action | Jargon-heavy, academic, blockchain-first |
+| **Inviting** | Welcoming, assumes good intent, lowers barriers | Sycophantic, over-enthusiastic, exclamation-heavy |
+| **Honest** | Transparent about what works and what's experimental | Hedging, corporate disclaimers, vague promises |
+| **Active** | Action-oriented, present-tense, you-centered | Passive voice, abstract nouns, bureaucratic |
+
+**One-sentence test:** If it could appear on a government form, rewrite it. If it could appear on a hand-painted garden sign, it's close.
+
+### Tone Spectrum
+
+Tone shifts by context while voice stays constant:
+
+| Context | Tone | Example |
+|---------|------|---------|
+| **Onboarding** | Encouraging, patient | "Start by describing what you see. We'll help with the rest." |
+| **Submitting work** | Supportive, clear | "Add a photo and a few words about what you did today." |
+| **Hero moments** | Celebratory, genuine | "Your first contribution. This garden is growing because of you." |
+| **Errors** | Calm, constructive | "That didn't go through. Your work is saved — try again when you're ready." |
+| **Offline** | Reassuring, matter-of-fact | "You're offline. Everything is saved locally and will sync when you reconnect." |
+| **Admin / operator** | Efficient, status-oriented | "3 submissions pending review. 1 flagged for follow-up." |
+| **Funding / impact** | Respectful, concrete | "This garden has documented 47 actions across 3 seasons." |
+
+### Terminology
+
+The names that carry the work. The canonical vocabulary contract — domain entities, personas, surfaces, and banned terms (streak, countdown, leaderboard, FOMO, growth-hacking language, plus admin-only and client-only AI-prompt bans) — lives in [`docs/docs/reference/glossary-community.md`](docs/docs/reference/glossary-community.md). This table is the positive copy-voice set; the glossary is the cross-surface single source of truth.
+
+| Use | Don't Use | Why |
+|-----|-----------|-----|
+| Garden | Project, organization, DAO | Gardens are the metaphor. |
+| Gardener | User, contributor, member | People who do the work have a name. |
+| Operator | Admin, manager | They operate the garden. |
+| Evaluator | Reviewer, auditor, assessor | They evaluate impact, not audit compliance. |
+| Funder | Donor, investor, backer | Funding a garden, not donating to a cause. |
+| Community member | Visitor, viewer, spectator | Part of the community, not an audience. |
+| Work | Task, activity, submission | Regenerative work is the core concept. |
+| Action | Action type, template | The thing a gardener can do. |
+| Fund | Donate, contribute, invest | Funding a garden. |
+| Impact | Output, result, metric | Bridges community and chain. |
+| Document | Log, record, capture | Gardeners document their work. |
+
+### Writing Checklist
+
+Before shipping copy:
+
+- [ ] Is it concrete? (Can the reader picture it?)
+- [ ] Is it active? (Subject → verb → object?)
+- [ ] Is the audience right? (Gardener ≠ operator ≠ funder)
+- [ ] Is blockchain invisible? (On-chain = implementation, not copy)
+- [ ] Would it make sense to someone who's never heard of web3?
+- [ ] Is it shorter than your first draft?
+
+Surface-specific copy patterns (browser editorial, PWA gardener-facing, admin utility) live in the matching prompt contracts: [`.claude/skills/design/prompt-contract.md`](.claude/skills/design/prompt-contract.md) (admin) and [`.claude/skills/design/client-prompt-contract.md`](.claude/skills/design/client-prompt-contract.md) (client).
 
 ## Quick Token Reference
 

@@ -121,10 +121,7 @@ export default function HubView() {
                   )}
               </div>
 
-              <div
-                key={hub.stage}
-                className="hub-results-pane animate-[hub-fade-in_150ms_ease_both] motion-reduce:animate-none"
-              >
+              <div key={hub.stage} className="hub-results-pane motion-reduce:animate-none">
                 <HubStageContent
                   stage={hub.stage}
                   pendingWorks={hub.pendingWorks}

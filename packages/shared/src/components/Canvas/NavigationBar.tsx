@@ -65,7 +65,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
         mobile
           ? "min-h-[3.75rem] min-w-0 flex-1 flex-col rounded-[1.15rem] px-1.5 py-2"
           : "min-w-[4.25rem] rounded-[1.1rem] px-3 py-2",
-        "transition-all duration-[var(--spring-effects-duration,250ms)]",
+        "transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
         "motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))]",
         isActive
@@ -167,7 +167,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
           data-slot="speed-dial"
           data-state="open"
         >
-          {config.actions.map((action, index) => {
+          {config.actions.map((action) => {
             const ActionIcon = action.icon;
             return (
               <button
@@ -181,11 +181,9 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   "text-sm font-medium text-text-strong",
                   "transition-all hover:shadow-[0_20px_34px_rgba(15,23,42,0.18)]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))]",
+                  "speed-dial-item",
                   "motion-reduce:animate-none"
                 )}
-                style={{
-                  animation: `speed-dial-in var(--spring-spatial-fast) ${index * 50}ms both`,
-                }}
                 aria-label={formatMessage({ id: action.labelId })}
                 data-slot="speed-dial-item"
                 data-item-id={action.id}
@@ -220,7 +218,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       >
         <FabIcon
           className={cn(
-            "h-5 w-5 transition-transform duration-[var(--spring-effects-fast-duration,150ms)]",
+            "h-5 w-5 transition-transform duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             "motion-reduce:transition-none",
             speedDialOpen && "rotate-45"
           )}

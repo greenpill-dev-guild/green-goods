@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { RiAddLine, RiCheckLine, RiSeedlingLine } from "@remixicon/react";
+import { RiAddLine, RiSeedlingLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
@@ -85,7 +85,7 @@ export function GardenChip({
             "glass-raised",
             "shadow-[var(--edge-rest),_var(--elevation-1)]",
             "text-label-lg font-medium text-text-main",
-            "transition-all duration-[var(--spring-micro-duration,150ms)]",
+            "transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             "motion-reduce:transition-none",
             "hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-3)]",
             "focus-visible:outline-none focus-visible:shadow-[var(--edge-focus),_var(--elevation-1)]"
@@ -157,7 +157,7 @@ export function GardenChip({
                 className={cn(
                   "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-body-md",
                   "text-primary-base hover:bg-bg-weak",
-                  "transition-colors duration-[var(--spring-micro-duration,150ms)]",
+                  "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                   "motion-reduce:transition-none",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
                 )}
@@ -192,7 +192,7 @@ function GardenDropdownItem({ label, isSelected, onClick }: GardenDropdownItemPr
       onClick={onClick}
       className={cn(
         "flex w-full items-center rounded-lg px-3 py-2 text-body-md",
-        "transition-colors duration-[var(--spring-micro-duration,150ms)]",
+        "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
         "motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
         isSelected

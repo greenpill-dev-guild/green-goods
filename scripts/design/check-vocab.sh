@@ -23,23 +23,28 @@ fi
 
 # Read the enforced term list from the JSON sidecar.
 # Prefer jq when available; fall back to a python3 one-liner; last-resort
-# bash/grep extraction so the linter stays runnable without extra deps.
+# awk extraction so the linter stays runnable without extra deps.
 read_terms() {
   if command -v jq >/dev/null 2>&1; then
     jq -r '.linter_enforced.terms[]' "$VOCAB_JSON"
   elif command -v python3 >/dev/null 2>&1; then
     python3 -c "import json,sys; print('\n'.join(json.load(open('$VOCAB_JSON'))['linter_enforced']['terms']))"
   else
-    # Fallback: extract the terms array via grep + sed. Robust enough for the
-    # current shape (one term per line inside a JSON array of strings) but
-    # only correct as long as the sidecar keeps that shape — keep this aligned
-    # if you reflow the JSON.
-    awk '/"linter_enforced"/,/]/' "$VOCAB_JSON" \
-      | grep -oE '"[^"]+"' \
-      | sed -n '2,$p' \
-      | tr -d '"' \
-      | sed '/^terms$/d; /^scope$/d; /^globs$/d; /^rationale$/d; /^packages\//d; /^user-facing/d; /^These terms/d' \
-      | grep -v '^$' || true
+    # Fallback: extract only .linter_enforced.terms from the current JSON
+    # shape. This intentionally waits for the terms key after linter_enforced
+    # so the globs array cannot terminate the range early.
+    awk '
+      /"linter_enforced"[[:space:]]*:/ { in_linter = 1 }
+      in_linter && /"terms"[[:space:]]*:[[:space:]]*\[/ { in_terms = 1; next }
+      in_terms && /\]/ { exit }
+      in_terms {
+        line = $0
+        sub(/^[[:space:]]*"/, "", line)
+        sub(/",[[:space:]]*$/, "", line)
+        sub(/"[[:space:]]*$/, "", line)
+        if (line != "") print line
+      }
+    ' "$VOCAB_JSON"
   fi
 }
 

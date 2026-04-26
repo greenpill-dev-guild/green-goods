@@ -114,7 +114,7 @@
   background-color: rgb(var(--state-layer-color, var(--m3-on-surface)));
   opacity: 0;
   transition:
-    opacity var(--spring-micro-duration, 150ms) var(--spring-micro-easing, cubic-bezier(0.2, 0, 0, 1));
+    opacity var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, cubic-bezier(0.2, 0, 0, 1));
 }
 
 .m3-state-layer:hover::after {

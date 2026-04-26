@@ -61,7 +61,7 @@ export function ListToolbar({
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="h-9 w-full rounded-sm bg-bg-white pl-9 pr-8 text-body-md text-text-strong shadow-[var(--edge-rest)] placeholder:text-text-disabled transition-shadow duration-[var(--spring-micro-duration)] focus:shadow-[var(--edge-focus)] focus:outline-none"
+          className="h-9 w-full rounded-sm bg-bg-white pl-9 pr-8 text-body-md text-text-strong shadow-[var(--edge-rest)] placeholder:text-text-disabled transition-shadow duration-[var(--spring-effects-fast-duration)] focus:shadow-[var(--edge-focus)] focus:outline-none"
         />
         {search && (
           <button

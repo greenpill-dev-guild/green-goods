@@ -283,7 +283,7 @@
 
   .animate-stagger-in > * {
     opacity: 0;
-    animation: stagger-fade-in var(--spring-dramatic-duration) var(--spring-dramatic-easing) both;
+    animation: stagger-fade-in var(--spring-effects-slow-duration) var(--spring-effects-slow-easing) both;
   }
 
   .animate-stagger-in > *:nth-child(1) { animation-delay: 0ms; }

@@ -19,7 +19,7 @@ const ICON_BTN = cn(
   "text-text-strong",
   "hover:bg-[rgb(var(--m3-on-surface,15_23_42)/0.08)] hover:scale-105",
   "active:bg-[rgb(var(--m3-on-surface,15_23_42)/0.12)] active:scale-95",
-  "transition-all duration-[var(--spring-micro-duration,150ms)]",
+  "transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
   "motion-reduce:transition-none motion-reduce:active:scale-100 motion-reduce:hover:scale-100",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))]"
 );
@@ -194,7 +194,7 @@ export function AppBar({
                   "z-overlay rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
                   "text-sm text-text-sub",
                   "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
-                  "duration-200"
+                  "duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
                 )}
                 style={{ boxShadow: "var(--edge-rest), var(--elevation-3)" }}
                 data-component="AppBar"

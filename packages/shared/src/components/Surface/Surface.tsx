@@ -50,7 +50,7 @@ export const surfaceVariants = tv({
     interactive: {
       true: [
         "cursor-pointer",
-        "transition-[box-shadow,transform] duration-[var(--spring-fast-duration,200ms)] ease-[var(--spring-fast-easing,ease-out)]",
+        "transition-[box-shadow,transform] duration-[var(--spring-spatial-fast-duration,200ms)] ease-[var(--spring-spatial-fast-easing,ease-out)]",
         "hover:-translate-y-0.5 hover:shadow-[var(--edge-hover),_var(--elevation-2)]",
         "active:translate-y-0 active:scale-[0.992]",
       ].join(" "),

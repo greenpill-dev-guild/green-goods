@@ -8,6 +8,7 @@
 
 @layer theme {
   :root {
+    --gg-design-amber: 217 119 6;
     --gg-design-neutral: 250 248 245;
     --gg-design-neutral-dark: 28 25 23;
     --gg-design-on-tertiary: 11 70 39;
@@ -16,6 +17,7 @@
     --gg-design-primary-inverse: 245 245 244;
     --gg-design-secondary: 120 113 108;
     --gg-design-secondary-inverse: 168 162 158;
+    --gg-design-sky: 59 130 246;
     --gg-design-tertiary: 31 193 107;
     --gg-design-tertiary-action: 26 117 68;
     --gg-design-tertiary-action-hover: 22 100 59;

@@ -6,7 +6,7 @@ import { PageTransition } from "./PageTransition";
  * PageTransition wraps `<Outlet />` with close-then-navigate sheet orchestration.
  *
  * On route change:
- * 1. If a sheet is open, calls `onNavigateAway` to save state and close it (300ms)
+ * 1. If a sheet is open, calls `onNavigateAway` to save state and wait for sheet close motion
  * 2. Triggers `document.startViewTransition()` for a cross-fade
  * 3. Calls `onNavigateArrive` to restore any saved sheet state
  *

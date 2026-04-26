@@ -189,7 +189,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
                 LeadingIcon ? "left-12" : "left-4",
                 // Vertical animation via transform
                 "origin-top-left transition-all",
-                "duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
+                "duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
                 // Resting state
                 isFloating
                   ? [
@@ -266,7 +266,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
           <div
             aria-hidden="true"
             className={cn(
-              "w-full transition-all duration-[var(--spring-fast-duration)]",
+              "w-full transition-all duration-[var(--spring-spatial-fast-duration)]",
               hasError
                 ? "h-0.5 bg-[rgb(var(--m3-error))]"
                 : focused
@@ -354,7 +354,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
               "pointer-events-none absolute select-none",
               LeadingIcon ? "left-12" : "left-4",
               "origin-top-left transition-all",
-              "duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
+              "duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
               isFloating
                 ? [
                     // Floating: sits on the top outline edge

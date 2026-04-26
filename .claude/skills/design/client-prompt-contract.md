@@ -12,6 +12,8 @@ Paste this sentence (or a trimmed version) into every AI design prompt for clien
 
 ## Required Vocabulary
 
+> **Canonical glossary**: cross-surface domain terms (Garden, Action, Work, Assessment, Hypercert, Vault, Cookie Jar, Attestation, Hat, Season) and personas (Gardener, Operator, Evaluator, Funder, Community Member) live in [`docs/docs/reference/glossary-community.md § Design Vocabulary`](../../../docs/docs/reference/glossary-community.md#design-vocabulary). The table below is client-specific shell / journal vocabulary that does not live there.
+
 Use these terms when describing client UI:
 
 | Term | Meaning |
@@ -31,16 +33,17 @@ Use these terms when describing client UI:
 
 ## Never Use (in client prompts)
 
-These terms signal operator-cockpit or growth-hacking framing and produce incoherent client output:
+> **Canonical source**: the full client-banned phrase list lives in [`docs/docs/reference/glossary-community.md § Client-Only Banned (AI Prompt Vocabulary)`](../../../docs/docs/reference/glossary-community.md#client-only-banned-ai-prompt-vocabulary) and in [`docs/docs/reference/banned-vocabulary.json`](../../../docs/docs/reference/banned-vocabulary.json) (`prompt_vocabulary_client_banned`). Lint-enforced cross-surface bans live in the same glossary § Lint-Enforced section — `bun run lint:vocab` parses the JSON.
 
-- `operator cockpit` / `workbench row` / `inspector pattern` (admin-only vocabulary)
-- `utility copy` (client copy is warm and narrative, not terse task framing)
-- `dashboard` / `KPI tile` / `metric grid` (client is a journal, not a dashboard)
-- `Plus Jakarta Sans` (admin-only typography — client uses Inter)
-- `countdown` / `streak` / `leaderboard` / `FOMO` (violates regenerative lens)
-- `dark pattern` / `re-engagement` / `retention hook` (growth-hacking vocabulary)
-- `trading floor` / `financial terminal` (degen aesthetic)
-- `gamification` (we use motivation design, not game mechanics)
+The categories below are contract-specific framing — *why* client output should reject these patterns. The exact phrase set is the glossary's job:
+
+- **Operator-cockpit framing** — `operator cockpit`, workbench / inspector vocabulary; the client is a garden journal, not a cockpit.
+- **Utility-copy register** — terse task framing; client copy is warm and narrative.
+- **Dashboard / KPI / metric-grid framing** — the client surfaces story and place, not key-performance-indicator tiles.
+- **Admin typography** — `Plus Jakarta Sans` is admin-only; client uses Inter throughout the PWA.
+- **Growth-hacking framing** — streak, leaderboard, FOMO, re-engagement, retention hook; violates the regenerative lens (also lint-enforced).
+- **Trading-floor / financial-terminal framing** — degen aesthetic; this is a garden, not an exchange.
+- **Gamification** — we use motivation design, not game mechanics.
 
 ## Materials & Motion (client)
 
@@ -52,11 +55,27 @@ These terms signal operator-cockpit or growth-hacking framing and produce incohe
 
 ## Copy Voice
 
+The client speaks **to the community, about the work**. The admin speaks **about the work, to the operator**. Same garden, different dialects. Cross-surface voice pillars and terminology live in the root [`DESIGN.md § Voice & Copy`](../../../DESIGN.md#voice--copy).
+
 **Say:** "Let's see what's grown in your garden." / "Your work is in good hands." / "The reviewer will take it from here." / "Go do more of what matters."
 
 **Don't say:** "Processing submission..." / "Review queued." / "1 of 12 pending." / "Submit another?"
 
-The client speaks **to the community, about the work**. The admin speaks **about the work, to the operator**. Same garden, different dialects.
+### Browser mode (funders / community members)
+
+- **Headlines** — editorial, evocative, magazine-weight. "The gardens growing a new kind of evidence."
+- **Subheads** — bridge emotion and information. "Community-documented impact, verified on-chain."
+- **Garden descriptions** — place-first. Lead with where the garden is and what it grows, not the technology.
+- **Impact numbers** — let them breathe. "47 documented actions" > "47 actions have been documented by community members."
+- **CTAs** — warm imperative. "Fund this garden" not "Contribute now."
+
+### Installed PWA (gardeners)
+
+- **Instructions** — direct, second-person. "Describe what you did" not "Please provide a description."
+- **Labels** — short, noun-based. "Photo", "Method", "Confidence".
+- **Empty states** — encouraging, suggest next action. "No work yet. Start by documenting what you see."
+- **Sync status** — calm indicators. "Saved locally" / "Synced" / "Syncing…"
+- **Errors** — never blame the user. "We couldn't submit that" not "Your submission failed."
 
 ## Canonical Component Palette
 

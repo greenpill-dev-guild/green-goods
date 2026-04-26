@@ -57,7 +57,7 @@ function ImageCell({
         alt={alt}
         loading={eager ? "eager" : "lazy"}
         onError={() => setFailed(true)}
-        className="h-full w-full object-cover transition-transform duration-300 ease-out hover:scale-105 motion-reduce:hover:scale-100"
+        className="h-full w-full object-cover transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:scale-105 motion-reduce:hover:scale-100"
       />
     </div>
   );

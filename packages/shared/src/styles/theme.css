@@ -492,19 +492,6 @@
 	  --spring-effects-fast: var(--spring-effects-fast-easing) var(--spring-effects-fast-duration);
 	  --spring-effects-slow: var(--spring-effects-slow-easing) var(--spring-effects-slow-duration);
 
-	  /* Compatibility aliases for older component classes. Prefer the six named
-	   * spring families above for new CSS. */
-	  --spring-micro-easing: var(--spring-effects-fast-easing);
-	  --spring-micro-duration: var(--spring-effects-fast-duration);
-	  --spring-fast-easing: var(--spring-spatial-fast-easing);
-	  --spring-fast-duration: var(--spring-spatial-fast-duration);
-	  --spring-medium-easing: var(--spring-spatial-easing);
-	  --spring-medium-duration: var(--spring-spatial-duration);
-	  --spring-slow-easing: var(--spring-spatial-slow-easing);
-	  --spring-slow-duration: var(--spring-spatial-slow-duration);
-	  --spring-dramatic-easing: var(--spring-effects-slow-easing);
-	  --spring-dramatic-duration: var(--spring-effects-slow-duration);
-
   /* Material 3 role aliases - documentation layer only
    * Green Goods semantic tokens remain canonical for component authors.
    * These aliases make the Material relationship explicit for admin governance.

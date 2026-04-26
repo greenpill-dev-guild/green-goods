@@ -93,7 +93,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
             "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full",
             // State layer (hover ring) — skip when disabled
             !disabled && [
-              "transition-colors duration-[var(--spring-fast-duration)]",
+              "transition-colors duration-[var(--spring-spatial-fast-duration)]",
               error
                 ? "hover:bg-[rgb(var(--m3-error)/0.08)]"
                 : "hover:bg-[rgb(var(--m3-on-surface)/0.08)]",
@@ -121,7 +121,7 @@ export const AdminCheckbox = React.forwardRef<HTMLInputElement, AdminCheckboxPro
               // Cursor
               "cursor-pointer disabled:cursor-not-allowed",
               // Transition
-              "transition-colors duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
+              "transition-colors duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
               // Unselected states
               "border-2",
               error

@@ -15,7 +15,7 @@ export const adminButtonVariants = tv({
     // Typography
     "text-label-lg font-medium",
     // Motion
-    "transition-all duration-[var(--spring-fast-duration)] ease-[var(--spring-fast-easing)]",
+    "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
     // State layer (pseudo-element overlay defined in admin-m3-tokens.css)
     "m3-state-layer",
     // Focus ring

@@ -3,6 +3,7 @@
   "designMdVersion": "alpha",
   "name": "Green Goods Warm Earth Core",
   "colors": {
+    "amber": "#D97706",
     "neutral": "#FAF8F5",
     "neutral-dark": "#1C1917",
     "on-tertiary": "#0B4627",
@@ -11,6 +12,7 @@
     "primary-inverse": "#F5F5F4",
     "secondary": "#78716C",
     "secondary-inverse": "#A8A29E",
+    "sky": "#3B82F6",
     "tertiary": "#1FC16B",
     "tertiary-action": "#1A7544",
     "tertiary-action-hover": "#16643B"
@@ -39,6 +41,12 @@
       "fontSize": "16px",
       "fontWeight": 400,
       "lineHeight": 1.5
+    },
+    "editorial": {
+      "fontFamily": "Fraunces",
+      "fontSize": "48px",
+      "fontWeight": 700,
+      "lineHeight": 1.1
     },
     "label-md": {
       "fontFamily": "Inter",

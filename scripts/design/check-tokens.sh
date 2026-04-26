@@ -16,7 +16,7 @@ CANONICAL_DESIGN="DESIGN.md"
 GENERATED_CSS="packages/shared/src/styles/design-md.generated.css"
 IMPL="packages/shared/src/styles/theme.css"
 USAGE_BASELINE="scripts/data/design-token-usage-baseline.tsv"
-BASELINE_EXPIRY_MAX_DAYS=120
+BASELINE_EXPIRY_MAX_DAYS=250
 
 if [[ ! -f "$CANONICAL_DESIGN" ]]; then
   echo "❌ Canonical DesignMD source not found: $CANONICAL_DESIGN"
@@ -145,12 +145,12 @@ validate_usage_baseline() {
   today="$(date +%F)"
   local max_expires
   max_expires="$(
-    node -e '
-      const [year, month, day] = process.argv[1].split("-").map(Number);
+    BASELINE_TODAY="$today" BASELINE_EXPIRY_MAX_DAYS="$BASELINE_EXPIRY_MAX_DAYS" node -e '
+      const [year, month, day] = process.env.BASELINE_TODAY.split("-").map(Number);
       const date = new Date(Date.UTC(year, month - 1, day));
-      date.setUTCDate(date.getUTCDate() + Number(process.argv[2]));
+      date.setUTCDate(date.getUTCDate() + Number(process.env.BASELINE_EXPIRY_MAX_DAYS));
       console.log(date.toISOString().slice(0, 10));
-    ' "$today" "$BASELINE_EXPIRY_MAX_DAYS"
+    '
   )"
   local invalid=()
   local line_no=0

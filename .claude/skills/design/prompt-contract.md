@@ -34,6 +34,8 @@ If a design tool emits a hero treatment in an admin screen, reject and regenerat
 
 ## Required Vocabulary
 
+> **Canonical glossary**: cross-surface domain terms (Garden, Action, Work, Assessment, Hypercert, Vault, Cookie Jar, Attestation, Hat, Season) and personas (Gardener, Operator, Evaluator, Funder, Community Member) live in [`docs/docs/reference/glossary-community.md § Design Vocabulary`](../../../docs/docs/reference/glossary-community.md#design-vocabulary). The table below is admin-specific component / cockpit vocabulary that does not live there.
+
 Use these terms when describing admin UI:
 
 | Term | Meaning |
@@ -54,16 +56,15 @@ Use these terms when describing admin UI:
 
 ## Never Use (in admin prompts)
 
-These terms signal promotional, marketing, or brand-surface framing and produce incoherent admin output:
+> **Canonical source**: the full admin-banned phrase list lives in [`docs/docs/reference/glossary-community.md § Admin-Only Banned (AI Prompt Vocabulary)`](../../../docs/docs/reference/glossary-community.md#admin-only-banned-ai-prompt-vocabulary) and in [`docs/docs/reference/banned-vocabulary.json`](../../../docs/docs/reference/banned-vocabulary.json) (`prompt_vocabulary_admin_banned`). Lint-enforced cross-surface bans live in the same glossary § Lint-Enforced section — `bun run lint:vocab` parses the JSON.
 
-- `hero section` / `hero moment` (hero moments are reserved for celebratory client PWA flows)
-- `marketing banner` / `promo band`
-- `gallery` / `masonry gallery`
-- `dashboard card mosaic` / `feature cards`
-- `decorative gradient` / `ambient gradient wash`
-- `floating stats` / `stat chips floating above content`
-- `landing-page` framing of any kind
-- Any `liquid`, `glass`, or `frosted` treatment applied outside of the admin `AppBar` — dense surfaces must be solid
+The categories below are contract-specific framing — *why* admin output should reject these patterns. The exact phrase set is the glossary's job:
+
+- **Hero / celebration framing** — hero moments belong to the client PWA, never the cockpit.
+- **Marketing / promo framing** — admin is operator-internal; no banners, no landing-page energy.
+- **Gallery / mosaic / floating-stats framing** — admin shows workbench rows and inspectors, not curated visual layouts.
+- **Decorative gradient framing** — decoration without function; admin uses solid surfaces.
+- **Glass / liquid / frosted outside the admin `AppBar`** — material treatment is restricted to the AppBar; dense surfaces must be solid.
 
 ## Materials & Motion (admin)
 
@@ -71,6 +72,22 @@ These terms signal promotional, marketing, or brand-surface framing and produce 
 - **Spring motion** — the single permitted deviation from M3 standard easing. Uses `--spring-*` tokens.
 - **Glass is restricted** to the admin `AppBar` only.
 - **Typography** — Plus Jakarta Sans across the cockpit.
+
+## Copy Voice
+
+Admin copy is **utility-only**. Status language and task framing — never marketing, never narrative.
+
+**Patterns:**
+- **Headers** — functional nouns: "Review Queue", "Garden Settings", "Member Activity".
+- **Status text** — counts + state: "3 pending · 1 flagged · 12 approved".
+- **Actions** — verb-first: "Approve", "Request changes", "Flag for review".
+- **Empty states** — terse acknowledgement: "No items in queue", not "Get started by adding…".
+
+**Say:** "3 submissions pending review. 1 flagged for follow-up." / "Approve" / "Request changes"
+
+**Don't say:** "Welcome back!" / "Let's review some great work" / "You're crushing it"
+
+The admin speaks **about the work, to the operator**. The client speaks **to the community, about the work**. Same garden, different dialects. Cross-surface voice pillars and terminology live in the root [`DESIGN.md § Voice & Copy`](../../../DESIGN.md#voice--copy).
 
 ## Canonical Component Palette
 

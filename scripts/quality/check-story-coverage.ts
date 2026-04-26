@@ -35,41 +35,22 @@
  * `VITE_CHAIN_ID` varies per environment, and a literal seed silently
  * mismatches the component's `useCurrentChain()` read.
  *
- * Usage: bun run scripts/check-story-coverage.ts
+ * Usage: bun run scripts/quality/check-story-coverage.ts
  */
 
 import { readFileSync, existsSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { Glob } from "bun";
 
-const COMPONENTS_DIR = join(
-  import.meta.dir,
-  "..",
-  "packages",
-  "shared",
-  "src",
-  "components",
-);
+const REPO_ROOT = join(import.meta.dir, "..", "..");
 
-const ADMIN_COMPONENTS_DIR = join(
-  import.meta.dir,
-  "..",
-  "packages",
-  "admin",
-  "src",
-  "components",
-);
+const COMPONENTS_DIR = join(REPO_ROOT, "packages", "shared", "src", "components");
 
-const ADMIN_VIEWS_DIR = join(
-  import.meta.dir,
-  "..",
-  "packages",
-  "admin",
-  "src",
-  "views",
-);
+const ADMIN_COMPONENTS_DIR = join(REPO_ROOT, "packages", "admin", "src", "components");
 
-const CLIENT_SRC_DIR = join(import.meta.dir, "..", "packages", "client", "src");
+const ADMIN_VIEWS_DIR = join(REPO_ROOT, "packages", "admin", "src", "views");
+
+const CLIENT_SRC_DIR = join(REPO_ROOT, "packages", "client", "src");
 
 const REQUIRED_CLIENT_STORIES = [
   {

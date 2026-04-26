@@ -52,10 +52,10 @@ export function WorkbenchRow({
             alt=""
             loading="lazy"
             draggable={false}
-            className="h-14 w-14 rounded-2xl object-cover shadow-[var(--edge-rest),0_10px_18px_rgba(38,28,18,0.08)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]"
+            className="h-14 w-14 rounded-2xl object-cover shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl"
           />
         ) : (
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-soft dark:bg-bg-sub text-primary-base shadow-[var(--edge-rest),0_10px_18px_rgba(38,28,18,0.05)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-soft dark:bg-bg-sub text-primary-base shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl">
             <LeadingIcon className="h-5 w-5" />
           </div>
         )}
@@ -97,14 +97,13 @@ export function WorkbenchRow({
   );
 
   const sharedClassName = cn(
-    "relative grid w-full items-center gap-[0.875rem] px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-200 ease-out motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]",
+    "relative grid w-full items-center gap-[0.875rem] px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]",
     "grid-cols-[auto_minmax(0,1fr)_auto]",
-    selected &&
-      "bg-[rgb(var(--ws-primary-container)/0.12)] shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.22),0_10px_24px_rgba(38,28,18,0.05)]",
+    selected && "bg-[rgb(var(--ws-primary-container)/0.12)] shadow-[var(--edge-focus)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&
       !disabled &&
-      "cursor-pointer hover:-translate-y-0.5 transition duration-[var(--spring-fast-duration)] hover:bg-bg-weak dark:hover:bg-bg-sub/60 hover:shadow-[var(--edge-rest),0_8px_18px_rgba(38,28,18,0.05)] active:translate-y-0 active:scale-[0.998] active:bg-[#fff8ec] dark:active:bg-bg-sub active:shadow-[0_0_0_1px_rgba(var(--workspace-tint),0.14),0_4px_10px_rgba(38,28,18,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+      "cursor-pointer hover:-translate-y-0.5 hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-1)] dark:hover:bg-bg-sub/60 active:translate-y-0 active:bg-bg-soft active:shadow-[var(--edge-rest)] dark:active:bg-bg-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
     className
   );
 

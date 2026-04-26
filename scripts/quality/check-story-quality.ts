@@ -6,14 +6,14 @@
  * narrow: admin stories, shared Canvas stories consumed by admin shell work,
  * token contract stories, and curated client PWA/public shell stories.
  *
- * Usage: bun run scripts/check-story-quality.ts
+ * Usage: bun run scripts/quality/check-story-quality.ts
  */
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Glob } from "bun";
 
-const REPO_ROOT = join(import.meta.dir, "..");
+const REPO_ROOT = join(import.meta.dir, "..", "..");
 
 const TARGET_GLOBS = [
   "packages/admin/src/**/*.stories.tsx",

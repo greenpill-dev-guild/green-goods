@@ -129,7 +129,9 @@
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 200ms ease, color 200ms ease;
+    transition:
+      background-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing),
+      color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
   }
 
   /* Pointer cursor for interactive elements — Tailwind v4 no longer sets this
@@ -146,7 +148,10 @@
   /* Smooth theme transitions for sidebar and card surfaces */
   [data-testid="sidebar"],
   .rounded-xl {
-    transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease;
+    transition:
+      background-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing),
+      color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing),
+      box-shadow var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
   }
 
   /* Hide scrollbar chrome and keep scroll responsibility in explicit containers */
@@ -240,34 +245,11 @@
  * Spec: .plans/active/admin-ui-revamp/artifacts/spatial-architecture.md
  * ============================================================================ */
 :root {
-  /* Spring animation tokens — full M3+Liquid library */
-  --spring-micro-easing: cubic-bezier(0.2, 0, 0, 1);
-  --spring-micro-duration: 150ms;
-  --spring-fast-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
-  --spring-fast-duration: 200ms;
-  --spring-medium-easing: cubic-bezier(0.16, 1, 0.3, 1);
-  --spring-medium-duration: 300ms;
-  --spring-slow-easing: cubic-bezier(0.16, 1, 0.3, 1);
-  --spring-slow-duration: 400ms;
-  --spring-dramatic-easing: cubic-bezier(0.16, 1, 0.3, 1);
-  --spring-dramatic-duration: 500ms;
-
-  /* Backward-compatible aliases */
-  --spring-spatial-easing: var(--spring-medium-easing);
-  --spring-spatial-duration: var(--spring-medium-duration);
-  --spring-spatial-fast-easing: var(--spring-fast-easing);
-  --spring-spatial-fast-duration: var(--spring-fast-duration);
-  --spring-spatial-slow-easing: var(--spring-slow-easing);
-  --spring-spatial-slow-duration: var(--spring-slow-duration);
-  --spring-effects-easing: var(--spring-micro-easing);
-  --spring-effects-duration: var(--spring-micro-duration);
-  --spring-effects-fast-easing: var(--spring-micro-easing);
-  --spring-effects-fast-duration: var(--spring-micro-duration);
-
   /* Canvas recession — material focus variation */
   --canvas-scale-receded: 0.992;
   --canvas-opacity-receded: 0.95;
   --canvas-blur-receded: 1.5px;
+  --canvas-recede-y: 8px;
 
   /* Shadow-as-border edge tokens (replace CSS border/ring) */
   --edge-rest: 0 0 0 1px rgba(0, 0, 0, 0.06);
@@ -482,7 +464,7 @@
 
 /* Workspace color cross-dissolve when switching views */
 [data-workspace] {
-  transition: --ws-surface-tint-color var(--spring-dramatic-duration, 500ms) var(--spring-dramatic-easing, cubic-bezier(0.16, 1, 0.3, 1));
+  transition: --ws-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
 }
 
 /* ============================================================================
@@ -572,7 +554,7 @@
     background: inherit;
     border: 1px solid rgb(var(--stroke-sub-300));
     color: rgb(var(--text-strong-950));
-    transition: all 200ms ease;
+    transition: all var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
   }
 
   input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -755,7 +737,7 @@
   border: 1px solid var(--color-stroke-soft);
   background: var(--color-bg-weak);
   font-size: 0.875rem;
-  transition: background-color 0.15s;
+  transition: background-color var(--spring-effects-fast);
 }
 
 .garden-stat-row:hover {
@@ -980,25 +962,29 @@
   .skeleton-shimmer {
     background: linear-gradient(90deg, rgb(var(--bg-soft-200)) 25%, rgb(var(--bg-weak-50)) 50%, rgb(var(--bg-soft-200)) 75%);
     background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
+    animation: shimmer var(--spring-effects-slow-duration) var(--spring-effects-easing) infinite;
   }
 
   .animate-fade-in-up {
-    animation: fade-in-up 0.3s ease-out forwards;
+    animation: fade-in-up var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
   }
 
   .animate-spring-bump {
-    animation: spring-bump 0.56s ease-in-out;
+    animation: spring-bump var(--spring-effects-slow-duration) var(--spring-effects-easing);
   }
 
   .animate-page-slide-in {
-    animation: pageSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: pageSlideIn var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
   }
 
   .animate-confirmed-shimmer {
     background-image: linear-gradient(90deg, transparent 0%, rgb(var(--success-base) / 0.08) 45%, transparent 100%);
     background-size: 200% 100%;
-    animation: confirmedShimmer 0.6s ease-out;
+    animation: confirmedShimmer var(--spring-effects-slow-duration) var(--spring-effects-easing);
+  }
+
+  .speed-dial-item {
+    animation: speed-dial-in var(--spring-spatial-fast) both;
   }
 
   /* ── CSS-only Tooltip ── */
@@ -1021,7 +1007,7 @@
     pointer-events: none;
     z-index: 50;
     opacity: 0;
-    transition: opacity 0.15s ease;
+    transition: opacity var(--spring-effects-fast);
   }
   [data-tooltip]:hover::after,
   [data-tooltip]:focus-visible::after {
@@ -1052,16 +1038,8 @@
   /* Staggered entrance animation for lists/grids of children */
   .stagger-children > * {
     opacity: 0;
-    animation: fade-in-up 0.3s ease-out both;
+    animation: fade-in-up var(--spring-spatial-duration) var(--spring-spatial-easing) both;
   }
-  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-  .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-  .stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-  .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-  .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
-  .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
-  .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
 
   /* ── Surface Primitives ── */
 
@@ -1096,7 +1074,9 @@
   /** Compact card: metric tile, stat block */
   .surface-card {
     @apply rounded-lg bg-bg-white p-4;
-    @apply transition-all duration-200 hover:-translate-y-0.5;
+    @apply transition-all hover:-translate-y-0.5;
+    transition-duration: var(--spring-spatial-fast-duration);
+    transition-timing-function: var(--spring-spatial-fast-easing);
     box-shadow: var(--edge-rest), var(--elevation-2);
   }
   .surface-card:hover {
@@ -1242,8 +1222,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    animation: hub-fade-in var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
     transition:
-      opacity 160ms ease,
+      opacity var(--spring-effects-fast),
       transform var(--spring-spatial-fast-duration) var(--spring-spatial-fast-easing);
   }
 
@@ -1340,6 +1321,7 @@
   .animate-spring-bump,
   .animate-page-slide-in,
   .animate-confirmed-shimmer,
+  .speed-dial-item,
   .stagger-children > * {
     animation: none !important;
     opacity: 1 !important;

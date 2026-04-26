@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { cn, useMediaQuery } from "@green-goods/shared";
 import { type ComponentType, type ReactNode, useLayoutEffect, useRef, useState } from "react";
 
 // ============================================================================
@@ -48,6 +48,7 @@ export function AdminTabRail({
   className,
 }: AdminTabRailProps) {
   const hasIcons = tabs.some((tab) => Boolean(tab.icon));
+  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   // Track the active indicator geometry (left offset + width)
   const [indicator, setIndicator] = useState<{ left: number; width: number }>({
@@ -95,8 +96,10 @@ export function AdminTabRail({
         style={{
           left: indicator.left,
           width: indicator.width,
-          transition: `left var(--spring-medium-duration) var(--spring-medium-easing),
-                       width var(--spring-medium-duration) var(--spring-medium-easing)`,
+          transition: prefersReducedMotion
+            ? "none"
+            : `left var(--spring-spatial-duration) var(--spring-spatial-easing),
+               width var(--spring-spatial-duration) var(--spring-spatial-easing)`,
         }}
       />
 

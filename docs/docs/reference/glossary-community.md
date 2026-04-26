@@ -68,7 +68,7 @@ The 5 people Green Goods serves. Use the canonical form in copy, design prompts,
 | **Operator** | persona | admin · client · agent · public · docs | A person who runs a garden — creates Actions, approves Work, configures Vault and Hat hierarchy. Holds operator Hats. |
 | **Evaluator** | persona | admin · client · public · docs | A person who verifies submitted Work, makes Assessments, and attests impact. Often domain experts (botanists, soil scientists, community elders). |
 | **Funder** | persona | admin · client · public · docs | A person or org who deposits into a garden's Vault, holds Hypercert fractions, receives yield distributions per configured splits. |
-| **Community Member** | persona | client · public · docs | A person engaged with a garden's work — reads journal entries, follows progress, may eventually fund or contribute. Distinct from Gardener (no on-chain role yet). |
+| **Community Member** | persona | client · public · docs | A local resident affected by a Garden's Work. Signals or attests that Work exists and is healthy, and helps prioritize future Actions through public signal and conviction flows. |
 
 ---
 
@@ -182,7 +182,7 @@ A task or bounty available for gardeners to complete within a garden. Actions de
 An on-chain record created using the Ethereum Attestation Service (EAS). Green Goods uses three attestation types: work submissions, work approvals, and garden assessments. Attestations are permanent, cryptographically signed records that prove specific claims about impact work.
 
 ### Community Member
-Participants in garden governance who signal support for actions and proposals through conviction voting in Gardens V2 and earn rewards for their engagement. Community members help shape garden priorities through sustained participation.
+Local residents living in the bioregion affected by a Garden's Work. Community Members use public signal and conviction flows to attest that Work exists and is healthy, hold the Garden accountable, and prioritize future Actions.
 
 ### EAS (Ethereum Attestation Service)
 A protocol for making on-chain and off-chain attestations about any subject. Green Goods uses EAS to create verifiable records of gardener work, operator approvals, and garden assessments. Learn more at [attest.sh](https://attest.sh).

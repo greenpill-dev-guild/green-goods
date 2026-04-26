@@ -6,7 +6,7 @@ import { cn } from "../utils/styles/cn";
 export const buttonVariants = tv({
   base: [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm font-medium",
-    "transition-all duration-[var(--spring-fast-duration,200ms)] ease-[var(--spring-fast-easing,ease-out)]",
+    "transition-all duration-[var(--spring-spatial-fast-duration,200ms)] ease-[var(--spring-spatial-fast-easing,ease-out)]",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-action,var(--primary-action)))] focus-visible:ring-offset-2",
     "active:scale-[0.98]",
     "disabled:pointer-events-none disabled:opacity-50",

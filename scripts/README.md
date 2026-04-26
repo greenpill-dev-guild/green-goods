@@ -40,6 +40,8 @@ scripts/
 | `check-test-quality.sh` | `test-quality.yml` | Detect tautological `expect(true)`, ungoverned `.skip`, `@ts-nocheck` in tests |
 | `check-story-coverage.ts` | `storybook.yml` (via `packages/shared` script) | Storybook coverage policy per package |
 | `check-story-quality.ts` | `storybook.yml` (via `packages/shared` script) | Storybook story-quality lints |
+| `check-docs-design-parity.mjs` | `bun run check:docs-design-parity` | `docs/DESIGN.md` ↔ `docs/src/css/custom.css` role-accent + section-accent parity (light + dark) |
+| `check-react-patterns.js` | `bun run lint:rules` | Repo-specific React, TypeScript, import, and frontend-pattern lint rules with a generated baseline |
 
 ### `design/` — design system enforcement
 | Script | Caller | Purpose |
