@@ -1,4 +1,4 @@
-import { APP_NAME } from "@green-goods/shared";
+import { Alert, APP_NAME } from "@green-goods/shared";
 import type React from "react";
 import { Link } from "react-router-dom";
 
@@ -220,10 +220,10 @@ export const Splash: React.FC<SplashProps> = ({
                 : "opacity-0 -translate-y-2 pointer-events-none"
             }`}
           >
-            <div className="flex w-full items-start gap-2 rounded-lg border border-error-light bg-error-lighter p-3 text-sm text-error-dark">
+            <Alert variant="error" className="flex w-full items-start gap-2">
               <span className="font-semibold shrink-0">Error:</span>
               <span>{errorMessage || "\u00A0"}</span>
-            </div>
+            </Alert>
           </div>
         </div>
 

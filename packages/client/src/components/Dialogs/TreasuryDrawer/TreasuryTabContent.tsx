@@ -8,6 +8,7 @@ import {
   getVaultAssetSymbol,
   type VaultDeposit,
   validateDecimalInput,
+  Alert,
 } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
@@ -59,19 +60,14 @@ export function TreasuryTabContent({
   return (
     <div className="space-y-5 p-4 pb-4">
       {!isOnline && (
-        <p
-          role="status"
-          className="rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-xs text-warning-dark"
-        >
+        <Alert variant="warning">
           {formatMessage({ id: "app.treasury.offlineWarning" })}
-        </p>
+        </Alert>
       )}
 
       {vaultsError && (
-        <div
-          role="alert"
-          className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
-        >
+        <Alert variant="error">
+          <div>
           <p>{formatMessage({ id: "app.treasury.errorLoading" })}</p>
           <button
             type="button"
@@ -80,7 +76,8 @@ export function TreasuryTabContent({
           >
             {formatMessage({ id: "app.common.tryAgain" })}
           </button>
-        </div>
+          </div>
+        </Alert>
       )}
 
       <section>

@@ -14,6 +14,7 @@ import {
   useWorkApproval,
   type Work,
   type WorkApprovalDraft,
+  Alert,
 } from "@green-goods/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -204,7 +205,8 @@ export function ReviewForm({
             {blockedState === "reviewed" ? (
               <ReviewSummary work={work} />
             ) : blockedState === "expired" ? (
-              <div className="mt-4 rounded-xl border border-warning-light bg-warning-lighter/70 p-4">
+              <Alert variant="warning" className="mt-4">
+                <div>
                 <p className="text-sm font-medium text-warning-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.expiredTitle",
@@ -219,6 +221,7 @@ export function ReviewForm({
                   })}
                 </p>
               </div>
+              </Alert>
             ) : blockedState === "role-blocked" ? (
               <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">
                 <p className="text-sm font-medium text-information-dark">

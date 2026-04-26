@@ -1,5 +1,6 @@
 import {
   type Address,
+  Alert,
   debugError,
   hapticLight,
   toastService,
@@ -126,7 +127,8 @@ export const AccountInfo: React.FC = () => {
       )}
 
       {authMode === "passkey" && (
-        <div className="rounded-md border border-warning-light bg-warning-lighter px-3 py-2.5 text-xs text-warning-dark">
+        <Alert variant="warning">
+        <div>
           <p className="font-medium flex items-center gap-1.5">
             <RiAlertLine className="w-3.5 h-3.5 shrink-0" />
             {intl.formatMessage({
@@ -149,6 +151,7 @@ export const AccountInfo: React.FC = () => {
             })}
           </p>
         </div>
+        </Alert>
       )}
 
       <Button

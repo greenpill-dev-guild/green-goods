@@ -5,6 +5,7 @@ import {
   type MintingState,
   useTxErrorMessages,
 } from "@green-goods/shared";
+import { Alert } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -197,9 +198,9 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
       </div>
 
       {state.status === "confirmed" && state.hypercertId && (
-        <div className="rounded-lg border border-success-light bg-success-lighter p-4 text-sm text-success-dark">
+        <Alert variant="success">
           {formatMessage({ id: "app.hypercerts.mint.success" }, { hypercertId: state.hypercertId })}
-        </div>
+        </Alert>
       )}
 
       {state.txHash && explorer && (
@@ -213,19 +214,16 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
         </a>
       )}
 
-      {state.status === "failed" && (
-        <div
-          className={cn(
-            "rounded-lg border p-4 text-sm",
-            txError.view.severity === "warning"
-              ? "border-warning-light bg-warning-lighter text-warning-dark"
-              : "border-error-light bg-error-lighter text-error-dark"
-          )}
-        >
-          <p>{txError.title}</p>
-          <p className="mt-1 text-xs">{txError.message}</p>
-        </div>
-      )}
+        {state.status === "failed" && (
+          <Alert
+            variant={txError.view.severity === "warning" ? "warning" : "error"}
+          >
+            <div>
+              <p>{txError.title}</p>
+              <p className="mt-1 text-xs">{txError.message}</p>
+            </div>
+          </Alert>
+        )}
     </div>
   );
 }

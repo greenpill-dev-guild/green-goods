@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import {
+  Alert,
   copyToClipboard,
   useApp,
   useInstallGuidance,
@@ -202,7 +203,7 @@ export const Hero: FC<HeroProps> = () => {
               {/* Browser Switch Warning */}
               {(guidance.scenario === "wrong-browser" ||
                 guidance.scenario === "in-app-browser") && (
-                <div className="bg-warning-lighter border border-warning-light rounded-lg p-4 flex items-start gap-3">
+                <Alert variant="warning" className="flex items-start gap-3">
                   <RiAlertLine className="w-5 h-5 text-warning-dark shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-warning-dark text-sm">
@@ -220,7 +221,7 @@ export const Hero: FC<HeroProps> = () => {
                       {guidance.browserSwitchReason}
                     </p>
                   </div>
-                </div>
+                </Alert>
               )}
 
               {/* Primary Action Button */}

@@ -170,8 +170,7 @@ export default function HypercertDetail({
         <div className="space-y-6">
           {/* Sync status banner for newly minted hypercerts */}
           {showSyncStatus && syncStatus !== "synced" && (
-            <div className="rounded-lg border border-info-light bg-info-lighter p-4">
-              <div className="flex items-center gap-3">
+              <Alert variant="info" className="flex items-center gap-3">
                 <RiLoader4Line className="h-5 w-5 animate-spin text-info-dark" />
                 <div>
                   <p className="text-sm font-medium text-info-dark">
@@ -181,8 +180,7 @@ export default function HypercertDetail({
                     {formatMessage({ id: "app.hypercerts.detail.syncingBanner.message" })}
                   </p>
                 </div>
-              </div>
-            </div>
+              </Alert>
           )}
 
           <section className="surface-inset p-6">

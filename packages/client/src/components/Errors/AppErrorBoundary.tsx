@@ -1,4 +1,4 @@
-import { en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
+import { Alert, en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
 import {
   RiBugLine,
   RiErrorWarningLine,
@@ -159,11 +159,11 @@ export class AppErrorBoundary extends Component<Props, State> {
                   </p>
 
                   {(isNetworkError || isOfflineError) && (
-                    <div className="bg-success-lighter border border-success-light rounded-lg p-3">
-                      <p className="text-sm text-success-dark font-medium">
+                    <Alert variant="success">
+                      <p className="font-medium">
                         ✅ {this.t("app.error.boundary.protection.message")}
                       </p>
-                    </div>
+                    </Alert>
                   )}
                 </div>
 

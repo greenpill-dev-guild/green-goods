@@ -1,5 +1,6 @@
 import {
   type Address,
+  Alert,
   type ConvictionWeight,
   DEFAULT_SPLIT_CONFIG,
   formatAddress,
@@ -274,18 +275,14 @@ export function ConvictionDrawer({
     >
       <div className="space-y-5 p-4 pb-6">
         {!isOnline && (
-          <p
-            role="status"
-            className="rounded-md border border-warning-light bg-warning-lighter px-3 py-2 text-xs text-warning-dark"
-          >
+           <Alert variant="warning">
             {formatMessage({ id: "app.conviction.offlineWarning" })}
-          </p>
+          </Alert>
         )}
 
         {isError && (
-          <div
-            role="alert"
-            className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+          <Alert
+            variant="error"
           >
             <p>{formatMessage({ id: "app.conviction.errorLoadingFailed" })}</p>
             <button
@@ -298,7 +295,7 @@ export function ConvictionDrawer({
             >
               {formatMessage({ id: "app.common.tryAgain" })}
             </button>
-          </div>
+          </Alert>
         )}
 
         {/* Community status + weight scheme indicator */}

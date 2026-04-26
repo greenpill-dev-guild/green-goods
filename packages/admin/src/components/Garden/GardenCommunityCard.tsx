@@ -9,6 +9,7 @@ import {
   WEIGHT_SCHEME_VALUES,
   WeightScheme,
   adminRoutes,
+  Alert,
 } from "@green-goods/shared";
 import { RiAddLine, RiGroupLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -181,7 +182,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             )}
           </>
         ) : (
-          <div className="mt-3 rounded-lg border border-warning-light bg-warning-lighter p-3">
+          <Alert variant="warning" className="mt-3">
+            <div>
             <p className="text-sm text-warning-dark">
               {formatMessage({ id: "app.community.noPoolsYet" })}
             </p>
@@ -212,7 +214,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   : formatMessage({ id: "app.community.createPools" })}
               </Button>
             )}
-          </div>
+            </div>
+          </Alert>
         )}
       </Card>
     </section>

@@ -19,6 +19,7 @@ import {
   useWorkMetadata,
   useWorks,
   type WorkData,
+  Alert,
 } from "@green-goods/shared";
 import {
   RiCheckLine,
@@ -30,7 +31,7 @@ import {
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
-
+import { Alert } from "@green-goods/shared";
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
@@ -297,15 +298,19 @@ export const GardenWork: React.FC = () => {
   // Retry footer for offline work
   const retryFooter =
     isOfflineWork && viewingMode === "gardener" ? (
-      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light p-4 pb-6 z-sticky">
+      <div className="fixed left-0 right-0 bottom-0 p-4 pb-6 z-sticky">
         <div className="max-w-screen-sm mx-auto">
-          <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
+          <Alert variant="warning">
+          <div>
+            <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
             <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
             {intl.formatMessage({
               id: "app.home.work.pendingUpload",
               defaultMessage: "This work is pending upload to the blockchain.",
             })}
-          </p>
+            </p>
+          </div>
+          </Alert>
           <Button
             onClick={handleRetry}
             disabled={isRetrying || !navigator.onLine}
@@ -607,7 +612,7 @@ export const GardenWork: React.FC = () => {
         />
 
         {metadataStatus === "error" && (
-          <div className="mt-4 rounded-xl border border-error-light bg-error-lighter px-4 py-3 flex items-start gap-3">
+          <Alert variant="error" className="mt-4 flex items-start gap-3">
             <RiErrorWarningLine className="w-5 h-5 text-error-base flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-error-dark font-medium">
@@ -631,7 +636,7 @@ export const GardenWork: React.FC = () => {
                 })}
               </button>
             </div>
-          </div>
+          </Alert>
         )}
       </div>
     </article>

@@ -1,4 +1,4 @@
-import { type Address, type CookieJar } from "@green-goods/shared";
+import { Alert, type Address, type CookieJar } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { CookieJarCard } from "./CookieJarCard";
 
@@ -42,12 +42,12 @@ export function CookieJarTabContent({
 
   if (isError) {
     return (
-      <div
-        role="alert"
-        className="m-4 rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
+      <Alert
+        variant="error"
+        className="m-4"
       >
         <p>{formatMessage({ id: "app.cookieJar.errorLoading" })}</p>
-      </div>
+      </Alert>
     );
   }
 

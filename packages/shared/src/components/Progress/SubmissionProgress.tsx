@@ -9,6 +9,7 @@
 
 import React from "react";
 import { useIntl } from "react-intl";
+import { Alert } from  "@green-goods/shared";
 import type {
   SubmissionProgressState,
   SubmissionStage,
@@ -318,9 +319,9 @@ function FullProgress({
 
       {/* Error message */}
       {progress.stage === "error" && progress.error && (
-        <div className="mt-2 p-2 bg-error-lighter rounded text-sm text-error-dark">
+        <Alert variant="error" className="mt-2">
           {progress.error}
-        </div>
+        </Alert>
       )}
     </div>
   );
