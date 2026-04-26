@@ -17,10 +17,10 @@ export function useGardenDomains(gardenAddress: Address | undefined) {
   const contracts = getNetworkContracts(chainId);
 
   return useReadContract({
-    address: contracts.actionRegistry as `0x${string}`,
+    address: contracts.actionRegistry,
     abi: ActionRegistryABI,
     functionName: "gardenDomains",
-    args: gardenAddress ? [gardenAddress as `0x${string}`] : undefined,
+    args: gardenAddress ? [gardenAddress] : undefined,
     query: { enabled: Boolean(gardenAddress) },
   });
 }

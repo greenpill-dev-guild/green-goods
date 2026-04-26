@@ -11,7 +11,7 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
-import { type Address, zeroAddress } from "viem";
+import { zeroAddress } from "viem";
 
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { queryKeys, STALE_TIME_FAST } from "../../config/query-keys";
@@ -28,7 +28,7 @@ export function useSlugAvailability(slug: string | undefined) {
     : false;
 
   const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
-  const ensAddress = contracts.greenGoodsENS as Address;
+  const ensAddress = contracts.greenGoodsENS;
 
   return useQuery<boolean>({
     queryKey: queryKeys.ens.availability(debouncedSlug ?? ""),

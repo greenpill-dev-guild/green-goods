@@ -220,7 +220,7 @@ export function useCreateGardenWorkflow() {
 
               // Simulate first to catch contract reverts without spending gas
               const simulation = await simulateTransaction(
-                contracts.gardenToken as `0x${string}`,
+                contracts.gardenToken,
                 GardenTokenABI,
                 "mintGarden",
                 [config],
@@ -234,7 +234,7 @@ export function useCreateGardenWorkflow() {
 
               // Execute the transaction (payable -- includes CCIP fee for ENS)
               const txHash = await currentWalletClient.writeContract({
-                address: contracts.gardenToken as `0x${string}`,
+                address: contracts.gardenToken,
                 abi: GardenTokenABI,
                 functionName: "mintGarden",
                 account: accountAddress,
@@ -414,7 +414,7 @@ export function useCreateGardenWorkflow() {
     );
 
     const gasEstimate = await publicClient.estimateContractGas({
-      address: contracts.gardenToken as `0x${string}`,
+      address: contracts.gardenToken,
       abi: GardenTokenABI,
       functionName: "mintGarden",
       account: accountAddress,

@@ -94,7 +94,7 @@ export function useENSRegistrationStatus(slug: string | undefined) {
       if (!slug) return { status: "available" };
 
       const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
-      const ensAddress = contracts.greenGoodsENS as Address;
+      const ensAddress = contracts.greenGoodsENS;
       if (!ensAddress || ensAddress === zeroAddress) {
         return { status: "available" };
       }

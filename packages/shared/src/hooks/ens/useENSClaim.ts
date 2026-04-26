@@ -9,7 +9,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { type Address, decodeEventLog, encodeFunctionData, type Hex, zeroAddress } from "viem";
+import { decodeEventLog, encodeFunctionData, type Hex, zeroAddress } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
@@ -68,7 +68,7 @@ export function useENSClaim() {
   return useMutation<ENSClaimResult, Error, { slug: string }>({
     mutationFn: async ({ slug }) => {
       const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
-      const ensAddress = contracts.greenGoodsENS as Address;
+      const ensAddress = contracts.greenGoodsENS;
       if (!ensAddress || ensAddress === zeroAddress) {
         throw new Error("ENS module not configured for this network");
       }

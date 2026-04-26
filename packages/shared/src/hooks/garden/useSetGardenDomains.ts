@@ -40,7 +40,7 @@ export function useSetGardenDomains() {
       const domainMask = params.domains.reduce((mask, d) => mask | (1 << d), 0);
 
       return sendContractTx({
-        address: contracts.actionRegistry as Address,
+        address: contracts.actionRegistry,
         abi: ActionRegistryABI,
         functionName: "setGardenDomains",
         args: [params.gardenAddress, domainMask],

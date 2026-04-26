@@ -90,14 +90,14 @@ async function fetchDeploymentPermissions(
 
   // Check if user is owner
   const owner = await publicClient.readContract({
-    address: contracts.deploymentRegistry as `0x${string}`,
+    address: contracts.deploymentRegistry,
     abi: DEPLOYMENT_REGISTRY_ABI,
     functionName: "owner",
   });
 
   // Check if user is in allowlist
   const isInAllowlist = await publicClient.readContract({
-    address: contracts.deploymentRegistry as `0x${string}`,
+    address: contracts.deploymentRegistry,
     abi: DEPLOYMENT_REGISTRY_ABI,
     functionName: "isInAllowlist",
     args: [address as `0x${string}`],
@@ -166,7 +166,7 @@ async function fetchDeploymentAllowlist(chainId: number): Promise<Address[]> {
   });
 
   const allowlist = await publicClient.readContract({
-    address: contracts.deploymentRegistry as `0x${string}`,
+    address: contracts.deploymentRegistry,
     abi: DEPLOYMENT_REGISTRY_ABI,
     functionName: "getAllowlist",
   });
