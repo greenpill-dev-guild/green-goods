@@ -72,10 +72,9 @@ describe("modules/data/ipfs", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toContain(`/ipfs/${validCid}/config.json`);
   });
 
-  // Inherited failure from commit a2f7117 — getFileByHash now returns Blob
-  // for the JSON/text path that this test still asserts as a string. Skipped
-  // per Copilot review on PR #504; re-enable when the helper or assertion is
-  // reconciled. Pre-existing on main, unrelated to this PR.
+  // Pre-existing failure inherited from commit a2f7117 (getFileByHash returns Blob).
+  // SKIP: #504 — reconcile helper or assertion before un-skipping.
+  // Owner: green-goods-team / Expiry: 2026-07-01
   it.skip("returns text for JSON/text responses from getFileByHash", async () => {
     globalThis.fetch = vi
       .fn<typeof fetch>()

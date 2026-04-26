@@ -95,10 +95,9 @@ describe("useFunderLeaderboard", () => {
     });
   });
 
-  // Inherited failure from commit a2f7117 — `protocolAssetTotals` is the new
-  // shape on the hook return, but the underlying derivation isn't wired so it
-  // returns undefined. Skipped until the per-asset aggregation lands.
-  // Pre-existing on main, unrelated to this PR.
+  // Pre-existing failure inherited from commit a2f7117 (protocolAssetTotals undefined).
+  // SKIP: #504 — re-enable once per-asset aggregation lands.
+  // Owner: green-goods-team / Expiry: 2026-07-01
   it.skip("preserves per-asset yield totals instead of summing mixed assets together", () => {
     const { result } = renderHook(() => useFunderLeaderboard({ gardenAddress: TEST_GARDEN }));
 

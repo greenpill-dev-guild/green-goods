@@ -55,11 +55,9 @@ describe("useProtocolYieldSummary", () => {
     });
   });
 
-  // Inherited failure from commit a2f7117 — useProtocolYieldSummary's loading
-  // contract for the first fetch doesn't match what this test asserts.
-  // Skipped per Copilot review on PR #504; re-enable when the hook is wired
-  // to the unlimited-summary contract. Pre-existing on main, unrelated to
-  // this PR.
+  // Pre-existing failure inherited from commit a2f7117 (loading contract).
+  // SKIP: #504 — re-enable once the hook is wired to the unlimited-summary contract.
+  // Owner: green-goods-team / Expiry: 2026-07-01
   it.skip("stays loading until the first summary fetch resolves", async () => {
     const deferred =
       createDeferredPromise<
