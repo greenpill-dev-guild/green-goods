@@ -22,8 +22,9 @@ This is **conceptual + type-system work** in the first instance — not UI. UI c
 
 - **Existing**:
   - 5 action domains documented in `v1-0.mdx § 3.4` (Solar Infrastructure named explicitly; 4 others implied).
-  - `docs/docs/concepts/impact-model.mdx` — current impact model (CIDS reference).
-  - `docs/docs/glossary.md` (if exists; vocab consolidation will canonicalize).
+  - `docs/docs/builders/specs/v1-0.mdx` — canonical v1 spec, including Personas and action-domain references.
+  - `docs/docs/builders/architecture/erd.mdx` and `docs/docs/builders/integrations/entity-matrix.mdx` — current entity model references.
+  - `docs/docs/reference/glossary-community.md` — canonical vocabulary reference.
   - `docs/docs/builders/specs/greenwill-gif-*` — proposal-level framing for impact.
 - **Missing**:
   - Formal definition of the 5 dimensions as types.
@@ -33,9 +34,9 @@ This is **conceptual + type-system work** in the first instance — not UI. UI c
 
 ## Approach
 
-1. **Read the spec layer end to end** — `v1-0.mdx`, `impact-model.mdx`, `greenwill-gif-*.md`, `entity-matrix.mdx` if present, the `regenerative.md` and `ecosystem.md` design skill files. Inventory every mention of domain or dimension.
-2. **Name the 5 dimensions formally** — single-source-of-truth definition in a new `docs/docs/concepts/impact-dimensions.mdx`. For each dimension: definition, examples of evidence that counts, examples of evidence that does not, sample metrics.
-3. **Domain × dimension matrix** — for each of the 5 action domains: which dimensions does this domain typically produce, with what relative weight. Document in `docs/docs/concepts/impact-dimensions.mdx` as a table. This becomes the seed for default vectors.
+1. **Read the spec layer end to end** — `v1-0.mdx`, `greenwill-gif-*.md`, `greenwill-badging-impact-framework-2026-03.md`, `entity-matrix.mdx`, `erd.mdx`, and the `regenerative.md` and `ecosystem.md` design skill files. Inventory every mention of domain or dimension.
+2. **Name the 5 dimensions formally** — single-source-of-truth definition in a new `docs/docs/builders/specs/impact-dimensions.mdx`. For each dimension: definition, examples of evidence that counts, examples of evidence that does not, sample metrics.
+3. **Domain × dimension matrix** — for each of the 5 action domains: which dimensions does this domain typically produce, with what relative weight. Document in `docs/docs/builders/specs/impact-dimensions.mdx` as a table. This becomes the seed for default vectors.
 4. **Type-level codification** — `ImpactDomain` and `ImpactDimension` enums in `@green-goods/shared`; `DimensionVector` type (5-tuple of weights, normalized); domain-to-default-vector lookup.
 5. **Per-action-template vector** — every Action template gets a default vector (derived from its domain). Operators can refine per-template. Stored either off-chain (db) or as a metadata field on the on-chain Action template — confirm in discovery.
 6. **Operator override surface** (admin) — minimal: when an operator creates or edits an Action template, they see the default vector and can adjust weights. Out of scope for v1 if the per-template vector is enough.
@@ -43,7 +44,7 @@ This is **conceptual + type-system work** in the first instance — not UI. UI c
 ## Constraints
 
 - Conceptual codification first; UI second. No journal or admin surface work in this plan beyond the optional operator override. The yield-to-impact plan consumes the dimension model.
-- Single source of truth: the dimensions and matrix live in `docs/docs/concepts/impact-dimensions.mdx`. Code, glossary, and prompt contracts reference that doc.
+- Single source of truth: the dimensions and matrix live in `docs/docs/builders/specs/impact-dimensions.mdx`. Code, glossary, and prompt contracts reference that doc.
 - Backwards compatibility: existing Action templates inherit a default vector based on their domain — no manual migration burden.
 - No new contracts. If on-chain anchoring of vectors is required, defer to a follow-up.
 - Vocabulary lint compliance: dimension names land in canonical glossary (per `vocabulary-glossary-consolidation` plan).
@@ -58,7 +59,7 @@ This is **conceptual + type-system work** in the first instance — not UI. UI c
 
 ## Success
 
-- `docs/docs/concepts/impact-dimensions.mdx` exists with: dimension definitions, evidence guidelines, domain-to-dimension matrix, sample metrics per dimension.
+- `docs/docs/builders/specs/impact-dimensions.mdx` exists with: dimension definitions, evidence guidelines, domain-to-dimension matrix, sample metrics per dimension.
 - `ImpactDomain` and `ImpactDimension` types in `@green-goods/shared` with the matrix as data.
 - Existing Action templates have default vectors derivable from their domain.
 - `yield-to-impact-codification` plan can consume `DimensionVector` from shared without duplicating the model.
@@ -74,9 +75,9 @@ This is **conceptual + type-system work** in the first instance — not UI. UI c
 
 ## Checklist
 
-- [ ] Read v1-0.mdx § 3.4 + impact-model.mdx + greenwill-gif-* + regenerative.md + ecosystem.md.
+- [ ] Read v1-0.mdx § 3.4 + greenwill-gif-* + greenwill-badging-impact-framework + entity-matrix.mdx + erd.mdx + regenerative.md + ecosystem.md.
 - [ ] Confirm the 5 dimensions and 5 domains (count + names).
-- [ ] Author `docs/docs/concepts/impact-dimensions.mdx` with definitions + matrix.
+- [ ] Author `docs/docs/builders/specs/impact-dimensions.mdx` with definitions + matrix.
 - [ ] `ImpactDomain` / `ImpactDimension` enums + `DimensionVector` type in `@green-goods/shared`.
 - [ ] Domain → default-vector lookup function with tests.
 - [ ] Per-Action-template default vector derivation.

@@ -41,7 +41,8 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
   - `docs/docs/builders/specs/greenwill-gif-evaluation-plan-2026-03.md`.
   - `docs/docs/builders/specs/greenwill-badging-impact-framework-2026-03.md`.
   - `docs/docs/builders/specs/v1-0.mdx § 3.4` — 5 action domains.
-  - `docs/docs/concepts/impact-model.mdx` — current impact model (CIDS).
+  - `docs/docs/builders/architecture/erd.mdx` and `docs/docs/builders/integrations/entity-matrix.mdx` — current entity model references.
+  - `docs/docs/reference/glossary-community.md` — canonical vocabulary reference.
 - **Missing**:
   - First-class impact dimensions (community / environmental / social / cultural / ecological) as types in shared.
   - Mapping from action domains × work output → dimensional impact vectors.
@@ -51,7 +52,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Approach (high-level — implementation detail emerges with discovery)
 
-1. **Discovery** — read the GIF proposal docs + current impact model + entity matrix. Document: what dimensions are already partially defined, what's missing, where the gaps are between v1-0.mdx domains and the 5 dimensions Afo named.
+1. **Discovery** — read the GIF proposal docs + v1 spec + ERD + entity matrix. Document: what dimensions are already partially defined, what's missing, where the gaps are between v1-0.mdx domains and the 5 dimensions Afo named.
 2. **Conceptual codification** (paired with `domain-coherence` plan) — name the 5 dimensions formally, define how each of the 5 action domains maps to a dimension vector (likely a domain × dimension matrix with weights).
 3. **Type-level codification** — `ImpactDimension`, `ImpactVector`, `YieldImpactCurve` types in `@green-goods/shared`. Pure, no UI.
 4. **Indexer extension** — events / GraphQL fields for the transformation outputs (yield consumed, impact vector produced, per Season per garden).
@@ -73,7 +74,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Open questions to resolve in discovery
 
-- **Dimension-to-domain mapping authority**: who defines the matrix? Platform team initially, with intent to move toward steward / evaluator / community input later.
+- **Dimension-to-domain mapping authority**: who defines the matrix? Platform team initially, with intent to move toward Operator / Evaluator / community input later.
 - **Single curve vs per-domain curve**: does each action domain (Solar, Water, Soil, etc.) have its own yield-to-impact curve, or is there one master curve weighted by domain? My instinct: per-domain curves aggregated to a master view.
 - **Time resolution**: per-Season is the natural unit; sub-Season (monthly?) granularity may be useful for trend lines.
 - **Evaluator role in transformation**: Evaluator certification adjusts vector weights or just gates publication?
@@ -81,13 +82,13 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Success
 
-- Documented dimension model + domain-to-dimension mapping in `docs/docs/concepts/yield-to-impact.mdx`.
+- Documented dimension model + domain-to-dimension mapping in `docs/docs/builders/specs/yield-to-impact.mdx`.
 - Typed `ImpactDimension` / `ImpactVector` / `YieldImpactCurve` in `@green-goods/shared`.
 - Indexer schema additions land deterministically on existing events (no new contracts in v1).
 - `useYieldImpactCurve` and `useNetworkImpactCurve` hooks ship with tests.
 - Admin Funder Dashboard surfaces a real curve for at least one Season One garden.
 - Journal `/impact` shows network curve.
-- A garden steward can point a funder at the curve as evidence in a grant application.
+- A garden Operator can point a funder at the curve as evidence in a grant application.
 
 ## Out of scope
 
@@ -98,7 +99,7 @@ This plan is paired with `domain-coherence` (its own plan) — yield-to-impact h
 
 ## Checklist
 
-- [ ] Discovery doc summarizing GIF proposal alignment + dimension definitions in `docs/docs/concepts/yield-to-impact.mdx`.
+- [ ] Discovery doc summarizing GIF proposal alignment + dimension definitions in `docs/docs/builders/specs/yield-to-impact.mdx`.
 - [ ] Domain × dimension mapping matrix (paired with `domain-coherence` plan).
 - [ ] Types in `@green-goods/shared` (`ImpactDimension`, `ImpactVector`, `YieldImpactCurve`).
 - [ ] Indexer schema extension if deterministic; design doc for any contract anchor needed.
