@@ -11,13 +11,9 @@
 #   flyctl secrets set \
 #       TELEGRAM_BOT_TOKEN=<botfather-token> \
 #       ENCRYPTION_SECRET=<32+-char-secret> \
+#       TELEGRAM_WEBHOOK_SECRET=<secret> \
 #       BOT_API_TOKEN=<routine-auth-bearer-token>
 #   flyctl deploy
-#
-# After deploy, set the webhook URL as a secret:
-#   flyctl secrets set \
-#     WEBHOOK_URL=https://green-goods.fly.dev/webhook/telegram \
-#     TELEGRAM_WEBHOOK_SECRET=<secret>
 
 app = 'green-goods'
 primary_region = 'ams'
@@ -35,6 +31,7 @@ kill_timeout = '30s'
   NODE_ENV = 'production'
   PORT = '8080'
   POSTHOG_HOST = 'https://us.i.posthog.com'
+  WEBHOOK_URL = 'https://green-goods.fly.dev'
 
 [[mounts]]
   source = 'agent_data'
@@ -58,4 +55,4 @@ kill_timeout = '30s'
 [[vm]]
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 512
+  memory_mb = 1024

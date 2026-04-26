@@ -218,7 +218,7 @@ export async function initializeIpfsFromEnv(
       if (pinataGatewayBaseUrl) {
         logger.info("IPFS read gateway configured without upload credentials");
       } else {
-        logger.warn("PINATA_JWT is not configured. Upload features will be unavailable.");
+        logger.warn("VITE_PINATA_JWT is not configured. Upload features will be unavailable.");
       }
     }
     return false;

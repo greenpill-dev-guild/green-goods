@@ -70,7 +70,7 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
 
   if (!getPinataJwt()) {
     const error = new Error(
-      "IPFS upload service is not configured. Set PINATA_JWT before uploading."
+      "IPFS upload service is not configured. Set VITE_PINATA_JWT before uploading."
     );
     trackUploadError(error, {
       uploadCategory: category,

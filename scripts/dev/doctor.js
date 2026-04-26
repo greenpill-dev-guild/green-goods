@@ -376,13 +376,13 @@ function checkEnv() {
 
   checkOpReadiness(envFile);
 
-  const pinataJwt = valueFor(envFile, "PINATA_JWT");
-  const pinataJwtOpRef = valueFor(envFile, "PINATA_JWT_OP_REF");
   const vitePinataJwt = valueFor(envFile, "VITE_PINATA_JWT");
-  const hasPinataServer = hasUsableValue(pinataJwt) || hasOpRef(pinataJwtOpRef);
-  const hasPinataBrowser = hasUsableValue(vitePinataJwt) || (hasOpRef(pinataJwtOpRef) && opReady);
+  const pinataUploadJwtOpRef = valueFor(envFile, "PINATA_UPLOAD_JWT_OP_REF");
+  const pinataJwt = valueFor(envFile, "PINATA_JWT");
+  const hasPinataBrowser = hasUsableValue(vitePinataJwt) || (hasOpRef(pinataUploadJwtOpRef) && opReady);
+  const hasPinataServer = hasPinataBrowser || hasUsableValue(pinataJwt);
 
-  if (hasPinataServer) {
+  if (hasPinataBrowser) {
     add("pass", "Pinata upload credentials configured", "Secret value or OP ref was detected but not printed.", "", {
       check: "env:pinata",
     });
@@ -391,7 +391,7 @@ function checkEnv() {
       requiredLevel(["upload"]),
       "Pinata upload credentials missing",
       "Image reads can use public gateways, but upload-capable QA will fail.",
-      "Set PINATA_JWT_OP_REF=op://... or PINATA_JWT in root .env.",
+      "Set VITE_PINATA_JWT in root .env, or PINATA_UPLOAD_JWT_OP_REF=op://... to resolve it through Varlock.",
       { check: "env:pinata" }
     );
   }
@@ -401,7 +401,7 @@ function checkEnv() {
       requiredLevel(["upload"]),
       "Browser Pinata JWT is not resolved",
       "Current frontend upload code still consumes VITE_PINATA_JWT.",
-      "Regenerate .env with bun run setup or set VITE_PINATA_JWT through Varlock.",
+      "Set VITE_PINATA_JWT directly or configure PINATA_UPLOAD_JWT_OP_REF.",
       { check: "env:pinata-browser" }
     );
   }
