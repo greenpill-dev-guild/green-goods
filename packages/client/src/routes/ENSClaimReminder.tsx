@@ -4,6 +4,7 @@ import {
   useGreenGoodsEnsName,
   usePrimaryAddress,
   useProtocolMemberStatus,
+  useTimeout,
 } from "@green-goods/shared";
 import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -36,6 +37,7 @@ export function ENSClaimReminder() {
     useGreenGoodsEnsName(normalizedAddress);
   const shownInSessionRef = useRef(false);
   const pendingReminderAddressRef = useRef<Address | null>(null);
+  const { set: scheduleReminder } = useTimeout();
 
   useEffect(() => {
     if (!normalizedAddress || shownInSessionRef.current) return;
@@ -48,7 +50,7 @@ export function ENSClaimReminder() {
     if (pendingReminderAddressRef.current === normalizedAddress) return;
     pendingReminderAddressRef.current = normalizedAddress;
 
-    const timeoutId = window.setTimeout(() => {
+    const cancel = scheduleReminder(() => {
       pendingReminderAddressRef.current = null;
       markReminderSeen(normalizedAddress);
       shownInSessionRef.current = true;
@@ -77,7 +79,7 @@ export function ENSClaimReminder() {
     }, 1000);
 
     return () => {
-      window.clearTimeout(timeoutId);
+      cancel();
       if (pendingReminderAddressRef.current === normalizedAddress) {
         pendingReminderAddressRef.current = null;
       }
@@ -90,6 +92,7 @@ export function ENSClaimReminder() {
     isProtocolMemberLoading,
     navigate,
     normalizedAddress,
+    scheduleReminder,
   ]);
 
   return null;

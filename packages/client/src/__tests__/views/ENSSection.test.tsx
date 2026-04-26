@@ -53,6 +53,28 @@ vi.mock("@green-goods/shared", () => ({
   useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName }),
   ENSProgressTimeline: ({ slug, data }: { slug: string; data: unknown }) =>
     createElement("div", { "data-testid": "ens-progress" }, slug),
+  ConfirmDialog: ({
+    isOpen,
+    onConfirm,
+    title,
+    confirmLabel,
+  }: {
+    isOpen: boolean;
+    onConfirm: () => void;
+    title: string;
+    confirmLabel: string;
+  }) =>
+    isOpen
+      ? createElement(
+          "div",
+          { "data-testid": "confirm-release-dialog", "aria-label": title },
+          createElement(
+            "button",
+            { onClick: onConfirm, "data-testid": "confirm-release-button" },
+            confirmLabel
+          )
+        )
+      : null,
 }));
 
 vi.mock("@/components/Actions", () => ({
@@ -105,7 +127,6 @@ describe("Profile ENSSection", () => {
     });
     mockMutateAsync.mockResolvedValue({});
     mockReleaseMutateAsync.mockResolvedValue({ slug: "forest" });
-    vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -178,6 +199,13 @@ describe("Profile ENSSection", () => {
     renderENSSection();
 
     await user.click(screen.getByText("Release username"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("confirm-release-dialog")).toBeInTheDocument();
+    });
+    expect(mockReleaseMutateAsync).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("confirm-release-button"));
 
     await waitFor(() => {
       expect(mockReleaseMutateAsync).toHaveBeenCalled();

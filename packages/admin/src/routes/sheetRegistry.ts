@@ -230,7 +230,7 @@ function getLastPathSegment(pathname: string) {
   }
 }
 
-function decodePathSegment(segment: string | undefined) {
+export function decodePathSegment(segment: string | undefined) {
   if (!segment) return "";
   try {
     return decodeURIComponent(segment);

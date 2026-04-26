@@ -118,7 +118,12 @@ export function useENSReleaseName() {
               abi: GreenGoodsENSABI,
               functionName: "totalPendingRefunds",
             })
-            .catch(() => 0n) as Promise<bigint>,
+            .catch((error: unknown) => {
+              logger.warn("Failed to read totalPendingRefunds; assuming zero for precheck", {
+                error,
+              });
+              return 0n;
+            }) as Promise<bigint>,
         ]);
 
         if (balance < fee + totalPendingRefunds) {

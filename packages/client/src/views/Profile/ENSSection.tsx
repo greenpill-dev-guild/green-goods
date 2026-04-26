@@ -1,5 +1,6 @@
 import {
   type Address,
+  ConfirmDialog,
   ENSProgressTimeline,
   validateSlug,
   useENSClaim,
@@ -76,6 +77,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
   const ensRelease = useENSReleaseName();
   const [claimedSlug, setClaimedSlug] = useState<string | null>(null);
   const [releasingSlug, setReleasingSlug] = useState<string | null>(null);
+  const [isReleaseConfirmOpen, setIsReleaseConfirmOpen] = useState(false);
   const [showChangeRequest, setShowChangeRequest] = useState(false);
   const [requestedSlug, setRequestedSlug] = useState("");
   const [requestReason, setRequestReason] = useState<ENSUsernameChangeReason>("same-passkey");
@@ -153,27 +155,23 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     }
   };
 
-  const handleENSRelease = async () => {
+  const handleENSRelease = () => {
     if (isReleaseUnavailable) {
       setShowChangeRequest((current) => !current);
       setRequestError(null);
       return;
     }
+    setIsReleaseConfirmOpen(true);
+  };
 
-    const confirmed = window.confirm(
-      intl.formatMessage({
-        id: "app.profile.releaseENSConfirm",
-        defaultMessage:
-          "Release this username? It will stop resolving after cross-chain delivery completes, and the name will enter the cooldown period.",
-      })
-    );
-    if (!confirmed) return;
-
+  const confirmENSRelease = async () => {
     try {
       const release = await ensRelease.mutateAsync();
       setReleasingSlug(release.slug);
     } catch {
       // Error handling is in the mutation hook
+    } finally {
+      setIsReleaseConfirmOpen(false);
     }
   };
 
@@ -611,6 +609,27 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
           <ENSProgressTimeline data={registrationData} slug={activeSlug} />
         </>
       )}
+
+      <ConfirmDialog
+        isOpen={isReleaseConfirmOpen}
+        onClose={() => setIsReleaseConfirmOpen(false)}
+        onConfirm={confirmENSRelease}
+        title={intl.formatMessage({
+          id: "app.profile.releaseENSConfirmTitle",
+          defaultMessage: "Release this username?",
+        })}
+        description={intl.formatMessage({
+          id: "app.profile.releaseENSConfirmDescription",
+          defaultMessage:
+            "It will stop resolving after cross-chain delivery completes, and the name will enter the cooldown period.",
+        })}
+        variant="warning"
+        confirmLabel={intl.formatMessage({
+          id: "app.profile.releaseENSButton",
+          defaultMessage: "Release username",
+        })}
+        isLoading={ensRelease.isPending}
+      />
     </>
   );
 };

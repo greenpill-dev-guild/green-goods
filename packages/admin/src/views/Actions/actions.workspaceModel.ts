@@ -1,6 +1,7 @@
 import { adminRoutes } from "@green-goods/shared";
 import {
   ACTION_CREATE_CONTENT_ID,
+  decodePathSegment,
   toActionDetailContentId,
   toActionEditContentId,
 } from "@/routes/sheetRegistry";
@@ -28,15 +29,6 @@ export type ActionsRouteState =
       closeTo: string;
       listSearch: Record<string, string>;
     };
-
-function decodePathSegment(segment: string | undefined) {
-  if (!segment) return "";
-  try {
-    return decodeURIComponent(segment);
-  } catch {
-    return segment;
-  }
-}
 
 export function resolveActionsRouteState(
   pathname: string,

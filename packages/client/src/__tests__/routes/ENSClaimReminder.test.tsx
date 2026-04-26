@@ -21,6 +21,14 @@ vi.mock("@green-goods/shared", () => ({
   useGreenGoodsEnsName: sharedMocks.useGreenGoodsEnsName,
   usePrimaryAddress: sharedMocks.usePrimaryAddress,
   useProtocolMemberStatus: sharedMocks.useProtocolMemberStatus,
+  useTimeout: () => ({
+    set: (callback: () => void, delay: number) => {
+      const id = setTimeout(callback, delay);
+      return () => clearTimeout(id);
+    },
+    clear: () => {},
+    isPending: () => false,
+  }),
 }));
 
 import { ENSClaimReminder } from "../../routes/ENSClaimReminder";
