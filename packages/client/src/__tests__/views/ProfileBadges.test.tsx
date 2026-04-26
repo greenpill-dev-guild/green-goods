@@ -27,7 +27,8 @@ const sharedMocks = vi.hoisted(() => ({
   useProtocolMemberStatus: vi.fn(),
   formatAddress: vi.fn(
     (address: string, opts?: { ensName?: string }) =>
-      opts?.ensName || `${address.slice(0, 6)}...${address.slice(-4)}`
+      opts?.ensName?.replace(".greengoods.eth", "") ||
+      `${address.slice(0, 6)}...${address.slice(-4)}`
   ),
 }));
 
@@ -250,7 +251,7 @@ describe("ProfileBadges", () => {
   it("renders earned badge data and prefers the protocol ENS identity", () => {
     render(wrap(createElement(ProfileBadges)));
 
-    expect(screen.getByText("Issued to river.greengoods.eth")).toBeInTheDocument();
+    expect(screen.getByText("Issued to river")).toBeInTheDocument();
     expect(screen.getByText("Genesis")).toBeInTheDocument();
     expect(screen.getByText("Earned badges")).toBeInTheDocument();
   });

@@ -329,6 +329,38 @@ contract GreenGoodsENSTest is Test {
         assertEq(ens.available("alice"), false);
     }
 
+    function test_ReleaseNameSponsored_Success() public {
+        vm.deal(user1, 1 ether);
+        vm.prank(user1);
+        ens.claimName{ value: MOCK_FEE }("alice");
+
+        vm.deal(address(ens), MOCK_FEE);
+        bytes32 expectedMessageId = router.nextMessageId();
+        vm.prank(user1);
+        vm.expectEmit(true, false, false, true);
+        emit NameReleaseSent(expectedMessageId, "alice", user1);
+        ens.releaseNameSponsored();
+
+        assertEq(ens.ownerToSlug(user1), "");
+        assertEq(ens.slugOwner(keccak256(bytes("alice"))), address(0));
+        assertEq(address(ens).balance, 0);
+        assertEq(router.sentMessagesLength(), 2);
+        assertEq(ens.available("alice"), false);
+    }
+
+    function test_ReleaseNameSponsored_RevertInsufficientBalance() public {
+        vm.deal(user1, 1 ether);
+        vm.prank(user1);
+        ens.claimName{ value: MOCK_FEE }("alice");
+
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientFee()"));
+        ens.releaseNameSponsored();
+
+        assertEq(ens.ownerToSlug(user1), "alice");
+        assertEq(ens.slugOwner(keccak256(bytes("alice"))), user1);
+    }
+
     function test_ReleaseName_RevertNoName() public {
         vm.deal(user2, 1 ether);
         vm.prank(user2);
@@ -518,6 +550,28 @@ contract GreenGoodsENSTest is Test {
         vm.prank(user2);
         vm.expectRevert(abi.encodeWithSignature("InsufficientFee()"));
         ens.claimNameSponsored("alice");
+    }
+
+    function test_ReleaseNameSponsored_ReservesRefundBalance() public {
+        ETHRejecter rejecter = new ETHRejecter();
+        hats.setWearer(address(rejecter), PROTOCOL_HAT_ID, true);
+        vm.deal(address(rejecter), 1 ether);
+
+        vm.prank(address(rejecter));
+        ens.claimName{ value: MOCK_FEE + 0.01 ether }("trapped");
+        assertEq(ens.totalPendingRefunds(), 0.01 ether);
+
+        vm.deal(user1, 1 ether);
+        vm.prank(user1);
+        ens.claimName{ value: MOCK_FEE }("alice");
+
+        vm.deal(address(ens), MOCK_FEE + 0.005 ether);
+        vm.prank(user1);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientFee()"));
+        ens.releaseNameSponsored();
+
+        assertEq(ens.ownerToSlug(user1), "alice");
+        assertEq(ens.slugOwner(keccak256(bytes("alice"))), user1);
     }
 
     function test_ClaimNameSponsored_SucceedsWithSufficientReserve() public {

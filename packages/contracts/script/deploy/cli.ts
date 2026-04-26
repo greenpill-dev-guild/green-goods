@@ -1,7 +1,10 @@
 #!/usr/bin/env bun
 
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 import { CliParser } from "../utils/cli-parser";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
+import { formatENSSponsorStatus, getENSSponsorStatus, isGreenGoodsENSConfigured } from "../utils/ens-sponsor";
 import { NetworkManager } from "../utils/network";
 import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
@@ -12,6 +15,8 @@ import { GardenDeployer } from "./gardens";
 import { GoodsDeployer } from "./goods";
 import { HatsTreeDeployer } from "./hats";
 import { OctantFactoryDeployer } from "./octant-factory";
+
+const CONTRACTS_ROOT = path.join(__dirname, "../..");
 
 /**
  * DeploymentCLI - Main command-line interface for deployments
@@ -73,6 +78,7 @@ Commands:
   hats-tree                Create and configure the Hats protocol tree
   badge-locks              Deploy or dry-run GreenWill reputation badge Unlock locks
   badge-schemas            Deploy or dry-run GreenWill reputation badge EAS schema registration
+  ens-migrate              Reconcile Arbitrum ENS sends and migrate missing mainnet receiver records
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
 
@@ -116,6 +122,9 @@ Examples:
   bun deploy.ts badge-locks --network arbitrum --broadcast
   bun deploy.ts badge-schemas --network arbitrum --broadcast
 
+  # Migrate stuck greengoods.eth registrations into the current mainnet receiver
+  bun deploy.ts ens-migrate --network mainnet --broadcast
+
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 
 Note: Contracts are automatically verified on all networks except localhost.
@@ -147,6 +156,17 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
         console.log(`   Assessment Resolver: ${addresses.assessmentResolver}`);
         console.log(`   Octant Module: ${addresses.octantModule || "not deployed"}`);
         console.log(`   Octant Factory: ${addresses.octantFactory || "not deployed"}`);
+        console.log(`   GreenGoodsENS: ${addresses.greenGoodsENS || "not deployed"}`);
+
+        if (isGreenGoodsENSConfigured(addresses.greenGoodsENS)) {
+          try {
+            const sponsorStatus = await getENSSponsorStatus({ network });
+            console.log(formatENSSponsorStatus(sponsorStatus, "   "));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.log(`   ENS Sponsor: status unavailable (${message})`);
+          }
+        }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.log(`❌ ${network}: ${errorMsg}`);
@@ -165,6 +185,27 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
         }
       }
     }
+  }
+
+  /**
+   * Reconcile Arbitrum GreenGoodsENS registration sends against the current
+   * Ethereum receiver and migrate missing records via one Foundry script run.
+   */
+  async migrateEnsRegistrations(options: ReturnType<CliParser["parseOptions"]>): Promise<void> {
+    if (options.network !== "mainnet") {
+      throw new Error("ens-migrate must be run with --network mainnet");
+    }
+
+    const args = ["script/upgrade-ens-receiver.ts", "migrate", "--network", "mainnet"];
+    if (options.broadcast) args.push("--broadcast");
+    if (options.pureSimulation) args.push("--pure-simulation");
+    if (options.sender) args.push("--sender", options.sender);
+
+    execFileSync("bun", args, {
+      cwd: CONTRACTS_ROOT,
+      stdio: "inherit",
+      env: process.env,
+    });
   }
 
   /**
@@ -237,6 +278,11 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
 
         case "badge-schemas": {
           await this.badgeSchemasDeployer.deployBadgeSchemas(options);
+          break;
+        }
+
+        case "ens-migrate": {
+          await this.migrateEnsRegistrations(options);
           break;
         }
 

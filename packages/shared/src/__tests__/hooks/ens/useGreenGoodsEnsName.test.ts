@@ -13,12 +13,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockReadContract = vi.fn();
 
 const ENS_ADDRESS = "0xENSContract000000000000000000000000000001";
+const L1_RECEIVER_ADDRESS = "0xReceiver0000000000000000000000000000000001";
 const VALID_ADDRESS = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045" as const;
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as const;
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
   GreenGoodsENSABI: [
     { name: "ownerToSlug", type: "function", inputs: [{ name: "owner", type: "address" }] },
+    { name: "l1Receiver", type: "function", inputs: [] },
   ],
   createClients: vi.fn(() => ({
     publicClient: {
@@ -31,7 +33,13 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
 }));
 
 vi.mock("../../../config/blockchain", () => ({
-  DEFAULT_CHAIN_ID: 42161,
+  DEFAULT_CHAIN_ID: 11155111,
+}));
+
+vi.mock("../../../modules/app/logger", () => ({
+  logger: {
+    warn: vi.fn(),
+  },
 }));
 
 import { queryKeys } from "../../../config/query-keys";
@@ -68,13 +76,27 @@ describe("useGreenGoodsEnsName", () => {
   });
 
   it("returns null when the address has no protocol slug", async () => {
-    mockReadContract.mockResolvedValueOnce("");
+    mockReadContract.mockResolvedValueOnce("").mockResolvedValueOnce(ZERO_ADDRESS);
 
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
 
     await waitFor(() => {
       expect(result.current.data).toBeNull();
+    });
+  });
+
+  it("falls back to the L1 receiver when the L2 cache has no owner slug", async () => {
+    mockReadContract
+      .mockResolvedValueOnce("")
+      .mockResolvedValueOnce(L1_RECEIVER_ADDRESS)
+      .mockResolvedValueOnce("river");
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useGreenGoodsEnsName(VALID_ADDRESS), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.data).toBe("river.greengoods.eth");
     });
   });
 

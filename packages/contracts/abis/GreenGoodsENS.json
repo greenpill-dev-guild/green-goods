@@ -353,6 +353,13 @@
   },
   {
     "type": "function",
+    "name": "releaseNameSponsored",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
     "outputs": [],

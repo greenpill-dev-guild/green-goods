@@ -1,5 +1,6 @@
 import {
   formatAddress,
+  formatEnsNameForDisplay,
   resolveAvatarUrl,
   useAuthState,
   useEnsAvatar,
@@ -35,6 +36,7 @@ const Profile: React.FC = () => {
   // ENS resolution - called directly here since we're inside QueryClientProvider
   const { data: ensName } = useEnsName(primaryAddress);
   const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(primaryAddress ?? undefined);
+  const displayEnsName = formatEnsNameForDisplay(ensName);
 
   const formattedAddress = primaryAddress ? formatAddress(primaryAddress, { ensName }) : null;
 
@@ -48,7 +50,11 @@ const Profile: React.FC = () => {
 
   // Display name priority: profile name > ENS > user-set passkey name > formatted address > fallback
   const displayName =
-    profile?.name?.trim() || ensName || userSetName || formattedAddress || fallbackDisplayName;
+    profile?.name?.trim() ||
+    displayEnsName ||
+    userSetName ||
+    formattedAddress ||
+    fallbackDisplayName;
 
   const headerAvatar = profile?.imageURI
     ? resolveAvatarUrl(profile.imageURI)

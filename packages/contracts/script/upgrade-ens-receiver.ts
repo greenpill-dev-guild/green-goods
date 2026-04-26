@@ -2,7 +2,6 @@
 
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import * as dotenv from "dotenv";
 import { Interface } from "ethers";
@@ -18,18 +17,35 @@ const ENS_RECEIVER_INTERFACE = new Interface([
   "event NameRegistered(string slug, address indexed owner, uint8 nameType, bytes32 indexed messageId)",
   "event NameReleased(string slug, address indexed previousOwner, bytes32 indexed messageId)",
 ]);
+const ENS_SENDER_INTERFACE = new Interface([
+  "event NameRegistrationSent(bytes32 indexed messageId, string slug, address indexed owner, uint8 nameType, uint256 ccipFee)",
+  "event NameReleaseSent(bytes32 indexed messageId, string slug, address indexed previousOwner)",
+]);
+const ENS_RECEIVER_VIEW_INTERFACE = new Interface([
+  "function getRegistration(string slug) view returns (tuple(address owner,uint8 nameType,uint256 registeredAt))",
+]);
+const OWNABLE_INTERFACE = new Interface(["function owner() view returns (address)"]);
 const NAME_REGISTERED_EVENT = ENS_RECEIVER_INTERFACE.getEvent("NameRegistered");
 const NAME_RELEASED_EVENT = ENS_RECEIVER_INTERFACE.getEvent("NameReleased");
+const NAME_REGISTRATION_SENT_EVENT = ENS_SENDER_INTERFACE.getEvent("NameRegistrationSent");
+const NAME_RELEASE_SENT_EVENT = ENS_SENDER_INTERFACE.getEvent("NameReleaseSent");
 
-if (!NAME_REGISTERED_EVENT || !NAME_RELEASED_EVENT) {
-  throw new Error("ENS receiver interface is missing expected event fragments");
+if (!NAME_REGISTERED_EVENT || !NAME_RELEASED_EVENT || !NAME_REGISTRATION_SENT_EVENT || !NAME_RELEASE_SENT_EVENT) {
+  throw new Error("ENS migration interfaces are missing expected event fragments");
 }
 
 const NAME_REGISTERED_TOPIC = NAME_REGISTERED_EVENT.topicHash.toLowerCase();
 const NAME_RELEASED_TOPIC = NAME_RELEASED_EVENT.topicHash.toLowerCase();
+const NAME_REGISTRATION_SENT_TOPIC = NAME_REGISTRATION_SENT_EVENT.topicHash.toLowerCase();
+const NAME_RELEASE_SENT_TOPIC = NAME_RELEASE_SENT_EVENT.topicHash.toLowerCase();
+const ARBITRUM_ENS_SENDER_START_BLOCK = 433_713_812;
 const HISTORICAL_MAINNET_LOG_PROVIDERS = [
   { name: "publicnode", url: "https://ethereum-rpc.publicnode.com", maxBlockRange: 50_000 },
   { name: "drpc", url: "https://eth.drpc.org", maxBlockRange: 10_000 },
+];
+const HISTORICAL_ARBITRUM_LOG_PROVIDERS = [
+  { name: "publicnode", url: "https://arbitrum-one-rpc.publicnode.com", maxBlockRange: 200_000 },
+  { name: "drpc", url: "https://arbitrum.drpc.org", maxBlockRange: 100_000 },
 ];
 
 // Load environment variables from root .env
@@ -67,6 +83,7 @@ interface PreparedMigrationInput {
   newReceiver: string;
   sourceDescription: string;
   previousReceiver?: string;
+  simulationSender?: string;
 }
 
 interface HistoricalLogProvider {
@@ -82,6 +99,14 @@ interface JsonRpcLog {
   blockNumber: string;
   transactionIndex: string;
   logIndex: string;
+}
+
+interface BlockscoutLogItem {
+  address?: { hash?: string } | string;
+  block_number?: number;
+  data?: string;
+  index?: number;
+  topics?: Array<string | null>;
 }
 
 function getDeploymentPath(chainId: number): string {
@@ -136,6 +161,20 @@ function readPreviousEnsReceiverFromDeployment(chainId: number): string | undefi
   }
 }
 
+function readGreenGoodsEnsFromDeployment(chainId: number): string | undefined {
+  const deploymentPath = getDeploymentPath(chainId);
+  if (!fs.existsSync(deploymentPath)) {
+    return undefined;
+  }
+
+  try {
+    const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf8")) as { greenGoodsENS?: unknown };
+    return isAddress(deployment.greenGoodsENS) ? deployment.greenGoodsENS : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function readJsonFile<T>(filePath: string): T | undefined {
   if (!fs.existsSync(filePath)) {
     return undefined;
@@ -146,6 +185,14 @@ function readJsonFile<T>(filePath: string): T | undefined {
   } catch {
     return undefined;
   }
+}
+
+function writePreparedMigrationFile(payload: { slugs: string[]; owners: string[]; nameTypes: number[] }): string {
+  const outputDir = path.join(CONTRACTS_ROOT, ".generated", "ens-migrations");
+  fs.mkdirSync(outputDir, { recursive: true });
+  const filePath = path.join(outputDir, `registrations-${Date.now()}.json`);
+  fs.writeFileSync(filePath, JSON.stringify(payload, null, 2) + "\n");
+  return filePath;
 }
 
 function getMainnetDeployBroadcastPath(command: Command): string {
@@ -237,6 +284,30 @@ async function resolveHistoricalMainnetProvider(): Promise<HistoricalLogProvider
   );
 }
 
+async function resolveHistoricalArbitrumProvider(): Promise<HistoricalLogProvider> {
+  const networkCandidates: HistoricalLogProvider[] = [];
+  try {
+    const rpcUrl = new NetworkManager().getRpcUrl("arbitrum");
+    networkCandidates.push({ name: "configured-arbitrum", url: rpcUrl, maxBlockRange: 200_000 });
+  } catch {
+    // Fall through to public providers below.
+  }
+
+  for (const provider of [...networkCandidates, ...HISTORICAL_ARBITRUM_LOG_PROVIDERS]) {
+    try {
+      await jsonRpcRequest<string>(provider.url, "eth_blockNumber", []);
+      return provider;
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error(
+    "Could not reach any historical Arbitrum log provider. Checked: " +
+      [...networkCandidates, ...HISTORICAL_ARBITRUM_LOG_PROVIDERS].map((provider) => provider.name).join(", "),
+  );
+}
+
 async function findContractCreationBlock(
   provider: HistoricalLogProvider,
   contractAddress: string,
@@ -264,6 +335,7 @@ async function fetchLogsInRange(
   address: string,
   fromBlock: number,
   toBlock: number,
+  topics?: Array<string | string[] | null>,
 ): Promise<JsonRpcLog[]> {
   const allLogs: JsonRpcLog[] = [];
 
@@ -274,6 +346,7 @@ async function fetchLogsInRange(
         fromBlock: `0x${start.toString(16)}`,
         toBlock: `0x${end.toString(16)}`,
         address,
+        ...(topics ? { topics } : {}),
       },
     ]);
     allLogs.push(...chunkLogs);
@@ -282,7 +355,77 @@ async function fetchLogsInRange(
   return allLogs;
 }
 
-async function prepareMigrationInputFromHistory(options: Options): Promise<PreparedMigrationInput> {
+async function fetchArbitrumSenderLogsFromBlockscout(address: string): Promise<JsonRpcLog[]> {
+  const base = `https://arbitrum.blockscout.com/api/v2/addresses/${address}/logs`;
+  let url: string | undefined = base;
+  const logs: JsonRpcLog[] = [];
+
+  while (url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Blockscout log fetch failed: ${response.status} ${await response.text()}`);
+    }
+
+    const payload = (await response.json()) as {
+      items?: BlockscoutLogItem[];
+      next_page_params?: Record<string, string | number | boolean>;
+    };
+
+    for (const item of payload.items ?? []) {
+      const topics = item.topics?.filter((topic): topic is string => typeof topic === "string");
+      if (!item.data || !topics?.length || item.block_number === undefined) {
+        continue;
+      }
+
+      logs.push({
+        address: typeof item.address === "string" ? item.address : (item.address?.hash ?? address),
+        topics,
+        data: item.data,
+        blockNumber: `0x${item.block_number.toString(16)}`,
+        transactionIndex: "0x0",
+        logIndex: `0x${(item.index ?? 0).toString(16)}`,
+      });
+    }
+
+    const nextPageParams = payload.next_page_params;
+    if (!nextPageParams) {
+      url = undefined;
+      continue;
+    }
+
+    const nextUrl = new URL(base);
+    for (const [key, value] of Object.entries(nextPageParams)) {
+      nextUrl.searchParams.set(key, String(value));
+    }
+    url = nextUrl.toString();
+  }
+
+  return logs.filter((log) => {
+    const topic0 = log.topics[0]?.toLowerCase();
+    return topic0 === NAME_REGISTRATION_SENT_TOPIC || topic0 === NAME_RELEASE_SENT_TOPIC;
+  });
+}
+
+async function readReceiverRegistrationOwner(
+  provider: HistoricalLogProvider,
+  receiver: string,
+  slug: string,
+): Promise<string> {
+  const data = ENS_RECEIVER_VIEW_INTERFACE.encodeFunctionData("getRegistration", [slug]);
+  const result = await jsonRpcRequest<string>(provider.url, "eth_call", [{ to: receiver, data }, "latest"]);
+  const [registration] = ENS_RECEIVER_VIEW_INTERFACE.decodeFunctionResult("getRegistration", result);
+  const owner = registration?.owner;
+  return isAddress(owner) ? owner : "0x0000000000000000000000000000000000000000";
+}
+
+async function readOwnableOwner(provider: HistoricalLogProvider, contractAddress: string): Promise<string | undefined> {
+  const data = OWNABLE_INTERFACE.encodeFunctionData("owner", []);
+  const result = await jsonRpcRequest<string>(provider.url, "eth_call", [{ to: contractAddress, data }, "latest"]);
+  const [owner] = OWNABLE_INTERFACE.decodeFunctionResult("owner", result);
+  return isAddress(owner) ? owner : undefined;
+}
+
+async function prepareMigrationInputFromLegacyReceiverHistory(options: Options): Promise<PreparedMigrationInput> {
   if (options.pureSimulation) {
     throw new Error(
       "migrate auto-discovery requires read-only RPC log access and cannot run with --pure-simulation. " +
@@ -357,19 +500,129 @@ async function prepareMigrationInputFromHistory(options: Options): Promise<Prepa
   const slugs = [...activeRegistrations.keys()];
   const owners = slugs.map((slug) => activeRegistrations.get(slug)?.owner ?? "");
   const nameTypes = slugs.map((slug) => activeRegistrations.get(slug)?.nameType ?? 0);
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "gg-ens-migrate-"));
-  const normalizedPath = path.join(tempDir, "registrations.json");
-  fs.writeFileSync(normalizedPath, JSON.stringify({ slugs, owners, nameTypes }, null, 2) + "\n");
+  const preparedFilePath = writePreparedMigrationFile({ slugs, owners, nameTypes });
 
   return {
     count: slugs.length,
-    filePath: normalizedPath,
+    filePath: preparedFilePath,
     newReceiver,
     previousReceiver,
+    simulationSender: await readOwnableOwner(provider, newReceiver),
     sourceDescription:
       `auto-discovered from ${previousReceiver} via ${provider.name} ` +
       `(blocks ${fromBlock}-${toBlock}, ${logs.length} log(s))`,
   };
+}
+
+async function prepareMigrationInputFromL2SenderHistory(options: Options): Promise<PreparedMigrationInput> {
+  if (options.pureSimulation) {
+    throw new Error(
+      "migrate auto-discovery requires read-only RPC log access and cannot run with --pure-simulation. " +
+        "Run without --pure-simulation or pass --registrations-file.",
+    );
+  }
+
+  const l2Sender = process.env.ENS_L2_SENDER || readGreenGoodsEnsFromDeployment(42_161);
+  if (!isAddress(l2Sender)) {
+    throw new Error(
+      "Could not resolve the Arbitrum GreenGoodsENS sender. Set ENS_L2_SENDER, update deployments/42161-latest.json, " +
+        "or pass --registrations-file.",
+    );
+  }
+
+  const newReceiver = options.newReceiver ?? readEnsReceiverFromDeployment(1);
+  if (!isAddress(newReceiver)) {
+    throw new Error("migrate requires --new-receiver or a valid ensReceiver in deployments/1-latest.json");
+  }
+
+  const [arbitrumProvider, mainnetProvider] = await Promise.all([
+    resolveHistoricalArbitrumProvider(),
+    resolveHistoricalMainnetProvider(),
+  ]);
+  const latestBlockHex = await jsonRpcRequest<string>(arbitrumProvider.url, "eth_blockNumber", []);
+  const latestBlock = Number.parseInt(latestBlockHex, 16);
+  let logSource = arbitrumProvider.name;
+  let logs: JsonRpcLog[];
+  try {
+    logs = await fetchLogsInRange(arbitrumProvider, l2Sender, ARBITRUM_ENS_SENDER_START_BLOCK, latestBlock, [
+      [NAME_REGISTRATION_SENT_TOPIC, NAME_RELEASE_SENT_TOPIC],
+    ]);
+  } catch (error) {
+    console.log(
+      `Arbitrum RPC log scan failed via ${arbitrumProvider.name}; falling back to Blockscout. ` +
+        `Reason: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    logs = await fetchArbitrumSenderLogsFromBlockscout(l2Sender);
+    logSource = "arbitrum-blockscout";
+  }
+
+  logs.sort(
+    (left, right) =>
+      Number.parseInt(left.blockNumber, 16) - Number.parseInt(right.blockNumber, 16) ||
+      Number.parseInt(left.transactionIndex, 16) - Number.parseInt(right.transactionIndex, 16) ||
+      Number.parseInt(left.logIndex, 16) - Number.parseInt(right.logIndex, 16),
+  );
+
+  const l2Registrations = new Map<string, { owner: string; nameType: number }>();
+
+  for (const log of logs) {
+    const topic0 = log.topics[0]?.toLowerCase();
+    if (topic0 === NAME_REGISTRATION_SENT_TOPIC) {
+      const [, slug, owner, nameType] = ENS_SENDER_INTERFACE.decodeEventLog(
+        "NameRegistrationSent",
+        log.data,
+        log.topics,
+      );
+      l2Registrations.set(String(slug), {
+        owner: String(owner),
+        nameType: Number(nameType),
+      });
+      continue;
+    }
+
+    if (topic0 === NAME_RELEASE_SENT_TOPIC) {
+      const [, slug] = ENS_SENDER_INTERFACE.decodeEventLog("NameReleaseSent", log.data, log.topics);
+      l2Registrations.delete(String(slug));
+    }
+  }
+
+  const missingRegistrations: Array<{ slug: string; owner: string; nameType: number }> = [];
+  for (const [slug, registration] of l2Registrations.entries()) {
+    const currentOwner = await readReceiverRegistrationOwner(mainnetProvider, newReceiver, slug);
+    if (currentOwner === "0x0000000000000000000000000000000000000000") {
+      missingRegistrations.push({ slug, ...registration });
+    }
+  }
+
+  const slugs = missingRegistrations.map((registration) => registration.slug);
+  const owners = missingRegistrations.map((registration) => registration.owner);
+  const nameTypes = missingRegistrations.map((registration) => registration.nameType);
+  const preparedFilePath = writePreparedMigrationFile({ slugs, owners, nameTypes });
+
+  return {
+    count: slugs.length,
+    filePath: preparedFilePath,
+    newReceiver,
+    simulationSender: await readOwnableOwner(mainnetProvider, newReceiver),
+    sourceDescription:
+      `auto-discovered missing L1 registrations from Arbitrum sender ${l2Sender} via ${logSource} ` +
+      `(blocks ${ARBITRUM_ENS_SENDER_START_BLOCK}-${latestBlock}, ${logs.length} log(s), ` +
+      `${l2Registrations.size} active L2 registration(s))`,
+  };
+}
+
+async function prepareMigrationInputFromHistory(options: Options): Promise<PreparedMigrationInput> {
+  const fromL2 = await prepareMigrationInputFromL2SenderHistory(options);
+  if (fromL2.count > 0) {
+    return fromL2;
+  }
+
+  const fromLegacyReceiver = await prepareMigrationInputFromLegacyReceiverHistory(options);
+  if (fromLegacyReceiver.count > 0) {
+    return fromLegacyReceiver;
+  }
+
+  return fromL2;
 }
 
 function showHelp(): void {
@@ -383,7 +636,7 @@ Commands:
   deploy-sepolia        Deploy new ENSReceiver on Sepolia (same-chain, unwrapped)
   deploy-mainnet        Deploy new ENSReceiver on Mainnet (cross-chain, NameWrapper)
   update-l1-receiver    Update l1Receiver on L2 GreenGoodsENS (run after mainnet deploy)
-  migrate               Migrate registrations from old to new receiver
+  migrate               Migrate missing L2 registrations into the current L1 receiver
 
 Options:
   --network <name>      Network (default: sepolia)
@@ -391,7 +644,8 @@ Options:
   --pure-simulation     Validate inputs and compile without RPC calls
   --new-receiver <addr> New receiver address (optional override for update-l1-receiver)
   --registrations-file  JSON file for migrate ({ slugs, owners, nameTypes } or registrations[])
-                       Defaults to reports/ens-registrations.json when present
+                       Defaults to reports/ens-registrations.json when present;
+                       otherwise reconciles Arbitrum GreenGoodsENS events against L1
   --sender <addr>       Override tx sender address
   --help                Show this help
 
@@ -415,7 +669,7 @@ Examples:
   # Preflight mainnet deploy without RPC access
   bun script/upgrade-ens-receiver.ts deploy-mainnet --network mainnet --pure-simulation
 
-  # Migrate registrations from the default file at reports/ens-registrations.json
+  # Reconcile Arbitrum GreenGoodsENS events and migrate missing L1 receiver records
   bun script/upgrade-ens-receiver.ts migrate --network mainnet --broadcast
 
   # Or provide a repo-root relative file explicitly
@@ -507,16 +761,50 @@ function isPublicNodeRpc(rpcUrl: string): boolean {
   }
 }
 
-function assertBroadcastSafeRpc(options: Options, rpcUrl: string): void {
+function warnIfRiskyBroadcastRpc(options: Options, rpcUrl: string): void {
   if (!options.broadcast) {
     return;
   }
 
   if (options.network === "mainnet" && isPublicNodeRpc(rpcUrl)) {
-    throw new Error(
-      "Mainnet broadcast via publicnode.com is blocked/unstable for Foundry storage reads. " +
-        "Set ETHEREUM_RPC_URL to a dedicated provider or configure ALCHEMY_API_KEY/ALCHEMY_KEY/VITE_ALCHEMY_API_KEY.",
+    console.warn(
+      "Warning: mainnet broadcast is using publicnode.com. If Foundry storage reads or broadcast submission fail, " +
+        "set ETHEREUM_RPC_URL to a dedicated provider or configure ALCHEMY_API_KEY/ALCHEMY_KEY/VITE_ALCHEMY_API_KEY.",
     );
+  }
+}
+
+function formatRpcResolutionError(options: Options, error: unknown): Error {
+  const message = error instanceof Error ? error.message : String(error);
+  if (options.broadcast && options.network === "mainnet") {
+    return new Error(
+      `${message}\n\n` +
+        "Mainnet ENS migration broadcasts need a reachable Ethereum mainnet RPC before the deployer runs.\n" +
+        "Use the deployer-backed scripts:\n" +
+        "  bun run contracts:ens:migrate:mainnet\n" +
+        "  cd packages/contracts && bun run ens:migrate:mainnet\n\n" +
+        "If that still fails, set one of ETHEREUM_RPC_URL, MAINNET_RPC_URL, " +
+        "ALCHEMY_API_KEY, ALCHEMY_KEY, or VITE_ALCHEMY_API_KEY in the root env source. " +
+        "The schema default public RPC can work, but a dedicated RPC is more reliable.",
+    );
+  }
+
+  return new Error(`${message} Use --pure-simulation to validate without RPC access.`);
+}
+
+function resolveExecutionRpcUrl(options: Options, networkManager: NetworkManager): string {
+  try {
+    const rpcUrl = networkManager.getRpcUrl(options.network);
+    warnIfRiskyBroadcastRpc(options, rpcUrl);
+    return rpcUrl;
+  } catch (error) {
+    if (!options.broadcast && options.network === "mainnet") {
+      const rpcUrl = HISTORICAL_MAINNET_LOG_PROVIDERS[0].url;
+      console.log(`Using fallback mainnet RPC for simulation: ${rpcUrl}`);
+      return rpcUrl;
+    }
+
+    throw formatRpcResolutionError(options, error);
   }
 }
 
@@ -594,13 +882,11 @@ async function prepareMigrationInput(options: Options): Promise<PreparedMigratio
     );
   }
 
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "gg-ens-migrate-"));
-  const normalizedPath = path.join(tempDir, "registrations.json");
-  fs.writeFileSync(normalizedPath, JSON.stringify({ slugs, owners, nameTypes }, null, 2) + "\n");
+  const preparedFilePath = writePreparedMigrationFile({ slugs, owners, nameTypes });
 
   return {
     count: slugs.length,
-    filePath: normalizedPath,
+    filePath: preparedFilePath,
     newReceiver,
     sourceDescription: sourcePath,
   };
@@ -719,6 +1005,8 @@ function buildForgeArgs(
     forgeArgs.push("--sender", options.sender);
   } else if (process.env.SENDER_ADDRESS) {
     forgeArgs.push("--sender", process.env.SENDER_ADDRESS);
+  } else if (!options.broadcast && preparedMigration?.simulationSender) {
+    forgeArgs.push("--sender", preparedMigration.simulationSender);
   }
 
   if (options.broadcast) {
@@ -759,6 +1047,8 @@ async function main(): Promise<void> {
 
   const networkManager = new NetworkManager();
   const chainId = networkManager.getChainId(options.network);
+  const broadcastRpcUrl =
+    options.broadcast && !options.pureSimulation ? resolveExecutionRpcUrl(options, networkManager) : undefined;
   const preparedMigration = await prepareMigrationInput(options);
 
   if (options.pureSimulation) {
@@ -768,14 +1058,7 @@ async function main(): Promise<void> {
 
   validateInputs(options, chainId, preparedMigration);
 
-  let rpcUrl: string;
-  try {
-    rpcUrl = networkManager.getRpcUrl(options.network);
-    assertBroadcastSafeRpc(options, rpcUrl);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`${message} Use --pure-simulation to validate without RPC access.`);
-  }
+  const rpcUrl = broadcastRpcUrl ?? resolveExecutionRpcUrl(options, networkManager);
 
   console.log(`Network: ${options.network} (chainId: ${chainId})`);
   console.log(`Command: ${options.command}\n`);

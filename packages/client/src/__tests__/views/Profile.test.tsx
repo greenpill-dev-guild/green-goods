@@ -18,6 +18,8 @@ vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   formatAddress: (addr: string, opts?: { ensName?: string }) =>
     opts?.ensName || `${addr.slice(0, 6)}...${addr.slice(-4)}`,
+  formatEnsNameForDisplay: (ensName?: string | null) =>
+    ensName?.endsWith(".greengoods.eth") ? ensName.replace(".greengoods.eth", "") : ensName,
   resolveAvatarUrl: (url: string) => url,
   useAuthState: () => ({ userName: "alice" }),
   useEnsAvatar: () => ({ data: null, isLoading: false }),

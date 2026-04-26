@@ -240,6 +240,7 @@ export type {
   DeploymentRegistryPermissions,
   DraftWithImages,
   ENSClaimResult,
+  ENSReleaseResult,
   EnhancedWorkApproval,
   GardenDraft,
   GardenerProfile,
@@ -399,6 +400,7 @@ export {
   useEmergencyPause,
   // ENS registration hooks
   useENSClaim,
+  useENSReleaseName,
   useENSRegistrationStatus,
   useEnsAddress,
   useEnsAvatar,
@@ -951,6 +953,7 @@ export {
   getActionTitle,
   parseActionUID,
   formatAddress,
+  formatEnsNameForDisplay,
   formatDate,
   formatDateRange,
   formatDateTime,

@@ -169,6 +169,8 @@ export { useUserCookieJars } from "./cookie-jar/useUserCookieJars";
 // ============================================================================
 export type { ENSClaimResult } from "./ens/useENSClaim";
 export { useENSClaim } from "./ens/useENSClaim";
+export type { ENSReleaseResult } from "./ens/useENSReleaseName";
+export { useENSReleaseName } from "./ens/useENSReleaseName";
 export { useENSRegistrationStatus } from "./ens/useENSRegistrationStatus";
 export { useProtocolMemberStatus } from "./ens/useProtocolMemberStatus";
 export { useSlugAvailability } from "./ens/useSlugAvailability";

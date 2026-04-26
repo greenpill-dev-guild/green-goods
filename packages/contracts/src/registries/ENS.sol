@@ -149,6 +149,24 @@ contract GreenGoodsENS is Ownable {
         _sendReleaseMessage(currentSlug, msg.sender);
     }
 
+    /// @notice Release current name (contract-funded). Gardener names only.
+    /// @dev CCIP fee paid from contract's ETH balance for passkey users.
+    function releaseNameSponsored() external {
+        string memory currentSlug = ownerToSlug[msg.sender];
+        if (bytes(currentSlug).length == 0) revert NoNameToRelease();
+
+        bytes32 slugHash = keccak256(bytes(currentSlug));
+        if (slugOwner[slugHash] != msg.sender) revert NotOwner();
+        if (slugNameType[slugHash] == NameType.Garden) revert CannotReleaseGardenName();
+
+        slugReleasedAt[currentSlug] = block.timestamp;
+        delete slugOwner[slugHash];
+        delete slugNameType[slugHash];
+        delete ownerToSlug[msg.sender];
+
+        _sendSponsoredReleaseMessage(currentSlug, msg.sender);
+    }
+
     // ═══════════════════════════════════════════════════════
     // Views
     // ═══════════════════════════════════════════════════════
@@ -236,6 +254,18 @@ contract GreenGoodsENS is Ownable {
             }
         }
 
+        emit NameReleaseSent(messageId, slug, previousOwner);
+    }
+
+    /// @dev Same as _sendReleaseMessage but pays CCIP fee from contract balance.
+    function _sendSponsoredReleaseMessage(string memory slug, address previousOwner) internal {
+        bytes memory data = abi.encode(uint8(1), slug, previousOwner, NameType.Gardener);
+        Client.EVM2AnyMessage memory message = _buildMessage(data);
+
+        uint256 fee = CCIP_ROUTER.getFee(ETHEREUM_CHAIN_SELECTOR, message);
+        if (address(this).balance < fee + totalPendingRefunds) revert InsufficientFee();
+
+        bytes32 messageId = CCIP_ROUTER.ccipSend{ value: fee }(ETHEREUM_CHAIN_SELECTOR, message);
         emit NameReleaseSent(messageId, slug, previousOwner);
     }
 

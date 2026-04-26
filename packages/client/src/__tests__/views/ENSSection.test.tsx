@@ -11,6 +11,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockUseENSRegistrationStatus = vi.fn();
 const mockMutateAsync = vi.fn();
+const mockReleaseMutateAsync = vi.fn();
+const mockValidateSlug = vi.fn(() => ({ valid: true }));
+const mockClipboardWriteText = vi.fn(async () => undefined);
 const mockTrigger = vi.fn(async () => true);
 const mockGetValues = vi.fn(() => "river");
 const mockReset = vi.fn();
@@ -18,8 +21,11 @@ const mockReset = vi.fn();
 let mockProtocolMember = true;
 let mockRegistrationData: Record<string, unknown> | undefined;
 let mockSlugValue = "";
+let mockExistingGreenGoodsEnsName: string | null = null;
+let mockSponsoredReleaseUnavailable = false;
 
 vi.mock("@green-goods/shared", () => ({
+  validateSlug: (slug: string) => mockValidateSlug(slug),
   useOffline: () => ({ isOnline: true }),
   useProtocolMemberStatus: () => ({ data: mockProtocolMember }),
   useSlugForm: () => ({
@@ -35,10 +41,16 @@ vi.mock("@green-goods/shared", () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,
   }),
+  useENSReleaseName: () => ({
+    mutateAsync: mockReleaseMutateAsync,
+    isPending: false,
+    isSponsoredReleaseUnavailable: mockSponsoredReleaseUnavailable,
+  }),
   useENSRegistrationStatus: (slug?: string) => {
     mockUseENSRegistrationStatus(slug);
     return { data: slug ? mockRegistrationData : undefined };
   },
+  useGreenGoodsEnsName: () => ({ data: mockExistingGreenGoodsEnsName }),
   ENSProgressTimeline: ({ slug, data }: { slug: string; data: unknown }) =>
     createElement("div", { "data-testid": "ens-progress" }, slug),
 }));
@@ -83,10 +95,21 @@ describe("Profile ENSSection", () => {
     mockProtocolMember = true;
     mockRegistrationData = undefined;
     mockSlugValue = "";
+    mockExistingGreenGoodsEnsName = null;
+    mockSponsoredReleaseUnavailable = false;
+    mockValidateSlug.mockReturnValue({ valid: true });
+    window.localStorage.clear();
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: mockClipboardWriteText },
+    });
     mockMutateAsync.mockResolvedValue({});
+    mockReleaseMutateAsync.mockResolvedValue({ slug: "forest" });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     cleanup();
   });
 
@@ -131,5 +154,71 @@ describe("Profile ENSSection", () => {
       expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
     });
     expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+  });
+
+  it("hides claim form when the address already has a Green Goods ENS name", () => {
+    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    mockRegistrationData = { status: "active" };
+
+    renderENSSection();
+
+    expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith("forest");
+    expect(screen.getAllByText("forest")).toHaveLength(2);
+    expect(screen.getByText("Release username")).toBeInTheDocument();
+    expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
+    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+  });
+
+  it("releases the current ENS name after confirmation", async () => {
+    const user = userEvent.setup();
+    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    mockRegistrationData = { status: "active" };
+    mockReleaseMutateAsync.mockResolvedValue({ slug: "forest" });
+
+    renderENSSection();
+
+    await user.click(screen.getByText("Release username"));
+
+    await waitFor(() => {
+      expect(mockReleaseMutateAsync).toHaveBeenCalled();
+    });
+    expect(screen.getByText("Release started")).toBeInTheDocument();
+  });
+
+  it("prepares a support request when sponsored release is unavailable", async () => {
+    const user = userEvent.setup();
+    mockExistingGreenGoodsEnsName = "forest.greengoods.eth";
+    mockRegistrationData = { status: "active" };
+    mockSponsoredReleaseUnavailable = true;
+
+    renderENSSection();
+
+    const requestButton = screen.getByText("Request username change");
+    expect(requestButton).not.toBeDisabled();
+    expect(
+      screen.getByText(
+        "Username changes are support-assisted on this ENS sender. If you still have this passkey, an operator can fund the release transaction. If you lost it, support can review recovery."
+      )
+    ).toBeInTheDocument();
+
+    await user.click(requestButton);
+    await user.type(screen.getByLabelText("Desired username"), "canopy");
+    await user.type(screen.getByLabelText("Contact"), "@alice");
+    await user.click(screen.getByText("Prepare request"));
+
+    expect(mockReleaseMutateAsync).not.toHaveBeenCalled();
+    expect(screen.getByText(/Request ens-change-/)).toBeInTheDocument();
+    expect((screen.getByLabelText("Request details") as HTMLTextAreaElement).value).toContain(
+      "Desired username: canopy.greengoods.eth"
+    );
+
+    const stored = JSON.parse(
+      window.localStorage.getItem("green-goods:ens-username-change-requests") ?? "[]"
+    ) as Array<{ currentSlug: string; desiredSlug: string; owner: string }>;
+    expect(stored[0]).toMatchObject({
+      currentSlug: "forest",
+      desiredSlug: "canopy",
+      owner: PRIMARY_ADDRESS,
+    });
   });
 });

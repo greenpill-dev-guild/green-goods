@@ -77,7 +77,7 @@ export {
 export { recursiveCloneChildren } from "./app/recursive-clone-children";
 export { getTag } from "./app/tags";
 export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";
-export { capitalize, formatAddress, truncate } from "./app/text";
+export { capitalize, formatAddress, formatEnsNameForDisplay, truncate } from "./app/text";
 // ============================================================================
 // WAKE LOCK (Screen Wake Lock API)
 // ============================================================================

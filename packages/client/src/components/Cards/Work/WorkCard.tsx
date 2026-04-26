@@ -1,5 +1,6 @@
 import {
   formatAddress,
+  formatEnsNameForDisplay,
   formatFileSize,
   truncateAddress,
   useEnsName,
@@ -184,6 +185,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
   const action = actionTitle || work.title;
   const gardenerName = formatAddress(work.gardenerAddress, { ensName: gardenerEnsName });
+  const gardenName = formatEnsNameForDisplay(gardenEnsName) ?? undefined;
   const extraBadges = [...(badges ?? [])];
 
   return (
@@ -198,8 +200,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
         createdAt: work.createdAt,
         mediaPreview,
         gardenerDisplayName: variant === "detailed" ? gardenerName : undefined,
-        gardenName:
-          variant === "compact" && showGardenInfo ? (gardenEnsName ?? undefined) : undefined,
+        gardenName: variant === "compact" && showGardenInfo ? gardenName : undefined,
         feedback: work.feedback,
         imageCount: mediaCount,
       }}

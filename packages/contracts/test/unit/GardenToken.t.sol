@@ -25,6 +25,7 @@ contract RevertingENSModule is IGreenGoodsENS {
     function claimName(string calldata) external payable override { }
     function claimNameSponsored(string calldata) external override { }
     function releaseName() external payable override { }
+    function releaseNameSponsored() external override { }
 
     function available(string calldata) external pure override returns (bool) {
         return true;
@@ -47,6 +48,7 @@ contract AcceptingENSModule is IGreenGoodsENS {
     function claimName(string calldata) external payable override { }
     function claimNameSponsored(string calldata) external override { }
     function releaseName() external payable override { }
+    function releaseNameSponsored() external override { }
 
     function available(string calldata) external pure override returns (bool) {
         return true;
