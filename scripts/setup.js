@@ -108,9 +108,11 @@ function installFoundry() {
     // husky hooks, where ~/.bashrc skips its body via `[ -z "$PS1" ] && return`).
     // Fall back to a PATH export in ~/.bashrc/~/.zshrc if no system dir is writable.
     const binaries = ["forge", "cast", "anvil", "chisel"];
-    const candidateDirs = ["/usr/local/bin", path.join(home, ".local", "bin")];
+    const userLocalBin = path.join(home, ".local", "bin");
+    const candidateDirs = ["/usr/local/bin", userLocalBin];
     const resolvedBinDir = fs.realpathSync(binDir);
     let symlinked = false;
+    let symlinkedDir = null;
     for (const dir of candidateDirs) {
       try {
         fs.mkdirSync(dir, { recursive: true });
@@ -141,14 +143,20 @@ function installFoundry() {
           fs.symlinkSync(target, link);
         }
         symlinked = true;
+        symlinkedDir = dir;
         break;
       } catch {
         // try next candidate
       }
     }
 
-    if (!symlinked) {
-      const pathLine = `export PATH="${binDir}:$PATH"`;
+    // Also write the PATH export if we landed in ~/.local/bin (not always on
+    // PATH in non-interactive shells like husky hooks) or if no symlink dir
+    // was writable at all.
+    const needsRcExport = !symlinked || symlinkedDir === userLocalBin;
+    if (needsRcExport) {
+      const exportDir = symlinked ? symlinkedDir : binDir;
+      const pathLine = `export PATH="${exportDir}:$PATH"`;
       const rcFiles = [path.join(home, ".bashrc")];
       if (platform === "darwin") rcFiles.push(path.join(home, ".zshrc"));
       for (const rc of rcFiles) {

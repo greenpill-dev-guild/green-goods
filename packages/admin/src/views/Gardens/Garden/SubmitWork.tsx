@@ -439,18 +439,16 @@ export default function SubmitWork() {
                   <Alert
                     variant="info"
                     action={
-                      canSubmit ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/gardens/${gardenId}`)}
-                        >
-                          {formatMessage({
-                            id: "app.admin.work.submit.noActionsForDomain.cta",
-                          })}
-                        </Button>
-                      ) : undefined
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/gardens/${gardenId}`)}
+                      >
+                        {formatMessage({
+                          id: "app.admin.work.submit.noActionsForDomain.cta",
+                        })}
+                      </Button>
                     }
                   >
                     {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
