@@ -2,6 +2,7 @@ import {
   ActionBannerFallback,
   DEFAULT_CHAIN_ID,
   Domain,
+  type EASDecodedField,
   formatDateRange,
   getEASExplorerUrl,
   logger,
@@ -23,14 +24,6 @@ import { Alert } from "@/components/ui/Alert";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
-
-/** EAS decoded field structure from attestation JSON */
-interface EASDecodedField {
-  name: string;
-  value: {
-    value: unknown;
-  };
-}
 
 interface ParsedAssessment {
   title: unknown;

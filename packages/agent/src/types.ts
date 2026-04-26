@@ -252,11 +252,5 @@ export interface ParsedWorkData {
 // ============================================================================
 // RATE LIMITING
 // ============================================================================
-
-export interface RateLimitResult {
-  allowed: boolean;
-  remaining: number;
-  resetIn: number;
-  limit: number;
-  message?: string;
-}
+// Canonical RateLimitResult / RateLimitConfig / RateLimitType live in
+// services/rate-limiter.ts — import from there.
