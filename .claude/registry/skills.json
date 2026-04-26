@@ -369,7 +369,7 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "user_invocable": true,
-      "intent": "Cleanup execution path that dispatches 8 parallel subagents to fix high-confidence dedup, dead code, type strengthening, defensive code, legacy, and AI slop findings",
+      "intent": "Cleanup execution path that dispatches 8 parallel subagents to fix high-confidence dedup, dead code, type strengthening, defensive code, legacy, and AI slop findings, then runs a Codex final review (regression hunt + miss hunt) before summarizing",
       "entry_file": ".claude/skills/clean/SKILL.md",
       "owned_skills": [],
       "modes": ["default", "dry-run", "scope", "agents"],

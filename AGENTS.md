@@ -35,6 +35,8 @@ their subtree.
 3. Run the lightest validation loop that still proves the change.
 4. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
+**Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. Canonical spec: `.claude/skills/audit-then-ship/SKILL.md`. The skill text is the source of truth for this rhythm; Codex follows the same phases. Do not invent a parallel Codex-specific protocol.
+
 ## Research, Plan, Implement
 
 For ambiguous, multi-package, or high-risk work, do not jump straight into edits.
@@ -44,6 +46,10 @@ For ambiguous, multi-package, or high-risk work, do not jump straight into edits
 3. Plan the smallest implementation path, including explicit out-of-scope items and validation commands.
 4. Surface human judgment points before editing protected or irreversible surfaces.
 5. Implement only after the research and plan are coherent. If the session went down the wrong path, summarize the useful findings and restart with clean context.
+
+## Verify Before Claiming Success
+
+Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
 
 ## Admin UI Defaults
 
@@ -71,6 +77,17 @@ Single design language across all frontend packages, two dialects. Full detail i
 **Additional validation steps**: `bun run check:design-generated` (root DesignMD ↔ generated artifacts), `bun run check:design-tokens` (runtime projection guard + version coupling), `bun run lint:vocab`. Add these to the Validation Ladder for frontend work.
 
 **Design-system alignment reviews**: for any full-repo design-system alignment review — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs UI, agentic guidance, Claude + Codex repo instructions — Codex must read and follow the Claude-owned repo protocol at `.claude/skills/design/system-alignment-review.md`. Treat it as the single source of truth for this review shape; do not author a separate Codex-only review protocol and do not duplicate the Warm Earth spec inside Codex guidance. The protocol starts read-only and does not apply fixes unless explicitly requested.
+
+## Known Gotchas
+
+**Tailwind v4 does not scan `packages/shared/src/` from admin/client builds.** Utility classes (`mx-4`, `w-max`, `self-center`, `justify-self-center`) added directly to JSX in shared components silently fail to generate in the consuming app. Symptom: layout looks right in Storybook (which runs from `packages/shared`) but breaks in admin/client (off-center, missing padding, wrong width). There is no `tailwind.config.*` file and no `@source` directive — Vite uses `@tailwindcss/vite` with default content scanning per package.
+
+Proven workarounds in this repo (do **not** chase a Vite/Tailwind config fix — none has been wired up and none has worked):
+- Inline styles or CSS custom properties for layout in shared components (`packages/shared/src/components/Canvas/MainSheet.tsx`, commit `374508db`).
+- CSS overrides in the consuming package (`packages/admin/src/styles/admin-m3-overrides.css` restates `width: max-content` instead of relying on shared's `w-max`, commit `bba06573`).
+- Apply utility classes in the consumer's JSX, not in shared.
+
+When you see a layout bug that "looks like" a missing class, first check: was the class authored in `packages/shared/src/`? If yes, this gotcha is the likely cause.
 
 ## Validation Ladder
 

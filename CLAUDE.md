@@ -109,6 +109,8 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Investigate Before Answering**: Never speculate about code you have not opened. If referencing a specific file, you MUST read it before answering. Give grounded, hallucination-free answers based on actual file contents, not assumptions about what code might look like.
 
+**Verify Before Claiming Success**: Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM via Chrome MCP, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
+
 **Research, Plan, Implement**: For ambiguous, multi-package, or high-risk work, research first, record evidence, plan the smallest implementation path, surface human judgment points, then edit. If the session goes down the wrong path, summarize only the useful findings and restart with clean context instead of carrying contaminated assumptions forward.
 
 **Subagent Discipline**: Spawn teammates when tasks can run in parallel, require isolated context, or involve independent workstreams. Work directly (no subagent) for single-file edits, sequential operations, tasks sharing state across steps, or any task needing fewer than 10 tool calls. Prefer the simplest approach that completes the task.
@@ -128,8 +130,8 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 
 **4-role volume hierarchy**: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%. Flooding the screen with green is the #1 failure mode. Codebase token `--color-primary` resolves to the **tertiary accent** role — do not rename.
 
-**Banned vocabulary** (enforced by `bun run lint:vocab` on i18n strings):
-- Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language.
+**Banned vocabulary** (enforced by `bun run lint:vocab` on i18n strings; canonical source: [`docs/docs/reference/glossary-community.md § Banned Vocabulary`](docs/docs/reference/glossary-community.md), machine-readable sidecar: [`docs/docs/reference/banned-vocabulary.json`](docs/docs/reference/banned-vocabulary.json)):
+- Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language (`urgent`, `limited time`, `re-engagement`, `retention hook`).
 - Admin only: `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, glass outside the admin `AppBar`.
 - Client only: `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
 
@@ -148,6 +150,17 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 3. **Ask** — only if 1 + 2 don't narrow to a single candidate. Ask in terms the user recognizes (component name + view), never ask them to write the grammar.
 
 Full resolution workflow, casual-term mapping, and defect-type taxonomy: `.claude/skills/design/defect-grammar.md`. Ground every edit with an internal `<Component> in <route/region> → <defect-type>: <expected> vs <actual>` statement — user never has to write it.
+
+## Known Gotchas
+
+**Tailwind v4 does not scan `packages/shared/src/` from admin/client builds.** Utility classes (`mx-4`, `w-max`, `self-center`, `justify-self-center`) added directly to JSX in shared components silently fail to generate in the consuming app. Symptom: layout looks right in Storybook (which runs from `packages/shared`) but breaks in admin/client (off-center, missing padding, wrong width). There is no `tailwind.config.*` file and no `@source` directive — Vite uses `@tailwindcss/vite` with default content scanning per package.
+
+Proven workarounds in this repo (do **not** chase a Vite/Tailwind config fix — none has been wired up and none has worked):
+- **Inline styles for layout in shared components** — see `packages/shared/src/components/Canvas/MainSheet.tsx` (`width: min(calc(100% - 2rem), 1400px); justify-self: center`), commit `374508db`
+- **CSS overrides in the consuming package** — admin restates `width: max-content` in `packages/admin/src/styles/admin-m3-overrides.css` rather than relying on shared's `w-max` utility, commit `bba06573`
+- **Apply utility classes in the consumer's JSX, not in shared** — when the class needs to come from Tailwind, put it on the wrapper in admin/client where the content scan reaches it
+
+When you see a layout bug that "looks like" a missing class, first check: was the class authored in `packages/shared/src/`? If yes, this gotcha is the likely cause.
 
 ## Contract Deployment
 
@@ -178,6 +191,17 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 - Scopes: contracts, indexer, shared, client, admin, agent, claude
 
 **Validation before committing**: `bun format && bun lint && bun run test && bun build`
+
+## Drift Cleanup Ritual
+
+When the working tree is heavy (changes spanning packages, drift across docs/code/tests, "feels off"), don't pile broad sweeps on top of unaudited changes. Run in this order:
+
+1. **`/audit-then-ship`** — surgical pass with a built-in scope-lock gate. Phase 1 picks a lens (audit/review/principles/architecture/design) and produces numbered findings; Phase 2 you pick which to fix; Phase 3 fixes only those; Phase 4 ships. The Phase 2 gate is the pause between investigation and action — that's the feedback checkpoint.
+2. **`/clean`** — broad 8-subagent sweep (dedup, dead code, type strengthening, defensive code, legacy, AI slop). Run only after `/audit-then-ship` clears the surgical drift, because its scope isn't number-pickable and would otherwise muddy a review.
+3. **`/simplify`** — focused refinement of recently changed code. Skip if `/clean` already touched the same surface.
+4. **`/ship`** — final gate. Already runs at the end of `/audit-then-ship`; re-run here only if `/clean` or `/simplify` modified anything afterward.
+
+Skip the ritual entirely for: single-file edits, doc-only changes, bug fixes with a known fix path. It's earned only by multi-issue, ambiguous-scope, cross-package work.
 
 ## Session Continuity
 

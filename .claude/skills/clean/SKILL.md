@@ -1,15 +1,15 @@
 ---
 name: clean
 description: Comprehensive codebase cleanup with 8 parallel subagents — deduplication, type consolidation, dead code removal, circular dependencies, type strengthening, defensive code removal, legacy cleanup, and AI slop removal. Use when the user wants to clean up the codebase, improve code quality at scale, or says 'clean the codebase'.
-argument-hint: "[--dry-run] [--scope package-name] [--agents 1,3,5]"
+argument-hint: "[--dry-run] [--scope package-name] [--agents 1,3,5] [--no-codex]"
 context: worktree
 effort: very-high
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["all"]
 dependencies: ["audit", "principles"]
-last_updated: "2026-04-15"
-last_verified: "2026-04-15"
+last_updated: "2026-04-25"
+last_verified: "2026-04-25"
 ---
 
 # Clean Skill
@@ -24,10 +24,11 @@ Parallel codebase cleanup: 8 focused agents each research, assess, and implement
 
 | Trigger | Action |
 |---------|--------|
-| `/clean` | Full 8-agent cleanup |
-| `/clean --dry-run` | Research + assessment only, no implementation |
-| `/clean --scope shared` | Limit all agents to one package |
-| `/clean --agents 1,3,5` | Run only specific agents by number |
+| `/clean` | Full 8-agent cleanup + Codex final review |
+| `/clean --dry-run` | Research + assessment only, no implementation, no Codex review |
+| `/clean --scope shared` | Limit all agents (and Codex review) to one package |
+| `/clean --agents 1,3,5` | Run only specific agents by number; Codex review still runs |
+| `/clean --no-codex` | Skip the Codex final review pass |
 
 ---
 
@@ -279,13 +280,17 @@ digraph clean_flow {
     reports [label="Collect reports\n(.plans/clean/)" shape=box];
     merge [label="Merge worktrees\n(resolve conflicts)" shape=box];
     validate [label="Validate\nbun format && bun lint\nbun run test && bun build" shape=box];
-    summary [label="Summary to user\n(changes, findings, skipped)" shape=box];
+    codex [label="Codex final review\n(regression + miss hunt,\nparallel lanes)" shape=box];
+    triage [label="Triage Codex findings\n(auto-revert regressions,\nuser-confirm misses)" shape=box];
+    summary [label="Summary to user\n(changes, findings, skipped,\nCodex callouts)" shape=box];
 
     preflight -> dispatch;
     dispatch -> reports;
     reports -> merge [label="--dry-run stops here"];
     merge -> validate;
-    validate -> summary;
+    validate -> codex [label="--no-codex skips"];
+    codex -> triage;
+    triage -> summary;
 }
 ```
 
@@ -295,7 +300,101 @@ digraph clean_flow {
 2. **Merge worktrees** — if conflicts arise, prefer the agent whose concern is more central (e.g., Agent 2's type move over Agent 1's dedup of that same type)
 3. **Full validation**: `bun format && bun lint && bun run test && bun build`
 4. **Fix regressions** — if tests fail, revert the specific change that broke them
-5. **Summary** — present to user: files changed, findings per agent, what was skipped (MEDIUM/LOW)
+5. **Codex final review** — dispatch the two Codex lanes (see § Codex Final Review). Skipped under `--dry-run` or `--no-codex`.
+6. **Triage Codex findings** — auto-revert HIGH-confidence regressions; surface miss-hunt findings to the user, do not auto-apply
+7. **Summary** — present to user: files changed, findings per agent, what was skipped (MEDIUM/LOW), Codex callouts
+
+---
+
+## Codex Final Review
+
+A second-opinion pass after Claude's 8 agents merge and validation passes. Codex sees the **merged result**, not partial agent worktrees, so it can catch regressions and cross-cutting misses that no single agent's lane covered. Skipped in `--dry-run` and `--no-codex`.
+
+### Why Codex (not a 9th Claude agent)
+
+- Codex's structural-review and "promptability" lens is independently validated for cleanup-style work (taxonomy, dead code, naming, file/route alignment).
+- Two reviewers with different model biases catch different misses; the merged diff is the natural handoff point.
+- Codex is weak at visual/UX judgment — that's why it's the **reviewer**, not an implementer of new style.
+
+### Lanes
+
+Both lanes dispatch via `.claude/scripts/dispatch-codex-lane.sh` against the checkpoint branch (`clean/<timestamp>`), with `--phase regression` and `--phase gap`. Run them in parallel as background bash jobs — they don't share state.
+
+**Lane R — Regression hunt (diff-scoped):**
+
+```
+You are reviewing the merged diff between $BASE_BRANCH and HEAD on the clean/* checkpoint
+branch. Eight cleanup agents just modified this codebase. Your job is to find any change
+that alters runtime behavior, NOT to find new cleanup opportunities.
+
+Scan every hunk and classify:
+
+REGRESSION-HIGH  — Behavior change disguised as a refactor. Examples: removed catch block
+                    that was actually load-bearing, changed default arg, narrowed a type
+                    that callers relied on, dead-code removal that wasn't actually dead.
+REGRESSION-MED   — Plausible behavior change but unclear; needs human eye.
+REGRESSION-LOW   — Likely safe but worth flagging (e.g., reordered arguments, renamed
+                    public symbol without checking external consumers).
+SAFE             — Pure refactor / dedup / type tightening with equivalent semantics.
+
+For each non-SAFE finding, output: file:line, the agent's likely intent, why it might
+break, and the smallest revert (specific lines).
+
+Honor these invariants from CLAUDE.md — flag if any agent broke them:
+- Hook boundary (all hooks live in @green-goods/shared)
+- Barrel imports (no deep paths)
+- Address type for Ethereum addresses
+- parseContractError() + USER_FRIENDLY_ERRORS for contract errors
+- Offline-first fallbacks are intentional, not legacy
+- Single root .env (no per-package .env)
+```
+
+**Lane G — Miss hunt (codebase-wide):**
+
+```
+The 8 cleanup agents have just finished. Their reports are at .plans/clean/agent-*.md.
+Your job is to find cleanup opportunities they MISSED, especially issues that don't
+fit neatly into a single agent's lane.
+
+Read each agent's report first to understand what was already covered. Then scan for:
+
+CROSS-CUTTING — Issues spanning two or more agent domains (e.g., a duplicated type that
+                is also dead, a defensive catch around legacy code).
+TAXONOMY      — Inconsistent naming, ambiguous file/folder placement, types/components
+                whose names lie about what they do. Use the "promptability" lens: would
+                an AI agent looking at this codebase confidently know where to put a new
+                feature?
+PLACEMENT     — Files in the wrong package (e.g., a hook in client/ that should be in
+                shared/, a domain type in admin/ that should be in shared/).
+SEAM DRIFT    — Public APIs that have grown asymmetric (one helper does X+Y, its sibling
+                only does X), barrel exports that don't match what consumers import.
+DOC/CODE DRIFT — Comments, JSDoc, or .claude/context/*.md that contradict the current code.
+
+For each finding, output: location, category, concrete fix, and confidence
+(HIGH/MED/LOW). Do NOT modify files. Output is a report only.
+```
+
+### Outputs
+
+Each lane writes its `codex-result.md` (per `.codex/output-schema.json`) inside its worktree. After dispatch returns, copy both into `.plans/clean/`:
+
+- `.plans/clean/codex-regression.md`
+- `.plans/clean/codex-gap.md`
+
+### Triage rules (Claude reads, decides, acts)
+
+- **REGRESSION-HIGH** → auto-revert the cited lines on the checkpoint branch, then re-run validation. If validation now fails, escalate to user.
+- **REGRESSION-MED / -LOW** → list in summary, do not auto-revert.
+- **Miss-hunt findings (any confidence)** → never auto-apply. Surface in summary, let user pick which to feed into a follow-up `/clean --agents N` or a manual edit.
+- If Codex flags an "agent removed dead code that was actually used" and the test suite still passes, trust the test suite first; surface the finding as REGRESSION-LOW for human review.
+
+### When to skip
+
+Use `--no-codex` when:
+- Codex binary is unavailable (no `/Applications/Codex.app/...` or `CODEX` env)
+- Network/auth is broken on the codex side
+- The user already plans to run a full `/review` on the branch
+- Time pressure (Codex review adds ~3-5 min sequential after the parallel agent phase)
 
 ---
 
@@ -309,7 +408,7 @@ npx madge --circular --extensions ts,tsx packages/  # Zero circular deps
 bunx knip --reporter compact    # Reduced dead code
 ```
 
-All must pass before reporting completion. If any fail, fix or revert.
+All must pass before reporting completion. If any fail, fix or revert. Codex regression-revert (above) runs **before** this final validation, so the post-clean numbers reflect the corrected state.
 
 ---
 
@@ -322,6 +421,8 @@ All must pass before reporting completion. If any fail, fix or revert.
 - **HIGH-confidence only** — agents only implement findings they're confident about
 - **Preserve invariants** — all CLAUDE.md rules apply (hook boundary, barrel imports, Address types, single .env)
 - **Never remove offline-first code** — the job queue, IndexedDB persistence, and service worker are intentional complexity
+- **Codex reviews the merge, not the worktrees** — dispatch only after merge + validation, so Codex sees the same code the user will ship
+- **Codex is read-only by default** — only auto-applies regression-reverts (HIGH); miss-hunt findings always go to the user
 
 ---
 
@@ -359,6 +460,9 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 | Remove catch blocks in contract interactions | They use parseContractError() intentionally |
 | Strengthen types in test mocks to exact shapes | Test mocks are intentionally partial |
 | Run all 8 agents on a tiny change | Use `--agents` to pick relevant ones |
+| Auto-apply Codex miss-hunt findings | Need human judgment; surface them, don't merge them |
+| Run Codex review before merge/validation | Codex needs to see the merged result, not partial worktrees |
+| Use Codex review to vet visual/UX cleanup | Codex is weak at visual judgment — that's a Claude job |
 
 ---
 
@@ -368,5 +472,6 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 - `principles` — Evaluate design soundness (SOLID/DRY/KISS compliance).
 - `review` — Review specific changes. Use when reviewing a PR or recent commits.
 - `testing` — Each agent runs `bun run test` in affected packages after implementing fixes.
+- `plan` (`teams.md` § Part 11) — canonical reference for the `dispatch-codex-lane.sh` pattern that the Codex final review reuses.
 
-Recommended flow: `audit` -> review findings -> `clean --agents N` targeting specific issues -> `review` the changes.
+Recommended flow: `audit` -> review findings -> `clean --agents N` targeting specific issues -> Codex final review (built in) -> `review` the changes.

@@ -9,6 +9,7 @@
 | Skill | Invoke With | Use For |
 |-------|-------------|---------|
 | **review** | `/review [package|PR|file]` | Before merge: inspect the diff, separate must-fix items from human call-outs. Positional arg scopes the review (`/review admin`, `/review #123`, `/review packages/shared/...`) |
+| **audit-then-ship** | `/audit-then-ship [scope]` | The user's default rhythm: investigate (read-only) → explicit scope-lock gate → fix only locked items → ship pipeline. Use when scope is ambiguous or multi-issue. |
 | **status** | `/status` | Resume and orient: branch state, blockers, continuity, and the next 1-3 moves |
 | **clean** | `/clean` | After findings are accepted: dispatch 8 parallel cleanup agents (use `--dry-run`, `--scope`, `--agents`) |
 
