@@ -3,7 +3,10 @@ import { RiCloseLine } from "@remixicon/react";
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
+import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
+import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { cn } from "../../utils";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
 import { SPRING_CONFIGS, DISMISS_VELOCITY_THRESHOLD } from "./springConfig";
@@ -42,17 +45,35 @@ export function LeftSheet({
   const closeLabel = formatMessage({ id: "app.common.close" });
   const dialogRef = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const latestOpenRef = useRef(open);
+  const latestContentRef = useRef({ title, description, children });
 
   // Track whether the sheet should be rendered (stays true during close animation)
   const [mounted, setMounted] = useState(open);
+  useFocusTrap(dialogRef, {
+    enabled: isBounded && mounted && open,
+    autoFocusSelector: '[data-testid="left-sheet-close"]',
+  });
+
+  useEffect(() => {
+    latestOpenRef.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      latestContentRef.current = { title, description, children };
+    }
+  }, [children, description, open, title]);
 
   // Spring: x=0 fully open, x=-100 fully offscreen left
   const [springs, api] = useSpring(() => ({
     x: open ? 0 : -100,
     overlay: open ? 1 : 0,
     config: SPRING_CONFIGS.sheet,
+    immediate: prefersReducedMotion,
     onRest: (result) => {
-      if (!open && result.finished && result.value.x <= -99) {
+      if (!latestOpenRef.current && result.finished && result.value.x <= -99) {
         setMounted(false);
         dialogRef.current?.close();
       }
@@ -64,20 +85,28 @@ export function LeftSheet({
     if (open) {
       setMounted(true);
     }
-    api.start({ x: open ? 0 : -100, overlay: open ? 1 : 0 });
-  }, [open, api]);
+    api.start({ x: open ? 0 : -100, overlay: open ? 1 : 0, immediate: prefersReducedMotion });
+    if (prefersReducedMotion && !open) {
+      setMounted(false);
+      dialogRef.current?.close();
+    }
+  }, [open, api, mounted, prefersReducedMotion]);
 
   // Show native dialog when mounted
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
+    if (isBounded) {
+      return;
+    }
+
     if (mounted && open) {
       if (!dialog.open) {
         dialog.showModal();
       }
     }
-  }, [mounted, open]);
+  }, [isBounded, mounted, open]);
 
   // Handle native dialog cancel (Escape key)
   useEffect(() => {
@@ -92,6 +121,20 @@ export function LeftSheet({
     dialog.addEventListener("cancel", handleCancel);
     return () => dialog.removeEventListener("cancel", handleCancel);
   }, [onClose]);
+
+  useEffect(() => {
+    if (!isBounded || !mounted || !open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isBounded, mounted, onClose, open]);
 
   // Drag dismiss gesture — drag left to dismiss
   const bind = useDrag(
@@ -108,6 +151,7 @@ export function LeftSheet({
         onClose();
         return;
       }
+      if (prefersReducedMotion) return;
       const sheetWidth = contentRef.current?.offsetWidth ?? 360;
       const pct = Math.min(0, (mx / sheetWidth) * 100 * 0.6);
       api.start({ x: pct, immediate: true });
@@ -130,11 +174,17 @@ export function LeftSheet({
 
   if (!mounted) return null;
 
-  return (
+  const renderedTitle = open ? title : latestContentRef.current.title;
+  const renderedDescription = open ? description : latestContentRef.current.description;
+  const renderedChildren = open ? children : latestContentRef.current.children;
+
+  const dialogElement = (
     <dialog
       ref={dialogRef}
-      aria-label={title || closeLabel}
+      aria-label={renderedTitle || closeLabel}
       aria-modal="true"
+      open={isBounded ? mounted : undefined}
+      tabIndex={-1}
       className={cn(
         "fixed inset-0 m-0 h-full w-full max-h-full max-w-full",
         "bg-transparent p-0 outline-none",
@@ -142,6 +192,14 @@ export function LeftSheet({
         isBounded && "absolute"
       )}
       style={{
+        position: isBounded ? "absolute" : "fixed",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        maxWidth: "none",
+        maxHeight: "none",
+        margin: 0,
+        pointerEvents: "auto",
         zIndex: isBounded ? 45 : 50,
       }}
       data-component="LeftSheet"
@@ -150,7 +208,7 @@ export function LeftSheet({
       data-boundary={sheetBoundary}
       data-testid="left-sheet-dialog"
     >
-      {description ? <p className="sr-only">{description}</p> : null}
+      {renderedDescription ? <p className="sr-only">{renderedDescription}</p> : null}
 
       {/* Custom overlay — static blur, opacity fade only */}
       <animated.div
@@ -173,13 +231,14 @@ export function LeftSheet({
         ref={contentRef}
         className={cn(
           "absolute top-0 left-0 flex h-full flex-col rounded-r-xl",
-          "focus:outline-none will-change-transform",
+          "touch-none focus:outline-none will-change-transform",
           "glass-floating"
         )}
         style={{
           width: "100%",
           maxWidth: "clamp(260px, 25vw, 360px)",
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
+          touchAction: "none",
           transform: springs.x.to((x) => `translateX(${x}%)`),
           zIndex: isBounded ? 46 : 51,
         }}
@@ -191,13 +250,13 @@ export function LeftSheet({
         {...bind()}
       >
         {/* Header — close button on left, title on right (mirrored from RightSheet) */}
-        {title ? (
+        {renderedTitle ? (
           <div
             className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3 flex-row-reverse"
             data-slot="header"
           >
             <h2 className="text-lg font-semibold text-text-strong" data-slot="title">
-              {title}
+              {renderedTitle}
             </h2>
             <button
               type="button"
@@ -238,9 +297,11 @@ export function LeftSheet({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto" data-slot="body">
-          <SheetErrorBoundary onClose={onClose}>{children}</SheetErrorBoundary>
+          <SheetErrorBoundary onClose={onClose}>{renderedChildren}</SheetErrorBoundary>
         </div>
       </animated.div>
     </dialog>
   );
+
+  return isBounded && container ? createPortal(dialogElement, container) : dialogElement;
 }

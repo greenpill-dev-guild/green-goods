@@ -3,13 +3,16 @@
  * @vitest-environment jsdom
  *
  * Tests the navigation-aware hook that wraps useSheetOrchestratorStore.
- * Validates: isReceded derivation, onNavigateAway (save + close + 300ms wait),
- * and onNavigateArrive (restore without auto-open).
+ * Validates: isReceded derivation, onNavigateAway save/close timing,
+ * and onNavigateArrive restore without auto-open.
  */
 
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { useSheetOrchestrator } from "../../../hooks/navigation/useSheetOrchestrator";
+import {
+  getSheetCloseAnimationMs,
+  useSheetOrchestrator,
+} from "../../../hooks/navigation/useSheetOrchestrator";
 import { useSheetOrchestratorStore } from "../../../stores/useSheetOrchestratorStore";
 
 describe("hooks/navigation/useSheetOrchestrator", () => {
@@ -81,7 +84,7 @@ describe("hooks/navigation/useSheetOrchestrator", () => {
   // onNavigateAway
   // =========================================================================
 
-  it("onNavigateAway saves state, closes sheet, and waits 300ms", async () => {
+  it("onNavigateAway saves state, closes sheet, and waits for the motion token", async () => {
     const { result } = renderHook(() => useSheetOrchestrator());
 
     act(() => {
@@ -106,10 +109,10 @@ describe("hooks/navigation/useSheetOrchestrator", () => {
     // Sheet should be closed immediately
     expect(useSheetOrchestratorStore.getState().activeSheet).toBeNull();
 
-    // Promise should NOT be resolved yet (waiting 300ms)
+    // Promise should NOT be resolved yet (waiting for sheet close motion)
     expect(resolved).toBe(false);
 
-    // Advance past 300ms
+    // Advance past the fallback close duration used when CSS tokens are unavailable in jsdom.
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
@@ -120,12 +123,14 @@ describe("hooks/navigation/useSheetOrchestrator", () => {
     expect(resolved).toBe(true);
   });
 
-  it("onNavigateAway works when no sheet is open", async () => {
+  it("onNavigateAway resolves immediately when no sheet is open", async () => {
     const { result } = renderHook(() => useSheetOrchestrator());
 
-    let promise: Promise<void>;
+    let resolved = false;
     act(() => {
-      promise = result.current.onNavigateAway("/empty");
+      void result.current.onNavigateAway("/empty").then(() => {
+        resolved = true;
+      });
     });
 
     // Should still save (null state)
@@ -134,10 +139,32 @@ describe("hooks/navigation/useSheetOrchestrator", () => {
     expect(saved!.sheetOpen).toBeNull();
 
     await act(async () => {
-      vi.advanceTimersByTime(300);
+      await Promise.resolve();
     });
-    await act(async () => {
-      await promise!;
+    expect(resolved).toBe(true);
+  });
+
+  it("uses zero close delay when reduced motion is requested", () => {
+    const originalMatchMedia = window.matchMedia;
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(prefers-reduced-motion: reduce)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    expect(getSheetCloseAnimationMs()).toBe(0);
+
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: originalMatchMedia,
     });
   });
 

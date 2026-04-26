@@ -5,7 +5,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useRef } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { MainSheet, useCanvasPortal } from "../../components/Canvas/MainSheet";
 
 function OverlayActivator({ active }: { active: boolean }) {
@@ -20,6 +20,10 @@ function OverlayActivator({ active }: { active: boolean }) {
 }
 
 describe("MainSheet", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("exposes the bounded overlay root through context and an external ref", async () => {
     function Harness() {
       const overlayRef = useRef<HTMLDivElement | null>(null);
@@ -85,10 +89,38 @@ describe("MainSheet", () => {
       </MainSheet>
     );
 
-    // With react-spring, the animated.div has will-change-[transform,opacity,filter]
-    // indicating it is the receding surface; glass-surface class is always present
     await waitFor(() => {
-      expect(screen.getByTestId("main-sheet-content").className).toContain("glass-surface");
+      expect(screen.getByTestId("main-sheet")).toHaveAttribute("data-state", "receded");
     });
+
+    const content = screen.getByTestId("main-sheet-content");
+    expect(content.style.transition).toContain("--spring-spatial-duration");
+    expect(content.style.transform).toBe("translateY(var(--canvas-recede-y, 8px))");
+    expect(content.style.opacity).toBe("var(--canvas-opacity-receded, 0.95)");
+    expect(content.style.filter).toBe("blur(var(--canvas-blur-receded, 1.5px))");
+  });
+
+  it("disables recession transitions when reduced motion is requested", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(prefers-reduced-motion: reduce)",
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+    );
+
+    render(
+      <MainSheet isReceded>
+        <div>Content</div>
+      </MainSheet>
+    );
+
+    expect(screen.getByTestId("main-sheet-content").style.transition).toBe("none");
   });
 });

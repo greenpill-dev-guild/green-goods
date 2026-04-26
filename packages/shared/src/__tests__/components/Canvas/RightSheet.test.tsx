@@ -1,5 +1,5 @@
 // packages/shared/src/__tests__/components/Canvas/RightSheet.test.tsx
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { IntlProvider } from "react-intl";
 import { RightSheet } from "../../../components/Canvas/RightSheet";
@@ -49,5 +49,55 @@ describe("RightSheet", () => {
       </RightSheet>
     );
     expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+  });
+
+  it("portals bounded sheets into the provided container", () => {
+    const portalContainer = document.createElement("div");
+    document.body.appendChild(portalContainer);
+
+    renderWithIntl(
+      <RightSheet open onClose={vi.fn()} title="Settings" container={portalContainer}>
+        <div>Content</div>
+      </RightSheet>
+    );
+
+    const dialog = screen.getByTestId("right-sheet-dialog");
+    expect(portalContainer).toContainElement(dialog);
+    expect(dialog).toHaveAttribute("open");
+    expect(dialog).toHaveStyle({
+      maxHeight: "none",
+      maxWidth: "none",
+      pointerEvents: "auto",
+      position: "absolute",
+    });
+  });
+
+  it("traps focus and handles Escape in bounded mode", async () => {
+    const portalContainer = document.createElement("div");
+    document.body.appendChild(portalContainer);
+    const onClose = vi.fn();
+
+    renderWithIntl(
+      <RightSheet open onClose={onClose} title="Settings" container={portalContainer}>
+        <button type="button">Inner action</button>
+      </RightSheet>
+    );
+
+    const dialog = screen.getByTestId("right-sheet-dialog");
+    const closeButton = screen.getByTestId("right-sheet-close");
+    const innerAction = screen.getByRole("button", { name: "Inner action" });
+
+    await waitFor(() => expect(closeButton).toHaveFocus());
+
+    innerAction.focus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(closeButton).toHaveFocus();
+
+    closeButton.focus();
+    fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
+    expect(innerAction).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

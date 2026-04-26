@@ -7,9 +7,8 @@ import {
   type MutableRefObject,
   type ReactNode,
 } from "react";
-import { animated, useSpring } from "@react-spring/web";
+import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
 import { cn } from "../../utils";
-import { SPRING_CONFIGS } from "./springConfig";
 
 interface CanvasPortalContextValue {
   portalTarget: HTMLDivElement | null;
@@ -58,6 +57,7 @@ export function useCanvasPortal() {
 export function MainSheet({ isReceded, children, overlayRef, className }: MainSheetProps) {
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
   const [activeOverlayIds, setActiveOverlayIds] = useState<Set<string>>(() => new Set());
+  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
 
   const handlePortalTargetRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -95,12 +95,6 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
   const mainSheetState = isMainSheetReceded ? "receded" : "resting";
   const overlayState = activeOverlayIds.size > 0 ? "active" : "idle";
 
-  const recessionSpring = useSpring({
-    opacity: isMainSheetReceded ? 0.65 : 1,
-    y: isMainSheetReceded ? 12 : 0,
-    config: SPRING_CONFIGS.recession,
-  });
-
   return (
     <CanvasPortalContext.Provider value={canvasPortalValue}>
       <div
@@ -119,14 +113,22 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
           className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]"
           data-slot="frame"
         >
-          <animated.div
+          <div
             className={cn(
-              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity]",
+              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity,filter]",
               "glass-surface"
             )}
             style={{
-              transform: recessionSpring.y.to((y) => `translateY(${y}px)`),
-              opacity: recessionSpring.opacity,
+              transition: prefersReducedMotion
+                ? "none"
+                : [
+                    "opacity var(--spring-spatial-duration) var(--spring-spatial-easing)",
+                    "transform var(--spring-spatial-duration) var(--spring-spatial-easing)",
+                    "filter var(--spring-spatial-duration) var(--spring-spatial-easing)",
+                  ].join(", "),
+              transform: isMainSheetReceded ? "translateY(var(--canvas-recede-y, 8px))" : "none",
+              opacity: isMainSheetReceded ? "var(--canvas-opacity-receded, 0.95)" : 1,
+              filter: isMainSheetReceded ? "blur(var(--canvas-blur-receded, 1.5px))" : "none",
             }}
             data-component="MainSheet"
             data-slot="surface"
@@ -134,7 +136,7 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
             data-testid="main-sheet-content"
           >
             {children}
-          </animated.div>
+          </div>
         </div>
 
         <div

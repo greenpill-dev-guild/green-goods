@@ -8,7 +8,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -210,10 +210,44 @@ describe("BottomSheet", () => {
     const dialogEl = screen.getByTestId("bottom-sheet-dialog");
     const content = screen.getByTestId("bottom-sheet");
 
-    // Native dialog uses absolute positioning in bounded mode
-    expect(dialogEl.className).toContain("absolute");
-    // Content uses percentage maxHeight and lower z-index
+    expect(container).toContainElement(dialogEl);
+    expect(dialogEl).toHaveAttribute("open");
+    expect(dialogEl).toHaveStyle({
+      maxHeight: "none",
+      maxWidth: "none",
+      pointerEvents: "auto",
+      position: "absolute",
+    });
     expect(content.style.maxHeight).toBe("85%");
     expect(content.style.zIndex).toBe("46");
+  });
+
+  it("traps focus and handles Escape in bounded mode", async () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const onClose = vi.fn();
+
+    render(
+      <BottomSheet open={true} onClose={onClose} title="Bounded" container={container}>
+        <button type="button">Inner action</button>
+      </BottomSheet>
+    );
+
+    const dialog = screen.getByTestId("bottom-sheet-dialog");
+    const closeButton = screen.getByTestId("bottom-sheet-close");
+    const innerAction = screen.getByRole("button", { name: "Inner action" });
+
+    await waitFor(() => expect(closeButton).toHaveFocus());
+
+    innerAction.focus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+    expect(closeButton).toHaveFocus();
+
+    closeButton.focus();
+    fireEvent.keyDown(dialog, { key: "Tab", shiftKey: true });
+    expect(innerAction).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });

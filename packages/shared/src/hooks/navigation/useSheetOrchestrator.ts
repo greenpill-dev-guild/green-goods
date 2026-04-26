@@ -4,8 +4,31 @@ import {
   type ViewSheetState,
 } from "../../stores/useSheetOrchestratorStore";
 
-/** Duration in ms matching --spring-spatial CSS transition. */
-const CLOSE_ANIMATION_MS = 300;
+const DEFAULT_CLOSE_ANIMATION_MS = 300;
+
+function parseCssTimeToMs(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.endsWith("ms")) return Number.parseFloat(trimmed);
+  if (trimmed.endsWith("s")) return Number.parseFloat(trimmed) * 1000;
+  return null;
+}
+
+export function getSheetCloseAnimationMs(): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return DEFAULT_CLOSE_ANIMATION_MS;
+  }
+
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    return 0;
+  }
+
+  const tokenValue = window
+    .getComputedStyle(document.documentElement)
+    .getPropertyValue("--spring-spatial-duration");
+  const parsed = parseCssTimeToMs(tokenValue);
+  return Number.isFinite(parsed) && parsed !== null ? parsed : DEFAULT_CLOSE_ANIMATION_MS;
+}
 
 export interface UseSheetOrchestratorReturn {
   activeSheet: "left" | "right" | null;
@@ -49,11 +72,15 @@ export function useSheetOrchestrator(): UseSheetOrchestratorReturn {
       storeSaveViewState(currentPath);
       storeCloseSheet();
 
+      if (!activeSheet) {
+        return Promise.resolve();
+      }
+
       return new Promise<void>((resolve) => {
-        setTimeout(resolve, CLOSE_ANIMATION_MS);
+        setTimeout(resolve, getSheetCloseAnimationMs());
       });
     },
-    [storeSaveViewState, storeCloseSheet]
+    [activeSheet, storeSaveViewState, storeCloseSheet]
   );
 
   const onNavigateArrive = useCallback(

@@ -47,6 +47,12 @@ type SheetCase = {
   overlayTestId: string;
   dragTargetTestId: string;
   renderSheet: (onClose: () => void, title: string) => ReactElement;
+  renderSheetState: (props: {
+    open: boolean;
+    onClose: () => void;
+    title?: string;
+    children?: ReactElement | null;
+  }) => ReactElement;
   dragPastThreshold: (target: HTMLElement) => void;
 };
 
@@ -59,6 +65,11 @@ const sheetCases: SheetCase[] = [
     renderSheet: (onClose, title) => (
       <LeftSheet open onClose={onClose} title={title}>
         <p>Sheet content</p>
+      </LeftSheet>
+    ),
+    renderSheetState: ({ open, onClose, title, children }) => (
+      <LeftSheet open={open} onClose={onClose} title={title}>
+        {children}
       </LeftSheet>
     ),
     dragPastThreshold: (target) => {
@@ -94,6 +105,11 @@ const sheetCases: SheetCase[] = [
         <p>Sheet content</p>
       </RightSheet>
     ),
+    renderSheetState: ({ open, onClose, title, children }) => (
+      <RightSheet open={open} onClose={onClose} title={title}>
+        {children}
+      </RightSheet>
+    ),
     dragPastThreshold: (target) => {
       fireEvent.pointerDown(target, {
         pointerId: 1,
@@ -125,6 +141,11 @@ const sheetCases: SheetCase[] = [
     renderSheet: (onClose, title) => (
       <BottomSheet open onClose={onClose} title={title}>
         <p>Sheet content</p>
+      </BottomSheet>
+    ),
+    renderSheetState: ({ open, onClose, title, children }) => (
+      <BottomSheet open={open} onClose={onClose} title={title}>
+        {children}
       </BottomSheet>
     ),
     dragPastThreshold: (target) => {
@@ -181,6 +202,32 @@ describe.each(sheetCases)("$name", (sheet) => {
     expect(overlay).toHaveAttribute("data-slot", "overlay");
     expect(surface).toHaveAttribute("data-slot", "surface");
     expect(surface).toHaveAttribute("data-state", "open");
+  });
+
+  it("keeps the last content mounted while the close animation runs", () => {
+    const onClose = vi.fn();
+    const { rerender } = renderWithIntl(
+      sheet.renderSheetState({
+        open: true,
+        onClose,
+        title: "Work Detail",
+        children: <p>Closing content</p>,
+      })
+    );
+
+    rerender(
+      <IntlProvider locale="en" messages={{ "app.common.close": "Close" }}>
+        {sheet.renderSheetState({
+          open: false,
+          onClose,
+          title: undefined,
+          children: null,
+        })}
+      </IntlProvider>
+    );
+
+    expect(screen.getByText("Closing content")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Work Detail" })).toBeInTheDocument();
   });
 
   it("fires onClose when the overlay is clicked", () => {

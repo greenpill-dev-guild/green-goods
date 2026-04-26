@@ -3,7 +3,10 @@ import { RiCloseLine } from "@remixicon/react";
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
+import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
+import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { cn } from "../../utils";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
 import { SPRING_CONFIGS, DISMISS_VELOCITY_THRESHOLD } from "./springConfig";
@@ -45,16 +48,34 @@ export function BottomSheet({
 
   const dialogRef = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const latestOpenRef = useRef(open);
+  const latestContentRef = useRef({ title, children });
 
   const [mounted, setMounted] = useState(open);
+  useFocusTrap(dialogRef, {
+    enabled: isBounded && mounted && open,
+    autoFocusSelector: '[data-testid="bottom-sheet-close"]',
+  });
+
+  useEffect(() => {
+    latestOpenRef.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      latestContentRef.current = { title, children };
+    }
+  }, [children, open, title]);
 
   // Spring: y=0 fully open, y=100 fully offscreen bottom (percentage)
   const [springs, api] = useSpring(() => ({
     y: open ? 0 : 100,
     overlay: open ? 1 : 0,
     config: SPRING_CONFIGS.sheet,
+    immediate: prefersReducedMotion,
     onRest: (result) => {
-      if (!open && result.finished && result.value.y >= 99) {
+      if (!latestOpenRef.current && result.finished && result.value.y >= 99) {
         setMounted(false);
         dialogRef.current?.close();
       }
@@ -65,19 +86,27 @@ export function BottomSheet({
     if (open) {
       setMounted(true);
     }
-    api.start({ y: open ? 0 : 100, overlay: open ? 1 : 0 });
-  }, [open, api]);
+    api.start({ y: open ? 0 : 100, overlay: open ? 1 : 0, immediate: prefersReducedMotion });
+    if (prefersReducedMotion && !open) {
+      setMounted(false);
+      dialogRef.current?.close();
+    }
+  }, [open, api, mounted, prefersReducedMotion]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
+
+    if (isBounded) {
+      return;
+    }
 
     if (mounted && open) {
       if (!dialog.open) {
         dialog.showModal();
       }
     }
-  }, [mounted, open]);
+  }, [isBounded, mounted, open]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -91,6 +120,20 @@ export function BottomSheet({
     dialog.addEventListener("cancel", handleCancel);
     return () => dialog.removeEventListener("cancel", handleCancel);
   }, [onClose]);
+
+  useEffect(() => {
+    if (!isBounded || !mounted || !open) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [isBounded, mounted, onClose, open]);
 
   // Drag dismiss gesture — drag down to dismiss
   const bind = useDrag(
@@ -108,6 +151,7 @@ export function BottomSheet({
         onClose();
         return;
       }
+      if (prefersReducedMotion) return;
       const sheetHeight = contentRef.current?.offsetHeight ?? 400;
       const pct = Math.max(0, (my / sheetHeight) * 100 * 0.86);
       api.start({ y: pct, immediate: true });
@@ -130,11 +174,16 @@ export function BottomSheet({
 
   if (!mounted) return null;
 
-  return (
+  const renderedTitle = open ? title : latestContentRef.current.title;
+  const renderedChildren = open ? children : latestContentRef.current.children;
+
+  const dialogElement = (
     <dialog
       ref={dialogRef}
-      aria-label={title || closeLabel}
+      aria-label={renderedTitle || closeLabel}
       aria-modal="true"
+      open={isBounded ? mounted : undefined}
+      tabIndex={-1}
       className={cn(
         "fixed inset-0 m-0 h-full w-full max-h-full max-w-full",
         "bg-transparent p-0 outline-none",
@@ -142,6 +191,14 @@ export function BottomSheet({
         isBounded && "absolute"
       )}
       style={{
+        position: isBounded ? "absolute" : "fixed",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        maxWidth: "none",
+        maxHeight: "none",
+        margin: 0,
+        pointerEvents: "auto",
         zIndex: isBounded ? 45 : 50,
       }}
       data-component="BottomSheet"
@@ -190,6 +247,7 @@ export function BottomSheet({
         {/* Drag handle */}
         <div
           className="flex cursor-grab touch-none justify-center pb-1 pt-3 active:cursor-grabbing"
+          style={{ touchAction: "none" }}
           data-slot="drag-handle"
           data-state={sheetState}
           data-testid="bottom-sheet-drag-handle"
@@ -199,13 +257,13 @@ export function BottomSheet({
         </div>
 
         {/* Header */}
-        {title ? (
+        {renderedTitle ? (
           <div
             className="flex items-center justify-between border-b border-stroke-soft/80 px-4 pb-3"
             data-slot="header"
           >
             <h2 className="text-lg font-semibold text-text-strong" data-slot="title">
-              {title}
+              {renderedTitle}
             </h2>
             <button
               type="button"
@@ -228,9 +286,11 @@ export function BottomSheet({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto" data-slot="body">
-          <SheetErrorBoundary onClose={onClose}>{children}</SheetErrorBoundary>
+          <SheetErrorBoundary onClose={onClose}>{renderedChildren}</SheetErrorBoundary>
         </div>
       </animated.div>
     </dialog>
   );
+
+  return isBounded && container ? createPortal(dialogElement, container) : dialogElement;
 }

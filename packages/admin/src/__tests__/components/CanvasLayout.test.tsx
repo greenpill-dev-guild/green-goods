@@ -17,11 +17,19 @@ const {
   mockAppBarProps,
   mockAuthState,
   mockEligibleAdminGardens,
+  mockRouteLeftSheetConfig,
 } = vi.hoisted(() => ({
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
   mockAppBarProps: vi.fn(),
+  mockRouteLeftSheetConfig: {
+    current: null as null | {
+      title: string;
+      content: React.ReactNode;
+      closeTo: string;
+    },
+  },
   mockAuthState: {
     current: {
       isAuthenticated: true,
@@ -204,9 +212,17 @@ vi.mock("@/components/ConnectButton", () => ({
   ConnectButton: () => <button type="button">Connect Wallet</button>,
 }));
 
-vi.mock("@/components/Layout/PageTransition", () => ({
-  PageTransition: () => <div>Page Transition</div>,
-}));
+vi.mock("@/components/Layout/PageTransition", async () => {
+  const ReactModule = await import("react");
+  const { useRouteBackedLeftSheetConfig } = await import("@green-goods/shared");
+
+  return {
+    PageTransition: () => {
+      useRouteBackedLeftSheetConfig(mockRouteLeftSheetConfig.current);
+      return ReactModule.createElement("div", null, "Page Transition");
+    },
+  };
+});
 
 vi.mock("@/components/Layout/AccountProfilePanel", () => ({
   AccountProfilePanel: () => <div>Profile Panel</div>,
@@ -249,6 +265,7 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
     };
+    mockRouteLeftSheetConfig.current = null;
     useSheetOrchestratorStore.setState({
       activeSheet: null,
       activeContentId: null,
@@ -474,5 +491,25 @@ describe("CanvasLayout", () => {
 
     const main = document.getElementById("main-content");
     expect(main?.getAttribute("style")).toContain("padding-bottom");
+  });
+
+  it("bounds the mobile bottom sheet to the MainSheet overlay root", async () => {
+    mockRouteLeftSheetConfig.current = {
+      title: "Mobile inspector",
+      content: <div>Inspector content</div>,
+      closeTo: "/actions",
+    };
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/actions/action-1"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    const overlayRoot = await screen.findByTestId("main-sheet-overlay-root");
+    const dialog = await screen.findByTestId("bottom-sheet-dialog");
+
+    expect(dialog).toHaveAttribute("data-boundary", "bounded");
+    expect(overlayRoot).toContainElement(dialog);
   });
 });
