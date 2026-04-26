@@ -3,6 +3,7 @@ import { greenWillKeys } from "./greenwill";
 import { convictionKeys, hypercertsKeys, marketplaceKeys } from "./hypercert";
 import { communityKeys, ensKeys, gardenerProfileKeys, gardenersKeys, roleKeys } from "./identity";
 import { draftsKeys, mediaKeys, offlineKeys, queueKeys } from "./misc";
+import { publicKeys } from "./public";
 import { cookieJarKeys, vaultsKeys, yieldKeys } from "./vault";
 import { approvalsKeys, operatorWorksKeys, workApprovalsKeys, worksKeys } from "./work";
 
@@ -22,6 +23,7 @@ export const queryKeys = {
   community: communityKeys,
   yield: yieldKeys,
   platform: platformKeys,
+  public: publicKeys,
   actions: actionsKeys,
   assessments: assessmentsKeys,
   gardeners: gardenersKeys,

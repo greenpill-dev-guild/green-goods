@@ -315,6 +315,31 @@ export {
 } from "./ops/useOpsRunner";
 export { useOpsRunnerConnect } from "./ops/useOpsRunnerConnect";
 // ============================================================================
+// PUBLIC READ-SIDE (Living Archive journal)
+// ============================================================================
+export type {
+  PublicFieldNote,
+  PublicGardenContributor,
+  PublicGardenDetail,
+  UsePublicGardenDetailOptions,
+} from "./public/usePublicGardenDetail";
+export { usePublicGardenDetail } from "./public/usePublicGardenDetail";
+export type { PublicGardenSummary } from "./public/usePublicGardens";
+export { publicGardenHelpers, usePublicGardens } from "./public/usePublicGardens";
+export type {
+  PublicFieldNotesPage,
+  UsePublicFieldNotesOptions,
+} from "./public/usePublicFieldNotes";
+export { usePublicFieldNotes } from "./public/usePublicFieldNotes";
+export type { PublicStats } from "./public/usePublicStats";
+export { usePublicStats } from "./public/usePublicStats";
+export type { PublicVolume, PublicVolumeActiveGarden } from "./public/usePublicVolume";
+export {
+  SEASON_ONE_VOLUME_ID,
+  SEASON_ONE_WINDOW,
+  usePublicVolume,
+} from "./public/usePublicVolume";
+// ============================================================================
 // QUERY KEYS
 // ============================================================================
 export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-keys";

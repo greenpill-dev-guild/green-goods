@@ -33,6 +33,12 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.vaults.allDeposits>
   | typeof queryKeys.platform.all
   | ReturnType<typeof queryKeys.platform.stats>
+  | typeof queryKeys.public.all
+  | ReturnType<typeof queryKeys.public.gardens>
+  | ReturnType<typeof queryKeys.public.gardenDetail>
+  | ReturnType<typeof queryKeys.public.fieldNotes>
+  | ReturnType<typeof queryKeys.public.volume>
+  | ReturnType<typeof queryKeys.public.stats>
   | typeof queryKeys.assessments.all
   | ReturnType<typeof queryKeys.assessments.byChain>
   | ReturnType<typeof queryKeys.assessments.byGarden>
