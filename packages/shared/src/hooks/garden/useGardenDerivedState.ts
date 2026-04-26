@@ -212,6 +212,14 @@ export function useGardenDerivedState({
             onAction: () => openSection("community", "treasury"),
           }
         : null,
+    (garden.domainMask ?? 0) === 0
+      ? {
+          key: "domain-empty",
+          severity: "warn" as const,
+          label: formatMessage({ id: "app.garden.detail.alert.noDomains" }),
+          onAction: () => openSection("overview", "profile"),
+        }
+      : null,
   ].filter(
     (
       entry

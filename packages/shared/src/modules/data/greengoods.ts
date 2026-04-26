@@ -305,10 +305,12 @@ export async function getGardens(): Promise<Garden[]> {
 
     if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
 
-    // Build a lookup from garden address -> domainMask
+    // Garden.id is the checksummed account address from GardenMinted, while
+    // GardenDomains.garden is normalized to lowercase by the indexer. Lowercase
+    // both sides of the join so the lookup cannot silently miss.
     const domainMap = new Map<string, number>(
       ((data.GardenDomains ?? []) as Array<{ garden: string; domainMask: number }>).map((d) => [
-        d.garden,
+        d.garden.toLowerCase(),
         d.domainMask,
       ])
     );
@@ -340,7 +342,7 @@ export async function getGardens(): Promise<Garden[]> {
         funders: (garden.funders || []) as Address[],
         communities: (garden.communities || []) as Address[],
         openJoining: Boolean(garden.openJoining),
-        domainMask: domainMap.get(garden.id) ?? 0,
+        domainMask: domainMap.get(garden.id.toLowerCase()) ?? 0,
         assessments: [],
         works: [],
         createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
