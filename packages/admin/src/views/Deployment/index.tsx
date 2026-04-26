@@ -724,7 +724,7 @@ function AllowlistCard({ chainId }: { chainId: number }) {
   const [removingAddress, setRemovingAddress] = useState<string | null>(null);
 
   const contracts = getNetworkContracts(chainId);
-  const registryAddress = contracts.deploymentRegistry as `0x${string}`;
+  const registryAddress = contracts.deploymentRegistry;
 
   const trimmed = addressInput.trim();
   const isHexAddress = useMemo(() => (trimmed ? isAddress(trimmed) : false), [trimmed]);

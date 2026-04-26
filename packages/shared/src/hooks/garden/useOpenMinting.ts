@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { useReadContract } from "wagmi";
 import { toastService } from "../../components/toast";
-import type { Address } from "../../types/domain";
 import { GardenTokenABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -16,7 +15,7 @@ export function useOpenMinting() {
   const contracts = getNetworkContracts(chainId);
 
   return useReadContract({
-    address: contracts.gardenToken as Address,
+    address: contracts.gardenToken,
     abi: GardenTokenABI,
     functionName: "openMinting",
     query: { enabled: !!contracts.gardenToken },
@@ -42,7 +41,7 @@ export function useSetOpenMinting() {
   return useMutation({
     mutationFn: async (open: boolean) => {
       return sendContractTx({
-        address: contracts.gardenToken as Address,
+        address: contracts.gardenToken,
         abi: GardenTokenABI,
         functionName: "setOpenMinting",
         args: [open],

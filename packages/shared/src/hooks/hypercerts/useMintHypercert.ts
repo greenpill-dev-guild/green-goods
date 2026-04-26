@@ -339,7 +339,7 @@ export function useMintHypercert(options: UseMintHypercertOptions = {}): UseMint
 
             // Resolve GardensModule address from deployment config
             const contracts = getNetworkContracts(currentChainId);
-            const gardensModuleAddr = contracts.gardensModule as Address;
+            const gardensModuleAddr = contracts.gardensModule;
 
             if (!gardensModuleAddr || isZeroAddress(gardensModuleAddr)) {
               logger.info(

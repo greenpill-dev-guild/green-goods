@@ -57,9 +57,8 @@ function mergeToastOptions(
 
   if (base.iconTheme || overrides.iconTheme) {
     merged.iconTheme = {
-      primary: (overrides.iconTheme as any)?.primary ?? (base.iconTheme as any)?.primary ?? "",
-      secondary:
-        (overrides.iconTheme as any)?.secondary ?? (base.iconTheme as any)?.secondary ?? "",
+      primary: overrides.iconTheme?.primary ?? base.iconTheme?.primary ?? "",
+      secondary: overrides.iconTheme?.secondary ?? base.iconTheme?.secondary ?? "",
     };
   }
 

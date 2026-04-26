@@ -61,8 +61,8 @@ export async function getRegisteredOrders(
 
   try {
     const client = createPublicClientForChain(chainId);
-    const adapterAddress = contracts.marketplaceAdapter as Address;
-    const moduleAddress = contracts.hypercertsModule as Address;
+    const adapterAddress = contracts.marketplaceAdapter;
+    const moduleAddress = contracts.hypercertsModule;
 
     // 1. Get garden's hypercert IDs via HypercertsModule
     const hypercertIds = (await client.readContract({
@@ -149,7 +149,7 @@ export async function getActiveOrder(
 
   try {
     const client = createPublicClientForChain(chainId);
-    const adapterAddress = contracts.marketplaceAdapter as Address;
+    const adapterAddress = contracts.marketplaceAdapter;
 
     // Look up the active order ID for this (hypercertId, currency) pair
     const orderId = (await client.readContract({
@@ -202,7 +202,7 @@ export async function previewPurchase(
 
   try {
     const client = createPublicClientForChain(chainId);
-    const adapterAddress = contracts.marketplaceAdapter as Address;
+    const adapterAddress = contracts.marketplaceAdapter;
 
     const units = (await client.readContract({
       address: adapterAddress,
@@ -242,7 +242,7 @@ export async function getMinPrice(
 
   try {
     const client = createPublicClientForChain(chainId);
-    const adapterAddress = contracts.marketplaceAdapter as Address;
+    const adapterAddress = contracts.marketplaceAdapter;
 
     const price = (await client.readContract({
       address: adapterAddress,
@@ -281,7 +281,7 @@ export async function getSellerOrders(
 
   try {
     const client = createPublicClientForChain(chainId);
-    const adapterAddress = contracts.marketplaceAdapter as Address;
+    const adapterAddress = contracts.marketplaceAdapter;
 
     // 1. Get seller's total order count
     const count = (await client.readContract({
@@ -366,7 +366,7 @@ export async function getTradeHistory(
 
   try {
     const client = createPublicClientForChain(chainId);
-    const adapterAddress = contracts.marketplaceAdapter as Address;
+    const adapterAddress = contracts.marketplaceAdapter;
 
     const logs = await client.getLogs({
       address: adapterAddress,
@@ -453,7 +453,7 @@ export async function getListingHistory(
 
   try {
     const client = createPublicClientForChain(chainId);
-    const adapterAddress = contracts.marketplaceAdapter as Address;
+    const adapterAddress = contracts.marketplaceAdapter;
 
     // Fetch both event types in parallel
     const [registeredLogs, deactivatedLogs] = await Promise.all([

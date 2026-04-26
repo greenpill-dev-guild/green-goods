@@ -62,7 +62,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       if (!signer) throw new Error("Connect a wallet first");
 
       const contracts = getNetworkContracts(chainId);
-      const moduleAddress = contracts.hypercertsModule as Address;
+      const moduleAddress = contracts.hypercertsModule;
       if (isZeroAddress(moduleAddress)) {
         throw new Error("HypercertsModule not deployed on this chain");
       }
