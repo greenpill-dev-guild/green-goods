@@ -20,7 +20,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const PINATA_API = process.env.PINATA_API || "https://api.pinata.cloud";
+// Strip any trailing slash so PINATA_API="https://api.pinata.cloud/" (or with
+// multiple trailing slashes) doesn't produce a double-slash in the URL.
+const PINATA_API = (process.env.PINATA_API || "https://api.pinata.cloud").replace(/\/+$/, "");
 const PIN_FILE_ENDPOINT = `${PINATA_API}/pinning/pinFileToIPFS`;
 
 function fail(message, code = 1) {
@@ -63,26 +65,49 @@ async function upload() {
 
   for (const { abs, rel } of files) {
     const buffer = fs.readFileSync(abs);
-    const blob = new Blob([buffer]);
     // Pinata wraps the upload in a directory whose name comes from the first
     // filepath segment. Prefix with the root dir so the resulting CID points
     // to the directory, not a flat file.
     const filepath = `${rootName}/${rel.split(path.sep).join("/")}`;
-    form.append("file", blob, filepath);
+    // Pinata's docs explicitly recommend File over Blob for pinFileToIPFS.
+    form.append("file", new File([buffer], filepath));
   }
 
   form.append("pinataMetadata", JSON.stringify({ name: pinName }));
   form.append("pinataOptions", JSON.stringify({ cidVersion: 1, wrapWithDirectory: false }));
 
-  const response = await fetch(PIN_FILE_ENDPOINT, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${jwt}` },
-    body: form,
-  });
-
-  const text = await response.text();
-  if (!response.ok) {
-    fail(`Pinata upload failed (${response.status}): ${text}`);
+  // Retry on 429 (rate limit) and transient network errors. Honors the
+  // Retry-After header when Pinata sends it; otherwise exponential backoff.
+  const MAX_ATTEMPTS = 4;
+  const PER_REQUEST_TIMEOUT_MS = 5 * 60_000;
+  let response;
+  let text;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      response = await fetch(PIN_FILE_ENDPOINT, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${jwt}` },
+        body: form,
+        signal: AbortSignal.timeout(PER_REQUEST_TIMEOUT_MS),
+      });
+      text = await response.text();
+      if (response.ok) break;
+      if (response.status !== 429 || attempt === MAX_ATTEMPTS) {
+        fail(`Pinata upload failed (${response.status}): ${text}`);
+      }
+      const retryAfterHeader = Number.parseInt(response.headers.get("Retry-After") || "", 10);
+      const backoffMs =
+        Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+          ? retryAfterHeader * 1000
+          : 2_000 * 2 ** (attempt - 1);
+      console.error(`[pinata-deploy] 429 from Pinata, retrying in ${backoffMs}ms (attempt ${attempt}/${MAX_ATTEMPTS})`);
+      await new Promise((r) => setTimeout(r, backoffMs));
+    } catch (err) {
+      if (attempt === MAX_ATTEMPTS) fail(err?.message || String(err));
+      const backoffMs = 2_000 * 2 ** (attempt - 1);
+      console.error(`[pinata-deploy] transient error (${err?.message || err}), retrying in ${backoffMs}ms (attempt ${attempt}/${MAX_ATTEMPTS})`);
+      await new Promise((r) => setTimeout(r, backoffMs));
+    }
   }
 
   let payload;

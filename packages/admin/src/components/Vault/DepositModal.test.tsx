@@ -112,12 +112,12 @@ vi.mock("./depositLimit", () => ({
 import { DepositModal } from "./DepositModal";
 
 describe("DepositModal", () => {
-  // TODO: these two tests document behavior added in commit a2f7117 that was
-  // never wired through to the component (chain-pinned wagmi reads + Aave
-  // guidance Alert). Skipped until the component implements them — until
-  // then they are inherited failures from main, unrelated to the domain
-  // management fix this PR ships.
-  it.skip("pins wallet balance and gas reads to the selected vault chain", () => {
+  // These two tests document behavior added in commit a2f7117 that was never
+  // wired through to the component (chain-pinned wagmi reads + Aave guidance
+  // Alert). Marked `it.fails` so they stay visible in test output and flip to
+  // failing the moment the implementation lands — at which point a contributor
+  // removes `.fails` and they become regular passing tests.
+  it.fails("pins wallet balance and gas reads to the selected vault chain", () => {
     mockUseBalance.mockReturnValue({
       data: {
         value: 5_000_000_000_000_000_000n,
@@ -193,7 +193,7 @@ describe("DepositModal", () => {
     );
   }
 
-  it.skip("renders deposit guidance info alert", () => {
+  it.fails("renders deposit guidance info alert", () => {
     renderOpenModal();
 
     const alert = screen.getByTestId("alert");

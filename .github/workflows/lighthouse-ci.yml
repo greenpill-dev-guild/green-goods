@@ -49,7 +49,7 @@ jobs:
       # shouldn't block PRs. Artifacts still upload via `if: always()` below.
       - name: Run Lighthouse CI
         working-directory: packages/client
-        continue-on-error: true
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         run: npx lhci autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
@@ -90,7 +90,7 @@ jobs:
       # Lighthouse is a perf advisory; flakes shouldn't block PRs.
       - name: Run Lighthouse CI
         working-directory: packages/admin
-        continue-on-error: true
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
         run: npx lhci autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}

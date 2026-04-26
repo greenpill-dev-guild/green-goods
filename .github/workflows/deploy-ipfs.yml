@@ -118,7 +118,6 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           OP_ENVIRONMENT: ${{ vars.OP_ENVIRONMENT }}
         run: |
-          set +e
           missing=()
           if [[ -z "$PINATA_JWT" ]]; then missing+=("PINATA_JWT"); fi
           if [[ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]]; then missing+=("OP_SERVICE_ACCOUNT_TOKEN"); fi

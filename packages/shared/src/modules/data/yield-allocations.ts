@@ -108,10 +108,16 @@ export async function getGardenYieldAllocations(
   chainId: number = DEFAULT_CHAIN_ID,
   limit: number = GARDEN_YIELD_ALLOCATIONS_LIMIT
 ): Promise<YieldAllocation[]> {
+  // Coerce to a safe integer in [1, GARDEN_YIELD_ALLOCATIONS_LIMIT] so callers
+  // can't accidentally hit a GraphQL Int! coercion error or trigger an
+  // unbounded payload.
+  const safeLimit = Number.isFinite(limit)
+    ? Math.min(GARDEN_YIELD_ALLOCATIONS_LIMIT, Math.max(1, Math.trunc(limit)))
+    : GARDEN_YIELD_ALLOCATIONS_LIMIT;
   const garden = gardenAddress.toLowerCase();
   const { data, error } = await greenGoodsIndexer.query<AllYieldAllocationsResponse>(
     GARDEN_YIELD_ALLOCATIONS_QUERY,
-    { chainId, garden, limit },
+    { chainId, garden, limit: safeLimit },
     "GardenYieldAllocations"
   );
 
@@ -124,5 +130,15 @@ export async function getGardenYieldAllocations(
     throw new Error(`Failed to load garden yield allocations: ${error.message}`);
   }
 
-  return (data?.YieldAllocation ?? []).map(mapYieldAllocation);
+  const rows = data?.YieldAllocation ?? [];
+  // Surface truncation in observability before it shows up as a user-facing
+  // discrepancy in Community-tab totals.
+  if (rows.length === safeLimit) {
+    logger.warn("[getGardenYieldAllocations] Result hit limit cap; aggregation may be partial", {
+      chainId,
+      garden,
+      limit: safeLimit,
+    });
+  }
+  return rows.map(mapYieldAllocation);
 }

@@ -691,6 +691,7 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.yield.splitConfig>
   | ReturnType<typeof queryKeys.yield.pendingYield>
   | ReturnType<typeof queryKeys.yield.protocolSummary>
+  | ReturnType<typeof queryKeys.yield.gardenSummary>
   | typeof queryKeys.ens.all
   | ReturnType<typeof queryKeys.ens.name>
   | ReturnType<typeof queryKeys.ens.address>

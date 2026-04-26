@@ -171,7 +171,10 @@ function installFoundry() {
       const exportDir = symlinked ? symlinkedDir : binDir;
       const pathLine = `export PATH="${exportDir}:$PATH"`;
       const rcFiles = [path.join(home, ".bashrc")];
-      if (platform === "darwin") rcFiles.push(path.join(home, ".zshrc"));
+      // Always write zshrc on macOS (default shell) and on any platform where
+      // the user's login shell is zsh (common on Linux too).
+      const usesZsh = platform === "darwin" || (process.env.SHELL || "").endsWith("/zsh");
+      if (usesZsh) rcFiles.push(path.join(home, ".zshrc"));
       for (const rc of rcFiles) {
         try {
           const existing = fs.existsSync(rc) ? fs.readFileSync(rc, "utf8") : "";

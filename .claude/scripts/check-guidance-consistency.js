@@ -225,12 +225,13 @@ if (!exists(registryPath)) {
   const indexTokens = getBoldOrStrikeTokens(indexText);
 
   for (const record of registry.skills) {
-    // Archived skills are kept in the registry for history but no longer
-    // appear in index.md tokens. Skip the listing check for them; the
-    // registry's listed_in_index field can stay until the team does a
-    // dedicated skills-index cleanup pass.
-    const isArchived = exists(`.claude/skills/_archived/${record.name}`);
-    if (isArchived) continue;
+    // Archived-only skills are kept in the registry for history but no longer
+    // appear in index.md tokens. Skip the listing check only when there is
+    // *no* active SKILL.md, so a leftover .claude/skills/_archived/<name>/
+    // during a re-introduction does not silently bypass index drift detection.
+    const isArchivedOnly =
+      !skillMeta.has(record.name) && exists(`.claude/skills/_archived/${record.name}`);
+    if (isArchivedOnly) continue;
     if (record.listed_in_index && !indexTokens.has(record.name)) {
       fail(`${indexPath}: listed_in_index=true but token not found: ${record.name}`);
     }
