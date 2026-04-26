@@ -121,7 +121,6 @@ export {
   // Username (Pimlico server)
   clearStoredUsername,
   getAuthMode,
-  getStoredRpId,
   getStoredUsername,
   hasStoredUsername,
   // RP ID (Android passkey compatibility)

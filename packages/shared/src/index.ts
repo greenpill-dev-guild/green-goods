@@ -76,7 +76,6 @@ export type {
   TxInlineFeedbackSeverity,
   VaultPositionCardProps,
   WorkCardData,
-  WorkStatus,
 } from "./components/index";
 export {
   Alert,
@@ -1010,7 +1009,6 @@ export {
   isUserAddress,
   isValidAddressFormat,
   isValidAttestationId,
-  isZeroAddressValue,
   loadFormDraft,
   // Form normalizers
   normalizeTimeSpentMinutes,

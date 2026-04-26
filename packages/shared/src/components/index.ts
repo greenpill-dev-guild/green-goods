@@ -56,7 +56,6 @@ export {
   type WorkCardLabels,
   type WorkCardProps,
   type WorkCardVariantProps,
-  type WorkStatus,
   workCardVariants,
 } from "./Cards";
 // Surface Component (unified surface primitive — preferred over Card/CardBase for new code)

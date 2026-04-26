@@ -5,6 +5,5 @@ export {
   type WorkCardLabels,
   type WorkCardProps,
   type WorkCardVariantProps,
-  type WorkStatus,
   workCardVariants,
 } from "./WorkCard";

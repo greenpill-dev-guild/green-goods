@@ -28,13 +28,10 @@ const workCardVariants = tv({
 
 export type WorkCardVariantProps = VariantProps<typeof workCardVariants>;
 
-/** @deprecated Use `WorkDisplayStatus` from `@green-goods/shared` instead. */
-export type WorkStatus = WorkDisplayStatus;
-
 export interface WorkCardData {
   id: string;
   title: string;
-  status: WorkStatus;
+  status: WorkDisplayStatus;
   createdAt: number;
   mediaPreview?: string[];
   gardenerAddress?: Address;
