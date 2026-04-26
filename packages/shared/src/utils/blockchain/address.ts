@@ -1,15 +1,7 @@
-/**
- * Address Utilities
- *
- * Shared utilities for Ethereum address comparison and formatting.
- */
+/** Shared utilities for Ethereum address comparison and formatting. */
 
 /**
- * Compare two Ethereum addresses (case-insensitive)
- *
- * @param a - First address
- * @param b - Second address
- * @returns true if addresses are equal (case-insensitive)
+ * Compare two Ethereum addresses (case-insensitive).
  *
  * @example
  * compareAddresses("0xABC...123", "0xabc...123") // true
@@ -23,12 +15,6 @@ export function compareAddresses(
 }
 
 /**
- * Check if an address matches the current user's address
- *
- * @param address - Address to check
- * @param userAddress - Current user's address
- * @returns true if the address belongs to the current user
- *
  * @example
  * const { user } = useUser();
  * isUserAddress(work.gardenerAddress, user?.id) // true/false
@@ -41,12 +27,6 @@ export function isUserAddress(
 }
 
 /**
- * Check if an address is in a list of addresses (case-insensitive)
- *
- * @param address - Address to find
- * @param list - List of addresses to search
- * @returns true if address is found in the list
- *
  * @example
  * isAddressInList(userAddress, garden.operators) // true/false
  */
@@ -60,12 +40,7 @@ export function isAddressInList(
 }
 
 /**
- * Truncate an Ethereum address for display
- *
- * @param address - Full address
- * @param startChars - Number of characters to show at start (default: 6)
- * @param endChars - Number of characters to show at end (default: 4)
- * @returns Truncated address like "0x1234...5678"
+ * Truncate an Ethereum address for display.
  *
  * @example
  * truncateAddress("0x1234567890abcdef1234567890abcdef12345678")
@@ -81,20 +56,7 @@ export function truncateAddress(
   return `${address.slice(0, startChars)}...${address.slice(-endChars)}`;
 }
 
-/**
- * Normalize an address to lowercase
- *
- * @param address - Address to normalize
- * @returns Lowercase address or empty string if invalid
- *
- * @example
- * // Preserves Address type when given Address input
- * const addr: Address = "0xABC...";
- * const normalized: Address = normalizeAddress(addr); // typed as Address
- *
- * // Returns string for string | undefined | null input
- * const raw: string = normalizeAddress(someString); // typed as string
- */
+// Two-overload shape preserves the Address type for `0x${string}` inputs.
 export function normalizeAddress(address: `0x${string}`): `0x${string}`;
 export function normalizeAddress(address: string | undefined | null): string;
 export function normalizeAddress(address: string | undefined | null): string {
@@ -102,12 +64,6 @@ export function normalizeAddress(address: string | undefined | null): string {
   return address.toLowerCase();
 }
 
-/**
- * Check if a string is a valid Ethereum address format
- *
- * @param address - String to validate
- * @returns true if it looks like an Ethereum address
- */
 export function isValidAddressFormat(address: string | undefined | null): boolean {
   if (!address) return false;
   return /^0x[a-fA-F0-9]{40}$/.test(address);
@@ -116,9 +72,6 @@ export function isValidAddressFormat(address: string | undefined | null): boolea
 /** The Ethereum zero address constant. */
 export const ZERO_ADDRESS: `0x${string}` = "0x0000000000000000000000000000000000000000";
 
-/**
- * Check if an address is the zero address.
- */
 export function isZeroAddress(address: string | undefined | null): boolean {
   if (!address) return true;
   return address.toLowerCase() === ZERO_ADDRESS;

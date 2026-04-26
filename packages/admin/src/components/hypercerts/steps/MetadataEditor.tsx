@@ -27,7 +27,6 @@ function getSdgName(id: number, intl: IntlShape): string {
  */
 function formatDisplayDate(timestamp: number | null | undefined): string {
   if (!timestamp || timestamp <= 0) return "—";
-  // Convert seconds to milliseconds for Date
   const date = new Date(timestamp * 1000);
   return date.toLocaleDateString(undefined, {
     year: "numeric",
@@ -110,7 +109,6 @@ export function MetadataEditor({
     formatMessage,
   ]);
 
-  // Filter out scopes already added
   const availableSuggestedScopes = useMemo(() => {
     return suggestedWorkScopes.filter((scope) => !draft.workScopes.includes(scope));
   }, [suggestedWorkScopes, draft.workScopes]);

@@ -130,8 +130,5 @@ export function useAuth(): UseAuthReturn {
   };
 }
 
-// ============================================================================
-// LEGACY EXPORTS (kept for backwards compatibility)
-// ============================================================================
-
+// Re-exported for backwards compatibility with old import sites.
 export type { AuthMode } from "../../modules/auth/session";

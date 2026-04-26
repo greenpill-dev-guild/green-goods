@@ -319,7 +319,6 @@ export default function CreateAssessment() {
     }
   }, [isSuccess, navigate, gardenId, formatMessage, resetStore]);
 
-  // Reset validation display when step changes
   useEffect(() => {
     setShowValidation(false);
   }, [currentStep]);

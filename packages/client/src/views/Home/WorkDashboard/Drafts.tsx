@@ -42,19 +42,16 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     return action?.title;
   };
 
-  // Helper to get garden name
   const getGardenName = (gardenAddress: Address | null): string | undefined => {
     if (!gardenAddress) return undefined;
     const garden = gardens.find((g) => g.id === gardenAddress);
     return garden?.name;
   };
 
-  // Handle resume draft
   const handleResume = (draft: DraftWithImages) => {
     navigate(`/garden?draftId=${draft.id}`, { viewTransition: true });
   };
 
-  // Handle delete draft
   const handleDeleteClick = (draft: DraftWithImages) => {
     setDraftToDelete(draft);
   };
@@ -85,7 +82,6 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     setDraftToDelete(null);
   };
 
-  // Render loading state
   if (isLoading) {
     return (
       <div className="flex flex-col h-full">
@@ -109,7 +105,6 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     );
   }
 
-  // Render empty state
   if (drafts.length === 0) {
     return (
       <div className="flex flex-col h-full">
@@ -151,7 +146,6 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     );
   }
 
-  // Render drafts list
   return (
     <div className="flex flex-col h-full">
       {/* Header */}

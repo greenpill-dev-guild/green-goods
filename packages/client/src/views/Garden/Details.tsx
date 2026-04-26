@@ -47,7 +47,6 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       defaultMessage: "Provide feedback or any observations",
     });
 
-  // Handle location toggle
   const handleLocationToggle = useCallback(() => {
     if (locationEnabled) {
       setLocationEnabled(false);

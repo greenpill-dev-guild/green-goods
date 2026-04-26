@@ -13,9 +13,6 @@ import type { ContractCall } from "../../modules/transactions/types";
 import { EASABI } from "../blockchain/contracts";
 import { NO_EXPIRATION, ZERO_BYTES32 } from "./constants";
 
-/**
- * EAS attestation request structure (internal)
- */
 interface AttestationRequest {
   schema: Hex;
   data: {
@@ -28,9 +25,6 @@ interface AttestationRequest {
   };
 }
 
-/**
- * Build an EAS attestation request
- */
 export function buildAttestationRequest(
   recipient: `0x${string}`,
   schemaUID: Hex,
@@ -49,9 +43,6 @@ export function buildAttestationRequest(
   };
 }
 
-/**
- * Build transaction parameters for an EAS attestation (internal helper)
- */
 function buildAttestTxParams(
   easAddress: `0x${string}`,
   request: AttestationRequest

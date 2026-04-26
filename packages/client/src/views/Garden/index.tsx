@@ -311,7 +311,6 @@ const Work: React.FC = () => {
 
   const detailInputs = useMemo(() => translatedAction?.inputs ?? [], [translatedAction]);
 
-  // Create fallback objects for review step
   const getReviewData = () => {
     const garden: Garden = translatedGarden || {
       id: gardenAddress || "",

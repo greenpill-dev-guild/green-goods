@@ -179,12 +179,12 @@ export const AppSettings: React.FC = () => {
       try {
         localStorage.removeItem("__rq_pc__");
       } catch (e) {
-        if (import.meta.env.DEV) console.debug("[AppRefresh] localStorage clear failed:", e);
+        logger.debug("[AppRefresh] localStorage clear failed:", { error: e });
       }
       try {
         indexedDB.deleteDatabase("gg-react-query");
       } catch (e) {
-        if (import.meta.env.DEV) console.debug("[AppRefresh] IndexedDB clear failed:", e);
+        logger.debug("[AppRefresh] IndexedDB clear failed:", { error: e });
       }
     } catch (err) {
       logger.debug("[AppRefresh] Best-effort cache clear failed:", { error: err });

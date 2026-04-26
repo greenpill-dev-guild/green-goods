@@ -18,7 +18,6 @@ interface WorkCardProps {
 export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview }) => {
   const intl = useIntl();
 
-  // Transform EASWork to WorkCardData for the shared component
   const workData: WorkCardData = {
     id: work.id,
     title:

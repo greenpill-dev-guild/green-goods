@@ -59,10 +59,8 @@ const RPC_ENV_ALIASES: Record<string, string[]> = {
 };
 
 /**
- * NetworkManager - Single source of truth for network configuration
- *
- * Consolidates network configuration handling that was previously
- * duplicated across deploy.js, garden-manager.js, and action-manager.js
+ * Single source of truth for RPC URL resolution and chain-id normalization
+ * across all deploy subcommands.
  */
 export class NetworkManager {
   private networksConfig: NetworksFile;

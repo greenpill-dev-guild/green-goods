@@ -40,7 +40,6 @@ export function CookieJarWithdrawModal({
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawPurpose, setWithdrawPurpose] = useState("");
 
-  // Reset form state when modal opens/closes
   useEffect(() => {
     if (!isOpen) return;
     setWithdrawJar("");
@@ -70,7 +69,6 @@ export function CookieJarWithdrawModal({
     }
   }, [withdrawAmount, withdrawInputError, withdrawDecimals]);
 
-  // Clear mutation error when inputs change
   useEffect(() => {
     if (!withdrawMutation.error) return;
     resetWithdrawMutation();

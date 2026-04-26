@@ -38,7 +38,6 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
   const [depositOpen, setDepositOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
 
-  // Return null when module not configured, still loading, or no jars exist
   if (!jarsModuleConfigured || jarsLoading || jars.length === 0) return null;
 
   return (

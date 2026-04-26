@@ -415,10 +415,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = useCallback(async () => {
     if (!actor) return;
 
-    // Clear from machine
     actor.send({ type: "SIGN_OUT" });
 
-    // Disconnect wallet
     await disconnectWallet();
 
     // Clear auth mode, username, and embedded address, but KEEP credential for future passkey login
@@ -431,7 +429,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Reset wallet restore guard to allow future auto-restore
     walletRestoreAttemptedRef.current = false;
 
-    // Clear query cache
     queryClient.clear();
 
     // Clear SW caches and IndexedDB to prevent stale data leaking across sessions

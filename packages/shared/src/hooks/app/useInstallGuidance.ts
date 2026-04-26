@@ -236,7 +236,7 @@ export function useInstallGuidance(
     // Manual installation available (Safari on iOS, or Android without prompt)
     const manualInstructions = getManualInstallSteps(platform, browserInfo.browser);
 
-    // Was previously installed - show "Open App" as primary
+    // User has already installed the PWA — primary CTA is "Open App", not "Install".
     if (wasInstalled) {
       return {
         browserInfo,

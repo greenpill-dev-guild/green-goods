@@ -43,10 +43,8 @@ const Home: React.FC = () => {
   const primaryAddress = usePrimaryAddress();
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
 
-  // Filter state
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
 
-  // Use extracted hooks for cleaner logic
   const isLoadingData = isPending || (isFetching && gardens.length === 0);
   const {
     showSkeleton,
@@ -60,29 +58,22 @@ const Home: React.FC = () => {
     normalizedAddress
   );
 
-  // Wallet drawer state
   const [isWalletDrawerOpen, setIsWalletDrawerOpen] = useState(false);
 
-  // UI state from store
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const openGardenFilter = useUIStore((s) => s.openGardenFilter);
   const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
 
-  // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
-  // Auth state for welcome message
   const { isAuthenticated } = useAuth();
   const hasShownWelcomeRef = useRef(false);
   const { set: scheduleWelcome } = useTimeout();
 
-  // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
 
-  // Selected garden from URL
   const selectedGardenId = location.pathname.split("/")[2];
 
-  // Reset loading state when navigating back to home
   useEffect(() => {
     if (location.pathname === "/home") {
       resetLoadingState();

@@ -89,11 +89,10 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           ? domains[0]
           : null;
 
-    // Filter actions by effective domain
     const domainActions =
       effective !== null ? active.filter((a) => a.domain === effective) : active;
 
-    // Filter gardens by selected domain; gardens without a domainMask (0 or undefined) pass through all filters
+    // Gardens without a domainMask (0 or undefined) pass through all filters.
     const domainGardens =
       effective !== null
         ? gardens.filter((g) => (g.domainMask ? hasDomain(g.domainMask, effective) : true))

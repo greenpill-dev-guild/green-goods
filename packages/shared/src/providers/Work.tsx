@@ -107,7 +107,7 @@ export interface WorkDataProps {
 const WorkSelectionContext = React.createContext<WorkSelectionValue | null>(null);
 const WorkFormContext = React.createContext<WorkFormValue | null>(null);
 
-// Legacy context for backward compatibility
+// Combined context retained for consumers of useWork().
 const WorkContext = React.createContext<WorkDataProps>({
   form: {
     register: () => ({}) as ReturnType<UseFormRegister<WorkFormData>>,
@@ -359,7 +359,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     ]
   );
 
-  // Legacy combined value for backward compatibility
+  // Combined value for consumers using useWork() (selection + form merged).
   const legacyValue: WorkDataProps = useMemo(
     () => ({
       gardens: userGardens,

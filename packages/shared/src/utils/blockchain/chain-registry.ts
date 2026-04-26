@@ -80,42 +80,19 @@ export const DEFAULT_CHAIN_CONFIG: ChainConfig = {
   rpcTemplate: "https://eth-sepolia.g.alchemy.com/v2/{ALCHEMY_KEY}",
 };
 
-/**
- * Get chain configuration by chain ID
- *
- * @param chainId - The chain ID to look up
- * @returns Chain configuration, or default config if chain ID is unknown
- */
+/** Returns the registered config, or DEFAULT_CHAIN_CONFIG if the chain is unknown. */
 export function getChainConfig(chainId: number): ChainConfig {
   return CHAIN_REGISTRY[chainId] ?? DEFAULT_CHAIN_CONFIG;
 }
 
-/**
- * Get the network name for a chain ID
- *
- * @param chainId - The chain ID to look up
- * @returns Network name (e.g., "arbitrum", "sepolia")
- */
 export function getNetworkName(chainId: number): string {
   return getChainConfig(chainId).name;
 }
 
-/**
- * Get the EAS explorer name for a chain ID
- *
- * @param chainId - The chain ID to look up
- * @returns EAS explorer subdomain (e.g., "arbitrum-one", "sepolia")
- */
 export function getEASName(chainId: number): string {
   return getChainConfig(chainId).easName;
 }
 
-/**
- * Get the block explorer base URL for a chain ID
- *
- * @param chainId - The chain ID to look up
- * @returns Block explorer URL (e.g., "https://arbiscan.io")
- */
 export function getBlockExplorer(chainId: number): string {
   return getChainConfig(chainId).blockExplorer;
 }

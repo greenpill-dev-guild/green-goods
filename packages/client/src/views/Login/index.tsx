@@ -178,7 +178,6 @@ export function Login() {
   // The credential is preserved during signOut() to allow re-login with same address
   const hasExistingAccount = hasStoredCredential;
 
-  // Handle auth errors
   useEffect(() => {
     if (authError && !isAuthenticating) {
       setLoadingState(null);
@@ -258,7 +257,6 @@ export function Login() {
     loginWithWallet?.();
   };
 
-  // Render logic
   if (isNestedRoute) return <Outlet />;
   if (!isReady) return <LoadingSplash loadingState="welcome" />;
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
