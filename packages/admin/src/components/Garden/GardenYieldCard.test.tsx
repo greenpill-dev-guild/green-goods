@@ -31,10 +31,9 @@ import { GardenYieldCard } from "./GardenYieldCard";
 describe("GardenYieldCard", () => {
   // This test was added in commit a2f7117 alongside an unimplemented
   // `summary`/`summaryLoading` prop API that GardenYieldCard never gained.
-  // Marked `it.fails` so it remains visible and flips to failing the moment
-  // the component is extended to consume the unlimited garden-yield summary —
-  // at which point a contributor removes `.fails`.
-  it.fails("falls back to allocation history while the unlimited summary is still loading", () => {
+  // Skipped per Copilot review on PR #504; re-enable when the component is
+  // extended to consume the unlimited garden-yield summary.
+  it.skip("falls back to allocation history while the unlimited summary is still loading", () => {
     renderWithProviders(
       <GardenYieldCard
         allocations={[

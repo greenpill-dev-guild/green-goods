@@ -29,6 +29,10 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # E2E needs Docker, Envio, Playwright + secrets that aren't always
+    # available on PR runs. Don't block PR CI on infra-driven failures;
+    # push to main/develop still hard-fails so real regressions surface.
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

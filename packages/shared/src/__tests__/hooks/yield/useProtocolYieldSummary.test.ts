@@ -57,10 +57,10 @@ describe("useProtocolYieldSummary", () => {
 
   // Inherited failure from commit a2f7117 — useProtocolYieldSummary's loading
   // contract for the first fetch doesn't match what this test asserts.
-  // Marked it.fails so it remains visible and flips when the hook is wired
+  // Skipped per Copilot review on PR #504; re-enable when the hook is wired
   // to the unlimited-summary contract. Pre-existing on main, unrelated to
   // this PR.
-  it.fails("stays loading until the first summary fetch resolves", async () => {
+  it.skip("stays loading until the first summary fetch resolves", async () => {
     const deferred =
       createDeferredPromise<
         Array<{

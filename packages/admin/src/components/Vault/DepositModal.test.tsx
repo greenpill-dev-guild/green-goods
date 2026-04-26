@@ -114,10 +114,9 @@ import { DepositModal } from "./DepositModal";
 describe("DepositModal", () => {
   // These two tests document behavior added in commit a2f7117 that was never
   // wired through to the component (chain-pinned wagmi reads + Aave guidance
-  // Alert). Marked `it.fails` so they stay visible in test output and flip to
-  // failing the moment the implementation lands — at which point a contributor
-  // removes `.fails` and they become regular passing tests.
-  it.fails("pins wallet balance and gas reads to the selected vault chain", () => {
+  // Alert). Skipped per Copilot review on PR #504; re-enable when the wiring
+  // lands so CI reflects the intended contract.
+  it.skip("pins wallet balance and gas reads to the selected vault chain", () => {
     mockUseBalance.mockReturnValue({
       data: {
         value: 5_000_000_000_000_000_000n,
@@ -193,7 +192,7 @@ describe("DepositModal", () => {
     );
   }
 
-  it.fails("renders deposit guidance info alert", () => {
+  it.skip("renders deposit guidance info alert", () => {
     renderOpenModal();
 
     const alert = screen.getByTestId("alert");
