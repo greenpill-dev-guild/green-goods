@@ -9,7 +9,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { decodeEventLog, encodeFunctionData, type Hex, zeroAddress } from "viem";
+import { type Address, decodeEventLog, encodeFunctionData, type Hex, zeroAddress } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
