@@ -35,6 +35,10 @@ jobs:
   deploy:
     name: Deploy ${{ matrix.title }} to IPFS
     runs-on: ubuntu-latest
+    # IPFS deploy is informational on PRs (secrets often unavailable in fork
+    # / contributor branch contexts). On push to main/develop the job blocks
+    # like normal so misconfig surfaces loudly.
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
     strategy:
       fail-fast: false
       matrix:
@@ -114,24 +118,26 @@ jobs:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           OP_ENVIRONMENT: ${{ vars.OP_ENVIRONMENT }}
         run: |
+          set +e
           missing=()
-          [[ -z "$PINATA_JWT" ]] && missing+=("PINATA_JWT")
-          [[ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]] && missing+=("OP_SERVICE_ACCOUNT_TOKEN")
-          [[ -z "$OP_ENVIRONMENT" ]] && missing+=("OP_ENVIRONMENT (variable)")
+          if [[ -z "$PINATA_JWT" ]]; then missing+=("PINATA_JWT"); fi
+          if [[ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]]; then missing+=("OP_SERVICE_ACCOUNT_TOKEN"); fi
+          if [[ -z "$OP_ENVIRONMENT" ]]; then missing+=("OP_ENVIRONMENT (variable)"); fi
 
           if [[ ${#missing[@]} -gt 0 ]]; then
             joined=$(IFS=, ; echo "${missing[*]}")
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
               echo "::warning::Skipping IPFS deploy — required secrets/vars not available in this PR context: $joined"
               echo "skip=true" >> $GITHUB_OUTPUT
+              exit 0
             else
               echo "::error::Required secrets/vars not configured: $joined"
               exit 1
             fi
-          else
-            echo "skip=false" >> $GITHUB_OUTPUT
-            echo "✅ Deploy preconditions satisfied"
           fi
+
+          echo "skip=false" >> $GITHUB_OUTPUT
+          echo "✅ Deploy preconditions satisfied"
 
       - name: Load env vars from Varlock + 1Password environment
         if: steps.preflight.outputs.skip != 'true'
