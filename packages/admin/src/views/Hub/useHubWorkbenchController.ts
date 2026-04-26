@@ -7,6 +7,7 @@ import {
   useAdminGardenWorkspaceSelection,
   useCanvasResponsiveFab,
   useCanvasSearchParams,
+  useDebouncedValue,
   useGardenDerivedState,
   useGardenDetailData,
   useGardenPermissions,
@@ -26,11 +27,7 @@ import {
   getStageDescription,
   getStageTitle,
   isRouteSheetContentId,
-  parseCertificationContentId,
-  parseSortDirection,
-  parseWorkDetailContentId,
   resolveOpenSectionRoute,
-  resolvePipelineStageFromPath,
 } from "./hub.utils";
 import {
   filterAssessmentQueue,
@@ -39,10 +36,13 @@ import {
   filterPendingWorks,
 } from "./hub.filters";
 import {
+  buildActionTitleMap,
   buildHubStageModel,
+  buildHubWorkspaceState,
   getHubResultCount,
+  normalizeHubSearch,
   resolveHubRouteSelection,
-  resolveHubRouteSheet,
+  resolveHubRouteState,
 } from "./hub.workbenchModel";
 import {
   bindCanvasScrollPositionPersistence,
@@ -72,12 +72,26 @@ export function useHubWorkbenchController() {
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [lastRefreshAt, setLastRefreshAt] = useState(() => Date.now());
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const requestedStage = resolvePipelineStageFromPath(location.pathname);
-  const sortDirection = parseSortDirection(searchParams.get("sort"));
-  const isSubmitRoute = location.pathname.endsWith("/work/submit");
+  const debouncedSearch = useDebouncedValue(searchTerm, 220);
+  const {
+    activeCertificationId,
+    activeWorkDetailId,
+    isSubmitRoute,
+    requestedStage,
+    routeCertificationId,
+    routeHistoryEventId,
+    routeSheetContentId,
+    routeSheetSide,
+    routeWorkId,
+    sortDirection,
+  } = resolveHubRouteState({
+    pathname: location.pathname,
+    sortParam: searchParams.get("sort"),
+    routedWorkIdParam,
+    routedAssessmentIdParam,
+    routedHistoryEventIdParam,
+    activeContentId,
+  });
   const isDesktop = useMediaQuery("(min-width: 600px)");
   const hubContext = useMemo<AdminHubRouteContext>(
     () => ({
@@ -92,18 +106,9 @@ export function useHubWorkbenchController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "hub");
     setSearchTerm(persistedState.search);
-    setDebouncedSearch(persistedState.search);
     restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
-
-  useEffect(() => {
-    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    searchDebounceRef.current = setTimeout(() => setDebouncedSearch(searchTerm), 220);
-    return () => {
-      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
-    };
-  }, [searchTerm]);
 
   const {
     garden,
@@ -186,10 +191,7 @@ export function useHubWorkbenchController() {
   });
 
   const { data: actions = [] } = useActions();
-  const actionsMap = useMemo(
-    () => new Map(actions.map((action) => [Number(action.id), { title: action.title }])),
-    [actions]
-  );
+  const actionsMap = useMemo(() => buildActionTitleMap(actions), [actions]);
 
   useEffect(() => {
     if (!worksLoading && !fetchingAssessments && !hypercertsLoading) {
@@ -204,7 +206,7 @@ export function useHubWorkbenchController() {
     hypercertsLoading,
   ]);
 
-  const normalizedSearch = debouncedSearch.trim().toLowerCase();
+  const normalizedSearch = normalizeHubSearch(debouncedSearch);
 
   const pendingWorks = useMemo(
     () => filterPendingWorks(works, actionsMap, normalizedSearch, sortDirection),
@@ -230,12 +232,6 @@ export function useHubWorkbenchController() {
     () => new Map(historyEvents.map((event) => [event.id, event])),
     [historyEvents]
   );
-
-  const routeWorkId = routedWorkIdParam;
-  const routeCertificationId = routedAssessmentIdParam;
-  const routeHistoryEventId = routedHistoryEventIdParam;
-  const activeWorkDetailId = parseWorkDetailContentId(activeContentId);
-  const activeCertificationId = parseCertificationContentId(activeContentId);
 
   const selectedWork = useMemo(() => {
     const resolvedId = routeWorkId ?? activeWorkDetailId;
@@ -268,13 +264,17 @@ export function useHubWorkbenchController() {
   useEffect(() => {
     if (!selectedGarden) return;
 
-    setGardenWorkspaceState(gardenStateKey, "hub", {
-      activeMode: stage,
-      filter: sortDirection,
-      search: searchTerm,
-      selectedItem: persistedSelectedItem,
-      sheetOpen: hasOpenHubInspector,
-    });
+    setGardenWorkspaceState(
+      gardenStateKey,
+      "hub",
+      buildHubWorkspaceState({
+        stage,
+        sortDirection,
+        searchTerm,
+        persistedSelectedItem,
+        hasOpenHubInspector,
+      })
+    );
   }, [
     gardenStateKey,
     hasOpenHubInspector,
@@ -293,13 +293,6 @@ export function useHubWorkbenchController() {
       setGardenWorkspaceState(gardenStateKey, "hub", { scrollPosition });
     });
   }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
-
-  const { routeSheetContentId, routeSheetSide } = resolveHubRouteSheet({
-    isSubmitRoute,
-    routeWorkId,
-    routeCertificationId,
-    routeHistoryEventId,
-  });
 
   useEffect(() => {
     if (!routeSheetContentId || !routeSheetSide) {
@@ -416,7 +409,6 @@ export function useHubWorkbenchController() {
 
   const handleClearSearch = useCallback(() => {
     setSearchTerm("");
-    setDebouncedSearch("");
     setGardenWorkspaceState(gardenStateKey, "hub", { search: "" });
   }, [gardenStateKey, setGardenWorkspaceState]);
 

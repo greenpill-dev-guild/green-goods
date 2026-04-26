@@ -1,5 +1,6 @@
 import {
   type ActionInstructionConfig,
+  adminRoutes,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   Surface,
@@ -14,12 +15,13 @@ import {
   useActionOperations,
   useActions,
   useAsyncEffect,
+  useSheetOrchestratorStore,
 } from "@green-goods/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { AdminButton } from "@/components/AdminButton";
@@ -29,6 +31,12 @@ import {
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
+import { getActionsListSearch } from "./actions.utils";
+import {
+  getActionEditDraftPath,
+  restoreEditActionDraft,
+  serializeEditActionDraft,
+} from "./actionDrafts";
 
 const editActionSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -84,9 +92,14 @@ async function parseInstructionConfig(
   return null;
 }
 
-export default function EditAction() {
+interface EditActionProps {
+  layout?: "page" | "sheet";
+}
+
+export default function EditAction({ layout = "page" }: EditActionProps = {}) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { formatMessage } = useIntl();
   const { data: actions = [], isLoading: actionsLoading } = useActions(DEFAULT_CHAIN_ID);
   const action = actions.find((a) => a.id === id);
@@ -111,6 +124,16 @@ export default function EditAction() {
     useState<ActionInstructionConfig>(defaultTemplate);
   const [isEditingInstructions, setIsEditingInstructions] = useState(false);
   const [isLoadingInstructions, setIsLoadingInstructions] = useState(false);
+  const setDraftFormState = useSheetOrchestratorStore((state) => state.setFormState);
+  const clearDraftFormState = useSheetOrchestratorStore((state) => state.clearViewState);
+  const restoredDraftPathRef = useRef<string | null>(null);
+  const listSearch = useMemo(
+    () => getActionsListSearch(new URLSearchParams(location.search)),
+    [location.search]
+  );
+  const actionsListHref = useMemo(() => adminRoutes.actions(listSearch), [listSearch]);
+  const actionDetailHref = id ? adminRoutes.actionDetail(id, listSearch) : actionsListHref;
+  const draftPath = useMemo(() => getActionEditDraftPath(id), [id]);
 
   // Sync form state when action data loads or changes
   useAsyncEffect(
@@ -119,6 +142,23 @@ export default function EditAction() {
       const fallbackConfig = cloneInstructionConfig(
         instructionTemplates[action.slug] ?? defaultTemplate
       );
+      const restoreDraft = (resolvedConfig: ActionInstructionConfig) => {
+        if (!draftPath || restoredDraftPathRef.current === draftPath) return false;
+        restoredDraftPathRef.current = draftPath;
+        const savedDraft =
+          useSheetOrchestratorStore.getState().restoreViewState(draftPath)?.formState ?? null;
+        const restoredDraft = restoreEditActionDraft(savedDraft);
+        if (!restoredDraft) return false;
+
+        form.reset({
+          title: restoredDraft.title || action.title || "",
+          startTime: restoredDraft.startTime,
+          endTime: restoredDraft.endTime,
+        });
+        setInstructionConfig(restoredDraft.instructionConfig ?? resolvedConfig);
+        setIsEditingInstructions(restoredDraft.isEditingInstructions);
+        return true;
+      };
 
       form.reset({
         title: action.title || "",
@@ -128,19 +168,24 @@ export default function EditAction() {
       if (isMounted()) {
         setInstructionConfig(fallbackConfig);
       }
+      const didRestoreDraft = isMounted() ? restoreDraft(fallbackConfig) : false;
 
-      if (!action.instructions) return;
+      if (!action.instructions) {
+        return;
+      }
 
       setIsLoadingInstructions(true);
+      let resolvedConfig = fallbackConfig;
       try {
         const file = await getFileByHash(action.instructions, {
           timeoutMs: INSTRUCTION_LOAD_TIMEOUT_MS,
         });
         const config = await parseInstructionConfig(file.data);
         if (isMounted()) {
-          if (config) {
+          if (config && !didRestoreDraft) {
+            resolvedConfig = config;
             setInstructionConfig(config);
-          } else {
+          } else if (!didRestoreDraft) {
             setInstructionConfig(fallbackConfig);
           }
         }
@@ -155,28 +200,84 @@ export default function EditAction() {
       } finally {
         if (isMounted()) {
           setIsLoadingInstructions(false);
+          if (!didRestoreDraft) {
+            restoreDraft(resolvedConfig);
+          }
         }
       }
     },
-    [action?.id, action?.instructions]
+    [action?.id, action?.instructions, draftPath]
   );
+
+  useEffect(() => {
+    if (!draftPath || !action || restoredDraftPathRef.current !== draftPath) return;
+
+    const subscription = form.watch((value) => {
+      setDraftFormState(
+        draftPath,
+        serializeEditActionDraft(value, instructionConfig, isEditingInstructions)
+      );
+    });
+
+    return () => subscription.unsubscribe();
+  }, [action, draftPath, form, instructionConfig, isEditingInstructions, setDraftFormState]);
+
+  useEffect(() => {
+    if (!draftPath || !action || restoredDraftPathRef.current !== draftPath) return;
+    setDraftFormState(
+      draftPath,
+      serializeEditActionDraft(form.getValues(), instructionConfig, isEditingInstructions)
+    );
+  }, [action, draftPath, form, instructionConfig, isEditingInstructions, setDraftFormState]);
 
   if (actionsLoading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
-      </div>
+      <CanvasRouteFrame>
+        <CanvasRouteHeader
+          maxWidthClassName="max-w-5xl"
+          title={formatMessage({ id: "app.actions.loading" })}
+          description={formatMessage({
+            id: "cockpit.actions.editDescription",
+            defaultMessage: "Update lifecycle details and the submission contract for this action.",
+          })}
+          variant="canvas"
+          sticky
+        />
+        <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
+          <Surface elevation="raised" padding="default" role="status" aria-live="polite">
+            <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
+          </Surface>
+        </CanvasRouteContent>
+      </CanvasRouteFrame>
     );
   }
 
   if (!action) {
     return (
-      <div className="text-center py-12">
-        <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-        <Link to="/actions" className="text-primary-base hover:underline mt-2 inline-block">
-          {formatMessage({ id: "app.actions.backToActions" })}
-        </Link>
-      </div>
+      <CanvasRouteFrame>
+        <CanvasRouteHeader
+          maxWidthClassName="max-w-5xl"
+          title={formatMessage({ id: "app.actions.notFound" })}
+          description={formatMessage({
+            id: "cockpit.actions.editDescription",
+            defaultMessage: "Update lifecycle details and the submission contract for this action.",
+          })}
+          variant="canvas"
+          backLink={{
+            to: actionsListHref,
+            label: formatMessage({
+              id: "app.actions.backToActions",
+              defaultMessage: "Back to actions",
+            }),
+          }}
+          sticky
+        />
+        <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
+          <Surface elevation="raised" padding="default" className="text-center">
+            <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
+          </Surface>
+        </CanvasRouteContent>
+      </CanvasRouteFrame>
     );
   }
 
@@ -214,12 +315,119 @@ export default function EditAction() {
       }
 
       toastService.success({ title: formatMessage({ id: "app.actions.edit.success" }) });
-      navigate(`/actions/${id}`);
+      if (draftPath) {
+        clearDraftFormState(draftPath);
+      }
+      navigate(actionDetailHref);
     } catch (error) {
       logger.error("Failed to update action", { error });
       toastService.error({ title: formatMessage({ id: "app.actions.edit.failed" }) });
     }
   };
+
+  const formContent = (
+    <CanvasRouteContent
+      maxWidthClassName={layout === "sheet" ? "max-w-none" : "max-w-5xl"}
+      className={layout === "sheet" ? "p-4" : "mt-4"}
+    >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Surface elevation="raised" padding="default" className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-text-strong">
+              {formatMessage({ id: "app.actions.edit.basicInfo" })}
+            </h3>
+            <p className="mt-1 text-sm text-text-sub">
+              {formatMessage({
+                id: "cockpit.actions.detailDescription",
+                defaultMessage:
+                  "Review lifecycle details and the submission requirements for this action.",
+              })}
+            </p>
+          </div>
+          <div className="space-y-4">
+            <AdminTextField
+              label={formatMessage({ id: "app.assessment.table.title" })}
+              id="action-title"
+              variant="outlined"
+              error={form.formState.errors.title?.message}
+              {...form.register("title")}
+            />
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <AdminTextField
+                label={formatMessage({ id: "app.actions.detail.startTime" })}
+                id="action-start-time"
+                type="datetime-local"
+                variant="outlined"
+                value={toDateTimeLocalValue(form.watch("startTime").getTime())}
+                onChange={(e) => form.setValue("startTime", fromDateTimeLocalValue(e.target.value))}
+              />
+
+              <AdminTextField
+                label={formatMessage({ id: "app.actions.detail.endTime" })}
+                id="action-end-time"
+                type="datetime-local"
+                variant="outlined"
+                value={toDateTimeLocalValue(form.watch("endTime").getTime())}
+                onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
+              />
+            </div>
+          </div>
+        </Surface>
+
+        <Surface elevation="raised" padding="default" className="space-y-4">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-text-strong">
+              {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
+            </h3>
+            {!isLoadingInstructions && (
+              <AdminButton
+                type="button"
+                variant="text"
+                size="sm"
+                onClick={() => setIsEditingInstructions(!isEditingInstructions)}
+              >
+                {isEditingInstructions
+                  ? formatMessage({ id: "app.actions.edit.cancelEditing" })
+                  : formatMessage({ id: "app.actions.edit.editInstructions" })}
+              </AdminButton>
+            )}
+          </div>
+
+          {isLoadingInstructions ? (
+            <p className="text-sm text-text-sub">
+              {formatMessage({ id: "app.actions.edit.loadingInstructions" })}
+            </p>
+          ) : isEditingInstructions ? (
+            <InstructionsBuilder value={instructionConfig} onChange={setInstructionConfig} />
+          ) : (
+            <p className="text-sm text-text-sub">
+              {formatMessage({ id: "app.actions.edit.instructionsHint" })}
+            </p>
+          )}
+        </Surface>
+
+        <Surface
+          elevation="raised"
+          padding="default"
+          className="flex flex-col gap-3 sm:flex-row sm:justify-end"
+        >
+          <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
+            {isLoading
+              ? formatMessage({ id: "app.actions.edit.saving" })
+              : formatMessage({ id: "app.actions.edit.saveChanges" })}
+          </AdminButton>
+          <AdminButton type="button" variant="outlined" onClick={() => navigate(actionDetailHref)}>
+            {formatMessage({ id: "app.common.cancel" })}
+          </AdminButton>
+        </Surface>
+      </form>
+    </CanvasRouteContent>
+  );
+
+  if (layout === "sheet") {
+    return formContent;
+  }
 
   return (
     <CanvasRouteFrame>
@@ -232,7 +440,7 @@ export default function EditAction() {
         })}
         variant="canvas"
         backLink={{
-          to: `/actions/${id}`,
+          to: actionDetailHref,
           label: formatMessage({
             id: "app.actions.backToAction",
             defaultMessage: "Back to action",
@@ -240,107 +448,7 @@ export default function EditAction() {
         }}
         sticky
       />
-
-      <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <Surface elevation="raised" padding="default" className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold text-text-strong">
-                {formatMessage({ id: "app.actions.edit.basicInfo" })}
-              </h3>
-              <p className="mt-1 text-sm text-text-sub">
-                {formatMessage({
-                  id: "cockpit.actions.detailDescription",
-                  defaultMessage:
-                    "Review lifecycle details and the submission requirements for this action.",
-                })}
-              </p>
-            </div>
-            <div className="space-y-4">
-              <AdminTextField
-                label={formatMessage({ id: "app.assessment.table.title" })}
-                id="action-title"
-                variant="outlined"
-                error={form.formState.errors.title?.message}
-                {...form.register("title")}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <AdminTextField
-                  label={formatMessage({ id: "app.actions.detail.startTime" })}
-                  id="action-start-time"
-                  type="datetime-local"
-                  variant="outlined"
-                  value={toDateTimeLocalValue(form.watch("startTime").getTime())}
-                  onChange={(e) =>
-                    form.setValue("startTime", fromDateTimeLocalValue(e.target.value))
-                  }
-                />
-
-                <AdminTextField
-                  label={formatMessage({ id: "app.actions.detail.endTime" })}
-                  id="action-end-time"
-                  type="datetime-local"
-                  variant="outlined"
-                  value={toDateTimeLocalValue(form.watch("endTime").getTime())}
-                  onChange={(e) => form.setValue("endTime", fromDateTimeLocalValue(e.target.value))}
-                />
-              </div>
-            </div>
-          </Surface>
-
-          <Surface elevation="raised" padding="default" className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-text-strong">
-                {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
-              </h3>
-              {!isLoadingInstructions && (
-                <AdminButton
-                  type="button"
-                  variant="text"
-                  size="sm"
-                  onClick={() => setIsEditingInstructions(!isEditingInstructions)}
-                >
-                  {isEditingInstructions
-                    ? formatMessage({ id: "app.actions.edit.cancelEditing" })
-                    : formatMessage({ id: "app.actions.edit.editInstructions" })}
-                </AdminButton>
-              )}
-            </div>
-
-            {isLoadingInstructions ? (
-              <p className="text-text-sub text-sm">
-                {formatMessage({ id: "app.actions.edit.loadingInstructions" })}
-              </p>
-            ) : isEditingInstructions ? (
-              <InstructionsBuilder value={instructionConfig} onChange={setInstructionConfig} />
-            ) : (
-              <p className="text-text-sub text-sm">
-                {formatMessage({ id: "app.actions.edit.instructionsHint" })}
-              </p>
-            )}
-          </Surface>
-
-          <Surface
-            elevation="raised"
-            padding="default"
-            className="flex flex-col gap-3 sm:flex-row sm:justify-end"
-          >
-            <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
-              {isLoading
-                ? formatMessage({ id: "app.actions.edit.saving" })
-                : formatMessage({ id: "app.actions.edit.saveChanges" })}
-            </AdminButton>
-            <AdminButton
-              type="button"
-              variant="outlined"
-              onClick={() => navigate(`/actions/${id}`)}
-            >
-              {formatMessage({ id: "app.common.cancel" })}
-            </AdminButton>
-          </Surface>
-        </form>
-      </CanvasRouteContent>
+      {formContent}
     </CanvasRouteFrame>
   );
 }

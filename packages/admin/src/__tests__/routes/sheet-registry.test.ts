@@ -5,6 +5,9 @@ import {
   NOTIFICATIONS_SHEET_CONTENT_ID,
   PROFILE_SHEET_CONTENT_ID,
   SETTINGS_SHEET_CONTENT_ID,
+  ACTION_CREATE_CONTENT_ID,
+  toActionDetailContentId,
+  toActionEditContentId,
   toHistoryContentId,
   toWorkDetailContentId,
 } from "@/routes/sheetRegistry";
@@ -29,5 +32,21 @@ describe("admin sheet registry", () => {
 
   it("does not treat legacy Hub item query state as route ownership", () => {
     expect(isRouteSheetRestorable(toHistoryContentId("event-1"), "/hub/history")).toBe(false);
+  });
+
+  it("restores route-backed Actions inspectors only when the path owns the sheet", () => {
+    const encodedActionPath = "/actions/action%3A0xabc%2F1";
+
+    expect(isRouteSheetRestorable(ACTION_CREATE_CONTENT_ID, "/actions/create")).toBe(true);
+    expect(isRouteSheetRestorable(ACTION_CREATE_CONTENT_ID, "/actions")).toBe(false);
+    expect(
+      isRouteSheetRestorable(toActionDetailContentId("action:0xabc/1"), encodedActionPath)
+    ).toBe(true);
+    expect(
+      isRouteSheetRestorable(toActionDetailContentId("action:0xabc/1"), `${encodedActionPath}/edit`)
+    ).toBe(false);
+    expect(
+      isRouteSheetRestorable(toActionEditContentId("action:0xabc/1"), `${encodedActionPath}/edit`)
+    ).toBe(true);
   });
 });

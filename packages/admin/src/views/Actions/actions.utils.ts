@@ -15,6 +15,8 @@ export const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
   lifecycle: "all",
 };
 
+const ACTION_LIST_QUERY_KEYS = ["sort", "domain", "search", "lifecycle"] as const;
+
 export type LifecycleStage = "all" | "active" | "upcoming" | "completed";
 
 export const LIFECYCLE_TABS: { id: LifecycleStage; labelId: string; defaultLabel: string }[] = [
@@ -43,4 +45,16 @@ export function getWorkbenchTone(action: Pick<Action, "startTime" | "endTime">) 
   if (lifecycle === "upcoming") return "pending" as const;
   if (lifecycle === "active") return "approved" as const;
   return "history" as const;
+}
+
+export function getActionsListSearch(searchParams: URLSearchParams): Record<string, string> {
+  const listSearch: Record<string, string> = {};
+
+  for (const key of ACTION_LIST_QUERY_KEYS) {
+    const value = searchParams.get(key);
+    if (!value || value === ACTION_FILTER_DEFAULTS[key]) continue;
+    listSearch[key] = value;
+  }
+
+  return listSearch;
 }

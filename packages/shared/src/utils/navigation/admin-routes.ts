@@ -199,14 +199,14 @@ export const adminRoutes = {
   profile(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/profile", search);
   },
-  actionCreate() {
-    return "/actions/create";
+  actionCreate(search?: Record<string, AdminSearchValue>) {
+    return buildAdminHref("/actions/create", search);
   },
-  actionDetail(actionId: string) {
-    return `/actions/${encodeSegment(actionId)}`;
+  actionDetail(actionId: string, search?: Record<string, AdminSearchValue>) {
+    return buildAdminHref(`/actions/${encodeSegment(actionId)}`, search);
   },
-  actionEdit(actionId: string) {
-    return `/actions/${encodeSegment(actionId)}/edit`;
+  actionEdit(actionId: string, search?: Record<string, AdminSearchValue>) {
+    return buildAdminHref(`/actions/${encodeSegment(actionId)}/edit`, search);
   },
   share(pathname: string, gardenAddress: string, search?: Record<string, AdminSearchValue>) {
     return buildAdminHref(pathname, {

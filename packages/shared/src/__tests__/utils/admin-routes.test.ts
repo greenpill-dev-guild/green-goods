@@ -32,4 +32,26 @@ describe("adminRoutes", () => {
       "/hub/history/allocation%3A0xabc%2F1"
     );
   });
+
+  it("builds Actions list and child routes with preserved list context", () => {
+    const listContext = {
+      domain: "1",
+      lifecycle: "active",
+      search: "solar",
+      sort: "recent",
+    };
+
+    expect(adminRoutes.actions(listContext)).toBe(
+      "/actions?domain=1&lifecycle=active&search=solar&sort=recent"
+    );
+    expect(adminRoutes.actionCreate(listContext)).toBe(
+      "/actions/create?domain=1&lifecycle=active&search=solar&sort=recent"
+    );
+    expect(adminRoutes.actionDetail("action:0xabc/1", listContext)).toBe(
+      "/actions/action%3A0xabc%2F1?domain=1&lifecycle=active&search=solar&sort=recent"
+    );
+    expect(adminRoutes.actionEdit("action:0xabc/1", listContext)).toBe(
+      "/actions/action%3A0xabc%2F1/edit?domain=1&lifecycle=active&search=solar&sort=recent"
+    );
+  });
 });

@@ -19,6 +19,9 @@ export const WORK_DETAIL_CONTENT_ID_PREFIX = "hub:work-detail:";
 export const CERTIFICATION_CONTENT_ID_PREFIX = "hub:certify:";
 export const HISTORY_CONTENT_ID_PREFIX = "hub:history:";
 export const SUBMIT_WORK_CONTENT_ID = "hub:submit-work";
+export const ACTION_CREATE_CONTENT_ID = "actions:create";
+export const ACTION_DETAIL_CONTENT_ID_PREFIX = "actions:detail:";
+export const ACTION_EDIT_CONTENT_ID_PREFIX = "actions:edit:";
 
 export const ADMIN_RIGHT_SHEET_REGISTRY = {
   [PROFILE_SHEET_CONTENT_ID]: {
@@ -84,6 +87,24 @@ export function parseHistoryContentId(contentId: string | null) {
   return contentId.slice(HISTORY_CONTENT_ID_PREFIX.length) || null;
 }
 
+export function toActionDetailContentId(actionId: string) {
+  return `${ACTION_DETAIL_CONTENT_ID_PREFIX}${actionId}`;
+}
+
+export function parseActionDetailContentId(contentId: string | null) {
+  if (!contentId?.startsWith(ACTION_DETAIL_CONTENT_ID_PREFIX)) return null;
+  return contentId.slice(ACTION_DETAIL_CONTENT_ID_PREFIX.length) || null;
+}
+
+export function toActionEditContentId(actionId: string) {
+  return `${ACTION_EDIT_CONTENT_ID_PREFIX}${actionId}`;
+}
+
+export function parseActionEditContentId(contentId: string | null) {
+  if (!contentId?.startsWith(ACTION_EDIT_CONTENT_ID_PREFIX)) return null;
+  return contentId.slice(ACTION_EDIT_CONTENT_ID_PREFIX.length) || null;
+}
+
 const ADMIN_ROUTE_SHEET_REGISTRY: RouteSheetRegistryEntry[] = [
   {
     kind: "exact",
@@ -115,6 +136,26 @@ const ADMIN_ROUTE_SHEET_REGISTRY: RouteSheetRegistryEntry[] = [
     isRestorable: (historyId, pathname) =>
       pathname.startsWith("/hub/history/") && getLastPathSegment(pathname) === historyId,
   },
+  {
+    kind: "exact",
+    id: ACTION_CREATE_CONTENT_ID,
+    side: "left",
+    isRestorable: (pathname) => pathname === "/actions/create",
+  },
+  {
+    kind: "prefix",
+    prefix: ACTION_DETAIL_CONTENT_ID_PREFIX,
+    side: "left",
+    parse: parseActionDetailContentId,
+    isRestorable: (actionId, pathname) => getActionRouteSegment(pathname) === actionId,
+  },
+  {
+    kind: "prefix",
+    prefix: ACTION_EDIT_CONTENT_ID_PREFIX,
+    side: "left",
+    parse: parseActionEditContentId,
+    isRestorable: (actionId, pathname) => getActionEditRouteSegment(pathname) === actionId,
+  },
 ];
 
 export function getRightSheetRegistryEntry(
@@ -132,6 +173,14 @@ export function isRightSheetContentId(
 
 export function isRouteSheetContentId(contentId: string | null) {
   return Boolean(getRouteSheetRegistryEntry(contentId));
+}
+
+export function isActionsRouteSheetContentId(contentId: string | null) {
+  return Boolean(
+    contentId === ACTION_CREATE_CONTENT_ID ||
+      contentId?.startsWith(ACTION_DETAIL_CONTENT_ID_PREFIX) ||
+      contentId?.startsWith(ACTION_EDIT_CONTENT_ID_PREFIX)
+  );
 }
 
 export function getRouteSheetSide(contentId: string | null): AdminSheetSide | null {
@@ -179,4 +228,26 @@ function getLastPathSegment(pathname: string) {
   } catch {
     return segment;
   }
+}
+
+function decodePathSegment(segment: string | undefined) {
+  if (!segment) return "";
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+function getActionRouteSegment(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length !== 2 || segments[0] !== "actions") return "";
+  if (segments[1] === "create") return "";
+  return decodePathSegment(segments[1]);
+}
+
+function getActionEditRouteSegment(pathname: string) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length !== 3 || segments[0] !== "actions" || segments[2] !== "edit") return "";
+  return decodePathSegment(segments[1]);
 }

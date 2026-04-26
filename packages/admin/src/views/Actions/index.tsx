@@ -1,5 +1,4 @@
 import {
-  adminRoutes,
   Button,
   DOMAIN_CONFIG,
   EmptyState,
@@ -21,6 +20,7 @@ import {
   getWorkbenchTone,
   LIFECYCLE_TABS,
 } from "./actions.utils";
+import { ActionsSheetDescriptor } from "./ActionsSheetDescriptor";
 import { useActionsController } from "./useActionsController";
 
 export default function Actions() {
@@ -29,6 +29,12 @@ export default function Actions() {
 
   return (
     <CanvasRouteFrame>
+      <ActionsSheetDescriptor
+        routeState={actions.routeState}
+        actions={actions.actions}
+        isLoading={actions.isLoading}
+        canManageActions={actions.canManageActions}
+      />
       <CanvasRouteContent maxWidthClassName="max-w-[1400px]" className="flex flex-col gap-4">
         <PageHeader
           title={intl.formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
@@ -120,11 +126,7 @@ export default function Actions() {
               })}
             </span>
             {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={`action-skeleton-${index}`}
-                className="h-20 rounded-sm skeleton-shimmer"
-                style={{ animationDelay: `${index * 0.05}s` }}
-              />
+              <div key={`action-skeleton-${index}`} className="h-20 rounded-sm skeleton-shimmer" />
             ))}
           </Surface>
         ) : null}
@@ -148,7 +150,7 @@ export default function Actions() {
                         id: "app.actions.createFirst",
                         defaultMessage: "Create your first action",
                       }),
-                      onClick: () => actions.navigate(adminRoutes.actionCreate()),
+                      onClick: actions.openCreateAction,
                     }
                   : undefined
               }
@@ -226,7 +228,7 @@ export default function Actions() {
                   statusTone={getWorkbenchTone(action)}
                   leadingIcon={RiFileListLine}
                   thumbnailSrc={action.media[0] ?? undefined}
-                  onClick={() => actions.navigate(adminRoutes.actionDetail(action.id))}
+                  onClick={() => actions.openActionDetail(action.id)}
                 />
               );
             })}

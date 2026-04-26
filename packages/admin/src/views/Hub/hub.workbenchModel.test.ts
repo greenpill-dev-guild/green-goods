@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildActionTitleMap,
   buildHubStageModel,
+  buildHubWorkspaceState,
   getHubResultCount,
+  normalizeHubSearch,
   resolveHubRouteSelection,
   resolveHubRouteSheet,
+  resolveHubRouteState,
 } from "./hub.workbenchModel";
 
 describe("hub.workbenchModel", () => {
@@ -67,6 +71,42 @@ describe("hub.workbenchModel", () => {
     });
   });
 
+  it("derives route state from router params and active sheet content", () => {
+    expect(
+      resolveHubRouteState({
+        pathname: "/hub/history/allocation%3A0xabc%2F1",
+        sortParam: "oldest",
+        routedHistoryEventIdParam: "allocation:0xabc/1",
+        activeContentId: "hub:work-detail:work-1",
+      })
+    ).toMatchObject({
+      activeCertificationId: null,
+      activeWorkDetailId: "work-1",
+      isSubmitRoute: false,
+      requestedStage: "history",
+      routeHistoryEventId: "allocation:0xabc/1",
+      routeSheetContentId: "hub:history:allocation:0xabc/1",
+      routeSheetSide: "left",
+      sortDirection: "oldest",
+    });
+  });
+
+  it("derives submit routes and falls back to newest sort for unknown values", () => {
+    expect(
+      resolveHubRouteState({
+        pathname: "/hub/work/submit",
+        sortParam: "sideways",
+        activeContentId: null,
+      })
+    ).toMatchObject({
+      isSubmitRoute: true,
+      requestedStage: "work",
+      routeSheetContentId: "hub:submit-work",
+      routeSheetSide: "left",
+      sortDirection: "newest",
+    });
+  });
+
   it("resolves persisted selected item and inspector state from route and active sheet state", () => {
     expect(
       resolveHubRouteSelection({
@@ -112,5 +152,30 @@ describe("hub.workbenchModel", () => {
         historyEvents: 4,
       })
     ).toBe(3);
+  });
+
+  it("normalizes search terms and builds action title maps for queue filters", () => {
+    expect(normalizeHubSearch("  Solar Pump  ")).toBe("solar pump");
+    expect(buildActionTitleMap([{ id: "42", title: "Tree Planting" }]).get(42)).toEqual({
+      title: "Tree Planting",
+    });
+  });
+
+  it("builds the persisted workspace payload without route or data dependencies", () => {
+    expect(
+      buildHubWorkspaceState({
+        stage: "history",
+        sortDirection: "oldest",
+        searchTerm: "allocation",
+        persistedSelectedItem: "history-1",
+        hasOpenHubInspector: true,
+      })
+    ).toEqual({
+      activeMode: "history",
+      filter: "oldest",
+      search: "allocation",
+      selectedItem: "history-1",
+      sheetOpen: true,
+    });
   });
 });

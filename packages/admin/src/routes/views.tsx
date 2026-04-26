@@ -77,9 +77,6 @@ const profileView = lazyView(() => import("@/views/Profile"));
 const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
 const createAssessmentView = lazyView(() => import("@/views/Hub/CreateAssessment"));
 const createHypercertView = lazyView(() => import("@/views/Hub/CreateHypercert"));
-const createActionView = lazyView(() => import("@/views/Actions/CreateAction"));
-const actionDetailView = lazyView(() => import("@/views/Actions/ActionDetail"));
-const editActionView = lazyView(() => import("@/views/Actions/EditAction"));
 
 function preserveSearch(search: string, omitKeys: string[] = []): string {
   if (!search) return "";
@@ -297,14 +294,14 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "actions/create",
-    ...roleGatedRoute(["deployer", "operator"], createActionView),
+    ...roleGatedRoute(["deployer", "operator"], actionsView),
   },
   {
     path: "actions/:id",
-    lazy: actionDetailView,
+    lazy: actionsView,
   },
   {
     path: "actions/:id/edit",
-    ...roleGatedRoute(["deployer", "operator"], editActionView),
+    ...roleGatedRoute(["deployer", "operator"], actionsView),
   },
 ];

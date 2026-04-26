@@ -8,23 +8,36 @@ import {
   uploadFileToIPFS,
   useActionOperations,
   useFormWizardStepValidation,
+  useSheetOrchestratorStore,
 } from "@green-goods/shared";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ACTION_STEP_FIELDS,
   CREATE_ACTION_DEFAULT_CHAIN_ID,
   createActionDefaultValues,
   createActionResolver,
 } from "./createAction.utils";
+import { getActionsListSearch } from "./actions.utils";
+import {
+  ACTION_CREATE_DRAFT_PATH,
+  clearCreateActionMediaDraft,
+  restoreCreateActionDraft,
+  saveCreateActionMediaDraft,
+  serializeCreateActionDraft,
+} from "./actionDrafts";
 
 export function useCreateActionController() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { formatMessage } = useIntl();
   const { registerAction, isLoading } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
   const [currentStep, setCurrentStep] = useState(0);
+  const setDraftFormState = useSheetOrchestratorStore((state) => state.setFormState);
+  const clearDraftFormState = useSheetOrchestratorStore((state) => state.clearViewState);
+  const restoredDraftRef = useRef(false);
 
   const domainOptions = [
     {
@@ -91,6 +104,20 @@ export function useCreateActionController() {
     defaultValues: createActionDefaultValues(),
   });
 
+  useEffect(() => {
+    if (restoredDraftRef.current) return;
+    restoredDraftRef.current = true;
+
+    const savedDraft =
+      useSheetOrchestratorStore.getState().restoreViewState(ACTION_CREATE_DRAFT_PATH)?.formState ??
+      null;
+    const restoredDraft = restoreCreateActionDraft(savedDraft, ACTION_CREATE_DRAFT_PATH);
+    if (!restoredDraft) return;
+
+    form.reset(restoredDraft.values);
+    setCurrentStep(Math.max(0, Math.min(restoredDraft.currentStep, stepConfigs.length - 1)));
+  }, [form, stepConfigs.length]);
+
   const stepValidation = useFormWizardStepValidation({
     currentStep,
     steps: stepConfigs,
@@ -99,6 +126,26 @@ export function useCreateActionController() {
     onValidNext: () => setCurrentStep((prev) => Math.min(prev + 1, stepConfigs.length - 1)),
     onBack: () => setCurrentStep((prev) => Math.max(prev - 1, 0)),
   });
+  const listSearch = getActionsListSearch(new URLSearchParams(location.search));
+  const actionsListHref = adminRoutes.actions(listSearch);
+
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      saveCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH, value.media);
+      setDraftFormState(
+        ACTION_CREATE_DRAFT_PATH,
+        serializeCreateActionDraft(value as Partial<CreateActionFormData>, currentStep)
+      );
+    });
+
+    return () => subscription.unsubscribe();
+  }, [currentStep, form, setDraftFormState]);
+
+  useEffect(() => {
+    const value = form.getValues();
+    saveCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH, value.media);
+    setDraftFormState(ACTION_CREATE_DRAFT_PATH, serializeCreateActionDraft(value, currentStep));
+  }, [currentStep, form, setDraftFormState]);
 
   const onSubmit = async (data: CreateActionFormData) => {
     try {
@@ -134,7 +181,9 @@ export function useCreateActionController() {
         instructions: instructionsUpload.cid,
       });
 
-      navigate(adminRoutes.actions());
+      clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
+      clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
+      navigate(actionsListHref);
     } catch (error) {
       logger.error("Failed to create action", {
         source: "CreateAction.onSubmit",
@@ -157,7 +206,7 @@ export function useCreateActionController() {
   };
 
   const handleCancel = () => {
-    navigate(adminRoutes.actions());
+    navigate(actionsListHref);
   };
 
   return {

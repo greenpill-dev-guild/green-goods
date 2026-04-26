@@ -21,6 +21,12 @@ let capturedProps: Record<string, unknown> = {};
 vi.mock("@green-goods/shared", () => ({
   DEFAULT_CHAIN_ID: 42161,
   Domain: { SOLAR: 0, AGRO: 1, EDU: 2, WASTE: 3 },
+  DOMAIN_CONFIG: {
+    0: { labelId: "app.domain.tab.solar" },
+    1: { labelId: "app.domain.tab.agro" },
+    2: { labelId: "app.domain.tab.education" },
+    3: { labelId: "app.domain.tab.waste" },
+  },
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   adminRoutes: {
     actions: () => "/actions",
@@ -48,6 +54,21 @@ vi.mock("@green-goods/shared", () => ({
     registerAction: mockRegisterAction,
     isLoading: false,
   }),
+  useSheetOrchestratorStore: Object.assign(
+    (selector: (state: Record<string, unknown>) => unknown) =>
+      selector({
+        setFormState: vi.fn(),
+        clearViewState: vi.fn(),
+        restoreViewState: vi.fn(() => null),
+      }),
+    {
+      getState: () => ({
+        setFormState: vi.fn(),
+        clearViewState: vi.fn(),
+        restoreViewState: vi.fn(() => null),
+      }),
+    }
+  ),
   useFormWizardStepValidation: ({
     currentStep,
     steps,
@@ -191,10 +212,17 @@ vi.mock("@green-goods/shared/utils", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
 }));
 
+import { MemoryRouter } from "react-router-dom";
 import CreateAction from "../../views/Actions/CreateAction";
 
 function renderWithIntl(ui: React.ReactElement) {
-  return render(React.createElement(IntlProvider, { locale: "en", messages: enMessages }, ui));
+  return render(
+    React.createElement(
+      IntlProvider,
+      { locale: "en", messages: enMessages },
+      React.createElement(MemoryRouter, null, ui)
+    )
+  );
 }
 
 describe("views/Actions/CreateAction", () => {

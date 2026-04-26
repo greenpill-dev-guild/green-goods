@@ -3,6 +3,7 @@ import {
   Button,
   DEFAULT_CHAIN_ID,
   type Domain,
+  type Action,
   adminRoutes,
   StatusBadge,
   Surface,
@@ -13,13 +14,19 @@ import {
 } from "@green-goods/shared";
 import { RiEditLine, RiFileListLine, RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { AdminCard } from "@/components/AdminCard";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
+import { useMemo } from "react";
+import {
+  getActionsListSearch,
+  getActionLifecycleState,
+  type LifecycleStage,
+} from "./actions.utils";
 
 interface ActionDetailMediaTileProps {
   src?: string;
@@ -28,27 +35,7 @@ interface ActionDetailMediaTileProps {
   title: string;
 }
 
-function normalizeTimestamp(value: number): number {
-  return value > 10_000_000_000 ? value : value * 1000;
-}
-
-function getActionLifecycleState(startTime: number, endTime: number) {
-  const now = Date.now();
-  const start = normalizeTimestamp(startTime);
-  const end = normalizeTimestamp(endTime);
-
-  if (now < start) {
-    return "upcoming" as const;
-  }
-
-  if (now > end) {
-    return "completed" as const;
-  }
-
-  return "active" as const;
-}
-
-function getLifecycleVariant(lifecycle: "upcoming" | "active" | "completed") {
+function getLifecycleVariant(lifecycle: Exclude<LifecycleStage, "all">) {
   if (lifecycle === "upcoming") return "warning" as const;
   if (lifecycle === "active") return "success" as const;
   return "neutral" as const;
@@ -70,13 +57,217 @@ function ActionDetailMediaTile({ src, alt, domain, title }: ActionDetailMediaTil
   );
 }
 
+interface ActionDetailPanelProps {
+  actionId?: string;
+  actions: Action[];
+  isLoading: boolean;
+  canManageActions: boolean;
+  onClose: () => void;
+  onEdit: () => void;
+}
+
+export function ActionDetailPanel({
+  actionId,
+  actions,
+  isLoading,
+  canManageActions,
+  onClose,
+  onEdit,
+}: ActionDetailPanelProps) {
+  const { formatMessage } = useIntl();
+  const action = actions.find((record) => record.id === actionId);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4 p-4" role="status" aria-live="polite">
+        <span className="sr-only">{formatMessage({ id: "app.actions.loading" })}</span>
+        <div className="h-20 rounded-[var(--radius-xl)] skeleton-shimmer" />
+        <div className="h-64 rounded-[var(--radius-xl)] skeleton-shimmer" />
+      </div>
+    );
+  }
+
+  if (!action) {
+    return (
+      <div className="p-4">
+        <Surface elevation="raised" padding="default" className="space-y-3 text-center">
+          <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
+          <Button size="sm" variant="secondary" onClick={onClose}>
+            {formatMessage({
+              id: "app.actions.backToActions",
+              defaultMessage: "Back to actions",
+            })}
+          </Button>
+        </Surface>
+      </div>
+    );
+  }
+
+  const lifecycle = getActionLifecycleState(action);
+  const lifecycleLabel = formatMessage({
+    id: `cockpit.actions.status.${lifecycle}`,
+    defaultMessage:
+      lifecycle === "active" ? "Active" : lifecycle === "upcoming" ? "Upcoming" : "Completed",
+  });
+
+  return (
+    <div className="space-y-4 p-4">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <StatusBadge variant={getLifecycleVariant(lifecycle)}>{lifecycleLabel}</StatusBadge>
+            <p className="text-sm text-text-sub">
+              {action.description || formatMessage({ id: "admin.actions.noDescription" })}
+            </p>
+          </div>
+          {canManageActions ? (
+            <Button size="sm" onClick={onEdit}>
+              <RiEditLine className="h-4 w-4" />
+              {formatMessage({ id: "app.actions.edit" })}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <Surface elevation="raised" padding="default" className="space-y-6">
+        <div className="space-y-4">
+          <div>
+            <h2 className="label-md text-text-strong sm:text-lg">
+              {formatMessage({ id: "app.actions.detail.details" })}
+            </h2>
+            <p className="mt-1 text-sm text-text-sub">
+              {formatMessage({
+                id: "cockpit.actions.detailDescription",
+                defaultMessage:
+                  "Review lifecycle details and the submission requirements for this action.",
+              })}
+            </p>
+          </div>
+
+          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <AdminCard variant="outlined" className="px-4 py-3">
+              <dt className="text-xs text-text-soft">
+                {formatMessage({ id: "cockpit.actions.lifecycle", defaultMessage: "Lifecycle" })}
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-text-strong">{lifecycleLabel}</dd>
+            </AdminCard>
+            <AdminCard variant="outlined" className="px-4 py-3">
+              <dt className="text-xs text-text-soft">
+                {formatMessage({ id: "app.actions.detail.capitals" })}
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-text-strong">
+                {formatMessage(
+                  {
+                    id: "app.actions.detail.capitalsForms",
+                    defaultMessage: "{count} capital forms",
+                  },
+                  { count: action.capitals.length }
+                )}
+              </dd>
+            </AdminCard>
+            <AdminCard variant="outlined" className="px-4 py-3">
+              <dt className="text-xs text-text-soft">
+                {formatMessage({ id: "app.actions.detail.startTime" })}
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-text-strong">
+                {formatDateTime(action.startTime)}
+              </dd>
+            </AdminCard>
+            <AdminCard variant="outlined" className="px-4 py-3">
+              <dt className="text-xs text-text-soft">
+                {formatMessage({ id: "app.actions.detail.endTime" })}
+              </dt>
+              <dd className="mt-1 text-sm font-semibold text-text-strong">
+                {formatDateTime(action.endTime)}
+              </dd>
+            </AdminCard>
+          </dl>
+        </div>
+      </Surface>
+
+      <Surface elevation="raised" padding="default" className="space-y-4">
+        <div className="flex items-center gap-2">
+          <RiFileListLine className="h-4 w-4 text-text-soft" />
+          <h3 className="text-sm font-semibold text-text-strong">
+            {formatMessage({
+              id: "cockpit.actions.requirements",
+              defaultMessage: "Submission requirements",
+            })}
+          </h3>
+        </div>
+        {action.inputs.length > 0 ? (
+          <div className="space-y-2">
+            {action.inputs.map((input) => (
+              <AdminCard variant="outlined" key={input.key} className="px-3 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-text-strong">{input.title}</p>
+                  <span className="text-xs text-text-soft">{input.type}</span>
+                </div>
+              </AdminCard>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-text-sub">
+            {formatMessage({
+              id: "cockpit.actions.noInputs",
+              defaultMessage: "No form fields configured",
+            })}
+          </p>
+        )}
+      </Surface>
+
+      <Surface elevation="raised" padding="default" className="space-y-4">
+        <div className="flex items-center gap-2">
+          <RiImageLine className="h-4 w-4 text-text-soft" />
+          <h3 className="text-sm font-semibold text-text-strong">
+            {formatMessage({ id: "app.actions.detail.media" })}
+          </h3>
+        </div>
+        {action.media.length > 0 ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {action.media.map((url, index) => (
+              <ActionDetailMediaTile
+                key={`${url}-${index}`}
+                src={url}
+                alt={formatMessage(
+                  {
+                    id: "app.actions.detail.mediaAlt",
+                    defaultMessage: "Action media {index}",
+                  },
+                  { index: index + 1 }
+                )}
+                domain={action.domain}
+                title={action.title}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-text-sub">
+            {formatMessage({
+              id: "cockpit.actions.noMedia",
+              defaultMessage: "No media attached",
+            })}
+          </p>
+        )}
+      </Surface>
+    </div>
+  );
+}
+
 export default function ActionDetail() {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { formatMessage } = useIntl();
   const { role } = useRole();
   const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
   const canManageActions = role === "deployer" || role === "operator";
   const action = actions.find((record) => record.id === id);
+  const listSearch = useMemo(
+    () => getActionsListSearch(new URLSearchParams(location.search)),
+    [location.search]
+  );
+  const actionsListHref = useMemo(() => adminRoutes.actions(listSearch), [listSearch]);
+  const actionEditHref = id ? adminRoutes.actionEdit(id, listSearch) : actionsListHref;
 
   if (isLoading) {
     return (
@@ -119,7 +310,7 @@ export default function ActionDetail() {
           })}
           variant="canvas"
           backLink={{
-            to: adminRoutes.actions(),
+            to: actionsListHref,
             label: formatMessage({
               id: "app.actions.backToActions",
               defaultMessage: "Back to actions",
@@ -136,7 +327,7 @@ export default function ActionDetail() {
     );
   }
 
-  const lifecycle = getActionLifecycleState(action.startTime, action.endTime);
+  const lifecycle = getActionLifecycleState(action);
   const lifecycleLabel = formatMessage({
     id: `cockpit.actions.status.${lifecycle}`,
     defaultMessage:
@@ -151,7 +342,7 @@ export default function ActionDetail() {
         description={action.description || formatMessage({ id: "admin.actions.noDescription" })}
         variant="canvas"
         backLink={{
-          to: adminRoutes.actions(),
+          to: actionsListHref,
           label: formatMessage({
             id: "app.actions.backToActions",
             defaultMessage: "Back to actions",
@@ -168,7 +359,7 @@ export default function ActionDetail() {
         actions={
           canManageActions ? (
             <Button size="sm" asChild>
-              <Link to={adminRoutes.actionEdit(id)}>
+              <Link to={actionEditHref}>
                 <RiEditLine className="h-4 w-4" />
                 {formatMessage({ id: "app.actions.edit" })}
               </Link>
