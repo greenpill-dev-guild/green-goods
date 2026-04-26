@@ -4,6 +4,7 @@ import {
   DEFAULT_SPLIT_CONFIG,
   formatAddress,
   formatTokenAmount,
+  truncateAddress,
   useAllocateHypercertSupport,
   useConvictionStrategies,
   useGardenCommunity,
@@ -505,7 +506,7 @@ export function ConvictionDrawer({
                         className="flex items-center justify-between text-xs text-text-sub"
                       >
                         <span className="font-mono text-text-soft">
-                          {a.txHash.slice(0, 6)}...{a.txHash.slice(-4)}
+                          {truncateAddress(a.txHash)}
                         </span>
                         <span>
                           {formatTokenAmount(
