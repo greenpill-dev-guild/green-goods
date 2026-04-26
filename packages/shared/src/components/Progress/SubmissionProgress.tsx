@@ -9,7 +9,7 @@
 
 import React from "react";
 import { useIntl } from "react-intl";
-import { Alert } from  "@green-goods/shared";
+import { Alert } from  "../Alert";
 import type {
   SubmissionProgressState,
   SubmissionStage,
