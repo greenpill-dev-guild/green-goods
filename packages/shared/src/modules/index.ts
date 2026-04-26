@@ -123,7 +123,6 @@ export {
   // Username (Pimlico server)
   clearStoredUsername,
   getAuthMode,
-  getStoredRpId,
   getStoredUsername,
   hasStoredUsername,
   // RP ID (Android passkey compatibility)
@@ -314,5 +313,4 @@ export {
   formatJobError,
   getSubmissionStatusText,
   validateApprovalDraft,
-  validateWorkDraft,
 } from "./work/work-submission";

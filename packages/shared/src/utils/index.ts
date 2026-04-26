@@ -150,7 +150,6 @@ export {
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
   isUnlimitedVaultLimit,
-  isZeroAddressValue,
   isZeroBytes32,
   MAX_UINT256,
   validateDecimalInput,

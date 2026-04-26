@@ -184,20 +184,6 @@ export function validateWorkSubmissionContext(
 }
 
 /**
- * @deprecated Use validateWorkSubmissionContext instead.
- * This function is kept for backward compatibility.
- */
-export function validateWorkDraft(
-  _draft: WorkDraft,
-  gardenAddress: Address | null,
-  actionUID: number | null,
-  images: File[],
-  options: ValidateWorkContextOptions = {}
-): string[] {
-  return validateWorkSubmissionContext(gardenAddress, actionUID, images, options);
-}
-
-/**
  * Validate approval draft before submission
  */
 export function validateApprovalDraft(draft: WorkApprovalDraft): string[] {

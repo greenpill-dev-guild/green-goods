@@ -11,9 +11,6 @@ import React from "react";
 import type { WorkDisplayStatus } from "../types/domain";
 import { cn } from "../utils/styles/cn";
 
-/** @deprecated Use `WorkDisplayStatus` from `@green-goods/shared` instead. */
-export type WorkStatus = WorkDisplayStatus;
-
 export interface StatusBadgeProps {
   status: WorkDisplayStatus;
   className?: string;

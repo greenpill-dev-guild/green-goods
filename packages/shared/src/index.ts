@@ -35,7 +35,6 @@ export type {
   ToastTranslator,
   ToastViewportProps,
   WorkCardData,
-  WorkStatus,
 } from "./components/index";
 export {
   ActionBannerFallback,
@@ -828,7 +827,6 @@ export {
   isUserAddress,
   isValidAddressFormat,
   isValidAttestationId,
-  isZeroAddressValue,
   loadFormDraft,
   // Form normalizers
   normalizeTimeSpentMinutes,
