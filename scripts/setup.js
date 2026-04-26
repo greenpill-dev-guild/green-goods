@@ -7,6 +7,8 @@
  */
 
 import fs from "fs";
+import os from "os";
+import path from "path";
 import { execSync } from "child_process";
 
 // Simple color helpers
@@ -59,6 +61,87 @@ function installBun() {
   } catch (err) {
     log.error("Failed to install bun automatically");
     console.log(`${c.dim}Install manually: https://bun.sh${c.reset}\n`);
+    return false;
+  }
+}
+
+function installFoundry() {
+  log.info("Installing Foundry...\n");
+
+  if (process.platform === "win32") {
+    log.error("Automatic Foundry install is not supported on Windows");
+    console.log(`${c.dim}Install via WSL: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+    return false;
+  }
+
+  const arch = os.arch();
+  const platform = process.platform === "darwin" ? "darwin" : "linux";
+  const archMap = { x64: "amd64", arm64: "arm64" };
+  const assetArch = archMap[arch];
+  if (!assetArch) {
+    log.error(`Unsupported architecture: ${arch}`);
+    return false;
+  }
+
+  const asset = `foundry_stable_${platform}_${assetArch}.tar.gz`;
+  const url = `https://github.com/foundry-rs/foundry/releases/download/stable/${asset}`;
+  const home = os.homedir();
+  const binDir = path.join(home, ".foundry", "bin");
+  const tmpFile = path.join(os.tmpdir(), `foundry-${Date.now()}.tar.gz`);
+
+  try {
+    fs.mkdirSync(binDir, { recursive: true });
+    execSync(`curl -fsSL --retry 3 --retry-delay 2 -o "${tmpFile}" "${url}"`, { stdio: "inherit" });
+    execSync(`tar -xzf "${tmpFile}" -C "${binDir}"`, { stdio: "inherit" });
+    fs.rmSync(tmpFile, { force: true });
+
+    process.env.PATH = `${binDir}:${process.env.PATH}`;
+
+    // Persist for future shells. Prefer symlinking into a writable system bin
+    // dir on PATH — this works for every shell (including non-interactive
+    // husky hooks, where ~/.bashrc skips its body via `[ -z "$PS1" ] && return`).
+    // Fall back to a PATH export in ~/.bashrc/~/.zshrc if no system dir is writable.
+    const binaries = ["forge", "cast", "anvil", "chisel"];
+    const candidateDirs = ["/usr/local/bin", path.join(home, ".local", "bin")];
+    let symlinked = false;
+    for (const dir of candidateDirs) {
+      try {
+        fs.mkdirSync(dir, { recursive: true });
+        for (const name of binaries) {
+          const target = path.join(binDir, name);
+          const link = path.join(dir, name);
+          try { fs.unlinkSync(link); } catch {}
+          fs.symlinkSync(target, link);
+        }
+        symlinked = true;
+        break;
+      } catch {
+        // try next candidate
+      }
+    }
+
+    if (!symlinked) {
+      const pathLine = `export PATH="${binDir}:$PATH"`;
+      const rcFiles = [path.join(home, ".bashrc")];
+      if (platform === "darwin") rcFiles.push(path.join(home, ".zshrc"));
+      for (const rc of rcFiles) {
+        try {
+          const existing = fs.existsSync(rc) ? fs.readFileSync(rc, "utf8") : "";
+          if (!existing.includes(pathLine)) {
+            fs.appendFileSync(rc, `\n${pathLine}\n`);
+          }
+        } catch {
+          // best-effort — user can add the line manually
+        }
+      }
+    }
+
+    log.success("Foundry installed successfully\n");
+    return true;
+  } catch (err) {
+    log.error("Failed to install Foundry automatically");
+    console.log(`${c.dim}Install manually: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`);
+    fs.rmSync(tmpFile, { force: true });
     return false;
   }
 }
@@ -125,11 +208,13 @@ if (!hasDocker) {
   log.warning("Docker not running. Required for indexer development.");
 }
 
+let foundryInstalled = hasForge;
 if (!hasForge) {
-  log.warning("Foundry not found. Required for contract development.");
-  console.log(
-    `${c.dim}Install: curl -L https://foundry.paradigm.xyz | bash && foundryup${c.reset}\n`
-  );
+  log.warning("Foundry not found. Attempting to install...\n");
+  foundryInstalled = installFoundry();
+  if (!foundryInstalled) {
+    log.warning("Continuing without Foundry — contract scripts and pre-push hooks will fail until installed.\n");
+  }
 }
 
 // Install dependencies
