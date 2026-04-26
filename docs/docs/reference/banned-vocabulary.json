@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "description": "Machine-readable source for Green Goods banned-vocabulary enforcement. The linter (scripts/design/check-vocab.sh, run via `bun run lint:vocab`) reads `linter_enforced.terms`. The `prompt_vocabulary_*` lists are documentation surfaces for AI design tools (Stitch, Claude Design, Figma Make, Antigravity) — they are not runtime checks. Human-readable companion: docs/docs/reference/glossary-community.md § Banned Vocabulary.",
+  "linter_enforced": {
+    "scope": "user-facing strings in i18n JSON message values",
+    "globs": [
+      "packages/shared/src/i18n/*.json",
+      "packages/client/src/i18n/*.json",
+      "packages/admin/src/i18n/*.json"
+    ],
+    "terms": [
+      "streak",
+      "countdown",
+      "leaderboard",
+      "FOMO",
+      "urgent",
+      "limited time",
+      "re-engagement",
+      "retention hook"
+    ],
+    "rationale": "These terms signal growth-hacking / FOMO patterns that violate the regenerative design lens (Lens 1). See .claude/skills/design/regenerative.md § Be Growth-Agnostic and § Motivation Design Quick Reference for the full framework."
+  },
+  "prompt_vocabulary_admin_banned": {
+    "scope": "AI-prompt vocabulary when generating admin-cockpit screens — NOT a runtime check, documentation only",
+    "terms": [
+      "hero moment",
+      "hero section",
+      "celebration",
+      "gallery",
+      "masonry gallery",
+      "decorative gradient",
+      "ambient gradient wash",
+      "marketing banner",
+      "promo band",
+      "landing-page",
+      "dashboard card mosaic",
+      "feature cards",
+      "floating stats",
+      "stat chips floating above content",
+      "liquid",
+      "glass",
+      "frosted"
+    ],
+    "rationale": "Admin is a restrained operator cockpit. Hero moments are reserved for celebratory client PWA flows. Glass/liquid/frosted treatments are restricted to the admin AppBar only — dense surfaces must be solid. Source: .claude/skills/design/prompt-contract.md § Never Use."
+  },
+  "prompt_vocabulary_client_banned": {
+    "scope": "AI-prompt vocabulary when generating client PWA screens — NOT a runtime check, documentation only",
+    "terms": [
+      "operator cockpit",
+      "workbench row",
+      "inspector pattern",
+      "utility copy",
+      "dashboard",
+      "KPI tile",
+      "metric grid",
+      "Plus Jakarta Sans",
+      "trading floor",
+      "financial terminal",
+      "gamification",
+      "dark pattern"
+    ],
+    "rationale": "Client PWA is a garden journal, not an operator cockpit. Copy is warm and narrative, not terse task framing. Typography is Inter — Plus Jakarta Sans is admin-only. Source: .claude/skills/design/client-prompt-contract.md § Never Use."
+  },
+  "consumers": [
+    {
+      "path": "scripts/design/check-vocab.sh",
+      "reads": "linter_enforced.terms"
+    },
+    {
+      "path": "docs/docs/reference/glossary-community.md",
+      "reads": "all sections (human-readable mirror)"
+    },
+    {
+      "path": ".claude/skills/design/prompt-contract.md",
+      "reads": "prompt_vocabulary_admin_banned (referenced, not parsed)"
+    },
+    {
+      "path": ".claude/skills/design/client-prompt-contract.md",
+      "reads": "prompt_vocabulary_client_banned (referenced, not parsed)"
+    }
+  ]
+}
