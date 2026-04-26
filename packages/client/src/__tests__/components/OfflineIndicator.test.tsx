@@ -143,4 +143,39 @@ describe("OfflineIndicator", () => {
       expect(screen.getByText("Offline Mode")).toBeInTheDocument();
     });
   });
+
+  describe("display priority", () => {
+    it("renders offline mode when offline overlaps with mobile-not-installed install nudge", () => {
+      mockOfflineState.isOnline = false;
+      mockAppState.isMobile = true;
+      mockAppState.isInstalled = false;
+
+      renderWithIntl(createElement(MemoryRouter, null, createElement(OfflineIndicator)));
+
+      expect(screen.getByText("Offline Mode")).toBeInTheDocument();
+      expect(screen.queryByText("Install for full experience.")).not.toBeInTheDocument();
+    });
+
+    it("renders install nudge when online with no recent offline transition", () => {
+      mockOfflineState.isOnline = true;
+      mockAppState.isMobile = true;
+      mockAppState.isInstalled = false;
+
+      renderWithIntl(createElement(MemoryRouter, null, createElement(OfflineIndicator)));
+
+      expect(screen.getByText("Install for full experience.")).toBeInTheDocument();
+      expect(screen.queryByText("Offline Mode")).not.toBeInTheDocument();
+    });
+
+    it("renders nothing when online, desktop, and not installed", () => {
+      mockOfflineState.isOnline = true;
+      mockAppState.isMobile = false;
+      mockAppState.isInstalled = false;
+
+      renderWithIntl(createElement(MemoryRouter, null, createElement(OfflineIndicator)));
+
+      expect(screen.getByTestId("offline-indicator")).toBeInTheDocument();
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    });
+  });
 });

@@ -22,6 +22,19 @@ function findRouteById(routes: RouteObject[], id: string): RouteObject | undefin
   return undefined;
 }
 
+function findAllRoutesByPath(routes: RouteObject[], path: string): RouteObject[] {
+  const matches: RouteObject[] = [];
+  for (const route of routes) {
+    if (route.path === path) {
+      matches.push(route);
+    }
+    if (route.children) {
+      matches.push(...findAllRoutesByPath(route.children, path));
+    }
+  }
+  return matches;
+}
+
 function requirePublicRoutePath(routeId: string, expectedPath: string) {
   const publicShell = findRouteById(appRoutes, CLIENT_ROUTE_IDS.publicShell);
   const publicRoute = publicShell?.children?.find((route) => route.id === routeId);
@@ -33,6 +46,16 @@ function requirePublicRoutePath(routeId: string, expectedPath: string) {
   }
 
   return publicRoute.path;
+}
+
+// Sentinel: /landing must live exclusively under the public shell. If a future
+// agent moves it under a protected shell (RequireAuth → AppShell), this throws
+// at module load before the story renders.
+const landingPaths = findAllRoutesByPath(appRoutes, "landing");
+if (landingPaths.length !== 1) {
+  throw new Error(
+    `Expected /landing to appear exactly once in appRoutes (under public-shell); found ${landingPaths.length}.`
+  );
 }
 
 function PublicRouteSentinel({ title }: { title: string }) {

@@ -1,7 +1,26 @@
+import { useUIStore } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
+import { useEffect } from "react";
 import { MemoryRouter } from "react-router-dom";
+import { expect, within } from "storybook/test";
 import { withClientAppRuntime, withInstalledPwa } from "../../../../shared/.storybook/decorators";
 import { AppBar } from "./AppBar";
+
+function WithDrawerOpen({
+  drawer,
+  children,
+}: {
+  drawer: "isWorkDashboardOpen" | "isGardenFilterOpen" | "isEndowmentDrawerOpen";
+  children: React.ReactNode;
+}) {
+  useEffect(() => {
+    useUIStore.setState({ [drawer]: true });
+    return () => {
+      useUIStore.setState({ [drawer]: false });
+    };
+  }, [drawer]);
+  return <>{children}</>;
+}
 
 /**
  * AppBar requires react-router context (useLocation, Link) and several shared hooks:
@@ -25,36 +44,114 @@ const withRouter = (initialEntries: string[] = ["/home"]) => {
 const meta: Meta<typeof AppBar> = {
   title: "Client/Layout/AppBar",
   component: AppBar,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   parameters: {
     viewport: { defaultViewport: "mobile1" },
     layout: "fullscreen",
   },
-  decorators: [withInstalledPwa(), withClientAppRuntime, withRouter(["/home"])],
+  decorators: [withInstalledPwa(), withClientAppRuntime],
 };
 
 export default meta;
 type Story = StoryObj<typeof AppBar>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  decorators: [withRouter(["/home"])],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nav = canvas.getByTestId("authenticated-nav");
+    await expect(nav).toBeVisible();
+    expect(nav.className).not.toContain("translate-y-full");
+  },
+};
 
 export const HomeActive: Story = {
   decorators: [withRouter(["/home"])],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nav = canvas.getByTestId("authenticated-nav");
+    expect(nav.className).not.toContain("translate-y-full");
+  },
 };
 
 export const HiddenOnGardenRoute: Story = {
   decorators: [withRouter(["/garden"])],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nav = canvas.getByTestId("authenticated-nav");
+    expect(nav.className).toContain("translate-y-full");
+  },
 };
 
 export const ProfileActive: Story = {
   decorators: [withRouter(["/profile"])],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nav = canvas.getByTestId("authenticated-nav");
+    expect(nav.className).not.toContain("translate-y-full");
+  },
 };
 
 export const HiddenOnWorkDetailRoute: Story = {
-  decorators: [withRouter(["/work/1"])],
+  decorators: [withRouter(["/home/1/work/2"])],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nav = canvas.getByTestId("authenticated-nav");
+    expect(nav.className).toContain("translate-y-full");
+  },
+};
+
+export const HiddenWhenWorkDashboardOpen: Story = {
+  decorators: [
+    (Story) => (
+      <WithDrawerOpen drawer="isWorkDashboardOpen">
+        <Story />
+      </WithDrawerOpen>
+    ),
+    withRouter(["/home"]),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nav = canvas.getByTestId("authenticated-nav");
+    expect(nav.className).toContain("translate-y-full");
+  },
+};
+
+export const HiddenWhenGardenFilterOpen: Story = {
+  decorators: [
+    (Story) => (
+      <WithDrawerOpen drawer="isGardenFilterOpen">
+        <Story />
+      </WithDrawerOpen>
+    ),
+    withRouter(["/home"]),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nav = canvas.getByTestId("authenticated-nav");
+    expect(nav.className).toContain("translate-y-full");
+  },
+};
+
+export const HiddenWhenEndowmentDrawerOpen: Story = {
+  decorators: [
+    (Story) => (
+      <WithDrawerOpen drawer="isEndowmentDrawerOpen">
+        <Story />
+      </WithDrawerOpen>
+    ),
+    withRouter(["/home"]),
+  ],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const nav = canvas.getByTestId("authenticated-nav");
+    expect(nav.className).toContain("translate-y-full");
+  },
 };
 
 export const StateCatalog: Story = {
+  // StateCatalog mounts its own MemoryRouter per panel, so it skips the
+  // meta-level router-providing decorator entirely.
   render: () => (
     <div className="flex flex-col gap-8">
       <div>
@@ -88,6 +185,7 @@ export const StateCatalog: Story = {
 };
 
 export const Mobile: Story = {
+  decorators: [withRouter(["/home"])],
   parameters: {
     viewport: { defaultViewport: "mobile1" },
   },

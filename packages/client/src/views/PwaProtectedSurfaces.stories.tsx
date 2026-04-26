@@ -179,4 +179,12 @@ export const OfflineAndSyncStatus: Story = {
       </div>
     </MemoryRouter>
   ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByTestId("offline-indicator")).toBeVisible();
+    const backOnline = canvas.getByRole("status", { name: "App is back online" });
+    expect(backOnline.className).toContain("bg-primary/95");
+    expect(backOnline.className).toContain("text-primary-accent-foreground");
+    await expect(canvas.getByText("Back Online")).toBeVisible();
+  },
 };
