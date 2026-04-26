@@ -3,11 +3,8 @@ import * as http from "node:http";
 import { NetworkManager } from "../utils/network";
 
 /**
- * AnvilManager - Manages Anvil local blockchain lifecycle
- *
- * Extracted from deploy.js to handle Anvil process management.
- * Tracks spawned child processes and registers cleanup handlers
- * to prevent orphaned Anvil instances.
+ * Manages the local Anvil blockchain lifecycle. Tracks spawned child
+ * processes and registers cleanup handlers to prevent orphaned instances.
  */
 export class AnvilManager {
   private networkManager: NetworkManager;

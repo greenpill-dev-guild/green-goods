@@ -16,11 +16,7 @@ interface IpfsCacheEntry {
   uploadedAt: string;
 }
 
-/**
- * ActionDeployer - Handles action deployment
- *
- * Extracted from deploy.js - handles deployment of actions from config
- */
+/** Deploys actions defined in a JSON config. */
 export class ActionDeployer extends GardenDeployer {
   constructor(networkManager?: NetworkManager, anvilManager?: AnvilManager, deploymentAddresses?: DeploymentAddresses) {
     super(networkManager, anvilManager, deploymentAddresses);

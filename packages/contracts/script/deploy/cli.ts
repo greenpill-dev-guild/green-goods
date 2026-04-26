@@ -19,12 +19,9 @@ import { OctantFactoryDeployer } from "./octant-factory";
 const CONTRACTS_ROOT = path.join(__dirname, "../..");
 
 /**
- * DeploymentCLI - Main command-line interface for deployments
- *
- * Refactored from monolithic deploy.js into modular structure.
- * Shared dependencies (NetworkManager, AnvilManager, DeploymentAddresses) are
- * constructed once and injected into all deployers to avoid redundant file reads
- * and ensure consistent configuration.
+ * Main CLI entry. Shared NetworkManager, AnvilManager, and
+ * DeploymentAddresses are constructed once and injected into every deployer
+ * so file reads aren't repeated and configuration stays consistent.
  */
 export class DeploymentCLI {
   private parser: CliParser;

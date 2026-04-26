@@ -49,18 +49,7 @@ export class EmbeddedSender implements TransactionSender {
   }
 
   async sendContractCall(call: ContractCall): Promise<TxResult> {
-    // TODO: Use EIP-5792 sendCalls with paymasterService capability when
-    // @wagmi/core/experimental becomes available:
-    //
-    // const id = await sendCalls(this.config, {
-    //   calls: [{ to: call.address, data: encodeFunctionData(...), value: call.value }],
-    //   capabilities: {
-    //     paymasterService: { url: this.erc7677ProxyUrl },
-    //   },
-    // });
-    // const status = await getCallsStatus(this.config, { id });
-    // return { hash: status.receipts[0].transactionHash, sponsored: true };
-
+    // TODO: Replace with EIP-5792 sendCalls + paymasterService once @wagmi/core/experimental is stable.
     const hash = await this.deps.writeContract(this.config, {
       address: call.address,
       abi: call.abi,

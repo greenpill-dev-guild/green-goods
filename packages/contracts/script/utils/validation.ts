@@ -1,9 +1,4 @@
-/**
- * ConfigValidator - Centralized configuration validation
- *
- * Extracted from deploy.js to provide reusable validation
- * for garden configs, action configs, and capital types.
- */
+/** Reusable validation for garden configs, action configs, and capital types. */
 
 export interface GardenConfig {
   name: string;

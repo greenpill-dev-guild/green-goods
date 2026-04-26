@@ -26,7 +26,6 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview, hubContext 
   };
   const workDetailHref = adminRoutes.hubWorkDetail(work.id, workHubContext);
 
-  // Transform EASWork to WorkCardData for the shared component
   const workData: WorkCardData = {
     id: work.id,
     title:

@@ -104,7 +104,6 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
       hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
   );
 
-  // Handle browser refresh/close with beforeunload
   useWindowEvent("beforeunload", (event) => {
     if (!hasUnsavedChanges) return;
     event.preventDefault();
@@ -112,7 +111,6 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     event.returnValue = "";
   });
 
-  // Handle blocker state - show confirmation dialog
   useEffect(() => {
     if (blocker.state === "blocked") {
       blockerRef.current = blocker;
@@ -361,8 +359,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     formatMessage,
   });
 
-  // Handle clicking on completed steps in the step indicator
-  // stepIndex is 0-based (from FormWizard), workflow uses 1-based steps
+  // stepIndex is 0-based (from FormWizard); workflow uses 1-based steps.
   const handleStepClick = useCallback(
     (stepIndex: number) => {
       const targetStep = stepIndex + 1;

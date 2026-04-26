@@ -109,13 +109,11 @@ export const GardenWork: React.FC = () => {
   const isOfflineWork =
     work?.id.startsWith("0xoffline_") || (work?.id && !work.id.startsWith("0x"));
 
-  // Handle individual work retry
   const handleRetry = async () => {
     if (!smartAccountClient || !work) return;
 
     setIsRetrying(true);
     try {
-      // Process just this job
       const result = await jobQueue.processJob(work.id, { smartAccountClient });
 
       if (result.success) {
