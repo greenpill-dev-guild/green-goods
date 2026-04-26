@@ -3,6 +3,7 @@ import {
   cn,
   getNetworkConfig,
   toastService,
+  truncateAddress,
   useCopyToClipboard,
 } from "@green-goods/shared";
 import {
@@ -94,12 +95,8 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
           <code className="flex-1 truncate text-xs font-mono text-text-strong sm:text-sm">
-            <span className="inline sm:hidden">
-              {gardenId.slice(0, 6)}...{gardenId.slice(-4)}
-            </span>
-            <span className="hidden sm:inline md:hidden">
-              {gardenId.slice(0, 10)}...{gardenId.slice(-8)}
-            </span>
+            <span className="inline sm:hidden">{truncateAddress(gardenId)}</span>
+            <span className="hidden sm:inline md:hidden">{truncateAddress(gardenId, 10, 8)}</span>
             <span className="hidden md:inline">{gardenId}</span>
           </code>
           <button
@@ -153,10 +150,10 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
         <div className="flex items-center gap-1.5 min-w-0">
           <code className="flex-1 truncate text-xs font-mono text-text-strong sm:text-sm">
             <span className="inline sm:hidden">
-              {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)} #{tokenId.toString()}
+              {truncateAddress(tokenAddress)} #{tokenId.toString()}
             </span>
             <span className="hidden sm:inline md:hidden">
-              {tokenAddress.slice(0, 10)}...{tokenAddress.slice(-8)} #{tokenId.toString()}
+              {truncateAddress(tokenAddress, 10, 8)} #{tokenId.toString()}
             </span>
             <span className="hidden md:inline">
               {tokenAddress} #{tokenId.toString()}

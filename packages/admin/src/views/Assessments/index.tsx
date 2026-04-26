@@ -6,6 +6,7 @@ import {
   formatDateRange,
   type Garden,
   getEASExplorerUrl,
+  truncateAddress,
   useAdminStore,
   useAllAssessments,
   useGardens,
@@ -91,7 +92,7 @@ export default function Assessments() {
     const options = uniqueAddresses
       .map((addr) => ({
         value: addr,
-        label: getGardenName(addr, gardens) ?? `${addr.slice(0, 6)}...${addr.slice(-4)}`,
+        label: getGardenName(addr, gardens) ?? truncateAddress(addr),
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
 

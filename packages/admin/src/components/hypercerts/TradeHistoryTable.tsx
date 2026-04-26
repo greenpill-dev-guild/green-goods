@@ -1,8 +1,8 @@
 import {
-  type Address,
   DEFAULT_CHAIN_ID,
   type FractionTrade,
   getNetworkConfig,
+  truncateAddress,
   useTradeHistory,
 } from "@green-goods/shared";
 import { RiExternalLinkLine, RiHistoryLine, RiLoader4Line } from "@remixicon/react";
@@ -29,10 +29,6 @@ function formatTimestamp(timestamp: number): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function truncateAddress(address: Address): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 /**

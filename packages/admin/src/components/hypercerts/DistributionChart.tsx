@@ -1,4 +1,9 @@
-import { type Address, type AllowlistEntry, TOTAL_UNITS } from "@green-goods/shared";
+import {
+  type Address,
+  type AllowlistEntry,
+  TOTAL_UNITS,
+  truncateAddress,
+} from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
@@ -53,9 +58,8 @@ export function DistributionChart({
     // Calculate percentages for each entry
     const entries: ChartDataItem[] = allowlist.map((entry) => {
       const percentage = Number((entry.units * 10000n) / totalUnits) / 100;
-      const truncatedAddress = `${entry.address.slice(0, 6)}...${entry.address.slice(-4)}`;
       return {
-        name: entry.label || truncatedAddress,
+        name: entry.label || truncateAddress(entry.address),
         value: Number(entry.units),
         percentage,
         address: entry.address,

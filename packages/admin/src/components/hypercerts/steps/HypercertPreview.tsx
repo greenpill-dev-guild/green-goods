@@ -7,12 +7,12 @@ import {
   type HypercertMetadata,
   ImageWithFallback,
   type MintingState,
-  useCopyToClipboard,
 } from "@green-goods/shared";
-import { RiCheckLine, RiFileCopyLine, RiFileTextLine } from "@remixicon/react";
+import { RiFileTextLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { DistributionChart } from "../DistributionChart";
+import { TruncatedAddress } from "../TruncatedAddress";
 
 interface HypercertPreviewProps {
   metadata: HypercertMetadata | null;
@@ -49,34 +49,6 @@ function SectionHeader({ labelId, onEdit }: { labelId: string; onEdit?: () => vo
         </button>
       )}
     </div>
-  );
-}
-
-/** Displays truncated Ethereum address with copy button */
-function TruncatedAddress({ address }: { address: Address }) {
-  const { formatMessage } = useIntl();
-  const { copied, copy } = useCopyToClipboard();
-
-  const truncated = `${address.slice(0, 6)}...${address.slice(-4)}`;
-
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span title={address} className="font-mono text-xs">
-        {truncated}
-      </span>
-      <button
-        type="button"
-        onClick={() => copy(address)}
-        className="rounded p-0.5 text-text-sub transition hover:bg-bg-weak hover:text-text-strong focus:outline-none focus:ring-1 focus:ring-primary-light"
-        aria-label={formatMessage({ id: "app.common.copyAddress" })}
-      >
-        {copied ? (
-          <RiCheckLine className="h-3 w-3 text-success-base" />
-        ) : (
-          <RiFileCopyLine className="h-3 w-3" />
-        )}
-      </button>
-    </span>
   );
 }
 
