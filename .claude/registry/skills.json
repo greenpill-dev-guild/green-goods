@@ -366,7 +366,15 @@
       "deprecated_replacement": null,
       "listed_in_index": true,
       "default_mode": "passive",
-      "triggers": ["design", "TailwindCSS", "Radix", "accessibility", "Storybook", "i18n", "diagram"],
+      "triggers": [
+        "design",
+        "TailwindCSS",
+        "Radix",
+        "accessibility",
+        "Storybook",
+        "i18n",
+        "diagram"
+      ],
       "dependencies": []
     }
   ],
