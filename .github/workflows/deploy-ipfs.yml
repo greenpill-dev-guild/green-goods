@@ -166,6 +166,7 @@ jobs:
 
       - name: Deploy to Pinata
         id: pinata
+        if: steps.preflight.outputs.skip != 'true'
         env:
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
           PINATA_NAME: ${{ matrix.app }}-${{ steps.env.outputs.env }}-${{ github.sha }}
@@ -247,10 +248,15 @@ jobs:
             }
 
       - name: Validate deployment
-        if: steps.pinata.outputs.cid == ''
+        if: steps.preflight.outputs.skip != 'true' && steps.pinata.outputs.cid == ''
         run: |
           echo "❌ IPFS deployment failed: no CID returned"
           exit 1
+
+      - name: Skip notice
+        if: steps.preflight.outputs.skip == 'true'
+        run: |
+          echo "ℹ️ IPFS deploy skipped for ${{ matrix.title }} — secrets not available in this PR context."
 
       - name: Deployment Summary
         if: steps.pinata.outputs.cid != ''
