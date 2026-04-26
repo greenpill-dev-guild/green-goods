@@ -107,22 +107,39 @@ jobs:
             echo "dnslink_name=${{ matrix.staging_dnslink_name }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Check deploy preconditions
+        id: preflight
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          OP_ENVIRONMENT: ${{ vars.OP_ENVIRONMENT }}
+        run: |
+          missing=()
+          [[ -z "$PINATA_JWT" ]] && missing+=("PINATA_JWT")
+          [[ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]] && missing+=("OP_SERVICE_ACCOUNT_TOKEN")
+          [[ -z "$OP_ENVIRONMENT" ]] && missing+=("OP_ENVIRONMENT (variable)")
+
+          if [[ ${#missing[@]} -gt 0 ]]; then
+            joined=$(IFS=, ; echo "${missing[*]}")
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              echo "::warning::Skipping IPFS deploy — required secrets/vars not available in this PR context: $joined"
+              echo "skip=true" >> $GITHUB_OUTPUT
+            else
+              echo "::error::Required secrets/vars not configured: $joined"
+              exit 1
+            fi
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ Deploy preconditions satisfied"
+          fi
+
       - name: Load env vars from Varlock + 1Password environment
+        if: steps.preflight.outputs.skip != 'true'
         env:
           APP_ENV: ${{ steps.env.outputs.env }}
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
           OP_ENVIRONMENT: ${{ vars.OP_ENVIRONMENT }}
         run: |
-          if [[ -z "$OP_ENVIRONMENT" ]]; then
-            echo "::error::Missing repository variable OP_ENVIRONMENT"
-            echo "Set OP_ENVIRONMENT to your 1Password environment ID/name."
-            exit 1
-          fi
-          if [[ -z "$OP_SERVICE_ACCOUNT_TOKEN" ]]; then
-            echo "::error::Missing GitHub secret OP_SERVICE_ACCOUNT_TOKEN"
-            exit 1
-          fi
-
           bunx varlock run -- bash -lc '
             for key in \
               VITE_WALLETCONNECT_PROJECT_ID \
@@ -138,6 +155,7 @@ jobs:
           '
 
       - name: Build ${{ matrix.title }}
+        if: steps.preflight.outputs.skip != 'true'
         run: bun run ${{ matrix.build }}
         env:
           APP_ENV: ${{ steps.env.outputs.env }}
@@ -145,16 +163,6 @@ jobs:
           VITE_CHAIN_ID: ${{ steps.env.outputs.chain_id }}
           VITE_POSTHOG_HOST: "https://app.posthog.com"
           VITE_APP_URL: ${{ steps.env.outputs.app_url }}
-
-      - name: Validate Pinata credentials
-        env:
-          PINATA_JWT: ${{ secrets.PINATA_JWT }}
-        run: |
-          if [[ -z "$PINATA_JWT" ]]; then
-            echo "::error::PINATA_JWT secret is not set"
-            exit 1
-          fi
-          echo "✅ Pinata credentials validated"
 
       - name: Deploy to Pinata
         id: pinata
