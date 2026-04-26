@@ -62,7 +62,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       case "offline":
         return (
           <div
-            className={`${baseBarClasses} bg-gray-500/95 text-white pointer-events-auto`}
+            className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
             role="status"
             aria-live="polite"
             aria-label="App is in offline mode"

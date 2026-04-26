@@ -1,7 +1,7 @@
 # Warm Earth raw-token baseline.
 # Format: <raw usage hit><TAB><category><TAB><owner><TAB><expires><TAB><note>
-# The raw usage hit must exactly match scripts/check-design-tokens.sh collect_usage_hits output.
-# Expired entries fail check:design-tokens so legacy literals cannot become permanent by accident.
+# The raw usage hit must exactly match scripts/design/check-tokens.sh collect_usage_hits output.
+# Expired entries, entries more than 120 days out, and duplicate hits fail check:design-tokens.
 packages/admin/src/components/AdminCheckbox.tsx "h-[18px] w-[18px] shrink-0 rounded-[2px]",	legacy-runtime	admin	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/AdminCheckbox.tsx * - Container: 18dp (h-[18px] w-[18px]), 2dp radius (rounded-[2px])	legacy-runtime	admin	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/Garden/GardenMetadata.tsx "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",	legacy-runtime	admin	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
@@ -179,7 +179,6 @@ packages/admin/src/views/Hub/components/HubWorkCard.tsx <div className="pointer-
 packages/admin/src/views/Hub/components/HubWorkCard.tsx <div className="relative overflow-hidden border-b border-black/5">	legacy-runtime	admin	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/views/Hub/components/HubWorkCard.tsx <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-black/45 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md">	legacy-runtime	admin	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/components/Actions/Button/Base.tsx "hover:bg-red-700",	legacy-runtime	client	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
-packages/client/src/components/Communication/Offline/OfflineIndicator.tsx className={`${baseBarClasses} bg-gray-500/95 text-white pointer-events-auto`}	legacy-runtime	client	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/components/Dialogs/ConvictionDrawer.tsx <div className="h-full bg-amber-500" style={{ width: `${juiceboxPct}%` }} />	legacy-runtime	client	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/components/Dialogs/ConvictionDrawer.tsx <div className="h-full bg-emerald-500" style={{ width: `${cookieJarPct}%` }} />	legacy-runtime	client	2026-07-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/components/Dialogs/ConvictionDrawer.tsx className="inline-block h-2 w-2 rounded-full bg-amber-500"	legacy-runtime	client	2026-07-31	legacy literal tracked for migration to Warm Earth tokens

@@ -120,6 +120,25 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
+    // ── User Journeys (canonical cross-package choreography) ──
+    {
+      type: 'category',
+      label: 'User Journeys',
+      link: {
+        type: 'generated-index',
+        description:
+          'Canonical user journeys + persona-surface map. Cross-package choreography for the five canonical Green Goods personas.',
+      },
+      items: [
+        {type: 'doc', id: 'builders/journeys/onboarding', label: 'Onboarding'},
+        {type: 'doc', id: 'builders/journeys/work-submission', label: 'Work Submission'},
+        {type: 'doc', id: 'builders/journeys/evaluation', label: 'Evaluation'},
+        {type: 'doc', id: 'builders/journeys/funding', label: 'Funding'},
+        {type: 'doc', id: 'builders/journeys/harvest', label: 'Harvest'},
+        {type: 'doc', id: 'builders/journeys/persona-surfaces', label: 'Persona Surfaces'},
+      ],
+    },
+
     // ── Packages (7 items) ──
     {
       type: 'category',
