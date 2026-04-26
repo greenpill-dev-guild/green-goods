@@ -229,6 +229,9 @@ export const queryKeys = {
     /** Protocol-wide yield summary (all gardens, all assets) */
     protocolSummary: (chainId: number) =>
       ["greengoods", "yield", "protocolSummary", chainId] as const,
+    /** Garden-scoped yield summary aggregated client-side over all events */
+    gardenSummary: (gardenAddress: string, chainId: number) =>
+      ["greengoods", "yield", "gardenSummary", gardenAddress, chainId] as const,
   },
 
   // Platform-wide stats (dashboard)

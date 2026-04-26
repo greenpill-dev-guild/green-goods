@@ -40,7 +40,7 @@
       "name": "agent-teams",
       "status": "active",
       "deprecated_replacement": null,
-      "listed_in_index": false,
+      "listed_in_index": true,
       "default_mode": "interactive",
       "triggers": ["/teams", "create agent team"],
       "dependencies": ["plan"]
@@ -148,7 +148,7 @@
       "name": "vite",
       "status": "active",
       "deprecated_replacement": null,
-      "listed_in_index": true,
+      "listed_in_index": false,
       "default_mode": "passive",
       "triggers": ["build config", "bundle", "env vars", "plugins"],
       "dependencies": []
@@ -340,6 +340,33 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "triggers": ["meeting notes", "transcript", "extract issues", "product sync"],
+      "dependencies": []
+    },
+    {
+      "name": "drive",
+      "status": "active",
+      "deprecated_replacement": null,
+      "listed_in_index": false,
+      "default_mode": "interactive",
+      "triggers": ["google drive", "drive notes", "shared drive", "meeting folder"],
+      "dependencies": []
+    },
+    {
+      "name": "ops",
+      "status": "active",
+      "deprecated_replacement": null,
+      "listed_in_index": true,
+      "default_mode": "passive",
+      "triggers": ["deploy", "CI", "GitHub Actions", "git workflow", "dependency", "format"],
+      "dependencies": []
+    },
+    {
+      "name": "ui",
+      "status": "active",
+      "deprecated_replacement": null,
+      "listed_in_index": true,
+      "default_mode": "passive",
+      "triggers": ["design", "TailwindCSS", "Radix", "accessibility", "Storybook", "i18n", "diagram"],
       "dependencies": []
     }
   ],

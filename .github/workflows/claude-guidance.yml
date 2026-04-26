@@ -8,9 +8,6 @@ on:
       - "CLAUDE.md"
       - ".mcp.json"
       - ".claude/**"
-      - ".claude/registry/**"
-      - ".claude/standards/**"
-      - "package.json"
       - ".github/workflows/claude-guidance.yml"
   pull_request:
     branches: [main, develop]
@@ -19,9 +16,6 @@ on:
       - "CLAUDE.md"
       - ".mcp.json"
       - ".claude/**"
-      - ".claude/registry/**"
-      - ".claude/standards/**"
-      - "package.json"
       - ".github/workflows/claude-guidance.yml"
 
 permissions:

@@ -64,7 +64,7 @@ jobs:
             staging_dnslink_name: _dnslink.admin-staging
 
     outputs:
-      cid: ${{ steps.storacha.outputs.cid }}
+      cid: ${{ steps.pinata.outputs.cid }}
 
     steps:
       - name: Checkout
@@ -128,9 +128,7 @@ jobs:
               VITE_WALLETCONNECT_PROJECT_ID \
               VITE_PIMLICO_API_KEY \
               VITE_ENVIO_INDEXER_URL \
-              VITE_POSTHOG_KEY \
-              VITE_STORACHA_KEY \
-              VITE_STORACHA_PROOF
+              VITE_POSTHOG_KEY
             do
               val="${!key:-}"
               if [[ -n "$val" ]]; then
@@ -148,87 +146,52 @@ jobs:
           VITE_POSTHOG_HOST: "https://app.posthog.com"
           VITE_APP_URL: ${{ steps.env.outputs.app_url }}
 
-      - name: Validate Storacha credentials
+      - name: Validate Pinata credentials
         env:
-          STORACHA_KEY: ${{ env.VITE_STORACHA_KEY }}
-          STORACHA_PROOF: ${{ env.VITE_STORACHA_PROOF }}
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
         run: |
-          if [[ -z "$STORACHA_KEY" ]]; then
-            echo "::error::VITE_STORACHA_KEY secret is not set"
+          if [[ -z "$PINATA_JWT" ]]; then
+            echo "::error::PINATA_JWT secret is not set"
             exit 1
           fi
-          if [[ -z "$STORACHA_PROOF" ]]; then
-            echo "::error::VITE_STORACHA_PROOF secret is not set"
-            exit 1
-          fi
-          echo "✅ Storacha credentials validated"
+          echo "✅ Pinata credentials validated"
 
-      # Deploy to Storacha using @storacha/client library
-      # The CLI doesn't support multibase-encoded proof strings directly,
-      # so we use a helper script that matches the pattern in packages/shared/src/modules/data/ipfs.ts
-      - name: Deploy to Storacha
-        id: storacha
+      - name: Deploy to Pinata
+        id: pinata
         env:
-          VITE_STORACHA_KEY: ${{ env.VITE_STORACHA_KEY }}
-          VITE_STORACHA_PROOF: ${{ env.VITE_STORACHA_PROOF }}
-          DEBUG: 'true'
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          PINATA_NAME: ${{ matrix.app }}-${{ steps.env.outputs.env }}-${{ github.sha }}
         run: |
-          echo "🚀 Uploading to Storacha..."
-          CID=$(node scripts/storacha-upload.js "${{ matrix.dist }}")
+          echo "📌 Uploading ${{ matrix.dist }} to Pinata..."
+          CID=$(node scripts/pinata-deploy.js "${{ matrix.dist }}")
 
           if [[ -z "$CID" ]]; then
-            echo "::error::Failed to get CID from Storacha upload"
+            echo "::error::Failed to get CID from Pinata upload"
             exit 1
           fi
 
           echo "cid=$CID" >> $GITHUB_OUTPUT
-          echo "✅ Deployed to Storacha with CID: $CID"
-
-      # Optional: Pin to Pinata for redundancy and faster gateway access
-      - name: Pin to Pinata (optional)
-        env:
-          PINATA_JWT: ${{ secrets.PINATA_JWT }}
-          CID: ${{ steps.storacha.outputs.cid }}
-          APP_NAME: ${{ matrix.app }}
-          COMMIT_SHA: ${{ github.sha }}
-        continue-on-error: true
-        run: |
-          if [[ -z "$PINATA_JWT" ]]; then
-            echo "ℹ️ Skipping Pinata - PINATA_JWT not configured"
-            exit 0
-          fi
-
-          echo "📌 Pinning to Pinata for redundancy..."
-          RESPONSE=$(curl -s -X POST "https://api.pinata.cloud/pinning/pinByHash" \
-            -H "Authorization: Bearer $PINATA_JWT" \
-            -H "Content-Type: application/json" \
-            -d "{\"hashToPin\": \"$CID\", \"pinataMetadata\": {\"name\": \"$APP_NAME-$COMMIT_SHA\"}}")
-
-          if echo "$RESPONSE" | grep -q "error"; then
-            echo "::warning::Pinata pinning failed: $RESPONSE"
-          else
-            echo "✅ Pinned to Pinata"
-          fi
+          echo "✅ Deployed to Pinata with CID: $CID"
 
       # Update GitHub commit status
       - name: Update commit status
-        if: steps.storacha.outputs.cid != ''
+        if: steps.pinata.outputs.cid != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          CID: ${{ steps.storacha.outputs.cid }}
+          CID: ${{ steps.pinata.outputs.cid }}
         run: |
           gh api repos/${{ github.repository }}/statuses/${{ github.sha }} \
             -f state=success \
-            -f target_url="https://$CID.ipfs.w3s.link" \
+            -f target_url="https://greengoods.mypinata.cloud/ipfs/$CID" \
             -f description="${{ matrix.title }} deployed to IPFS" \
             -f context="IPFS / ${{ matrix.title }}"
 
       # Add PR comment with deployment info
       - name: Comment on PR
-        if: github.event_name == 'pull_request' && steps.storacha.outputs.cid != ''
+        if: github.event_name == 'pull_request' && steps.pinata.outputs.cid != ''
         uses: actions/github-script@v7
         env:
-          CID: ${{ steps.storacha.outputs.cid }}
+          CID: ${{ steps.pinata.outputs.cid }}
           APP_TITLE: ${{ matrix.title }}
           APP_ICON: ${{ matrix.icon }}
         with:
@@ -242,12 +205,12 @@ jobs:
             **CID:** \`${cid}\`
 
             ### 🌐 Preview Links
-            - [Storacha Gateway](https://${cid}.ipfs.w3s.link)
+            - [Pinata Gateway](https://greengoods.mypinata.cloud/ipfs/${cid})
             - [dweb.link](https://${cid}.ipfs.dweb.link)
             - [Cloudflare Gateway](https://${cid}.ipfs.cf-ipfs.com)
 
             ---
-            <sub>Deployed with @storacha/cli</sub>`;
+            <sub>Deployed via Pinata</sub>`;
 
             // Find existing comment to update
             const { data: comments } = await github.rest.issues.listComments({
@@ -276,15 +239,15 @@ jobs:
             }
 
       - name: Validate deployment
-        if: steps.storacha.outputs.cid == ''
+        if: steps.pinata.outputs.cid == ''
         run: |
           echo "❌ IPFS deployment failed: no CID returned"
           exit 1
 
       - name: Deployment Summary
-        if: steps.storacha.outputs.cid != ''
+        if: steps.pinata.outputs.cid != ''
         env:
-          CID: ${{ steps.storacha.outputs.cid }}
+          CID: ${{ steps.pinata.outputs.cid }}
           ENV_NAME: ${{ steps.env.outputs.env }}
           CHAIN_ID: ${{ steps.env.outputs.chain_id }}
           DOMAIN: ${{ steps.env.outputs.domain }}
@@ -300,8 +263,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Automated Steps Completed" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Built ${{ matrix.title }} app" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Uploaded to Storacha (permanent IPFS storage)" >> $GITHUB_STEP_SUMMARY
-          echo "- [x] Pinned to Pinata (if configured)" >> $GITHUB_STEP_SUMMARY
+          echo "- [x] Uploaded to Pinata (IPFS pinning)" >> $GITHUB_STEP_SUMMARY
           echo "- [x] Updated GitHub commit status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 Manual Step: Update DNSLink" >> $GITHUB_STEP_SUMMARY
@@ -314,7 +276,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🌐 Gateway Links (available immediately)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- [Storacha Gateway](https://$CID.ipfs.w3s.link)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Pinata Gateway](https://greengoods.mypinata.cloud/ipfs/$CID)" >> $GITHUB_STEP_SUMMARY
           echo "- [dweb.link](https://$CID.ipfs.dweb.link)" >> $GITHUB_STEP_SUMMARY
           echo "- [Service Worker Gateway](https://$CID.ipfs.inbrowser.link)" >> $GITHUB_STEP_SUMMARY
           echo "- [Cloudflare](https://$CID.ipfs.cf-ipfs.com)" >> $GITHUB_STEP_SUMMARY
