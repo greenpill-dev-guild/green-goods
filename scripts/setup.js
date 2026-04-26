@@ -80,6 +80,19 @@ function installFoundry() {
     return false;
   }
 
+  // Need curl to download and tar to extract — fail fast with a clear message
+  // on minimal environments (e.g. slim Docker images) rather than emit the
+  // generic "Failed to install Foundry automatically" later.
+  for (const tool of ["curl", "tar"]) {
+    try {
+      execSync(`which ${tool}`, { stdio: "ignore" });
+    } catch {
+      log.error(`${tool} not found — required to install Foundry`);
+      console.log(`${c.dim}Install ${tool} via your package manager (e.g. apt-get install ${tool}) and re-run setup.${c.reset}\n`);
+      return false;
+    }
+  }
+
   const arch = os.arch();
   const platform = process.platform === "darwin" ? "darwin" : "linux";
   const archMap = { x64: "amd64", arm64: "arm64" };

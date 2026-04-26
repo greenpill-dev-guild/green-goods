@@ -217,7 +217,10 @@ export function useGardenDerivedState({
           key: "domain-empty",
           severity: "warn" as const,
           label: formatMessage({ id: "app.garden.detail.alert.noDomains" }),
-          onAction: () => openSection("overview", "profile"),
+          // Overview tab only renders "health" and "activity" sections; the
+          // hero banner (with the domain edit pencil) sits above all sections,
+          // so any valid section just lands the user on the page.
+          onAction: () => openSection("overview", "health"),
         }
       : null,
   ].filter(

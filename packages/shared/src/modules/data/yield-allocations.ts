@@ -26,11 +26,19 @@ const ALL_YIELD_ALLOCATIONS_QUERY = /* GraphQL */ `
   }
 `;
 
+/**
+ * Cap returned allocation events per garden. The UI aggregates client-side
+ * for the Community tab summary; 1000 events is far above any realistic
+ * garden's lifetime activity and keeps payloads bounded.
+ */
+const GARDEN_YIELD_ALLOCATIONS_LIMIT = 1000;
+
 const GARDEN_YIELD_ALLOCATIONS_QUERY = /* GraphQL */ `
-  query GardenYieldAllocations($chainId: Int!, $garden: String!) {
+  query GardenYieldAllocations($chainId: Int!, $garden: String!, $limit: Int!) {
     YieldAllocation(
       where: { chainId: { _eq: $chainId }, garden: { _eq: $garden } }
       order_by: { timestamp: desc }
+      limit: $limit
     ) {
       ${YIELD_ALLOCATION_FIELDS}
     }
@@ -90,18 +98,20 @@ export async function getAllYieldAllocations(
 }
 
 /**
- * Fetch all yield allocation records for a single garden on a chain.
- * Used by the garden-scoped yield summary so the Community tab can
- * aggregate every event (no 20-record limit).
+ * Fetch yield allocation records for a single garden on a chain (capped to
+ * GARDEN_YIELD_ALLOCATIONS_LIMIT). Used by the garden-scoped yield summary so
+ * the Community tab can aggregate events client-side without the 20-record
+ * pagination cap of the legacy hook.
  */
 export async function getGardenYieldAllocations(
   gardenAddress: Address,
-  chainId: number = DEFAULT_CHAIN_ID
+  chainId: number = DEFAULT_CHAIN_ID,
+  limit: number = GARDEN_YIELD_ALLOCATIONS_LIMIT
 ): Promise<YieldAllocation[]> {
   const garden = gardenAddress.toLowerCase();
   const { data, error } = await greenGoodsIndexer.query<AllYieldAllocationsResponse>(
     GARDEN_YIELD_ALLOCATIONS_QUERY,
-    { chainId, garden },
+    { chainId, garden, limit },
     "GardenYieldAllocations"
   );
 
