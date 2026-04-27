@@ -9,7 +9,9 @@ feature_status: Live
 source_of_truth:
   - packages/shared/.storybook/main.ts
   - packages/shared/.storybook/storybook.css
+  - packages/shared/.storybook/prepare-design-assets.mjs
   - .github/workflows/storybook.yml
+  - .github/workflows/deploy-docs.yml
   - packages/shared/package.json
 keywords:
   - storybook
@@ -44,6 +46,8 @@ graph TB
 ```
 
 Storybook serves as the component documentation and local interaction layer. Stories span all three UI packages (shared, admin, client) and are aggregated into a single Storybook instance hosted from `packages/shared`.
+
+The public component library deploys with the docs site at `/storybook/` on GitHub Pages. The deployed build uses the public browser dialect as its Storybook chrome and exposes a small design-tool import bundle under `/storybook/design/`.
 
 ## How To Approach Tests
 
@@ -139,8 +143,28 @@ The `packages/shared/src/components/Tokens/` directory contains stories that doc
 - `Typography.stories.tsx` -- Font scales and text styles
 - `Shadows.stories.tsx` -- Elevation levels
 - `Animations.stories.tsx` -- Motion tokens
+- `DesignToolImports.stories.tsx` -- Import map for Google Stitch, Claude Design, Storybook MCP, and other tools
 
 These are not interactive components -- they serve as living documentation of the design system.
+
+### Design Tool Imports
+
+Storybook prepares a generated static bundle before local dev, test, and build commands run:
+
+```bash
+cd packages/shared && bun run storybook:prepare-design-assets
+```
+
+The bundle is served at `/design/` inside Storybook. In the GitHub Pages deploy, that means:
+
+- `/storybook/design/DESIGN.md` -- canonical Warm Earth DesignMD source
+- `/storybook/design/DESIGN.browser.md` -- preferred public-browser dialect for the component library
+- `/storybook/design/design-md.generated.json` -- machine-readable DesignMD tokens
+- `/storybook/design/theme.css` -- runtime CSS token projection
+- `/storybook/design/storybook-design-manifest.json` -- machine-readable map across design files, story roots, and import surfaces
+- `/storybook/index.json` -- Storybook component and state catalog
+
+Google Stitch should load the root DesignMD file, the browser dialect file, and the generated token JSON. Claude Design should load the same files plus `index.json` so it can reference actual story roots and component states. Storybook MCP remains a local development server capability via `@storybook/addon-mcp`; the static deploy provides the shareable story index and design exports.
 
 ### Agent Workflow
 
@@ -232,6 +256,8 @@ The built artifact is uploaded via `actions/upload-artifact@v4` for review.
 
 Chromatic publishing is optional. The workflow publishes only when `CHROMATIC_PROJECT_TOKEN` is configured, and uses `--exit-zero-on-changes` so first-pass visual baselines do not block functional Storybook checks.
 
+The GitHub Pages deploy is owned by `deploy-docs.yml`. It builds Docusaurus first, then builds Storybook into `docs/build/storybook`, so the docs site and component library ship as one static Pages artifact.
+
 ## Resources
 
 - [Storybook Documentation](https://storybook.js.org/docs) -- Official Storybook docs
@@ -239,6 +265,7 @@ Chromatic publishing is optional. The workflow publishes only when `CHROMATIC_PR
 - Storybook config: `packages/shared/.storybook/main.ts`
 - Design tokens: `packages/shared/src/components/Tokens/`
 - CI workflow: `.github/workflows/storybook.yml`
+- GitHub Pages deploy: `.github/workflows/deploy-docs.yml`
 
 <NextBestAction
   title="Next: Test Cases"

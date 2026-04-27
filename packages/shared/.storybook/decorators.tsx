@@ -117,7 +117,7 @@ export const withTheme: Decorator = (Story) => {
   }, [currentTheme]);
 
   return (
-    <div data-theme={currentTheme} className="min-h-screen bg-bg-white-0 p-4 text-text-strong-950">
+    <div data-theme={currentTheme} className="storybook-browser-preview">
       <Story />
     </div>
   );

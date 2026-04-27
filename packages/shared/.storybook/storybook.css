@@ -46,15 +46,32 @@
 
 /* Header color with dark mode support */
 :root {
-  --color-header-text: rgb(var(--green-900)); /* Dark forest green for light mode */
+  --color-header-text: rgb(var(--gg-design-primary));
 }
 
 :root[data-theme="dark"] {
-  --color-header-text: rgb(var(--green-200)); /* Pale mint for dark mode - matches primary */
+  --color-header-text: rgb(var(--gg-design-primary-inverse));
 }
 
 /* Typography, shadow, and animation @theme tokens are inherited from
    the shared theme.css import above -- no need to re-declare them here. */
+
+.storybook-browser-preview {
+  min-height: 100vh;
+  padding: var(--gg-space-md);
+  background: rgb(var(--gg-design-neutral));
+  color: rgb(var(--gg-design-primary));
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+[data-theme="dark"] .storybook-browser-preview {
+  background: rgb(var(--gg-design-neutral-dark));
+  color: rgb(var(--gg-design-primary-inverse));
+}
+
+.storybook-browser-preview a {
+  color: rgb(var(--gg-design-tertiary-action));
+}
 
 @keyframes accordion-down {
   from {

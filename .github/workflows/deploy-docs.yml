@@ -1,4 +1,4 @@
-name: Deploy Docs to GitHub Pages
+name: Deploy Docs and Storybook to GitHub Pages
 
 on:
   push:
@@ -8,10 +8,36 @@ on:
       - 'release/**'
     paths:
       - 'docs/**'
+      - 'DESIGN.md'
+      - 'package.json'
+      - 'bun.lock'
+      - 'packages/admin/DESIGN.md'
+      - 'packages/client/DESIGN*.md'
+      - 'packages/shared/package.json'
+      - 'packages/shared/.storybook/**'
+      - 'packages/shared/src/components/**'
+      - 'packages/shared/src/styles/**'
+      - 'packages/admin/src/components/**'
+      - 'packages/admin/src/views/**'
+      - 'packages/client/src/components/**'
+      - 'packages/client/src/views/**'
       - '.github/workflows/deploy-docs.yml'
   pull_request:
     paths:
       - 'docs/**'
+      - 'DESIGN.md'
+      - 'package.json'
+      - 'bun.lock'
+      - 'packages/admin/DESIGN.md'
+      - 'packages/client/DESIGN*.md'
+      - 'packages/shared/package.json'
+      - 'packages/shared/.storybook/**'
+      - 'packages/shared/src/components/**'
+      - 'packages/shared/src/styles/**'
+      - 'packages/admin/src/components/**'
+      - 'packages/admin/src/views/**'
+      - 'packages/client/src/components/**'
+      - 'packages/client/src/views/**'
       - '.github/workflows/deploy-docs.yml'
   # Allow manual trigger
   workflow_dispatch:
@@ -45,6 +71,9 @@ jobs:
 
       - name: Build docs
         run: bun run build:docs
+
+      - name: Build Storybook under docs site
+        run: bun run --filter @green-goods/shared build-storybook:docs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

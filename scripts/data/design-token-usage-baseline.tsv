@@ -1,7 +1,7 @@
 # Warm Earth raw-token baseline.
 # Format: <raw usage hit><TAB><category><TAB><owner><TAB><expires><TAB><note>
 # The raw usage hit must exactly match scripts/design/check-tokens.sh collect_usage_hits output.
-# Expired entries, entries more than 120 days out, and duplicate hits fail check:design-tokens.
+# Expired entries, entries more than 250 days out, and duplicate hits fail check:design-tokens.
 packages/admin/src/components/AdminCheckbox.tsx "h-[18px] w-[18px] shrink-0 rounded-[2px]",	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/AdminCheckbox.tsx * - Container: 18dp (h-[18px] w-[18px]), 2dp radius (rounded-[2px])	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/Garden/GardenMetadata.tsx "grid gap-3 rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4 md:grid-cols-2 lg:grid-cols-3",	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
@@ -139,21 +139,21 @@ packages/shared/.storybook/fixtures.ts export const FIXTURE_IMAGE_EDU = makeData
 packages/shared/.storybook/fixtures.ts export const FIXTURE_IMAGE_SOLAR = makeDataUrl("#fff2cc", "#e6a700", "Solar");	storybook-fixture	storybook	2026-12-31	storybook fixture data URL requires literal colors for now
 packages/shared/.storybook/fixtures.ts export const FIXTURE_IMAGE_WASTE = makeDataUrl("#f3d1c7", "#c04a1e", "Waste");	storybook-fixture	storybook	2026-12-31	storybook fixture data URL requires literal colors for now
 packages/shared/.storybook/storybook.css background: linear-gradient(	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts appBg: "#f8faf9", // Light green-tinted background	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts appBorderColor: "#e2e8e4",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts appContentBg: "#ffffff",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts barBg: "#ffffff",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts barHoverColor: "#1A7544",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts barSelectedColor: "#1FC16B",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts barTextColor: "#6b7280",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts colorPrimary: "#1FC16B", // Primary green	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts colorSecondary: "#1A7544", // Dark green	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts inputBg: "#ffffff",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts inputBorder: "#d1d5db",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts inputTextColor: "#0a0a0a",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts textColor: "#0a0a0a",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts textInverseColor: "#ffffff",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
-packages/shared/.storybook/theme.ts textMutedColor: "#6b7280",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts appBg: "#FAF8F5",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts appBorderColor: "#A8A29E",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts appContentBg: "#FAF8F5",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts barBg: "#FAF8F5",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts barHoverColor: "#16643B",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts barSelectedColor: "#1A7544",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts barTextColor: "#78716C",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts colorPrimary: "#1FC16B", // Accent green	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts colorSecondary: "#1A7544", // Contrast-safe action green	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts inputBg: "#F5F5F4",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts inputBorder: "#A8A29E",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts inputTextColor: "#292524",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts textColor: "#292524",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts textInverseColor: "#F5F5F4",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
+packages/shared/.storybook/theme.ts textMutedColor: "#78716C",	storybook-theme	storybook	2026-12-31	storybook chrome theme literal pending token projection
 packages/shared/src/styles/utilities.css background: linear-gradient(	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/Hypercerts/CreateListingDialog.tsx <RiCheckLine className="h-3 w-3 text-white" />	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/admin/src/components/Hypercerts/Steps/MintProgress.tsx : "border-error-base bg-error-base text-white"),	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
