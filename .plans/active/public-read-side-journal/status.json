@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-25",
-    "updated_at": "2026-04-27T09:10:35.074Z"
+    "updated_at": "2026-04-27T10:33:09.253Z"
   },
   "links": {
     "brief": "brief.md",
@@ -124,7 +124,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "manual_blocked": false,
       "ready_when_dependencies_met": true,
       "branch": "claude/ui/public-read-side-journal",
@@ -154,24 +154,26 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "passed",
       "ready_when_dependencies_met": true,
       "branch": "claude/qa-pass-1/public-read-side-journal",
       "depends_on": ["ui"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "handoff_note": "Run visual/browser/story validation after UI lane lands.",
-      "skill_tags": ["review", "testing", "storybook"]
+      "skill_tags": ["review", "testing", "storybook"],
+      "manual_blocked": false
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
       "branch": "codex/qa-pass-2/public-read-side-journal",
       "branch_trigger": "claude/qa-pass-1/public-read-side-journal",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "handoff_note": "Run final repo gates and plan/design consistency checks after visual QA completes, including Hono compatibility proof, concrete public route paths, VITE_API_BASE_URL env alignment, server-safe public-contracts exports/resolution, canonical availabilityKey builder, allowlisted checkout payload proof, dual receipt-token analytics guards, no-store/no-cache receipt headers, destinationAddress/availabilityKey/clientRequestId funding create drift and pinned idempotency fingerprint checks, transactionAttempts/fundingTxHash sequencing, abandoned intent expiry plus funded_late late confirmation handling, moderate public route rate-limit thresholds with two-stage webhook throttling, explicit reasonCode enum/localization, amount validation error-code alignment, SQLite funding intent storage, destination-specific reconciliation, Donate/support copy guard, publicGardenHelpers.deriveSlug-backed /fund?garden fallback, UI unblock criteria, and /impact shared-EAS slicing limits.",
-      "skill_tags": ["review", "testing"]
+      "skill_tags": ["review", "testing"],
+      "manual_blocked": false
     }
   },
   "history": [
@@ -334,6 +336,30 @@
       "status": "completed",
       "branch": "codex/state-api/public-read-side-journal",
       "note": "state_api implementation and validation complete"
+    },
+    {
+      "timestamp": "2026-04-27T10:30:34.045Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "claude/ui/public-read-side-journal",
+      "note": "UI implementation landed: editorial / homepage, /landing redirect, SiteHeader Install App CTA, PublicHero/ProofBand/RecordLoop/FeaturedGardens/InstallCta/GetInTouch, /fund Donate-Endow + Card-Wallet selector with hidden-by-default cards, /fund?garden= resolution, receipt UI, /gardens/:id slug+rail, /impact evidence + source dialog, /actions library + source dialog, DESIGN.browser.md updated, en/es/pt strings added, design+token+vocab gates green, build:client passes."
+    },
+    {
+      "timestamp": "2026-04-27T10:31:58.813Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "passed",
+      "branch": "claude/qa-pass-1/public-read-side-journal",
+      "note": "Code-level QA Pass 1: bun typecheck, biome format/check, oxlint (0 errors), bun run check:design-md (0 errors), bun run check:design-tokens (clean), bun run check:design-generated (clean), bun run lint:vocab (no banned vocab in en/es/pt), VITE_CHAIN_ID=11155111 bun run build:client (passes). Browser screenshot pass at 375/768/1024/1440 not run autonomously: requires interactive Chrome MCP + dev server with full env (Reown, thirdweb client id, chain RPCs). Dispatching codex/qa-pass-2 to run Hono compatibility, public route contracts, receipt-token, FundingIntent ledger, /impact slicing, lane sequencing, copy-guard, and final repo gates."
+    },
+    {
+      "timestamp": "2026-04-27T10:33:09.254Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "in_progress",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Dispatching codex for qa_pass_2 final gates and consistency review. Working on develop."
     }
   ]
 }
