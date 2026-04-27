@@ -1,51 +1,59 @@
-import { APP_NAME, cn } from "@green-goods/shared";
-import { getAppKit } from "@green-goods/shared/config";
-import { RiMenuLine, RiCloseLine } from "@remixicon/react";
-import { useCallback, useEffect, useState } from "react";
+import { APP_NAME, cn, useApp, useInstallGuidance } from "@green-goods/shared";
+import { RiCloseLine, RiMenuLine } from "@remixicon/react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
 const NAV_ITEMS = [
   { path: "/gardens", labelId: "public.nav.gardens", defaultLabel: "Gardens" },
-  { path: "/actions", labelId: "public.nav.actions", defaultLabel: "Actions" },
   { path: "/impact", labelId: "public.nav.impact", defaultLabel: "Impact" },
   { path: "/fund", labelId: "public.nav.fund", defaultLabel: "Fund" },
+  { path: "/actions", labelId: "public.nav.actions", defaultLabel: "Actions" },
 ] as const;
-
-type SiteHeaderProps = {
-  onConnectWallet?: () => void;
-};
 
 /**
  * SiteHeader — public website header for browser mode.
  *
- * Desktop: horizontal nav links with Connect Wallet button on the right.
+ * Desktop: horizontal nav (Gardens, Impact, Fund, Actions) + `Install App` CTA.
  * Mobile (<768px): hamburger button that opens a slide-in drawer with nav links.
  *
- * Sticky, with backdrop blur. No bottom nav in browser mode (D6).
+ * Wallet connect is intentionally NOT a header CTA — it appears only at the
+ * wallet-required step inside funding flows. The header CTA is `Install App`
+ * (or `Open App` when the PWA is already installed) per the public browser
+ * editorial direction.
  */
-export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
+export const SiteHeader = () => {
   const intl = useIntl();
   const { pathname } = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { isMobile, platform, isInstalled, deferredPrompt } = useApp();
+  const guidance = useInstallGuidance(
+    platform,
+    isMobile,
+    isInstalled,
+    null,
+    deferredPrompt !== null
+  );
 
-  // Close drawer on route change
+  const installLabelId = isInstalled ? "public.nav.openApp" : "public.nav.installApp";
+  const installDefault = isInstalled ? "Open App" : "Install App";
+
+  // Close drawer on route change.
   useEffect(() => {
     setIsDrawerOpen(false);
   }, [pathname]);
 
-  // Close drawer on Escape key
+  // Close drawer on Escape key.
   useEffect(() => {
     if (!isDrawerOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setIsDrawerOpen(false);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsDrawerOpen(false);
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isDrawerOpen]);
 
-  // Prevent body scroll when drawer is open
+  // Prevent body scroll when drawer is open.
   useEffect(() => {
     if (isDrawerOpen) {
       document.body.style.overflow = "hidden";
@@ -56,14 +64,6 @@ export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
       document.body.style.overflow = "";
     };
   }, [isDrawerOpen]);
-
-  const handleConnectWallet = useCallback(() => {
-    if (onConnectWallet) {
-      onConnectWallet();
-      return;
-    }
-    getAppKit()?.open();
-  }, [onConnectWallet]);
 
   return (
     <>
@@ -97,18 +97,15 @@ export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
             })}
           </nav>
 
-          {/* Desktop: Connect Wallet button | Mobile: hamburger */}
+          {/* Desktop: Install App | Mobile: hamburger */}
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleConnectWallet}
+            <a
+              href="#install"
+              data-install-action={guidance.primaryAction.type}
               className="hidden rounded-lg bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover md:block"
             >
-              {intl.formatMessage({
-                id: "public.nav.connectWallet",
-                defaultMessage: "Connect Wallet",
-              })}
-            </button>
+              {intl.formatMessage({ id: installLabelId, defaultMessage: installDefault })}
+            </a>
 
             {/* Mobile hamburger */}
             <button
@@ -136,7 +133,6 @@ export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
           aria-modal="true"
           id="mobile-nav-drawer"
         >
-          {/* Backdrop */}
           <button
             type="button"
             className="absolute inset-0 bg-black/40"
@@ -147,12 +143,10 @@ export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
             })}
           />
 
-          {/* Drawer panel — slides in from left */}
           <nav
             className="absolute inset-y-0 left-0 flex w-72 flex-col bg-bg-white-0 shadow-xl"
             aria-label="Mobile navigation"
           >
-            {/* Drawer header */}
             <div className="flex h-16 items-center justify-between border-b border-stroke-soft-200 px-4">
               <Link
                 to="/"
@@ -175,7 +169,6 @@ export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
               </button>
             </div>
 
-            {/* Nav links stacked vertically */}
             <div className="flex flex-1 flex-col gap-1 p-4">
               {NAV_ITEMS.map(({ path, labelId, defaultLabel }) => {
                 const isActive = pathname.startsWith(path);
@@ -187,7 +180,7 @@ export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
                       "rounded-lg px-3 py-3 text-base transition-colors",
                       isActive
                         ? "bg-primary-base/10 font-medium text-primary-base"
-                        : "text-text-sub-600 hover:text-text-strong-950 hover:bg-bg-weak-50"
+                        : "text-text-sub-600 hover:bg-bg-weak-50 hover:text-text-strong-950"
                     )}
                     aria-current={isActive ? "page" : undefined}
                   >
@@ -197,21 +190,15 @@ export const SiteHeader = ({ onConnectWallet }: SiteHeaderProps) => {
               })}
             </div>
 
-            {/* Connect Wallet at bottom of drawer */}
             <div className="border-t border-stroke-soft-200 p-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsDrawerOpen(false);
-                  handleConnectWallet();
-                }}
-                className="w-full rounded-lg bg-primary-action px-4 py-3 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
+              <a
+                href="#install"
+                data-install-action={guidance.primaryAction.type}
+                onClick={() => setIsDrawerOpen(false)}
+                className="block w-full rounded-lg bg-primary-action px-4 py-3 text-center text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
               >
-                {intl.formatMessage({
-                  id: "public.nav.connectWallet",
-                  defaultMessage: "Connect Wallet",
-                })}
-              </button>
+                {intl.formatMessage({ id: installLabelId, defaultMessage: installDefault })}
+              </a>
             </div>
           </nav>
         </div>

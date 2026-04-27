@@ -1,9 +1,10 @@
 import { ensureBaseLists, HydrationFallback } from "@green-goods/shared";
-import { redirect, type RouteObject } from "react-router-dom";
+import { type RouteObject, redirect } from "react-router-dom";
 
 export const CLIENT_ROUTE_IDS = {
   root: "root",
   publicShell: "public-shell",
+  publicHome: "public-home",
   publicLanding: "public-landing",
   publicGardens: "public-gardens",
   publicFund: "public-fund",
@@ -27,10 +28,6 @@ export const appRoutes = [
     hydrateFallbackElement: <HydrationFallback appName="Green Goods" />,
     children: [
       {
-        index: true,
-        lazy: async () => ({ Component: (await import("@/routes/PlatformRouter")).default }),
-      },
-      {
         path: "login",
         lazy: async () => ({ Component: (await import("@/views/Login")).Login }),
       },
@@ -41,9 +38,14 @@ export const appRoutes = [
         lazy: async () => ({ Component: (await import("@/routes/PublicShell")).default }),
         children: [
           {
+            id: CLIENT_ROUTE_IDS.publicHome,
+            index: true,
+            lazy: async () => ({ Component: (await import("@/views/Public/Home")).default }),
+          },
+          {
             id: CLIENT_ROUTE_IDS.publicLanding,
             path: "landing",
-            lazy: async () => ({ Component: (await import("@/views/Landing")).default }),
+            loader: () => redirect("/"),
           },
           {
             id: CLIENT_ROUTE_IDS.publicGardens,
