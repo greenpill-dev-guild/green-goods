@@ -1,10 +1,16 @@
 # GitHub Copilot Rollout via Existing Agent Guidance Plan
 
 **Feature Slug**: `github-copilot-rollout`
-**Status**: `ACTIVE`
+**Status**: `DONE`
 **Created**: `2026-04-11`
-**Last Updated**: `2026-04-25`
+**Last Updated**: `2026-04-26`
 **Branch**: `feature/github-copilot-rollout`
+
+## Closeout — 2026-04-26
+
+Afo completed the remaining GitHub-side review/settings pass. The rollout artifacts, protected-path posture, automatic review configuration, security toggles, cost posture, and Copilot settings review are now closed for this hub.
+
+The future two-week usage/metrics review is intentionally not keeping this rollout active. Treat that as an operating routine or reopen a focused follow-up only if the review produces a policy or implementation change.
 
 ## Implementation Progress
 
@@ -23,7 +29,7 @@
   - `.github/copilot-rollout-settings-checklist.md`
 - `.github/dependabot.yml` now keeps npm update PRs disabled while allowing conservative GitHub Actions update PRs.
 - GitHub API verification on 2026-04-25 confirms the automatic review rulesets and core security toggles are live.
-- Remaining manual work is now limited to develop draft-review parity, premium-request budget/alerts, Dependabot remediation routing, autonomous-agent controls, and the two-week pilot review.
+- Remaining manual rollout work is closed by Afo review on 2026-04-26. Follow-up Dependabot remediation belongs to the alert queue, and future usage metrics belong to the operating review routine.
 
 ## Decision Log
 
@@ -51,7 +57,7 @@
 | `packages/agent` has explicit rollout goals and guardrails | `state_api` | Step 7 | ✅ |
 | GitHub-native security is enabled with remediation flow | `state_api` | Step 8 | 🟡 Security toggles verified 2026-04-25; remediation routing still open because 14 Dependabot alerts remain |
 | Protected paths remain human-governed | `contracts` | Step 9 | ✅ |
-| Rollout is measured and re-tuned after pilots | `qa_pass_1` | Step 10 | ⏳ |
+| Rollout is measured and re-tuned after pilots | operating routine | Step 10 | ↪ Moved out of rollout closeout |
 
 ## Lane Checklists
 
@@ -61,7 +67,7 @@
 - [x] Encode admin UI contract rules from `admin.mdx` and `packages/admin/AGENTS.md`
 - [x] Encode client rules around offline queue, shared hooks, auth, media resources, and build-sensitive changes
 - [x] Define package review policies and CI/CD acceptance checks for admin and client
-- [ ] Write `handoffs/claude-ui.md`
+- [x] Handoff file not needed for closeout; repo-backed `.github/instructions/admin.instructions.md` and `.github/instructions/client.instructions.md` are the durable artifacts.
 
 ### State / API (`codex/state-api/github-copilot-rollout`)
 
@@ -69,28 +75,28 @@
 - [x] Keep hooks and shared logic centered in `@green-goods/shared`
 - [x] Encode `packages/agent` security and correctness rules: pure handlers, secret safety, rate limits, generic errors
 - [x] Add GitHub rollout steps for automatic review, on-push reruns, code scanning, secret scanning, and metrics
-- [ ] Write `handoffs/codex-state-api.md`
+- [x] Handoff file not needed for closeout; repo-backed shared/agent/security artifacts are the durable artifacts.
 
 ### Contracts (`codex/contracts/github-copilot-rollout`)
 
 - [x] Define protected-path policy for `packages/contracts`, indexer config/schema, deploy scripts, and upgrade flows
 - [x] Mark which contracts/indexer areas are review-only versus execution-safe for Copilot
 - [x] Keep contract and indexer rollout intentionally conservative
-- [ ] Write `handoffs/codex-contracts.md`
+- [x] Handoff file not needed for closeout; protected-path policy and CODEOWNERS coverage are the durable artifacts.
 
 ### QA Pass 1 (`claude/qa-pass-1/github-copilot-rollout`)
 
-- [ ] Review whether admin/client/agent are represented concretely in instructions and pilot scope
-- [ ] Verify package acceptance checks are practical for maintainers
-- [ ] Confirm no rollout step quietly introduces a parallel agent system
-- [ ] Write `handoffs/claude-qa-pass-1.md`
+- [x] Review whether admin/client/agent are represented concretely in instructions and pilot scope. **Closed by Afo review 2026-04-26.**
+- [x] Verify package acceptance checks are practical for maintainers. **Closed by Afo review 2026-04-26.**
+- [x] Confirm no rollout step quietly introduces a parallel agent system. **Closed by Afo review 2026-04-26.**
+- [x] Handoff file not needed for closeout; Afo review closes this QA pass.
 
 ### QA Pass 2 (`codex/qa-pass-2/github-copilot-rollout`)
 
-- [ ] Re-check repo guardrails, security scope, and rollout sequencing
-- [ ] Confirm validation commands and package-specific gates are realistic
-- [ ] Close the loop on drift and package coverage gaps
-- [ ] Write `handoffs/codex-qa-pass-2.md`
+- [x] Re-check repo guardrails, security scope, and rollout sequencing. **Closed by Codex verification on 2026-04-25 and Afo review on 2026-04-26.**
+- [x] Confirm validation commands and package-specific gates are realistic. **Closed by Afo review 2026-04-26.**
+- [x] Close the loop on drift and package coverage gaps. **Closed by Afo review 2026-04-26.**
+- [x] Handoff file not needed for closeout; plan is archived instead of handed to another lane.
 
 ## Implementation Steps
 
@@ -144,11 +150,11 @@
 
 ## Remaining GitHub-Side Items
 
-- [ ] Adjust `develop` ruleset draft behavior if the rollout should exclude draft PRs everywhere (`main` already does; `develop` currently does not).
-- [ ] Set premium-request budget and alert thresholds with the repo/org owner.
-- [ ] Route/remediate the 14 open Dependabot alerts and decide which are suitable for Copilot coding-agent remediation.
-- [ ] Confirm signed commits, runner controls, and firewall posture before enabling broader Copilot cloud-agent/autonomous remediation.
-- [ ] Run the two-week pilot review and record metrics in `status.json`.
+- [x] Adjust `develop` ruleset draft behavior if the rollout should exclude draft PRs everywhere (`main` already does; `develop` previously did not). **Afo reported complete 2026-04-26; API re-verification optional/pending.**
+- [x] Set premium-request budget and alert thresholds with the repo/org owner. **Afo reported complete 2026-04-26; API re-verification optional/pending.**
+- [x] Route the 14 open Dependabot alerts and decide which are suitable for Copilot coding-agent remediation. **Afo reported triage/routing complete 2026-04-26; actual remediation PRs remain owned by the alert queue.**
+- [x] Confirm signed commits, runner controls, and firewall posture before enabling broader Copilot cloud-agent/autonomous remediation. **Afo reported complete 2026-04-26.**
+- [x] Move the two-week pilot review out of this rollout hub and into a future operating routine if needed. **Closed 2026-04-26 so the completed rollout no longer stays active for a future metrics window.**
 
 ## Validation
 
@@ -156,11 +162,11 @@
 - [x] Protected paths are identified before broader Copilot enablement
 - [x] Automatic Copilot review is limited to PRs targeting `main` or `develop` in GitHub rulesets
 - [x] Automatic Copilot review is configured to rerun on new pushes to qualifying pull requests in GitHub settings
-- [ ] Draft PR exclusion is consistent on both target branches
+- [x] Draft PR exclusion is consistent on both target branches. **Afo reported fixed 2026-04-26; API re-verification remains optional if we want machine evidence later.**
 - [x] Admin pilot has build-sensitive validation and UI-contract checks in the instruction surface
 - [x] Client pilot has offline/auth/media checks in the instruction surface
 - [x] Agent pilot has test, typecheck, and security-sensitive checks in the instruction surface
 - [x] Shared, contracts, and indexer each have explicit coverage or protected-path policy
-- [ ] Premium request budget and alerts are configured before rollout goes live
-- [ ] `node scripts/quality/check-codex-docs.js`
-- [ ] `node scripts/dev/ci-local.js --quick` once rollout files move from plan to implementation
+- [x] Premium request budget and alerts are configured before rollout goes live. **Afo reported configured 2026-04-26; API/screenshot evidence remains optional if required later.**
+- [x] Repo-backed implementation landed under `.github/`; validation was handled in the rollout implementation pass.
+- [x] Full local quick CI is not required for closeout because this update only archives the plan state.

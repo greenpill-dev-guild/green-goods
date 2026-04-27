@@ -1,10 +1,16 @@
 # Yield-to-Impact Codification
 
 **Slug**: `yield-to-impact-codification`
-**Status**: `ACTIVE`
+**Status**: `IDEA / MAY EXPLORATION`
 **Created**: `2026-04-25`
 **Priority**: `p2` (outcome-shaping work; not a polish blocker but high strategic value)
 **Branch**: `feature/yield-to-impact-codification` (when implementation begins)
+
+## Scheduling Update — 2026-04-26
+
+Moved out of active product execution. Treat May as research/exploration and defer implementation until the `domain-coherence` model is stable, likely June.
+
+Do not merge this into `domain-coherence` yet: the overlap is real, but the responsibilities are different. `domain-coherence` owns the domain/dimension model; this plan owns the yield-to-impact curve, hooks, indexer shape, and downstream reporting surfaces that consume that model.
 
 ## Why this exists
 

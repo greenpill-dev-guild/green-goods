@@ -4,13 +4,13 @@
     "slug": "rwa-yield-expansion",
     "title": "RWA Yield Expansion (Conservative + Balanced presets)",
     "kind": "feature",
-    "stage": "active"
+    "stage": "backlog"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "backlog",
     "priority": "p0",
     "created_at": "2026-04-17",
-    "updated_at": "2026-04-19"
+    "updated_at": "2026-04-26T19:08:17.489Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,8 @@
     "Audit engagement bundled with SessionKeyValidator.sol from agent-messaging-channels (one audit firm, one contract freeze).",
     "Mutation test target on RebalancePolicy: 95%+ (stretch 99%, decision 12). This is a p0 quality bar.",
     "Aggressive preset deferred to Q3 (decision 4). Auto-migrate existing vaults to Conservative on upgrade (decision 6).",
-    "Emergency withdraw only after 14 days of vault pause (decision 10)."
+    "Emergency withdraw only after 14 days of vault pause (decision 10).",
+    "Afo deferred this out of active product work on 2026-04-26. Keep as June implementation/backlog, not part of the April closeout push."
   ],
   "lanes": {
     "ui": {
@@ -96,6 +97,14 @@
       "status": "scaffolded",
       "branch": null,
       "note": "brief.md + eval.md + status.json scaffolded; spec.md migrated from docs/superpowers/specs/ (legacy folder deleted). plan.todo.md spec link rewired to ./spec.md. Audit engagement bundled with agent-messaging-channels SessionKeyValidator. plan-hub.mjs validate green."
+    },
+    {
+      "timestamp": "2026-04-26T19:08:17.491Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_backlog",
+      "branch": null,
+      "note": "Moved feature hub from active to backlog"
     }
   ]
 }

@@ -1,10 +1,14 @@
 # Vocabulary Glossary Consolidation
 
 **Slug**: `vocabulary-glossary-consolidation`
-**Status**: `ACTIVE`
+**Status**: `DONE`
 **Created**: `2026-04-25`
 **Priority**: `p2`
 **Branch**: `develop` (working from current)
+
+## Closeout — 2026-04-26
+
+Closed. The canonical glossary exists at `docs/docs/reference/glossary-community.md`, the prompt/design references point to it, and `bun run lint:vocab` passed with the expected enforced-term set.
 
 ## Why this exists
 

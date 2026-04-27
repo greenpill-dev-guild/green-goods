@@ -1,10 +1,16 @@
 # Domain Coherence — Action Domains × Impact Dimensions
 
 **Slug**: `domain-coherence`
-**Status**: `ACTIVE`
+**Status**: `IDEA / MAY EXPLORATION`
 **Created**: `2026-04-25`
 **Priority**: `p2` (outcome-shaping; pairs with `yield-to-impact-codification`)
 **Branch**: `feature/domain-coherence` (when implementation begins)
+
+## Scheduling Update — 2026-04-26
+
+Moved out of active product execution. Treat May as research/exploration for the domain and dimension model, with implementation deferred to June.
+
+Keep this paired with `yield-to-impact-codification`: this plan owns the conceptual domain/dimension model, while yield-to-impact owns the measurement curve that consumes it.
 
 ## Why this exists
 

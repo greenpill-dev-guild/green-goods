@@ -4,13 +4,13 @@
     "slug": "github-copilot-rollout",
     "title": "GitHub Copilot Rollout via Existing Agent Guidance",
     "kind": "quality",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active_pending_manual_settings_review",
+    "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-04-11",
-    "updated_at": "2026-04-25T05:15:00.000Z"
+    "updated_at": "2026-04-26T19:06:59.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -28,7 +28,8 @@
     "Automatic review is limited to open pull requests targeting main or develop, and cost controls are required before rollout.",
     "Repo-backed rollout artifacts are implemented under .github.",
     "GitHub API verification on 2026-04-25 confirms active main/develop Copilot review rulesets, review-on-push, CodeQL default setup, vulnerability alerts, secret scanning, and push protection.",
-    "Remaining manual settings: develop draft PR review should be disabled to match plan intent, premium-request budget/alerts need owner decision, open Dependabot alerts need remediation/routing, autonomous-agent controls need signoff before expansion, and the two-week pilot review still needs evidence."
+    "Afo completed the remaining GitHub-side review/settings pass on 2026-04-26. Rollout artifacts and required settings are closed.",
+    "The future two-week usage review is no longer a blocker for this rollout hub; track it as an operating routine or a new follow-up if metrics materially change the policy."
   ],
   "implementation": {
     "repo_backed": "complete",
@@ -73,24 +74,24 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "branch": "claude/qa-pass-1/github-copilot-rollout",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"],
       "ready_when_dependencies_met": true,
-      "manual_blocked": true
+      "manual_blocked": false
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "completed",
       "branch": "codex/qa-pass-2/github-copilot-rollout",
       "branch_trigger": "claude/qa-pass-1/github-copilot-rollout",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "skill_tags": ["testing", "review"],
       "ready_when_dependencies_met": true,
-      "manual_blocked": true
+      "manual_blocked": false
     }
   },
   "history": [
@@ -111,6 +112,14 @@
       "status": "settings_partially_verified",
       "branch": "claude/qa-pass-1/github-copilot-rollout",
       "note": "gh api verified rulesets main/develop active with copilot_code_review and review_on_push, CodeQL default setup configured, vulnerability alerts endpoint 204, secret scanning and push protection enabled, Copilot billing visible. Remaining: develop reviews drafts, premium budget/alerts are not evidenced by repo API, 14 Dependabot alerts open, and autonomous-agent controls/pilot review remain manual."
+    },
+    {
+      "timestamp": "2026-04-26T19:06:59.000Z",
+      "actor": "afo",
+      "lane": "system",
+      "status": "done",
+      "branch": null,
+      "note": "Afo completed the GitHub Copilot review/settings checklist. Closed this rollout hub; future usage-metrics review can live as an operating routine instead of keeping the rollout active."
     }
   ]
 }

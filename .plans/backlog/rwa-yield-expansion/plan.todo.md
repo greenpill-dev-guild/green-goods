@@ -4,11 +4,15 @@
 **Epic**: [#463](https://github.com/greenpill-dev-guild/green-goods/issues/463)
 **Outcome Milestone**: [Outcome: Octant Vault APY >= 5% sustained](https://github.com/greenpill-dev-guild/green-goods/milestone/13) (#13)
 **Spec**: [spec.md](./spec.md)
-**Status**: `ACTIVE`
+**Status**: `BACKLOG`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-04-17` (initial plan)
 **Hard Deadline**: Contract freeze **2026-05-30**; mainnet deploy **2026-06-30**
 **Branch Strategy**: `feature/rwa-yield-expansion` with phase commits for independent rollback
+
+## Scheduling Update — 2026-04-26
+
+Afo deferred this out of the current active product-development push. Keep it as a June implementation candidate/backlog item; do not pull it into April closeout work.
 
 > **For agentic workers:** Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
 

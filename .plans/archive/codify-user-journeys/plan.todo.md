@@ -1,8 +1,13 @@
 # Codify User Journeys
 
-Status: in-progress
+Status: done
 Owner: docs agent (developer journey lane)
 Started: 2026-04-25
+Closed: 2026-04-26
+
+## Closeout — 2026-04-26
+
+Closed. The six journey docs exist under `docs/docs/builders/journeys/`, the builders sidebar includes the User Journeys category, and `bun run build:docs` passed on 2026-04-26. The build emitted only known non-blocking warnings for the missing optional `docs/blog` directory and webpack analyzer cache serialization.
 
 ## Goal
 
@@ -97,11 +102,11 @@ Each `.mdx` includes:
 
 ## Validation
 
-- [ ] All cross-references inside the new docs resolve (Docusaurus `onBrokenLinks: 'throw'` will catch breaks at build time)
-- [ ] Mermaid diagrams parse — keep `stateDiagram-v2` simple; if a journey is too complex, split
-- [ ] Personas use canonical A-E labels with the human-readable name in parentheses on first use
-- [ ] Status badges (`shipped` / `partial` / `aspirational`) appear in every steps table
-- [ ] Sidebar entry added so journeys are reachable
+- [x] All cross-references inside the new docs resolve (`bun run build:docs` passed with `onBrokenLinks: 'throw'`)
+- [x] Mermaid diagrams parse in the Docusaurus build
+- [x] Personas use canonical A-E labels with the human-readable name in parentheses on first use
+- [x] Status badges (`shipped` / `partial` / `aspirational`) appear in every steps table
+- [x] Sidebar entry added so journeys are reachable
 
 ## Constraints
 
@@ -111,6 +116,6 @@ Each `.mdx` includes:
 
 ## Next steps
 
-1. Write all six MDX files
-2. Update sidebars.ts
-3. Verify build (optional: `bun run build` inside `docs/` if time allows)
+1. Done: write all six MDX files
+2. Done: update `docs/sidebars.ts`
+3. Done: verify docs build with `bun run build:docs`

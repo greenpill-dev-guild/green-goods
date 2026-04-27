@@ -4,11 +4,15 @@
 **Epic**: [#464](https://github.com/greenpill-dev-guild/green-goods/issues/464)
 **Outcome Milestone**: [Outcome: Agent reachable on 2 non-web channels](https://github.com/greenpill-dev-guild/green-goods/milestone/14) (#14)
 **Spec**: [spec.md](./spec.md)
-**Status**: `ACTIVE`
+**Status**: `BACKLOG`
 **Created**: `2026-04-17`
 **Last Updated**: `2026-04-17` (initial plan)
 **Hard Deadline**: Twilio + WA business verification submitted **2026-05-10**; outcome milestone **2026-06-30**
 **Branch Strategy**: `feature/agent-messaging-channels` with phase commits for independent rollback
+
+## Scheduling Update — 2026-04-26
+
+Afo deferred this out of the current active product-development push. Keep it in backlog for later sequencing after the current closeout set and the May product-development pause.
 
 > **For agentic workers:** Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
