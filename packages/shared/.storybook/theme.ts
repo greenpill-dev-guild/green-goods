@@ -4,19 +4,19 @@ export default create({
   base: "light",
 
   // Brand
-  brandTitle: "Green Goods Design System",
-  brandUrl: "https://greengoods.app",
-  brandImage: "/green-goods-logo.png", // From staticDirs
+  brandTitle: "Green Goods Component Library",
+  brandUrl: "https://design.greengoods.app/",
+  brandImage: "green-goods-logo.png", // From staticDirs; relative for standalone deploys
   brandTarget: "_self",
 
-  // Colors - Green Goods palette
-  colorPrimary: "#1FC16B", // Primary green
-  colorSecondary: "#1A7544", // Dark green
+  // Warm Earth public-browser dialect
+  colorPrimary: "#1FC16B", // Accent green
+  colorSecondary: "#1A7544", // Contrast-safe action green
 
   // UI
-  appBg: "#f8faf9", // Light green-tinted background
-  appContentBg: "#ffffff",
-  appBorderColor: "#e2e8e4",
+  appBg: "#FAF8F5",
+  appContentBg: "#FAF8F5",
+  appBorderColor: "#A8A29E",
   appBorderRadius: 8,
 
   // Typography
@@ -24,19 +24,19 @@ export default create({
   fontCode: "monospace",
 
   // Text colors
-  textColor: "#0a0a0a",
-  textInverseColor: "#ffffff",
-  textMutedColor: "#6b7280",
+  textColor: "#292524",
+  textInverseColor: "#F5F5F4",
+  textMutedColor: "#78716C",
 
   // Toolbar
-  barTextColor: "#6b7280",
-  barSelectedColor: "#1FC16B",
-  barHoverColor: "#1A7544",
-  barBg: "#ffffff",
+  barTextColor: "#78716C",
+  barSelectedColor: "#1A7544",
+  barHoverColor: "#16643B",
+  barBg: "#FAF8F5",
 
   // Inputs
-  inputBg: "#ffffff",
-  inputBorder: "#d1d5db",
-  inputTextColor: "#0a0a0a",
+  inputBg: "#F5F5F4",
+  inputBorder: "#A8A29E",
+  inputTextColor: "#292524",
   inputBorderRadius: 6,
 });

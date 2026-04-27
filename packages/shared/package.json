@@ -43,10 +43,11 @@
     "test:live": "RUN_LIVE_RPC_TESTS=true vitest run src/__tests__/integration/arbitrum-yield-data.test.ts src/__tests__/utils/blockchain/aave.live.test.ts",
     "test:watch": "vitest --standalone",
     "coverage": "vitest run --coverage",
-    "storybook": "bun --bun ./node_modules/.bin/storybook dev -p 6006 --ci",
-    "build-storybook": "bun --bun ./node_modules/.bin/storybook build -o storybook-static",
+    "storybook:prepare-design-assets": "node .storybook/prepare-design-assets.mjs",
+    "storybook": "bun run storybook:prepare-design-assets && bun --bun ./node_modules/.bin/storybook dev -p 6006 --ci",
+    "build-storybook": "bun run storybook:prepare-design-assets && STORYBOOK_STATIC_BUILD=true bun --bun ./node_modules/.bin/storybook build -o storybook-static && node .storybook/copy-static-assets.mjs",
     "check:stories": "bun run ../../scripts/check-story-coverage.ts",
-    "test:stories:ci": "vitest run --config vitest.storybook.config.ts --project=storybook",
+    "test:stories:ci": "bun run storybook:prepare-design-assets && vitest run --config vitest.storybook.config.ts --project=storybook",
     "chromatic": "chromatic --storybook-build-dir storybook-static"
   },
   "dependencies": {
