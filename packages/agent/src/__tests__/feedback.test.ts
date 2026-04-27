@@ -292,7 +292,6 @@ describe("handleFeedback", () => {
 // ============================================================================
 
 describe("Feedback API", () => {
-  // API tests use Fastify's inject method for in-process testing
   let app: Awaited<ReturnType<typeof import("../api/server").createServer>>;
   const API_TOKEN = "test-api-token-12345";
 
@@ -311,20 +310,16 @@ describe("Feedback API", () => {
   });
 
   it("rejects requests without auth token", async () => {
-    const response = await app.inject({
-      method: "GET",
-      url: "/api/feedback",
-    });
-    expect(response.statusCode).toBe(401);
+    const response = await app.request("/api/feedback");
+    expect(response.status).toBe(401);
   });
 
   it("rejects requests with wrong auth token", async () => {
-    const response = await app.inject({
+    const response = await app.request("/api/feedback", {
       method: "GET",
-      url: "/api/feedback",
       headers: { authorization: "Bearer wrong-token" },
     });
-    expect(response.statusCode).toBe(401);
+    expect(response.status).toBe(401);
   });
 
   it("GET /api/feedback returns new feedback", async () => {
@@ -338,14 +333,13 @@ describe("Feedback API", () => {
       platformId: "api-user-1",
     });
 
-    const response = await app.inject({
+    const response = await app.request("/api/feedback?type=bug", {
       method: "GET",
-      url: "/api/feedback?type=bug",
       headers: { authorization: `Bearer ${API_TOKEN}` },
     });
 
-    expect(response.statusCode).toBe(200);
-    const body = response.json();
+    expect(response.status).toBe(200);
+    const body = await response.json();
     expect(body.count).toBeGreaterThanOrEqual(1);
     expect(body.feedback.some((f: { id: string }) => f.id === "fb-api-get-1")).toBe(true);
   });
@@ -360,53 +354,50 @@ describe("Feedback API", () => {
       platformId: "api-user-2",
     });
 
-    const response = await app.inject({
+    const response = await app.request("/api/feedback/fb-api-patch-1", {
       method: "PATCH",
-      url: "/api/feedback/fb-api-patch-1",
       headers: {
         authorization: `Bearer ${API_TOKEN}`,
         "content-type": "application/json",
       },
-      payload: { status: "triaged" },
+      body: JSON.stringify({ status: "triaged" }),
     });
 
-    expect(response.statusCode).toBe(200);
+    expect(response.status).toBe(200);
 
     const updated = await db.getFeedback("fb-api-patch-1");
     expect(updated!.status).toBe("triaged");
   });
 
   it("PATCH /api/feedback/:id rejects invalid status", async () => {
-    const response = await app.inject({
+    const response = await app.request("/api/feedback/fb-api-patch-1", {
       method: "PATCH",
-      url: "/api/feedback/fb-api-patch-1",
       headers: {
         authorization: `Bearer ${API_TOKEN}`,
         "content-type": "application/json",
       },
-      payload: { status: "invalid" },
+      body: JSON.stringify({ status: "invalid" }),
     });
 
-    expect(response.statusCode).toBe(400);
+    expect(response.status).toBe(400);
   });
 
   it("POST /api/notify rejects invalid platform", async () => {
-    const response = await app.inject({
+    const response = await app.request("/api/notify", {
       method: "POST",
-      url: "/api/notify",
       headers: {
         authorization: `Bearer ${API_TOKEN}`,
         "content-type": "application/json",
       },
-      payload: {
-        platform: "carrier_pigeon",
+      body: JSON.stringify({
+        platform: "unknown-platform",
         platformId: "123",
         message: "Hello",
-      },
+      }),
     });
 
-    expect(response.statusCode).toBe(400);
-    expect(response.json().error).toContain("Invalid platform");
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain("Invalid platform");
   });
 
   it("POST /api/notify sends message and marks responded", async () => {
@@ -437,22 +428,21 @@ describe("Feedback API", () => {
       platformId: "notify-user-1",
     });
 
-    const response = await appWithNotifier.inject({
+    const response = await appWithNotifier.request("/api/notify", {
       method: "POST",
-      url: "/api/notify",
       headers: {
         authorization: `Bearer ${API_TOKEN}`,
         "content-type": "application/json",
       },
-      payload: {
+      body: JSON.stringify({
         platform: "telegram",
         platformId: "notify-user-1",
         message: "We fixed your bug!",
         feedbackId: "fb-api-notify-1",
-      },
+      }),
     });
 
-    expect(response.statusCode).toBe(200);
+    expect(response.status).toBe(200);
     expect(notifyCalled).toBe(true);
 
     const updated = await db.getFeedback("fb-api-notify-1");

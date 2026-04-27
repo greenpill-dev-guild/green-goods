@@ -9,6 +9,7 @@
  */
 
 import { createServer, startServer } from "./api/server";
+import { parseAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
 import { handleMessage, setHandlerContext } from "./handlers";
 import {
@@ -20,7 +21,10 @@ import {
 import { initAI, isAIModelLoaded } from "./services/ai";
 import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
+import { resolveAgentRpcUrl } from "./services/agent-rpc";
+import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import { logger } from "./services/logger";
+import { createLumaClient } from "./services/luma";
 import { rateLimiter } from "./services/rate-limiter";
 
 // ============================================================================
@@ -43,8 +47,13 @@ async function main(): Promise<void> {
 
   // Initialize services
   initDB(config.dbPath);
-  initBlockchain(config.chain);
+  initBlockchain(config.chain, resolveAgentRpcUrl(config.chainId));
   const ai = initAI();
+  const lumaClient = createLumaClient({
+    apiKey: config.lumaApiKey,
+    calendarId: config.lumaCalendarId,
+    tagId: config.lumaGreenGoodsTagId,
+  });
 
   const bot = createTelegramBot({ token: config.telegramToken }, handleMessage);
 
@@ -62,6 +71,15 @@ async function main(): Promise<void> {
     isAIReady: isAIModelLoaded,
     botApiToken: config.botApiToken,
     notifier,
+    lumaClient,
+    fundingIntents: createSqliteFundingIntentStore(),
+    allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),
+    trustedProxy: {
+      hops: config.trustedProxyHops,
+      cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
+    },
+    thirdwebWebhookSecret: config.thirdwebWebhookSecret,
+    thirdwebClientId: config.thirdwebClientId,
   });
 
   if (config.mode === "webhook") {
@@ -71,24 +89,27 @@ async function main(): Promise<void> {
     });
 
     // SECURITY: Always verify webhook secret when configured
-    server.post(webhookPath, async (request, reply) => {
-      const secretToken = request.headers["x-telegram-bot-api-secret-token"];
+    server.post(webhookPath, async (c) => {
+      const secretToken = c.req.header("x-telegram-bot-api-secret-token");
 
       // In production, webhook secret is required (validated in config.ts)
       // In development, it's optional but if configured, we verify it
       if (config.telegramWebhookSecret) {
         if (secretToken !== config.telegramWebhookSecret) {
           logger.warn({ hasToken: !!secretToken }, "Webhook request rejected: invalid secret");
-          return reply.status(401).send({ error: "Unauthorized" });
+          return c.json({ error: "Unauthorized" }, 401);
         }
       } else if (config.isProduction) {
         // This shouldn't happen due to config validation, but belt-and-suspenders
         logger.error("Webhook secret not configured in production - rejecting request");
-        return reply.status(500).send({ error: "Server misconfigured" });
+        return c.json({ error: "Server misconfigured" }, 500);
       }
 
-      await bot.handleUpdate(request.body as Parameters<typeof bot.handleUpdate>[0]);
-      return { ok: true };
+      const body = (await c.req.json().catch(() => undefined)) as
+        | Parameters<typeof bot.handleUpdate>[0]
+        | undefined;
+      await bot.handleUpdate(body as Parameters<typeof bot.handleUpdate>[0]);
+      return c.json({ ok: true });
     });
   } else {
     // Polling mode for Telegram

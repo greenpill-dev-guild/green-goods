@@ -1,0 +1,17 @@
+{
+  "request": {
+    "email": "updates@example.org",
+    "consent": true,
+    "locale": "en",
+    "source": "homepage_get_in_touch"
+  },
+  "responses": [
+    { "ok": true, "status": "subscribed" },
+    { "ok": true, "status": "already_subscribed" },
+    {
+      "ok": false,
+      "errorCode": "luma_import_failed",
+      "message": "Subscription is unavailable right now."
+    }
+  ]
+}

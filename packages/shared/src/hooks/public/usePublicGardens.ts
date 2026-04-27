@@ -31,6 +31,7 @@ import { STALE_TIME_RARE } from "../../config/query-keys/constants";
 import { logger } from "../../modules/app/logger";
 import { getWorks } from "../../modules/data/eas";
 import { getGardens } from "../../modules/data/greengoods";
+import { derivePublicGardenSlug } from "../../public-contracts";
 import type { Address } from "../../types/domain";
 
 export interface PublicGardenSummary {
@@ -61,16 +62,7 @@ export interface PublicGardenSummary {
  * Slugify a garden name. Mirrors the same algorithm a future seasons primitive
  * would use, so generated links remain stable when slug data lands on-chain.
  */
-function deriveSlug(name: string, address: string): string {
-  const trimmed = name.trim();
-  if (!trimmed) return address.toLowerCase();
-  return (
-    trimmed
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || address.toLowerCase()
-  );
-}
+const deriveSlug = derivePublicGardenSlug;
 
 export function usePublicGardens(chainId: number = DEFAULT_CHAIN_ID) {
   return useQuery({

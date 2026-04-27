@@ -42,6 +42,16 @@ export interface Config {
 
   // API
   botApiToken?: string;
+  publicAllowedOrigins?: string;
+  trustedProxyHops?: number;
+  trustedProxyCidrs?: string;
+
+  // Public provider integrations
+  lumaApiKey?: string;
+  lumaCalendarId?: string;
+  lumaGreenGoodsTagId?: string;
+  thirdwebWebhookSecret?: string;
+  thirdwebClientId?: string;
 
   // Analytics
   posthogApiKey?: string;
@@ -99,6 +109,18 @@ export function loadConfig(): Config {
 
     // API
     botApiToken: process.env.BOT_API_TOKEN,
+    publicAllowedOrigins: process.env.AGENT_PUBLIC_ALLOWED_ORIGINS,
+    trustedProxyHops: process.env.AGENT_TRUSTED_PROXY_HOPS
+      ? parseInt(process.env.AGENT_TRUSTED_PROXY_HOPS, 10)
+      : undefined,
+    trustedProxyCidrs: process.env.AGENT_TRUSTED_PROXY_CIDRS,
+
+    // Public provider integrations
+    lumaApiKey: process.env.LUMA_API_KEY,
+    lumaCalendarId: process.env.LUMA_CALENDAR_ID,
+    lumaGreenGoodsTagId: process.env.LUMA_GREEN_GOODS_TAG_ID,
+    thirdwebWebhookSecret: process.env.THIRDWEB_WEBHOOK_SECRET,
+    thirdwebClientId: process.env.VITE_THIRDWEB_CLIENT_ID,
 
     // Security
     encryptionSecret: process.env.ENCRYPTION_SECRET,

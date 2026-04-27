@@ -1,0 +1,18 @@
+{
+  "availability": [
+    {
+      "gardenKey": "0x1111111111111111111111111111111111111111",
+      "destinationType": "cookieJar",
+      "destinationAddress": "0x2222222222222222222222222222222222222222",
+      "fundingIntent": "donate",
+      "paymentMethod": "card",
+      "chainId": 11155111,
+      "token": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "provider": "thirdweb",
+      "availabilityKey": "v1:0x1111111111111111111111111111111111111111:cookieJar:0x2222222222222222222222222222222222222222:donate:card:11155111:0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:thirdweb",
+      "state": "hidden",
+      "reasonCode": "proof_pending",
+      "requiredProof": "provider_execution"
+    }
+  ]
+}

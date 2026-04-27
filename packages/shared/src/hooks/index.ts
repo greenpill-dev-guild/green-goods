@@ -315,6 +315,8 @@ export type {
 export { usePublicFieldNotes } from "./public/usePublicFieldNotes";
 export type { PublicStats } from "./public/usePublicStats";
 export { usePublicStats } from "./public/usePublicStats";
+export type { UsePublicImpactEvidenceOptions } from "./public/usePublicImpactEvidence";
+export { usePublicImpactEvidence } from "./public/usePublicImpactEvidence";
 export type { PublicVolume, PublicVolumeActiveGarden } from "./public/usePublicVolume";
 export {
   SEASON_ONE_VOLUME_ID,

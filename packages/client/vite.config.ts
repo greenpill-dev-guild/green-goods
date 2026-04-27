@@ -372,6 +372,10 @@ export default defineConfig(async () => {
         "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
         "@green-goods/shared/providers": resolve(__dirname, "../shared/src/providers"),
+        "@green-goods/shared/public-contracts": resolve(
+          __dirname,
+          "../shared/src/public-contracts"
+        ),
         "@green-goods/shared/modules": resolve(__dirname, "../shared/src/modules"),
         "@green-goods/shared/utils": resolve(__dirname, "../shared/src/utils"),
         "@green-goods/shared/config": resolve(__dirname, "../shared/src/config"),

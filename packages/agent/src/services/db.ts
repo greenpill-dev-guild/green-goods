@@ -20,9 +20,126 @@ import type {
   WorkDraftData,
 } from "../types";
 import { getPrivateKey, isValidAddress, isValidPrivateKey, prepareKeyForStorage } from "./crypto";
+import type { FundingIntentRecord } from "./funding-intents";
 import { loggers } from "./logger";
 
 const log = loggers.db;
+
+interface FundingIntentRow {
+  id: string;
+  gardenId: string;
+  gardenName: string;
+  gardenLocation: string | null;
+  destinationType: FundingIntentRecord["destinationType"];
+  destinationAddress: FundingIntentRecord["destinationAddress"];
+  fundingIntent: FundingIntentRecord["fundingIntent"];
+  paymentMethod: FundingIntentRecord["paymentMethod"];
+  availabilityKey: string;
+  clientRequestId: string;
+  idempotencyFingerprint: string;
+  amountUsd: string;
+  chainId: number;
+  token: FundingIntentRecord["token"];
+  provider: "thirdweb";
+  providerSessionId: string | null;
+  providerPaymentId: string | null;
+  status: FundingIntentRecord["status"];
+  payerEmailHash: string | null;
+  receiptTokenHash: string;
+  quoteExpiresAt: string;
+  checkoutExpiresAt: string | null;
+  receiverAddress: FundingIntentRecord["receiverAddress"] | null;
+  quotedAssetAmount: string | null;
+  minAssetAmount: string | null;
+  fundedAssetAmount: string | null;
+  fundingTxHash: string | null;
+  failureCode: FundingIntentRecord["failureCode"] | null;
+  checkoutSession: string | null;
+  transactionAttempts: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+type SqlValue = string | number | null;
+
+function serializeFundingIntent(record: FundingIntentRecord): SqlValue[] {
+  return [
+    record.id,
+    record.gardenId,
+    record.gardenName,
+    record.gardenLocation ?? null,
+    record.destinationType,
+    record.destinationAddress,
+    record.fundingIntent,
+    record.paymentMethod,
+    record.availabilityKey,
+    record.clientRequestId,
+    record.idempotencyFingerprint,
+    record.amountUsd,
+    record.chainId,
+    record.token,
+    record.provider,
+    record.providerSessionId ?? null,
+    record.providerPaymentId ?? null,
+    record.status,
+    record.payerEmailHash ?? null,
+    record.receiptTokenHash,
+    record.quoteExpiresAt,
+    record.checkoutExpiresAt ?? null,
+    record.receiverAddress ?? null,
+    record.quotedAssetAmount ?? null,
+    record.minAssetAmount ?? null,
+    record.fundedAssetAmount ?? null,
+    record.fundingTxHash ?? null,
+    record.failureCode ?? null,
+    record.checkoutSession ? JSON.stringify(record.checkoutSession) : null,
+    JSON.stringify(record.transactionAttempts),
+    record.createdAt,
+    record.updatedAt,
+  ];
+}
+
+function serializeFundingIntentForUpdate(record: FundingIntentRecord): SqlValue[] {
+  const [, ...withoutId] = serializeFundingIntent(record);
+  return [...withoutId, record.id];
+}
+
+function deserializeFundingIntent(row: FundingIntentRow): FundingIntentRecord {
+  return {
+    id: row.id,
+    gardenId: row.gardenId,
+    gardenName: row.gardenName,
+    gardenLocation: row.gardenLocation ?? undefined,
+    destinationType: row.destinationType,
+    destinationAddress: row.destinationAddress,
+    fundingIntent: row.fundingIntent,
+    paymentMethod: row.paymentMethod,
+    availabilityKey: row.availabilityKey,
+    clientRequestId: row.clientRequestId,
+    idempotencyFingerprint: row.idempotencyFingerprint,
+    amountUsd: row.amountUsd,
+    chainId: row.chainId,
+    token: row.token,
+    provider: row.provider,
+    providerSessionId: row.providerSessionId ?? undefined,
+    providerPaymentId: row.providerPaymentId ?? undefined,
+    status: row.status,
+    payerEmailHash: row.payerEmailHash ?? undefined,
+    receiptTokenHash: row.receiptTokenHash,
+    quoteExpiresAt: row.quoteExpiresAt,
+    checkoutExpiresAt: row.checkoutExpiresAt ?? undefined,
+    receiverAddress: row.receiverAddress ?? undefined,
+    quotedAssetAmount: row.quotedAssetAmount ?? undefined,
+    minAssetAmount: row.minAssetAmount ?? undefined,
+    fundedAssetAmount: row.fundedAssetAmount ?? undefined,
+    fundingTxHash: row.fundingTxHash ?? undefined,
+    failureCode: row.failureCode ?? undefined,
+    checkoutSession: row.checkoutSession ? JSON.parse(row.checkoutSession) : undefined,
+    transactionAttempts: JSON.parse(row.transactionAttempts),
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+}
 
 // ============================================================================
 // DATABASE CLASS
@@ -108,6 +225,96 @@ class DB {
     this.db.run(
       `CREATE INDEX IF NOT EXISTS idx_feedback_platform ON feedback(platform, platformId)`
     );
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS funding_intents (
+        id TEXT PRIMARY KEY,
+        gardenId TEXT NOT NULL,
+        gardenName TEXT NOT NULL,
+        gardenLocation TEXT,
+        destinationType TEXT NOT NULL,
+        destinationAddress TEXT NOT NULL,
+        fundingIntent TEXT NOT NULL,
+        paymentMethod TEXT NOT NULL,
+        availabilityKey TEXT NOT NULL,
+        clientRequestId TEXT NOT NULL UNIQUE,
+        idempotencyFingerprint TEXT NOT NULL,
+        amountUsd TEXT NOT NULL,
+        chainId INTEGER NOT NULL,
+        token TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        providerSessionId TEXT,
+        providerPaymentId TEXT,
+        status TEXT NOT NULL,
+        payerEmailHash TEXT,
+        receiptTokenHash TEXT NOT NULL,
+        quoteExpiresAt TEXT NOT NULL,
+        checkoutExpiresAt TEXT,
+        receiverAddress TEXT,
+        quotedAssetAmount TEXT,
+        minAssetAmount TEXT,
+        fundedAssetAmount TEXT,
+        fundingTxHash TEXT,
+        failureCode TEXT,
+        checkoutSession TEXT,
+        transactionAttempts TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS funding_intent_events (
+        id TEXT PRIMARY KEY,
+        intentId TEXT NOT NULL,
+        status TEXT NOT NULL,
+        note TEXT NOT NULL,
+        providerEventId TEXT,
+        createdAt TEXT NOT NULL,
+        FOREIGN KEY(intentId) REFERENCES funding_intents(id)
+      )
+    `);
+
+    this.ensureColumn("funding_intents", "providerSessionId", "TEXT");
+    this.ensureColumn("funding_intents", "providerPaymentId", "TEXT");
+    this.ensureColumn("funding_intent_events", "providerEventId", "TEXT");
+
+    this.db.run(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_funding_intents_funding_tx_hash
+       ON funding_intents(fundingTxHash) WHERE fundingTxHash IS NOT NULL`
+    );
+    this.db.run(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_funding_intents_provider_session
+       ON funding_intents(providerSessionId) WHERE providerSessionId IS NOT NULL`
+    );
+    this.db.run(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_funding_intents_provider_payment
+       ON funding_intents(providerPaymentId) WHERE providerPaymentId IS NOT NULL`
+    );
+    this.db.run(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_funding_intent_events_provider_event
+       ON funding_intent_events(providerEventId) WHERE providerEventId IS NOT NULL`
+    );
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_funding_intents_status
+       ON funding_intents(status, updatedAt)`
+    );
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
+       ON funding_intent_events(intentId, createdAt)`
+    );
+    this.db.run("PRAGMA user_version = 2");
+  }
+
+  private ensureColumn(
+    table: "funding_intents" | "funding_intent_events",
+    column: string,
+    definition: string
+  ): void {
+    const columns = this.db.query(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    if (!columns.some((info) => info.name === column)) {
+      this.db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
   }
 
   // ==========================================================================
@@ -484,6 +691,80 @@ class DB {
   }
 
   // ==========================================================================
+  // FUNDING INTENTS
+  // ==========================================================================
+
+  async createFundingIntent(record: FundingIntentRecord): Promise<FundingIntentRecord> {
+    this.db
+      .query(
+        `INSERT INTO funding_intents (
+          id, gardenId, gardenName, gardenLocation, destinationType, destinationAddress,
+          fundingIntent, paymentMethod, availabilityKey, clientRequestId, idempotencyFingerprint,
+          amountUsd, chainId, token, provider, providerSessionId, providerPaymentId, status,
+          payerEmailHash, receiptTokenHash,
+          quoteExpiresAt, checkoutExpiresAt, receiverAddress, quotedAssetAmount, minAssetAmount,
+          fundedAssetAmount, fundingTxHash, failureCode, checkoutSession, transactionAttempts,
+          createdAt, updatedAt
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(...serializeFundingIntent(record));
+    return record;
+  }
+
+  async getFundingIntent(id: string): Promise<FundingIntentRecord | undefined> {
+    const row = this.db.query("SELECT * FROM funding_intents WHERE id = ?").get(id);
+    return row ? deserializeFundingIntent(row as FundingIntentRow) : undefined;
+  }
+
+  async getFundingIntentByClientRequestId(
+    clientRequestId: string
+  ): Promise<FundingIntentRecord | undefined> {
+    const row = this.db
+      .query("SELECT * FROM funding_intents WHERE clientRequestId = ?")
+      .get(clientRequestId);
+    return row ? deserializeFundingIntent(row as FundingIntentRow) : undefined;
+  }
+
+  async updateFundingIntent(record: FundingIntentRecord): Promise<FundingIntentRecord> {
+    this.db
+      .query(
+        `UPDATE funding_intents SET
+          gardenId = ?, gardenName = ?, gardenLocation = ?, destinationType = ?,
+          destinationAddress = ?, fundingIntent = ?, paymentMethod = ?, availabilityKey = ?,
+          clientRequestId = ?, idempotencyFingerprint = ?, amountUsd = ?, chainId = ?,
+          token = ?, provider = ?, providerSessionId = ?, providerPaymentId = ?, status = ?,
+          payerEmailHash = ?, receiptTokenHash = ?, quoteExpiresAt = ?, checkoutExpiresAt = ?,
+          receiverAddress = ?, quotedAssetAmount = ?, minAssetAmount = ?, fundedAssetAmount = ?,
+          fundingTxHash = ?, failureCode = ?, checkoutSession = ?, transactionAttempts = ?,
+          createdAt = ?, updatedAt = ?
+         WHERE id = ?`
+      )
+      .run(...serializeFundingIntentForUpdate(record));
+    return record;
+  }
+
+  async appendFundingIntentEvent(
+    intentId: string,
+    status: FundingIntentRecord["status"],
+    note: string,
+    providerEventId?: string
+  ): Promise<void> {
+    this.db
+      .query(
+        `INSERT INTO funding_intent_events (id, intentId, status, note, providerEventId, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        `${intentId}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
+        intentId,
+        status,
+        note,
+        providerEventId ?? null,
+        new Date().toISOString()
+      );
+  }
+
+  // ==========================================================================
   // LIFECYCLE
   // ==========================================================================
 
@@ -544,6 +825,20 @@ export const getNewFeedback = (since?: number, type?: FeedbackType) =>
   getDB().getNewFeedback(since, type);
 export const updateFeedbackStatus = (id: string, status: FeedbackStatus) =>
   getDB().updateFeedbackStatus(id, status);
+
+export const createFundingIntent = (record: FundingIntentRecord) =>
+  getDB().createFundingIntent(record);
+export const getFundingIntent = (id: string) => getDB().getFundingIntent(id);
+export const getFundingIntentByClientRequestId = (clientRequestId: string) =>
+  getDB().getFundingIntentByClientRequestId(clientRequestId);
+export const updateFundingIntent = (record: FundingIntentRecord) =>
+  getDB().updateFundingIntent(record);
+export const appendFundingIntentEvent = (
+  intentId: string,
+  status: FundingIntentRecord["status"],
+  note: string,
+  providerEventId?: string
+) => getDB().appendFundingIntentEvent(intentId, status, note, providerEventId);
 
 export const closeDB = async () => {
   if (!_db) return;

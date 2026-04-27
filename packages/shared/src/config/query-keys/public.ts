@@ -51,4 +51,8 @@ export const publicKeys = {
 
   /** Network-wide aggregate stats. */
   stats: (chainId: number) => ["greengoods", "public", "stats", chainId] as const,
+
+  /** Visitor-safe public impact evidence slice. */
+  impactEvidence: (chainId: number, page: number, pageSize: number) =>
+    ["greengoods", "public", "impactEvidence", chainId, page, pageSize] as const,
 } as const;

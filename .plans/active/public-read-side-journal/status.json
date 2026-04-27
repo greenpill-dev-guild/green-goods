@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-25",
-    "updated_at": "2026-04-26T22:05:00.000-07:00"
+    "updated_at": "2026-04-27T09:10:35.074Z"
   },
   "links": {
     "brief": "brief.md",
@@ -65,7 +65,7 @@
     "No public-side conviction voting, public withdrawals, or new route families beyond browser /."
   ],
   "contract_stability_checklist": {
-    "status": "blocked",
+    "status": "complete",
     "allowed_item_statuses": ["planned", "in_progress", "complete", "blocked"],
     "owner_lane": "state_api",
     "ui_unblocks_when": "All required items are complete; UI does not wait for every card payment method to be live.",
@@ -74,49 +74,49 @@
       {
         "id": "route_paths",
         "required": true,
-        "status": "planned",
+        "status": "complete",
         "description": "Concrete /public/* and /webhooks/thirdweb route paths are stable."
       },
       {
         "id": "public_types_and_fixtures",
         "required": true,
-        "status": "planned",
+        "status": "complete",
         "description": "Framework-free public route/type contracts are exported from server-safe @green-goods/shared/public-contracts through packages/shared/package.json exports with client TypeScript/Vite resolution where needed, including the canonical availabilityKey builder, FundingTransactionAttempt types, explicit amount validation error codes, and allowlisted checkout payload types; public funding-intent create responses expose only allowlisted client-safe checkout data, and seeded handoff fixtures exist under artifacts/fixtures for funding availability, funding intents, contact subscription, /fund?garden, and /impact."
       },
       {
         "id": "fund_garden_resolution",
         "required": true,
-        "status": "planned",
+        "status": "complete",
         "description": "/fund?garden resolves exact id/address first, accepts only unique publicGardenHelpers.deriveSlug matches, and stale/missing/zero-match/ambiguous values fall back with a localized non-blocking message."
       },
       {
         "id": "availability_reason_semantics",
         "required": true,
-        "status": "planned",
+        "status": "complete",
         "description": "PublicFundingAvailability reasonCode values define allowed states, required params, UI localization expectations, and exclude selected-amount min/max failures; amount_below_min and amount_above_max are PublicApiErrorCode values only."
       },
       {
         "id": "contact_endpoint_behavior",
         "required": true,
-        "status": "planned",
+        "status": "complete",
         "description": "Subscribe endpoint validates email/consent through POST /public/subscribe and returns honest subscribed, already_subscribed, and failure states."
       },
       {
         "id": "public_receipt_shape",
         "required": true,
-        "status": "planned",
+        "status": "complete",
         "description": "Funding receipt reads use fragment-to-X-GG-Receipt-Token transport, require root/equivalent pre-pageview fragment scrub plus usePageView hash redaction before analytics, return only public-safe redacted receipt fields, and set no-store/no-cache response headers."
       },
       {
         "id": "provider_proof_registry",
         "required": true,
-        "status": "planned",
+        "status": "complete",
         "description": "Code-owned provider proof registry exists with exact tuple keys, hidden-by-default absence behavior, proof references for live card rails, canonical availabilityKey semantics for funding-intent drift detection, and compatibility with transaction-attempt funding proof."
       },
       {
         "id": "impact_hook_shape",
         "required": true,
-        "status": "planned",
+        "status": "complete",
         "description": "/impact hook shape, deterministic Garden source ordering, local slicing limits, explicit per-Garden overfetch behavior, partialData/sourceLimitReached flags, and EAS failure states are stable."
       }
     ]
@@ -124,8 +124,8 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "blocked",
-      "manual_blocked": true,
+      "status": "ready",
+      "manual_blocked": false,
       "ready_when_dependencies_met": true,
       "branch": "claude/ui/public-read-side-journal",
       "depends_on": [],
@@ -135,12 +135,13 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "ready",
+      "status": "completed",
       "branch": "codex/state-api/public-read-side-journal",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Migrate Agent HTTP API to Hono while preserving existing health/ready/webhook/internal API/startup/shutdown behavior, align public hook naming and data contracts, add canonical-id curation/contact contract using existing VITE_API_BASE_URL, lock /public/* and /webhooks/thirdweb route paths, define full public TypeScript-style route contracts in server-safe @green-goods/shared/public-contracts with packages/shared/package.json exports, client TypeScript/Vite resolution, canonical availabilityKey builder, FundingTransactionAttempt types, allowlisted checkout payload types, explicit amount validation error codes, and seeded fixtures under artifacts/fixtures, define fragment-to-header receipt-token protected public funding reads with root pre-pageview scrub, usePageView hash redaction, and no-store/no-cache response headers, return only allowlisted client-safe checkout data from public funding-intent creation, keep FundingIntent creation card-only and subscription-free, require destinationAddress, canonical availabilityKey, and clientRequestId with Agent recomputation/idempotency against live reads/proof registry using the pinned normalized fingerprint fields, define shared-read PublicFundingAvailability with explicit reasonCode state/params semantics, amount validation split, and code-owned provider proof registry, strict FundingIntent SQLite storage/reconciliation with transactionAttempts, canonical fundingTxHash, Agent viem receipt/log polling, server RPC resolver, minAssetAmount matching, abandoned started/pending_provider expiry via read-time reconciliation plus scheduled sweep, and expired-to-funded_late late confirmation handling, thirdweb direct-card approve/deposit and embedded-wallet Endow contract with destination-specific reconciliation, split Hono Agent API/Luma/env protections with route-specific rate-limit keys, trusted-proxy rules, two-stage webhook throttling, and concrete moderate thresholds, public assessment/evidence finite shared-EAS deterministic local slicing limits with explicit overfetch behavior, and support /fund?garden=... exact-id/publicGardenHelpers.deriveSlug unique-slug fallback without changing runtime UI first.",
-      "skill_tags": ["client", "shared", "agent"]
+      "skill_tags": ["client", "shared", "agent"],
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -301,6 +302,38 @@
       "status": "plan_refined",
       "branch": null,
       "note": "Fixed final contract-tightening findings: replaced open checkout widget config with allowlisted JSON-safe checkout payload, pinned FundingIntent idempotency fingerprint fields and normalization, and aligned amount_below_min/amount_above_max with PublicApiErrorCode. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-27T08:23:00.350Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "codex/state-api/public-read-side-journal",
+      "note": "Dispatching codex for Phase 1 state_api implementation. All work commits to develop per orchestrator instruction (no feature branch, no worktree)."
+    },
+    {
+      "timestamp": "2026-04-27T10:05:00.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "contract_stability_checklist_complete",
+      "branch": "develop",
+      "note": "Completed required state/API contract stability items: Hono route paths, server-safe public-contracts export and fixtures, Luma subscribe behavior, /fund?garden resolution helper, availability reason semantics, provider proof registry, public receipt shape, trusted public route protections, SQLite-backed FundingIntent ledger, thirdweb webhook normalization, receipt analytics guards, and /impact evidence hook shape."
+    },
+    {
+      "timestamp": "2026-04-27T08:57:26.679Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "ready",
+      "branch": "claude/ui/public-read-side-journal",
+      "note": "contract stability checklist complete"
+    },
+    {
+      "timestamp": "2026-04-27T09:10:35.074Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/public-read-side-journal",
+      "note": "state_api implementation and validation complete"
     }
   ]
 }

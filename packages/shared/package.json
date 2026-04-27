@@ -1,6 +1,6 @@
 {
   "name": "@green-goods/shared",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -23,6 +23,7 @@
     "./modules": "./src/modules/index.ts",
     "./service-worker": "./src/modules/app/service-worker-registration.ts",
     "./providers": "./src/providers/index.ts",
+    "./public-contracts": "./src/public-contracts/index.ts",
     "./stores": "./src/stores/index.ts",
     "./styles": "./src/styles/theme.css",
     "./styles/theme.css": "./src/styles/theme.css",

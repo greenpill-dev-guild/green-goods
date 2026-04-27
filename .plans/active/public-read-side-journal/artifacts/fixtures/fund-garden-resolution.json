@@ -1,0 +1,21 @@
+{
+  "gardens": [
+    {
+      "id": "garden-alpha",
+      "address": "0x1111111111111111111111111111111111111111",
+      "name": "Solar Community Garden"
+    },
+    {
+      "id": "garden-beta",
+      "address": "0x2222222222222222222222222222222222222222",
+      "name": "Urban Composting Hub"
+    }
+  ],
+  "queries": {
+    "exactId": "garden-alpha",
+    "exactAddress": "0x2222222222222222222222222222222222222222",
+    "uniqueSlug": "solar-community-garden",
+    "missing": "old-garden-link",
+    "ambiguousSlug": "same-name"
+  }
+}

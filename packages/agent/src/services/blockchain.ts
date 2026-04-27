@@ -69,6 +69,13 @@ interface CacheEntry<T> {
   timestamp: number;
 }
 
+export interface TransactionConfirmation {
+  status: "confirmed" | "failed" | "pending";
+  txHash: Hex;
+  blockNumber?: string;
+  confirmedAt?: string;
+}
+
 // ============================================================================
 // BLOCKCHAIN CLASS
 // ============================================================================
@@ -260,6 +267,25 @@ class Blockchain {
   // UTILITIES
   // ==========================================================================
 
+  async getTransactionConfirmation(txHash: Hex): Promise<TransactionConfirmation> {
+    try {
+      const receipt = await this.publicClient.getTransactionReceipt({ hash: txHash });
+      return {
+        status: receipt.status === "success" ? "confirmed" : "failed",
+        txHash,
+        blockNumber: receipt.blockNumber?.toString(),
+        confirmedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/not found|not be found|could not find/i.test(message)) {
+        return { status: "pending", txHash };
+      }
+      log.warn({ txHash, error: message }, "Funding transaction receipt lookup failed");
+      return { status: "pending", txHash };
+    }
+  }
+
   getChainId(): number {
     return this.chainId;
   }
@@ -320,5 +346,7 @@ export const isGardener = (gardenAddress: string, userAddress: string) =>
   getBlockchain().isGardener(gardenAddress, userAddress);
 export const getGardenInfo = (gardenAddress: string) =>
   getBlockchain().getGardenInfo(gardenAddress);
+export const getTransactionConfirmation = (txHash: Hex) =>
+  getBlockchain().getTransactionConfirmation(txHash);
 export const getChainId = () => getBlockchain().getChainId();
 export const clearBlockchainCache = () => _blockchain?.clearCache();

@@ -34,6 +34,7 @@
       "@green-goods/shared/hooks/*": ["../shared/src/hooks/*/index.ts"],
       "@green-goods/shared/providers": ["../shared/src/providers/index.ts"],
       "@green-goods/shared/providers/*": ["../shared/src/providers/*.tsx"],
+      "@green-goods/shared/public-contracts": ["../shared/src/public-contracts/index.ts"],
       "@green-goods/shared/modules": ["../shared/src/modules/index.ts"],
       "@green-goods/shared/modules/*": ["../shared/src/modules/*/index.ts"],
       "@green-goods/shared/utils": ["../shared/src/utils/index.ts"],
