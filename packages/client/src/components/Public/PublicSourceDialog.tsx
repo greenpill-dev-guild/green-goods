@@ -75,8 +75,8 @@ export function PublicSourceDialog({
             ) : null}
           </div>
           <button
+            ref={(node) => node?.focus()}
             type="button"
-            autoFocus
             aria-label={formatMessage({ id: "public.source.close", defaultMessage: "Close" })}
             onClick={onClose}
             className="rounded-full p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50"

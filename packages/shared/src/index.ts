@@ -531,7 +531,23 @@ export {
   useFocusTrap,
   useReviewerGardenIds,
   useReviewerWorks,
+  publicGardenHelpers,
+  usePublicGardens,
+  usePublicGardenDetail,
+  usePublicStats,
+  usePublicFieldNotes,
+  usePublicImpactEvidence,
 } from "./hooks/index";
+export type {
+  PublicGardenSummary,
+  PublicGardenDetail,
+  PublicStats,
+  PublicFieldNote,
+} from "./hooks/index";
+export type {
+  PublicImpactEvidenceRecord,
+  PublicImpactSlice,
+} from "./public-contracts";
 // ============================================================================
 // I18N
 // ============================================================================

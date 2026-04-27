@@ -123,7 +123,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
   }
 
   const { receipt } = state;
-  const showAppCta = receipt.appManagementCta != null;
+  const showAppCta = receipt.appManagementCta !== undefined && receipt.appManagementCta !== null;
 
   return (
     <section

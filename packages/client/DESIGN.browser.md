@@ -15,71 +15,135 @@ dialect: public-browser
 
 | Mode | Detection | Audiences | Metaphor | Paradigm | Navigation |
 |------|-----------|-----------|----------|----------|------------|
-| **Public browser** | Standard browser visit | Funders, community members | Walking through the garden | Ambient Display / Data Landscape | `SiteHeader`: hamburger on mobile, horizontal links on desktop |
+| **Public browser** | Standard browser visit | Funders, community members, partners | Coffee-table garden journal crossed with a living public record | Editorial gateway → ambient data landscape | `SiteHeader` (sticky, glassy, no bottom AppBar) |
 
 **Hard rule:** Browser = website. Use `SiteHeader` at the top; never show installed-PWA bottom `AppBar` chrome.
 
-**Routing:** `PlatformRouter` checks `isInstalled`. Browser routes to `/gardens`.
+## Routing
 
----
+- **Browser `/`** renders the editorial homepage under `PublicShell` (the new `Home` view).
+  - Inside `Home`, `useApp().isInstalled` decides: installed PWA users redirect to `/home` (preserving `?redirectTo=`), browser users see the editorial gateway.
+- **Installed PWA `/`** continues to route to `/home` via the same `Home` check.
+- **`/landing`** is a legacy compatibility redirect that loads back to `/`.
+- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/actions`. No new public route families.
+- Garden identifiers in URLs accept both raw `id`/`address` and the deterministic slug from `publicGardenHelpers.deriveSlug`. Stale, missing, zero-match, or ambiguous slugs render the normal page with a localized non-blocking message — never a hard 404 on `/fund?garden=…`.
 
-## The Garden Gallery
+## SiteHeader
 
-**Physical metaphor:** A coffee-table book about community gardens crossed with a farmers market directory.
+- Sticky, with backdrop blur. Logo links home.
+- **Nav order:** Gardens, Impact, Fund, Actions.
+- **Primary CTA:** `Install App` (or `Open App` when `useInstallGuidance` reports already-installed). The CTA carries `data-install-action` from the guidance hook so the install logic stays one source of truth.
+- **No wallet connect in the header.** Wallet connect appears only at the wallet-required step inside funding flows.
+- Mobile drawer mirrors the desktop nav and footers with the same `Install App` / `Open App` CTA.
 
-**Layout split:**
-- **Garden & impact pages** -> Editorial lookbook. Full-width imagery, large typographic headings over images. The visitor feels in the place where the garden grows.
-- **Funding & browsing pages** -> Marketplace directory. Structured cards, auto-fill grid, filter toolbar. Each garden is a market stall — colorful, distinct, alive.
+## Homepage (`/`)
 
-**Typography:**
-- Headlines may use the serif display font (Fraunces, Lora, or Newsreader) — the one surface with editorial weight
-- Body stays Inter — the serif is the chapter heading, not the paragraph
-- Large typographic headings over imagery, luxury-travel-magazine scale
+Composed of six sections in this exact order:
 
-**Navigation (`SiteHeader`):**
-- Desktop (`>=768px`): horizontal links — Gardens, Actions, Impact, Fund — plus Connect Wallet button
-- Mobile (`<768px`): hamburger icon -> left-slide drawer (`w-72`) with stacked nav links
-- Sticky, with backdrop blur
+1. **`PublicHero`** — full-bleed curated Garden image, anchored bottom-left, dark gradient overlay using `static-black/*` semantic tokens. H1 `Green Goods`, tagline `From good intentions to green outcomes`, one-sentence lede about communities documenting, verifying, and funding regenerative work. Primary CTA `Explore Gardens`, secondary CTA `Install App`. **Never** stats, route grids, wallet connect, or waitlist forms in the hero.
+2. **`PublicFeaturedGardens`** — lead-plus-two layout. Curation comes from `packages/client/src/content/publicCuration.ts` keyed by Garden id/address (canonical) — slugs are display aliases. Falls back to recent active Gardens when curation is empty or unmatched.
+3. **`PublicProofBand`** — confirmed counts only (Gardens, Contributors, Work, Assessments). Links contextually to `/impact`. Unavailable carbon, water, species, and area metrics stay hidden.
+4. **`PublicRecordLoop`** — visitor-facing four-step narrative: `Assess the place` → `Do the work` → `Verify impact` → `Fund what grows`. Links each step contextually. This is narrative copy; it does **not** imply formal EAS Assessment happens before Work.
+5. **`PublicInstallCta`** — install/open module section. Reuses the same install action as the header.
+6. **`PublicGetInTouch`** — closing module: email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent) plus a Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma outages render a localized failure with the Schedule-a-Call fallback.
 
-**Imagery direction:**
-- Real community gardens, real people, real soil — not stock photography
-- Cinematic photography of the places where gardens grow: neighborhood, context, scale
-- Avoid cliché "hands holding seedlings" as the primary visual language
-- Garden cards should feel like market stalls — each one distinct and alive
+No final sitemap-style "choose your path" route grid.
 
-**Content hierarchy:**
-1. Hero statement — what Green Goods is, one emotional sentence
-2. Featured gardens — editorial spread, 2-3 spotlights
-3. All gardens — marketplace browse with auto-fill grid
-4. Impact metrics — community-wide numbers, understated but present
-5. Fund — clear CTAs, garden-specific funding flows
+## `/gardens`
 
-**Progressive disclosure applied:**
-- Glance: garden card shows name, location, season status
-- Scan: garden card shows member count, recent action count, funding status
-- Engage: garden detail page with full story, work timeline, impact data
-- Deep Dive: on-chain verification, attestation details, audit trail
+- Editorial header (kicker `Living Archive`, serif h1, lede).
+- Featured row reuses `PublicGardenCard` with a `lead` variant on the first card.
+- Browse section: search input over a structured Garden grid. Cards link to `/gardens/:slug` and render confirmed-only metadata (location, contributors, Work count). No fake metrics.
 
----
+## `/gardens/:id`
 
-## Color Adaptation
+- Banner with overlap card carrying location, name, lede.
+- Content order: **Place → Work → Evidence → Fund**.
+- Desktop side rail: counts, `Support this Garden` (links to `/fund?garden=<slug>`), and Install/Open App.
+- No admin-only controls, role tools, or public-side conviction allocation.
 
-The public browser inherits the Warm Earth core and can use green a little more generously than the PWA because editorial pages have more breathing room.
+## `/impact`
 
-Text-bearing filled CTAs use contrast-safe action green. Bright tertiary garden green remains for accents, inline emphasis, active nav states, soft backgrounds, garden identity, and value-flow indicators.
+- Aggregate counts (`Total Assessments` / `Total Gardens` / `Total Contributors`).
+- Evidence cards from `usePublicImpactEvidence`. Cards open `PublicSourceDialog` with a readable Assessment summary and an EAS reference link when available.
+- Honest states: loading, empty, EAS-unavailable, `partialData`, `sourceLimitReached` (the v1 caps are 50 Gardens / 100 records, sliced locally page-by-page).
+- No Hypercert gallery placeholder, no Karma GAP claims.
 
----
+## `/fund`
+
+- Editorial header with support-only language and a tax/charity disclaimer (Donate is **not** tax-deductible, charitable, or nonprofit-backed unless separately configured).
+- `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the Install/Open App CTA.
+- `?garden=<id-or-slug>` resolves exact id/address first, then unique-slug match via `publicGardenHelpers.deriveSlug`. Stale / missing / zero-match / ambiguous queries render the regular Fund page with a localized non-blocking message and the matched Garden (if any) scrolls into view with a soft ring highlight.
+- Garden grid uses `PublicGardenCard` with a `Support this Garden` CTA → opens `PublicFundingMethodSelector`.
+
+### Funding UX
+
+Two-step dialog driven by `PublicFundingMethodSelector`:
+
+1. **Intent** — `Donate` (Cookie Jar) or `Endow` (Vault, "designed to preserve your principal while yield helps the Garden", with explicit smart-contract / token / yield / provider / wallet-recovery risk copy).
+2. **Method** — `Wallet` (Reown/wagmi, always available, opens AppKit at the wallet-required step) or `Card` (thirdweb, **hidden** unless `publicProviderProofRegistry.resolve` returns `state: "live"` for the exact tuple). Curated `comingSoon` shows a disabled coming-soon block; otherwise the card option is omitted.
+
+Wallet selection routes to the existing `CookieJarDepositDialog` (Donate) or `VaultDepositDialog` (Endow). Card flow lights up only when the proof registry has a `live` entry.
+
+`/fund` stays support-only: no public withdrawals, no admin Vault management, no auto-buy claims, no public treasury custody claims.
+
+## `/actions`
+
+- Domain filter chips (All / Solar / Agro / Education / Waste).
+- `PublicActionCard` grid; cards open `PublicSourceDialog` with media, description, and an `Install App` CTA in the dialog footer.
+- No public create or edit controls.
+
+## Typography
+
+- **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and Garden story headings.
+- **Inter** carries body, nav, cards, buttons, and dialogs across both browser and installed PWA modes.
+- Editorial headlines scale to magazine sizes (text-3xl → text-5xl); body stays restrained.
+
+## Color & Tokens
+
+- **Semantic Warm Earth tokens only.** Never raw color, radius, motion, or duration values. Image overlays use `text-static-white` / `bg-static-black` semantic tokens (audited via `check:design-tokens`).
+- 4-role volume hierarchy: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%.
+- Accent green (`primary-action`) is reserved for interactive support / install CTAs. Editorial accents (kicker, link green) come from semantic primary-base.
+
+## Motion & Dialogs
+
+- **Route transitions:** soft fades (no morphs).
+- **Section reveals:** light stagger.
+- **Source dialogs** (`PublicSourceDialog`, `PublicFundingMethodSelector`, `PublicFundingReceipt`):
+  - Desktop: centered, rounded sheet on `bg-static-black/40` overlay.
+  - Mobile: bottom sheet with rounded top corners.
+  - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
+  - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.
+- Source-morph transitions require unique transition names per item; until that lands, public surfaces fall back to simple fades.
+- All motion respects reduced-motion preferences.
+
+## Imagery
+
+- Real community Garden imagery wherever available; deterministic local fallback set.
+- Cinematic photography of the places where Gardens grow — neighborhood, context, scale.
+- Avoid generic "hands holding seedlings" and decorative gradients.
+- Garden cards should feel distinct and alive — not a SaaS card grid.
+
+## Receipt-Token Safety
+
+- Receipt URLs ship as `/fund?intent=<id>#receiptToken=<token>`.
+- Root pre-pageview bootstrap moves the token from the URL fragment into short-lived session state and calls `history.replaceState` before initial analytics fires.
+- `usePageView` redacts sensitive hash keys (including `receiptToken`) so `page_view.hash` never carries the token even if a downstream view re-introduces a hash.
+- Public receipt reads call `GET /public/funding-intents/:id` with `X-GG-Receipt-Token` only — never query params or JSON body. Receipt UI never shows payer email, provider ids, raw failure detail, webhook payloads, or the raw token itself.
 
 ## Do's and Don'ts
 
 **Do:**
-- Test browser layouts at 1440px, 1024px, 768px, and 375px
-- Let real garden imagery carry the first impression
-- Give garden cards enough visual variety that the marketplace feels alive
-- Use `content-visibility: auto` for long garden/work lists
+- Test browser layouts at 1440px, 1024px, 768px, and 375px.
+- Let real Garden imagery carry the first impression.
+- Use the same `Install App` CTA across header, drawer, sections, and receipt completion.
+- Keep funding copy honest — Donate is direct support; Endow uses "designed to preserve" language with explicit risk.
+- Hide unproven card methods by default. `comingSoon` is curated only.
 
 **Don't:**
-- Show installed-PWA bottom `AppBar` in browser mode
-- Make the public site feel like an admin dashboard or KPI grid
-- Use utility copy where a visitor needs a warmer narrative bridge
-- Make the funding flow feel transactional — it should feel like watering a garden
+- Show the installed-PWA bottom `AppBar` in browser mode.
+- Show `Connect Wallet` as a public header CTA.
+- Imply Donate is tax-deductible, charitable, nonprofit-backed, or a legal receipt.
+- Promise card payments before the provider proof registry confirms the exact tuple is `live`.
+- Make the public site feel like an admin dashboard or KPI grid.
+- Carry raw receipt tokens into analytics, query params, JSON bodies, or server-rendered URLs.
