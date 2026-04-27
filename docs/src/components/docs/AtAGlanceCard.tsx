@@ -44,7 +44,7 @@ export function AtAGlanceCard({
           <dd>{estimatedTime}</dd>
         </div>
         <div>
-          <dt>Prereqs</dt>
+          <dt>Prerequisites</dt>
           <dd>{prereqs}</dd>
         </div>
         <div>

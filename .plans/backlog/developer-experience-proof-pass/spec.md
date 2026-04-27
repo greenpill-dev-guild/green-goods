@@ -9,8 +9,8 @@ Prove the existing DevEx hardening work in an environment that is not the origin
 Source checks on 2026-04-25 confirmed the commands and docs exist:
 
 - `package.json` includes `dev:doctor`, `dev:web`, and `dev:smoke:web`.
-- `scripts/dev-doctor.js` supports profile-aware and JSON output.
-- `scripts/dev-smoke-web.js` runs the web doctor before client/admin/docs reachability checks.
+- `scripts/dev/doctor.js` supports profile-aware and JSON output.
+- `scripts/dev/smoke-web.js` runs the web doctor before client/admin/docs reachability checks.
 - `docs/docs/builders/getting-started.mdx` and `docs/docs/reference/faq.mdx` document the web path.
 
 ## Proof Environments

@@ -5,12 +5,12 @@ sidebar_position: 1
 slug: /builders/getting-started
 audience: developer
 owner: docs
-last_verified: 2026-04-23
+last_verified: 2026-04-27
 feature_status: Live
 goal: "Complete Developer Getting Started with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "20-40 minutes."
-prereqs: "Node 22+, Bun, Git; Docker and Foundry for full-stack/indexer/contracts work."
+prereqs: "Node.js 22+ and Git. Docker for full-stack/indexer work. Bun is installed by setup if missing."
 next_steps: "./architecture"
 persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
 source_of_truth:
@@ -36,18 +36,24 @@ Use this page to prepare a local Green Goods checkout, choose the right developm
 
 ## Before you start
 
-Before cloning, make sure these tools are installed:
+Before cloning, install the tools the setup script cannot reliably provide:
 
-| Tool | Min Version | Purpose | Install |
+| Tool | Minimum | Required for | Install |
 | --- | --- | --- | --- |
-| **Node.js** | 22+ | Runtime for scripts and tooling | [nodejs.org](https://nodejs.org) |
-| **Bun** | 1.x+ | Package manager and monorepo runner after setup | `curl -fsSL https://bun.sh/install \| bash` |
-| **Git** | any | Version control | [git-scm.com](https://git-scm.com) |
-| **Foundry** | any | Solidity compiler and testing (`forge`) | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
-| **Docker** | any | Runs the Envio indexer locally | [docker.com](https://www.docker.com/get-started/) |
-| **cloudflared** | any | HTTPS tunnel for mobile device testing | `brew install cloudflared` |
+| **Node.js** | 22+ | Running `npm run setup` and repo tooling | [nodejs.org](https://nodejs.org) |
+| **Git** | any | Cloning and contributing | [git-scm.com](https://git-scm.com) |
+| **Docker Desktop** | current stable | Full-stack and indexer development | [docker.com](https://www.docker.com/get-started/) |
 
-Foundry, Docker, and cloudflared are only required for their respective workflows (contracts, indexer, mobile testing). The setup script warns but does not block if they are missing.
+Node includes `npm`, which is enough to run the first setup command. `npm run setup` installs Bun automatically if it is missing, installs workspace dependencies, and creates the root `.env` from `.env.schema`.
+
+Additional tools are workflow-specific:
+
+| Tool | Required for | Install |
+| --- | --- | --- |
+| **Foundry** | Contract development and tests | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
+| **cloudflared** | HTTPS tunnel for mobile-device testing | `brew install cloudflared` |
+
+Docker, Foundry, and cloudflared warnings do not block setup unless you are working in the matching workflow.
 
 ### Operating system support
 
@@ -72,22 +78,22 @@ bun run dev:web                       # starts client, admin, and docs
 bun run dev:smoke:web                 # confirms client/admin/docs respond locally
 ```
 
-`npm run setup` is the only npm entrypoint in the normal workflow. It exists because a fresh machine may not have Bun installed yet. After setup, use `bun` for package operations and repo scripts.
+`npm run setup` is the only npm entrypoint in the normal workflow. It exists because a fresh machine may not have Bun installed yet. After setup, use `bun run ...` for package operations and repo scripts.
 
 ### What `npm run setup` does
 
 The setup script (`scripts/dev/setup.js`) runs through four steps:
 
-1. **Dependency check** -- verifies Node.js 22+, Bun 1.x, Git, Docker, and Foundry are available. Missing optional tools produce warnings, not errors.
+1. **Dependency check** -- verifies Node.js 22+ and Git, installs Bun if needed, and warns about missing workflow-specific tools.
 2. **Install packages** -- runs `bun install` across all workspaces if `node_modules` does not exist yet.
-3. **Environment file** -- generates `.env` from `.env.schema` defaults if no `.env` exists. For standard local 1Password CLI installs, prefer root-only `*_OP_REF=op://...` entries in `.env`. Reserve `OP_ENVIRONMENT` bulk loading for CI, service-account flows, or newer CLI builds that support it.
+3. **Environment file** -- generates `.env` from `.env.schema` defaults if no `.env` exists.
 4. **Next steps** -- prints the doctor, frontend stack, full stack, and test commands.
 
 ### Role profiles
 
 | Role | Required local state | First command |
 | --- | --- | --- |
-| Frontend QA | Node.js, Bun, Git, root `.env`, ports 3001/3002/3003 available | `bun run dev:doctor -- --profile web` |
+| Frontend QA | Node.js, Git, Bun from setup, root `.env`, ports 3001/3002/3003 available | `bun run dev:doctor -- --profile web` |
 | Full-stack / indexer | Frontend QA plus Docker, `packages/indexer/generated`, and generated dependencies | `bun run dev:doctor -- --profile full` |
 | Contracts | Frontend QA plus Foundry | `bun run dev:doctor -- --profile contracts` |
 | Upload-capable QA | Frontend QA plus `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
@@ -98,24 +104,23 @@ Run `bun run dev:doctor -- --profile web|full|contracts|upload` any time you nee
 
 ## Required Secrets & Variables
 
-Green Goods uses a **single root `.env` bootstrap** plus committed `.env.schema` validation — never create package-level env files. Key variables:
+Green Goods uses one root `.env` plus committed `.env.schema` validation. Do not create package-level env files.
+
+Most local web work starts with the generated defaults. Add secrets only for the workflow you are testing.
 
 | Variable | Role |
 | --- | --- |
 | `APP_ENV` | Environment selector (`development`, `test`, `staging`, `production`) |
-| `ETHERSCAN_API_KEY_OP_REF` | Example local 1Password secret reference in root `.env` (`op://vault/item/field`) for stable desktop-app auth |
-| `OP_ENVIRONMENT` | 1Password environment name/id used only for bulk injection in CI, service-account flows, or local beta-capable CLI installs |
-| `OP_SERVICE_ACCOUNT_TOKEN` | 1Password service account token (required in CI/deployed environments, optional locally if you want service-account auth) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (e.g. `11155111` for Sepolia, `42161` for Arbitrum) |
 | `VITE_PASSKEY_RP_ID` | Optional passkey relying-party override. Leave blank for localhost development fallback; set `localhost` for explicit local passkey QA. |
 | `PINATA_JWT` | Pinata JWT for the shared IPFS upload path |
 | `SEPOLIA_RPC_URL` | RPC endpoint for Sepolia fork tests |
+| `*_OP_REF` | Optional 1Password CLI reference for a local secret, such as `PINATA_JWT_OP_REF=op://vault/item/field` |
+| `OP_ENVIRONMENT` / `OP_SERVICE_ACCOUNT_TOKEN` | Optional bulk-loading path for CI, service accounts, or newer 1Password CLI environment flows |
 
 Use `.env.schema` as the full environment contract. Variables prefixed with `VITE_` are embedded into frontend bundles at build time.
 
-For normal local development, sign in to the standard `op` CLI with desktop app integration enabled, keep `OP_ENABLE_ENVIRONMENT_LOAD=false`, and add root `.env` entries like `ETHERSCAN_API_KEY_OP_REF=op://vault/item/field` for the secrets you need. `varlock run` resolves those references directly.
-
-For CI workflows or local service-account usage, set `OP_SERVICE_ACCOUNT_TOKEN`, set `OP_ENVIRONMENT`, and enable `OP_ENABLE_ENVIRONMENT_LOAD=true` when you want Varlock to bulk-load a 1Password Environment.
+For normal local development, either put non-shared local values directly in `.env` or sign in to the `op` CLI and use root-only `*_OP_REF=op://...` references. For CI workflows or service-account usage, set `OP_SERVICE_ACCOUNT_TOKEN`, set `OP_ENVIRONMENT`, and enable `OP_ENABLE_ENVIRONMENT_LOAD=true`.
 
 ## Running services
 
@@ -193,11 +198,11 @@ Then navigate to `https://localhost:3001` on Android Chrome. Since `localhost` i
 <StepFlow
   steps={[
     {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*` for conventions."},
-    {title: "Configure env bootstrap", detail: "Set `APP_ENV` in root `.env`. For local 1Password on the stable CLI, add `*_OP_REF=op://...` entries there and keep `OP_ENABLE_ENVIRONMENT_LOAD=false`. Use root `.env` only -- never add package-level env files."},
+    {title: "Configure env bootstrap", detail: "Set `APP_ENV` in root `.env`. Add only the secrets needed for your workflow. Use root `.env` only -- never add package-level env files."},
     {title: "Check role readiness", detail: "Run `bun run dev:doctor -- --profile web` before debugging setup. It does not mutate files or start services."},
     {title: "Start services", detail: "Run `bun run dev:web` for frontend QA or `bun run dev:full` for the full Docker-backed stack."},
     {title: "Smoke the web stack", detail: "Run `bun run dev:smoke:web` once client/admin/docs are starting. It verifies local HTTP/HTTPS reachability."},
-    {title: "Run the quality gate", detail: "Run `bun run test`, `bun lint`, and `bun build` before pushing changes."},
+    {title: "Run the quality gate", detail: "Run `bun run format:check`, `bun run lint`, `bun run test`, and `bun run build` before pushing changes."},
   ]}
 />
 
@@ -209,14 +214,15 @@ The standard edit-test-build-lint cycle:
 # 1. Run tests for the package you changed (always `bun run test`, never `bun test`)
 cd packages/shared && bun run test
 
-# 2. Lint the workspace
-bun lint
+# 2. Check formatting and lint the workspace
+bun run format:check
+bun run lint
 
 # 3. Build (respects dependency order: contracts -> shared -> indexer -> client/admin)
-bun build
+bun run build
 
 # 4. Format before committing
-bun format
+bun run format
 ```
 
 :::warning `bun test` vs `bun run test`

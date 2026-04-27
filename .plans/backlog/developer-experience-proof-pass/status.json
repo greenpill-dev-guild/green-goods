@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:47.686Z",
-    "updated_at": "2026-04-25T05:11:47.686Z"
+    "updated_at": "2026-04-27T08:51:43.783Z"
   },
   "links": {
     "brief": "brief.md",
@@ -35,11 +35,12 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "completed",
       "branch": "codex/state-api/developer-experience-proof-pass",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "skill_tags": ["devex", "tooling", "testing"]
+      "skill_tags": ["devex", "tooling", "testing"],
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -87,6 +88,14 @@
       "status": "rescoped",
       "branch": null,
       "note": "Created as the proof-only follow-up after deleting the old DevEx hardening plan; the first web onboarding tooling pass is already implemented."
+    },
+    {
+      "timestamp": "2026-04-27T08:51:43.787Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/developer-experience-proof-pass",
+      "note": "Local fallback proof captured; smoke path fixed; clean web proof remains blocked by root env/op and admin localhost reachability"
     }
   ]
 }

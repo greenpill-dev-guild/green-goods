@@ -5,7 +5,7 @@ slug: /builders/how-to-contribute
 sidebar_position: 2
 audience: developer
 owner: docs
-last_verified: 2026-03-07
+last_verified: 2026-04-27
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -28,7 +28,7 @@ Green Goods is open source and built by the [Greenpill Dev Guild](https://paragr
 
 ---
 
-## Starting Your 1st Issue
+## Starting Your First Issue
 
 The best way to get started is to pick an issue from the [GitHub issue tracker](https://github.com/greenpill-dev-guild/green-goods/issues):
 
@@ -36,6 +36,8 @@ The best way to get started is to pick an issue from the [GitHub issue tracker](
 2. **Comment on the issue** — Let the team know you're working on it to avoid duplicate effort
 3. **Read the relevant context files** — Each package has a `.claude/context/*.md` file explaining conventions and patterns
 4. **Set up your local environment** — Follow the [Getting Started](/builders/getting-started) guide
+
+Issues are not open-ended bounties. Paid implementation work is grant-dependent, must be explicitly scoped with maintainers, and should be tied to clear acceptance criteria before work begins.
 
 ### Understanding the codebase
 
@@ -66,6 +68,10 @@ The Greenpill Dev Guild is a collective of builders working on regenerative publ
 - **Join the community** — [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) for real-time coordination
 - **Attend meetings** — Weekly dev syncs are open to contributors
 - **Grow your role** — Consistent contributors can become core maintainers
+
+### Funding and scoped work
+
+Green Goods welcomes unpaid open-source contributions and clearly scoped funded work. Funding depends on active grants, sponsor commitments, or maintainer-approved budgets. If compensation is part of the discussion, confirm scope, budget, review expectations, and acceptance criteria before starting implementation.
 
 ---
 
@@ -105,10 +111,10 @@ chore(deps): bump viem to 2.46.1
 Run the full validation before pushing:
 
 ```bash
-bun format      # Format all files
-bun lint        # Lint workspace
-bun run test    # Run all tests (CRITICAL: not `bun test`)
-bun build       # Build everything (respects dependency order)
+bun run format:check  # Check formatting
+bun run lint          # Lint workspace
+bun run test          # Run all tests (CRITICAL: not `bun test`)
+bun run build         # Build everything (respects dependency order)
 ```
 
 :::warning `bun test` vs `bun run test`
@@ -119,7 +125,7 @@ bun build       # Build everything (respects dependency order)
 
 1. **Create a branch** from `main` with the naming convention above
 2. **Make your changes** — Keep PRs focused on a single concern
-3. **Run the quality gate** — All four commands must pass
+3. **Run the quality gate** — All four commands must pass; use `bun run format` if formatting needs to be fixed
 4. **Push and create a PR** — Include a clear description of what and why
 5. **Address review feedback** — Maintainers will review within 48 hours
 

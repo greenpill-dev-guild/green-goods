@@ -1,6 +1,6 @@
 # Green Goods
 
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/greenpill-dev-guild/green-goods/releases/tag/v0.4.0)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/greenpill-dev-guild/green-goods/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **Bringing community and environmental actions onchain to better measure, track and reward impact.**
@@ -9,10 +9,12 @@ Green Goods is an offline-first platform for documenting ecological and social w
 
 ## Quick Start
 
+Before setup, install **Node.js 22+** and **Git**. Install **Docker Desktop** if you plan to run the full stack or indexer locally. Node includes `npm`, and `npm run setup` installs Bun automatically if it is missing.
+
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-npm run setup                         # First-clone bridge: deps, Bun install, .env
+npm run setup                         # Installs Bun if needed, installs deps, creates root .env
 bun run dev:doctor -- --profile web   # Non-mutating web readiness check
 bun run dev:web                       # Starts client, admin, and docs via PM2
 bun run dev:smoke:web                 # Confirms client/admin/docs respond locally
@@ -20,11 +22,17 @@ bun run dev:smoke:web                 # Confirms client/admin/docs respond local
 
 After setup, use `bun` for repo scripts and package operations. `npm run setup` is the only documented npm entrypoint, because fresh machines may not have Bun yet.
 
-**Prereqs:** Node 22+, Bun, and Git. Docker is needed for full-stack/indexer work. Foundry is needed for contract work. macOS and Linux are supported natively; use WSL2 or a dev container on Windows.
+**Optional tools:** Foundry is needed for contract work. `cloudflared` is useful for mobile-device PWA testing. macOS and Linux are supported natively; use WSL2 or a dev container on Windows.
 
-For local development on the standard 1Password CLI, keep `OP_ENABLE_ENVIRONMENT_LOAD=false` and put root-only `op://...` references such as `ETHERSCAN_API_KEY_OP_REF=op://vault/item/field` in `.env`. CI and service-account flows can still use `OP_ENVIRONMENT` for bulk loading.
+**Core Local URLs**
 
-**Core local URLs:** Client PWA (`localhost:3001`) • Admin (`localhost:3002`) • Docs (`localhost:3003`) • Indexer (`localhost:8080`) • Storybook (`localhost:6006`)
+| Surface | URL | Started by |
+| --- | --- | --- |
+| Client PWA | <http://localhost:3001> | `bun run dev:web` or `bun run dev:full` |
+| Admin | <http://localhost:3002> | `bun run dev:web` or `bun run dev:full` |
+| Docs | <http://localhost:3003> | `bun run dev:web` or `bun run dev:full` |
+| Indexer GraphQL | <http://localhost:8080> | `bun run dev:full` |
+| Storybook | <http://localhost:6006> | `bun run dev:full` |
 
 **Dev stacks:**
 
@@ -55,4 +63,12 @@ If you are working in this repo with Codex, Claude Code, or another coding agent
 
 ## Contributing
 
-Run `bun format && bun lint && bun run test` before opening PRs.
+Read [CONTRIBUTING.md](./CONTRIBUTING.md) and the full [How to Contribute](https://docs.greengoods.app/builders/how-to-contribute) guide before opening a pull request. Run `bun run format:check && bun run lint && bun run test` before pushing.
+
+Paid implementation work is grant-dependent and must be clearly scoped with maintainers before work begins. Green Goods does not run open-ended bounties.
+
+## Community and Security
+
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [Security Policy](./SECURITY.md)
+- [MIT License](./LICENSE)

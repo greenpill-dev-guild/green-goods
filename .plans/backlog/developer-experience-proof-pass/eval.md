@@ -12,9 +12,9 @@
 
 ## Regression Checks
 
-- `node scripts/plan-hub.mjs validate`
-- `node --check scripts/dev-doctor.js`
-- `node --check scripts/dev-smoke-web.js`
+- `node scripts/harness/plan-hub.mjs validate`
+- `node --check scripts/dev/doctor.js`
+- `node --check scripts/dev/smoke-web.js`
 
 ## Exit Rule
 

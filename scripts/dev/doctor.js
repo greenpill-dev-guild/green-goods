@@ -67,7 +67,7 @@ let opReady = null;
 
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
-  stream.write(`Usage: node scripts/dev-doctor.js [--profile web|full|contracts|upload] [--json]\n`);
+  stream.write(`Usage: node scripts/dev/doctor.js [--profile web|full|contracts|upload] [--json]\n`);
   process.exit(exitCode);
 }
 

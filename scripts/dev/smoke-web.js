@@ -38,7 +38,7 @@ const services = [
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(
-    "Usage: node scripts/dev-smoke-web.js [--json] [--skip-doctor] [--timeout seconds]\n"
+    "Usage: node scripts/dev/smoke-web.js [--json] [--skip-doctor] [--timeout seconds]\n"
   );
   process.exit(exitCode);
 }
@@ -93,7 +93,7 @@ function runDoctor() {
     };
   }
 
-  const result = spawnSync(process.execPath, ["scripts/dev-doctor.js", "--profile", "web", "--json"], {
+  const result = spawnSync(process.execPath, ["scripts/dev/doctor.js", "--profile", "web", "--json"], {
     cwd: projectRoot,
     encoding: "utf8",
   });
@@ -134,17 +134,34 @@ function requestUrl(url, timeoutMs) {
   const client = parsed.protocol === "https:" ? https : http;
 
   return new Promise((resolve) => {
-    const request = client.get(
+    let settled = false;
+    let request;
+    let timer;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(result);
+      request?.destroy();
+    };
+    timer = setTimeout(() => {
+      finish({
+        ok: false,
+        url,
+        error: `Timed out after ${timeoutMs}ms`,
+      });
+    }, timeoutMs);
+
+    request = client.get(
       {
         hostname: parsed.hostname,
         port: parsed.port,
         path: parsed.pathname || "/",
         rejectUnauthorized: false,
-        timeout: timeoutMs,
       },
       (response) => {
         response.resume();
-        resolve({
+        finish({
           ok: true,
           url,
           statusCode: response.statusCode,
@@ -152,11 +169,15 @@ function requestUrl(url, timeoutMs) {
       }
     );
 
-    request.on("timeout", () => {
-      request.destroy(new Error(`Timed out after ${timeoutMs}ms`));
+    request.setTimeout(timeoutMs, () => {
+      finish({
+        ok: false,
+        url,
+        error: `Timed out after ${timeoutMs}ms`,
+      });
     });
     request.on("error", (error) => {
-      resolve({
+      finish({
         ok: false,
         url,
         error: error.code || error.message,
