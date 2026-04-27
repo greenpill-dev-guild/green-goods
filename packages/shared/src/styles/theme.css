@@ -1322,15 +1322,19 @@
   /* ── Canvas Grid Layout ── */
   .workspace-canvas-grid {
     --canvas-right-sheet-width: clamp(320px, 28vw, 480px);
+    --canvas-right-sheet-width-wide: clamp(420px, 36vw, 640px);
     display: grid;
     grid-template-areas:
       "top    top    top"
       "left   main   right"
       "bottom bottom bottom";
     grid-template-rows: auto 1fr auto;
+    /* `minmax(0, 1fr)` lets the main column shrink below intrinsic content
+       width — without it, content like /actions can force the column wider
+       than the viewport at narrow widths and clip the right edge. */
     grid-template-columns:
       var(--left-sheet-width, 0)
-      1fr
+      minmax(0, 1fr)
       var(--right-sheet-width, 0);
     background: var(--canvas-gradient,
       linear-gradient(180deg, rgb(var(--bg-white-0)) 0%, rgb(var(--bg-weak-50) / 0.6) 40%, rgb(var(--bg-sub-300) / 0.3) 100%)
@@ -1351,7 +1355,7 @@
         "top"
         "main"
         "bottom";
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto 1fr auto;
     }
   }

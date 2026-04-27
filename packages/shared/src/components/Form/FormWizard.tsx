@@ -66,7 +66,7 @@ export function FormWizard({
   const footer = (
     <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5rem)] z-nav px-3 pb-2 pt-2 sm:px-6 sm:pb-4 min-[600px]:bottom-6">
       <div className="pointer-events-auto mx-auto max-w-6xl">
-        <div className="rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-[var(--color-material-thick)] px-4 py-3 shadow-regular-md supports-[backdrop-filter]:backdrop-blur-[var(--blur-material-thick)] sm:px-6 sm:py-4">
+        <div className="rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-[var(--color-material-solid)] px-4 py-3 shadow-regular-md sm:px-6 sm:py-4">
           {showValidationMessage && (
             <p className="mb-3 text-sm text-warning-dark sm:mb-0 sm:mr-4">{validationMessage}</p>
           )}
@@ -148,7 +148,7 @@ export function FormWizard({
         <Surface
           elevation="raised"
           padding="none"
-          className="overflow-hidden rounded-[var(--radius-2xl)] border border-stroke-soft-200 bg-[var(--color-material-thick)] shadow-regular-md"
+          className="overflow-hidden rounded-[var(--radius-2xl)] border border-stroke-soft-200 bg-[var(--color-material-solid)] shadow-regular-md"
         >
           <StepIndicator steps={steps} currentStep={currentStep} onStepClick={onStepClick} />
 

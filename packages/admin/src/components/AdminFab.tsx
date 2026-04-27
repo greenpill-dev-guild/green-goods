@@ -1,5 +1,6 @@
 import { type ComponentType } from "react";
 import { cn } from "@green-goods/shared";
+import { AdminTooltip } from "./AdminTooltip";
 
 // ============================================================================
 // Types
@@ -7,9 +8,17 @@ import { cn } from "@green-goods/shared";
 
 export interface AdminFabProps {
   icon: ComponentType<{ className?: string }>;
-  label?: string;
+  /**
+   * Action name for the FAB. Always required so screen readers and hover
+   * tooltips always have a name. When `extended` is true the label is
+   * rendered alongside the icon; otherwise it surfaces via aria-label and
+   * an `AdminTooltip` on hover/focus.
+   */
+  label: string;
   onClick: () => void;
   size?: "small" | "standard" | "large";
+  /** When true, render the label alongside the icon (extended FAB anatomy). */
+  extended?: boolean;
   className?: string;
 }
 
@@ -24,26 +33,31 @@ export interface AdminFabProps {
  * - small (40dp): corner-medium (12dp), h-6 w-6 icon
  * - standard (56dp, default): corner-large (16dp), h-6 w-6 icon
  * - large (96dp): corner-extra-large (28dp), h-9 w-9 icon
- * - extended (when label provided): standard height, auto width, label + icon
+ * - extended (when extended=true): standard height, auto width, label + icon
  *
  * Container: primary-container background
  * Icon/label: on-primary-container color
  * Elevation: elevation-3 base, elevation-4 on hover
+ *
+ * Icon-only configurations are wrapped in `AdminTooltip` so the action name
+ * surfaces on hover/focus alongside the screen-reader aria-label.
  */
 export function AdminFab({
   icon: Icon,
   label,
   onClick,
   size = "standard",
+  extended = false,
   className,
 }: AdminFabProps) {
-  const isExtended = Boolean(label);
+  const isExtended = extended;
 
-  return (
+  const button = (
     <button
       data-component="AdminFab"
       type="button"
       onClick={onClick}
+      aria-label={label}
       className={cn(
         // Base layout
         "inline-flex items-center justify-center shrink-0",
@@ -93,6 +107,8 @@ export function AdminFab({
       {isExtended ? <span>{label}</span> : null}
     </button>
   );
+
+  return isExtended ? button : <AdminTooltip content={label}>{button}</AdminTooltip>;
 }
 
 AdminFab.displayName = "AdminFab";

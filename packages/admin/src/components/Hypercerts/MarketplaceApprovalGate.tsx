@@ -1,5 +1,5 @@
 import { useMarketplaceApprovals } from "@green-goods/shared";
-import { RiAlertLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
+import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
 interface MarketplaceApprovalGateProps {
@@ -120,17 +120,7 @@ function ApprovalStep({
           approved ? "border-success-base bg-success-lighter" : "border-stroke-soft bg-bg-white"
         }`}
       >
-        {approved && (
-          <svg
-            className="h-3 w-3 text-success-base"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={3}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        )}
+        {approved && <RiCheckLine className="h-3 w-3 text-success-base" aria-hidden />}
       </div>
       <div>
         <span

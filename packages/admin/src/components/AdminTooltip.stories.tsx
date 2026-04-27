@@ -52,6 +52,22 @@ export const TextTrigger: Story = {
   ),
 };
 
+export const BottomStart: Story = {
+  render: () => (
+    <div className="p-16">
+      <AdminTooltip content="Back to garden workspace" placement="bottom-start">
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--m3-shape-full)] bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface))]"
+          aria-label="Back to garden workspace"
+        >
+          <RiSettings4Line className="h-5 w-5" />
+        </button>
+      </AdminTooltip>
+    </div>
+  ),
+};
+
 export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-wrap gap-6 p-16">
@@ -70,6 +86,15 @@ export const StateCatalog: Story = {
           className="inline-flex items-center gap-1 rounded-[var(--m3-shape-sm)] px-2 py-1 text-body-md text-[rgb(var(--m3-primary))]"
         >
           <RiInformationLine className="h-4 w-4" /> Help text
+        </button>
+      </AdminTooltip>
+      <AdminTooltip content="Back to garden workspace" placement="bottom-start">
+        <button
+          type="button"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-[var(--m3-shape-full)] bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface))]"
+          aria-label="Back to garden workspace"
+        >
+          <RiSettings4Line className="h-5 w-5" />
         </button>
       </AdminTooltip>
     </div>

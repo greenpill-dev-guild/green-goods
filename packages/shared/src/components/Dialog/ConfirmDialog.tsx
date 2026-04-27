@@ -1,6 +1,6 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiAlertLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { logger } from "../../modules/app/logger";
 import { cn } from "../../utils";
@@ -54,6 +54,22 @@ const dialogShellSizeClasses: Record<NonNullable<DialogShellProps["size"]>, stri
   "2xl": "sm:max-w-4xl lg:max-w-5xl",
 };
 
+const dialogOverlayClassName =
+  "fixed inset-0 z-overlay data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0";
+
+const dialogOverlayStyle = {
+  backgroundColor: "var(--color-overlay)",
+  backdropFilter: "blur(var(--blur-material-thick))",
+  WebkitBackdropFilter: "blur(var(--blur-material-thick))",
+  animationDuration: "var(--spring-effects-fast-duration)",
+  animationTimingFunction: "var(--spring-effects-fast-easing)",
+} satisfies CSSProperties;
+
+const dialogSurfaceStyle = {
+  animationDuration: "var(--spring-spatial-duration)",
+  animationTimingFunction: "var(--spring-spatial-easing)",
+} satisfies CSSProperties;
+
 export function DialogShell({
   open,
   onOpenChange,
@@ -74,13 +90,21 @@ export function DialogShell({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-overlay bg-neutral-950/18 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150" />
+        <Dialog.Overlay
+          data-component="DialogShell"
+          data-slot="overlay"
+          className={dialogOverlayClassName}
+          style={dialogOverlayStyle}
+        />
         <Dialog.Content
+          data-component="DialogShell"
+          data-slot="surface"
           className={cn(
-            "fixed z-modal w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden glass-floating focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300",
+            "fixed z-modal w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden glass-floating focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
             dialogShellSizeClasses[size],
             className
           )}
+          style={dialogSurfaceStyle}
           onPointerDownOutside={(event) => {
             if (preventClose) event.preventDefault();
           }}
@@ -215,12 +239,12 @@ export function ConfirmDialog({
       iconColor: "text-primary",
     },
     warning: {
-      confirmBtn: "bg-warning-base hover:bg-warning-dark text-white",
+      confirmBtn: "bg-warning-base hover:bg-warning-dark text-static-white",
       iconBg: "bg-warning-lighter",
       iconColor: "text-warning-base",
     },
     danger: {
-      confirmBtn: "bg-error-base hover:bg-error-dark text-white",
+      confirmBtn: "bg-error-base hover:bg-error-dark text-static-white",
       iconBg: "bg-error-lighter",
       iconColor: "text-error-base",
     },
@@ -236,12 +260,18 @@ export function ConfirmDialog({
     <Dialog.Root open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay
-          className="fixed inset-0 z-overlay bg-neutral-950/18 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-150"
+          data-component="ConfirmDialog"
+          data-slot="overlay"
+          className={dialogOverlayClassName}
+          style={dialogOverlayStyle}
           data-testid="confirm-dialog-overlay"
         />
         <Dialog.Content
+          data-component="ConfirmDialog"
+          data-slot="surface"
           role={isDestructive ? "alertdialog" : undefined}
-          className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden glass-floating focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 duration-300"
+          className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden glass-floating focus:outline-none bottom-0 left-1/2 -translate-x-1/2 rounded-t-xl sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95"
+          style={dialogSurfaceStyle}
           data-testid="confirm-dialog"
           onPointerDownOutside={(e: Event) => {
             if (isLoading) e.preventDefault();

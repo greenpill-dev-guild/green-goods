@@ -54,22 +54,26 @@ export const Receded: Story = {
 export const StateCatalog: Story = {
   render: () => (
     <div className="grid h-[560px] gap-4 lg:grid-cols-2">
-      <MainSheet isReceded={false}>
-        <div className="flex h-full flex-col gap-4 overflow-auto p-6">
-          <div className="text-title-sm text-text-strong-950">Resting surface</div>
-          <div className="rounded-lg bg-bg-soft p-4 shadow-[var(--edge-rest)]">
-            Primary work content stays fully present.
+      <div className="h-full min-h-0">
+        <MainSheet isReceded={false} className="h-full">
+          <div className="flex h-full flex-col gap-4 overflow-auto p-6">
+            <div className="text-title-sm text-text-strong-950">Resting surface</div>
+            <div className="rounded-lg bg-bg-soft p-4 shadow-[var(--edge-rest)]">
+              Primary work content stays fully present.
+            </div>
           </div>
-        </div>
-      </MainSheet>
-      <MainSheet isReceded>
-        <div className="flex h-full flex-col gap-4 overflow-auto p-6">
-          <div className="text-title-sm text-text-strong-950">Receded surface</div>
-          <div className="rounded-lg bg-bg-soft p-4 shadow-[var(--edge-rest)]">
-            Inspector overlays reduce the main surface emphasis.
+        </MainSheet>
+      </div>
+      <div className="h-full min-h-0">
+        <MainSheet isReceded className="h-full">
+          <div className="flex h-full flex-col gap-4 overflow-auto p-6">
+            <div className="text-title-sm text-text-strong-950">Receded surface</div>
+            <div className="rounded-lg bg-bg-soft p-4 shadow-[var(--edge-rest)]">
+              Inspector overlays reduce the main surface emphasis.
+            </div>
           </div>
-        </div>
-      </MainSheet>
+        </MainSheet>
+      </div>
     </div>
   ),
 };

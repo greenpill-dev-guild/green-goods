@@ -1,7 +1,7 @@
 import type { Address, Work } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
-import { withRouter } from "../../../../../shared/.storybook/decorators";
+import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";
 import {
   FIXTURE_WORK_MEDIA,
   STORYBOOK_NOW_SECONDS,
@@ -45,12 +45,12 @@ const meta: Meta<typeof WorkSubmissionsView> = {
   title: "Admin/Workflows/Hub/WorkSubmissionsView",
   component: WorkSubmissionsView,
   tags: ["autodocs"],
-  decorators: [withRouter(["/hub"])],
+  decorators: [withAdminIdentity, withRouter(["/hub"])],
   parameters: {
     docs: {
       description: {
         component:
-          "Filter-backed grid of real work cards. Passing `works` bypasses the default `useWorks` hook so the grid renders from fixture data.",
+          "Filter-backed grid of real work cards. Passing `works` keeps the view data-driven by fixtures while the Storybook admin identity satisfies the shared hook/provider contract.",
       },
     },
   },

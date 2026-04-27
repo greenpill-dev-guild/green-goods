@@ -1,6 +1,6 @@
 import { type Address, type HypercertRecord } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
-import { withRouter } from "../../../../shared/.storybook/decorators";
+import { withAdminIdentity, withRouter } from "../../../../shared/.storybook/decorators";
 import { GardenHypercertsPanel } from "./GardenHypercertsPanel";
 
 const GARDEN_ADDRESS = "0x1234567890AbcdEF1234567890aBcdef12345678" as Address;
@@ -33,7 +33,7 @@ const meta: Meta<typeof GardenHypercertsPanel> = {
   title: "Admin/Workflows/Garden/GardenHypercertsPanel",
   component: GardenHypercertsPanel,
   tags: ["autodocs"],
-  decorators: [withRouter(["/garden"])],
+  decorators: [withAdminIdentity, withRouter(["/garden"])],
   parameters: {
     docs: {
       description: {

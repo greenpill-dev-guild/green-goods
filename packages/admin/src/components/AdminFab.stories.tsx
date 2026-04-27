@@ -18,6 +18,7 @@ const meta: Meta<typeof AdminFab> = {
   },
   argTypes: {
     size: { control: "select", options: ["small", "standard", "large"] },
+    extended: { control: "boolean" },
     label: { control: "text" },
   },
 };
@@ -28,23 +29,25 @@ type Story = StoryObj<typeof AdminFab>;
 export const Standard: Story = {
   args: {
     icon: RiAddLine,
+    label: "Create action",
     size: "standard",
     onClick: () => {},
   },
 };
 
 export const Small: Story = {
-  args: { icon: RiAddLine, size: "small", onClick: () => {} },
+  args: { icon: RiAddLine, label: "Create action", size: "small", onClick: () => {} },
 };
 
 export const Large: Story = {
-  args: { icon: RiAddLine, size: "large", onClick: () => {} },
+  args: { icon: RiAddLine, label: "Create action", size: "large", onClick: () => {} },
 };
 
 export const Extended: Story = {
   args: {
     icon: RiEditLine,
     label: "New action",
+    extended: true,
     onClick: () => {},
   },
 };
@@ -52,10 +55,10 @@ export const Extended: Story = {
 export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-wrap items-end gap-5">
-      <AdminFab icon={RiAddLine} size="small" onClick={() => {}} />
-      <AdminFab icon={RiAddLine} size="standard" onClick={() => {}} />
-      <AdminFab icon={RiAddLine} size="large" onClick={() => {}} />
-      <AdminFab icon={RiEditLine} label="Submit work" onClick={() => {}} />
+      <AdminFab icon={RiAddLine} label="Create action" size="small" onClick={() => {}} />
+      <AdminFab icon={RiAddLine} label="Create action" size="standard" onClick={() => {}} />
+      <AdminFab icon={RiAddLine} label="Create action" size="large" onClick={() => {}} />
+      <AdminFab icon={RiEditLine} label="Submit work" extended onClick={() => {}} />
     </div>
   ),
 };

@@ -181,7 +181,7 @@ export function HubWorkCard({
         )}
 
         {totalMedia > 1 && (
-          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-black/45 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-md">
+          <span className="absolute bottom-2 right-2 inline-flex items-center rounded-full bg-static-black/60 px-2 py-1 text-[11px] font-medium text-static-white">
             1 / {totalMedia}
           </span>
         )}

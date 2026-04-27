@@ -218,9 +218,9 @@ export function CanvasLayout() {
     navigate,
   ]);
 
-  // Shared spinner — covers every authenticated in-app route while auth state
-  // resolves. Unauthenticated "/" is handled by IndexRoute; the in-app routes
-  // all live under CanvasShell which mounts this layout.
+  // Shared spinner — covers every authenticated in-app route while auth and
+  // eligible-garden state resolve. Toolbar permissions are fail-open while they
+  // load, so they must not block the shell from painting.
   if (!isReady || (isAuthenticated && !eligibleGardensLoaded)) {
     return (
       <div
@@ -325,6 +325,7 @@ export function CanvasLayout() {
             onClose={() => closeSheet()}
             title={rightSheetDescriptor?.title}
             container={overlayRoot}
+            width={rightSheetDescriptor?.width ?? "default"}
           >
             {rightSheetDescriptor?.content}
           </RightSheet>

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { daysAgo, hoursAgo } from "../../../../../shared/.storybook/fixtures";
-import { withRouter } from "../../../../../shared/.storybook/decorators";
+import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";
 import { ImpactTab } from "./ImpactTab";
 
 const GARDEN_ID = "0x1234567890123456789012345678901234567890";
@@ -31,7 +31,7 @@ const meta: Meta<typeof ImpactTab> = {
   title: "Admin/Workflows/Garden/ImpactTab",
   component: ImpactTab,
   tags: ["autodocs"],
-  decorators: [withRouter(["/garden/impact"])],
+  decorators: [withAdminIdentity, withRouter(["/garden/impact"])],
   parameters: {
     layout: "padded",
     docs: {

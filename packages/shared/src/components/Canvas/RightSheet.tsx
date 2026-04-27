@@ -11,6 +11,8 @@ import { cn } from "../../utils";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
 import { SPRING_CONFIGS, DISMISS_VELOCITY_THRESHOLD } from "./springConfig";
 
+export type RightSheetWidth = "default" | "wide";
+
 export interface RightSheetProps {
   open: boolean;
   onClose: () => void;
@@ -22,6 +24,13 @@ export interface RightSheetProps {
    * bounded to the container (canvas overlay root).
    */
   container?: HTMLElement | null;
+  /**
+   * Width variant. `default` (clamp 320–480) for read-mostly panels;
+   * `wide` (clamp 420–640) for form / multi-column workflows where the
+   * default cramps inputs at desktop. The runtime value comes from
+   * `--canvas-right-sheet-width` / `--canvas-right-sheet-width-wide`.
+   */
+  width?: RightSheetWidth;
 }
 
 /**
@@ -38,10 +47,15 @@ export function RightSheet({
   description,
   children,
   container,
+  width = "default",
 }: RightSheetProps) {
   const isBounded = container !== undefined && container !== null;
   const sheetState = open ? "open" : "closed";
   const sheetBoundary = isBounded ? "bounded" : "viewport";
+  const widthVar =
+    width === "wide"
+      ? "var(--canvas-right-sheet-width-wide, clamp(420px, 36vw, 640px))"
+      : "var(--canvas-right-sheet-width, clamp(320px, 28vw, 480px))";
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -214,6 +228,7 @@ export function RightSheet({
       data-slot="dialog"
       data-state={sheetState}
       data-boundary={sheetBoundary}
+      data-width={width}
       data-testid="right-sheet-dialog"
     >
       {renderedDescription ? <p className="sr-only">{renderedDescription}</p> : null}
@@ -244,7 +259,7 @@ export function RightSheet({
         )}
         style={{
           width: "100%",
-          maxWidth: "var(--canvas-right-sheet-width, clamp(320px, 28vw, 480px))",
+          maxWidth: widthVar,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           touchAction: "none",
           transform: springs.x.to((x) => `translateX(${x}%)`),
@@ -254,6 +269,7 @@ export function RightSheet({
         data-slot="surface"
         data-state={sheetState}
         data-boundary={sheetBoundary}
+        data-width={width}
         data-testid="right-sheet"
         {...bind()}
       >

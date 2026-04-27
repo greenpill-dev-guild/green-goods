@@ -115,16 +115,20 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
         >
           <div
             className={cn(
-              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity,filter]",
+              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity]",
               "glass-surface"
             )}
             style={{
+              // Animated paints are limited to opacity + transform — both compositor
+              // friendly. `filter: blur()` is applied as a static value on the
+              // receded state so depth still reads, but the blur is not animated:
+              // animating blur on lower-end Android stacked paints with overlay
+              // sheet `backdrop-filter` and produced visible jank.
               transition: prefersReducedMotion
                 ? "none"
                 : [
                     "opacity var(--spring-spatial-duration) var(--spring-spatial-easing)",
                     "transform var(--spring-spatial-duration) var(--spring-spatial-easing)",
-                    "filter var(--spring-spatial-duration) var(--spring-spatial-easing)",
                   ].join(", "),
               transform: isMainSheetReceded ? "translateY(var(--canvas-recede-y, 8px))" : "none",
               opacity: isMainSheetReceded ? "var(--canvas-opacity-receded, 0.95)" : 1,

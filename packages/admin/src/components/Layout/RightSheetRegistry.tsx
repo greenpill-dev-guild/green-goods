@@ -28,6 +28,8 @@ import type { AccountSheetTab } from "./accountSheet.events";
 interface AdminRightSheetDescriptor {
   title: string;
   content: ReactNode;
+  /** Width hint for the right sheet — wider for form-heavy panels. */
+  width?: "default" | "wide";
 }
 
 function AdminNotificationPanel() {
@@ -155,6 +157,9 @@ export function useAdminRightSheetDescriptor(
     return {
       title: formatMessage(entry.title),
       content: <AccountSurface activeTab={activeTab} onTabChange={handleAccountTabChange} />,
+      // Settings holds form rows (toasts, addresses, key ops); profile is mostly
+      // read-only identity. Settings widens to fit two-column field rows.
+      width: activeTab === "settings" ? "wide" : "default",
     };
   }, [contentId, formatMessage, handleAccountTabChange]);
 }

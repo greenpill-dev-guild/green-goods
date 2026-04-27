@@ -13,6 +13,7 @@ import {
 } from "@green-goods/shared";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
+import { AdminTooltip } from "@/components/AdminTooltip";
 import {
   RiAlertLine,
   RiArrowLeftLine,
@@ -83,17 +84,21 @@ export function GardenHeroBanner({
         />
         <div className="garden-hero-banner-gradient" />
 
-        <Link
-          to={backTo}
-          className="absolute left-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-lg bg-black/30 text-white/80 backdrop-blur-sm transition hover:bg-black/50 hover:text-white sm:h-10 sm:w-10"
-          aria-label={backLabel}
-        >
-          <RiArrowLeftLine className="h-5 w-5" />
-        </Link>
+        <span className="absolute left-4 top-4 z-10">
+          <AdminTooltip content={backLabel} placement="bottom-start">
+            <Link
+              to={backTo}
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-static-black/40 text-static-white/80 transition hover:bg-static-black/55 hover:text-static-white sm:h-10 sm:w-10"
+              aria-label={backLabel}
+            >
+              <RiArrowLeftLine className="h-5 w-5" />
+            </Link>
+          </AdminTooltip>
+        </span>
 
         <div className="garden-hero-banner-content">
           <h1
-            className="truncate font-heading text-lg font-semibold text-white sm:text-2xl"
+            className="truncate font-heading text-lg font-semibold text-static-white sm:text-2xl"
             title={name}
           >
             {name}
@@ -101,7 +106,7 @@ export function GardenHeroBanner({
           {description ? (
             <div className="mt-0.5 max-w-xl">
               <p
-                className={`text-xs text-white/80 sm:text-sm ${
+                className={`text-xs text-static-white/80 sm:text-sm ${
                   !descExpanded && isLongDescription ? "line-clamp-2" : ""
                 }`}
                 title={description}
@@ -114,7 +119,7 @@ export function GardenHeroBanner({
                   variant="text"
                   size="sm"
                   onClick={() => setDescExpanded((prev) => !prev)}
-                  className="mt-1 text-xs text-white/70 hover:text-white/90"
+                  className="mt-1 text-xs text-static-white/70 hover:text-static-white/90"
                 >
                   {descExpanded
                     ? formatMessage({ id: "app.common.showLess", defaultMessage: "Show less" })
@@ -128,7 +133,7 @@ export function GardenHeroBanner({
               {domains.map((domain) => (
                 <span
                   key={domain}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-medium text-white backdrop-blur-sm"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-static-white/20 px-2.5 py-0.5 text-xs font-medium text-static-white"
                 >
                   <span
                     className="h-2 w-2 rounded-full"
@@ -138,16 +143,18 @@ export function GardenHeroBanner({
                 </span>
               ))}
               {canManage && onEditDomains ? (
-                <AdminButton
-                  type="button"
-                  variant="text"
-                  size="sm"
-                  onClick={onEditDomains}
-                  className="h-6 w-6 min-w-0 rounded-full bg-white/20 p-0 text-white/80 backdrop-blur-sm hover:bg-white/30 hover:text-white"
-                  aria-label={formatMessage({ id: "app.garden.detail.editDomains" })}
-                >
-                  <RiPencilLine className="h-3 w-3" />
-                </AdminButton>
+                <AdminTooltip content={formatMessage({ id: "app.garden.detail.editDomains" })}>
+                  <AdminButton
+                    type="button"
+                    variant="text"
+                    size="sm"
+                    onClick={onEditDomains}
+                    className="h-6 w-6 min-w-0 rounded-full bg-static-white/20 p-0 text-static-white/80 hover:bg-static-white/30 hover:text-static-white"
+                    aria-label={formatMessage({ id: "app.garden.detail.editDomains" })}
+                  >
+                    <RiPencilLine className="h-3 w-3" />
+                  </AdminButton>
+                </AdminTooltip>
               ) : null}
             </div>
           ) : null}

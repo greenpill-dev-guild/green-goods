@@ -129,6 +129,28 @@ describe("Toolbar Visibility", () => {
     };
   });
 
+  it("renders the fail-open toolbar while permissions are still loading", () => {
+    mockPermissions.current = {
+      showWork: true,
+      showGarden: true,
+      showCommunity: true,
+      showActions: true,
+      isLoading: true,
+    };
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/hub"]}>
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-hub")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-garden")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-community")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-actions")).toBeInTheDocument();
+  });
+
   it("evaluator sees only Hub plus the mobile Profile route", () => {
     mockPermissions.current = {
       showWork: true,

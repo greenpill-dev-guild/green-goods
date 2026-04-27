@@ -5,10 +5,22 @@ import { cn } from "@green-goods/shared";
 interface AdminTooltipProps {
   content: string;
   children: ReactNode;
+  placement?: "top" | "bottom" | "bottom-start";
   className?: string;
 }
 
-export function AdminTooltip({ content, children, className }: AdminTooltipProps) {
+const tooltipPlacementClass = {
+  top: "bottom-full left-1/2 mb-2 -translate-x-1/2",
+  bottom: "top-full left-1/2 mt-2 -translate-x-1/2",
+  "bottom-start": "top-full left-0 mt-2",
+} satisfies Record<NonNullable<AdminTooltipProps["placement"]>, string>;
+
+export function AdminTooltip({
+  content,
+  children,
+  placement = "top",
+  className,
+}: AdminTooltipProps) {
   const [visible, setVisible] = useState(false);
   const tooltipId = useId();
 
@@ -37,7 +49,8 @@ export function AdminTooltip({ content, children, className }: AdminTooltipProps
         aria-hidden={!visible}
         data-state={visible ? "open" : "closed"}
         className={cn(
-          "pointer-events-none absolute bottom-full left-1/2 z-overlay mb-2 -translate-x-1/2",
+          "pointer-events-none absolute z-overlay",
+          tooltipPlacementClass[placement],
           "max-w-[200px] rounded-[var(--m3-shape-xs)] px-2 py-1",
           "bg-[rgb(var(--m3-inverse-surface))] text-body-sm text-[rgb(var(--m3-inverse-on-surface))]",
           "transition-[opacity,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",

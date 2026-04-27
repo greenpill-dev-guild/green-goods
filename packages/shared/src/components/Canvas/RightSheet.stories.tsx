@@ -42,6 +42,12 @@ const meta: Meta<typeof RightSheet> = {
       control: "text",
       description: "Optional screen-reader description.",
     },
+    width: {
+      control: "select",
+      options: ["default", "wide"],
+      description:
+        "Width preset. `default` (320–480) for read-mostly panels; `wide` (420–640) for forms or two-column workflows.",
+    },
     children: {
       control: false,
       description: "Sheet body content.",
@@ -105,4 +111,27 @@ function BoundedRightSheetStory(args: ComponentProps<typeof RightSheet>) {
 
 export const BoundedCanvas: Story = {
   render: (args) => <BoundedRightSheetStory {...args} />,
+};
+
+export const Wide: Story = {
+  args: {
+    width: "wide",
+    title: "Account settings",
+    children: (
+      <div className="space-y-4 p-4">
+        <section className="rounded-lg bg-bg-soft p-4 shadow-[var(--edge-rest)]">
+          <h3 className="text-sm font-semibold text-text-strong">Display name</h3>
+          <p className="mt-1 text-sm text-text-sub">
+            Wide variant gives forms breathing room across two-column field rows.
+          </p>
+        </section>
+        <section className="rounded-lg bg-bg-soft p-4 shadow-[var(--edge-rest)]">
+          <h3 className="text-sm font-semibold text-text-strong">Wallet addresses</h3>
+          <p className="mt-1 text-sm text-text-sub">
+            Operator, treasury, and recovery addresses live alongside one another at desktop.
+          </p>
+        </section>
+      </div>
+    ),
+  },
 };

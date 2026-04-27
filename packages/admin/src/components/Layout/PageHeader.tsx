@@ -2,6 +2,7 @@ import { cn } from "@green-goods/shared";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { AdminTooltip } from "../AdminTooltip";
 
 type BackLinkConfig = {
   to: string;
@@ -50,9 +51,7 @@ export function PageHeader({
           ? "bg-bg-white relative overflow-hidden rounded-[var(--admin-radius-xl)] border border-[rgb(var(--workspace-tint)/0.18)] px-4 py-4 shadow-regular-md sm:px-6 sm:py-5"
           : cn(
               "border-b border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
-              sticky
-                ? "bg-bg-white/90 supports-[backdrop-filter]:bg-bg-white/70 backdrop-blur-lg ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
-                : "bg-bg-white"
+              sticky ? "bg-bg-white shadow-regular-sm" : "bg-bg-white"
             ),
         sticky && "sticky top-14 z-sticky",
         className
@@ -60,13 +59,15 @@ export function PageHeader({
     >
       <div className="flex min-w-0 items-start gap-3 sm:gap-4">
         {backLink ? (
-          <Link
-            to={backLink.to}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-stroke-soft text-text-soft transition hover:text-text-sub active:scale-95 sm:h-10 sm:w-10"
-            aria-label={backLink.label ?? "Go back"}
-          >
-            <RiArrowLeftLine className="h-5 w-5" />
-          </Link>
+          <AdminTooltip content={backLink.label ?? "Go back"}>
+            <Link
+              to={backLink.to}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-stroke-soft text-text-soft transition hover:text-text-sub active:scale-95 sm:h-10 sm:w-10"
+              aria-label={backLink.label ?? "Go back"}
+            >
+              <RiArrowLeftLine className="h-5 w-5" />
+            </Link>
+          </AdminTooltip>
         ) : null}
 
         <div

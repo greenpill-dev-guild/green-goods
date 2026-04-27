@@ -1083,8 +1083,8 @@
     box-shadow: var(--edge-hover), var(--elevation-3);
   }
 
-  /* ── Glass Surface ── Frosted glass treatment for navigation-tier surfaces
-   * Matches NavigationBar's existing pattern. Apply to AppBar, sticky PageHeader.
+  /* ── Glass Surface ── Shared frosted treatment
+   * In admin, only AppBar keeps glass; M3 overrides neutralize other chrome/content.
    * Solid fallback for prefers-contrast: more.
    */
   .glass-surface {
@@ -1206,16 +1206,18 @@
     min-width: 2.75rem;
   }
 
+  /* Layout-only shell. The visual treatment (radius, gradient, padding,
+   * elevation) is provided by `surface-section` on the same element so the
+   * Sheet → Section → Card chain only carries one padding tier. Adding
+   * padding/background here on top of `surface-section` produced visible
+   * compounding (~2rem effective horizontal inset) at desktop and clipped
+   * Hub queue rows on mobile. The mobile gutter (margin-inline) stays here
+   * so the results section keeps its inset without forcing the same shift
+   * onto PageHeader. */
   .hub-results-shell {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    padding: 1rem;
-    background:
-      linear-gradient(180deg, rgb(var(--admin-surface-0) / 0.95) 0%, rgb(var(--admin-surface-50) / 0.98) 100%);
-    box-shadow:
-      var(--edge-rest),
-      0 16px 34px rgb(var(--warm-shadow) / 0.07);
   }
 
   .hub-results-pane {
@@ -1237,9 +1239,10 @@
       padding: 0.65rem;
     }
 
+    /* Mobile gutter for the results section only — PageHeader keeps its own
+     * px-4 inset and isn't shifted inward by this margin. */
     .hub-results-shell {
       margin-inline: 0.75rem;
-      padding: 0.85rem;
     }
   }
 }
