@@ -4,12 +4,13 @@ import {
   PoolType,
   type RoleDirectoryEntry,
   type TabBadgeSeverity,
+  type YieldAllocation,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiMedalLine, RiShieldCheckLine, RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
-import { withRouter } from "../../../../../shared/.storybook/decorators";
+import { withAdminIdentity, withRouter } from "../../../../../shared/.storybook/decorators";
 import { CommunityTab } from "./CommunityTab";
 
 const GARDEN_ID = "0x1234567890123456789012345678901234567890";
@@ -18,6 +19,7 @@ const OPERATOR_A = "0x2222222222222222222222222222222222222222" as Address;
 const OPERATOR_B = "0x3333333333333333333333333333333333333333" as Address;
 const GARDENER_A = "0x5555555555555555555555555555555555555555" as Address;
 const GARDENER_B = "0x6666666666666666666666666666666666666666" as Address;
+const TREASURY_ASSET = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address;
 
 const roleIcons = {
   owner: RiShieldCheckLine,
@@ -36,20 +38,26 @@ const DIRECTORY: RoleDirectoryEntry[] = [
   { address: GARDENER_B, roles: ["gardener"] },
 ];
 
-const ALLOCATIONS = [
+const ALLOCATIONS: YieldAllocation[] = [
   {
+    gardenAddress: GARDEN_ID as Address,
+    assetAddress: TREASURY_ASSET,
     txHash: "0xtx1",
     timestamp: daysAgo(4),
     cookieJarAmount: 1_000_000_000_000_000_000n,
     fractionsAmount: 1_500_000_000_000_000_000n,
     juiceboxAmount: 1_500_000_000_000_000_000n,
+    totalAmount: 4_000_000_000_000_000_000n,
   },
   {
+    gardenAddress: GARDEN_ID as Address,
+    assetAddress: TREASURY_ASSET,
     txHash: "0xtx2",
     timestamp: daysAgo(9),
     cookieJarAmount: 500_000_000_000_000_000n,
     fractionsAmount: 750_000_000_000_000_000n,
     juiceboxAmount: 750_000_000_000_000_000n,
+    totalAmount: 2_000_000_000_000_000_000n,
   },
 ];
 
@@ -57,7 +65,7 @@ const meta: Meta<typeof CommunityTab> = {
   title: "Admin/Workflows/Garden/CommunityTab",
   component: CommunityTab,
   tags: ["autodocs"],
-  decorators: [withRouter(["/garden/community"])],
+  decorators: [withAdminIdentity, withRouter(["/garden/community"])],
   parameters: {
     layout: "padded",
     docs: {

@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "admin-ux-padding-compounding",
+    "title": "Admin Padding Compounding",
+    "kind": "quality",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-04-26T09:25:59.246Z",
+    "updated_at": "2026-04-27T00:23:36.000Z",
+    "target_date": "2026-04-28"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Normalized from a TODO-only active plan on 2026-04-26.",
+    "Detailed sequencing remains in plan.todo.md; status.json is now the lane-state source of truth.",
+    "Admin layout spacing/token pass; broad enough to keep UI QA explicit.",
+    "Near-term UI cleanup target: complete by 2026-04-28 with design-token and breakpoint evidence.",
+    "UI lane implemented and review findings addressed on 2026-04-26; ready for breakpoint QA.",
+    "Plan aligned on 2026-04-26 for April 28 closeout: active/QA-ready, separate plan ownership, combined admin QA evidence bundle, full padding view sweep, lean screenshot evidence, and no full performance trace unless sheet smoke shows jank.",
+    "Codex qa_pass_2 passed on 2026-04-27. The residual /actions AdminTabRail narrow-width follow-up was pulled into this session, fixed, and covered by Storybook CI plus built iframe smoke.",
+    "Closed to archive on 2026-04-27. Afo's April 28 visual pass is final manual signoff, not an active blocker."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "claude/ui/admin-ux-padding-compounding",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/admin-ux-padding-compounding",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/admin-ux-padding-compounding",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "passed",
+      "branch": "claude/qa-pass-1/admin-ux-padding-compounding",
+      "depends_on": ["ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"],
+      "ready_when_dependencies_met": true
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/admin-ux-padding-compounding",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
+      "ready_when_dependencies_met": true,
+      "branch_trigger": "claude/qa-pass-1/admin-ux-padding-compounding"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-26T09:25:59.246Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "normalized_plan_hub",
+      "branch": null,
+      "note": "Generated missing hub files and status.json during active plan organization pass."
+    },
+    {
+      "timestamp": "2026-04-26T12:00:00.000-07:00",
+      "actor": "codex",
+      "branch": null,
+      "lane": "system",
+      "status": "target_date_updated",
+      "note": "Near-term UI cleanup target: complete by 2026-04-28 with design-token and breakpoint evidence."
+    },
+    {
+      "timestamp": "2026-04-26T09:56:00.000-07:00",
+      "actor": "codex",
+      "branch": null,
+      "lane": "ui",
+      "status": "review_findings_addressed",
+      "note": "Reduced Hub compounded padding, kept shared/admin surfaces token-audited, and validated the admin/shared UI path."
+    },
+    {
+      "timestamp": "2026-04-26T09:56:00.000-07:00",
+      "actor": "codex",
+      "branch": null,
+      "lane": "qa_pass_1",
+      "status": "ready",
+      "note": "UI lane has passing targeted validation; QA can capture breakpoint screenshots."
+    },
+    {
+      "timestamp": "2026-04-26T20:46:27.000Z",
+      "actor": "codex",
+      "branch": null,
+      "lane": "system",
+      "status": "plans_aligned_for_april_28_closeout",
+      "note": "Plan-hygiene update only. Kept lanes unchanged and documented future combined admin QA bundle, full padding view sweep, lean screenshot/smoke evidence, and no full performance trace unless obvious jank appears."
+    },
+    {
+      "timestamp": "2026-04-26T21:30:00.000Z",
+      "actor": "claude",
+      "branch": null,
+      "lane": "qa_pass_1",
+      "status": "passed",
+      "note": "Combined admin QA bundle captured at .plans/active/admin-polish-bundle/handoffs/qa-evidence/combined-qa.md. Hub gold-standard sweep at iw 460/745/982/1545 holds the wrapper-level padding contract (MainSheet 428/713/950/1400 capped). Per-route shell smoke at iw=1545 across hub/garden/community/vault/actions all render the 1400px cap with zero compounded inset. Hypercerts detail not testable without seeded garden — recorded as data-limited. Follow-up regression: /actions MainSheet overflow at iw≤599 (475 vs 460); recorded per eval AC-4, not a closeout blocker. Validation: plan-hub validate, check:design-tokens, lint:vocab, admin test:hub (87 tests), admin lint (6 pre-existing warnings), admin build (2m58s), shared check:stories, shared test:stories:ci (96 tests, 0 failures) — all green."
+    },
+    {
+      "timestamp": "2026-04-26T22:00:00.000Z",
+      "actor": "claude",
+      "branch": null,
+      "lane": "ui",
+      "status": "followup_fixed",
+      "note": "/actions MainSheet mobile overflow follow-up addressed. Edit: packages/shared/src/styles/theme.css — workspace-canvas-grid columns changed from `1fr` to `minmax(0, 1fr)` on both desktop (`var(--left-sheet-width,0) minmax(0,1fr) var(--right-sheet-width,0)`) and mobile (`grid-template-columns: minmax(0, 1fr)`) tracks. Live re-measurement at iw=460 on /actions: gridTemplateColumns now resolves to '460px' (was 506.79px), MainSheet w=428 (was 475), no body horizontal overflow. /hub/work at same width unaffected (still 428). Desktop iw=1545 unaffected (MainSheet still caps at 1400). Re-ran ladder: check:design-tokens ✅, shared check:stories ✅, admin test:hub ✅ 87 tests, admin lint ✅ 6 pre-existing warnings, admin build ✅ 46s, shared test:stories:ci ✅ 96 tests. Note: a separate intra-MainSheet content overflow remains on /actions tabs at iw≤460 (AdminTabRail intrinsic width clipped by MainSheet's overflow:hidden frame); that is an AdminTabRail responsive-width concern, not padding compounding, and was left out of this plan's scope."
+    },
+    {
+      "timestamp": "2026-04-27T00:15:15.000Z",
+      "actor": "codex",
+      "branch": null,
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "note": "Codex qa_pass_2 accepted qa_pass_1 and pulled in the residual /actions AdminTabRail narrow-width follow-up. Edits: packages/admin/src/components/AdminTabRail.tsx and AdminTabRail.stories.tsx. Storybook CI now includes a narrow Actions lifecycle rail assertion; built iframe smoke at 460px shows AdminTabRail primitive width/client/scroll 298/298/298 and Actions registry 330/330/330 with no self or viewport overflow. Validation: admin lint (6 pre-existing warnings), admin test:hub (87 tests), admin build, shared check:stories, shared test:stories:ci (97 tests), shared build-storybook, and iframe smoke all passed."
+    },
+    {
+      "timestamp": "2026-04-27T00:23:36.000Z",
+      "actor": "codex",
+      "branch": null,
+      "lane": "system",
+      "status": "closed_to_archive",
+      "note": "Closed after qa_pass_1 and qa_pass_2 passed. April 28 visual pass remains manual signoff only."
+    }
+  ]
+}

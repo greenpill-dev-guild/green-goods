@@ -83,7 +83,7 @@ export function AdminTabRail({
       aria-label={ariaLabel}
       className={cn(
         // Container: flat surface, bottom border only
-        "relative flex w-full",
+        "relative flex w-full min-w-0 overflow-hidden",
         "bg-[rgb(var(--m3-surface))]",
         "border-b border-[rgb(var(--m3-outline-variant))]",
         className
@@ -127,8 +127,10 @@ export function AdminTabRail({
             className={cn(
               // Layout: equal share, column or row depending on icon presence
               "m3-state-layer",
-              "relative flex flex-1 items-center justify-center",
-              hasIcons ? "h-12 flex-row gap-2 px-4" : "h-12 flex-row gap-1.5 px-4",
+              "relative flex min-w-0 flex-1 items-center justify-center overflow-hidden",
+              hasIcons
+                ? "h-12 flex-row gap-1 px-2 sm:gap-2 sm:px-4"
+                : "h-12 flex-row gap-1 px-2 sm:gap-1.5 sm:px-4",
               // Typography: M3 label-large
               "text-label-lg font-medium leading-snug",
               // Color: active vs inactive
@@ -156,13 +158,13 @@ export function AdminTabRail({
             ) : null}
 
             {/* Label */}
-            <span className="truncate">{tab.label}</span>
+            <span className="min-w-0 truncate">{tab.label}</span>
 
             {/* Inline count badge */}
             {tab.count !== undefined ? (
               <span
                 className={cn(
-                  "inline-flex items-center justify-center",
+                  "inline-flex shrink-0 items-center justify-center",
                   "min-w-[1.125rem] h-[1.125rem] px-1",
                   "rounded-[var(--m3-shape-full)]",
                   "bg-[rgb(var(--m3-error))] text-[rgb(var(--m3-on-error))]",

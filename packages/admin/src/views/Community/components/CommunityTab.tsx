@@ -11,6 +11,7 @@ import {
   type GardenRole,
   type RoleDirectoryEntry,
   type TabBadgeSeverity,
+  type YieldAllocation,
 } from "@green-goods/shared";
 import { RiArrowRightSLine, RiSearchLine, RiUserLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -41,13 +42,7 @@ export interface CommunityTabProps {
   hasVaults: boolean;
   vaultNetDeposited: bigint;
   treasurySeverity: Exclude<TabBadgeSeverity, never>;
-  allocations: Array<{
-    txHash: string;
-    timestamp: number;
-    cookieJarAmount: bigint;
-    fractionsAmount: bigint;
-    juiceboxAmount: bigint;
-  }>;
+  allocations: YieldAllocation[];
   allocationsLoading: boolean;
   roleSummary: Array<{ role: GardenRole; count: number; firstMember?: Address }>;
   roleIcons: Record<GardenRole, React.ComponentType<{ className?: string }>>;

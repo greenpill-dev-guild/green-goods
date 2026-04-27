@@ -1,6 +1,7 @@
 import { RiCheckboxCircleLine, RiLeafLine, RiListCheck2, RiTimeLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { expect, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminTabRail } from "./AdminTabRail";
 
@@ -63,6 +64,39 @@ export const WithIconsAndCounts: Story = {
       );
     };
     return <Demo />;
+  },
+};
+
+export const NarrowActionsLifecycle: Story = {
+  tags: ["storybook-ci"],
+  render: () => {
+    const Demo = () => {
+      const [active, setActive] = useState("active");
+      return (
+        <div className="w-[428px] max-w-full overflow-hidden">
+          <AdminTabRail
+            ariaLabel="Filter actions by lifecycle"
+            activeId={active}
+            onChange={setActive}
+            tabs={[
+              { id: "all", label: "All", count: 22 },
+              { id: "active", label: "Active", count: 8 },
+              { id: "upcoming", label: "Upcoming", count: 10 },
+              { id: "completed", label: "Completed", count: 4 },
+            ]}
+          />
+        </div>
+      );
+    };
+    return <Demo />;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const tablist = await canvas.findByRole("tablist", {
+      name: "Filter actions by lifecycle",
+    });
+
+    await expect(tablist.scrollWidth).toBeLessThanOrEqual(tablist.clientWidth + 1);
   },
 };
 

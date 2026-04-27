@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "admin-sheet-animation-retune",
+    "title": "Admin Sheet Animation Retune",
+    "kind": "quality",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-04-26T09:25:59.246Z",
+    "updated_at": "2026-04-27T00:23:36.000Z",
+    "target_date": "2026-04-28"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Normalized from a TODO-only active plan on 2026-04-26.",
+    "Detailed sequencing remains in plan.todo.md; status.json is now the lane-state source of truth.",
+    "Admin sheet animation performance pass; requires visual and timing evidence.",
+    "Near-term UI cleanup target: complete by 2026-04-28 with motion-token and visual/performance evidence.",
+    "UI lane implemented and review findings addressed on 2026-04-26; ready for visual/performance QA.",
+    "Plan aligned on 2026-04-26 for April 28 closeout: active/QA-ready, separate plan ownership, combined admin QA evidence bundle, lean sheet-open/reduced-motion smoke evidence, and no full performance trace unless smoke shows jank.",
+    "Codex qa_pass_2 passed on 2026-04-27; source truth and validation remain green with no new sheet-motion blocker.",
+    "Closed to archive on 2026-04-27. Afo's April 28 visual pass is final manual signoff, not an active blocker."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "claude/ui/admin-sheet-animation-retune",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/admin-sheet-animation-retune",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/admin-sheet-animation-retune",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "passed",
+      "branch": "claude/qa-pass-1/admin-sheet-animation-retune",
+      "depends_on": ["ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"],
+      "ready_when_dependencies_met": true
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/admin-sheet-animation-retune",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"],
+      "ready_when_dependencies_met": true,
+      "branch_trigger": "claude/qa-pass-1/admin-sheet-animation-retune"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-26T09:25:59.246Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "normalized_plan_hub",
+      "branch": null,
+      "note": "Generated missing hub files and status.json during active plan organization pass."
+    },
+    {
+      "timestamp": "2026-04-26T12:00:00.000-07:00",
+      "actor": "codex",
+      "branch": null,
+      "lane": "system",
+      "status": "target_date_updated",
+      "note": "Near-term UI cleanup target: complete by 2026-04-28 with motion-token and visual/performance evidence."
+    },
+    {
+      "timestamp": "2026-04-26T09:56:00.000-07:00",
+      "actor": "codex",
+      "branch": null,
+      "lane": "ui",
+      "status": "review_findings_addressed",
+      "note": "Removed animated MainSheet filter, retained static receded blur, and validated the admin/shared UI path."
+    },
+    {
+      "timestamp": "2026-04-26T09:56:00.000-07:00",
+      "actor": "codex",
+      "branch": null,
+      "lane": "qa_pass_1",
+      "status": "ready",
+      "note": "UI lane has passing targeted validation; QA can capture visual/performance evidence."
+    },
+    {
+      "timestamp": "2026-04-26T20:46:27.000Z",
+      "actor": "codex",
+      "branch": null,
+      "lane": "system",
+      "status": "plans_aligned_for_april_28_closeout",
+      "note": "Plan-hygiene update only. Kept lanes unchanged and documented future combined admin QA bundle, lean sheet-open/reduced-motion smoke evidence, and no full performance trace unless obvious jank appears."
+    },
+    {
+      "timestamp": "2026-04-26T21:30:00.000Z",
+      "actor": "claude",
+      "branch": null,
+      "lane": "qa_pass_1",
+      "status": "passed",
+      "note": "Combined admin QA bundle captured at .plans/active/admin-polish-bundle/handoffs/qa-evidence/combined-qa.md. Live DOM smoke at iw=1309: MainSheet receded state has filter:blur(1.5px) static while transition list contains opacity+transform only (no animated filter). Transform=translateY(8px), opacity=0.95 — depth still reads. Bounded RightSheet overlay reports backdropFilter:none; no redundant stacking. Reduced-motion path covered by passing MainSheet.test.tsx unit test (re-run via admin test:hub). No obvious jank — full performance trace not required per eval AC-4. Validation: plan-hub validate, check:design-tokens, lint:vocab, admin test:hub (87 tests), admin lint (6 pre-existing warnings), admin build (2m58s), shared check:stories, shared test:stories:ci (96 tests, 0 failures) — all green."
+    },
+    {
+      "timestamp": "2026-04-27T00:15:15.000Z",
+      "actor": "codex",
+      "branch": null,
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "note": "Codex qa_pass_2 re-verified the sheet-motion source truth: MainSheet transitions opacity+transform only, receded blur is static, bounded RightSheet skips backdropFilter, RightSheetRegistry keeps wide width scoped to settings, and reduced-motion transition remains none. Validation: admin test:hub (87 tests), admin build, shared check:stories, shared test:stories:ci (97 tests), shared build-storybook, and built iframe smoke all passed. No full performance trace needed because no jank was observed."
+    },
+    {
+      "timestamp": "2026-04-27T00:23:36.000Z",
+      "actor": "codex",
+      "branch": null,
+      "lane": "system",
+      "status": "closed_to_archive",
+      "note": "Closed after qa_pass_1 and qa_pass_2 passed. April 28 visual pass remains manual signoff only."
+    }
+  ]
+}
