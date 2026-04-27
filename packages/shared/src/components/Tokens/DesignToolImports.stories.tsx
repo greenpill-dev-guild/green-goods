@@ -1,34 +1,36 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+const storybookUrl = "https://design.greengoods.app";
+
 const importFiles = [
   {
     label: "DesignMD core",
-    path: "./design/DESIGN.md",
+    path: `${storybookUrl}/DESIGN.md`,
     use: "Canonical Warm Earth tokens, voice, and role model.",
   },
   {
     label: "Browser dialect",
-    path: "./design/DESIGN.browser.md",
+    path: `${storybookUrl}/DESIGN.browser.md`,
     use: "Preferred dialect for public browser and deployed Storybook work.",
   },
   {
     label: "Token JSON",
-    path: "./design/design-md.generated.json",
+    path: `${storybookUrl}/design-md.generated.json`,
     use: "Machine-readable colors, type, radius, and spacing.",
   },
   {
     label: "Runtime CSS",
-    path: "./design/theme.css",
+    path: `${storybookUrl}/theme.css`,
     use: "CSS custom properties and Tailwind theme projection used by components.",
   },
   {
     label: "Story index",
-    path: "./index.json",
+    path: `${storybookUrl}/index.json`,
     use: "Storybook component and state catalog for agents and design tools.",
   },
   {
     label: "Manifest",
-    path: "./design/storybook-design-manifest.json",
+    path: `${storybookUrl}/storybook-design-manifest.json`,
     use: "Single machine-readable map across design files, stories, and import surfaces.",
   },
 ];

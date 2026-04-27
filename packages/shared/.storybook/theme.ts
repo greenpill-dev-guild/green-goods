@@ -5,8 +5,8 @@ export default create({
 
   // Brand
   brandTitle: "Green Goods Component Library",
-  brandUrl: "https://docs.greengoods.app/storybook/",
-  brandImage: "green-goods-logo.png", // From staticDirs; relative for /storybook deploys
+  brandUrl: "https://design.greengoods.app/",
+  brandImage: "green-goods-logo.png", // From staticDirs; relative for standalone deploys
   brandTarget: "_self",
 
   // Warm Earth public-browser dialect

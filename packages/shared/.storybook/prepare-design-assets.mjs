@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 
 const storybookDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(storybookDir, "../../..");
-const outputDir = resolve(repoRoot, "tmp/storybook-design-assets/design");
+const outputDir = resolve(repoRoot, "tmp/storybook-design-assets");
 const legacyOutputDir = resolve(storybookDir, "public/design");
+const publicUrl = "https://design.greengoods.app";
 
 const files = [
   {
@@ -50,6 +51,13 @@ const files = [
   },
 ];
 
+const assetFiles = [
+  {
+    from: "docs/static/img/green-goods-logo.png",
+    to: "green-goods-logo.png",
+  },
+];
+
 function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
@@ -62,6 +70,10 @@ for (const file of files) {
   copyFileSync(resolve(repoRoot, file.from), resolve(outputDir, file.to));
 }
 
+for (const file of assetFiles) {
+  copyFileSync(resolve(repoRoot, file.from), resolve(outputDir, file.to));
+}
+
 const generatedTokens = readJson(resolve(repoRoot, "packages/shared/src/styles/design-md.generated.json"));
 const sourceCommit = process.env.GITHUB_SHA || null;
 
@@ -71,14 +83,16 @@ const manifest = {
   description:
     "Storybook-backed component library and Warm Earth design exports for Green Goods.",
   preferredDialect: "public-browser",
+  publicUrl,
+  designBundleUrl: publicUrl,
   generatedAt: new Date().toISOString(),
   source: {
     repository: "greenpill/green-goods",
     commit: sourceCommit,
   },
   storybook: {
-    storyIndex: "../index.json",
-    previewFrame: "../iframe.html",
+    storyIndex: "./index.json",
+    previewFrame: "./iframe.html",
     localDevCommand: "bun --cwd packages/shared run storybook",
     mcpAddon: "@storybook/addon-mcp",
     mcpScope: "Local Storybook development server",
@@ -147,7 +161,7 @@ const manifest = {
         "./README.md",
         "./DESIGN.md",
         "./DESIGN.browser.md",
-        "../index.json",
+        "./index.json",
       ],
       note: "Use the Storybook story index for component names and states; use DesignMD files for styling rules.",
     },
@@ -175,15 +189,16 @@ writeFileSync(
 
 Use this folder as the import surface for design and agent tools.
 
+- Deployed base: \`${publicUrl}/\`.
 - \`DESIGN.md\` is the canonical Warm Earth DesignMD source.
 - \`DESIGN.browser.md\` is the preferred dialect for the deployed component library.
 - \`design-md.generated.json\` is the machine-readable token export.
 - \`theme.css\` is the runtime CSS projection used by components.
-- \`storybook-design-manifest.json\` links these files to Storybook's \`../index.json\`.
+- \`storybook-design-manifest.json\` links these files to Storybook's \`./index.json\`.
 
-For Google Stitch, load \`DESIGN.md\`, \`DESIGN.browser.md\`, and \`design-md.generated.json\`.
-For Claude Design, load this README, both DesignMD files, and the Storybook \`../index.json\`.
-For component states, use the Storybook sidebar or \`../index.json\` rather than guessing component names.
+For Google Stitch, load \`${publicUrl}/DESIGN.md\`, \`${publicUrl}/DESIGN.browser.md\`, and \`${publicUrl}/design-md.generated.json\`.
+For Claude Design, load this README, both DesignMD files, and the Storybook \`${publicUrl}/index.json\`.
+For component states, use the Storybook sidebar or \`./index.json\` rather than guessing component names.
 `,
 );
 
