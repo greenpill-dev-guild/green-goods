@@ -10,7 +10,8 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-03-16",
-    "updated_at": "2026-04-25T05:15:00.000Z"
+    "updated_at": "2026-04-26T17:34:07.000Z",
+    "target_date": "2026-05-15"
   },
   "links": {
     "brief": "brief.md",
@@ -23,7 +24,9 @@
     "Contracts are the primary lane; shared/admin only verify and recover failed wiring.",
     "Promoted to active 2026-04-25 after source audit confirmed the core contract wiring is still open.",
     "Current code evidence: GardensModule has no yieldResolver wiring; YieldResolver still keeps setGardenHypercertPool owner-only; garden treasury fallback remains incomplete.",
-    "Do not implement without an explicit migration/backfill checklist."
+    "Do not implement without an explicit migration/backfill checklist.",
+    "Delivery target: complete by 2026-05-15, with contracts landing first and state_api/ui/QA following sequentially.",
+    "Strengthened 2026-04-26: typed HypercertSignal pool state, no array-index pool classification, bidirectional resolver verification, reset cleanup, upgrade-script cross-wiring, and lane handoffs are required."
   ],
   "lanes": {
     "ui": {
@@ -34,6 +37,7 @@
       "branch": "claude/ui/signal-pool-yield-wiring",
       "depends_on": ["state_api", "contracts"],
       "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Admin /community owns reconnect UX; compact status elsewhere deep-links to /community. Do not infer Hypercert pool by array index.",
       "skill_tags": ["ui", "frontend-design", "react"]
     },
     "state_api": {
@@ -44,6 +48,7 @@
       "branch": "codex/state-api/signal-pool-yield-wiring",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "Shared hooks expose typed expected/resolver wiring state; useGardenPools must stop classifying pools by trimmed array index.",
       "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
     "contracts": {
@@ -52,6 +57,7 @@
       "branch": "codex/contracts/signal-pool-yield-wiring",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "Implement typed HypercertSignal pool mapping, trusted GardensModule caller, stronger manual validation, reset cleanup, migration/backfill, post-deploy checks, and upgrade-script cross-wiring.",
       "skill_tags": ["contracts"]
     },
     "qa_pass_1": {
@@ -62,6 +68,7 @@
       "branch": "claude/qa-pass-1/signal-pool-yield-wiring",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Review operator UX for missing/mismatched wiring and verify no retry appears when Hypercert pool identity is unknown.",
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
@@ -73,6 +80,7 @@
       "branch_trigger": "claude/qa-pass-1/signal-pool-yield-wiring",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Re-run contract tests, storage safety, post-deploy dry-run, shared/admin tests, full repo validation, and confirm no unacknowledged no-pool gardens remain.",
       "skill_tags": ["testing", "review"]
     }
   },
@@ -108,6 +116,22 @@
       "status": "promoted_contract_first",
       "branch": null,
       "note": "Reassessed against packages/contracts/src/modules/Gardens.sol and packages/contracts/src/resolvers/Yield.sol. Contracts are the first active lane; state/API and UI remain blocked until contract wiring, fallback, and migration/backfill decisions land."
+    },
+    {
+      "timestamp": "2026-04-26T17:25:52.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "target_date_updated",
+      "branch": null,
+      "note": "Set completion target to 2026-05-15 (second week of May) and confirmed the contract-first delivery sequence."
+    },
+    {
+      "timestamp": "2026-04-26T17:34:07.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_strengthened",
+      "branch": null,
+      "note": "Patched plan to require typed HypercertSignal pool state, no array-index pool classification, bidirectional YieldResolver/GardensModule verification, reset cleanup, upgrade-script cross-wiring, stronger migration/backfill checks, and concrete lane handoffs."
     }
   ]
 }

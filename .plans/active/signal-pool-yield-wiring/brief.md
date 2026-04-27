@@ -1,9 +1,10 @@
 # Signal Pool → Yield Wiring Supplement
 
 **Slug**: `signal-pool-yield-wiring`
-**Stage**: `backlog`
+**Stage**: `active`
 **Priority**: `p1`
 **Created**: `2026-03-16`
+**Target**: `2026-05-15`
 
 ## Problem
 
@@ -15,6 +16,7 @@ Yield routing to fractions is incomplete. Once vault yield starts flowing, `spli
 - Operators can verify or recover wiring without an owner-only manual step
 - Treasury fallbacks route safely to the garden TBA instead of stranding funds
 - Existing deployed gardens have a clear migration and backfill path
+- Pool identity is typed and verified; no contract, migration, shared hook, or admin status surface relies on trimmed array index to decide which pool is the HypercertSignal pool
 
 ## Scope Notes
 
