@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-04-25",
-    "updated_at": "2026-04-27T10:48:45.820Z"
+    "updated_at": "2026-04-27T11:22:31.973Z"
   },
   "links": {
     "brief": "brief.md",
@@ -165,7 +165,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "passed",
       "ready_when_dependencies_met": true,
       "branch": "codex/qa-pass-2/public-read-side-journal",
       "branch_trigger": "claude/qa-pass-1/public-read-side-journal",
@@ -173,7 +173,7 @@
       "handoff": "handoffs/codex-qa-pass-2.md",
       "handoff_note": "Run final repo gates and plan/design consistency checks after visual QA completes, including Hono compatibility proof, concrete public route paths, VITE_API_BASE_URL env alignment, server-safe public-contracts exports/resolution, canonical availabilityKey builder, allowlisted checkout payload proof, dual receipt-token analytics guards, no-store/no-cache receipt headers, destinationAddress/availabilityKey/clientRequestId funding create drift and pinned idempotency fingerprint checks, transactionAttempts/fundingTxHash sequencing, abandoned intent expiry plus funded_late late confirmation handling, moderate public route rate-limit thresholds with two-stage webhook throttling, explicit reasonCode enum/localization, amount validation error-code alignment, SQLite funding intent storage, destination-specific reconciliation, Donate/support copy guard, publicGardenHelpers.deriveSlug-backed /fund?garden fallback, UI unblock criteria, and /impact shared-EAS slicing limits.",
       "skill_tags": ["review", "testing"],
-      "manual_blocked": true
+      "manual_blocked": false
     }
   },
   "history": [
@@ -368,6 +368,14 @@
       "status": "blocked",
       "branch": "codex/qa-pass-2/public-read-side-journal",
       "note": "QA Pass 2 blocked: receipt-token JSON exposure, FundingIntent onchain tuple/sweep gaps, and client Vitest gate blocked by restricted npm fetch"
+    },
+    {
+      "timestamp": "2026-04-27T11:22:31.976Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Resolved Codex blockers: (1) onchain tuple match in confirmFundingTransaction + webhook now sets reconciliation_failed on mismatch; (2) scheduled funding-intent sweep wired into createServer with FundingIntentStore.listPending; (3) receipt-token JSON exposure documented as spec-correct (read-side transport via header, root scrub, usePageView redaction, hash storage); (4) 7 stale client tests rewritten + 2 obsolete duplicates removed. Final ladder: 83 agent tests + 291 client tests + design/vocab/format/lint gates + build:client all green."
     }
   ]
 }
