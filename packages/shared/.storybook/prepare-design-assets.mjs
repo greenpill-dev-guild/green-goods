@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,6 +63,18 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
+function readGitCommit() {
+  try {
+    return execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
 rmSync(outputDir, { recursive: true, force: true });
 rmSync(legacyOutputDir, { recursive: true, force: true });
 mkdirSync(outputDir, { recursive: true });
@@ -74,8 +87,16 @@ for (const file of assetFiles) {
   copyFileSync(resolve(repoRoot, file.from), resolve(outputDir, file.to));
 }
 
-const generatedTokens = readJson(resolve(repoRoot, "packages/shared/src/styles/design-md.generated.json"));
-const sourceCommit = process.env.GITHUB_SHA || null;
+const generatedTokens = readJson(
+  resolve(repoRoot, "packages/shared/src/styles/design-md.generated.json"),
+);
+const sourceRepository =
+  process.env.GITHUB_REPOSITORY ||
+  (process.env.VERCEL_GIT_REPO_OWNER && process.env.VERCEL_GIT_REPO_SLUG
+    ? `${process.env.VERCEL_GIT_REPO_OWNER}/${process.env.VERCEL_GIT_REPO_SLUG}`
+    : "greenpill-dev-guild/green-goods");
+const sourceCommit =
+  process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || readGitCommit();
 
 const manifest = {
   schemaVersion: 1,
@@ -87,7 +108,7 @@ const manifest = {
   designBundleUrl: publicUrl,
   generatedAt: new Date().toISOString(),
   source: {
-    repository: "greenpill/green-goods",
+    repository: sourceRepository,
     commit: sourceCommit,
   },
   storybook: {
