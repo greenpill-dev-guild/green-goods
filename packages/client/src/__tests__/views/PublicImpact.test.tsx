@@ -1,5 +1,12 @@
 /**
- * Public Impact Gallery View Tests
+ * Public Impact View Tests
+ *
+ * Locks the v1 evidence ledger contract:
+ * - Confirmed counts come from `usePublicStats` (not `useGardens`).
+ * - Evidence cards come from `usePublicImpactEvidence` and open a
+ *   source-anchored dialog.
+ * - Honest states: loading, empty, EAS error, partialData,
+ *   sourceLimitReached.
  *
  * @vitest-environment jsdom
  */
@@ -10,43 +17,74 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// --- Mocks ---
+const mockStats = {
+  gardenCount: 5,
+  contributorCount: 12,
+  fieldNoteCount: 30,
+  attestationCount: 7,
+};
 
-const mockGardens = [
-  {
-    id: "garden-1",
-    name: "Solar Garden",
-    gardeners: ["0x1111", "0x2222"],
-    assessments: [{ id: "a1" }, { id: "a2" }],
-    works: [],
-    operators: [],
-  },
-  {
-    id: "garden-2",
-    name: "Compost Hub",
-    gardeners: ["0x3333"],
-    assessments: [{ id: "a3" }],
-    works: [],
-    operators: [],
-  },
-];
+const mockSliceReady = {
+  records: [
+    {
+      id: "rec-1",
+      gardenId: "0x1",
+      gardenName: "Solar Garden",
+      title: "Q3 Soil Renewal",
+      summary: "Restoration of 2 acres of degraded land",
+      domain: 1,
+      timeWindow: { start: 1700000000, end: 1710000000 },
+      easUid: "0xabcd",
+      sourceAvailable: true,
+      createdAt: 1710000000,
+    },
+    {
+      id: "rec-2",
+      gardenId: "0x2",
+      gardenName: "Compost Hub",
+      title: "Composting Pilot",
+      domain: 3,
+      sourceAvailable: false,
+      createdAt: 1690000000,
+    },
+  ],
+  page: 1,
+  pageSize: 12,
+  totalFetchedRecords: 2,
+  partialData: false,
+  sourceLimitReached: false,
+  status: "ready" as const,
+};
 
-const mockUseGardens = vi.fn();
+const mockUsePublicStats = vi.fn();
+const mockUsePublicImpactEvidence = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  useGardens: (...args: unknown[]) => mockUseGardens(...args),
-}));
+vi.mock("@green-goods/shared", async () => {
+  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+  return {
+    ...actual,
+    usePublicStats: () => mockUsePublicStats(),
+    usePublicImpactEvidence: () => mockUsePublicImpactEvidence(),
+  };
+});
 
-import ImpactGallery from "../../views/Public/Impact";
+import ImpactPage from "../../views/Public/Impact";
 
 const messages: Record<string, string> = {
   "public.impact.title": "Impact",
-  "public.impact.description": "Protocol-wide regenerative impact metrics",
-  "public.impact.empty": "Impact assessments will appear here once gardens publish them.",
+  "public.impact.kicker": "Public evidence ledger",
+  "public.impact.description": "Confirmed counts and recent evidence.",
+  "public.impact.statsTitle": "Impact stats",
   "public.impact.totalAssessments": "Total Assessments",
   "public.impact.totalGardens": "Total Gardens",
-  "public.impact.totalGardeners": "Total Gardeners",
-  "public.impact.hypercertsPlaceholder": "Hypercert gallery coming soon",
+  "public.impact.totalContributors": "Total Contributors",
+  "public.impact.evidence.title": "Recent evidence",
+  "public.impact.evidence.empty": "Assessment evidence will appear here.",
+  "public.impact.evidence.error": "Evidence is temporarily unavailable.",
+  "public.impact.evidence.partialData": "Showing partial evidence.",
+  "public.impact.evidence.sourceLimitReached": "Capped slice.",
+  "public.impact.evidence.viewSource": "View source",
+  "public.impact.evidence.noSource": "Source pending",
 };
 
 function renderView() {
@@ -54,77 +92,77 @@ function renderView() {
     createElement(
       MemoryRouter,
       null,
-      createElement(IntlProvider, { locale: "en", messages }, createElement(ImpactGallery))
+      createElement(IntlProvider, { locale: "en", messages }, createElement(ImpactPage))
     )
   );
 }
 
-describe("ImpactGallery", () => {
+describe("ImpactPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseGardens.mockReturnValue({ data: mockGardens, isLoading: false });
+    mockUsePublicStats.mockReturnValue({ data: mockStats, isLoading: false });
+    mockUsePublicImpactEvidence.mockReturnValue({ data: mockSliceReady, isLoading: false });
   });
 
-  it("renders the page title", () => {
+  it("renders the editorial header", () => {
     renderView();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Impact");
+    expect(screen.getByText(/public evidence ledger/i)).toBeInTheDocument();
   });
 
-  it("renders the page description", () => {
+  it("renders confirmed counts from usePublicStats", () => {
     renderView();
-    expect(screen.getByText(/protocol-wide regenerative impact/i)).toBeInTheDocument();
+    const assessmentsLabel = screen.getByText("Total Assessments");
+    expect(
+      within(assessmentsLabel.closest("div") as HTMLElement).getByText("7")
+    ).toBeInTheDocument();
+    const gardensLabel = screen.getByText("Total Gardens");
+    expect(within(gardensLabel.closest("div") as HTMLElement).getByText("5")).toBeInTheDocument();
+    const contributorsLabel = screen.getByText("Total Contributors");
+    expect(
+      within(contributorsLabel.closest("div") as HTMLElement).getByText("12")
+    ).toBeInTheDocument();
   });
 
-  it("shows total assessments count", () => {
+  it("renders evidence cards with the View source / Source pending labels", () => {
     renderView();
-    const label = screen.getByText("Total Assessments");
-    expect(label).toBeInTheDocument();
-    // 2 from garden-1 + 1 from garden-2 = 3
-    // Scope to the parent stat card to avoid ambiguity with other "3" values
-    const card = label.closest("div")!;
-    expect(within(card).getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("Q3 Soil Renewal")).toBeInTheDocument();
+    expect(screen.getByText("Composting Pilot")).toBeInTheDocument();
+    expect(screen.getByText("View source")).toBeInTheDocument();
+    expect(screen.getByText("Source pending")).toBeInTheDocument();
   });
 
-  it("shows total gardens count", () => {
-    renderView();
-    expect(screen.getByText("Total Gardens")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-  });
-
-  it("shows total unique gardeners count", () => {
-    renderView();
-    const label = screen.getByText("Total Gardeners");
-    expect(label).toBeInTheDocument();
-    // 3 unique addresses across both gardens — scope to parent card
-    const card = label.closest("div")!;
-    expect(within(card).getByText("3")).toBeInTheDocument();
-  });
-
-  it("renders hypercert gallery grid", () => {
-    renderView();
-    const gallery = document.querySelector("[data-testid='hypercert-gallery']");
-    expect(gallery).toBeInTheDocument();
-    // Phase 3: actual gallery replaces placeholder
-    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
-  });
-
-  it("shows loading state", () => {
-    mockUseGardens.mockReturnValue({ data: [], isLoading: true });
+  it("shows loading skeletons while stats are loading", () => {
+    mockUsePublicStats.mockReturnValue({ data: undefined, isLoading: true });
     const { container } = renderView();
-    const pulsingElements = container.querySelectorAll(".animate-pulse");
-    expect(pulsingElements.length).toBeGreaterThanOrEqual(1);
+    expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows the empty impact state when there are no assessments", () => {
-    mockUseGardens.mockReturnValue({
-      data: [{ id: "garden-1", name: "Solar Garden", gardeners: [], assessments: [], works: [] }],
+  it("shows the empty evidence state when no records load", () => {
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: { ...mockSliceReady, records: [], status: "empty" },
       isLoading: false,
     });
-
     renderView();
+    expect(screen.getByText("Assessment evidence will appear here.")).toBeInTheDocument();
+  });
 
-    expect(
-      screen.getByText("Impact assessments will appear here once gardens publish them.")
-    ).toBeInTheDocument();
+  it("shows the EAS-failure state when the slice reports `error`", () => {
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: { ...mockSliceReady, status: "error", errorCode: "eas_unavailable" },
+      isLoading: false,
+    });
+    renderView();
+    expect(screen.getByText("Evidence is temporarily unavailable.")).toBeInTheDocument();
+  });
+
+  it("surfaces partialData and sourceLimitReached banners", () => {
+    mockUsePublicImpactEvidence.mockReturnValue({
+      data: { ...mockSliceReady, partialData: true, sourceLimitReached: true, status: "partial" },
+      isLoading: false,
+    });
+    renderView();
+    expect(screen.getByText("Showing partial evidence.")).toBeInTheDocument();
+    expect(screen.getByText("Capped slice.")).toBeInTheDocument();
   });
 });

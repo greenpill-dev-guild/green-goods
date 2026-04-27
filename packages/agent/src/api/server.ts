@@ -11,30 +11,37 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   buildPublicFundingAvailabilityKey,
-  createProviderProofRegistry,
-  publicProviderProofRegistry,
-  PUBLIC_AGENT_ROUTES,
   type CreateFundingIntentRequest,
+  createProviderProofRegistry,
+  PUBLIC_AGENT_ROUTES,
   type PublicApiError,
   type PublicSubscribeRequest,
+  publicProviderProofRegistry,
   type ThirdwebNormalizedFundingEvent,
 } from "@green-goods/shared/public-contracts";
-import { Hono, type Context, type MiddlewareHandler } from "hono";
-import { getTransactionConfirmation, type TransactionConfirmation } from "../services/blockchain";
+import { type Context, Hono, type MiddlewareHandler } from "hono";
+import {
+  confirmFundingTransaction,
+  type FundingConfirmationResult,
+  type FundingTupleExpectation,
+  getTransactionConfirmation,
+  type TransactionConfirmation,
+} from "../services/blockchain";
 import * as db from "../services/db";
 import {
   createFundingIntentId,
   createIdempotencyFingerprint,
   createReceiptToken,
   expireIfAbandoned,
+  type FundingIntentRecord,
+  type FundingIntentStore,
   hashSecret,
   MemoryFundingIntentStore,
   normalizeDecimalString,
   normalizeEmailHash,
   redactFundingReceipt,
+  sweepFundingIntents,
   transitionFundingStatus,
-  type FundingIntentRecord,
-  type FundingIntentStore,
 } from "../services/funding-intents";
 import { loggers } from "../services/logger";
 import type { LumaClient } from "../services/luma";
@@ -42,9 +49,9 @@ import type { FeedbackStatus, FeedbackType, Platform } from "../types";
 import {
   InMemoryPublicRateLimiter,
   isOriginAllowed,
+  PUBLIC_RATE_LIMIT_POLICIES,
   parseAllowedOrigins,
   publicRateLimitKey,
-  PUBLIC_RATE_LIMIT_POLICIES,
   type TrustedProxyConfig,
 } from "./public-protection";
 
@@ -83,6 +90,12 @@ export interface ServerDeps {
   };
   lumaClient?: LumaClient;
   fundingIntents?: FundingIntentStore;
+  /**
+   * How often the abandoned-intent sweep runs in ms (defaults to 5 minutes).
+   * Set to `0` to disable scheduling — useful in tests where we exercise
+   * `sweepFundingIntents` directly.
+   */
+  fundingSweepIntervalMs?: number;
   publicRateLimiter?: InMemoryPublicRateLimiter;
   providerProofRegistry?: ReturnType<typeof createProviderProofRegistry>;
   allowedOrigins?: Set<string>;
@@ -90,6 +103,16 @@ export interface ServerDeps {
   thirdwebWebhookSecret?: string;
   thirdwebClientId?: string;
   confirmFundingTransaction?: (txHash: string) => Promise<TransactionConfirmation>;
+  /**
+   * Strict tuple-matching funding confirmation. When provided, the webhook
+   * handler uses this in preference to `confirmFundingTransaction` so success
+   * requires that the onchain transfer landed on the locked Garden / token /
+   * destination / minimum amount tuple — not just provider success.
+   */
+  confirmFundingTuple?: (
+    txHash: string,
+    expected: FundingTupleExpectation
+  ) => Promise<FundingConfirmationResult>;
   now?: () => number;
 }
 
@@ -420,6 +443,36 @@ async function confirmSubmittedTransaction(
   }
 }
 
+/**
+ * Verify a provider-submitted transaction lands on the locked Garden /
+ * destination / token / minAssetAmount tuple before declaring `funded`.
+ *
+ * Returns:
+ *   - `confirmed`: receipt success AND ERC-20 Transfer to destination with
+ *     value >= minAssetAmount on the expected token + chain.
+ *   - `failed`: receipt failure (gas/exec revert).
+ *   - `tuple_mismatch`: receipt success but the locked tuple did not match.
+ *     Callers map this to `failed` with `failureReason:
+ *     "reconciliation_failed"`.
+ *   - `pending`: receipt not found yet.
+ */
+async function confirmFundingTupleSafe(
+  deps: ServerDeps,
+  txHash: string | undefined,
+  expected: FundingTupleExpectation
+): Promise<FundingConfirmationResult | undefined> {
+  if (!txHash) return undefined;
+  if (deps.confirmFundingTuple) return deps.confirmFundingTuple(txHash, expected);
+
+  try {
+    return await confirmFundingTransaction(txHash as `0x${string}`, expected);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log.warn({ txHash, error: message }, "Funding tuple confirmation unavailable");
+    return { status: "pending", txHash: txHash as `0x${string}` };
+  }
+}
+
 const defaultPublicRateLimiter = new InMemoryPublicRateLimiter();
 
 // ============================================================================
@@ -434,7 +487,29 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   const fundingIntents = deps.fundingIntents ?? new MemoryFundingIntentStore();
   const providerProofRegistry = deps.providerProofRegistry ?? publicProviderProofRegistry;
 
+  // Scheduled abandoned-intent sweep. Read-time reconciliation in
+  // `expireIfAbandoned` handles visitors who return; the sweep is the safety
+  // net for visitors who never come back. Default 5 minutes; set to 0 to
+  // disable (tests that exercise the sweep directly).
+  const sweepIntervalMs =
+    deps.fundingSweepIntervalMs === undefined ? 5 * 60 * 1000 : deps.fundingSweepIntervalMs;
+  let sweepTimer: ReturnType<typeof setInterval> | null = null;
+  if (sweepIntervalMs > 0) {
+    sweepTimer = setInterval(() => {
+      void sweepFundingIntents(fundingIntents, deps.now ?? Date.now).catch((err) => {
+        log.warn({ err }, "Scheduled funding intent sweep failed");
+      });
+    }, sweepIntervalMs);
+    if (typeof sweepTimer === "object" && sweepTimer && "unref" in sweepTimer) {
+      (sweepTimer as { unref?: () => void }).unref?.();
+    }
+  }
+
   app.close = async () => {
+    if (sweepTimer) {
+      clearInterval(sweepTimer);
+      sweepTimer = null;
+    }
     const server = runningServers.get(app);
     if (server) {
       server.stop(true);
@@ -779,35 +854,64 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     if (event.fundingIntentId) {
       const intent = await fundingIntents.getById(event.fundingIntentId);
       if (intent) {
+        const isFundingTransaction =
+          event.eventType === "transaction_submitted" && (event.txRole ?? "funding") === "funding";
+
+        // Strict tuple match: provider success alone never marks `funded`.
+        // The webhook can only flip to `funded` when the onchain receipt
+        // contains an ERC-20 Transfer to the locked destination on the locked
+        // token + chain with value >= minAssetAmount. Any other case
+        // (`tuple_mismatch`) is treated as a reconciliation failure.
         const confirmation =
           event.eventType === "transaction_submitted"
-            ? await confirmSubmittedTransaction(deps, event.txHash)
+            ? isFundingTransaction
+              ? await confirmFundingTupleSafe(deps, event.txHash, {
+                  token: intent.token,
+                  destinationAddress: intent.destinationAddress,
+                  minAssetAmount: intent.minAssetAmount,
+                  chainId: intent.chainId,
+                })
+              : await confirmSubmittedTransaction(deps, event.txHash)
             : undefined;
-        const nextStatus =
-          confirmation?.status === "confirmed"
-            ? "funded"
+
+        const isStrictConfirmed = confirmation?.status === "confirmed" && isFundingTransaction;
+
+        const nextStatus = isStrictConfirmed
+          ? "funded"
+          : confirmation?.status === "failed" || confirmation?.status === "tuple_mismatch"
+            ? "failed"
+            : event.eventType === "transaction_submitted"
+              ? "pending_onchain"
+              : event.eventType === "failed"
+                ? "failed"
+                : event.eventType === "refunded"
+                  ? "refunded"
+                  : "pending_provider";
+
+        const failureCode: FundingIntentRecord["failureCode"] =
+          confirmation?.status === "tuple_mismatch"
+            ? "reconciliation_failed"
             : confirmation?.status === "failed"
-              ? "failed"
-              : event.eventType === "transaction_submitted"
-                ? "pending_onchain"
-                : event.eventType === "failed"
-                  ? "failed"
-                  : event.eventType === "refunded"
-                    ? "refunded"
-                    : "pending_provider";
+              ? "onchain_failed"
+              : event.eventType === "failed"
+                ? "provider_failed"
+                : intent.failureCode;
+
+        const matchedAssetAmount =
+          confirmation?.status === "confirmed" && "matchedAssetAmount" in confirmation
+            ? confirmation.matchedAssetAmount
+            : undefined;
+
         const updated: FundingIntentRecord = {
           ...intent,
           providerSessionId: event.providerSessionId ?? intent.providerSessionId,
           providerPaymentId: event.providerPaymentId ?? intent.providerPaymentId,
           status: transitionFundingStatus(intent.status, nextStatus),
-          fundedAssetAmount:
-            confirmation?.status === "confirmed"
-              ? (event.destinationAmount ?? intent.fundedAssetAmount)
-              : intent.fundedAssetAmount,
-          fundingTxHash:
-            confirmation?.status === "confirmed" && event.txHash
-              ? event.txHash
-              : intent.fundingTxHash,
+          failureCode,
+          fundedAssetAmount: isStrictConfirmed
+            ? (matchedAssetAmount ?? event.destinationAmount ?? intent.fundedAssetAmount)
+            : intent.fundedAssetAmount,
+          fundingTxHash: isStrictConfirmed && event.txHash ? event.txHash : intent.fundingTxHash,
           transactionAttempts:
             event.txHash && event.eventType === "transaction_submitted"
               ? [
@@ -817,7 +921,8 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
                     status:
                       confirmation?.status === "confirmed"
                         ? "confirmed"
-                        : confirmation?.status === "failed"
+                        : confirmation?.status === "failed" ||
+                            confirmation?.status === "tuple_mismatch"
                           ? "failed"
                           : "submitted",
                     txHash: event.txHash,
@@ -825,11 +930,17 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
                     token: event.token ?? intent.token,
                     destinationAddress: event.destinationAddress ?? intent.destinationAddress,
                     receiverAddress: event.receiverAddress ?? intent.receiverAddress,
-                    amount: event.destinationAmount,
+                    amount: matchedAssetAmount ?? event.destinationAmount,
                     providerEventId: event.providerEventId,
                     submittedAt: event.occurredAt,
                     confirmedAt:
                       confirmation?.status === "confirmed" ? confirmation.confirmedAt : undefined,
+                    failureCode:
+                      confirmation?.status === "tuple_mismatch"
+                        ? confirmation.mismatchReason
+                        : confirmation?.status === "failed"
+                          ? "onchain_failed"
+                          : undefined,
                   },
                 ]
               : intent.transactionAttempts,

@@ -24,6 +24,22 @@ vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
   useAppKit: () => ({ open: mockOpenWalletModal }),
+  useApp: () => ({
+    isMobile: false,
+    isInstalled: false,
+    platform: "unknown",
+    deferredPrompt: null,
+  }),
+  useInstallGuidance: () => ({
+    scenario: "desktop",
+    primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
+    secondaryAction: null,
+    browserInfo: { browser: "unknown" },
+    showBrowserOption: false,
+    manualInstructions: null,
+    browserSwitchReason: null,
+    openInBrowserUrl: null,
+  }),
 }));
 
 // ScrollRestoration requires a data router (createBrowserRouter) which is
@@ -43,7 +59,8 @@ const messages: Record<string, string> = {
   "public.nav.actions": "Actions",
   "public.nav.impact": "Impact",
   "public.nav.fund": "Fund",
-  "public.nav.connectWallet": "Connect Wallet",
+  "public.nav.installApp": "Install App",
+  "public.nav.openApp": "Open App",
   "public.nav.openMenu": "Open menu",
   "public.nav.closeMenu": "Close menu",
 };

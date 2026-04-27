@@ -32,6 +32,16 @@ vi.mock("@green-goods/shared", () => ({
   useUIStore: (selector: (s: any) => any) => mockUseUIStore(selector),
   APP_NAME: "Green Goods",
   useAppKit: () => ({ open: vi.fn() }),
+  useInstallGuidance: () => ({
+    scenario: "desktop",
+    primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
+    secondaryAction: null,
+    browserInfo: { browser: "unknown" },
+    showBrowserOption: false,
+    manualInstructions: null,
+    browserSwitchReason: null,
+    openInBrowserUrl: null,
+  }),
 }));
 
 import { AppBar } from "../../components/Layout/AppBar";
@@ -48,7 +58,8 @@ const siteHeaderMessages: Record<string, string> = {
   "public.nav.actions": "Actions",
   "public.nav.impact": "Impact",
   "public.nav.fund": "Fund",
-  "public.nav.connectWallet": "Connect Wallet",
+  "public.nav.installApp": "Install App",
+  "public.nav.openApp": "Open App",
   "public.nav.openMenu": "Open menu",
   "public.nav.closeMenu": "Close menu",
 };

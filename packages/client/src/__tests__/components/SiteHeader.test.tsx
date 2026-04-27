@@ -1,35 +1,31 @@
 /**
  * SiteHeader Component Tests
  *
- * Tests the public website header:
- * - Desktop: renders nav links (Gardens, Actions, Impact, Fund) + Connect Wallet
- * - Mobile: renders hamburger button, hides nav links
- * - Hamburger click opens drawer
- * - Escape key closes drawer
+ * Tests the public website header for the editorial public browser:
+ * - Desktop: nav order Gardens / Impact / Fund / Actions + Install/Open App CTA
+ * - Mobile: hamburger button (aria-expanded toggling)
+ * - Drawer: opens, closes on Escape, mirrors nav + Install/Open App
+ * - Wallet connect is intentionally absent from public header chrome
  *
  * @vitest-environment jsdom
  */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { createElement, type ComponentProps } from "react";
+import { type ComponentProps, createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// --- Mocks ---
-
-const { mockGetAppKit, mockOpenWalletModal } = vi.hoisted(() => ({
-  mockGetAppKit: vi.fn(),
-  mockOpenWalletModal: vi.fn(),
+const { mockUseApp, mockUseInstallGuidance } = vi.hoisted(() => ({
+  mockUseApp: vi.fn(),
+  mockUseInstallGuidance: vi.fn(),
 }));
 
 vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
-}));
-
-vi.mock("@green-goods/shared/config", () => ({
-  getAppKit: mockGetAppKit,
+  useApp: mockUseApp,
+  useInstallGuidance: mockUseInstallGuidance,
 }));
 
 import { SiteHeader } from "../../components/Navigation/SiteHeader";
@@ -39,7 +35,8 @@ const messages: Record<string, string> = {
   "public.nav.actions": "Actions",
   "public.nav.impact": "Impact",
   "public.nav.fund": "Fund",
-  "public.nav.connectWallet": "Connect Wallet",
+  "public.nav.installApp": "Install App",
+  "public.nav.openApp": "Open App",
   "public.nav.openMenu": "Open menu",
   "public.nav.closeMenu": "Close menu",
 };
@@ -57,84 +54,97 @@ function renderHeader(initialRoute = "/gardens", props: ComponentProps<typeof Si
 describe("SiteHeader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetAppKit.mockReturnValue({ open: mockOpenWalletModal });
+    mockUseApp.mockReturnValue({
+      isMobile: false,
+      isInstalled: false,
+      platform: "unknown",
+      deferredPrompt: null,
+    });
+    mockUseInstallGuidance.mockReturnValue({
+      scenario: "desktop",
+      primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
+      secondaryAction: null,
+      browserInfo: { browser: "unknown" },
+      showBrowserOption: false,
+      manualInstructions: null,
+      browserSwitchReason: null,
+      openInBrowserUrl: null,
+    });
   });
 
   afterEach(() => {
     cleanup();
   });
 
-  it("desktop: renders Gardens, Actions, Impact, Fund, Connect Wallet nav items", () => {
+  it("desktop: renders Gardens / Impact / Fund / Actions and the Install App CTA", () => {
     renderHeader();
-
-    // Nav items — these are rendered in the DOM regardless of viewport,
-    // just hidden via CSS classes (md:flex / md:block)
+    // Nav links and CTA render regardless of viewport (visibility toggled by CSS).
     expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Actions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Impact").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Connect Wallet").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Actions").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
+    // No wallet CTA in public header.
+    expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("mobile: renders hamburger button with correct aria-label", () => {
+  it("nav order is Gardens / Impact / Fund / Actions", () => {
     renderHeader();
+    const navs = screen.getAllByRole("navigation");
+    const desktopNav = navs[0];
+    const links = Array.from(desktopNav.querySelectorAll("a")).map(
+      (link) => link.textContent ?? ""
+    );
+    const navOrder = links.filter((label) =>
+      ["Gardens", "Impact", "Fund", "Actions"].includes(label)
+    );
+    expect(navOrder).toEqual(["Gardens", "Impact", "Fund", "Actions"]);
+  });
 
-    // Hamburger is always in DOM, shown/hidden via CSS (md:hidden)
+  it("renders Open App when the PWA is already installed", () => {
+    mockUseApp.mockReturnValue({
+      isMobile: false,
+      isInstalled: true,
+      platform: "unknown",
+      deferredPrompt: null,
+    });
+    mockUseInstallGuidance.mockReturnValue({
+      scenario: "already-installed",
+      primaryAction: { type: "open-app", label: "Open App" },
+      secondaryAction: null,
+      browserInfo: { browser: "unknown" },
+      showBrowserOption: false,
+      manualInstructions: null,
+      browserSwitchReason: null,
+      openInBrowserUrl: null,
+    });
+    renderHeader();
+    expect(screen.getAllByText("Open App").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("mobile: hamburger button is in the DOM with aria-expanded false", () => {
+    renderHeader();
     const hamburger = screen.getByRole("button", { name: /open menu/i });
     expect(hamburger).toBeInTheDocument();
     expect(hamburger.getAttribute("aria-expanded")).toBe("false");
   });
 
-  it("hamburger click opens drawer", () => {
+  it("hamburger click opens the drawer with the same nav + install CTA", () => {
     renderHeader();
-
-    const hamburger = screen.getByRole("button", { name: /open menu/i });
-    fireEvent.click(hamburger);
-
-    // Drawer should now be open — look for the mobile nav dialog
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     const drawer = screen.getByRole("dialog");
     expect(drawer).toBeInTheDocument();
     expect(drawer.getAttribute("aria-modal")).toBe("true");
-
-    // Close buttons should be visible in the drawer (backdrop + explicit close button)
-    const closeButtons = screen.getAllByRole("button", { name: /close menu/i });
-    expect(closeButtons.length).toBeGreaterThanOrEqual(1);
+    // Drawer mirrors the install CTA, not Connect Wallet.
+    expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("Escape key closes drawer", () => {
+  it("Escape key closes the drawer", () => {
     renderHeader();
-
-    // Open the drawer first
-    const hamburger = screen.getByRole("button", { name: /open menu/i });
-    fireEvent.click(hamburger);
-
-    // Verify drawer is open
+    fireEvent.click(screen.getByRole("button", { name: /open menu/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
-
-    // Press Escape
     fireEvent.keyDown(document, { key: "Escape" });
-
-    // Drawer should be closed
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("opens AppKit wallet modal when no wallet handler is injected", () => {
-    renderHeader();
-
-    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
-
-    expect(mockGetAppKit).toHaveBeenCalledTimes(1);
-    expect(mockOpenWalletModal).toHaveBeenCalledTimes(1);
-  });
-
-  it("uses the injected wallet handler instead of AppKit fallback", () => {
-    const onConnectWallet = vi.fn();
-    renderHeader("/gardens", { onConnectWallet });
-
-    fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
-
-    expect(onConnectWallet).toHaveBeenCalledTimes(1);
-    expect(mockGetAppKit).not.toHaveBeenCalled();
-    expect(mockOpenWalletModal).not.toHaveBeenCalled();
   });
 });

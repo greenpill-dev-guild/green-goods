@@ -3,9 +3,9 @@
  * @vitest-environment jsdom
  */
 
-import { renderWithProviders as render, screen } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render, screen } from "../test-utils";
 
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as const;
 const TEST_JAR = "0x2222222222222222222222222222222222222222" as const;

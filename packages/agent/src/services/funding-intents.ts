@@ -56,6 +56,12 @@ export interface FundingIntentStore {
     note: string,
     providerEventId?: string
   ): Promise<void>;
+  /**
+   * Return all intents that may need scheduled-sweep reconciliation
+   * (`started` and `pending_provider`). Optional limit caps the slice for
+   * very large tables.
+   */
+  listPending?(limit?: number): Promise<FundingIntentRecord[]>;
 }
 
 export class MemoryFundingIntentStore implements FundingIntentStore {
@@ -97,6 +103,17 @@ export class MemoryFundingIntentStore implements FundingIntentStore {
   ): Promise<void> {
     this.events.push({ intentId, status, note, providerEventId });
   }
+
+  async listPending(limit = 1000): Promise<FundingIntentRecord[]> {
+    const out: FundingIntentRecord[] = [];
+    for (const record of this.byId.values()) {
+      if (record.status === "started" || record.status === "pending_provider") {
+        out.push(record);
+        if (out.length >= limit) break;
+      }
+    }
+    return out;
+  }
 }
 
 export function createSqliteFundingIntentStore(): FundingIntentStore {
@@ -108,7 +125,32 @@ export function createSqliteFundingIntentStore(): FundingIntentStore {
     update: (record) => db.updateFundingIntent(record),
     appendEvent: (intentId, status, note, providerEventId) =>
       db.appendFundingIntentEvent(intentId, status, note, providerEventId),
+    listPending: (limit?: number) => db.listPendingFundingIntents(limit ?? 1000),
   };
+}
+
+/**
+ * Sweep stale `started` and `pending_provider` intents through
+ * `expireIfAbandoned` so visitors who never return don't leave intents in a
+ * pending state forever. Read-time reconciliation continues to handle the
+ * happy-path case; this sweep is the safety net.
+ */
+export async function sweepFundingIntents(
+  store: FundingIntentStore,
+  now: () => number = Date.now
+): Promise<{ scanned: number; expired: number }> {
+  if (!store.listPending) return { scanned: 0, expired: 0 };
+  const pending = await store.listPending();
+  let expired = 0;
+  for (const record of pending) {
+    const reconciled = expireIfAbandoned(record, now());
+    if (reconciled !== record) {
+      await store.update(reconciled);
+      await store.appendEvent(reconciled.id, reconciled.status, "expired by scheduled sweep");
+      expired += 1;
+    }
+  }
+  return { scanned: pending.length, expired };
 }
 
 export function createReceiptToken(): string {

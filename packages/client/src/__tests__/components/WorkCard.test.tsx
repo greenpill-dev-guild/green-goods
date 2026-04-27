@@ -1,7 +1,6 @@
-import { renderWithProviders as render, screen, userEvent } from "../test-utils";
 import { describe, expect, it, vi } from "vitest";
-
 import { MinimalWorkCard, WorkCard } from "../../components/Cards/Work/WorkCard";
+import { renderWithProviders as render, screen, userEvent } from "../test-utils";
 
 describe("components/Cards/WorkCard", () => {
   const workItem = {

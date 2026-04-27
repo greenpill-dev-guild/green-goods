@@ -764,6 +764,18 @@ class DB {
       );
   }
 
+  async listPendingFundingIntents(limit = 1000): Promise<FundingIntentRecord[]> {
+    const rows = this.db
+      .query(
+        `SELECT * FROM funding_intents
+         WHERE status IN ('started', 'pending_provider')
+         ORDER BY createdAt ASC
+         LIMIT ?`
+      )
+      .all(limit) as FundingIntentRow[];
+    return rows.map((row) => deserializeFundingIntent(row));
+  }
+
   // ==========================================================================
   // LIFECYCLE
   // ==========================================================================
@@ -839,6 +851,8 @@ export const appendFundingIntentEvent = (
   note: string,
   providerEventId?: string
 ) => getDB().appendFundingIntentEvent(intentId, status, note, providerEventId);
+export const listPendingFundingIntents = (limit?: number) =>
+  getDB().listPendingFundingIntents(limit ?? 1000);
 
 export const closeDB = async () => {
   if (!_db) return;

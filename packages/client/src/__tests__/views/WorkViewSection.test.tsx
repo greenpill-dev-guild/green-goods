@@ -6,9 +6,9 @@
  * offline statuses (syncing, uploading, sync_failed, offline) hit unhandled code paths.
  */
 
+import type { WorkDisplayStatus } from "@green-goods/shared";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
-import type { WorkDisplayStatus } from "@green-goods/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("react-intl", () => ({

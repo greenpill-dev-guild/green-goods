@@ -104,7 +104,7 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 // Import after mocks
-import { Domain, type Action, type Address, type Garden } from "@green-goods/shared";
+import { type Action, type Address, Domain, type Garden } from "@green-goods/shared";
 import { WorkIntro } from "../../views/Garden/Intro";
 
 const messages: Record<string, string> = {
