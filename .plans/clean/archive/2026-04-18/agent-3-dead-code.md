@@ -2,7 +2,7 @@
 
 Source: `bunx knip --reporter compact` @ 2026-04-18, cross-verified with manual grep.
 Mode: research + assess only. No files were modified.
-Out of scope this run: `packages/agent`, `packages/indexer`, `packages/ops`, contract submodules (`packages/contracts/lib/**`, `packages/contracts/out/**`), Storybook stories.
+Out of scope this run: `packages/agent`, `packages/indexer`, contract submodules (`packages/contracts/lib/**`, `packages/contracts/out/**`), Storybook stories.
 
 ## Executive Summary
 

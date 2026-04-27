@@ -1,11 +1,10 @@
 # Agent 2 — Type Consolidation (Dry Run, Re-Run)
 
-Scope: **admin, shared, client, contracts** only. Agent/indexer/ops packages OUT OF SCOPE. Research only, no source edits. Monorepo root: `/Users/afo/Code/greenpill/green-goods`.
+Scope: **admin, shared, client, contracts** only. Service packages OUT OF SCOPE. Research only, no source edits. Monorepo root: `/Users/afo/Code/greenpill/green-goods`.
 
 ## Executive Summary
 
 - `@green-goods/shared/types/` remains the canonical home for domain types (Garden, Work, Action, Address, etc.) and the in-scope packages import them correctly through the barrel.
-- **H1** (ops runner type duplication in `packages/ops/src/types.ts`) is dropped from scope.
 - **H6** (agent package `GardenInfo` rename) is dropped from scope.
 - Remaining HIGH-confidence findings are small and safe:
   - `WorkCardItem.status` in `packages/client/src/components/Cards/Work/WorkCard.tsx:19` still inlines `WorkDisplayStatus`.
@@ -118,12 +117,7 @@ Scope: **admin, shared, client, contracts** only. Agent/indexer/ops packages OUT
 - `packages/shared/src/types/blockchain.ts:35` — `rootGarden.tokenId: number;` (note lowercase + number).
 - **Assessment**: different ERC tokens, so conceptually different. But the casing variation is footgun-worthy. The Solidity-generated `packages/shared/src/types/green-goods.d.ts` uses `tokenID` — likely forces the Garden domain type. `rootGarden.tokenId: number` should probably be `bigint` to match.
 
-### L3. `Job<T>` vs `OpsJob` name overload
-- `packages/shared/src/types/job-queue.ts:21` — offline queue job.
-- `packages/shared/src/types/ops.ts:17` — ops runner deployment job.
-- Not a duplication; just a name overload. Consider documenting with a type-level comment.
-
-### L4. `SyncStatus` vs `WorkDisplayStatus`
+### L3. `SyncStatus` vs `WorkDisplayStatus`
 - `packages/shared/src/components/Progress/SyncIndicator.tsx:19` — `SyncStatus = "synced" | "pending" | "syncing" | "offline" | "error"` (queue-level).
 - `packages/shared/src/types/domain.ts:338` — `WorkDisplayStatus` (per-work-item).
 - Different granularity. Not duplicates.
@@ -154,7 +148,6 @@ Legend: ✅ = hard violation (should be `Address`), ⚠️ = borderline (raw use
 | `packages/shared/src/workflows/mintHypercert.ts:43,181,221` | `signalPoolAddress: string \| null` | ✅ |
 | `packages/shared/src/providers/Work.tsx:45,46` | `WorkSelectionValue.gardenAddress: string \| null` | ✅ |
 | `packages/shared/src/providers/Work.tsx:91,92` | `WorkDataProps.form.gardenAddress: string \| null` | ✅ |
-| `packages/shared/src/types/ops.ts:56,63,69` | `OpsRunnerChallengeResponse / VerifyResponse / Session .address: string` | ⚠️ (signature challenge payload — raw string acceptable, but shared type) |
 | `packages/shared/src/config/blockchain.ts:13,14` | `EASConfig.EAS.address: string`, `EASConfig.SCHEMA_REGISTRY.address: string` | ✅ |
 | `packages/shared/src/config/blockchain.ts:38,54` | `address?: string` (internal `DeploymentConfig` — see H7) | ⚠️ (raw JSON-wire shape; tighten if H7 consolidates) |
 | `packages/shared/src/components/Cards/GardenCard/GardenCard.tsx:76` | `renderOperatorName?: (address: string) => ...` | ✅ |

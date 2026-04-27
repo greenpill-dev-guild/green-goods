@@ -297,26 +297,6 @@ export { useMintHypercert } from "./hypercerts/useMintHypercert";
 export type { UseTradeHistoryResult } from "./hypercerts/useTradeHistory";
 export { useTradeHistory } from "./hypercerts/useTradeHistory";
 // ============================================================================
-// OPS RUNNER (Local deploy/upgrade/script orchestration)
-// ============================================================================
-export { useOpsJobRunner } from "./ops/useOpsJobRunner";
-export {
-  getOpsRunnerBaseUrl,
-  useOpsDeployPlan,
-  useOpsFinalizeDeploy,
-  useOpsFinalizeUpgrade,
-  useOpsJobLogs,
-  useOpsRunnerAuth,
-  useOpsRunnerHealth,
-  useOpsRunnerJob,
-  useOpsRunnerJobs,
-  useOpsRunnerScripts,
-  useOpsRunnerSession,
-  useOpsRunScript,
-  useOpsUpgradePlan,
-} from "./ops/useOpsRunner";
-export { useOpsRunnerConnect } from "./ops/useOpsRunnerConnect";
-// ============================================================================
 // PUBLIC READ-SIDE (Living Archive journal)
 // ============================================================================
 export type {

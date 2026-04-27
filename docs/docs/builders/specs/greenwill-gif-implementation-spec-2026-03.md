@@ -97,7 +97,7 @@ The system should be delivered as a thin, traceable layer rather than an all-at-
 |---|---|---|
 | `GreenWillRegistry` | canonical class registry, season model, lock mapping, status rules | `packages/contracts` |
 | badge metadata catalog | class definitions, names, descriptions, CIDs, role variants | `docs` + `shared` + publishing scripts |
-| badge engine | evaluates source events and determines awards | likely `packages/ops` or a dedicated service script |
+| badge engine | evaluates source events and determines awards | dedicated service script |
 | Unlock issuer | grants keys on Celo based on engine decisions | ops / service layer |
 | source adapters | reads EAS, Envio, and support-source data | `packages/shared` |
 | proof pages / UI | badge display, detail pages, earned moments | `packages/client`, possibly `packages/admin` |

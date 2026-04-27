@@ -27,7 +27,7 @@ Top MCP Servers:
 ## Your Setup Checklist
 
 ### Codebases
-- [ ] green-goods — https://github.com/greenpill-dev-guild/green-goods (Bun monorepo: `packages/{contracts,indexer,shared,client,admin,agent,ops}` + `docs/` at root)
+- [ ] green-goods — https://github.com/greenpill-dev-guild/green-goods (Bun monorepo: `packages/{contracts,indexer,shared,client,admin,agent}` + `docs/` at root)
 - [ ] greenpill-dev-guild/.github — https://github.com/greenpill-dev-guild/.github (org-wide community defaults; only clone if you'll touch guild routines)
 
 ### Local Setup
@@ -52,7 +52,7 @@ Intent-triggered (no slash — just describe it in plain English):
 
 Loaded by context (you usually don't pick these manually):
 - [ ] `design` + `ui` — Warm Earth design language, M3 anatomy, Tailwind v4 + Radix + Storybook.
-- [ ] Package skills — `react`, `contracts`, `indexer`, `data-layer`, `ops`, `testing`, `web3`.
+- [ ] Package skills — `react`, `contracts`, `indexer`, `data-layer`, `testing`, `web3`.
 
 (Full skill index: `.claude/skills/index.md`.)
 

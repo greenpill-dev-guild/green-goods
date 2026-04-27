@@ -121,7 +121,6 @@ Run checks on CHANGED packages and capture output for later parts.
 bun run --filter '@green-goods/admin' build
 bun run --filter '@green-goods/client' build
 bun run --filter '@green-goods/agent' typecheck
-bun run --filter '@green-goods/ops' typecheck
 bun lint
 bash .claude/scripts/validate-hook-location.sh
 node .claude/scripts/check-i18n-completeness.mjs

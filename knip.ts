@@ -38,9 +38,6 @@ const config: KnipConfig = {
     "packages/agent": {
       entry: ["src/index.ts"],
     },
-    "packages/ops": {
-      entry: ["src/index.ts"],
-    },
     "packages/indexer": {
       entry: [
         "src/EventHandlers.ts",

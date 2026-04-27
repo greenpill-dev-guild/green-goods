@@ -396,31 +396,6 @@
           "snippet": "signal.addEventListener(\"abort\", abortHandler);"
         },
         {
-          "file": "packages/shared/src/hooks/ops/useOpsRunner.ts",
-          "line": 110,
-          "snippet": "window.addEventListener(\"storage\", refreshSession);"
-        },
-        {
-          "file": "packages/shared/src/hooks/ops/useOpsRunner.ts",
-          "line": 111,
-          "snippet": "window.addEventListener(OPS_SESSION_EVENT, refreshSession as EventListener);"
-        },
-        {
-          "file": "packages/shared/src/hooks/ops/useOpsRunner.ts",
-          "line": 360,
-          "snippet": "eventSource.addEventListener(\"log\", onLog as EventListener);"
-        },
-        {
-          "file": "packages/shared/src/hooks/ops/useOpsRunner.ts",
-          "line": 361,
-          "snippet": "eventSource.addEventListener(\"status\", onStatus as EventListener);"
-        },
-        {
-          "file": "packages/shared/src/hooks/ops/useOpsRunner.ts",
-          "line": 362,
-          "snippet": "eventSource.addEventListener(\"done\", onStatus as EventListener);"
-        },
-        {
           "file": "packages/shared/src/hooks/ui/useMediaQuery.ts",
           "line": 15,
           "snippet": "mql.addEventListener(\"change\", handler);"
@@ -1161,16 +1136,6 @@
           "snippet": "signalPoolAddress: string | null;"
         },
         {
-          "file": "packages/shared/src/hooks/ops/useOpsRunner.ts",
-          "line": 158,
-          "snippet": "mutationFn: ({ address }: { address: string }) =>"
-        },
-        {
-          "file": "packages/shared/src/hooks/ops/useOpsRunner.ts",
-          "line": 168,
-          "snippet": "mutationFn: ({ address, signature }: { address: string; signature: string }) =>"
-        },
-        {
           "file": "packages/shared/src/hooks/public/usePublicFieldNotes.ts",
           "line": 43,
           "snippet": "gardenAddress?: string;"
@@ -1699,21 +1664,6 @@
           "file": "packages/shared/src/stores/useHypercertWizardStore.ts",
           "line": 210,
           "snippet": "toDraft: (gardenId: string, operatorAddress: string) => HypercertDraft;"
-        },
-        {
-          "file": "packages/shared/src/types/ops.ts",
-          "line": 56,
-          "snippet": "address: string;"
-        },
-        {
-          "file": "packages/shared/src/types/ops.ts",
-          "line": 63,
-          "snippet": "address: string;"
-        },
-        {
-          "file": "packages/shared/src/types/ops.ts",
-          "line": 69,
-          "snippet": "address: string;"
         },
         {
           "file": "packages/shared/src/utils/app/text.ts",

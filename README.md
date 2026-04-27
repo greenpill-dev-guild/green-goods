@@ -30,7 +30,7 @@ For local development on the standard 1Password CLI, keep `OP_ENABLE_ENVIRONMENT
 
 - `bun run dev:web` — client, admin, docs. Best first target for frontend QA.
 - `bun run dev:smoke:web` — runs the web doctor, then checks client/admin/docs health locally.
-- `bun run dev:full` — full PM2 stack, including Docker-backed indexer, agent, ops, tunnel, browser opener, and Storybook.
+- `bun run dev:full` — full PM2 stack, including Docker-backed indexer, agent, tunnel, browser opener, and Storybook.
 - `bun run dev:stop` — stop PM2-managed local services.
 
 ## Documentation

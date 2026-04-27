@@ -4,7 +4,6 @@ const PORTS = {
   admin: 3002,
   docs: 3003,
   storybook: 6006,
-  ops: 8787,
 };
 
 // Kill any process occupying a port before starting the service
@@ -53,22 +52,6 @@ module.exports = {
       env: {
         NODE_ENV: "development",
         VITE_ENABLE_SW_DEV: "false",
-      },
-      merge_logs: true,
-      autorestart: true,
-      max_restarts: 3,
-      min_uptime: "10s",
-      restart_delay: 3000,
-      kill_timeout: 5000,
-      treekill: true,
-    },
-    {
-      name: "ops",
-      script: "sh",
-      args: `-c "${killPort(PORTS.ops)} && cd packages/ops && bun run dev"`,
-      cwd: ".",
-      env: {
-        NODE_ENV: "development",
       },
       merge_logs: true,
       autorestart: true,

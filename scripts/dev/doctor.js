@@ -39,7 +39,6 @@ const profilePorts = {
     { port: 5433, label: "indexer postgres" },
     { port: 6006, label: "storybook" },
     { port: 8080, label: "indexer graphql" },
-    { port: 8787, label: "ops runner" },
     { port: 9898, label: "envio indexer" },
   ],
   contracts: [],

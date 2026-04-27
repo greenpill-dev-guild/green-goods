@@ -233,27 +233,6 @@ export type {
   WorkConflict,
 } from "./offline";
 // ============================================
-// Ops Runner Types
-// ============================================
-export type {
-  OpsDeployRequest,
-  OpsJob,
-  OpsJobLogEntry,
-  OpsJobLogsState,
-  OpsJobStatus,
-  OpsJobType,
-  OpsRunnerChallengeResponse,
-  OpsRunnerHealth,
-  OpsRunnerJobResponse,
-  OpsRunnerJobsResponse,
-  OpsRunnerScriptDefinition,
-  OpsRunnerScriptsResponse,
-  OpsRunnerSession,
-  OpsRunnerVerifyResponse,
-  OpsRunScriptRequest,
-  OpsUpgradeRequest,
-} from "./ops";
-// ============================================
 // Vault Types
 // ============================================
 export type {

@@ -139,20 +139,19 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // ── Packages (7 items) ──
+    // ── Packages (6 items) ──
     {
       type: 'category',
       label: 'Packages',
       link: {
         type: 'generated-index',
         description:
-          'The 7 packages that make up the Green Goods monorepo.',
+          'The 6 packages that make up the Green Goods monorepo.',
       },
       items: [
         {type: 'doc', id: 'builders/packages/contracts', label: 'Contracts'},
         {type: 'doc', id: 'builders/packages/indexer', label: 'Indexer'},
         {type: 'doc', id: 'builders/packages/agent', label: 'Agent'},
-        {type: 'doc', id: 'builders/packages/ops', label: 'Ops'},
         {type: 'doc', id: 'builders/packages/admin', label: 'Admin'},
         {type: 'doc', id: 'builders/packages/client', label: 'Client'},
         {type: 'doc', id: 'builders/packages/shared', label: 'Shared'},
