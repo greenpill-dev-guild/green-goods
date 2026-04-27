@@ -1,6 +1,6 @@
 # Skills Quick Reference
 
-> Start with one of four verbs, or just describe planning / orchestration intent and `plan` will fire passively.
+> Start with one of five verbs, or just describe planning / orchestration intent and `plan` will fire passively.
 
 ---
 
@@ -12,6 +12,7 @@
 | **audit-then-ship** | `/audit-then-ship [scope]` | The user's default rhythm: investigate (read-only) → explicit scope-lock gate → fix only locked items → ship pipeline. Use when scope is ambiguous or multi-issue. |
 | **status** | `/status` | Resume and orient: branch state, blockers, continuity, and the next 1-3 moves |
 | **clean** | `/clean` | After findings are accepted: dispatch 8 parallel cleanup agents (use `--dry-run`, `--scope`, `--agents`) |
+| **doc-feedback** | `/doc-feedback [<docx-path>] [--mode in-repo\|out-of-repo]` | Process Google Doc review feedback for any GG doc (`docs/` drafts, research, grant proposals, product feedback) — parses comments + tracked-changes from a `.docx` export, triage gate locks scope, addresses items in-repo (edit repo files) or out-of-repo (write paste-ready `responses.md`); mode auto-inferred from title/filename |
 
 ---
 

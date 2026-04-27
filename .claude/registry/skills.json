@@ -1,6 +1,6 @@
 {
   "source": ".claude/skills/*/SKILL.md",
-  "canonical_commands": ["plan", "debug", "review", "status", "clean"],
+  "canonical_commands": ["plan", "debug", "review", "status", "clean", "doc-feedback"],
   "skills": [
     {
       "name": "plan",
@@ -401,6 +401,31 @@
         "open PR"
       ],
       "dependencies": ["ops", "testing"]
+    },
+    {
+      "name": "doc-feedback",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Phased intake of external review feedback on any Green Goods Google Doc (docs/ drafts, research, grant proposals, product feedback): parse the .docx into markdown with comments + tracked-changes, gate on user-approved triage with auto-inferred address mode, then address accepted items in either in-repo (edit repo files) or out-of-repo (write paste-ready responses.md) mode.",
+      "entry_file": ".claude/skills/doc-feedback/SKILL.md",
+      "owned_skills": [],
+      "modes": ["default", "parse-only", "triage", "address", "in-repo", "out-of-repo"],
+      "triggers": [
+        "/doc-feedback",
+        "address the doc comments",
+        "process the docx feedback",
+        "apply the team's review",
+        "address google doc review",
+        "downloaded as docx",
+        "address grant feedback",
+        "process the proposal review",
+        "apply the proposal review",
+        "address research feedback",
+        "address product feedback doc"
+      ],
+      "dependencies": []
     }
   ],
   "aliases": {
