@@ -13,7 +13,7 @@ repos:
 environment: green-goods-routines
 network-access: trusted
 connectors: []
-model: claude-opus-4-6
+model: claude-opus-4-7[1m]
 ---
 
 # Prompt

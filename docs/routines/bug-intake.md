@@ -15,7 +15,7 @@ env-vars:
   - BOT_API_TOKEN
 connectors:
   - google-drive
-model: claude-opus-4-6
+model: claude-opus-4-7
 allow-unrestricted-branch-pushes: false  # issues only, no PRs
 ---
 

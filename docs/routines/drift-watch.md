@@ -12,7 +12,7 @@ env-vars:
   - DISCORD_ENGINEERING_CHANNEL_ID
   - DISCORD_USER_ID_AFO
 connectors: []
-model: claude-opus-4-6
+model: claude-opus-4-7[1m]
 allow-unrestricted-branch-pushes: false  # issues only, no PRs
 ---
 

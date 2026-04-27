@@ -17,7 +17,7 @@ env-vars:
 connectors:
   - google-calendar
   - google-drive
-model: claude-sonnet-4-7
+model: claude-opus-4-7
 ---
 
 # Prompt
