@@ -224,7 +224,7 @@ export const Splash: React.FC<SplashProps> = ({
               <span className="font-semibold shrink-0">Error:</span>
               <span>{errorMessage || "\u00A0"}</span>
             </Alert>
-          </div>
+        </div>
         </div>
 
         {/* ─────────────────────────────────────────────────────────────────────
