@@ -19,7 +19,7 @@ env-vars:
 connectors:
   - google-calendar
   - google-drive
-model: claude-opus-4-7
+model: claude-opus-4-7[1m]
 allow-unrestricted-branch-pushes: true  # needs to push claude/metrics/YYYY-WW branches
 ---
 

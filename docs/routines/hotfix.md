@@ -11,7 +11,7 @@ env-vars:
   - DISCORD_BOT_TOKEN
   - DISCORD_PRODUCT_CHANNEL_ID
   - DISCORD_USER_ID_AFO
-model: claude-opus-4-7
+model: claude-opus-4-7[1m]
 allow-unrestricted-branch-pushes: true  # routine opens its own branches + PRs against main
 ---
 
