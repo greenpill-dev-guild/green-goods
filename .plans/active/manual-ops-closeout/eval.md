@@ -13,10 +13,12 @@
 | AC-1 | Automatic Copilot review ruleset live on `main` + `develop`, rerun-on-push enabled | `qa_pass_1` | `gh api repos/greenpill-dev-guild/green-goods/rulesets` JSON snippet |
 | AC-2 | Copilot premium-request budget + alert threshold set | `qa_pass_1` | `gh api /orgs/greenpill-dev-guild/copilot/billing` snippet or GitHub billing screenshot link |
 | AC-3 | CodeQL default setup + secret scanning + push protection + Dependabot alerts enabled | `qa_pass_1` | `gh api` reads for `code-scanning/default-setup`, `secret-scanning/alerts`, `dependabot/alerts` |
-| AC-4 | PostHog dashboards + funnels reflect new admin routes; `usePageView` fires for each | `qa_pass_1` | PostHog API dashboard link + event-feed confirmation for each new route |
-| AC-5 | Admin es/pt native translation merged | `qa_pass_1` | Merged PR link; `grep` confirms no key parity with en.json for the tracked key set; `bun run lint:vocab` green |
+| AC-4 | PostHog dashboards + funnels have no stale route references; `usePageView` fires `page_view` with `app` + `path` for current route families | `qa_pass_1` | `posthog-check.mjs` output; currently dashboards/insights pass stale-route scan, route-event proof fails with zero expected route events |
+| AC-5 | Admin es/pt translation pass has no English fallbacks in the tracked key set | `qa_pass_1` | Agent locale diff; merged PR link if strings changed; `bun run lint:vocab` green |
 | AC-6 | 2-week Copilot pilot metrics review recorded on `github-copilot-rollout` hub | `qa_pass_1` | `history[]` entry on the parent hub citing coverage, reruns, bugs, premium spend |
 | AC-7 | Each parent hub's "Manual / Human Tasks" rows are either completed or struck and cross-linked here | `qa_pass_2` | Diff on parent hubs' `plan.todo.md` and `status.json` |
+| AC-8 | Client stacking QA completed for DraftDialog, Toast, ImagePreviewDialog, wallet modal, and 375px overlap | `qa_pass_1` | Browser screenshots or short clip plus notes |
+| AC-9 | Admin breakpoint QA completed at 375/768/1024/1440 | `qa_pass_1` | Browser screenshots per breakpoint |
 
 ## Test Strategy
 
@@ -25,9 +27,10 @@
 - E2E / Playwright: n/a
 - Manual checks:
   - `gh api repos/greenpill-dev-guild/green-goods/rulesets` returns at least the Copilot-review ruleset targeting `main` / `develop`.
-  - PostHog event-feed confirms `$pageview` capture for each of the new admin routes within the last 24h of Afo's session.
+  - PostHog checker confirms `page_view` capture with `app` and `path` for each current route family.
   - `bun run lint:vocab` passes for all three locales after the translation merge.
-  - `grep -rn '"app\.' packages/shared/src/i18n/es.json packages/shared/src/i18n/pt.json` — no untranslated English fallback remains for the revamp key set.
+  - Locale diff confirms no tracked `app.admin.nav.*`, `app.admin.auth.*`, or `app.error.route.*` key remains equal to English in `es.json` / `pt.json`.
+  - Browser QA captures client stacking and admin breakpoint evidence.
 
 ## QA Sequence
 
