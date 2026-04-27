@@ -28,8 +28,8 @@
   <rect x="748" y="382" width="328" height="112" rx="16" fill="#FFFFFF" stroke="#D7D3CC"/>
   <rect x="774" y="410" width="42" height="42" rx="12" fill="#EAE6DF"/>
   <path d="M785 428H805M785 438H799" stroke="#57534E" stroke-width="4" stroke-linecap="round"/>
-  <text x="838" y="431" fill="#292524" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="750">Dialects</text>
-  <text x="838" y="461" fill="#78716C" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="500">Three app surfaces</text>
+  <text x="838" y="431" fill="#292524" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="750">Surfaces</text>
+  <text x="838" y="461" fill="#78716C" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="500">Cataloged states</text>
 
   <rect x="866" y="220" width="210" height="122" rx="18" fill="#FFFFFF" stroke="#D7D3CC"/>
   <rect x="892" y="246" width="158" height="16" rx="8" fill="#D7D3CC"/>

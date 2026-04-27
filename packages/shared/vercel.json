@@ -103,7 +103,7 @@
       ]
     },
     {
-      "source": "/social-image.png",
+      "source": "/social-card.png",
       "headers": [
         {
           "key": "Cache-Control",

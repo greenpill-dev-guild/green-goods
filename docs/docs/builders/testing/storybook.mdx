@@ -161,7 +161,7 @@ The bundle is served from the Storybook root. In the Vercel standalone deploy, t
 - `https://design.greengoods.app/theme.css` -- runtime CSS token projection
 - `https://design.greengoods.app/storybook-design-manifest.json` -- machine-readable map across design files, story roots, and import surfaces
 - `https://design.greengoods.app/index.json` -- Storybook component and state catalog
-- `https://design.greengoods.app/social-image.png` -- 1200x630 social preview image for shared Storybook links
+- `https://design.greengoods.app/social-card.png` -- 1200x630 social preview image for shared Storybook links
 
 Google Stitch should load the root DesignMD file, the browser dialect file, and the generated token JSON. Claude Design should load the same files plus `index.json` so it can reference actual story roots and component states. Storybook MCP remains a local development server capability via `@storybook/addon-mcp`; the static deploy provides the shareable story index and design exports.
 
