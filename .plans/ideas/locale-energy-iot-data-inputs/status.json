@@ -1,16 +1,16 @@
 {
   "version": 1,
   "feature": {
-    "slug": "sylvie-environmental-data-inputs",
-    "title": "Sylvie Environmental Data Inputs",
+    "slug": "locale-energy-iot-data-inputs",
+    "title": "Locale Energy IoT Data Inputs",
     "kind": "feature",
-    "stage": "backlog"
+    "stage": "ideas"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "idea",
     "priority": "p1",
-    "created_at": "2026-04-25T05:17:10.861Z",
-    "updated_at": "2026-04-25T05:22:00.000Z"
+    "created_at": "2026-04-25T05:17:13.447Z",
+    "updated_at": "2026-04-27T06:20:43.926Z"
   },
   "links": {
     "brief": "brief.md",
@@ -20,15 +20,16 @@
   },
   "notes": [
     "Split from the deleted external-data umbrella on 2026-04-25.",
-    "Scope is Sylvie app environmental/reforestation data inputs only.",
-    "Partner data is advisory for operators in Q2; do not block approvals automatically.",
-    "Direct EAS query boundary remains: do not re-index partner attestations into Envio."
+    "Scope is locale.network energy/environmental IoT data inputs only.",
+    "Account for low-cost IoT devices, zero knowledge proofs, and trusted execution environments in discovery.",
+    "Direct EAS query boundary remains: do not re-index partner attestations into Envio.",
+    "Moved to ideas on 2026-04-27 because locale.network IoT inputs still need partner/device discovery and a proof model before implementation."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
       "status": "todo",
-      "branch": "claude/ui/sylvie-environmental-data-inputs",
+      "branch": "claude/ui/locale-energy-iot-data-inputs",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "skill_tags": ["ui", "admin", "review"]
@@ -36,7 +37,7 @@
     "state_api": {
       "owner": "codex",
       "status": "todo",
-      "branch": "codex/state-api/sylvie-environmental-data-inputs",
+      "branch": "codex/state-api/locale-energy-iot-data-inputs",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "skill_tags": ["react", "partners", "eas"]
@@ -44,7 +45,7 @@
     "contracts": {
       "owner": "codex",
       "status": "n/a",
-      "branch": "codex/contracts/sylvie-environmental-data-inputs",
+      "branch": "codex/contracts/locale-energy-iot-data-inputs",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "skill_tags": ["review"]
@@ -54,7 +55,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "claude/qa-pass-1/sylvie-environmental-data-inputs",
+      "branch": "claude/qa-pass-1/locale-energy-iot-data-inputs",
       "depends_on": ["ui", "state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"]
@@ -64,8 +65,8 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "codex/qa-pass-2/sylvie-environmental-data-inputs",
-      "branch_trigger": "claude/qa-pass-1/sylvie-environmental-data-inputs",
+      "branch": "codex/qa-pass-2/locale-energy-iot-data-inputs",
+      "branch_trigger": "claude/qa-pass-1/locale-energy-iot-data-inputs",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "skill_tags": ["testing", "review"]
@@ -73,7 +74,7 @@
   },
   "history": [
     {
-      "timestamp": "2026-04-25T05:17:10.865Z",
+      "timestamp": "2026-04-25T05:17:13.454Z",
       "actor": "human",
       "lane": "system",
       "status": "scaffolded",
@@ -86,7 +87,23 @@
       "lane": "system",
       "status": "split_from_umbrella",
       "branch": null,
-      "note": "Created as the Sylvie-specific successor to the deleted external-data umbrella, focused on environmental/reforestation inputs."
+      "note": "Created as the locale.network-specific successor to the deleted external-data umbrella, focused on energy/environmental IoT inputs."
+    },
+    {
+      "timestamp": "2026-04-27T06:18:34.478Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_ideas",
+      "branch": null,
+      "note": "Moved feature hub from backlog to ideas"
+    },
+    {
+      "timestamp": "2026-04-27T06:20:43.926Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_scope_updated",
+      "branch": null,
+      "note": "Moved to ideas on 2026-04-27 because locale.network IoT inputs still need partner/device discovery and a proof model before implementation."
     }
   ]
 }

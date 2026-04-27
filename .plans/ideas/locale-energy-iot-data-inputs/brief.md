@@ -1,13 +1,15 @@
 # Locale Energy IoT Data Inputs
 
 **Slug**: `locale-energy-iot-data-inputs`
-**Stage**: `backlog`
+**Stage**: `ideas`
 **Priority**: `p1`
 **Created**: `2026-04-25`
 
 ## Problem
 
 The old external-data umbrella treated locale.network like a generic partner API. The actual opportunity is more specific: low-cost environmental and energy IoT devices with zero-knowledge and trusted-execution claims that can strengthen operator review and future verification loops.
+
+This remains an idea/discovery lane until partner docs, pilot device constraints, and a concrete proof model are known.
 
 ## Desired Outcome
 

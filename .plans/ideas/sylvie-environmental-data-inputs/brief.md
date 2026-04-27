@@ -1,13 +1,15 @@
 # Sylvie Environmental Data Inputs
 
 **Slug**: `sylvie-environmental-data-inputs`
-**Stage**: `backlog`
+**Stage**: `ideas`
 **Priority**: `p1`
 **Created**: `2026-04-25`
 
 ## Problem
 
 The previous external-data umbrella mixed two very different partner surfaces. Sylvie should stand on its own as an environmental/reforestation input lane, with discovery focused on what the Sylvie app can prove about tree planting, stewardship, vegetation, or related reforestation outcomes.
+
+This remains an idea/discovery lane until partner evidence formats, pilot needs, and an attestation shape are concrete.
 
 ## Desired Outcome
 

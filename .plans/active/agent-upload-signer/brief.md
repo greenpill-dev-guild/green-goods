@@ -1,7 +1,7 @@
 # Agent Upload Signer
 
 **Slug**: `agent-upload-signer`
-**Stage**: `backlog`
+**Stage**: `active`
 **Priority**: `p1`
 **Created**: `2026-04-25T18:43:29.436Z`
 

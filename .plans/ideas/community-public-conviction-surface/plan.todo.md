@@ -1,10 +1,12 @@
 # Community Member Public Conviction Surface
 
 **Slug**: `community-public-conviction-surface`
-**Status**: `BACKLOG`
+**Status**: `IDEA`
 **Created**: `2026-04-25`
 **Priority**: `p2` (closes the most concrete persona gap in current code)
 **Branch**: `feature/community-public-conviction-surface` (when promoted)
+
+> Moved to ideas on 2026-04-27. Current public-read-side work intentionally avoids public conviction voting; revisit this only after the public browser direction settles and a concrete community-member allocation need returns.
 
 ## Why this exists
 

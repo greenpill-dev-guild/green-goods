@@ -5,9 +5,9 @@
 **Outcome Milestone**: [Outcome: Badges live across 3+ pilot gardens](https://github.com/greenpill-dev-guild/green-goods/milestone/16) (#16)
 **Spec**: [spec.md](./spec.md)
 **Groundwork Issue**: [#457 — feat(greenwill): async badge issuer service](https://github.com/greenpill-dev-guild/green-goods/issues/457)
-**Status**: `ACTIVE`
+**Status**: `BACKLOG`
 **Created**: `2026-04-17`
-**Last Updated**: `2026-04-25`
+**Last Updated**: `2026-04-27`
 **Hard Deadline**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**
 **Branch Strategy**: `feature/reputation-badging` with phase commits for independent rollback
 
@@ -15,12 +15,14 @@
 
 > 2026-04-25 cleanup note: GreenWill Phase 0 badge lock/schema deployment, the contracts confidence gate, and portable badge rendering remain owned here. Do not chase deleted admin UI planning paths for this work.
 
+> 2026-04-27 scope update: moved to backlog. The April 28 presentation/release scope is only the existing three initial GreenWill badges (`genesis`, `first-work`, `first-support`). This hub is the later six-badge portable reputation expansion and should not block the current closeout.
+
 ## Decision Log
 
 | # | Decision | Rationale |
 |---|---|---|
 | 1 | Role C — reputation + access gating + portable cross-project identity | Single badge type serves GG display, sibling-project gating (Coop/WEFA), and universal EAS discoverability; avoids forking per-role primitives. |
-| 2 | Ship all 6 badges in Q2 (Option A) | Full taxonomy clarifies the reputation surface for operators from day one; evaluators are isolated files so scope cost is linear. |
+| 2 | Backlog all 6 expansion badges after initial 3-badge closeout | The current repo already has the initial GreenWill badge surface. The six-badge taxonomy is a later portable reputation expansion, not the April 28 scope. |
 | 3 | Dual anchor: Unlock Protocol lock per badge + EAS attestation per badge | Unlock key = revocable access credential (ERC-721, gate-compatible); EAS = permanent history. Neither alone covers both concerns. |
 | 4 | Greenwill = background issuer (not user-initiated) | Auto-issuance removes UX friction and prevents claim-hoarding; matches #457 groundwork design. |
 | 5 | Envio GraphQL subscriptions for `on-event` cadence + daily cron for `daily` cadence | Subscriptions give low-latency issuance; cron is backstop for missed events and re-eval of rolling windows / role expiry. |

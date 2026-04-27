@@ -1,23 +1,24 @@
 # Reputation & Badging
 
 **Slug**: `reputation-badging`
-**Stage**: `active`
+**Stage**: `backlog`
 **Priority**: `p1`
 **Created**: `2026-04-17`
 
 ## Problem
 
-Season One participation today has no persistent signal beyond on-chain work history. Operators can not quickly see who is a verified gardener, who has sustained contribution, or who holds stewardship authority; sibling projects (Coop, WEFA) that share identity and attestation infrastructure have no portable way to gate or recognize Green Goods contributors. The result is duplicated vetting per project and invisible reputation inside the active gardener pool.
+Season One already has an initial GreenWill badge surface for the three current badges: `genesis`, `first-work`, and `first-support`. This hub is the later six-badge portable reputation expansion, not the April 28 initial-badge closeout.
 
 ## Desired Outcome
 
-- Six badge types deployed — **Verified Gardener, Active Contributor, Stewardship, Garden Operator, Community Builder, Impact Verified** — each anchored by an Unlock Protocol lock (ERC-721 keys) + `GreenGoodsBadge` EAS attestation.
+- Six later badge types deployed — **Verified Gardener, Active Contributor, Stewardship, Garden Operator, Community Builder, Impact Verified** — each anchored by an Unlock Protocol lock (ERC-721 keys) + `GreenGoodsBadge` EAS attestation.
 - Issuance is automatic via the Greenwill background service (groundwork issue #457) watching Green Goods data and granting keys + writing attestations.
 - Badges are **portable**: sibling projects recognize them via the shared EAS schema + Unlock locks without Green Goods-specific integration.
 - Active across **3+ pilot gardens** and demonstrated in at least one sibling project by **2026-06-30**.
 
 ## Scope Notes
 
+- This plan is deferred backlog work. The near-term presentation scope is only to verify and present the existing three initial GreenWill badges.
 - In scope:
   - `packages/agent` (or new `packages/greenwill`) badge registry + per-badge evaluators + Greenwill issuer loop + Unlock client + EAS writer.
   - `packages/contracts/deployments/{chainId}-latest.json` — 6 Unlock lock addresses + 1 shared `GreenGoodsBadge` EAS schema UID.

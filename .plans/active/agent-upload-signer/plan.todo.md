@@ -1,10 +1,12 @@
 # Agent Upload Signer Plan
 
 **Feature Slug**: `agent-upload-signer`
-**Stage**: `backlog`
-**Status**: `BACKLOG`
+**Stage**: `active`
+**Status**: `ACTIVE`
 **Created**: `2026-04-25T18:43:29.436Z`
-**Last Updated**: `2026-04-25T18:43:42Z`
+**Last Updated**: `2026-04-27`
+
+> Promoted to active on 2026-04-27 as non-product security/ops hardening: remove browser upload dependence on long-lived Pinata authority while keeping direct browser-to-Pinata uploads.
 
 ## Decision Log
 

@@ -4,13 +4,13 @@
     "slug": "fix-garden-domain-ui",
     "title": "Fix Garden Domain UI & Data Issues",
     "kind": "polish",
-    "stage": "backlog"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-03-24",
-    "updated_at": "2026-04-12T02:12:11Z"
+    "updated_at": "2026-04-27T06:20:43.926Z"
   },
   "links": {
     "brief": "brief.md",
@@ -21,12 +21,13 @@
   "notes": [
     "Smallest execution-ready backlog item in the live plan surface.",
     "Shared data normalization and admin recovery UI only; no contract work.",
-    "Promote when a narrow polish slot is available."
+    "Promote when a narrow polish slot is available.",
+    "Scope updated 2026-04-27: main already has the legacy fix; do not cherry-pick. Verify/adapt the same behavior in the new admin UI."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "ready",
       "branch": "claude/ui/fix-garden-domain-ui",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -34,7 +35,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "ready",
       "branch": "codex/state-api/fix-garden-domain-ui",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -94,6 +95,22 @@
       "status": "backlog_normalized",
       "branch": null,
       "note": "Reclassified as a focused backlog polish item with ui/state_api lanes and contracts marked n/a."
+    },
+    {
+      "timestamp": "2026-04-27T06:18:28.029Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-04-27T06:20:43.926Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_scope_updated",
+      "branch": null,
+      "note": "Scope updated 2026-04-27: main already has the legacy fix; do not cherry-pick. Verify/adapt the same behavior in the new admin UI."
     }
   ]
 }

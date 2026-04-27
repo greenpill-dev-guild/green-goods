@@ -1,5 +1,7 @@
 # Reputation & Badging Evaluation Plan
 
+> 2026-04-27 scope note: this eval applies to the later six-badge portable reputation expansion. It is not required for the April 28 initial three-badge presentation scope.
+
 ## Release Gates
 
 1. **Correctness:** Greenwill issuer evaluates each of the 6 badge criteria per user against live Green Goods data, grants Unlock keys, and writes `GreenGoodsBadge` EAS attestations; issuance is idempotent (no duplicate key/attestation for the same user + badge + tier).

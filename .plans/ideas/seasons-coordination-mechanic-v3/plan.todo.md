@@ -1,9 +1,11 @@
-# Seasons — Coordination Mechanic (v3, backlog)
+# Seasons — Coordination Mechanic (v3, idea)
 
 **Slug**: `seasons-coordination-mechanic-v3`
-**Status**: `BACKLOG` — do not start without a named trigger
+**Status**: `IDEA` — do not start without a named trigger
 **Created**: `2026-04-25`
 **Priority**: `p3` (only when a concrete coordination need names itself)
+
+> Moved to ideas on 2026-04-27. This is explicitly trigger-dependent future on-chain work, not a backlog implementation item.
 
 ## Why this exists
 

@@ -1,10 +1,12 @@
 # Locale Energy IoT Data Inputs Plan
 
 **Feature Slug**: `locale-energy-iot-data-inputs`
-**Stage**: `backlog`
-**Status**: `BACKLOG`
+**Stage**: `ideas`
+**Status**: `IDEA`
 **Created**: `2026-04-25`
-**Last Updated**: `2026-04-25`
+**Last Updated**: `2026-04-27`
+
+> Moved to ideas on 2026-04-27. This is discovery/proof-model work, not implementation-ready backlog.
 
 ## Decision Log
 

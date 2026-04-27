@@ -4,7 +4,7 @@ epic: Epic — Reputation & Badging
 outcome: Badges live across 3+ pilot gardens, portable across sibling projects
 quarter: Q2 2026
 due: 2026-06-30
-status: Draft
+status: Backlog
 owner: afo
 last_updated: 2026-04-17
 ---
@@ -13,9 +13,11 @@ last_updated: 2026-04-17
 
 ## Goal
 
-Launch a **6-badge reputation system** anchored by Unlock Protocol locks + EAS attestations, issued automatically by the Greenwill service watching Green Goods data. Badges are **portable** — recognized by sibling projects (Coop, WEFA) via shared identity + attestation infra.
+Launch a later **6-badge reputation expansion** anchored by Unlock Protocol locks + EAS attestations, issued automatically by the Greenwill service watching Green Goods data. Badges are **portable** — recognized by sibling projects (Coop, WEFA) via shared identity + attestation infra.
 
 Outcome metric: 6 badge types deployed, active in 3+ pilot gardens, with cross-project recognition demonstrated in at least one sibling project.
+
+> 2026-04-27 planning note: this is backlog expansion work. The near-term release/presentation scope is the existing initial GreenWill badge set: `genesis`, `first-work`, and `first-support`.
 
 ## Decisions (locked during brainstorm)
 
