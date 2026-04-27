@@ -1,11 +1,11 @@
 import {
+  Alert,
   cn,
   DEFAULT_CHAIN_ID,
   getNetworkConfig,
   type MintingState,
   useTxErrorMessages,
 } from "@green-goods/shared";
-import { Alert } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -218,10 +218,8 @@ export function MintProgress({ state, chainId = DEFAULT_CHAIN_ID }: MintProgress
           <Alert
             variant={txError.view.severity === "warning" ? "warning" : "error"}
           >
-            <div>
               <p>{txError.title}</p>
               <p className="mt-1 text-xs">{txError.message}</p>
-            </div>
           </Alert>
         )}
     </div>

@@ -183,7 +183,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
           </>
         ) : (
           <Alert variant="warning" className="mt-3">
-            <div>
+            
             <p className="text-sm text-warning-dark">
               {formatMessage({ id: "app.community.noPoolsYet" })}
             </p>
@@ -214,7 +214,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   : formatMessage({ id: "app.community.createPools" })}
               </Button>
             )}
-            </div>
+            
           </Alert>
         )}
       </Card>

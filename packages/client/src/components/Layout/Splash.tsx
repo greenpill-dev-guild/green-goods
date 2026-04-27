@@ -212,7 +212,6 @@ export const Splash: React.FC<SplashProps> = ({
         ───────────────────────────────────────────────────────────────────── */}
         <div className="relative w-full h-16 mt-2">
           <div
-            role="alert"
             aria-live="polite"
             className={`absolute left-0 right-0 top-0 w-full transition-all duration-200 ${
               errorMessage && !loadingState
@@ -220,6 +219,7 @@ export const Splash: React.FC<SplashProps> = ({
                 : "opacity-0 -translate-y-2 pointer-events-none"
             }`}
           >
+            
             <Alert variant="error" className="flex w-full items-start gap-2">
               <span className="font-semibold shrink-0">Error:</span>
               <span>{errorMessage || "\u00A0"}</span>

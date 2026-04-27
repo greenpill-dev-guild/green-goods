@@ -206,7 +206,6 @@ export function ReviewForm({
               <ReviewSummary work={work} />
             ) : blockedState === "expired" ? (
               <Alert variant="warning" className="mt-4">
-                <div>
                 <p className="text-sm font-medium text-warning-dark">
                   {formatMessage({
                     id: "app.work.detail.reviewBlocked.expiredTitle",
@@ -220,7 +219,6 @@ export function ReviewForm({
                       "This action is no longer active, so new approval decisions are blocked.",
                   })}
                 </p>
-              </div>
               </Alert>
             ) : blockedState === "role-blocked" ? (
               <div className="mt-4 rounded-xl border border-information-light bg-information-lighter p-4">

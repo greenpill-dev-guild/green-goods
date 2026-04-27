@@ -203,24 +203,23 @@ export const Hero: FC<HeroProps> = () => {
               {/* Browser Switch Warning */}
               {(guidance.scenario === "wrong-browser" ||
                 guidance.scenario === "in-app-browser") && (
-                <Alert variant="warning" className="flex items-start gap-3">
-                  <RiAlertLine className="w-5 h-5 text-warning-dark shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-warning-dark text-sm">
-                      {guidance.scenario === "in-app-browser"
-                        ? intl.formatMessage({
-                            id: "app.hero.inapp.title",
-                            defaultMessage: "Open in Browser",
-                          })
-                        : intl.formatMessage({
-                            id: "app.hero.wrongbrowser.title",
-                            defaultMessage: "Switch Browser",
-                          })}
-                    </p>
-                    <p className="text-sm text-warning-dark/80 mt-1">
-                      {guidance.browserSwitchReason}
-                    </p>
-                  </div>
+                <Alert
+                  variant="warning"
+                  title={
+                    guidance.scenario === "in-app-browser"
+                      ? intl.formatMessage({
+                          id: "app.hero.inapp.title",
+                          defaultMessage: "Open in Browser",
+                        })
+                      : intl.formatMessage({
+                          id: "app.hero.wrongbrowser.title",
+                          defaultMessage: "Switch Browser",
+                        })
+                  }
+                >
+                  <p className="mt-1 text-sm">
+                    {guidance.browserSwitchReason}
+                  </p>
                 </Alert>
               )}
 

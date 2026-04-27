@@ -67,7 +67,6 @@ export function TreasuryTabContent({
 
       {vaultsError && (
         <Alert variant="error">
-          <div>
           <p>{formatMessage({ id: "app.treasury.errorLoading" })}</p>
           <button
             type="button"
@@ -76,7 +75,6 @@ export function TreasuryTabContent({
           >
             {formatMessage({ id: "app.common.tryAgain" })}
           </button>
-          </div>
         </Alert>
       )}
 

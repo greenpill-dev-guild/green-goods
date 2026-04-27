@@ -127,22 +127,21 @@ export const AccountInfo: React.FC = () => {
       )}
 
       {authMode === "passkey" && (
-        <Alert variant="warning">
-        <div>
-          <p className="font-medium flex items-center gap-1.5">
-            <RiAlertLine className="w-3.5 h-3.5 shrink-0" />
-            {intl.formatMessage({
-              id: "app.identity.passkeyWarning.title",
-              defaultMessage: "Passkey stored locally",
-            })}
-          </p>
-          <p className="mt-1 leading-relaxed">
+        <Alert
+          variant="warning"
+          title={intl.formatMessage({
+            id: "app.identity.passkeyWarning.title",
+            defaultMessage: "Passkey stored locally",
+          })}
+        >
+          <p className="leading-relaxed">
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.message",
               defaultMessage:
                 "Your passkey is stored on this device's browser storage. Clearing browser data or uninstalling the app will permanently remove access to this account.",
             })}
           </p>
+
           <p className="mt-1 leading-relaxed">
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.guidance",
@@ -150,7 +149,6 @@ export const AccountInfo: React.FC = () => {
                 "For persistent access across devices, consider switching to wallet-based login.",
             })}
           </p>
-        </div>
         </Alert>
       )}
 

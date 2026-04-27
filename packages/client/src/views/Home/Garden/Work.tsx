@@ -31,7 +31,6 @@ import {
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
-import { Alert } from "@green-goods/shared";
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
@@ -301,15 +300,12 @@ export const GardenWork: React.FC = () => {
       <div className="fixed left-0 right-0 bottom-0 p-4 pb-6 z-sticky">
         <div className="max-w-screen-sm mx-auto">
           <Alert variant="warning">
-          <div>
-            <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
-            <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
+            <p className="text-sm mb-3 flex items-center gap-2">
             {intl.formatMessage({
               id: "app.home.work.pendingUpload",
               defaultMessage: "This work is pending upload to the blockchain.",
             })}
-            </p>
-          </div>
+          </p>
           </Alert>
           <Button
             onClick={handleRetry}
@@ -613,7 +609,6 @@ export const GardenWork: React.FC = () => {
 
         {metadataStatus === "error" && (
           <Alert variant="error" className="mt-4 flex items-start gap-3">
-            <RiErrorWarningLine className="w-5 h-5 text-error-base flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm text-error-dark font-medium">
                 {intl.formatMessage({
