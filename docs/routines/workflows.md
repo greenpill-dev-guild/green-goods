@@ -10,8 +10,8 @@ Where you (Afo) plug into the routine system. Routines do the inventory; you mak
 | **Green Goods Hotfix** | Review + merge PR to `main` | @mention on PR open + CI green/red | ~10 min when fired |
 | **Green Goods Plan Executor** | Apply `plan-task` label to dispatch issues | Daily summary in `#product` | ~10 min/day |
 | | Review + merge PRs to `develop` | (PR Review comments inline) | per PR |
-| **Green Goods Health Watch** | Investigate real anomalies | @mention only on 🔴 | rare |
-| **Green Goods Drift Watch** | Read 5 weekly snapshots → label `plan-task` on items worth fixing | Sunday morning Discord summary | ~45 min/week |
+| **Green Goods Health Watch** | Investigate real anomalies across indexer, 8-lane CI, and contracts | @mention only on 🔴 | rare |
+| **Green Goods Drift Watch** | Read package snapshots → label `plan-task` on items worth fixing | Sunday morning Discord summary | ~45 min/week |
 | **Green Goods Metrics** | Review + merge weekly digest PR; investigate metric anomalies | @mention on anomaly | ~15 min/week |
 | **Green Goods PR Review** | Read inline review comments; address invariant violations | inline on PR | per PR |
 | **Dev Guild Daily Synthesis** | Read lead-council digest (optional) | private `#lead-council` | optional |
@@ -38,6 +38,12 @@ Three signals you control move work through the system:
 | **Remove `agent:assigned:claude`** | Releases issue back into dispatch pool (retry) | Remove label to re-dispatch |
 
 Without these signals, routines write evidence and stop. They never auto-merge, never auto-submit, never auto-promote without a human signal.
+
+## Actions vs routines
+
+GitHub Actions are now the deterministic execution layer: `contracts.yml`, `indexer.yml`, `shared.yml`, `client.yml`, `admin.yml`, `agent.yml`, `design.yml`, and `docs.yml`. Package tests/builds, CodeQL, focused Playwright projects, Storybook/design checks, docs deploys, trusted contract fork readiness, and Lighthouse advisories live there. Client/admin source-map processing runs inside the Vercel deploy build so the uploaded maps match the published bundle.
+
+Judgment-heavy work lives outside Actions: Claude routines cover PR review, drift snapshots, health triage, hotfixes, and issue execution; Copilot automatic review and GitHub native review provide additional PR perspectives. Removed meta workflows such as product sync, guidance checks, source-structure review, test-quality review, mutation reliability review, and contracts security review should re-enter through drift-watch, pr-review, health-watch, or an explicit `plan-task`, not as new standalone Actions.
 
 ---
 
@@ -93,12 +99,15 @@ flowchart LR
     PR --> PRR[PR Review<br/>inline]
     HF -.->|@mention on PR open<br/>and CI green/red| AFO2((You))
     AFO2 -->|merge| Main[main]
-    Main -->|sync-develop.yml| Dev[develop fast-forwarded]
+    Main --> HF2[Hotfix backport check]
+    HF2 -->|follow-up PR| BPR[Backport PR to develop]
+    BPR --> AFO3((You))
+    AFO3 -->|merge| Dev[develop]
     
     classDef human fill:#fef3c7,stroke:#d97706,stroke-width:2px
     classDef routine fill:#e0e7ff,stroke:#4f46e5
-    class AFO1,AFO2 human
-    class BI,HF,PRR routine
+    class AFO1,AFO2,AFO3 human
+    class BI,HF,HF2,PRR routine
 ```
 
 ### Plan pipeline — labeled issue → fix on develop

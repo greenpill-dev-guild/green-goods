@@ -1,0 +1,128 @@
+name: Indexer
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - ".env.schema"
+      - "packages/indexer/**"
+      - "packages/contracts/src/**"
+      - "packages/contracts/abis/**"
+      - "packages/contracts/deployments/**"
+      - ".github/workflows/indexer.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - ".env.schema"
+      - "packages/indexer/**"
+      - "packages/contracts/src/**"
+      - "packages/contracts/abis/**"
+      - "packages/contracts/deployments/**"
+      - ".github/workflows/indexer.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check indexing boundary
+        working-directory: packages/indexer
+        run: bun run check:indexing-boundary
+
+      - name: Generate indexer code
+        working-directory: packages/indexer
+        run: bun run codegen
+
+      - name: Setup generated folder
+        working-directory: packages/indexer
+        run: bun run setup-generated
+
+      - name: Run indexer tests
+        working-directory: packages/indexer
+        run: bun run test
+        env:
+          CI: true
+
+      - name: Generate coverage report
+        working-directory: packages/indexer
+        run: bun run test:coverage
+        continue-on-error: true
+        env:
+          CI: true
+
+  lint-build:
+    name: Lint And Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check indexing boundary
+        working-directory: packages/indexer
+        run: bun run check:indexing-boundary
+
+      - name: Generate indexer code
+        working-directory: packages/indexer
+        run: bun run codegen
+
+      - name: Setup generated folder
+        working-directory: packages/indexer
+        run: bun run setup-generated
+
+      - name: Run indexer lint
+        working-directory: packages/indexer
+        run: bun run lint
+
+      - name: Build indexer
+        working-directory: packages/indexer
+        run: bun run build

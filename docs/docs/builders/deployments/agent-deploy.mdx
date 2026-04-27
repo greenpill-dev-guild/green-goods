@@ -174,7 +174,7 @@ The agent uses `@green-goods/shared` for blockchain interactions, following the 
 
 ## Resources
 
-- **CI Integration**: The `agent-tests.yml` workflow triggers on changes to `packages/agent/**` and runs Vitest tests with lint checks.
+- **CI Integration**: The `agent.yml` workflow triggers on changes to `packages/agent/**`, shared dependencies, and root dependency/config files. It runs Vitest coverage, lint, typecheck, and build.
 
 <NextBestAction
   title="Next: Testing with Foundry"

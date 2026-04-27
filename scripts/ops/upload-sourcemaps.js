@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 /**
- * scripts/upload-sourcemaps.js - Upload source maps to PostHog locally
+ * scripts/ops/upload-sourcemaps.js - Upload source maps to PostHog
  *
- * This script mirrors what .github/workflows/upload-sourcemaps.yml does,
- * allowing you to test sourcemap uploads locally before pushing to CI.
+ * This script runs in the actual Vercel deploy build after Vite emits `dist/`.
+ * It injects PostHog source-map metadata into the bundle that Vercel will
+ * publish, uploads the maps, then removes the map files before publish.
  *
- * Usage: node scripts/upload-sourcemaps.js [options]
+ * It also supports local/manual uploads through the root sourcemaps scripts.
+ *
+ * Usage: node scripts/ops/upload-sourcemaps.js [options]
  *   --app <client|admin|both>  Which app to upload (default: both)
+ *   --deploy                   Deploy-build mode; infer Vercel env/SHA and skip build
  *   --skip-build               Skip build step (use existing dist)
  *   --dry-run                  Show what would be done without uploading
  *   --keep-maps                Don't delete source maps after upload
@@ -14,11 +18,13 @@
  *   --env <staging|production> Environment (default: staging)
  *   --help, -h                 Show this help message
  *
- * Required environment variables:
+ * Required for production deploys and local uploads:
  *   POSTHOG_CLI_TOKEN          API token with error-tracking:write scope
+ *   POSTHOG_CLIENT_ENV_ID      PostHog environment ID for client uploads
+ *   POSTHOG_ADMIN_ENV_ID       PostHog environment ID for admin uploads
  *
  * Optional environment variables:
- *   POSTHOG_HOST               PostHog host (default: https://us.posthog.com)
+ *   POSTHOG_CLI_HOST           PostHog app/API host (default: https://us.posthog.com)
  *
  * @see https://posthog.com/docs/error-tracking/upload-source-maps/cli
  */
@@ -33,6 +39,7 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = resolve(__dirname, "../..");
+const posthogCliBin = resolve(projectRoot, "node_modules/.bin/posthog-cli");
 
 // ANSI color codes
 const colors = {
@@ -44,14 +51,14 @@ const colors = {
   dim: "\x1b[2m",
 };
 
-// App configurations (mirrors the GitHub Actions matrix)
+// App-specific PostHog upload configuration
 const appConfigs = {
   client: {
     title: "Client",
     build: "build:client",
     dist: "packages/client/dist",
     project: "green-goods-client",
-    envId: "163591",
+    envIdEnv: "POSTHOG_CLIENT_ENV_ID",
     packageJson: "packages/client/package.json",
   },
   admin: {
@@ -59,7 +66,7 @@ const appConfigs = {
     build: "build:admin",
     dist: "packages/admin/dist",
     project: "green-goods-admin",
-    envId: "262122",
+    envIdEnv: "POSTHOG_ADMIN_ENV_ID",
     packageJson: "packages/admin/package.json",
   },
 };
@@ -67,6 +74,7 @@ const appConfigs = {
 // Configuration
 const config = {
   apps: ["client", "admin"],
+  deploy: false,
   skipBuild: false,
   dryRun: false,
   keepMaps: false,
@@ -105,6 +113,10 @@ function printError(message) {
 
 function printInfo(message) {
   console.log(`${colors.dim}ℹ ${message}${colors.reset}`);
+}
+
+function shellQuote(value) {
+  return `"${value.replace(/(["\\$`])/g, "\\$1")}"`;
 }
 
 /**
@@ -162,6 +174,47 @@ function getGitSha() {
   } catch {
     return null;
   }
+}
+
+/**
+ * Get the commit SHA from deploy providers before falling back to git
+ */
+function getDeploySha() {
+  return process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || null;
+}
+
+/**
+ * Map Vercel's deployment environment to the app's release environment labels
+ */
+function getDeployEnvironment() {
+  return process.env.VERCEL_ENV === "production" ? "production" : "staging";
+}
+
+/**
+ * Check whether a deploy build is publishing production assets
+ */
+function isProductionDeploy() {
+  return config.deploy && config.env === "production";
+}
+
+/**
+ * Required PostHog variables for the selected apps
+ */
+function getMissingPosthogEnv() {
+  const missing = [];
+
+  if (!process.env.POSTHOG_CLI_TOKEN) {
+    missing.push("POSTHOG_CLI_TOKEN");
+  }
+
+  for (const appName of config.apps) {
+    const envName = appConfigs[appName].envIdEnv;
+    if (!process.env[envName]) {
+      missing.push(envName);
+    }
+  }
+
+  return [...new Set(missing)];
 }
 
 /**
@@ -233,73 +286,23 @@ function deleteSourceMaps(dir) {
 }
 
 /**
- * Check if PostHog CLI is installed
- * Also adds ~/.posthog to PATH if it exists (where the installer puts it)
+ * Check if the pinned local PostHog CLI is installed
  */
-async function checkPosthogCli() {
-  // Add ~/.posthog to PATH if it exists (installer default location)
-  const posthogDir = join(process.env.HOME || "", ".posthog");
-  if (existsSync(posthogDir) && !process.env.PATH?.includes(posthogDir)) {
-    process.env.PATH = `${posthogDir}:${process.env.PATH}`;
-  }
-
-  try {
-    await runCommand("posthog-cli --version", { silent: true });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Install PostHog CLI
- *
- * Security note: This function tries npm first (safer) before falling back to
- * the curl|sh installer. The curl|sh method pipes remote code to shell, which
- * requires explicit opt-in via CI or ALLOW_REMOTE_INSTALL environment variables.
- */
-async function installPosthogCli() {
-  printInfo("Installing PostHog CLI...");
-
-  // Try npm first (safer)
-  try {
-    await runCommand("npm install -g @posthog/cli");
-    return true;
-  } catch {
-    printWarning("npm install failed");
-  }
-
-  // Fallback to curl installer with warning
-  printWarning("Attempting curl|sh installer. This pipes remote code to shell.");
-  printInfo("For security-sensitive environments, install manually:");
-  printInfo("  npm install -g @posthog/cli");
-
-  // Only proceed in CI or with explicit opt-in
-  if (!process.env.CI && !process.env.ALLOW_REMOTE_INSTALL) {
-    printError("Set ALLOW_REMOTE_INSTALL=1 or CI=1 to allow curl installer");
-    return false;
-  }
-
-  try {
-    await runCommand(
-      'curl --proto "=https" --tlsv1.2 -LsSf https://github.com/PostHog/posthog/releases/latest/download/posthog-cli-installer.sh | sh'
-    );
-    return true;
-  } catch {
-    return false;
-  }
+function checkPosthogCli() {
+  return existsSync(posthogCliBin);
 }
 
 /**
  * Show help message
  */
 function showHelp() {
-  console.log("Usage: node scripts/upload-sourcemaps.js [options]");
+  console.log("Usage: node scripts/ops/upload-sourcemaps.js [options]");
   console.log("");
   console.log("Upload source maps to PostHog for error tracking.");
   console.log("");
   console.log("Options:");
   console.log("  --app <app>        Which app to upload: client, admin, or both (default: both)");
+  console.log("  --deploy           Deploy-build mode; infer Vercel env/SHA and skip build");
   console.log("  --skip-build       Skip build step, use existing dist folder");
   console.log("  --dry-run          Show what would be done without actually uploading");
   console.log("  --keep-maps        Don't delete source maps after upload");
@@ -308,18 +311,17 @@ function showHelp() {
   console.log("  --help, -h         Show this help message");
   console.log("");
   console.log("Environment variables:");
-  console.log("  POSTHOG_CLI_TOKEN       Required: API token with error-tracking:write scope");
-  console.log("  POSTHOG_HOST            Optional: PostHog host (default: https://us.posthog.com)");
-  console.log("");
-  console.log("Hardcoded environment IDs:");
-  console.log("  Client: 163591");
-  console.log("  Admin:  262122");
+  console.log("  POSTHOG_CLI_TOKEN       Required for production deploys and local uploads");
+  console.log("  POSTHOG_CLIENT_ENV_ID   Required for client production deploys and uploads");
+  console.log("  POSTHOG_ADMIN_ENV_ID    Required for admin production deploys and uploads");
+  console.log("  POSTHOG_CLI_HOST        Optional: PostHog app/API host (default: https://us.posthog.com)");
   console.log("");
   console.log("Examples:");
-  console.log("  node scripts/upload-sourcemaps.js                    # Upload both apps");
-  console.log("  node scripts/upload-sourcemaps.js --app client       # Upload client only");
-  console.log("  node scripts/upload-sourcemaps.js --skip-build       # Use existing build");
-  console.log("  node scripts/upload-sourcemaps.js --dry-run          # Test without uploading");
+  console.log("  node scripts/ops/upload-sourcemaps.js --app client --deploy  # Vercel deploy build");
+  console.log("  node scripts/ops/upload-sourcemaps.js                         # Upload both apps");
+  console.log("  node scripts/ops/upload-sourcemaps.js --app client            # Upload client only");
+  console.log("  node scripts/ops/upload-sourcemaps.js --skip-build            # Use existing build");
+  console.log("  node scripts/ops/upload-sourcemaps.js --dry-run               # Test without uploading");
   console.log("");
   console.log("Setup:");
   console.log("  1. Go to PostHog Settings > Personal API Keys");
@@ -335,6 +337,7 @@ function showHelp() {
 // ============================================================================
 
 const args = process.argv.slice(2);
+let envWasProvided = false;
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   switch (arg) {
@@ -352,6 +355,10 @@ for (let i = 0; i < args.length; i++) {
         printError(`Invalid app: ${app}. Must be client, admin, or both`);
         process.exit(1);
       }
+      break;
+    case "--deploy":
+      config.deploy = true;
+      config.skipBuild = true;
       break;
     case "--skip-build":
       config.skipBuild = true;
@@ -377,6 +384,7 @@ for (let i = 0; i < args.length; i++) {
       const env = args[++i];
       if (env === "staging" || env === "production") {
         config.env = env;
+        envWasProvided = true;
       } else {
         printError(`Invalid environment: ${env}. Must be staging or production`);
         process.exit(1);
@@ -389,18 +397,29 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
+if (config.deploy) {
+  if (!envWasProvided) {
+    config.env = getDeployEnvironment();
+  }
+  if (!config.version) {
+    config.version = getDeploySha();
+  }
+}
+
 // ============================================================================
 // Main
 // ============================================================================
 
 async function uploadSourceMapsForApp(appName) {
   const appConfig = appConfigs[appName];
-  const distPath = resolve(projectRoot, appConfig.dist);
 
   printSection(`${appConfig.title} Source Maps`);
 
-  // Use hardcoded environment ID for each app
-  const envId = appConfig.envId;
+  const envId = process.env[appConfig.envIdEnv] || (config.dryRun ? `<${appConfig.envIdEnv}>` : null);
+  if (!envId) {
+    printError(`Missing ${appConfig.envIdEnv} environment variable`);
+    return false;
+  }
 
   // Get version
   const version = config.version || getGitSha();
@@ -430,26 +449,26 @@ async function uploadSourceMapsForApp(appName) {
 
   if (config.dryRun) {
     printWarning("DRY RUN - Would upload source maps with:");
-    console.log(`  posthog-cli sourcemap inject --directory ${appConfig.dist} --project ${appConfig.project} --version ${version}`);
-    console.log(`  posthog-cli sourcemap upload --directory ${appConfig.dist}${config.keepMaps ? "" : " --delete-after"}`);
+    console.log(`  ${posthogCliBin} sourcemap inject --directory ${appConfig.dist} --project ${appConfig.project} --version ${version}`);
+    console.log(`  ${posthogCliBin} sourcemap upload --directory ${appConfig.dist}${config.keepMaps ? "" : " --delete-after"}`);
     return true;
   }
 
   // Build environment for CLI commands
   const cliEnv = {
-    POSTHOG_CLI_TOKEN: process.env.POSTHOG_CLI_TOKEN,
-    POSTHOG_CLI_HOST: process.env.POSTHOG_HOST || "https://us.posthog.com",
+    POSTHOG_CLI_API_KEY: process.env.POSTHOG_CLI_TOKEN,
+    POSTHOG_CLI_HOST: process.env.POSTHOG_CLI_HOST || "https://us.posthog.com",
   };
   // Only include env ID if provided
   if (envId) {
-    cliEnv.POSTHOG_CLI_ENV_ID = envId;
+    cliEnv.POSTHOG_CLI_PROJECT_ID = envId;
   }
 
   // Step 1: Inject source map metadata
   printInfo("Injecting source map metadata...");
   try {
     await runCommand(
-      `posthog-cli sourcemap inject --directory "${appConfig.dist}" --project "${appConfig.project}" --version "${version}"`,
+      `${shellQuote(posthogCliBin)} sourcemap inject --directory "${appConfig.dist}" --project "${appConfig.project}" --version "${version}"`,
       { env: cliEnv }
     );
     printSuccess("Metadata injected");
@@ -462,7 +481,7 @@ async function uploadSourceMapsForApp(appName) {
   printInfo("Uploading source maps to PostHog...");
   try {
     const deleteFlag = config.keepMaps ? "" : " --delete-after";
-    await runCommand(`posthog-cli sourcemap upload --directory "${appConfig.dist}"${deleteFlag}`, {
+    await runCommand(`${shellQuote(posthogCliBin)} sourcemap upload --directory "${appConfig.dist}"${deleteFlag}`, {
       env: cliEnv,
     });
     printSuccess("Source maps uploaded");
@@ -492,6 +511,7 @@ async function main() {
   // Show configuration
   console.log(`${colors.yellow}Configuration:${colors.reset}`);
   console.log(`  Apps: ${config.apps.join(", ")}`);
+  console.log(`  Deploy Mode: ${config.deploy ? "Yes" : "No"}`);
   console.log(`  Skip Build: ${config.skipBuild ? "Yes" : "No"}`);
   console.log(`  Dry Run: ${config.dryRun ? "Yes" : "No"}`);
   console.log(`  Keep Maps: ${config.keepMaps ? "Yes" : "No"}`);
@@ -500,30 +520,38 @@ async function main() {
   console.log("");
 
   // Check required environment variables
-  if (!process.env.POSTHOG_CLI_TOKEN) {
-    printError("Missing POSTHOG_CLI_TOKEN environment variable");
-    printInfo("Get your API token from: PostHog Settings > Personal API Keys");
-    printInfo("Make sure it has 'error-tracking:write' scope");
-    process.exit(1);
+  const missingPosthogEnv = getMissingPosthogEnv();
+  if (missingPosthogEnv.length > 0) {
+    if (config.deploy && !isProductionDeploy()) {
+      printWarning(`Skipping source-map upload for non-production deploy; missing ${missingPosthogEnv.join(", ")}`);
+      printInfo("Configure PostHog source-map variables in Vercel to enable preview/staging uploads.");
+      process.exit(0);
+    }
+
+    if (!config.dryRun) {
+      printError(`Missing required PostHog environment variable(s): ${missingPosthogEnv.join(", ")}`);
+      printInfo("Set POSTHOG_CLI_TOKEN and the selected app's POSTHOG_*_ENV_ID before uploading source maps.");
+      printInfo("Production deploy builds fail closed so Vercel cannot publish an unprocessed production bundle.");
+      process.exit(1);
+    }
+
+    printWarning(`Dry run continuing without PostHog environment variable(s): ${missingPosthogEnv.join(", ")}`);
   }
 
   // Check for PostHog CLI
   const hasPosthogCli = await checkPosthogCli();
   if (!hasPosthogCli) {
-    printWarning("PostHog CLI not found");
+    printError("Pinned PostHog CLI not found");
+    printInfo(`Expected: ${posthogCliBin}`);
+    printInfo("Run bun install --frozen-lockfile before uploading source maps.");
+    printInfo("The CLI is pinned in package.json as @posthog/cli.");
     if (config.dryRun) {
-      printInfo("Would install PostHog CLI");
+      printInfo("Dry run can continue without invoking the CLI.");
     } else {
-      const installed = await installPosthogCli();
-      if (!installed) {
-        printError("Failed to install PostHog CLI");
-        printInfo("Try installing manually: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/PostHog/posthog/releases/latest/download/posthog-cli-installer.sh | sh");
-        process.exit(1);
-      }
-      printSuccess("PostHog CLI installed");
+      process.exit(1);
     }
   } else {
-    printSuccess("PostHog CLI found");
+    printSuccess("Pinned PostHog CLI found");
   }
 
   // Build step

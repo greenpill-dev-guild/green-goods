@@ -24,7 +24,7 @@ Apply these settings in GitHub after the repo-backed rollout files are merged. T
 ## 3. Security And Quality
 
 - [ ] Enable GitHub Code Security or GitHub Advanced Security for this repository if available.
-- [ ] Enable Code scanning and confirm `.github/workflows/codeql.yml` succeeds on the default branch for both `javascript-typescript` and `actions`.
+- [ ] Enable Code scanning and confirm the CodeQL job in `.github/workflows/shared.yml` succeeds on the default branch for both `javascript-typescript` and `actions`.
 - [ ] Enable the dependency graph.
 - [ ] Enable Dependabot alerts.
 - [ ] Keep npm version-update PRs disabled until the Bun-first remediation loop is intentionally revisited.

@@ -246,9 +246,9 @@ This is the first official release of Green Goods — an offline-first platform 
 - `scripts/test-e2e.js` — E2E test runner with filtering
 
 **CI/CD:**
-- `.github/workflows/e2e-tests.yml` — comprehensive E2E pipeline
-- `.github/workflows/deploy-docs.yml` — Docusaurus deployment
-- Shared Bun setup action
+- `.github/workflows/client.yml` / `.github/workflows/admin.yml` — package CI with focused Playwright projects
+- `.github/workflows/docs.yml` — trusted Docusaurus deployment
+- Inline Bun setup per lane
 
 **Tooling:**
 - `CLAUDE.md` — AI assistant context

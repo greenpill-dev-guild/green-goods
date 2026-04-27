@@ -35,11 +35,11 @@ scripts/
 ### `quality/` — CI gates and consistency
 | Script | Caller | Purpose |
 |---|---|---|
-| `check-codex-docs.js` | `bun run check:codex-guidance`, `codex-guidance.yml` | Verify `AGENTS.md` ↔ `.codex/` ↔ `package.json` ↔ `codex.mdx` parity |
-| `check-source-structure.js` | `bun run check:source-structure`, `source-structure.yml` | File-size limits + frozen-allowlist policy |
-| `check-test-quality.sh` | `test-quality.yml` | Detect tautological `expect(true)`, ungoverned `.skip`, `@ts-nocheck` in tests |
-| `check-story-coverage.ts` | `storybook.yml` (via `packages/shared` script) | Storybook coverage policy per package |
-| `check-story-quality.ts` | `storybook.yml` (via `packages/shared` script) | Storybook story-quality lints |
+| `check-codex-docs.js` | `bun run check:codex-guidance` | Verify `AGENTS.md` ↔ `.codex/` ↔ `package.json` ↔ `codex.mdx` parity |
+| `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
+| `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological `expect(true)`, ungoverned `.skip`, `@ts-nocheck` in tests |
+| `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |
+| `check-story-quality.ts` | `design.yml` (via `packages/shared` script) | Storybook story-quality lints |
 | `check-docs-design-parity.mjs` | `bun run check:docs-design-parity` | `docs/DESIGN.md` ↔ `docs/src/css/custom.css` role-accent + section-accent parity (light + dark) |
 | `check-react-patterns.js` | `bun run lint:rules` | Repo-specific React, TypeScript, import, and frontend-pattern lint rules with a generated baseline |
 
@@ -53,10 +53,10 @@ scripts/
 ### `contracts/` — contract audits + verification
 | Script | Caller | Purpose |
 |---|---|---|
-| `check-test-realism.sh` | `contracts-tests.yml`, `packages/contracts test:audit:realism` | Audit fork/E2E tests for mocks, generic reverts, CI skip-returns |
+| `check-test-realism.sh` | `contracts.yml`, `packages/contracts test:audit:realism` | Audit fork/E2E tests for mocks, generic reverts, CI skip-returns |
 | `check-test-realism-worker.cjs` | `check-test-realism.sh` | Node worker for the audit (CommonJS — uses `require`) |
-| `validate-test-realism-tooling.sh` | `contracts-tests.yml`, `packages/contracts test:audit:realism:tooling` | Meta-test that exercises the realism audit script itself |
-| `run-coverage-audit.sh` | `contracts-tests.yml`, `packages/contracts test:audit:coverage` | Run unit + integration coverage and write `output/contracts-test-audit/` reports |
+| `validate-test-realism-tooling.sh` | `contracts.yml`, `packages/contracts test:audit:realism:tooling` | Meta-test that exercises the realism audit script itself |
+| `run-coverage-audit.sh` | `packages/contracts test:audit:coverage` | Run unit + integration coverage and write `output/contracts-test-audit/` reports |
 | `coverage-policy.mjs` | `run-coverage-audit.sh` | Per-file coverage thresholds policy |
 | `verify-production.sh` | `bun run verify:contracts[:fast]` | Pre-deploy contract verification gate |
 
@@ -66,7 +66,7 @@ scripts/
 | `garden-rename-batch.ts` | `bun run garden:rename-batch[:dry:arbitrum/:arbitrum]` | Build Safe txs to rename gardens in batch |
 | `ipfs-repin.ts` | `bun run ipfs:repin[:audit]` | Re-pin / audit Pinata content |
 | `upload-action-images.ts` | `bun run upload:action-images[:dry-run]` | Upload action images to IPFS |
-| `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `upload-sourcemaps.yml` | Upload built sourcemaps to error tracker |
+| `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `packages/client build:deploy`, `packages/admin build:deploy` | Inject and upload built sourcemaps to PostHog with per-app env IDs |
 
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |
@@ -74,6 +74,7 @@ scripts/
 | `fetch-stitch.sh` | `stitch-design` skill | Download Stitch assets through GCS redirect chain |
 | `plan-hub.mjs` | `plan` skill, `.plans/_automation/*` | Manage `.plans/{ideas,backlog,active}/` queue + lane status |
 | `log-automation-run.mjs` | `.plans/_automation/*` prompts | Append plan-run telemetry under `.plans/_automation/runs/` |
+| `parse-docx-feedback.ts` | `doc-feedback` skill | Parse a Google Doc downloaded as `.docx` into markdown with body + comments + tracked changes |
 
 ### `postinstall/`
 | Script | Caller | Purpose |

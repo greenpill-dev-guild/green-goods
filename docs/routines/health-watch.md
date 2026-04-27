@@ -59,7 +59,7 @@ If the indexer endpoint returns 5xx, treat as 🔴 anomaly (`indexer unreachable
 ### 2. `health:ci`
 
 Use `gh run list --branch main --status failure --created ">1 day ago" --limit 20`.
-If any failures exist → anomaly. Issue body should list failing workflow names, run URLs, and whether the same workflow failed before.
+If any failures exist in the eight-lane Actions surface (`contracts`, `indexer`, `shared`, `client`, `admin`, `agent`, `design`, `docs`) → anomaly. Issue body should list failing workflow names, run URLs, and whether the same workflow failed before. Treat Copilot automatic review, GitHub native review, and Claude routine output as advisory context, not CI failure sources.
 
 ### 3. `health:contracts`
 

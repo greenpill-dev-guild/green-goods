@@ -9,6 +9,8 @@ feature_status: Live
 source_of_truth:
   - packages/client/package.json
   - packages/client/vite.config.ts
+  - packages/client/vercel.json
+  - scripts/ops/upload-sourcemaps.js
   - packages/shared/src/modules/app/service-worker.ts
 keywords: [client, PWA, Vite, service worker, offline, deployment]
 ---
@@ -94,7 +96,7 @@ The client build outputs to `packages/client/dist/`. This is a fully static site
 
 ### CI Build
 
-The E2E workflow builds the client with test configuration:
+The `client.yml` lane builds the client with test configuration:
 
 ```yaml
 - name: Build client for E2E
@@ -137,14 +139,26 @@ This architecture means the deployment must ensure the service worker and precac
 
 ### Performance Monitoring
 
-The `lighthouse-ci.yml` workflow runs Lighthouse audits against deployed sites, checking:
+The `client.yml` lane has a manual Lighthouse advisory job checking:
 
 - Performance score
 - Accessibility compliance
 - PWA readiness
 - SEO basics
 
-Source maps are uploaded separately via `upload-sourcemaps.yml` for error tracking in production.
+### Source Maps
+
+Vercel runs `bun run build:deploy`, which builds `packages/client/dist/` and then runs `scripts/ops/upload-sourcemaps.js --app client --deploy` before Vercel publishes the artifact. This means PostHog metadata is injected into the same bundle that is deployed.
+
+Set these variables in the client Vercel project:
+
+| Variable | Purpose |
+|----------|---------|
+| `POSTHOG_CLIENT_ENV_ID` | PostHog environment ID for the client app |
+| `POSTHOG_CLI_TOKEN` | PostHog token with source-map upload permissions |
+| `POSTHOG_CLI_HOST` | Optional PostHog app/API host override |
+
+Production deploys fail closed if the PostHog source-map variables are missing. Preview and staging deploys skip source-map upload when those variables are not configured.
 
 ## Resources
 

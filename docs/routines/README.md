@@ -9,9 +9,9 @@ Guild-level routines (research-synthesis, design-synthesis, routine-issue-cleanu
 - `pr-review.md` — GitHub-triggered inline PR review (event)
 - `bug-intake.md` — Daily 04:00 weekday: harvests user-reported bugs from Discord/Telegram/Drive → Bug Board #18 → @mentions Afo on triage queue
 - `plan-executor.md` — Daily 06:30 weekday: picks up issues labeled `plan-task` → bundled PRs to `develop`
-- `health-watch.md` — Daily 07:30 weekday: indexer + CI + contracts health → board #4 issues, auto-closes on recovery
+- `health-watch.md` — Daily 07:30 weekday: indexer + 8-lane CI + contracts health → board #4 issues, auto-closes on recovery
 - `hotfix.md` — Twice weekday (10:00 + 16:00 PT): user-reported p2 in Bug Board `Ready` → solo PR to `main` → @mentions on PR open + CI green
-- `drift-watch.md` — Weekly Sunday 02:00: code drift vs CLAUDE.md invariants → one rolling issue per package
+- `drift-watch.md` — Weekly Sunday 02:00: code drift vs CLAUDE.md/AGENTS.md invariants, retired workflow guardrails, and package boundaries → one rolling issue per package
 - `metrics.md` — Weekly Sunday 22:00: Dune + PostHog + indexer → digest PR + anomaly issues, primary post #product, grant cross-post #funding
 
 > `dream-on` is a **local Claude Code skill** (`/dream-on`), not a cloud routine — invoke it manually from Claude Code when you want overnight exploration. Not scheduled.
@@ -43,7 +43,7 @@ The env var `DISCORD_USER_ID_AFO` holds Afo's Discord snowflake ID. Use `<@${DIS
 
 ## Conventions
 
-- All routine PRs target `develop`, except `hotfix` which targets `main` and triggers `sync-develop.yml` to fast-forward `develop`.
+- All routine PRs target `develop`, except `hotfix` which targets `main`. After a hotfix lands, the hotfix routine opens a follow-up backport PR into `develop`; there is no automatic `main` → `develop` fast-forward workflow.
 - All routine branches use `claude/<routine-name>/<topic>`.
 - Loop prevention on `pr-review`: filter on `head_branch` starting with `claude/` (NOT on author — routine PRs carry the user's GitHub author per the docs).
 - **Sprints field is mandatory** on every issue created on Project #4. Without it, issues are invisible in the user's filtered view of the active iteration.

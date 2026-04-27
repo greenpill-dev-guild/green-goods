@@ -4,7 +4,7 @@ triggers:
   github:
     events: [pull_request.opened, pull_request.ready_for_review]
     filters:
-      base_branch: main
+      base_branch: [main, develop]
       is_draft: false
       head_branch_excludes: claude/*  # routine PRs carry user's GitHub author (per docs), so filter on branch prefix instead
       from_fork: false
@@ -25,7 +25,7 @@ You are reviewing a pull request on the Green Goods monorepo. Your job is to lea
 1. If the PR has the label `skip-review` or `wip`, post a single comment "Review skipped (labeled `skip-review`/`wip`)" and stop.
 2. If the PR touches more than 50 files, post a single summary comment "Large PR (>50 files); focused line-level review skipped. Please request review on specific files via PR comment." and stop.
 
-## Invariants to check (from CLAUDE.md)
+## Invariants to check (from CLAUDE.md / AGENTS.md)
 
 ### 1. Hook boundary
 
@@ -65,6 +65,10 @@ If the PR diff touches any `.sol` file under `packages/contracts/src/`, verify t
 
 `bun test` uses bun's built-in runner and ignores vitest config. All test invocations must use `bun run test`. Flag any `bun test` in new scripts, workflows, or docs.
 
+### 9. CI and routine boundary
+
+GitHub Actions should stay to the eight lane files: `contracts.yml`, `indexer.yml`, `shared.yml`, `client.yml`, `admin.yml`, `agent.yml`, `design.yml`, and `docs.yml`. Flag any new standalone workflow, composite action, write-capable issue automation, or reintroduced meta/advisory workflow unless the PR explicitly explains why it cannot live in a package lane, routine, Copilot automatic review, or GitHub native review.
+
 ## Summary comment format
 
 At the end, post one summary comment:
@@ -72,7 +76,7 @@ At the end, post one summary comment:
 ```
 ## Review summary
 
-**Invariants checked:** 8 from CLAUDE.md
+**Invariants checked:** 9 from CLAUDE.md / AGENTS.md
 **Inline flags:** N (see comments above)
 **Verdict:** [APPROVE | REQUEST_CHANGES | COMMENT_ONLY]
 

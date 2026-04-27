@@ -278,11 +278,6 @@ async function main() {
     if (!existsSync(indexerGeneratedPath)) {
       if (config.generateIndexer) {
         printSection("Indexer Code Generation");
-        const hasEnvio = await commandExists("envio");
-        if (!hasEnvio) {
-          printWarning("Envio CLI not found. Installing globally...");
-          await runStep("Install Envio", "npm install -g envio");
-        }
         await runStep("Indexer codegen", "bun run codegen", resolve(projectRoot, "packages/indexer"));
         await runStep("Indexer setup-generated", "bun run setup-generated", resolve(projectRoot, "packages/indexer"));
       } else {
@@ -407,10 +402,10 @@ async function main() {
   // ============================================================================
   printSection("Type Checking");
 
-  // Shared package type check (matches shared-tests.yml)
+  // Shared package type check (matches shared.yml)
   await runStep("Shared typecheck", "npx tsc --noEmit", resolve(projectRoot, "packages/shared"));
 
-  // Agent package type check (matches agent-tests.yml)
+  // Agent package type check (matches agent.yml)
   await runStep("Agent typecheck", "bun run typecheck", resolve(projectRoot, "packages/agent"));
 
   // ============================================================================
@@ -427,7 +422,7 @@ async function main() {
   const adminTestName = config.quick ? "Admin hub tests" : "Admin tests";
   await runStep(adminTestName, adminTestCommand, resolve(projectRoot, "packages/admin"), { CI: "true" });
 
-  // Indexer tests (matches indexer-tests.yml)
+  // Indexer tests (matches indexer.yml)
   if (!config.skipIndexer) {
     printSection("Indexer Tests");
     await runStep("Indexer tests", "bun run test", resolve(projectRoot, "packages/indexer"), { CI: "true" });
@@ -435,7 +430,7 @@ async function main() {
     printSection("Indexer Tests (SKIPPED)");
   }
 
-  // Contracts tests (matches contracts-tests.yml - builds first, then tests)
+  // Contracts tests (matches contracts.yml - builds first, then tests)
   if (!config.skipContracts) {
     printSection("Contracts Build & Tests");
     await runStep("Contracts build", "bun run build", resolve(projectRoot, "packages/contracts"));
@@ -444,7 +439,7 @@ async function main() {
     printSection("Contracts Tests (SKIPPED)");
   }
 
-  // Agent tests (matches agent-tests.yml with full env vars)
+  // Agent tests (matches agent.yml with full env vars)
   printSection("Agent Tests");
   await runStep(
     "Agent tests",
@@ -478,7 +473,7 @@ async function main() {
       await runStep("Indexer build", "bun run build", resolve(projectRoot, "packages/indexer"));
     }
 
-    // Build client (matches client-tests.yml lint-and-build job)
+    // Build client (matches client.yml lint-and-build job)
     await runStep(
       "Client build",
       "bun run build",
@@ -492,7 +487,7 @@ async function main() {
       }
     );
 
-    // Build admin (matches admin-tests.yml lint-and-build job)
+    // Build admin (matches admin.yml lint-and-build job)
     await runStep(
       "Admin build",
       "bun run build",
@@ -551,7 +546,7 @@ async function main() {
   }
 
   // ============================================================================
-  // Phase 6: Lighthouse Performance Tests (matches lighthouse-ci.yml)
+  // Phase 6: Lighthouse Performance Tests (matches client.yml/admin.yml advisory jobs)
   // ============================================================================
   if (!config.skipLighthouse && !config.skipBuild) {
     // Check if lhci is available

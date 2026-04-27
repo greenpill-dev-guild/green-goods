@@ -9,6 +9,8 @@ feature_status: Live
 source_of_truth:
   - AGENTS.md
   - CLAUDE.md
+  - docs/routines/pr-review.md
+  - docs/routines/drift-watch.md
   - scripts/quality/check-codex-docs.js
   - scripts/dev/ci-local.js
 keywords: [agentic evaluation, acceptance cases, guidance guardrails, inner loop, test generation]
@@ -40,9 +42,9 @@ flowchart LR
 |-------|---------|--------|
 | `.claude/evals/acceptance/` | Product acceptance cases and workflow-level checks | Live |
 | `node .claude/scripts/check-skill-frontmatter.js` | Skill registry/frontmatter, command route, bundle, and retired-surface checks | Live |
-| `.github/workflows/claude-agent-evals.yml` | CI sync check for the committed agent/eval surface | Live |
+| `docs/routines/pr-review.md` / `docs/routines/drift-watch.md` | Routine/native-review checks for repo guidance, retired workflow drift, and invariant violations | Live |
 
-The only live eval directory under `.claude/evals/` today is `acceptance/`. Automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` are retired, and the current CI workflow checks that this repo stays aligned with that retirement state. The committed agent surface is currently `cracked-coder` plus `oracle`; specialization otherwise routes through skills and plan-hub lanes.
+The only live eval directory under `.claude/evals/` today is `acceptance/`. Automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` are retired. Drift around that retirement state is now handled by Claude routines, Copilot automatic review, and human review instead of a dedicated eval workflow. The committed agent surface is currently `cracked-coder` plus `oracle`; specialization otherwise routes through skills and plan-hub lanes.
 
 ### Model Selection
 
@@ -91,7 +93,7 @@ The `check-skill-frontmatter.js` script validates the Claude-owned guidance stru
 node .claude/scripts/check-skill-frontmatter.js
 ```
 
-This runs in CI via `.github/workflows/claude-guidance.yml`. It is a structural guardrail, not a semantic contradiction checker for every line in `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, and `.claude/rules/`.
+Run this locally with `bun run check:claude-guidance` when changing Claude guidance. It is a structural guardrail, not a semantic contradiction checker for every line in `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, and `.claude/rules/`. Routine review and human review now catch semantic drift.
 
 ### Inner-Loop Policy
 
@@ -107,12 +109,13 @@ Coverage remains a scheduled floor on package CI and pre-merge validation, not t
 
 ### Eval Surface Sync
 
-The `claude-agent-evals.yml` workflow no longer runs model benchmark packs. It now verifies that:
+Dedicated eval-sync Actions are retired. Eval surface drift is checked through `pr-review`, `drift-watch`, Copilot automatic review, and manual local commands:
 
-1. the committed `.claude/agents/` surface matches the documented current agents
-2. `.claude/evals/` only contains the live acceptance pack
+1. `bun run check:claude-guidance` validates the committed Claude guidance structure
+2. `bun run check:codex-guidance` validates Codex guidance parity
+3. `drift-watch` opens rolling issues when retired surfaces or guidance claims drift
 
-Diff-scoped automated review still happens through the dedicated review workflow and human validation, not through retired benchmark suites.
+Diff-scoped automated review happens through GitHub native review, Copilot automatic review, Claude `pr-review`, and human validation, not through retired benchmark suites.
 
 ### Lessons Learned
 

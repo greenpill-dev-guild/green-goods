@@ -1,6 +1,6 @@
 {
-  "installCommand": "bun install",
-  "buildCommand": "bun run build",
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run build:deploy",
   "outputDirectory": "dist",
   "framework": "vite",
   "headers": [

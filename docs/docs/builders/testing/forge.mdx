@@ -139,7 +139,7 @@ bun build:target -- src/registries/Action.sol  # Single target
 
 ### CI Integration
 
-The `contracts-tests.yml` workflow runs on pushes and PRs touching `packages/contracts/`. It installs Foundry via `foundry-rs/foundry-toolchain@v1`, runs `bun run test` for unit tests, and has a separate `fork` job with a 90-minute timeout for chain-specific E2E tests.
+The `contracts.yml` workflow runs on pushes and PRs touching `packages/contracts/`, root dependency/config files, and contract audit scripts. It installs Foundry via `foundry-rs/foundry-toolchain@v1`, runs `bun run test`, lint, build, and the realism audit for PR CI. The fork-readiness job is limited to trusted pushes or manual dispatch because it requires private RPC secrets.
 
 ## Resources
 
@@ -148,7 +148,7 @@ The `contracts-tests.yml` workflow runs on pushes and PRs touching `packages/con
 - Contract source: `packages/contracts/src/`
 - Test source: `packages/contracts/test/`
 - Build config: `packages/contracts/foundry.toml`
-- CI workflow: `.github/workflows/contracts-tests.yml`
+- CI workflow: `.github/workflows/contracts.yml`
 
 <NextBestAction
   title="Next: Playwright E2E Testing"

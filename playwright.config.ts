@@ -16,6 +16,53 @@ const environments = {
 
 const currentEnv = environments.local;
 
+const playwrightApp = process.env.PLAYWRIGHT_APP;
+const shouldStartClient = playwrightApp !== "admin";
+const shouldStartAdmin = playwrightApp !== "client";
+
+const webServers = [
+  // Indexer (GraphQL)
+  {
+    command: "bun dev:indexer",
+    port: 8080,
+    reuseExistingServer: !process.env.CI,
+    timeout: 60000,
+    env: { NODE_ENV: "test" },
+  },
+  // Client (PWA)
+  ...(shouldStartClient
+    ? [
+        {
+          command: "bun dev:client",
+          port: 3001,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120000,
+          env: {
+            NODE_ENV: "test",
+            VITE_CHAIN_ID: "11155111",
+            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
+          },
+        },
+      ]
+    : []),
+  // Admin (Dashboard)
+  ...(shouldStartAdmin
+    ? [
+        {
+          command: "bun dev:admin",
+          port: 3002,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120000,
+          env: {
+            NODE_ENV: "test",
+            VITE_CHAIN_ID: "11155111",
+            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
+          },
+        },
+      ]
+    : []),
+];
+
 export default defineConfig({
   testDir: "./tests/specs",
   testMatch: "**/*.spec.ts",
@@ -60,6 +107,20 @@ export default defineConfig({
   // Browser matrix - streamlined for reliable CI testing
   // Mobile projects disabled by default - enable with --project flag for cross-browser testing
   projects: [
+    // Client CI - smoke plus critical client flows owned by the client lane
+    {
+      name: "client-ci",
+      testMatch: [/client\.smoke\.spec\.ts$/, /client\..*\.ci\.spec\.ts$/],
+      use: { ...devices["Desktop Chrome"] },
+    },
+
+    // Admin CI - smoke plus production-flow checks owned by the admin lane
+    {
+      name: "admin-ci",
+      testMatch: [/admin\.smoke\.spec\.ts$/, /admin\.production-flows\.ci\.spec\.ts$/],
+      use: { ...devices["Desktop Chrome"] },
+    },
+
     // Desktop Chrome - admin tests only
     {
       name: "chromium",
@@ -170,42 +231,7 @@ export default defineConfig({
   ],
 
   // WebServer configuration - starts services if not running
-  webServer: process.env.SKIP_WEBSERVER
-    ? undefined
-    : [
-        // Indexer (GraphQL)
-        {
-          command: "bun dev:indexer",
-          port: 8080,
-          reuseExistingServer: !process.env.CI,
-          timeout: 60000,
-          env: { NODE_ENV: "test" },
-        },
-        // Client (PWA)
-        {
-          command: "bun dev:client",
-          port: 3001,
-          reuseExistingServer: !process.env.CI,
-          timeout: 120000,
-          env: {
-            NODE_ENV: "test",
-            VITE_CHAIN_ID: "11155111",
-            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
-          },
-        },
-        // Admin (Dashboard)
-        {
-          command: "bun dev:admin",
-          port: 3002,
-          reuseExistingServer: !process.env.CI,
-          timeout: 120000,
-          env: {
-            NODE_ENV: "test",
-            VITE_CHAIN_ID: "11155111",
-            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
-          },
-        },
-      ],
+  webServer: process.env.SKIP_WEBSERVER ? undefined : webServers,
 
   // Global setup/teardown (ESM-compatible paths)
   globalSetup: "./tests/global-setup.ts",

@@ -4,10 +4,12 @@ sidebar_label: Playwright
 slug: /builders/testing/playwright
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-27
 feature_status: Live
 source_of_truth:
   - playwright.config.ts
+  - .github/workflows/client.yml
+  - .github/workflows/admin.yml
   - tests/specs/client.passkey.spec.ts
   - package.json
 keywords:
@@ -28,19 +30,19 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 ```mermaid
 graph TB
     subgraph Projects["Test Projects"]
-        P1["chromium\nadmin specs"]
-        P2["chromium-client\nsmoke tests"]
-        P3["critical-path\nmock-based CI"]
-        P4["anvil-fork\nlive chain"]
-        P5["passkey-mock\nAA flow"]
+        P1["client-ci\nclient lane"]
+        P2["admin-ci\nadmin lane"]
+        P3["client-full\nmanual"]
+        P4["anvil-fork\nmanual live chain"]
+        P5["passkey-mock\nmanual AA flow"]
     end
 
     Config["playwright.config.ts"] --> Projects
 
-    subgraph Servers["Auto-Start Servers"]
+    subgraph Servers["Selected Web Servers"]
         S1["Envio :8080"]
-        S2["Client :3001"]
-        S3["Admin :3002"]
+        S2["Client :3001\nPLAYWRIGHT_APP=client"]
+        S3["Admin :3002\nPLAYWRIGHT_APP=admin"]
     end
 
     Config -->|webServer| Servers
@@ -73,9 +75,11 @@ The config defines several Playwright projects for different testing scopes:
 
 | Project | Matches | Purpose |
 |---------|---------|---------|
-| `chromium` | `admin*.spec.ts` | Admin dashboard tests |
-| `chromium-client` | `client.smoke.spec.ts` | Client smoke tests (default CI) |
-| `critical-path` | `*.ci.spec.ts` | Mock-based critical UI flows |
+| `client-ci` | `client.smoke.spec.ts`, `client.*.ci.spec.ts` | Client lane smoke and critical client specs |
+| `admin-ci` | `admin.smoke.spec.ts`, `admin.production-flows.ci.spec.ts` | Admin lane smoke and production-flow specs |
+| `chromium` | `admin*.spec.ts` | Manual admin dashboard tests |
+| `chromium-client` | `client.smoke.spec.ts` | Manual client smoke tests |
+| `critical-path` | `*.ci.spec.ts` | Manual mock-based critical UI flows |
 | `performance` | `performance.spec.ts` | Load time and resource checks |
 | `anvil-fork` | `*.fork.spec.ts` | Tests with local Anvil fork (60s timeout) |
 | `passkey-mock` | `*.passkey.spec.ts` | Passkey E2E with mocked Pimlico |
@@ -85,7 +89,7 @@ Mobile projects (`mobile-chrome`, `mobile-safari`) exist in the config, but the 
 
 ### Web Server Configuration
 
-Playwright config (`playwright.config.ts`) auto-starts three web servers when running locally: the Envio indexer on port 8080, client on 3001, and admin on 3002. Set `SKIP_WEBSERVER=true` to use already-running services.
+Playwright config (`playwright.config.ts`) always starts the Envio indexer on port 8080 unless `SKIP_WEBSERVER=true` is set. App servers are selected with `PLAYWRIGHT_APP`: `PLAYWRIGHT_APP=client` starts the client on 3001, `PLAYWRIGHT_APP=admin` starts the admin on 3002, and an unset value starts both apps for broader local runs.
 
 ## Completing Test Coverage
 
@@ -142,7 +146,8 @@ bun run test:e2e:passkey
 bun run test:e2e:testnet
 
 # Direct Playwright usage when you want a specific project or file
-npx playwright test --project=chromium
+npx playwright test --project=client-ci
+npx playwright test --project=admin-ci
 npx playwright test tests/specs/client.navigation.spec.ts
 npx playwright test --ui
 ```

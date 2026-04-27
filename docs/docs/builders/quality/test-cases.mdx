@@ -8,13 +8,15 @@ last_verified: 2026-04-25
 feature_status: Planned
 source_of_truth:
   - package.json
-  - .github/workflows/e2e-tests.yml
-  - .github/workflows/client-tests.yml
-  - .github/workflows/admin-tests.yml
-  - .github/workflows/shared-tests.yml
-  - .github/workflows/contracts-tests.yml
-  - .github/workflows/agent-tests.yml
-  - .github/workflows/indexer-tests.yml
+  - .github/workflows/contracts.yml
+  - .github/workflows/indexer.yml
+  - .github/workflows/shared.yml
+  - .github/workflows/client.yml
+  - .github/workflows/admin.yml
+  - .github/workflows/agent.yml
+  - .github/workflows/design.yml
+  - .github/workflows/docs.yml
+  - playwright.config.ts
   - packages/client/vitest.config.ts
   - packages/admin/vitest.config.ts
   - packages/shared/vitest.config.ts
@@ -48,9 +50,9 @@ flowchart LR
 | Surface | Current source-backed state |
 | --- | --- |
 | Root unit/integration loop | `bun run test` fans out to shared, client, admin, indexer, contracts, and agent package test scripts. |
-| Package CI workflows | Client, admin, shared, agent, indexer, and contracts each have dedicated workflows with path filters or package-specific jobs. |
-| Playwright E2E | `.github/workflows/e2e-tests.yml` runs on push/PR to `main` and `develop`; its default CI projects are `chromium`, `chromium-client`, `critical-path`, and `performance`. Mobile projects are manual/optional. |
-| Contract fork tests | `contracts-tests.yml` has fork jobs that require RPC secrets and run a targeted protocol fork subset. They are not part of the default local `bun run test` loop. |
+| Package CI workflows | `contracts.yml`, `indexer.yml`, `shared.yml`, `client.yml`, `admin.yml`, and `agent.yml` own package tests/builds with dependency fanout for shared, root dependency/config, and relevant contract artifact changes. |
+| Playwright E2E | Client and admin browser gates are folded into `client.yml` and `admin.yml` via the focused `client-ci` and `admin-ci` Playwright projects. Broader/mobile/fork projects stay manual. |
+| Contract fork tests | `contracts.yml` has a fork-readiness job that requires RPC secrets and only runs on trusted pushes or manual dispatch. It is not part of the default local `bun run test` loop. |
 | Coverage thresholds | Coverage is V8-based where configured, but thresholds differ by package: client is higher than 70%, admin/shared use 70%, and agent intentionally uses lower thresholds. |
 | Test-quality guardrail | `bash scripts/quality/check-test-quality.sh` checks test-quality patterns across test directories. |
 
@@ -119,9 +121,9 @@ The core user journey that must never break:
 
 ### CI pipeline
 
-- GitHub Actions are split by package and workflow, not a single universal "all packages" job.
-- Playwright E2E runs on push/PR to `main` and `develop`, with a curated default project set.
-- Contract tests run through package scripts; fork tests need RPC secrets and run targeted fork coverage.
+- GitHub Actions are split into eight lanes: contracts, indexer, shared, client, admin, agent, design, and docs.
+- Playwright E2E is package-scoped in CI: `client-ci` runs client smoke and critical client specs; `admin-ci` runs admin smoke and production-flow specs.
+- Contract tests run through package scripts; fork readiness needs RPC secrets and runs only on trusted pushes or manual dispatch.
 
 ### Pre-commit
 
@@ -131,7 +133,7 @@ The core user journey that must never break:
 
 ### E2E (Playwright)
 
-- Curated CI projects cover admin smoke, client smoke, critical-path flows, and performance.
+- Curated CI projects cover client smoke plus critical client flows, and admin smoke plus production flows.
 - Manual projects can run broader browser/mobile coverage when needed.
 - Fork-backed browser coverage is a separate path from the default CI E2E project set.
 

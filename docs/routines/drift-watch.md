@@ -26,7 +26,7 @@ This routine replaces the old client-polish + admin-polish audit halves. Bug int
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID for @mentions.
-- Packages in scope: `client`, `admin`, `shared`, `contracts`, `indexer`. Each gets its own rolling issue.
+- Packages in scope: `client`, `admin`, `shared`, `contracts`, `indexer`, `agent`. Each gets its own rolling issue.
 - Source-of-truth specs:
   - `CLAUDE.md` (root + per-package) — implementation invariants for Claude routines
   - `AGENTS.md` (root + per-package) — same invariants for Codex runs
@@ -46,6 +46,8 @@ Run the relevant subset against each package; not all checks apply to all packag
 - **Address typing** — Ethereum addresses use the `Address` type from shared, not `string`.
 - **No raw forge** — contracts workflows must use `bun build*`, never `forge build|test|script` directly.
 - **Error handling** — no swallowed errors (empty catches, `.catch(() => {})`); contract errors use `parseContractError()`; logging uses shared `logger`, not `console.log`.
+- **CI/routine boundary** — workflow files stay to the eight-lane model. Flag reintroduced standalone product-sync, guidance, source-structure, test-quality, mutation-reliability, contracts-security, source-map, Lighthouse, E2E, or sync workflows unless there is a documented human-approved exception.
+- **Agent guidance drift** — guidance parity, onboarding/readme consistency, source-structure growth, and test-quality smells are drift-watch findings or PR-review comments, not dedicated Actions.
 
 ### `packages/client/`
 - **Dual-surface adherence** — verify the public/browser and installed PWA shells against the root/package guidance and the design alignment protocol. Cite the routing/runtime files when they drift; do not copy the shell rules into the issue body.
@@ -75,13 +77,18 @@ Run the relevant subset against each package; not all checks apply to all packag
 ### `packages/indexer/`
 - **Indexer boundary** — only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims). Flag any new handler for: EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, cookie jars, Hypercert display metadata.
 
+### `packages/agent/`
+- **Routine boundary** — agent runtime changes should not replace Claude routine prompts or GitHub-native review settings with write-capable Actions.
+- **Shared contracts** — use shared types, logger, config helpers, and error handling; do not duplicate blockchain/runtime contracts from `@green-goods/shared`.
+- **Secrets discipline** — no package-level `.env`; keep the root `.env.schema` and Varlock path authoritative.
+
 ## Output: one rolling issue per package
 
-For each package in scope (`client`, `admin`, `shared`, `contracts`, `indexer`), maintain ONE rolling issue:
+For each package in scope (`client`, `admin`, `shared`, `contracts`, `indexer`, `agent`), maintain ONE rolling issue:
 
 **Title pattern**: `Drift snapshot: <package>`
 
-**Label scheme**: `drift-snapshot` + `<client|admin|shared|contracts|indexer>` + `automated/claude`.
+**Label scheme**: `drift-snapshot` + `<client|admin|shared|contracts|indexer|agent>` + `automated/claude`.
 
 ### Dedupe lifecycle
 
@@ -164,9 +171,10 @@ Determine if @mention is needed: count total findings across all packages this w
 | shared | {N} | {+/- M} |
 | contracts | {N} | {+/- M} |
 | indexer | {N} | {+/- M} |
+| agent | {N} | {+/- M} |
 
 🔗 Snapshots:
-• [client](url) · [admin](url) · [shared](url) · [contracts](url) · [indexer](url)
+• [client](url) · [admin](url) · [shared](url) · [contracts](url) · [indexer](url) · [agent](url)
 
 {if any package improved this week: "✓ Improved: {package list}"}
 {if any package regressed: "⚠ Regressed: {package list}"}
@@ -176,10 +184,10 @@ Determine if @mention is needed: count total findings across all packages this w
 
 ## Caps and guardrails
 
-- **One rolling issue per package, max 5 packages.** No exceptions.
+- **One rolling issue per package, max 6 packages.** No exceptions.
 - **No PRs, no branches, no file writes** to repo source. Issues only.
 - **Read-only static analysis.** Do not run `bun install`, `bun test`, `bun build`. Read code, don't execute it.
 - **Honest dimensions.** If a finding doesn't fit a documented invariant, it doesn't belong in drift-watch — flag it elsewhere (bug-intake if user-impacting, manual issue otherwise). Drift-watch enforces what's already documented.
-- **2-hour runtime cap.** If you can't finish all packages in 2h, prioritize: contracts > shared > admin > client > indexer (criticality order). The remaining packages get next week's snapshot.
+- **2-hour runtime cap.** If you can't finish all packages in 2h, prioritize: contracts > shared > admin > client > indexer > agent (criticality order). The remaining packages get next week's snapshot.
 - **Don't propose fixes inline in the snapshot.** That's plan-executor's job. The snapshot states the drift; the user decides what to do.
 - **Sprints assignment is mandatory** on every NEW snapshot issue (existing snapshots are already attached).

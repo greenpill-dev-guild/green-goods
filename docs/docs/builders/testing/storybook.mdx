@@ -42,7 +42,8 @@ graph TB
 
     Stories --> SB["Storybook 10.3.5\nCSF3 format"]
     A11y --> SB
-    SB -->|CI| Gates["check:design-tokens\ncheck:stories\ncheck:story-quality\ntest:stories:ci\nbuild-storybook"]
+    SB -->|design.yml| Guardrails["Design guardrails\ncheck:design-md\ncheck:design-generated\ncheck:design-tokens\nlint:vocab"]
+    SB -->|design.yml| StoryGates["Storybook gates\ncheck:stories\ncheck:story-quality\ntest:stories:ci\nbuild-storybook"]
 ```
 
 Storybook serves as the component documentation and local interaction layer. Stories span all three UI packages (shared, admin, client) and are aggregated into a single Storybook instance hosted from `packages/shared`.
@@ -53,7 +54,7 @@ The public component library deploys as a standalone Vercel-hosted Storybook sit
 
 Storybook stories serve two practical purposes: living component documentation and a fast local surface for exploring component states. The philosophy is that every shared foundation should have a story, and stories should demonstrate the component's range of states — default, edge cases, responsive behavior, and error states.
 
-Storybook is now a light regression gate. The repo CI verifies the design-token contract, required Storybook coverage for shared foundations plus curated admin surfaces and client dialect shell stories, story-quality guardrails for admin, shared Canvas, and curated client PWA/public stories, a small browser-mode Storybook test lane for `storybook-ci` stories, then builds the unified Storybook to catch compile-time issues. Keep the CI tag curated; do not tag every story by default.
+Storybook is now a light regression gate. The repo CI verifies the DesignMD contract, generated artifacts, design-token runtime projection, banned vocabulary, required Storybook coverage for shared foundations plus curated admin surfaces and client dialect shell stories, story-quality guardrails for admin, shared Canvas, and curated client PWA/public stories, a small browser-mode Storybook test lane for `storybook-ci` stories, then builds the unified Storybook to catch compile-time issues. Keep the CI tag curated; do not tag every story by default.
 
 ### Architecture
 
@@ -248,13 +249,16 @@ cd packages/shared && bun run check:story-quality
 
 ### CI Integration
 
-The `design.yml` workflow triggers on PRs that modify Storybook config, story files, the curated story coverage contract, and component or view files that feed the unified Storybook build. It runs five required checks:
+The `design.yml` workflow triggers on PRs that modify DesignMD files, Storybook config, story files, the curated story coverage contract, and component or view files that feed the unified Storybook build. It runs eight required command gates:
 
-1. **Design-token contract** (`check:design-generated`, `check:design-tokens`) -- Confirms root DesignMD artifacts are current and the shared theme runtime projection still exposes the expected Warm Earth tokens
-2. **Storybook contract** (`check:stories`) -- Ensures shared foundations, curated admin surfaces, and required client PWA/public shell stories have corresponding stories
-3. **Story quality** (`check:story-quality`) -- Catches nondeterministic fixtures, unmarked mock harnesses, generic gallery exports, and dark-mode duplicate stories across the protected Storybook surface
-4. **Storybook interaction smoke** (`test:stories:ci`) -- Runs browser-mode Vitest against curated `storybook-ci` stories
-5. **Build verification** (`build-storybook`) -- Confirms the static Storybook site compiles without errors across shared, admin, and client stories
+1. **DesignMD lint** (`check:design-md`) -- Validates the root, admin, client, and docs DesignMD files
+2. **Generated DesignMD artifacts** (`check:design-generated`) -- Confirms generated design artifacts are current
+3. **Design-token contract** (`check:design-tokens`) -- Confirms the shared theme runtime projection still exposes the expected Warm Earth tokens
+4. **Vocabulary guardrail** (`lint:vocab`) -- Blocks banned product and UI vocabulary across protected surfaces
+5. **Storybook contract** (`check:stories`) -- Ensures shared foundations, curated admin surfaces, and required client PWA/public shell stories have corresponding stories
+6. **Story quality** (`check:story-quality`) -- Catches nondeterministic fixtures, unmarked mock harnesses, generic gallery exports, and dark-mode duplicate stories across the protected Storybook surface
+7. **Storybook interaction smoke** (`test:stories:ci`) -- Runs browser-mode Vitest against curated `storybook-ci` stories
+8. **Build verification** (`build-storybook`) -- Confirms the static Storybook site compiles without errors across shared, admin, and client stories
 
 The built artifact is uploaded via `actions/upload-artifact@v4` for review.
 

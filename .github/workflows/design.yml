@@ -1,0 +1,152 @@
+name: Design
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "DESIGN.md"
+      - "package.json"
+      - "bun.lock"
+      - ".claude/registry/skills.json"
+      - ".claude/skills/design/**"
+      - ".claude/skills/ui/**"
+      - "docs/DESIGN.md"
+      - "docs/docs/builders/packages/admin.mdx"
+      - "docs/docs/builders/testing/storybook.mdx"
+      - "docs/docs/reference/banned-vocabulary.json"
+      - "packages/admin/AGENTS.md"
+      - "packages/admin/DESIGN.md"
+      - "packages/admin/src/**"
+      - "packages/client/DESIGN*.md"
+      - "packages/client/src/**"
+      - "packages/shared/AGENTS.md"
+      - "packages/shared/package.json"
+      - "packages/shared/.storybook/**"
+      - "packages/shared/vitest.storybook.config.ts"
+      - "packages/shared/src/**"
+      - "scripts/data/design-token-usage-baseline.tsv"
+      - "scripts/design/**"
+      - "scripts/quality/check-story-coverage.ts"
+      - "scripts/quality/check-story-quality.ts"
+      - "vercel.json"
+      - ".github/workflows/design.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "DESIGN.md"
+      - "package.json"
+      - "bun.lock"
+      - ".claude/registry/skills.json"
+      - ".claude/skills/design/**"
+      - ".claude/skills/ui/**"
+      - "docs/DESIGN.md"
+      - "docs/docs/builders/packages/admin.mdx"
+      - "docs/docs/builders/testing/storybook.mdx"
+      - "docs/docs/reference/banned-vocabulary.json"
+      - "packages/admin/AGENTS.md"
+      - "packages/admin/DESIGN.md"
+      - "packages/admin/src/**"
+      - "packages/client/DESIGN*.md"
+      - "packages/client/src/**"
+      - "packages/shared/AGENTS.md"
+      - "packages/shared/package.json"
+      - "packages/shared/.storybook/**"
+      - "packages/shared/vitest.storybook.config.ts"
+      - "packages/shared/src/**"
+      - "scripts/data/design-token-usage-baseline.tsv"
+      - "scripts/design/**"
+      - "scripts/quality/check-story-coverage.ts"
+      - "scripts/quality/check-story-quality.ts"
+      - "vercel.json"
+      - ".github/workflows/design.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  design-guardrails:
+    name: Design Guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check DesignMD
+        run: bun run check:design-md
+
+      - name: Check generated DesignMD artifacts
+        run: bun run check:design-generated
+
+      - name: Check design tokens
+        run: bun run check:design-tokens
+
+      - name: Check banned vocabulary
+        run: bun run lint:vocab
+
+  storybook:
+    name: Storybook
+    runs-on: ubuntu-latest
+    env:
+      CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check story coverage
+        run: bun run --filter @green-goods/shared check:stories
+
+      - name: Check story quality
+        run: bun run --filter @green-goods/shared check:story-quality
+
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Run Storybook interaction smoke tests
+        run: bun run --filter @green-goods/shared test:stories:ci
+
+      - name: Build Storybook
+        run: bun run --filter @green-goods/shared build-storybook
+
+      - name: Upload Storybook artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: packages/shared/storybook-static
+
+      - name: Publish Storybook to Chromatic
+        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        run: bun run --filter @green-goods/shared chromatic -- --exit-zero-on-changes

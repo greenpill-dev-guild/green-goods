@@ -28,7 +28,55 @@ You handle a narrow slice: user-reported p2 bugs that the user has approved on t
 - Target repo: `greenpill-dev-guild/green-goods`.
 - Bug Board: **Project #18 "Bug Board"** under `greenpill-dev-guild`. Status: `To triage`, `Ready`, `In progress`, `In review`, `Done`. No Sprints field.
 - Branch convention: `claude/hotfix/issue-<n>` from `main`.
-- After hotfix PR merges to `main`, `.github/workflows/sync-develop.yml` auto-fast-forwards `develop` — no manual backport.
+- After a hotfix PR merges to `main`, this routine opens a follow-up backport PR into `develop`. There is no automatic `main` → `develop` fast-forward workflow.
+
+## Phase 0: Backport merged hotfixes
+
+Before selecting new candidates, check for merged hotfix PRs from the last 14 days that do not already have an open or merged backport PR.
+
+```bash
+gh pr list \
+  --repo greenpill-dev-guild/green-goods \
+  --base main \
+  --state merged \
+  --label "automated/claude" \
+  --search "hotfix merged:>=YYYY-MM-DD" \
+  --json number,title,mergeCommit,url,body,headRefName
+```
+
+Eligible merged hotfixes have a `claude/hotfix/` head branch and a merge commit. For each one:
+
+1. Search open and merged PRs for `Backports hotfix PR #<n>`.
+2. If no backport exists, branch from `develop`:
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b claude/hotfix-backport/pr-<n>
+   git cherry-pick -x <merge-commit-sha>
+   ```
+3. If the cherry-pick conflicts, abort and open a comment on the original hotfix PR:
+   ```bash
+   git cherry-pick --abort
+   gh pr comment <n> --body "Hotfix backport to develop needs manual conflict resolution."
+   ```
+   Then notify `#product` without attempting a risky merge.
+4. Run the same validation ladder as the original hotfix:
+   ```bash
+   bun format
+   bun lint
+   bun run test
+   ```
+5. Open the backport PR against `develop`:
+   ```bash
+   gh pr create \
+     --base develop \
+     --head claude/hotfix-backport/pr-<n> \
+     --title "backport: hotfix PR #<n>" \
+     --label "automated/claude" \
+     --body "Backports hotfix PR #<n> from main into develop."
+   ```
+
+Backport PRs still require human review. Never push directly to `develop`.
 
 ## Phase 1: Select candidates
 
@@ -38,7 +86,6 @@ You handle a narrow slice: user-reported p2 bugs that the user has approved on t
 gh issue list \
   --repo greenpill-dev-guild/green-goods \
   --label "automated/claude" \
-  --label "polish" \
   --state open \
   --json number,title,body,labels,createdAt,updatedAt,url,comments
 ```
@@ -149,7 +196,7 @@ PR body:
 - bun run test:e2e: {pass | not applicable}
 
 ## Release path
-Merging to `main` ships to production immediately. `sync-develop.yml` fast-forwards `develop` from `main`, so no backport PR needed.
+Merging to `main` ships to production immediately. The hotfix routine will open a follow-up backport PR into `develop`; no workflow fast-forwards `develop`.
 
 — opened by `hotfix`
 ```
@@ -223,6 +270,7 @@ If nothing eligible this run, **stay silent**. Hotfix is exception-only — a he
 - **No fast-lane bypass.** `Ready` status on Bug Board is required.
 - **Full test suite.** No scoped validation.
 - **Never auto-merge.** PR opens for human review.
+- **Never push backports directly.** Backports are follow-up PRs into `develop`.
 - **Always @mention on PR open and CI green/red.** Hotfix is the user's primary attention surface — make sure they see it.
 - **Cap 2 PRs/run.** Most runs fire zero.
 - **No nagging.** `agent:assigned:claude` stays applied; user removes to retry.
