@@ -12,7 +12,7 @@ source_of_truth:
   - packages/shared/.storybook/prepare-design-assets.mjs
   - .github/workflows/storybook.yml
   - packages/shared/package.json
-  - vercel.json
+  - packages/shared/vercel.json
 keywords:
   - storybook
   - component stories
@@ -161,12 +161,22 @@ The bundle is served from the Storybook root. In the Vercel standalone deploy, t
 - `https://design.greengoods.app/theme.css` -- runtime CSS token projection
 - `https://design.greengoods.app/storybook-design-manifest.json` -- machine-readable map across design files, story roots, and import surfaces
 - `https://design.greengoods.app/index.json` -- Storybook component and state catalog
+- `https://design.greengoods.app/social-image.png` -- 1200x630 social preview image for shared Storybook links
 
 Google Stitch should load the root DesignMD file, the browser dialect file, and the generated token JSON. Claude Design should load the same files plus `index.json` so it can reference actual story roots and component states. Storybook MCP remains a local development server capability via `@storybook/addon-mcp`; the static deploy provides the shareable story index and design exports.
 
 ### Vercel Deploy
 
-Standalone Storybook publication is owned by Vercel, not GitHub Actions. Configure the Vercel project with the repository root as its root directory; `vercel.json` runs `bun install --frozen-lockfile`, builds with `bun run --filter @green-goods/shared build-storybook`, and serves `packages/shared/storybook-static`. Map the Vercel project to `design.greengoods.app`.
+Standalone Storybook publication is owned by Vercel, not GitHub Actions. Configure the Vercel project with:
+
+1. **Root Directory** -- `packages/shared`
+2. **Include source files outside of the Root Directory in the Build Step** -- enabled
+3. **Build config** -- read from `packages/shared/vercel.json`
+4. **Production domain** -- `design.greengoods.app`
+
+The shared-package `vercel.json` moves back to the repository root during install/build commands so Bun can resolve the workspace lockfile and cross-package Storybook stories, then serves `packages/shared/storybook-static` as the root of `design.greengoods.app`.
+
+The standalone site also injects Open Graph and Twitter card metadata through Storybook head files. Storybook root URLs and `?path=/docs/...` URLs share the same social preview image because the manager shell serves those routes from one static HTML entrypoint.
 
 ### Agent Workflow
 
@@ -233,7 +243,16 @@ The `storybook.yml` workflow triggers on PRs that modify Storybook config, story
 
 The built artifact is uploaded via `actions/upload-artifact@v4` for review.
 
-Chromatic publishing is optional. The workflow publishes only when `CHROMATIC_PROJECT_TOKEN` is configured, and uses `--exit-zero-on-changes` so first-pass visual baselines do not block functional Storybook checks.
+### Chromatic Flow
+
+Chromatic runs after the local Storybook gates, not instead of them:
+
+1. `check:stories` verifies that required shared foundations and curated admin surfaces have stories.
+2. `test:stories:ci` runs browser-mode Vitest against stable `storybook-ci` stories.
+3. `build-storybook` creates `packages/shared/storybook-static` and uploads it as the CI review artifact.
+4. If `CHROMATIC_PROJECT_TOKEN` is configured, `bun run --filter @green-goods/shared chromatic -- --exit-zero-on-changes` publishes that built Storybook to Chromatic.
+
+The first lane is intentionally non-blocking for visual diffs: `--exit-zero-on-changes` lets Chromatic collect baselines and surface screenshot changes without failing the PR while the design lane is being established. Once the team has approved baselines and decided which component roots should be visual-release gates, remove `--exit-zero-on-changes` and protect the Chromatic check.
 
 The standalone component library deploy is owned by Vercel. The Storybook GitHub Actions lane remains the validation gate for Storybook coverage, interaction smoke tests, and the static Storybook build artifact.
 
@@ -244,7 +263,7 @@ The standalone component library deploy is owned by Vercel. The Storybook GitHub
 - Storybook config: `packages/shared/.storybook/main.ts`
 - Design tokens: `packages/shared/src/components/Tokens/`
 - CI workflow: `.github/workflows/storybook.yml`
-- Storybook deploy config: `vercel.json`
+- Storybook deploy config: `packages/shared/vercel.json`
 
 <NextBestAction
   title="Next: Test Cases"

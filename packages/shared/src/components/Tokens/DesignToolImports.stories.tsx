@@ -33,6 +33,11 @@ const importFiles = [
     path: `${storybookUrl}/storybook-design-manifest.json`,
     use: "Single machine-readable map across design files, stories, and import surfaces.",
   },
+  {
+    label: "Social preview",
+    path: `${storybookUrl}/social-image.png`,
+    use: "1200x630 image used by design site links and social unfurls.",
+  },
 ];
 
 const componentRoots = [
