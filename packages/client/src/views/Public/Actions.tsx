@@ -1,85 +1,159 @@
-import { useActions } from "@green-goods/shared";
+import { type Action, useActions } from "@green-goods/shared";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { ImageWithFallback } from "@/components/Display";
+import { PublicActionCard, PublicSourceDialog } from "@/components/Public";
+
+const DOMAINS = [
+  { id: "all", labelId: "public.actions.domain.all", defaultLabel: "All" },
+  { id: "0", labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
+  { id: "1", labelId: "app.domain.tab.agro", defaultLabel: "Agro" },
+  { id: "2", labelId: "app.domain.tab.education", defaultLabel: "Education" },
+  { id: "3", labelId: "app.domain.tab.waste", defaultLabel: "Waste" },
+] as const;
 
 /**
- * Read-only action template gallery.
- * Public view — no auth required, no create/edit controls.
+ * Actions — readable public Action library.
+ *
+ * Filterable by domain, opens a source-anchored read-only dialog per Action.
+ * No create/edit controls.
  */
 export default function ActionsGallery() {
   const { formatMessage } = useIntl();
   const { data: actions = [], isLoading } = useActions();
+  const [domain, setDomain] = useState<string>("all");
+  const [activeAction, setActiveAction] = useState<Action | null>(null);
 
-  const getDomainLabel = (domain: number) => {
-    switch (domain) {
-      case 0:
-        return formatMessage({ id: "app.domain.tab.solar", defaultMessage: "Solar" });
-      case 1:
-        return formatMessage({ id: "app.domain.tab.agro", defaultMessage: "Agro" });
-      case 2:
-        return formatMessage({ id: "app.domain.tab.education", defaultMessage: "Education" });
-      case 3:
-        return formatMessage({ id: "app.domain.tab.waste", defaultMessage: "Waste" });
-      default:
-        return formatMessage({
-          id: "public.actions.domain.unknown",
-          defaultMessage: "Unknown",
-        });
-    }
-  };
+  const filtered = useMemo(() => {
+    if (domain === "all") return actions;
+    return actions.filter((action) => String(action.domain) === domain);
+  }, [actions, domain]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <h1 className="text-2xl font-bold text-text-strong">
-        {formatMessage({ id: "public.actions.title", defaultMessage: "Actions" })}
-      </h1>
-      <p className="mt-2 text-sm text-text-sub">
-        {formatMessage({
-          id: "public.actions.description",
-          defaultMessage: "Browse available regenerative action templates",
-        })}
-      </p>
-
-      {isLoading ? (
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-48 rounded-xl bg-bg-weak animate-pulse" />
-          ))}
-        </div>
-      ) : actions.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-stroke-soft bg-bg-white p-6 text-sm text-text-sub">
+    <div className="bg-bg-weak-50">
+      <header className="mx-auto max-w-7xl px-6 pt-12 pb-6 sm:px-10 sm:pt-16">
+        <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
+          {formatMessage({ id: "public.actions.kicker", defaultMessage: "Library" })}
+        </p>
+        <h1 className="mt-2 font-serif text-3xl text-text-strong-950 md:text-5xl">
+          {formatMessage({ id: "public.actions.title", defaultMessage: "Actions" })}
+        </h1>
+        <p className="mt-3 max-w-2xl text-sm text-text-sub-600 md:text-base">
           {formatMessage({
-            id: "public.actions.empty",
-            defaultMessage: "Action templates will appear here as they are published.",
+            id: "public.actions.description",
+            defaultMessage:
+              "Action templates Gardens use to plan, document, and verify regenerative Work.",
           })}
-        </div>
-      ) : (
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {actions.map((action) => (
-            <div key={action.id} className="rounded-xl border border-stroke-soft bg-bg-white p-4">
-              {action.media.length > 0 && (
-                <ImageWithFallback
-                  src={action.media[0]}
-                  alt={action.title}
-                  className="h-32 w-full rounded-lg object-cover"
-                />
-              )}
-              <h3
-                className="mt-3 text-base font-semibold text-text-strong truncate"
-                title={action.title}
-              >
-                {action.title}
-              </h3>
-              <p className="mt-1 text-sm text-text-sub line-clamp-2">{action.description}</p>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-bg-weak px-2.5 py-0.5 text-xs font-medium text-text-soft">
-                  {getDomainLabel(action.domain as number)}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+        </p>
+      </header>
+
+      <nav
+        aria-label={formatMessage({
+          id: "public.actions.filterLabel",
+          defaultMessage: "Filter Actions by domain",
+        })}
+        className="mx-auto max-w-7xl border-y border-stroke-soft-200 px-6 py-4 sm:px-10"
+      >
+        <ul className="flex flex-wrap gap-2">
+          {DOMAINS.map((entry) => {
+            const isActive = domain === entry.id;
+            return (
+              <li key={entry.id}>
+                <button
+                  type="button"
+                  onClick={() => setDomain(entry.id)}
+                  className={
+                    isActive
+                      ? "rounded-full bg-text-strong-950 px-4 py-1.5 text-xs font-medium text-static-white"
+                      : "rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-1.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
+                  }
+                >
+                  {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      <section className="mx-auto max-w-7xl px-6 pb-16 sm:px-10">
+        {isLoading ? (
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="h-72 animate-pulse rounded-3xl bg-bg-white-0"
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="mt-8 rounded-2xl border border-dashed border-stroke-soft-200 bg-bg-white-0 p-8 text-sm text-text-sub-600">
+            {formatMessage({
+              id: "public.actions.empty",
+              defaultMessage: "Action templates will appear here as they are published.",
+            })}
+          </p>
+        ) : (
+          <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {filtered.map((action) => (
+              <li key={action.id}>
+                <PublicActionCard action={action} onOpen={setActiveAction} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {activeAction ? (
+        <PublicSourceDialog
+          open
+          onClose={() => setActiveAction(null)}
+          title={activeAction.title}
+          subtitle={formatMessage({
+            id: `app.domain.tab.${typeof activeAction.domain === "string" ? activeAction.domain : domainSlug(activeAction.domain)}`,
+            defaultMessage: String(activeAction.domain),
+          })}
+        >
+          {activeAction.media[0] ? (
+            <img
+              src={activeAction.media[0]}
+              alt={activeAction.title}
+              className="w-full rounded-2xl object-cover"
+            />
+          ) : null}
+          {activeAction.description ? (
+            <p className="text-sm text-text-strong-950">{activeAction.description}</p>
+          ) : null}
+          <p className="text-xs text-text-soft-400">
+            {formatMessage({
+              id: "public.actions.dialog.participate",
+              defaultMessage:
+                "Install the Green Goods app to log Work for this Action with your Garden.",
+            })}
+          </p>
+          <a
+            href="#install"
+            className="inline-flex w-fit rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
+          >
+            {formatMessage({ id: "public.nav.installApp", defaultMessage: "Install App" })}
+          </a>
+        </PublicSourceDialog>
+      ) : null}
     </div>
   );
+}
+
+function domainSlug(domain: number): string {
+  switch (domain) {
+    case 0:
+      return "solar";
+    case 1:
+      return "agro";
+    case 2:
+      return "education";
+    case 3:
+      return "waste";
+    default:
+      return "unknown";
+  }
 }
