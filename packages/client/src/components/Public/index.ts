@@ -1,4 +1,12 @@
 export { PublicFeaturedGardens } from "./PublicFeaturedGardens";
+export {
+  PublicFundingMethodSelector,
+  type PublicFundingMethodSelectorProps,
+} from "./PublicFundingMethodSelector";
+export {
+  PublicFundingReceipt,
+  type PublicFundingReceiptProps,
+} from "./PublicFundingReceipt";
 export type { PublicGardenCardProps } from "./PublicGardenCard";
 export { PublicGardenCard } from "./PublicGardenCard";
 export { PublicGetInTouch } from "./PublicGetInTouch";
