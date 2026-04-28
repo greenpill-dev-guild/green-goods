@@ -267,7 +267,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
         <Dialog.Overlay
           className={cn(
             "fixed inset-0 z-overlay bg-black/90 backdrop-blur-sm",
-            "animate-in fade-in duration-200",
+            "animate-in fade-in duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             className
           )}
           data-testid="image-preview-dialog"

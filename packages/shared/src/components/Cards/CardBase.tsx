@@ -23,7 +23,7 @@ export const cardVariants = tv({
       auto: "",
     },
     interactive: {
-      true: "cursor-pointer transition-all duration-200 active:brightness-102 active:bg-primary/1.5",
+      true: "cursor-pointer transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] active:brightness-102 active:bg-primary/1.5",
       false: "",
     },
     container: {

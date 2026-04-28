@@ -8,7 +8,7 @@ import { ImageWithFallback } from "../../Display/ImageWithFallback";
 import { getStatusColors } from "../../StatusBadge";
 
 const workCardVariants = tv({
-  base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-300 @[480px]:flex-row",
+  base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] @[480px]:flex-row",
   variants: {
     variant: {
       compact: "min-h-[88px] flex-row",

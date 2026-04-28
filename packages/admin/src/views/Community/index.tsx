@@ -11,7 +11,11 @@ export default function CommunityView() {
   const totalMembers = community.derived.directoryEntries.length;
 
   return (
-    <CanvasRouteFrame ref={community.containerRef}>
+    <CanvasRouteFrame
+      ref={community.containerRef}
+      data-component="CommunityWorkspace"
+      data-region="workspace-community"
+    >
       <CommunitySheetDescriptor
         isVaultRoute={community.isVaultRoute}
         isStrategiesRoute={community.isStrategiesRoute}

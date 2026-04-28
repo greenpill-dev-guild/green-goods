@@ -22,7 +22,11 @@ export default function HubView() {
   const hub = useHubWorkbenchController();
 
   return (
-    <CanvasRouteFrame className="hub-route-shell">
+    <CanvasRouteFrame
+      className="hub-route-shell"
+      data-component="HubWorkspace"
+      data-region="workspace-hub"
+    >
       <HubSheetDescriptor
         routeSheetContentId={hub.routeSheetContentId}
         routeWorkId={hub.routeWorkId}
@@ -115,6 +119,7 @@ export default function HubView() {
           </CanvasRouteHeader>
 
           <CanvasRouteContent
+            data-region="workspace-hub-content"
             maxWidthClassName="max-w-[1400px]"
             className="hub-route-content flex flex-col gap-3 sm:gap-4"
           >

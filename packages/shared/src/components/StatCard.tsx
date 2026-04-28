@@ -57,7 +57,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   );
 
   const cardClass = cn(
-    "block h-full rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-200 hover:shadow-md sm:p-4",
+    "block h-full rounded-xl border border-stroke-soft bg-bg-white p-3 shadow-sm transition-shadow duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:shadow-md sm:p-4",
     to && "cursor-pointer group",
     className
   );

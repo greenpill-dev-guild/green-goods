@@ -179,7 +179,7 @@ function StageDot({
           w-8 h-8 rounded-full flex items-center justify-center
           ${bgColor} ${textColor}
           ${isCurrent ? "animate-pulse ring-2 ring-information-light ring-offset-2 ring-offset-bg-white" : ""}
-          transition-all duration-300
+          transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]
         `}
       >
         {icon}
@@ -290,7 +290,7 @@ function FullProgress({
       >
         <div
           className={`
-            h-full transition-all duration-300 ease-out rounded-full
+            h-full transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] rounded-full
             ${progress.stage === "error" ? "bg-error-base" : "bg-gradient-to-r from-information-base to-success-base"}
           `}
           style={{ width: `${progress.overallProgress}%` }}

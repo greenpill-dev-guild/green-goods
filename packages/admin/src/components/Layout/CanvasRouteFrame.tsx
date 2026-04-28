@@ -1,15 +1,10 @@
 import { cn } from "@green-goods/shared";
-import { forwardRef, type ComponentProps, type ReactNode } from "react";
+import { forwardRef, type ComponentProps, type ComponentPropsWithoutRef } from "react";
 import { PageHeader } from "./PageHeader";
 
-type CanvasRouteFrameProps = {
-  children: ReactNode;
-  className?: string;
-};
+type CanvasRouteFrameProps = ComponentPropsWithoutRef<"div">;
 
-type CanvasRouteContentProps = {
-  children: ReactNode;
-  className?: string;
+type CanvasRouteContentProps = ComponentPropsWithoutRef<"div"> & {
   maxWidthClassName?: string;
 };
 
@@ -21,8 +16,11 @@ type CanvasRouteHeaderProps = ComponentProps<typeof PageHeader> & {
 export const DEFAULT_CANVAS_ROUTE_HEADER_WIDTH = "max-w-6xl";
 
 export const CanvasRouteFrame = forwardRef<HTMLDivElement, CanvasRouteFrameProps>(
-  ({ children, className }, ref) => (
-    <div ref={ref} className={cn("pb-6", className)}>
+  (
+    { children, className, "data-component": dataComponent = "CanvasRouteFrame", ...frameProps },
+    ref
+  ) => (
+    <div ref={ref} data-component={dataComponent} {...frameProps} className={cn("pb-6", className)}>
       {children}
     </div>
   )
@@ -33,10 +31,18 @@ CanvasRouteFrame.displayName = "CanvasRouteFrame";
 export function CanvasRouteContent({
   children,
   className,
+  "data-component": dataComponent = "CanvasRouteContent",
+  "data-region": dataRegion = "route-content",
   maxWidthClassName = DEFAULT_CANVAS_ROUTE_HEADER_WIDTH,
+  ...contentProps
 }: CanvasRouteContentProps) {
   return (
-    <div className={cn("mx-auto w-full px-4 sm:px-6", maxWidthClassName, className)}>
+    <div
+      data-component={dataComponent}
+      data-region={dataRegion}
+      {...contentProps}
+      className={cn("mx-auto w-full px-4 sm:px-6", maxWidthClassName, className)}
+    >
       {children}
     </div>
   );

@@ -102,7 +102,7 @@ export const cardShellVariants = tv({
       ghost: "border-transparent bg-transparent shadow-none",
     },
     interactive: {
-      true: "transition-[background-color,border-color,box-shadow,transform] duration-200 hover:border-stroke-sub-300 hover:shadow-regular-sm active:translate-y-px",
+      true: "transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:border-stroke-sub-300 hover:shadow-regular-sm active:translate-y-px",
       false: "",
     },
   },

@@ -64,7 +64,7 @@ export const Root = () => (
         projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
         metadata={{
           name: "Green Goods Admin",
-          description: "Garden management dashboard for Green Goods protocol",
+          description: "Garden management canvas for the Green Goods protocol",
           url: "https://admin.greengoods.app",
           icons: ["https://greengoods.app/icon.png"],
         }}

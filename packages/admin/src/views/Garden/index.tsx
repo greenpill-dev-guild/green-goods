@@ -12,7 +12,11 @@ export default function GardenView() {
   const garden = useGardenWorkspaceController();
 
   return (
-    <CanvasRouteFrame ref={garden.containerRef}>
+    <CanvasRouteFrame
+      ref={garden.containerRef}
+      data-component="GardenWorkspace"
+      data-region="workspace-garden"
+    >
       <GardenSheetDescriptor
         hypercertId={garden.hypercertId}
         closeTo={garden.hypercertSheetCloseTo}

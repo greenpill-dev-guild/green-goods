@@ -9,7 +9,7 @@ import { GardenBannerFallback } from "../../Display/GardenBannerFallback";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
 
 const gardenCardVariants = tv({
-  base: "@container relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 transition-all duration-300",
+  base: "@container relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
   variants: {
     media: {
       large: "",
@@ -156,7 +156,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             {/* Selection highlight overlay */}
             <div
               className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity duration-300 z-10 pointer-events-none",
+                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
             />

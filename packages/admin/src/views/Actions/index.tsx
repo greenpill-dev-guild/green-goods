@@ -26,14 +26,18 @@ export default function Actions() {
   const actions = useActionsController();
 
   return (
-    <CanvasRouteFrame>
+    <CanvasRouteFrame data-component="ActionsWorkspace" data-region="workspace-actions">
       <ActionsSheetDescriptor
         routeState={actions.routeState}
         actions={actions.actions}
         isLoading={actions.isLoading}
         canManageActions={actions.canManageActions}
       />
-      <CanvasRouteContent maxWidthClassName="max-w-[1400px]" className="flex flex-col gap-4">
+      <CanvasRouteContent
+        data-region="workspace-actions-content"
+        maxWidthClassName="max-w-[1400px]"
+        className="flex flex-col gap-4"
+      >
         <PageHeader
           title={intl.formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
           description={intl.formatMessage({
