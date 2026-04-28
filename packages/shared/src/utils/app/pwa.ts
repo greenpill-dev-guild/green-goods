@@ -11,12 +11,17 @@
  * Platform types supported by the application
  */
 export type Platform = "ios" | "android" | "windows" | "unknown";
+export type ClientPresentationMode = "website" | "pwa";
 
 /**
  * Extended Navigator interface for Safari standalone property
  */
 interface NavigatorWithStandalone extends Navigator {
   standalone?: boolean;
+  userAgentData?: {
+    mobile?: boolean;
+    platform?: string;
+  };
 }
 
 /**
@@ -41,10 +46,12 @@ export function isStandaloneMode(): boolean {
   if (typeof window === "undefined") return false;
 
   const nav = window.navigator as NavigatorWithStandalone;
+  const matchesDisplayMode = (query: string) =>
+    typeof window.matchMedia === "function" && window.matchMedia(query).matches;
 
   return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.matchMedia("(display-mode: fullscreen)").matches ||
+    matchesDisplayMode("(display-mode: standalone)") ||
+    matchesDisplayMode("(display-mode: fullscreen)") ||
     nav.standalone === true
   );
 }
@@ -111,4 +118,49 @@ export function getMobileOperatingSystem(): Platform {
 export function isMobilePlatform(): boolean {
   const platform = getMobileOperatingSystem();
   return platform === "ios" || platform === "android" || platform === "windows";
+}
+
+function isLocalHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return (
+    normalized === "localhost" ||
+    normalized.endsWith(".localhost") ||
+    normalized === "127.0.0.1" ||
+    normalized === "0.0.0.0" ||
+    normalized === "::1" ||
+    normalized === "[::1]"
+  );
+}
+
+function hasMobileDeviceSignals(): boolean {
+  if (typeof navigator === "undefined") return false;
+
+  const nav = navigator as NavigatorWithStandalone;
+  if (nav.userAgentData?.mobile === true) return true;
+
+  const platform = nav.userAgentData?.platform || navigator.platform || "";
+  if (/android|iphone|ipad|ipod/i.test(platform)) return true;
+
+  return isMobilePlatform();
+}
+
+/**
+ * Check whether localhost should preview the PWA presentation.
+ *
+ * Browsers do not expose "DevTools device mode is open", so this intentionally
+ * uses localhost plus mobile/device-like browser signals such as UA Client Hints,
+ * user agent, touch-backed iPadOS detection, or mobile platform values. Plain
+ * viewport width is not part of this check, so resizing desktop Chrome to a
+ * phone-sized width remains website mode. A real phone visiting localhost can
+ * also match these signals and enter preview mode.
+ */
+export function isLocalDevicePreviewMode(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return false;
+
+  return isLocalHostname(window.location.hostname) && hasMobileDeviceSignals();
+}
+
+export function getClientPresentationMode(): ClientPresentationMode {
+  if (isAppInstalled() || isLocalDevicePreviewMode()) return "pwa";
+  return "website";
 }

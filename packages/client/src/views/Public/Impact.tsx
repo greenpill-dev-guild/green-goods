@@ -5,7 +5,7 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { PublicSourceDialog } from "@/components/Public";
+import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
 
 /**
  * Impact — credible public evidence ledger.

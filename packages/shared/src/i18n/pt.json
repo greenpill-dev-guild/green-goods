@@ -283,6 +283,7 @@
   "app.admin.actions.translations.optionLabel": "Rótulo da opção: {value}",
   "app.admin.actions.translations.portuguese": "Português",
   "app.admin.actions.translations.publishWarning": "A publicação pode continuar com traduções ausentes, em rascunho ou obsoletas. O app voltará para inglês nesses campos.",
+  "app.admin.actions.translations.reviewNeedsContent": "Adicione texto traduzido antes de marcar este idioma como revisado.",
   "app.admin.actions.translations.reviewSection": "Texto de revisão",
   "app.admin.actions.translations.sectionDescription": "Descrição da seção",
   "app.admin.actions.translations.sectionTitle": "Título da seção",

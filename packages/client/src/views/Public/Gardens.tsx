@@ -1,7 +1,7 @@
 import { type PublicGardenSummary, usePublicGardens } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { PublicGardenCard } from "@/components/Public";
+import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
 
 /**
  * Gardens — public discovery and browsing page.

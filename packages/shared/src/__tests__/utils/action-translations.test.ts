@@ -5,7 +5,10 @@ import {
   ACTION_INSTRUCTIONS_SCHEMA_VERSION,
   buildActionInstructionsV2,
   createActionTranslationDraft,
+  getReviewedActionTranslation,
   getActionSourceHash,
+  hasActionTranslationContent,
+  hasCompleteActionTranslationContent,
   localizeAction,
   normalizeActionTranslations,
 } from "../../utils/action/translations";
@@ -161,6 +164,28 @@ describe("action translations", () => {
     expect(localizeAction(action, "pt").title).toBe("Plant trees");
   });
 
+  it("does not treat reviewed records with no translated text as ready", () => {
+    const action = createAction({
+      translations: {
+        es: {
+          status: "reviewed",
+          sourceHash,
+          data: {
+            uiConfig: {
+              details: {
+                inputs: [{ key: "soilType" }],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(hasActionTranslationContent(action.translations?.es?.data)).toBe(false);
+    expect(getReviewedActionTranslation(action.translations, "es")).toBeNull();
+    expect(localizeAction(action, "es").title).toBe("Plant trees");
+  });
+
   it("falls back to English per missing translated field", () => {
     const action = createAction({
       translations: {
@@ -214,6 +239,78 @@ describe("action translations", () => {
     });
 
     expect(v2.translations?.es?.status).toBe("stale");
+  });
+
+  it("does not mark translations stale when only non-display source config changes", () => {
+    const nonDisplayConfig: ActionInstructionConfig = {
+      ...instructionConfig,
+      uiConfig: {
+        ...instructionConfig.uiConfig,
+        media: {
+          ...instructionConfig.uiConfig.media,
+          maxImageCount: instructionConfig.uiConfig.media.maxImageCount + 1,
+          minImageCount: 2,
+          required: false,
+        },
+      },
+    };
+
+    const v2 = buildActionInstructionsV2("Plant trees", nonDisplayConfig, {
+      es: {
+        status: "reviewed",
+        sourceHash,
+        data: { title: "Plantar árboles" },
+      },
+    });
+
+    expect(v2.translations?.es?.status).toBe("reviewed");
+  });
+
+  it("detects partial reviewed coverage separately from any translated content", () => {
+    const partial = { title: "Plantar árboles" };
+    const complete = {
+      title: "Plantar árboles",
+      description: "Planta árboles nativos en el jardín.",
+      uiConfig: {
+        media: {
+          title: "Subir medios",
+          description: "Agrega fotos claras de los árboles plantados.",
+          needed: ["Foto del área de siembra"],
+          optional: ["Recibo de materiales"],
+        },
+        details: {
+          title: "Detalles de árboles",
+          description: "Cuéntanos qué se plantó.",
+          feedbackPlaceholder: "Comparte observaciones",
+          inputs: [
+            {
+              key: "soilType",
+              title: "Tipo de suelo",
+              placeholder: "Elige suelo",
+              options: { clay: "Arcilla", loam: "Franco" },
+            },
+            {
+              key: "impactBand",
+              title: "Rango de impacto",
+              placeholder: "Elige rango",
+              bands: { low: "Bajo", high: "Alto" },
+            },
+          ],
+        },
+        review: {
+          title: "Revisar trabajo",
+          description: "Verifica tus detalles antes de enviar.",
+        },
+      },
+    };
+
+    expect(hasActionTranslationContent(partial)).toBe(true);
+    expect(hasCompleteActionTranslationContent("Plant trees", instructionConfig, partial)).toBe(
+      false
+    );
+    expect(hasCompleteActionTranslationContent("Plant trees", instructionConfig, complete)).toBe(
+      true
+    );
   });
 
   it("generates draft translations without translating structural fields", async () => {

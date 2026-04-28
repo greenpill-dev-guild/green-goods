@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
-import { PublicInstallCta } from "@/components/Public";
+import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
 
 /**
  * GardenDetail — public Garden story page.

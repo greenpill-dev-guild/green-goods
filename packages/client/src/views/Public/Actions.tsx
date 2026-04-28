@@ -1,7 +1,8 @@
 import { type Action, useActions } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { PublicActionCard, PublicSourceDialog } from "@/components/Public";
+import { PublicActionCard } from "@/components/Public/PublicActionCard";
+import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
 
 const DOMAINS = [
   { id: "all", labelId: "public.actions.domain.all", defaultLabel: "All" },

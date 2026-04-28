@@ -5,7 +5,12 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { getMobileOperatingSystem, isMobilePlatform } from "../../utils/app/pwa";
+import {
+  getClientPresentationMode,
+  getMobileOperatingSystem,
+  isLocalDevicePreviewMode,
+  isMobilePlatform,
+} from "../../utils/app/pwa";
 
 // Mock navigator and window
 const originalNavigator = global.navigator;
@@ -15,7 +20,12 @@ interface MockNavigator {
   userAgent: string;
   vendor?: string;
   maxTouchPoints?: number;
+  platform?: string;
   standalone?: boolean;
+  userAgentData?: {
+    mobile?: boolean;
+    platform?: string;
+  };
 }
 
 function mockNavigator(props: MockNavigator): void {
@@ -26,9 +36,33 @@ function mockNavigator(props: MockNavigator): void {
   });
 }
 
-function mockWindow(props: Partial<Window> = {}): void {
+function createMatchMedia(matcher: (query: string) => boolean = () => false): Window["matchMedia"] {
+  return ((query: string) =>
+    ({
+      matches: matcher(query),
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }) as MediaQueryList) as Window["matchMedia"];
+}
+
+function mockWindow(
+  props: Omit<Partial<Window>, "location" | "matchMedia"> & {
+    location?: Partial<Location>;
+    matchMedia?: Window["matchMedia"];
+  } = {}
+): void {
   Object.defineProperty(global, "window", {
-    value: { ...props },
+    value: {
+      location: { hostname: "localhost" },
+      navigator: global.navigator,
+      matchMedia: createMatchMedia(),
+      ...props,
+    },
     writable: true,
     configurable: true,
   });
@@ -215,6 +249,85 @@ describe("getMobileOperatingSystem", () => {
       delete global.navigator;
 
       expect(getMobileOperatingSystem()).toBe("unknown");
+    });
+  });
+
+  describe("client presentation mode", () => {
+    it("keeps desktop localhost browser visits in website mode", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        maxTouchPoints: 0,
+        platform: "MacIntel",
+      });
+      mockWindow({
+        location: { hostname: "localhost" },
+      });
+
+      expect(isLocalDevicePreviewMode()).toBe(false);
+      expect(getClientPresentationMode()).toBe("website");
+    });
+
+    it("does not use narrow desktop viewport width as a PWA signal", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        maxTouchPoints: 0,
+        platform: "MacIntel",
+      });
+      mockWindow({
+        innerWidth: 375,
+        location: { hostname: "localhost" },
+      });
+
+      expect(isLocalDevicePreviewMode()).toBe(false);
+      expect(getClientPresentationMode()).toBe("website");
+    });
+
+    it("uses PWA mode for localhost mobile/device-like browser signals", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        maxTouchPoints: 5,
+        platform: "Linux armv8l",
+        userAgentData: { mobile: true, platform: "Android" },
+      });
+      mockWindow({
+        location: { hostname: "localhost" },
+      });
+
+      expect(isLocalDevicePreviewMode()).toBe(true);
+      expect(getClientPresentationMode()).toBe("pwa");
+    });
+
+    it("uses PWA mode for standalone display mode", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        maxTouchPoints: 0,
+        platform: "MacIntel",
+      });
+      mockWindow({
+        location: { hostname: "www.greengoods.app" },
+        matchMedia: createMatchMedia((query) => query === "(display-mode: standalone)"),
+      });
+
+      expect(getClientPresentationMode()).toBe("pwa");
+    });
+
+    it("keeps production mobile browsers website-first when not standalone", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        maxTouchPoints: 5,
+        platform: "iPhone",
+      });
+      mockWindow({
+        location: { hostname: "www.greengoods.app" },
+      });
+
+      expect(isLocalDevicePreviewMode()).toBe(false);
+      expect(getClientPresentationMode()).toBe("website");
     });
   });
 });

@@ -67,13 +67,9 @@ export function ActionsSheetDescriptor({
 
     if (routeState.kind === "edit") {
       const action = actions.find((record) => record.id === routeState.actionId);
-      const displayAction = action ? localizeAction(action, intl.locale) : null;
       return {
         title: action
-          ? formatMessage(
-              { id: "app.actions.edit.title" },
-              { name: displayAction?.title ?? action.title }
-            )
+          ? formatMessage({ id: "app.actions.edit.title" }, { name: action.title })
           : formatMessage({
               id: "app.actions.edit",
               defaultMessage: "Edit action",

@@ -7,10 +7,12 @@ import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
 import { registerGlobalProperties, track } from "../modules/app/posthog";
 import {
+  getClientPresentationMode,
   getMobileOperatingSystem,
   isAppInstalled,
   isMobilePlatform,
   isStandaloneMode,
+  type ClientPresentationMode,
   type Platform,
 } from "../utils/app/pwa";
 
@@ -30,7 +32,9 @@ export type { Platform };
 export interface AppDataProps {
   isMobile: boolean;
   isInstalled: boolean;
+  isPwaPresentation: boolean;
   isStandalone: boolean;
+  presentationMode: ClientPresentationMode;
   wasInstalled: boolean;
   platform: Platform;
   locale: Locale;
@@ -64,7 +68,9 @@ function getBrowserLocale(available: readonly string[], fallback: string): strin
 export const AppContext = React.createContext<AppDataProps>({
   isMobile: false,
   isInstalled: false,
+  isPwaPresentation: false,
   isStandalone: false,
+  presentationMode: "website",
   wasInstalled: false,
   locale: "en",
   availableLocales: supportedLanguages,
@@ -178,12 +184,16 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
 
   const isMobile = isMobilePlatform();
   const isInstalled = installState === "installed";
+  const presentationMode = getClientPresentationMode();
+  const isPwaPresentation = presentationMode === "pwa";
 
   const contextValue = useMemo(
     () => ({
       isMobile,
       isInstalled,
+      isPwaPresentation,
       isStandalone,
+      presentationMode,
       wasInstalled,
       platform,
       locale,
@@ -196,7 +206,9 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
     [
       isMobile,
       isInstalled,
+      isPwaPresentation,
       isStandalone,
+      presentationMode,
       wasInstalled,
       platform,
       locale,

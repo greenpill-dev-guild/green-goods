@@ -19,6 +19,7 @@ export const LOCALHOST_CONFIG_PATH = path.join(GENERATED_RUNTIME_ROOT, "localhos
 export const IPFS_CACHE_PATH = path.join(GENERATED_RUNTIME_ROOT, "ipfs-cache.json");
 export const IPFS_MEDIA_CACHE_PATH = path.join(GENERATED_RUNTIME_ROOT, "ipfs-media-cache.json");
 export const ACTION_IMAGES_CACHE_PATH = path.join(GENERATED_RUNTIME_ROOT, "action-images-cache.json");
+export const ACTION_INSTRUCTIONS_V2_CACHE_PATH = path.join(GENERATED_RUNTIME_ROOT, "action-instructions-v2-cache.json");
 
 export function getFoundryOutDir(profile: FoundryProfile): string {
   return path.join(GENERATED_FOUNDRY_ROOT, "out", profile);

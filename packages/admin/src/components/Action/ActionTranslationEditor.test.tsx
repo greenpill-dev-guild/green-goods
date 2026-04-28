@@ -28,8 +28,24 @@ describe("ActionTranslationEditor", () => {
     expect(screen.getByText(/Publishing can continue with missing/i)).toBeInTheDocument();
   });
 
-  it("marks the active locale reviewed without changing canonical source fields", () => {
+  it("does not mark an empty locale reviewed", () => {
     const onChange = renderEditor();
+
+    fireEvent.click(screen.getByRole("button", { name: /Mark reviewed/i }));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByText(/Add translation text before marking/i)).toBeInTheDocument();
+    expect(screen.getByText(/Publishing can continue with missing/i)).toBeInTheDocument();
+  });
+
+  it("marks the active locale reviewed without changing canonical source fields", () => {
+    const onChange = renderEditor({
+      es: {
+        status: "draft",
+        sourceHash: getActionSourceHash("Plant trees", defaultTemplate),
+        data: { title: "Plantar árboles" },
+      },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /Mark reviewed/i }));
 
@@ -37,7 +53,25 @@ describe("ActionTranslationEditor", () => {
     const next = onChange.mock.calls[0][0] as ActionTranslationMap;
     expect(next.es?.status).toBe("reviewed");
     expect(next.es?.sourceHash).toBe(getActionSourceHash("Plant trees", defaultTemplate));
-    expect(next.es?.data).toEqual({});
+    expect(next.es?.data).toEqual({ title: "Plantar árboles" });
+  });
+
+  it("keeps reviewed locales with no translated text in the publish warning", () => {
+    renderEditor({
+      es: {
+        status: "reviewed",
+        sourceHash: getActionSourceHash("Plant trees", defaultTemplate),
+        data: {},
+      },
+      pt: {
+        status: "reviewed",
+        sourceHash: getActionSourceHash("Plant trees", defaultTemplate),
+        data: { title: "Plantar árvores" },
+      },
+    });
+
+    expect(screen.getByRole("button", { name: /Spanish · Missing/i })).toBeInTheDocument();
+    expect(screen.getByText(/Publishing can continue with missing/i)).toBeInTheDocument();
   });
 
   it("shows stale reviewed translations when the English source hash changes", () => {

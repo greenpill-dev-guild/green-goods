@@ -1,5 +1,9 @@
 import { ensureBaseLists, HydrationFallback } from "@green-goods/shared";
-import { type RouteObject, redirect } from "react-router-dom";
+import { type LoaderFunctionArgs, type RouteObject, redirect } from "react-router-dom";
+import {
+  requirePwaPresentationLoader,
+  requireWebsitePresentationLoader,
+} from "./routes/presentation-mode";
 
 export const CLIENT_ROUTE_IDS = {
   root: "root",
@@ -16,7 +20,10 @@ export const CLIENT_ROUTE_IDS = {
 } as const;
 
 // Prefetch base lists before rendering home (non-blocking).
-const homeLoader = () => {
+const homeLoader = (args: LoaderFunctionArgs) => {
+  const modeRedirect = requirePwaPresentationLoader(args);
+  if (modeRedirect) return modeRedirect;
+
   ensureBaseLists();
   return null;
 };
@@ -27,14 +34,10 @@ export const appRoutes = [
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
     hydrateFallbackElement: <HydrationFallback appName="Green Goods" />,
     children: [
-      {
-        path: "login",
-        lazy: async () => ({ Component: (await import("@/views/Login")).Login }),
-      },
-
       // Public routes (no auth required).
       {
         id: CLIENT_ROUTE_IDS.publicShell,
+        loader: requireWebsitePresentationLoader,
         lazy: async () => ({ Component: (await import("@/routes/PublicShell")).default }),
         children: [
           {
@@ -45,7 +48,7 @@ export const appRoutes = [
           {
             id: CLIENT_ROUTE_IDS.publicLanding,
             path: "landing",
-            loader: () => redirect("/"),
+            loader: (args) => requireWebsitePresentationLoader(args) || redirect("/"),
           },
           {
             id: CLIENT_ROUTE_IDS.publicGardens,
@@ -84,51 +87,63 @@ export const appRoutes = [
         ],
       },
 
-      // Auth-protected routes.
+      // PWA routes. Browser/editorial mode redirects before auth/app shell render.
       {
-        lazy: async () => ({ Component: (await import("@/routes/RequireAuth")).default }),
+        loader: requirePwaPresentationLoader,
+        lazy: async () => ({ Component: (await import("@/routes/PwaRuntime")).default }),
         children: [
           {
-            lazy: async () => ({ Component: (await import("@/routes/AppShell")).default }),
+            path: "login",
+            lazy: async () => ({ Component: (await import("@/views/Login")).Login }),
+          },
+
+          // Auth-protected routes.
+          {
+            lazy: async () => ({ Component: (await import("@/routes/RequireAuth")).default }),
             children: [
               {
-                id: CLIENT_ROUTE_IDS.home,
-                path: "home",
-                loader: homeLoader,
-                lazy: async () => ({ Component: (await import("@/views/Home")).default }),
+                lazy: async () => ({ Component: (await import("@/routes/AppShell")).default }),
                 children: [
                   {
-                    id: CLIENT_ROUTE_IDS.garden,
-                    path: ":id",
-                    lazy: async () => ({
-                      Component: (await import("@/views/Home/Garden")).Garden,
-                    }),
+                    id: CLIENT_ROUTE_IDS.home,
+                    path: "home",
+                    loader: homeLoader,
+                    lazy: async () => ({ Component: (await import("@/views/Home")).default }),
                     children: [
                       {
-                        path: "work/:workId",
+                        id: CLIENT_ROUTE_IDS.garden,
+                        path: ":id",
                         lazy: async () => ({
-                          Component: (await import("@/views/Home/Garden/Work")).GardenWork,
+                          Component: (await import("@/views/Home/Garden")).Garden,
                         }),
-                      },
-                      {
-                        path: "assessments/:assessmentId",
-                        lazy: async () => ({
-                          Component: (await import("@/views/Home/Garden/Assessment"))
-                            .GardenAssessment,
-                        }),
+                        children: [
+                          {
+                            path: "work/:workId",
+                            lazy: async () => ({
+                              Component: (await import("@/views/Home/Garden/Work")).GardenWork,
+                            }),
+                          },
+                          {
+                            path: "assessments/:assessmentId",
+                            lazy: async () => ({
+                              Component: (await import("@/views/Home/Garden/Assessment"))
+                                .GardenAssessment,
+                            }),
+                          },
+                        ],
                       },
                     ],
                   },
+                  {
+                    id: CLIENT_ROUTE_IDS.gardenSubmit,
+                    path: "garden",
+                    lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+                  },
+                  {
+                    path: "profile",
+                    lazy: async () => ({ Component: (await import("@/views/Profile")).default }),
+                  },
                 ],
-              },
-              {
-                id: CLIENT_ROUTE_IDS.gardenSubmit,
-                path: "garden",
-                lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
-              },
-              {
-                path: "profile",
-                lazy: async () => ({ Component: (await import("@/views/Profile")).default }),
               },
             ],
           },

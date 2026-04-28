@@ -1,4 +1,4 @@
-import { ToastViewport, useAnalyticsIdentity, useApp, usePageView } from "@green-goods/shared";
+import { ToastViewport, usePageView } from "@green-goods/shared";
 import { useLayoutEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { scrubReceiptTokenFragmentFromLocation } from "./receipt-token";
@@ -15,16 +15,7 @@ function useReceiptTokenFragmentScrub() {
  * Sets up analytics tracking (identity + pageviews) and toast viewport.
  */
 export default function Root() {
-  const { locale, isInstalled } = useApp();
-
   useReceiptTokenFragmentScrub();
-
-  // Sync user identity with PostHog
-  useAnalyticsIdentity({
-    app: "client",
-    isPwa: isInstalled,
-    locale,
-  });
 
   // Track SPA pageviews
   usePageView({

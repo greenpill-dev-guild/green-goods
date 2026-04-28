@@ -993,6 +993,8 @@ export {
   getActionTitle,
   getActionSourceHash,
   getReviewedActionTranslation,
+  hasActionTranslationContent,
+  hasCompleteActionTranslationContent,
   parseActionUID,
   formatAddress,
   formatEnsNameForDisplay,

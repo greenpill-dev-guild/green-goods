@@ -18,6 +18,8 @@ export {
   DEFAULT_ACTION_CONTENT_LOCALE,
   getActionSourceHash,
   getReviewedActionTranslation,
+  hasActionTranslationContent,
+  hasCompleteActionTranslationContent,
   isActionTranslationLocale,
   localizeAction,
   markStaleActionTranslations,
@@ -83,10 +85,12 @@ export { normalizeToFile } from "./app/normalizeToFile";
 // ============================================================================
 // PWA
 // ============================================================================
-export type { Platform } from "./app/pwa";
+export type { ClientPresentationMode, Platform } from "./app/pwa";
 export {
+  getClientPresentationMode,
   getMobileOperatingSystem,
   isAppInstalled,
+  isLocalDevicePreviewMode,
   isMobilePlatform,
   isStandaloneMode,
 } from "./app/pwa";

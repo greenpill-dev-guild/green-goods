@@ -57,8 +57,36 @@ function sourceFingerprint(title: string, config: ActionInstructionConfig) {
   return stableStringify({
     title,
     description: config.description,
-    uiConfig: config.uiConfig,
+    uiConfig: {
+      media: {
+        title: config.uiConfig.media.title,
+        description: config.uiConfig.media.description,
+        needed: config.uiConfig.media.needed,
+        optional: config.uiConfig.media.optional,
+      },
+      details: {
+        title: config.uiConfig.details.title,
+        description: config.uiConfig.details.description,
+        feedbackPlaceholder: config.uiConfig.details.feedbackPlaceholder,
+        inputs: config.uiConfig.details.inputs.map(inputSourceFingerprint),
+      },
+      review: {
+        title: config.uiConfig.review.title,
+        description: config.uiConfig.review.description,
+      },
+    },
   });
+}
+
+function inputSourceFingerprint(input: WorkInput): unknown {
+  return {
+    key: input.key,
+    title: input.title,
+    placeholder: input.placeholder,
+    options: input.options,
+    bands: input.bands,
+    repeaterFields: input.repeaterFields?.map(inputSourceFingerprint),
+  };
 }
 
 export function getActionSourceHash(title: string, config: ActionInstructionConfig): string {
@@ -172,6 +200,141 @@ export function normalizeActionTranslations(value: unknown): ActionTranslationMa
   return translations;
 }
 
+function hasTranslatedString(value: string | undefined): boolean {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasTranslatedArray(value: string[] | undefined): boolean {
+  return Array.isArray(value) && value.some(hasTranslatedString);
+}
+
+function hasTranslatedMap(value: Record<string, string> | undefined): boolean {
+  return Boolean(value && Object.values(value).some(hasTranslatedString));
+}
+
+function hasInputTranslationContent(input: ActionInstructionInputTranslation): boolean {
+  return (
+    hasTranslatedString(input.title) ||
+    hasTranslatedString(input.placeholder) ||
+    hasTranslatedMap(input.options) ||
+    hasTranslatedMap(input.bands) ||
+    Boolean(input.repeaterFields?.some(hasInputTranslationContent))
+  );
+}
+
+export function hasActionTranslationContent(
+  data: ActionInstructionTranslationData | undefined
+): boolean {
+  if (!data) return false;
+  const media = data.uiConfig?.media;
+  const details = data.uiConfig?.details;
+  const review = data.uiConfig?.review;
+
+  return (
+    hasTranslatedString(data.title) ||
+    hasTranslatedString(data.description) ||
+    hasTranslatedString(media?.title) ||
+    hasTranslatedString(media?.description) ||
+    hasTranslatedArray(media?.needed) ||
+    hasTranslatedArray(media?.optional) ||
+    hasTranslatedString(details?.title) ||
+    hasTranslatedString(details?.description) ||
+    hasTranslatedString(details?.feedbackPlaceholder) ||
+    Boolean(details?.inputs?.some(hasInputTranslationContent)) ||
+    hasTranslatedString(review?.title) ||
+    hasTranslatedString(review?.description)
+  );
+}
+
+function sourceNeedsTranslation(value: string | undefined): boolean {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasTranslationForSource(source: string | undefined, translated: string | undefined) {
+  return !sourceNeedsTranslation(source) || hasTranslatedString(translated);
+}
+
+function hasTranslatedArrayForSource(
+  source: string[] | undefined,
+  translated: string[] | undefined
+) {
+  return (
+    !source ||
+    source.every(
+      (item, index) => !sourceNeedsTranslation(item) || hasTranslatedString(translated?.[index])
+    )
+  );
+}
+
+function hasTranslatedMapForSource(
+  source: string[] | undefined,
+  translated: Record<string, string> | undefined
+) {
+  return (
+    !source ||
+    source.every((item) => !sourceNeedsTranslation(item) || hasTranslatedString(translated?.[item]))
+  );
+}
+
+function getInputTranslationByKey(
+  translations: ActionInstructionInputTranslation[] | undefined,
+  key: string
+) {
+  return translations?.find((translation) => translation.key === key);
+}
+
+function hasCompleteInputTranslationContent(
+  input: WorkInput,
+  translation: ActionInstructionInputTranslation | undefined
+): boolean {
+  return (
+    hasTranslationForSource(input.title, translation?.title) &&
+    hasTranslationForSource(input.placeholder, translation?.placeholder) &&
+    hasTranslatedMapForSource(input.options, translation?.options) &&
+    hasTranslatedMapForSource(input.bands, translation?.bands) &&
+    (!input.repeaterFields ||
+      input.repeaterFields.every((field) =>
+        hasCompleteInputTranslationContent(
+          field,
+          getInputTranslationByKey(translation?.repeaterFields, field.key)
+        )
+      ))
+  );
+}
+
+export function hasCompleteActionTranslationContent(
+  title: string,
+  config: ActionInstructionConfig,
+  data: ActionInstructionTranslationData | undefined
+): boolean {
+  const media = data?.uiConfig?.media;
+  const details = data?.uiConfig?.details;
+  const review = data?.uiConfig?.review;
+
+  return (
+    hasTranslationForSource(title, data?.title) &&
+    hasTranslationForSource(config.description, data?.description) &&
+    hasTranslationForSource(config.uiConfig.media.title, media?.title) &&
+    hasTranslationForSource(config.uiConfig.media.description, media?.description) &&
+    hasTranslatedArrayForSource(config.uiConfig.media.needed, media?.needed) &&
+    hasTranslatedArrayForSource(config.uiConfig.media.optional, media?.optional) &&
+    hasTranslationForSource(config.uiConfig.details.title, details?.title) &&
+    hasTranslationForSource(config.uiConfig.details.description, details?.description) &&
+    hasTranslationForSource(
+      config.uiConfig.details.feedbackPlaceholder,
+      details?.feedbackPlaceholder
+    ) &&
+    config.uiConfig.details.inputs.every((input) =>
+      hasCompleteInputTranslationContent(
+        input,
+        getInputTranslationByKey(details?.inputs, input.key)
+      )
+    ) &&
+    hasTranslationForSource(config.uiConfig.review.title, review?.title) &&
+    hasTranslationForSource(config.uiConfig.review.description, review?.description)
+  );
+}
+
 export function markStaleActionTranslations(
   title: string,
   config: ActionInstructionConfig,
@@ -211,7 +374,7 @@ export function getReviewedActionTranslation(
 ): ActionTranslationRecord | null {
   if (!isActionTranslationLocale(locale)) return null;
   const record = translations?.[locale];
-  return record?.status === "reviewed" ? record : null;
+  return record?.status === "reviewed" && hasActionTranslationContent(record.data) ? record : null;
 }
 
 function getInputTranslation(

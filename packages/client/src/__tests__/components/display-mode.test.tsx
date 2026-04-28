@@ -5,8 +5,8 @@
  * - Browser = website (SiteHeader top nav, no bottom nav)
  * - Installed PWA = app (AppBar bottom nav)
  *
- * The AppBar component checks `isInstalled` from `useApp()` and hides
- * itself in browser mode via `shouldHideBar = !isInstalled || ...`.
+ * The AppBar component checks `isPwaPresentation` from `useApp()` and hides
+ * itself in browser mode via `shouldHideBar = !isPwaPresentation || ...`.
  *
  * @vitest-environment jsdom
  */
@@ -103,7 +103,7 @@ describe("Display mode — AppBar visibility", () => {
   });
 
   it("standalone PWA: AppBar (bottom nav) visible", () => {
-    mockUseApp.mockReturnValue({ isInstalled: true });
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
 
     renderAppBar("/home");
 
@@ -121,19 +121,28 @@ describe("Display mode — AppBar visibility", () => {
     expect(syncStatusBar.className).toContain("overflow-hidden");
   });
 
-  it("browser mode: AppBar hidden", () => {
-    mockUseApp.mockReturnValue({ isInstalled: false });
+  it("localhost PWA preview: AppBar visible even when not installed", () => {
+    mockUseApp.mockReturnValue({ isInstalled: false, isPwaPresentation: true });
 
     renderAppBar("/home");
 
     const nav = screen.getByTestId("authenticated-nav");
-    // In browser mode, shouldHideBar = true (!isInstalled)
+    expect(nav.className).not.toMatch(/translate-y-full/);
+  });
+
+  it("browser mode: AppBar hidden", () => {
+    mockUseApp.mockReturnValue({ isInstalled: false, isPwaPresentation: false });
+
+    renderAppBar("/home");
+
+    const nav = screen.getByTestId("authenticated-nav");
+    // In browser mode, shouldHideBar = true (!isPwaPresentation)
     // The nav gets translate-y-full to slide it off-screen
     expect(nav.className).toMatch(/translate-y-full/);
   });
 
   it("browser mode + authenticated: SiteHeader renders (top nav, not bottom)", () => {
-    mockUseApp.mockReturnValue({ isInstalled: false });
+    mockUseApp.mockReturnValue({ isInstalled: false, isPwaPresentation: false });
 
     renderSiteHeader("/gardens");
 
@@ -151,7 +160,7 @@ describe("Display mode — AppBar visibility", () => {
   });
 
   it("mobile browser: hamburger nav visible, NO bottom nav", () => {
-    mockUseApp.mockReturnValue({ isInstalled: false });
+    mockUseApp.mockReturnValue({ isInstalled: false, isPwaPresentation: false });
 
     // Render SiteHeader — hamburger is always in DOM (hidden via CSS on desktop)
     renderSiteHeader("/gardens");

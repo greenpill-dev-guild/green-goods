@@ -1,8 +1,5 @@
 import {
-  AppKitProvider,
   AppProvider,
-  AuthGate,
-  DEFAULT_CHAIN_ID,
   initGlobalErrorHandlers,
   initTheme,
   updateToasts,
@@ -53,24 +50,10 @@ function UpdateNotifier() {
 export const Root = () => (
   <HelmetProvider>
     <AppErrorBoundary>
-      <AppKitProvider
-        projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
-        metadata={{
-          name: "Green Goods",
-          description: "Start Bringing Your Impact Onchain",
-          url: import.meta.env.VITE_APP_URL || window.location.origin,
-          icons: ["https://greengoods.app/icon.png"],
-        }}
-        defaultChainId={DEFAULT_CHAIN_ID}
-      >
-        {/* AuthGate uses DevAuthProvider in dev when ?mockAuth= is present */}
-        <AuthGate>
-          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
-            <UpdateNotifier />
-            <App />
-          </AppProvider>
-        </AuthGate>
-      </AppKitProvider>
+      <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
+        <UpdateNotifier />
+        <App />
+      </AppProvider>
     </AppErrorBoundary>
   </HelmetProvider>
 );

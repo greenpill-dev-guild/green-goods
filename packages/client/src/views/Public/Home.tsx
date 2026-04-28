@@ -1,27 +1,25 @@
 import { useApp, usePublicStats } from "@green-goods/shared";
 import { Navigate, useLocation } from "react-router-dom";
-import {
-  PublicFeaturedGardens,
-  PublicGetInTouch,
-  PublicHero,
-  PublicInstallCta,
-  PublicProofBand,
-  PublicRecordLoop,
-} from "@/components/Public";
+import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens";
+import { PublicGetInTouch } from "@/components/Public/PublicGetInTouch";
+import { PublicHero } from "@/components/Public/PublicHero";
+import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
+import { PublicProofBand } from "@/components/Public/PublicProofBand";
+import { PublicRecordLoop } from "@/components/Public/PublicRecordLoop";
 
 /**
  * Home — the editorial public homepage at browser `/`.
  *
- * Installed PWA users are redirected to `/home` (the auth'd dashboard).
+ * PWA presentation users are redirected to `/home` (the auth'd dashboard).
  * Browser users see the editorial gateway under `PublicShell` (no bottom AppBar).
- * Honors `?redirectTo=` for installed users so deep links flow through.
+ * Honors `?redirectTo=` for PWA presentation users so deep links flow through.
  */
 export default function Home() {
-  const { isInstalled } = useApp();
+  const { isPwaPresentation } = useApp();
   const location = useLocation();
   const stats = usePublicStats();
 
-  if (isInstalled) {
+  if (isPwaPresentation) {
     const redirectTo = new URLSearchParams(location.search).get("redirectTo");
     return <Navigate to={redirectTo || "/home"} replace />;
   }

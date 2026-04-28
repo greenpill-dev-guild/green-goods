@@ -17,7 +17,7 @@ export const AppBar = () => {
   const isWorkDetail = pathname.includes("/work/");
   const intl = useIntl();
   const { data: pendingCount = 0 } = usePendingWorksCount();
-  const { isInstalled } = useApp();
+  const { isPwaPresentation } = useApp();
 
   // Check if any drawer is open to hide AppBar beneath them
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
@@ -25,7 +25,7 @@ export const AppBar = () => {
   const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
   const isAnyDrawerOpen = isWorkDashboardOpen || isGardenFilterOpen || isEndowmentDrawerOpen;
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
-  const shouldHideBar = !isInstalled || isGarden || isWorkDetail || isAnyDrawerOpen;
+  const shouldHideBar = !isPwaPresentation || isGarden || isWorkDetail || isAnyDrawerOpen;
 
   const tabs: {
     path: string;

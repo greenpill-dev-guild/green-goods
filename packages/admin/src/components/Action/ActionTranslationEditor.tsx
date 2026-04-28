@@ -10,6 +10,8 @@ import {
   cn,
   createActionTranslationDraft,
   getActionSourceHash,
+  hasActionTranslationContent,
+  hasCompleteActionTranslationContent,
   markStaleActionTranslations,
   normalizeActionTranslations,
   type WorkInput,
@@ -181,6 +183,12 @@ function getStatusLabel(
       defaultMessage: "Missing",
     });
   }
+  if (!hasActionTranslationContent(record.data)) {
+    return formatMessage({
+      id: "app.admin.actions.translations.statusMissing",
+      defaultMessage: "Missing",
+    });
+  }
   if (record.status === "reviewed") {
     return formatMessage({
       id: "app.admin.actions.translations.statusReviewed",
@@ -222,9 +230,14 @@ export function ActionTranslationEditor({
   const activeRecord = translations[activeLocale];
   const activeData = activeRecord?.data ?? {};
   const activeInputTranslations = activeData.uiConfig?.details?.inputs;
-  const hasUnreviewedTranslations = ACTION_TRANSLATION_LOCALES.some(
-    (locale) => translations[locale]?.status !== "reviewed"
-  );
+  const hasUnreviewedTranslations = ACTION_TRANSLATION_LOCALES.some((locale) => {
+    const record = translations[locale];
+    return (
+      record?.status !== "reviewed" ||
+      !hasActionTranslationContent(record.data) ||
+      !hasCompleteActionTranslationContent(sourceTitle, sourceConfig, record.data)
+    );
+  });
 
   const updateActiveRecord = (
     updater: (record: ActionTranslationRecord) => ActionTranslationRecord
@@ -243,6 +256,7 @@ export function ActionTranslationEditor({
   const updateActiveData = (
     updater: (data: ActionInstructionTranslationData) => ActionInstructionTranslationData
   ) => {
+    setMessage(null);
     updateActiveRecord((record) => ({
       ...record,
       status: "draft",
@@ -321,6 +335,17 @@ export function ActionTranslationEditor({
   };
 
   const markReviewed = () => {
+    if (!hasActionTranslationContent(activeData)) {
+      setMessage(
+        formatMessage({
+          id: "app.admin.actions.translations.reviewNeedsContent",
+          defaultMessage: "Add translation text before marking this locale reviewed.",
+        })
+      );
+      return;
+    }
+
+    setMessage(null);
     updateActiveRecord((record) => ({
       ...record,
       status: "reviewed",

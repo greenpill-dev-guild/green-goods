@@ -8,7 +8,7 @@ import { defineConfig, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve env schema from monorepo root even when this package script runs with a package cwd.
   process.chdir(rootDir);
@@ -56,6 +56,7 @@ export default defineConfig(async () => {
   const isDevContainer = process.env.DEVCONTAINER === "true";
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
+  const nodeEnv = command === "build" ? "production" : "development";
 
   // Dev-only plugin: serves tunnel URL at /__dev/tunnel for the landing page QR code
   function devTunnelPlugin(): Plugin {
@@ -268,6 +269,9 @@ export default defineConfig(async () => {
       sourcemap: true,
       chunkSizeWarningLimit: 2000,
     },
+    define: {
+      "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+    },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances
     resolve: {
@@ -299,7 +303,7 @@ export default defineConfig(async () => {
         "@green-goods/contracts/abis": resolve(__dirname, "../contracts/abis"),
       },
       // Add conditions for proper module resolution on Vercel
-      conditions: ["import", "module", "browser", "default"],
+      conditions: [nodeEnv, "import", "module", "browser", "default"],
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {

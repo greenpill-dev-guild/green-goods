@@ -8,15 +8,28 @@ import type {
   PublicFundingAvailability,
   PublicFundingIntentKind,
 } from "@green-goods/shared/public-contracts";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
-import { CookieJarDepositDialog, VaultDepositDialog } from "@/components/Dialogs";
-import {
-  PublicFundingMethodSelector,
-  PublicFundingReceipt,
-  PublicGardenCard,
-} from "@/components/Public";
+import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
+import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
+
+const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
+const PublicFundingMethodSelector = lazy(() =>
+  import("@/components/Public/PublicFundingMethodSelector").then((module) => ({
+    default: module.PublicFundingMethodSelector,
+  }))
+);
+const CookieJarDepositDialog = lazy(() =>
+  import("@/components/Dialogs/CookieJarDepositDialog").then((module) => ({
+    default: module.CookieJarDepositDialog,
+  }))
+);
+const VaultDepositDialog = lazy(() =>
+  import("@/components/Dialogs/VaultDepositDialog").then((module) => ({
+    default: module.VaultDepositDialog,
+  }))
+);
 
 type ResolutionStatus = "absent" | "match" | "stale" | "ambiguous";
 
@@ -93,6 +106,7 @@ export default function FundPage() {
 
   const [selectorGarden, setSelectorGarden] = useState<PublicGardenSummary | null>(null);
   const [walletDialog, setWalletDialog] = useState<ActiveWalletDialog | null>(null);
+  const hasWalletRuntime = Boolean(selectorGarden || walletDialog);
 
   const matchHighlightRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -255,31 +269,37 @@ export default function FundPage() {
         )}
       </div>
 
-      {selectorGarden ? (
-        <PublicFundingMethodSelector
-          open
-          garden={selectorGarden}
-          onClose={closeSelector}
-          onWalletSelected={handleWalletSelected}
-          onCardSelected={handleCardSelected}
-        />
-      ) : null}
+      {hasWalletRuntime ? (
+        <Suspense fallback={null}>
+          <WalletRuntimeProviders>
+            {selectorGarden ? (
+              <PublicFundingMethodSelector
+                open
+                garden={selectorGarden}
+                onClose={closeSelector}
+                onWalletSelected={handleWalletSelected}
+                onCardSelected={handleCardSelected}
+              />
+            ) : null}
 
-      {walletDialog?.intent === "donate" ? (
-        <CookieJarDepositDialog
-          isOpen
-          onClose={closeWalletDialog}
-          gardenAddress={walletDialog.garden.id as Address}
-          gardenName={walletDialog.garden.name}
-        />
-      ) : null}
-      {walletDialog?.intent === "endow" ? (
-        <VaultDepositDialog
-          isOpen
-          onClose={closeWalletDialog}
-          gardenAddress={walletDialog.garden.id as Address}
-          gardenName={walletDialog.garden.name}
-        />
+            {walletDialog?.intent === "donate" ? (
+              <CookieJarDepositDialog
+                isOpen
+                onClose={closeWalletDialog}
+                gardenAddress={walletDialog.garden.id as Address}
+                gardenName={walletDialog.garden.name}
+              />
+            ) : null}
+            {walletDialog?.intent === "endow" ? (
+              <VaultDepositDialog
+                isOpen
+                onClose={closeWalletDialog}
+                gardenAddress={walletDialog.garden.id as Address}
+                gardenName={walletDialog.garden.name}
+              />
+            ) : null}
+          </WalletRuntimeProviders>
+        </Suspense>
       ) : null}
     </div>
   );

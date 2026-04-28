@@ -283,6 +283,7 @@
   "app.admin.actions.translations.optionLabel": "Option label: {value}",
   "app.admin.actions.translations.portuguese": "Portuguese",
   "app.admin.actions.translations.publishWarning": "Publishing can continue with missing, draft, or stale translations. Runtime display will fall back to English for those fields.",
+  "app.admin.actions.translations.reviewNeedsContent": "Add translation text before marking this locale reviewed.",
   "app.admin.actions.translations.reviewSection": "Review copy",
   "app.admin.actions.translations.sectionDescription": "Section description",
   "app.admin.actions.translations.sectionTitle": "Section title",
