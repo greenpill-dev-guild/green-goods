@@ -98,75 +98,74 @@ export default function Actions() {
           }
           toolbar={
             actions.showToolbar ? (
-              <div className="flex flex-col gap-3">
-                <AdminTabRail
-                  ariaLabel={intl.formatMessage({
-                    id: "cockpit.actions.lifecycleSwitcher",
-                    defaultMessage: "Filter actions by lifecycle",
-                  })}
-                  activeId={actions.lifecycle}
-                  onChange={(next) =>
-                    actions.setFilter("lifecycle", next === "all" ? undefined : next)
-                  }
-                  tabs={LIFECYCLE_TABS.map((tab) => ({
-                    id: tab.id,
-                    label: intl.formatMessage({
-                      id: tab.labelId,
-                      defaultMessage: tab.defaultLabel,
-                    }),
-                    count: actions.lifecycleCounts[tab.id] || undefined,
-                  }))}
-                />
-                <AdminSearchToolbar
-                  search={actions.filters.search ?? ""}
-                  onSearchChange={(value) => actions.setFilter("search", value || undefined)}
-                  placeholder={intl.formatMessage({
-                    id: "admin.actions.searchPlaceholder",
-                    defaultMessage: "Search actions...",
-                  })}
-                >
-                  <label className="flex h-10 items-center gap-2 rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
-                    <span>
-                      {intl.formatMessage({
-                        id: "app.admin.sortSelect.sortBy",
-                        defaultMessage: "Sort by",
-                      })}
-                    </span>
-                    <NativeSelect
-                      surface="admin"
-                      controlSize="sm"
-                      value={actions.filters.sort}
-                      onChange={(event) => actions.setFilter("sort", event.target.value)}
-                      aria-label={intl.formatMessage({
-                        id: "app.admin.sortSelect.sortBy",
-                        defaultMessage: "Sort by",
-                      })}
-                      className="h-8 min-h-8 rounded-full border-0 bg-transparent py-0 pl-1 pr-8 shadow-none"
-                    >
-                      {actions.sortOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  </label>
-                  {DOMAIN_FILTER_OPTIONS.map((tag) => {
-                    const selected = actions.filters.domain === tag.value;
-                    return (
-                      <AdminFilterChip
-                        key={tag.value}
-                        label={intl.formatMessage({ id: tag.labelId })}
-                        selected={selected}
-                        onToggle={() => actions.toggleDomain(tag.value)}
-                        className={getActionDomainChipClassName(tag.value, selected)}
-                      />
-                    );
-                  })}
-                </AdminSearchToolbar>
-              </div>
+              <AdminSearchToolbar
+                search={actions.filters.search ?? ""}
+                onSearchChange={(value) => actions.setFilter("search", value || undefined)}
+                placeholder={intl.formatMessage({
+                  id: "admin.actions.searchPlaceholder",
+                  defaultMessage: "Search actions...",
+                })}
+              >
+                <label className="flex h-10 items-center gap-2 rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+                  <span>
+                    {intl.formatMessage({
+                      id: "app.admin.sortSelect.sortBy",
+                      defaultMessage: "Sort by",
+                    })}
+                  </span>
+                  <NativeSelect
+                    surface="admin"
+                    controlSize="sm"
+                    value={actions.filters.sort}
+                    onChange={(event) => actions.setFilter("sort", event.target.value)}
+                    aria-label={intl.formatMessage({
+                      id: "app.admin.sortSelect.sortBy",
+                      defaultMessage: "Sort by",
+                    })}
+                    className="h-8 min-h-8 rounded-full border-0 bg-transparent py-0 pl-1 pr-8 shadow-none"
+                  >
+                    {actions.sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </label>
+                {DOMAIN_FILTER_OPTIONS.map((tag) => {
+                  const selected = actions.filters.domain === tag.value;
+                  return (
+                    <AdminFilterChip
+                      key={tag.value}
+                      label={intl.formatMessage({ id: tag.labelId })}
+                      selected={selected}
+                      onToggle={() => actions.toggleDomain(tag.value)}
+                      className={getActionDomainChipClassName(tag.value, selected)}
+                    />
+                  );
+                })}
+              </AdminSearchToolbar>
             ) : undefined
           }
-        />
+        >
+          {actions.showToolbar ? (
+            <AdminTabRail
+              ariaLabel={intl.formatMessage({
+                id: "cockpit.actions.lifecycleSwitcher",
+                defaultMessage: "Filter actions by lifecycle",
+              })}
+              activeId={actions.lifecycle}
+              onChange={(next) => actions.setFilter("lifecycle", next === "all" ? undefined : next)}
+              tabs={LIFECYCLE_TABS.map((tab) => ({
+                id: tab.id,
+                label: intl.formatMessage({
+                  id: tab.labelId,
+                  defaultMessage: tab.defaultLabel,
+                }),
+                count: actions.lifecycleCounts[tab.id] || undefined,
+              }))}
+            />
+          ) : null}
+        </PageHeader>
 
         {actions.isLoading ? (
           <Surface

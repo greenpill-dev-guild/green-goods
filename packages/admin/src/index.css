@@ -1154,15 +1154,6 @@
     width: 100%;
   }
 
-  .hub-toolbar-shell {
-    border-radius: 1.35rem;
-    background: linear-gradient(180deg, rgb(var(--admin-surface-0) / 0.72) 0%, rgb(var(--admin-surface-50) / 0.58) 100%);
-    padding: 0.75rem 1rem;
-    box-shadow:
-      inset 0 0 0 1px rgb(var(--admin-surface-0) / 0.8),
-      0 6px 16px rgb(var(--warm-shadow) / 0.05);
-  }
-
   .hub-list-toolbar {
     gap: 0.75rem;
   }
@@ -1233,10 +1224,6 @@
   @media (max-width: 599px) {
     .hub-route-shell {
       padding: 0.75rem 0 0.5rem;
-    }
-
-    .hub-toolbar-shell {
-      padding: 0.65rem;
     }
 
     /* Mobile gutter for the results section only — PageHeader keeps its own

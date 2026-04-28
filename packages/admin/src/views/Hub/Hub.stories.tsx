@@ -97,3 +97,9 @@ export const History: Story = {
   render: () => <HubCanvasStory />,
   decorators: hubDecorators("/hub/history?sort=newest"),
 };
+
+export const HistoryDetail: Story = {
+  tags: ["visual-harness"],
+  render: () => <HubCanvasStory />,
+  decorators: hubDecorators("/hub/history/assessment-assessment-rio-canopy?sort=newest"),
+};

@@ -109,9 +109,27 @@ export function PageHeader({
             </div>
           ) : null}
         </div>
+
+        {actions ? (
+          <div
+            data-region="route-header-actions"
+            className="flex flex-shrink-0 flex-wrap items-center justify-end gap-1.5 sm:gap-2"
+          >
+            {actions}
+          </div>
+        ) : null}
       </div>
 
-      {actions || toolbar ? (
+      {children ? (
+        <div
+          data-region="route-header-tabs"
+          className={cn("mt-3 sm:mt-4", isCanvas && "border-t border-stroke-soft-200 pt-3")}
+        >
+          {children}
+        </div>
+      ) : null}
+
+      {toolbar ? (
         <div
           data-region="route-header-toolbar"
           className={cn(
@@ -120,20 +138,6 @@ export function PageHeader({
           )}
         >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">{toolbar}</div>
-          {actions ? (
-            <div className="flex flex-shrink-0 flex-wrap items-center gap-1.5 sm:gap-2">
-              {actions}
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-
-      {children ? (
-        <div
-          data-region="route-header-tabs"
-          className={cn("mt-3 sm:mt-4", isCanvas && "border-t border-stroke-soft-200 pt-3")}
-        >
-          {children}
         </div>
       ) : null}
     </header>
