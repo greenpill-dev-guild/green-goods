@@ -157,6 +157,13 @@ export type { FormFieldProps } from "./Form/FormFieldWrapper";
 export { FormField, FormFieldWrapper } from "./Form/FormFieldWrapper";
 export type { FormInputProps } from "./Form/FormInput";
 export { FormInput } from "./Form/FormInput";
+export type {
+  NativeSelectProps,
+  SwitchProps,
+  TextareaProps,
+  TextInputProps,
+} from "./Form/ControlPrimitives";
+export { NativeSelect, Switch, Textarea, TextInput } from "./Form/ControlPrimitives";
 export type { FormLayoutProps } from "./Form/FormLayout";
 export { FormLayout } from "./Form/FormLayout";
 export type { FormTextareaProps } from "./Form/FormTextarea";

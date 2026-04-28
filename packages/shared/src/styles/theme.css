@@ -727,6 +727,137 @@
   }
 }
 
+/* ============================================================================
+ * Components layer: shared primitive classes.
+ * These classes are consumed by admin/client builds without relying on the
+ * consumer package's Tailwind content scan seeing shared JSX utilities.
+ * ============================================================================ */
+@layer components {
+  .gg-control {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    border: 1px solid rgb(var(--stroke-sub-300));
+    border-radius: var(--radius-sm, 0.5rem);
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--text-strong-950));
+    font-size: 0.875rem;
+    line-height: 1.5;
+    padding: 0.625rem 0.75rem;
+    transition:
+      border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      box-shadow var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out);
+  }
+
+  .gg-control::placeholder {
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-control:focus-visible {
+    border-color: rgb(var(--focus-ring, var(--primary-base)));
+    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.12);
+    outline: none;
+  }
+
+  .gg-control:disabled {
+    background: rgb(var(--bg-soft-200));
+    color: rgb(var(--text-sub-600));
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  .gg-control[data-invalid="true"] {
+    border-color: rgb(var(--error-base));
+  }
+
+  .gg-control[data-invalid="true"]:focus-visible {
+    border-color: rgb(var(--error-base));
+    box-shadow: 0 0 0 3px rgb(var(--error-base) / 0.12);
+  }
+
+  .gg-control[data-size="sm"] {
+    min-height: 2rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .gg-control[data-surface="admin"] {
+    border-color: rgb(var(--stroke-sub-300));
+    border-radius: var(--m3-shape-sm, var(--radius-sm, 0.5rem));
+    background: rgb(var(--m3-surface, var(--bg-white-0)));
+    color: rgb(var(--m3-on-surface, var(--text-strong-950)));
+  }
+
+  .gg-control[data-surface="admin"]:focus-visible {
+    border-color: rgb(var(--m3-primary, var(--focus-ring, var(--primary-base))));
+    box-shadow: 0 0 0 3px rgb(var(--m3-primary, var(--focus-ring, var(--primary-base))) / 0.16);
+  }
+
+  .gg-control-textarea {
+    min-height: 5rem;
+    resize: vertical;
+  }
+
+  .gg-control-select {
+    appearance: auto;
+  }
+
+  .gg-switch {
+    position: relative;
+    display: inline-flex;
+    width: 2.75rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgb(var(--bg-strong, var(--text-sub-600)));
+    transition:
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      box-shadow var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out);
+  }
+
+  .gg-switch:focus-visible {
+    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.16);
+    outline: none;
+  }
+
+  .gg-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .gg-switch[data-state="checked"] {
+    background: rgb(var(--m3-primary, var(--primary-base)));
+  }
+
+  .gg-switch-thumb {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: rgb(var(--m3-surface, var(--bg-white-0)));
+    box-shadow: var(--shadow-switch-thumb, 0 2px 4px rgb(0 0 0 / 0.16));
+    transform: translateX(0);
+    transition:
+      transform var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out),
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out);
+  }
+
+  .gg-switch[data-state="checked"] .gg-switch-thumb {
+    transform: translateX(1.25rem);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gg-control,
+    .gg-switch,
+    .gg-switch-thumb {
+      transition: none;
+    }
+  }
+}
+
 /* Base layer: Element resets and defaults */
 @layer base {
   html,
