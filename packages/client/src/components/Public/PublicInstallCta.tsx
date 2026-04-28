@@ -15,13 +15,13 @@ export interface PublicInstallCtaProps {
  */
 export function PublicInstallCta({ variant = "section", className = "" }: PublicInstallCtaProps) {
   const { formatMessage } = useIntl();
-  const { isMobile, platform, isInstalled, deferredPrompt } = useApp();
+  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt } = useApp();
   const guidance = useInstallGuidance(
     platform,
-    isMobile,
     isInstalled,
-    null,
-    deferredPrompt !== null
+    wasInstalled,
+    deferredPrompt,
+    isMobile
   );
 
   const labelId = isInstalled ? "public.nav.openApp" : "public.nav.installApp";

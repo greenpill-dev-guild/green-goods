@@ -1,5 +1,5 @@
 // Framework-free public route and state contracts for the browser read side.
-// This subpath must stay type/data only: no React, browser globals, styles,
+// This subpath must stay type/data only: no UI frameworks, browser globals, styles,
 // providers, hooks, or package-root imports.
 
 export type PublicLocale = "en" | "es" | "pt";

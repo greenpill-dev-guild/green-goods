@@ -6,13 +6,14 @@ import {
   type CreateFundingIntentRequest,
 } from "@green-goods/shared/public-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createServer } from "../api/server";
+import { createServer, hasReceiptTokenBody } from "../api/server";
 import {
   InMemoryPublicRateLimiter,
   publicRateLimitKey,
   derivePublicClientIp,
 } from "../api/public-protection";
-import { MemoryFundingIntentStore } from "../services/funding-intents";
+import type { FundingConfirmationResult, TransactionConfirmation } from "../services/blockchain";
+import { type FundingIntentRecord, MemoryFundingIntentStore } from "../services/funding-intents";
 
 const ORIGIN = "https://greengoods.app";
 const gardenId = "0x1111111111111111111111111111111111111111";
@@ -228,6 +229,17 @@ describe("public funding intent API", () => {
     );
     expect(queryToken.status).toBe(400);
 
+    const bodyTokenRequest = {
+      headers: new Headers({
+        "content-type": "application/json",
+        "content-length": "25",
+      }),
+      clone: () => ({
+        json: async () => ({ receiptToken: createdBody.receiptToken }),
+      }),
+    } as unknown as Request;
+    expect(await hasReceiptTokenBody(bodyTokenRequest)).toBe(true);
+
     const missing = await app.request(`/public/funding-intents/${createdBody.id}`, {
       headers: { origin: ORIGIN },
     });
@@ -271,6 +283,44 @@ describe("public funding intent API", () => {
 });
 
 describe("thirdweb webhook API and public rate-limit keys", () => {
+  const secret = "test-thirdweb-secret";
+  const txHash = `0x${"b".repeat(64)}`;
+
+  function signedWebhookRequest(payload: Record<string, unknown>) {
+    const body = JSON.stringify(payload);
+    return {
+      method: "POST",
+      headers: { "x-thirdweb-signature": createHmac("sha256", secret).update(body).digest("hex") },
+      body,
+    };
+  }
+
+  function createRecord(overrides: Partial<FundingIntentRecord> = {}): FundingIntentRecord {
+    return {
+      id: "fi_test",
+      gardenId,
+      gardenName: gardenId,
+      destinationType: "cookieJar",
+      destinationAddress: destinationAddress as `0x${string}`,
+      fundingIntent: "donate",
+      paymentMethod: "card",
+      availabilityKey: buildPublicFundingAvailabilityKey(availabilityInput),
+      clientRequestId: "webhook-client-request",
+      idempotencyFingerprint: "fingerprint",
+      amountUsd: "25",
+      chainId: 11155111,
+      token: token as `0x${string}`,
+      provider: "thirdweb",
+      status: "pending_provider",
+      receiptTokenHash: "hash",
+      quoteExpiresAt: "2026-04-27T12:10:00.000Z",
+      transactionAttempts: [],
+      createdAt: "2026-04-27T12:00:00.000Z",
+      updatedAt: "2026-04-27T12:00:00.000Z",
+      ...overrides,
+    };
+  }
+
   it("ignores spoofed proxy headers unless trusted proxy hops are configured", () => {
     const request = new Request("https://api.example/public/subscribe", {
       headers: {
@@ -288,7 +338,6 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
   });
 
   it("verifies raw body signatures before normalizing thirdweb events", async () => {
-    const secret = "test-thirdweb-secret";
     const { app, store } = (() => {
       const funding = new MemoryFundingIntentStore();
       return {
@@ -304,35 +353,13 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         ),
       };
     })();
-    const record = {
-      id: "fi_test",
-      gardenId,
-      gardenName: gardenId,
-      destinationType: "cookieJar" as const,
-      destinationAddress: destinationAddress as `0x${string}`,
-      fundingIntent: "donate" as const,
-      paymentMethod: "card" as const,
-      availabilityKey: buildPublicFundingAvailabilityKey(availabilityInput),
-      clientRequestId: "webhook-client-request",
-      idempotencyFingerprint: "fingerprint",
-      amountUsd: "25",
-      chainId: 11155111,
-      token: token as `0x${string}`,
-      provider: "thirdweb" as const,
-      status: "pending_provider" as const,
-      receiptTokenHash: "hash",
-      quoteExpiresAt: "2026-04-27T12:10:00.000Z",
-      transactionAttempts: [],
-      createdAt: "2026-04-27T12:00:00.000Z",
-      updatedAt: "2026-04-27T12:00:00.000Z",
-    };
-    await store.create(record);
+    await store.create(createRecord());
 
     const payload = JSON.stringify({
       id: "evt_1",
       eventType: "transaction_submitted",
       fundingIntentId: "fi_test",
-      txHash: "0x" + "b".repeat(64),
+      txHash,
       chainId: 11155111,
       destinationAddress,
       token,
@@ -357,5 +384,155 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
     const updated = await store.getById("fi_test");
     expect(updated?.status).toBe("pending_onchain");
     expect(updated?.transactionAttempts[0]?.txHash).toMatch(/^0x/);
+  });
+
+  it("requires explicit funding txRole before marking a transaction funded", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi
+      .fn<() => Promise<FundingConfirmationResult>>()
+      .mockResolvedValue({
+        status: "confirmed",
+        txHash: txHash as `0x${string}`,
+        matchedAssetAmount: "25",
+        confirmedAt: "2026-04-27T12:05:00.000Z",
+      });
+    const confirmFundingTransaction = vi
+      .fn<() => Promise<TransactionConfirmation>>()
+      .mockResolvedValue({
+        status: "confirmed",
+        txHash: txHash as `0x${string}`,
+        confirmedAt: "2026-04-27T12:05:00.000Z",
+      });
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        confirmFundingTuple,
+        confirmFundingTransaction,
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      signedWebhookRequest({
+        id: "evt_missing_role",
+        eventType: "transaction_submitted",
+        fundingIntentId: "fi_test",
+        txHash,
+        chainId: 11155111,
+        destinationAddress,
+        token,
+        destinationAmount: "25",
+        occurredAt: "2026-04-27T12:05:00.000Z",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(confirmFundingTuple).not.toHaveBeenCalled();
+    expect(confirmFundingTransaction).toHaveBeenCalledWith(txHash);
+    const updated = await store.getById("fi_test");
+    expect(updated?.status).toBe("pending_onchain");
+    expect(updated?.fundingTxHash).toBeUndefined();
+  });
+
+  it("maps tuple mismatch to reconciliation_failed without funding the intent", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi
+      .fn<() => Promise<FundingConfirmationResult>>()
+      .mockResolvedValue({
+        status: "tuple_mismatch",
+        txHash: txHash as `0x${string}`,
+        mismatchReason: "destination_mismatch",
+        confirmedAt: "2026-04-27T12:05:00.000Z",
+      });
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        confirmFundingTuple,
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      signedWebhookRequest({
+        id: "evt_mismatch",
+        eventType: "transaction_submitted",
+        txRole: "funding",
+        fundingIntentId: "fi_test",
+        txHash,
+        chainId: 11155111,
+        destinationAddress,
+        token,
+        destinationAmount: "25",
+        occurredAt: "2026-04-27T12:05:00.000Z",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const updated = await store.getById("fi_test");
+    expect(updated?.status).toBe("failed");
+    expect(updated?.failureCode).toBe("reconciliation_failed");
+    expect(updated?.fundingTxHash).toBeUndefined();
+    expect(updated?.transactionAttempts[0]?.failureCode).toBe("destination_mismatch");
+  });
+
+  it("keeps expired precedence by moving strict late matches to funded_late", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi
+      .fn<() => Promise<FundingConfirmationResult>>()
+      .mockResolvedValue({
+        status: "confirmed",
+        txHash: txHash as `0x${string}`,
+        matchedAssetAmount: "25",
+        confirmedAt: "2026-04-27T12:45:00.000Z",
+      });
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        confirmFundingTuple,
+      },
+      { logger: false }
+    );
+    await store.create(
+      createRecord({
+        status: "expired",
+        failureCode: "expired",
+        updatedAt: "2026-04-27T12:31:00.000Z",
+      })
+    );
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      signedWebhookRequest({
+        id: "evt_late",
+        eventType: "transaction_submitted",
+        txRole: "funding",
+        fundingIntentId: "fi_test",
+        txHash,
+        chainId: 11155111,
+        destinationAddress,
+        token,
+        destinationAmount: "25",
+        occurredAt: "2026-04-27T12:45:00.000Z",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const updated = await store.getById("fi_test");
+    expect(updated?.status).toBe("funded_late");
+    expect(updated?.fundingTxHash).toBe(txHash);
+    expect(updated?.fundedAssetAmount).toBe("25");
   });
 });

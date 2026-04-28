@@ -57,6 +57,7 @@ describe("SiteHeader", () => {
     mockUseApp.mockReturnValue({
       isMobile: false,
       isInstalled: false,
+      wasInstalled: false,
       platform: "unknown",
       deferredPrompt: null,
     });
@@ -84,6 +85,7 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Actions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
+    expect(mockUseInstallGuidance).toHaveBeenCalledWith("unknown", false, false, null, false);
     // No wallet CTA in public header.
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
@@ -105,6 +107,7 @@ describe("SiteHeader", () => {
     mockUseApp.mockReturnValue({
       isMobile: false,
       isInstalled: true,
+      wasInstalled: true,
       platform: "unknown",
       deferredPrompt: null,
     });

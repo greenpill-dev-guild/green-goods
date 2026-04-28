@@ -26,13 +26,13 @@ export const SiteHeader = () => {
   const intl = useIntl();
   const { pathname } = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { isMobile, platform, isInstalled, deferredPrompt } = useApp();
+  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt } = useApp();
   const guidance = useInstallGuidance(
     platform,
-    isMobile,
     isInstalled,
-    null,
-    deferredPrompt !== null
+    wasInstalled,
+    deferredPrompt,
+    isMobile
   );
 
   const installLabelId = isInstalled ? "public.nav.openApp" : "public.nav.installApp";
@@ -135,7 +135,7 @@ export const SiteHeader = () => {
         >
           <button
             type="button"
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-static-black/40"
             onClick={() => setIsDrawerOpen(false)}
             aria-label={intl.formatMessage({
               id: "public.nav.closeMenu",

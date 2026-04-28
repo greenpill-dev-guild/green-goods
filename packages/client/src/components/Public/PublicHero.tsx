@@ -12,13 +12,13 @@ import { publicCuration } from "@/content/publicCuration";
  */
 export function PublicHero() {
   const { formatMessage } = useIntl();
-  const { isMobile, platform, isInstalled, deferredPrompt } = useApp();
+  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt } = useApp();
   const guidance = useInstallGuidance(
     platform,
-    isMobile,
     isInstalled,
-    null,
-    deferredPrompt !== null
+    wasInstalled,
+    deferredPrompt,
+    isMobile
   );
 
   const installLabelId = isInstalled ? "public.nav.openApp" : "public.nav.installApp";

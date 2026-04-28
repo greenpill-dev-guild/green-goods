@@ -187,6 +187,19 @@ function hasReceiptTokenQuery(request: Request): boolean {
   return url.searchParams.has("receiptToken");
 }
 
+export async function hasReceiptTokenBody(request: Request): Promise<boolean> {
+  const contentType = request.headers.get("content-type") ?? "";
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength && !contentType.toLowerCase().includes("application/json")) return false;
+
+  try {
+    const body = (await request.clone().json()) as unknown;
+    return Boolean(body && typeof body === "object" && "receiptToken" in body);
+  } catch {
+    return false;
+  }
+}
+
 function getAllowedOrigins(deps: ServerDeps): Set<string> {
   return deps.allowedOrigins ?? parseAllowedOrigins(process.env.AGENT_PUBLIC_ALLOWED_ORIGINS);
 }
@@ -795,7 +808,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   app.get("/public/funding-intents/:id", async (c) => {
     const originError = checkOrigin(c, deps);
     if (originError) return c.json(originError, 403);
-    if (hasReceiptTokenQuery(c.req.raw)) {
+    if (hasReceiptTokenQuery(c.req.raw) || (await hasReceiptTokenBody(c.req.raw))) {
       return jsonNoStore(
         c,
         safeError("invalid_request", "Receipt tokens must use the header."),
@@ -855,7 +868,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       const intent = await fundingIntents.getById(event.fundingIntentId);
       if (intent) {
         const isFundingTransaction =
-          event.eventType === "transaction_submitted" && (event.txRole ?? "funding") === "funding";
+          event.eventType === "transaction_submitted" && event.txRole === "funding";
 
         // Strict tuple match: provider success alone never marks `funded`.
         // The webhook can only flip to `funded` when the onchain receipt
