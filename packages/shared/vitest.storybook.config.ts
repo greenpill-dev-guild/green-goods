@@ -41,6 +41,57 @@ const adminSrc = resolve(__dirname, "../admin/src");
 const clientSrc = resolve(__dirname, "../client/src");
 const sharedSrc = resolve(__dirname, "src");
 const contractsDir = resolve(__dirname, "../contracts");
+const storybookTestPath = resolve(__dirname, "node_modules/storybook/dist/test/index.js");
+const storybookBrowserOptimizerIncludes = [
+  "@ethereum-attestation-service/eas-sdk",
+  "@hookform/resolvers/zod",
+  "@hypercerts-org/contracts",
+  "@hypercerts-org/marketplace-sdk",
+  "@hypercerts-org/sdk",
+  "@radix-ui/react-dialog",
+  "@radix-ui/react-popover",
+  "@radix-ui/react-select",
+  "@react-spring/web",
+  "@reown/appkit-adapter-wagmi",
+  "@reown/appkit/react",
+  "@remixicon/react",
+  "@tanstack/react-query",
+  "@use-gesture/react",
+  "@wagmi/core",
+  "@xstate/react",
+  "browser-image-compression",
+  "clsx",
+  "embla-carousel-react",
+  "ethers",
+  "gql.tada",
+  "graphql-request",
+  "idb",
+  "idb-keyval",
+  "permissionless",
+  "permissionless/accounts",
+  "permissionless/clients/pimlico",
+  "posthog-js",
+  "posthog-js/react",
+  "react-day-picker",
+  "react-hook-form",
+  "react-hot-toast",
+  "react-intl",
+  "react-router-dom",
+  "react-select",
+  "tailwind-merge",
+  "tailwind-variants",
+  "varlock/env",
+  "viem",
+  "viem/account-abstraction",
+  "viem/chains",
+  "wagmi",
+  "wagmi/chains",
+  "xstate",
+  "zod",
+  "zustand",
+  "zustand/middleware",
+  "zustand/react/shallow",
+];
 
 export default defineConfig({
   test: {
@@ -59,6 +110,7 @@ export default defineConfig({
             },
           }),
         ],
+        optimizeDeps: { include: storybookBrowserOptimizerIncludes },
         resolve: {
           alias: {
             "@green-goods/shared": sharedSrc,
@@ -76,6 +128,7 @@ export default defineConfig({
             "@green-goods/shared/constants": resolve(sharedSrc, "constants"),
             "@green-goods/contracts/deployments": resolve(contractsDir, "deployments"),
             "@green-goods/contracts/abis": resolve(contractsDir, "abis"),
+            "storybook/test": storybookTestPath,
           },
           dedupe: ["react", "react-dom"],
         },

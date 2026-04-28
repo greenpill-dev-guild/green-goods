@@ -85,12 +85,6 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // Section, DOMAIN_GUIDANCE, etc.). Rendered through the step stories.
   "components/Assessment/CreateAssessmentSteps/shared.tsx",
 
-  // Internal types module for HypercertWizard — exports only types and
-  // a `HypercertWizardProps` interface. No runtime UI.
-  "components/Hypercerts/HypercertWizard/types.ts",
-
-  // Hook module that powers HypercertWizard — no JSX.
-  "components/Hypercerts/HypercertWizard/useWizardData.ts",
 ]);
 
 /**

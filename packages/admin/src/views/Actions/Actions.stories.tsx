@@ -1,12 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Route, Routes } from "react-router-dom";
 import { expect, within } from "storybook/test";
-import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import {
+  STORYBOOK_ADMIN_SHELL_SEEDS,
+  STORYBOOK_PRIMARY_ADMIN_GARDEN,
+} from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
   withCanvasFrame,
   withRouter,
   withSeededQueryClient,
+  withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 import Actions from "./index";
@@ -46,6 +50,7 @@ function actionsDecorators(initialPath: string) {
   return [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
     withRouter([initialPath]),
     withCanvasFrame({
       className: "p-0",

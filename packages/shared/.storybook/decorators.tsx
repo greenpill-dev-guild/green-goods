@@ -14,6 +14,7 @@ import { JobQueueProvider } from "../src/providers/JobQueue";
 import { WorkProvider } from "../src/providers/Work";
 import { AppContext, supportedLanguages } from "../src/providers/App";
 import { DevAuthProvider } from "../src/providers/DevAuthProvider";
+import { useAdminStore, type Garden as AdminStoreGarden } from "../src/stores/useAdminStore";
 import { STORYBOOK_NOW_SECONDS } from "./fixtures";
 import messages from "../src/i18n/en.json";
 
@@ -348,5 +349,20 @@ export function withSeededQueryClient(
         <Story />
       </QueryClientProvider>
     );
+  };
+}
+
+export function withSelectedAdminGarden(garden: AdminStoreGarden): Decorator {
+  return (Story, context) => {
+    useState(() => {
+      useAdminStore.setState({ selectedGarden: garden });
+      return garden.id;
+    });
+
+    useEffect(() => {
+      useAdminStore.setState({ selectedGarden: garden });
+    }, [garden]);
+
+    return <Story {...context} />;
   };
 }
