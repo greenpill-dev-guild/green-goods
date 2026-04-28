@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ActivityEvent } from "@green-goods/shared";
 import { hoursAgo as hoursAgoTs } from "../../../../../shared/.storybook/fixtures";
 import { HubHistoryInspector } from "./HubHistoryInspector";
-import type { ActivityEvent } from "../hub.utils";
 
 function event(
   id: string,

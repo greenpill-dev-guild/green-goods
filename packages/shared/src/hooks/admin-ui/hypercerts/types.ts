@@ -1,4 +1,7 @@
-import type { CategorizedError, ErrorCategory } from "@green-goods/shared";
+import type {
+  CategorizedError,
+  CategorizedErrorCategory as ErrorCategory,
+} from "@green-goods/shared";
 
 /**
  * Data passed to onComplete for optimistic UI rendering.

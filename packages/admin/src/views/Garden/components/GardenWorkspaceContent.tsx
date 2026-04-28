@@ -1,4 +1,10 @@
-import { type Address, Alert, Surface } from "@green-goods/shared";
+import {
+  type Address,
+  Alert,
+  Surface,
+  type AdminWorkspaceSectionTab,
+  type useGardenWorkspaceController,
+} from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
 import {
@@ -6,10 +12,8 @@ import {
   CanvasWorkspaceLoadingState,
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
-import type { AdminWorkspaceSectionTab } from "@/routes/workspaceNavigation";
 import { ImpactTab } from "./ImpactTab";
 import { OverviewTab } from "./OverviewTab";
-import type { useGardenWorkspaceController } from "../useGardenWorkspaceController";
 
 interface GardenWorkspaceContentProps {
   workspace: ReturnType<typeof useGardenWorkspaceController>;

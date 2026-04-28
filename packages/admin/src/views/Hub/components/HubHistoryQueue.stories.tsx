@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import type { ActivityEvent } from "@green-goods/shared";
 import { fn } from "storybook/test";
 import { hoursAgo as hoursAgoTs } from "../../../../../shared/.storybook/fixtures";
 import { HubHistoryQueue } from "./HubHistoryQueue";
-import type { ActivityEvent } from "../hub.utils";
 
 function event(
   id: string,

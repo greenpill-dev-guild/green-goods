@@ -1,11 +1,15 @@
-import { adminRoutes, useRouteBackedLeftSheetConfig, type Action } from "@green-goods/shared";
+import {
+  adminRoutes,
+  useRouteBackedLeftSheetConfig,
+  type Action,
+  type ActionsRouteState,
+} from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { ActionDetailPanel } from "./ActionDetail";
 import CreateAction from "./CreateAction";
 import EditAction from "./EditAction";
-import type { ActionsRouteState } from "./actions.workspaceModel";
 
 interface ActionsSheetDescriptorProps {
   routeState: ActionsRouteState;

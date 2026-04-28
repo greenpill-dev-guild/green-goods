@@ -222,6 +222,37 @@ export {
 // ============================================================================
 // HOOKS
 // ============================================================================
+export * from "./hooks/admin-ui/actions/actionDrafts";
+export * from "./hooks/admin-ui/actions/actions.utils";
+export * from "./hooks/admin-ui/actions/actions.workspaceModel";
+export * from "./hooks/admin-ui/actions/createAction.utils";
+export * from "./hooks/admin-ui/actions/useActionsController";
+export * from "./hooks/admin-ui/actions/useCreateActionController";
+export * from "./hooks/admin-ui/community/community.utils";
+export * from "./hooks/admin-ui/community/useCommunityWorkspaceController";
+export * from "./hooks/admin-ui/garden/garden.utils";
+export * from "./hooks/admin-ui/garden/useCreateGardenController";
+export * from "./hooks/admin-ui/garden/useGardenWorkspaceController";
+export * from "./hooks/admin-ui/garden/useResolvedWorkDetail";
+export * from "./hooks/admin-ui/hub/hub.filters";
+export * from "./hooks/admin-ui/hub/hub.utils";
+export * from "./hooks/admin-ui/hub/hub.workbenchModel";
+export * from "./hooks/admin-ui/hub/useCreateAssessmentController";
+export * from "./hooks/admin-ui/hub/useCreateHypercertController";
+export * from "./hooks/admin-ui/hub/useHubWorkbenchController";
+export * from "./hooks/admin-ui/hypercerts/types";
+export * from "./hooks/admin-ui/hypercerts/useWizardData";
+export * from "./hooks/admin-ui/hypercerts/wizardSteps";
+export * from "./hooks/admin-ui/layout/accountSheet.events";
+export * from "./hooks/admin-ui/layout/commandPalette.results";
+export * from "./hooks/admin-ui/layout/useAdminRightSheetDescriptor";
+export * from "./hooks/admin-ui/layout/useCommandPaletteController";
+export * from "./hooks/admin-ui/layout/useCommandPaletteData";
+export * from "./hooks/admin-ui/layout/useCommandPaletteShortcuts";
+export * from "./hooks/admin-ui/navigation/sheetRegistry";
+export * from "./hooks/admin-ui/navigation/workspaceNavigation";
+export * from "./hooks/admin-ui/navigation/workspaceScroll";
+export * from "./hooks/admin-ui/navigation/workspaceViews";
 export type {
   ActionFiltersState,
   ActionSortOrder,
@@ -892,6 +923,9 @@ export type {
   NormalizeToFileOptions,
   ParsedContractError,
   Platform,
+  AdminCommunityRouteContext,
+  AdminGardenRouteContext,
+  AdminHubRouteContext,
   PolymorphicComponent,
   PolymorphicComponentProps,
   PolymorphicComponentPropsWithRef,

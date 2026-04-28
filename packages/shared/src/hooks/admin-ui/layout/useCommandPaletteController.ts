@@ -1,21 +1,28 @@
-import { adminRoutes, useAdminStore } from "@green-goods/shared";
+import { adminRoutes, type Garden } from "@green-goods/shared";
 import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { dispatchOpenAccountSheet } from "./accountSheet.events";
 import type { SearchResult } from "./commandPalette.results";
-import { useCommandPaletteData } from "./useCommandPaletteData";
+import {
+  useCommandPaletteDataFromSource,
+  type CommandPaletteDataSource,
+} from "./useCommandPaletteData";
 import { useCommandPaletteShortcuts } from "./useCommandPaletteShortcuts";
 
 interface CommandPaletteControllerOptions {
+  data: CommandPaletteDataSource;
+  selectGarden: (garden: Garden) => void;
   externalOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
 export function useCommandPaletteController({
+  data,
+  selectGarden,
   externalOpen,
   onOpenChange,
-}: CommandPaletteControllerOptions = {}) {
+}: CommandPaletteControllerOptions) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -23,7 +30,6 @@ export function useCommandPaletteController({
 
   const navigate = useNavigate();
   const { formatMessage } = useIntl();
-  const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
 
   const open = externalOpen ?? internalOpen;
   const setOpen = useCallback(
@@ -41,16 +47,17 @@ export function useCommandPaletteController({
     return () => clearTimeout(timer);
   }, [inputValue]);
 
-  const { eligibleGardens, groups, results } = useCommandPaletteData({
+  const { eligibleGardens, groups, results } = useCommandPaletteDataFromSource({
     query: debouncedQuery,
     formatMessage,
-    selectGarden: setSelectedGarden,
+    selectGarden,
+    data,
   });
 
   useCommandPaletteShortcuts({
     eligibleGardens,
     open,
-    selectGarden: setSelectedGarden,
+    selectGarden,
     setOpen,
   });
 

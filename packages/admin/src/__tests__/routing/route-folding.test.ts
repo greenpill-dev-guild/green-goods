@@ -17,13 +17,22 @@ const srcDir = resolve(__dirname, "../../");
 const routerPath = resolve(srcDir, "router.tsx");
 const routeViewsPath = resolve(srcDir, "routes/views.tsx");
 const workViewPath = resolve(srcDir, "views/Hub/index.tsx");
-const hubControllerPath = resolve(srcDir, "views/Hub/useHubWorkbenchController.ts");
+const hubControllerPath = resolve(
+  srcDir,
+  "../../shared/src/hooks/admin-ui/hub/useHubWorkbenchController.ts"
+);
 const hubSheetDescriptorPath = resolve(srcDir, "views/Hub/components/HubSheetDescriptor.tsx");
-const sheetRegistryPath = resolve(srcDir, "routes/sheetRegistry.ts");
+const sheetRegistryPath = resolve(
+  srcDir,
+  "../../shared/src/hooks/admin-ui/navigation/sheetRegistry.ts"
+);
 const communityViewPath = resolve(srcDir, "views/Community/index.tsx");
 const profileViewPath = resolve(srcDir, "views/Profile/index.tsx");
 const canvasLayoutPath = resolve(srcDir, "components/Layout/CanvasLayout.tsx");
-const rightSheetRegistryPath = resolve(srcDir, "components/Layout/RightSheetRegistry.tsx");
+const rightSheetDescriptorPath = resolve(
+  srcDir,
+  "../../shared/src/hooks/admin-ui/layout/useAdminRightSheetDescriptor.tsx"
+);
 const sharedAdminRoutesPath = resolve(srcDir, "../../shared/src/utils/navigation/admin-routes.ts");
 
 function readSource(path: string): string {
@@ -87,14 +96,14 @@ describe("route folding", () => {
   it("global right sheet content is resolved through the admin sheet registry", () => {
     const sheetRegistry = readSource(sheetRegistryPath);
     const canvasLayout = readSource(canvasLayoutPath);
-    const rightSheetRegistry = readSource(rightSheetRegistryPath);
+    const rightSheetDescriptor = readSource(rightSheetDescriptorPath);
 
     expect(sheetRegistry).toContain("ADMIN_RIGHT_SHEET_REGISTRY");
     expect(sheetRegistry).toContain("notifications");
     expect(canvasLayout).toContain("useAdminRightSheetDescriptor");
     expect(canvasLayout).not.toContain("RIGHT_SHEET_TITLES");
-    expect(rightSheetRegistry).toContain("AccountSurface");
-    expect(rightSheetRegistry).toContain("NotificationPanel");
+    expect(canvasLayout).toContain("AccountSurface");
+    expect(rightSheetDescriptor).toContain("NotificationPanel");
   });
 
   it("Hub canonical builders preserve only garden and sort context", () => {

@@ -1,7 +1,12 @@
-import { Button, formatRelativeTime, Surface } from "@green-goods/shared";
+import {
+  Button,
+  formatRelativeTime,
+  HUB_HISTORY_STATUS_CLASSNAME,
+  Surface,
+  type ActivityEvent,
+} from "@green-goods/shared";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { HUB_HISTORY_STATUS_CLASSNAME, type ActivityEvent } from "../hub.utils";
 
 export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
   const { formatMessage } = useIntl();

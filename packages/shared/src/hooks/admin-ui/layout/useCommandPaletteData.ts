@@ -1,6 +1,8 @@
 import {
+  type Action,
   DEFAULT_CHAIN_ID,
   type Garden,
+  type UserRole,
   useActions,
   useAllAssessments,
   useEligibleAdminGardens,
@@ -8,7 +10,7 @@ import {
 } from "@green-goods/shared";
 import { useMemo } from "react";
 import type { IntlShape } from "react-intl";
-import { ADMIN_COMMAND_ROUTES } from "@/routes/views";
+import { ADMIN_COMMAND_ROUTES } from "../navigation/workspaceViews";
 import { buildCommandPaletteResults, type SearchResult } from "./commandPalette.results";
 
 export interface CommandPaletteGroup {
@@ -42,6 +44,19 @@ interface CommandPaletteDataOptions {
   selectGarden: (garden: Garden) => void;
 }
 
+interface AssessmentCommandItem {
+  id: string;
+  gardenAddress: string;
+  title?: string | null;
+}
+
+export interface CommandPaletteDataSource {
+  eligibleGardens: Garden[];
+  actions: Action[];
+  assessments: AssessmentCommandItem[];
+  role: UserRole;
+}
+
 export function groupCommandPaletteResults(
   results: SearchResult[],
   formatMessage: IntlShape["formatMessage"]
@@ -60,29 +75,33 @@ export function groupCommandPaletteResults(
   });
 }
 
-export function useCommandPaletteData({
+export function useCommandPaletteDataFromSource({
   query,
   formatMessage,
   selectGarden,
-}: CommandPaletteDataOptions) {
-  const { eligibleGardens } = useEligibleAdminGardens();
-  const { data: actions } = useActions(DEFAULT_CHAIN_ID);
-  const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
-  const { role } = useRole();
-
+  data,
+}: CommandPaletteDataOptions & { data: CommandPaletteDataSource }) {
   const results = useMemo(
     () =>
       buildCommandPaletteResults({
         query,
-        role,
+        role: data.role,
         formatMessage,
         staticRoutes: ADMIN_COMMAND_ROUTES,
-        eligibleGardens,
-        actions: actions ?? [],
-        assessments: assessments ?? [],
+        eligibleGardens: data.eligibleGardens,
+        actions: data.actions,
+        assessments: data.assessments,
         selectGarden,
       }),
-    [actions, assessments, eligibleGardens, formatMessage, query, role, selectGarden]
+    [
+      data.actions,
+      data.assessments,
+      data.eligibleGardens,
+      data.role,
+      formatMessage,
+      query,
+      selectGarden,
+    ]
   );
 
   const groups = useMemo(
@@ -91,8 +110,25 @@ export function useCommandPaletteData({
   );
 
   return {
-    eligibleGardens,
+    eligibleGardens: data.eligibleGardens,
     groups,
     results,
   };
+}
+
+export function useCommandPaletteData(options: CommandPaletteDataOptions) {
+  const { eligibleGardens } = useEligibleAdminGardens();
+  const { data: actions } = useActions(DEFAULT_CHAIN_ID);
+  const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
+  const { role } = useRole();
+
+  return useCommandPaletteDataFromSource({
+    ...options,
+    data: {
+      eligibleGardens,
+      actions: actions ?? [],
+      assessments: assessments ?? [],
+      role,
+    },
+  });
 }

@@ -15,7 +15,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   resolveAdminWorkspaceSectionRoute,
   type AdminWorkspaceSectionTab,
-} from "@/routes/workspaceNavigation";
+} from "../navigation/workspaceNavigation";
 import {
   buildCommunityFabConfig,
   communitySectionForMode,
@@ -24,7 +24,7 @@ import {
 import {
   bindCanvasScrollPositionPersistence,
   restoreCanvasScrollPosition,
-} from "../workspaceScroll";
+} from "../navigation/workspaceScroll";
 
 export function useCommunityWorkspaceController() {
   const { formatMessage } = useIntl();

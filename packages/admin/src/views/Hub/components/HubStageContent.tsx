@@ -1,9 +1,8 @@
-import type { Work } from "@green-goods/shared";
+import type { ActivityEvent, HubPipelineStage, Work } from "@green-goods/shared";
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
 import { HubCertificationQueue } from "./HubCertificationQueue";
 import { HubHistoryQueue } from "./HubHistoryQueue";
 import { HubWorkQueue } from "./HubWorkQueue";
-import type { ActivityEvent, HubPipelineStage } from "../hub.utils";
 
 interface CertificationItem {
   id: string;

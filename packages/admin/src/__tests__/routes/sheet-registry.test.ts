@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  ACTION_CREATE_CONTENT_ID,
   getRightSheetRegistryEntry,
   isRouteSheetRestorable,
   NOTIFICATIONS_SHEET_CONTENT_ID,
   PROFILE_SHEET_CONTENT_ID,
   SETTINGS_SHEET_CONTENT_ID,
-  ACTION_CREATE_CONTENT_ID,
   toActionDetailContentId,
   toActionEditContentId,
   toHistoryContentId,
   toWorkDetailContentId,
-} from "@/routes/sheetRegistry";
+} from "@green-goods/shared";
 
 describe("admin sheet registry", () => {
   it("registers global right sheet content", () => {

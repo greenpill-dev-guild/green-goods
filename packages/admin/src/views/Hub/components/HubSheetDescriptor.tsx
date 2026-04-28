@@ -1,7 +1,9 @@
 import {
   type AdminHubRouteContext,
   adminRoutes,
+  SUBMIT_WORK_CONTENT_ID,
   useRouteBackedLeftSheetConfig,
+  type ActivityEvent,
   type Work,
 } from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
@@ -9,7 +11,6 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { SubmitWorkPanel } from "@/views/Garden/SubmitWork";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
-import { SUBMIT_WORK_CONTENT_ID, type ActivityEvent } from "../hub.utils";
 import { HubCertificationInspector } from "./HubCertificationInspector";
 import { HubHistoryInspector } from "./HubHistoryInspector";
 

@@ -5,10 +5,10 @@ import {
   formatRelativeTime,
   WorkbenchList,
   WorkbenchRow,
+  type ActivityEvent,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiFileList3Line, RiInboxLine, RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import type { ActivityEvent } from "../hub.utils";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubHistoryQueueProps {

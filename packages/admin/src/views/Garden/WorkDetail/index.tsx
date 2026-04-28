@@ -1,15 +1,5 @@
-import {
-  Alert,
-  DEFAULT_CHAIN_ID,
-  adminRoutes,
-  useAdminGardenWorkspaceSelection,
-  useActions,
-  useGardenPermissions,
-  useGardens,
-  useWorks,
-} from "@green-goods/shared";
+import { Alert, adminRoutes, useResolvedWorkDetail } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiCloseLine, RiTimeLine } from "@remixicon/react";
-import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import {
@@ -19,7 +9,6 @@ import {
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
 import { MediaEvidence } from "@/views/Hub/components/MediaEvidence";
-import { parseWorkMetadata } from "./helpers";
 import { ReviewForm } from "./ReviewForm";
 import { SubmissionDetails } from "./SubmissionDetails";
 
@@ -38,67 +27,6 @@ function parseHubContext(search: string) {
         : undefined,
     sort: sort === "newest" || sort === "oldest" ? sort : undefined,
   } as const;
-}
-
-function useResolvedWorkDetail(workId: string | undefined) {
-  const gardenPermissions = useGardenPermissions();
-  const { selectedGarden, setSelectedGarden } = useAdminGardenWorkspaceSelection();
-  const selectedGardenId = selectedGarden?.id ?? null;
-
-  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const matchedGarden = useMemo(
-    () =>
-      workId
-        ? (gardens.find((garden) =>
-            garden.works?.some((candidateWork) => candidateWork.id === workId)
-          ) ?? null)
-        : null,
-    [gardens, workId]
-  );
-  const gardenId = matchedGarden?.id ?? selectedGardenId;
-  const garden =
-    gardens.find((candidateGarden) => candidateGarden.id === gardenId) ?? matchedGarden;
-
-  const { works, isLoading: worksLoading } = useWorks(gardenId ?? "");
-  const work =
-    works.find((candidateWork) => candidateWork.id === workId) ??
-    matchedGarden?.works?.find((candidateWork) => candidateWork.id === workId);
-
-  const { data: actions = [] } = useActions(DEFAULT_CHAIN_ID);
-  const action = useMemo(
-    () => actions.find((candidateAction) => work && Number(candidateAction.id) === work.actionUID),
-    [actions, work]
-  );
-
-  const canReview = garden ? gardenPermissions.canReviewGarden(garden) : false;
-  const canApproveOrReject = garden
-    ? gardenPermissions.isOperatorOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
-    : false;
-  const isReviewed = work?.status === "approved" || work?.status === "rejected";
-
-  useEffect(() => {
-    if (matchedGarden && matchedGarden.id !== selectedGardenId) {
-      setSelectedGarden(matchedGarden);
-    }
-  }, [matchedGarden, selectedGardenId, setSelectedGarden]);
-
-  const metadata = useMemo(
-    () => (work?.metadata ? parseWorkMetadata(work.metadata) : null),
-    [work?.metadata]
-  );
-
-  return {
-    garden,
-    gardenId,
-    work,
-    action,
-    canReview,
-    canApproveOrReject,
-    isReviewed,
-    metadata,
-    audioNoteCids: metadata?.audioNoteCids,
-    isLoading: gardensLoading || (gardenId ? worksLoading : false),
-  };
 }
 
 function WorkDetailStatusBadge({ status }: { status: "pending" | "approved" | "rejected" }) {

@@ -1,5 +1,5 @@
+import { buildCommunityFabConfig } from "@green-goods/shared";
 import { describe, expect, it, vi } from "vitest";
-import { buildCommunityFabConfig } from "./community.utils";
 
 describe("buildCommunityFabConfig", () => {
   it("preserves garden context when opening community actions", () => {

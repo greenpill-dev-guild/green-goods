@@ -31,6 +31,9 @@ export {
   resolveGardenMemberKey,
 } from "./app/garden";
 export type {
+  AdminCommunityRouteContext,
+  AdminGardenRouteContext,
+  AdminHubRouteContext,
   AdminSearchValue,
   AdminSignalPoolType,
   AdminWorkspaceId,

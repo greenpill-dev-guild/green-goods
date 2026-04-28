@@ -1,4 +1,14 @@
-import { cn } from "@green-goods/shared";
+import {
+  DEFAULT_CHAIN_ID,
+  cn,
+  useActions,
+  useAllAssessments,
+  useAdminStore,
+  useCommandPaletteController,
+  useEligibleAdminGardens,
+  useRole,
+  type SearchResult,
+} from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiArrowDownLine,
@@ -11,9 +21,7 @@ import {
   RiPlantLine,
   RiSearchLine,
 } from "@remixicon/react";
-import { useEffect, useRef, type ComponentType } from "react";
-import type { SearchResult } from "./commandPalette.results";
-import { useCommandPaletteController } from "./useCommandPaletteController";
+import { useEffect, useMemo, useRef, type ComponentType } from "react";
 
 interface CommandPaletteProps {
   open?: boolean;
@@ -29,6 +37,20 @@ const CATEGORY_ICONS: Record<SearchResult["category"], ComponentType<{ className
 };
 
 export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPaletteProps = {}) {
+  const { eligibleGardens } = useEligibleAdminGardens();
+  const { data: actions } = useActions(DEFAULT_CHAIN_ID);
+  const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
+  const { role } = useRole();
+  const selectGarden = useAdminStore((state) => state.setSelectedGarden);
+  const commandPaletteData = useMemo(
+    () => ({
+      eligibleGardens,
+      actions: actions ?? [],
+      assessments: assessments ?? [],
+      role,
+    }),
+    [actions, assessments, eligibleGardens, role]
+  );
   const {
     activeIndex,
     formatMessage,
@@ -41,7 +63,12 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
     selectResult,
     setActiveIndex,
     setInputValue,
-  } = useCommandPaletteController({ externalOpen, onOpenChange });
+  } = useCommandPaletteController({
+    data: commandPaletteData,
+    externalOpen,
+    onOpenChange,
+    selectGarden,
+  });
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 

@@ -12,7 +12,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderWithProviders, screen, fireEvent, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
-import { OPEN_ACCOUNT_SHEET_EVENT } from "@/components/Layout/accountSheet.events";
+import { OPEN_ACCOUNT_SHEET_EVENT } from "@green-goods/shared";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,13 @@
-import { Alert, Button, formatRelativeTime, Surface } from "@green-goods/shared";
+import {
+  Alert,
+  Button,
+  formatRelativeTime,
+  HUB_CERTIFY_STATUS_CLASSNAME,
+  HUB_META_PILL_CLASSNAME,
+  Surface,
+} from "@green-goods/shared";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
-import { HUB_CERTIFY_STATUS_CLASSNAME, HUB_META_PILL_CLASSNAME } from "../hub.utils";
 
 export function HubCertificationInspector({
   assessment,

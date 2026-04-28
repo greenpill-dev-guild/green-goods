@@ -1,4 +1,5 @@
 import type { GardenAssessment } from "@green-goods/shared";
+import type { AdminSheetSide } from "../navigation/sheetRegistry";
 import {
   type HubPipelineStage,
   PIPELINE_STAGE_CONFIG,
@@ -216,8 +217,11 @@ export function resolveHubRouteSheet({
   routeWorkId,
   routeCertificationId,
   routeHistoryEventId,
-}: HubRouteSheetInput) {
-  const routeSheetSide =
+}: HubRouteSheetInput): {
+  routeSheetContentId: string | null;
+  routeSheetSide: AdminSheetSide | null;
+} {
+  const routeSheetSide: AdminSheetSide | null =
     isSubmitRoute || routeWorkId || routeCertificationId || routeHistoryEventId ? "left" : null;
   const routeSheetContentId = isSubmitRoute
     ? SUBMIT_WORK_CONTENT_ID

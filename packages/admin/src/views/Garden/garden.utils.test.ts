@@ -1,5 +1,5 @@
+import { buildGardenFabConfig } from "@green-goods/shared";
 import { describe, expect, it, vi } from "vitest";
-import { buildGardenFabConfig } from "./garden.utils";
 
 describe("buildGardenFabConfig", () => {
   it("preserves garden context when opening settings", () => {

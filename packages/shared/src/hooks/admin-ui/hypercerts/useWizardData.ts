@@ -82,7 +82,10 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     if (lastPrefillId.current === selectedAssessment.id) return;
     lastPrefillId.current = selectedAssessment.id;
 
-    const prefill = prefillMetadataFromAssessment(selectedAssessment, getSDGLabel);
+    const prefill = prefillMetadataFromAssessment(
+      selectedAssessment as unknown as Parameters<typeof prefillMetadataFromAssessment>[0],
+      getSDGLabel
+    );
     updateMetadata(prefill);
   }, [selectedAssessment, updateMetadata]);
 
@@ -120,13 +123,13 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
 
   const handleConfirmLeave = useCallback(() => {
     reset();
-    blockerRef.current?.proceed();
+    blockerRef.current?.proceed?.();
     setShowLeaveConfirm(false);
     blockerRef.current = null;
   }, [reset]);
 
   const handleCancelLeave = useCallback(() => {
-    blockerRef.current?.reset();
+    blockerRef.current?.reset?.();
     setShowLeaveConfirm(false);
     blockerRef.current = null;
   }, []);
@@ -257,7 +260,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
         imageUri: previewMetadata?.image,
         attestationCount: selectedAttestations.length,
         mintedAt: Math.floor(Date.now() / 1000),
-        txHash: mintingState.txHash ?? undefined,
+        txHash: mintingState.txHash as HypercertCompletionData["txHash"],
       });
     }
   }, [
@@ -342,7 +345,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     "pending",
   ].includes(mintingState.status);
 
-  const nextDisabled = !canProceed(currentStep);
+  const nextDisabled = !(canProceed?.(currentStep) ?? false);
   const submitLabel =
     mintingState.status === "failed"
       ? formatMessage({ id: "app.hypercerts.mint.retry" })

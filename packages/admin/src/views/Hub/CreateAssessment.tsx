@@ -1,4 +1,10 @@
-import { adminRoutes, ErrorBoundary, FormWizard, TxInlineFeedback } from "@green-goods/shared";
+import {
+  adminRoutes,
+  ErrorBoundary,
+  FormWizard,
+  TxInlineFeedback,
+  useCreateAssessmentController,
+} from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
@@ -6,7 +12,6 @@ import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
-import { useCreateAssessmentController } from "./useCreateAssessmentController";
 
 export default function CreateAssessment() {
   const { formatMessage } = useIntl();

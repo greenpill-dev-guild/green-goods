@@ -1,8 +1,7 @@
-import { adminRoutes } from "@green-goods/shared";
+import { adminRoutes, useCreateHypercertController } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { HypercertWizard } from "@/components/Hypercerts/HypercertWizard";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
-import { useCreateHypercertController } from "./useCreateHypercertController";
 
 export default function CreateHypercert() {
   const { formatMessage } = useIntl();

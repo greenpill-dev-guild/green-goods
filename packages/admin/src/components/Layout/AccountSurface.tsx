@@ -1,9 +1,8 @@
-import { cn } from "@green-goods/shared";
+import { cn, type AccountSheetTab } from "@green-goods/shared";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { useIntl } from "react-intl";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
-import { type AccountSheetTab } from "./accountSheet.events";
 
 interface AccountSurfaceProps {
   activeTab: AccountSheetTab;

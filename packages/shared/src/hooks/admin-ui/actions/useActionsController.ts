@@ -23,12 +23,12 @@ import {
   getActionLifecycleState,
   type LifecycleStage,
 } from "./actions.utils";
-import { isActionsRouteSheetContentId } from "@/routes/sheetRegistry";
+import { isActionsRouteSheetContentId } from "../navigation/sheetRegistry";
 import { resolveActionsRouteState } from "./actions.workspaceModel";
 import {
   bindCanvasScrollPositionPersistence,
   restoreCanvasScrollPosition,
-} from "../workspaceScroll";
+} from "../navigation/workspaceScroll";
 
 export function useActionsController() {
   const intl = useIntl();

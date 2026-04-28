@@ -1,9 +1,6 @@
-import {
-  defaultTemplate,
-  Domain,
-  type ActionInstructionConfig,
-  type CreateActionFormData,
-} from "@green-goods/shared";
+import { Domain, type ActionInstructionConfig } from "../../../types/domain";
+import { defaultTemplate } from "../../../utils/action/templates";
+import type { CreateActionFormData } from "../../action/useActionForm";
 import { createActionDefaultValues } from "./createAction.utils";
 
 export const ACTION_CREATE_DRAFT_PATH = "/actions/create";
@@ -103,7 +100,7 @@ export function restoreCreateActionDraft(
       ...defaults,
       title: typeof draft.title === "string" ? draft.title : defaults.title,
       slug: typeof draft.slug === "string" ? draft.slug : defaults.slug,
-      domain: typeof draft.domain === "number" ? draft.domain : defaults.domain,
+      domain: typeof draft.domain === "number" ? (draft.domain as Domain) : defaults.domain,
       startTime: fromIsoDate(draft.startTime, defaults.startTime),
       endTime: fromIsoDate(draft.endTime, defaults.endTime),
       capitals: Array.isArray(draft.capitals)
@@ -111,7 +108,7 @@ export function restoreCreateActionDraft(
         : defaults.capitals,
       media: getCreateActionMediaDraft(path),
       instructionConfig: isRecord(draft.instructionConfig)
-        ? (draft.instructionConfig as ActionInstructionConfig)
+        ? (draft.instructionConfig as unknown as ActionInstructionConfig)
         : defaults.instructionConfig,
     },
   };
@@ -139,7 +136,7 @@ export function restoreEditActionDraft(draft: unknown) {
     startTime: fromIsoDate(draft.startTime, new Date()),
     endTime: fromIsoDate(draft.endTime, new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)),
     instructionConfig: isRecord(draft.instructionConfig)
-      ? (draft.instructionConfig as ActionInstructionConfig)
+      ? (draft.instructionConfig as unknown as ActionInstructionConfig)
       : defaultTemplate,
     isEditingInstructions:
       typeof draft.isEditingInstructions === "boolean" ? draft.isEditingInstructions : false,

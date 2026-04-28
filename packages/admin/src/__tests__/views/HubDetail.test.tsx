@@ -39,6 +39,47 @@ vi.mock("@green-goods/shared", () => ({
   useActions: () => mockUseActions(),
   useGardenPermissions: () => mockUseGardenPermissions(),
   useGardens: () => mockUseGardens(),
+  useResolvedWorkDetail: (workId: string | undefined) => {
+    const gardenPermissions = mockUseGardenPermissions();
+    const { data: gardens = [], isLoading: gardensLoading = false } = mockUseGardens();
+    const matchedGarden = workId
+      ? (gardens.find((garden: { works?: Array<{ id: string }> }) =>
+          garden.works?.some((candidateWork) => candidateWork.id === workId)
+        ) ?? null)
+      : null;
+    const gardenId = matchedGarden?.id ?? mockSelectedGarden?.id ?? null;
+    const garden =
+      gardens.find((candidateGarden: { id: string }) => candidateGarden.id === gardenId) ??
+      matchedGarden;
+    const { works = [], isLoading: worksLoading = false } = mockUseWorks();
+    const work =
+      works.find((candidateWork: { id: string }) => candidateWork.id === workId) ??
+      matchedGarden?.works?.find((candidateWork: { id: string }) => candidateWork.id === workId);
+    const { data: actions = [] } = mockUseActions();
+    const action = actions.find(
+      (candidateAction: { id: string | number }) =>
+        work && Number(candidateAction.id) === work.actionUID
+    );
+
+    if (matchedGarden && matchedGarden.id !== mockSelectedGarden?.id) {
+      mockSetSelectedGarden(matchedGarden);
+    }
+
+    return {
+      garden,
+      gardenId,
+      work,
+      action,
+      canReview: garden ? gardenPermissions.canReviewGarden(garden) : false,
+      canApproveOrReject: garden
+        ? gardenPermissions.isOperatorOfGarden(garden) || gardenPermissions.isOwnerOfGarden(garden)
+        : false,
+      isReviewed: work?.status === "approved" || work?.status === "rejected",
+      metadata: work?.metadata ? JSON.parse(work.metadata) : null,
+      audioNoteCids: undefined,
+      isLoading: gardensLoading || (gardenId ? worksLoading : false),
+    };
+  },
   useWorks: () => mockUseWorks(),
 }));
 

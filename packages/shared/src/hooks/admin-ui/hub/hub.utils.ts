@@ -10,7 +10,7 @@ import {
   adminRoutes,
   type useGardenDerivedState,
 } from "@green-goods/shared";
-import { resolveAdminWorkspaceSectionRoute } from "@/routes/workspaceNavigation";
+import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNavigation";
 
 // ============================================================================
 // Types
@@ -31,7 +31,7 @@ export {
   toHistoryContentId,
   toWorkDetailContentId,
   WORK_DETAIL_CONTENT_ID_PREFIX,
-} from "@/routes/sheetRegistry";
+} from "../navigation/sheetRegistry";
 
 // ============================================================================
 // Constants

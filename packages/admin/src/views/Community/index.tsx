@@ -1,9 +1,8 @@
-import { MetaStrip } from "@green-goods/shared";
+import { MetaStrip, useCommunityWorkspaceController } from "@green-goods/shared";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { CommunitySheetDescriptor } from "./components/CommunitySheetDescriptor";
 import { CommunityWorkspaceContent } from "./components/CommunityWorkspaceContent";
-import { useCommunityWorkspaceController } from "./useCommunityWorkspaceController";
 import { useIntl } from "react-intl";
 
 export default function CommunityView() {

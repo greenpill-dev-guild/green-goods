@@ -1,8 +1,11 @@
-import type { Garden, GardenAssessment } from "@green-goods/shared";
+import {
+  buildCommandPaletteResults,
+  groupCommandPaletteResults,
+  type Garden,
+  type GardenAssessment,
+} from "@green-goods/shared";
 import type { IntlShape } from "react-intl";
 import { describe, expect, it, vi } from "vitest";
-import { buildCommandPaletteResults } from "./commandPalette.results";
-import { groupCommandPaletteResults } from "./useCommandPaletteData";
 
 const formatMessage = ((descriptor: { defaultMessage?: string; id: string }) =>
   descriptor.defaultMessage ?? descriptor.id) as IntlShape["formatMessage"];

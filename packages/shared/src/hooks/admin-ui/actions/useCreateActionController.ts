@@ -134,7 +134,10 @@ export function useCreateActionController() {
       saveCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH, value.media);
       setDraftFormState(
         ACTION_CREATE_DRAFT_PATH,
-        serializeCreateActionDraft(value as Partial<CreateActionFormData>, currentStep)
+        serializeCreateActionDraft(
+          value as Partial<CreateActionFormData>,
+          currentStep
+        ) as unknown as Record<string, unknown>
       );
     });
 
@@ -144,7 +147,10 @@ export function useCreateActionController() {
   useEffect(() => {
     const value = form.getValues();
     saveCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH, value.media);
-    setDraftFormState(ACTION_CREATE_DRAFT_PATH, serializeCreateActionDraft(value, currentStep));
+    setDraftFormState(
+      ACTION_CREATE_DRAFT_PATH,
+      serializeCreateActionDraft(value, currentStep) as unknown as Record<string, unknown>
+    );
   }, [currentStep, form, setDraftFormState]);
 
   const onSubmit = async (data: CreateActionFormData) => {

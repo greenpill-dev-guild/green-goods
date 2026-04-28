@@ -1,4 +1,4 @@
-export { PROFILE_SHEET_CONTENT_ID, SETTINGS_SHEET_CONTENT_ID } from "@/routes/sheetRegistry";
+export { PROFILE_SHEET_CONTENT_ID, SETTINGS_SHEET_CONTENT_ID } from "../navigation/sheetRegistry";
 
 export type AccountSheetTab = "profile" | "settings";
 

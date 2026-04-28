@@ -1,10 +1,4 @@
-import {
-  type Action,
-  type Garden,
-  type GardenAssessment,
-  type UserRole,
-  adminRoutes,
-} from "@green-goods/shared";
+import { type Action, type Garden, type UserRole, adminRoutes } from "@green-goods/shared";
 import { RiSettings3Line, RiUserLine } from "@remixicon/react";
 import type { ComponentType } from "react";
 import type { IntlShape } from "react-intl";
@@ -29,6 +23,12 @@ interface StaticCommandRoute {
   href: string;
 }
 
+interface AssessmentCommandItem {
+  id: string;
+  gardenAddress: string;
+  title?: string | null;
+}
+
 interface BuildCommandPaletteResultsOptions {
   query: string;
   role: UserRole;
@@ -36,7 +36,7 @@ interface BuildCommandPaletteResultsOptions {
   staticRoutes: StaticCommandRoute[];
   eligibleGardens: Garden[];
   actions: Action[];
-  assessments: GardenAssessment[];
+  assessments: AssessmentCommandItem[];
   selectGarden: (garden: Garden) => void;
 }
 

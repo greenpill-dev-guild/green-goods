@@ -37,14 +37,14 @@ interface DerivedStateInput {
   }>;
   assessments: Array<{
     id: string;
-    title?: string;
-    assessmentType?: string;
+    title?: string | null;
+    assessmentType?: string | null;
     createdAt: number;
   }>;
   hypercerts: Array<{
     id: string;
-    title?: string;
-    mintedAt?: number;
+    title?: string | null;
+    mintedAt?: number | null;
   }>;
   allocations: Array<{
     txHash: string;
@@ -60,7 +60,7 @@ interface DerivedStateInput {
   activityFilter: ActivityFilter;
   memberSearch: string;
   section: string | undefined;
-  formatMessage: (descriptor: { id: string }, values?: Record<string, unknown>) => string;
+  formatMessage: (descriptor: { id: string }, values?: Record<string, any>) => string;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
 }
 

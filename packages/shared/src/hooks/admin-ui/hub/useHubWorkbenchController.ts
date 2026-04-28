@@ -47,7 +47,7 @@ import {
 import {
   bindCanvasScrollPositionPersistence,
   restoreCanvasScrollPosition,
-} from "../workspaceScroll";
+} from "../navigation/workspaceScroll";
 
 export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -364,7 +364,7 @@ export function useHubWorkbenchController() {
   ]);
 
   const handleRefresh = useCallback(() => {
-    void refreshWorks().finally(() => setLastRefreshAt(Date.now()));
+    void Promise.resolve(refreshWorks()).finally(() => setLastRefreshAt(Date.now()));
   }, [refreshWorks]);
 
   const navFabConfig = useMemo(

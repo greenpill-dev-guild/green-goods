@@ -1,9 +1,8 @@
-import { MetaStrip } from "@green-goods/shared";
+import { MetaStrip, useGardenWorkspaceController } from "@green-goods/shared";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { GardenSheetDescriptor } from "./components/GardenSheetDescriptor";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
-import { useGardenWorkspaceController } from "./useGardenWorkspaceController";
 import { useIntl } from "react-intl";
 
 // Paradigm: Mixed — overview = Data Landscape, impact = Data Landscape, settings = Command Surface.

@@ -1,10 +1,15 @@
-import { adminRoutes, Button, FormWizard, TxInlineFeedback } from "@green-goods/shared";
+import {
+  adminRoutes,
+  Button,
+  FormWizard,
+  TxInlineFeedback,
+  useCreateGardenController,
+} from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
-import { useCreateGardenController } from "./useCreateGardenController";
 
 export default function CreateGarden() {
   const intl = useIntl();

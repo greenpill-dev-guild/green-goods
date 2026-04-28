@@ -1,4 +1,13 @@
-import { RightSheet } from "@green-goods/shared";
+import {
+  NOTIFICATIONS_SHEET_CONTENT_ID,
+  PROFILE_SHEET_CONTENT_ID,
+  RightSheet,
+  SETTINGS_SHEET_CONTENT_ID,
+  isAdminRightSheetContentId,
+  toAccountSheetContentId,
+  useAdminRightSheetDescriptor,
+  type AdminRightSheetContentId,
+} from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
@@ -9,17 +18,7 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
-import {
-  NOTIFICATIONS_SHEET_CONTENT_ID,
-  PROFILE_SHEET_CONTENT_ID,
-  SETTINGS_SHEET_CONTENT_ID,
-  type AdminRightSheetContentId,
-} from "@/routes/sheetRegistry";
-import {
-  isAdminRightSheetContentId,
-  toAccountSheetContentId,
-  useAdminRightSheetDescriptor,
-} from "./RightSheetRegistry";
+import { AccountSurface } from "./AccountSurface";
 
 interface RightSheetRegistryHarnessProps {
   initialContentId: AdminRightSheetContentId | null;
@@ -37,7 +36,21 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
   const openContent = useCallback((nextContentId: AdminRightSheetContentId) => {
     setContentId(nextContentId);
   }, []);
-  const descriptor = useAdminRightSheetDescriptor(contentId, openContent);
+  const renderAccountSurface = useCallback(
+    ({
+      activeTab,
+      onTabChange,
+    }: {
+      activeTab: "profile" | "settings";
+      onTabChange: (tab: "profile" | "settings") => void;
+    }) => <AccountSurface activeTab={activeTab} onTabChange={onTabChange} />,
+    []
+  );
+  const descriptor = useAdminRightSheetDescriptor({
+    contentId,
+    onOpenContent: openContent,
+    renderAccountSurface,
+  });
 
   const openRegisteredContent = (nextContentId: string) => {
     if (isAdminRightSheetContentId(nextContentId)) {

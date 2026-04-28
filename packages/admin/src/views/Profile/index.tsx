@@ -1,13 +1,13 @@
+import {
+  ACCOUNT_TAB_SEARCH_PARAM,
+  parseAccountSheetTab,
+  type AccountSheetTab,
+} from "@green-goods/shared";
 import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import { AccountTabList, AccountTabPanels } from "@/components/Layout/AccountSurface";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
-import {
-  ACCOUNT_TAB_SEARCH_PARAM,
-  parseAccountSheetTab,
-  type AccountSheetTab,
-} from "@/components/Layout/accountSheet.events";
 
 export default function ProfileView() {
   const { formatMessage } = useIntl();

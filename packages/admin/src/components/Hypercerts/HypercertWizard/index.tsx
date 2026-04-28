@@ -5,6 +5,9 @@ import {
   logger,
   TOTAL_UNITS,
   toastService,
+  useWizardData,
+  type HypercertCompletionData,
+  type HypercertWizardProps,
 } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { MintingDialog } from "@/components/Hypercerts/MintingDialog";
@@ -12,8 +15,6 @@ import { AttestationSelector } from "@/components/Hypercerts/Steps/AttestationSe
 import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionConfig";
 import { HypercertPreview } from "@/components/Hypercerts/Steps/HypercertPreview";
 import { MetadataEditor } from "@/components/Hypercerts/Steps/MetadataEditor";
-import type { HypercertCompletionData, HypercertWizardProps } from "./types";
-import { useWizardData } from "./useWizardData";
 
 export type { HypercertCompletionData };
 export type { HypercertWizardProps };

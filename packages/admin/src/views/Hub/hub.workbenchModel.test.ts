@@ -1,4 +1,3 @@
-import { describe, expect, it } from "vitest";
 import {
   buildActionTitleMap,
   buildHubStageModel,
@@ -8,7 +7,8 @@ import {
   resolveHubRouteSelection,
   resolveHubRouteSheet,
   resolveHubRouteState,
-} from "./hub.workbenchModel";
+} from "@green-goods/shared";
+import { describe, expect, it } from "vitest";
 
 describe("hub.workbenchModel", () => {
   it("builds visible stages and falls back when the requested stage is unavailable", () => {

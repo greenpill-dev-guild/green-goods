@@ -8,56 +8,48 @@ import {
   NavigationBar,
   RightSheet,
   AppBar,
+  NotificationPanel,
+  ACCOUNT_TAB_SEARCH_PARAM,
+  ADMIN_WORKSPACE_VIEWS,
+  NOTIFICATIONS_SHEET_CONTENT_ID,
+  OPEN_ACCOUNT_SHEET_EVENT,
+  parseAccountSheetTab,
+  PROFILE_SHEET_CONTENT_ID,
+  SETTINGS_SHEET_CONTENT_ID,
+  toAccountSheetContentId,
   useAdminStore,
+  useAdminGardenWorkspaceSelection,
+  useAdminRightSheetDescriptor,
   useAuth,
   useEligibleAdminGardens,
   useEffectiveToolbarPermissions,
   useFabConfigValue,
+  useGardenDerivedState,
+  useGardenDetailData,
   useGardenUrlSync,
   useLeftSheetConfigValue,
   adminRoutes,
+  formatRelativeTime,
   getAdminWorkspaceForPath,
   getAdminWorkspaceRoot,
+  resolveAdminWorkspaceSectionRoute,
+  useMediaQuery,
   useSheetOrchestrator,
   useStaleGardenGuard,
+  type AccountSheetTab,
+  type AdminRightSheetContentId,
+  type AdminWorkspaceSectionTab,
+  type NotificationPanelItem,
+  type OpenAccountSheetEventDetail,
   type ToolbarSlot,
 } from "@green-goods/shared";
 import { RiUserLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
+import { AccountSurface } from "./AccountSurface";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
-import { ADMIN_WORKSPACE_VIEWS } from "@/routes/views";
-import {
-  ACCOUNT_TAB_SEARCH_PARAM,
-  OPEN_ACCOUNT_SHEET_EVENT,
-  parseAccountSheetTab,
-  type AccountSheetTab,
-  type OpenAccountSheetEventDetail,
-} from "./accountSheet.events";
-import {
-  NOTIFICATIONS_SHEET_CONTENT_ID,
-  PROFILE_SHEET_CONTENT_ID,
-  SETTINGS_SHEET_CONTENT_ID,
-  type AdminRightSheetContentId,
-} from "@/routes/sheetRegistry";
-import { toAccountSheetContentId, useAdminRightSheetDescriptor } from "./RightSheetRegistry";
-
-function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(
-    () => typeof window !== "undefined" && window.matchMedia(query).matches
-  );
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(query);
-    const handleChange = (event: MediaQueryListEvent) => setMatches(event.matches);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [query]);
-
-  return matches;
-}
 
 /**
  * Canvas layout — top context bar above the main sheet and floating navigation below.
@@ -101,7 +93,26 @@ export function CanvasLayout() {
     },
     [openSheet]
   );
-  const rightSheetDescriptor = useAdminRightSheetDescriptor(activeContentId, openRightSheetContent);
+  const renderAccountSurface = useCallback(
+    ({
+      activeTab,
+      onTabChange,
+    }: {
+      activeTab: AccountSheetTab;
+      onTabChange: (tab: AccountSheetTab) => void;
+    }) => <AccountSurface activeTab={activeTab} onTabChange={onTabChange} />,
+    []
+  );
+  const renderNotifications = useCallback(
+    () => <AdminNotificationPanel onCloseSheet={closeSheet} />,
+    [closeSheet]
+  );
+  const rightSheetDescriptor = useAdminRightSheetDescriptor({
+    contentId: activeContentId,
+    onOpenContent: openRightSheetContent,
+    renderAccountSurface,
+    renderNotifications,
+  });
 
   useEffect(() => {
     if (activeSheet === "right" && rightSheetDescriptor === null) {
@@ -337,6 +348,104 @@ export function CanvasLayout() {
         </div>
       </LeftSheetProvider>
     </FabProvider>
+  );
+}
+
+function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) {
+  const { formatMessage } = useIntl();
+  const navigate = useNavigate();
+  const { selectedGarden } = useAdminGardenWorkspaceSelection();
+  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const workspace = useGardenDetailData(selectedGarden?.id);
+
+  const navigateFromNotification = useCallback(
+    (path: string) => {
+      navigate(path);
+      onCloseSheet();
+    },
+    [navigate, onCloseSheet]
+  );
+
+  const openSection = useCallback(
+    (tab: AdminWorkspaceSectionTab, section: string, itemId?: string) => {
+      navigateFromNotification(
+        resolveAdminWorkspaceSectionRoute({
+          tab,
+          section,
+          itemId,
+          gardenAddress: selectedGardenAddress,
+        })
+      );
+    },
+    [navigateFromNotification, selectedGardenAddress]
+  );
+
+  const derived = useGardenDerivedState({
+    garden: workspace.garden ?? {
+      id: selectedGarden?.id ?? "",
+      domainMask: undefined,
+      name: selectedGarden?.name ?? "",
+      chainId: selectedGarden?.chainId ?? 0,
+    },
+    works: workspace.works,
+    assessments: workspace.assessments,
+    hypercerts: workspace.hypercerts,
+    allocations: workspace.allocations,
+    gardenVaults: workspace.gardenVaults,
+    vaultNetDeposited: workspace.vaultNetDeposited,
+    roleMembers: workspace.roleMembers,
+    selectedRange: "30d",
+    activityFilter: "all",
+    memberSearch: "",
+    section: undefined,
+    formatMessage,
+    openSection,
+  });
+
+  const items = useMemo<NotificationPanelItem[]>(() => {
+    if (!workspace.garden) return [];
+
+    const alertItems = derived.overviewAlerts.map((alert) => ({
+      id: `alert-${alert.key}`,
+      title: alert.label,
+      description: selectedGarden?.name,
+      tone: alert.severity,
+      onSelect: alert.onAction,
+    }));
+
+    const activityItems = derived.activityEvents.slice(0, 5).map((event) => {
+      const href = event.href;
+      return {
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        meta: formatRelativeTime(event.timestamp),
+        tone: "info" as const,
+        onSelect: href ? () => navigateFromNotification(href) : undefined,
+      };
+    });
+
+    return [...alertItems, ...activityItems].slice(0, 8);
+  }, [
+    derived.activityEvents,
+    derived.overviewAlerts,
+    navigateFromNotification,
+    selectedGarden,
+    workspace.garden,
+  ]);
+
+  return (
+    <NotificationPanel
+      items={items}
+      isLoading={
+        workspace.fetching ||
+        workspace.fetchingAssessments ||
+        workspace.worksLoading ||
+        workspace.hypercertsLoading ||
+        workspace.allocationsLoading ||
+        workspace.vaultsLoading
+      }
+    />
   );
 }
 

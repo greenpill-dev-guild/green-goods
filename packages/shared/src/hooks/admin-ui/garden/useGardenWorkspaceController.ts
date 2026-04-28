@@ -17,12 +17,12 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   resolveAdminWorkspaceSectionRoute,
   type AdminWorkspaceSectionTab,
-} from "@/routes/workspaceNavigation";
+} from "../navigation/workspaceNavigation";
 import { buildGardenFabConfig, resolveGardenView } from "./garden.utils";
 import {
   bindCanvasScrollPositionPersistence,
   restoreCanvasScrollPosition,
-} from "../workspaceScroll";
+} from "../navigation/workspaceScroll";
 
 type ActivityFilter = "all" | "work" | "impact" | "community";
 

@@ -1,7 +1,7 @@
 import { adminRoutes, useAdminStore, useGardenPermissions, useGardens } from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import type { HypercertCompletionData } from "@/components/Hypercerts/HypercertWizard";
+import type { HypercertCompletionData } from "../hypercerts/types";
 
 export function useCreateHypercertController() {
   const navigate = useNavigate();

@@ -1,4 +1,9 @@
-import { Button, MetaStrip } from "@green-goods/shared";
+import {
+  Button,
+  HUB_STAGE_RAIL_ID,
+  MetaStrip,
+  useHubWorkbenchController,
+} from "@green-goods/shared";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminTabRail } from "@/components/AdminTabRail";
@@ -7,8 +12,6 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { HubSheetDescriptor, HubStageContent } from "./components";
-import { HUB_STAGE_RAIL_ID } from "./hub.utils";
-import { useHubWorkbenchController } from "./useHubWorkbenchController";
 
 export default function HubView() {
   const { formatMessage } = useIntl();

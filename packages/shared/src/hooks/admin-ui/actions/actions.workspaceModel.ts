@@ -4,7 +4,7 @@ import {
   decodePathSegment,
   toActionDetailContentId,
   toActionEditContentId,
-} from "@/routes/sheetRegistry";
+} from "../navigation/sheetRegistry";
 import { getActionsListSearch } from "./actions.utils";
 
 export type ActionsRouteState =

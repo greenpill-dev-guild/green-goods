@@ -1,4 +1,4 @@
-import { Surface } from "@green-goods/shared";
+import { Surface, type useCommunityWorkspaceController } from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
   RiGroupLine,
@@ -14,7 +14,6 @@ import {
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
 import { CommunityTab } from "./CommunityTab";
-import type { useCommunityWorkspaceController } from "../useCommunityWorkspaceController";
 
 interface CommunityWorkspaceContentProps {
   workspace: ReturnType<typeof useCommunityWorkspaceController>;

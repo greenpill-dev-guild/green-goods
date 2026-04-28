@@ -1,4 +1,5 @@
-import { type Action, DOMAIN_CONFIG, Domain } from "@green-goods/shared";
+import { DOMAIN_CONFIG } from "../../../config/domain";
+import { Domain, type Action } from "../../../types/domain";
 
 export const DOMAIN_FILTER_OPTIONS = (
   Object.entries(DOMAIN_CONFIG) as [string, (typeof DOMAIN_CONFIG)[Domain]][]
