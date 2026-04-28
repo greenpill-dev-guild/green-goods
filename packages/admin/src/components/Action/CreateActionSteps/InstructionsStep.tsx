@@ -1,4 +1,4 @@
-import { type CreateActionFormData, FormField } from "@green-goods/shared";
+import { type CreateActionFormData, FormField, NativeSelect } from "@green-goods/shared";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
@@ -21,8 +21,9 @@ export function InstructionsStep({ form }: InstructionsStepProps) {
         htmlFor="create-action-template"
         className="mb-4"
       >
-        <select
+        <NativeSelect
           id="create-action-template"
+          surface="admin"
           onChange={(e) => {
             const selectedTemplateSlug = e.target.value;
             if (selectedTemplateSlug) {
@@ -216,7 +217,7 @@ export function InstructionsStep({ form }: InstructionsStepProps) {
               })}
             </option>
           </optgroup>
-        </select>
+        </NativeSelect>
       </FormField>
       <InstructionsBuilder
         value={form.watch("instructionConfig")}

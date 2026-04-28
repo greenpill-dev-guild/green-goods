@@ -4,6 +4,8 @@ import {
   type CookieJar,
   formatTokenAmount,
   getVaultAssetSymbol,
+  NativeSelect,
+  TextInput,
   useCookieJarEmergencyWithdraw,
   useCookieJarPause,
   useCookieJarUnpause,
@@ -192,7 +194,8 @@ export function CookieJarManageModal({
                     </span>
                     {editing?.jarAddress === jar.jarAddress && editing.field === "maxWithdrawal" ? (
                       <span className="flex items-center gap-1">
-                        <input
+                        <TextInput
+                          surface="admin"
                           type="text"
                           inputMode="decimal"
                           value={editValue}
@@ -262,7 +265,8 @@ export function CookieJarManageModal({
                     </span>
                     {editing?.jarAddress === jar.jarAddress && editing.field === "interval" ? (
                       <span className="flex items-center gap-1">
-                        <select
+                        <NativeSelect
+                          surface="admin"
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           className="rounded border border-stroke-soft bg-bg-white px-1.5 py-0.5 text-xs text-text-strong focus:border-primary-base focus:outline-none"
@@ -278,7 +282,7 @@ export function CookieJarManageModal({
                               {cooldownDisplay(BigInt(editValue))} (custom)
                             </option>
                           )}
-                        </select>
+                        </NativeSelect>
                         <AdminButton
                           variant="text"
                           size="sm"

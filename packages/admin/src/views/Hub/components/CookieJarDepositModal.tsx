@@ -3,6 +3,8 @@ import {
   Button,
   formatTokenAmount,
   getVaultAssetSymbol,
+  NativeSelect,
+  TextInput,
   TxInlineFeedback,
   useCookieJarDeposit,
   useGardenCookieJars,
@@ -107,8 +109,9 @@ export function CookieJarDepositModal({
           >
             {formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
           </label>
-          <select
+          <NativeSelect
             id="deposit-jar-select"
+            surface="admin"
             value={depositJar}
             onChange={(e) => setDepositJar(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
@@ -120,7 +123,7 @@ export function CookieJarDepositModal({
                 {formatTokenAmount(jar.balance, jar.decimals)})
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         {/* Amount */}
@@ -128,8 +131,9 @@ export function CookieJarDepositModal({
           <label htmlFor="deposit-amount" className="block text-sm font-medium text-text-strong">
             {formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
           </label>
-          <input
+          <TextInput
             id="deposit-amount"
+            surface="admin"
             type="text"
             inputMode="decimal"
             value={depositAmount}

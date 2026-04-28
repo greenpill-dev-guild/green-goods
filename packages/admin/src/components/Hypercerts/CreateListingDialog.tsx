@@ -1,14 +1,18 @@
 import {
   type Address,
   Alert,
+  Button,
   type CreateListingParams,
   DialogShell,
   LISTING_DEFAULTS,
   type ListingStep,
   logger,
+  NativeSelect,
+  TextInput,
   useCreateListing,
 } from "@green-goods/shared";
 import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
+import { AdminCheckbox } from "../AdminCheckbox";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -118,6 +122,7 @@ export function CreateListingDialog({
     }
   };
 
+  const sellLeftoverRegistration = register("sellLeftover");
   const visibleError = error ?? submissionError;
   const isErrorState = step === "error" || visibleError !== null;
 
@@ -144,7 +149,8 @@ export function CreateListingDialog({
                 defaultMessage: "Price per Unit (ETH)",
               })}
             </label>
-            <input
+            <TextInput
+              surface="admin"
               type="text"
               {...register("pricePerUnit", {
                 required: formatMessage({
@@ -166,7 +172,8 @@ export function CreateListingDialog({
               <label className="block text-sm font-medium text-text-strong mb-1">
                 {formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min Units" })}
               </label>
-              <input
+              <TextInput
+                surface="admin"
                 type="text"
                 {...register("minUnits")}
                 className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
@@ -177,7 +184,8 @@ export function CreateListingDialog({
               <label className="block text-sm font-medium text-text-strong mb-1">
                 {formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max Units" })}
               </label>
-              <input
+              <TextInput
+                surface="admin"
                 type="text"
                 {...register("maxUnits")}
                 className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
@@ -191,7 +199,8 @@ export function CreateListingDialog({
             <label className="block text-sm font-medium text-text-strong mb-1">
               {formatMessage({ id: "app.listing.duration", defaultMessage: "Duration" })}
             </label>
-            <select
+            <NativeSelect
+              surface="admin"
               {...register("durationDays", { valueAsNumber: true })}
               className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
             >
@@ -203,33 +212,31 @@ export function CreateListingDialog({
                   )}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
 
           {/* Sell leftover toggle */}
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              {...register("sellLeftover")}
-              className="h-4 w-4 rounded border-stroke-soft text-primary-base focus:ring-primary-base"
-            />
-            <span className="text-sm text-text-sub">
-              {formatMessage({
-                id: "app.listing.sellLeftover",
-                defaultMessage: "Sell leftover fraction",
-              })}
-            </span>
-          </label>
+          <AdminCheckbox
+            ref={sellLeftoverRegistration.ref}
+            name={sellLeftoverRegistration.name}
+            onChange={sellLeftoverRegistration.onChange}
+            label={formatMessage({
+              id: "app.listing.sellLeftover",
+              defaultMessage: "Sell leftover fraction",
+            })}
+            className="[&>span:nth-child(2)>span]:text-sm [&>span:nth-child(2)>span]:text-text-sub"
+          />
 
           <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={handleClose}
               className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
             >
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               className="flex items-center gap-1.5 rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))]"
             >
@@ -237,7 +244,7 @@ export function CreateListingDialog({
                 id: "app.listing.signAndList",
                 defaultMessage: "Sign & List",
               })}
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
@@ -257,18 +264,19 @@ export function CreateListingDialog({
 
           <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
             {(step === "done" || isErrorState) && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={handleClose}
                 className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
               >
                 {step === "done"
                   ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
                   : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-              </button>
+              </Button>
             )}
             {isErrorState && (
-              <button
+              <Button
                 type="button"
                 onClick={() => {
                   setSubmissionError(null);
@@ -278,7 +286,7 @@ export function CreateListingDialog({
                 className="rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))]"
               >
                 {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-              </button>
+              </Button>
             )}
           </div>
         </div>

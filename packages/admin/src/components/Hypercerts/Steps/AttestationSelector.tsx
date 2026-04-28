@@ -2,12 +2,14 @@ import {
   ACTION_DOMAINS,
   type ActionDomain,
   Alert,
+  Button,
   cn,
   FormInput,
   filterAttestationsByAssessment,
   formatDateTime,
   type GardenAssessment,
   type HypercertAttestation,
+  NativeSelect,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
@@ -142,12 +144,13 @@ export function AttestationSelector({
           >
             {formatMessage({ id: "app.hypercerts.attestations.filter.assessment" })}
           </label>
-          <select
+          <NativeSelect
             id="assessment-filter"
+            surface="admin"
             aria-label={formatMessage({ id: "app.hypercerts.attestations.filter.assessment" })}
             value={selectedAssessmentId ?? ""}
             onChange={(event) => onAssessmentChange(event.target.value || null)}
-            className="block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-200 focus:ring-2 focus:ring-primary-lighter focus:border-primary-base"
+            className="block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-[var(--spring-effects-fast-duration,150ms)] focus:ring-2 focus:ring-primary-lighter focus:border-primary-base"
           >
             <option value="">
               {formatMessage({ id: "app.hypercerts.attestations.filter.assessment.none" })}
@@ -157,7 +160,7 @@ export function AttestationSelector({
                 {assessment.title}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       )}
 
@@ -178,14 +181,15 @@ export function AttestationSelector({
           >
             {formatMessage({ id: "app.hypercerts.attestations.filter.domain" })}
           </label>
-          <select
+          <NativeSelect
             id="domain-filter"
+            surface="admin"
             aria-label={formatMessage({ id: "app.hypercerts.attestations.filter.domain" })}
             value={selectedAssessment ? "" : domainFilter}
             disabled={Boolean(selectedAssessment)}
             onChange={(event) => setDomainFilter(event.target.value as DomainOption | "")}
             className={cn(
-              "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-200 focus:ring-2 focus:ring-primary-lighter focus:border-primary-base",
+              "block w-full bg-bg-white-0 border border-stroke-sub-300 rounded-lg py-3 px-4 text-sm text-text-strong-950 transition-all duration-[var(--spring-effects-fast-duration,150ms)] focus:ring-2 focus:ring-primary-lighter focus:border-primary-base",
               selectedAssessment && "opacity-50 cursor-not-allowed"
             )}
           >
@@ -195,19 +199,21 @@ export function AttestationSelector({
                 {formatMessage({ id: `app.hypercerts.domain.${domain}` })}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
       </div>
 
       {/* Bulk selection buttons */}
       {!isLoading && !hasError && filtered.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={handleSelectAll}
             disabled={allFilteredSelected || selectable.length === 0}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
+              "inline-flex h-auto min-w-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
               allFilteredSelected || selectable.length === 0
                 ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
                 : "border-stroke-sub text-text-sub hover:bg-bg-weak"
@@ -215,13 +221,15 @@ export function AttestationSelector({
           >
             <RiCheckboxMultipleLine className="h-3.5 w-3.5" />
             {formatMessage({ id: "app.hypercerts.attestations.selectAll" })}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             onClick={handleDeselectAll}
             disabled={!someSelected}
             className={cn(
-              "inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
+              "inline-flex h-auto min-w-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition",
               !someSelected
                 ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
                 : "border-stroke-sub text-text-sub hover:bg-bg-weak"
@@ -229,7 +237,7 @@ export function AttestationSelector({
           >
             <RiCloseCircleLine className="h-3.5 w-3.5" />
             {formatMessage({ id: "app.hypercerts.attestations.deselectAll" })}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -291,9 +299,10 @@ export function AttestationSelector({
               : "";
 
           return (
-            <button
+            <Button
               key={attestation.id}
               type="button"
+              variant="ghost"
               onClick={() => {
                 if (isBundled) return;
                 onToggle(attestation.id);
@@ -302,7 +311,7 @@ export function AttestationSelector({
               aria-disabled={isBundled}
               disabled={isBundled}
               className={cn(
-                "flex flex-col gap-2 rounded-lg border p-4 text-left transition",
+                "flex h-auto w-full min-w-0 flex-col gap-2 rounded-lg border p-4 text-left transition",
                 "focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2",
                 isBundled
                   ? "border-stroke-soft bg-bg-weak text-text-disabled cursor-not-allowed"
@@ -364,7 +373,7 @@ export function AttestationSelector({
                   </span>
                 )}
               </div>
-            </button>
+            </Button>
           );
         })}
       </div>

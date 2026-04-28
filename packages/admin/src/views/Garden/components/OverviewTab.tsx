@@ -1,5 +1,6 @@
 import {
   type ActivityFilter,
+  Button,
   Card,
   EmptyState,
   formatRelativeTime,
@@ -365,10 +366,11 @@ export function OverviewTab({
                 </h3>
               </Card.Header>
               <Card.Body className="space-y-2">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setTab("work")}
-                  className="garden-stat-row group w-full"
+                  className="garden-stat-row group h-auto w-full min-w-0"
                 >
                   <span className="garden-stat-row-label group-hover:underline">
                     {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
@@ -377,11 +379,12 @@ export function OverviewTab({
                     <span className="garden-stat-row-value">{pendingWorkCount}</span>
                     <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setTab("impact")}
-                  className="garden-stat-row group w-full"
+                  className="garden-stat-row group h-auto w-full min-w-0"
                 >
                   <span className="garden-stat-row-label group-hover:underline">
                     {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
@@ -390,11 +393,12 @@ export function OverviewTab({
                     <span className="garden-stat-row-value">{assessmentCount30d}</span>
                     <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => setTab("community")}
-                  className="garden-stat-row group w-full"
+                  className="garden-stat-row group h-auto w-full min-w-0"
                 >
                   <span className="garden-stat-row-label group-hover:underline">
                     {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
@@ -403,11 +407,12 @@ export function OverviewTab({
                     <span className="garden-stat-row-value">{gardenerCount}</span>
                     <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => openSection("community", "treasury")}
-                  className="garden-stat-row group w-full"
+                  className="garden-stat-row group h-auto w-full min-w-0"
                 >
                   <span className="garden-stat-row-label group-hover:underline">
                     {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
@@ -416,7 +421,7 @@ export function OverviewTab({
                     <span className="garden-stat-row-value">{treasuryBalance}</span>
                     <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
                   </span>
-                </button>
+                </Button>
               </Card.Body>
             </Card>
           </div>

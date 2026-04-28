@@ -1,6 +1,7 @@
 import { type CreateActionFormData, cn, FileUploadField, FormField } from "@green-goods/shared";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
+import { AdminCheckbox } from "../../AdminCheckbox";
 
 interface CapitalsStepProps {
   form: UseFormReturn<CreateActionFormData>;
@@ -87,28 +88,26 @@ export function CapitalsStep({ form }: CapitalsStepProps) {
           {CAPITALS_OPTIONS.map((capital) => {
             const isChecked = capitals.includes(capital.value);
             return (
-              <label
+              <AdminCheckbox
                 key={capital.value}
+                checked={isChecked}
+                onChange={(e) => {
+                  const newCapitals = e.target.checked
+                    ? [...capitals, capital.value]
+                    : capitals.filter((c) => c !== capital.value);
+                  form.setValue("capitals", newCapitals);
+                }}
+                label={capital.label}
                 className={cn(
                   "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
+                  "[&>span:first-child]:h-5 [&>span:first-child]:w-5",
+                  "[&>span:nth-child(2)]:min-w-0 [&>span:nth-child(2)]:flex-1 [&>span:nth-child(2)]:pt-0",
+                  "[&>span:nth-child(2)>span]:truncate [&>span:nth-child(2)>span]:text-sm [&>span:nth-child(2)>span]:font-medium",
                   isChecked
                     ? "border-success-base bg-success-lighter text-success-dark"
                     : "border-stroke-soft bg-bg-white text-text-sub hover:border-success-light hover:bg-success-lighter/30"
                 )}
-              >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={(e) => {
-                    const newCapitals = e.target.checked
-                      ? [...capitals, capital.value]
-                      : capitals.filter((c) => c !== capital.value);
-                    form.setValue("capitals", newCapitals);
-                  }}
-                  className="h-4 w-4 rounded border-stroke-sub text-success-base focus:ring-2 focus:ring-success-light focus:ring-offset-0"
-                />
-                <span className="flex-1 truncate font-medium">{capital.label}</span>
-              </label>
+              />
             );
           })}
         </fieldset>

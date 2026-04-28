@@ -1,4 +1,4 @@
-import { type CreateActionFormData, FormField } from "@green-goods/shared";
+import { type CreateActionFormData, FormField, NativeSelect, TextInput } from "@green-goods/shared";
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 
@@ -25,8 +25,9 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
         htmlFor="create-action-title"
         error={form.formState.errors.title?.message}
       >
-        <input
+        <TextInput
           id="create-action-title"
+          surface="admin"
           {...form.register("title")}
           type="text"
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -49,8 +50,9 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
         })}
         error={form.formState.errors.slug?.message}
       >
-        <input
+        <TextInput
           id="create-action-slug"
+          surface="admin"
           {...form.register("slug")}
           type="text"
           autoCapitalize="none"
@@ -72,8 +74,9 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
         htmlFor="create-action-domain"
         error={form.formState.errors.domain?.message}
       >
-        <select
+        <NativeSelect
           id="create-action-domain"
+          surface="admin"
           {...form.register("domain", { valueAsNumber: true })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
         >
@@ -82,7 +85,7 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
               {option.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </FormField>
 
       <FormField
@@ -93,8 +96,9 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
         htmlFor="create-action-starttime"
         error={form.formState.errors.startTime?.message}
       >
-        <input
+        <TextInput
           id="create-action-starttime"
+          surface="admin"
           {...form.register("startTime", { valueAsDate: true })}
           type="date"
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -109,8 +113,9 @@ export function BasicsStep({ form, domainOptions }: BasicsStepProps) {
         htmlFor="create-action-endtime"
         error={form.formState.errors.endTime?.message}
       >
-        <input
+        <TextInput
           id="create-action-endtime"
+          surface="admin"
           {...form.register("endTime", { valueAsDate: true })}
           type="date"
           className="w-full rounded-md border border-stroke-soft px-3 py-2"

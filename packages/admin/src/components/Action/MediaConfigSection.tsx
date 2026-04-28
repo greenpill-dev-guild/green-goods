@@ -1,4 +1,10 @@
-import { type ActionInstructionConfig, FormField } from "@green-goods/shared";
+import {
+  type ActionInstructionConfig,
+  Button,
+  FormField,
+  Textarea,
+  TextInput,
+} from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -58,8 +64,9 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
         })}
         htmlFor="media-title"
       >
-        <input
+        <TextInput
           id="media-title"
+          surface="admin"
           type="text"
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
@@ -78,8 +85,9 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
         })}
         htmlFor="media-description"
       >
-        <textarea
+        <Textarea
           id="media-description"
+          surface="admin"
           value={config.description}
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -100,8 +108,9 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
           })}
           htmlFor="media-min"
         >
-          <input
+          <TextInput
             id="media-min"
+            surface="admin"
             type="number"
             min="0"
             value={config.minImageCount}
@@ -116,8 +125,9 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
           })}
           htmlFor="media-max"
         >
-          <input
+          <TextInput
             id="media-max"
+            surface="admin"
             type="number"
             min="1"
             value={config.maxImageCount}
@@ -152,7 +162,8 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
         <fieldset id="media-needed" className="space-y-2">
           {config.needed.map((shot, index) => (
             <div key={index} className="flex items-center gap-2">
-              <input
+              <TextInput
+                surface="admin"
                 type="text"
                 value={shot}
                 onChange={(e) => {
@@ -162,17 +173,20 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                 }}
                 className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => removeNeeded(index)}
-                className="p-2 text-error-base hover:bg-error-lighter rounded"
+                className="h-auto min-w-0 rounded p-2 text-error-base hover:bg-error-lighter"
               >
                 <RiCloseLine className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
           ))}
           <div className="flex gap-2">
-            <input
+            <TextInput
+              surface="admin"
               type="text"
               value={newNeeded}
               onChange={(e) => setNewNeeded(e.target.value)}
@@ -188,14 +202,15 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               })}
               className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
             />
-            <button
+            <Button
               type="button"
+              size="sm"
               onClick={addNeeded}
               className="px-3 py-2 bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
             >
               <RiAddLine className="h-4 w-4" />
               {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
-            </button>
+            </Button>
           </div>
         </fieldset>
       </FormField>
@@ -214,7 +229,8 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
         <fieldset id="media-optional" className="space-y-2">
           {config.optional.map((shot, index) => (
             <div key={index} className="flex items-center gap-2">
-              <input
+              <TextInput
+                surface="admin"
                 type="text"
                 value={shot}
                 onChange={(e) => {
@@ -224,17 +240,20 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                 }}
                 className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => removeOptional(index)}
-                className="p-2 text-error-base hover:bg-error-lighter rounded"
+                className="h-auto min-w-0 rounded p-2 text-error-base hover:bg-error-lighter"
               >
                 <RiCloseLine className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
           ))}
           <div className="flex gap-2">
-            <input
+            <TextInput
+              surface="admin"
               type="text"
               value={newOptional}
               onChange={(e) => setNewOptional(e.target.value)}
@@ -250,14 +269,15 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               })}
               className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
             />
-            <button
+            <Button
               type="button"
+              size="sm"
               onClick={addOptional}
               className="px-3 py-2 bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
             >
               <RiAddLine className="h-4 w-4" />
               {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
-            </button>
+            </Button>
           </div>
         </fieldset>
       </FormField>

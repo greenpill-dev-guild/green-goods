@@ -4,6 +4,9 @@ import {
   Card,
   cn,
   GARDEN_NAME_MAX_LENGTH,
+  Switch,
+  Textarea,
+  TextInput,
   useSetMaxGardeners,
   useSetOpenJoining,
   useUpdateGardenBannerImage,
@@ -82,20 +85,22 @@ function EditableField({
           </p>
         </div>
         {canEdit && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setDraft(value);
               setEditing(true);
             }}
-            className="mt-4 shrink-0 rounded-md p-1.5 text-text-soft opacity-0 transition-opacity hover:bg-bg-weak hover:text-text-strong group-hover:opacity-100"
+            className="mt-4 h-auto min-w-0 shrink-0 rounded-md p-1.5 text-text-soft opacity-0 transition-opacity hover:bg-bg-weak hover:text-text-strong group-hover:opacity-100"
             aria-label={formatMessage(
               { id: "app.garden.settings.edit", defaultMessage: "Edit {field}" },
               { field: label }
             )}
           >
             <RiEditLine className="h-4 w-4" />
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -105,14 +110,16 @@ function EditableField({
     <div className="space-y-2">
       <p className="label-xs text-text-soft">{label}</p>
       {multiline ? (
-        <textarea
+        <Textarea
+          surface="admin"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           rows={3}
           className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
         />
       ) : (
-        <input
+        <TextInput
+          surface="admin"
           type="text"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -249,25 +256,17 @@ export function GardenSettingsEditor({
               })}
             </p>
           </div>
-          <button
-            type="button"
+          <Switch
             disabled={!canManage || setOpenJoining.isPending}
-            onClick={() => setOpenJoining.mutate({ gardenAddress, value: !garden.openJoining })}
+            checked={!!garden.openJoining}
+            onCheckedChange={() =>
+              setOpenJoining.mutate({ gardenAddress, value: !garden.openJoining })
+            }
+            surface="admin"
             className={cn(
-              "relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-base focus:ring-offset-2",
-              garden.openJoining ? "bg-primary-base" : "bg-bg-strong",
               (!canManage || setOpenJoining.isPending) && "cursor-not-allowed opacity-50"
             )}
-            role="switch"
-            aria-checked={!!garden.openJoining}
-          >
-            <span
-              className={cn(
-                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-bg-white shadow ring-0 transition duration-200 ease-in-out",
-                garden.openJoining ? "translate-x-5" : "translate-x-0"
-              )}
-            />
-          </button>
+          />
         </div>
 
         <div className="border-t border-stroke-soft" />
@@ -289,7 +288,8 @@ export function GardenSettingsEditor({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <input
+            <TextInput
+              surface="admin"
               type="number"
               min={0}
               value={maxInput}

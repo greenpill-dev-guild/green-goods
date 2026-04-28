@@ -1,10 +1,12 @@
 import {
   type Address,
   Alert,
+  Button,
   type AllowlistEntry,
   cn,
   type DistributionMode,
   sumUnits,
+  TextInput,
   TOTAL_UNITS,
   useCopyToClipboard,
 } from "@green-goods/shared";
@@ -25,10 +27,12 @@ function TruncatedAddress({ address }: { address: Address }) {
       <span title={address} className="font-mono text-xs">
         {truncated}
       </span>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => copy(address)}
-        className="rounded p-0.5 text-text-sub transition hover:bg-bg-weak hover:text-text-strong focus:outline-none focus:ring-1 focus:ring-primary-light"
+        className="h-auto min-w-0 rounded p-0.5 text-text-sub transition hover:bg-bg-weak hover:text-text-strong focus:outline-none focus:ring-1 focus:ring-primary-light"
         aria-label={formatMessage({ id: "app.common.copyAddress" })}
       >
         {copied ? (
@@ -36,7 +40,7 @@ function TruncatedAddress({ address }: { address: Address }) {
         ) : (
           <RiFileCopyLine className="h-3 w-3" />
         )}
-      </button>
+      </Button>
     </span>
   );
 }
@@ -129,19 +133,21 @@ export function DistributionConfig({
         {MODE_OPTIONS.map((option) => {
           const isSelected = option.value === mode;
           return (
-            <button
+            <Button
               key={option.value}
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => onModeChange(option.value)}
               className={cn(
-                "rounded-lg border px-3 py-2 text-xs font-medium transition",
+                "h-auto min-w-0 rounded-lg border px-3 py-2 text-xs font-medium transition",
                 isSelected
                   ? "border-primary-base bg-primary-lighter text-primary-dark"
                   : "border-stroke-sub text-text-sub"
               )}
             >
               {formatMessage({ id: option.labelId })}
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -190,7 +196,8 @@ export function DistributionConfig({
               >
                 <div className="space-y-1">
                   {mode === "custom" ? (
-                    <input
+                    <TextInput
+                      surface="admin"
                       value={entry.address}
                       onChange={(event) => handleAddressChange(index, event.target.value)}
                       aria-label={formatMessage({
@@ -213,7 +220,8 @@ export function DistributionConfig({
                   )}
                   {entry.label && <p className="text-xs text-text-sub">{entry.label}</p>}
                 </div>
-                <input
+                <TextInput
+                  surface="admin"
                   value={entry.units.toString()}
                   onChange={(event) => handleUnitsChange(index, event.target.value)}
                   disabled={mode !== "custom"}
@@ -225,17 +233,19 @@ export function DistributionConfig({
                 />
                 <span className="text-xs text-text-sub">{percent.toFixed(2)}%</span>
                 {mode === "custom" && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleRemoveRecipient(index)}
                     aria-label={formatMessage(
                       { id: "app.hypercerts.distribution.removeRecipient" },
                       { address: entry.label || entry.address }
                     )}
-                    className="rounded p-1 text-text-sub transition hover:bg-error-lighter hover:text-error-dark focus:outline-none focus:ring-2 focus:ring-error-light"
+                    className="h-auto min-w-0 rounded p-1 text-text-sub transition hover:bg-error-lighter hover:text-error-dark focus:outline-none focus:ring-2 focus:ring-error-light"
                   >
                     <RiCloseLine className="h-4 w-4" />
-                  </button>
+                  </Button>
                 )}
               </div>
             );
@@ -244,13 +254,15 @@ export function DistributionConfig({
       </div>
 
       {mode === "custom" && (
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={handleAddRecipient}
           className="rounded-md border border-stroke-sub px-3 py-2 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
         >
           {formatMessage({ id: "app.hypercerts.distribution.addRecipient" })}
-        </button>
+        </Button>
       )}
 
       <div className="text-xs text-text-sub">

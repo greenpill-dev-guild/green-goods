@@ -1,6 +1,13 @@
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
-import { Button, formatTokenAmount, TxInlineFeedback } from "@green-goods/shared";
+import {
+  Button,
+  formatTokenAmount,
+  NativeSelect,
+  Textarea,
+  TextInput,
+  TxInlineFeedback,
+} from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
@@ -53,8 +60,9 @@ function CookieJarWithdrawModalHarness({
           <label htmlFor="mock-withdraw-jar" className="block text-sm font-medium text-text-strong">
             Cookie Jar
           </label>
-          <select
+          <NativeSelect
             id="mock-withdraw-jar"
+            surface="admin"
             value={jarAddress}
             onChange={(e) => setJarAddress(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong"
@@ -65,7 +73,7 @@ function CookieJarWithdrawModalHarness({
                 {jar.symbol} ({formatTokenAmount(jar.balance, jar.decimals)})
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div>
@@ -76,8 +84,9 @@ function CookieJarWithdrawModalHarness({
             Amount
           </label>
           <div className="mt-1.5 flex items-center gap-2">
-            <input
+            <TextInput
               id="mock-withdraw-amount"
+              surface="admin"
               type="text"
               inputMode="decimal"
               value={amount}
@@ -109,8 +118,9 @@ function CookieJarWithdrawModalHarness({
           >
             Purpose
           </label>
-          <textarea
+          <Textarea
             id="mock-withdraw-purpose"
+            surface="admin"
             value={purpose}
             onChange={(e) => setPurpose(e.target.value)}
             placeholder="Describe what these funds will be used for…"

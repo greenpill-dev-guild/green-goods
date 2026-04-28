@@ -1,4 +1,4 @@
-import type { ActionInstructionConfig } from "@green-goods/shared";
+import { Button, type ActionInstructionConfig } from "@green-goods/shared";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { DetailsConfigSection } from "./DetailsConfigSection";
@@ -33,10 +33,12 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
     <div className="border border-stroke-soft rounded-lg bg-bg-white">
       {/* Tab Navigation */}
       <div className="flex border-b border-stroke-soft">
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => setActiveTab("media")}
-          className={`px-4 py-3 text-sm font-medium ${
+          className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
             activeTab === "media"
               ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
@@ -46,11 +48,13 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
             id: "app.admin.actions.instructions.tabMedia",
             defaultMessage: "Media Configuration",
           })}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => setActiveTab("details")}
-          className={`px-4 py-3 text-sm font-medium ${
+          className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
             activeTab === "details"
               ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
@@ -60,11 +64,13 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
             id: "app.admin.actions.instructions.tabFormInputs",
             defaultMessage: "Form Inputs",
           })}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => setActiveTab("review")}
-          className={`px-4 py-3 text-sm font-medium ${
+          className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
             activeTab === "review"
               ? "border-b-2 border-primary-base text-primary-base"
               : "text-text-sub hover:text-text-strong"
@@ -74,7 +80,7 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
             id: "app.admin.actions.instructions.tabReview",
             defaultMessage: "Review Screen",
           })}
-        </button>
+        </Button>
       </div>
 
       {/* Tab Content */}

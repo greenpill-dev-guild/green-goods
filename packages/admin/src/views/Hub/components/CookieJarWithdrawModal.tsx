@@ -3,6 +3,9 @@ import {
   Button,
   formatTokenAmount,
   getVaultAssetSymbol,
+  NativeSelect,
+  Textarea,
+  TextInput,
   TxInlineFeedback,
   useCookieJarWithdraw,
   useGardenCookieJars,
@@ -96,8 +99,9 @@ export function CookieJarWithdrawModal({
           >
             {formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
           </label>
-          <select
+          <NativeSelect
             id="withdraw-jar-select"
+            surface="admin"
             value={withdrawJar}
             onChange={(e) => setWithdrawJar(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
@@ -109,7 +113,7 @@ export function CookieJarWithdrawModal({
                 {formatTokenAmount(jar.balance, jar.decimals)})
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         {/* Amount + Max */}
@@ -118,8 +122,9 @@ export function CookieJarWithdrawModal({
             {formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
           </label>
           <div className="mt-1.5 flex items-center gap-2">
-            <input
+            <TextInput
               id="withdraw-amount"
+              surface="admin"
               type="text"
               inputMode="decimal"
               value={withdrawAmount}
@@ -159,8 +164,9 @@ export function CookieJarWithdrawModal({
           <label htmlFor="withdraw-purpose" className="block text-sm font-medium text-text-strong">
             {formatMessage({ id: "app.cookieJar.purpose", defaultMessage: "Purpose" })}
           </label>
-          <textarea
+          <Textarea
             id="withdraw-purpose"
+            surface="admin"
             value={withdrawPurpose}
             onChange={(e) => setWithdrawPurpose(e.target.value)}
             placeholder={formatMessage({

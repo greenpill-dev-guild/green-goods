@@ -1,5 +1,11 @@
 import { AdminDialog } from "@/components/AdminDialog";
-import { Button, formatTokenAmount, TxInlineFeedback } from "@green-goods/shared";
+import {
+  Button,
+  formatTokenAmount,
+  NativeSelect,
+  TextInput,
+  TxInlineFeedback,
+} from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
@@ -53,8 +59,9 @@ function CookieJarDepositModalHarness({
           <label htmlFor="mock-deposit-jar" className="block text-sm font-medium text-text-strong">
             Cookie Jar
           </label>
-          <select
+          <NativeSelect
             id="mock-deposit-jar"
+            surface="admin"
             value={jarAddress}
             onChange={(e) => setJarAddress(e.target.value)}
             className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong"
@@ -65,7 +72,7 @@ function CookieJarDepositModalHarness({
                 {jar.symbol} ({formatTokenAmount(jar.balance, jar.decimals)})
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <div>
@@ -75,8 +82,9 @@ function CookieJarDepositModalHarness({
           >
             Amount
           </label>
-          <input
+          <TextInput
             id="mock-deposit-amount"
+            surface="admin"
             type="text"
             inputMode="decimal"
             value={amount}
