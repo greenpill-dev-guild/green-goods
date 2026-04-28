@@ -1,7 +1,7 @@
 import {
+  Button,
   ConfirmDialog,
   ErrorBoundary,
-  FormWizard,
   logger,
   TOTAL_UNITS,
   toastService,
@@ -15,6 +15,7 @@ import { AttestationSelector } from "@/components/Hypercerts/Steps/AttestationSe
 import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionConfig";
 import { HypercertPreview } from "@/components/Hypercerts/Steps/HypercertPreview";
 import { MetadataEditor } from "@/components/Hypercerts/Steps/MetadataEditor";
+import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
 
 export type { HypercertCompletionData };
 export type { HypercertWizardProps };
@@ -28,6 +29,67 @@ export function HypercertWizard({
   const { formatMessage } = useIntl();
 
   const wizard = useWizardData({ gardenId, gardenName, onComplete });
+  const mintDisabled = wizard.isSubmitting || wizard.selectedAttestations.length === 0;
+  const validationMessage =
+    wizard.selectedAttestations.length === 0 ? wizard.validationMessage : undefined;
+
+  const sectionContent = {
+    attestations: (
+      <ErrorBoundary context="HypercertWizard.attestations" onError={wizard.handleStepError}>
+        <AttestationSelector
+          attestations={wizard.attestations}
+          selectedIds={wizard.selectedAttestationIds}
+          onToggle={wizard.toggleAttestation}
+          isLoading={wizard.isLoading}
+          hasError={wizard.hasError}
+          bundledInfo={wizard.bundledAttestations}
+          assessments={wizard.assessments}
+          selectedAssessmentId={wizard.selectedAssessmentId}
+          onAssessmentChange={wizard.setSelectedAssessmentId}
+        />
+      </ErrorBoundary>
+    ),
+    metadata: (
+      <ErrorBoundary context="HypercertWizard.metadata" onError={wizard.handleStepError}>
+        <MetadataEditor
+          draft={wizard.draft}
+          onUpdate={(updates) => wizard.updateMetadata(updates)}
+          suggestedWorkScopes={wizard.suggestedScopes}
+          suggestedStart={wizard.suggestedTimeframe.start}
+          suggestedEnd={wizard.suggestedTimeframe.end}
+          selectedAssessment={wizard.selectedAssessment}
+        />
+      </ErrorBoundary>
+    ),
+    distribution: (
+      <ErrorBoundary context="HypercertWizard.distribution" onError={wizard.handleStepError}>
+        <DistributionConfig
+          mode={wizard.distributionMode}
+          allowlist={wizard.allowlist}
+          totalUnits={TOTAL_UNITS}
+          onModeChange={wizard.setDistributionMode}
+          onAllowlistChange={wizard.setAllowlist}
+        />
+      </ErrorBoundary>
+    ),
+    preview: (
+      <ErrorBoundary context="HypercertWizard.preview" onError={wizard.handleStepError}>
+        <HypercertPreview
+          metadata={wizard.previewMetadata}
+          gardenName={gardenName}
+          gardenId={gardenId}
+          attestationCount={wizard.selectedAttestations.length}
+          totalUnits={TOTAL_UNITS}
+          allowlist={wizard.allowlist}
+          mintingState={wizard.mintingState}
+          chainId={wizard.chainId}
+          selectedAssessment={wizard.selectedAssessment}
+          onEditMetadata={() => wizard.setStep(2)}
+          onEditDistribution={() => wizard.setStep(3)}
+        />
+      </ErrorBoundary>
+    ),
+  };
 
   return (
     <>
@@ -80,76 +142,40 @@ export function HypercertWizard({
         variant="warning"
         isLoading={wizard.restoreDraftPending}
       />
-      <FormWizard
-        steps={wizard.steps}
-        currentStep={wizard.currentStep - 1}
-        onNext={wizard.nextStep}
-        onBack={wizard.previousStep}
-        onCancel={onCancel}
-        onSubmit={wizard.handleMint}
-        onStepClick={wizard.handleStepClick}
-        nextDisabled={wizard.nextDisabled}
-        validationMessage={wizard.validationMessage}
-        isSubmitting={wizard.isSubmitting}
-        nextLabel={formatMessage({ id: "app.hypercerts.wizard.next" })}
-        submitLabel={wizard.submitLabel}
-      >
-        <ErrorBoundary
-          context={`HypercertWizard.Step${wizard.currentStep}`}
-          onError={wizard.handleStepError}
-        >
-          {wizard.currentStep === 1 && (
-            <AttestationSelector
-              attestations={wizard.attestations}
-              selectedIds={wizard.selectedAttestationIds}
-              onToggle={wizard.toggleAttestation}
-              isLoading={wizard.isLoading}
-              hasError={wizard.hasError}
-              bundledInfo={wizard.bundledAttestations}
-              assessments={wizard.assessments}
-              selectedAssessmentId={wizard.selectedAssessmentId}
-              onAssessmentChange={wizard.setSelectedAssessmentId}
-            />
-          )}
-
-          {wizard.currentStep === 2 && (
-            <MetadataEditor
-              draft={wizard.draft}
-              onUpdate={(updates) => wizard.updateMetadata(updates)}
-              suggestedWorkScopes={wizard.suggestedScopes}
-              suggestedStart={wizard.suggestedTimeframe.start}
-              suggestedEnd={wizard.suggestedTimeframe.end}
-              selectedAssessment={wizard.selectedAssessment}
-            />
-          )}
-
-          {wizard.currentStep === 3 && (
-            <DistributionConfig
-              mode={wizard.distributionMode}
-              allowlist={wizard.allowlist}
-              totalUnits={TOTAL_UNITS}
-              onModeChange={wizard.setDistributionMode}
-              onAllowlistChange={wizard.setAllowlist}
-            />
-          )}
-
-          {wizard.currentStep === 4 && (
-            <HypercertPreview
-              metadata={wizard.previewMetadata}
-              gardenName={gardenName}
-              gardenId={gardenId}
-              attestationCount={wizard.selectedAttestations.length}
-              totalUnits={TOTAL_UNITS}
-              allowlist={wizard.allowlist}
-              mintingState={wizard.mintingState}
-              chainId={wizard.chainId}
-              selectedAssessment={wizard.selectedAssessment}
-              onEditMetadata={() => wizard.setStep(2)}
-              onEditDistribution={() => wizard.setStep(3)}
-            />
-          )}
-        </ErrorBoundary>
-      </FormWizard>
+      <FormFlow
+        layout="sheet"
+        sections={toFormFlowSections(wizard.steps, sectionContent)}
+        feedback={
+          validationMessage ? (
+            <div
+              role="status"
+              className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark"
+            >
+              {validationMessage}
+            </div>
+          ) : undefined
+        }
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onCancel}
+              disabled={wizard.isSubmitting}
+            >
+              {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
+            </Button>
+            <Button
+              type="button"
+              onClick={wizard.handleMint}
+              disabled={mintDisabled}
+              loading={wizard.isSubmitting}
+            >
+              {wizard.submitLabel}
+            </Button>
+          </>
+        }
+      />
       <MintingDialog
         mintingState={wizard.mintingState}
         chainId={wizard.chainId}

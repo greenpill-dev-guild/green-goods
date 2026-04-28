@@ -1,5 +1,6 @@
 import {
   Button,
+  Domain,
   DOMAIN_CONFIG,
   DOMAIN_FILTER_OPTIONS,
   EmptyState,
@@ -7,6 +8,7 @@ import {
   getActionLifecycleState,
   getWorkbenchTone,
   LIFECYCLE_TABS,
+  NativeSelect,
   Surface,
   useActionsController,
   WorkbenchList,
@@ -20,6 +22,34 @@ import { PageHeader } from "@/components/Layout/PageHeader";
 import { RiFileListLine, RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { ActionsSheetDescriptor } from "./ActionsSheetDescriptor";
+
+const ACTION_DOMAIN_CHIP_CLASSNAMES: Record<Domain, { selected: string; idle: string }> = {
+  [Domain.SOLAR]: {
+    selected:
+      "border-warning-light bg-warning-lighter text-warning-dark [--state-layer-color:var(--warning-dark)]",
+    idle: "border-warning-light text-warning-dark [--state-layer-color:var(--warning-dark)]",
+  },
+  [Domain.AGRO]: {
+    selected:
+      "border-success-light bg-success-lighter text-success-dark [--state-layer-color:var(--success-dark)]",
+    idle: "border-success-light text-success-dark [--state-layer-color:var(--success-dark)]",
+  },
+  [Domain.EDU]: {
+    selected:
+      "border-information-light bg-information-lighter text-information-dark [--state-layer-color:var(--information-dark)]",
+    idle: "border-information-light text-information-dark [--state-layer-color:var(--information-dark)]",
+  },
+  [Domain.WASTE]: {
+    selected:
+      "border-warning-light bg-warning-lighter text-warning-dark [--state-layer-color:var(--warning-dark)]",
+    idle: "border-warning-light text-warning-dark [--state-layer-color:var(--warning-dark)]",
+  },
+};
+
+function getActionDomainChipClassName(domain: Domain, selected: boolean) {
+  const styles = ACTION_DOMAIN_CHIP_CLASSNAMES[domain];
+  return selected ? styles.selected : styles.idle;
+}
 
 export default function Actions() {
   const intl = useIntl();
@@ -55,11 +85,15 @@ export default function Actions() {
               onClick={() => {
                 void actions.refetch();
               }}
-            >
-              {!actions.isRefreshing && <RiRefreshLine className="h-4 w-4" />}
-              {intl.formatMessage({
+              title={intl.formatMessage({
                 id: actions.isRefreshing ? "app.common.refreshing" : "app.common.refresh",
               })}
+              aria-label={intl.formatMessage({
+                id: actions.isRefreshing ? "app.common.refreshing" : "app.common.refresh",
+              })}
+              className="h-10 min-h-10 w-10 rounded-full p-0"
+            >
+              {!actions.isRefreshing && <RiRefreshLine className="h-4 w-4" />}
             </Button>
           }
           toolbar={
@@ -91,22 +125,43 @@ export default function Actions() {
                     defaultMessage: "Search actions...",
                   })}
                 >
-                  {actions.sortOptions.map((option) => (
-                    <AdminFilterChip
-                      key={option.value}
-                      label={option.label}
-                      selected={actions.filters.sort === option.value}
-                      onToggle={() => actions.setFilter("sort", option.value)}
-                    />
-                  ))}
-                  {DOMAIN_FILTER_OPTIONS.map((tag) => (
-                    <AdminFilterChip
-                      key={tag.value}
-                      label={intl.formatMessage({ id: tag.labelId })}
-                      selected={actions.filters.domain === tag.value}
-                      onToggle={() => actions.toggleDomain(tag.value)}
-                    />
-                  ))}
+                  <label className="flex h-10 items-center gap-2 rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+                    <span>
+                      {intl.formatMessage({
+                        id: "app.admin.sortSelect.sortBy",
+                        defaultMessage: "Sort by",
+                      })}
+                    </span>
+                    <NativeSelect
+                      surface="admin"
+                      controlSize="sm"
+                      value={actions.filters.sort}
+                      onChange={(event) => actions.setFilter("sort", event.target.value)}
+                      aria-label={intl.formatMessage({
+                        id: "app.admin.sortSelect.sortBy",
+                        defaultMessage: "Sort by",
+                      })}
+                      className="h-8 min-h-8 rounded-full border-0 bg-transparent py-0 pl-1 pr-8 shadow-none"
+                    >
+                      {actions.sortOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  </label>
+                  {DOMAIN_FILTER_OPTIONS.map((tag) => {
+                    const selected = actions.filters.domain === tag.value;
+                    return (
+                      <AdminFilterChip
+                        key={tag.value}
+                        label={intl.formatMessage({ id: tag.labelId })}
+                        selected={selected}
+                        onToggle={() => actions.toggleDomain(tag.value)}
+                        className={getActionDomainChipClassName(tag.value, selected)}
+                      />
+                    );
+                  })}
                 </AdminSearchToolbar>
               </div>
             ) : undefined

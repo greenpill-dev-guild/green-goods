@@ -463,6 +463,8 @@ export function useHubWorkbenchController() {
     resultCount,
     routeSheetContentId,
     routeSheetCloseTo,
+    routeCertificationId,
+    routeHistoryEventId,
     routeWorkId,
     searchPlaceholder,
     searchTerm,

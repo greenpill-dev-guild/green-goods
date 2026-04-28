@@ -1,21 +1,19 @@
-import { FormWizard } from "@green-goods/shared";
+import { Button } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
 import { fn } from "storybook/test";
+import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
 
-// ⚠ VISUAL HARNESS — not the real HypercertWizard.
-// The real wizard depends on `useWizardData`, which reads attestations,
-// assessments, draft persistence, and a full mint mutation — none of
-// which are reviewable in isolation. This harness wraps the shared
-// `FormWizard` with placeholder steps so reviewers can inspect the
-// step chrome / navigation / submit lifecycle. Review the real step
-// panels under `Admin/Workflows/Hypercerts/Steps/*`.
+// VISUAL HARNESS — not the real HypercertWizard.
+// The real flow depends on `useWizardData`, which reads attestations,
+// assessments, draft persistence, and a full mint mutation. This harness
+// renders the admin non-wizard form layout with placeholder sections so
+// reviewers can inspect local actions without body-level footer chrome.
 
 const WIZARD_STEPS = [
   { id: "attestations", label: "Select attestations" },
   { id: "metadata", label: "Metadata" },
   { id: "distribution", label: "Distribution" },
-  { id: "review", label: "Review & mint" },
+  { id: "preview", label: "Review & mint" },
 ] as const;
 
 interface HypercertWizardHarnessProps {
@@ -45,26 +43,40 @@ function HypercertWizardHarness({
   nextDisabled = false,
   validationMessage = null,
 }: HypercertWizardHarnessProps) {
-  const [step, setStep] = useState(initialStep);
-  const current = WIZARD_STEPS[step];
+  const highlightedStep = WIZARD_STEPS[initialStep] ?? WIZARD_STEPS[0];
+  const sectionContent = Object.fromEntries(
+    WIZARD_STEPS.map((step) => [step.id, <StepPlaceholder key={step.id} label={step.label} />])
+  );
 
   return (
-    <FormWizard
-      steps={WIZARD_STEPS.map((s) => ({ id: s.id, title: s.label }))}
-      currentStep={step}
-      onNext={() => setStep((s) => Math.min(s + 1, WIZARD_STEPS.length - 1))}
-      onBack={() => setStep((s) => Math.max(s - 1, 0))}
-      onCancel={fn()}
-      onSubmit={fn()}
-      onStepClick={(i) => setStep(i)}
-      nextDisabled={nextDisabled}
-      validationMessage={validationMessage ?? undefined}
-      isSubmitting={isSubmitting}
-      nextLabel="Next"
-      submitLabel="Mint hypercert"
-    >
-      <StepPlaceholder label={current.label} />
-    </FormWizard>
+    <FormFlow
+      sections={toFormFlowSections(
+        WIZARD_STEPS.map((s) => ({
+          id: s.id,
+          title: s.label,
+          description:
+            s.id === highlightedStep.id ? "Highlighted review section" : "Continuous section",
+        })),
+        sectionContent
+      )}
+      feedback={
+        nextDisabled && validationMessage ? (
+          <div className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark">
+            {validationMessage}
+          </div>
+        ) : undefined
+      }
+      actions={
+        <>
+          <Button type="button" variant="secondary" onClick={fn()} disabled={isSubmitting}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={fn()} disabled={nextDisabled} loading={isSubmitting}>
+            Mint hypercert
+          </Button>
+        </>
+      }
+    />
   );
 }
 
@@ -76,7 +88,7 @@ const meta: Meta<typeof HypercertWizardHarness> = {
     docs: {
       description: {
         component:
-          "⚠ **Visual harness** — not the real `HypercertWizard`. Renders the shared `FormWizard` shell with placeholder step content so reviewers can inspect the step chrome / navigation / submit lifecycle. The real wizard composes `AttestationSelector`, `MetadataEditor`, `DistributionConfig`, and `HypercertPreview` — each has its own story.",
+          "Visual harness — not the real `HypercertWizard`. Renders the admin non-wizard form layout with placeholder section content so reviewers can inspect local actions and continuous form anatomy. The real flow composes `AttestationSelector`, `MetadataEditor`, `DistributionConfig`, and `HypercertPreview` — each has its own story.",
       },
     },
     layout: "fullscreen",

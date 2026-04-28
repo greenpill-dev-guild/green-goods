@@ -46,18 +46,23 @@ export function PageHeader({
 
   return (
     <header
+      data-component="PageHeader"
+      data-surface={variant}
       className={cn(
         isCanvas
-          ? "bg-bg-white relative overflow-hidden rounded-[var(--admin-radius-xl)] border border-[rgb(var(--workspace-tint)/0.18)] px-4 py-4 shadow-regular-md sm:px-6 sm:py-5"
+          ? "relative px-0 py-3"
           : cn(
               "border-b border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
               sticky ? "bg-bg-white shadow-regular-sm" : "bg-bg-white"
             ),
-        sticky && "sticky top-14 z-sticky",
+        sticky &&
+          (isCanvas
+            ? "sticky top-14 z-sticky bg-bg-weak shadow-[var(--edge-rest)]"
+            : "sticky top-14 z-sticky"),
         className
       )}
     >
-      <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+      <div data-region="route-header-title" className="flex min-w-0 items-start gap-3 sm:gap-4">
         {backLink ? (
           <AdminTooltip content={backLink.label ?? "Go back"}>
             <Link
@@ -108,10 +113,10 @@ export function PageHeader({
 
       {actions || toolbar ? (
         <div
+          data-region="route-header-toolbar"
           className={cn(
-            "mt-3 flex flex-wrap items-center gap-3 sm:mt-4",
-            isCanvas &&
-              "rounded-[var(--radius-lg)] border border-[rgb(var(--workspace-tint)/0.14)] bg-[rgb(var(--workspace-tint)/0.06)] px-3 py-3 shadow-regular-sm"
+            "mt-3 flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-3 sm:mt-4 sm:pt-4",
+            isCanvas && "bg-transparent"
           )}
         >
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">{toolbar}</div>
@@ -124,7 +129,10 @@ export function PageHeader({
       ) : null}
 
       {children ? (
-        <div className={cn("mt-3 sm:mt-4", isCanvas && "border-t border-stroke-soft-200 pt-4")}>
+        <div
+          data-region="route-header-tabs"
+          className={cn("mt-3 sm:mt-4", isCanvas && "border-t border-stroke-soft-200 pt-3")}
+        >
           {children}
         </div>
       ) : null}

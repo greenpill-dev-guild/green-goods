@@ -1,4 +1,5 @@
 import {
+  Alert,
   type AdminHubRouteContext,
   adminRoutes,
   SUBMIT_WORK_CONTENT_ID,
@@ -17,6 +18,8 @@ import { HubHistoryInspector } from "./HubHistoryInspector";
 interface HubSheetDescriptorProps {
   routeSheetContentId: string | null;
   routeWorkId: string | undefined;
+  routeCertificationId: string | undefined;
+  routeHistoryEventId: string | undefined;
   activeWorkDetailId: string | null;
   selectedWork: Work | undefined;
   selectedCertification:
@@ -29,11 +32,39 @@ interface HubSheetDescriptorProps {
       }
     | undefined;
   selectedHistoryEvent: ActivityEvent | undefined;
+  isResolvingSelection: boolean;
   canManage: boolean;
   hubContext: AdminHubRouteContext;
   closeTo: string;
   onNavigateToBase: () => void;
   onBeforeClose: () => void;
+}
+
+function SheetResolutionState({
+  isResolving,
+  loadingLabel,
+  message,
+}: {
+  isResolving: boolean;
+  loadingLabel: string;
+  message: string;
+}) {
+  if (isResolving) {
+    return (
+      <div className="space-y-4 p-1" aria-busy="true" role="status">
+        <span className="sr-only">{loadingLabel}</span>
+        <div className="h-32 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
+        <div className="h-20 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
+        <div className="h-40 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-1">
+      <Alert variant="warning">{message}</Alert>
+    </div>
+  );
 }
 
 /**
@@ -43,10 +74,13 @@ interface HubSheetDescriptorProps {
 export function HubSheetDescriptor({
   routeSheetContentId,
   routeWorkId,
+  routeCertificationId,
+  routeHistoryEventId,
   activeWorkDetailId,
   selectedWork,
   selectedCertification,
   selectedHistoryEvent,
+  isResolvingSelection,
   canManage,
   hubContext,
   closeTo,
@@ -76,10 +110,10 @@ export function HubSheetDescriptor({
 
     const resolvedWorkDetailId = routeWorkId ?? activeWorkDetailId;
 
-    if (selectedWork && resolvedWorkDetailId) {
+    if (resolvedWorkDetailId) {
       return {
         title:
-          selectedWork.title ??
+          selectedWork?.title ??
           formatMessage({ id: "app.work.detail.reviewTitle", defaultMessage: "Review Work" }),
         content: (
           <WorkDetailPanel
@@ -91,28 +125,56 @@ export function HubSheetDescriptor({
       };
     }
 
-    if (selectedCertification) {
+    if (routeCertificationId || selectedCertification) {
       return {
         title:
-          selectedCertification.title ??
+          selectedCertification?.title ??
           formatMessage({
             id: "app.garden.admin.assessmentFallback",
             defaultMessage: "Assessment",
           }),
-        content: (
+        content: selectedCertification ? (
           <HubCertificationInspector
             assessment={selectedCertification}
             canMint={canManage}
             onOpenMintFlow={() => navigate(adminRoutes.hubCertifyCreate(hubContext))}
           />
+        ) : (
+          <SheetResolutionState
+            isResolving={isResolvingSelection}
+            loadingLabel={formatMessage({
+              id: "cockpit.hub.sheet.resolving",
+              defaultMessage: "Loading selection...",
+            })}
+            message={formatMessage({
+              id: "cockpit.hub.sheet.assessmentNotFound",
+              defaultMessage: "Assessment could not be found.",
+            })}
+          />
         ),
       };
     }
 
-    if (selectedHistoryEvent) {
+    if (routeHistoryEventId || selectedHistoryEvent) {
       return {
-        title: selectedHistoryEvent.title,
-        content: <HubHistoryInspector event={selectedHistoryEvent} />,
+        title:
+          selectedHistoryEvent?.title ??
+          formatMessage({ id: "cockpit.hub.tab.history", defaultMessage: "History" }),
+        content: selectedHistoryEvent ? (
+          <HubHistoryInspector event={selectedHistoryEvent} />
+        ) : (
+          <SheetResolutionState
+            isResolving={isResolvingSelection}
+            loadingLabel={formatMessage({
+              id: "cockpit.hub.sheet.resolving",
+              defaultMessage: "Loading selection...",
+            })}
+            message={formatMessage({
+              id: "cockpit.hub.sheet.historyNotFound",
+              defaultMessage: "History event could not be found.",
+            })}
+          />
+        ),
       };
     }
 
@@ -122,8 +184,11 @@ export function HubSheetDescriptor({
     formatMessage,
     handlePanelClose,
     hubContext,
+    isResolvingSelection,
     navigate,
     activeWorkDetailId,
+    routeCertificationId,
+    routeHistoryEventId,
     routeSheetContentId,
     routeWorkId,
     selectedCertification,

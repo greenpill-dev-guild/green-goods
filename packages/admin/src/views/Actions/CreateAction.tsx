@@ -1,6 +1,6 @@
 import {
   adminRoutes,
-  FormWizard,
+  Button,
   getActionsListSearch,
   useCreateActionController,
 } from "@green-goods/shared";
@@ -14,6 +14,7 @@ import {
   ReviewStep,
 } from "@/components/Action/CreateActionSteps";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
+import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
 
 interface CreateActionProps {
   layout?: "page" | "sheet";
@@ -23,7 +24,6 @@ export default function CreateAction({ layout = "page" }: CreateActionProps = {}
   const { formatMessage } = useIntl();
   const location = useLocation();
   const createAction = useCreateActionController();
-  const activeStepId = createAction.stepConfigs[createAction.currentStep]?.id;
   const listSearch = useMemo(
     () => getActionsListSearch(new URLSearchParams(location.search)),
     [location.search]
@@ -37,18 +37,34 @@ export default function CreateAction({ layout = "page" }: CreateActionProps = {}
     review: <ReviewStep form={createAction.form} domainOptions={createAction.domainOptions} />,
   };
 
-  const wizard = (
-    <FormWizard
-      steps={createAction.stepConfigs}
-      currentStep={createAction.currentStep}
-      onNext={createAction.handleNext}
-      onBack={createAction.handleBack}
-      onCancel={createAction.handleCancel}
-      onSubmit={createAction.form.handleSubmit(createAction.onSubmit)}
-      isSubmitting={createAction.isLoading}
-    >
-      {activeStepId ? stepRegistry[activeStepId as keyof typeof stepRegistry] : null}
-    </FormWizard>
+  const flow = (
+    <FormFlow
+      layout={layout}
+      sections={toFormFlowSections(createAction.stepConfigs, stepRegistry)}
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={createAction.handleCancel}
+            disabled={createAction.isLoading}
+          >
+            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+          </Button>
+          <Button
+            type="button"
+            onClick={createAction.form.handleSubmit(createAction.onSubmit)}
+            disabled={createAction.isLoading}
+            loading={createAction.isLoading}
+          >
+            {formatMessage({
+              id: "admin.actions.createAction",
+              defaultMessage: "Create action",
+            })}
+          </Button>
+        </>
+      }
+    />
   );
 
   if (layout === "sheet") {
@@ -61,7 +77,7 @@ export default function CreateAction({ layout = "page" }: CreateActionProps = {}
               "Define the registry record, timeline, and submission requirements for a new action.",
           })}
         </p>
-        {wizard}
+        {flow}
       </div>
     );
   }
@@ -88,7 +104,7 @@ export default function CreateAction({ layout = "page" }: CreateActionProps = {}
         }}
         sticky
       />
-      {wizard}
+      {flow}
     </CanvasRouteFrame>
   );
 }

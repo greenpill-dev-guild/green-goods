@@ -1,7 +1,7 @@
 import {
   adminRoutes,
+  Button,
   ErrorBoundary,
-  FormWizard,
   TxInlineFeedback,
   useCreateAssessmentController,
 } from "@green-goods/shared";
@@ -12,11 +12,11 @@ import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
+import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
 
 export default function CreateAssessment() {
   const { formatMessage } = useIntl();
   const createAssessment = useCreateAssessmentController();
-  const activeStepId = createAssessment.stepConfigs[createAssessment.currentStep]?.id;
   const stepRegistry = {
     domainContext: (
       <DomainContextStep
@@ -108,57 +108,68 @@ export default function CreateAssessment() {
         sticky
       />
       <ErrorBoundary context="CreateAssessment.Wizard">
-        <FormWizard
-          steps={createAssessment.stepConfigs}
-          currentStep={createAssessment.currentStep}
-          onNext={createAssessment.handleNext}
-          onBack={createAssessment.handleBack}
-          onCancel={createAssessment.handleCancel}
-          onSubmit={createAssessment.handleSubmit}
-          isSubmitting={createAssessment.isSubmitting}
-          nextLabel={formatMessage({ id: "app.assessment.continue", defaultMessage: "Continue" })}
-          submitLabel={formatMessage({
-            id: "app.assessment.submitAssessment",
-            defaultMessage: "Submit assessment",
-          })}
-        >
-          <TxInlineFeedback
-            visible={createAssessment.hasError}
-            severity={createAssessment.txErrorView.severity}
-            title={createAssessment.errorTitle}
-            message={createAssessment.errorMessage}
-            reserveClassName="min-h-[8.5rem]"
-            className="mb-4"
-            action={
-              <div className="flex flex-wrap gap-2">
-                <AdminButton
-                  type="button"
-                  variant="outlined"
-                  size="sm"
-                  onClick={createAssessment.retry}
-                  disabled={!createAssessment.canRetry || createAssessment.isSubmitting}
-                >
-                  {formatMessage({
-                    id: "app.assessment.retrySubmission",
-                    defaultMessage: "Retry submission",
-                  })}
-                </AdminButton>
-                <AdminButton
-                  type="button"
-                  variant="text"
-                  size="sm"
-                  onClick={() => createAssessment.resetWorkflow()}
-                >
-                  {formatMessage({
-                    id: "app.assessment.editDetails",
-                    defaultMessage: "Edit details",
-                  })}
-                </AdminButton>
-              </div>
-            }
-          />
-          {activeStepId ? stepRegistry[activeStepId as keyof typeof stepRegistry] : null}
-        </FormWizard>
+        <FormFlow
+          sections={toFormFlowSections(createAssessment.stepConfigs, stepRegistry)}
+          feedback={
+            <TxInlineFeedback
+              visible={createAssessment.hasError}
+              severity={createAssessment.txErrorView.severity}
+              title={createAssessment.errorTitle}
+              message={createAssessment.errorMessage}
+              reserveClassName="min-h-[8.5rem]"
+              action={
+                <div className="flex flex-wrap gap-2">
+                  <AdminButton
+                    type="button"
+                    variant="outlined"
+                    size="sm"
+                    onClick={createAssessment.retry}
+                    disabled={!createAssessment.canRetry || createAssessment.isSubmitting}
+                  >
+                    {formatMessage({
+                      id: "app.assessment.retrySubmission",
+                      defaultMessage: "Retry submission",
+                    })}
+                  </AdminButton>
+                  <AdminButton
+                    type="button"
+                    variant="text"
+                    size="sm"
+                    onClick={() => createAssessment.resetWorkflow()}
+                  >
+                    {formatMessage({
+                      id: "app.assessment.editDetails",
+                      defaultMessage: "Edit details",
+                    })}
+                  </AdminButton>
+                </div>
+              }
+            />
+          }
+          actions={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={createAssessment.handleCancel}
+                disabled={createAssessment.isSubmitting}
+              >
+                {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+              </Button>
+              <Button
+                type="button"
+                onClick={createAssessment.handleSubmit}
+                disabled={createAssessment.isSubmitting}
+                loading={createAssessment.isSubmitting}
+              >
+                {formatMessage({
+                  id: "app.assessment.submitAssessment",
+                  defaultMessage: "Submit assessment",
+                })}
+              </Button>
+            </>
+          }
+        />
       </ErrorBoundary>
     </CanvasRouteFrame>
   );

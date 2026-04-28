@@ -1,8 +1,8 @@
 /**
  * CreateAction View Tests
  *
- * Tests for the create action form wizard flow.
- * Covers rendering, step navigation, and submit button state.
+ * Tests for the create action form flow.
+ * Covers rendering and local form actions.
  */
 
 import React from "react";
@@ -16,7 +16,6 @@ import { en as enMessages } from "@green-goods/shared";
 
 const mockRegisterAction = vi.fn();
 const mockNavigate = vi.fn();
-let capturedProps: Record<string, unknown> = {};
 
 vi.mock("@green-goods/shared", () => ({
   DEFAULT_CHAIN_ID: 42161,
@@ -31,6 +30,7 @@ vi.mock("@green-goods/shared", () => ({
   adminRoutes: {
     actions: () => "/actions",
   },
+  getActionsListSearch: () => ({}),
   en: {},
   createActionSchema: {
     // Minimal Zod-compatible schema mock for zodResolver
@@ -50,6 +50,36 @@ vi.mock("@green-goods/shared", () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
   toastService: { loading: vi.fn(), dismiss: vi.fn(), error: vi.fn() },
   uploadFileToIPFS: vi.fn(),
+  Button: ({
+    children,
+    loading,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) =>
+    React.createElement("button", props, loading ? "Loading..." : children),
+  Surface: ({
+    as: Component = "div",
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) =>
+    React.createElement(Component, props, children),
+  useCreateActionController: () => ({
+    currentStep: 0,
+    domainOptions: [],
+    form: {
+      handleSubmit: (handler: (data: Record<string, unknown>) => void) => () => handler({}),
+    },
+    handleBack: vi.fn(),
+    handleCancel: () => mockNavigate("/actions"),
+    handleNext: vi.fn(),
+    isLoading: false,
+    onSubmit: vi.fn(),
+    stepConfigs: [
+      { id: "basics", title: "Basics", description: "Title and timeline" },
+      { id: "capitals", title: "Capitals & Media", description: "Forms of capital and images" },
+      { id: "instructions", title: "Instructions", description: "Define work submission form" },
+      { id: "review", title: "Review", description: "Confirm and submit" },
+    ],
+  }),
   useActionOperations: () => ({
     registerAction: mockRegisterAction,
     isLoading: false,
@@ -114,58 +144,6 @@ vi.mock("@green-goods/shared", () => ({
       },
     };
   },
-  FormWizard: (props: {
-    steps: Array<{ id: string; title: string }>;
-    currentStep: number;
-    onNext?: () => void;
-    onBack?: () => void;
-    onCancel: () => void;
-    onSubmit?: () => void;
-    isSubmitting?: boolean;
-    children: React.ReactNode;
-  }) => {
-    capturedProps = props;
-    const isLastStep = props.currentStep === props.steps.length - 1;
-    return React.createElement(
-      "div",
-      { "data-testid": "form-wizard" },
-      React.createElement(
-        "div",
-        { "data-testid": "step-indicator" },
-        `Step ${props.currentStep + 1} of ${props.steps.length}`
-      ),
-      props.children,
-      props.currentStep > 0 &&
-        React.createElement(
-          "button",
-          { onClick: props.onBack, "data-testid": "back-button" },
-          "Back"
-        ),
-      !isLastStep &&
-        props.onNext &&
-        React.createElement(
-          "button",
-          { onClick: props.onNext, "data-testid": "next-button" },
-          "Continue"
-        ),
-      isLastStep &&
-        props.onSubmit &&
-        React.createElement(
-          "button",
-          {
-            onClick: props.onSubmit,
-            disabled: props.isSubmitting,
-            "data-testid": "submit-button",
-          },
-          props.isSubmitting ? "Submitting…" : "Submit"
-        ),
-      React.createElement(
-        "button",
-        { onClick: props.onCancel, "data-testid": "cancel-button" },
-        "Cancel"
-      )
-    );
-  },
   StepIndicator: () => null,
 }));
 
@@ -228,84 +206,32 @@ function renderWithIntl(ui: React.ReactElement) {
 describe("views/Actions/CreateAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    capturedProps = {};
   });
 
   describe("rendering", () => {
-    it("renders the form wizard", () => {
-      renderWithIntl(React.createElement(CreateAction));
-
-      expect(screen.getByTestId("form-wizard")).toBeInTheDocument();
-    });
-
-    it("starts on the first step (Basics)", () => {
+    it("renders all form flow sections", () => {
       renderWithIntl(React.createElement(CreateAction));
 
       expect(screen.getByTestId("basics-step")).toBeInTheDocument();
-      expect(screen.getByText("Step 1 of 4")).toBeInTheDocument();
-    });
-
-    it("passes four steps to the wizard", () => {
-      renderWithIntl(React.createElement(CreateAction));
-
-      const steps = capturedProps.steps as Array<{ id: string }>;
-      expect(steps).toHaveLength(4);
-      expect(steps.map((s) => s.id)).toEqual(["basics", "capitals", "instructions", "review"]);
-    });
-
-    it("shows Continue button on first step", () => {
-      renderWithIntl(React.createElement(CreateAction));
-
-      expect(screen.getByTestId("next-button")).toBeInTheDocument();
-    });
-
-    it("does not show Back button on first step", () => {
-      renderWithIntl(React.createElement(CreateAction));
-
-      expect(screen.queryByTestId("back-button")).not.toBeInTheDocument();
-    });
-  });
-
-  describe("step navigation", () => {
-    it("advances to Capitals step when Continue is clicked", async () => {
-      const user = userEvent.setup();
-      renderWithIntl(React.createElement(CreateAction));
-
-      await user.click(screen.getByTestId("next-button"));
-
       expect(screen.getByTestId("capitals-step")).toBeInTheDocument();
-      expect(screen.getByText("Step 2 of 4")).toBeInTheDocument();
-    });
-
-    it("goes back to Basics step when Back is clicked", async () => {
-      const user = userEvent.setup();
-      renderWithIntl(React.createElement(CreateAction));
-
-      // Navigate forward
-      await user.click(screen.getByTestId("next-button"));
-      expect(screen.getByTestId("capitals-step")).toBeInTheDocument();
-
-      // Navigate back
-      await user.click(screen.getByTestId("back-button"));
-      expect(screen.getByTestId("basics-step")).toBeInTheDocument();
-    });
-
-    it("navigates through all four steps", async () => {
-      const user = userEvent.setup();
-      renderWithIntl(React.createElement(CreateAction));
-
-      // Step 1 -> 2
-      await user.click(screen.getByTestId("next-button"));
-      expect(screen.getByTestId("capitals-step")).toBeInTheDocument();
-
-      // Step 2 -> 3
-      await user.click(screen.getByTestId("next-button"));
       expect(screen.getByTestId("instructions-step")).toBeInTheDocument();
-
-      // Step 3 -> 4 (last step shows Submit)
-      await user.click(screen.getByTestId("next-button"));
       expect(screen.getByTestId("review-step")).toBeInTheDocument();
-      expect(screen.getByTestId("submit-button")).toBeInTheDocument();
+    });
+
+    it("renders section titles from the create action steps", () => {
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.getByRole("heading", { name: "Basics" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Capitals & Media" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Instructions" })).toBeInTheDocument();
+      expect(screen.getByRole("heading", { name: "Review" })).toBeInTheDocument();
+    });
+
+    it("does not render wizard navigation controls", () => {
+      renderWithIntl(React.createElement(CreateAction));
+
+      expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
     });
   });
 
@@ -314,16 +240,8 @@ describe("views/Actions/CreateAction", () => {
       const user = userEvent.setup();
       renderWithIntl(React.createElement(CreateAction));
 
-      await user.click(screen.getByTestId("cancel-button"));
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
       expect(mockNavigate).toHaveBeenCalledWith("/actions");
-    });
-  });
-
-  describe("submit state", () => {
-    it("passes isSubmitting=false to the wizard by default", () => {
-      renderWithIntl(React.createElement(CreateAction));
-
-      expect(capturedProps.isSubmitting).toBe(false);
     });
   });
 });

@@ -130,25 +130,25 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                 <p className="label-xs text-text-soft">
                   {formatMessage({ id: "app.community.poolType.hypercert" })}
                 </p>
-                <p className="mt-1 text-sm text-text-sub">
+                <div className="mt-1 text-sm text-text-sub">
                   {hypercertPool ? (
                     <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
                   ) : (
                     <>&mdash;</>
                   )}
-                </p>
+                </div>
               </div>
               <div className="rounded-lg bg-bg-weak p-3">
                 <p className="label-xs text-text-soft">
                   {formatMessage({ id: "app.community.poolType.action" })}
                 </p>
-                <p className="mt-1 text-sm text-text-sub">
+                <div className="mt-1 text-sm text-text-sub">
                   {actionPool ? (
                     <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
                   ) : (
                     <>&mdash;</>
                   )}
-                </p>
+                </div>
               </div>
             </div>
             {canManage && (

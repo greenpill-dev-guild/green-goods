@@ -56,8 +56,9 @@ export function AdminTabRail({
     width: 0,
   });
 
-  // One ref per tab button — indexed by tab position
+  // One ref per tab button and one ref per content label — indexed by tab position
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tabContentRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   // Measure on every activeId change (synchronously before paint to avoid flash)
   useLayoutEffect(() => {
@@ -67,12 +68,13 @@ export function AdminTabRail({
     const el = tabRefs.current[activeIndex];
     if (!el) return;
 
-    const parent = el.offsetParent as HTMLElement | null;
-    if (!parent) return;
+    const content = tabContentRefs.current[activeIndex];
+    const contentLeft = content ? content.offsetLeft : 0;
+    const contentWidth = content ? content.offsetWidth : el.offsetWidth;
 
     setIndicator({
-      left: el.offsetLeft,
-      width: el.offsetWidth,
+      left: el.offsetLeft + contentLeft,
+      width: contentWidth,
     });
   }, [activeId, tabs]);
 
@@ -82,10 +84,11 @@ export function AdminTabRail({
       role="tablist"
       aria-label={ariaLabel}
       className={cn(
-        // Container: flat surface, bottom border only
-        "relative flex w-full min-w-0 overflow-hidden",
+        // Container: flat surface, bottom border only, scrolls when labels need room.
+        "relative flex w-full min-w-0 overflow-x-auto overflow-y-hidden",
         "bg-[rgb(var(--m3-surface))]",
         "border-b border-[rgb(var(--m3-outline-variant))]",
+        "scrollbar-thin scrollbar-thumb-[rgb(var(--m3-outline-variant))]",
         className
       )}
     >
@@ -125,12 +128,10 @@ export function AdminTabRail({
               if (!tab.disabled) onChange(tab.id);
             }}
             className={cn(
-              // Layout: equal share, column or row depending on icon presence
+              // Layout: intrinsic tab widths with 48dp height.
               "m3-state-layer",
-              "relative flex min-w-0 flex-1 items-center justify-center overflow-hidden",
-              hasIcons
-                ? "h-12 flex-row gap-1 px-2 sm:gap-2 sm:px-4"
-                : "h-12 flex-row gap-1 px-2 sm:gap-1.5 sm:px-4",
+              "relative flex h-12 min-w-max shrink-0 items-center justify-center overflow-hidden",
+              hasIcons ? "px-4 sm:px-5" : "px-4 sm:px-5",
               // Typography: M3 label-large
               "text-label-lg font-medium leading-snug",
               // Color: active vs inactive
@@ -144,38 +145,45 @@ export function AdminTabRail({
               // No transition on tab button itself (indicator handles motion)
             )}
           >
-            {/* Icon — 18dp, inherits text color */}
-            {Icon ? (
-              <Icon
-                className={cn(
-                  "h-[18px] w-[18px] shrink-0",
-                  active
-                    ? "text-[rgb(var(--m3-primary))]"
-                    : "text-[rgb(var(--m3-on-surface-variant))]"
-                )}
-                aria-hidden
-              />
-            ) : null}
+            <span
+              ref={(node) => {
+                tabContentRefs.current[index] = node;
+              }}
+              className={cn("flex min-w-0 items-center", hasIcons ? "gap-2" : "gap-1.5")}
+            >
+              {/* Icon — 18dp, inherits text color */}
+              {Icon ? (
+                <Icon
+                  className={cn(
+                    "h-[18px] w-[18px] shrink-0",
+                    active
+                      ? "text-[rgb(var(--m3-primary))]"
+                      : "text-[rgb(var(--m3-on-surface-variant))]"
+                  )}
+                  aria-hidden
+                />
+              ) : null}
 
-            {/* Label */}
-            <span className="min-w-0 truncate">{tab.label}</span>
+              {/* Label */}
+              <span className="min-w-0 truncate">{tab.label}</span>
 
-            {/* Inline count badge */}
-            {tab.count !== undefined ? (
-              <span
-                className={cn(
-                  "inline-flex shrink-0 items-center justify-center",
-                  "min-w-[1.125rem] h-[1.125rem] px-1",
-                  "rounded-[var(--m3-shape-full)]",
-                  "bg-[rgb(var(--m3-error))] text-[rgb(var(--m3-on-error))]",
-                  "text-[0.625rem] font-bold leading-none",
-                  "pointer-events-none select-none"
-                )}
-                aria-label={`${tab.count} items`}
-              >
-                {tab.count > 99 ? "99+" : tab.count}
-              </span>
-            ) : null}
+              {/* Inline count badge */}
+              {tab.count !== undefined ? (
+                <span
+                  className={cn(
+                    "inline-flex shrink-0 items-center justify-center",
+                    "min-w-[1.125rem] h-[1.125rem] px-1",
+                    "rounded-[var(--m3-shape-full)]",
+                    "bg-[rgb(var(--m3-error))] text-[rgb(var(--m3-on-error))]",
+                    "text-[0.625rem] font-bold leading-none",
+                    "pointer-events-none select-none"
+                  )}
+                  aria-label={`${tab.count} items`}
+                >
+                  {tab.count > 99 ? "99+" : tab.count}
+                </span>
+              ) : null}
+            </span>
           </button>
         );
       })}

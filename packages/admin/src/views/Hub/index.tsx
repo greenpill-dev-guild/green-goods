@@ -2,9 +2,9 @@ import {
   Button,
   HUB_STAGE_RAIL_ID,
   MetaStrip,
+  NativeSelect,
   useHubWorkbenchController,
 } from "@green-goods/shared";
-import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import {
@@ -30,10 +30,18 @@ export default function HubView() {
       <HubSheetDescriptor
         routeSheetContentId={hub.routeSheetContentId}
         routeWorkId={hub.routeWorkId}
+        routeCertificationId={hub.routeCertificationId}
+        routeHistoryEventId={hub.routeHistoryEventId}
         activeWorkDetailId={hub.activeWorkDetailId}
         selectedWork={hub.selectedWork}
         selectedCertification={hub.selectedCertification}
         selectedHistoryEvent={hub.selectedHistoryEvent}
+        isResolvingSelection={
+          hub.worksLoading ||
+          hub.fetchingAssessments ||
+          hub.hypercertsLoading ||
+          hub.allocationsLoading
+        }
         canManage={hub.canManage}
         hubContext={hub.hubContext}
         closeTo={hub.routeSheetCloseTo}
@@ -82,21 +90,39 @@ export default function HubView() {
                     })}
                     className={
                       hub.worksFetching
-                        ? "hub-refresh-button [&>svg]:animate-spin"
-                        : "hub-refresh-button"
+                        ? "hub-refresh-button h-10 min-h-10 w-10 rounded-full p-0 [&>svg]:animate-spin"
+                        : "hub-refresh-button h-10 min-h-10 w-10 rounded-full p-0"
                     }
                   >
                     <RiRefreshLine className="h-4 w-4" />
                   </Button>
-                  {(hub.stage === "work" || hub.stage === "history") &&
-                    hub.sortOptions.map((option) => (
-                      <AdminFilterChip
-                        key={option.value}
-                        label={option.label}
-                        selected={hub.sortDirection === option.value}
-                        onToggle={() => hub.updateSearch({ sort: option.value }, false)}
-                      />
-                    ))}
+                  {(hub.stage === "work" || hub.stage === "history") && (
+                    <label className="flex h-10 items-center gap-2 rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+                      <span>
+                        {formatMessage({
+                          id: "app.admin.sortSelect.sortBy",
+                          defaultMessage: "Sort by",
+                        })}
+                      </span>
+                      <NativeSelect
+                        surface="admin"
+                        controlSize="sm"
+                        value={hub.sortDirection}
+                        onChange={(event) => hub.updateSearch({ sort: event.target.value }, false)}
+                        aria-label={formatMessage({
+                          id: "app.admin.sortSelect.sortBy",
+                          defaultMessage: "Sort by",
+                        })}
+                        className="h-8 min-h-8 rounded-full border-0 bg-transparent py-0 pl-1 pr-8 shadow-none"
+                      >
+                        {hub.sortOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                    </label>
+                  )}
                 </AdminSearchToolbar>
               </div>
             }
