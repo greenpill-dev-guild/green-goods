@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -33,6 +33,22 @@ const sharedMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@green-goods/shared", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  DialogShell: ({ open, onOpenChange, title, description, children }: any) =>
+    open
+      ? createElement(
+          "div",
+          { role: "dialog", "aria-label": title },
+          createElement("h2", null, title),
+          description ? createElement("p", null, description) : null,
+          children,
+          createElement(
+            "button",
+            { type: "button", onClick: () => onOpenChange(false), "aria-label": "Close" },
+            "Close"
+          )
+        )
+      : null,
   formatAddress: sharedMocks.formatAddress,
   usePrimaryAddress: sharedMocks.usePrimaryAddress,
   useGreenGoodsEnsName: sharedMocks.useGreenGoodsEnsName,
@@ -253,7 +269,9 @@ describe("ProfileBadges", () => {
 
     expect(screen.getByText("Issued to river")).toBeInTheDocument();
     expect(screen.getByText("Genesis")).toBeInTheDocument();
-    expect(screen.getByText("Earned badges")).toBeInTheDocument();
+    expect(screen.getByTestId("profile-badge-grid")).toHaveClass("grid-cols-2");
+    expect(screen.getByRole("button", { name: "View Genesis badge" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View First Work badge" })).toBeInTheDocument();
   });
 
   it("renders one neutral empty state when no badges are returned", () => {
@@ -268,7 +286,10 @@ describe("ProfileBadges", () => {
 
     render(wrap(createElement(ProfileBadges)));
 
-    expect(screen.getByText("No badges found.")).toBeInTheDocument();
+    expect(screen.getByText("No badges yet")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Badges appear here as you document work, support gardens/i)
+    ).toBeInTheDocument();
     expect(screen.queryByText("Earned badges")).not.toBeInTheDocument();
     expect(screen.queryByText("Claimable badges")).not.toBeInTheDocument();
   });
@@ -285,7 +306,7 @@ describe("ProfileBadges", () => {
 
     render(wrap(createElement(ProfileBadges)));
 
-    expect(screen.getByText("No badges found.")).toBeInTheDocument();
+    expect(screen.getByText("Badges are not loading right now")).toBeInTheDocument();
     expect(screen.queryByText("Could not load badges.")).not.toBeInTheDocument();
   });
 
@@ -293,6 +314,21 @@ describe("ProfileBadges", () => {
     render(wrap(createElement(ProfileBadges)));
 
     expect(screen.queryByRole("button", { name: "Claim First Support" })).not.toBeInTheDocument();
+  });
+
+  it("opens and closes badge details from the grid", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(ProfileBadges)));
+
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Genesis" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText("Earned")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(screen.queryByRole("dialog", { name: "Genesis" })).not.toBeInTheDocument();
   });
 
   it("allows claiming the genesis badge when eligible", async () => {
@@ -346,6 +382,7 @@ describe("ProfileBadges", () => {
 
     render(wrap(createElement(ProfileBadges)));
 
+    await user.click(screen.getByRole("button", { name: "View Genesis badge" }));
     await user.click(screen.getByRole("button", { name: "Claim Genesis" }));
 
     expect(mockGenesisClaim).toHaveBeenCalledTimes(1);
@@ -355,6 +392,7 @@ describe("ProfileBadges", () => {
     const user = userEvent.setup();
     render(wrap(createElement(ProfileBadges)));
 
+    await user.click(screen.getByRole("button", { name: "View First Work badge" }));
     await user.click(screen.getByRole("button", { name: "Claim First Work" }));
 
     expect(mockFirstWorkClaim).toHaveBeenCalledWith({
@@ -413,6 +451,7 @@ describe("ProfileBadges", () => {
 
     render(wrap(createElement(ProfileBadges)));
 
+    await user.click(screen.getByRole("button", { name: "View First Support badge" }));
     await user.click(screen.getByRole("button", { name: "Claim First Support" }));
 
     expect(mockFirstSupportClaim).toHaveBeenCalledWith({

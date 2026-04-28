@@ -12,6 +12,7 @@ import {
   Surface,
   formatDateTime,
   ImageWithFallback,
+  localizeAction,
   useActions,
   useRole,
 } from "@green-goods/shared";
@@ -72,7 +73,8 @@ export function ActionDetailPanel({
   onClose,
   onEdit,
 }: ActionDetailPanelProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const action = actions.find((record) => record.id === actionId);
 
   if (isLoading) {
@@ -101,6 +103,7 @@ export function ActionDetailPanel({
     );
   }
 
+  const displayAction = localizeAction(action, intl.locale);
   const lifecycle = getActionLifecycleState(action);
   const lifecycleLabel = formatMessage({
     id: `cockpit.actions.status.${lifecycle}`,
@@ -115,7 +118,7 @@ export function ActionDetailPanel({
           <div className="min-w-0 space-y-2">
             <StatusBadge variant={getLifecycleVariant(lifecycle)}>{lifecycleLabel}</StatusBadge>
             <p className="text-sm text-text-sub">
-              {action.description || formatMessage({ id: "admin.actions.noDescription" })}
+              {displayAction.description || formatMessage({ id: "admin.actions.noDescription" })}
             </p>
           </div>
           {canManageActions ? (
@@ -193,9 +196,9 @@ export function ActionDetailPanel({
             })}
           </h3>
         </div>
-        {action.inputs.length > 0 ? (
+        {displayAction.inputs.length > 0 ? (
           <div className="space-y-2">
-            {action.inputs.map((input) => (
+            {displayAction.inputs.map((input) => (
               <AdminCard variant="outlined" key={input.key} className="px-3 py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-text-strong">{input.title}</p>
@@ -221,9 +224,9 @@ export function ActionDetailPanel({
             {formatMessage({ id: "app.actions.detail.media" })}
           </h3>
         </div>
-        {action.media.length > 0 ? (
+        {displayAction.media.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {action.media.map((url, index) => (
+            {displayAction.media.map((url, index) => (
               <ActionDetailMediaTile
                 key={`${url}-${index}`}
                 src={url}
@@ -235,7 +238,7 @@ export function ActionDetailPanel({
                   { index: index + 1 }
                 )}
                 domain={action.domain}
-                title={action.title}
+                title={displayAction.title}
               />
             ))}
           </div>
@@ -255,7 +258,8 @@ export function ActionDetailPanel({
 export default function ActionDetail() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const { role } = useRole();
   const { data: actions = [], isLoading } = useActions(DEFAULT_CHAIN_ID);
   const canManageActions = role === "deployer" || role === "operator";
@@ -326,6 +330,7 @@ export default function ActionDetail() {
   }
 
   const lifecycle = getActionLifecycleState(action);
+  const displayAction = localizeAction(action, intl.locale);
   const lifecycleLabel = formatMessage({
     id: `cockpit.actions.status.${lifecycle}`,
     defaultMessage:
@@ -336,8 +341,10 @@ export default function ActionDetail() {
     <CanvasRouteFrame>
       <CanvasRouteHeader
         maxWidthClassName="max-w-[1200px]"
-        title={action.title}
-        description={action.description || formatMessage({ id: "admin.actions.noDescription" })}
+        title={displayAction.title}
+        description={
+          displayAction.description || formatMessage({ id: "admin.actions.noDescription" })
+        }
         variant="canvas"
         backLink={{
           to: actionsListHref,
@@ -407,7 +414,7 @@ export default function ActionDetail() {
                           id: "app.actions.detail.capitalsForms",
                           defaultMessage: "{count} capital forms",
                         },
-                        { count: action.capitals.length }
+                        { count: displayAction.capitals.length }
                       )}
                     </dd>
                   </AdminCard>
@@ -448,8 +455,8 @@ export default function ActionDetail() {
                   })}
                 </p>
                 <div className="space-y-2">
-                  {action.inputs.length > 0 ? (
-                    action.inputs.map((input) => (
+                  {displayAction.inputs.length > 0 ? (
+                    displayAction.inputs.map((input) => (
                       <AdminCard variant="outlined" key={input.key} className="px-3 py-2.5">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-medium text-text-strong">{input.title}</p>
@@ -492,9 +499,9 @@ export default function ActionDetail() {
                 </div>
               </div>
 
-              {action.media.length > 0 ? (
+              {displayAction.media.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {action.media.map((url, index) => (
+                  {displayAction.media.map((url, index) => (
                     <ActionDetailMediaTile
                       key={`${url}-${index}`}
                       src={url}
@@ -506,7 +513,7 @@ export default function ActionDetail() {
                         { index: index + 1 }
                       )}
                       domain={action.domain}
-                      title={action.title}
+                      title={displayAction.title}
                     />
                   ))}
                 </div>

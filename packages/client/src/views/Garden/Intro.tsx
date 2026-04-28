@@ -5,6 +5,7 @@ import {
   type Garden,
   hapticSelection,
   hasDomain,
+  localizeAction,
 } from "@green-goods/shared";
 import { RiHammerFill, RiPlantFill, RiUserAddLine } from "@remixicon/react";
 import React, { useMemo } from "react";
@@ -199,6 +200,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           {filteredActions.length > 0 &&
             filteredActions.map((action) => {
               const uid = uidFromActionId(action.id);
+              const displayAction = localizeAction(action, intl.locale);
               return (
                 <CarouselItem
                   key={action.id}
@@ -210,7 +212,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                   }}
                 >
                   <ActionCard
-                    action={action}
+                    action={displayAction}
                     selected={selectedActionUID === uid}
                     media="small"
                     height="selection"

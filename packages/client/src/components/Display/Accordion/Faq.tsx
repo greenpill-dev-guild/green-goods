@@ -4,7 +4,6 @@ import { cn } from "@green-goods/shared";
 import * as AccordionPrimitive from "@radix-ui/react-accordion";
 import { RiAddLine, RiQuestionLine } from "@remixicon/react";
 import * as React from "react";
-import { FlexCard } from "../../Cards/Base/Card";
 
 type FaqProps = Omit<AccordionPrimitive.AccordionSingleProps, "type"> & {
   className?: string;
@@ -27,13 +26,14 @@ const FaqItem = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
 >(({ className, ...props }, ref) => (
-  <FlexCard size="small">
-    <AccordionPrimitive.Item
-      ref={ref}
-      className={cn("flex flex-col grow w-full items-start justify-items-start gap-2", className)}
-      {...props}
-    />
-  </FlexCard>
+  <AccordionPrimitive.Item
+    ref={ref}
+    className={cn(
+      "flex h-auto w-full flex-col items-start justify-items-start gap-2 rounded-2xl border border-border bg-bg-white-0 px-4 py-4",
+      className
+    )}
+    {...props}
+  />
 ));
 FaqItem.displayName = "FaqItem";
 
@@ -44,14 +44,14 @@ const FaqTrigger = React.forwardRef<
   <AccordionPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex flex-row w-full gap-3 text-base font-medium transition-all [&[data-state=open]>svg:first-of-type]:text-primary [&[data-state=open]>svg:first-of-type]:scale-110 [&[data-state=open]>svg:first-of-type]:animate-spring-bump [&[data-state=open]>.faq-title]:text-primary grow text-left items-start",
+      "flex w-full grow flex-row items-start gap-3 text-left text-base font-medium transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] [&[data-state=open]>.faq-title]:text-primary [&[data-state=open]>.faq-toggle]:rotate-45 [&[data-state=open]>svg:first-of-type]:scale-110 [&[data-state=open]>svg:first-of-type]:animate-spring-bump [&[data-state=open]>svg:first-of-type]:text-primary",
       className
     )}
     {...props}
   >
-    <RiQuestionLine className="w-6 h-6 shrink-0 text-primary transition-all " />
+    <RiQuestionLine className="w-6 h-6 shrink-0 text-primary transition-all" />
     <div className="flex grow faq-title transition-colors">{children}</div>
-    <RiAddLine className="h-5 w-5 shrink-0 transition-transform duration-200 text-[#9A9FAD] flex text-right " />
+    <RiAddLine className="faq-toggle flex h-5 w-5 shrink-0 text-right text-text-soft-400 transition-transform duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]" />
   </AccordionPrimitive.Trigger>
 ));
 FaqTrigger.displayName = AccordionPrimitive.Trigger.displayName;
@@ -63,7 +63,7 @@ const FaqContent = React.forwardRef<
   <AccordionPrimitive.Content
     ref={ref}
     className={cn(
-      "overflow-hidden text-sm transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down duration-1000",
+      "overflow-hidden pl-9 pr-2 text-sm leading-relaxed text-text-sub-600 transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down",
       className
     )}
     {...props}

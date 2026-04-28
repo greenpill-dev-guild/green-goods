@@ -139,7 +139,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         const {
           placeholder = "",
           options = [],
+          optionLabels,
           bands,
+          bandLabels,
           required = false,
           title = "",
           key,
@@ -189,7 +191,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               label={title}
               placeholder={placeholder}
               options={selectOptions.map((option) => ({
-                label: option,
+                label: optionLabels?.[option] ?? option,
                 value: option,
               }))}
               control={control}
@@ -212,7 +214,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                 })
               }
               options={bandOptions.map((band) => ({
-                label: band,
+                label: bandLabels?.[band] ?? band,
                 value: band,
               }))}
               control={control}
@@ -231,6 +233,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               <div className="flex flex-wrap gap-1.5">
                 {selectOptions.map((option) => {
                   const isSelected = selected.includes(option);
+                  const label = optionLabels?.[option] ?? option;
                   return (
                     <button
                       key={option}
@@ -242,7 +245,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                           : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
                       }`}
                     >
-                      {option}
+                      {label}
                     </button>
                   );
                 })}

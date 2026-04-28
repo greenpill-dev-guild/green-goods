@@ -146,6 +146,28 @@ describe("WorkDetails", () => {
     expect(select).toBeInTheDocument();
   });
 
+  it("renders localized option labels while preserving canonical option values", () => {
+    const inputs: WorkInput[] = [
+      {
+        key: "soilType",
+        title: "Tipo de suelo",
+        placeholder: "Selecciona suelo",
+        type: "select",
+        required: false,
+        options: ["clay", "loam"],
+        optionLabels: {
+          clay: "Arcilla",
+          loam: "Franco",
+        },
+      },
+    ];
+
+    renderDetails({ inputs });
+
+    const clayOption = screen.getByRole("option", { name: "Arcilla" });
+    expect(clayOption).toHaveAttribute("value", "clay");
+  });
+
   it("renders multi-select chip buttons from action config", () => {
     const inputs: WorkInput[] = [
       {
@@ -188,6 +210,30 @@ describe("WorkDetails", () => {
     // Click "Basil" to add it
     fireEvent.click(screen.getByText("Basil"));
     expect(setValue).toHaveBeenCalledWith("plants", ["Tomato", "Basil"]);
+  });
+
+  it("submits canonical multi-select values when localized labels are displayed", () => {
+    const setValue = vi.fn();
+    const inputs: WorkInput[] = [
+      {
+        key: "plants",
+        title: "Plantas usadas",
+        placeholder: "",
+        type: "multi-select",
+        required: false,
+        options: ["Tomato", "Basil"],
+        optionLabels: {
+          Tomato: "Tomate",
+          Basil: "Albahaca",
+        },
+      },
+    ];
+
+    renderDetails({ inputs, setValue });
+
+    fireEvent.click(screen.getByText("Tomate"));
+
+    expect(setValue).toHaveBeenCalledWith("plants", ["Tomato"]);
   });
 
   it("renders location toggle switch in idle state", () => {

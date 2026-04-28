@@ -16,6 +16,7 @@ interface Social {
 }
 
 interface FAQ {
+  topic: string;
   question: string;
   answer: string;
 }
@@ -54,20 +55,21 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
 
   const faqTopics = [
     "whatIsGreenGoods",
-    "howSubmissionWorks",
     "gardensAndOperators",
-    "whoCanSubmitWork",
-    "whatIsEAS",
-    "offlineSupport",
-    "smartAccountAddress",
-    "dataStorage",
-    "duplicateHandling",
     "howToGetInvolved",
+    "whoCanSubmitWork",
+    "howSubmissionWorks",
+    "offlineSupport",
+    "reviewAndApproval",
+    "whatIsEAS",
+    "badgesAndIdentity",
+    "dataStorage",
     "howToContact",
   ];
 
   const faqs: FAQ[] = faqTopics.map((topic) => {
     return {
+      topic,
       question: intl.formatMessage({
         id: `app.profile.help.faq.${topic}.question`,
       }),
@@ -128,9 +130,9 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
       <Faq>
         {faqs.map((faq) => {
           return (
-            <FaqItem key={faq.question} value={faq.question}>
+            <FaqItem key={faq.topic} value={faq.topic}>
               <FaqTrigger>{faq.question}</FaqTrigger>
-              <FaqContent>{faq.answer}</FaqContent>
+              <FaqContent data-testid={`faq-content-${faq.topic}`}>{faq.answer}</FaqContent>
             </FaqItem>
           );
         })}

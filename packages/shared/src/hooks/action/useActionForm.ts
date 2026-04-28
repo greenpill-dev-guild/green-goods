@@ -9,7 +9,7 @@
  */
 
 import { z } from "zod";
-import type { WorkInput } from "../../types/domain";
+import type { ActionTranslationMap, ActionTranslationRecord, WorkInput } from "../../types/domain";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -48,6 +48,20 @@ const instructionInputSchema: z.ZodType<WorkInput> = z.lazy(() =>
     repeaterFields: z.array(instructionInputSchema).optional(),
   })
 );
+
+const actionTranslationRecordSchema: z.ZodType<ActionTranslationRecord> = z.object({
+  status: z.enum(["draft", "reviewed", "stale"]),
+  sourceHash: z.string().optional(),
+  updatedAt: z.string().optional(),
+  data: z.custom<ActionTranslationRecord["data"]>(
+    (value) => typeof value === "object" && value !== null
+  ),
+});
+
+const actionTranslationsSchema: z.ZodType<ActionTranslationMap> = z.object({
+  es: actionTranslationRecordSchema.optional(),
+  pt: actionTranslationRecordSchema.optional(),
+});
 
 export const createActionSchema = z
   .object({
@@ -91,6 +105,7 @@ export const createActionSchema = z
         }),
       }),
     }),
+    translations: actionTranslationsSchema.default({}),
   })
   .superRefine((data, ctx) => {
     const expectedPrefix = DOMAIN_SLUG_PREFIX[data.domain as ActionDomainValue];

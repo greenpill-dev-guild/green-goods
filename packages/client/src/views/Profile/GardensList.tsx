@@ -214,7 +214,9 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                     </div>
                   </Avatar>
                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{garden.name}</div>
+                    <div className="line-clamp-2 text-sm font-medium leading-snug">
+                      {garden.name}
+                    </div>
                     {garden.location && (
                       <div className="flex items-center gap-1 text-xs text-text-sub-600">
                         <RiMapPinLine className="w-3 h-3 shrink-0" />

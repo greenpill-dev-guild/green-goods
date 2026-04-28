@@ -137,7 +137,13 @@ describe("Profile ENSSection", () => {
   it("shows claim form for protocol members without an existing registration", () => {
     renderENSSection();
 
-    expect(screen.getByText("Claim name")).toBeInTheDocument();
+    expect(screen.getAllByText("Claim ENS name and subdomain")).toHaveLength(2);
+    expect(
+      screen.getByText(
+        "Choose a greengoods.eth name tied to your Green Goods identity and garden work. Registration takes about 15-20 minutes."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("Claim subdomain")).toBeInTheDocument();
     expect(mockUseENSRegistrationStatus).toHaveBeenCalledWith(undefined);
   });
 
@@ -149,16 +155,16 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    expect(screen.getByText("Claim name")).toBeInTheDocument();
+    expect(screen.getByText("Claim subdomain")).toBeInTheDocument();
 
-    await user.click(screen.getByText("Claim name"));
+    await user.click(screen.getByText("Claim subdomain"));
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith({ slug: "river" });
     });
     expect(mockReset).toHaveBeenCalled();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("river");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim subdomain")).not.toBeInTheDocument();
   });
 
   it("hides claim form when registration is active", async () => {
@@ -169,12 +175,12 @@ describe("Profile ENSSection", () => {
 
     renderENSSection();
 
-    await user.click(screen.getByText("Claim name"));
+    await user.click(screen.getByText("Claim subdomain"));
 
     await waitFor(() => {
       expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
     });
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim subdomain")).not.toBeInTheDocument();
   });
 
   it("hides claim form when the address already has a Green Goods ENS name", () => {
@@ -187,7 +193,7 @@ describe("Profile ENSSection", () => {
     expect(screen.getAllByText("forest")).toHaveLength(2);
     expect(screen.getByText("Release username")).toBeInTheDocument();
     expect(screen.getByTestId("ens-progress")).toHaveTextContent("forest");
-    expect(screen.queryByText("Claim name")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claim subdomain")).not.toBeInTheDocument();
   });
 
   it("releases the current ENS name after confirmation", async () => {

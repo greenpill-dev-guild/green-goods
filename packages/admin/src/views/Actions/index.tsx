@@ -8,6 +8,7 @@ import {
   getActionLifecycleState,
   getWorkbenchTone,
   LIFECYCLE_TABS,
+  localizeAction,
   NativeSelect,
   Surface,
   useActionsController,
@@ -239,6 +240,7 @@ export default function Actions() {
           <WorkbenchList aria-label={intl.formatMessage({ id: "app.admin.nav.actions" })}>
             {actions.stageFilteredActions.map((action) => {
               const stage = getActionLifecycleState(action);
+              const displayAction = localizeAction(action, intl.locale);
               const domainLabel = intl.formatMessage({
                 id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
               });
@@ -247,9 +249,9 @@ export default function Actions() {
                 <WorkbenchRow
                   key={action.id}
                   eyebrow={domainLabel}
-                  title={action.title}
+                  title={displayAction.title}
                   description={
-                    action.description ||
+                    displayAction.description ||
                     intl.formatMessage({
                       id: "admin.actions.noDescription",
                       defaultMessage: "No description",
@@ -262,7 +264,7 @@ export default function Actions() {
                         id: "cockpit.actions.inputsCount",
                         defaultMessage: "{count} {count, plural, one {field} other {fields}}",
                       },
-                      { count: action.inputs.length }
+                      { count: displayAction.inputs.length }
                     ),
                     intl.formatMessage(
                       {

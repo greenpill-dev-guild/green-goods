@@ -31,11 +31,9 @@ vi.mock("@green-goods/shared", () => ({
 
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
-  RiComputerLine: (props: any) => createElement("span", props),
   RiEarthFill: (props: any) => createElement("span", props),
-  RiMoonLine: (props: any) => createElement("span", props),
   RiRefreshLine: (props: any) => createElement("span", props),
-  RiSunLine: (props: any) => createElement("span", props),
+  RiSettings2Line: (props: any) => createElement("span", props),
 }));
 
 // Mock client components
@@ -63,16 +61,36 @@ vi.mock("@/components/Display", () => ({
   Avatar: ({ children }: { children: React.ReactNode }) => createElement("div", null, children),
 }));
 
-vi.mock("@/components/Inputs", () => ({
-  Select: ({ children, value, onValueChange }: any) =>
-    createElement("div", { "data-testid": "select", "data-value": value }, children),
-  SelectContent: ({ children }: any) => createElement("div", null, children),
-  SelectItem: ({ children, value }: any) =>
-    createElement("div", { role: "option", "data-value": value }, children),
-  SelectTrigger: ({ children }: any) =>
-    createElement("div", { "data-testid": "select-trigger" }, children),
-  SelectValue: ({ placeholder }: any) => createElement("span", null, placeholder),
-}));
+vi.mock("@/components/Inputs", async () => {
+  const React = await import("react");
+  const SelectContext = React.createContext<((value: string) => void) | undefined>(undefined);
+
+  return {
+    Select: ({ children, value, onValueChange }: any) =>
+      React.createElement(
+        SelectContext.Provider,
+        { value: onValueChange },
+        React.createElement("div", { "data-testid": "select", "data-value": value }, children)
+      ),
+    SelectContent: ({ children }: any) => React.createElement("div", null, children),
+    SelectItem: ({ children, value }: any) => {
+      const onValueChange = React.useContext(SelectContext);
+      return React.createElement(
+        "button",
+        {
+          role: "option",
+          "data-value": value,
+          type: "button",
+          onClick: () => onValueChange?.(value),
+        },
+        children
+      );
+    },
+    SelectTrigger: ({ children }: any) =>
+      React.createElement("div", { "data-testid": "select-trigger" }, children),
+    SelectValue: ({ placeholder }: any) => React.createElement("span", null, placeholder),
+  };
+});
 
 import { AppSettings } from "../../views/Profile/AppSettings";
 
@@ -100,6 +118,18 @@ describe("AppSettings", () => {
 
     expect(screen.getByText("Theme")).toBeInTheDocument();
     expect(screen.getByText(/choose how the app looks/i)).toBeInTheDocument();
+  });
+
+  it("renders theme options as text-only choices and changes theme", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(AppSettings)));
+
+    const darkOption = screen.getByRole("option", { name: "Dark" });
+    expect(darkOption.querySelector("svg")).toBeNull();
+
+    await user.click(darkOption);
+
+    expect(mockThemeState.setTheme).toHaveBeenCalledWith("dark");
   });
 
   it("renders language setting card", () => {

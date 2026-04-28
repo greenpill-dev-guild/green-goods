@@ -10,6 +10,19 @@ export {
   parseActionUID,
 } from "./action/parsers";
 export { defaultTemplate, instructionTemplates } from "./action/templates";
+export {
+  ACTION_INSTRUCTIONS_SCHEMA_VERSION,
+  ACTION_TRANSLATION_LOCALES,
+  buildActionInstructionsV2,
+  createActionTranslationDraft,
+  DEFAULT_ACTION_CONTENT_LOCALE,
+  getActionSourceHash,
+  getReviewedActionTranslation,
+  isActionTranslationLocale,
+  localizeAction,
+  markStaleActionTranslations,
+  normalizeActionTranslations,
+} from "./action/translations";
 // ============================================================================
 // BROWSER
 // ============================================================================

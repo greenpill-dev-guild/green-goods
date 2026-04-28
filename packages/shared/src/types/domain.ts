@@ -308,7 +308,13 @@ export interface Action extends ActionCard {
     title: string;
     description: string;
   };
+  defaultLocale?: ActionContentLocale;
+  translations?: ActionTranslationMap;
 }
+
+export type ActionContentLocale = "en" | "es" | "pt";
+export type ActionTranslationLocale = Exclude<ActionContentLocale, "en">;
+export type ActionTranslationStatus = "draft" | "reviewed" | "stale";
 
 export interface WorkInput {
   key: string;
@@ -318,6 +324,8 @@ export interface WorkInput {
   required: boolean;
   options: string[];
   bands?: string[];
+  optionLabels?: Record<string, string>;
+  bandLabels?: Record<string, string>;
   unit?: string;
   repeaterFields?: WorkInput[];
 }
@@ -495,6 +503,55 @@ export interface ActionInstructionConfig {
       description: string;
     };
   };
+}
+
+export interface ActionInstructionInputTranslation {
+  key: string;
+  title?: string;
+  placeholder?: string;
+  options?: Record<string, string>;
+  bands?: Record<string, string>;
+  repeaterFields?: ActionInstructionInputTranslation[];
+}
+
+export interface ActionInstructionTranslationData {
+  title?: string;
+  description?: string;
+  uiConfig?: {
+    media?: {
+      title?: string;
+      description?: string;
+      needed?: string[];
+      optional?: string[];
+    };
+    details?: {
+      title?: string;
+      description?: string;
+      feedbackPlaceholder?: string;
+      inputs?: ActionInstructionInputTranslation[];
+    };
+    review?: {
+      title?: string;
+      description?: string;
+    };
+  };
+}
+
+export interface ActionTranslationRecord {
+  status: ActionTranslationStatus;
+  sourceHash?: string;
+  updatedAt?: string;
+  data: ActionInstructionTranslationData;
+}
+
+export type ActionTranslationMap = Partial<
+  Record<ActionTranslationLocale, ActionTranslationRecord>
+>;
+
+export interface ActionInstructionConfigV2 extends ActionInstructionConfig {
+  schemaVersion: "action_instructions_v2";
+  defaultLocale: ActionContentLocale;
+  translations?: ActionTranslationMap;
 }
 
 // ============================================

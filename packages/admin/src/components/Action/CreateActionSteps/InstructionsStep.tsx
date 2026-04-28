@@ -2,6 +2,7 @@ import { type CreateActionFormData, FormField, NativeSelect } from "@green-goods
 import type { UseFormReturn } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
+import { ActionTranslationEditor } from "@/components/Action/ActionTranslationEditor";
 import { resolveCreateActionTemplateSelection } from "@/views/Actions/createActionTemplateSelection";
 
 interface InstructionsStepProps {
@@ -221,7 +222,15 @@ export function InstructionsStep({ form }: InstructionsStepProps) {
       </FormField>
       <InstructionsBuilder
         value={form.watch("instructionConfig")}
-        onChange={(config) => form.setValue("instructionConfig", config)}
+        onChange={(config) => form.setValue("instructionConfig", config, { shouldDirty: true })}
+      />
+      <ActionTranslationEditor
+        sourceTitle={form.watch("title")}
+        sourceConfig={form.watch("instructionConfig")}
+        value={form.watch("translations")}
+        onChange={(translations) =>
+          form.setValue("translations", translations, { shouldDirty: true })
+        }
       />
     </div>
   );

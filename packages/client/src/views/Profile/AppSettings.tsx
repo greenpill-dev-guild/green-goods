@@ -7,13 +7,7 @@ import {
   useApp,
   useTheme,
 } from "@green-goods/shared";
-import {
-  RiComputerLine,
-  RiEarthFill,
-  RiMoonLine,
-  RiRefreshLine,
-  RiSunLine,
-} from "@remixicon/react";
+import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
 import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
@@ -38,17 +32,14 @@ export const AppSettings: React.FC = () => {
       {
         value: "light" as const,
         label: intl.formatMessage({ id: "app.settings.themeLight", defaultMessage: "Light" }),
-        icon: <RiSunLine className="w-4" />,
       },
       {
         value: "dark" as const,
         label: intl.formatMessage({ id: "app.settings.themeDark", defaultMessage: "Dark" }),
-        icon: <RiMoonLine className="w-4" />,
       },
       {
         value: "system" as const,
         label: intl.formatMessage({ id: "app.settings.themeSystem", defaultMessage: "System" }),
-        icon: <RiComputerLine className="w-4" />,
       },
     ],
     [intl]
@@ -67,7 +58,7 @@ export const AppSettings: React.FC = () => {
           id: "app.settings.selectTheme",
           defaultMessage: "Choose how the app looks",
         }),
-        Icon: currentThemeOption.icon,
+        Icon: <RiSettings2Line className="w-4" />,
         Option: () => (
           <Select
             value={theme}
@@ -79,10 +70,7 @@ export const AppSettings: React.FC = () => {
             <SelectContent>
               {themeOptions.map((opt) => (
                 <SelectItem value={opt.value} key={opt.value}>
-                  <span className="flex items-center gap-2">
-                    {opt.icon}
-                    {opt.label}
-                  </span>
+                  {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>

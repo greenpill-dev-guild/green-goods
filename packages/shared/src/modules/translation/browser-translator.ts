@@ -22,9 +22,26 @@ type AITranslatorAPI = {
   }>;
 };
 
+type StableTranslatorAPI = {
+  availability?: (config: {
+    sourceLanguage: string;
+    targetLanguage: string;
+  }) => Promise<"available" | "downloadable" | "downloading" | "unavailable">;
+  create: (config: {
+    sourceLanguage: string;
+    targetLanguage: string;
+    monitor?: (monitor: EventTarget) => void;
+  }) => Promise<{ translate: (text: string) => Promise<string> }>;
+};
+
 /** Chrome experimental AI API surface (self.ai) */
 interface ExperimentalAI {
   ai: { translator: AITranslatorAPI };
+}
+
+/** Chrome stable built-in AI Translator API surface (self.Translator). */
+interface StableTranslatorGlobal {
+  Translator: StableTranslatorAPI;
 }
 
 /** Chrome experimental translation API surface (self.translation) */
@@ -33,13 +50,18 @@ interface ExperimentalTranslation {
 }
 
 class BrowserTranslator {
+  private stableApi: StableTranslatorAPI | null = null;
   private legacyApi: LegacyTranslatorAPI | null = null;
   private aiApi: AITranslatorAPI | null = null;
   private translators: Map<string, { translate: (text: string) => Promise<string> }> = new Map();
 
   constructor() {
+    // Check for the stable Translator API (Chrome 138+)
+    if (typeof self !== "undefined" && "Translator" in self) {
+      this.stableApi = (self as unknown as StableTranslatorGlobal).Translator;
+    }
     // Check for new AI Translation API (Chrome 127+)
-    if (
+    else if (
       typeof self !== "undefined" &&
       "ai" in self &&
       "translator" in (self as ExperimentalAI).ai
@@ -63,7 +85,7 @@ class BrowserTranslator {
   }
 
   get isSupported(): boolean {
-    return this.aiApi !== null || this.legacyApi !== null;
+    return this.stableApi !== null || this.aiApi !== null || this.legacyApi !== null;
   }
 
   private translatorKey(source: string, target: string): string {
@@ -86,8 +108,27 @@ class BrowserTranslator {
       let translator = this.translators.get(key);
 
       if (!translator) {
-        // 1. Try New AI API
-        if (this.aiApi) {
+        // 1. Try stable Translator API
+        if (this.stableApi) {
+          if (this.stableApi.availability) {
+            const availability = await this.stableApi.availability({
+              sourceLanguage: sourceLang,
+              targetLanguage: targetLang,
+            });
+
+            if (availability === "unavailable") {
+              logger.warn(`[Translation] ${sourceLang} → ${targetLang} not supported by browser`);
+              return null;
+            }
+          }
+
+          translator = await this.stableApi.create({
+            sourceLanguage: sourceLang,
+            targetLanguage: targetLang,
+          });
+        }
+        // 2. Try experimental AI API
+        else if (this.aiApi) {
           // Check capabilities if available
           if (this.aiApi.capabilities) {
             const caps = await this.aiApi.capabilities();
@@ -104,7 +145,7 @@ class BrowserTranslator {
             targetLanguage: targetLang,
           });
         }
-        // 2. Try Legacy API
+        // 3. Try Legacy API
         else if (this.legacyApi) {
           // Check if translation is available
           if (this.legacyApi.canTranslate) {

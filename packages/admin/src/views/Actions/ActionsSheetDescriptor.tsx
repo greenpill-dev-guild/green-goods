@@ -1,5 +1,6 @@
 import {
   adminRoutes,
+  localizeAction,
   useRouteBackedLeftSheetConfig,
   type Action,
   type ActionsRouteState,
@@ -24,7 +25,8 @@ export function ActionsSheetDescriptor({
   isLoading,
   canManageActions,
 }: ActionsSheetDescriptorProps) {
-  const { formatMessage } = useIntl();
+  const intl = useIntl();
+  const { formatMessage } = intl;
   const navigate = useNavigate();
 
   const sheetDescriptor = useMemo(() => {
@@ -40,9 +42,10 @@ export function ActionsSheetDescriptor({
 
     if (routeState.kind === "detail") {
       const action = actions.find((record) => record.id === routeState.actionId);
+      const displayAction = action ? localizeAction(action, intl.locale) : null;
       return {
         title:
-          action?.title ??
+          displayAction?.title ??
           formatMessage({
             id: "app.admin.nav.actions",
             defaultMessage: "Actions",
@@ -64,9 +67,13 @@ export function ActionsSheetDescriptor({
 
     if (routeState.kind === "edit") {
       const action = actions.find((record) => record.id === routeState.actionId);
+      const displayAction = action ? localizeAction(action, intl.locale) : null;
       return {
         title: action
-          ? formatMessage({ id: "app.actions.edit.title" }, { name: action.title })
+          ? formatMessage(
+              { id: "app.actions.edit.title" },
+              { name: displayAction?.title ?? action.title }
+            )
           : formatMessage({
               id: "app.actions.edit",
               defaultMessage: "Edit action",
@@ -87,7 +94,7 @@ export function ActionsSheetDescriptor({
     }
 
     return null;
-  }, [actions, canManageActions, formatMessage, isLoading, navigate, routeState]);
+  }, [actions, canManageActions, formatMessage, intl.locale, isLoading, navigate, routeState]);
 
   const routeBackedSheetConfig = useMemo(
     () =>

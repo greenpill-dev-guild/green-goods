@@ -1,10 +1,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { Resolver } from "react-hook-form";
 import { DEFAULT_CHAIN_ID } from "../../../config/blockchain";
-import type { CreateActionFormData } from "../../action/useActionForm";
-import { createActionSchema } from "../../action/useActionForm";
 import { Domain } from "../../../types/domain";
 import { defaultTemplate } from "../../../utils/action/templates";
+import { createActionSchema, type CreateActionFormData } from "../../action/useActionForm";
 
 export const CREATE_ACTION_DEFAULT_CHAIN_ID = DEFAULT_CHAIN_ID;
 
@@ -18,6 +17,7 @@ export function createActionDefaultValues(): CreateActionFormData {
     capitals: [],
     media: [],
     instructionConfig: defaultTemplate,
+    translations: {},
   };
 }
 

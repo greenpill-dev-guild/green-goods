@@ -62,10 +62,24 @@ export function EndowmentDrawer({
 
   useEffect(() => {
     if (!isOpen) return;
-    setSelectedAsset(vaults[0]?.asset ?? "");
+    setSelectedAsset("");
     setAmountInput("");
     setActiveTab("treasury");
-  }, [isOpen, vaults]);
+  }, [gardenAddress, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const hasSelectedVault =
+      selectedAsset &&
+      vaults.some((vault) => vault.asset.toLowerCase() === selectedAsset.toLowerCase());
+    if (hasSelectedVault) return;
+
+    const nextAsset = vaults[0]?.asset ?? "";
+    if (selectedAsset !== nextAsset) {
+      setSelectedAsset(nextAsset);
+      setAmountInput("");
+    }
+  }, [isOpen, selectedAsset, vaults]);
 
   const selectedVault = useMemo(
     () => vaults.find((vault) => vault.asset.toLowerCase() === selectedAsset.toLowerCase()),

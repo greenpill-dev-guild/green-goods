@@ -1,6 +1,7 @@
 import {
   type CreateActionFormData,
   adminRoutes,
+  buildActionInstructionsV2,
   Domain,
   logger,
   type Step,
@@ -166,7 +167,12 @@ export function useCreateActionController() {
       );
       const mediaCIDs = mediaUploads.map((upload: { cid: string }) => upload.cid);
 
-      const instructionsBlob = new Blob([JSON.stringify(data.instructionConfig, null, 2)], {
+      const instructionMetadata = buildActionInstructionsV2(
+        data.title,
+        data.instructionConfig,
+        data.translations
+      );
+      const instructionsBlob = new Blob([JSON.stringify(instructionMetadata, null, 2)], {
         type: "application/json",
       });
       const instructionsFile = new File([instructionsBlob], "instructions.json", {

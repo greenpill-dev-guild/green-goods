@@ -196,6 +196,25 @@ describe("GardensList", () => {
     expect(screen.getByText("Member")).toBeInTheDocument();
   });
 
+  it("allows long garden names to wrap to two lines", () => {
+    mockGardensState.data = [
+      {
+        id: "0xgarden-long",
+        name: "A Very Long Community Garden Name That Needs Two Lines",
+        location: "Lisbon",
+        openJoining: true,
+        gardeners: [MOCK_ADDRESS],
+        operators: [],
+      },
+    ];
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+
+    expect(screen.getByText("A Very Long Community Garden Name That Needs Two Lines")).toHaveClass(
+      "line-clamp-2"
+    );
+  });
+
   it("shows join button for open gardens user has not joined", () => {
     mockGardensState.data = [
       {

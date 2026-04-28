@@ -1,7 +1,9 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
   type Action,
+  type ActionContentLocale,
   type ActionInstructionConfig,
+  type ActionTranslationMap,
   type Address,
   Capital,
   Domain,
@@ -9,6 +11,10 @@ import {
   type GardenerCard,
   type WorkInput,
 } from "../../types/domain";
+import {
+  markStaleActionTranslations,
+  normalizeActionTranslations,
+} from "../../utils/action/translations";
 import { defaultTemplate, instructionTemplates } from "../../utils/action/templates";
 import { logger } from "../app/logger";
 import { greenGoodsGraphQL } from "./graphql";
@@ -140,18 +146,44 @@ function getActionInstructionFallback(slug: string): ActionInstructionConfig {
   return cloneInstructionConfig(template);
 }
 
-async function parseInstructionConfig(
+type ParsedActionInstructionMetadata = {
+  config: ActionInstructionConfig;
+  defaultLocale?: ActionContentLocale;
+  translations?: ActionTranslationMap;
+};
+
+function parseActionInstructionCandidate(
+  candidate: unknown,
+  fallbackConfig: ActionInstructionConfig
+): ParsedActionInstructionMetadata {
+  const config = normalizeInstructionConfig(candidate, fallbackConfig);
+  const record =
+    candidate && typeof candidate === "object" ? (candidate as Record<string, unknown>) : {};
+  const defaultLocale =
+    record.defaultLocale === "en" || record.defaultLocale === "es" || record.defaultLocale === "pt"
+      ? record.defaultLocale
+      : undefined;
+  const translations = normalizeActionTranslations(record.translations);
+
+  return {
+    config,
+    defaultLocale,
+    translations,
+  };
+}
+
+async function parseInstructionMetadata(
   data: Blob | string,
   fallbackConfig: ActionInstructionConfig
-): Promise<ActionInstructionConfig> {
+): Promise<ParsedActionInstructionMetadata> {
   if (typeof data === "string") {
-    return normalizeInstructionConfig(JSON.parse(data), fallbackConfig);
+    return parseActionInstructionCandidate(JSON.parse(data), fallbackConfig);
   }
   if (data instanceof Blob) {
     const text = await data.text();
-    return normalizeInstructionConfig(JSON.parse(text), fallbackConfig);
+    return parseActionInstructionCandidate(JSON.parse(text), fallbackConfig);
   }
-  return cloneInstructionConfig(fallbackConfig);
+  return { config: cloneInstructionConfig(fallbackConfig) };
 }
 
 /** Fetches action definitions from the indexer and enriches media + UI config. */
@@ -210,12 +242,21 @@ export async function getActions(): Promise<Action[]> {
 
           // Fetch action instructions from the Pinata-backed IPFS path
           let actionConfig = fallbackConfig;
+          let defaultLocale: ActionContentLocale | undefined;
+          let translations: ActionTranslationMap | undefined;
           try {
             if (instructions) {
               const configData = await getFileByHash(instructions, {
                 timeoutMs: ACTION_INSTRUCTIONS_TIMEOUT_MS,
               });
-              actionConfig = await parseInstructionConfig(configData.data, fallbackConfig);
+              const metadata = await parseInstructionMetadata(configData.data, fallbackConfig);
+              actionConfig = metadata.config;
+              defaultLocale = metadata.defaultLocale;
+              translations = markStaleActionTranslations(
+                typeof title === "string" ? title : "",
+                actionConfig,
+                metadata.translations
+              );
             }
           } catch (error) {
             instructionFailures.push({
@@ -239,6 +280,8 @@ export async function getActions(): Promise<Action[]> {
             mediaInfo: actionConfig.uiConfig.media,
             details: actionConfig.uiConfig.details,
             review: actionConfig.uiConfig.review,
+            defaultLocale,
+            translations,
             createdAt: createdAt ? Number(createdAt) * 1000 : Date.now(),
           };
         }

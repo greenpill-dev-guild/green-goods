@@ -91,24 +91,33 @@ export function useTranslation<T extends TranslatableValue>(
 async function translateValue(
   value: unknown,
   targetLang: string,
-  sourceLang: string
+  sourceLang: string,
+  path: string[] = []
 ): Promise<unknown> {
   // String - translate directly
   if (typeof value === "string") {
+    const key = path[path.length - 1];
+    if (key && NON_TRANSLATABLE_OBJECT_KEYS.has(key)) {
+      return value;
+    }
     const result = await browserTranslator.translate(value, targetLang, sourceLang);
     return result || value; // Fallback to original if translation fails
   }
 
   // Array - translate each item
   if (Array.isArray(value)) {
-    return Promise.all(value.map((item) => translateValue(item, targetLang, sourceLang)));
+    return Promise.all(
+      value.map((item, index) =>
+        translateValue(item, targetLang, sourceLang, [...path, `${index}`])
+      )
+    );
   }
 
   // Object - translate each property
   if (typeof value === "object" && value !== null) {
     const result: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(value)) {
-      result[key] = await translateValue(val, targetLang, sourceLang);
+      result[key] = await translateValue(val, targetLang, sourceLang, [...path, key]);
     }
     return result;
   }
@@ -116,3 +125,16 @@ async function translateValue(
   // Other types (numbers, booleans, etc.) - return as-is
   return value;
 }
+
+const NON_TRANSLATABLE_OBJECT_KEYS = new Set([
+  "id",
+  "key",
+  "type",
+  "unit",
+  "slug",
+  "schemaVersion",
+  "defaultLocale",
+  "status",
+  "sourceHash",
+  "updatedAt",
+]);

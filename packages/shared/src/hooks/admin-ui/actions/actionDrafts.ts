@@ -1,5 +1,10 @@
-import { Domain, type ActionInstructionConfig } from "../../../types/domain";
+import {
+  Domain,
+  type ActionInstructionConfig,
+  type ActionTranslationMap,
+} from "../../../types/domain";
 import { defaultTemplate } from "../../../utils/action/templates";
+import { normalizeActionTranslations } from "../../../utils/action/translations";
 import type { CreateActionFormData } from "../../action/useActionForm";
 import { createActionDefaultValues } from "./createAction.utils";
 
@@ -13,6 +18,7 @@ export interface CreateActionSessionDraft {
   endTime: string | null;
   capitals: CreateActionFormData["capitals"];
   instructionConfig: ActionInstructionConfig;
+  translations: ActionTranslationMap;
   currentStep: number;
 }
 
@@ -21,7 +27,9 @@ export interface EditActionSessionDraft {
   startTime: string | null;
   endTime: string | null;
   instructionConfig: ActionInstructionConfig;
+  translations: ActionTranslationMap;
   isEditingInstructions: boolean;
+  translationsDirty: boolean;
 }
 
 const createActionMediaDrafts = new Map<string, File[]>();
@@ -81,6 +89,7 @@ export function serializeCreateActionDraft(
     instructionConfig: isRecord(value.instructionConfig)
       ? (value.instructionConfig as ActionInstructionConfig)
       : defaultTemplate,
+    translations: normalizeActionTranslations(value.translations),
     currentStep,
   };
 }
@@ -110,6 +119,7 @@ export function restoreCreateActionDraft(
       instructionConfig: isRecord(draft.instructionConfig)
         ? (draft.instructionConfig as unknown as ActionInstructionConfig)
         : defaults.instructionConfig,
+      translations: normalizeActionTranslations(draft.translations),
     },
   };
 }
@@ -117,14 +127,18 @@ export function restoreCreateActionDraft(
 export function serializeEditActionDraft(
   value: { title?: unknown; startTime?: unknown; endTime?: unknown },
   instructionConfig: ActionInstructionConfig,
-  isEditingInstructions: boolean
+  isEditingInstructions: boolean,
+  translations: ActionTranslationMap = {},
+  translationsDirty = false
 ): EditActionSessionDraft {
   return {
     title: typeof value.title === "string" ? value.title : "",
     startTime: toIsoDate(value.startTime),
     endTime: toIsoDate(value.endTime),
     instructionConfig,
+    translations: normalizeActionTranslations(translations),
     isEditingInstructions,
+    translationsDirty,
   };
 }
 
@@ -138,7 +152,10 @@ export function restoreEditActionDraft(draft: unknown) {
     instructionConfig: isRecord(draft.instructionConfig)
       ? (draft.instructionConfig as unknown as ActionInstructionConfig)
       : defaultTemplate,
+    translations: normalizeActionTranslations(draft.translations),
     isEditingInstructions:
       typeof draft.isEditingInstructions === "boolean" ? draft.isEditingInstructions : false,
+    translationsDirty:
+      typeof draft.translationsDirty === "boolean" ? draft.translationsDirty : false,
   };
 }

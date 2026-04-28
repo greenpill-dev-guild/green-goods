@@ -1,4 +1,5 @@
 import {
+  DialogShell,
   formatAddress,
   type Address,
   type GreenWillBadgeView,
@@ -14,12 +15,15 @@ import {
   useProtocolMemberStatus,
 } from "@green-goods/shared";
 import { RiAwardLine, RiCoinsLine, RiHammerLine, RiSeedlingLine } from "@remixicon/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
-import { Card } from "@/components/Cards";
+import { EmptyState } from "@/components/Communication";
 
 const BADGE_ORDER = ["genesis", "first-work", "first-support"] as const;
+
+type ProfileBadgeStatus = "earned" | "claimable";
+type ProfileBadgeDisplay = GreenWillBadgeView & { profileStatus: ProfileBadgeStatus };
 
 function badgeIcon(slug: string) {
   switch (slug) {
@@ -90,8 +94,23 @@ function sortBadges(badges: GreenWillBadgeView[]) {
   });
 }
 
+function badgeStatusLabel(intl: ReturnType<typeof useIntl>, status: ProfileBadgeStatus) {
+  if (status === "earned") {
+    return intl.formatMessage({
+      id: "app.profile.badges.earnedStatus",
+      defaultMessage: "Earned",
+    });
+  }
+
+  return intl.formatMessage({
+    id: "app.profile.badges.claimableStatus",
+    defaultMessage: "Ready to claim",
+  });
+}
+
 export const ProfileBadges: React.FC = () => {
   const intl = useIntl();
+  const [selectedBadge, setSelectedBadge] = useState<ProfileBadgeDisplay | null>(null);
   const primaryAddress = usePrimaryAddress() as Address | null;
   const { data: greenGoodsEnsName } = useGreenGoodsEnsName(primaryAddress);
   const { data: ensName } = useEnsName(primaryAddress);
@@ -117,17 +136,27 @@ export const ProfileBadges: React.FC = () => {
     () => sortBadges(badges.filter((badge) => badge.claimableNow)),
     [badges]
   );
-  const hasDisplayableBadges = earned.length > 0 || available.length > 0;
+  const displayBadges = useMemo<ProfileBadgeDisplay[]>(
+    () => [
+      ...earned.map((badge) => ({ ...badge, profileStatus: "earned" as const })),
+      ...available.map((badge) => ({ ...badge, profileStatus: "claimable" as const })),
+    ],
+    [available, earned]
+  );
+  const hasDisplayableBadges = displayBadges.length > 0;
 
-  const renderEmptyState = () => (
-    <Card>
-      <p className="text-sm text-text-sub-600">
-        {intl.formatMessage({
-          id: "app.profile.badges.empty",
-          defaultMessage: "No badges found.",
-        })}
-      </p>
-    </Card>
+  const renderBadgeState = (
+    title: string,
+    description: string,
+    tone: "neutral" | "warning" | "error" = "neutral"
+  ) => (
+    <EmptyState
+      icon={<RiAwardLine />}
+      title={title}
+      description={description}
+      tone={tone}
+      className="min-h-[18rem]"
+    />
   );
 
   const renderAction = (badge: GreenWillBadgeView) => {
@@ -221,123 +250,151 @@ export const ProfileBadges: React.FC = () => {
   };
 
   if (!primaryAddress) {
-    return (
-      <Card>
-        <p className="text-sm text-text-sub-600">
-          {intl.formatMessage({
-            id: "app.profile.badges.connect",
-            defaultMessage: "Connect an account to view badges.",
-          })}
-        </p>
-      </Card>
+    return renderBadgeState(
+      intl.formatMessage({
+        id: "app.profile.badges.connectTitle",
+        defaultMessage: "Connect to see badges",
+      }),
+      intl.formatMessage({
+        id: "app.profile.badges.connect",
+        defaultMessage: "Connect an account to view badges.",
+      })
     );
   }
 
   if (isLoading) {
-    return (
-      <Card>
-        <p className="text-sm text-text-sub-600">
-          {intl.formatMessage({
-            id: "app.profile.badges.loading",
-            defaultMessage: "Loading badges...",
-          })}
-        </p>
-      </Card>
+    return renderBadgeState(
+      intl.formatMessage({
+        id: "app.profile.badges.loading",
+        defaultMessage: "Loading badges",
+      }),
+      intl.formatMessage({
+        id: "app.profile.badges.loadingDescription",
+        defaultMessage: "Checking your Green Goods badge record.",
+      })
     );
   }
 
-  if (isError || !hasDisplayableBadges) {
-    return renderEmptyState();
+  if (isError) {
+    return renderBadgeState(
+      intl.formatMessage({
+        id: "app.profile.badges.error",
+        defaultMessage: "Badges are not loading right now",
+      }),
+      intl.formatMessage({
+        id: "app.profile.badges.errorDescription",
+        defaultMessage:
+          "Try again in a little while. Your earned badges are still connected to your account.",
+      }),
+      "warning"
+    );
+  }
+
+  if (!hasDisplayableBadges) {
+    return renderBadgeState(
+      intl.formatMessage({
+        id: "app.profile.badges.empty",
+        defaultMessage: "No badges yet",
+      }),
+      intl.formatMessage({
+        id: "app.profile.badges.emptyDescription",
+        defaultMessage:
+          "Badges appear here as you document work, support gardens, and claim Green Goods milestones.",
+      })
+    );
   }
 
   return (
     <>
-      <h5 className="text-label-md text-text-strong-950">
-        {intl.formatMessage({
-          id: "app.profile.badges",
-          defaultMessage: "Badges",
-        })}
-      </h5>
+      <div className="flex flex-col gap-1">
+        <h5 className="text-label-md text-text-strong-950">
+          {intl.formatMessage({
+            id: "app.profile.badges",
+            defaultMessage: "Badges",
+          })}
+        </h5>
+        <p className="text-xs text-text-sub-600">
+          {intl.formatMessage(
+            {
+              id: "app.profile.badges.issuedTo",
+              defaultMessage: "Issued to {identity}",
+            },
+            { identity: badgeIdentity ?? "Unknown" }
+          )}
+        </p>
+      </div>
 
-      <Card className="flex flex-col gap-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <RiAwardLine className="h-5 w-5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-wide text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.profile.badges.identity",
-                defaultMessage: "Badge identity",
-              })}
-            </p>
-            <p className="text-sm font-medium text-text-strong-950">
-              {intl.formatMessage(
+      <div className="grid grid-cols-2 gap-3" data-testid="profile-badge-grid">
+        {displayBadges.map((badge) => {
+          const title = badgeTitle(intl, badge.slug);
+          const statusLabel = badgeStatusLabel(intl, badge.profileStatus);
+
+          return (
+            <button
+              key={`${badge.profileStatus}-${badge.badgeId}`}
+              type="button"
+              onClick={() => setSelectedBadge(badge)}
+              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              aria-label={intl.formatMessage(
+                {
+                  id: "app.profile.badges.viewDetails",
+                  defaultMessage: "View {badge} badge",
+                },
+                { badge: title }
+              )}
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] bg-primary/10">
+                {badgeIcon(badge.slug)}
+              </span>
+              <span className="mt-3 min-w-0">
+                <span className="line-clamp-2 text-sm font-medium leading-snug text-text-strong-950">
+                  {title}
+                </span>
+                <span className="mt-2 inline-flex rounded-full bg-bg-weak-50 px-2 py-1 text-[11px] font-medium text-text-sub-600">
+                  {statusLabel}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <DialogShell
+        open={selectedBadge !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedBadge(null);
+        }}
+        title={selectedBadge ? badgeTitle(intl, selectedBadge.slug) : ""}
+        description={
+          selectedBadge
+            ? intl.formatMessage(
                 {
                   id: "app.profile.badges.issuedTo",
                   defaultMessage: "Issued to {identity}",
                 },
                 { identity: badgeIdentity ?? "Unknown" }
-              )}
+              )
+            : undefined
+        }
+        icon={selectedBadge ? badgeIcon(selectedBadge.slug) : <RiAwardLine className="h-5 w-5" />}
+        size="md"
+      >
+        {selectedBadge && (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-bg-weak-50 px-2 py-1 text-xs font-medium text-text-sub-600">
+                {badgeStatusLabel(intl, selectedBadge.profileStatus)}
+              </span>
+            </div>
+            <p className="text-sm leading-relaxed text-text-sub-600">
+              {badgeDescription(intl, selectedBadge.slug)}
             </p>
+            {selectedBadge.profileStatus === "claimable" && (
+              <div className="pt-1">{renderAction(selectedBadge)}</div>
+            )}
           </div>
-        </div>
-      </Card>
-
-      {earned.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <h5 className="text-label-md text-text-strong-950">
-            {intl.formatMessage({
-              id: "app.profile.badges.earned",
-              defaultMessage: "Earned badges",
-            })}
-          </h5>
-
-          {earned.map((badge) => (
-            <Card key={badge.badgeId} className="flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  {badgeIcon(badge.slug)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-text-strong-950">
-                    {badgeTitle(intl, badge.slug)}
-                  </p>
-                  <p className="text-sm text-text-sub-600">{badgeDescription(intl, badge.slug)}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {available.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <h5 className="text-label-md text-text-strong-950">
-            {intl.formatMessage({
-              id: "app.profile.badges.claimable",
-              defaultMessage: "Claimable badges",
-            })}
-          </h5>
-
-          {available.map((badge) => (
-            <Card key={badge.badgeId} className="flex flex-col gap-3">
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                  {badgeIcon(badge.slug)}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-text-strong-950">
-                    {badgeTitle(intl, badge.slug)}
-                  </p>
-                  <p className="text-sm text-text-sub-600">{badgeDescription(intl, badge.slug)}</p>
-                </div>
-              </div>
-              <div>{renderAction(badge)}</div>
-            </Card>
-          ))}
-        </div>
-      )}
+        )}
+      </DialogShell>
     </>
   );
 };

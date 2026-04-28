@@ -1,40 +1,17 @@
-import type { Action, WorkInput } from "../../types/domain";
-import { useTranslation } from "./useTranslation";
+import { useContext, useMemo } from "react";
+import { AppContext } from "../../providers/App";
+import type { Action } from "../../types/domain";
+import { localizeAction } from "../../utils/action/translations";
 
 export function useActionTranslation(action: Action | null) {
-  // Translate only the UI-facing fields
-  const translatedTitle = useTranslation(action?.title);
-  const translatedDescription = useTranslation(action?.description);
-  const translatedMediaInfo = useTranslation(action?.mediaInfo);
-  const translatedDetails = useTranslation(action?.details);
-  const translatedReview = useTranslation(action?.review);
-  // Inputs are complex objects with WorkInput[], translate as Record<string, unknown>
-  const translatedInputs = useTranslation(
-    action?.inputs as unknown as Record<string, unknown>[] | undefined
-  );
+  const { locale } = useContext(AppContext);
 
-  if (!action) {
-    return { translatedAction: null, isTranslating: false };
-  }
-
-  const isTranslating =
-    translatedTitle.isTranslating ||
-    translatedDescription.isTranslating ||
-    translatedMediaInfo.isTranslating ||
-    translatedDetails.isTranslating ||
-    translatedReview.isTranslating ||
-    translatedInputs.isTranslating;
+  const translatedAction = useMemo(() => {
+    return action ? localizeAction(action, locale) : null;
+  }, [action, locale]);
 
   return {
-    translatedAction: {
-      ...action,
-      title: translatedTitle.translated || action.title,
-      description: translatedDescription.translated || action.description,
-      mediaInfo: translatedMediaInfo.translated || action.mediaInfo,
-      details: translatedDetails.translated || action.details,
-      review: translatedReview.translated || action.review,
-      inputs: (translatedInputs.translated as unknown as WorkInput[]) || action.inputs,
-    } as Action,
-    isTranslating,
+    translatedAction,
+    isTranslating: false,
   };
 }

@@ -1,6 +1,8 @@
 import {
   type ActionInstructionConfig,
+  type ActionTranslationMap,
   adminRoutes,
+  buildActionInstructionsV2,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
   Surface,
@@ -10,6 +12,7 @@ import {
   getActionsListSearch,
   instructionTemplates,
   logger,
+  normalizeActionTranslations,
   restoreEditActionDraft,
   serializeEditActionDraft,
   toastService,
@@ -28,6 +31,7 @@ import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
+import { ActionTranslationEditor } from "@/components/Action/ActionTranslationEditor";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
@@ -64,9 +68,12 @@ function cloneInstructionConfig(config: ActionInstructionConfig): ActionInstruct
   };
 }
 
-async function parseInstructionConfig(
-  data: Blob | string
-): Promise<ActionInstructionConfig | null> {
+type ParsedInstructionMetadata = {
+  config: ActionInstructionConfig | null;
+  translations: ActionTranslationMap;
+};
+
+async function parseInstructionMetadata(data: Blob | string): Promise<ParsedInstructionMetadata> {
   const isInstructionConfig = (value: unknown): value is ActionInstructionConfig => {
     if (!value || typeof value !== "object") return false;
     const config = value as Partial<ActionInstructionConfig>;
@@ -78,16 +85,25 @@ async function parseInstructionConfig(
     );
   };
 
+  const parseCandidate = (candidate: unknown): ParsedInstructionMetadata => {
+    const record =
+      candidate && typeof candidate === "object" ? (candidate as Record<string, unknown>) : {};
+    return {
+      config: isInstructionConfig(candidate) ? candidate : null,
+      translations: normalizeActionTranslations(record.translations),
+    };
+  };
+
   if (typeof data === "string") {
     const parsed = JSON.parse(data) as unknown;
-    return isInstructionConfig(parsed) ? parsed : null;
+    return parseCandidate(parsed);
   }
   if (data instanceof Blob) {
     const text = await data.text();
     const parsed = JSON.parse(text) as unknown;
-    return isInstructionConfig(parsed) ? parsed : null;
+    return parseCandidate(parsed);
   }
-  return null;
+  return { config: null, translations: {} };
 }
 
 interface EditActionProps {
@@ -120,7 +136,9 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
 
   const [instructionConfig, setInstructionConfig] =
     useState<ActionInstructionConfig>(defaultTemplate);
+  const [translations, setTranslations] = useState<ActionTranslationMap>({});
   const [isEditingInstructions, setIsEditingInstructions] = useState(false);
+  const [translationsDirty, setTranslationsDirty] = useState(false);
   const [isLoadingInstructions, setIsLoadingInstructions] = useState(false);
   const setDraftFormState = useSheetOrchestratorStore((state) => state.setFormState);
   const clearDraftFormState = useSheetOrchestratorStore((state) => state.clearViewState);
@@ -140,7 +158,11 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
       const fallbackConfig = cloneInstructionConfig(
         instructionTemplates[action.slug] ?? defaultTemplate
       );
-      const restoreDraft = (resolvedConfig: ActionInstructionConfig) => {
+      const fallbackTranslations = normalizeActionTranslations(action.translations);
+      const restoreDraft = (
+        resolvedConfig: ActionInstructionConfig,
+        resolvedTranslations: ActionTranslationMap
+      ) => {
         if (!draftPath || restoredDraftPathRef.current === draftPath) return false;
         restoredDraftPathRef.current = draftPath;
         const savedDraft =
@@ -154,7 +176,9 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           endTime: restoredDraft.endTime,
         });
         setInstructionConfig(restoredDraft.instructionConfig ?? resolvedConfig);
+        setTranslations(restoredDraft.translations ?? resolvedTranslations);
         setIsEditingInstructions(restoredDraft.isEditingInstructions);
+        setTranslationsDirty(restoredDraft.translationsDirty);
         return true;
       };
 
@@ -165,8 +189,12 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
       });
       if (isMounted()) {
         setInstructionConfig(fallbackConfig);
+        setTranslations(fallbackTranslations);
+        setTranslationsDirty(false);
       }
-      const didRestoreDraft = isMounted() ? restoreDraft(fallbackConfig) : false;
+      const didRestoreDraft = isMounted()
+        ? restoreDraft(fallbackConfig, fallbackTranslations)
+        : false;
 
       if (!action.instructions) {
         return;
@@ -174,17 +202,23 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
 
       setIsLoadingInstructions(true);
       let resolvedConfig = fallbackConfig;
+      let resolvedTranslations = fallbackTranslations;
       try {
         const file = await getFileByHash(action.instructions, {
           timeoutMs: INSTRUCTION_LOAD_TIMEOUT_MS,
         });
-        const config = await parseInstructionConfig(file.data);
+        const metadata = await parseInstructionMetadata(file.data);
         if (isMounted()) {
-          if (config && !didRestoreDraft) {
-            resolvedConfig = config;
-            setInstructionConfig(config);
+          if (metadata.config && !didRestoreDraft) {
+            resolvedConfig = metadata.config;
+            resolvedTranslations = metadata.translations;
+            setInstructionConfig(metadata.config);
+            setTranslations(metadata.translations);
+            setTranslationsDirty(false);
           } else if (!didRestoreDraft) {
             setInstructionConfig(fallbackConfig);
+            setTranslations(fallbackTranslations);
+            setTranslationsDirty(false);
           }
         }
       } catch (error) {
@@ -199,7 +233,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
         if (isMounted()) {
           setIsLoadingInstructions(false);
           if (!didRestoreDraft) {
-            restoreDraft(resolvedConfig);
+            restoreDraft(resolvedConfig, resolvedTranslations);
           }
         }
       }
@@ -213,20 +247,50 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
     const subscription = form.watch((value) => {
       setDraftFormState(
         draftPath,
-        serializeEditActionDraft(value, instructionConfig, isEditingInstructions)
+        serializeEditActionDraft(
+          value,
+          instructionConfig,
+          isEditingInstructions,
+          translations,
+          translationsDirty
+        )
       );
     });
 
     return () => subscription.unsubscribe();
-  }, [action, draftPath, form, instructionConfig, isEditingInstructions, setDraftFormState]);
+  }, [
+    action,
+    draftPath,
+    form,
+    instructionConfig,
+    isEditingInstructions,
+    setDraftFormState,
+    translations,
+    translationsDirty,
+  ]);
 
   useEffect(() => {
     if (!draftPath || !action || restoredDraftPathRef.current !== draftPath) return;
     setDraftFormState(
       draftPath,
-      serializeEditActionDraft(form.getValues(), instructionConfig, isEditingInstructions)
+      serializeEditActionDraft(
+        form.getValues(),
+        instructionConfig,
+        isEditingInstructions,
+        translations,
+        translationsDirty
+      )
     );
-  }, [action, draftPath, form, instructionConfig, isEditingInstructions, setDraftFormState]);
+  }, [
+    action,
+    draftPath,
+    form,
+    instructionConfig,
+    isEditingInstructions,
+    setDraftFormState,
+    translations,
+    translationsDirty,
+  ]);
 
   if (actionsLoading) {
     return (
@@ -295,11 +359,21 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
         await updateActionEndTime(actionUID, Math.floor(data.endTime.getTime() / 1000));
       }
 
-      if (isEditingInstructions) {
+      const shouldUploadInstructions =
+        isEditingInstructions ||
+        translationsDirty ||
+        (Object.keys(translations).length > 0 && data.title !== action.title);
+
+      if (shouldUploadInstructions) {
         toastService.loading({
           title: formatMessage({ id: "app.actions.edit.uploadingInstructions" }),
         });
-        const instructionsBlob = new Blob([JSON.stringify(instructionConfig, null, 2)], {
+        const instructionMetadata = buildActionInstructionsV2(
+          data.title,
+          instructionConfig,
+          translations
+        );
+        const instructionsBlob = new Blob([JSON.stringify(instructionMetadata, null, 2)], {
           type: "application/json",
         });
         const instructionsFile = new File([instructionsBlob], "instructions.json", {
@@ -403,6 +477,18 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
               {formatMessage({ id: "app.actions.edit.instructionsHint" })}
             </p>
           )}
+
+          {!isLoadingInstructions ? (
+            <ActionTranslationEditor
+              sourceTitle={form.watch("title")}
+              sourceConfig={instructionConfig}
+              value={translations}
+              onChange={(nextTranslations) => {
+                setTranslations(nextTranslations);
+                setTranslationsDirty(true);
+              }}
+            />
+          ) : null}
         </Surface>
 
         <Surface

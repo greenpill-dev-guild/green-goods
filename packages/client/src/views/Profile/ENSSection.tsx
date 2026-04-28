@@ -469,7 +469,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
           <h5 className="text-label-md text-text-strong-950">
             {intl.formatMessage({
               id: "app.profile.ensName",
-              defaultMessage: "ENS Name",
+              defaultMessage: "Claim ENS name and subdomain",
             })}
           </h5>
           <Card>
@@ -484,14 +484,14 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                   <div className="text-sm font-medium">
                     {intl.formatMessage({
                       id: "app.profile.claimENSTitle",
-                      defaultMessage: "Claim your greengoods.eth name",
+                      defaultMessage: "Claim ENS name and subdomain",
                     })}
                   </div>
                   <div className="text-xs text-text-sub-600">
                     {intl.formatMessage({
                       id: "app.profile.claimENSDescription",
                       defaultMessage:
-                        "Get a personal subdomain as a protocol member. Registration takes ~15-20 minutes via cross-chain messaging.",
+                        "Choose a greengoods.eth name tied to your Green Goods identity and garden work. Registration takes about 15-20 minutes.",
                     })}
                   </div>
                 </div>
@@ -587,7 +587,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           })
                         : intl.formatMessage({
                             id: "app.profile.claimButton",
-                            defaultMessage: "Claim name",
+                            defaultMessage: "Claim subdomain",
                           })
                   }
                   className="w-full"
