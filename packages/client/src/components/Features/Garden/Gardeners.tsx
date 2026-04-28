@@ -7,6 +7,7 @@ import {
   toastService,
   useEnsAvatar,
   useEnsName,
+  useGreenGoodsEnsName,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -47,19 +48,21 @@ const GardenMemberItem = memo(function GardenMemberItem({
   onClick?: () => void;
 }) {
   const intl = useIntl();
+  const { data: greenGoodsEnsName } = useGreenGoodsEnsName(member.account);
   const { data: ensName } = useEnsName(member.account);
   const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(member.account);
+  const preferredEnsName = greenGoodsEnsName || ensName;
   const displayName =
     member.username ||
     member.email ||
     member.phone ||
-    (member.account ? formatAddress(member.account, { ensName }) : null) ||
+    (member.account ? formatAddress(member.account, { ensName: preferredEnsName }) : null) ||
     intl.formatMessage({
       id: "app.garden.gardeners.unknownUser",
       description: "Unknown User",
     });
   const subline = member.account
-    ? formatAddress(member.account, { variant: "card", ensName })
+    ? formatAddress(member.account, { variant: "card", ensName: preferredEnsName })
     : member.email || member.phone || "";
 
   // Priority: uploaded avatar > ENS avatar > fallback
@@ -116,7 +119,9 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     const intl = useIntl();
     const shouldVirtualize = members.length > 40;
     const [selected, setSelected] = useState<GardenMember | null>(null);
+    const { data: selectedGreenGoodsEnsName } = useGreenGoodsEnsName(selected?.account);
     const { data: selectedEnsName } = useEnsName(selected?.account);
+    const selectedPreferredEnsName = selectedGreenGoodsEnsName || selectedEnsName;
     const title = useMemo(() => {
       if (!selected) return "";
       return (
@@ -124,10 +129,10 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
         selected.email ||
         selected.phone ||
         (selected.account
-          ? formatAddress(selected.account, { ensName: selectedEnsName })
+          ? formatAddress(selected.account, { ensName: selectedPreferredEnsName })
           : selected.id)
       );
-    }, [selected, selectedEnsName]);
+    }, [selected, selectedPreferredEnsName]);
 
     const copy = async (val?: string) => {
       if (!val) return;
@@ -207,12 +212,12 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               {selected && (
                 <div className="flex flex-col gap-8">
                   {selected.account &&
-                    (selectedEnsName ? (
+                    (selectedPreferredEnsName ? (
                       <>
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 text-sm">
                             <RiUserLine className="w-4 h-4 text-primary" />
-                            <span className="font-semibold">{selectedEnsName}</span>
+                            <span className="font-semibold">{selectedPreferredEnsName}</span>
                           </div>
                           <Button
                             variant="neutral"
@@ -223,7 +228,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                               defaultMessage: "Copy",
                             })}
                             leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
-                            onClick={() => copy(selectedEnsName)}
+                            onClick={() => copy(selectedPreferredEnsName)}
                           />
                         </div>
                         <div className="flex items-center justify-between gap-2">
@@ -249,7 +254,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     ) : (
                       <AddressCopy
                         address={selected.account}
-                        ensName={selectedEnsName}
+                        ensName={selectedPreferredEnsName}
                         icon={<RiWallet3Fill className="h-4 w-4" />}
                       />
                     ))}

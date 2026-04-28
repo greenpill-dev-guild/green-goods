@@ -14,6 +14,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
+import { Button } from "@/components/Actions";
 import { useBalance } from "wagmi";
 import { ModalDrawer, type ModalDrawerTab } from "../ModalDrawer";
 import { CookieJarTabContent } from "./CookieJarTabContent";
@@ -125,8 +126,13 @@ export function EndowmentDrawer({
 
   const depositFooter =
     activeTab === "treasury" && primaryAddress ? (
-      <button
+      <Button
         type="button"
+        label={
+          depositMutation.isPending
+            ? formatMessage({ id: "app.treasury.depositing" })
+            : formatMessage({ id: "app.treasury.deposit" })
+        }
         onClick={onDeposit}
         disabled={
           !isOnline ||
@@ -136,12 +142,11 @@ export function EndowmentDrawer({
           amount > (balance?.value ?? 0n) ||
           depositMutation.isPending
         }
-        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {depositMutation.isPending
-          ? formatMessage({ id: "app.treasury.depositing" })
-          : formatMessage({ id: "app.treasury.deposit" })}
-      </button>
+        variant="primary"
+        mode="filled"
+        size="medium"
+        className="w-full"
+      />
     ) : undefined;
 
   return (

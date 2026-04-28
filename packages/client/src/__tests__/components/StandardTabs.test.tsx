@@ -152,9 +152,10 @@ describe("StandardTabs", () => {
       })
     );
 
-    // Compact variant uses py-2.5 instead of py-3
+    // Compact variant uses the PWA tab density.
     const tab = screen.getByTestId("tab-tab1");
     expect(tab.className).toContain("py-2.5");
+    expect(tab.className).toContain("min-h-11");
   });
 
   it("disabled tab has disabled attribute", () => {

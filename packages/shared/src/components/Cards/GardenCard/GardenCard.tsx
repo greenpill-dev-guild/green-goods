@@ -117,9 +117,14 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
       <Wrapper
         ref={ref as React.Ref<HTMLButtonElement & HTMLDivElement>}
         data-testid="garden-card"
-        className={cn(classes, "rounded-2xl border border-border bg-bg-white-0", className)}
+        className={cn(
+          classes,
+          "rounded-2xl border border-border bg-bg-white-0 text-left",
+          className
+        )}
         onClick={interactive ? onClick : undefined}
         type={interactive ? "button" : undefined}
+        style={{ textAlign: "left" }}
       >
         {showBanner && (
           <div
@@ -143,7 +148,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
           className={cn(
             // Container query: responsive padding based on card width
             "p-3 @[300px]:p-4 @[400px]:p-5",
-            "flex flex-col gap-2 border border-border rounded-lg transition-all duration-400 flex-1",
+            "flex flex-col gap-2 border border-border rounded-lg transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] flex-1 text-left",
             showBanner && "border-t-0 rounded-t-none"
           )}
         >

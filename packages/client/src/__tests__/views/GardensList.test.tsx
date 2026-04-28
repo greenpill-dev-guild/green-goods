@@ -212,7 +212,7 @@ describe("GardensList", () => {
 
     expect(screen.getByText("Open Garden")).toBeInTheDocument();
     expect(screen.getByTestId("btn-Join")).toBeInTheDocument();
-    expect(screen.getByText(/join as a gardener/i)).toBeInTheDocument();
+    expect(screen.queryByText(/join as a gardener/i)).not.toBeInTheDocument();
   });
 
   it("opens join dialog when Join is clicked", async () => {

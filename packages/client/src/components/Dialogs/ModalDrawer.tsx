@@ -130,7 +130,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
 
         {/* Tabs */}
         {tabs.length > 0 && (
-          <div className="flex border-b border-border flex-shrink-0" role="tablist">
+          <div className="flex border-b border-border flex-shrink-0 bg-bg-white-0" role="tablist">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -139,23 +139,27 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                 role="tab"
                 aria-selected={activeTab === tab.id}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0 tap-feedback",
-                  "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:text-emerald-700",
-                  "active:text-emerald-700",
-                  activeTab === tab.id
-                    ? "text-primary border-b-2 border-primary bg-bg-weak-50"
-                    : "text-text-sub-600"
+                  "flex min-h-11 items-center justify-center gap-1 px-1.5 py-2.5 text-xs font-medium transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:py-3 sm:text-label-sm",
+                  "focus:outline-none focus-visible:shadow-button-primary-focus active:text-primary",
+                  activeTab === tab.id ? "text-primary bg-bg-weak-50" : "text-text-sub-600"
                 )}
                 data-testid={`tab-${tab.id}`}
               >
-                {tab.icon && <span className="text-base flex-shrink-0">{tab.icon}</span>}
-                <span className="truncate">{tab.label}</span>
+                {tab.icon && (
+                  <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
+                    {tab.icon}
+                  </span>
+                )}
+                <span className="min-w-0 truncate whitespace-nowrap">{tab.label}</span>
                 {tab.count !== undefined && tab.count > 0 && (
                   <span className="inline-flex items-center justify-center text-xs font-medium text-primary-accent-foreground bg-primary rounded-full min-w-[16px] h-4 px-1 flex-shrink-0">
                     {tab.count > 99 ? "99+" : tab.count}
                   </span>
                 )}
                 {tab.badge}
+                {activeTab === tab.id && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                )}
               </button>
             ))}
           </div>

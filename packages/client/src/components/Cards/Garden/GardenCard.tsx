@@ -4,13 +4,14 @@ import {
   type Garden,
   GardenCardComponent as SharedGardenCard,
   type GardenCardProps as SharedGardenCardProps,
-  type GardenCardVariantProps,
   gardenCardVariants,
   useEnsName,
+  useGreenGoodsEnsName,
 } from "@green-goods/shared";
 import * as React from "react";
 import { useIntl } from "react-intl";
 export { gardenCardVariants };
+export type { GardenCardVariantProps } from "@green-goods/shared";
 
 export type GardenCardOptions = {
   showOperators?: boolean;
@@ -25,8 +26,9 @@ export interface GardenCardProps
 }
 
 const OperatorName: React.FC<{ address: Address }> = ({ address }) => {
+  const { data: greenGoodsEnsName } = useGreenGoodsEnsName(address);
   const { data: ensName } = useEnsName(address);
-  return <>{formatAddress(address, { ensName, variant: "card" })}</>;
+  return <>{formatAddress(address, { ensName: greenGoodsEnsName || ensName, variant: "card" })}</>;
 };
 
 const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(

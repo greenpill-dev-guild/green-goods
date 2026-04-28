@@ -70,7 +70,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
   }
 
   return (
-    <div className={cn("flex border-b border-border flex-shrink-0", className)}>
+    <div className={cn("flex border-b border-border flex-shrink-0 bg-bg-white-0", className)}>
       {tabs.map((tab) => (
         <button
           type="button"
@@ -82,8 +82,9 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           }}
           disabled={tab.disabled}
           className={cn(
-            "flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0 tap-feedback",
-            variant === "compact" ? "py-2.5" : "py-3",
+            "flex min-h-11 items-center justify-center gap-1 px-1.5 text-xs font-medium transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:text-label-sm",
+            "focus:outline-none focus-visible:shadow-button-primary-focus",
+            variant === "compact" ? "py-2.5 sm:py-3" : "py-3 sm:py-3.5",
             activeTab === tab.id ? "text-primary bg-bg-weak-50" : "text-text-sub-600",
             tab.disabled && "opacity-50 cursor-not-allowed",
             triggerClassName
@@ -92,13 +93,13 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
         >
           {/* Icon - handle both emoji strings and React components */}
           {tab.icon && (
-            <span className="text-base flex-shrink-0">
+            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
               {typeof tab.icon === "string" ? tab.icon : tab.icon}
             </span>
           )}
 
           {/* Label */}
-          <span className="truncate">{tab.label}</span>
+          <span className="min-w-0 truncate whitespace-nowrap">{tab.label}</span>
 
           {/* Count badge */}
           {tab.count !== undefined && tab.count > 0 && (

@@ -45,6 +45,14 @@ export const approvalsKeys = {
       "byOperatorGardens",
       JSON.stringify([...gardenIds].sort()),
     ] as const,
+  byMyWorkGardens: (userAddress: string | undefined, gardenIds: string[]) =>
+    [
+      "greengoods",
+      "approvals",
+      "byMyWorkGardens",
+      userAddress,
+      JSON.stringify([...gardenIds].sort()),
+    ] as const,
 } as const;
 
 export const operatorWorksKeys = {

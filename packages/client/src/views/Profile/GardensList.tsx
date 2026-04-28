@@ -247,14 +247,6 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                     />
                   )}
                 </div>
-                {!garden.isMember && (
-                  <p className="mt-2 text-xs text-text-sub-600">
-                    {intl.formatMessage({
-                      id: "app.profile.gardenerRoleDescription",
-                      defaultMessage: "Join as a Gardener to submit work in this garden.",
-                    })}
-                  </p>
-                )}
               </Card>
             );
           })}

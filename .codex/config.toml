@@ -10,7 +10,6 @@ project_doc_max_bytes = 40960
 
 # Default model — gpt-5.5 at max reasoning effort for all tasks.
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
 
 [features]
 codex_hooks = false

@@ -1,17 +1,11 @@
 import {
   type Address,
   cn,
-  convertJobsToWorks,
-  DEFAULT_CHAIN_ID,
   fetchApprovalsByRecipients,
   filterByTimeRange,
   hapticLight,
-  type Job,
-  jobQueue,
-  jobQueueEventBus,
   logger,
   queryKeys,
-  STALE_TIME_FAST,
   STALE_TIME_MEDIUM,
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
@@ -25,11 +19,10 @@ import {
   useUser,
   useWorkApprovals,
   type Work,
-  type WorkJobPayload,
   DEFAULT_RETRY_COUNT,
 } from "@green-goods/shared";
-import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine, RiTimeLine } from "@remixicon/react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
+import { useQuery } from "@tanstack/react-query";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -37,12 +30,9 @@ import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
-import { TimeFilterControl } from "./TimeFilterControl";
-import { UploadingTab } from "./Uploading";
 import {
   approvalsToCompletedWorks,
   buildWorkMap,
-  combineRecentWork,
   combinePendingWork,
   extractWorkGardenIds,
   receivedApprovalsToWorks,
@@ -81,9 +71,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   const { set: scheduleTimeout } = useTimeout();
 
   // State management
-  const [activeTab, setActiveTab] = useState<"drafts" | "recent" | "pending" | "completed">(
-    "recent"
-  );
+  const [activeTab, setActiveTab] = useState<"drafts" | "pending" | "completed">("pending");
   const [isClosing, setIsClosing] = useState(false);
   const [pendingFilter, setPendingFilter] = useState<"all" | "needsReview" | "mySubmissions">(
     "all"
@@ -125,59 +113,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     isError: isErrorMyWorks,
     refetch: refetchMyWorks,
   } = useMyOnlineWorks();
-  const {
-    data: recentOnlineWork = [],
-    isLoading: isLoadingRecentOnline,
-    isFetching: isFetchingRecentOnline,
-    isError: isErrorRecentOnline,
-    refetch: refetchRecentOnline,
-  } = useMyOnlineWorks({
-    timeFilter,
-  });
-
-  const queryClient = useQueryClient();
-
-  // Uploading work (offline queue jobs only, scoped to current user)
-  const {
-    data: offlineQueueWork = [],
-    isLoading: isLoadingOfflineQueue,
-    refetch: refetchOfflineQueue,
-  } = useQuery({
-    queryKey: queryKeys.queue.uploading(),
-    queryFn: async () => {
-      if (!activeAddress) return [];
-      const jobs = await jobQueue.getJobs(activeAddress, { kind: "work", synced: false });
-      const works = await convertJobsToWorks(jobs as Job<WorkJobPayload>[], activeAddress);
-      return works.sort((a, b) => b.createdAt - a.createdAt);
-    },
-    enabled: !!activeAddress,
-    staleTime: STALE_TIME_FAST,
-  });
-
-  // Combine offline queue + recent online work for "Recent" tab
-  const recentWorkCombined = useMemo(
-    () => combineRecentWork(offlineQueueWork, recentOnlineWork),
-    [offlineQueueWork, recentOnlineWork]
-  );
-
-  const uploadingWork = recentWorkCombined;
-  const isLoadingUploading = isLoadingOfflineQueue || isLoadingRecentOnline;
-
-  // Invalidate uploading jobs on queue events
-  useEffect(() => {
-    const unsub = jobQueueEventBus.onMultiple(
-      ["job:added", "job:completed", "job:failed", "queue:sync-completed"],
-      () => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.queue.uploading() });
-        queryClient.invalidateQueries({ queryKey: queryKeys.queue.stats() });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.works.mine(activeAddress, DEFAULT_CHAIN_ID),
-        });
-      }
-    );
-    return () => unsub();
-  }, [queryClient, activeAddress]);
-
   // Which works have you already reviewed?
   const reviewedByYou = useMemo(
     () => new Set((completedApprovals || []).map((a) => a.workUID)),
@@ -270,7 +205,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     completedFilter === "reviewedByYou" ? completedReviewedByYou : completedMyWorkReviewed;
 
   // Apply time filtering using utility
-  const filteredUploading = filterByTimeRange(uploadingWork, timeFilter);
   const filteredPending = filterByTimeRange(pendingWork, timeFilter);
   const filteredCompleted = filterByTimeRange(completedWork, timeFilter);
 
@@ -301,12 +235,6 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   // Combined refresh functions for each tab
-  const handleRefreshRecent = () => {
-    hapticLight();
-    refetchOfflineQueue();
-    refetchRecentOnline();
-  };
-
   const handleRefreshPending = () => {
     hapticLight();
     refetchOperatorWorks();
@@ -321,12 +249,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   // Combined error states
-  const hasRecentError = isErrorRecentOnline;
   const hasPendingError = hasError || isErrorOperatorWorks || isErrorMyWorks;
   const hasCompletedError = hasError || isErrorMyApprovals;
 
   // Combined fetching states
-  const isFetchingRecent = isFetchingRecentOnline;
   const isFetchingPending = isFetchingOperatorWorks || isFetchingMyWorks;
   const isFetchingCompleted = isFetchingMyApprovals;
 
@@ -335,13 +261,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     {
       id: "drafts",
       icon: <RiDraftLine className="w-4 h-4" />,
-      label: fmt("app.workDashboard.tabs.drafts", "Drafts"),
+      label: fmt("app.workDashboard.tabs.drafts", "Draft"),
       count: draftCount > 0 ? draftCount : undefined,
-    },
-    {
-      id: "recent",
-      icon: <RiTimeLine className="w-4 h-4" />,
-      label: fmt("app.workDashboard.tabs.recent", "Recent"),
     },
     {
       id: "pending",
@@ -366,20 +287,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     switch (activeTab) {
       case "drafts":
         return <DraftsTab />;
-      case "recent":
-      default:
-        return (
-          <UploadingTab
-            uploadingWork={filteredUploading}
-            isLoading={isLoading || isLoadingUploading}
-            isFetching={isFetchingRecent}
-            hasError={hasRecentError}
-            onWorkClick={handleWorkClick}
-            onRefresh={handleRefreshRecent}
-            headerContent={<TimeFilterControl value={timeFilter} onChange={setTimeFilter} />}
-          />
-        );
       case "pending":
+      default:
         return (
           <PendingTab
             items={filteredPending}
@@ -489,9 +398,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         <StandardTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tabId: string) =>
-            setActiveTab(tabId as "drafts" | "recent" | "pending" | "completed")
-          }
+          onTabChange={(tabId: string) => setActiveTab(tabId as "drafts" | "pending" | "completed")}
           triggerClassName="text-xs"
         />
 

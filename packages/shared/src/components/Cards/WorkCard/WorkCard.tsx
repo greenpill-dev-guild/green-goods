@@ -11,7 +11,7 @@ const workCardVariants = tv({
   base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-300 @[480px]:flex-row",
   variants: {
     variant: {
-      compact: "",
+      compact: "min-h-[88px] flex-row",
       detailed: "",
       auto: "",
     },
@@ -150,6 +150,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   const hasError = Boolean(work.error);
   const mediaCount = work.imageCount ?? work.mediaPreview?.length ?? 0;
   const canOpenPreview = Boolean(thumbUrl) && !interactive;
+  const isCompact = variant === "compact";
 
   React.useEffect(() => {
     if (!isPreviewOpen) return;
@@ -179,7 +180,14 @@ export const WorkCard: React.FC<WorkCardProps> = ({
         )}
         {...wrapperProps}
       >
-        <div className="relative w-full overflow-hidden bg-bg-weak-50 aspect-video @[480px]:w-56 @[480px]:flex-shrink-0">
+        <div
+          className={cn(
+            "relative overflow-hidden bg-bg-weak-50",
+            isCompact
+              ? "w-20 shrink-0 self-stretch"
+              : "w-full aspect-video @[480px]:w-56 @[480px]:flex-shrink-0"
+          )}
+        >
           {thumbUrl ? (
             canOpenPreview ? (
               <button
@@ -213,7 +221,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col px-3 py-3">
+        <div className={cn("flex min-w-0 flex-1 flex-col", isCompact ? "px-3 py-2" : "px-3 py-3")}>
           <div className="flex items-start justify-between gap-2">
             <h4 className="truncate pr-2 text-sm font-medium text-text-strong-950">
               {work.title || labels.untitledWork}
@@ -280,6 +288,15 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           aria-modal="true"
           onClick={(event) => {
             if (event.target === event.currentTarget) setIsPreviewOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              (event.key === "Enter" || event.key === " ")
+            ) {
+              event.preventDefault();
+              setIsPreviewOpen(false);
+            }
           }}
         >
           <button

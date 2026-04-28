@@ -1,12 +1,11 @@
 import { type Action, ActionBannerFallback, cn } from "@green-goods/shared";
-import { RiCamera3Line } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 import { ImageWithFallback } from "../../Display/Image/ImageWithFallback";
 import { Card, type CardRootProps } from "../Base/Card";
 
 export const cardVariants = tv({
-  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0 h-max-content",
+  base: "relative flex flex-col grow border-0 rounded-lg overflow-clip rounded-b-lg justify-between p-0 gap-0",
   variants: {
     media: {
       large: "",
@@ -15,7 +14,7 @@ export const cardVariants = tv({
     height: {
       home: "",
       selection: "h-60",
-      default: "",
+      default: "h-auto",
     },
   },
   defaultVariants: {
@@ -37,7 +36,10 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
       <Card
         ref={ref}
         data-testid="action-card"
-        className={cn(classes, "@container tap-feedback transition-all duration-300")}
+        className={cn(
+          classes,
+          "@container tap-feedback transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
+        )}
         {...props}
       >
         <div className={cn("relative h-26 @[300px]:h-32 @[400px]:h-40", "w-full")}>
@@ -53,9 +55,9 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
         </div>
         <div
           data-selected={selected}
-          className="p-3 @[300px]:p-4 @[400px]:p-5 flex flex-col gap-2 border border-t-0 rounded-b-lg border-border transition-all duration-300 flex-1"
+          className="flex flex-1 flex-col gap-2 rounded-b-lg border border-t-0 border-border p-3 transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] @[300px]:p-4 @[400px]:p-5"
         >
-          <div className="flex flex-row gap-2">
+          <div className="flex min-w-0 flex-row gap-2">
             <div
               className={cn(
                 "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 status-transition z-10 pointer-events-none",
@@ -64,17 +66,15 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
             />
             <h5
               className={cn(
-                "flex items-center text-xl font-medium line-clamp-2",
+                "min-w-0 truncate text-sm font-semibold leading-5",
                 selected && "text-primary"
               )}
+              title={action.title}
             >
-              <RiCamera3Line
-                className={cn("w-8 inline-flex mr-2", selected && "animate-spring-bump")}
-              />
               {action.title}
             </h5>
           </div>
-          <div className="text-sm text-text-sub-600 h-24 flex-1 line-clamp-3">
+          <div className="line-clamp-2 h-10 flex-1 text-sm leading-5 text-text-sub-600">
             {action.mediaInfo?.description}
           </div>
         </div>

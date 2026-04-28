@@ -4,6 +4,7 @@ import {
   formatFileSize,
   truncateAddress,
   useEnsName,
+  useGreenGoodsEnsName,
   type Work,
   WorkCardComponent as SharedWorkCard,
 } from "@green-goods/shared";
@@ -175,6 +176,9 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
     variant === "detailed" ? work.gardenerAddress : null,
     { enabled: variant === "detailed" }
   );
+  const { data: gardenerGreenGoodsEnsName } = useGreenGoodsEnsName(
+    variant === "detailed" ? work.gardenerAddress : null
+  );
   const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
@@ -184,7 +188,9 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
   const action = actionTitle || work.title;
-  const gardenerName = formatAddress(work.gardenerAddress, { ensName: gardenerEnsName });
+  const gardenerName = formatAddress(work.gardenerAddress, {
+    ensName: gardenerGreenGoodsEnsName || gardenerEnsName,
+  });
   const gardenName = formatEnsNameForDisplay(gardenEnsName) ?? undefined;
   const extraBadges = [...(badges ?? [])];
 
@@ -192,7 +198,7 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
     <SharedWorkCard
       className={`${confirmed ? "work-confirmed-shimmer " : ""}${className ?? ""}`.trim()}
       onClick={onClick}
-      variant="auto"
+      variant="compact"
       work={{
         id: work.id,
         title: action,

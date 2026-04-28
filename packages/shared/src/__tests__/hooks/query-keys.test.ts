@@ -93,9 +93,12 @@ describe("queryKeys", () => {
   it("builds representative keys without mutating caller input", () => {
     const gardenIds = ["garden-c", "garden-a", "garden-b"];
     const approvalsKey = queryKeys.approvals.byOperatorGardens(gardenIds);
+    const myWorkApprovalsKey = queryKeys.approvals.byMyWorkGardens(TEST_USER, gardenIds);
     const operatorKey = queryKeys.operatorWorks.byAddress(TEST_OPERATOR, gardenIds);
 
     expect(approvalsKey[3]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
+    expect(myWorkApprovalsKey[3]).toBe(TEST_USER);
+    expect(myWorkApprovalsKey[4]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
     expect(operatorKey[3]).toBe(JSON.stringify(["garden-a", "garden-b", "garden-c"]));
     expect(gardenIds).toEqual(["garden-c", "garden-a", "garden-b"]);
   });

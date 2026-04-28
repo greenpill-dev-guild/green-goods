@@ -1,35 +1,6 @@
 import { type Address, type Work, compareAddresses } from "@green-goods/shared";
 
 /**
- * Combine offline queue work with recent online work, deduplicate, and sort.
- * Offline items appear first, then sorted by creation time descending.
- */
-export function combineRecentWork(offlineQueueWork: Work[], recentOnlineWork: Work[]): Work[] {
-  const onlineWithStatus: Work[] = recentOnlineWork.map((w) => ({
-    ...w,
-    status: "pending" as const,
-  }));
-  const combined = [...offlineQueueWork, ...onlineWithStatus];
-
-  const seen = new Set<string>();
-  const deduplicated = combined.filter((work) => {
-    if (seen.has(work.id)) return false;
-    seen.add(work.id);
-    return true;
-  });
-
-  return deduplicated.sort((a, b) => {
-    const aIsOffline = a.id.startsWith("0xoffline_");
-    const bIsOffline = b.id.startsWith("0xoffline_");
-
-    if (aIsOffline && !bIsOffline) return -1;
-    if (!aIsOffline && bIsOffline) return 1;
-
-    return b.createdAt - a.createdAt;
-  });
-}
-
-/**
  * Build a lookup map of work by ID for efficient access.
  */
 export function buildWorkMap(works: Work[]): Map<string, Work> {

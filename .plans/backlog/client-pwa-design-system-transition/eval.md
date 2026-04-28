@@ -31,7 +31,7 @@
 - Unit and integration:
   - `bun run --filter @green-goods/client test`
   - Existing display-mode tests must continue to protect `AppBar`/`SiteHeader` separation.
-  - Existing `TopNav`, `DraftDialog`, `UploadingTab`, `Media`, and route tests should be extended
+  - Existing `TopNav`, `DraftDialog`, `PendingTab`, `Media`, and route tests should be extended
     only if future implementation changes test-observable behavior.
 - Design gates:
   - `bun run check:design-tokens`
