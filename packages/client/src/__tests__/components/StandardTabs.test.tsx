@@ -110,7 +110,11 @@ describe("StandardTabs", () => {
   it("renders tab icons", () => {
     const tabsWithIcons = [
       { id: "tab1", label: "Home", icon: createElement("span", { "data-testid": "icon-home" }) },
-      { id: "tab2", label: "Settings", icon: "⚙️" },
+      {
+        id: "tab2",
+        label: "Settings",
+        icon: createElement("span", { "data-testid": "icon-settings" }),
+      },
     ];
 
     render(
@@ -122,7 +126,7 @@ describe("StandardTabs", () => {
     );
 
     expect(screen.getByTestId("icon-home")).toBeInTheDocument();
-    expect(screen.getByText("⚙️")).toBeInTheDocument();
+    expect(screen.getByTestId("icon-settings")).toBeInTheDocument();
   });
 
   it("applies active styling to current tab", () => {

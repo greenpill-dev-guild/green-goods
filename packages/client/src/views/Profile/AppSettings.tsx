@@ -73,7 +73,7 @@ export const AppSettings: React.FC = () => {
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger className="w-[110px] sm:w-[140px]">
+            <SelectTrigger size="sm" className="w-[110px] sm:w-[140px]">
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
@@ -107,7 +107,7 @@ export const AppSettings: React.FC = () => {
         Icon: <RiEarthFill className="w-4" />,
         Option: () => (
           <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger className="w-[110px] sm:w-[140px]">
+            <SelectTrigger size="sm" className="w-[110px] sm:w-[140px]">
               <SelectValue
                 className="capitalize"
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -246,12 +246,11 @@ export const AppSettings: React.FC = () => {
             mode="stroke"
             size="small"
             onClick={handleRefreshApp}
-            leadingIcon={<RiRefreshLine className="w-4" />}
             label={intl.formatMessage({
               id: "app.update.button",
               defaultMessage: "Refresh",
             })}
-            className="shrink-0"
+            className="w-[110px] shrink-0 sm:w-[140px]"
           />
         </div>
       </Card>

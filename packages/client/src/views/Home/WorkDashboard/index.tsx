@@ -12,7 +12,7 @@ import {
   toastService,
   useDrafts,
   useFocusTrap,
-  useMyOnlineWorks,
+  useMyWorks,
   useReviewerGardenIds,
   useReviewerWorks,
   useTimeout,
@@ -105,14 +105,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     refetch: refetchOperatorWorks,
   } = useReviewerWorks(reviewerGardenIds, activeAddress);
 
-  // Use new hooks for user's works
+  // Include offline queued submissions so the Pending tab still reflects the
+  // dashboard badge after the Recent/Uploading tab was removed.
   const {
-    data: myOnlineWorks = [],
-    isLoading: isLoadingMyOnlineWorks,
+    data: myWorks = [],
+    isLoading: isLoadingMyWorks,
     isFetching: isFetchingMyWorks,
     isError: isErrorMyWorks,
     refetch: refetchMyWorks,
-  } = useMyOnlineWorks();
+  } = useMyWorks({ includeOffline: true });
   // Which works have you already reviewed?
   const reviewedByYou = useMemo(
     () => new Set((completedApprovals || []).map((a) => a.workUID)),
@@ -148,7 +149,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
-  const myWorkGardenIds = useMemo(() => extractWorkGardenIds(myOnlineWorks || []), [myOnlineWorks]);
+  const myWorkGardenIds = useMemo(() => extractWorkGardenIds(myWorks || []), [myWorks]);
 
   // Fetch approvals scoped to gardens where the user has submitted work.
   const {
@@ -166,7 +167,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   });
 
   // Build a set of the user's work IDs for efficient lookup
-  const myWorkIds = useMemo(() => new Set((myOnlineWorks || []).map((w) => w.id)), [myOnlineWorks]);
+  const myWorkIds = useMemo(() => new Set((myWorks || []).map((w) => w.id)), [myWorks]);
 
   // Filter approvals to only those for the user's works
   const myReceivedApprovals = useMemo(
@@ -180,9 +181,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [myReceivedApprovals]
   );
 
-  const pendingMySubmissions: Work[] = (myOnlineWorks || [])
+  const pendingMySubmissions: Work[] = (myWorks || [])
     .filter((w) => isUserAddress(w.gardenerAddress) && !approvedOrRejectedForMe.has(w.id))
-    .map((w) => ({ ...w, status: "pending" as const }));
+    .map((w) => ({ ...w, status: w.status ?? ("pending" as const) }));
 
   const combinedPending = useMemo(
     () => combinePendingWork(pendingNeedsReview, pendingMySubmissions),
@@ -249,11 +250,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   // Combined error states
-  const hasPendingError = hasError || isErrorOperatorWorks || isErrorMyWorks;
+  const pendingQueryErrored = hasError || isErrorOperatorWorks || isErrorMyWorks;
+  const hasPendingError = pendingQueryErrored && filteredPending.length === 0;
   const hasCompletedError = hasError || isErrorMyApprovals;
 
   // Combined fetching states
   const isFetchingPending = isFetchingOperatorWorks || isFetchingMyWorks;
+  const isLoadingPending =
+    (isLoading || isLoadingOperatorWorks || isLoadingMyWorks) && filteredPending.length === 0;
   const isFetchingCompleted = isFetchingMyApprovals;
 
   const fmt = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
@@ -292,7 +296,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         return (
           <PendingTab
             items={filteredPending}
-            isLoading={isLoading || isLoadingOperatorWorks || isLoadingMyOnlineWorks}
+            isLoading={isLoadingPending}
             isFetching={isFetchingPending}
             hasError={hasPendingError}
             errorMessage={errorMessage}
@@ -351,7 +355,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       <div
         ref={dialogRef}
         className={cn(
-          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col h-modal",
+          "bg-bg-white-0 rounded-t-[var(--radius-lg)] shadow-2xl w-full overflow-hidden flex flex-col h-modal",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}

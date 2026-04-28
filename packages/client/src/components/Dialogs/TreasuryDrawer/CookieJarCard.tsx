@@ -26,9 +26,12 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
   const [purpose, setPurpose] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const decimals = 18;
+  const decimals = jar.decimals;
   const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
-  const inputError = useMemo(() => validateDecimalInput(amountInput, decimals), [amountInput]);
+  const inputError = useMemo(
+    () => validateDecimalInput(amountInput, decimals),
+    [amountInput, decimals]
+  );
 
   const parsedAmount = useMemo(() => {
     if (!amountInput.trim() || inputError) return 0n;
@@ -37,7 +40,7 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
     } catch {
       return 0n;
     }
-  }, [amountInput, inputError]);
+  }, [amountInput, decimals, inputError]);
 
   const cooldownSeconds = Number(jar.withdrawalInterval);
   const cooldownDisplay =

@@ -113,8 +113,12 @@ describe("Display mode — AppBar visibility", () => {
     // When installed and on /home (not garden), shouldHideBar = false
     // The nav should NOT have the translate-y-full class that hides it
     expect(nav.className).not.toMatch(/translate-y-full/);
-    expect(nav.className).toContain("rounded-t-[var(--radius-2xl)]");
+    expect(nav.className).toContain("rounded-t-[var(--radius-lg)]");
     expect(nav.className).toContain("overflow-hidden");
+
+    const syncStatusBar = screen.getByTestId("sync-status-bar");
+    expect(syncStatusBar.className).toContain("rounded-t-[var(--radius-lg)]");
+    expect(syncStatusBar.className).toContain("overflow-hidden");
   });
 
   it("browser mode: AppBar hidden", () => {

@@ -1,6 +1,7 @@
 import { type GardenAssessment, getTag } from "@green-goods/shared";
 import {
   RiCalendarLine,
+  RiErrorWarningLine,
   RiExternalLinkLine,
   RiFileTextLine,
   RiInformationLine,
@@ -11,7 +12,7 @@ import { forwardRef, memo } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { Card } from "@/components/Cards";
-import { Badge } from "@/components/Communication";
+import { Badge, EmptyState } from "@/components/Communication";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 
 interface GardenAssessmentsProps {
@@ -174,21 +175,24 @@ const AssessmentList = ({ assessments, assessmentFetchStatus }: AssessmentListPr
           </CarouselContent>
         </Carousel>
       ) : (
-        <p className="grid p-8 place-items-center text-sm text-center italic text-text-soft-400">
-          {intl.formatMessage({
+        <EmptyState
+          icon={<RiFileTextLine />}
+          title={intl.formatMessage({
             id: "app.garden.assessments.noAssesment",
             description: "No assessments yet",
           })}
-        </p>
+        />
       );
     case "error":
       return (
-        <p className="grid place-items-center text-sm italic">
-          {intl.formatMessage({
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={intl.formatMessage({
             id: "app.garden.assessments.errorLoadingWorks",
             description: "Error loading works",
           })}
-        </p>
+        />
       );
   }
 };

@@ -23,7 +23,7 @@ import React, { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
 import { Button } from "@/components/Actions";
-import { Badge } from "@/components/Communication";
+import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
 
@@ -179,12 +179,13 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             </div>
           )
         ) : (
-          <p className="grid place-items-center p-8 text-center text-sm italic">
-            {intl.formatMessage({
+          <EmptyState
+            icon={<RiUserLine />}
+            title={intl.formatMessage({
               id: "app.garden.gardeners.noGardeners",
               description: "No gardeners yet",
             })}
-          </p>
+          />
         )}
 
         {/* Member detail dialog */}

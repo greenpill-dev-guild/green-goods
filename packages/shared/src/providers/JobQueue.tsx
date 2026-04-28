@@ -221,7 +221,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
 
         // Use DRY helper instead of inline invalidation
-        invalidateKeys(queryInvalidation.onJobAdded(gardenId, chainId));
+        invalidateKeys(
+          queryInvalidation.onJobAdded(gardenId, chainId, currentUserAddress ?? undefined)
+        );
       }
 
       // Update global counts

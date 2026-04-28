@@ -4,6 +4,7 @@ import {
   findActionByUID,
   type Garden,
   logger,
+  toastService,
   track,
   useActionTranslation,
   useAudioRecording,
@@ -12,6 +13,7 @@ import {
   useGardenTranslation,
   useOffline,
   useTimeout,
+  useJoinGarden,
   useWorkFormContext,
   useWorkFlowStore,
   useWorkSelection,
@@ -26,7 +28,7 @@ import {
   RiPlantFill,
   RiStopFill,
 } from "@remixicon/react";
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/Actions";
@@ -77,7 +79,7 @@ const IntroSkeleton: React.FC = () => {
       <div className="flex gap-4 overflow-x-auto">
         {[0, 1, 2, 3].map((idx) => (
           <div key={`garden-skel-${idx}`} className="min-w-[16rem]">
-            <GardenCardSkeleton media="small" height="selection" />
+            <GardenCardSkeleton media="small" height="selection" showStats={false} />
           </div>
         ))}
       </div>
@@ -94,7 +96,9 @@ const Work: React.FC = () => {
   const {
     actions,
     gardens,
+    hasJoinedGardens,
     isLoading,
+    joinableCommunityGarden,
     activeTab,
     setActiveTab,
     selectedDomain,
@@ -102,6 +106,11 @@ const Work: React.FC = () => {
   } = useWorkSelection();
   const form = useWorkFormContext();
   const { workMutation } = form;
+  const {
+    joinGarden,
+    isJoining: isJoiningCommunityGarden,
+    joiningGardenId: joiningCommunityGardenId,
+  } = useJoinGarden();
 
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
@@ -247,9 +256,12 @@ const Work: React.FC = () => {
   const { translatedAction } = useActionTranslation(selectedAction);
 
   const selectedGarden = useMemo(() => {
-    if (!gardens.length || !gardenAddress) return null;
-    return gardens.find((g) => g.id === gardenAddress) ?? null;
-  }, [gardens, gardenAddress]);
+    if (!gardenAddress) return null;
+    return (
+      gardens.find((g) => g.id === gardenAddress) ??
+      (joinableCommunityGarden?.id === gardenAddress ? joinableCommunityGarden : null)
+    );
+  }, [gardens, gardenAddress, joinableCommunityGarden]);
 
   const { translatedGarden } = useGardenTranslation(selectedGarden);
 
@@ -332,6 +344,10 @@ const Work: React.FC = () => {
       bannerImage: "",
       gardeners: [],
       operators: [],
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
       assessments: [],
       works: [],
       createdAt: Date.now(),
@@ -369,6 +385,53 @@ const Work: React.FC = () => {
       return false;
     }
   };
+
+  const handleJoinCommunityGarden = useCallback(async () => {
+    if (!joinableCommunityGarden?.id) return;
+
+    try {
+      const result = await joinGarden(joinableCommunityGarden.id);
+      if (result === "already-joining") return;
+
+      setGardenAddress(joinableCommunityGarden.id);
+      toastService.success({
+        title:
+          result === "already-member"
+            ? intl.formatMessage({
+                id: "app.garden.alreadyMember",
+                defaultMessage: "You're already a member of this garden",
+              })
+            : intl.formatMessage({
+                id: "app.garden.joinSuccess",
+                defaultMessage: "Successfully joined garden",
+              }),
+      });
+    } catch (error) {
+      logger.error("Community Garden join failed", {
+        error,
+        source: "GardenFlow",
+        gardenAddress: joinableCommunityGarden.id,
+      });
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.garden.joinError",
+          defaultMessage: "Failed to join garden",
+        }),
+        message: intl.formatMessage({
+          id: "app.garden.communityOnramp.errorMessage",
+          defaultMessage: "Try again here, or open Profile to join from your garden list.",
+        }),
+        action: {
+          label: intl.formatMessage({
+            id: "app.profile",
+            defaultMessage: "Profile",
+          }),
+          onClick: () => navigate("/profile"),
+          dismissOnClick: true,
+        },
+      });
+    }
+  }, [intl, joinableCommunityGarden, joinGarden, navigate, setGardenAddress]);
 
   const changeTab = (tab: WorkTab) => {
     document.getElementById("app-scroll")?.scrollTo({ top: 0, behavior: "instant" });
@@ -414,7 +477,7 @@ const Work: React.FC = () => {
             className="w-10 px-0 shrink-0"
             variant="neutral"
             type="button"
-            shape="pilled"
+            shape="regular"
             mode="stroke"
             leadingIcon={<RiImageFill className="text-primary w-5 h-5" />}
           />
@@ -430,7 +493,7 @@ const Work: React.FC = () => {
             className="w-10 px-0 shrink-0"
             variant="neutral"
             type="button"
-            shape="pilled"
+            shape="regular"
             mode="stroke"
             leadingIcon={<RiCameraFill className="text-primary w-5 h-5" />}
           />
@@ -440,11 +503,11 @@ const Work: React.FC = () => {
             className="w-10 px-0 shrink-0"
             variant={isRecording ? "error" : "neutral"}
             type="button"
-            shape="pilled"
+            shape="regular"
             mode={isRecording ? "filled" : "stroke"}
             leadingIcon={
               isRecording ? (
-                <RiStopFill className="text-white w-5 h-5" />
+                <RiStopFill className="text-primary-action-foreground w-5 h-5" />
               ) : (
                 <RiMicLine className="text-primary w-5 h-5" />
               )
@@ -487,6 +550,15 @@ const Work: React.FC = () => {
           <WorkIntro
             actions={actions}
             gardens={gardens}
+            hasJoinedGardens={hasJoinedGardens}
+            isLoading={isLoading}
+            joinableCommunityGarden={joinableCommunityGarden}
+            isJoiningCommunityGarden={
+              isJoiningCommunityGarden &&
+              (!joiningCommunityGardenId ||
+                joiningCommunityGardenId === joinableCommunityGarden?.id)
+            }
+            onJoinCommunityGarden={handleJoinCommunityGarden}
             selectedActionUID={actionUID}
             selectedGardenAddress={gardenAddress}
             selectedDomain={selectedDomain}
@@ -568,7 +640,7 @@ const Work: React.FC = () => {
         <div className="padded relative flex flex-col gap-4 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))]">
           {renderTabContent()}
         </div>
-        <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-modal bg-bg-white-0 border-t border-stroke-soft-200">
+        <div className="flex fixed left-0 bottom-0 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] w-full z-modal bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden">
           <div className="flex flex-col gap-2 w-full padded">
             {queueStatusMessage && (
               <p className="text-xs text-text-sub-600 px-1" role="status" aria-live="polite">
@@ -586,7 +658,7 @@ const Work: React.FC = () => {
                 mode="filled"
                 size="medium"
                 type="button"
-                shape="pilled"
+                shape="regular"
                 trailingIcon={<RiArrowRightSLine className="w-5 h-5" />}
               />
             </div>

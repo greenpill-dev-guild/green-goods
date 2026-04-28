@@ -50,6 +50,7 @@ export function EndowmentDrawer({
     isLoading: jarsLoading,
     error: jarsError,
     moduleConfigured: jarsModuleConfigured,
+    hasDetailReadFailure: jarsDetailReadFailure,
   } = useGardenCookieJars(gardenAddress, { enabled: isOpen });
   const { deposits } = useVaultDeposits(gardenAddress, {
     userAddress: primaryAddress ?? undefined,
@@ -188,6 +189,7 @@ export function EndowmentDrawer({
           isLoading={jarsLoading}
           isError={Boolean(jarsError)}
           moduleConfigured={jarsModuleConfigured}
+          hasDetailReadFailure={jarsDetailReadFailure}
         />
       )}
     </ModalDrawer>

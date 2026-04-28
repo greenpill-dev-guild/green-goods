@@ -13,7 +13,7 @@ import React, { useCallback, useContext, useMemo, useState } from "react";
 import type { Control, FormState, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { useShallow } from "zustand/react/shallow";
 import { validationToasts } from "../components/toast";
-import { DEFAULT_CHAIN_ID } from "../config/blockchain";
+import { DEFAULT_CHAIN_ID, getDefaultChain } from "../config/blockchain";
 import { useUser } from "../hooks/auth/useUser";
 import { useActions, useGardens } from "../hooks/blockchain/useBaseLists";
 import { useWorkForm, type WorkFormData } from "../hooks/work/useWorkForm";
@@ -23,7 +23,7 @@ import { validateWorkSubmissionContext } from "../modules/work/work-submission";
 import { useWorkFlowStore } from "../stores/useWorkFlowStore";
 import { WorkTab } from "../stores/workFlowTypes";
 import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
-import { isAddressInList, normalizeAddress } from "../utils/blockchain/address";
+import { compareAddresses, isAddressInList, normalizeAddress } from "../utils/blockchain/address";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 
 // Re-export WorkTab for backward compatibility
@@ -38,6 +38,8 @@ export { WorkTab };
  */
 export interface WorkSelectionValue {
   gardens: Garden[];
+  hasJoinedGardens: boolean;
+  joinableCommunityGarden: Garden | null;
   actions: Action[];
   isLoading: boolean;
   activeTab: WorkTab;
@@ -75,6 +77,8 @@ export interface WorkFormValue {
  */
 export interface WorkDataProps {
   gardens: Garden[];
+  hasJoinedGardens: boolean;
+  joinableCommunityGarden: Garden | null;
   actions: Action[];
   isLoading?: boolean;
   workMutation: ReturnType<typeof useWorkMutation>;
@@ -168,6 +172,7 @@ export const useWork = () => {
 export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const { authMode, primaryAddress } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
+  const rootGardenAddress = getDefaultChain().rootGarden?.address;
 
   // Base lists via React Query
   const { data: actionsData = [], isLoading: actionsLoading } = useActions(chainId);
@@ -190,6 +195,23 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
         : [],
     [userAddress, gardensData]
   );
+
+  const hasJoinedGardens = userGardens.length > 0;
+
+  const joinableCommunityGarden = useMemo(() => {
+    if (!userAddress || !rootGardenAddress) return null;
+
+    const communityGarden = gardensData.find((garden) =>
+      compareAddresses(garden.id, rootGardenAddress)
+    );
+    if (!communityGarden?.openJoining) return null;
+
+    const isMember =
+      isAddressInList(userAddress, communityGarden.gardeners) ||
+      isAddressInList(userAddress, communityGarden.operators);
+
+    return isMember ? null : communityGarden;
+  }, [gardensData, rootGardenAddress, userAddress]);
 
   // UI state via Zustand with useShallow for multi-select optimization
   const {
@@ -300,6 +322,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const selectionValue: WorkSelectionValue = useMemo(
     () => ({
       gardens: userGardens,
+      hasJoinedGardens,
+      joinableCommunityGarden,
       actions: actionsData,
       isLoading,
       activeTab,
@@ -313,6 +337,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     }),
     [
       userGardens,
+      hasJoinedGardens,
+      joinableCommunityGarden,
       actionsData,
       isLoading,
       activeTab,
@@ -364,6 +390,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   const legacyValue: WorkDataProps = useMemo(
     () => ({
       gardens: userGardens,
+      hasJoinedGardens,
+      joinableCommunityGarden,
       actions: actionsData,
       isLoading,
       workMutation,
@@ -390,6 +418,8 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     }),
     [
       userGardens,
+      hasJoinedGardens,
+      joinableCommunityGarden,
       actionsData,
       isLoading,
       workMutation,

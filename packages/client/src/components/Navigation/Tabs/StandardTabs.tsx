@@ -4,7 +4,7 @@ import React from "react";
 export interface StandardTab {
   id: string;
   label: string;
-  icon?: string | React.ReactNode;
+  icon?: React.ReactNode;
   count?: number;
   disabled?: boolean;
 }
@@ -91,10 +91,9 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           )}
           data-testid={`tab-${tab.id}`}
         >
-          {/* Icon - handle both emoji strings and React components */}
           {tab.icon && (
             <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
-              {typeof tab.icon === "string" ? tab.icon : tab.icon}
+              {tab.icon}
             </span>
           )}
 

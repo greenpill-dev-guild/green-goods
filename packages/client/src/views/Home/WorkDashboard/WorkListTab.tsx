@@ -1,8 +1,9 @@
 import type { Work } from "@green-goods/shared";
+import { RiErrorWarningLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
-import { Loader } from "@/components/Communication";
+import { EmptyState, Loader } from "@/components/Communication";
 
 interface WorkListMessages {
   itemCount: { id: string; defaultMessage: string };
@@ -22,7 +23,7 @@ interface WorkListTabProps {
   renderBadges?: (work: Work) => React.ReactNode[];
   headerContent?: React.ReactNode;
   messages: WorkListMessages;
-  emptyIcon: string;
+  emptyIcon: React.ReactNode;
 }
 
 export const WorkListTab: React.FC<WorkListTabProps> = ({
@@ -69,67 +70,68 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
             </p>
           </div>
         ) : hasError ? (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">⚠️</div>
-            <p className="font-medium text-text-strong-950">
-              {intl.formatMessage({
-                id: "app.workDashboard.error.title",
-                defaultMessage: "Unable to load work",
-              })}
-            </p>
-            <p className="text-sm text-text-sub-600 mb-4">
-              {errorMessage ||
-                intl.formatMessage({
-                  id: "app.workDashboard.error.description",
-                  defaultMessage:
-                    "There was an error loading your work. Please check your connection and try again.",
-                })}
-            </p>
-            {onRefresh && (
-              <button
-                onClick={onRefresh}
-                disabled={isFetching}
-                className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 disabled:opacity-50"
-              >
-                {isFetching
-                  ? intl.formatMessage({
-                      id: "app.common.refreshing",
-                      defaultMessage: "Refreshing...",
-                    })
-                  : intl.formatMessage({
-                      id: "app.workDashboard.error.retry",
-                      defaultMessage: "Retry",
-                    })}
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={<RiErrorWarningLine />}
+            tone="error"
+            title={intl.formatMessage({
+              id: "app.workDashboard.error.title",
+              defaultMessage: "Unable to load work",
+            })}
+            description={
+              errorMessage ||
+              intl.formatMessage({
+                id: "app.workDashboard.error.description",
+                defaultMessage:
+                  "There was an error loading your work. Please check your connection and try again.",
+              })
+            }
+            action={
+              onRefresh ? (
+                <button
+                  onClick={onRefresh}
+                  disabled={isFetching}
+                  className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-bg-weak-50 disabled:opacity-50"
+                >
+                  <RiRefreshLine className="h-4 w-4" />
+                  {isFetching
+                    ? intl.formatMessage({
+                        id: "app.common.refreshing",
+                        defaultMessage: "Refreshing...",
+                      })
+                    : intl.formatMessage({
+                        id: "app.workDashboard.error.retry",
+                        defaultMessage: "Retry",
+                      })}
+                </button>
+              ) : null
+            }
+          />
         ) : items.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">{emptyIcon}</div>
-            <p className="font-medium text-text-strong-950">
-              {intl.formatMessage(messages.emptyTitle)}
-            </p>
-            <p className="text-sm text-text-sub-600 mb-3">
-              {intl.formatMessage(messages.emptyDescription)}
-            </p>
-            {onRefresh && (
-              <button
-                onClick={onRefresh}
-                disabled={isFetching}
-                className="text-xs text-text-sub font-medium px-2 py-1 rounded border border-stroke-soft hover:bg-bg-soft disabled:opacity-50"
-              >
-                {isFetching
-                  ? intl.formatMessage({
-                      id: "app.common.refreshing",
-                      defaultMessage: "Refreshing...",
-                    })
-                  : intl.formatMessage({
-                      id: "app.common.refresh",
-                      defaultMessage: "Refresh",
-                    })}
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={emptyIcon}
+            title={intl.formatMessage(messages.emptyTitle)}
+            description={intl.formatMessage(messages.emptyDescription)}
+            action={
+              onRefresh ? (
+                <button
+                  onClick={onRefresh}
+                  disabled={isFetching}
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:opacity-50"
+                >
+                  <RiRefreshLine className="h-3.5 w-3.5" />
+                  {isFetching
+                    ? intl.formatMessage({
+                        id: "app.common.refreshing",
+                        defaultMessage: "Refreshing...",
+                      })
+                    : intl.formatMessage({
+                        id: "app.common.refresh",
+                        defaultMessage: "Refresh",
+                      })}
+                </button>
+              ) : null
+            }
+          />
         ) : (
           <div className="space-y-3">
             {items.map((work, index) => (

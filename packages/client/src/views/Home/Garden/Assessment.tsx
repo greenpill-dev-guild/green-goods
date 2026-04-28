@@ -91,7 +91,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
             {intl.formatMessage({ id: "app.garden.assessments.metrics" })}
           </h2>
           {metricsJson ? (
-            <pre className="max-h-96 overflow-auto rounded-lg bg-bg-surface-800/90 p-4 text-xs text-slate-100">
+            <pre className="max-h-96 overflow-auto rounded-lg bg-bg-surface-800/90 p-4 text-xs text-static-white">
               {metricsJson}
             </pre>
           ) : (

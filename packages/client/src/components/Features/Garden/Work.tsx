@@ -1,9 +1,9 @@
 import { type Action, useNavigateToTop, type Work } from "@green-goods/shared";
-import { RiLoader4Line } from "@remixicon/react";
+import { RiErrorWarningLine, RiInboxLine, RiLoader4Line, RiRefreshLine } from "@remixicon/react";
 import React, { forwardRef, memo, type UIEvent, useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { MinimalWorkCard } from "@/components/Cards";
-import { Loader } from "@/components/Communication";
+import { EmptyState, Loader } from "@/components/Communication";
 
 interface GardenWorkProps {
   actions: Action[];
@@ -97,12 +97,13 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
     case "success": {
       if (!sorted.length) {
         return (
-          <p className="grid p-8 place-items-center text-sm text-center italic text-text-soft-400">
-            {intl.formatMessage({
+          <EmptyState
+            icon={<RiInboxLine />}
+            title={intl.formatMessage({
               id: "app.garden.work.noWork",
               description: "No work yet",
             })}
-          </p>
+          />
         );
       }
 
@@ -122,12 +123,14 @@ const WorkList = ({ works, actions, workFetchStatus }: WorkListProps) => {
     }
     case "error":
       return (
-        <p className="grid place-items-center text-sm italic">
-          {intl.formatMessage({
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={intl.formatMessage({
             id: "app.garden.work.errorLoadingWorks",
             description: "Error loading works",
           })}
-        </p>
+        />
       );
   }
 
@@ -158,69 +161,78 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
         )}
 
         {hasError && (
-          <div className="flex flex-col items-center justify-center gap-4 p-8">
-            <p className="text-sm text-error-text text-center">
-              {intl.formatMessage({
-                id: "app.garden.work.errorLoadingWorks",
-                defaultMessage: "Failed to load work submissions",
-              })}
-            </p>
-            {onRefresh && (
-              <button
-                onClick={onRefresh}
-                disabled={isFetching}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-action-foreground bg-primary-action rounded-lg hover:bg-primary-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isFetching ? (
-                  <>
-                    <RiLoader4Line className="w-4 h-4 animate-spin" />
-                    {intl.formatMessage({
-                      id: "app.common.refreshing",
-                      defaultMessage: "Refreshing...",
-                    })}
-                  </>
-                ) : (
-                  intl.formatMessage({
-                    id: "app.common.tryAgain",
-                    defaultMessage: "Try Again",
-                  })
-                )}
-              </button>
-            )}
-          </div>
+          <EmptyState
+            tone="error"
+            icon={<RiErrorWarningLine />}
+            title={intl.formatMessage({
+              id: "app.garden.work.errorLoadingWorks",
+              defaultMessage: "Failed to load work submissions",
+            })}
+            action={
+              onRefresh ? (
+                <button
+                  onClick={onRefresh}
+                  disabled={isFetching}
+                  className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isFetching ? (
+                    <>
+                      <RiLoader4Line className="w-4 h-4 animate-spin" />
+                      {intl.formatMessage({
+                        id: "app.common.refreshing",
+                        defaultMessage: "Refreshing...",
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      <RiRefreshLine className="h-4 w-4" />
+                      {intl.formatMessage({
+                        id: "app.common.tryAgain",
+                        defaultMessage: "Try Again",
+                      })}
+                    </>
+                  )}
+                </button>
+              ) : null
+            }
+          />
         )}
 
         {isEmpty && (
-          <div className="flex flex-col items-center justify-center gap-4 p-8">
-            <p className="text-sm text-center italic text-text-sub">
-              {intl.formatMessage({
-                id: "app.garden.work.noWork",
-                defaultMessage: "No work submissions yet",
-              })}
-            </p>
-            {onRefresh && (
-              <button
-                onClick={onRefresh}
-                disabled={isFetching}
-                className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-text-sub border border-stroke-soft rounded-lg hover:bg-bg-soft disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isFetching ? (
-                  <>
-                    <RiLoader4Line className="w-3 h-3 animate-spin" />
-                    {intl.formatMessage({
-                      id: "app.common.refreshing",
-                      defaultMessage: "Refreshing...",
-                    })}
-                  </>
-                ) : (
-                  intl.formatMessage({
-                    id: "app.common.refresh",
-                    defaultMessage: "Refresh",
-                  })
-                )}
-              </button>
-            )}
-          </div>
+          <EmptyState
+            icon={<RiInboxLine />}
+            title={intl.formatMessage({
+              id: "app.garden.work.noWork",
+              defaultMessage: "No work submissions yet",
+            })}
+            action={
+              onRefresh ? (
+                <button
+                  onClick={onRefresh}
+                  disabled={isFetching}
+                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isFetching ? (
+                    <>
+                      <RiLoader4Line className="w-3 h-3 animate-spin" />
+                      {intl.formatMessage({
+                        id: "app.common.refreshing",
+                        defaultMessage: "Refreshing...",
+                      })}
+                    </>
+                  ) : (
+                    <>
+                      <RiRefreshLine className="h-3.5 w-3.5" />
+                      {intl.formatMessage({
+                        id: "app.common.refresh",
+                        defaultMessage: "Refresh",
+                      })}
+                    </>
+                  )}
+                </button>
+              ) : null
+            }
+          />
         )}
 
         {!isLoading && !hasError && !isEmpty && (

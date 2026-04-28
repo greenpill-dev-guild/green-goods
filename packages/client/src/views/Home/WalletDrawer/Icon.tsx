@@ -44,7 +44,7 @@ export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, cla
       <RiWallet3Line className="h-4 w-4" />
       {accessibleJarCount > 0 && (
         <span
-          className="absolute -top-1.5 -right-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full border-2 border-white bg-primary px-1 text-[10px] font-semibold leading-none text-primary-accent-foreground"
+          className="absolute -top-1.5 -right-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full border-2 border-bg-white-0 bg-primary px-1 text-[10px] font-semibold leading-none text-primary-accent-foreground"
           data-testid="wallet-badge"
           aria-hidden="true"
         >

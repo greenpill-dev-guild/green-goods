@@ -1,15 +1,15 @@
 import {
   type Action,
-  type Address,
   Domain,
   expandDomainMask,
   type Garden,
   hapticSelection,
   hasDomain,
 } from "@green-goods/shared";
-import { RiHammerFill, RiPlantFill } from "@remixicon/react";
+import { RiHammerFill, RiPlantFill, RiUserAddLine } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
+import { Button } from "@/components/Actions";
 import { ActionCard } from "@/components/Cards/Action/ActionCard";
 import { ActionCardSkeleton } from "@/components/Cards/Action/ActionCardSkeleton";
 import { FormInfo } from "@/components/Cards/Form/FormInfo";
@@ -18,36 +18,44 @@ import { GardenCardSkeleton } from "@/components/Cards/Garden/GardenCardSkeleton
 import { Carousel, CarouselContent, CarouselItem } from "@/components/Display";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 
-/** Domain icon + i18n label ID (stable); labels resolved via intl at render time */
-const DOMAIN_TAB_CONFIG: Record<Domain, { labelId: string; defaultLabel: string; icon: string }> = {
-  [Domain.SOLAR]: { labelId: "app.domain.tab.solar", defaultLabel: "Solar", icon: "ri-sun-line" },
-  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agro", icon: "ri-plant-line" },
+/** Domain i18n label ID (stable); labels resolved via intl at render time */
+const DOMAIN_TAB_CONFIG: Record<Domain, { labelId: string; defaultLabel: string }> = {
+  [Domain.SOLAR]: { labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
+  [Domain.AGRO]: { labelId: "app.domain.tab.agro", defaultLabel: "Agro" },
   [Domain.EDU]: {
     labelId: "app.domain.tab.education",
     defaultLabel: "Education",
-    icon: "ri-book-open-line",
   },
   [Domain.WASTE]: {
     labelId: "app.domain.tab.waste",
     defaultLabel: "Waste",
-    icon: "ri-recycle-line",
   },
 };
 
 interface WorkIntroProps {
   actions: Action[];
   gardens: Garden[];
+  hasJoinedGardens?: boolean;
+  isLoading?: boolean;
+  joinableCommunityGarden?: Garden | null;
+  isJoiningCommunityGarden?: boolean;
+  onJoinCommunityGarden?: () => void;
   selectedActionUID: number | null;
-  selectedGardenAddress: Address | null;
+  selectedGardenAddress: string | null;
   selectedDomain: Domain | null;
   setActionUID: (value: number | null) => void;
-  setGardenAddress: (value: Address | null) => void;
+  setGardenAddress: (value: string | null) => void;
   setSelectedDomain: (domain: Domain | null) => void;
 }
 
 export const WorkIntro: React.FC<WorkIntroProps> = ({
   actions,
   gardens,
+  hasJoinedGardens = gardens.length > 0,
+  isLoading = false,
+  joinableCommunityGarden = null,
+  isJoiningCommunityGarden = false,
+  onJoinCommunityGarden,
   selectedActionUID,
   selectedGardenAddress,
   selectedDomain,
@@ -114,7 +122,6 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           label: config
             ? intl.formatMessage({ id: config.labelId, defaultMessage: config.defaultLabel })
             : `Domain ${d}`,
-          icon: <i className={config?.icon ?? "ri-question-line"} aria-hidden="true" />,
         };
       }),
     [availableDomains, intl]
@@ -123,8 +130,13 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
   const showDomainTabs = availableDomains.length > 1;
 
   // Status: show skeletons while data loads
-  const actionsStatus: "pending" | "success" = actions.length ? "success" : "pending";
-  const gardensStatus: "pending" | "success" = gardens.length ? "success" : "pending";
+  const actionsStatus: "pending" | "success" =
+    isLoading && actions.length === 0 ? "pending" : "success";
+  const gardensStatus: "pending" | "success" =
+    isLoading && gardens.length === 0 && !joinableCommunityGarden ? "pending" : "success";
+  const showCommunityOnramp =
+    !hasJoinedGardens && Boolean(joinableCommunityGarden) && Boolean(onJoinCommunityGarden);
+  const communityGardenSelected = joinableCommunityGarden?.id === selectedGardenAddress;
 
   return (
     <>
@@ -224,11 +236,79 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           {gardensStatus === "pending" &&
             Array.from({ length: 4 }).map((_, idx) => (
               <CarouselItem key={`garden-skel-${idx}`}>
-                <GardenCardSkeleton media="small" height="selection" />
+                <GardenCardSkeleton media="small" height="selection" showStats={false} />
               </CarouselItem>
             ))}
 
-          {filteredGardens.length === 0 && gardensStatus === "success" && (
+          {filteredGardens.length === 0 &&
+            gardensStatus === "success" &&
+            showCommunityOnramp &&
+            communityGardenSelected &&
+            joinableCommunityGarden && (
+              <CarouselItem className="basis-full max-w-full">
+                <GardenCard
+                  garden={joinableCommunityGarden}
+                  media="small"
+                  height="selection"
+                  selected
+                  showDescription={true}
+                  showOperators={false}
+                  showStats={false}
+                />
+              </CarouselItem>
+            )}
+
+          {filteredGardens.length === 0 &&
+            gardensStatus === "success" &&
+            showCommunityOnramp &&
+            !communityGardenSelected && (
+              <CarouselItem className="basis-full max-w-full">
+                <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary">
+                      <RiPlantFill className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-strong-950">
+                        {intl.formatMessage({
+                          id: "app.garden.communityOnramp.title",
+                          defaultMessage: "Join the Community Garden",
+                        })}
+                      </p>
+                      <p className="mt-1 text-xs leading-5 text-text-sub-600">
+                        {intl.formatMessage({
+                          id: "app.garden.communityOnramp.description",
+                          defaultMessage:
+                            "The Community Garden is open to everyone and gives you a place to submit your first work.",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="primary"
+                    mode="filled"
+                    size="small"
+                    onClick={onJoinCommunityGarden}
+                    disabled={isJoiningCommunityGarden}
+                    leadingIcon={<RiUserAddLine className="h-4 w-4" />}
+                    label={
+                      isJoiningCommunityGarden
+                        ? intl.formatMessage({
+                            id: "app.garden.communityOnramp.joining",
+                            defaultMessage: "Joining...",
+                          })
+                        : intl.formatMessage({
+                            id: "app.garden.communityOnramp.action",
+                            defaultMessage: "Join Community Garden",
+                          })
+                    }
+                    className="w-full"
+                  />
+                </div>
+              </CarouselItem>
+            )}
+
+          {filteredGardens.length === 0 && gardensStatus === "success" && !showCommunityOnramp && (
             <div className="p-4 text-sm text-text-sub-600">
               {intl.formatMessage({
                 id: "app.garden.noGardensAvailable",
@@ -248,10 +328,12 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
               >
                 <GardenCard
                   garden={garden}
+                  media="small"
                   height="selection"
                   selected={garden.id === selectedGardenAddress}
                   showDescription={true}
                   showOperators={false}
+                  showStats={false}
                 />
               </CarouselItem>
             ))}

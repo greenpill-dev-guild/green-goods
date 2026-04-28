@@ -16,7 +16,7 @@ source_of_truth:
 
 Scope: installed-PWA runtime files in `packages/client/src`. Public browser routes, stories, and tests are excluded so the freeze audit stays focused on the protected app surface.
 
-Summary: 254 token references (accent: 89, action: 38, state: 112, contrast-exception: 15, contrast-risk: 0).
+Summary: 239 token references (accent: 90, action: 35, state: 99, contrast-exception: 15, contrast-risk: 0).
 
 Unapproved bright-green text-bearing combinations: 0.
 
@@ -34,21 +34,8 @@ Approved contrast exceptions:
 
 | Location | Token | Classification | Source Line |
 |---|---:|---|---|
-| `packages/client/src/components/Actions/Button/Base.tsx:84` | `bg-primary-action` | action | <code>"bg-primary-action text-primary-action-foreground",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:84` | `text-primary-action-foreground` | action | <code>"bg-primary-action text-primary-action-foreground",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:86` | `bg-primary-action-hover` | action | <code>"hover:bg-primary-action-hover",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:98` | `outline-primary-base` | state | <code>"text-primary-base outline-primary-base bg-bg-white-0",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:98` | `text-primary-base` | state | <code>"text-primary-base outline-primary-base bg-bg-white-0",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:100` | `bg-primary-alpha-10` | state | <code>"hover:bg-primary-alpha-10 hover:outline-transparent",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:112` | `bg-primary-alpha-10` | state | <code>"bg-primary-alpha-10 text-primary-base outline-transparent",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:112` | `text-primary-base` | state | <code>"bg-primary-alpha-10 text-primary-base outline-transparent",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:114` | `outline-primary-base` | state | <code>"hover:outline-primary-base hover:bg-bg-white-0",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:116` | `outline-primary-base` | state | <code>"focus-visible:outline-primary-base focus-visible:bg-bg-white-0 focus-visible:shadow-button-primary-focus",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:126` | `text-primary-base` | state | <code>"text-primary-base bg-transparent outline-transparent",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:128` | `bg-primary-alpha-10` | accent | <code>"hover:bg-primary-alpha-10",</code> |
-| `packages/client/src/components/Actions/Button/Base.tsx:130` | `outline-primary-base` | state | <code>"focus-visible:outline-primary-base focus-visible:bg-bg-white-0 focus-visible:shadow-button-primary-focus",</code> |
-| `packages/client/src/components/Cards/Action/ActionCard.tsx:63` | `border-primary` | state | <code>"absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 status-transition z-10 pointer-events-none",</code> |
-| `packages/client/src/components/Cards/Action/ActionCard.tsx:70` | `text-primary` | state | <code>selected &amp;&amp; "text-primary"</code> |
+| `packages/client/src/components/Cards/Action/ActionCard.tsx:65` | `border-primary` | state | <code>"absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 status-transition z-10 pointer-events-none",</code> |
+| `packages/client/src/components/Cards/Action/ActionCard.tsx:72` | `text-primary` | state | <code>selected &amp;&amp; "text-primary"</code> |
 | `packages/client/src/components/Cards/Base/Card.tsx:27` | `bg-primary` | state | <code>"active:brightness-102 active:bg-primary/1.5 transition-all duration-200 ease-in-out",</code> |
 | `packages/client/src/components/Cards/Form/FormCard.tsx:22` | `text-primary` | accent | <code>&#123;Icon &amp;&amp; &lt;Icon size=&#123;24&#125; className="text-primary" /&gt;&#125;</code> |
 | `packages/client/src/components/Cards/Form/FormInfo.tsx:38` | `text-primary` | accent | <code>&lt;Icon size=&#123;24&#125; className="text-primary" /&gt;</code> |
@@ -203,9 +190,11 @@ Approved contrast exceptions:
 | `packages/client/src/views/Garden/Details.tsx:241` | `text-primary-accent-foreground` | contrast-exception | <code>? "bg-primary-base text-primary-accent-foreground border-primary-base"</code> |
 | `packages/client/src/views/Garden/Details.tsx:333` | `ring-primary-base` | state | <code>className=&#123;&#96;relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base $&#123;</code> |
 | `packages/client/src/views/Garden/Details.tsx:334` | `bg-primary-base` | accent | <code>locationEnabled ? "bg-primary-base" : "bg-bg-soft-200"</code> |
-| `packages/client/src/views/Garden/index.tsx:419` | `text-primary` | accent | <code>leadingIcon=&#123;&lt;RiImageFill className="text-primary w-5 h-5" /&gt;&#125;</code> |
-| `packages/client/src/views/Garden/index.tsx:435` | `text-primary` | accent | <code>leadingIcon=&#123;&lt;RiCameraFill className="text-primary w-5 h-5" /&gt;&#125;</code> |
-| `packages/client/src/views/Garden/index.tsx:449` | `text-primary` | accent | <code>&lt;RiMicLine className="text-primary w-5 h-5" /&gt;</code> |
+| `packages/client/src/views/Garden/index.tsx:482` | `text-primary` | accent | <code>leadingIcon=&#123;&lt;RiImageFill className="text-primary w-5 h-5" /&gt;&#125;</code> |
+| `packages/client/src/views/Garden/index.tsx:498` | `text-primary` | accent | <code>leadingIcon=&#123;&lt;RiCameraFill className="text-primary w-5 h-5" /&gt;&#125;</code> |
+| `packages/client/src/views/Garden/index.tsx:512` | `text-primary` | accent | <code>&lt;RiMicLine className="text-primary w-5 h-5" /&gt;</code> |
+| `packages/client/src/views/Garden/Intro.tsx:268` | `bg-primary-alpha-10` | accent | <code>&lt;div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary"&gt;</code> |
+| `packages/client/src/views/Garden/Intro.tsx:268` | `text-primary` | accent | <code>&lt;div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-primary-alpha-10 text-primary"&gt;</code> |
 | `packages/client/src/views/Garden/Media.tsx:375` | `bg-primary-base` | state | <code>&lt;div className="flex items-center gap-3 p-4 bg-primary-base/10 border border-primary-base/30 rounded-lg"&gt;</code> |
 | `packages/client/src/views/Garden/Media.tsx:375` | `border-primary-base` | state | <code>&lt;div className="flex items-center gap-3 p-4 bg-primary-base/10 border border-primary-base/30 rounded-lg"&gt;</code> |
 | `packages/client/src/views/Garden/Media.tsx:376` | `text-primary-base` | accent | <code>&lt;RiLoader4Line className="w-5 h-5 text-primary-base animate-spin" /&gt;</code> |
@@ -250,11 +239,7 @@ Approved contrast exceptions:
 | `packages/client/src/views/Home/WorkDashboard/Icon.tsx:63` | `emerald-600` | state | <code>: "focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",</code> |
 | `packages/client/src/views/Home/WorkDashboard/Icon.tsx:82` | `text-primary-accent-foreground` | accent | <code>"inline-flex items-center justify-center text-xs font-semibold text-primary-accent-foreground rounded-full min-w-[18px] h-[18px] px-1",</code> |
 | `packages/client/src/views/Home/WorkDashboard/Icon.tsx:83` | `bg-primary` | state | <code>"bg-primary shadow-sm border-2 border-white"</code> |
-| `packages/client/src/views/Home/WorkDashboard/index.tsx:392` | `text-primary` | state | <code>&lt;RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" /&gt;</code> |
-| `packages/client/src/views/Home/WorkDashboard/Uploading.tsx:149` | `border-primary` | state | <code>className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback disabled:opacity-50 disabled:cursor-not-allowed"</code> |
-| `packages/client/src/views/Home/WorkDashboard/Uploading.tsx:149` | `ring-primary` | state | <code>className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback disabled:opacity-50 disabled:cursor-not-allowed"</code> |
-| `packages/client/src/views/Home/WorkDashboard/Uploading.tsx:149` | `text-primary` | state | <code>className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary active:scale-95 tap-feedback disabled:opacity-50 disabled:cursor-not-allowed"</code> |
-| `packages/client/src/views/Home/WorkDashboard/Uploading.tsx:214` | `text-primary` | state | <code>className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 disabled:opacity-50"</code> |
+| `packages/client/src/views/Home/WorkDashboard/index.tsx:396` | `text-primary` | state | <code>&lt;RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" /&gt;</code> |
 | `packages/client/src/views/Home/WorkDashboard/WorkListTab.tsx:92` | `text-primary` | state | <code>className="text-sm text-primary font-medium px-3 py-1 rounded-lg border border-stroke-soft-200 disabled:opacity-50"</code> |
 | `packages/client/src/views/Login/components/LoadingSplash.tsx:43` | `text-primary` | accent | <code>&lt;h3 className="text-center font-bold text-primary transition-all duration-200"&gt;</code> |
 | `packages/client/src/views/Login/components/LoadingSplash.tsx:50` | `border-primary` | state | <code>&lt;div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" /&gt;</code> |
@@ -266,10 +251,10 @@ Approved contrast exceptions:
 | `packages/client/src/views/Profile/Badges.tsx:29` | `text-primary` | accent | <code>return &lt;RiHammerLine className="h-5 w-5 text-primary" /&gt;;</code> |
 | `packages/client/src/views/Profile/Badges.tsx:31` | `text-primary` | accent | <code>return &lt;RiCoinsLine className="h-5 w-5 text-primary" /&gt;;</code> |
 | `packages/client/src/views/Profile/Badges.tsx:33` | `text-primary` | accent | <code>return &lt;RiAwardLine className="h-5 w-5 text-primary" /&gt;;</code> |
-| `packages/client/src/views/Profile/Badges.tsx:261` | `bg-primary` | accent | <code>&lt;div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"&gt;</code> |
-| `packages/client/src/views/Profile/Badges.tsx:262` | `text-primary` | accent | <code>&lt;RiAwardLine className="h-5 w-5 text-primary" /&gt;</code> |
-| `packages/client/src/views/Profile/Badges.tsx:296` | `bg-primary` | accent | <code>&lt;div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"&gt;</code> |
-| `packages/client/src/views/Profile/Badges.tsx:332` | `bg-primary` | accent | <code>&lt;div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"&gt;</code> |
+| `packages/client/src/views/Profile/Badges.tsx:264` | `bg-primary` | accent | <code>&lt;div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"&gt;</code> |
+| `packages/client/src/views/Profile/Badges.tsx:265` | `text-primary` | accent | <code>&lt;RiAwardLine className="h-5 w-5 text-primary" /&gt;</code> |
+| `packages/client/src/views/Profile/Badges.tsx:299` | `bg-primary` | accent | <code>&lt;div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"&gt;</code> |
+| `packages/client/src/views/Profile/Badges.tsx:326` | `bg-primary` | accent | <code>&lt;div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10"&gt;</code> |
 | `packages/client/src/views/Profile/ENSSection.tsx:264` | `text-primary` | accent | <code>&lt;div className="flex items-center justify-center text-center mx-auto text-primary"&gt;</code> |
 | `packages/client/src/views/Profile/ENSSection.tsx:353` | `border-primary` | state | <code>className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"</code> |
 | `packages/client/src/views/Profile/ENSSection.tsx:353` | `ring-primary` | state | <code>className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"</code> |

@@ -8,91 +8,6 @@ import { defineConfig, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
 
-const NODE_MODULE_CHUNK_GROUPS = [
-  {
-    name: "react-core",
-    patterns: [
-      "/node_modules/react/",
-      "/node_modules/react-dom/",
-      "/node_modules/react-router/",
-      "/node_modules/react-router-dom/",
-      "/node_modules/scheduler/",
-    ],
-  },
-  {
-    name: "web3",
-    patterns: [
-      "/node_modules/wagmi/",
-      "/node_modules/viem/",
-      "/node_modules/@reown/",
-      "/node_modules/@walletconnect/",
-      "/node_modules/@safe-global/",
-      "/node_modules/abitype/",
-      "/node_modules/mipd/",
-    ],
-  },
-  {
-    name: "data-layer",
-    patterns: [
-      "/node_modules/@tanstack/",
-      "/node_modules/react-hook-form/",
-      "/node_modules/@hookform/",
-      "/node_modules/zod/",
-      "/node_modules/zustand/",
-      "/node_modules/idb/",
-      "/node_modules/idb-keyval/",
-    ],
-  },
-  {
-    name: "ui-kit",
-    patterns: [
-      "/node_modules/@radix-ui/",
-      "/node_modules/embla-carousel",
-      "/node_modules/react-device-frameset/",
-      "/node_modules/qrcode.react/",
-    ],
-  },
-  {
-    name: "intl",
-    patterns: ["/node_modules/react-intl/", "/node_modules/@formatjs/"],
-  },
-  {
-    name: "analytics",
-    patterns: ["/node_modules/posthog-js/"],
-  },
-  {
-    name: "attestations",
-    patterns: ["/node_modules/@ethereum-attestation-service/"],
-  },
-  {
-    name: "storage",
-    patterns: [
-      "/node_modules/multiformats/",
-      "/node_modules/@ipld/",
-      "/node_modules/@ucanto/",
-      "/node_modules/uint8arrays/",
-    ],
-  },
-] as const;
-
-const normalizeId = (id: string) => id.split("\\").join("/");
-
-function selectManualChunk(id: string): string | undefined {
-  const normalized = normalizeId(id);
-
-  if (!normalized.includes("/node_modules/")) {
-    return undefined;
-  }
-
-  for (const group of NODE_MODULE_CHUNK_GROUPS) {
-    if (group.patterns.some((pattern) => normalized.includes(pattern))) {
-      return group.name;
-    }
-  }
-
-  return "vendor";
-}
-
 export default defineConfig(async () => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve env schema from monorepo root even when this package script runs with a package cwd.
@@ -352,11 +267,6 @@ export default defineConfig(async () => {
     build: {
       sourcemap: true,
       chunkSizeWarningLimit: 2000,
-      rollupOptions: {
-        output: {
-          manualChunks: selectManualChunk,
-        },
-      },
     },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances

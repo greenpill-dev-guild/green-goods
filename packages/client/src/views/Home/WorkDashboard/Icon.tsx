@@ -80,7 +80,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
             <div
               className={cn(
                 "inline-flex items-center justify-center text-xs font-semibold text-primary-accent-foreground rounded-full min-w-[18px] h-[18px] px-1",
-                "bg-primary shadow-sm border-2 border-white"
+                "bg-primary shadow-sm border-2 border-bg-white-0"
               )}
               data-testid="notification-badge"
             >
@@ -94,7 +94,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
           <div className="absolute -top-1 -right-1">
             <span
               className={cn(
-                "w-3 h-3 rounded-full border-2 border-white",
+                "w-3 h-3 rounded-full border-2 border-bg-white-0",
                 !isOnline
                   ? "bg-orange-500"
                   : isSyncing

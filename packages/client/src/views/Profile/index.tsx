@@ -8,12 +8,13 @@ import {
   useGardenerProfile,
   useUser,
 } from "@green-goods/shared";
-import { RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
+import { RiAwardLine, RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { Profile as UserProfile } from "@/components/Features";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { ProfileAccount } from "./Account";
+import { ProfileBadges } from "./Badges";
 import { ProfileHelp } from "./Help";
 
 const DEFAULT_AVATAR = "/images/avatar.png";
@@ -29,7 +30,7 @@ const Profile: React.FC = () => {
   const { userName } = useAuthState();
   const { profile } = useGardenerProfile();
   const intl = useIntl();
-  const [activeTab, setActiveTab] = useState<"account" | "help">("account");
+  const [activeTab, setActiveTab] = useState<"account" | "badges" | "help">("account");
 
   const primaryAddress = user?.id;
 
@@ -70,6 +71,14 @@ const Profile: React.FC = () => {
       icon: <RiSettings2Fill className="w-4" />,
     },
     {
+      id: "badges",
+      label: intl.formatMessage({
+        id: "app.profile.badges",
+        description: "Badges",
+      }),
+      icon: <RiAwardLine className="w-4" />,
+    },
+    {
       id: "help",
       label: intl.formatMessage({
         id: "app.profile.help",
@@ -96,7 +105,7 @@ const Profile: React.FC = () => {
         <StandardTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tabId) => setActiveTab(tabId as "account" | "help")}
+          onTabChange={(tabId) => setActiveTab(tabId as "account" | "badges" | "help")}
           variant="compact"
           scrollTargetSelector="#profile-scroll"
         />
@@ -108,7 +117,13 @@ const Profile: React.FC = () => {
         className="flex-1 overflow-x-hidden overflow-y-auto pt-64 pb-24 native-scroll"
       >
         <div className="padded my-4 flex flex-col gap-4">
-          {activeTab === "help" ? <ProfileHelp /> : <ProfileAccount />}
+          {activeTab === "help" ? (
+            <ProfileHelp />
+          ) : activeTab === "badges" ? (
+            <ProfileBadges />
+          ) : (
+            <ProfileAccount />
+          )}
         </div>
       </div>
     </section>

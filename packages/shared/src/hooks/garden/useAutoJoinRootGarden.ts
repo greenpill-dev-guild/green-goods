@@ -8,9 +8,10 @@
  */
 
 import { useQueryClient } from "@tanstack/react-query";
+import { RiInformationLine, RiSeedlingLine } from "@remixicon/react";
 import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
-import { useCallback, useRef, useState } from "react";
+import { createElement, useCallback, useRef, useState } from "react";
 import { encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
 import { toastService } from "../../components/toast";
@@ -41,6 +42,9 @@ const getOnboardedKey = (address?: string | null) => {
   if (!address) return ONBOARDED_STORAGE_KEY;
   return `${ONBOARDED_STORAGE_KEY}:${address.toLowerCase()}`;
 };
+
+const gardenToastIcon = createElement(RiSeedlingLine, { className: "h-5 w-5" });
+const infoToastIcon = createElement(RiInformationLine, { className: "h-5 w-5" });
 
 /**
  * Standalone check for membership (used in Login flow before hook initialization)
@@ -221,7 +225,7 @@ export function useAutoJoinRootGarden() {
           toastService.success({
             title: "Welcome to Green Goods!",
             message: "You're now part of the community garden.",
-            icon: "🌱",
+            icon: gardenToastIcon,
             suppressLogging: true,
           });
         }
@@ -273,7 +277,7 @@ export function useAutoJoinRootGarden() {
     toastService.info({
       title: "No problem!",
       message: "You can join the community garden anytime from your profile.",
-      icon: "👋",
+      icon: infoToastIcon,
       duration: 3000,
       suppressLogging: true,
     });
@@ -310,7 +314,7 @@ export function useAutoJoinRootGarden() {
     const loadingToastId = toastService.loading({
       title: "Joining Community Garden",
       message: "Please confirm with your passkey...",
-      icon: "🌱",
+      icon: gardenToastIcon,
     });
 
     try {
@@ -323,7 +327,7 @@ export function useAutoJoinRootGarden() {
       toastService.success({
         title: "Welcome to Green Goods!",
         message: "You can now start submitting work to gardens.",
-        icon: "🌱",
+        icon: gardenToastIcon,
         duration: 6000,
         suppressLogging: true,
       });
@@ -345,7 +349,7 @@ export function useAutoJoinRootGarden() {
         toastService.success({
           title: "Already a member!",
           message: "You can start submitting work to gardens.",
-          icon: "🌱",
+          icon: gardenToastIcon,
           duration: 4000,
           suppressLogging: true,
         });
@@ -357,7 +361,7 @@ export function useAutoJoinRootGarden() {
         toastService.info({
           title: "No problem!",
           message: "You can join a garden anytime from your profile.",
-          icon: "👋",
+          icon: infoToastIcon,
           duration: 5000,
           action: {
             label: "Go to Profile",

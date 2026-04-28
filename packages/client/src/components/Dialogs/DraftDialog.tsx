@@ -103,7 +103,7 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
                 variant="primary"
                 mode="filled"
                 size="medium"
-                shape="pilled"
+                shape="regular"
                 className="w-full"
                 trailingIcon={<RiArrowRightLine className="w-5 h-5" />}
               />
@@ -116,7 +116,7 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
                 variant="neutral"
                 mode="stroke"
                 size="medium"
-                shape="pilled"
+                shape="regular"
                 className="w-full"
                 leadingIcon={<RiDeleteBinLine className="w-5 h-5" />}
               />

@@ -335,7 +335,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
           }`}
         >
           <span
-            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+            className={`inline-block h-4 w-4 rounded-full bg-static-white transition-transform ${
               locationEnabled ? "translate-x-6" : "translate-x-1"
             }`}
           />

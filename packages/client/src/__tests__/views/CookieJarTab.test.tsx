@@ -56,6 +56,8 @@ describe("CookieJarTab", () => {
       eligibleGardenCount: 1,
       confirmedGardenCount: 1,
       unconfirmedGardenCount: 0,
+      eligibilityErrorCount: 0,
+      hasEligibilityReadFailure: false,
     });
   });
 
@@ -87,16 +89,17 @@ describe("CookieJarTab", () => {
       eligibleGardenCount: 0,
       confirmedGardenCount: 1,
       unconfirmedGardenCount: 0,
+      eligibilityErrorCount: 0,
+      hasEligibilityReadFailure: false,
     });
 
     render(<CookieJarTab />);
 
-    expect(
-      screen.getByText("No cookie jars are available for this wallet yet.")
-    ).toBeInTheDocument();
+    expect(screen.getByText("No Cookie Jars found")).toBeInTheDocument();
+    expect(screen.getByText("Cookie Jars you can access will appear here.")).toBeInTheDocument();
   });
 
-  it("shows the fail-closed message when eligibility could not be confirmed", () => {
+  it("keeps wallet empty copy primary when eligibility could not be confirmed", () => {
     mockUseAccessibleCookieJars.mockReturnValue({
       jars: [],
       isLoading: false,
@@ -104,12 +107,34 @@ describe("CookieJarTab", () => {
       eligibleGardenCount: 0,
       confirmedGardenCount: 0,
       unconfirmedGardenCount: 2,
+      eligibilityErrorCount: 2,
+      hasEligibilityReadFailure: true,
+    });
+
+    render(<CookieJarTab />);
+
+    expect(screen.getByText("No Cookie Jars found")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Could not confirm Cookie Jar access for 2 gardens.")
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows access diagnostics only when jars are otherwise present", () => {
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [testJar],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 1,
+      confirmedGardenCount: 1,
+      unconfirmedGardenCount: 1,
+      eligibilityErrorCount: 1,
+      hasEligibilityReadFailure: true,
     });
 
     render(<CookieJarTab />);
 
     expect(
-      screen.getByText("2 gardens are hidden until onchain access can be confirmed.")
+      screen.getByText("Could not confirm Cookie Jar access for 1 garden.")
     ).toBeInTheDocument();
   });
 });

@@ -2,7 +2,7 @@
  * Profile View Tests
  *
  * Tests the profile page: display name resolution,
- * tab switching between Account and Help.
+ * tab switching between Account, Badges, and Help.
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -34,6 +34,7 @@ vi.mock("@green-goods/shared", () => ({
 
 // Mock @remixicon/react
 vi.mock("@remixicon/react", () => ({
+  RiAwardLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-award" }),
   RiHeadphoneLine: (props: any) => createElement("span", { ...props, "data-testid": "icon-help" }),
   RiSettings2Fill: (props: any) =>
     createElement("span", { ...props, "data-testid": "icon-settings" }),
@@ -93,6 +94,10 @@ vi.mock("../../views/Profile/Account", () => ({
   ProfileAccount: () => createElement("div", { "data-testid": "account-tab-content" }, "Account"),
 }));
 
+vi.mock("../../views/Profile/Badges", () => ({
+  ProfileBadges: () => createElement("div", { "data-testid": "badges-tab-content" }, "Badges"),
+}));
+
 vi.mock("../../views/Profile/Help", () => ({
   ProfileHelp: () => createElement("div", { "data-testid": "help-tab-content" }, "Help"),
 }));
@@ -130,6 +135,18 @@ describe("Profile View", () => {
     render(wrap(createElement(Profile)));
 
     expect(screen.getByTestId("account-tab-content")).toBeInTheDocument();
+    expect(screen.queryByTestId("badges-tab-content")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("help-tab-content")).not.toBeInTheDocument();
+  });
+
+  it("switches to badges tab when clicked", async () => {
+    const user = userEvent.setup();
+    render(wrap(createElement(Profile)));
+
+    await user.click(screen.getByTestId("tab-badges"));
+
+    expect(screen.getByTestId("badges-tab-content")).toBeInTheDocument();
+    expect(screen.queryByTestId("account-tab-content")).not.toBeInTheDocument();
     expect(screen.queryByTestId("help-tab-content")).not.toBeInTheDocument();
   });
 
@@ -141,6 +158,7 @@ describe("Profile View", () => {
 
     expect(screen.getByTestId("help-tab-content")).toBeInTheDocument();
     expect(screen.queryByTestId("account-tab-content")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("badges-tab-content")).not.toBeInTheDocument();
   });
 
   it("switches back to account tab", async () => {
@@ -152,13 +170,15 @@ describe("Profile View", () => {
 
     await user.click(screen.getByTestId("tab-account"));
     expect(screen.getByTestId("account-tab-content")).toBeInTheDocument();
+    expect(screen.queryByTestId("badges-tab-content")).not.toBeInTheDocument();
     expect(screen.queryByTestId("help-tab-content")).not.toBeInTheDocument();
   });
 
-  it("renders tab bar with Account and Help tabs", () => {
+  it("renders tab bar with Account, Badges, and Help tabs", () => {
     render(wrap(createElement(Profile)));
 
     expect(screen.getByTestId("tab-account")).toBeInTheDocument();
+    expect(screen.getByTestId("tab-badges")).toBeInTheDocument();
     expect(screen.getByTestId("tab-help")).toBeInTheDocument();
   });
 });

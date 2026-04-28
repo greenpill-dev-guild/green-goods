@@ -91,6 +91,11 @@ vi.mock("@green-goods/shared", () => ({
     clearActiveDraft: vi.fn().mockResolvedValue(undefined),
   }),
   useGardenTranslation: () => ({ translatedGarden: null }),
+  useJoinGarden: () => ({
+    joinGarden: vi.fn(),
+    isJoining: false,
+    joiningGardenId: null,
+  }),
   // providers
   useWorkFormContext: () => ({
     ...mockForm,
@@ -99,6 +104,8 @@ vi.mock("@green-goods/shared", () => ({
   useWorkSelection: () => ({
     actions: mockActions,
     gardens: mockGardens,
+    hasJoinedGardens: mockGardens.length > 0,
+    joinableCommunityGarden: null,
     isLoading: false,
     activeTab: "Intro",
     setActiveTab: mockSetActiveTab,
@@ -129,6 +136,7 @@ vi.mock("@green-goods/shared", () => ({
   useTimeout: () => ({ set: vi.fn(), clear: vi.fn(), isPending: false }),
   // analytics
   track: vi.fn(),
+  toastService: { success: vi.fn(), error: vi.fn() },
   // modules
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
 }));

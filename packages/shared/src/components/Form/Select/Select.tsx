@@ -11,22 +11,22 @@ const SelectGroup = SelectPrimitive.Group;
 
 const SelectValue = SelectPrimitive.Value;
 
+type SelectTriggerProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
+  invalid?: boolean;
+  size?: "sm" | "md" | "lg";
+  surface?: "default" | "admin";
+};
+
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+  SelectTriggerProps
+>(({ className, children, invalid, size = "md", surface = "default", ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
-    className={cn(
-      "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-md",
-      "border border-stroke-soft-200 bg-bg-white-0 px-3 py-2",
-      "text-sm text-text-strong-950 ring-offset-stroke-soft-200",
-      "data-[placeholder]:text-text-soft-400",
-      "focus:outline-none focus:ring-1 focus:ring-primary-base",
-      "disabled:cursor-not-allowed disabled:opacity-50",
-      "[&>span]:line-clamp-1",
-      className
-    )}
+    data-invalid={invalid || undefined}
+    data-size={size}
+    data-surface={surface}
+    className={cn("gg-control gg-control-trigger", className)}
     {...props}
   >
     {children}

@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const utilitiesPath = resolve(__dirname, "../../styles/utilities.css");
 const utilitiesContent = readFileSync(utilitiesPath, "utf-8");
+const themePath = resolve(__dirname, "../../styles/theme.css");
+const themeContent = readFileSync(themePath, "utf-8");
 
 // Also read consumer files to verify deduplication
 const clientUtilitiesPath = resolve(__dirname, "../../../../client/src/styles/utilities.css");
@@ -63,5 +65,12 @@ describe("shared utilities.css", () => {
 
   it("exports native-scroll", () => {
     expect(utilitiesContent).toContain(".native-scroll");
+  });
+
+  it("exports shared runtime control and button classes from theme.css", () => {
+    expect(themeContent).toContain(".gg-control");
+    expect(themeContent).toContain(".gg-control-trigger");
+    expect(themeContent).toContain(".gg-button");
+    expect(themeContent).toContain(".gg-button-secondary");
   });
 });

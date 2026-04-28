@@ -295,7 +295,7 @@ export const GardenWork: React.FC = () => {
   // Retry footer for offline work
   const retryFooter =
     isOfflineWork && viewingMode === "gardener" ? (
-      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light p-4 pb-6 z-sticky">
+      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light rounded-t-[var(--radius-lg)] overflow-hidden p-4 pb-6 z-sticky">
         <div className="max-w-screen-sm mx-auto">
           <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
             <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
@@ -321,7 +321,7 @@ export const GardenWork: React.FC = () => {
             className="w-full"
             variant="primary"
             mode="filled"
-            shape="pilled"
+            shape="regular"
             leadingIcon={
               isRetrying ? (
                 <RiLoader4Line className="w-5 h-5 animate-spin" />
@@ -360,7 +360,7 @@ export const GardenWork: React.FC = () => {
           {/* Feedback Drawer - Slides up from behind the footer bar */}
           <div
             className={cn(
-              "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-2xl shadow-xl overflow-hidden transition-transform duration-300 ease-out origin-bottom",
+              "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-[var(--radius-lg)] shadow-xl overflow-hidden transition-transform duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] origin-bottom",
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
@@ -442,7 +442,7 @@ export const GardenWork: React.FC = () => {
           </div>
 
           {/* Action Bar - Always visible */}
-          <div className="bg-bg-white-0 border-t border-stroke-soft-200 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
+          <div className="bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden shadow-xl p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
             <div className="max-w-screen-sm mx-auto">
               {/* Action expiry notice */}
               {isActionExpired && (
@@ -467,7 +467,7 @@ export const GardenWork: React.FC = () => {
                       className="flex-1 touch-manipulation"
                       variant="error"
                       type="button"
-                      shape="pilled"
+                      shape="regular"
                       mode="stroke"
                       size="medium"
                       leadingIcon={<RiCloseLine className="w-5 h-5" />}
@@ -484,7 +484,7 @@ export const GardenWork: React.FC = () => {
                       variant="primary"
                       mode="filled"
                       size="medium"
-                      shape="pilled"
+                      shape="regular"
                       leadingIcon={<RiCheckLine className="w-5 h-5" />}
                       disabled={workApprovalMutation.isPending || isActionExpired}
                     />
@@ -501,7 +501,7 @@ export const GardenWork: React.FC = () => {
                       className="flex-1 touch-manipulation"
                       variant="neutral"
                       type="button"
-                      shape="pilled"
+                      shape="regular"
                       mode="stroke"
                       size="medium"
                       disabled={workApprovalMutation.isPending}
@@ -517,7 +517,7 @@ export const GardenWork: React.FC = () => {
                       variant={feedbackMode === "reject" ? "error" : "primary"}
                       mode="filled"
                       size="medium"
-                      shape="pilled"
+                      shape="regular"
                       leadingIcon={
                         feedbackMode === "approve" ? (
                           <RiCheckLine className="w-5 h-5" />
@@ -544,7 +544,7 @@ export const GardenWork: React.FC = () => {
   const successFooter =
     viewingMode === "operator" && isResolved ? (
       <div className="fixed left-0 right-0 bottom-0 z-sticky">
-        <div className="bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+        <div className="bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="max-w-screen-sm mx-auto flex items-center justify-center gap-2">
             {effectiveStatus === "approved" ? (
               <RiCheckLine className="w-5 h-5 text-success-base" />

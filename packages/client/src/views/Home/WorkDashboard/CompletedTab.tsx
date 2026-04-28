@@ -83,7 +83,7 @@ export const CompletedTab: React.FC<CompletedTabProps> = ({
       onRefresh={onRefresh}
       renderBadges={renderBadges}
       messages={COMPLETED_MESSAGES}
-      emptyIcon="📝"
+      emptyIcon={<RiCheckLine />}
       headerContent={
         <div className="flex items-center gap-2">
           <select

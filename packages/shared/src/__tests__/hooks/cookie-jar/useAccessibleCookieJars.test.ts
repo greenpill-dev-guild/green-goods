@@ -212,6 +212,8 @@ describe("hooks/cookie-jar/useAccessibleCookieJars", () => {
     expect(result.current.confirmedGardenCount).toBe(5);
     expect(result.current.eligibleGardenCount).toBe(3);
     expect(result.current.unconfirmedGardenCount).toBe(1);
+    expect(result.current.eligibilityErrorCount).toBe(1);
+    expect(result.current.hasEligibilityReadFailure).toBe(true);
     expect(result.current.jars).toHaveLength(3);
     expect(result.current.jars.map((jar) => jar.gardenAddress)).toEqual([
       GARDENER_GARDEN.toLowerCase(),
@@ -240,6 +242,8 @@ describe("hooks/cookie-jar/useAccessibleCookieJars", () => {
     expect(result.current.confirmedGardenCount).toBe(0);
     expect(result.current.eligibleGardenCount).toBe(0);
     expect(result.current.unconfirmedGardenCount).toBe(6);
+    expect(result.current.eligibilityErrorCount).toBe(6);
+    expect(result.current.hasEligibilityReadFailure).toBe(true);
     expect(result.current.jars).toEqual([]);
   });
 
@@ -266,6 +270,8 @@ describe("hooks/cookie-jar/useAccessibleCookieJars", () => {
 
     expect(result.current.moduleConfigured).toBe(false);
     expect(result.current.unconfirmedGardenCount).toBe(0);
+    expect(result.current.eligibilityErrorCount).toBe(0);
+    expect(result.current.hasEligibilityReadFailure).toBe(false);
     expect(result.current.jars).toEqual([]);
   });
 });

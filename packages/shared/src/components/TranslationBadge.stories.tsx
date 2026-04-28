@@ -1,3 +1,4 @@
+import { RiGlobalLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 
 /**
@@ -18,7 +19,7 @@ export default meta;
 export const TranslationBadgeVisual: StoryObj = {
   render: () => (
     <div className="inline-flex items-center gap-1 rounded-md bg-bg-soft px-2 py-1 text-xs text-text-soft">
-      <span>🌐</span>
+      <RiGlobalLine className="h-3.5 w-3.5" aria-hidden="true" />
       <span>Auto-translated</span>
     </div>
   ),
@@ -51,7 +52,7 @@ export const InContext: StoryObj = {
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold">Garden Description</h3>
           <div className="inline-flex items-center gap-1 rounded-md bg-bg-soft px-2 py-1 text-xs text-text-soft">
-            <span>🌐</span>
+            <RiGlobalLine className="h-3.5 w-3.5" aria-hidden="true" />
             <span>Auto-translated</span>
           </div>
         </div>
@@ -66,7 +67,7 @@ export const InContext: StoryObj = {
 export const DarkMode: StoryObj = {
   render: () => (
     <div className="inline-flex items-center gap-1 rounded-md bg-bg-soft px-2 py-1 text-xs text-text-soft">
-      <span>🌐</span>
+      <RiGlobalLine className="h-3.5 w-3.5" aria-hidden="true" />
       <span>Auto-translated</span>
     </div>
   ),

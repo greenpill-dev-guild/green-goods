@@ -68,6 +68,7 @@ export interface GardenCardProps extends GardenCardVariantProps {
   className?: string;
   onClick?: () => void;
   showOperators?: boolean;
+  showStats?: boolean;
   showDescription?: boolean;
   showBanner?: boolean;
   /** Translated labels - defaults to English */
@@ -87,6 +88,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
       className,
       onClick,
       showOperators = false,
+      showStats = true,
       showDescription = true,
       showBanner = true,
       labels: labelsProp,
@@ -110,6 +112,9 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
     const operatorCount = operatorAddresses.length;
 
     const classes = gardenCardVariants({ media, height, interactive });
+    const isMinimalSelection = height === "selection" && !showStats && !showOperators;
+    const mediaHeightClasses =
+      isMinimalSelection && media === "small" ? "h-24" : "h-26 @[300px]:h-32 @[400px]:h-40";
 
     const Wrapper = interactive ? "button" : "div";
 
@@ -119,6 +124,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
         data-testid="garden-card"
         className={cn(
           classes,
+          isMinimalSelection && "h-[13.25rem]",
           "rounded-2xl border border-border bg-bg-white-0 text-left",
           className
         )}
@@ -130,7 +136,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
           <div
             className={cn(
               // Container query: adapts to card width, not viewport
-              "h-26 @[300px]:h-32 @[400px]:h-40",
+              mediaHeightClasses,
               "relative w-full overflow-hidden"
             )}
           >
@@ -164,7 +170,9 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             {/* Garden name */}
             <h5
               className={cn(
-                "flex items-center text-lg font-semibold transition-colors line-clamp-1",
+                isMinimalSelection
+                  ? "min-w-0 truncate text-label-md font-semibold transition-colors"
+                  : "flex items-center text-lg font-semibold transition-colors line-clamp-1",
                 selected && "text-primary"
               )}
             >
@@ -172,38 +180,40 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
             </h5>
 
             {/* Stats badges */}
-            <div className="flex flex-row flex-wrap gap-1 text-xs text-text-sub-600 font-medium">
-              <Badge
-                variant="outline"
-                tint="none"
-                className="border-0 p-0 text-xs font-medium leading-tight"
-                leadingIcon={<RiGroupFill className="h-4 w-4 text-primary" />}
-              >
-                {membersCount} {labels.members}
-              </Badge>
-
-              {operatorCount > 0 && (
+            {showStats && (
+              <div className="flex flex-row flex-wrap gap-1 text-xs text-text-sub-600 font-medium">
                 <Badge
                   variant="outline"
                   tint="none"
                   className="border-0 p-0 text-xs font-medium leading-tight"
-                  leadingIcon={<RiMapPinUserFill className="h-4 w-4 text-primary" />}
+                  leadingIcon={<RiGroupFill className="h-4 w-4 text-primary" />}
                 >
-                  {operatorCount} {labels.operators}
+                  {membersCount} {labels.members}
                 </Badge>
-              )}
 
-              {garden.location && (
-                <Badge
-                  variant="outline"
-                  tint="none"
-                  className="border-0 p-0 text-xs font-medium leading-tight"
-                >
-                  <RiMapPinFill className="h-4 w-4 text-primary" />
-                  {garden.location}
-                </Badge>
-              )}
-            </div>
+                {operatorCount > 0 && (
+                  <Badge
+                    variant="outline"
+                    tint="none"
+                    className="border-0 p-0 text-xs font-medium leading-tight"
+                    leadingIcon={<RiMapPinUserFill className="h-4 w-4 text-primary" />}
+                  >
+                    {operatorCount} {labels.operators}
+                  </Badge>
+                )}
+
+                {garden.location && (
+                  <Badge
+                    variant="outline"
+                    tint="none"
+                    className="border-0 p-0 text-xs font-medium leading-tight"
+                  >
+                    <RiMapPinFill className="h-4 w-4 text-primary" />
+                    {garden.location}
+                  </Badge>
+                )}
+              </div>
+            )}
 
             {/* Operators list */}
             {showOperators && operatorCount > 0 && (
@@ -236,7 +246,14 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
 
             {/* Description */}
             {showDescription && garden.description && (
-              <p className="text-sm text-text-sub-600 line-clamp-3 flex-1">{garden.description}</p>
+              <p
+                className={cn(
+                  "text-sm text-text-sub-600 line-clamp-3",
+                  isMinimalSelection ? "h-[3.75rem] leading-5" : "flex-1"
+                )}
+              >
+                {garden.description}
+              </p>
             )}
           </div>
         </div>

@@ -117,6 +117,18 @@ export const ProfileBadges: React.FC = () => {
     () => sortBadges(badges.filter((badge) => badge.claimableNow)),
     [badges]
   );
+  const hasDisplayableBadges = earned.length > 0 || available.length > 0;
+
+  const renderEmptyState = () => (
+    <Card>
+      <p className="text-sm text-text-sub-600">
+        {intl.formatMessage({
+          id: "app.profile.badges.empty",
+          defaultMessage: "No badges found.",
+        })}
+      </p>
+    </Card>
+  );
 
   const renderAction = (badge: GreenWillBadgeView) => {
     if (badge.slug === "genesis") {
@@ -234,17 +246,8 @@ export const ProfileBadges: React.FC = () => {
     );
   }
 
-  if (isError) {
-    return (
-      <Card>
-        <p className="text-sm text-error-base">
-          {intl.formatMessage({
-            id: "app.profile.badges.error",
-            defaultMessage: "Could not load badges.",
-          })}
-        </p>
-      </Card>
-    );
+  if (isError || !hasDisplayableBadges) {
+    return renderEmptyState();
   }
 
   return (
@@ -281,16 +284,16 @@ export const ProfileBadges: React.FC = () => {
         </div>
       </Card>
 
-      <div className="flex flex-col gap-3">
-        <h5 className="text-label-md text-text-strong-950">
-          {intl.formatMessage({
-            id: "app.profile.badges.earned",
-            defaultMessage: "Earned badges",
-          })}
-        </h5>
+      {earned.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h5 className="text-label-md text-text-strong-950">
+            {intl.formatMessage({
+              id: "app.profile.badges.earned",
+              defaultMessage: "Earned badges",
+            })}
+          </h5>
 
-        {earned.length ? (
-          earned.map((badge) => (
+          {earned.map((badge) => (
             <Card key={badge.badgeId} className="flex flex-col gap-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -304,29 +307,20 @@ export const ProfileBadges: React.FC = () => {
                 </div>
               </div>
             </Card>
-          ))
-        ) : (
-          <Card>
-            <p className="text-sm text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.profile.badges.empty",
-                defaultMessage: "No badges yet.",
-              })}
-            </p>
-          </Card>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
-      <div className="flex flex-col gap-3">
-        <h5 className="text-label-md text-text-strong-950">
-          {intl.formatMessage({
-            id: "app.profile.badges.claimable",
-            defaultMessage: "Claimable badges",
-          })}
-        </h5>
+      {available.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h5 className="text-label-md text-text-strong-950">
+            {intl.formatMessage({
+              id: "app.profile.badges.claimable",
+              defaultMessage: "Claimable badges",
+            })}
+          </h5>
 
-        {available.length ? (
-          available.map((badge) => (
+          {available.map((badge) => (
             <Card key={badge.badgeId} className="flex flex-col gap-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
@@ -341,18 +335,9 @@ export const ProfileBadges: React.FC = () => {
               </div>
               <div>{renderAction(badge)}</div>
             </Card>
-          ))
-        ) : (
-          <Card>
-            <p className="text-sm text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.profile.badges.emptyDescription",
-                defaultMessage: "Claimable badges will appear here once this address qualifies.",
-              })}
-            </p>
-          </Card>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </>
   );
 };

@@ -19,6 +19,7 @@ export const worksKeys = {
       timeFilter,
       limit,
     ] as const,
+  mineByUser: (userAddress: string) => ["greengoods", "works", "mine", userAddress] as const,
   online: (gardenId: string, chainId: number) =>
     ["greengoods", "works", "online", gardenId, chainId] as const,
   offline: (gardenId: string) => ["greengoods", "works", "offline", gardenId] as const,

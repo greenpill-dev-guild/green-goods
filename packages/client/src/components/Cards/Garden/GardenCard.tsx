@@ -15,6 +15,7 @@ export type { GardenCardVariantProps } from "@green-goods/shared";
 
 export type GardenCardOptions = {
   showOperators?: boolean;
+  showStats?: boolean;
   showDescription?: boolean;
   showBanner?: boolean;
 };

@@ -32,9 +32,11 @@ const mockWorkFlowStore = {
   actionUID: null as number | null,
   gardenAddress: null as string | null,
   activeTab: 0, // WorkTab.Intro
+  selectedDomain: null as number | null,
   setActionUID: vi.fn(),
   setGardenAddress: vi.fn(),
   setActiveTab: vi.fn(),
+  setSelectedDomain: vi.fn(),
 };
 
 vi.mock("../../hooks/auth/useUser", () => ({
@@ -79,6 +81,10 @@ vi.mock("../../components/toast", () => ({
 
 vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
+  getDefaultChain: () => ({
+    chainId: 11155111,
+    rootGarden: { address: "root-garden" },
+  }),
 }));
 
 vi.mock("../../modules/work/work-submission", () => ({
@@ -157,6 +163,7 @@ describe("providers/WorkProvider", () => {
     mockWorkFlowStore.setActionUID.mockClear();
     mockWorkFlowStore.setGardenAddress.mockClear();
     mockWorkFlowStore.setActiveTab.mockClear();
+    mockWorkFlowStore.setSelectedDomain.mockClear();
 
     // Default mock: authenticated passkey user
     mockUseUser.mockReturnValue(
@@ -298,6 +305,35 @@ describe("providers/WorkProvider", () => {
       });
 
       expect(result.current.gardens.length).toBe(0);
+    });
+
+    it("exposes a joinable community garden separately from joined gardens", () => {
+      const userAddress = MOCK_ADDRESSES.smartAccount;
+      const memberGarden = createMockGarden({
+        id: "member-garden",
+        gardeners: [userAddress],
+        operators: [],
+      });
+      const communityGarden = createMockGarden({
+        id: "root-garden",
+        name: "Community Garden",
+        openJoining: true,
+        gardeners: [],
+        operators: [],
+      });
+
+      mockUseGardens.mockReturnValue({
+        data: [memberGarden, communityGarden],
+        isLoading: false,
+      });
+
+      const { result } = renderHook(() => useWork(), {
+        wrapper: createFullWrapper(),
+      });
+
+      expect(result.current.gardens.map((garden) => garden.id)).toEqual(["member-garden"]);
+      expect(result.current.hasJoinedGardens).toBe(true);
+      expect(result.current.joinableCommunityGarden?.id).toBe("root-garden");
     });
 
     it("handles case-insensitive address matching", () => {

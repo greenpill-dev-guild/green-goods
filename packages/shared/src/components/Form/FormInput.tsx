@@ -34,16 +34,8 @@ export const FormInput = forwardRef<HTMLInputElement, FormInputProps>(
         className={className}
       >
         <input
-          className={cn(
-            "block w-full bg-bg-white-0 rounded-sm py-3 px-4",
-            "text-text-strong-950 placeholder:text-text-soft-400 text-body-lg",
-            "shadow-[var(--edge-rest)]",
-            "transition-shadow duration-[var(--spring-effects-fast-duration,150ms)]",
-            "disabled:opacity-50 disabled:pointer-events-none",
-            error
-              ? "shadow-[0_0_0_1px_rgb(var(--error-base))] focus-visible:shadow-[var(--edge-focus)]"
-              : "focus-visible:shadow-[var(--edge-focus)]"
-          )}
+          className={cn("gg-control")}
+          data-invalid={!!error || undefined}
           aria-describedby={ariaDescribedBy}
           aria-invalid={!!error || undefined}
           {...props}

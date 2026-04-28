@@ -16,12 +16,26 @@ export const queryInvalidation = {
 
   invalidateOfflineState: () => queryKeys.offline.all,
 
-  onJobAdded: (gardenId: string, chainId: number) => [
-    queryKeys.queue.stats(),
-    queryKeys.queue.pendingCount(),
-    queryKeys.works.offline(gardenId),
-    queryKeys.works.merged(gardenId, chainId),
-  ],
+  onJobAdded: (gardenId: string, chainId: number, userAddress?: string) => {
+    const keys: Array<
+      | ReturnType<typeof queryKeys.queue.stats>
+      | ReturnType<typeof queryKeys.queue.pendingCount>
+      | ReturnType<typeof queryKeys.works.offline>
+      | ReturnType<typeof queryKeys.works.merged>
+      | ReturnType<typeof queryKeys.works.mineByUser>
+    > = [
+      queryKeys.queue.stats(),
+      queryKeys.queue.pendingCount(),
+      queryKeys.works.offline(gardenId),
+      queryKeys.works.merged(gardenId, chainId),
+    ];
+
+    if (userAddress) {
+      keys.push(queryKeys.works.mineByUser(userAddress));
+    }
+
+    return keys;
+  },
 
   onJobCompleted: (gardenId: string, chainId: number, userAddress?: string) => {
     const keys: Array<
@@ -31,6 +45,7 @@ export const queryInvalidation = {
       | ReturnType<typeof queryKeys.works.online>
       | ReturnType<typeof queryKeys.works.merged>
       | ReturnType<typeof queryKeys.works.approvals>
+      | ReturnType<typeof queryKeys.works.mineByUser>
     > = [
       queryKeys.queue.stats(),
       queryKeys.queue.pendingCount(),
@@ -43,6 +58,7 @@ export const queryInvalidation = {
 
     if (userAddress) {
       keys.push(queryKeys.works.approvals(userAddress, chainId));
+      keys.push(queryKeys.works.mineByUser(userAddress));
     }
 
     return keys;

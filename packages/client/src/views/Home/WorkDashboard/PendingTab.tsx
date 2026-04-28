@@ -27,13 +27,13 @@ interface PendingTabProps {
 const PENDING_MESSAGES = {
   itemCount: {
     id: "app.workDashboard.pending.itemsPending",
-    defaultMessage: "{count} items pending review",
+    defaultMessage: "{count} items in progress",
   },
   loading: { id: "app.workDashboard.loading", defaultMessage: "Loading pending work..." },
   emptyTitle: { id: "app.workDashboard.pending.noPending", defaultMessage: "No pending work" },
   emptyDescription: {
     id: "app.workDashboard.pending.description",
-    defaultMessage: "Work awaiting review will appear here",
+    defaultMessage: "Submitted work waiting to sync or review will appear here",
   },
 };
 
@@ -108,7 +108,7 @@ export const PendingTab: React.FC<PendingTabProps> = ({
       onRefresh={onRefresh}
       renderBadges={renderBadges}
       messages={PENDING_MESSAGES}
-      emptyIcon="⏳"
+      emptyIcon={<RiTimeLine />}
       headerContent={
         <div className="flex items-center gap-2">
           <select

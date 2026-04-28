@@ -81,8 +81,19 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
     queryFn: async () => {
       if (!activeAddress) return [];
 
-      // Fetch online works
-      const onlineWorksRaw = await getWorksByGardener(activeAddress, chainId);
+      // Fetch online works. In offline-inclusive mode, keep local queued work
+      // visible even when the indexer or network is unavailable.
+      let onlineWorksRaw: Awaited<ReturnType<typeof getWorksByGardener>>;
+      let onlineError: unknown;
+      try {
+        onlineWorksRaw = await getWorksByGardener(activeAddress, chainId);
+      } catch (error) {
+        if (!includeOffline) {
+          throw error;
+        }
+        onlineError = error;
+        onlineWorksRaw = [];
+      }
 
       // Deduplicate online works
       let works = deduplicateById(onlineWorksRaw);
@@ -90,6 +101,9 @@ export function useMyWorks(options: UseMyWorksOptions = {}) {
       // Merge offline works if requested
       if (includeOffline) {
         const offlineWorks = await fetchOfflineWorks(activeAddress);
+        if (onlineError && offlineWorks.length === 0) {
+          throw onlineError;
+        }
         works = mergeAndDeduplicateByClientId(works, offlineWorks);
       }
 

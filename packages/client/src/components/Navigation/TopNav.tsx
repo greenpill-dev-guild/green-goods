@@ -66,7 +66,7 @@ const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
       className={cn(
         "inline-flex items-center justify-center text-xs font-semibold text-primary-accent-foreground rounded-full",
         "min-w-[18px] h-[18px] px-1 bg-primary",
-        "shadow-sm border-2 border-white"
+        "shadow-sm border-2 border-bg-white-0"
       )}
     >
       {count > 99 ? "99+" : count}
@@ -144,7 +144,7 @@ const EndowmentButton: React.FC<{
       title={ariaLabel}
     >
       {hasDeposits && (
-        <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 border border-white" />
+        <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-success-base border border-bg-white-0" />
       )}
       <RiBankLine className={styles.icon} />
     </button>

@@ -196,7 +196,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
                   }
                   variant={hasCustomStyling ? undefined : isReject ? "error" : "primary"}
                   type="button"
-                  shape="pilled"
+                  shape="regular"
                   mode={hasCustomStyling ? undefined : isApprovalAction ? "filled" : "stroke"}
                   size="medium"
                   leadingIcon={a.icon ?? <RiDownloadLine className="w-6 h-6" />}

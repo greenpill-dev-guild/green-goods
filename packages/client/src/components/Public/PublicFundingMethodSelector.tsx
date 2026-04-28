@@ -131,7 +131,7 @@ export function PublicFundingMethodSelector({
         className="absolute inset-0"
         onClick={onClose}
       />
-      <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-t-3xl bg-bg-white-0 p-6 shadow-xl sm:max-w-lg sm:rounded-3xl">
+      <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-t-[var(--radius-lg)] bg-bg-white-0 p-6 shadow-xl sm:max-w-lg sm:rounded-3xl">
         <header className="mb-5 flex items-start justify-between gap-3">
           <h2
             id="public-fund-dialog-title"

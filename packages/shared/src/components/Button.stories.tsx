@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Button } from "./Button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./Form/Select";
 
 const meta: Meta<typeof Button> = {
   title: "Shared/Primitives/Button",
@@ -65,6 +66,26 @@ export const Gallery: Story = {
       <Button variant="secondary">Secondary</Button>
       <Button variant="ghost">Ghost</Button>
       <Button variant="danger">Danger</Button>
+    </div>
+  ),
+};
+
+export const ControlPairing: Story = {
+  render: () => (
+    <div className="flex flex-wrap items-center gap-3">
+      <Select defaultValue="system">
+        <SelectTrigger size="sm" className="w-36">
+          <SelectValue placeholder="System" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="light">Light</SelectItem>
+          <SelectItem value="dark">Dark</SelectItem>
+          <SelectItem value="system">System</SelectItem>
+        </SelectContent>
+      </Select>
+      <Button variant="secondary" size="sm">
+        Refresh
+      </Button>
     </div>
   ),
 };

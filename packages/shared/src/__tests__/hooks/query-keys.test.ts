@@ -118,6 +118,16 @@ describe("queryKeys", () => {
 
   it("keeps prefix-compatible list keys for works, assessments, and yield", () => {
     expectRooted(queryKeys.works.online(TEST_GARDEN, TEST_CHAIN_ID), queryKeys.works.all);
+    expect(queryKeys.works.mineByUser(TEST_USER)).toEqual([
+      "greengoods",
+      "works",
+      "mine",
+      TEST_USER,
+    ]);
+    expectRooted(
+      queryKeys.works.mine(TEST_USER, TEST_CHAIN_ID, true, "week", 50),
+      queryKeys.works.mineByUser(TEST_USER)
+    );
     expectRooted(
       queryKeys.assessments.byGarden(TEST_GARDEN, TEST_CHAIN_ID, 25),
       queryKeys.assessments.byGardenBase(TEST_GARDEN, TEST_CHAIN_ID)
@@ -191,6 +201,22 @@ describe("queryKeys", () => {
 });
 
 describe("queryInvalidation", () => {
+  it("invalidates queued user work when jobs are added", () => {
+    const baseKeys = queryInvalidation.onJobAdded(TEST_GARDEN, TEST_CHAIN_ID);
+    const userKeys = queryInvalidation.onJobAdded(TEST_GARDEN, TEST_CHAIN_ID, TEST_USER);
+
+    expect(baseKeys).toEqual(
+      expect.arrayContaining([
+        queryKeys.queue.stats(),
+        queryKeys.queue.pendingCount(),
+        queryKeys.works.offline(TEST_GARDEN),
+        queryKeys.works.merged(TEST_GARDEN, TEST_CHAIN_ID),
+      ])
+    );
+    expect(baseKeys).not.toContainEqual(queryKeys.works.mineByUser(TEST_USER));
+    expect(userKeys).toContainEqual(queryKeys.works.mineByUser(TEST_USER));
+  });
+
   it("fans out job completion invalidation across queue and works", () => {
     const baseKeys = queryInvalidation.onJobCompleted(TEST_GARDEN, TEST_CHAIN_ID);
     const userKeys = queryInvalidation.onJobCompleted(TEST_GARDEN, TEST_CHAIN_ID, TEST_USER);
@@ -207,6 +233,7 @@ describe("queryInvalidation", () => {
       ])
     );
     expect(userKeys).toContainEqual(queryKeys.works.approvals(TEST_USER, TEST_CHAIN_ID));
+    expect(userKeys).toContainEqual(queryKeys.works.mineByUser(TEST_USER));
   });
 
   it("falls back to root marketplace invalidation when scope is incomplete", () => {

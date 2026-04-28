@@ -15,6 +15,7 @@ import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
+import { EmptyState } from "@/components/Communication";
 
 export interface DraftsTabProps {
   className?: string;
@@ -86,7 +87,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     return (
       <div className="flex flex-col h-full">
         {headerContent && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
             {headerContent}
           </div>
         )}
@@ -109,7 +110,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     return (
       <div className="flex flex-col h-full">
         {headerContent && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
             {headerContent}
             <button
               onClick={() => refetchDrafts()}
@@ -123,25 +124,18 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
             </button>
           </div>
         )}
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
-            <RiDraftLine className="w-8 h-8 text-amber-600" />
-          </div>
-          <div>
-            <h3 className="font-medium text-text-strong-950">
-              {intl.formatMessage({
-                id: "app.drafts.empty.title",
-                defaultMessage: "No drafts yet",
-              })}
-            </h3>
-            <p className="text-sm text-text-sub-600 mt-1">
-              {intl.formatMessage({
-                id: "app.drafts.empty.description",
-                defaultMessage: "Drafts are automatically saved when you start adding photos",
-              })}
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          className="flex-1"
+          icon={<RiDraftLine />}
+          title={intl.formatMessage({
+            id: "app.drafts.empty.title",
+            defaultMessage: "No drafts yet",
+          })}
+          description={intl.formatMessage({
+            id: "app.drafts.empty.description",
+            defaultMessage: "Drafts are automatically saved when you start adding photos",
+          })}
+        />
       </div>
     );
   }
@@ -149,7 +143,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
         <div className="flex items-center gap-2">
           {headerContent}
           <span className="text-xs text-text-sub-600">

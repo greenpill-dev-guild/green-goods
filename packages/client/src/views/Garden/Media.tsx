@@ -442,7 +442,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                       className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg"
                       onClick={() => setPlayingVideoIndex(index)}
                     >
-                      <RiPlayFill className="w-12 h-12 text-white" />
+                      <RiPlayFill className="w-12 h-12 text-static-white" />
                     </button>
                   )}
                   {/* Remove button */}
@@ -484,7 +484,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
                   />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
-                    <RiZoomInLine className="w-12 h-12 text-white" />
+                    <RiZoomInLine className="w-12 h-12 text-static-white" />
                   </div>
                 </button>
                 <button

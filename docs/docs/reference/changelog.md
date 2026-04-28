@@ -89,7 +89,7 @@ This is the first official release of Green Goods — an offline-first platform 
 - Debug mode functionality (`?debug=true`)
 
 **Changed:**
-- `WorkDashboard` — new tabbed interface (Drafts, Pending, Completed, Uploading)
+- `WorkDashboard` — new tabbed interface (Draft, Pending, Completed)
 - `Login` view — redesigned with passkey-first flow
 - `TopNav` — operator-specific functionality and media upload improvements
 - `ImagePreviewDialog` — enhanced gallery with swipe gestures

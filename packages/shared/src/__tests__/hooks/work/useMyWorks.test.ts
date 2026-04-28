@@ -214,6 +214,26 @@ describe("useMyWorks", () => {
       expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
       expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith(onlineWorks, offlineWorks);
     });
+
+    it("returns offline queued works when online fetch fails and includeOffline is true", async () => {
+      const offlineWorks = [createMockWork({ id: "offline-queued-1" })];
+      mockGetWorksByGardener.mockRejectedValue(new Error("Indexer unavailable"));
+      mockFetchOfflineWorks.mockResolvedValue(offlineWorks);
+      mockDeduplicateById.mockReturnValue([]);
+      mockMergeAndDeduplicateByClientId.mockReturnValue(offlineWorks);
+
+      const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
+      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
+      expect(mockMergeAndDeduplicateByClientId).toHaveBeenCalledWith([], offlineWorks);
+      expect(result.current.data).toEqual(offlineWorks);
+    });
   });
 
   // ------------------------------------------
@@ -354,7 +374,7 @@ describe("useMyWorks", () => {
   // ------------------------------------------
 
   describe("error handling", () => {
-    it("propagates query errors", async () => {
+    it("propagates query errors when offline works are not included", async () => {
       mockGetWorksByGardener.mockRejectedValue(new Error("Network error"));
 
       const { result } = renderHook(() => useMyWorks(), {
@@ -366,6 +386,23 @@ describe("useMyWorks", () => {
       });
 
       expect(result.current.error?.message).toBe("Network error");
+      expect(mockFetchOfflineWorks).not.toHaveBeenCalled();
+    });
+
+    it("propagates the online error when includeOffline is true but no offline works exist", async () => {
+      mockGetWorksByGardener.mockRejectedValue(new Error("Indexer unavailable"));
+      mockFetchOfflineWorks.mockResolvedValue([]);
+
+      const { result } = renderHook(() => useMyWorks({ includeOffline: true }), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+
+      expect(mockFetchOfflineWorks).toHaveBeenCalledWith(MOCK_ADDRESSES.user);
+      expect(result.current.error?.message).toBe("Indexer unavailable");
     });
   });
 });

@@ -256,6 +256,39 @@ describe("ProfileBadges", () => {
     expect(screen.getByText("Earned badges")).toBeInTheDocument();
   });
 
+  it("renders one neutral empty state when no badges are returned", () => {
+    sharedMocks.useGreenWillBadges.mockReturnValueOnce({
+      badges: [],
+      earnedBadges: [],
+      claimableBadges: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+
+    expect(screen.getByText("No badges found.")).toBeInTheDocument();
+    expect(screen.queryByText("Earned badges")).not.toBeInTheDocument();
+    expect(screen.queryByText("Claimable badges")).not.toBeInTheDocument();
+  });
+
+  it("uses the neutral empty state when badge data errors", () => {
+    sharedMocks.useGreenWillBadges.mockReturnValueOnce({
+      badges: [],
+      earnedBadges: [],
+      claimableBadges: [],
+      isLoading: false,
+      isError: true,
+      error: new Error("indexer unavailable"),
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+
+    expect(screen.getByText("No badges found.")).toBeInTheDocument();
+    expect(screen.queryByText("Could not load badges.")).not.toBeInTheDocument();
+  });
+
   it("keeps first-support out of the claimable list until the badge is actually claimable", () => {
     render(wrap(createElement(ProfileBadges)));
 

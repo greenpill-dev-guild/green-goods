@@ -9,9 +9,11 @@ import {
   type VaultDeposit,
   validateDecimalInput,
 } from "@green-goods/shared";
+import { RiBankLine, RiErrorWarningLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
+import { EmptyState } from "@/components/Communication";
 import { MyDepositRow } from "./MyDepositRow";
 
 export interface TreasuryTabContentProps {
@@ -68,19 +70,22 @@ export function TreasuryTabContent({
       )}
 
       {vaultsError && (
-        <div
-          role="alert"
-          className="rounded-md border border-error-light bg-error-lighter px-3 py-2 text-xs text-error-dark"
-        >
-          <p>{formatMessage({ id: "app.treasury.errorLoading" })}</p>
-          <button
-            type="button"
-            onClick={() => refetchVaults?.()}
-            className="mt-2 rounded-lg bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover active:scale-95"
-          >
-            {formatMessage({ id: "app.common.tryAgain" })}
-          </button>
-        </div>
+        <EmptyState
+          tone="error"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({ id: "app.treasury.errorLoading" })}
+          action={
+            refetchVaults ? (
+              <button
+                type="button"
+                onClick={() => refetchVaults()}
+                className="rounded-[var(--radius-md)] bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover active:scale-95"
+              >
+                {formatMessage({ id: "app.common.tryAgain" })}
+              </button>
+            ) : null
+          }
+        />
       )}
 
       <section>
@@ -98,9 +103,11 @@ export function TreasuryTabContent({
           </div>
         )}
         {!vaultsLoading && vaults.length === 0 && (
-          <p className="mt-2 text-sm text-text-soft">
-            {formatMessage({ id: "app.treasury.noVault" })}
-          </p>
+          <EmptyState
+            className="mt-2 min-h-[9rem] rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0"
+            icon={<RiBankLine />}
+            title={formatMessage({ id: "app.treasury.noVault" })}
+          />
         )}
         {!vaultsLoading && vaults.length > 0 && (
           <div className="mt-2 space-y-2">

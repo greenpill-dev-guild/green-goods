@@ -6,7 +6,7 @@ import { useIntl } from "react-intl";
 export interface ModalDrawerTab {
   id: string;
   label: string;
-  icon?: string;
+  icon?: React.ReactNode;
   count?: number;
   badge?: React.ReactNode;
 }
@@ -94,7 +94,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
       <div
         ref={dialogRef}
         className={cn(
-          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col h-modal",
+          "bg-bg-white-0 rounded-t-[var(--radius-lg)] shadow-2xl w-full overflow-hidden flex flex-col h-modal",
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}

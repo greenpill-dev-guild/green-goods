@@ -50,6 +50,7 @@ export function useAccessibleCookieJars() {
 
   const { data: eligibilityResults, isLoading: isLoadingEligibility } = useReadContracts({
     contracts: eligibilityContracts,
+    allowFailure: true,
     query: {
       enabled: moduleConfigured && Boolean(primaryAddress) && gardens.length > 0,
       staleTime: STALE_TIME_MEDIUM,
@@ -67,6 +68,11 @@ export function useAccessibleCookieJars() {
       return { garden, eligible, confirmed };
     });
   }, [eligibilityResults, gardens, moduleConfigured, primaryAddress]);
+
+  const eligibilityErrorCount = useMemo(
+    () => (eligibilityResults ?? []).filter((result) => result?.status !== "success").length,
+    [eligibilityResults]
+  );
 
   const eligibleGardens = useMemo(
     () =>
@@ -89,6 +95,7 @@ export function useAccessibleCookieJars() {
 
   const { data: jarAddressResults, isLoading: isLoadingAddresses } = useReadContracts({
     contracts: jarAddressContracts,
+    allowFailure: true,
     query: {
       enabled: moduleConfigured && eligibleGardens.length > 0,
       staleTime: STALE_TIME_MEDIUM,
@@ -117,6 +124,11 @@ export function useAccessibleCookieJars() {
     return pairs;
   }, [eligibleGardens, jarAddressResults]);
 
+  const jarAddressErrorCount = useMemo(
+    () => (jarAddressResults ?? []).filter((result) => result?.status !== "success").length,
+    [jarAddressResults]
+  );
+
   const jarDetailContracts = useMemo(
     () =>
       jarGardenPairs.flatMap(({ jarAddress }) => [
@@ -137,11 +149,17 @@ export function useAccessibleCookieJars() {
 
   const { data: detailResults, isLoading: isLoadingDetails } = useReadContracts({
     contracts: jarDetailContracts,
+    allowFailure: true,
     query: {
       enabled: jarGardenPairs.length > 0,
       staleTime: STALE_TIME_MEDIUM,
     },
   });
+
+  const detailErrorCount = useMemo(
+    () => (detailResults ?? []).filter((result) => result?.status !== "success").length,
+    [detailResults]
+  );
 
   const currencyAddresses = useMemo(() => {
     if (!detailResults) return [];
@@ -167,11 +185,17 @@ export function useAccessibleCookieJars() {
 
   const { data: decimalsResults, isLoading: isLoadingDecimals } = useReadContracts({
     contracts: decimalsContracts,
+    allowFailure: true,
     query: {
       enabled: decimalsContracts.length > 0,
       staleTime: STALE_TIME_MEDIUM,
     },
   });
+
+  const decimalsErrorCount = useMemo(
+    () => (decimalsResults ?? []).filter((result) => result?.status !== "success").length,
+    [decimalsResults]
+  );
 
   const jars = useMemo<CookieJar[]>(() => {
     if (!detailResults) return [];
@@ -190,11 +214,12 @@ export function useAccessibleCookieJars() {
         const emergencyEnabled = detailResults[offset + 5]?.result as boolean | undefined;
         const minDeposit = detailResults[offset + 6]?.result as bigint | undefined;
 
-        if (currency === undefined || balance === undefined) return null;
-
         const tokenDecimals =
-          (decimalsResults?.[decimalsIndex]?.result as number | undefined) ?? 18;
-        decimalsIndex++;
+          currency !== undefined
+            ? ((decimalsResults?.[decimalsIndex++]?.result as number | undefined) ?? 18)
+            : 18;
+
+        if (currency === undefined || balance === undefined) return null;
 
         return {
           jarAddress,
@@ -220,5 +245,13 @@ export function useAccessibleCookieJars() {
     eligibleGardenCount: eligibleGardens.length,
     confirmedGardenCount: accessibleGardens.filter((check) => check.confirmed).length,
     unconfirmedGardenCount: accessibleGardens.filter((check) => !check.confirmed).length,
+    eligibilityErrorCount,
+    hasEligibilityReadFailure: eligibilityErrorCount > 0,
+    jarAddressErrorCount,
+    hasJarAddressReadFailure: jarAddressErrorCount > 0,
+    detailErrorCount,
+    hasDetailReadFailure: detailErrorCount > 0,
+    decimalsErrorCount,
+    hasDecimalsReadFailure: decimalsErrorCount > 0,
   };
 }

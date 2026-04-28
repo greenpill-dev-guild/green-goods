@@ -13,7 +13,7 @@ export const cardVariants = tv({
     },
     height: {
       home: "",
-      selection: "h-60",
+      selection: "h-[13.25rem]",
       default: "h-auto",
     },
   },
@@ -32,6 +32,8 @@ export type ActionCardRootProps = React.HTMLAttributes<HTMLDivElement> &
 const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
   ({ media, height, className, selected, action, ...props }, ref) => {
     const classes = cardVariants({ media, height, class: className });
+    const mediaHeightClasses = media === "small" ? "h-24" : "h-26 @[300px]:h-32 @[400px]:h-40";
+
     return (
       <Card
         ref={ref}
@@ -42,12 +44,12 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
         )}
         {...props}
       >
-        <div className={cn("relative h-26 @[300px]:h-32 @[400px]:h-40", "w-full")}>
+        <div className={cn("relative w-full", mediaHeightClasses)}>
           <ImageWithFallback
             src={action.media[0]}
             alt={action.description}
-            className="h-26 @[300px]:h-32 @[400px]:h-40 w-full object-cover image-lut z-1"
-            fallbackClassName="h-26 @[300px]:h-32 @[400px]:h-40 w-full"
+            className={cn("w-full object-cover image-lut z-1", mediaHeightClasses)}
+            fallbackClassName={cn("w-full", mediaHeightClasses)}
             backgroundFallback={
               <ActionBannerFallback domain={action.domain} title={action.title} />
             }
@@ -66,7 +68,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
             />
             <h5
               className={cn(
-                "min-w-0 truncate text-sm font-semibold leading-5",
+                "min-w-0 truncate text-label-md font-semibold",
                 selected && "text-primary"
               )}
               title={action.title}
@@ -74,7 +76,7 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
               {action.title}
             </h5>
           </div>
-          <div className="line-clamp-2 h-10 flex-1 text-sm leading-5 text-text-sub-600">
+          <div className="line-clamp-3 h-[3.75rem] text-sm leading-5 text-text-sub-600">
             {action.mediaInfo?.description}
           </div>
         </div>

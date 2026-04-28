@@ -56,4 +56,26 @@ describe("components/Cards/GardenCard", () => {
     await user.click(screen.getByText("Community Garden"));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
+
+  it("supports minimal selection cards that match action-card density", () => {
+    render(
+      <Wrapper>
+        <GardenCard
+          garden={garden as any}
+          media="small"
+          height="selection"
+          showStats={false}
+          showOperators={false}
+        />
+      </Wrapper>
+    );
+
+    expect(screen.getByTestId("garden-card").className).toContain("h-[13.25rem]");
+    expect(screen.getByText("Community Garden").className).toContain("text-label-md");
+    expect(screen.getByText("A beautiful community garden in the city center").className).toContain(
+      "h-[3.75rem]"
+    );
+    expect(screen.queryByText("San Francisco, CA")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Members/)).not.toBeInTheDocument();
+  });
 });

@@ -17,7 +17,11 @@ export interface ChainConfig {
   blockExplorer: string;
   /** RPC URL template (use {ALCHEMY_KEY} placeholder) */
   rpcTemplate?: string;
+  /** Public fallback RPC URL used when no provider key is configured */
+  publicRpcUrl?: string;
 }
+
+const DEFAULT_PUBLIC_RPC_URL = "https://ethereum-sepolia.publicnode.com";
 
 /**
  * Chain registry mapping chain IDs to their configurations
@@ -29,30 +33,35 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
     easName: "mainnet",
     blockExplorer: "https://etherscan.io",
     rpcTemplate: "https://eth-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
+    publicRpcUrl: "https://ethereum-rpc.publicnode.com",
   },
   42161: {
     name: "arbitrum",
     easName: "arbitrum-one",
     blockExplorer: "https://arbiscan.io",
     rpcTemplate: "https://arb-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
+    publicRpcUrl: "https://arb1.arbitrum.io/rpc",
   },
   42220: {
     name: "celo",
     easName: "celo",
     blockExplorer: "https://celoscan.io",
-    rpcTemplate: "https://forno.celo.org",
+    rpcTemplate: "https://celo-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
+    publicRpcUrl: "https://forno.celo.org",
   },
   10: {
     name: "optimism",
     easName: "optimism",
     blockExplorer: "https://optimistic.etherscan.io",
     rpcTemplate: "https://opt-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
+    publicRpcUrl: "https://mainnet.optimism.io",
   },
   137: {
     name: "polygon",
     easName: "polygon",
     blockExplorer: "https://polygonscan.com",
     rpcTemplate: "https://polygon-mainnet.g.alchemy.com/v2/{ALCHEMY_KEY}",
+    publicRpcUrl: "https://polygon-rpc.com",
   },
   // Testnet chains
   11155111: {
@@ -60,6 +69,7 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
     easName: "sepolia",
     blockExplorer: "https://sepolia.etherscan.io",
     rpcTemplate: "https://eth-sepolia.g.alchemy.com/v2/{ALCHEMY_KEY}",
+    publicRpcUrl: "https://ethereum-sepolia.publicnode.com",
   },
   // Local development
   31337: {
@@ -67,6 +77,7 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
     easName: "localhost",
     blockExplorer: "http://localhost:8545",
     rpcTemplate: "http://localhost:8545",
+    publicRpcUrl: "http://localhost:8545",
   },
 } as const;
 
@@ -78,6 +89,7 @@ export const DEFAULT_CHAIN_CONFIG: ChainConfig = {
   easName: "sepolia",
   blockExplorer: "https://sepolia.etherscan.io",
   rpcTemplate: "https://eth-sepolia.g.alchemy.com/v2/{ALCHEMY_KEY}",
+  publicRpcUrl: DEFAULT_PUBLIC_RPC_URL,
 };
 
 /** Returns the registered config, or DEFAULT_CHAIN_CONFIG if the chain is unknown. */
@@ -102,14 +114,23 @@ export function getBlockExplorer(chainId: number): string {
  *
  * @param chainId - The chain ID to look up
  * @param alchemyKey - Alchemy API key to substitute in the template
- * @returns RPC URL with the Alchemy key substituted
+ * @returns RPC URL with the provider key substituted, or a public fallback
  */
-export function getRpcUrl(chainId: number, alchemyKey: string = "demo"): string {
-  const template = getChainConfig(chainId).rpcTemplate;
+export function getRpcUrl(chainId: number, alchemyKey?: string): string {
+  const config = getChainConfig(chainId);
+  const template = config.rpcTemplate;
   if (!template) {
-    return `https://eth-sepolia.g.alchemy.com/v2/${alchemyKey}`;
+    return config.publicRpcUrl ?? DEFAULT_PUBLIC_RPC_URL;
   }
-  return template.replace("{ALCHEMY_KEY}", alchemyKey);
+
+  const normalizedKey = alchemyKey?.trim();
+  const hasProviderKey = Boolean(normalizedKey && normalizedKey !== "demo");
+
+  if (!hasProviderKey) {
+    return config.publicRpcUrl ?? template;
+  }
+
+  return template.replace("{ALCHEMY_KEY}", normalizedKey!);
 }
 
 /**

@@ -39,6 +39,10 @@ const meta: Meta<typeof GardenCard> = {
       control: "boolean",
       description: "Show operators section",
     },
+    showStats: {
+      control: "boolean",
+      description: "Show garden stats badges",
+    },
     showDescription: {
       control: "boolean",
       description: "Show description",
@@ -93,6 +97,16 @@ export const SelectionHeight: Story = {
   args: {
     garden: mockGarden,
     height: "selection",
+  },
+};
+
+export const MinimalSelection: Story = {
+  args: {
+    garden: mockGarden,
+    media: "small",
+    height: "selection",
+    showStats: false,
+    showOperators: false,
   },
 };
 

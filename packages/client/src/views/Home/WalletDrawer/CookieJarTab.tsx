@@ -9,9 +9,11 @@ import {
   useOffline,
   validateDecimalInput,
 } from "@green-goods/shared";
+import { RiErrorWarningLine, RiInboxLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
+import { EmptyState } from "@/components/Communication";
 
 interface JarCardProps {
   jar: CookieJar;
@@ -160,7 +162,14 @@ function JarCard({ jar, gardenName }: JarCardProps) {
 
 export const CookieJarTab: React.FC = () => {
   const { formatMessage } = useIntl();
-  const { jars, isLoading, moduleConfigured, unconfirmedGardenCount } = useAccessibleCookieJars();
+  const {
+    jars,
+    isLoading,
+    moduleConfigured,
+    unconfirmedGardenCount,
+    eligibilityErrorCount,
+    hasEligibilityReadFailure,
+  } = useAccessibleCookieJars();
   const { data: gardens = [] } = useGardens();
 
   // Group jars by garden
@@ -197,37 +206,41 @@ export const CookieJarTab: React.FC = () => {
 
   if (!moduleConfigured) {
     return (
-      <p className="p-4 text-sm text-text-soft">
-        {formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
-      </p>
+      <EmptyState
+        tone="warning"
+        icon={<RiErrorWarningLine />}
+        title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+      />
     );
   }
 
-  const unconfirmedMessage =
-    unconfirmedGardenCount > 0
+  const accessDiagnostic =
+    hasEligibilityReadFailure && unconfirmedGardenCount > 0
       ? formatMessage(
           {
             id: "app.cookieJar.walletEligibilityUnconfirmed",
             defaultMessage:
-              "{count, plural, one {# garden is hidden until onchain access can be confirmed.} other {# gardens are hidden until onchain access can be confirmed.}}",
+              "{count, plural, one {Could not confirm Cookie Jar access for # garden.} other {Could not confirm Cookie Jar access for # gardens.}}",
           },
-          { count: unconfirmedGardenCount }
+          { count: eligibilityErrorCount || unconfirmedGardenCount }
         )
       : null;
 
   if (jars.length === 0) {
     return (
-      <p className="p-4 text-sm text-text-soft">
-        {unconfirmedMessage ?? formatMessage({ id: "app.cookieJar.walletEmpty" })}
-      </p>
+      <EmptyState
+        icon={<RiInboxLine />}
+        title={formatMessage({ id: "app.cookieJar.walletEmpty" })}
+        description={formatMessage({ id: "app.cookieJar.walletEmptyDescription" })}
+      />
     );
   }
 
   return (
     <div className="space-y-4 p-4">
-      {unconfirmedMessage && (
+      {accessDiagnostic && (
         <p className="rounded-md border border-stroke-soft bg-bg-weak px-3 py-2 text-sm text-text-soft">
-          {unconfirmedMessage}
+          {accessDiagnostic}
         </p>
       )}
       {groupedJars.map((group) => (

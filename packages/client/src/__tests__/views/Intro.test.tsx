@@ -35,6 +35,18 @@ vi.mock("@green-goods/shared", () => {
 });
 
 // Mock child components used by WorkIntro
+vi.mock("@/components/Actions", () => ({
+  Button: ({
+    label,
+    onClick,
+    disabled,
+  }: {
+    label: string;
+    onClick?: () => void;
+    disabled?: boolean;
+  }) => createElement("button", { onClick, disabled, type: "button" }, label),
+}));
+
 vi.mock("@/components/Cards/Action/ActionCard", () => ({
   ActionCard: ({ action, selected }: { action: { title: string }; selected: boolean }) =>
     createElement(
@@ -115,6 +127,11 @@ const messages: Record<string, string> = {
   "app.garden.noActiveActions": "No active actions at this time.",
   "app.garden.noActionsConfigured": "No actions have been configured for this garden yet.",
   "app.garden.noGardensAvailable": "No gardens available. You may need to join a garden first.",
+  "app.garden.communityOnramp.action": "Join Community Garden",
+  "app.garden.communityOnramp.description":
+    "The Community Garden is open to everyone and gives you a place to submit your first work.",
+  "app.garden.communityOnramp.joining": "Joining...",
+  "app.garden.communityOnramp.title": "Join the Community Garden",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agro",
 };
@@ -241,6 +258,56 @@ describe("WorkIntro", () => {
     fireEvent.click(gardenCard.closest("[data-testid='carousel-item']")!);
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
+  });
+
+  it("keeps actions visible and shows an inline community join CTA with no joined gardens", () => {
+    const actions = [makeAction({ id: "action-1", title: "Plant Trees" })];
+    const communityGarden = makeGarden({
+      id: "0xCommunityGarden" as Address,
+      name: "Community Garden",
+      openJoining: true,
+    });
+
+    renderIntro({
+      actions,
+      gardens: [],
+      hasJoinedGardens: false,
+      joinableCommunityGarden: communityGarden,
+      onJoinCommunityGarden: vi.fn(),
+    });
+
+    expect(screen.getByTestId("action-card-Plant Trees")).toBeInTheDocument();
+    expect(screen.getByText("Join the Community Garden")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Community Garden" })).toBeInTheDocument();
+  });
+
+  it("fires onJoinCommunityGarden from the inline community CTA", () => {
+    const onJoinCommunityGarden = vi.fn();
+    const communityGarden = makeGarden({
+      id: "0xCommunityGarden" as Address,
+      name: "Community Garden",
+      openJoining: true,
+    });
+
+    renderIntro({
+      gardens: [],
+      hasJoinedGardens: false,
+      joinableCommunityGarden: communityGarden,
+      onJoinCommunityGarden,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Join Community Garden" }));
+
+    expect(onJoinCommunityGarden).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the passive empty state when no joinable community garden is available", () => {
+    renderIntro({ gardens: [], hasJoinedGardens: false, joinableCommunityGarden: null });
+
+    expect(
+      screen.getByText("No gardens available. You may need to join a garden first.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join Community Garden" })).not.toBeInTheDocument();
   });
 
   it("shows domain tabs when multiple domains exist", () => {

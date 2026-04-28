@@ -162,7 +162,7 @@ left ambiguous. They remain out of scope for this PWA hub.
 | `packages/client/src/views/Home/WorkDashboard/Drafts.tsx` | `199`-`202` | Stages 2 and 5 | Draft status colors in Stage 2; card details in Stage 5. |
 | `packages/client/src/views/Home/WorkDashboard/Icon.tsx` | `67`, `203`-`213` | Stage 2 | Work dashboard status map and focus/icon states. |
 | `packages/client/src/views/Home/WorkDashboard/index.tsx` | `214` | Stage 1 | Work dashboard bottom-sheet overlay cleanup. |
-| `packages/client/src/views/Home/WorkDashboard/Uploading.tsx` | `68`, `215` | Stage 2 | Upload/sync status map and control motion cleanup. |
+| `packages/client/src/views/Home/WorkDashboard/PendingTab.tsx` | `68`, `215` | Stage 2 | Pending sync/review status map and control motion cleanup. |
 | `packages/client/src/views/Login/components/LoadingSplash.tsx` | `69`, `70` | Stage 3 | Loading splash motion cleanup. |
 | `packages/client/src/views/Profile/ENSSection.tsx` | `216` | Stage 5 | ENS success/status icon cleanup. |
 | `packages/client/src/views/Profile/GardensList.tsx` | `71` | Stage 5 | Profile garden list control motion cleanup. |
@@ -202,7 +202,7 @@ Primary targets:
 - `packages/client/src/components/Communication/Progress/Progress.tsx`
 - `packages/client/src/views/Home/WorkDashboard/Icon.tsx`
 - `packages/client/src/components/Navigation/Tabs/StandardTabs.tsx`
-- `packages/client/src/views/Home/WorkDashboard/Uploading.tsx`
+- `packages/client/src/views/Home/WorkDashboard/PendingTab.tsx`
 - `packages/client/src/components/Dialogs/ConvictionDrawer.tsx`
 - `packages/client/src/views/Home/index.tsx`
 - `packages/client/src/views/Home/WalletDrawer/Icon.tsx`
