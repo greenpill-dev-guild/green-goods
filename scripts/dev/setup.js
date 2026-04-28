@@ -158,10 +158,10 @@ if (!fs.existsSync(".env")) {
       log.success("Created .env from .env.schema defaults\n");
 
       console.log(`${c.cyan}Recommended secret setup:${c.reset}
-  • 1Password CLI: https://developer.1password.com/docs/cli/get-started/
-  • Standard local setup: sign in to \`op\`, keep OP_ENABLE_ENVIRONMENT_LOAD=false, and add root-only \`*_OP_REF=op://...\` entries
+  • Baseline web dev: no shared secrets or 1Password required; leave \`*_OP_REF\`, OP_ENVIRONMENT, and OP_SERVICE_ACCOUNT_TOKEN blank
+  • Personal local credentials: set direct values in root \`.env\`
+  • Shared team/deploy/upload secrets: use 1Password \`*_OP_REF=op://...\` entries and sign in to \`op\`
   • CI/service-account setup: set OP_ENVIRONMENT and OP_ENABLE_ENVIRONMENT_LOAD=true for bulk loading
-  • Keep .env for non-secret defaults and local overrides
 
 See .env.schema for the full environment contract.\n`);
     } catch (error) {
@@ -181,11 +181,11 @@ See .env.schema for the full environment contract.\n`);
 // Next steps
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
 console.log(`${c.cyan}Next steps:${c.reset}
-  1. Set APP_ENV in .env, then either add \`*_OP_REF=op://...\` entries for local secrets or configure OP_ENVIRONMENT + OP_ENABLE_ENVIRONMENT_LOAD=true for service-account/bulk loading
-     • WalletConnect local secret: \`WALLETCONNECT_PROJECT_ID_OP_REF=op://<vault>/<item>/credential\`
+  1. Keep the generated .env defaults for baseline web dev. Add direct personal values only when needed; use 1Password OP refs for shared team/deploy/upload secrets.
+     • WalletConnect shared secret: \`WALLETCONNECT_PROJECT_ID_OP_REF=op://<vault>/<item>/credential\`
   2. Check role readiness: bun run dev:doctor -- --profile web
   3. Start frontend services: bun run dev:web
-     • Full stack with Docker/indexer/agent: bun run dev:full
+     • Full stack with Docker/indexer/agent: bun run dev
   4. Smoke frontend services: bun run dev:smoke:web
   5. Run tests: bun run test
 

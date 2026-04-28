@@ -55,7 +55,6 @@ export interface Config {
 
   // Analytics
   posthogApiKey?: string;
-  posthogHost: string;
   analyticsEnabled: boolean;
 
   // Environment
@@ -127,7 +126,6 @@ export function loadConfig(): Config {
 
     // Analytics
     posthogApiKey,
-    posthogHost: process.env.POSTHOG_HOST || "https://us.i.posthog.com",
     analyticsEnabled,
 
     // Environment

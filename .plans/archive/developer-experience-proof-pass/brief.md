@@ -1,7 +1,7 @@
 # Developer Experience Proof Pass
 
 **Slug**: `developer-experience-proof-pass`
-**Stage**: `backlog`
+**Stage**: `archive`
 **Priority**: `p2`
 **Created**: `2026-04-25`
 

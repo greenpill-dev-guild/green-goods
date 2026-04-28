@@ -21,6 +21,16 @@ Install **Node.js 22+** and **Git**. Install **Docker Desktop** if you plan to r
 
 Use GitHub's **Code** button to choose the SSH or HTTPS remote that matches your local Git setup. Then run the setup commands from the repo root.
 
+### Agent-Assisted Setup
+
+If you are using Codex, Claude Code, or another coding agent, start by loading [ONBOARDING.md](./ONBOARDING.md). It gives the agent the repo context, setup flow, environment model, and first-run checks before it starts changing files.
+
+```text
+Read ONBOARDING.md and AGENTS.md, then walk me through first-time setup for this repo.
+Start with prerequisites, run npm run setup, check web readiness, start the browser
+stack, and explain any env blockers before making changes.
+```
+
 ### Setup
 
 #### Install dependencies
@@ -181,7 +191,7 @@ Paid implementation work is grant-dependent and must be clearly scoped with main
 - [Operations](https://docs.greengoods.app/builders/operations) - build, deploy, environment, and workflow references
 - [How to Contribute](https://docs.greengoods.app/builders/how-to-contribute) - contributor workflow and expectations
 
-### AI-Assisted Development
+### Agent References
 
 - [ONBOARDING.md](./ONBOARDING.md) - paste into Claude Code on day one for a guided setup walkthrough
 - [AGENTS.md](./AGENTS.md) - runtime rules and repo invariants for Codex and other coding agents

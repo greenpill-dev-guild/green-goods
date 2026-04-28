@@ -127,7 +127,6 @@ DB_PATH=data/agent.db         # SQLite database path
 
 # Analytics (optional, enabled in production)
 POSTHOG_AGENT_KEY=phc_...     # PostHog API key from https://posthog.com
-POSTHOG_HOST=https://us.i.posthog.com  # PostHog host
 ANALYTICS_ENABLED=true        # Enable/disable analytics
 ```
 
@@ -242,4 +241,3 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 - [ ] Set up monitoring for `/health` endpoint
 - [ ] Configure `POSTHOG_AGENT_KEY` for analytics
 - [ ] Review analytics events in PostHog dashboard
-

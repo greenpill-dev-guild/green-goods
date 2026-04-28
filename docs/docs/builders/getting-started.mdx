@@ -74,8 +74,8 @@ git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
 npm run setup                         # first-clone bridge: deps, packages, .env
 bun run dev:doctor -- --profile web   # non-mutating web readiness check
-bun run dev:web                       # starts client, admin, and docs
-bun run dev:smoke:web                 # confirms client/admin/docs respond locally
+bun run dev:web                       # starts client, admin, docs, and Storybook
+bun run dev:smoke:web                 # confirms browser surfaces respond locally
 ```
 
 `npm run setup` is the only npm entrypoint in the normal workflow. It exists because a fresh machine may not have Bun installed yet. After setup, use `bun run ...` for package operations and repo scripts.
@@ -93,10 +93,10 @@ The setup script (`scripts/dev/setup.js`) runs through four steps:
 
 | Role | Required local state | First command |
 | --- | --- | --- |
-| Frontend QA | Node.js, Git, Bun from setup, root `.env`, ports 3001/3002/3003 available | `bun run dev:doctor -- --profile web` |
+| Frontend QA | Node.js, Git, Bun from setup, root `.env`, ports 3001/3002/3003/6006 available | `bun run dev:doctor -- --profile web` |
 | Full-stack / indexer | Frontend QA plus Docker, `packages/indexer/generated`, and generated dependencies | `bun run dev:doctor -- --profile full` |
 | Contracts | Frontend QA plus Foundry | `bun run dev:doctor -- --profile contracts` |
-| Upload-capable QA | Frontend QA plus `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
+| Upload-capable QA | Frontend QA plus `PINATA_JWT_OP_REF=op://...` or `VITE_PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
 
 Run `bun run dev:doctor -- --profile web|full|contracts|upload` any time you need a non-mutating check of the current machine. It reports missing tools, Docker state, Pinata readiness, passkey RP ID posture, indexer generated state, stale environment keys, and port conflicts without printing secret values. Add `--json` for machine-readable output in CI, containers, or agent workflows.
 
@@ -106,21 +106,21 @@ Run `bun run dev:doctor -- --profile web|full|contracts|upload` any time you nee
 
 Green Goods uses one root `.env` plus committed `.env.schema` validation. Do not create package-level env files.
 
-Most local web work starts with the generated defaults. Add secrets only for the workflow you are testing.
+Most local web work starts with the generated defaults and does not require 1Password. Add secrets only for the workflow you are testing.
 
 | Variable | Role |
 | --- | --- |
 | `APP_ENV` | Environment selector (`development`, `test`, `staging`, `production`) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (e.g. `11155111` for Sepolia, `42161` for Arbitrum) |
 | `VITE_PASSKEY_RP_ID` | Optional passkey relying-party override. Leave blank for localhost development fallback; set `localhost` for explicit local passkey QA. |
-| `PINATA_JWT` | Pinata JWT for the shared IPFS upload path |
+| `VITE_PINATA_JWT` | Upload-capable Pinata JWT for the current browser-facing shared IPFS upload path. `PINATA_JWT` is generated from it as a script compatibility alias. Not required for baseline web dev. |
 | `SEPOLIA_RPC_URL` | RPC endpoint for Sepolia fork tests |
-| `*_OP_REF` | Optional 1Password CLI reference for a local secret, such as `PINATA_JWT_OP_REF=op://vault/item/field` |
-| `OP_ENVIRONMENT` / `OP_SERVICE_ACCOUNT_TOKEN` | Optional bulk-loading path for CI, service accounts, or newer 1Password CLI environment flows |
+| `*_OP_REF` | Optional 1Password CLI reference for shared team, upload, deploy, or CI secrets, such as `PINATA_JWT_OP_REF=op://vault/item/field` |
+| `OP_ENVIRONMENT` / `OP_SERVICE_ACCOUNT_TOKEN` | Optional bulk-loading path for CI, service accounts, or newer 1Password CLI environment flows. Leave blank for baseline local web dev. |
 
 Use `.env.schema` as the full environment contract. Variables prefixed with `VITE_` are embedded into frontend bundles at build time.
 
-For normal local development, either put non-shared local values directly in `.env` or sign in to the `op` CLI and use root-only `*_OP_REF=op://...` references. For CI workflows or service-account usage, set `OP_SERVICE_ACCOUNT_TOKEN`, set `OP_ENVIRONMENT`, and enable `OP_ENABLE_ENVIRONMENT_LOAD=true`.
+For personal local-only credentials, put direct values in root `.env`. For shared Green Goods credentials, upload-capable QA, deploys, and CI, use 1Password `*_OP_REF=op://...` references and sign in to the `op` CLI. For CI workflows or service-account usage, set `OP_SERVICE_ACCOUNT_TOKEN`, set `OP_ENVIRONMENT`, and enable `OP_ENABLE_ENVIRONMENT_LOAD=true`.
 
 ## Running services
 
@@ -133,14 +133,15 @@ For normal local development, either put non-shared local values directly in `.e
 | `client` | `packages/client` | 3001 |
 | `admin` | `packages/admin` | 3002 |
 | `docs` | `docs` | 3003 |
+| `storybook` | `packages/shared` | 6006 |
 
 This is the recommended first target for onboarding and frontend QA because it avoids Docker, indexer generated-code setup, and agent credentials.
 
-After the processes are up, run `bun run dev:smoke:web` in another terminal. It reruns the web doctor, then checks that the client, admin, and docs respond on their local ports.
+After the processes are up, run `bun run dev:smoke:web` in another terminal. It reruns the web doctor, then checks that the client, admin, docs, and Storybook respond on their local ports.
 
 ### Full stack
 
-`bun run dev:full` launches every service through PM2:
+`bun run dev` launches every service through PM2:
 
 | PM2 process | Package | Default port |
 | --- | --- | --- |
@@ -154,8 +155,6 @@ After the processes are up, run `bun run dev:smoke:web` in another terminal. It 
 | `storybook` | `packages/shared` | 6006 |
 
 Stop everything with `bun run dev:stop`.
-
-`bun run dev` is an alias for `bun run dev:full`.
 
 ### Individual packages
 
@@ -172,12 +171,12 @@ bun run dev:agent       # Agent bot
 
 ### Mobile device testing
 
-Green Goods is a mobile-first PWA, so testing on a real phone is essential. When you run `bun run dev:full`, a cloudflared tunnel starts automatically alongside the other services. It creates a temporary public HTTPS URL (e.g. `https://random-words.trycloudflare.com`) that points to your local client on port 3001.
+Green Goods is a mobile-first PWA, so testing on a real phone is essential. When you run `bun run dev`, a cloudflared tunnel starts automatically alongside the other services. It creates a temporary public HTTPS URL (e.g. `https://random-words.trycloudflare.com`) that points to your local client on port 3001.
 
 Once the tunnel is ready, the **landing page QR code** automatically switches to the tunnel URL. Open `https://localhost:3001` on your laptop and scan the QR code with your phone — you'll get the full PWA experience including service worker, install prompts, and passkey auth.
 
 ```bash
-# Tunnel starts automatically with bun run dev:full.
+# Tunnel starts automatically with bun run dev.
 # To run it standalone (e.g. for the admin dashboard):
 bun run dev:tunnel                    # default: port 3001
 bun run dev:tunnel -- --port 3002     # admin on port 3002
@@ -198,10 +197,10 @@ Then navigate to `https://localhost:3001` on Android Chrome. Since `localhost` i
 <StepFlow
   steps={[
     {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*` for conventions."},
-    {title: "Configure env bootstrap", detail: "Set `APP_ENV` in root `.env`. Add only the secrets needed for your workflow. Use root `.env` only -- never add package-level env files."},
+    {title: "Configure env bootstrap", detail: "Keep the generated root `.env` for baseline web dev. Add direct personal values only when needed; use 1Password refs for shared team, deploy, upload, or CI secrets. Never add package-level env files."},
     {title: "Check role readiness", detail: "Run `bun run dev:doctor -- --profile web` before debugging setup. It does not mutate files or start services."},
-    {title: "Start services", detail: "Run `bun run dev:web` for frontend QA or `bun run dev:full` for the full Docker-backed stack."},
-    {title: "Smoke the web stack", detail: "Run `bun run dev:smoke:web` once client/admin/docs are starting. It verifies local HTTP/HTTPS reachability."},
+    {title: "Start services", detail: "Run `bun run dev:web` for frontend QA or `bun run dev` for the full Docker-backed stack."},
+    {title: "Smoke the web stack", detail: "Run `bun run dev:smoke:web` once client/admin/docs/Storybook are starting. It verifies local HTTP/HTTPS reachability."},
     {title: "Run the quality gate", detail: "Run `bun run format:check`, `bun run lint`, `bun run test`, and `bun run build` before pushing changes."},
   ]}
 />
@@ -238,13 +237,13 @@ bun run format
 | `forge: command not found` | Foundry not installed | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
 | Indexer fails to start | Docker not running | Start Docker Desktop, then retry `bun run dev:indexer` |
 | `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `npm run setup` or run `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env` |
-| `Pinata forbidden` or upload fails | Missing Pinata JWT | Add `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` to root `.env`, then rerun `bun run dev:doctor -- --profile upload` |
-| Client PM2 process is online but `localhost:3001` does not respond | Varlock env validation failed before Vite bound the port | Run `bun run dev:doctor -- --profile web`; remove stale `STORACHA_*` entries, then sign in to `op` or remove OP refs not needed for your role |
+| `Pinata forbidden` or upload fails | Missing Pinata JWT | Add `PINATA_JWT_OP_REF=op://...` or `VITE_PINATA_JWT` to root `.env`, then rerun `bun run dev:doctor -- --profile upload` |
+| Client PM2 process is online but `localhost:3001` does not respond | Varlock env validation failed before Vite bound the port | Run `bun run dev:doctor -- --profile web`; for baseline web dev, remove active non-schema `*_OP_REF=op://...` entries or use direct local values. For shared-secret workflows, sign in to `op`. Remove stale `STORACHA_*` entries. |
 | `bun run dev:smoke:web` fails before checking ports | Web doctor failed | Fix the doctor failures first; smoke only probes services after the web profile is ready. |
 | Passkey registration fails on localhost | RP ID mismatch | Leave `VITE_PASSKEY_RP_ID` blank for fallback behavior, or set `VITE_PASSKEY_RP_ID=localhost` for local passkey QA |
 | Port 3001/3002 in use | Another dev server running | Kill the process or change the port in the package's Vite config |
 | `bun install` hangs | Stale dependency state | Delete `node_modules`, then `bun install` |
-| No QR code on landing page | cloudflared not installed | `brew install cloudflared`, then restart `bun run dev:full` |
+| No QR code on landing page | cloudflared not installed | `brew install cloudflared`, then restart `bun run dev` |
 | Tunnel URL not appearing | Client not ready yet | The tunnel waits up to 60s for port 3001 — check PM2 logs with `bunx pm2 logs tunnel` |
 
 ## Non-negotiables

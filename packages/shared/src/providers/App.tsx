@@ -20,6 +20,8 @@ const messages = {
   es: esMessages,
 };
 
+const POSTHOG_API_HOST = "https://us.i.posthog.com";
+
 export type InstallState = "idle" | "not-installed" | "installed" | "unsupported";
 export const supportedLanguages = ["en", "pt", "es"] as const;
 export type Locale = (typeof supportedLanguages)[number];
@@ -253,7 +255,7 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
       <PostHogProvider
         apiKey={apiKey}
         options={{
-          api_host: import.meta.env.VITE_POSTHOG_HOST,
+          api_host: POSTHOG_API_HOST,
           capture_exceptions: true,
           debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
         }}

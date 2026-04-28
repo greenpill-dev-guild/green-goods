@@ -70,11 +70,11 @@ Run repo-level quick verification when a client change reaches into `packages/sh
 
 ## Testing on a real device
 
-The client is a mobile-first PWA — testing on a real phone is part of the dev workflow. When `bun run dev:full` is running, a cloudflared tunnel automatically creates a temporary public HTTPS URL pointing to your local client on port 3001.
+The client is a mobile-first PWA — testing on a real phone is part of the dev workflow. When `bun run dev` is running, a cloudflared tunnel automatically creates a temporary public HTTPS URL pointing to your local client on port 3001.
 
 **How it works:**
 
-1. Run `bun run dev:full` — the `tunnel` PM2 service starts alongside the client
+1. Run `bun run dev` — the `tunnel` PM2 service starts alongside the client
 2. Open `https://localhost:3001` on your laptop
 3. The landing page QR code automatically shows the tunnel URL
 4. Scan the QR code with your phone — full PWA with service worker, install prompt, and passkey auth

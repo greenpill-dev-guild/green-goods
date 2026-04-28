@@ -22,10 +22,6 @@
  *   POSTHOG_CLI_TOKEN          API token with error-tracking:write scope
  *   POSTHOG_CLIENT_ENV_ID      PostHog environment ID for client uploads
  *   POSTHOG_ADMIN_ENV_ID       PostHog environment ID for admin uploads
- *
- * Optional environment variables:
- *   POSTHOG_CLI_HOST           PostHog app/API host (default: https://us.posthog.com)
- *
  * @see https://posthog.com/docs/error-tracking/upload-source-maps/cli
  */
 
@@ -314,7 +310,6 @@ function showHelp() {
   console.log("  POSTHOG_CLI_TOKEN       Required for production deploys and local uploads");
   console.log("  POSTHOG_CLIENT_ENV_ID   Required for client production deploys and uploads");
   console.log("  POSTHOG_ADMIN_ENV_ID    Required for admin production deploys and uploads");
-  console.log("  POSTHOG_CLI_HOST        Optional: PostHog app/API host (default: https://us.posthog.com)");
   console.log("");
   console.log("Examples:");
   console.log("  node scripts/ops/upload-sourcemaps.js --app client --deploy  # Vercel deploy build");
@@ -457,7 +452,7 @@ async function uploadSourceMapsForApp(appName) {
   // Build environment for CLI commands
   const cliEnv = {
     POSTHOG_CLI_API_KEY: process.env.POSTHOG_CLI_TOKEN,
-    POSTHOG_CLI_HOST: process.env.POSTHOG_CLI_HOST || "https://us.posthog.com",
+    POSTHOG_CLI_HOST: "https://us.posthog.com",
   };
   // Only include env ID if provided
   if (envId) {
@@ -574,7 +569,6 @@ async function main() {
         NODE_ENV: "production",
         VITE_USE_HASH_ROUTER: "false",
         VITE_CHAIN_ID: chainId,
-        VITE_POSTHOG_HOST: "https://app.posthog.com",
       };
 
       try {

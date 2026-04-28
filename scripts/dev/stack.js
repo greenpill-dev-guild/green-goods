@@ -4,7 +4,7 @@
  * Start or stop PM2-backed development stacks.
  *
  * Groups:
- * - web: client, admin, docs
+ * - web: client, admin, docs, storybook
  * - full: every app in ecosystem.config.cjs
  */
 
@@ -23,7 +23,7 @@ const ecosystem = require(path.join(projectRoot, "ecosystem.config.cjs"));
 const mode = process.argv[2] || "full";
 const allApps = ecosystem.apps || [];
 const groups = {
-  web: ["docs", "admin", "client"],
+  web: ["docs", "admin", "client", "storybook"],
   full: allApps.map((app) => app.name),
 };
 

@@ -30,7 +30,6 @@ declare namespace NodeJS {
 
     // Analytics
     POSTHOG_AGENT_KEY?: string;
-    POSTHOG_HOST?: string;
     ANALYTICS_ENABLED?: string;
 
     // Chain

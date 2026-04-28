@@ -4,18 +4,61 @@
  * Non-mutating web stack smoke check.
  *
  * Run after `bun run dev:web` is starting or already running. The script first
- * runs the web doctor, then verifies that client/admin/docs respond locally.
+ * runs the web doctor, then verifies that client/admin/docs/storybook respond locally.
  */
 
 import http from "node:http";
 import https from "node:https";
 import { spawnSync } from "node:child_process";
+import { accessSync, constants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
+
+function findSystemNode() {
+  const executable = process.platform === "win32" ? "node.exe" : "node";
+  const pathEntries = (process.env.PATH || "").split(path.delimiter);
+
+  for (const entry of pathEntries) {
+    if (!entry || entry.includes("bun-node") || entry.includes(`${path.sep}.bun${path.sep}bin`)) {
+      continue;
+    }
+
+    const candidate = path.join(entry, executable);
+    try {
+      accessSync(candidate, constants.X_OK);
+      return candidate;
+    } catch {
+      // Keep scanning PATH.
+    }
+  }
+
+  return "";
+}
+
+function reexecUnderSystemNodeIfNeeded() {
+  if (!process.versions.bun || process.env.GREEN_GOODS_SMOKE_NODE_REEXEC === "1") return;
+
+  const systemNode = findSystemNode();
+  if (!systemNode) return;
+
+  const result = spawnSync(systemNode, [__filename, ...process.argv.slice(2)], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      GREEN_GOODS_SMOKE_NODE_REEXEC: "1",
+    },
+    stdio: "inherit",
+  });
+
+  if (result.error) return;
+  process.exit(result.status ?? (result.signal ? 1 : 0));
+}
+
+reexecUnderSystemNodeIfNeeded();
 
 const services = [
   {
@@ -32,6 +75,11 @@ const services = [
     name: "docs",
     port: 3003,
     urls: ["http://localhost:3003", "https://localhost:3003"],
+  },
+  {
+    name: "storybook",
+    port: 6006,
+    urls: ["http://localhost:6006"],
   },
 ];
 

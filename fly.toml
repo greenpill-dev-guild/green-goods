@@ -30,7 +30,6 @@ kill_timeout = '30s'
   HOST = '0.0.0.0'
   NODE_ENV = 'production'
   PORT = '8080'
-  POSTHOG_HOST = 'https://us.i.posthog.com'
   WEBHOOK_URL = 'https://green-goods.fly.dev'
 
 [[mounts]]

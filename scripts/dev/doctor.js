@@ -31,6 +31,7 @@ const profilePorts = {
     { port: 3001, label: "client" },
     { port: 3002, label: "admin" },
     { port: 3003, label: "docs" },
+    { port: 6006, label: "storybook" },
   ],
   full: [
     { port: 3001, label: "client" },
@@ -64,6 +65,8 @@ const marks = {
 
 const results = [];
 let opReady = null;
+
+const uploadOpRefKeys = new Set(["PINATA_JWT_OP_REF"]);
 
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
@@ -179,8 +182,23 @@ function hasOpRef(value) {
   return /^op:\/\//.test(value.trim());
 }
 
-function opRefEntries(envFile) {
-  return Object.entries(envFile).filter(([, value]) => hasOpRef(value));
+function schemaOpRefKeys(schema) {
+  return new Set(Object.keys(schema).filter((key) => key.endsWith("_OP_REF")));
+}
+
+function opRefEntries(envFile, allowedKeys = null) {
+  return Object.entries(envFile).filter(
+    ([key, value]) => hasOpRef(value) && (!allowedKeys || allowedKeys.has(key))
+  );
+}
+
+function ignoredOpRefEntries(envFile, allowedKeys) {
+  return Object.entries(envFile).filter(([key, value]) => hasOpRef(value) && !allowedKeys.has(key));
+}
+
+function opRefRequiredForCurrentProfile(key) {
+  if (uploadOpRefKeys.has(key)) return options.profile === "upload";
+  return true;
 }
 
 function checkPortHost(port, host) {
@@ -298,8 +316,46 @@ function checkDocker() {
   }
 }
 
-function checkOpReadiness(envFile) {
-  const opRefs = opRefEntries(envFile);
+function checkIgnoredSecretConfig(envFile, schema) {
+  const activeOpRefKeys = schemaOpRefKeys(schema);
+  const ignoredOpRefs = ignoredOpRefEntries(envFile, activeOpRefKeys);
+  if (ignoredOpRefs.length > 0) {
+    add(
+      "warn",
+      "Root .env contains ignored 1Password refs",
+      ignoredOpRefs
+        .map(([key]) => key)
+        .sort()
+        .join(", "),
+      "Remove stale OP refs from root .env, or add them to .env.schema only when they are part of the supported contract.",
+      { check: "env:ignored-op-refs" }
+    );
+  }
+
+  const bulkEnabled = valueFor(envFile, "OP_ENABLE_ENVIRONMENT_LOAD").toLowerCase() === "true";
+  const opEnvironment = valueFor(envFile, "OP_ENVIRONMENT");
+  if (!bulkEnabled && hasUsableValue(opEnvironment)) {
+    add(
+      "info",
+      "1Password bulk environment is configured but disabled",
+      "OP_ENVIRONMENT is ignored while OP_ENABLE_ENVIRONMENT_LOAD=false.",
+      "",
+      { check: "env:op-bulk-disabled" }
+    );
+  }
+}
+
+function activeOpDetail(opRefs, usesBulkOp) {
+  const parts = [];
+  if (opRefs.length > 0) parts.push(`${opRefs.length} schema-backed OP ref(s)`);
+  if (usesBulkOp) parts.push("bulk environment loading");
+  return `${parts.join(" and ")} configured.`;
+}
+
+function checkOpReadiness(envFile, schema) {
+  const opRefs = opRefEntries(envFile, schemaOpRefKeys(schema)).filter(([key]) =>
+    opRefRequiredForCurrentProfile(key)
+  );
   const usesBulkOp = valueFor(envFile, "OP_ENABLE_ENVIRONMENT_LOAD").toLowerCase() === "true";
   if (opRefs.length === 0 && !usesBulkOp) {
     opReady = true;
@@ -311,8 +367,8 @@ function checkOpReadiness(envFile) {
     add(
       "fail",
       "1Password CLI is not installed",
-      `${opRefs.length} OP ref(s) or bulk environment loading are configured.`,
-      "Install the 1Password CLI, or remove OP refs not needed on this machine.",
+      activeOpDetail(opRefs, usesBulkOp),
+      "Install the 1Password CLI, or replace active OP refs with direct root .env values for local-only work.",
       { check: "op-cli" }
     );
     return;
@@ -326,9 +382,15 @@ function checkOpReadiness(envFile) {
 
   if (opStatus.status === 0) {
     opReady = true;
-    add("pass", "1Password CLI signed in", `${opRefs.length} OP ref(s) can be resolved locally.`, "", {
-      check: "op-cli",
-    });
+    add(
+      "pass",
+      "1Password CLI signed in",
+      activeOpDetail(opRefs, usesBulkOp).replace("configured.", "can be resolved locally."),
+      "",
+      {
+        check: "op-cli",
+      }
+    );
     return;
   }
 
@@ -336,8 +398,8 @@ function checkOpReadiness(envFile) {
   add(
     "fail",
     "1Password CLI is not signed in",
-    `${opRefs.length} OP ref(s) or bulk environment loading are configured.`,
-    "Run op signin, unlock the desktop app, or remove OP refs not needed for this role.",
+    activeOpDetail(opRefs, usesBulkOp),
+    "Run op signin, or replace active OP refs with direct root .env values for local-only work.",
     { check: "op-cli" }
   );
 }
@@ -373,12 +435,15 @@ function checkEnv() {
     );
   }
 
-  checkOpReadiness(envFile);
+  checkIgnoredSecretConfig(envFile, schema);
+  checkOpReadiness(envFile, schema);
 
   const vitePinataJwt = valueFor(envFile, "VITE_PINATA_JWT");
-  const pinataUploadJwtOpRef = valueFor(envFile, "PINATA_UPLOAD_JWT_OP_REF");
+  const pinataJwtOpRef = valueFor(envFile, "PINATA_JWT_OP_REF");
   const pinataJwt = valueFor(envFile, "PINATA_JWT");
-  const hasPinataBrowser = hasUsableValue(vitePinataJwt) || (hasOpRef(pinataUploadJwtOpRef) && opReady);
+  const hasPinataOpRef = hasOpRef(pinataJwtOpRef);
+  const hasPinataBrowser =
+    hasUsableValue(vitePinataJwt) || (options.profile === "upload" && hasPinataOpRef && opReady);
   const hasPinataServer = hasPinataBrowser || hasUsableValue(pinataJwt);
 
   if (hasPinataBrowser) {
@@ -390,7 +455,7 @@ function checkEnv() {
       requiredLevel(["upload"]),
       "Pinata upload credentials missing",
       "Image reads can use public gateways, but upload-capable QA will fail.",
-      "Set VITE_PINATA_JWT in root .env, or PINATA_UPLOAD_JWT_OP_REF=op://... to resolve it through Varlock.",
+      "Set VITE_PINATA_JWT in root .env, or PINATA_JWT_OP_REF=op://... to resolve it through Varlock.",
       { check: "env:pinata" }
     );
   }
@@ -400,7 +465,7 @@ function checkEnv() {
       requiredLevel(["upload"]),
       "Browser Pinata JWT is not resolved",
       "Current frontend upload code still consumes VITE_PINATA_JWT.",
-      "Set VITE_PINATA_JWT directly or configure PINATA_UPLOAD_JWT_OP_REF.",
+      "Set VITE_PINATA_JWT directly or configure PINATA_JWT_OP_REF.",
       { check: "env:pinata-browser" }
     );
   }
@@ -529,7 +594,7 @@ function printJson() {
       doctor: "bun run dev:doctor -- --profile web",
       webStack: "bun run dev:web",
       webSmoke: "bun run dev:smoke:web",
-      fullStack: "bun run dev:full",
+      fullStack: "bun run dev",
       stop: "bun run dev:stop",
     },
   };
@@ -546,17 +611,22 @@ function printText() {
   }
 
   console.log("\nRole readiness");
-  console.log("- Frontend QA: Node.js, Bun, Git, root .env, ports 3001/3002/3003.");
+  console.log("- Frontend QA: Node.js, Bun, Git, root .env, ports 3001/3002/3003/6006.");
   console.log("- Full-stack/indexer: frontend QA plus Docker and packages/indexer/generated.");
   console.log("- Contracts: frontend QA plus Foundry.");
-  console.log("- Upload-capable QA: frontend QA plus Pinata JWT or 1Password OP ref.");
+  console.log("- Upload-capable QA: frontend QA plus VITE_PINATA_JWT or a resolvable PINATA_JWT_OP_REF.");
+
+  console.log("\nSecret policy");
+  console.log("- Baseline web development does not require 1Password.");
+  console.log("- Direct root .env values are okay for personal local-only credentials.");
+  console.log("- Use 1Password OP refs for shared team, deploy, upload, and CI secrets.");
 
   console.log("\nRecommended entrypoints");
   console.log("- First clone: bun run setup");
   console.log("- Doctor profile: bun run dev:doctor -- --profile web");
   console.log("- Frontend stack: bun run dev:web");
   console.log("- Web smoke: bun run dev:smoke:web");
-  console.log("- Full stack: bun run dev:full");
+  console.log("- Full stack: bun run dev");
   console.log("- Stop PM2 services: bun run dev:stop");
 
   const currentSummary = summary();

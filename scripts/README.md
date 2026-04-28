@@ -24,8 +24,8 @@ scripts/
 |---|---|---|
 | `setup.js` | `bun run setup` | First-clone setup; checks deps, installs, configures env |
 | `doctor.js` | `bun run dev:doctor` / `setup:doctor` | Non-mutating readiness check (ports, tools, env, profiles) |
-| `stack.js` | `bun run dev:web` / `dev:full` / `dev:stop` | Start/stop PM2 app groups from `ecosystem.config.cjs` |
-| `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs respond on local ports |
+| `stack.js` | `bun run dev:web` / `dev` / `dev:stop` | Start/stop PM2 app groups from `ecosystem.config.cjs` |
+| `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs/storybook respond on local ports |
 | `tunnel.js` | `bun run dev:tunnel`, `ecosystem.config.cjs` | Cloudflared tunnel for PWA device testing; writes `.tunnel-url` |
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
 | `test-e2e.js` | `bun run test:e2e[:smoke]` | Boot dev stack, run Playwright, clean up |

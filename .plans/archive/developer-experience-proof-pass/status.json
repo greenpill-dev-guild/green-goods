@@ -4,13 +4,13 @@
     "slug": "developer-experience-proof-pass",
     "title": "Developer Experience Proof Pass",
     "kind": "quality",
-    "stage": "backlog"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:47.686Z",
-    "updated_at": "2026-04-27T08:51:43.783Z"
+    "updated_at": "2026-04-28T00:55:13.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -52,7 +52,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/developer-experience-proof-pass",
@@ -62,7 +62,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/developer-experience-proof-pass",
@@ -96,6 +96,22 @@
       "status": "completed",
       "branch": "codex/state-api/developer-experience-proof-pass",
       "note": "Local fallback proof captured; smoke path fixed; clean web proof remains blocked by root env/op and admin localhost reachability"
+    },
+    {
+      "timestamp": "2026-04-27T23:19:01.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "codex/qa-pass-2/developer-experience-proof-pass",
+      "note": "Closed and archived: schema trimmed to developer-owned local config, web doctor passed with 0 failures, dev:web started docs/admin/client/Storybook, dev:smoke:web passed, and clean Ubuntu/WSL/devcontainer proof remains the only unrun proof boundary"
+    },
+    {
+      "timestamp": "2026-04-28T00:55:13.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Final pre-commit validation reran: web doctor passed, dev:web started docs/admin/client/Storybook, dev:smoke:web passed, dev:stop cleaned PM2 services; pre-existing dev:full wrapper was left untouched"
     }
   ]
 }
