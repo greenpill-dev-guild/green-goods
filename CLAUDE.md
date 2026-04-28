@@ -182,6 +182,16 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 - Never replace content that was asked to be added as new
 - When unsure about scope, ask — the cost of a clarifying question is far less than a wrong edit
 
+## Multi-Agent Repo Safety
+
+This repo runs multiple concurrent Claude/Codex sessions on the same tree and `develop`. Treat working-tree changes you didn't author this session as another agent's work-in-progress.
+
+- **Stash unknown diffs, don't revert.** `git stash push -u -m "..."` is recoverable; `git checkout HEAD --`, `rm -rf`, and `git reset --hard` are not.
+- **Investigate before destroying.** `git for-each-ref --sort=-committerdate refs/heads/ | head -10`, `ls ~/.codex/worktrees/`, and `git log -3 -- <file>` show what other agents are doing.
+- **Bulk destructive ops always need fresh user OK in the current turn** — multi-file `git checkout HEAD --`, `rm -rf` of `.plans/`/`packages/`/`docs/`, `git add -A`/`git add .`, `git push --force`.
+- **When dispatching a sub-agent**, tell them this repo runs concurrent agents and they must stay in the paths listed in their handoff. Surface unexpected state in their report instead of "fixing" it.
+- **Pattern-matching is the trap.** A wider-than-expected diff after a sub-agent run is often parallel agents' work, not the dispatched agent's scope creep. Verify before assuming.
+
 ## Git Workflow
 
 **Branches**: `type/description` (e.g., `feature/hats-v2`, `bug/admin-fix`)

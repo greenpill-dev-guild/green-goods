@@ -47,6 +47,15 @@ For ambiguous, multi-package, or high-risk work, do not jump straight into edits
 4. Surface human judgment points before editing protected or irreversible surfaces.
 5. Implement only after the research and plan are coherent. If the session went down the wrong path, summarize the useful findings and restart with clean context.
 
+## Multi-Agent Repo Safety
+
+This repo runs multiple concurrent Codex/Claude sessions on the same tree and `develop`. Treat working-tree changes you didn't author this session as another agent's work-in-progress.
+
+- Stash unknown diffs, don't revert: `git stash push -u -m "..."` is recoverable; `git checkout HEAD --`, `rm -rf`, and `git reset --hard` are not.
+- Investigate first: `git for-each-ref --sort=-committerdate refs/heads/ | head -10`, `ls ~/.codex/worktrees/`, `git log -3 -- <file>`.
+- Bulk destructive ops always need fresh user OK in the current turn — multi-file `git checkout HEAD --`, `rm -rf` of `.plans/`/`packages/`/`docs/`, `git add -A`/`git add .`, `git push --force`.
+- Stay strictly in your dispatched scope. If you find unexpected state in the working tree, surface it in your final report — do not "fix" it.
+
 ## Verify Before Claiming Success
 
 Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
