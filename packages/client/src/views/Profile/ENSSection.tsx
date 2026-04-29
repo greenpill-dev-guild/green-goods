@@ -1,5 +1,6 @@
 import {
   type Address,
+  cn,
   ConfirmDialog,
   ENSProgressTimeline,
   validateSlug,
@@ -351,7 +352,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           autoCapitalize="none"
                           autoComplete="off"
                           spellCheck={false}
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
                         />
                       </label>
                       <label className="flex flex-col gap-1 text-xs text-text-sub-600">
@@ -364,7 +365,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           onChange={(event) =>
                             setRequestReason(event.target.value as ENSUsernameChangeReason)
                           }
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
                         >
                           {requestReasonOptions.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -385,7 +386,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                             id: "app.profile.ensChangeContactPlaceholder",
                             defaultMessage: "@telegram, email, or phone",
                           })}
-                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
                         />
                       </label>
                       <label className="flex flex-col gap-1 text-xs text-text-sub-600">
@@ -401,12 +402,18 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                             defaultMessage: "Anything support should know",
                           })}
                           rows={3}
-                          className="w-full resize-none rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                          className="w-full resize-none rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
                         />
                       </label>
                       {requestError && <p className="text-xs text-error-base">{requestError}</p>}
                       {preparedRequest && (
-                        <div className="flex flex-col gap-2 rounded-lg border border-success-light bg-success-lighter/40 p-2 text-xs text-text-sub-600">
+                        <div
+                          className={cn(
+                            "flex flex-col gap-2 rounded-lg border p-2 text-xs text-text-sub-600",
+                            pwaStatusStyles.success.surface,
+                            pwaStatusStyles.success.border
+                          )}
+                        >
                           <p>
                             {intl.formatMessage(
                               {
@@ -513,7 +520,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     autoCapitalize="none"
                     autoComplete="off"
                     spellCheck={false}
-                    className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 pr-10 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="h-9 w-full rounded-xl border border-stroke-soft-200 bg-bg-white-0 px-3 pr-10 font-mono text-sm text-text-strong-950 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24"
                   />
                   {slugValue && slugValue.length >= 3 && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2">

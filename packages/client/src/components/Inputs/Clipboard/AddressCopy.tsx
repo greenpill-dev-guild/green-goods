@@ -5,9 +5,10 @@ import {
   type FormatAddressVariant,
   formatAddress,
   toastService,
+  useTimeout,
 } from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
-import React, { useEffect, useId, useState } from "react";
+import React, { useId, useState } from "react";
 import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
@@ -34,12 +35,7 @@ export function AddressCopy({
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const statusId = useId();
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
+  const { set: scheduleCopiedReset } = useTimeout();
 
   if (!address) return null;
 
@@ -49,6 +45,7 @@ export function AddressCopy({
     try {
       await copyToClipboard(address);
       setCopied(true);
+      scheduleCopiedReset(() => setCopied(false), 2000);
       toastService.success({
         title: intl.formatMessage({
           id: "app.toast.addressCopied",

@@ -202,7 +202,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                     onClick={this.handleRetry}
                     label={this.t("app.error.boundary.action.tryAgain")}
                     leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                    className="w-full shadow-lg transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:scale-[1.02] hover:shadow-xl"
+                    className="w-full shadow-lg"
                   />
 
                   <Button
@@ -211,7 +211,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                     onClick={() => (window.location.href = "/")}
                     label={this.t("app.error.boundary.action.returnHome")}
                     leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                    className="w-full border-2 transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:scale-[1.02] hover:bg-bg-weak-50"
+                    className="w-full border-2 hover:bg-bg-weak-50"
                   />
                 </div>
 

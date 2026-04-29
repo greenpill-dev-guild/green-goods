@@ -119,7 +119,7 @@ export const Splash: React.FC<SplashProps> = ({
             placeholder={usernameInput?.placeholder || "Choose a username"}
             minLength={usernameInput?.minLength}
             data-testid="username-input"
-            className="w-full px-4 py-3 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center text-text-strong-950 placeholder:text-text-soft-400"
+            className="w-full px-4 py-3 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24 text-center text-text-strong-950 placeholder:text-text-soft-400"
             disabled={isLoggingIn || !showUsernameInput}
             tabIndex={showUsernameInput ? 0 : -1}
             aria-hidden={!showUsernameInput}
@@ -155,7 +155,11 @@ export const Splash: React.FC<SplashProps> = ({
         >
           <p
             data-testid="info-callout"
-            className="w-full rounded-lg bg-primary/5 border border-primary/10 px-4 py-3 text-xs text-text-sub-600 text-center"
+            className={cn(
+              "w-full rounded-lg border px-4 py-3 text-xs text-text-sub-600 text-center",
+              pwaStatusStyles.primary.surface,
+              pwaStatusStyles.primary.border
+            )}
           >
             {infoCallout}
           </p>

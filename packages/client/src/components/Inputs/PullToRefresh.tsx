@@ -284,7 +284,7 @@ export function PullToRefresh({
         >
           <RiRefreshLine
             className={cn(
-              "w-5 h-5 text-primary transition-transform",
+              "w-5 h-5 text-primary transition-transform ease-[var(--spring-spatial-fast-easing)]",
               isRefreshing && !prefersReducedMotion.current && "animate-spin"
             )}
             style={{
@@ -293,7 +293,9 @@ export function PullToRefresh({
                   ? undefined
                   : `rotate(${iconRotation}deg)`,
               transitionDuration:
-                pullState === "idle" && !prefersReducedMotion.current ? "300ms" : "0ms",
+                pullState === "idle" && !prefersReducedMotion.current
+                  ? "var(--spring-spatial-fast-duration)"
+                  : "0ms",
             }}
           />
         </div>

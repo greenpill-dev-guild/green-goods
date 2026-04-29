@@ -3,6 +3,7 @@ import { RiDeleteBinLine, RiDraftLine, RiImageLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
 import { ImageWithFallback } from "@/components/Display";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export interface DraftCardProps {
   draft: DraftWithImages;
@@ -42,7 +43,9 @@ export const DraftCard: React.FC<DraftCardProps> = ({
   return (
     <div
       className={cn(
-        "relative flex items-stretch gap-0 overflow-hidden rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter/50 w-full cursor-pointer text-left tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:border-warning-base/40 hover:bg-warning-lighter",
+        "relative flex items-stretch gap-0 overflow-hidden rounded-[var(--radius-lg)] border w-full cursor-pointer text-left tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:border-warning-base hover:shadow-sm",
+        pwaStatusStyles.warning.surface,
+        pwaStatusStyles.warning.border,
         className
       )}
     >

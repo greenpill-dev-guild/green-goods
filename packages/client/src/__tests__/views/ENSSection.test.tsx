@@ -25,6 +25,7 @@ let mockExistingGreenGoodsEnsName: string | null = null;
 let mockSponsoredReleaseUnavailable = false;
 
 vi.mock("@green-goods/shared", () => ({
+  cn: (...inputs: Array<string | undefined | null | false>) => inputs.filter(Boolean).join(" "),
   validateSlug: (slug: string) => mockValidateSlug(slug),
   useOffline: () => ({ isOnline: true }),
   useProtocolMemberStatus: () => ({ data: mockProtocolMember }),
