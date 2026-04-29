@@ -6,7 +6,7 @@ import {
   type CreateFundingIntentRequest,
 } from "@green-goods/shared/public-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createServer, hasReceiptTokenBody } from "../api/server";
+import { createServer, hasReceiptTokenBody, type ThirdwebCheckoutClient } from "../api/server";
 import {
   InMemoryPublicRateLimiter,
   publicRateLimitKey,
@@ -149,11 +149,64 @@ describe("public subscription API", () => {
     expect(response.status).toBe(503);
     expect((await response.json()).errorCode).toBe("luma_import_failed");
   });
+
+  it("rejects oversized subscription payloads before validation", async () => {
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        lumaClient: { importSubscriber },
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.subscribe, {
+      method: "POST",
+      headers: jsonHeaders({ "content-length": String(20 * 1024) }),
+      body: JSON.stringify({ email: "person@example.org", consent: true }),
+    });
+
+    expect(response.status).toBe(413);
+    expect((await response.json()).errorCode).toBe("invalid_request");
+    expect(importSubscriber).not.toHaveBeenCalled();
+  });
 });
 
 describe("public funding intent API", () => {
   function createFundingApp(now = Date.parse("2026-04-27T12:00:00.000Z")) {
     const store = new MemoryFundingIntentStore();
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(async ({ fundingIntentId, request, quoteExpiresAt }) => ({
+        providerSessionId: `thirdweb_${fundingIntentId}`,
+        checkoutSession: {
+          provider: "thirdweb" as const,
+          mode: "widget" as const,
+          expiresAt: quoteExpiresAt,
+          clientToken: `checkout_${fundingIntentId}`,
+          checkoutPayload: {
+            provider: "thirdweb" as const,
+            clientId: "thirdweb-client",
+            chainId: request.chainId,
+            destinationAddress: request.destinationAddress,
+            token: request.token,
+            amountUsd: request.amountUsd,
+            minAssetAmount: "25000000",
+            transaction: {
+              to: request.destinationAddress,
+              data: "0x1234" as `0x${string}`,
+              value: "0",
+            },
+            metadata: {
+              gardenId: request.gardenId,
+              destinationType: request.destinationType,
+              fundingIntent: request.fundingIntent,
+            },
+          },
+        },
+        quotedAssetAmount: "25000000",
+        minAssetAmount: "25000000",
+      })),
+    };
     const app = createServer(
       {
         isAIReady: () => true,
@@ -168,6 +221,7 @@ describe("public funding intent API", () => {
           },
         ]),
         thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
         now: () => now,
       },
       { logger: false }
@@ -195,6 +249,34 @@ describe("public funding intent API", () => {
     expect((await response.json()).errorCode).toBe("funding_unavailable");
   });
 
+  it("does not return a fake checkout session when thirdweb checkout is not configured", async () => {
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...availabilityInput,
+            state: "live",
+            proofReference: "spike:cookie-jar-donate-sepolia-2026-04-27",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createFundingRequest()),
+    });
+
+    expect(response.status).toBe(503);
+    expect((await response.json()).errorCode).toBe("provider_unavailable");
+  });
+
   it("creates a card-only intent with fragment receipt URL and no-store headers", async () => {
     const { app } = createFundingApp();
 
@@ -209,7 +291,13 @@ describe("public funding intent API", () => {
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("pragma")).toBe("no-cache");
     expect(body.ok).toBe(true);
+    expect(body.status).toBe("pending_provider");
     expect(body.receiptUrl).toMatch(/^\/fund\?intent=fi_[a-f0-9]+#receiptToken=/);
+    expect(body.publicReceipt.amount.minAssetAmount).toBe("25000000");
+    expect(body.checkoutSession.checkoutPayload.minAssetAmount).toBe("25000000");
+    expect(body.checkoutSession.checkoutPayload.minAssetAmount).not.toBe(
+      createFundingRequest().amountUsd
+    );
     expect(body.publicReceipt).not.toHaveProperty("payerEmail");
     expect(JSON.stringify(body)).not.toContain("providerSessionId");
   });
@@ -311,9 +399,12 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
       chainId: 11155111,
       token: token as `0x${string}`,
       provider: "thirdweb",
+      providerSessionId: "thirdweb_session",
       status: "pending_provider",
       receiptTokenHash: "hash",
       quoteExpiresAt: "2026-04-27T12:10:00.000Z",
+      quotedAssetAmount: "25000000",
+      minAssetAmount: "25000000",
       transactionAttempts: [],
       createdAt: "2026-04-27T12:00:00.000Z",
       updatedAt: "2026-04-27T12:00:00.000Z",
@@ -386,6 +477,29 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
     expect(updated?.transactionAttempts[0]?.txHash).toMatch(/^0x/);
   });
 
+  it("rejects oversized thirdweb webhooks before signature verification", async () => {
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.thirdwebWebhook, {
+      method: "POST",
+      headers: {
+        "content-length": String(300 * 1024),
+        "x-thirdweb-signature": "bad",
+      },
+      body: "{}",
+    });
+
+    expect(response.status).toBe(413);
+    expect((await response.json()).errorCode).toBe("invalid_request");
+  });
+
   it("requires explicit funding txRole before marking a transaction funded", async () => {
     const store = new MemoryFundingIntentStore();
     const confirmFundingTuple = vi
@@ -426,7 +540,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
-        destinationAmount: "25",
+        destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:05:00.000Z",
       })
     );
@@ -468,11 +582,12 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         eventType: "transaction_submitted",
         txRole: "funding",
         fundingIntentId: "fi_test",
+        providerSessionId: "thirdweb_session",
         txHash,
         chainId: 11155111,
         destinationAddress,
         token,
-        destinationAmount: "25",
+        destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:05:00.000Z",
       })
     );
@@ -485,6 +600,47 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
     expect(updated?.transactionAttempts[0]?.failureCode).toBe("destination_mismatch");
   });
 
+  it("fails strict funding events that do not match the locked provider session", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn<() => Promise<FundingConfirmationResult>>();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        confirmFundingTuple,
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      signedWebhookRequest({
+        id: "evt_wrong_session",
+        eventType: "transaction_submitted",
+        txRole: "funding",
+        fundingIntentId: "fi_test",
+        providerSessionId: "thirdweb_other_session",
+        txHash,
+        chainId: 11155111,
+        destinationAddress,
+        token,
+        destinationAmount: "25000000",
+        occurredAt: "2026-04-27T12:05:00.000Z",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(confirmFundingTuple).not.toHaveBeenCalled();
+    const updated = await store.getById("fi_test");
+    expect(updated?.status).toBe("failed");
+    expect(updated?.failureCode).toBe("reconciliation_failed");
+    expect(updated?.fundingTxHash).toBeUndefined();
+    expect(updated?.transactionAttempts[0]?.failureCode).toBe("provider_session_mismatch");
+  });
+
   it("keeps expired precedence by moving strict late matches to funded_late", async () => {
     const store = new MemoryFundingIntentStore();
     const confirmFundingTuple = vi
@@ -492,7 +648,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
       .mockResolvedValue({
         status: "confirmed",
         txHash: txHash as `0x${string}`,
-        matchedAssetAmount: "25",
+        matchedAssetAmount: "25000000",
         confirmedAt: "2026-04-27T12:45:00.000Z",
       });
     const app = createServer(
@@ -520,11 +676,12 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         eventType: "transaction_submitted",
         txRole: "funding",
         fundingIntentId: "fi_test",
+        providerSessionId: "thirdweb_session",
         txHash,
         chainId: 11155111,
         destinationAddress,
         token,
-        destinationAmount: "25",
+        destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:45:00.000Z",
       })
     );
@@ -533,6 +690,6 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
     const updated = await store.getById("fi_test");
     expect(updated?.status).toBe("funded_late");
     expect(updated?.fundingTxHash).toBe(txHash);
-    expect(updated?.fundedAssetAmount).toBe("25");
+    expect(updated?.fundedAssetAmount).toBe("25000000");
   });
 });

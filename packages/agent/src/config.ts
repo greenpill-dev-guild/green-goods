@@ -50,8 +50,10 @@ export interface Config {
   lumaApiKey?: string;
   lumaCalendarId?: string;
   lumaGreenGoodsTagId?: string;
+  lumaGreenGoodsTagName?: string;
   thirdwebWebhookSecret?: string;
   thirdwebClientId?: string;
+  thirdwebSecretKey?: string;
 
   // Analytics
   posthogApiKey?: string;
@@ -118,8 +120,10 @@ export function loadConfig(): Config {
     lumaApiKey: process.env.LUMA_API_KEY,
     lumaCalendarId: process.env.LUMA_CALENDAR_ID,
     lumaGreenGoodsTagId: process.env.LUMA_GREEN_GOODS_TAG_ID,
+    lumaGreenGoodsTagName: process.env.LUMA_GREEN_GOODS_TAG_NAME,
     thirdwebWebhookSecret: process.env.THIRDWEB_WEBHOOK_SECRET,
     thirdwebClientId: process.env.VITE_THIRDWEB_CLIENT_ID,
+    thirdwebSecretKey: process.env.THIRDWEB_SECRET_KEY,
 
     // Security
     encryptionSecret: process.env.ENCRYPTION_SECRET,

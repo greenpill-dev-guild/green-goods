@@ -53,6 +53,7 @@ async function main(): Promise<void> {
     apiKey: config.lumaApiKey,
     calendarId: config.lumaCalendarId,
     tagId: config.lumaGreenGoodsTagId,
+    tagName: config.lumaGreenGoodsTagName,
   });
 
   const bot = createTelegramBot({ token: config.telegramToken }, handleMessage);

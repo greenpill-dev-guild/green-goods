@@ -17,23 +17,29 @@ export interface LumaConfig {
   apiKey?: string;
   calendarId?: string;
   tagId?: string;
+  tagName?: string;
 }
 
 export function createLumaClient(config: LumaConfig): LumaClient | undefined {
-  if (!config.apiKey || !config.calendarId || !config.tagId) return undefined;
+  const apiKey = config.apiKey?.trim();
+  const calendarId = config.calendarId?.trim();
+  const tagId = config.tagId?.trim();
+  const tagName = config.tagName?.trim();
+  if (!apiKey || !calendarId || (!tagId && !tagName)) return undefined;
 
   return {
     async importSubscriber(input) {
-      const response = await fetch("https://api.lu.ma/public/v1/calendar/people/import", {
+      const tagPayload = tagId ? { tag_ids: [tagId] } : { tag_names: [tagName ?? ""] };
+      const response = await fetch("https://public-api.luma.com/v1/calendar/import-people", {
         method: "POST",
         headers: {
-          authorization: `Bearer ${config.apiKey}`,
+          "x-luma-api-key": apiKey,
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          calendar_id: config.calendarId,
-          email: input.email,
-          tags: [config.tagId],
+          calendar_id: calendarId,
+          infos: [{ email: input.email }],
+          ...tagPayload,
           source: input.source,
           locale: input.locale,
           consented_at: input.consentedAt,

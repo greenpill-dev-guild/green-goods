@@ -30,7 +30,7 @@ kill_timeout = '30s'
   HOST = '0.0.0.0'
   NODE_ENV = 'production'
   PORT = '8080'
-  WEBHOOK_URL = 'https://green-goods.fly.dev'
+  WEBHOOK_URL = 'https://agent.greengoods.app'
 
 [[mounts]]
   source = 'agent_data'

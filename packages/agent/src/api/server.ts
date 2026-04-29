@@ -11,6 +11,7 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   buildPublicFundingAvailabilityKey,
+  type ClientCheckoutSession,
   type CreateFundingIntentRequest,
   createProviderProofRegistry,
   PUBLIC_AGENT_ROUTES,
@@ -102,6 +103,7 @@ export interface ServerDeps {
   trustedProxy?: TrustedProxyConfig;
   thirdwebWebhookSecret?: string;
   thirdwebClientId?: string;
+  thirdwebCheckout?: ThirdwebCheckoutClient;
   confirmFundingTransaction?: (txHash: string) => Promise<TransactionConfirmation>;
   /**
    * Strict tuple-matching funding confirmation. When provided, the webhook
@@ -131,6 +133,31 @@ const VALID_NOTIFY_PLATFORMS = new Set<string>(["telegram", "discord", "whatsapp
 const runningServers = new WeakMap<AgentServer, ReturnType<typeof Bun.serve>>();
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const HEX_RE = /^0x[a-fA-F0-9]+$/;
+const PUBLIC_JSON_BODY_LIMIT_BYTES = 16 * 1024;
+const WEBHOOK_BODY_LIMIT_BYTES = 256 * 1024;
+
+type BodyReadResult<T> =
+  | { ok: true; value: T | undefined }
+  | { ok: false; error: PublicApiError; status: 413 };
+
+export interface ThirdwebCheckoutResult {
+  providerSessionId: string;
+  providerPaymentId?: string;
+  checkoutSession: ClientCheckoutSession;
+  checkoutExpiresAt?: string;
+  receiverAddress?: CreateFundingIntentRequest["destinationAddress"];
+  quotedAssetAmount: string;
+  minAssetAmount: string;
+}
+
+export interface ThirdwebCheckoutClient {
+  createSession(input: {
+    fundingIntentId: string;
+    request: CreateFundingIntentRequest;
+    availabilityProofReference?: string;
+    quoteExpiresAt: string;
+  }): Promise<ThirdwebCheckoutResult>;
+}
 
 function requireApiAuth(deps: ServerDeps): MiddlewareHandler {
   return async (c, next) => {
@@ -150,6 +177,49 @@ async function readJsonBody<T>(request: Request): Promise<T | undefined> {
     return (await request.json()) as T;
   } catch {
     return undefined;
+  }
+}
+
+function payloadTooLargeError(maxBytes: number): PublicApiError {
+  return safeError("invalid_request", "Request body is too large.", {
+    params: { maxBytes },
+  });
+}
+
+function declaredBodyTooLarge(request: Request, maxBytes: number): boolean {
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength) return false;
+  const parsed = Number(contentLength);
+  return Number.isFinite(parsed) && parsed > maxBytes;
+}
+
+async function readLimitedTextBody(
+  request: Request,
+  maxBytes: number
+): Promise<{ ok: true; text: string } | { ok: false; error: PublicApiError; status: 413 }> {
+  if (declaredBodyTooLarge(request, maxBytes)) {
+    return { ok: false, error: payloadTooLargeError(maxBytes), status: 413 };
+  }
+
+  const text = await request.text();
+  if (Buffer.byteLength(text, "utf8") > maxBytes) {
+    return { ok: false, error: payloadTooLargeError(maxBytes), status: 413 };
+  }
+
+  return { ok: true, text };
+}
+
+async function readLimitedJsonBody<T>(
+  request: Request,
+  maxBytes = PUBLIC_JSON_BODY_LIMIT_BYTES
+): Promise<BodyReadResult<T>> {
+  const body = await readLimitedTextBody(request, maxBytes);
+  if (!body.ok) return body;
+
+  try {
+    return { ok: true, value: JSON.parse(body.text) as T };
+  } catch {
+    return { ok: true, value: undefined };
   }
 }
 
@@ -301,55 +371,19 @@ function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest
   };
 }
 
-function createCheckoutSession(
-  request: CreateFundingIntentRequest,
-  expiresAt: string,
-  thirdwebClientId?: string
-) {
-  if (!thirdwebClientId) return undefined;
-  return {
-    provider: "thirdweb" as const,
-    mode: "widget" as const,
-    expiresAt,
-    checkoutPayload: {
-      provider: "thirdweb" as const,
-      clientId: thirdwebClientId,
-      chainId: request.chainId,
-      destinationAddress: request.destinationAddress,
-      token: request.token,
-      amountUsd: request.amountUsd,
-      minAssetAmount: request.amountUsd,
-      transaction: {
-        to: request.destinationAddress,
-        data: "0x" as `0x${string}`,
-        value: "0",
-      },
-      metadata: {
-        gardenId: request.gardenId,
-        destinationType: request.destinationType,
-        fundingIntent: request.fundingIntent,
-      },
-    },
-  };
-}
-
 function createFundingIntentRecord(input: {
+  id: string;
   request: CreateFundingIntentRequest;
   idempotencyFingerprint: string;
   receiptTokenHash: string;
-  thirdwebClientId?: string;
+  checkout: ThirdwebCheckoutResult;
   now: number;
 }): FundingIntentRecord {
   const nowIso = new Date(input.now).toISOString();
   const quoteExpiresAt = new Date(input.now + 10 * 60 * 1000).toISOString();
-  const checkoutSession = createCheckoutSession(
-    input.request,
-    quoteExpiresAt,
-    input.thirdwebClientId
-  );
 
   return {
-    id: createFundingIntentId(),
+    id: input.id,
     gardenId: input.request.gardenId.trim(),
     gardenName: input.request.gardenId.trim(),
     destinationType: input.request.destinationType,
@@ -363,17 +397,60 @@ function createFundingIntentRecord(input: {
     chainId: input.request.chainId,
     token: input.request.token,
     provider: "thirdweb",
-    status: "started",
+    providerSessionId: input.checkout.providerSessionId,
+    providerPaymentId: input.checkout.providerPaymentId,
+    status: "pending_provider",
     payerEmailHash: normalizeEmailHash(input.request.payerEmail),
     receiptTokenHash: input.receiptTokenHash,
     quoteExpiresAt,
-    checkoutExpiresAt: quoteExpiresAt,
-    minAssetAmount: input.request.amountUsd,
-    checkoutSession,
+    checkoutExpiresAt: input.checkout.checkoutExpiresAt ?? input.checkout.checkoutSession.expiresAt,
+    receiverAddress: input.checkout.receiverAddress,
+    quotedAssetAmount: input.checkout.quotedAssetAmount,
+    minAssetAmount: input.checkout.minAssetAmount,
+    checkoutSession: input.checkout.checkoutSession,
     transactionAttempts: [],
     createdAt: nowIso,
     updatedAt: nowIso,
   };
+}
+
+function parseBaseUnitAmount(value: string | undefined): bigint | undefined {
+  if (!value || !/^\d+$/.test(value)) return undefined;
+  return BigInt(value);
+}
+
+function normalizeAddress(value: string | undefined): string | undefined {
+  return value?.trim().toLowerCase();
+}
+
+function getStrictFundingEventMismatch(
+  event: ThirdwebNormalizedFundingEvent,
+  intent: FundingIntentRecord
+): string | undefined {
+  if (!event.txHash) return "missing_tx_hash";
+  if (!event.providerSessionId || event.providerSessionId !== intent.providerSessionId) {
+    return "provider_session_mismatch";
+  }
+  if (event.chainId !== intent.chainId) return "chain_mismatch";
+  if (normalizeAddress(event.token) !== normalizeAddress(intent.token)) return "token_mismatch";
+  if (normalizeAddress(event.destinationAddress) !== normalizeAddress(intent.destinationAddress)) {
+    return "destination_mismatch";
+  }
+  if (
+    intent.receiverAddress &&
+    normalizeAddress(event.receiverAddress) !== normalizeAddress(intent.receiverAddress)
+  ) {
+    return "receiver_mismatch";
+  }
+
+  const eventAmount = parseBaseUnitAmount(event.destinationAmount);
+  const minAmount = parseBaseUnitAmount(intent.minAssetAmount);
+  if (event.destinationAmount && eventAmount === undefined) return "invalid_destination_amount";
+  if (eventAmount !== undefined && minAmount !== undefined && eventAmount < minAmount) {
+    return "amount_below_min";
+  }
+
+  return undefined;
 }
 
 function verifyWebhookSignature(
@@ -677,7 +754,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     const originError = checkOrigin(c, deps);
     if (originError) return c.json(originError, 403);
 
-    const body = await readJsonBody<Partial<PublicSubscribeRequest>>(c.req.raw);
+    const bodyResult = await readLimitedJsonBody<Partial<PublicSubscribeRequest>>(c.req.raw);
+    if (!bodyResult.ok) return c.json(bodyResult.error, bodyResult.status);
+
+    const body = bodyResult.value;
     const email = body?.email?.trim().toLowerCase();
     const rateError = checkRateLimit(c, deps, "subscribe", email ?? "invalid");
     if (rateError) return c.json(rateError, 429);
@@ -709,7 +789,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     const originError = checkOrigin(c, deps);
     if (originError) return c.json(originError, 403);
 
-    const body = await readJsonBody<unknown>(c.req.raw);
+    const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw);
+    if (!bodyResult.ok) return c.json(bodyResult.error, bodyResult.status);
+
+    const body = bodyResult.value;
     const request = validateFundingIntentRequest(body);
     if (isPublicApiError(request)) return c.json(request, 400);
 
@@ -747,6 +830,12 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         409
       );
     }
+    if (!deps.thirdwebCheckout) {
+      return c.json(
+        safeError("provider_unavailable", "This funding provider is unavailable right now."),
+        503
+      );
+    }
 
     const idempotencyFingerprint = createIdempotencyFingerprint(request, "thirdweb");
     if (!idempotencyFingerprint) {
@@ -782,15 +871,48 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       });
     }
 
+    const now = deps.now?.() ?? Date.now();
+    const fundingIntentId = createFundingIntentId();
+    const quoteExpiresAt = new Date(now + 10 * 60 * 1000).toISOString();
+    let checkout: ThirdwebCheckoutResult;
+    try {
+      checkout = await deps.thirdwebCheckout.createSession({
+        fundingIntentId,
+        request,
+        availabilityProofReference: availability.proofReference,
+        quoteExpiresAt,
+      });
+    } catch {
+      return c.json(
+        safeError("provider_unavailable", "This funding provider is unavailable right now."),
+        503
+      );
+    }
+    if (
+      !checkout.providerSessionId ||
+      parseBaseUnitAmount(checkout.quotedAssetAmount) === undefined ||
+      parseBaseUnitAmount(checkout.minAssetAmount) === undefined
+    ) {
+      return c.json(
+        safeError("provider_unavailable", "This funding provider is unavailable right now."),
+        503
+      );
+    }
+
     const record = createFundingIntentRecord({
+      id: fundingIntentId,
       request,
       idempotencyFingerprint,
       receiptTokenHash,
-      thirdwebClientId: deps.thirdwebClientId ?? process.env.VITE_THIRDWEB_CLIENT_ID,
-      now: deps.now?.() ?? Date.now(),
+      checkout,
+      now,
     });
     await fundingIntents.create(record);
-    await fundingIntents.appendEvent(record.id, "started", "funding intent created");
+    await fundingIntents.appendEvent(
+      record.id,
+      record.status,
+      "funding intent checkout session created"
+    );
 
     return jsonNoStore(c, {
       ok: true,
@@ -843,7 +965,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     const preRateError = checkRateLimit(c, deps, "webhook_pre", "thirdweb");
     if (preRateError) return c.json(preRateError, 429);
 
-    const rawBody = await c.req.text();
+    const rawBodyResult = await readLimitedTextBody(c.req.raw, WEBHOOK_BODY_LIMIT_BYTES);
+    if (!rawBodyResult.ok) return c.json(rawBodyResult.error, rawBodyResult.status);
+
+    const rawBody = rawBodyResult.text;
     const signature = c.req.header("x-thirdweb-signature");
     const secret = deps.thirdwebWebhookSecret ?? process.env.THIRDWEB_WEBHOOK_SECRET;
     if (!verifyWebhookSignature(rawBody, signature, secret)) {
@@ -858,7 +983,12 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     );
     if (postRateError) return c.json(postRateError, 429);
 
-    const payload = JSON.parse(rawBody) as unknown;
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rawBody) as unknown;
+    } catch {
+      return c.json(safeError("invalid_request", "Invalid webhook event."), 400);
+    }
     const event = normalizeThirdwebEvent(payload);
     if (!event) {
       return c.json(safeError("invalid_request", "Invalid webhook event."), 400);
@@ -869,6 +999,9 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       if (intent) {
         const isFundingTransaction =
           event.eventType === "transaction_submitted" && event.txRole === "funding";
+        const strictEventMismatch = isFundingTransaction
+          ? getStrictFundingEventMismatch(event, intent)
+          : undefined;
 
         // Strict tuple match: provider success alone never marks `funded`.
         // The webhook can only flip to `funded` when the onchain receipt
@@ -878,20 +1011,25 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         const confirmation =
           event.eventType === "transaction_submitted"
             ? isFundingTransaction
-              ? await confirmFundingTupleSafe(deps, event.txHash, {
-                  token: intent.token,
-                  destinationAddress: intent.destinationAddress,
-                  minAssetAmount: intent.minAssetAmount,
-                  chainId: intent.chainId,
-                })
+              ? strictEventMismatch
+                ? undefined
+                : await confirmFundingTupleSafe(deps, event.txHash, {
+                    token: intent.token,
+                    destinationAddress: intent.destinationAddress,
+                    minAssetAmount: intent.minAssetAmount,
+                    chainId: intent.chainId,
+                  })
               : await confirmSubmittedTransaction(deps, event.txHash)
             : undefined;
 
-        const isStrictConfirmed = confirmation?.status === "confirmed" && isFundingTransaction;
+        const isStrictConfirmed =
+          !strictEventMismatch && confirmation?.status === "confirmed" && isFundingTransaction;
 
         const nextStatus = isStrictConfirmed
           ? "funded"
-          : confirmation?.status === "failed" || confirmation?.status === "tuple_mismatch"
+          : strictEventMismatch ||
+              confirmation?.status === "failed" ||
+              confirmation?.status === "tuple_mismatch"
             ? "failed"
             : event.eventType === "transaction_submitted"
               ? "pending_onchain"
@@ -901,8 +1039,9 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
                   ? "refunded"
                   : "pending_provider";
 
-        const failureCode: FundingIntentRecord["failureCode"] =
-          confirmation?.status === "tuple_mismatch"
+        const failureCode: FundingIntentRecord["failureCode"] = strictEventMismatch
+          ? "reconciliation_failed"
+          : confirmation?.status === "tuple_mismatch"
             ? "reconciliation_failed"
             : confirmation?.status === "failed"
               ? "onchain_failed"
@@ -917,8 +1056,12 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
         const updated: FundingIntentRecord = {
           ...intent,
-          providerSessionId: event.providerSessionId ?? intent.providerSessionId,
-          providerPaymentId: event.providerPaymentId ?? intent.providerPaymentId,
+          providerSessionId: strictEventMismatch
+            ? intent.providerSessionId
+            : (event.providerSessionId ?? intent.providerSessionId),
+          providerPaymentId: strictEventMismatch
+            ? intent.providerPaymentId
+            : (event.providerPaymentId ?? intent.providerPaymentId),
           status: transitionFundingStatus(intent.status, nextStatus),
           failureCode,
           fundedAssetAmount: isStrictConfirmed
@@ -932,9 +1075,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
                   {
                     role: event.txRole ?? "funding",
                     status:
-                      confirmation?.status === "confirmed"
+                      confirmation?.status === "confirmed" && !strictEventMismatch
                         ? "confirmed"
-                        : confirmation?.status === "failed" ||
+                        : strictEventMismatch ||
+                            confirmation?.status === "failed" ||
                             confirmation?.status === "tuple_mismatch"
                           ? "failed"
                           : "submitted",
@@ -949,11 +1093,12 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
                     confirmedAt:
                       confirmation?.status === "confirmed" ? confirmation.confirmedAt : undefined,
                     failureCode:
-                      confirmation?.status === "tuple_mismatch"
+                      strictEventMismatch ??
+                      (confirmation?.status === "tuple_mismatch"
                         ? confirmation.mismatchReason
                         : confirmation?.status === "failed"
                           ? "onchain_failed"
-                          : undefined,
+                          : undefined),
                   },
                 ]
               : intent.transactionAttempts,
