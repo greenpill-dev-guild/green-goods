@@ -26,12 +26,9 @@ interface BadgeLockArtifact {
   publicLockVersion: number;
   lockCreator: string;
   managerCount: number;
-  verifiedGardener: string;
-  activeContributor: string;
-  stewardship: string;
-  gardenOperator: string;
-  communityBuilder: string;
-  impactVerified: string;
+  genesis: string;
+  firstWork: string;
+  firstSupport: string;
 }
 
 interface PersistedBadgeLock {
@@ -42,56 +39,31 @@ interface PersistedBadgeLock {
   transferrable: false;
 }
 
-const SECONDS_PER_YEAR = 365n * 24n * 60n * 60n;
 const MAX_KEYS = (1n << 256n) - 1n;
 const DRY_RUN_PUBLIC_LOCK_VERSION = 14;
 const DISABLED_TRANSFER_FEE_BASIS_POINTS = 10_000n;
 
 const BADGE_LOCKS: BadgeLockPlan[] = [
   {
-    id: "verified-gardener",
-    key: "verifiedGardener",
-    name: "Green Goods Verified Gardener",
+    id: "genesis",
+    key: "genesis",
+    name: "Green Goods Genesis",
     expirationDuration: 0n,
     expirationLabel: "0 (lifetime)",
     transferrable: false,
   },
   {
-    id: "active-contributor",
-    key: "activeContributor",
-    name: "Green Goods Active Contributor",
-    expirationDuration: SECONDS_PER_YEAR,
-    expirationLabel: `${SECONDS_PER_YEAR.toString()} (1 year)`,
-    transferrable: false,
-  },
-  {
-    id: "stewardship",
-    key: "stewardship",
-    name: "Green Goods Stewardship",
+    id: "first-work",
+    key: "firstWork",
+    name: "Green Goods First Work",
     expirationDuration: 0n,
     expirationLabel: "0 (lifetime)",
     transferrable: false,
   },
   {
-    id: "garden-operator",
-    key: "gardenOperator",
-    name: "Green Goods Garden Operator",
-    expirationDuration: 0n,
-    expirationLabel: "0 (manager-revoked)",
-    transferrable: false,
-  },
-  {
-    id: "community-builder",
-    key: "communityBuilder",
-    name: "Green Goods Community Builder",
-    expirationDuration: 0n,
-    expirationLabel: "0 (lifetime)",
-    transferrable: false,
-  },
-  {
-    id: "impact-verified",
-    key: "impactVerified",
-    name: "Green Goods Impact Verified",
+    id: "first-support",
+    key: "firstSupport",
+    name: "Green Goods First Support",
     expirationDuration: 0n,
     expirationLabel: "0 (lifetime)",
     transferrable: false,
@@ -203,7 +175,8 @@ export class BadgeLocksDeployer {
     const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
     args.push("--account", keystoreName);
 
-    const senderAddress = options.sender ?? process.env.SENDER_ADDRESS;
+    const senderAddress =
+      options.sender ?? this.resolveConfiguredDeployer(options.network) ?? process.env.SENDER_ADDRESS;
     if (senderAddress) {
       args.push("--sender", senderAddress);
     }
@@ -294,6 +267,7 @@ export class BadgeLocksDeployer {
     const rawLockCreator =
       options.sender ??
       process.env.SENDER_ADDRESS ??
+      this.resolveConfiguredDeployer(options.network) ??
       lockManagers[0] ??
       this.networkManager.getDeploymentDefault("multisig") ??
       ZeroAddress;
@@ -316,6 +290,25 @@ export class BadgeLocksDeployer {
       }
       return getAddress(manager);
     });
+  }
+
+  private resolveConfiguredDeployer(network: string): string | undefined {
+    try {
+      const deployment = this.deploymentAddresses.loadForChain(network) as Record<string, unknown>;
+      const config = deployment.greenWillConfig;
+      if (
+        typeof config === "object" &&
+        config !== null &&
+        typeof (config as { deployer?: unknown }).deployer === "string" &&
+        isAddress((config as { deployer: string }).deployer)
+      ) {
+        return getAddress((config as { deployer: string }).deployer);
+      }
+    } catch {
+      return undefined;
+    }
+
+    return undefined;
   }
 
   private resolveDeploymentUnlockFactory(network: string): string | undefined {

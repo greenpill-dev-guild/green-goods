@@ -64,6 +64,7 @@ interface MigrationOptions {
   dryRun: boolean;
   uploadOnly: boolean;
   broadcast: boolean;
+  preflightOnly: boolean;
   force: boolean;
   translationsPath?: string;
   previewDir?: string;
@@ -88,6 +89,7 @@ interface UploadedPlanItem extends MigrationPlanItem {
 }
 
 const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
+const DEFAULT_TRANSLATIONS_FILE = path.join(CONFIG_ROOT, "action-translations.json");
 const WORK_INPUT_TYPES = new Set<WorkInputType>([
   "text",
   "textarea",
@@ -110,10 +112,12 @@ Options:
   --rpc-url <url>            Override RPC URL for broadcast mode
   --chain-id <id>            Override deployment artifact selection
   --dry-run                  Build and summarize v2 JSON only (default)
+  --preflight-only           Check deployed ActionRegistry batch support only
   --upload-only              Upload v2 JSON to Pinata and update the local cache only
-  --broadcast                Upload v2 JSON and call updateActionInstructions on-chain
+  --broadcast                Upload v2 JSON and call batchUpdateActionInstructions once on-chain
   --force                    Skip on-chain CID checks and send all updates in broadcast mode
-  --translations <path>      Optional JSON file with translations keyed by action slug
+  --translations <path>      JSON file with translations keyed by action slug
+                              (default: config/action-translations.json when present)
   --slug <slug>              Limit migration to one action slug; repeatable
   --uid <number>             Limit migration to one action UID; repeatable
   --preview-dir <path>       Write generated v2 instruction JSON files for review
@@ -142,6 +146,7 @@ function parseArgs(argv: string[]): MigrationOptions {
   let dryRun = true;
   let uploadOnly = false;
   let broadcast = false;
+  let preflightOnly = false;
   let force = false;
   let translationsPath: string | undefined;
   let previewDir: string | undefined;
@@ -168,16 +173,25 @@ function parseArgs(argv: string[]): MigrationOptions {
         dryRun = true;
         uploadOnly = false;
         broadcast = false;
+        preflightOnly = false;
+        break;
+      case "--preflight-only":
+        dryRun = false;
+        uploadOnly = false;
+        broadcast = false;
+        preflightOnly = true;
         break;
       case "--upload-only":
         dryRun = false;
         uploadOnly = true;
         broadcast = false;
+        preflightOnly = false;
         break;
       case "--broadcast":
         dryRun = false;
         uploadOnly = false;
         broadcast = true;
+        preflightOnly = false;
         break;
       case "--force":
         force = true;
@@ -215,6 +229,8 @@ function parseArgs(argv: string[]): MigrationOptions {
   }
 
   const networkManager = new NetworkManager();
+  const resolvedTranslationsPath =
+    translationsPath || (fs.existsSync(DEFAULT_TRANSLATIONS_FILE) ? DEFAULT_TRANSLATIONS_FILE : undefined);
   return {
     network,
     chainId: chainId || CHAIN_ID_MAP[network] || networkManager.getChainId(network).toString(),
@@ -222,8 +238,9 @@ function parseArgs(argv: string[]): MigrationOptions {
     dryRun,
     uploadOnly,
     broadcast,
+    preflightOnly,
     force,
-    translationsPath,
+    translationsPath: resolvedTranslationsPath,
     previewDir,
     slugs,
     uids,
@@ -481,8 +498,15 @@ function describeTranslation(record: ActionTranslationRecord | undefined, item: 
   return "reviewed, complete";
 }
 
-function printPlanSummary(plan: MigrationPlanItem[], cache: Record<string, CacheEntry>): void {
+function printPlanSummary(
+  plan: MigrationPlanItem[],
+  cache: Record<string, CacheEntry>,
+  translationsPath: string | undefined,
+): void {
   console.log(`\nPrepared ${plan.length} action instruction document(s).\n`);
+  if (translationsPath) {
+    console.log(`Translations: ${translationsPath}\n`);
+  }
   for (const item of plan) {
     const cacheStatus = cache[item.cacheKey]?.hash ? `cached ${cache[item.cacheKey].hash}` : "not uploaded";
     const localeStatus = ACTION_TRANSLATION_LOCALES.map((locale) => {
@@ -555,6 +579,26 @@ function loadActionRegistry(chainId: string): string {
   return deployment.actionRegistry;
 }
 
+function assertBatchInstructionUpdateSupported(actionRegistry: string, rpcUrl: string): void {
+  try {
+    execFileSync(
+      "cast",
+      ["call", actionRegistry, "batchUpdateActionInstructions(uint256[],string[])", "[]", "[]", "--rpc-url", rpcUrl],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 30_000,
+      },
+    );
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      "ActionRegistry does not support batchUpdateActionInstructions on this network. " +
+        "Upgrade the ActionRegistry implementation before broadcasting the v2 instruction migration. " +
+        `Preflight failed: ${reason}`,
+    );
+  }
+}
+
 function stringAsAbiHex(value: string): string {
   return Buffer.from(value, "utf8").toString("hex");
 }
@@ -581,15 +625,23 @@ function isCurrentCid(rawAction: string, cid: string): boolean {
   return rawAction.includes(stringAsAbiHex(cid));
 }
 
-function sendInstructionUpdate(actionRegistry: string, item: UploadedPlanItem, rpcUrl: string): void {
+function formatUintArrayForCast(values: number[]): string {
+  return `[${values.map((value) => value.toString()).join(",")}]`;
+}
+
+function formatStringArrayForCast(values: string[]): string {
+  return `[${values.map((value) => JSON.stringify(value)).join(",")}]`;
+}
+
+function sendInstructionBatchUpdate(actionRegistry: string, items: UploadedPlanItem[], rpcUrl: string): void {
   const privateKey = process.env.MIGRATION_PRIVATE_KEY || process.env.PRIVATE_KEY;
   const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
   const args = [
     "send",
     actionRegistry,
-    "updateActionInstructions(uint256,string)",
-    item.uid.toString(),
-    item.cid,
+    "batchUpdateActionInstructions(uint256[],string[])",
+    formatUintArrayForCast(items.map((item) => item.uid)),
+    formatStringArrayForCast(items.map((item) => item.cid)),
     "--rpc-url",
     rpcUrl,
   ];
@@ -608,7 +660,7 @@ function sendInstructionUpdate(actionRegistry: string, item: UploadedPlanItem, r
     .trim();
   const txHashMatch = output.match(/transactionHash\s+(0x[a-fA-F0-9]{64})/);
   const txHash = txHashMatch ? txHashMatch[1] : output.slice(0, 80);
-  console.log(`  OK: ${txHash}`);
+  console.log(`  OK batch: ${txHash}`);
 }
 
 function updateOnChain(items: UploadedPlanItem[], options: MigrationOptions): void {
@@ -645,18 +697,24 @@ function updateOnChain(items: UploadedPlanItem[], options: MigrationOptions): vo
     return;
   }
 
-  console.log(`\nSending ${pending.length} updateActionInstructions transaction(s)...\n`);
-  let succeeded = 0;
+  console.log(`\nSending 1 batchUpdateActionInstructions transaction for ${pending.length} action(s)...\n`);
   for (const item of pending) {
-    console.log(`[${item.uid}] ${item.slug}`);
-    sendInstructionUpdate(actionRegistry, item, options.rpcUrl);
-    succeeded += 1;
+    console.log(`[${item.uid}] ${item.slug} — ${item.cid}`);
   }
-  console.log(`\nDone: ${succeeded}/${pending.length} instruction CID update(s) sent.`);
+  sendInstructionBatchUpdate(actionRegistry, pending, options.rpcUrl);
+  console.log(`\nDone: ${pending.length}/${pending.length} instruction CID update(s) sent in one transaction.`);
 }
 
 async function main(): Promise<void> {
   const options = parseArgs(process.argv);
+
+  if (options.preflightOnly) {
+    const actionRegistry = loadActionRegistry(options.chainId);
+    assertBatchInstructionUpdateSupported(actionRegistry, options.rpcUrl);
+    console.log(`ActionRegistry ${actionRegistry} supports batchUpdateActionInstructions.`);
+    return;
+  }
+
   const allActions = loadActions();
   const selectedActions = filterActions(allActions, options);
 
@@ -671,12 +729,17 @@ async function main(): Promise<void> {
   });
   const cache = loadCache();
 
-  printPlanSummary(plan, cache);
+  printPlanSummary(plan, cache, options.translationsPath);
   writePreviews(plan, options.previewDir);
 
   if (options.dryRun) {
     console.log("\nDry run complete. No IPFS uploads or on-chain writes were performed.");
     return;
+  }
+
+  if (options.broadcast) {
+    const actionRegistry = loadActionRegistry(options.chainId);
+    assertBatchInstructionUpdateSupported(actionRegistry, options.rpcUrl);
   }
 
   const uploaded = await uploadPlan(plan, cache);

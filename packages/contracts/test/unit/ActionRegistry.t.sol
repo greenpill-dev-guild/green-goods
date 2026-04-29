@@ -15,6 +15,7 @@ import {
     NotGardenToken,
     ZeroAddress
 } from "../../src/registries/Action.sol";
+import { ArrayLengthMismatch } from "../../src/CommonErrors.sol";
 import { MockHatsModule } from "../helpers/MockHatsModule.sol";
 
 contract ActionRegistryTest is Test {
@@ -222,6 +223,76 @@ contract ActionRegistryTest is Test {
 
         ActionRegistry.Action memory action = actionRegistry.getAction(0);
         assertEq(action.instructions, "newInstructionsCID", "Instructions should be updated");
+    }
+
+    function testBatchUpdateActionInstructions() public {
+        _registerActionWithDomain(Domain.AGRO, "agro.planting_event");
+        _registerActionWithDomain(Domain.WASTE, "waste.cleanup_event");
+
+        uint256[] memory actionUIDs = new uint256[](2);
+        actionUIDs[0] = 0;
+        actionUIDs[1] = 1;
+
+        string[] memory instructions = new string[](2);
+        instructions[0] = "newInstructionsCID0";
+        instructions[1] = "newInstructionsCID1";
+
+        vm.expectEmit(true, true, false, false);
+        emit ActionInstructionsUpdated(multisig, 0, "newInstructionsCID0");
+        vm.expectEmit(true, true, false, false);
+        emit ActionInstructionsUpdated(multisig, 1, "newInstructionsCID1");
+
+        vm.prank(multisig);
+        actionRegistry.batchUpdateActionInstructions(actionUIDs, instructions);
+
+        assertEq(actionRegistry.getAction(0).instructions, "newInstructionsCID0", "Action 0 instructions updated");
+        assertEq(actionRegistry.getAction(1).instructions, "newInstructionsCID1", "Action 1 instructions updated");
+    }
+
+    function testBatchUpdateActionInstructionsHandlesCurrentCatalogSize() public {
+        uint256 actionCount = 23;
+        uint256[] memory actionUIDs = new uint256[](actionCount);
+        string[] memory instructions = new string[](actionCount);
+
+        for (uint256 i = 0; i < actionCount; i++) {
+            _registerActionWithDomain(Domain.AGRO, string.concat("agro.batch_", vm.toString(i)));
+            actionUIDs[i] = i;
+            instructions[i] = string.concat("newInstructionsCID", vm.toString(i));
+        }
+
+        vm.prank(multisig);
+        actionRegistry.batchUpdateActionInstructions(actionUIDs, instructions);
+
+        for (uint256 i = 0; i < actionCount; i++) {
+            assertEq(actionRegistry.getAction(i).instructions, instructions[i], "Catalog-sized batch action updated");
+        }
+    }
+
+    function testBatchUpdateActionInstructionsRevertsOnArrayLengthMismatch() public {
+        _registerAction();
+
+        uint256[] memory actionUIDs = new uint256[](1);
+        actionUIDs[0] = 0;
+        string[] memory instructions = new string[](2);
+        instructions[0] = "newInstructionsCID0";
+        instructions[1] = "newInstructionsCID1";
+
+        vm.prank(multisig);
+        vm.expectRevert(ArrayLengthMismatch.selector);
+        actionRegistry.batchUpdateActionInstructions(actionUIDs, instructions);
+    }
+
+    function testBatchUpdateActionInstructionsRevertsWhenCallerDoesNotOwnAction() public {
+        _registerAction();
+
+        uint256[] memory actionUIDs = new uint256[](1);
+        actionUIDs[0] = 0;
+        string[] memory instructions = new string[](1);
+        instructions[0] = "newInstructionsCID0";
+
+        vm.prank(address(0x999));
+        vm.expectRevert(NotActionOwner.selector);
+        actionRegistry.batchUpdateActionInstructions(actionUIDs, instructions);
     }
 
     function testUpdateActionMedia() public {

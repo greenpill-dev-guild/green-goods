@@ -7,7 +7,7 @@ import { Script, console2 } from "forge-std/Script.sol";
 import { IUnlockFactory, IPublicLock } from "../src/interfaces/IUnlock.sol";
 
 /// @title DeployBadgeLocks
-/// @notice Deploy the six GreenWill reputation badge locks via Unlock Protocol
+/// @notice Deploy the initial GreenWill badge locks via Unlock Protocol
 /// @dev Invoked by `bun script/deploy.ts badge-locks --network <chain> --broadcast`
 ///      Writes deployments/{chainId}-badge-locks.json for the TS wrapper to merge.
 contract DeployBadgeLocks is Script {
@@ -15,7 +15,6 @@ contract DeployBadgeLocks is Script {
     error UnsupportedChain(uint256 chainId);
 
     uint256 private constant DISABLED_TRANSFER_FEE_BASIS_POINTS = 10_000;
-    uint256 private constant SECONDS_PER_YEAR = 365 days;
 
     function run() external {
         string memory networksJson = vm.readFile(string.concat(vm.projectRoot(), "/deployments/networks.json"));
@@ -28,29 +27,13 @@ contract DeployBadgeLocks is Script {
 
         uint16 lockVersion = IUnlockFactory(unlockFactory).publicLockLatestVersion();
 
-        address verifiedGardener =
-            _deployLock(unlockFactory, lockVersion, "Green Goods Verified Gardener", 0, managerDefaults);
-        address activeContributor =
-            _deployLock(unlockFactory, lockVersion, "Green Goods Active Contributor", SECONDS_PER_YEAR, managerDefaults);
-        address stewardship = _deployLock(unlockFactory, lockVersion, "Green Goods Stewardship", 0, managerDefaults);
-        address gardenOperator = _deployLock(unlockFactory, lockVersion, "Green Goods Garden Operator", 0, managerDefaults);
-        address communityBuilder =
-            _deployLock(unlockFactory, lockVersion, "Green Goods Community Builder", 0, managerDefaults);
-        address impactVerified = _deployLock(unlockFactory, lockVersion, "Green Goods Impact Verified", 0, managerDefaults);
+        address genesis = _deployLock(unlockFactory, lockVersion, "Green Goods Genesis", 0, managerDefaults);
+        address firstWork = _deployLock(unlockFactory, lockVersion, "Green Goods First Work", 0, managerDefaults);
+        address firstSupport = _deployLock(unlockFactory, lockVersion, "Green Goods First Support", 0, managerDefaults);
 
         vm.stopBroadcast();
 
-        _saveResult(
-            unlockFactory,
-            lockVersion,
-            managerDefaults.length,
-            verifiedGardener,
-            activeContributor,
-            stewardship,
-            gardenOperator,
-            communityBuilder,
-            impactVerified
-        );
+        _saveResult(unlockFactory, lockVersion, managerDefaults.length, genesis, firstWork, firstSupport);
     }
 
     function _deployLock(
@@ -86,12 +69,9 @@ contract DeployBadgeLocks is Script {
         address unlockFactory,
         uint16 lockVersion,
         uint256 managerCount,
-        address verifiedGardener,
-        address activeContributor,
-        address stewardship,
-        address gardenOperator,
-        address communityBuilder,
-        address impactVerified
+        address genesis,
+        address firstWork,
+        address firstSupport
     )
         internal
     {
@@ -100,12 +80,9 @@ contract DeployBadgeLocks is Script {
         vm.serializeUint(obj, "publicLockVersion", lockVersion);
         vm.serializeAddress(obj, "lockCreator", msg.sender);
         vm.serializeUint(obj, "managerCount", managerCount);
-        vm.serializeAddress(obj, "verifiedGardener", verifiedGardener);
-        vm.serializeAddress(obj, "activeContributor", activeContributor);
-        vm.serializeAddress(obj, "stewardship", stewardship);
-        vm.serializeAddress(obj, "gardenOperator", gardenOperator);
-        vm.serializeAddress(obj, "communityBuilder", communityBuilder);
-        string memory finalJson = vm.serializeAddress(obj, "impactVerified", impactVerified);
+        vm.serializeAddress(obj, "genesis", genesis);
+        vm.serializeAddress(obj, "firstWork", firstWork);
+        string memory finalJson = vm.serializeAddress(obj, "firstSupport", firstSupport);
 
         string memory outPath =
             string.concat(vm.projectRoot(), "/deployments/", vm.toString(block.chainid), "-badge-locks.json");

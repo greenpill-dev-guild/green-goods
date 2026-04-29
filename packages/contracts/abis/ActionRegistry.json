@@ -25,6 +25,24 @@
   },
   {
     "type": "function",
+    "name": "batchUpdateActionInstructions",
+    "inputs": [
+      {
+        "name": "actionUIDs",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "_instructions",
+        "type": "string[]",
+        "internalType": "string[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "gardenDomains",
     "inputs": [
       {
@@ -812,6 +830,11 @@
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "ArrayLengthMismatch",
+    "inputs": []
   },
   {
     "type": "error",

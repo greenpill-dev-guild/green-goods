@@ -413,6 +413,19 @@ bun build                                                 # Clean compilation, n
 bun script/deploy.ts core --network sepolia               # Dry run (omit --broadcast)
 ```
 
+### Phase-Aware Artifact Review
+
+For new contract work, deployment artifacts move through phases:
+
+- **Pending broadcast**: missing or zero addresses can be expected before transactions are sent.
+  Do not turn this into a P0 by itself.
+- **Deployment path blocker**: block before broadcast only if the repo lacks a safe command or
+  script to deploy, initialize, persist artifacts, and update dependent config such as indexer
+  addresses.
+- **Post-broadcast blocker**: after a claimed or authorized broadcast, required zero/missing
+  addresses, schema UIDs, or generated config are blockers until the artifact/config is fixed
+  and re-verified.
+
 ### Gas Benchmarks
 
 | Operation | Target |
@@ -422,13 +435,22 @@ bun script/deploy.ts core --network sepolia               # Dry run (omit --broa
 | Work submission | < 150,000 gas |
 | Work approval | < 100,000 gas |
 
-### Red Flags (Block Deployment)
+### Pre-Broadcast Red Flags (Block Broadcast)
 
 - Test pass rate < 80% (testnet) or < 100% (mainnet)
 - Compiler errors or warnings
-- Zero or missing addresses in `deployments/{chainId}-latest.json`
-- Missing schema UIDs in deployment artifact
+- Missing deploy command or unsafe dry-run for the target module
+- Bad required network config, manager defaults, or deployer wallet inputs
+- No artifact persistence path for newly deployed addresses/schema UIDs
+- No dependent config update path when shared, client, admin, or indexer reads need the address
 - Deployer wallet unfunded
+
+### Post-Broadcast Red Flags (Block Go-Live)
+
+- Required deployed address remains zero or missing in `deployments/{chainId}-latest.json`
+- Required schema UID remains zero or missing in deployment artifacts
+- Indexer config still points at a zero or stale address for newly deployed indexed contracts
+- Generated ABI/config artifacts were not refreshed after deployment metadata changed
 
 ### Mainnet Additional Requirements (All Blocking)
 

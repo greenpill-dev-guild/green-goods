@@ -15,6 +15,16 @@
   "gardenerRegistry": "0x0000000000000000000000000000000000000000",
   "gardensModule": "0x9d9F913eEeBAC1142E38E5276dE7c8bc9Cf7a183",
   "greenGoodsENS": "0x4fAD8Db8e04005884D484eC730aDae10d7A2e491",
+  "greenWillConfig": {
+    "owner": "0x49fa954B6C2Cd14B4b3604EF1Cc17cED20a9E42C",
+    "deployer": "0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6",
+    "genesisHatId": "0x0000005c00020002000000000000000000000000000000000000000000000000",
+    "metadataURIs": {
+      "genesis": "",
+      "firstWork": "",
+      "firstSupport": ""
+    }
+  },
   "guardian": "0x05F486E3161F895Ad99f041065224F78bDf580a7",
   "hatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
   "hypercertsModule": "0x9CB6300cb0DD64dfe577944d7a8AF70799Fe3ef0",

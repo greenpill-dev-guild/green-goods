@@ -67,12 +67,9 @@ export class BadgeSchemasDeployer {
     console.log(`registerCalldata: ${registerCalldata}`);
     console.log("schemaUID: <returned by SchemaRegistry.register on broadcast>");
     console.log("\nBadge IDs using this shared schema:");
-    console.log("  - verified-gardener");
-    console.log("  - active-contributor");
-    console.log("  - stewardship");
-    console.log("  - garden-operator");
-    console.log("  - community-builder");
-    console.log("  - impact-verified");
+    console.log("  - genesis");
+    console.log("  - first-work");
+    console.log("  - first-support");
     console.log("\nBadge schema dry-run plan complete.");
   }
 

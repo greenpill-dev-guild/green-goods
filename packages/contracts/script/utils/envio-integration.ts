@@ -36,6 +36,7 @@ interface DeploymentData {
   marketplaceAdapter?: string;
   unifiedPowerRegistry?: string;
   greenGoodsENS?: string;
+  greenWill?: string;
   [key: string]: string | undefined;
 }
 
@@ -66,6 +67,7 @@ const INDEXER_MANAGED_CONTRACT_ORDER = [
   "HypercertMarketplaceAdapter",
   "UnifiedPowerRegistry",
   "GreenGoodsENS",
+  "GreenWill",
 ] as const;
 
 const INDEXER_MANAGED_CONTRACTS = new Set<string>(INDEXER_MANAGED_CONTRACT_ORDER);
@@ -272,6 +274,7 @@ export class EnvioIntegration {
       upsertContract("HypercertMarketplaceAdapter", deployment.marketplaceAdapter);
       upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
       upsertContract("GreenGoodsENS", deployment.greenGoodsENS);
+      upsertContract("GreenWill", deployment.greenWill);
       // Some contracts may be absent in deployment JSON for specific networks.
       // In that case, we preserve existing config entries (including placeholders).
       upsertContract("YieldSplitter", deployment.yieldSplitter);
@@ -345,6 +348,9 @@ export class EnvioIntegration {
       }
       if (deployment.yieldSplitter && deployment.yieldSplitter !== ZERO_ADDRESS) {
         console.log(`   YieldSplitter: ${deployment.yieldSplitter}`);
+      }
+      if (deployment.greenWill && deployment.greenWill !== ZERO_ADDRESS) {
+        console.log(`   GreenWill: ${deployment.greenWill}`);
       }
       console.log(`   start_block: ${startBlock}`);
 

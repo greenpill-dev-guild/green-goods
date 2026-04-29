@@ -13,6 +13,7 @@ import { BadgeSchemasDeployer } from "./badge-schemas";
 import { CoreDeployer } from "./core";
 import { GardenDeployer } from "./gardens";
 import { GoodsDeployer } from "./goods";
+import { GreenWillDeployer } from "./greenwill";
 import { HatsTreeDeployer } from "./hats";
 import { OctantFactoryDeployer } from "./octant-factory";
 
@@ -36,6 +37,7 @@ export class DeploymentCLI {
   private octantFactoryDeployer: OctantFactoryDeployer;
   private badgeLocksDeployer: BadgeLocksDeployer;
   private badgeSchemasDeployer: BadgeSchemasDeployer;
+  private greenWillDeployer: GreenWillDeployer;
 
   constructor() {
     this.parser = new CliParser();
@@ -54,6 +56,7 @@ export class DeploymentCLI {
     this.octantFactoryDeployer = new OctantFactoryDeployer(this.networkManager, this.anvilManager);
     this.badgeLocksDeployer = new BadgeLocksDeployer(this.networkManager, this.deploymentAddresses);
     this.badgeSchemasDeployer = new BadgeSchemasDeployer(this.networkManager, this.deploymentAddresses);
+    this.greenWillDeployer = new GreenWillDeployer(this.networkManager, this.deploymentAddresses);
   }
 
   /**
@@ -74,7 +77,8 @@ Commands:
   actions <config.json>    Deploy actions from config file
   hats-tree                Create and configure the Hats protocol tree
   badge-locks              Deploy or dry-run GreenWill reputation badge Unlock locks
-  badge-schemas            Deploy or dry-run GreenWill reputation badge EAS schema registration
+  greenwill                Deploy or dry-run initial GreenWill proxy and three-badge config
+  badge-schemas            Future/backlog: deploy GreenWill portable EAS badge schema
   ens-migrate              Reconcile Arbitrum ENS sends and migrate missing mainnet receiver records
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
@@ -83,25 +87,30 @@ Common Options:
   --network, -n <network>  Network to deploy to (default: localhost)
   --broadcast, -b          Broadcast transactions
   --save-artifacts         Save forge broadcast artifacts without broadcasting
-  --sender <address>       Override tx sender address for simulation/broadcast
+  --sender <address>       Override tx sender address
   --update-schemas         Only update schemas, skip existing contracts
   --force                  Force fresh deployment
   --dry-run                Run full deployment simulation against RPC (no broadcast)
   --pure-simulation        Run compile-only preflight (no RPC calls)
   --salt <value>           Override deployment salt string for CREATE2
+  --owner <address>        Optional GreenWill owner override; defaults to deployment greenWillConfig.owner
+  --genesis-hat-id <id>    Optional Genesis Hats override; defaults to deployment greenWillConfig.genesisHatId
+  --genesis-lock <addr>    Optional GreenWill Genesis lock override
+  --first-work-lock <addr> Optional GreenWill First Work lock override
+  --first-support-lock <addr> Optional GreenWill First Support lock override
   --override-sepolia-gate  Bypass Sepolia gate for Arbitrum/Celo broadcast
   --help, -h               Show this help
 
 Examples:
   # Fresh deployment
   bun deploy.ts core --network sepolia --broadcast
-  
+
   # Update schemas only
   bun deploy.ts core --network sepolia --broadcast --update-schemas
-  
+
   # Deploy garden
   bun deploy.ts garden config/my-garden.json --network arbitrum --broadcast
-  
+
   # Deploy actions
   bun deploy.ts actions config/my-actions.json --network arbitrum --broadcast
 
@@ -111,13 +120,16 @@ Examples:
   # Create Hats tree
   bun deploy.ts hats-tree --network sepolia --broadcast
 
-  # Plan GreenWill reputation badge locks and schema
-  bun deploy.ts badge-locks --network arbitrum --dry-run
-  bun deploy.ts badge-schemas --network arbitrum --dry-run
+  # Plan initial GreenWill badge locks and proxy configuration
+  bun run greenwill:locks:dry:arbitrum
+  bun run greenwill:dry:arbitrum
 
-  # Broadcast GreenWill badge locks and schema
-  bun deploy.ts badge-locks --network arbitrum --broadcast
-  bun deploy.ts badge-schemas --network arbitrum --broadcast
+  # Broadcast initial GreenWill badge locks and proxy configuration
+  bun run greenwill:locks:arbitrum
+  bun run greenwill:arbitrum
+
+  # Future/backlog portable badge attestation schema, not required for initial three-badge launch
+  bun deploy.ts badge-schemas --network arbitrum --dry-run
 
   # Migrate stuck greengoods.eth registrations into the current mainnet receiver
   bun deploy.ts ens-migrate --network mainnet --broadcast
@@ -270,6 +282,11 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
 
         case "badge-locks": {
           await this.badgeLocksDeployer.deployBadgeLocks(options);
+          break;
+        }
+
+        case "greenwill": {
+          await this.greenWillDeployer.deployGreenWill(options);
           break;
         }
 
