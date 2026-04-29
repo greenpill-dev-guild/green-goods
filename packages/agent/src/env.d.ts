@@ -27,6 +27,19 @@ declare namespace NodeJS {
 
     // API
     BOT_API_TOKEN?: string;
+    AGENT_ALLOWED_ORIGINS?: string;
+    AGENT_PUBLIC_ALLOWED_ORIGINS?: string;
+    AGENT_TRUSTED_PROXY_HOPS?: string;
+    AGENT_TRUSTED_PROXY_CIDRS?: string;
+    AGENT_UPLOAD_SIGN_TTL_SECONDS?: string;
+    AGENT_UPLOAD_MAX_FILE_SIZE_BYTES?: string;
+    AGENT_UPLOAD_ALLOWED_MIME_TYPES?: string;
+    AGENT_UPLOAD_SIGN_RATE_LIMIT?: string;
+    AGENT_UPLOAD_SIGN_RATE_LIMIT_WINDOW_MS?: string;
+
+    // Upload signing
+    PINATA_JWT?: string;
+    PINATA_UPLOADS_API_URL?: string;
 
     // Analytics
     POSTHOG_AGENT_KEY?: string;

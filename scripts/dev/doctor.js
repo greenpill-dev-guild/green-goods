@@ -441,32 +441,52 @@ function checkEnv() {
   const vitePinataJwt = valueFor(envFile, "VITE_PINATA_JWT");
   const pinataJwtOpRef = valueFor(envFile, "PINATA_JWT_OP_REF");
   const pinataJwt = valueFor(envFile, "PINATA_JWT");
+  const apiBaseUrl = valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
   const hasPinataOpRef = hasOpRef(pinataJwtOpRef);
-  const hasPinataBrowser =
-    hasUsableValue(vitePinataJwt) || (options.profile === "upload" && hasPinataOpRef && opReady);
-  const hasPinataServer = hasPinataBrowser || hasUsableValue(pinataJwt);
+  const hasPinataServer =
+    hasUsableValue(pinataJwt) || (options.profile === "upload" && hasPinataOpRef && opReady);
 
-  if (hasPinataBrowser) {
-    add("pass", "Pinata upload credentials configured", "Secret value or OP ref was detected but not printed.", "", {
-      check: "env:pinata",
-    });
+  if (vitePinataJwt.trim()) {
+    add(
+      requiredLevel(["upload"]),
+      "Stale browser Pinata JWT is configured",
+      "VITE_PINATA_JWT is public in Vite bundles and is no longer used for browser uploads.",
+      "Remove VITE_PINATA_JWT from the root .env and keep upload authority in PINATA_JWT.",
+      { check: "env:pinata-browser-secret" }
+    );
+  }
+
+  if (hasPinataServer) {
+    add(
+      "pass",
+      "Pinata upload signing credential configured",
+      "Server-side secret value or OP ref was detected but not printed.",
+      "",
+      {
+        check: "env:pinata",
+      }
+    );
   } else {
     add(
       requiredLevel(["upload"]),
-      "Pinata upload credentials missing",
+      "Pinata upload signing credential missing",
       "Image reads can use public gateways, but upload-capable QA will fail.",
-      "Set VITE_PINATA_JWT in root .env, or PINATA_JWT_OP_REF=op://... to resolve it through Varlock.",
+      "Set PINATA_JWT in root .env, or PINATA_JWT_OP_REF=op://... to resolve it through Varlock.",
       { check: "env:pinata" }
     );
   }
 
-  if (!hasPinataBrowser && hasPinataServer) {
+  if (hasUsableValue(apiBaseUrl)) {
+    add("pass", "Browser upload signer API configured", `VITE_API_BASE_URL=${apiBaseUrl}`, "", {
+      check: "env:upload-signer-api",
+    });
+  } else {
     add(
       requiredLevel(["upload"]),
-      "Browser Pinata JWT is not resolved",
-      "Current frontend upload code still consumes VITE_PINATA_JWT.",
-      "Set VITE_PINATA_JWT directly or configure PINATA_JWT_OP_REF.",
-      { check: "env:pinata-browser" }
+      "Browser upload signer API missing",
+      "Browser uploads request signed URLs from the agent.",
+      "Set VITE_API_BASE_URL to the agent origin for upload-capable QA.",
+      { check: "env:upload-signer-api" }
     );
   }
 
@@ -614,7 +634,7 @@ function printText() {
   console.log("- Frontend QA: Node.js, Bun, Git, root .env, ports 3001/3002/3003/6006.");
   console.log("- Full-stack/indexer: frontend QA plus Docker and packages/indexer/generated.");
   console.log("- Contracts: frontend QA plus Foundry.");
-  console.log("- Upload-capable QA: frontend QA plus VITE_PINATA_JWT or a resolvable PINATA_JWT_OP_REF.");
+  console.log("- Upload-capable QA: frontend QA plus VITE_API_BASE_URL and PINATA_JWT or a resolvable PINATA_JWT_OP_REF.");
 
   console.log("\nSecret policy");
   console.log("- Baseline web development does not require 1Password.");

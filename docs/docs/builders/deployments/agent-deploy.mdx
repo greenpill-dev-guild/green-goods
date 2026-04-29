@@ -15,7 +15,7 @@ source_of_truth:
   - .env.schema
   - ecosystem.config.cjs
   - packages/agent/README.md
-keywords: [agent, Telegram, bot, Fastify, deployment]
+keywords: [agent, Telegram, bot, Hono, deployment]
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -29,7 +29,7 @@ graph TB
     Build["bun run build\ntsc → dist/"] --> Start["bun run start"]
 
     subgraph Runtime["Agent Runtime"]
-        Fastify["Fastify\nHTTP + health"]
+        Hono["Hono\nHTTP + health + APIs"]
         Telegraf["Telegraf\nTelegram API"]
         Pino["Pino\nstructured logs"]
     end
@@ -45,7 +45,7 @@ graph TB
     Runtime --> Integrations
 ```
 
-The agent package (`packages/agent/`) is a Fastify-based bot service that provides Telegram integration for the Green Goods protocol. It handles work submission via chat, blockchain interactions, and the shared Pinata-backed IPFS upload path used by the submission pipeline.
+The agent package (`packages/agent/`) is a Hono-based bot and API service that provides Telegram integration for the Green Goods protocol. It handles work submission via chat, blockchain interactions, public browser APIs, and Pinata signed upload URLs.
 
 ## Deployment Checklist
 
@@ -54,7 +54,7 @@ The agent package (`packages/agent/`) is a Fastify-based bot service that provid
 3. Run tests: `cd packages/agent && bun run test`
 4. Start the compiled output: `cd packages/agent && bun run start`
 5. Verify Telegram webhook delivery status
-6. Check Fastify health endpoint responds
+6. Check Hono health endpoint responds
 7. Monitor process uptime and memory usage through the selected host or process manager
 8. Confirm blockchain RPC connectivity and error rates in Pino structured logs
 
@@ -77,7 +77,7 @@ Key variables used by the current agent runtime:
 | `POSTHOG_AGENT_KEY` | Optional production analytics | Enables agent analytics when production analytics are enabled. |
 
 The agent loads environment variables from the root `.env` file.
-Shared submission code can also read `PINATA_JWT` or `VITE_PINATA_JWT` when a bot submission includes media buffers and needs the shared IPFS upload path. The current agent config does not load `DEPLOYER_PRIVATE_KEY` or `VITE_PIMLICO_API_KEY` as required service variables.
+Browser upload flows call the agent for short-lived Pinata signed upload URLs. Set `PINATA_JWT` on the agent host so the signer can create those URLs; keep `VITE_API_BASE_URL` pointed at the deployed agent from browser apps. Script and server uploads can still use `PINATA_JWT` directly. The current agent config does not load `DEPLOYER_PRIVATE_KEY` or `VITE_PIMLICO_API_KEY` as required service variables.
 
 ### API Key Management
 
@@ -86,13 +86,13 @@ Sensitive keys should be managed through environment variables or a secrets mana
 - Never commit API keys to the repository
 - Rotate `TELEGRAM_BOT_TOKEN` if compromised
 - Use a strong `ENCRYPTION_SECRET`; rotate it if exposed and plan for stored secret recovery before changing it in production
-- Treat `BOT_API_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and any media-upload `PINATA_JWT` as production secrets
+- Treat `BOT_API_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and media-upload `PINATA_JWT` as production secrets
 
 ### Architecture
 
 The agent runs as a long-lived Node.js/Bun process:
 
-- **Fastify** HTTP server for webhooks and health checks
+- **Hono** HTTP server for webhooks, health checks, public browser APIs, and upload signing
 - **Telegraf** for Telegram bot API interaction
 - **Pino** for structured logging (with `pino-pretty` for development)
 - **viem** for blockchain interactions
@@ -156,7 +156,7 @@ cd packages/agent && bun run start
 
 ### Health Monitoring
 
-The Fastify server exposes health check endpoints. Monitor:
+The Hono server exposes health check endpoints. Monitor:
 
 - Process uptime and memory usage through the selected host or process manager
 - Telegram webhook delivery status

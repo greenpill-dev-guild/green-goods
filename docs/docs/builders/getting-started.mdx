@@ -96,7 +96,7 @@ The setup script (`scripts/dev/setup.js`) runs through four steps:
 | Frontend QA | Node.js, Git, Bun from setup, root `.env`, ports 3001/3002/3003/6006 available | `bun run dev:doctor -- --profile web` |
 | Full-stack / indexer | Frontend QA plus Docker, `packages/indexer/generated`, and generated dependencies | `bun run dev:doctor -- --profile full` |
 | Contracts | Frontend QA plus Foundry | `bun run dev:doctor -- --profile contracts` |
-| Upload-capable QA | Frontend QA plus `PINATA_JWT_OP_REF=op://...` or `VITE_PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
+| Upload-capable QA | Frontend QA plus `VITE_API_BASE_URL` and `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
 
 Run `bun run dev:doctor -- --profile web|full|contracts|upload` any time you need a non-mutating check of the current machine. It reports missing tools, Docker state, Pinata readiness, passkey RP ID posture, indexer generated state, stale environment keys, and port conflicts without printing secret values. Add `--json` for machine-readable output in CI, containers, or agent workflows.
 
@@ -113,7 +113,9 @@ Most local web work starts with the generated defaults and does not require 1Pas
 | `APP_ENV` | Environment selector (`development`, `test`, `staging`, `production`) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (e.g. `11155111` for Sepolia, `42161` for Arbitrum) |
 | `VITE_PASSKEY_RP_ID` | Optional passkey relying-party override. Leave blank for localhost development fallback; set `localhost` for explicit local passkey QA. |
-| `VITE_PINATA_JWT` | Upload-capable Pinata JWT for the current browser-facing shared IPFS upload path. `PINATA_JWT` is generated from it as a script compatibility alias. Not required for baseline web dev. |
+| `VITE_API_BASE_URL` | Browser API origin. Upload-capable flows call the agent for short-lived Pinata signed upload URLs. |
+| `PINATA_JWT` | Server/script Pinata JWT used by the agent upload signer and maintenance scripts. Not embedded in browser bundles. |
+| `VITE_PINATA_GATEWAY_URL` | Public Pinata gateway URL for reading IPFS media. |
 | `SEPOLIA_RPC_URL` | RPC endpoint for Sepolia fork tests |
 | `*_OP_REF` | Optional 1Password CLI reference for shared team, upload, deploy, or CI secrets, such as `PINATA_JWT_OP_REF=op://vault/item/field` |
 | `OP_ENVIRONMENT` / `OP_SERVICE_ACCOUNT_TOKEN` | Optional bulk-loading path for CI, service accounts, or newer 1Password CLI environment flows. Leave blank for baseline local web dev. |
@@ -237,7 +239,7 @@ bun run format
 | `forge: command not found` | Foundry not installed | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
 | Indexer fails to start | Docker not running | Start Docker Desktop, then retry `bun run dev:indexer` |
 | `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `npm run setup` or run `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env` |
-| `Pinata forbidden` or upload fails | Missing Pinata JWT | Add `PINATA_JWT_OP_REF=op://...` or `VITE_PINATA_JWT` to root `.env`, then rerun `bun run dev:doctor -- --profile upload` |
+| `Pinata forbidden` or upload fails | Missing signer or Pinata server credential | Confirm `VITE_API_BASE_URL` points at the agent and add `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` to root `.env`, then rerun `bun run dev:doctor -- --profile upload` |
 | Client PM2 process is online but `localhost:3001` does not respond | Varlock env validation failed before Vite bound the port | Run `bun run dev:doctor -- --profile web`; for baseline web dev, remove active non-schema `*_OP_REF=op://...` entries or use direct local values. For shared-secret workflows, sign in to `op`. Remove stale `STORACHA_*` entries. |
 | `bun run dev:smoke:web` fails before checking ports | Web doctor failed | Fix the doctor failures first; smoke only probes services after the web profile is ready. |
 | Passkey registration fails on localhost | RP ID mismatch | Leave `VITE_PASSKEY_RP_ID` blank for fallback behavior, or set `VITE_PASSKEY_RP_ID=localhost` for local passkey QA |

@@ -11,12 +11,8 @@ interface ImportMetaEnv {
   readonly VITE_PIMLICO_SPONSORSHIP_POLICY_ID?: string;
   readonly VITE_MOCK_PWA_INSTALLED?: string;
   readonly VITE_QUEUE_DEBUG?: string;
-  readonly VITE_PINATA_JWT?: string;
+  readonly VITE_API_BASE_URL?: string;
   readonly VITE_PINATA_GATEWAY_URL?: string;
-  readonly VITE_PINATA_API_URL?: string;
-  readonly PINATA_JWT?: string;
-  readonly PINATA_GATEWAY_URL?: string;
-  readonly PINATA_API_URL?: string;
 }
 
 interface ImportMeta {

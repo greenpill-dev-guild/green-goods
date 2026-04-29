@@ -4,6 +4,7 @@ export type PublicRouteClass =
   | "subscribe"
   | "funding_create"
   | "receipt_read"
+  | "upload_sign"
   | "webhook_pre"
   | "webhook_post";
 
@@ -33,6 +34,7 @@ export const PUBLIC_RATE_LIMIT_POLICIES = {
   subscribe: { limit: 5, windowMs: 60 * 60 * 1000 },
   funding_create: { limit: 10, windowMs: 10 * 60 * 1000 },
   receipt_read: { limit: 60, windowMs: 10 * 60 * 1000 },
+  upload_sign: { limit: 20, windowMs: 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
   webhook_post: { limit: 300, windowMs: 60 * 1000 },
 } as const satisfies Record<PublicRouteClass, RateLimitPolicy>;
@@ -117,7 +119,7 @@ export function parseAllowedOrigins(value?: string): Set<string> {
 }
 
 export function isOriginAllowed(request: Request, allowedOrigins: Set<string>): boolean {
-  if (allowedOrigins.size === 0) return true;
+  if (allowedOrigins.size === 0) return false;
   const origin = normalizePublicOrigin(request.headers.get("origin"));
   return origin !== "none" && allowedOrigins.has(origin);
 }

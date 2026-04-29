@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-25T18:43:29.436Z",
-    "updated_at": "2026-04-27T06:20:43.926Z"
+    "updated_at": "2026-04-29T05:33:38Z"
   },
   "links": {
     "brief": "brief.md",
@@ -36,11 +36,11 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "ready",
+      "status": "completed",
       "branch": "codex/state-api/agent-upload-signer",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "skill_tags": ["fastify", "ipfs", "pinata", "data-layer"]
+      "skill_tags": ["hono", "ipfs", "pinata", "data-layer"]
     },
     "contracts": {
       "owner": "codex",
@@ -52,7 +52,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/agent-upload-signer",
@@ -104,6 +104,22 @@
       "status": "planning_scope_updated",
       "branch": null,
       "note": "Promoted to active on 2026-04-27 as non-product security/ops hardening to remove browser upload dependence on long-lived Pinata authority."
+    },
+    {
+      "timestamp": "2026-04-29T04:32:50Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Implemented the Hono upload signer and shared signed Pinata browser upload flow; targeted tests and agent lint passed, with broader follow-up validation recorded in the next history entry."
+    },
+    {
+      "timestamp": "2026-04-29T05:33:38Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "review_fixes_completed",
+      "branch": "develop",
+      "note": "Closed review findings and remaining proof gaps: signer origins fail closed, production config requires allowed origins, doctor flags stale VITE_PINATA_JWT, stale router wording and legacy public Pinata JWT references were removed, browser signing stays on VITE_API_BASE_URL, and the escalated quick gate now passes."
     }
   ]
 }

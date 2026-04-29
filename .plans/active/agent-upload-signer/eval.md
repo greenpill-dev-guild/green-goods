@@ -20,7 +20,7 @@
 
 ## Test Strategy
 
-- Unit: agent signer helper, Fastify route injection tests, shared IPFS upload helpers.
+- Unit: agent signer helper, Hono route injection tests, shared IPFS upload helpers.
 - Integration: mocked Pinata signed URL creation and mocked direct upload response.
 - E2E / Playwright: optional after implementation if a live upload-capable surface needs manual proof.
 - Manual checks: verify deployed agent has `PINATA_JWT`, `AGENT_ALLOWED_ORIGINS`, and production app origins configured before release.

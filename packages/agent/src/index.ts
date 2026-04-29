@@ -79,6 +79,15 @@ async function main(): Promise<void> {
       hops: config.trustedProxyHops,
       cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
     },
+    uploadSigning: {
+      pinataJwt: config.pinataJwt,
+      pinataUploadsApiBaseUrl: config.pinataUploadsApiBaseUrl,
+      ttlSeconds: config.uploadSignerTtlSeconds,
+      maxFileSize: config.uploadSignerMaxFileSize,
+      allowedMimeTypes: config.uploadSignerAllowedMimeTypes,
+      rateLimit: config.uploadSignerRateLimit,
+      rateLimitWindowMs: config.uploadSignerRateLimitWindowMs,
+    },
     thirdwebWebhookSecret: config.thirdwebWebhookSecret,
     thirdwebClientId: config.thirdwebClientId,
   });

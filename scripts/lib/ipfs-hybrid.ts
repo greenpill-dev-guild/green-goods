@@ -99,15 +99,13 @@ function normalizeUrl(value?: string | null): string | null {
 export function loadPinataConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env
 ): PinataScriptConfig | null {
-  const jwt = env.PINATA_JWT?.trim() || env.VITE_PINATA_JWT?.trim() || null;
+  const jwt = env.PINATA_JWT?.trim() || null;
   const gatewayBaseUrl =
     normalizeUrl(env.PINATA_GATEWAY_URL) ??
     normalizeUrl(env.VITE_PINATA_GATEWAY_URL) ??
     (jwt ? DEFAULT_PINATA_GATEWAY : null);
   const apiBaseUrl =
-    normalizeUrl(env.PINATA_API_URL) ??
-    normalizeUrl(env.VITE_PINATA_API_URL) ??
-    DEFAULT_PINATA_API_BASE_URL;
+    normalizeUrl(env.PINATA_API_URL) ?? DEFAULT_PINATA_API_BASE_URL;
 
   if (!jwt && !gatewayBaseUrl) {
     return null;

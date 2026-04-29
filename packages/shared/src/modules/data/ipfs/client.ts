@@ -1,4 +1,5 @@
 import { logger } from "../../app/logger";
+import { PUBLIC_AGENT_ROUTES } from "../../../public-contracts";
 
 // ============================================================================
 // TYPES
@@ -7,12 +8,16 @@ import { logger } from "../../app/logger";
 export interface IpfsConfig {
   /** Optional custom IPFS gateway URL */
   gatewayBaseUrl?: string;
-  /** Pinata JWT used for authenticated uploads */
+  /** Pinata JWT used for server-side authenticated uploads */
   pinataJwt?: string;
   /** Optional Pinata gateway URL (dedicated gateway preferred) */
   pinataGatewayBaseUrl?: string;
   /** Optional Pinata API base URL */
   pinataApiBaseUrl?: string;
+  /** Agent API base URL used for browser signed-upload requests */
+  apiBaseUrl?: string;
+  /** Override the upload signer URL for tests or same-origin deployments */
+  uploadSignUrl?: string;
 }
 
 export type IpfsInitStatus =
@@ -41,6 +46,7 @@ let gatewayUrl = DEFAULT_PINATA_GATEWAY;
 let pinataJwt: string | null = null;
 let pinataGatewayUrl: string | null = null;
 let pinataUploadsApiBaseUrl = DEFAULT_PINATA_UPLOADS_API_BASE_URL;
+let pinataUploadSignUrl: string | null = null;
 
 let ipfsInitializationStatus: IpfsInitStatus = "not_started";
 let ipfsInitializationError: string | null = null;
@@ -67,6 +73,10 @@ export function getPinataGatewayUrl(): string | null {
 
 export function getPinataUploadsApiBaseUrl(): string {
   return pinataUploadsApiBaseUrl;
+}
+
+export function getPinataUploadSignUrl(): string | null {
+  return pinataUploadSignUrl;
 }
 
 export function getIpfsInitializationStatus(): IpfsInitStatus {
@@ -98,6 +108,10 @@ function normalizeOptionalUrl(value?: string | null): string | null {
   return trimmed ? trimmed.replace(/\/+$/, "") : null;
 }
 
+function joinUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+}
+
 function normalizePinataUploadsApiUrl(value?: string | null): string {
   const normalized = normalizeOptionalUrl(value);
   if (!normalized) return DEFAULT_PINATA_UPLOADS_API_BASE_URL;
@@ -110,17 +124,26 @@ function normalizePinataUploadsApiUrl(value?: string | null): string {
 export function configurePinata(
   config: Pick<
     IpfsConfig,
-    "gatewayBaseUrl" | "pinataJwt" | "pinataGatewayBaseUrl" | "pinataApiBaseUrl"
+    | "gatewayBaseUrl"
+    | "pinataJwt"
+    | "pinataGatewayBaseUrl"
+    | "pinataApiBaseUrl"
+    | "apiBaseUrl"
+    | "uploadSignUrl"
   >
 ): void {
   const normalizedGateway =
     normalizeOptionalUrl(config.pinataGatewayBaseUrl) ??
     normalizeOptionalUrl(config.gatewayBaseUrl);
+  const normalizedApiBaseUrl = normalizeOptionalUrl(config.apiBaseUrl);
 
   pinataJwt = config.pinataJwt?.trim() || null;
   pinataGatewayUrl = normalizedGateway ?? (pinataJwt ? DEFAULT_PINATA_GATEWAY : null);
   gatewayUrl = normalizedGateway ?? DEFAULT_PINATA_GATEWAY;
   pinataUploadsApiBaseUrl = normalizePinataUploadsApiUrl(config.pinataApiBaseUrl);
+  pinataUploadSignUrl =
+    normalizeOptionalUrl(config.uploadSignUrl) ??
+    (normalizedApiBaseUrl ? joinUrl(normalizedApiBaseUrl, PUBLIC_AGENT_ROUTES.uploadSign) : null);
 }
 
 // ============================================================================
@@ -134,9 +157,9 @@ export function getIpfsInitStatus() {
   return {
     status: ipfsInitializationStatus,
     error: ipfsInitializationError,
-    clientReady: Boolean(pinataJwt),
+    clientReady: Boolean(pinataUploadSignUrl || pinataJwt),
     pinataConfigured: Boolean(pinataGatewayUrl),
-    pinataWriteReady: Boolean(pinataJwt),
+    pinataWriteReady: Boolean(pinataUploadSignUrl || pinataJwt),
   };
 }
 
@@ -149,8 +172,8 @@ export async function initializeIpfs(config: IpfsConfig): Promise<{ gatewayUrl: 
   ipfsInitializationError = null;
   configurePinata(config);
 
-  if (!pinataJwt) {
-    const error = new Error("Pinata JWT is not configured");
+  if (!pinataUploadSignUrl && !pinataJwt) {
+    const error = new Error("IPFS upload signer endpoint is not configured");
     ipfsInitializationStatus = "failed";
     ipfsInitializationError = error.message;
     logger.error("Failed to initialize IPFS upload path", { error });
@@ -180,45 +203,49 @@ function isPlaceholderSecret(value: string | undefined): boolean {
  * Convenience initializer that reads Vite-style env vars.
  * Returns true on successful initialization, false if missing configuration.
  *
- * Upload env vars:
- * - VITE_PINATA_JWT or PINATA_JWT: Pinata JWT for authenticated uploads
+ * Browser upload env vars:
+ * - VITE_API_BASE_URL: Agent API base URL for signed Pinata upload URLs
  *
- * Optional read/gateway env vars:
+ * Optional server upload and read/gateway env vars:
+ * - PINATA_JWT: Pinata JWT for authenticated server-side uploads
  * - VITE_PINATA_GATEWAY_URL or PINATA_GATEWAY_URL: Pinata gateway URL
- * - VITE_PINATA_API_URL or PINATA_API_URL: Pinata API base URL
+ * - PINATA_API_URL: Pinata API base URL for server-side direct uploads
  */
 export async function initializeIpfsFromEnv(
   env: Record<string, string | undefined> = typeof import.meta !== "undefined"
     ? (import.meta.env as Record<string, string | undefined>)
     : {}
 ): Promise<boolean> {
-  const pinataJwtValue = env?.VITE_PINATA_JWT ?? env?.PINATA_JWT;
+  const pinataJwtValue = env?.PINATA_JWT;
   const pinataGatewayBaseUrl = env?.VITE_PINATA_GATEWAY_URL ?? env?.PINATA_GATEWAY_URL;
-  const pinataApiBaseUrl = env?.VITE_PINATA_API_URL ?? env?.PINATA_API_URL;
-  const pinataReady = Boolean(pinataJwtValue && !isPlaceholderSecret(pinataJwtValue));
+  const pinataApiBaseUrl = env?.PINATA_API_URL;
+  const apiBaseUrl = env?.VITE_API_BASE_URL;
+  const uploadSignerReady = Boolean(apiBaseUrl && !isPlaceholderSecret(apiBaseUrl));
+  const directPinataReady = Boolean(pinataJwtValue && !isPlaceholderSecret(pinataJwtValue));
   const isTestEnvironment =
     env?.MODE === "test" ||
     env?.NODE_ENV === "test" ||
     (typeof process !== "undefined" && process.env.NODE_ENV === "test") ||
-    import.meta.env.MODE === "test";
+    (typeof import.meta !== "undefined" && import.meta.env?.MODE === "test");
 
   configurePinata({
     gatewayBaseUrl: pinataGatewayBaseUrl,
     pinataJwt: pinataJwtValue,
     pinataGatewayBaseUrl,
     pinataApiBaseUrl,
+    apiBaseUrl,
   });
 
-  if (!pinataReady) {
+  if (!uploadSignerReady && !directPinataReady) {
     ipfsInitializationStatus = "skipped_no_config";
-    ipfsInitializationError = "Pinata JWT is not configured";
+    ipfsInitializationError = "IPFS upload signer endpoint is not configured";
 
     // Only warn in development, not in CI/production builds with placeholders
     if (import.meta.env.DEV && !isTestEnvironment) {
       if (pinataGatewayBaseUrl) {
         logger.info("IPFS read gateway configured without upload credentials");
       } else {
-        logger.warn("VITE_PINATA_JWT is not configured. Upload features will be unavailable.");
+        logger.warn("VITE_API_BASE_URL is not configured. Upload features will be unavailable.");
       }
     }
     return false;
@@ -230,6 +257,7 @@ export async function initializeIpfsFromEnv(
       pinataJwt: pinataJwtValue,
       pinataGatewayBaseUrl,
       pinataApiBaseUrl,
+      apiBaseUrl,
     });
     return true;
   } catch (err) {

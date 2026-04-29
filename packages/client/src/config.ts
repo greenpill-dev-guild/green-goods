@@ -9,7 +9,6 @@ import { initializeIpfsFromEnv } from "@green-goods/shared";
 // Initialize IPFS upload/gateway settings from environment
 void initializeIpfsFromEnv({
   MODE: import.meta.env.MODE,
-  VITE_PINATA_API_URL: import.meta.env.VITE_PINATA_API_URL,
+  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
   VITE_PINATA_GATEWAY_URL: import.meta.env.VITE_PINATA_GATEWAY_URL,
-  VITE_PINATA_JWT: import.meta.env.VITE_PINATA_JWT,
 });

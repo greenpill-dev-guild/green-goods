@@ -2,7 +2,7 @@
 
 ## Summary
 
-Move browser uploads from direct Pinata JWT usage to agent-signed Pinata upload URLs. The existing `packages/agent` Fastify service becomes the minimal API surface for signing upload URLs, while client/admin/shared upload callers keep the current CID-oriented behavior.
+Move browser uploads from direct Pinata JWT usage to agent-signed Pinata upload URLs. The existing `packages/agent` Hono service becomes the minimal API surface for signing upload URLs, while client/admin/shared upload callers keep the current CID-oriented behavior.
 
 ## Users
 
@@ -49,16 +49,16 @@ Move browser uploads from direct Pinata JWT usage to agent-signed Pinata upload 
 ## Research Evidence
 
 - Existing pattern references:
-  - `packages/agent/src/api/server.ts` already hosts Fastify health, webhook, and `/api/*` routes.
+  - `packages/agent/src/api/server.ts` already hosts Hono health, webhook, and `/api/*` routes.
   - `packages/agent/src/config.ts` centralizes agent environment configuration.
   - `packages/shared/src/modules/data/ipfs/upload.ts` owns public `uploadFileToIPFS` and `uploadJSONToIPFS`.
   - `packages/shared/src/modules/data/ipfs/pinata.ts` handles Pinata upload responses and CID parsing.
-  - `.env.schema` documents that `VITE_PINATA_JWT` is currently browser-facing risk.
+  - `.env.schema` now documents the server-only `PINATA_JWT` boundary and the public `VITE_PINATA_GATEWAY_URL`/`VITE_API_BASE_URL` browser boundary.
 - External API reference:
   - Pinata signed upload URLs: `https://docs.pinata.cloud/api-reference/endpoint/create-signed-upload-url`
   - Pinata client-side uploads: `https://docs.pinata.cloud/files/uploading-files`
 - Evidence confirmed:
-  - Agent package already has Fastify and an API namespace.
+  - Agent package already has Hono and an API namespace.
   - Client/admin already use `VITE_API_BASE_URL` as a browser API base.
   - Upload callers depend on the shared `{ cid }` result shape.
 - Open assumptions:

@@ -25,6 +25,7 @@ bun run build && bun run start
 - Telegram token (`TELEGRAM_BOT_TOKEN`) from BotFather
 - 32+ char `ENCRYPTION_SECRET`
 - 32+ char `BOT_API_TOKEN` (bearer token that routines use to call `/api/feedback` and `/api/notify`)
+- Pinata JWT (`PINATA_JWT`) when the deployed agent should sign browser upload URLs
 - [`flyctl`](https://fly.io/docs/flyctl/install/) installed and authenticated
 - Config file: `packages/agent/fly.toml` (co-located with the package; invoke flyctl from **repo root** so the Docker build context includes the workspace's root `package.json`, `bun.lock`, `packages/`, `docs/`, `scripts/`)
 
@@ -44,6 +45,8 @@ flyctl secrets set --config packages/agent/fly.toml \
   TELEGRAM_BOT_TOKEN=<botfather-token> \
   ENCRYPTION_SECRET=<32+-char-secret> \
   BOT_API_TOKEN=<routine-auth-bearer-token> \
+  PINATA_JWT=<pinata-jwt-for-upload-signing> \
+  AGENT_ALLOWED_ORIGINS=https://greengoods.app,https://admin.greengoods.app \
   POSTHOG_AGENT_KEY=<optional> \
   TELEGRAM_WEBHOOK_SECRET=<random-string>
 
@@ -128,6 +131,8 @@ DB_PATH=data/agent.db         # SQLite database path
 # Analytics (optional, enabled in production)
 POSTHOG_AGENT_KEY=phc_...     # PostHog API key from https://posthog.com
 ANALYTICS_ENABLED=true        # Enable/disable analytics
+PINATA_JWT=...                # Required for POST /api/uploads/sign
+AGENT_ALLOWED_ORIGINS=...     # Comma-separated browser origins allowed to request upload signatures
 ```
 
 ## Commands
@@ -168,6 +173,7 @@ bun run typecheck    # TypeScript type check
 
 - **Private Key Encryption**: AES-256-GCM with PBKDF2 key derivation (100k iterations)
 - **Rate Limiting**: Sliding window per action type
+- **Upload Signing**: Browser uploads receive short-lived Pinata signed upload URLs; the Pinata JWT stays server-side
 - **On-Chain Verification**: Operator roles verified against smart contracts
 - **Input Validation**: Address and key format validation
 - **Analytics Privacy**: User IDs are hashed before sending to PostHog (no raw Telegram IDs stored)

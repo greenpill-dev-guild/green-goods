@@ -3,6 +3,7 @@ import {
   getGatewayUrl,
   getPinataGatewayUrl,
   getPinataJwt,
+  getPinataUploadSignUrl,
   getPinataUploadsApiBaseUrl,
   PROVIDER_VERIFICATION_ATTEMPTS,
   PROVIDER_VERIFICATION_TIMEOUT_MS,
@@ -18,6 +19,10 @@ export interface PinataUploadResponse {
   message?: string;
   error?: { reason?: string };
 }
+
+type UploadSignResponse =
+  | { ok?: true; url?: string; message?: string; errorCode?: string }
+  | { ok: false; message?: string; errorCode?: string };
 
 // ============================================================================
 // HELPERS
@@ -49,6 +54,98 @@ function buildPinataMetadata(
   };
 }
 
+async function parsePinataUploadResponse(response: Response, filename: string): Promise<string> {
+  let payload: PinataUploadResponse | null = null;
+  try {
+    payload = (await response.json()) as PinataUploadResponse;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      payload?.error?.reason?.trim() ||
+      payload?.message?.trim() ||
+      `${response.status} ${response.statusText}`;
+    throw new Error(`Pinata file upload failed for ${filename}: ${message}`);
+  }
+
+  const cid = payload?.data?.cid?.trim();
+  if (!cid) {
+    throw new Error(`Pinata upload for ${filename} did not return a CID`);
+  }
+
+  return cid;
+}
+
+async function requestSignedUploadUrl(
+  file: File,
+  options: {
+    name?: string;
+    category?: UploadErrorCategory;
+    source?: string;
+    gardenAddress?: string;
+  }
+): Promise<string> {
+  const signUrl = getPinataUploadSignUrl();
+  if (!signUrl) {
+    throw new Error("IPFS upload signer endpoint is not configured");
+  }
+
+  const response = await fetch(signUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      filename: options.name ?? file.name,
+      mimeType: file.type,
+      size: file.size,
+      category: options.category,
+      source: options.source,
+      gardenAddress: options.gardenAddress,
+    }),
+  });
+
+  let payload: UploadSignResponse | null = null;
+  try {
+    payload = (await response.json()) as UploadSignResponse;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok || payload?.ok === false) {
+    throw new Error(payload?.message?.trim() || "Upload signing is unavailable right now.");
+  }
+
+  const signedUrl = payload?.url?.trim();
+  if (!signedUrl) {
+    throw new Error("Upload signing response did not include a URL");
+  }
+
+  return signedUrl;
+}
+
+async function uploadFileWithSignedPinataUrl(
+  file: File,
+  options: {
+    name?: string;
+    category?: UploadErrorCategory;
+    source?: string;
+    gardenAddress?: string;
+  }
+): Promise<string> {
+  const signedUrl = await requestSignedUploadUrl(file, options);
+  const formData = new FormData();
+  formData.append("network", "public");
+  formData.append("file", file);
+
+  const response = await fetch(signedUrl, {
+    method: "POST",
+    body: formData,
+  });
+
+  return parsePinataUploadResponse(response, file.name);
+}
+
 // ============================================================================
 // PINATA UPLOAD
 // ============================================================================
@@ -62,6 +159,10 @@ export async function uploadFileWithPinata(
     gardenAddress?: string;
   } = {}
 ): Promise<string> {
+  if (getPinataUploadSignUrl()) {
+    return uploadFileWithSignedPinataUrl(file, options);
+  }
+
   const jwt = getPinataJwt();
   if (!jwt) {
     throw new Error("Pinata JWT is not configured");
@@ -87,27 +188,7 @@ export async function uploadFileWithPinata(
     body: formData,
   });
 
-  let payload: PinataUploadResponse | null = null;
-  try {
-    payload = (await response.json()) as PinataUploadResponse;
-  } catch {
-    payload = null;
-  }
-
-  if (!response.ok) {
-    const message =
-      payload?.error?.reason?.trim() ||
-      payload?.message?.trim() ||
-      `${response.status} ${response.statusText}`;
-    throw new Error(`Pinata file upload failed for ${file.name}: ${message}`);
-  }
-
-  const cid = payload?.data?.cid?.trim();
-  if (!cid) {
-    throw new Error(`Pinata upload for ${file.name} did not return a CID`);
-  }
-
-  return cid;
+  return parsePinataUploadResponse(response, file.name);
 }
 
 // ============================================================================

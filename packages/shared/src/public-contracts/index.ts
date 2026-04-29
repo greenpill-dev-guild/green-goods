@@ -43,6 +43,27 @@ export type PublicSubscribeResponse =
   | { ok: true; status: "subscribed" | "already_subscribed" }
   | PublicApiError;
 
+export type PublicUploadSignCategory = "file_upload" | "json_upload";
+
+export type PublicUploadSignRequest = {
+  filename: string;
+  mimeType: string;
+  size: number;
+  source?: string;
+  category?: PublicUploadSignCategory;
+  gardenAddress?: string;
+};
+
+export type PublicUploadSignResponse =
+  | {
+      ok: true;
+      url: string;
+      expiresAt: number;
+      maxFileSize: number;
+      allowedMimeTypes: string[];
+    }
+  | PublicApiError;
+
 export type FundingIntentStatus =
   | "started"
   | "pending_provider"
@@ -202,6 +223,7 @@ export const PUBLIC_AGENT_ROUTES = {
   subscribe: "/public/subscribe",
   fundingIntents: "/public/funding-intents",
   fundingIntentReceipt: "/public/funding-intents/:id",
+  uploadSign: "/api/uploads/sign",
   thirdwebWebhook: "/webhooks/thirdweb",
 } as const;
 

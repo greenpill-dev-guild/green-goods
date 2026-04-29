@@ -34,7 +34,8 @@ The root `.env` file is automatically loaded by:
 - `VITE_WALLETCONNECT_PROJECT_ID`: **Required** - Reown AppKit project ID for wallet connections (get from [cloud.reown.com](https://cloud.reown.com/))
 - `VITE_PIMLICO_API_KEY`: **Required** - Pimlico API key for passkey smart accounts (get from [pimlico.io](https://pimlico.io))
 - `VITE_APP_URL`: Application URL for AppKit metadata (e.g., `https://greengoods.app` or `http://localhost:3001` for dev)
-- `VITE_PINATA_JWT`: Pinata JWT token for uploads (client-side)
+- `VITE_API_BASE_URL`: Agent API origin used to request short-lived Pinata signed upload URLs
+- `VITE_PINATA_GATEWAY_URL`: Public Pinata gateway URL for reading IPFS media
 - `VITE_CHAIN_ID`: Chain selection (e.g., 11155111 for Sepolia default, 42161 for Arbitrum, 42220 for Celo)
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
 - `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)

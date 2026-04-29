@@ -808,7 +808,7 @@ async function auditAndRepin(
   auditOnly: boolean
 ): Promise<AuditEntry[]> {
   if (!auditOnly && !pinataConfig?.jwt) {
-    throw new Error("PINATA_JWT or VITE_PINATA_JWT is required for non-audit repin runs.");
+    throw new Error("PINATA_JWT is required for non-audit repin runs.");
   }
 
   const entries = Array.from(collected.values()).sort((left, right) =>

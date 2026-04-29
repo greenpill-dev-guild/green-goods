@@ -5,7 +5,9 @@
  * Designed for multi-platform webhook support.
  *
  * SECURITY: Platform parameters are validated against an allowlist.
- * SECURITY: /api/* routes require Bearer token authentication.
+ * SECURITY: Routine-facing /api/* routes require Bearer token authentication.
+ * SECURITY: Browser upload signing is a limited-public /api exception with
+ * origin checks, short TTLs, MIME/size constraints, and rate limiting.
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
@@ -17,6 +19,8 @@ import {
   PUBLIC_AGENT_ROUTES,
   type PublicApiError,
   type PublicSubscribeRequest,
+  type PublicUploadSignCategory,
+  type PublicUploadSignRequest,
   publicProviderProofRegistry,
   type ThirdwebNormalizedFundingEvent,
 } from "@green-goods/shared/public-contracts";
@@ -46,6 +50,15 @@ import {
 } from "../services/funding-intents";
 import { loggers } from "../services/logger";
 import type { LumaClient } from "../services/luma";
+import {
+  createPinataSignedUploadUrl,
+  DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
+  DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
+  DEFAULT_UPLOAD_SIGN_TTL_SECONDS,
+  normalizeUploadSignerConfig,
+  PinataUploadSignerConfigError,
+  type PinataUploadSignerConfig,
+} from "../services/pinata-upload-signer";
 import type { FeedbackStatus, FeedbackType, Platform } from "../types";
 import {
   InMemoryPublicRateLimiter,
@@ -104,6 +117,11 @@ export interface ServerDeps {
   thirdwebWebhookSecret?: string;
   thirdwebClientId?: string;
   thirdwebCheckout?: ThirdwebCheckoutClient;
+  uploadSigning?: UploadSigningConfig;
+  signPinataUploadUrl?: (
+    request: PublicUploadSignRequest,
+    config: PinataUploadSignerConfig
+  ) => Promise<string>;
   confirmFundingTransaction?: (txHash: string) => Promise<TransactionConfirmation>;
   /**
    * Strict tuple-matching funding confirmation. When provided, the webhook
@@ -135,6 +153,13 @@ const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
 const HEX_RE = /^0x[a-fA-F0-9]+$/;
 const PUBLIC_JSON_BODY_LIMIT_BYTES = 16 * 1024;
 const WEBHOOK_BODY_LIMIT_BYTES = 256 * 1024;
+const UPLOAD_SIGN_BODY_LIMIT_BYTES = 8 * 1024;
+const MAX_UPLOAD_SIGN_TTL_SECONDS = 10 * 60;
+const MAX_UPLOAD_SIGN_SIZE_BYTES = 100 * 1024 * 1024;
+const UPLOAD_SIGN_ALLOWED_CATEGORIES = new Set<PublicUploadSignCategory>([
+  "file_upload",
+  "json_upload",
+]);
 
 type BodyReadResult<T> =
   | { ok: true; value: T | undefined }
@@ -157,6 +182,17 @@ export interface ThirdwebCheckoutClient {
     availabilityProofReference?: string;
     quoteExpiresAt: string;
   }): Promise<ThirdwebCheckoutResult>;
+}
+
+export interface UploadSigningConfig {
+  pinataJwt?: string;
+  pinataUploadsApiBaseUrl?: string;
+  ttlSeconds?: number;
+  maxFileSize?: number;
+  allowedMimeTypes?: string[];
+  rateLimit?: number;
+  rateLimitWindowMs?: number;
+  fetch?: typeof fetch;
 }
 
 function requireApiAuth(deps: ServerDeps): MiddlewareHandler {
@@ -231,10 +267,8 @@ function safeError(
   return { ok: false, errorCode, message, ...extra };
 }
 
-function isPublicApiError(
-  value: PublicApiError | CreateFundingIntentRequest
-): value is PublicApiError {
-  return "ok" in value && value.ok === false;
+function isPublicApiError(value: PublicApiError | unknown): value is PublicApiError {
+  return typeof value === "object" && value !== null && "ok" in value && value.ok === false;
 }
 
 function jsonNoStore(c: Context, body: unknown, status = 200) {
@@ -271,7 +305,12 @@ export async function hasReceiptTokenBody(request: Request): Promise<boolean> {
 }
 
 function getAllowedOrigins(deps: ServerDeps): Set<string> {
-  return deps.allowedOrigins ?? parseAllowedOrigins(process.env.AGENT_PUBLIC_ALLOWED_ORIGINS);
+  return (
+    deps.allowedOrigins ??
+    parseAllowedOrigins(
+      process.env.AGENT_ALLOWED_ORIGINS ?? process.env.AGENT_PUBLIC_ALLOWED_ORIGINS
+    )
+  );
 }
 
 function checkOrigin(c: Context, deps: ServerDeps): PublicApiError | undefined {
@@ -285,6 +324,16 @@ function checkRateLimit(
   route: Parameters<typeof publicRateLimitKey>[0]["route"],
   material: string
 ): PublicApiError | undefined {
+  return checkRateLimitWithPolicy(c, deps, route, material, PUBLIC_RATE_LIMIT_POLICIES[route]);
+}
+
+function checkRateLimitWithPolicy(
+  c: Context,
+  deps: ServerDeps,
+  route: Parameters<typeof publicRateLimitKey>[0]["route"],
+  material: string,
+  policy: { limit: number; windowMs: number }
+): PublicApiError | undefined {
   const limiter = deps.publicRateLimiter ?? defaultPublicRateLimiter;
   const key = publicRateLimitKey({
     route,
@@ -292,11 +341,171 @@ function checkRateLimit(
     material,
     trustedProxy: deps.trustedProxy,
   });
-  const result = limiter.check(key, PUBLIC_RATE_LIMIT_POLICIES[route], deps.now?.() ?? Date.now());
+  const result = limiter.check(key, policy, deps.now?.() ?? Date.now());
   if (result.allowed) return undefined;
   return safeError("rate_limited", "Too many requests. Please try again later.", {
     params: { retryAfterSeconds: result.retryAfterSeconds ?? 60 },
   });
+}
+
+function getUploadSigningConfig(deps: ServerDeps) {
+  const normalized = normalizeUploadSignerConfig({
+    jwt: deps.uploadSigning?.pinataJwt ?? process.env.PINATA_JWT,
+    uploadsApiBaseUrl:
+      deps.uploadSigning?.pinataUploadsApiBaseUrl ?? process.env.PINATA_UPLOADS_API_URL,
+    ttlSeconds: clampPositiveInteger(
+      deps.uploadSigning?.ttlSeconds,
+      DEFAULT_UPLOAD_SIGN_TTL_SECONDS,
+      MAX_UPLOAD_SIGN_TTL_SECONDS
+    ),
+    maxFileSize: clampPositiveInteger(
+      deps.uploadSigning?.maxFileSize,
+      DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
+      MAX_UPLOAD_SIGN_SIZE_BYTES
+    ),
+    allowedMimeTypes:
+      deps.uploadSigning?.allowedMimeTypes ?? DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
+    fetch: deps.uploadSigning?.fetch,
+    now: deps.now,
+  });
+
+  return normalized;
+}
+
+function getUploadSignRateLimitPolicy(deps: ServerDeps) {
+  return {
+    limit:
+      positiveInteger(deps.uploadSigning?.rateLimit) ??
+      PUBLIC_RATE_LIMIT_POLICIES.upload_sign.limit,
+    windowMs:
+      positiveInteger(deps.uploadSigning?.rateLimitWindowMs) ??
+      PUBLIC_RATE_LIMIT_POLICIES.upload_sign.windowMs,
+  };
+}
+
+function clampPositiveInteger(value: number | undefined, fallback: number, max: number): number {
+  const parsed = positiveInteger(value) ?? fallback;
+  return Math.min(parsed, max);
+}
+
+function positiveInteger(value: number | undefined): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+function isMimeAllowed(mimeType: string, allowedMimeTypes: string[]): boolean {
+  return allowedMimeTypes.some((allowed) => {
+    const normalized = allowed.trim().toLowerCase();
+    if (!normalized) return false;
+    if (normalized.endsWith("/*")) {
+      return mimeType.startsWith(normalized.slice(0, -1));
+    }
+    return mimeType === normalized;
+  });
+}
+
+function isValidUploadFilename(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const filename = value.trim();
+  return (
+    filename.length > 0 &&
+    filename.length <= 255 &&
+    filename !== "." &&
+    filename !== ".." &&
+    !hasUnsafeFilenameCharacter(filename)
+  );
+}
+
+function hasUnsafeFilenameCharacter(value: string): boolean {
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (character === "/" || character === "\\" || code <= 31 || code === 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function normalizeOptionalUploadString(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > maxLength) return undefined;
+  return trimmed;
+}
+
+function validateUploadSignRequest(
+  body: unknown,
+  config: ReturnType<typeof getUploadSigningConfig>
+): PublicUploadSignRequest | PublicApiError {
+  const candidate = body as Partial<PublicUploadSignRequest> | undefined;
+  if (!candidate || typeof candidate !== "object") {
+    return safeError("invalid_request", "Invalid request body.");
+  }
+
+  const filename = candidate.filename;
+  if (!isValidUploadFilename(filename)) {
+    return safeError("invalid_request", "Invalid upload filename.", {
+      fieldErrors: { filename: "Invalid filename" },
+    });
+  }
+
+  const mimeType =
+    typeof candidate.mimeType === "string" ? candidate.mimeType.trim().toLowerCase() : "";
+  if (!mimeType || !isMimeAllowed(mimeType, config.allowedMimeTypes)) {
+    return safeError("invalid_request", "This file type is not supported.", {
+      fieldErrors: { mimeType: "Unsupported MIME type" },
+    });
+  }
+
+  const size = candidate.size;
+  if (typeof size !== "number" || !Number.isInteger(size) || size <= 0) {
+    return safeError("invalid_request", "Invalid upload size.", {
+      fieldErrors: { size: "Size must be a positive integer" },
+    });
+  }
+
+  if (size > config.maxFileSize) {
+    return safeError("invalid_request", "This file is too large.", {
+      fieldErrors: { size: "File exceeds the upload limit" },
+      params: { maxFileSize: config.maxFileSize },
+    });
+  }
+
+  if (candidate.category && !UPLOAD_SIGN_ALLOWED_CATEGORIES.has(candidate.category)) {
+    return safeError("invalid_request", "Invalid upload category.", {
+      fieldErrors: { category: "Invalid upload category" },
+    });
+  }
+
+  if (candidate.gardenAddress !== undefined && !isAddress(candidate.gardenAddress)) {
+    return safeError("invalid_request", "Invalid garden address.", {
+      fieldErrors: { gardenAddress: "Invalid address" },
+    });
+  }
+
+  return {
+    filename: filename.trim(),
+    mimeType,
+    size,
+    source: normalizeOptionalUploadString(candidate.source, 80),
+    category: candidate.category,
+    gardenAddress: candidate.gardenAddress,
+  };
+}
+
+function setUploadCorsHeaders(c: Context, deps: ServerDeps): void {
+  const origin = c.req.header("origin");
+  if (!origin || !isOriginAllowed(c.req.raw, getAllowedOrigins(deps))) return;
+
+  c.header("Access-Control-Allow-Origin", origin);
+  c.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type");
+  c.header("Access-Control-Max-Age", "600");
+  c.header("Vary", "Origin");
+}
+
+function uploadCorsResponse(c: Context, deps: ServerDeps, body: unknown, status = 200) {
+  setUploadCorsHeaders(c, deps);
+  return jsonNoStore(c, body, status);
 }
 
 function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest | PublicApiError {
@@ -655,6 +864,74 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
       case "discord":
         return c.json({ error: "Discord webhooks not yet implemented" }, 501);
+    }
+  });
+
+  app.options(PUBLIC_AGENT_ROUTES.uploadSign, (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return uploadCorsResponse(c, deps, originError, 403);
+    setUploadCorsHeaders(c, deps);
+    return c.body(null, 204);
+  });
+
+  app.post(PUBLIC_AGENT_ROUTES.uploadSign, async (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return uploadCorsResponse(c, deps, originError, 403);
+
+    const config = getUploadSigningConfig(deps);
+    if (!config.jwt) {
+      return uploadCorsResponse(
+        c,
+        deps,
+        safeError("provider_unavailable", "Upload signing is unavailable right now."),
+        503
+      );
+    }
+
+    const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw, UPLOAD_SIGN_BODY_LIMIT_BYTES);
+    if (!bodyResult.ok) return uploadCorsResponse(c, deps, bodyResult.error, bodyResult.status);
+
+    const request = validateUploadSignRequest(bodyResult.value, config);
+    if (isPublicApiError(request)) return uploadCorsResponse(c, deps, request, 400);
+
+    const rateError = checkRateLimitWithPolicy(
+      c,
+      deps,
+      "upload_sign",
+      [request.category ?? "file_upload", request.mimeType].join(":"),
+      getUploadSignRateLimitPolicy(deps)
+    );
+    if (rateError) return uploadCorsResponse(c, deps, rateError, 429);
+
+    try {
+      const signUpload = deps.signPinataUploadUrl ?? createPinataSignedUploadUrl;
+      const url = await signUpload(request, {
+        jwt: config.jwt,
+        uploadsApiBaseUrl: config.uploadsApiBaseUrl,
+        ttlSeconds: config.ttlSeconds,
+        maxFileSize: config.maxFileSize,
+        allowedMimeTypes: config.allowedMimeTypes,
+        fetch: config.fetch,
+        now: config.now,
+      });
+
+      return uploadCorsResponse(c, deps, {
+        ok: true,
+        url,
+        expiresAt: Math.floor(config.now() / 1000) + config.ttlSeconds,
+        maxFileSize: config.maxFileSize,
+        allowedMimeTypes: config.allowedMimeTypes,
+      });
+    } catch (error) {
+      if (!(error instanceof PinataUploadSignerConfigError)) {
+        log.warn({ err: error }, "Pinata upload signing failed");
+      }
+      return uploadCorsResponse(
+        c,
+        deps,
+        safeError("provider_unavailable", "Upload signing is unavailable right now."),
+        503
+      );
     }
   });
 

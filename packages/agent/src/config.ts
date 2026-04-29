@@ -45,8 +45,15 @@ export interface Config {
   publicAllowedOrigins?: string;
   trustedProxyHops?: number;
   trustedProxyCidrs?: string;
+  uploadSignerTtlSeconds?: number;
+  uploadSignerMaxFileSize?: number;
+  uploadSignerAllowedMimeTypes?: string[];
+  uploadSignerRateLimit?: number;
+  uploadSignerRateLimitWindowMs?: number;
 
   // Public provider integrations
+  pinataJwt?: string;
+  pinataUploadsApiBaseUrl?: string;
   lumaApiKey?: string;
   lumaCalendarId?: string;
   lumaGreenGoodsTagId?: string;
@@ -110,13 +117,23 @@ export function loadConfig(): Config {
 
     // API
     botApiToken: process.env.BOT_API_TOKEN,
-    publicAllowedOrigins: process.env.AGENT_PUBLIC_ALLOWED_ORIGINS,
+    publicAllowedOrigins:
+      process.env.AGENT_ALLOWED_ORIGINS ?? process.env.AGENT_PUBLIC_ALLOWED_ORIGINS,
     trustedProxyHops: process.env.AGENT_TRUSTED_PROXY_HOPS
       ? parseInt(process.env.AGENT_TRUSTED_PROXY_HOPS, 10)
       : undefined,
     trustedProxyCidrs: process.env.AGENT_TRUSTED_PROXY_CIDRS,
+    uploadSignerTtlSeconds: parsePositiveInteger(process.env.AGENT_UPLOAD_SIGN_TTL_SECONDS),
+    uploadSignerMaxFileSize: parsePositiveInteger(process.env.AGENT_UPLOAD_MAX_FILE_SIZE_BYTES),
+    uploadSignerAllowedMimeTypes: parseCsv(process.env.AGENT_UPLOAD_ALLOWED_MIME_TYPES),
+    uploadSignerRateLimit: parsePositiveInteger(process.env.AGENT_UPLOAD_SIGN_RATE_LIMIT),
+    uploadSignerRateLimitWindowMs: parsePositiveInteger(
+      process.env.AGENT_UPLOAD_SIGN_RATE_LIMIT_WINDOW_MS
+    ),
 
     // Public provider integrations
+    pinataJwt: process.env.PINATA_JWT,
+    pinataUploadsApiBaseUrl: process.env.PINATA_UPLOADS_API_URL,
     lumaApiKey: process.env.LUMA_API_KEY,
     lumaCalendarId: process.env.LUMA_CALENDAR_ID,
     lumaGreenGoodsTagId: process.env.LUMA_GREEN_GOODS_TAG_ID,
@@ -137,6 +154,20 @@ export function loadConfig(): Config {
     isDevelopment: nodeEnv === "development",
     isProduction: nodeEnv === "production",
   };
+}
+
+function parsePositiveInteger(value: string | undefined): number | undefined {
+  if (!value?.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parseCsv(value: string | undefined): string[] | undefined {
+  const entries = value
+    ?.split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return entries && entries.length > 0 ? entries : undefined;
 }
 
 /**
@@ -178,6 +209,12 @@ export function validateConfig(config: Config): void {
         warnings.push("TELEGRAM_WEBHOOK_SECRET not set. Webhook requests won't be verified.");
       }
     }
+  }
+
+  if (config.isProduction && !config.publicAllowedOrigins?.trim()) {
+    errors.push(
+      "AGENT_ALLOWED_ORIGINS is required in production so public browser APIs fail closed."
+    );
   }
 
   if (config.isProduction && !config.posthogApiKey) {

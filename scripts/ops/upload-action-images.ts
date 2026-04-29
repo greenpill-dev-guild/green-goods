@@ -13,7 +13,7 @@
  *   bun scripts/upload-action-images.ts --force      # Skip cache, re-upload all
  *
  * Required env vars (unless --dry-run):
- *   PINATA_JWT or VITE_PINATA_JWT - Pinata JWT for uploads
+ *   PINATA_JWT - Pinata JWT for uploads
  *
  * Optional env vars:
  *   PINATA_GATEWAY_URL            - Pinata dedicated gateway URL
@@ -220,7 +220,7 @@ async function uploadImages(
 
 	const pinataConfig = loadPinataConfigFromEnv();
 	if (!pinataConfig?.jwt) {
-		throw new Error("PINATA_JWT or VITE_PINATA_JWT is required for action image uploads");
+		throw new Error("PINATA_JWT is required for action image uploads");
 	}
 	const cidMap: Record<string, string> = {};
 	let uploads = 0;

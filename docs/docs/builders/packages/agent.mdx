@@ -23,7 +23,7 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 sequenceDiagram
     participant G as Gardener
     participant TG as Telegram
-    participant Bot as Agent Bot<br/>(Fastify + Telegraf)
+    participant Bot as Agent Bot<br/>(Hono + Telegraf)
     participant Chain as Blockchain
     participant IPFS as Pinata-backed IPFS
 
@@ -39,12 +39,12 @@ sequenceDiagram
 
 ## Overview
 
-Bot and webhook service for Green Goods. The current package centers on Telegram, Fastify, AI-assisted media/text handling, rate limiting, persistence, analytics, and blockchain initialization paths.
+Bot, webhook, and limited public API service for Green Goods. The current package centers on Telegram, Hono, AI-assisted media/text handling, rate limiting, upload signing, persistence, analytics, and blockchain initialization paths.
 
 ### Current capabilities
 
 - Telegram bot startup and webhook handling through the package entrypoint.
-- Fastify HTTP server support around the bot runtime.
+- Hono HTTP server support around the bot runtime, public browser APIs, and upload signing.
 - AI-assisted transcription/photo/text processing paths.
 - Rate limiting, database integration, analytics, and structured logging.
 - Blockchain service initialization for Green Goods transaction flows.

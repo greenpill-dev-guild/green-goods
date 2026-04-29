@@ -5,7 +5,12 @@ import {
   type UploadErrorCategory,
 } from "../../app/error-tracking";
 import { logger } from "../../app/logger";
-import { getIpfsInitializationError, getIpfsInitializationStatus, getPinataJwt } from "./client";
+import {
+  getIpfsInitializationError,
+  getIpfsInitializationStatus,
+  getPinataJwt,
+  getPinataUploadSignUrl,
+} from "./client";
 import { uploadFileWithPinata, verifyPinataGatewayAvailability } from "./pinata";
 
 // ============================================================================
@@ -68,9 +73,9 @@ async function executeUpload<TContext extends { source?: string; gardenAddress?:
 ): Promise<{ cid: string }> {
   const startTime = Date.now();
 
-  if (!getPinataJwt()) {
+  if (!getPinataUploadSignUrl() && !getPinataJwt()) {
     const error = new Error(
-      "IPFS upload service is not configured. Set VITE_PINATA_JWT before uploading."
+      "IPFS upload service is not configured. Set VITE_API_BASE_URL before uploading."
     );
     trackUploadError(error, {
       uploadCategory: category,

@@ -7,7 +7,7 @@
 
 ## Problem
 
-Browser-facing Green Goods upload code currently depends on `VITE_PINATA_JWT`, which exposes Pinata upload authority anywhere the client or admin app runs. A scoped Pinata key reduces blast radius, but it is still not safe to ship in browser bundles.
+Browser-facing Green Goods upload code previously depended on `VITE_PINATA_JWT`, which exposed Pinata upload authority anywhere the client or admin app ran. A scoped Pinata key reduces blast radius, but it is still not safe to ship in browser bundles.
 
 ## Desired Outcome
 
@@ -18,7 +18,7 @@ Browser-facing Green Goods upload code currently depends on `VITE_PINATA_JWT`, w
 
 ## Scope Notes
 
-- In scope: `packages/agent` Fastify signer endpoint, shared IPFS upload wiring, env/docs cleanup, targeted tests, and rate/CORS guardrails.
+- In scope: `packages/agent` Hono signer endpoint, shared IPFS upload wiring, env/docs cleanup, targeted tests, and rate/CORS guardrails.
 - Out of scope: Vercel migration, Envio hosting changes, renaming `packages/agent`, wallet-signature auth, direct backend file proxying, and new packages.
 
 ## Success Signal

@@ -65,6 +65,7 @@ vi.mock("../../config/query-keys", () => ({
     works: {
       all: ["greengoods", "works"],
       mine: (userAddress?: string) => ["greengoods", "works", "mine", userAddress],
+      mineByUser: (userAddress: string) => ["greengoods", "works", "mine", userAddress],
       online: (gardenId: string, chainId: number) => [
         "greengoods",
         "works",
