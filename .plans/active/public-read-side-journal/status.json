@@ -10,7 +10,7 @@
     "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-04-25",
-    "updated_at": "2026-04-28T00:31:39.259Z"
+    "updated_at": "2026-04-29T06:08:12.579Z"
   },
   "links": {
     "brief": "brief.md",
@@ -384,6 +384,30 @@
       "status": "passed",
       "branch": "codex/qa-pass-2/public-read-side-journal",
       "note": "Codex review pass (2026-04-27): identified 3 real bugs missed by initial QA — (1) GET /public/funding-intents/:id accepted body-carried receipt tokens, (2) useInstallGuidance call order wrong in SiteHeader/PublicHero/PublicInstallCta, (3) thirdweb webhook treated missing txRole as funding. All 3 fixed plus added focused tests for confirmFundingTransaction tuple match and sweepFundingIntents. Codex's broader unauthorized cleanup (POSTHOG hardcoding, OSS file deletion, ~30 unrelated file changes, separate plan creation) was reverted. Final ladder: 89 agent tests, 291 client tests, design+vocab+lint+format+build all green. Report at qa-pass-2-report.md and codex-review-report.md."
+    },
+    {
+      "timestamp": "2026-04-29T05:48:56.112Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": "develop",
+      "note": "Reopen: fresh QA pass found 2 missed regressions — (1) public install CTAs are dead-end scroll-to-self (no handler reads data-install-action), (2) Fraunces font referenced in 31 components but never loaded (font-serif falls back to Georgia/Times). Fixes scoped lightweight: direct onClick={promptInstall}, load Fraunces via Google Fonts + override --font-serif. Hero image needs separate codex-driven generation. All work on develop, no new branch. Partnerships split to its own plan."
+    },
+    {
+      "timestamp": "2026-04-29T05:49:24.086Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Branch label restored to lane convention; actual work happens on develop per orchestrator instruction."
+    },
+    {
+      "timestamp": "2026-04-29T06:08:12.589Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Re-pass after regression fixes on develop: (1) wired install CTAs through new shared usePublicInstallHandler — header (desktop+drawer), PublicHero, PublicInstallCta (compact+section), PublicFundingReceipt, Public Actions dialog, GardenDetail rail; (2) loaded Fraunces in client/index.html and overrode --font-serif in shared theme.css so font-serif headlines actually render Fraunces; (3) PublicInstallCta section now renders guidance.manualInstructions for iOS/Android manual flow; (4) added en/es/pt strings for copy toast; (5) documented serif swap recipe + alternatives table in DESIGN.browser.md. Validation ladder green: 327 client tests, 2855 shared tests, 100 agent tests, design+vocab+lint+format pass, build:client passes (45.5s). Browser screenshot/install proof on real devices needs Afo or codex with Chrome MCP. check:design-generated stale doc (client-pwa-token-audit.generated.md) is unrelated WIP from another agent."
     }
   ]
 }
