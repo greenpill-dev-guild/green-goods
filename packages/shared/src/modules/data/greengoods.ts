@@ -345,10 +345,11 @@ export async function getGardens(): Promise<Garden[]> {
 
     if (!data || !data.Garden || !Array.isArray(data.Garden)) return [];
 
-    // Build a lookup from garden address -> domainMask
+    // Garden.id can be checksummed while GardenDomains.garden is normalized
+    // lower-case by the indexer, so join by a normalized lookup key.
     const domainMap = new Map<string, number>(
       ((data.GardenDomains ?? []) as Array<{ garden: string; domainMask: number }>).map((d) => [
-        d.garden,
+        d.garden.toLowerCase(),
         d.domainMask,
       ])
     );
@@ -380,7 +381,7 @@ export async function getGardens(): Promise<Garden[]> {
         funders: (garden.funders || []) as Address[],
         communities: (garden.communities || []) as Address[],
         openJoining: Boolean(garden.openJoining),
-        domainMask: domainMap.get(garden.id) ?? 0,
+        domainMask: domainMap.get(garden.id.toLowerCase()) ?? 0,
         assessments: [],
         works: [],
         createdAt: garden.createdAt ? (garden.createdAt as number) * 1000 : Date.now(),
@@ -439,7 +440,7 @@ export async function updateUserProfile(
 ) {
   const apiBase =
     import.meta.env.VITE_API_BASE_URL ||
-    (import.meta.env.DEV ? "http://localhost:3000" : "https://api.greengoods.app");
+    (import.meta.env.DEV ? "http://localhost:3000" : "https://agent.greengoods.app");
   const res = await fetch(`${apiBase}/users/me`, {
     method: "PATCH",
     credentials: "include",

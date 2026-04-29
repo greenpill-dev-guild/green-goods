@@ -193,6 +193,41 @@ describe("modules/data/greengoods", () => {
 
       expect(result).toEqual([]);
     });
+
+    it("joins GardenDomains to gardens regardless of address casing", async () => {
+      const checksummed = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
+
+      mockQuery.mockResolvedValue({
+        data: {
+          Garden: [
+            {
+              id: checksummed,
+              chainId: 11155111,
+              tokenAddress: "0xGardenToken",
+              tokenID: "1",
+              name: "Domain Garden",
+              description: "",
+              location: "",
+              bannerImage: "",
+              gardeners: [],
+              operators: [],
+              evaluators: [],
+              owners: [],
+              funders: [],
+              communities: [],
+              openJoining: false,
+              createdAt: "1700000000",
+            },
+          ],
+          GardenDomains: [{ garden: checksummed.toLowerCase(), domainMask: 5 }],
+        },
+      });
+
+      const result = await getGardens();
+
+      expect(result).toHaveLength(1);
+      expect(result[0].domainMask).toBe(5);
+    });
   });
 
   describe("getActions", () => {

@@ -5,7 +5,9 @@ import {
   type AdminWorkspaceSectionTab,
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
+import { useState } from "react";
 import { useIntl } from "react-intl";
+import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
 import {
   CanvasRouteErrorState,
@@ -14,6 +16,7 @@ import {
 } from "@/components/Layout/CanvasRouteState";
 import { ImpactTab } from "./ImpactTab";
 import { OverviewTab } from "./OverviewTab";
+import { GardenDomainSummaryRow } from "./GardenDetailHelpers";
 
 interface GardenWorkspaceContentProps {
   workspace: ReturnType<typeof useGardenWorkspaceController>;
@@ -21,6 +24,7 @@ interface GardenWorkspaceContentProps {
 
 export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProps) {
   const { formatMessage } = useIntl();
+  const [domainModalOpen, setDomainModalOpen] = useState(false);
 
   if (!workspace.selectedGarden) {
     return (
@@ -54,6 +58,11 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
     <div className="mt-4 px-4 sm:px-6">
       <div className="mx-auto w-full max-w-[1400px]">
         <Surface elevation="solid-raised" padding="default" className="overflow-hidden">
+          <GardenDomainSummaryRow
+            domainMask={workspace.garden.domainMask}
+            canManage={workspace.canManage}
+            onEditDomains={workspace.canManage ? () => setDomainModalOpen(true) : undefined}
+          />
           {workspace.view === "overview" ? (
             <OverviewTab
               section={workspace.section}
@@ -157,6 +166,13 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
             </div>
           ) : null}
         </Surface>
+        {workspace.canManage ? (
+          <GardenDomainModal
+            isOpen={domainModalOpen}
+            onClose={() => setDomainModalOpen(false)}
+            gardenAddress={workspace.garden.id as Address}
+          />
+        ) : null}
       </div>
     </div>
   );

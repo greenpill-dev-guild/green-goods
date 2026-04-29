@@ -219,6 +219,7 @@ export interface SubmitWorkPanelProps {
 
 export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: SubmitWorkPanelProps) {
   const { formatMessage } = useIntl();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
@@ -380,7 +381,21 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
             required
           >
             {availableActions.length === 0 ? (
-              <Alert variant="info">
+              <Alert
+                variant="info"
+                action={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      navigate(adminRoutes.gardenSettings({ gardenAddress: garden.id }))
+                    }
+                  >
+                    {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
+                  </Button>
+                }
+              >
                 {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
               </Alert>
             ) : (

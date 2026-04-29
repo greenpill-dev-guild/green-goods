@@ -136,7 +136,12 @@ export function useGardenDerivedState({
   const communityBadge: TabBadgeState =
     treasurySeverity === "none" ? { severity: "none" } : { severity: treasurySeverity, count: 1 };
 
-  const overviewBadge = aggregateBadges([impactBadge, workBadge, communityBadge]);
+  const hasNoDomains = garden.domainMask === 0;
+  const domainBadge: TabBadgeState = hasNoDomains
+    ? { severity: "warn", count: 1 }
+    : { severity: "none" };
+
+  const overviewBadge = aggregateBadges([impactBadge, workBadge, communityBadge, domainBadge]);
 
   const tabBadges: Record<GardenDetailTab, TabBadgeState> = {
     overview: overviewBadge,
@@ -157,7 +162,8 @@ export function useGardenDerivedState({
       ? "critical"
       : workBadge.severity === "warn" ||
           treasurySeverity === "warn" ||
-          impactBadge.severity === "warn"
+          impactBadge.severity === "warn" ||
+          hasNoDomains
         ? "warn"
         : "none";
 
@@ -213,6 +219,14 @@ export function useGardenDerivedState({
             onAction: () => openSection("community", "treasury"),
           }
         : null,
+    hasNoDomains
+      ? {
+          key: "domain-empty",
+          severity: "warn" as const,
+          label: formatMessage({ id: "app.garden.detail.alert.noDomains" }),
+          onAction: () => openSection("overview", "health"),
+        }
+      : null,
   ].filter(
     (
       entry

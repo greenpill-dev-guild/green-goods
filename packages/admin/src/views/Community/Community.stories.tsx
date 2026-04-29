@@ -86,6 +86,17 @@ export const GovernancePools: Story = {
   decorators: communityDecorators("/community/governance"),
 };
 
+export const GovernanceStrategiesInspector: Story = {
+  render: () => <CommunityCanvasStory />,
+  decorators: communityDecorators("/community/governance/strategies"),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const leftSheet = await canvas.findByTestId("left-sheet");
+    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
+    await expect(await within(leftSheet).findByText("Conviction Voting")).toBeVisible();
+  },
+};
+
 export const SignalPoolInspector: Story = {
   tags: ["visual-harness"],
   render: () => <CommunityCanvasStory />,
