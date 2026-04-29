@@ -102,13 +102,13 @@
 
 @keyframes pulseRing {
   0% {
-    box-shadow: 0 0 0 0 rgb(var(--green-500) / 40%);
+    box-shadow: 0 0 0 0 var(--color-primary-alpha-24);
   }
   70% {
-    box-shadow: 0 0 0 8px rgb(var(--green-500) / 0%);
+    box-shadow: 0 0 0 8px transparent;
   }
   100% {
-    box-shadow: 0 0 0 0 rgb(var(--green-500) / 0%);
+    box-shadow: 0 0 0 0 transparent;
   }
 }
 
@@ -139,26 +139,20 @@
 /* 7. Optimistic to confirmed transition */
 @keyframes confirmedShimmer {
   0% {
-    box-shadow: 0 0 0 0 rgb(var(--green-700) / 0%);
-    background-position: -200% 0;
+    box-shadow: 0 0 0 0 transparent;
+    opacity: 0.75;
   }
   30% {
-    box-shadow: 0 0 0 2px rgb(var(--green-700) / 15%);
+    box-shadow: 0 0 0 2px var(--color-primary-alpha-16);
   }
   100% {
-    box-shadow: 0 0 0 0 rgb(var(--green-700) / 0%);
-    background-position: 200% 0;
+    box-shadow: 0 0 0 0 transparent;
+    opacity: 1;
   }
 }
 
 .work-confirmed-shimmer {
-  background-image: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgb(var(--green-700) / 8%) 45%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
+  background-color: var(--color-primary-alpha-10);
   animation: confirmedShimmer var(--spring-effects-fast-duration) var(--spring-effects-fast-easing)
     forwards;
 }
@@ -234,13 +228,13 @@
 /* 8. Form field animations */
 @keyframes focusGlow {
   0% {
-    box-shadow: 0 0 0 0 rgb(var(--green-500) / 40%);
+    box-shadow: 0 0 0 0 var(--color-primary-alpha-24);
   }
   50% {
-    box-shadow: 0 0 0 4px rgb(var(--green-500) / 20%);
+    box-shadow: 0 0 0 4px var(--color-primary-alpha-16);
   }
   100% {
-    box-shadow: 0 0 0 2px rgb(var(--green-500) / 30%);
+    box-shadow: 0 0 0 2px var(--color-primary-alpha-24);
   }
 }
 
@@ -338,22 +332,18 @@
 @keyframes modalBackdropFadeIn {
   from {
     opacity: 0;
-    backdrop-filter: blur(0px);
   }
   to {
     opacity: 1;
-    backdrop-filter: blur(4px);
   }
 }
 
 @keyframes modalBackdropFadeOut {
   from {
     opacity: 1;
-    backdrop-filter: blur(4px);
   }
   to {
     opacity: 0;
-    backdrop-filter: blur(0px);
   }
 }
 
@@ -401,7 +391,7 @@
 }
 
 .modal-slide-exit {
-  animation: modalSlideOut var(--spring-effects-duration) var(--spring-effects-easing) forwards;
+  animation: modalSlideOut var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
   transform: translate3d(0, 0, 0);
   will-change: transform;
 }

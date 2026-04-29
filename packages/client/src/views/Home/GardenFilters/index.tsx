@@ -7,6 +7,7 @@ import {
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { ModalDrawer } from "@/components/Dialogs/ModalDrawer";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 // Re-export types from shared for convenience
 export type { GardenFilterScope, GardenFiltersState, GardenSortOrder };
@@ -31,8 +32,10 @@ const FilterOptionButton = ({
     onClick={onClick}
     disabled={disabled}
     className={cn(
-      "w-full rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm transition-all duration-200 min-h-[56px] flex flex-col justify-center tap-feedback",
-      selected ? "border-primary bg-primary/10 text-primary shadow-sm" : "",
+      "flex min-h-[56px] w-full flex-col justify-center rounded-[var(--radius-2xl)] border border-stroke-soft-200 bg-bg-white-0 p-3 text-left text-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+      selected
+        ? `${pwaStatusStyles.primary.border} ${pwaStatusStyles.primary.surface} ${pwaStatusStyles.primary.text} shadow-sm`
+        : "",
       disabled && "cursor-not-allowed opacity-60"
     )}
     aria-pressed={selected}

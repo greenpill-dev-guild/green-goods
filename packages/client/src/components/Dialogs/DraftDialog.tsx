@@ -4,6 +4,8 @@ import { RiArrowRightLine, RiCloseLine, RiDeleteBinLine, RiDraftLine } from "@re
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
+import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface DraftDialogProps {
   isOpen: boolean;
@@ -29,20 +31,21 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
       <Dialog.Portal>
         <Dialog.Overlay
           className={cn(
-            "fixed inset-0 z-overlay bg-black/30 backdrop-blur-sm",
-            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200"
+            pwaDrawerStyles.dialogOverlay,
+            "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]"
           )}
           data-testid="draft-dialog-overlay"
         />
         <Dialog.Content
           className={cn(
             "fixed left-1/2 top-1/2 z-modal -translate-x-1/2 -translate-y-1/2",
-            "w-full max-w-sm bg-bg-white-0 rounded-2xl shadow-2xl p-0",
+            "w-full max-w-sm p-0",
+            pwaDrawerStyles.dialogSurface,
             "data-[state=open]:animate-in data-[state=closed]:animate-out",
             "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
             "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
             "data-[state=closed]:slide-out-to-bottom-4 data-[state=open]:slide-in-from-bottom-4",
-            "duration-300 focus:outline-none"
+            "duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] focus:outline-none"
           )}
           data-testid="draft-dialog"
         >
@@ -56,15 +59,11 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
             </Dialog.Title>
             <Dialog.Close asChild>
               <button
-                className={cn(
-                  "p-1.5 rounded-full border border-stroke-soft-200 transition-all duration-200",
-                  "hover:bg-bg-weak active:scale-95",
-                  "focus:outline-none focus:ring-2 focus:ring-primary/20"
-                )}
+                className={cn("p-1.5", pwaDrawerStyles.closeButtonBase)}
                 aria-label="Close"
                 type="button"
               >
-                <RiCloseLine className="w-5 h-5 text-text-soft-400" />
+                <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
               </button>
             </Dialog.Close>
           </div>
@@ -72,8 +71,8 @@ export const DraftDialog: React.FC<DraftDialogProps> = ({
           {/* Content */}
           <div className="p-4">
             <div className="flex items-start gap-4 mb-6">
-              <div className="p-3 bg-primary/10 rounded-full shrink-0">
-                <RiDraftLine className="w-6 h-6 text-primary" />
+              <div className={cn("p-3 rounded-full shrink-0", pwaStatusStyles.primary.surface)}>
+                <RiDraftLine className={cn("w-6 h-6", pwaStatusStyles.primary.icon)} />
               </div>
               <Dialog.Description className="text-sm text-text-sub-600 leading-relaxed">
                 {intl.formatMessage(

@@ -1,5 +1,6 @@
 import {
   type Address,
+  cn,
   type ConvictionWeight,
   DEFAULT_SPLIT_CONFIG,
   formatAddress,
@@ -18,6 +19,7 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { ModalDrawer } from "./ModalDrawer";
 
 function SectionSkeleton({ rows = 3 }: { rows?: number }) {
@@ -67,7 +69,10 @@ function ConvictionBar({ weight, totalWeight }: { weight: ConvictionWeight; tota
         )}
       >
         <div
-          className="h-full rounded-full bg-primary-base transition-all duration-500"
+          className={cn(
+            "h-full rounded-full transition-[width] duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
+            pwaStatusStyles.primary.progress
+          )}
           style={{ width: `${clampedPct}%` }}
         />
       </div>
@@ -314,7 +319,10 @@ export function ConvictionDrawer({
               </p>
               <p className="flex items-center gap-1.5 text-xs text-text-sub">
                 <span
-                  className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-emerald-500" : "bg-text-soft"}`}
+                  className={cn(
+                    "inline-flex h-2 w-2 flex-shrink-0 rounded-full",
+                    community ? pwaStatusStyles.success.dot : pwaStatusStyles.neutral.dot
+                  )}
                   aria-hidden="true"
                 />
                 {community
@@ -381,7 +389,10 @@ export function ConvictionDrawer({
                         : formatMessage({ id: "app.signal.notEligible" })}
                     </p>
                     <span
-                      className={`inline-flex h-2 w-2 rounded-full ${power.isEligible ? "bg-emerald-500" : "bg-text-soft"}`}
+                      className={cn(
+                        "inline-flex h-2 w-2 rounded-full",
+                        power.isEligible ? pwaStatusStyles.success.dot : pwaStatusStyles.neutral.dot
+                      )}
                       role="img"
                       aria-label={
                         power.isEligible
@@ -466,29 +477,47 @@ export function ConvictionDrawer({
                       { cookieJar: cookieJarPct, fractions: fractionsPct, juicebox: juiceboxPct }
                     )}
                   >
-                    <div className="h-full bg-emerald-500" style={{ width: `${cookieJarPct}%` }} />
-                    <div className="h-full bg-primary-base" style={{ width: `${fractionsPct}%` }} />
-                    <div className="h-full bg-amber-500" style={{ width: `${juiceboxPct}%` }} />
+                    <div
+                      className={cn("h-full", pwaStatusStyles.success.progress)}
+                      style={{ width: `${cookieJarPct}%` }}
+                    />
+                    <div
+                      className={cn("h-full", pwaStatusStyles.primary.progress)}
+                      style={{ width: `${fractionsPct}%` }}
+                    />
+                    <div
+                      className={cn("h-full", pwaStatusStyles.warning.progress)}
+                      style={{ width: `${juiceboxPct}%` }}
+                    />
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-text-sub">
                   <span className="flex items-center gap-1">
                     <span
-                      className="inline-block h-2 w-2 rounded-full bg-emerald-500"
+                      className={cn(
+                        "inline-block h-2 w-2 rounded-full",
+                        pwaStatusStyles.success.dot
+                      )}
                       aria-hidden="true"
                     />
                     {formatMessage({ id: "app.yield.cookieJar" })} {cookieJarPct}%
                   </span>
                   <span className="flex items-center gap-1">
                     <span
-                      className="inline-block h-2 w-2 rounded-full bg-primary-base"
+                      className={cn(
+                        "inline-block h-2 w-2 rounded-full",
+                        pwaStatusStyles.primary.dot
+                      )}
                       aria-hidden="true"
                     />
                     {formatMessage({ id: "app.yield.fractions" })} {fractionsPct}%
                   </span>
                   <span className="flex items-center gap-1">
                     <span
-                      className="inline-block h-2 w-2 rounded-full bg-amber-500"
+                      className={cn(
+                        "inline-block h-2 w-2 rounded-full",
+                        pwaStatusStyles.warning.dot
+                      )}
                       aria-hidden="true"
                     />
                     {formatMessage({ id: "app.yield.juicebox" })} {juiceboxPct}%

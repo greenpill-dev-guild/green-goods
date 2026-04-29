@@ -20,6 +20,7 @@ import { useIntl } from "react-intl";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { PullToRefresh } from "@/components/Inputs";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { GardenList } from "./GardenList";
 import { WalletDrawer } from "./WalletDrawer";
@@ -189,13 +190,14 @@ const Home: React.FC = () => {
                 type="button"
                 onClick={openGardenFilter}
                 className={cn(
-                  "relative p-1 rounded-lg border transition-all duration-200 tap-feedback",
+                  "relative p-1 rounded-lg border transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] tap-feedback",
                   "active:scale-95",
                   "flex items-center justify-center w-8 h-8 tap-target-lg",
-                  "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
+                  "focus:outline-none focus:ring-2",
+                  pwaStatusStyles.primary.focus,
                   isFilterActive
-                    ? "border-primary text-primary"
-                    : "border-stroke-soft-200 text-text-sub-600"
+                    ? cn(pwaStatusStyles.primary.border, pwaStatusStyles.primary.icon)
+                    : cn(pwaStatusStyles.neutral.border, pwaStatusStyles.neutral.icon)
                 )}
                 aria-label={intl.formatMessage({
                   id: "app.home.filters.button",
@@ -204,7 +206,12 @@ const Home: React.FC = () => {
               >
                 <RiFilterLine className="h-4 w-4" />
                 {isFilterActive && (
-                  <span className="absolute -top-1.5 -right-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-accent-foreground">
+                  <span
+                    className={cn(
+                      "absolute -top-1.5 -right-1.5 inline-flex min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-semibold leading-none",
+                      pwaStatusStyles.primary.badge
+                    )}
+                  >
                     {activeFilterCount}
                   </span>
                 )}

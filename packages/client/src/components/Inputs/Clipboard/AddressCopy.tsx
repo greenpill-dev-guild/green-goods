@@ -9,6 +9,7 @@ import {
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import React, { useEffect, useId, useState } from "react";
 import { useIntl } from "react-intl";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface AddressCopyProps {
   address?: Address | null;
@@ -70,9 +71,10 @@ export function AddressCopy({
         onClick={handleCopy}
         aria-labelledby={statusId}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm transition-all duration-150 tap-feedback",
+          "flex w-full items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
           "active:scale-[0.99]",
-          "focus:outline-none focus:ring-2 focus:ring-primary/30",
+          "focus:outline-none",
+          pwaStatusStyles.primary.focus,
           sizeClasses
         )}
       >

@@ -1,12 +1,8 @@
 @import "tailwindcss";
 
-/* Header color with dark mode support */
+/* Header color follows the foreground/ink role across client shells. */
 :root {
-  --color-header-text: rgb(var(--green-900)); /* Dark forest green for light mode */
-}
-
-:root[data-theme="dark"] {
-  --color-header-text: rgb(var(--green-200)); /* Pale mint for dark mode - matches primary */
+  --color-header-text: var(--color-foreground);
 }
 
 /* Typography @theme tokens are inherited from the shared theme.css import

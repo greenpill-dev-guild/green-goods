@@ -9,6 +9,7 @@ import {
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { ModalDrawer } from "@/components/Dialogs";
+import { pwaStatusStyles, type PwaStatusTone } from "@/styles/pwaStatusStyles";
 import { GardenNotifications } from "@/views/Home/Garden/Notifications";
 
 type TopNavProps = {
@@ -25,47 +26,43 @@ type TopNavProps = {
   onGovernanceClick?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
-// Styling configuration for different button states
-const BUTTON_VARIANTS = {
-  work: {
-    focus:
-      "focus-visible:ring-emerald-200 focus-visible:border-emerald-600 active:border-emerald-600",
-    icon: "focus-visible:text-emerald-700 active:text-emerald-700",
-  },
-  sync: {
-    focus: "focus-visible:ring-blue-200 focus-visible:border-blue-600 active:border-blue-600",
-    icon: "focus-visible:text-blue-700 active:text-blue-700",
-  },
-  offline: {
-    focus: "focus-visible:ring-orange-200 focus-visible:border-orange-600 active:border-orange-600",
-    icon: "focus-visible:text-orange-700 active:text-orange-700",
-  },
-} as const;
+type ButtonVariant = "work" | "sync" | "offline";
+
+const BUTTON_VARIANT_TONES = {
+  work: "primary",
+  sync: "information",
+  offline: "warning",
+} as const satisfies Record<ButtonVariant, PwaStatusTone>;
 
 // Base styling for navigation buttons — visually compact (w-8 h-8 = 32px)
 // with tap-target-lg for a larger invisible touch area (matches Home view buttons)
 const NAV_BUTTON_BASE = [
   "relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border",
   "bg-bg-white-0 border-stroke-soft-200 text-text-sub-600",
-  "transition-all duration-200 tap-feedback tap-target-lg",
+  "transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] tap-feedback tap-target-lg",
   "active:scale-95",
   "focus-visible:outline-none focus-visible:ring-2",
 ] as const;
 
 // Create complete button styles for a given variant
-const createButtonStyles = (variant: keyof typeof BUTTON_VARIANTS = "work") => ({
-  button: cn(NAV_BUTTON_BASE, BUTTON_VARIANTS[variant].focus),
-  icon: cn("w-4 h-4", BUTTON_VARIANTS[variant].icon),
-  focusStyles: BUTTON_VARIANTS[variant].focus,
-});
+const createButtonStyles = (variant: ButtonVariant = "work") => {
+  const status = pwaStatusStyles[BUTTON_VARIANT_TONES[variant]];
+
+  return {
+    button: cn(NAV_BUTTON_BASE, status.focus),
+    icon: cn("w-4 h-4", status.icon),
+    focusStyles: status.focus,
+  };
+};
 
 // Reusable notification badge component
 const NotificationBadge: React.FC<{ count: number }> = ({ count }) => (
   <div className="absolute -top-1.5 -right-1.5">
     <div
       className={cn(
-        "inline-flex items-center justify-center text-xs font-semibold text-primary-accent-foreground rounded-full",
-        "min-w-[18px] h-[18px] px-1 bg-primary",
+        "inline-flex items-center justify-center text-xs font-semibold rounded-full",
+        "min-w-[18px] h-[18px] px-1",
+        pwaStatusStyles.primary.badge,
         "shadow-sm border-2 border-bg-white-0"
       )}
     >
@@ -144,7 +141,12 @@ const EndowmentButton: React.FC<{
       title={ariaLabel}
     >
       {hasDeposits && (
-        <span className="absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full bg-success-base border border-bg-white-0" />
+        <span
+          className={cn(
+            "absolute -top-1 -right-1 inline-flex h-2.5 w-2.5 rounded-full border border-bg-white-0",
+            pwaStatusStyles.success.dot
+          )}
+        />
       )}
       <RiBankLine className={styles.icon} />
     </button>

@@ -1,10 +1,11 @@
-import { DEFAULT_CHAIN_ID, getEASExplorerUrl, getTag, useGardens } from "@green-goods/shared";
+import { cn, DEFAULT_CHAIN_ID, getEASExplorerUrl, getTag, useGardens } from "@green-goods/shared";
 import { type FC, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useParams } from "react-router-dom";
 import { Badge } from "@/components/Communication";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 type GardenAssessmentProps = {};
 
@@ -106,7 +107,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
             {intl.formatMessage({ id: "app.garden.assessments.evidence" })}
           </h2>
           {assessment.evidenceMedia.length ? (
-            <ul className="space-y-2 text-sm text-green-700">
+            <ul className={cn("space-y-2 text-sm", pwaStatusStyles.primary.text)}>
               {assessment.evidenceMedia.map((media, index) => (
                 <li key={`${assessment.id}-evidence-${index}`}>
                   <a
@@ -135,7 +136,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
             {intl.formatMessage({ id: "app.garden.assessments.documents" })}
           </h2>
           {assessment.reportDocuments.length ? (
-            <ul className="space-y-2 text-sm text-green-700">
+            <ul className={cn("space-y-2 text-sm", pwaStatusStyles.primary.text)}>
               {assessment.reportDocuments.map((doc, index) => (
                 <li key={`${assessment.id}-document-${index}`}>
                   <a
@@ -161,7 +162,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
             {intl.formatMessage({ id: "app.garden.assessments.impactAttestations" })}
           </h2>
           {assessment.impactAttestations.length ? (
-            <ul className="space-y-1 text-xs font-mono text-green-700">
+            <ul className={cn("space-y-1 text-xs font-mono", pwaStatusStyles.primary.text)}>
               {assessment.impactAttestations.map((uid) => (
                 <li key={`${assessment.id}-${uid}`}>
                   <a

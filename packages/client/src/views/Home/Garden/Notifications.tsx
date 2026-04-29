@@ -1,4 +1,5 @@
 import {
+  cn,
   formatAddress,
   type Garden,
   useEnsName,
@@ -10,6 +11,7 @@ import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { EmptyState } from "@/components/Communication";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface GardenNotificationsProps {
   garden: Garden;
@@ -27,10 +29,17 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
       to={`/home/${garden.id}/work/${work.id}`}
       state={{ from: "garden", returnTo: `/home/${garden.id}` }}
       viewTransition
-      className="cv-notification w-full flex flex-col gap-2 p-4 bg-warning-lighter rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border border-warning-light cursor-pointer group"
+      className={cn(
+        "cv-notification w-full flex flex-col gap-2 p-4 rounded-xl transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border cursor-pointer group",
+        pwaStatusStyles.warning.surface,
+        pwaStatusStyles.warning.border
+      )}
     >
       <div className="inline-flex gap-2 items-center">
-        <RiAlertFill size={20} className="text-warning-base group-hover:animate-pulse" />
+        <RiAlertFill
+          size={20}
+          className={cn(pwaStatusStyles.warning.icon, "group-hover:animate-pulse")}
+        />
         <span className="text-sm font-semibold text-text-strong-950">
           {intl.formatMessage({
             id: "app.home.notifications.pendingWorkApproval",
@@ -81,7 +90,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
                 onClose?.();
                 navigate("/garden", { state: { gardenId: garden.id } });
               }}
-              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary-action/20"
+              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-[background-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-95 focus:outline-none focus-visible:shadow-button-primary-focus"
             >
               <RiSeedlingFill className="w-4 h-4" />
               {intl.formatMessage({

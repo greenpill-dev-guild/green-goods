@@ -1,6 +1,7 @@
 import {
   type Action,
   AudioPlayer,
+  cn,
   imageCompressor,
   mediaResourceManager,
   track,
@@ -18,6 +19,7 @@ import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Features";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const AUDIO_TRACKING_ID = "work-draft-audio";
@@ -292,6 +294,8 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
   const maxImageCount =
     config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : 0;
+  const requirementBadgeTone =
+    images.length >= minRequired ? pwaStatusStyles.success : pwaStatusStyles.warning;
 
   return (
     <div className="flex flex-col gap-4">
@@ -300,7 +304,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       {/* Progress badge (shortened) */}
       {minRequired > 0 && (
         <Badge
-          className={`self-start ${images.length >= minRequired ? "bg-success-base/15 text-success-base" : "bg-warning-base/15 text-warning-base"}`}
+          className={`self-start ${requirementBadgeTone.surface} ${requirementBadgeTone.text}`}
           variant="pill"
           tint="none"
         >
@@ -372,8 +376,14 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       {/* Compression progress */}
       {isCompressing && (
-        <div className="flex items-center gap-3 p-4 bg-primary-base/10 border border-primary-base/30 rounded-lg">
-          <RiLoader4Line className="w-5 h-5 text-primary-base animate-spin" />
+        <div
+          className={cn(
+            "flex items-center gap-3 rounded-[var(--radius-lg)] border p-4",
+            pwaStatusStyles.information.surface,
+            pwaStatusStyles.information.border
+          )}
+        >
+          <RiLoader4Line className={cn("w-5 h-5 animate-spin", pwaStatusStyles.information.icon)} />
           <div className="flex-1">
             <p className="text-sm font-medium text-text-strong-950">
               {intl.formatMessage({
@@ -383,12 +393,15 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             </p>
             <div className="mt-2 bg-bg-soft-200 rounded-full h-2">
               <div
-                className="bg-primary-base h-2 rounded-full transition-all duration-300"
+                className={cn(
+                  "h-2 rounded-full transition-[width] duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
+                  pwaStatusStyles.information.progress
+                )}
                 style={{ width: `${compressionProgress}%` }}
               />
             </div>
           </div>
-          <span className="text-sm text-primary-base font-medium">
+          <span className={cn("text-sm font-medium", pwaStatusStyles.information.text)}>
             {Math.round(compressionProgress)}%
           </span>
         </div>
@@ -396,16 +409,28 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       {/* Video duration error */}
       {videoError && (
-        <div className="p-3 bg-error-base/10 border border-error-base/30 rounded-lg">
-          <p className="text-sm text-error-base">{videoError}</p>
+        <div
+          className={cn(
+            "rounded-[var(--radius-lg)] border p-3",
+            pwaStatusStyles.error.surface,
+            pwaStatusStyles.error.border
+          )}
+        >
+          <p className={cn("text-sm", pwaStatusStyles.error.text)}>{videoError}</p>
         </div>
       )}
 
       {/* Recording indicator (from action bar audio toggle) */}
       {isRecording && (
-        <div className="flex items-center gap-2 p-3 bg-error-base/10 border border-error-base/30 rounded-lg">
-          <div className="w-3 h-3 rounded-full bg-error-base animate-pulse" />
-          <span className="text-sm font-medium text-error-base">
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-[var(--radius-lg)] border p-3",
+            pwaStatusStyles.error.surface,
+            pwaStatusStyles.error.border
+          )}
+        >
+          <div className={cn("w-3 h-3 rounded-full animate-pulse", pwaStatusStyles.error.dot)} />
+          <span className={cn("text-sm font-medium", pwaStatusStyles.error.text)}>
             Recording {formatTime(recordingElapsed)}
           </span>
         </div>
@@ -439,7 +464,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                   {!isPlaying && (
                     <button
                       type="button"
-                      className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg"
+                      className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)]"
                       onClick={() => setPlayingVideoIndex(index)}
                     >
                       <RiPlayFill className="w-12 h-12 text-static-white" />
@@ -483,7 +508,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     alt={`${intl.formatMessage({ id: "app.garden.upload.uploaded", defaultMessage: "Uploaded" })} ${index + 1}`}
                     className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)] opacity-0 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] group-hover:opacity-100">
                     <RiZoomInLine className="w-12 h-12 text-static-white" />
                   </div>
                 </button>

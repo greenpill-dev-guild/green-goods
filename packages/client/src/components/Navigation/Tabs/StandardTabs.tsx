@@ -1,5 +1,6 @@
 import { cn } from "@green-goods/shared";
 import React from "react";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export interface StandardTab {
   id: string;
@@ -82,10 +83,12 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           }}
           disabled={tab.disabled}
           className={cn(
-            "flex min-h-11 items-center justify-center gap-1 px-1.5 text-xs font-medium transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:text-label-sm",
+            "flex min-h-11 items-center justify-center gap-1 px-1.5 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:text-label-sm",
             "focus:outline-none focus-visible:shadow-button-primary-focus",
             variant === "compact" ? "py-2.5 sm:py-3" : "py-3 sm:py-3.5",
-            activeTab === tab.id ? "text-primary bg-bg-weak-50" : "text-text-sub-600",
+            activeTab === tab.id
+              ? cn(pwaStatusStyles.primary.text, pwaStatusStyles.primary.surface)
+              : pwaStatusStyles.neutral.text,
             tab.disabled && "opacity-50 cursor-not-allowed",
             triggerClassName
           )}
@@ -102,7 +105,12 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
 
           {/* Count badge */}
           {tab.count !== undefined && tab.count > 0 && (
-            <span className="inline-flex items-center justify-center text-xs font-medium text-primary-accent-foreground bg-primary rounded-full min-w-[16px] h-4 px-1 flex-shrink-0">
+            <span
+              className={cn(
+                "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
+                pwaStatusStyles.primary.badge
+              )}
+            >
               {tab.count > 99 ? "99+" : tab.count}
             </span>
           )}
@@ -113,14 +121,17 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
               {isLoading ? (
                 <div className="w-full h-full bg-bg-soft-200">
                   <div
-                    className="h-full bg-primary animate-[standardTabLoading_2s_ease-in-out_infinite]"
+                    className={cn("h-full", pwaStatusStyles.information.progress)}
                     style={{
-                      animation: "standardTabLoading 2s ease-in-out infinite",
+                      animationName: "standardTabLoading",
+                      animationDuration: "var(--spring-effects-slow-duration)",
+                      animationTimingFunction: "var(--spring-effects-slow-easing)",
+                      animationIterationCount: "infinite",
                     }}
                   />
                 </div>
               ) : (
-                <div className="w-full h-full bg-primary" />
+                <div className={cn("w-full h-full", pwaStatusStyles.primary.progress)} />
               )}
             </div>
           )}

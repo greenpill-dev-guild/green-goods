@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "client-pwa-design-system-transition",
+    "title": "Client PWA Design-System Transition",
+    "kind": "quality",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-04-26T00:00:00.000Z",
+    "updated_at": "2026-04-29T03:27:25.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Backlog plan hub for the installed client PWA Warm Earth/token migration.",
+    "Stage 0 readiness, Stage 1-4 source implementation, local QA evidence, and automated gates are complete; final installed-phone signoff and real media thumbnail/video overlay proof were waived by the human owner on 2026-04-29.",
+    "Codex completion pass fixed animation CSS raw primary alpha usage, DraftCard nested-interactive markup, Intro shared mock drift, and regenerated the client PWA token audit only after the check gate reported drift.",
+    "Outcome is better PWA cohesion, not token parity only.",
+    "Public browser hero work is explicitly out of scope and should get a separate future plan.",
+    "Stage commit packaging was not performed in this shared dirty tree; if requested later, stage paths explicitly and avoid unrelated dirty files.",
+    "Archive readiness requires automated gates, stage screenshots, a zero in-scope protected PWA baseline, and either completed or human-waived manual/device proof gaps."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "claude/ui/client-pwa-design-system-transition",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "design", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/client-pwa-design-system-transition",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["review"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/client-pwa-design-system-transition",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["review"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "completed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/client-pwa-design-system-transition",
+      "depends_on": ["ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review", "visual-qa"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "completed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/client-pwa-design-system-transition",
+      "branch_trigger": "claude/qa-pass-1/client-pwa-design-system-transition",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review", "visual-qa"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-26T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Created backlog plan hub for the client PWA design-system transition. This is planning only; no source migration was performed."
+    },
+    {
+      "timestamp": "2026-04-26T22:02:37.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "review-updated",
+      "branch": null,
+      "note": "Addressed review findings by adding the protected PWA baseline census, clarifying the ModalDrawer maxHeight behavior fix, requiring check:design-generated for every future implementation stage, and making visual QA scenarios executable."
+    },
+    {
+      "timestamp": "2026-04-26T22:10:30.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "review-updated",
+      "branch": null,
+      "note": "Tightened archive criteria to require a zero-or-human-deferred protected PWA baseline census and corrected Stage 5 Storybook story titles in the visual QA matrix."
+    },
+    {
+      "timestamp": "2026-04-28T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "readiness-contract-updated",
+      "branch": null,
+      "note": "Encoded the user's PWA color alignment readiness contract: added typography.css as a foundation file with cross-shell carve-out, added Stage 0 plan readiness gate, restructured stages to Stage 0 + Color Foundation + Drawer/Material + Loading/Media + Controls/Cards/Forms, reassigned every Protected PWA Baseline Census row, codified the no-bypass-helper-CSS rule, and added required public-browser smoke for / and /gardens. Hub remains backlog; no source files were edited."
+    },
+    {
+      "timestamp": "2026-04-28T20:18:53.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "stage-0-readiness-confirmed",
+      "branch": null,
+      "note": "Confirmed Stage 0 with a path-scoped dirty-tree snapshot, refreshed the protected PWA baseline census from scripts/data/design-token-usage-baseline.tsv, acknowledged typography.css as the only intentional cross-shell file, confirmed check:design-generated is the gate for design:generate, and validated the plan hub before source edits."
+    },
+    {
+      "timestamp": "2026-04-28T20:18:53.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "stage-1-color-foundation-implemented",
+      "branch": null,
+      "note": "Implemented Stage 1 only: replaced the global green heading color with foreground token backing, added the client-internal pwaStatusStyles helper, applied it to the Stage 1 PWA status surfaces, removed only fixed baseline rows, regenerated the client PWA token audit after check:design-generated reported staleness, and recorded validation plus visual evidence. Stages 2-4 remain pending."
+    },
+    {
+      "timestamp": "2026-04-28T20:35:31.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "stage-2-drawer-overlay-surfaces-implemented",
+      "branch": null,
+      "note": "Implemented Stage 2 only: added the client-internal pwaDrawerStyles helper, tokenized ModalDrawer, WorkDashboard, DraftDialog, work approval drawer, Gardeners dialog chrome, and modal backdrop animation behavior with Warm Earth material/spring tokens, preserved existing drawer semantics including ModalDrawer maxHeight, removed only fixed baseline rows, regenerated the generated client PWA audit after the check gate reported staleness, and recorded Stage 2 validation/evidence. Stages 3-4 remain pending."
+    },
+    {
+      "timestamp": "2026-04-28T21:02:00.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "stage-3-loading-media-implemented",
+      "branch": null,
+      "note": "Implemented Stage 3: tokenized Splash and LoadingSplash spring motion/spinners, media requirement badge, compression progress, video/recording error surfaces, media overlays, and Garden media action-bar icons using pwaStatusStyles plus Warm Earth overlay/spring tokens. Blob URL cleanup, upload source tracking, image compression, and video validation behavior were left intact. Recorded implementation evidence and QA proof limits for loading/media screenshots."
+    },
+    {
+      "timestamp": "2026-04-28T21:12:00.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "stage-4-controls-completed",
+      "branch": null,
+      "note": "Implemented Stage 4: cleaned the remaining protected-PWA baseline rows in Card, DraftCard, AppErrorBoundary, Gardeners member controls, AddressCopy, PullToRefresh, GardenFilters, Assessment, ENSSection, and GardensList; regenerated the generated client PWA token audit after the check gate required it; verified that only deferred public Hero.tsx client rows remain in the design-token baseline. UI lane source implementation is complete; QA Pass 1 is ready to perform live screenshots and visual review."
+    },
+    {
+      "timestamp": "2026-04-29T03:05:11.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "completion-fixes-applied",
+      "branch": null,
+      "note": "Addressed the completion review by replacing raw primary animation alphas in animation.css with existing color aliases, fixing DraftCard nested interactive markup, refreshing the generated client PWA audit after the check gate reported drift, and restoring the full client test suite by updating the Intro shared mock."
+    },
+    {
+      "timestamp": "2026-04-29T03:05:11.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "local-evidence-recorded-manual-blocked",
+      "branch": null,
+      "note": "Captured Stage 3 loading/media and Stage 4 controls Storybook screenshots, recorded QA Pass 1 evidence, and documented the remaining real-thumbnail overlay proof gap as a manual/device limitation."
+    },
+    {
+      "timestamp": "2026-04-29T03:05:11.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "automated-gates-passed-manual-blocked",
+      "branch": null,
+      "note": "Re-ran plan-hub, design token, generated-artifact, vocab, Storybook, full client test, and client build gates successfully. Archive remains blocked on final installed-phone PWA signoff."
+    },
+    {
+      "timestamp": "2026-04-29T03:22:53.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "manual-proof-waived",
+      "branch": null,
+      "note": "Human owner waived final installed-phone PWA signoff and real thumbnail/video overlay contrast proof as archive blockers for this hub."
+    },
+    {
+      "timestamp": "2026-04-29T03:22:53.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": null,
+      "note": "Updated plan truth and QA evidence to record the human waiver. No source, validation, QA, or plan-truth blocker remains; stage commit/PR packaging was not performed in the shared dirty tree."
+    },
+    {
+      "timestamp": "2026-04-29T03:27:25.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "archived",
+      "branch": null,
+      "note": "Archived the completed client PWA design-system transition hub after the human waiver closed the remaining manual/device proof gaps."
+    }
+  ]
+}

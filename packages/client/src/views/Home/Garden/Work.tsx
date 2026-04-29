@@ -34,6 +34,7 @@ import { useLocation, useNavigate, useOutletContext, useParams } from "react-rou
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
+import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
 import { WorkViewSection } from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
@@ -348,7 +349,8 @@ export const GardenWork: React.FC = () => {
         {/* Backdrop - Fades in over content */}
         <div
           className={cn(
-            "fixed inset-0 bg-black/30 backdrop-blur-sm z-overlay transition-opacity duration-300",
+            pwaDrawerStyles.dialogOverlay,
+            pwaDrawerStyles.overlayTransition,
             feedbackMode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
           onClick={handleCancelFeedback}
@@ -360,7 +362,7 @@ export const GardenWork: React.FC = () => {
           {/* Feedback Drawer - Slides up from behind the footer bar */}
           <div
             className={cn(
-              "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-[var(--radius-lg)] shadow-xl overflow-hidden transition-transform duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] origin-bottom",
+              pwaDrawerStyles.workFeedbackDrawer,
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
@@ -389,7 +391,7 @@ export const GardenWork: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancelFeedback}
-                  className="p-1 rounded-md text-text-soft-400 hover:text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={cn("p-1", pwaDrawerStyles.workCloseButton)}
                   aria-label={intl.formatMessage({
                     id: "app.home.workApproval.closeFeedback",
                     defaultMessage: "Close feedback",
@@ -442,7 +444,12 @@ export const GardenWork: React.FC = () => {
           </div>
 
           {/* Action Bar - Always visible */}
-          <div className="bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden shadow-xl p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
+          <div
+            className={cn(
+              pwaDrawerStyles.workActionBar,
+              "p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative"
+            )}
+          >
             <div className="max-w-screen-sm mx-auto">
               {/* Action expiry notice */}
               {isActionExpired && (

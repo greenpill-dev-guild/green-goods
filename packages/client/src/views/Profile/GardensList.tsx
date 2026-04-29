@@ -1,5 +1,6 @@
 import {
   type Address,
+  cn,
   ConfirmDialog,
   createPublicClientForChain,
   DEFAULT_CHAIN_ID,
@@ -26,6 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface GardensListProps {
   primaryAddress: Address | undefined;
@@ -179,7 +181,10 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
             refetch();
           }}
           disabled={isFetching}
-          className="p-1.5 rounded-lg text-text-sub-600 hover:text-primary active:scale-95 transition-all duration-200 disabled:opacity-50"
+          className={cn(
+            "rounded-[var(--radius-lg)] p-1.5 text-text-sub-600 tap-feedback transition-[color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:text-primary active:scale-95 disabled:opacity-50",
+            pwaStatusStyles.primary.focus
+          )}
           aria-label={intl.formatMessage({
             id: "app.profile.refreshGardens",
             defaultMessage: "Refresh gardens",

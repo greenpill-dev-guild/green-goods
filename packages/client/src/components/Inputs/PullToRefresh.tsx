@@ -258,7 +258,7 @@ export function PullToRefresh({
       <div
         className={cn(
           "absolute left-0 right-0 flex items-center justify-center z-10 pointer-events-none",
-          "transition-all duration-200 ease-out"
+          "transition-[opacity,transform,top] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]"
         )}
         style={{
           top: -40 + pullDistance,

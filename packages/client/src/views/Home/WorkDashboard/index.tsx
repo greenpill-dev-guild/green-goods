@@ -27,6 +27,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
+import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
@@ -284,7 +285,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     setIsClosing(true);
     scheduleTimeout(() => {
       onClose?.();
-    }, 300);
+    }, getPwaDrawerCloseDelayMs());
   };
 
   const renderTabContent = () => {
@@ -335,7 +336,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     <div
       role="presentation"
       className={cn(
-        "fixed inset-0 bg-black/30 backdrop-blur-sm z-modal flex items-end justify-center",
+        pwaDrawerStyles.overlay,
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
       data-testid="modal-drawer-overlay"
@@ -355,7 +356,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
       <div
         ref={dialogRef}
         className={cn(
-          "bg-bg-white-0 rounded-t-[var(--radius-lg)] shadow-2xl w-full overflow-hidden flex flex-col h-modal",
+          pwaDrawerStyles.panel,
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
@@ -368,7 +369,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         data-testid="modal-drawer"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
+        <div className={pwaDrawerStyles.header}>
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-semibold truncate">
               {intl.formatMessage({
@@ -386,14 +387,14 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <div className="flex items-center gap-2 ml-4">
             <button
               onClick={handleClose}
-              className="btn-icon"
+              className={cn("p-2", pwaDrawerStyles.closeButtonBase)}
               data-testid="modal-drawer-close"
               aria-label={intl.formatMessage({
                 id: "app.workDashboard.closeModal",
                 defaultMessage: "Close modal",
               })}
             >
-              <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" />
+              <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
             </button>
           </div>
         </div>

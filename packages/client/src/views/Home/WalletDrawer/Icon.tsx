@@ -2,6 +2,7 @@ import { cn, useAccessibleCookieJars } from "@green-goods/shared";
 import { RiWallet3Line } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface WalletDrawerIconProps {
   onClick: () => void;
@@ -32,11 +33,13 @@ export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, cla
       type="button"
       onClick={onClick}
       className={cn(
-        "relative p-1 rounded-lg border transition-all duration-200 tap-feedback",
+        "relative p-1 rounded-lg border transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] tap-feedback",
         "active:scale-95",
         "flex items-center justify-center w-8 h-8 tap-target-lg",
-        "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600",
-        "border-stroke-soft-200 text-text-sub-600",
+        "focus:outline-none focus:ring-2",
+        pwaStatusStyles.primary.focus,
+        pwaStatusStyles.neutral.border,
+        pwaStatusStyles.neutral.icon,
         className
       )}
       aria-label={label}
@@ -44,7 +47,10 @@ export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, cla
       <RiWallet3Line className="h-4 w-4" />
       {accessibleJarCount > 0 && (
         <span
-          className="absolute -top-1.5 -right-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full border-2 border-bg-white-0 bg-primary px-1 text-[10px] font-semibold leading-none text-primary-accent-foreground"
+          className={cn(
+            "absolute -top-1.5 -right-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full border-2 border-bg-white-0 px-1 text-[10px] font-semibold leading-none",
+            pwaStatusStyles.primary.badge
+          )}
           data-testid="wallet-badge"
           aria-hidden="true"
         >

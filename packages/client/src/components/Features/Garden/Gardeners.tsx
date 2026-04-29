@@ -1,5 +1,6 @@
 import {
   type Address,
+  cn,
   copyToClipboard,
   formatAddress,
   type Garden,
@@ -26,6 +27,8 @@ import { Button } from "@/components/Actions";
 import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
+import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export type GardenMember = GardenerCard & {
   account: Address;
@@ -71,7 +74,10 @@ const GardenMemberItem = memo(function GardenMemberItem({
 
   return (
     <button
-      className="cv-member relative flex items-center gap-3 border-stroke-soft-200 border rounded-lg p-2 bg-bg-white-0 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm w-full text-left tap-feedback"
+      className={cn(
+        "cv-member relative flex w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-2 text-left shadow-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus:outline-none",
+        pwaStatusStyles.primary.focus
+      )}
       onClick={onClick}
       type="button"
     >
@@ -196,17 +202,28 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
           }}
         >
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-overlay bg-black/30 backdrop-blur-sm" />
-            <Dialog.Content className="fixed z-modal top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bg-white-0 rounded-2xl shadow-2xl w-[min(520px,92vw)] p-5 focus:outline-none">
+            <Dialog.Overlay
+              className={cn(
+                pwaDrawerStyles.dialogOverlay,
+                "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]"
+              )}
+            />
+            <Dialog.Content
+              className={cn(
+                "fixed z-modal top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(520px,92vw)] p-5 focus:outline-none",
+                pwaDrawerStyles.dialogSurface,
+                "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]"
+              )}
+            >
               <div className="flex items-center justify-between mb-3">
                 <Dialog.Title className="text-base font-semibold truncate">{title}</Dialog.Title>
                 <Dialog.Close asChild>
                   <button
-                    className="p-1 rounded-full border border-stroke-soft-200 transition-all duration-200 flex-shrink-0 tap-feedback focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600 active:scale-95"
+                    className={cn("p-1", pwaDrawerStyles.closeButtonBase)}
                     aria-label="Close modal"
                     type="button"
                   >
-                    <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-emerald-700 active:text-emerald-700" />
+                    <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
                   </button>
                 </Dialog.Close>
               </div>

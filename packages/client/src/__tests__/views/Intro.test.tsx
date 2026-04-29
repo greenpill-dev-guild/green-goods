@@ -31,6 +31,7 @@ vi.mock("@green-goods/shared", () => {
     },
     hasDomain: (mask: number, domain: Domain) => (mask & (1 << domain)) !== 0,
     hapticSelection: vi.fn(),
+    localizeAction: (action: Action) => action,
   };
 });
 

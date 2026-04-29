@@ -1,5 +1,6 @@
 import {
   type Address,
+  cn,
   ConfirmDialog,
   DEFAULT_CHAIN_ID,
   type DraftWithImages,
@@ -16,6 +17,7 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export interface DraftsTabProps {
   className?: string;
@@ -206,7 +208,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
         })}
         variant="danger"
         isLoading={isDeleting}
-        icon={<RiAlertLine className="w-6 h-6 text-red-500" />}
+        icon={<RiAlertLine className={cn("w-6 h-6", pwaStatusStyles.error.icon)} />}
       />
     </div>
   );

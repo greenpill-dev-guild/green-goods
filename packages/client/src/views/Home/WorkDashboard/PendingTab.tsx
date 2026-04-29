@@ -1,7 +1,8 @@
-import type { Address, TimeFilter, Work } from "@green-goods/shared";
+import { cn, type Address, type TimeFilter, type Work } from "@green-goods/shared";
 import { RiCheckLine, RiTimeLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { TimeFilterControl } from "./TimeFilterControl";
 import { WorkListTab } from "./WorkListTab";
 import { isOperatorForGarden } from "./work-dashboard-utils";
@@ -64,7 +65,15 @@ export const PendingTab: React.FC<PendingTabProps> = ({
 
     if (isOperator && !reviewed) {
       badges.push(
-        <span key="review" className="badge-pill-amber">
+        <span
+          key="review"
+          className={cn(
+            "badge-pill",
+            pwaStatusStyles.warning.surface,
+            pwaStatusStyles.warning.border,
+            pwaStatusStyles.warning.text
+          )}
+        >
           <RiTimeLine className="w-3 h-3" />
           {intl.formatMessage({
             id: "app.workDashboard.badge.needsReview",
@@ -75,7 +84,15 @@ export const PendingTab: React.FC<PendingTabProps> = ({
     }
     if (reviewed) {
       badges.push(
-        <span key="reviewed" className="badge-pill-emerald">
+        <span
+          key="reviewed"
+          className={cn(
+            "badge-pill",
+            pwaStatusStyles.success.surface,
+            pwaStatusStyles.success.border,
+            pwaStatusStyles.success.text
+          )}
+        >
           <RiCheckLine className="w-3 h-3" />
           {intl.formatMessage({
             id: "app.workDashboard.badge.reviewedByYou",
@@ -86,7 +103,15 @@ export const PendingTab: React.FC<PendingTabProps> = ({
     }
     if (isGardener) {
       badges.push(
-        <span key="submitted" className="badge-pill-slate">
+        <span
+          key="submitted"
+          className={cn(
+            "badge-pill",
+            pwaStatusStyles.neutral.surface,
+            pwaStatusStyles.neutral.border,
+            pwaStatusStyles.neutral.text
+          )}
+        >
           {intl.formatMessage({
             id: "app.workDashboard.badge.youSubmitted",
             defaultMessage: "You submitted",

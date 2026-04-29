@@ -25,6 +25,7 @@ import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface ENSSectionProps {
   primaryAddress: Address | undefined;
@@ -523,7 +524,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                         />
                       ) : isSlugAvailable ? (
                         <RiCheckLine
-                          className="h-4 w-4 text-green-500"
+                          className={`h-4 w-4 ${pwaStatusStyles.success.icon}`}
                           aria-label="Name available"
                         />
                       ) : isSlugAvailable === false ? (

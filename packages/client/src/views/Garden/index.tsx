@@ -41,6 +41,7 @@ import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 // Loading skeleton for intro tab
 const IntroSkeleton: React.FC = () => {
@@ -479,7 +480,7 @@ const Work: React.FC = () => {
             type="button"
             shape="regular"
             mode="stroke"
-            leadingIcon={<RiImageFill className="text-primary w-5 h-5" />}
+            leadingIcon={<RiImageFill className={`w-5 h-5 ${pwaStatusStyles.primary.icon}`} />}
           />
           <Button
             onClick={() => {
@@ -495,7 +496,7 @@ const Work: React.FC = () => {
             type="button"
             shape="regular"
             mode="stroke"
-            leadingIcon={<RiCameraFill className="text-primary w-5 h-5" />}
+            leadingIcon={<RiCameraFill className={`w-5 h-5 ${pwaStatusStyles.primary.icon}`} />}
           />
           <Button
             onClick={toggleAudioRecording}
@@ -507,9 +508,9 @@ const Work: React.FC = () => {
             mode={isRecording ? "filled" : "stroke"}
             leadingIcon={
               isRecording ? (
-                <RiStopFill className="text-primary-action-foreground w-5 h-5" />
+                <RiStopFill className={`w-5 h-5 ${pwaStatusStyles.error.foreground}`} />
               ) : (
-                <RiMicLine className="text-primary w-5 h-5" />
+                <RiMicLine className={`w-5 h-5 ${pwaStatusStyles.primary.icon}`} />
               )
             }
           />
