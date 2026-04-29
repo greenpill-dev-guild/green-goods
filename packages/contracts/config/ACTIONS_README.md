@@ -403,7 +403,7 @@ cast call $ACTION_REGISTRY "getAction(uint256)" 1 --rpc-url $RPC
 - Add new keyword to priority array if needed
 
 **IPFS upload failing:**
-- Verify `VITE_PINATA_JWT` in root `.env`
+- Verify `PINATA_JWT` in root `.env`
 - Check `.generated/runtime/ipfs-cache.json` for cached hashes
 - Use `--force` flag to skip cache
 

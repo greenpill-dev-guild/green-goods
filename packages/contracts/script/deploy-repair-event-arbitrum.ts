@@ -115,7 +115,7 @@ function requirePinataConfigForUploads() {
   const config = getPinataConfigForUploads();
   if (!config) {
     throw new Error(
-      "PINATA_JWT or VITE_PINATA_JWT is required for uploads. Reuse existing CIDs with --image-cid/--instructions-cid if you need a no-upload run.",
+      "PINATA_JWT is required for uploads. Reuse existing CIDs with --image-cid/--instructions-cid if you need a no-upload run.",
     );
   }
   return config;
@@ -139,7 +139,7 @@ Options:
 
 Notes:
   - Preferred entrypoint is the root package.json wrapper so env comes from varlock/1Password
-  - Uploads use Pinata and require PINATA_JWT (or VITE_PINATA_JWT)
+  - Uploads use Pinata and require PINATA_JWT
   - Uses Foundry keystore account from FOUNDRY_KEYSTORE_ACCOUNT
   - Defaults to keystore "${DEFAULT_KEYSTORE}" if env var is unset
   - Upload source image: config/action-images/${ACTION_IMAGE_FILENAME}

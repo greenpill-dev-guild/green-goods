@@ -46,9 +46,7 @@ contract DeployGreenWill is Script {
         GreenWill implementation = new GreenWill();
         GreenWill greenWill = GreenWill(
             address(
-                new ERC1967Proxy(
-                    address(implementation), abi.encodeWithSelector(GreenWill.initialize.selector, deployer)
-                )
+                new ERC1967Proxy(address(implementation), abi.encodeWithSelector(GreenWill.initialize.selector, deployer))
             )
         );
 
@@ -67,14 +65,7 @@ contract DeployGreenWill is Script {
 
     function _configureBadges(GreenWill greenWill, GreenWillConfig memory config) internal {
         greenWill.configureBadgeClass(
-            GENESIS_BADGE,
-            "genesis",
-            config.genesisMetadataURI,
-            config.hats,
-            address(0),
-            config.genesisLock,
-            true,
-            true
+            GENESIS_BADGE, "genesis", config.genesisMetadataURI, config.hats, address(0), config.genesisLock, true, true
         );
         greenWill.configureBadgeRule(GENESIS_BADGE, GreenWill.BadgeRule.Hat, bytes32(config.genesisHatId), 0);
 
@@ -161,14 +152,7 @@ contract DeployGreenWill is Script {
         console2.logAddress(config.firstSupportLock);
     }
 
-    function _saveResult(
-        GreenWillConfig memory config,
-        address deployer,
-        address implementation,
-        address proxy
-    )
-        internal
-    {
+    function _saveResult(GreenWillConfig memory config, address deployer, address implementation, address proxy) internal {
         string memory obj = "greenWill";
         vm.serializeAddress(obj, "greenWill", proxy);
         vm.serializeAddress(obj, "greenWillImplementation", implementation);

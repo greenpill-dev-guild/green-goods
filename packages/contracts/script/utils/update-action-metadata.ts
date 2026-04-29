@@ -20,7 +20,7 @@
  * Environment:
  *   ARBITRUM_RPC_URL or VITE_ALCHEMY_API_KEY — Arbitrum RPC endpoint
  *   FOUNDRY_KEYSTORE_ACCOUNT — Foundry keystore name (default: green-goods-deployer)
- *   PINATA_JWT or VITE_PINATA_JWT — Pinata JWT for IPFS uploads
+ *   PINATA_JWT — Pinata JWT for IPFS uploads
  */
 
 import { execFileSync } from "node:child_process";
@@ -226,7 +226,7 @@ async function uploadImages(
 
   const pinataConfig = loadPinataConfigFromEnv();
   if (!pinataConfig?.jwt) {
-    throw new Error("PINATA_JWT or VITE_PINATA_JWT required for uploads");
+    throw new Error("PINATA_JWT required for uploads");
   }
 
   console.log(`\n  Using Pinata for ${toUpload.length} image uploads...`);

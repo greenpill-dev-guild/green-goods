@@ -124,7 +124,7 @@ Options:
   --help, -h                 Show this help
 
 Environment:
-  PINATA_JWT or VITE_PINATA_JWT     Required for --upload-only and --broadcast
+  PINATA_JWT                        Required for --upload-only and --broadcast
   FOUNDRY_KEYSTORE_ACCOUNT          Foundry keystore name for --broadcast
   MIGRATION_PRIVATE_KEY             Optional non-interactive broadcast key
   PRIVATE_KEY                       Fallback non-interactive broadcast key
@@ -534,7 +534,7 @@ async function uploadPlan(plan: MigrationPlanItem[], cache: Record<string, Cache
 
     pinataConfig ??= loadPinataConfigFromEnv();
     if (!pinataConfig?.jwt) {
-      throw new Error("PINATA_JWT or VITE_PINATA_JWT is required to upload v2 instruction JSON");
+      throw new Error("PINATA_JWT is required to upload v2 instruction JSON");
     }
 
     process.stdout.write(`[${item.uid}] ${item.slug} — uploading... `);
