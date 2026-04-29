@@ -4,13 +4,13 @@
     "slug": "fix-garden-domain-ui",
     "title": "Fix Garden Domain UI & Data Issues",
     "kind": "polish",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "completed",
     "priority": "p1",
     "created_at": "2026-03-24",
-    "updated_at": "2026-04-28T19:44:46.862Z"
+    "updated_at": "2026-04-29T04:30:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -53,7 +53,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/fix-garden-domain-ui",
@@ -63,7 +63,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/fix-garden-domain-ui",
@@ -145,6 +145,22 @@
       "status": "completed",
       "branch": "claude/ui/fix-garden-domain-ui",
       "note": "Completed on develop dispatch by Codex; canonical lane branch metadata preserved. Current-admin UI recovery fixes and tests are in the working tree."
+    },
+    {
+      "timestamp": "2026-04-29T04:22:00.000Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "develop",
+      "note": "QA pass 1 verified all six acceptance checks against committed HEAD (2fa33819 fix(shared,admin): recover gardens without domains). Targeted shared+admin tests, lint:vocab, and plan-hub validate all green. See handoffs/claude-qa-pass-1.md."
+    },
+    {
+      "timestamp": "2026-04-29T04:30:00.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Plan archived after QA pass 1 confirmed all in-scope acceptance checks. qa_pass_2 broader gate skipped by user direction; targeted tests covered every touched surface."
     }
   ]
 }
