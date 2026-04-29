@@ -9,6 +9,7 @@ import {
   type GardenVault,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
+  TextInput,
   TxInlineFeedback,
   useDebouncedValue,
   useTxErrorMessages,
@@ -204,7 +205,8 @@ export function WithdrawModal({
           error={amountError ? formatMessage({ id: amountError }) : undefined}
         >
           <div className="flex items-center gap-2">
-            <input
+            <TextInput
+              surface="admin"
               id="withdraw-amount"
               type="text"
               inputMode="decimal"
@@ -213,11 +215,7 @@ export function WithdrawModal({
               placeholder={`0.0 ${assetSymbol}`}
               aria-required="true"
               aria-invalid={Boolean(amountError)}
-              className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
-                amountError
-                  ? "border-error-base focus:border-error-base"
-                  : "border-stroke-sub bg-bg-white focus:border-primary-base"
-              }`}
+              invalid={Boolean(amountError)}
             />
             <Button
               variant="secondary"

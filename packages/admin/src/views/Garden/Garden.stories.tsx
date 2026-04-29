@@ -1,36 +1,46 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
-import type { Garden as SharedGarden } from "@green-goods/shared";
-import { Route, Routes } from "react-router-dom";
+import {
+  DEFAULT_CHAIN_ID,
+  queryKeys,
+  type Address,
+  type Garden as SharedGarden,
+} from "@green-goods/shared";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_GARDENS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
+  STORYBOOK_OPERATOR_ADDRESS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
 } from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
   withCanvasFrame,
-  withRouter,
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import CreateGarden from "./CreateGarden";
-import Garden from "./index";
+import { adminCanvasRoutes } from "@/routes/views";
 
-function GardenCanvasStory() {
-  return (
-    <Routes>
-      <Route element={<CanvasLayout />}>
-        <Route path="/garden/overview" element={<Garden />} />
-        <Route path="/garden/impact" element={<Garden />} />
-        <Route path="/garden/impact/hypercerts/:hypercertId" element={<Garden />} />
-        <Route path="/garden/settings" element={<Garden />} />
-        <Route path="/garden/create" element={<CreateGarden />} />
-      </Route>
-    </Routes>
+interface GardenCanvasStoryProps {
+  initialPath?: string;
+}
+
+function GardenCanvasStory({ initialPath = "/garden/overview" }: GardenCanvasStoryProps) {
+  const router = createMemoryRouter(
+    [
+      {
+        element: <CanvasLayout />,
+        children: adminCanvasRoutes,
+      },
+    ],
+    {
+      initialEntries: [initialPath],
+    }
   );
+
+  return <RouterProvider router={router} />;
 }
 
 const meta: Meta<typeof GardenCanvasStory> = {
@@ -65,21 +75,27 @@ const STORYBOOK_EMPTY_DOMAIN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> 
     data === STORYBOOK_ADMIN_GARDENS ? [key, STORYBOOK_EMPTY_DOMAIN_GARDENS] : [key, data]
   );
 
-function gardenDecorators(
-  initialPath: string,
-  {
-    garden = STORYBOOK_PRIMARY_ADMIN_GARDEN,
-    seeds = STORYBOOK_ADMIN_SHELL_SEEDS,
-  }: {
-    garden?: SharedGarden;
-    seeds?: ReadonlyArray<readonly [QueryKey, unknown]>;
-  } = {}
-) {
+const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+
+const STORYBOOK_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
+  ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  [
+    queryKeys.role.deploymentPermissions(STORYBOOK_OPERATOR_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    { isOwner: true, isInAllowlist: true, canDeploy: true },
+  ],
+];
+
+function gardenDecorators({
+  garden = STORYBOOK_PRIMARY_ADMIN_GARDEN,
+  seeds = STORYBOOK_ADMIN_SHELL_SEEDS,
+}: {
+  garden?: SharedGarden;
+  seeds?: ReadonlyArray<readonly [QueryKey, unknown]>;
+} = {}) {
   return [
     withAdminIdentity,
     withSeededQueryClient(seeds),
     withSelectedAdminGarden(garden),
-    withRouter([initialPath]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
@@ -90,8 +106,8 @@ function gardenDecorators(
 
 export const Overview: Story = {
   tags: ["storybook-ci"],
-  render: () => <GardenCanvasStory />,
-  decorators: gardenDecorators("/garden/overview"),
+  args: { initialPath: "/garden/overview" },
+  decorators: gardenDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Garden" })).toBeVisible();
@@ -101,25 +117,26 @@ export const Overview: Story = {
 
 export const Impact: Story = {
   tags: ["visual-harness"],
-  render: () => <GardenCanvasStory />,
-  decorators: gardenDecorators("/garden/impact"),
+  args: { initialPath: "/garden/impact" },
+  decorators: gardenDecorators(),
 };
 
 export const HypercertInspector: Story = {
   tags: ["visual-harness"],
-  render: () => <GardenCanvasStory />,
-  decorators: gardenDecorators("/garden/impact/hypercerts/hypercert-rio-baseline"),
+  args: { initialPath: "/garden/impact/hypercerts/hypercert-rio-baseline" },
+  decorators: gardenDecorators(),
 };
 
 export const Settings: Story = {
   tags: ["visual-harness"],
-  render: () => <GardenCanvasStory />,
-  decorators: gardenDecorators("/garden/settings"),
+  args: { initialPath: "/garden/settings" },
+  decorators: gardenDecorators(),
 };
 
 export const CreateGardenRoute: Story = {
-  render: () => <GardenCanvasStory />,
-  decorators: gardenDecorators("/garden/create"),
+  tags: ["storybook-ci"],
+  args: { initialPath: "/garden/create" },
+  decorators: gardenDecorators({ seeds: STORYBOOK_DEPLOYER_SEEDS }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Create Garden" })).toBeVisible();
@@ -127,10 +144,21 @@ export const CreateGardenRoute: Story = {
   },
 };
 
+export const CreateGardenRouteUnauthorized: Story = {
+  tags: ["storybook-ci"],
+  args: { initialPath: "/garden/create" },
+  decorators: gardenDecorators(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByTestId("unauthorized")).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Unauthorized" })).toBeVisible();
+  },
+};
+
 export const EmptyDomains: Story = {
   tags: ["visual-harness", "storybook-ci"],
-  render: () => <GardenCanvasStory />,
-  decorators: gardenDecorators("/garden/overview", {
+  args: { initialPath: "/garden/overview" },
+  decorators: gardenDecorators({
     garden: STORYBOOK_EMPTY_DOMAIN_GARDEN,
     seeds: STORYBOOK_EMPTY_DOMAIN_SEEDS,
   }),

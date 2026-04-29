@@ -14,6 +14,7 @@ import {
   hasCompleteActionTranslationContent,
   markStaleActionTranslations,
   normalizeActionTranslations,
+  Textarea,
   type WorkInput,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiRefreshLine, RiTranslate2 } from "@remixicon/react";
@@ -154,17 +155,13 @@ function TranslationTextControl({
   return (
     <label className="flex flex-col gap-1" htmlFor={id}>
       <span className="text-label-md font-medium text-[rgb(var(--m3-on-surface))]">{label}</span>
-      <textarea
+      <Textarea
+        surface="admin"
         id={id}
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
         rows={3}
-        className={cn(
-          "min-h-24 rounded-[var(--m3-shape-xs)] border border-[rgb(var(--m3-outline))]",
-          "bg-transparent px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))]",
-          "focus:border-[rgb(var(--m3-primary))] focus:outline-none focus:ring-1",
-          "focus:ring-[rgb(var(--m3-primary))]"
-        )}
+        className="min-h-24"
       />
       <span className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
         {sourceLabel}: {source}

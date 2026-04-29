@@ -189,20 +189,6 @@ export function LabeledField({ label, required, error, helpText, children }: Lab
   );
 }
 
-/** Input class name utility — accepts a boolean error flag instead of RHF FieldError */
-export const inputClassName = (hasError?: boolean) =>
-  cn(
-    "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-16",
-    hasError && "border-error-light focus:border-error-base focus:ring-error-lighter"
-  );
-
-/** Textarea class name utility — accepts a boolean error flag instead of RHF FieldError */
-export const textareaClassName = (hasError?: boolean) =>
-  cn(
-    "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-16",
-    hasError && "border-error-light focus:border-error-base focus:ring-error-lighter"
-  );
-
 export function Section({
   title,
   description,

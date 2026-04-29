@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -8,27 +8,28 @@ import {
 import {
   withAdminIdentity,
   withCanvasFrame,
-  withRouter,
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import Community from "./index";
+import { adminCanvasRoutes } from "@/routes/views";
 
-function CommunityCanvasStory() {
-  return (
-    <Routes>
-      <Route element={<CanvasLayout />}>
-        <Route path="/community/treasury" element={<Community />} />
-        <Route path="/community/treasury/vault" element={<Community />} />
-        <Route path="/community/governance" element={<Community />} />
-        <Route path="/community/governance/strategies" element={<Community />} />
-        <Route path="/community/governance/signal-pool/:poolType" element={<Community />} />
-        <Route path="/community/payouts" element={<Community />} />
-        <Route path="/community/members" element={<Community />} />
-      </Route>
-    </Routes>
+interface CommunityCanvasStoryProps {
+  initialPath?: string;
+}
+
+function CommunityCanvasStory({ initialPath = "/community/treasury" }: CommunityCanvasStoryProps) {
+  const router = createMemoryRouter(
+    [
+      {
+        element: <CanvasLayout />,
+        children: adminCanvasRoutes,
+      },
+    ],
+    { initialEntries: [initialPath] }
   );
+
+  return <RouterProvider router={router} />;
 }
 
 const meta: Meta<typeof CommunityCanvasStory> = {
@@ -49,12 +50,11 @@ const meta: Meta<typeof CommunityCanvasStory> = {
 export default meta;
 type Story = StoryObj<typeof CommunityCanvasStory>;
 
-function communityDecorators(initialPath: string) {
+function communityDecorators() {
   return [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
-    withRouter([initialPath]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
@@ -65,8 +65,8 @@ function communityDecorators(initialPath: string) {
 
 export const Treasury: Story = {
   tags: ["storybook-ci"],
-  render: () => <CommunityCanvasStory />,
-  decorators: communityDecorators("/community/treasury"),
+  args: { initialPath: "/community/treasury" },
+  decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Community" })).toBeVisible();
@@ -76,19 +76,19 @@ export const Treasury: Story = {
 
 export const VaultInspector: Story = {
   tags: ["visual-harness"],
-  render: () => <CommunityCanvasStory />,
-  decorators: communityDecorators("/community/treasury/vault"),
+  args: { initialPath: "/community/treasury/vault" },
+  decorators: communityDecorators(),
 };
 
 export const GovernancePools: Story = {
   tags: ["visual-harness"],
-  render: () => <CommunityCanvasStory />,
-  decorators: communityDecorators("/community/governance"),
+  args: { initialPath: "/community/governance" },
+  decorators: communityDecorators(),
 };
 
 export const GovernanceStrategiesInspector: Story = {
-  render: () => <CommunityCanvasStory />,
-  decorators: communityDecorators("/community/governance/strategies"),
+  args: { initialPath: "/community/governance/strategies" },
+  decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const leftSheet = await canvas.findByTestId("left-sheet");
@@ -99,18 +99,18 @@ export const GovernanceStrategiesInspector: Story = {
 
 export const SignalPoolInspector: Story = {
   tags: ["visual-harness"],
-  render: () => <CommunityCanvasStory />,
-  decorators: communityDecorators("/community/governance/signal-pool/action"),
+  args: { initialPath: "/community/governance/signal-pool/action" },
+  decorators: communityDecorators(),
 };
 
 export const YieldPayouts: Story = {
   tags: ["visual-harness"],
-  render: () => <CommunityCanvasStory />,
-  decorators: communityDecorators("/community/payouts"),
+  args: { initialPath: "/community/payouts" },
+  decorators: communityDecorators(),
 };
 
 export const Members: Story = {
   tags: ["visual-harness"],
-  render: () => <CommunityCanvasStory />,
-  decorators: communityDecorators("/community/members"),
+  args: { initialPath: "/community/members" },
+  decorators: communityDecorators(),
 };

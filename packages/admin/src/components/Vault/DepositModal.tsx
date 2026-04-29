@@ -10,6 +10,7 @@ import {
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
+  TextInput,
   TxInlineFeedback,
   useDebouncedValue,
   useDepositForm,
@@ -223,7 +224,8 @@ export function DepositModal({
             }`}
           >
             <div className="flex items-center gap-2">
-              <input
+              <TextInput
+                surface="admin"
                 id="deposit-amount"
                 type="text"
                 inputMode="decimal"
@@ -234,11 +236,7 @@ export function DepositModal({
                 disabled={!decimalsReady || depositMutation.isPending}
                 aria-required="true"
                 aria-invalid={Boolean(amountError)}
-                className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
-                  amountError
-                    ? "border-error-base focus:border-error-base"
-                    : "border-stroke-sub bg-bg-white focus:border-primary-base"
-                }`}
+                invalid={Boolean(amountError)}
               />
               <Button
                 variant="secondary"

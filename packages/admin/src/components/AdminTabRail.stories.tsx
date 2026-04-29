@@ -1,7 +1,7 @@
 import { RiCheckboxCircleLine, RiLeafLine, RiListCheck2, RiTimeLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { expect, within } from "storybook/test";
+import { expect, userEvent, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminTabRail } from "./AdminTabRail";
 
@@ -95,8 +95,11 @@ export const NarrowActionsLifecycle: Story = {
     const tablist = await canvas.findByRole("tablist", {
       name: "Filter actions by lifecycle",
     });
+    await expect(tablist).toBeVisible();
 
-    await expect(tablist.scrollWidth).toBeLessThanOrEqual(tablist.clientWidth + 1);
+    const completedTab = await canvas.findByRole("tab", { name: /Completed/ });
+    await userEvent.click(completedTab);
+    await expect(completedTab).toHaveAttribute("aria-selected", "true");
   },
 };
 

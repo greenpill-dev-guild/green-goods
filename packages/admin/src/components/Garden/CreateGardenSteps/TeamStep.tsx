@@ -1,4 +1,10 @@
-import { Button, formatAddress, useAddressInput, useCreateGardenStore } from "@green-goods/shared";
+import {
+  Button,
+  formatAddress,
+  TextInput,
+  useAddressInput,
+  useCreateGardenStore,
+} from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 
@@ -48,7 +54,8 @@ export function TeamStep() {
           {formatMessage({ id: "app.roles.operator.plural", defaultMessage: "Garden operators" })}
         </label>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <input
+          <TextInput
+            surface="admin"
             id="create-garden-operator-address"
             value={operatorInput.input}
             onChange={(event) => operatorInput.setInput(event.target.value)}
@@ -57,8 +64,9 @@ export function TeamStep() {
               defaultMessage: "0x... or vitalik.eth",
             })}
             aria-invalid={!!operatorInput.error}
+            invalid={!!operatorInput.error}
             aria-describedby="operator-error"
-            className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
+            className="flex-1 font-mono"
           />
           <Button
             variant="secondary"
@@ -128,7 +136,8 @@ export function TeamStep() {
           {formatMessage({ id: "app.roles.gardener.plural", defaultMessage: "Gardeners" })}
         </label>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <input
+          <TextInput
+            surface="admin"
             id="create-garden-gardener-address"
             value={gardenerInput.input}
             onChange={(event) => gardenerInput.setInput(event.target.value)}
@@ -137,8 +146,9 @@ export function TeamStep() {
               defaultMessage: "0x... or vitalik.eth",
             })}
             aria-invalid={!!gardenerInput.error}
+            invalid={!!gardenerInput.error}
             aria-describedby="gardener-error"
-            className="flex-1 rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
+            className="flex-1 font-mono"
           />
           <Button
             variant="secondary"

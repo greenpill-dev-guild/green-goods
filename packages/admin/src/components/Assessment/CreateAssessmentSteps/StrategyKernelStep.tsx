@@ -1,8 +1,16 @@
-import { CynefinPhase, cn, Domain, useCreateAssessmentStore } from "@green-goods/shared";
+import {
+  CynefinPhase,
+  cn,
+  Domain,
+  NativeSelect,
+  Textarea,
+  TextInput,
+  useCreateAssessmentStore,
+} from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-import { DOMAIN_GUIDANCE, domainKey, LabeledField, Section, textareaClassName } from "./shared";
+import { DOMAIN_GUIDANCE, domainKey, LabeledField, Section } from "./shared";
 
 const CYNEFIN_SLUGS: Record<CynefinPhase, string> = {
   [CynefinPhase.CLEAR]: "clear",
@@ -326,12 +334,15 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
             defaultMessage: guidance.diagnosisHelp,
           })}
         >
-          <textarea
+          <Textarea
+            surface="admin"
             rows={4}
             disabled={isSubmitting}
             value={form.diagnosis}
             onChange={(e) => setField("diagnosis", e.target.value)}
-            className={textareaClassName(showValidation && !!fieldErrors.diagnosis)}
+            aria-invalid={showValidation && !!fieldErrors.diagnosis}
+            invalid={showValidation && !!fieldErrors.diagnosis}
+            className="mt-1"
             placeholder={formatMessage({
               id: domainKey("app.admin.assessment.strategyKernel.diagnosisPlaceholder", domainEnum),
               defaultMessage: guidance.diagnosisPlaceholder,
@@ -365,7 +376,8 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
               className="flex flex-col gap-2 rounded-lg border border-stroke-soft bg-bg-white p-3 sm:flex-row sm:items-start sm:gap-3"
             >
               <div className="flex-1 space-y-2">
-                <input
+                <TextInput
+                  surface="admin"
                   type="text"
                   placeholder={formatMessage({
                     id: "app.admin.assessment.strategyKernel.outcomePlaceholder",
@@ -374,12 +386,8 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                   disabled={isSubmitting}
                   value={outcome.description}
                   onChange={(e) => updateSmartOutcome(index, "description", e.target.value)}
-                  className={cn(
-                    "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                    showValidation &&
-                      outcomeErrors[index]?.description &&
-                      "border-error-light focus:border-error-base focus:ring-error-lighter"
-                  )}
+                  aria-invalid={showValidation && !!outcomeErrors[index]?.description}
+                  invalid={showValidation && !!outcomeErrors[index]?.description}
                 />
                 {showValidation && outcomeErrors[index]?.description && (
                   <p className="text-xs text-error-dark">{outcomeErrors[index].description}</p>
@@ -387,16 +395,13 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
               </div>
 
               <div className="w-full sm:w-48">
-                <select
+                <NativeSelect
+                  surface="admin"
                   disabled={isSubmitting}
                   value={outcome.metric}
                   onChange={(e) => updateSmartOutcome(index, "metric", e.target.value)}
-                  className={cn(
-                    "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                    showValidation &&
-                      outcomeErrors[index]?.metric &&
-                      "border-error-light focus:border-error-base focus:ring-error-lighter"
-                  )}
+                  aria-invalid={showValidation && !!outcomeErrors[index]?.metric}
+                  invalid={showValidation && !!outcomeErrors[index]?.metric}
                 >
                   <option value="">
                     {formatMessage({
@@ -409,7 +414,7 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                       {m.label} ({m.unit})
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
                 {showValidation && outcomeErrors[index]?.metric && (
                   <p className="mt-0.5 text-xs text-error-dark">{outcomeErrors[index].metric}</p>
                 )}
@@ -417,7 +422,8 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
 
               <div className="flex items-start gap-2">
                 <div className="w-24">
-                  <input
+                  <TextInput
+                    surface="admin"
                     type="number"
                     min={0}
                     step="any"
@@ -428,12 +434,8 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
                     disabled={isSubmitting}
                     value={outcome.target}
                     onChange={(e) => updateSmartOutcome(index, "target", e.target.valueAsNumber)}
-                    className={cn(
-                      "w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-                      showValidation &&
-                        outcomeErrors[index]?.target &&
-                        "border-error-light focus:border-error-base focus:ring-error-lighter"
-                    )}
+                    aria-invalid={showValidation && !!outcomeErrors[index]?.target}
+                    invalid={showValidation && !!outcomeErrors[index]?.target}
                   />
                   {showValidation && outcomeErrors[index]?.target && (
                     <p className="mt-0.5 text-xs text-error-dark">{outcomeErrors[index].target}</p>

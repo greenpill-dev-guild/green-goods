@@ -7,6 +7,8 @@ import {
   logger,
   resolveIPFSUrl,
   suggestSlug,
+  Textarea,
+  TextInput,
   toastService,
   uploadFileToIPFS,
   useCreateGardenStore,
@@ -222,7 +224,8 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
               defaultMessage: "Garden name *",
             })}
           </span>
-          <input
+          <TextInput
+            surface="admin"
             value={form.name}
             onChange={(event) => setField("name", event.target.value)}
             onBlur={() => handleFieldBlur("name")}
@@ -233,13 +236,8 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             })}
             aria-required="true"
             aria-invalid={showFieldError("name") && !!detailsErrors.name}
+            invalid={showFieldError("name") && !!detailsErrors.name}
             aria-describedby="name-error"
-            className={cn(
-              "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-              showFieldError("name") &&
-                detailsErrors.name &&
-                "border-error-base focus:border-error-base focus:ring-error-lighter"
-            )}
           />
           <div className="flex items-center justify-between min-h-[1.25rem]">
             <span id="name-error" role="alert" className="text-xs text-error-base">
@@ -263,7 +261,8 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           <span className="font-medium text-text-strong">
             {formatMessage({ id: "app.garden.create.locationLabel", defaultMessage: "Location *" })}
           </span>
-          <input
+          <TextInput
+            surface="admin"
             value={form.location}
             onChange={(event) => setField("location", event.target.value)}
             onBlur={() => handleFieldBlur("location")}
@@ -273,13 +272,8 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             })}
             aria-required="true"
             aria-invalid={showFieldError("location") && !!detailsErrors.location}
+            invalid={showFieldError("location") && !!detailsErrors.location}
             aria-describedby="location-error"
-            className={cn(
-              "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-              showFieldError("location") &&
-                detailsErrors.location &&
-                "border-error-base focus:border-error-base focus:ring-error-lighter"
-            )}
           />
           <span
             id="location-error"
@@ -300,7 +294,8 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           })}
         </span>
         <div className="relative">
-          <input
+          <TextInput
+            surface="admin"
             value={form.slug}
             onChange={(event) => {
               slugManuallyEdited.current = true;
@@ -316,18 +311,16 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             autoComplete="off"
             spellCheck={false}
             aria-required="true"
-            aria-invalid={showFieldError("slug") && !!detailsErrors.slug}
+            aria-invalid={
+              (showFieldError("slug") && !!detailsErrors.slug) ||
+              (slugValidation.valid && isSlugAvailable === false && !isCheckingSlug)
+            }
+            invalid={
+              (showFieldError("slug") && !!detailsErrors.slug) ||
+              (slugValidation.valid && isSlugAvailable === false && !isCheckingSlug)
+            }
             aria-describedby="slug-error"
-            className={cn(
-              "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 pr-10 text-sm font-mono text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-              showFieldError("slug") &&
-                detailsErrors.slug &&
-                "border-error-base focus:border-error-base focus:ring-error-lighter",
-              slugValidation.valid &&
-                isSlugAvailable === false &&
-                !isCheckingSlug &&
-                "border-error-base"
-            )}
+            className="pr-10 font-mono"
           />
           {/* Availability indicator */}
           {trimmedSlug.length > 0 && slugValidation.valid && (
@@ -376,7 +369,8 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             defaultMessage: "Description *",
           })}
         </span>
-        <textarea
+        <Textarea
+          surface="admin"
           value={form.description}
           onChange={(event) => setField("description", event.target.value)}
           onBlur={() => handleFieldBlur("description")}
@@ -387,13 +381,8 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
           rows={3}
           aria-required="true"
           aria-invalid={showFieldError("description") && !!detailsErrors.description}
+          invalid={showFieldError("description") && !!detailsErrors.description}
           aria-describedby="description-error"
-          className={cn(
-            "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24",
-            showFieldError("description") &&
-              detailsErrors.description &&
-              "border-error-base focus:border-error-base focus:ring-error-lighter"
-          )}
         />
         <span
           id="description-error"

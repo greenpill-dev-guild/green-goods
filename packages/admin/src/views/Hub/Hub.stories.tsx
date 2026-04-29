@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { createMemoryRouter, Route, RouterProvider, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -8,51 +8,22 @@ import {
 import {
   withAdminIdentity,
   withCanvasFrame,
-  withRouter,
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import CreateAssessment from "./CreateAssessment";
-import CreateHypercert from "./CreateHypercert";
-import Hub from "./index";
+import { adminCanvasRoutes } from "@/routes/views";
 
-function HubCanvasStory() {
-  return (
-    <Routes>
-      <Route element={<CanvasLayout />}>
-        <Route path="/hub/work" element={<Hub />} />
-        <Route path="/hub/work/submit" element={<Hub />} />
-        <Route path="/hub/work/:workId" element={<Hub />} />
-        <Route path="/hub/assess" element={<Hub />} />
-        <Route path="/hub/assess/create" element={<CreateAssessment />} />
-        <Route path="/hub/certify" element={<Hub />} />
-        <Route path="/hub/certify/create" element={<CreateHypercert />} />
-        <Route path="/hub/certify/:assessmentId" element={<Hub />} />
-        <Route path="/hub/history" element={<Hub />} />
-        <Route path="/hub/history/:historyEventId" element={<Hub />} />
-      </Route>
-    </Routes>
-  );
+interface HubCanvasStoryProps {
+  initialPath?: string;
 }
 
-function HubDataRouterStory({ initialPath }: { initialPath: string }) {
+function HubCanvasStory({ initialPath = "/hub/work" }: HubCanvasStoryProps) {
   const router = createMemoryRouter(
     [
       {
         element: <CanvasLayout />,
-        children: [
-          { path: "/hub/work", element: <Hub /> },
-          { path: "/hub/work/submit", element: <Hub /> },
-          { path: "/hub/work/:workId", element: <Hub /> },
-          { path: "/hub/assess", element: <Hub /> },
-          { path: "/hub/assess/create", element: <CreateAssessment /> },
-          { path: "/hub/certify", element: <Hub /> },
-          { path: "/hub/certify/create", element: <CreateHypercert /> },
-          { path: "/hub/certify/:assessmentId", element: <Hub /> },
-          { path: "/hub/history", element: <Hub /> },
-          { path: "/hub/history/:historyEventId", element: <Hub /> },
-        ],
+        children: adminCanvasRoutes,
       },
     ],
     { initialEntries: [initialPath] }
@@ -79,21 +50,7 @@ const meta: Meta<typeof HubCanvasStory> = {
 export default meta;
 type Story = StoryObj<typeof HubCanvasStory>;
 
-function hubDecorators(initialPath: string) {
-  return [
-    withAdminIdentity,
-    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
-    withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
-    withRouter([initialPath]),
-    withCanvasFrame({
-      className: "p-0",
-      heightClassName: "h-[760px]",
-      workspace: "hub",
-    }),
-  ];
-}
-
-function hubDataRouterDecorators() {
+function hubDecorators() {
   return [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
@@ -108,8 +65,8 @@ function hubDataRouterDecorators() {
 
 export const WorkQueue: Story = {
   tags: ["storybook-ci"],
-  render: () => <HubCanvasStory />,
-  decorators: hubDecorators("/hub/work?sort=newest"),
+  args: { initialPath: "/hub/work?sort=newest" },
+  decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Work" })).toBeVisible();
@@ -119,13 +76,13 @@ export const WorkQueue: Story = {
 
 export const WorkDetail: Story = {
   tags: ["visual-harness"],
-  render: () => <HubCanvasStory />,
-  decorators: hubDecorators("/hub/work/work-rio-canopy-1?sort=newest"),
+  args: { initialPath: "/hub/work/work-rio-canopy-1?sort=newest" },
+  decorators: hubDecorators(),
 };
 
 export const SubmitWorkSheet: Story = {
-  render: () => <HubCanvasStory />,
-  decorators: hubDecorators("/hub/work/submit?sort=newest"),
+  args: { initialPath: "/hub/work/submit?sort=newest" },
+  decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const leftSheet = await canvas.findByTestId("left-sheet");
@@ -136,13 +93,13 @@ export const SubmitWorkSheet: Story = {
 
 export const AssessQueue: Story = {
   tags: ["visual-harness"],
-  render: () => <HubCanvasStory />,
-  decorators: hubDecorators("/hub/assess?sort=newest"),
+  args: { initialPath: "/hub/assess?sort=newest" },
+  decorators: hubDecorators(),
 };
 
 export const CreateAssessmentRoute: Story = {
-  render: () => <HubCanvasStory />,
-  decorators: hubDecorators("/hub/assess/create?sort=newest"),
+  args: { initialPath: "/hub/assess/create?sort=newest" },
+  decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Submit assessment" })).toBeVisible();
@@ -151,13 +108,13 @@ export const CreateAssessmentRoute: Story = {
 
 export const CertificationInspector: Story = {
   tags: ["visual-harness"],
-  render: () => <HubCanvasStory />,
-  decorators: hubDecorators("/hub/certify/assessment-rio-canopy?sort=newest"),
+  args: { initialPath: "/hub/certify/assessment-rio-canopy?sort=newest" },
+  decorators: hubDecorators(),
 };
 
 export const CreateHypercertRoute: Story = {
-  render: () => <HubDataRouterStory initialPath="/hub/certify/create?sort=newest" />,
-  decorators: hubDataRouterDecorators(),
+  args: { initialPath: "/hub/certify/create?sort=newest" },
+  decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Create Hypercert" })).toBeVisible();
@@ -166,12 +123,12 @@ export const CreateHypercertRoute: Story = {
 
 export const History: Story = {
   tags: ["visual-harness"],
-  render: () => <HubCanvasStory />,
-  decorators: hubDecorators("/hub/history?sort=newest"),
+  args: { initialPath: "/hub/history?sort=newest" },
+  decorators: hubDecorators(),
 };
 
 export const HistoryDetail: Story = {
   tags: ["visual-harness"],
-  render: () => <HubCanvasStory />,
-  decorators: hubDecorators("/hub/history/assessment-assessment-rio-canopy?sort=newest"),
+  args: { initialPath: "/hub/history/assessment-assessment-rio-canopy?sort=newest" },
+  decorators: hubDecorators(),
 };

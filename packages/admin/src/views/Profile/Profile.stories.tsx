@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useRef, type ReactNode } from "react";
-import { Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -9,12 +9,11 @@ import {
 import {
   withAdminIdentity,
   withCanvasFrame,
-  withRouter,
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import ProfileView from "./index";
+import { adminCanvasRoutes } from "@/routes/views";
 
 function mobileQueryList(query: string): MediaQueryList {
   const matches = query.includes("min-width: 600px") ? false : query.includes("max-width");
@@ -49,14 +48,24 @@ function MobileProfileMedia({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function ProfileCanvasStory() {
+interface ProfileCanvasStoryProps {
+  initialPath?: string;
+}
+
+function ProfileCanvasStory({ initialPath = "/profile" }: ProfileCanvasStoryProps) {
+  const router = createMemoryRouter(
+    [
+      {
+        element: <CanvasLayout />,
+        children: adminCanvasRoutes,
+      },
+    ],
+    { initialEntries: [initialPath] }
+  );
+
   return (
     <MobileProfileMedia>
-      <Routes>
-        <Route element={<CanvasLayout />}>
-          <Route path="/profile" element={<ProfileView />} />
-        </Route>
-      </Routes>
+      <RouterProvider router={router} />
     </MobileProfileMedia>
   );
 }
@@ -80,12 +89,11 @@ const meta: Meta<typeof ProfileCanvasStory> = {
 export default meta;
 type Story = StoryObj<typeof ProfileCanvasStory>;
 
-function profileDecorators(initialPath: string) {
+function profileDecorators() {
   return [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
-    withRouter([initialPath]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
@@ -95,8 +103,8 @@ function profileDecorators(initialPath: string) {
 }
 
 export const ProfileRoute: Story = {
-  render: () => <ProfileCanvasStory />,
-  decorators: profileDecorators("/profile"),
+  args: { initialPath: "/profile" },
+  decorators: profileDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Account" })).toBeVisible();
@@ -108,8 +116,8 @@ export const ProfileRoute: Story = {
 };
 
 export const SettingsRoute: Story = {
-  render: () => <ProfileCanvasStory />,
-  decorators: profileDecorators("/profile?tab=settings"),
+  args: { initialPath: "/profile?tab=settings" },
+  decorators: profileDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Account" })).toBeVisible();

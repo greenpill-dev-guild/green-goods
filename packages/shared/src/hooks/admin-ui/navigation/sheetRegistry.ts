@@ -222,7 +222,8 @@ function getRouteSheetRegistryEntry(contentId: string | null): {
 }
 
 function getLastPathSegment(pathname: string) {
-  const segment = pathname.split("/").filter(Boolean).at(-1) ?? "";
+  const segments = pathname.split("/").filter(Boolean);
+  const segment = segments[segments.length - 1] ?? "";
   try {
     return decodeURIComponent(segment);
   } catch {

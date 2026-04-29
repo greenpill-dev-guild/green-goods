@@ -7,6 +7,7 @@ import {
   logger,
   MethodSelector,
   parseContractError,
+  Textarea,
   toastService,
   USER_FRIENDLY_ERRORS,
   uploadFileToIPFS,
@@ -301,14 +302,14 @@ export function ReviewForm({
                     name="feedback"
                     control={control}
                     render={({ field }) => (
-                      <textarea
+                      <Textarea
+                        surface="admin"
                         {...field}
                         id="feedback"
                         rows={3}
                         placeholder={formatMessage({
                           id: "app.work.detail.feedbackPlaceholder",
                         })}
-                        className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
                       />
                     )}
                   />

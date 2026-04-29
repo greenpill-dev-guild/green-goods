@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -8,24 +8,28 @@ import {
 import {
   withAdminIdentity,
   withCanvasFrame,
-  withRouter,
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import Actions from "./index";
+import { adminCanvasRoutes } from "@/routes/views";
 
-function ActionsCanvasStory() {
-  return (
-    <Routes>
-      <Route element={<CanvasLayout />}>
-        <Route path="/actions" element={<Actions />} />
-        <Route path="/actions/create" element={<Actions />} />
-        <Route path="/actions/:id" element={<Actions />} />
-        <Route path="/actions/:id/edit" element={<Actions />} />
-      </Route>
-    </Routes>
+interface ActionsCanvasStoryProps {
+  initialPath?: string;
+}
+
+function ActionsCanvasStory({ initialPath = "/actions" }: ActionsCanvasStoryProps) {
+  const router = createMemoryRouter(
+    [
+      {
+        element: <CanvasLayout />,
+        children: adminCanvasRoutes,
+      },
+    ],
+    { initialEntries: [initialPath] }
   );
+
+  return <RouterProvider router={router} />;
 }
 
 const meta: Meta<typeof ActionsCanvasStory> = {
@@ -46,12 +50,11 @@ const meta: Meta<typeof ActionsCanvasStory> = {
 export default meta;
 type Story = StoryObj<typeof ActionsCanvasStory>;
 
-function actionsDecorators(initialPath: string) {
+function actionsDecorators() {
   return [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
     withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
-    withRouter([initialPath]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
@@ -62,14 +65,14 @@ function actionsDecorators(initialPath: string) {
 
 export const Registry: Story = {
   tags: ["visual-harness"],
-  render: () => <ActionsCanvasStory />,
-  decorators: actionsDecorators("/actions?sort=recent&lifecycle=active"),
+  args: { initialPath: "/actions?sort=recent&lifecycle=active" },
+  decorators: actionsDecorators(),
 };
 
 export const DetailInspector: Story = {
   tags: ["storybook-ci"],
-  render: () => <ActionsCanvasStory />,
-  decorators: actionsDecorators("/actions/action-canopy-baseline?sort=recent"),
+  args: { initialPath: "/actions/action-canopy-baseline?sort=recent" },
+  decorators: actionsDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Actions" })).toBeVisible();
@@ -81,12 +84,12 @@ export const DetailInspector: Story = {
 
 export const CreateInspector: Story = {
   tags: ["visual-harness"],
-  render: () => <ActionsCanvasStory />,
-  decorators: actionsDecorators("/actions/create?sort=recent"),
+  args: { initialPath: "/actions/create?sort=recent" },
+  decorators: actionsDecorators(),
 };
 
 export const EditInspector: Story = {
   tags: ["visual-harness"],
-  render: () => <ActionsCanvasStory />,
-  decorators: actionsDecorators("/actions/action-canopy-baseline/edit?sort=recent"),
+  args: { initialPath: "/actions/action-canopy-baseline/edit?sort=recent" },
+  decorators: actionsDecorators(),
 };

@@ -5,7 +5,6 @@ import {
   adminRoutes,
   Button,
   Card,
-  cn,
   DEFAULT_CHAIN_ID,
   type Domain,
   expandDomainMask,
@@ -14,10 +13,12 @@ import {
   findActionByUID,
   getActionTitle,
   logger,
+  NativeSelect,
   parseActionUID,
   parseAndFormatError,
   queryKeys,
   submitWorkDirectly,
+  Textarea,
   toastService,
   useAdminGardenWorkspaceSelection,
   useActions,
@@ -41,11 +42,6 @@ import {
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-
-const INPUT_CLASS =
-  "w-full rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-sm text-text-strong shadow-sm focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-24";
-
-const INPUT_ERROR_CLASS = "border-error-base focus:border-error-base focus:ring-error-lighter";
 
 function parseHubContext(search: string) {
   const params = new URLSearchParams(search);
@@ -123,11 +119,14 @@ function DynamicWorkFields({
                 required={input.required}
                 error={error}
               >
-                <textarea
+                <Textarea
+                  surface="admin"
                   id={input.key}
                   rows={3}
                   placeholder={input.placeholder}
-                  className={cn(INPUT_CLASS, "resize-y", error && INPUT_ERROR_CLASS)}
+                  aria-invalid={!!error}
+                  invalid={!!error}
+                  className="resize-y"
                   {...register(input.key)}
                 />
               </FormField>
@@ -144,9 +143,11 @@ function DynamicWorkFields({
                 required={input.required}
                 error={error}
               >
-                <select
+                <NativeSelect
+                  surface="admin"
                   id={input.key}
-                  className={cn(INPUT_CLASS, error && INPUT_ERROR_CLASS)}
+                  aria-invalid={!!error}
+                  invalid={!!error}
                   {...register(input.key)}
                 >
                   <option value="">
@@ -158,7 +159,7 @@ function DynamicWorkFields({
                       {option}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </FormField>
             );
           }
@@ -399,11 +400,11 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
                 {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
               </Alert>
             ) : (
-              <select
+              <NativeSelect
+                surface="admin"
                 id="action-select"
                 value={selectedActionId}
                 onChange={(event) => handleActionChange(event.target.value)}
-                className={INPUT_CLASS}
               >
                 <option value="">
                   {formatMessage({ id: "app.admin.work.submit.selectActionPlaceholder" })}
@@ -413,7 +414,7 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
                     {action.title}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             )}
           </FormField>
 
@@ -445,11 +446,14 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
                 htmlFor="feedback"
                 error={errors.feedback?.message}
               >
-                <textarea
+                <Textarea
+                  surface="admin"
                   id="feedback"
                   rows={3}
                   placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
-                  className={cn(INPUT_CLASS, "resize-y", errors.feedback && INPUT_ERROR_CLASS)}
+                  aria-invalid={!!errors.feedback}
+                  invalid={!!errors.feedback}
+                  className="resize-y"
                   {...register("feedback")}
                 />
               </FormField>

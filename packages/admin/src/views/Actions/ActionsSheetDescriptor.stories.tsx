@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DEFAULT_CHAIN_ID, queryKeys, type Action } from "@green-goods/shared";
-import { Route, Routes } from "react-router-dom";
+import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_ACTIONS,
@@ -9,29 +9,34 @@ import {
 import {
   withAdminIdentity,
   withCanvasFrame,
-  withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { ActionsSheetDescriptor } from "./ActionsSheetDescriptor";
-import Actions from "./index";
+import { adminCanvasRoutes } from "@/routes/views";
 
-function RouteBackedActionsInspectorStory() {
-  return (
-    <Routes>
-      <Route element={<CanvasLayout />}>
-        <Route path="/actions" element={<Actions />} />
-        <Route path="/actions/create" element={<Actions />} />
-        <Route path="/actions/:id" element={<Actions />} />
-        <Route path="/actions/:id/edit" element={<Actions />} />
-      </Route>
-    </Routes>
-  );
+interface RouteBackedActionsInspectorStoryProps {
+  initialPath?: string;
 }
 
-const meta: Meta<typeof ActionsSheetDescriptor> = {
+function RouteBackedActionsInspectorStory({
+  initialPath = "/actions",
+}: RouteBackedActionsInspectorStoryProps) {
+  const router = createMemoryRouter(
+    [
+      {
+        element: <CanvasLayout />,
+        children: adminCanvasRoutes,
+      },
+    ],
+    { initialEntries: [initialPath] }
+  );
+
+  return <RouterProvider router={router} />;
+}
+
+const meta: Meta<typeof RouteBackedActionsInspectorStory> = {
   title: "Admin/Workspaces/ActionsSheetDescriptor",
-  component: ActionsSheetDescriptor,
+  component: RouteBackedActionsInspectorStory,
   tags: ["autodocs"],
   parameters: {
     layout: "fullscreen",
@@ -45,7 +50,7 @@ const meta: Meta<typeof ActionsSheetDescriptor> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof meta>;
+type Story = StoryObj<typeof RouteBackedActionsInspectorStory>;
 
 const STORYBOOK_DESCRIPTOR_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((action) => ({
   ...action,
@@ -57,11 +62,10 @@ const STORYBOOK_DESCRIPTOR_SEEDS = [
   [queryKeys.actions.byChain(DEFAULT_CHAIN_ID), STORYBOOK_DESCRIPTOR_ACTIONS],
 ] as const;
 
-function actionsDescriptorDecorators(initialPath: string) {
+function actionsDescriptorDecorators() {
   return [
     withAdminIdentity,
     withSeededQueryClient(STORYBOOK_DESCRIPTOR_SEEDS),
-    withRouter([initialPath]),
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
@@ -72,8 +76,8 @@ function actionsDescriptorDecorators(initialPath: string) {
 
 export const RouteBackedDetail: Story = {
   tags: ["storybook-ci"],
-  render: () => <RouteBackedActionsInspectorStory />,
-  decorators: actionsDescriptorDecorators("/actions/action-canopy-baseline?sort=recent"),
+  args: { initialPath: "/actions/action-canopy-baseline?sort=recent" },
+  decorators: actionsDescriptorDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const leftSheet = await canvas.findByTestId("left-sheet");
@@ -83,19 +87,21 @@ export const RouteBackedDetail: Story = {
 };
 
 export const RouteBackedCreate: Story = {
-  render: () => <RouteBackedActionsInspectorStory />,
-  decorators: actionsDescriptorDecorators("/actions/create?sort=recent"),
+  args: { initialPath: "/actions/create?sort=recent" },
+  decorators: actionsDescriptorDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const leftSheet = await canvas.findByTestId("left-sheet");
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(await within(leftSheet).findByText("Create action")).toBeVisible();
+    await expect(
+      await within(leftSheet).findByRole("heading", { name: "Create action" })
+    ).toBeVisible();
   },
 };
 
 export const RouteBackedEdit: Story = {
-  render: () => <RouteBackedActionsInspectorStory />,
-  decorators: actionsDescriptorDecorators("/actions/action-canopy-baseline/edit?sort=recent"),
+  args: { initialPath: "/actions/action-canopy-baseline/edit?sort=recent" },
+  decorators: actionsDescriptorDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const leftSheet = await canvas.findByTestId("left-sheet");

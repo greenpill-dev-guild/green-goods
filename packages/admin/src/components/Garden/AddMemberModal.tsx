@@ -8,6 +8,7 @@ import {
   logger,
   parseContractError,
   resolveEnsAddress,
+  TextInput,
   USER_FRIENDLY_ERRORS,
   useEnsAddress,
 } from "@green-goods/shared";
@@ -127,7 +128,8 @@ export function AddMemberModal({
           error={error || undefined}
         >
           <div className="relative">
-            <input
+            <TextInput
+              surface="admin"
               id="member-address"
               type="text"
               value={address}
@@ -135,7 +137,7 @@ export function AddMemberModal({
                 setAddress(e.target.value);
                 setError("");
               }}
-              className="w-full px-3 py-2 pr-10 border border-stroke-sub bg-bg-white text-text-strong rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-base focus:border-primary-base"
+              className="pr-10"
               placeholder={formatMessage({
                 id: "admin.addMember.placeholder",
                 defaultMessage: "0x... or name.eth",
@@ -143,6 +145,7 @@ export function AddMemberModal({
               disabled={isLoading}
               aria-required="true"
               aria-invalid={!!error}
+              invalid={!!error}
             />
             <button
               type="button"
