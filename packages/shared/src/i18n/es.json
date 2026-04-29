@@ -2657,6 +2657,8 @@
   "public.impact.totalContributors": "Total de Colaboradores",
   "public.impact.totalGardeners": "Total de Jardineros",
   "public.impact.totalGardens": "Total de Jardines",
+  "public.install.copyToast.message": "Abre el enlace en tu navegador recomendado para instalar.",
+  "public.install.copyToast.title": "Enlace copiado",
   "public.nav.actions": "Acciones",
   "public.nav.closeMenu": "Cerrar menú",
   "public.nav.connectWallet": "Conectar Billetera",
