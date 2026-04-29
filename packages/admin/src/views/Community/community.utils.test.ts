@@ -1,4 +1,8 @@
-import { buildCommunityFabConfig } from "@green-goods/shared";
+import {
+  buildCommunityFabConfig,
+  communitySectionForMode,
+  resolveCommunityMode,
+} from "@green-goods/shared";
 import { describe, expect, it, vi } from "vitest";
 
 describe("buildCommunityFabConfig", () => {
@@ -13,5 +17,10 @@ describe("buildCommunityFabConfig", () => {
 
     expect(navigate).toHaveBeenNthCalledWith(1, "/community/members?gardenAddress=0xAAA");
     expect(navigate).toHaveBeenNthCalledWith(2, "/community/treasury/vault?gardenAddress=0xAAA");
+  });
+
+  it("treats /community/cookies as a protocol-level cookie jar workspace", () => {
+    expect(resolveCommunityMode("/community/cookies")).toBe("cookies");
+    expect(communitySectionForMode("cookies")).toBe("cookie-jars");
   });
 });

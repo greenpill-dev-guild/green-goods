@@ -65,6 +65,13 @@ export type {
 // Cookie Jar Types
 // ============================================
 export type {
+  CampaignCookieJar,
+  CampaignCookieJarMetadata,
+  CampaignCookieJarOperatorAggregation,
+  CampaignCookieJarOperatorPolicy,
+  CampaignCookieJarOperatorSource,
+  CookieJarAccessType,
+  CookieJarWithdrawalType,
   CookieJar,
   CookieJarAdminParams,
   CookieJarDepositParams,
@@ -72,6 +79,8 @@ export type {
   CookieJarUpdateIntervalParams,
   CookieJarUpdateMaxWithdrawalParams,
   CookieJarWithdrawParams,
+  CreateCampaignCookieJarParams,
+  SyncCampaignCookieJarAllowlistParams,
 } from "./cookie-jar";
 // ============================================
 // Garden Detail Types

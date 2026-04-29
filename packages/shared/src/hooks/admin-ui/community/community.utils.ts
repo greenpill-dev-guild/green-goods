@@ -1,9 +1,10 @@
 import { adminRoutes, type AdminCommunityRouteContext, type FabConfig } from "@green-goods/shared";
 import { RiAddLine, RiMoneyDollarCircleLine, RiUserLine } from "@remixicon/react";
 
-export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";
+export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members" | "cookies";
 
 export function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
+  if (pathname.startsWith("/community/cookies")) return "cookies";
   if (pathname.startsWith("/community/governance")) return "governance";
   if (pathname.startsWith("/community/payouts")) return "payouts";
   if (pathname.startsWith("/community/members")) return "members";
@@ -13,6 +14,7 @@ export function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
 export function communitySectionForMode(mode: CommunityWorkspaceMode) {
   if (mode === "governance") return "governance";
   if (mode === "payouts") return "cookie-jars";
+  if (mode === "cookies") return "cookie-jars";
   return mode;
 }
 

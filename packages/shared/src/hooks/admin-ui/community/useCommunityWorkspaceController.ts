@@ -31,6 +31,8 @@ export function useCommunityWorkspaceController() {
   const navigate = useNavigate();
   const location = useLocation();
   const { poolType } = useParams<{ poolType?: string }>();
+  const mode = resolveCommunityMode(location.pathname);
+  const isCampaignCookiesMode = mode === "cookies";
   const hasShownAllGardensToastRef = useRef(false);
   const handleAutoSelectGarden = useCallback(
     (garden: { name: string }) => {
@@ -54,8 +56,8 @@ export function useCommunityWorkspaceController() {
     [formatMessage]
   );
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection({
-    autoSelectFirstGarden: true,
-    onAutoSelectGarden: handleAutoSelectGarden,
+    autoSelectFirstGarden: !isCampaignCookiesMode,
+    onAutoSelectGarden: isCampaignCookiesMode ? undefined : handleAutoSelectGarden,
   });
   const { searchParams } = useCanvasSearchParams();
   const { containerRef } = useSheetWidth();
@@ -66,7 +68,6 @@ export function useCommunityWorkspaceController() {
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [memberSearch, setMemberSearchState] = useState("");
 
-  const mode = resolveCommunityMode(location.pathname);
   const isVaultRoute = location.pathname.startsWith("/community/treasury/vault");
   const isStrategiesRoute = location.pathname.startsWith("/community/governance/strategies");
   const isSignalPoolRoute = location.pathname.startsWith("/community/governance/signal-pool/");
@@ -185,7 +186,9 @@ export function useCommunityWorkspaceController() {
             ? adminRoutes.communityPayouts({ gardenAddress: selectedGardenAddress })
             : nextMode === "members"
               ? adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })
-              : adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })
+              : nextMode === "cookies"
+                ? adminRoutes.communityCookies()
+                : adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })
       ),
     [navigate, selectedGardenAddress]
   );
@@ -229,6 +232,7 @@ export function useCommunityWorkspaceController() {
     handleSelectGarden,
     hypercerts,
     isCreatingPools,
+    isCampaignCookiesMode,
     isOwner,
     isSignalPoolRoute,
     isStrategiesRoute,

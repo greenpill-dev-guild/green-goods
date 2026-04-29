@@ -14,6 +14,16 @@ export const ERC20_DECIMALS_ABI = [
   },
 ] as const;
 
+export const ERC20_SYMBOL_ABI = [
+  {
+    name: "symbol",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+] as const;
+
 export const ERC20_ALLOWANCE_ABI = [
   {
     type: "function",

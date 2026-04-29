@@ -39,6 +39,8 @@ export const cookieJarKeys = {
     ["greengoods", "cookieJar", "garden", gardenAddress, chainId] as const,
   jarDetail: (jarAddress: string, chainId: number) =>
     ["greengoods", "cookieJar", "detail", jarAddress, chainId] as const,
+  campaign: (jarAddress: string, userAddress: string | undefined, chainId: number) =>
+    ["greengoods", "cookieJar", "campaign", jarAddress, userAddress, chainId] as const,
   userHistory: (jarAddress: string, userAddress: string, chainId: number) =>
     ["greengoods", "cookieJar", "history", jarAddress, userAddress, chainId] as const,
 } as const;

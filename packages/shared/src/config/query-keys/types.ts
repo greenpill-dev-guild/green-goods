@@ -53,6 +53,7 @@ export type QueryKey =
   | typeof queryKeys.cookieJar.all
   | ReturnType<typeof queryKeys.cookieJar.byGarden>
   | ReturnType<typeof queryKeys.cookieJar.jarDetail>
+  | ReturnType<typeof queryKeys.cookieJar.campaign>
   | ReturnType<typeof queryKeys.cookieJar.userHistory>
   | typeof queryKeys.yield.all
   | ReturnType<typeof queryKeys.yield.allocationsBase>

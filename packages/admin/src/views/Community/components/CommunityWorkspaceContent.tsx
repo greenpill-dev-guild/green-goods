@@ -13,6 +13,7 @@ import {
   CanvasWorkspaceLoadingState,
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
+import { CampaignCookieJarPanel } from "./CampaignCookieJarPanel";
 import { CommunityTab } from "./CommunityTab";
 
 interface CommunityWorkspaceContentProps {
@@ -21,6 +22,18 @@ interface CommunityWorkspaceContentProps {
 
 export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceContentProps) {
   const { formatMessage } = useIntl();
+
+  if (workspace.isCampaignCookiesMode) {
+    return (
+      <div className="mt-4 px-4 sm:px-6">
+        <div className="mx-auto w-full max-w-[1400px]">
+          <Surface elevation="solid-raised" padding="none" className="overflow-hidden">
+            <CampaignCookieJarPanel />
+          </Surface>
+        </div>
+      </div>
+    );
+  }
 
   if (!workspace.selectedGarden) {
     return (

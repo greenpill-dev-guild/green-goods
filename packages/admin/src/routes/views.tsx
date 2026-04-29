@@ -222,6 +222,10 @@ export const adminCanvasRoutes: RouteObject[] = [
         path: "members",
         lazy: communityView,
       },
+      {
+        path: "cookies",
+        lazy: communityView,
+      },
     ],
   },
   {

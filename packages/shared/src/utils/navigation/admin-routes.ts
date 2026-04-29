@@ -6,7 +6,7 @@ export type AdminSignalPoolType = "hypercert" | "action";
 export type AdminHubMode = "work" | "assess" | "certify" | "history";
 export type AdminHubView = AdminHubMode;
 export type AdminGardenMode = "overview" | "impact" | "settings";
-export type AdminCommunityMode = "treasury" | "governance" | "payouts" | "members";
+export type AdminCommunityMode = "treasury" | "governance" | "payouts" | "members" | "cookies";
 export type AdminHubSort = "newest" | "oldest";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
@@ -177,6 +177,9 @@ export const adminRoutes = {
   },
   communityMembers(context?: AdminCommunityRouteContext) {
     return this.communityMode("members", context);
+  },
+  communityCookies(context?: AdminCommunityRouteContext) {
+    return this.communityMode("cookies", context);
   },
   communityTreasuryVault(context?: AdminCommunityRouteContext) {
     return buildAdminHref("/community/treasury/vault", buildCommunityContextSearch(context));

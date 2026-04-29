@@ -38,14 +38,17 @@ export const GreenWillABI = GreenWillABIJson as Abi;
 // Re-export ERC20_ALLOWANCE_ABI from abis barrel for backward compatibility
 export { ERC20_ALLOWANCE_ABI } from "./abis";
 
+type DeploymentJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | DeploymentJsonValue[]
+  | { [key: string]: DeploymentJsonValue };
+
 /** Shape of deployment JSON files ({chainId}-latest.json) */
 interface DeploymentConfig {
-  [key: string]:
-    | string
-    | number
-    | { address: string; [k: string]: string | number }
-    | Record<string, string>
-    | undefined;
+  [key: string]: DeploymentJsonValue | undefined;
 }
 
 /** Shape of networks.json — each network has contracts, rpc config, etc. */

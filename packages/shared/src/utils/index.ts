@@ -45,6 +45,14 @@ export {
   gardenHasMember,
   resolveGardenMemberKey,
 } from "./app/garden";
+export {
+  aggregateCampaignCookieJarOperators,
+  buildCampaignCookieJarMetadata,
+  diffCampaignCookieJarAllowlist,
+  normalizeCampaignAddress,
+  parseCampaignAddressList,
+  parseCampaignCookieJarMetadata,
+} from "./cookie-jar-campaign";
 export type {
   AdminCommunityRouteContext,
   AdminGardenRouteContext,
@@ -111,7 +119,17 @@ export {
   withWakeLock,
 } from "./app/wake-lock";
 export { AAVE_V3_POOL_ABI, formatApy, RAY, rayToApy } from "./blockchain/aave";
-export { GARDEN_ACCOUNT_ROLE_ABI, OCTANT_MODULE_ABI, OCTANT_VAULT_ABI } from "./blockchain/abis";
+export {
+  COOKIE_JAR_ABI,
+  COOKIE_JAR_FACTORY_ABI,
+  COOKIE_JAR_MODULE_ABI,
+  ERC20_ALLOWANCE_ABI,
+  ERC20_DECIMALS_ABI,
+  ERC20_SYMBOL_ABI,
+  GARDEN_ACCOUNT_ROLE_ABI,
+  OCTANT_MODULE_ABI,
+  OCTANT_VAULT_ABI,
+} from "./blockchain/abis";
 // ============================================================================
 // ADDRESS
 // ============================================================================

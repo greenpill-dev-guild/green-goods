@@ -11,6 +11,7 @@ export const CLIENT_ROUTE_IDS = {
   publicHome: "public-home",
   publicLanding: "public-landing",
   publicGardens: "public-gardens",
+  publicCookies: "public-cookies",
   publicFund: "public-fund",
   publicImpact: "public-impact",
   publicActions: "public-actions",
@@ -61,6 +62,13 @@ export const appRoutes = [
             path: "gardens/:id",
             lazy: async () => ({
               Component: (await import("@/views/Public/GardenDetail")).default,
+            }),
+          },
+          {
+            id: CLIENT_ROUTE_IDS.publicCookies,
+            path: "cookies",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/Cookies")).default,
             }),
           },
           {

@@ -20,6 +20,6 @@ export { OCTANT_MODULE_ABI, OCTANT_VAULT_ABI, STRATEGY_ABI } from "./octant";
 
 export { YIELD_SPLITTER_ABI, JUICEBOX_ABI } from "./yield";
 
-export { COOKIE_JAR_ABI, COOKIE_JAR_MODULE_ABI } from "./cookie-jar";
+export { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI, COOKIE_JAR_MODULE_ABI } from "./cookie-jar";
 
-export { ERC20_DECIMALS_ABI, ERC20_ALLOWANCE_ABI } from "./erc20";
+export { ERC20_ALLOWANCE_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI } from "./erc20";

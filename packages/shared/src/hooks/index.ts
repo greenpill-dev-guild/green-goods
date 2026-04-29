@@ -158,7 +158,16 @@ export {
   useCookieJarUpdateMaxWithdrawal,
 } from "./cookie-jar/useCookieJarAdmin";
 export { useAccessibleCookieJars } from "./cookie-jar/useAccessibleCookieJars";
+export {
+  useCampaignCookieJar,
+  useCampaignCookieJarDeposit,
+  useCampaignCookieJarWithdraw,
+  useCreateCampaignCookieJar,
+  useSyncCampaignCookieJarAllowlist,
+  useUpdateCampaignCookieJarMetadata,
+} from "./cookie-jar/useCampaignCookieJar";
 export { useCookieJarDeposit } from "./cookie-jar/useCookieJarDeposit";
+export { useCookieJarFactoryAddress } from "./cookie-jar/useCookieJarFactoryAddress";
 export { useCookieJarWithdraw } from "./cookie-jar/useCookieJarWithdraw";
 // ============================================================================
 // COOKIE JAR
