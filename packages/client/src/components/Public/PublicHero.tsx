@@ -1,4 +1,4 @@
-import { useApp, useInstallGuidance } from "@green-goods/shared";
+import { useApp, useInstallGuidance, usePublicInstallHandler } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { publicCuration } from "@/content/publicCuration";
@@ -12,7 +12,7 @@ import { publicCuration } from "@/content/publicCuration";
  */
 export function PublicHero() {
   const { formatMessage } = useIntl();
-  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt } = useApp();
+  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
   const guidance = useInstallGuidance(
     platform,
     isInstalled,
@@ -20,6 +20,7 @@ export function PublicHero() {
     deferredPrompt,
     isMobile
   );
+  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
 
   const installLabelId = isInstalled ? "public.nav.openApp" : "public.nav.installApp";
   const installDefault = isInstalled ? "Open App" : "Install App";
@@ -77,6 +78,7 @@ export function PublicHero() {
             </Link>
             <a
               href="#install"
+              onClick={handleInstallClick}
               data-install-action={guidance.primaryAction.type}
               className="rounded-full border border-static-white/30 bg-static-white/10 px-6 py-3 text-sm font-semibold text-static-white backdrop-blur-sm transition-colors hover:bg-static-white/20"
             >

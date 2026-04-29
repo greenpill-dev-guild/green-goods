@@ -1100,6 +1100,13 @@
  * Exposes CSS variables to Tailwind for utility class generation
  * ============================================================================ */
 @theme {
+  /* Editorial serif for the public-browser dialect.
+   * Loaded via packages/client/index.html. Tailwind's `font-serif` utility
+   * resolves to this stack. Body / nav / UI continues to use --font-sans
+   * (Inter via :root font-family). To trial an alternative serif, see the
+   * options table in packages/client/DESIGN.browser.md → Typography. */
+  --font-serif: "Fraunces", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
   /* Theme base colors - use semantic tokens for dark mode support.
    * `--color-primary` is an internal token name that maps to the **tertiary role**
    * in the Warm Earth role hierarchy (accent green, 1-3% screen volume). See

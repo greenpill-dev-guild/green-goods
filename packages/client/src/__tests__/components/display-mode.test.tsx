@@ -42,6 +42,7 @@ vi.mock("@green-goods/shared", () => ({
     browserSwitchReason: null,
     openInBrowserUrl: null,
   }),
+  usePublicInstallHandler: () => vi.fn(),
 }));
 
 import { AppBar } from "../../components/Layout/AppBar";

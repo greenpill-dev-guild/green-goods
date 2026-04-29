@@ -504,6 +504,7 @@ export {
   usePendingYield,
   usePlatformStats,
   usePrimaryAddress,
+  usePublicInstallHandler,
   useProgressiveInvalidation,
   useSafeMutation,
   useProtocolMemberStatus,

@@ -1,4 +1,4 @@
-import { logger } from "@green-goods/shared";
+import { logger, useApp, useInstallGuidance, usePublicInstallHandler } from "@green-goods/shared";
 import type {
   PublicFundingReceipt as PublicFundingReceiptShape,
   ReadFundingIntentReceiptResponse,
@@ -124,6 +124,26 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
 
   const { receipt } = state;
   const showAppCta = receipt.appManagementCta !== undefined && receipt.appManagementCta !== null;
+  return <ReceiptBody receipt={receipt} showAppCta={showAppCta} />;
+}
+
+function ReceiptBody({
+  receipt,
+  showAppCta,
+}: {
+  receipt: PublicFundingReceiptShape;
+  showAppCta: boolean;
+}) {
+  const { formatMessage } = useIntl();
+  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
+  const guidance = useInstallGuidance(
+    platform,
+    isInstalled,
+    wasInstalled,
+    deferredPrompt,
+    isMobile
+  );
+  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
 
   return (
     <section
@@ -218,7 +238,9 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
         <div className="mt-6 flex flex-wrap gap-3">
           <a
             href="#install"
+            onClick={handleInstallClick}
             data-app-cta={receipt.appManagementCta}
+            data-install-action={guidance.primaryAction.type}
             className="rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
           >
             {formatMessage({

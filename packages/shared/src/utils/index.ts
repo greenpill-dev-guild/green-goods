@@ -94,6 +94,8 @@ export {
   isMobilePlatform,
   isStandaloneMode,
 } from "./app/pwa";
+export type { InstallActionContext } from "./app/installAction";
+export { dispatchInstallAction } from "./app/installAction";
 export { recursiveCloneChildren } from "./app/recursive-clone-children";
 export { getTag } from "./app/tags";
 export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";

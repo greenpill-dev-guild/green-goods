@@ -39,6 +39,7 @@ export type {
   ManualInstallStep,
 } from "./app/useInstallGuidance";
 export { useInstallGuidance } from "./app/useInstallGuidance";
+export { usePublicInstallHandler } from "./app/usePublicInstallHandler";
 export type {
   UseLoadingWithMinDurationOptions,
   UseLoadingWithMinDurationResult,

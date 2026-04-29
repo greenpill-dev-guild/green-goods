@@ -1,6 +1,12 @@
-import { APP_NAME, cn, useApp, useInstallGuidance } from "@green-goods/shared";
+import {
+  APP_NAME,
+  cn,
+  useApp,
+  useInstallGuidance,
+  usePublicInstallHandler,
+} from "@green-goods/shared";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
 
@@ -26,7 +32,7 @@ export const SiteHeader = () => {
   const intl = useIntl();
   const { pathname } = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt } = useApp();
+  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
   const guidance = useInstallGuidance(
     platform,
     isInstalled,
@@ -37,6 +43,11 @@ export const SiteHeader = () => {
 
   const installLabelId = isInstalled ? "public.nav.openApp" : "public.nav.installApp";
   const installDefault = isInstalled ? "Open App" : "Install App";
+
+  const closeDrawer = useCallback(() => setIsDrawerOpen(false), []);
+  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall, {
+    onBeforeDispatch: closeDrawer,
+  });
 
   // Close drawer on route change.
   useEffect(() => {
@@ -101,6 +112,7 @@ export const SiteHeader = () => {
           <div className="flex items-center gap-3">
             <a
               href="#install"
+              onClick={handleInstallClick}
               data-install-action={guidance.primaryAction.type}
               className="hidden rounded-lg bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover md:block"
             >
@@ -194,7 +206,7 @@ export const SiteHeader = () => {
               <a
                 href="#install"
                 data-install-action={guidance.primaryAction.type}
-                onClick={() => setIsDrawerOpen(false)}
+                onClick={handleInstallClick}
                 className="block w-full rounded-lg bg-primary-action px-4 py-3 text-center text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
               >
                 {intl.formatMessage({ id: installLabelId, defaultMessage: installDefault })}

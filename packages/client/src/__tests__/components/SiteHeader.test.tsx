@@ -16,16 +16,20 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockUseApp, mockUseInstallGuidance } = vi.hoisted(() => ({
-  mockUseApp: vi.fn(),
-  mockUseInstallGuidance: vi.fn(),
-}));
+const { mockUseApp, mockUseInstallGuidance, mockUsePublicInstallHandler, mockInstallHandler } =
+  vi.hoisted(() => ({
+    mockUseApp: vi.fn(),
+    mockUseInstallGuidance: vi.fn(),
+    mockUsePublicInstallHandler: vi.fn(),
+    mockInstallHandler: vi.fn(),
+  }));
 
 vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
   useApp: mockUseApp,
   useInstallGuidance: mockUseInstallGuidance,
+  usePublicInstallHandler: mockUsePublicInstallHandler,
 }));
 
 import { SiteHeader } from "../../components/Navigation/SiteHeader";
@@ -60,6 +64,7 @@ describe("SiteHeader", () => {
       wasInstalled: false,
       platform: "unknown",
       deferredPrompt: null,
+      promptInstall: vi.fn(),
     });
     mockUseInstallGuidance.mockReturnValue({
       scenario: "desktop",
@@ -71,6 +76,7 @@ describe("SiteHeader", () => {
       browserSwitchReason: null,
       openInBrowserUrl: null,
     });
+    mockUsePublicInstallHandler.mockReturnValue(mockInstallHandler);
   });
 
   afterEach(() => {
@@ -123,6 +129,16 @@ describe("SiteHeader", () => {
     });
     renderHeader();
     expect(screen.getAllByText("Open App").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("install CTAs wire to the public install handler (no dead-end href=#install)", () => {
+    renderHeader();
+    const desktopCta = screen.getAllByText("Install App")[0];
+    expect(desktopCta.closest("a")?.getAttribute("data-install-action")).toBe(
+      "continue-in-browser"
+    );
+    fireEvent.click(desktopCta);
+    expect(mockInstallHandler).toHaveBeenCalledTimes(1);
   });
 
   it("mobile: hamburger button is in the DOM with aria-expanded false", () => {

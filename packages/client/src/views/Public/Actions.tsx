@@ -1,4 +1,10 @@
-import { type Action, useActions } from "@green-goods/shared";
+import {
+  type Action,
+  useActions,
+  useApp,
+  useInstallGuidance,
+  usePublicInstallHandler,
+} from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { PublicActionCard } from "@/components/Public/PublicActionCard";
@@ -21,6 +27,15 @@ const DOMAINS = [
 export default function ActionsGallery() {
   const { formatMessage } = useIntl();
   const { data: actions = [], isLoading } = useActions();
+  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
+  const guidance = useInstallGuidance(
+    platform,
+    isInstalled,
+    wasInstalled,
+    deferredPrompt,
+    isMobile
+  );
+  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
   const [domain, setDomain] = useState<string>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
 
@@ -134,6 +149,8 @@ export default function ActionsGallery() {
           </p>
           <a
             href="#install"
+            onClick={handleInstallClick}
+            data-install-action={guidance.primaryAction.type}
             className="inline-flex w-fit rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
           >
             {formatMessage({ id: "public.nav.installApp", defaultMessage: "Install App" })}

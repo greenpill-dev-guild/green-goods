@@ -1,4 +1,10 @@
-import { publicGardenHelpers, useApp, usePublicGardens } from "@green-goods/shared";
+import {
+  publicGardenHelpers,
+  useApp,
+  useInstallGuidance,
+  usePublicGardens,
+  usePublicInstallHandler,
+} from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
@@ -15,7 +21,15 @@ export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
   const { data: gardens = [] } = usePublicGardens();
-  const { isInstalled } = useApp();
+  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
+  const guidance = useInstallGuidance(
+    platform,
+    isInstalled,
+    wasInstalled,
+    deferredPrompt,
+    isMobile
+  );
+  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
 
   const garden = useMemo(() => {
     if (!id) return undefined;
@@ -217,6 +231,8 @@ export default function GardenDetail() {
           </Link>
           <a
             href="#install"
+            onClick={handleInstallClick}
+            data-install-action={guidance.primaryAction.type}
             className="rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-3 text-center text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
           >
             {installLabel}

@@ -95,9 +95,32 @@ Wallet selection routes to the existing `CookieJarDepositDialog` (Donate) or `Va
 
 ## Typography
 
-- **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and Garden story headings.
+- **Fraunces** (serif) is reserved for editorial route heroes, large stat numbers, and Garden story headings. Loaded via `packages/client/index.html`; resolved by Tailwind's `font-serif` utility through `--font-serif` in shared `theme.css`.
 - **Inter** carries body, nav, cards, buttons, and dialogs across both browser and installed PWA modes.
 - Editorial headlines scale to magazine sizes (text-3xl → text-5xl); body stays restrained.
+
+### Trying a different editorial serif
+
+Swap two places to test an alternative serif on the public browser:
+
+1. `packages/client/index.html` — replace the Fraunces `<link>` family parameter with the new family's Google Fonts URL.
+2. `packages/shared/src/styles/theme.css` (`@theme` block) — change the first family in `--font-serif` from `"Fraunces"` to the new family name.
+
+That's it. No JSX touches; every `font-serif` headline picks up the new family. Validate with `bun run check:design-tokens` and a Storybook spot-check.
+
+#### Serif options (similar tone to Fraunces)
+
+| Family | Voice | Notes |
+|---|---|---|
+| **Fraunces** (current) | Warm humanist with optical sizing; magazine | Variable woff2, full character |
+| **Newsreader** | Editorial, slightly more bookish | Variable, narrower personality than Fraunces |
+| **Lora** | Classic literary serif | Familiar, slightly more "blog" than "magazine" |
+| **Source Serif 4** | Adobe humanist serif | Very legible at small sizes; slightly more corporate |
+| **Marcellus** | Roman display serif | Display only — pair with Fraunces or Inter for body weights |
+| **Crimson Pro** | Old-style book serif | Closer to print typography; warmer than Source Serif |
+| **DM Serif Display** | Modern display serif | Strong identity, narrow weight range; for hero only |
+
+Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the public surface.
 
 ## Color & Tokens
 

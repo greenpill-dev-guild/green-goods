@@ -29,6 +29,7 @@ vi.mock("@green-goods/shared", () => ({
     isInstalled: false,
     platform: "unknown",
     deferredPrompt: null,
+    promptInstall: vi.fn(),
   }),
   useInstallGuidance: () => ({
     scenario: "desktop",
@@ -40,6 +41,7 @@ vi.mock("@green-goods/shared", () => ({
     browserSwitchReason: null,
     openInBrowserUrl: null,
   }),
+  usePublicInstallHandler: () => vi.fn(),
 }));
 
 // ScrollRestoration requires a data router (createBrowserRouter) which is
