@@ -57,6 +57,9 @@ export default defineConfig(async ({ command }) => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
   const nodeEnv = command === "build" ? "production" : "development";
+  if (command === "build") {
+    process.env.NODE_ENV = "production";
+  }
 
   // Dev-only plugin: serves tunnel URL at /__dev/tunnel for the landing page QR code
   function devTunnelPlugin(): Plugin {
@@ -270,7 +273,12 @@ export default defineConfig(async ({ command }) => {
       chunkSizeWarningLimit: 2000,
     },
     define: {
+      "import.meta.env.DEV": JSON.stringify(nodeEnv !== "production"),
+      "import.meta.env.PROD": JSON.stringify(nodeEnv === "production"),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+    },
+    esbuild: {
+      jsxDev: command !== "build",
     },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances

@@ -139,6 +139,34 @@ describe("presentation-mode route guards", () => {
     expectRedirect(result, "/home");
   });
 
+  it("honors internal redirectTo values for PWA root redirects", () => {
+    setLocalDevicePreviewMode();
+
+    const result = requireWebsitePresentationLoader(
+      loaderArgs(
+        `http://localhost:3001/?redirectTo=${encodeURIComponent("/garden?draft=1#upload")}`
+      )
+    );
+
+    expectRedirect(result, "/garden?draft=1#upload");
+  });
+
+  it.each([
+    "https://example.com/phish",
+    "//example.com/phish",
+    "javascript:alert(1)",
+    "home",
+    "/",
+  ])("falls back to /home for unsafe redirectTo value %s", (redirectTo) => {
+    setLocalDevicePreviewMode();
+
+    const result = requireWebsitePresentationLoader(
+      loaderArgs(`http://localhost:3001/?redirectTo=${encodeURIComponent(redirectTo)}`)
+    );
+
+    expectRedirect(result, "/home");
+  });
+
   it.each([
     "/login",
     "/home",

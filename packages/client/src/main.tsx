@@ -21,7 +21,11 @@ initTheme();
 // Initialize global error handlers for PostHog exception tracking
 // This catches unhandled errors and promise rejections that escape Error Boundaries
 initGlobalErrorHandlers();
-void registerServiceWorkerFromEnv(import.meta.env);
+void registerServiceWorkerFromEnv({
+  DEV: import.meta.env.MODE !== "production",
+  PROD: import.meta.env.MODE === "production",
+  VITE_ENABLE_SW_DEV: import.meta.env.VITE_ENABLE_SW_DEV,
+});
 
 /**
  * PWA Update Notifier Component

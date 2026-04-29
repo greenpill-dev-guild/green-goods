@@ -14,7 +14,7 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import type { Address } from "viem";
@@ -74,6 +74,16 @@ vi.mock("@/components/Dialogs", () => ({
     isOpen ? <div data-testid="cookie-jar-dialog">{gardenName}</div> : null,
 }));
 
+vi.mock("@/components/Dialogs/CookieJarDepositDialog", () => ({
+  CookieJarDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
+    isOpen ? <div data-testid="cookie-jar-dialog">{gardenName}</div> : null,
+}));
+
+vi.mock("@/components/Dialogs/VaultDepositDialog", () => ({
+  VaultDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
+    isOpen ? <div data-testid="vault-deposit-dialog">{gardenName}</div> : null,
+}));
+
 vi.mock("@/components/Public", async () => {
   const actual = await vi.importActual<typeof import("@/components/Public")>("@/components/Public");
   return {
@@ -83,6 +93,16 @@ vi.mock("@/components/Public", async () => {
     ),
   };
 });
+
+vi.mock("@/components/Public/PublicFundingReceipt", () => ({
+  PublicFundingReceipt: ({ intentId }: { intentId: string }) => (
+    <div data-testid="public-funding-receipt">{intentId}</div>
+  ),
+}));
+
+vi.mock("@/routes/WalletRuntimeProviders", () => ({
+  default: ({ children }: { children: ReactNode }) => <>{children}</>,
+}));
 
 import FundPage from "../../views/Public/Fund";
 
@@ -148,7 +168,7 @@ describe("FundPage", () => {
     const user = userEvent.setup();
     renderView();
     await user.click(screen.getAllByRole("button", { name: "Support this Garden" })[0]);
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /donate/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /endow/i })).toBeInTheDocument();
     // No wallet prompt yet.
@@ -160,9 +180,11 @@ describe("FundPage", () => {
     mockPrimaryAddress.current = "0x9999999999999999999999999999999999999999";
     renderView();
     await user.click(screen.getAllByRole("button", { name: "Support this Garden" })[0]);
-    await user.click(screen.getByRole("button", { name: /donate/i }));
+    await user.click(await screen.findByRole("button", { name: /donate/i }));
     await user.click(screen.getByRole("button", { name: /wallet/i }));
-    expect(screen.getByTestId("cookie-jar-dialog")).toHaveTextContent("Solar Community Garden");
+    expect(await screen.findByTestId("cookie-jar-dialog")).toHaveTextContent(
+      "Solar Community Garden"
+    );
     expect(mockOpenWalletModal).not.toHaveBeenCalled();
   });
 
@@ -170,7 +192,7 @@ describe("FundPage", () => {
     const user = userEvent.setup();
     renderView();
     await user.click(screen.getAllByRole("button", { name: "Support this Garden" })[0]);
-    await user.click(screen.getByRole("button", { name: /donate/i }));
+    await user.click(await screen.findByRole("button", { name: /donate/i }));
     await user.click(screen.getByRole("button", { name: /wallet/i }));
     expect(mockOpenWalletModal).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId("cookie-jar-dialog")).toBeNull();
@@ -180,7 +202,7 @@ describe("FundPage", () => {
     const user = userEvent.setup();
     renderView();
     await user.click(screen.getAllByRole("button", { name: "Support this Garden" })[0]);
-    await user.click(screen.getByRole("button", { name: /donate/i }));
+    await user.click(await screen.findByRole("button", { name: /donate/i }));
     expect(screen.queryByRole("button", { name: /^card$/i })).toBeNull();
   });
 
