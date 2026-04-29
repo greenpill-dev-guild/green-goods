@@ -32,7 +32,7 @@ const fallbackAppointmentUrl = "https://calendar.app.google/" as const;
 
 export const publicCuration: PublicCuration = {
   featuredGardens: [],
-  heroImagePath: "/social-image.webp",
+  heroImagePath: "/images/hero.webp",
   fallbackImagePaths: ["/images/no-image-placeholder.png"],
   subscribeRoute: "/public/subscribe",
   appointmentUrl: import.meta.env.VITE_GOOGLE_APPOINTMENT_URL || fallbackAppointmentUrl,
