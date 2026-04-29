@@ -152,6 +152,13 @@ bun script/deploy.ts core --network sepolia --broadcast
 
 **Why:** deploy.ts loads root `.env`, uses Foundry keystore, auto-updates Envio indexer config, handles verification.
 
+### Phase-Aware Deployment Artifacts
+
+Before broadcast, zero or missing addresses for a new module normally mean **pending broadcast**.
+Review the deploy command, dry-run, artifact persistence, and dependent config update path. Treat
+it as a blocker only when that path is missing or unsafe. After broadcast is claimed or authorized,
+required zero/missing addresses, schema UIDs, or indexer addresses are post-broadcast blockers.
+
 ### Schema Management
 
 **NEVER MODIFY `config/schemas.json`** — it defines production EAS schemas. For test schemas, create `schemas.test.json`.

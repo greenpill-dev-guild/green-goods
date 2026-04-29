@@ -285,6 +285,7 @@ Drop anything that is speculative, preference-based, or low-confidence.
 - do not elevate architectural taste into a blocker unless it violates a repo rule or creates concrete risk
 - do not report "missing abstraction" unless the current diff creates repeated cost or confusion
 - do not call out missing tests when the changed behavior is purely mechanical or non-behavioral
+- do not report missing deployment addresses as a finding for undeployed new contract work by itself; classify as pending broadcast unless the deploy/persist/indexer-update path is missing, or unless broadcast was claimed and artifacts/config are still zero
 
 ## Output Contract
 

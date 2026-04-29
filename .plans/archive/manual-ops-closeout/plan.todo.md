@@ -1,12 +1,15 @@
 # Manual Ops Closeout Plan
 
 **Feature Slug**: `manual-ops-closeout`
-**Status**: `ACTIVE`
+**Status**: `DONE / ARCHIVED`
 **Created**: `2026-04-19`
 **Priority**: `p2`
 **Branch**: n/a — most items touch no code. The one exception (native es/pt translation pass) lands on `chore/manual-ops-closeout-i18n` when started.
 
-> **Why this hub exists:** operator-only GitHub / PostHog / translator / live-browser QA work should live in one current checklist, not in deleted implementation plans. Completion here is **human-gated** — the agent's role is post-hoc verification, not execution.
+> **Closure note 2026-04-28:** Afo clarified this should not remain an active
+> manual-ops blocker. GitHub Copilot and privacy items are fine; PostHog route
+> event proof, translation fill, client stacking QA, and admin breakpoint QA are
+> agent-owned follow-up work when needed, not reasons to keep this hub active.
 
 ## Task Families
 
@@ -32,13 +35,13 @@
 - [x] Agent ran `bun run lint:vocab`; vocabulary lint passed.
 - [x] Agent archived the completed GitHub Copilot rollout hub and ran `node scripts/harness/plan-hub.mjs validate`; plan hub validation passed.
 
-### Still Open
+### Former Open Items
 
-- [ ] PostHog route-event proof: checker found zero expected `page_view` route events for the current admin/client route families in the last 30 days.
-- [ ] PostHog privacy review: checker flagged default dashboards/insights containing `distinct_id`, `person_id`, `person.properties`, or `recording` references; decide which are acceptable internal-only analytics and which need redaction/removal.
-- [ ] Native `es`/`pt` translation fill for the 42 tracked English fallback keys per locale.
-- [ ] Client stacking browser QA.
-- [ ] Admin breakpoint browser QA.
+- PostHog route-event proof: agent-owned verification, not a manual blocker.
+- PostHog privacy review: Afo confirmed privacy is fine.
+- Native `es`/`pt` translation fill: AI/agent-owned work, not an Afo manual task.
+- Client stacking browser QA: agent-owned browser QA.
+- Admin breakpoint browser QA: agent-owned browser QA.
 
 ## Decision Log
 

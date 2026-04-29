@@ -13,7 +13,7 @@
 
 > **For agentic workers:** Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
-> 2026-04-25 cleanup note: GreenWill Phase 0 badge lock/schema deployment, the contracts confidence gate, and portable badge rendering remain owned here. Do not chase deleted admin UI planning paths for this work.
+> 2026-04-25 cleanup note, updated after deployment-readiness review: this backlog hub owns the later portable badge expansion and shared `GreenGoodsBadge` EAS schema. The initial GreenWill launch is only Genesis, First Work, and First Support, and does not require this schema.
 
 > 2026-04-27 scope update: moved to backlog. The April 28 presentation/release scope is only the existing three initial GreenWill badges (`genesis`, `first-work`, `first-support`). This hub is the later six-badge portable reputation expansion and should not block the current closeout.
 
@@ -29,7 +29,7 @@
 | 6 | Soulbound (non-transferable) Unlock locks | Reputation must be non-tradeable; configured at lock creation (Unlock supports `transferrable=false`). |
 | 7 | Green Goods trusted attester address writes EAS attestations | Single canonical attester simplifies sibling-project trust model; key held by Greenwill service, rotatable via deployment artifact. |
 | 8 | Portability = ship issuance side only | EAS is universal by design; Unlock keys are ERC-721. Sibling-project recognition is demo-level in Q2; may slip to Q3 (risk #3 in spec). |
-| 9 | 6 lock addresses + 1 shared `GreenGoodsBadge` schema UID recorded in `deployments/{chainId}-latest.json` | Canonical source for sibling projects; matches repo convention. |
+| 9 | Later expansion records 6 lock addresses + 1 shared `GreenGoodsBadge` schema UID in `deployments/{chainId}-latest.json` | Canonical source for sibling projects; not part of the initial three-badge launch. |
 | 10 | Indexer stays out of EAS/Unlock — admin queries EAS directly via `useBadges` | Respects CLAUDE.md indexer boundary; EAS has public GraphQL API. |
 | 11 | `BadgeDefinition` registry at `packages/agent/src/badges/_registry.ts` | Underscore prefix = internal; evaluators imported and registered explicitly (no dynamic glob). |
 

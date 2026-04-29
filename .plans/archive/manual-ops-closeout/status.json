@@ -4,13 +4,13 @@
     "slug": "manual-ops-closeout",
     "title": "Manual Ops Closeout",
     "kind": "quality",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-04-19",
-    "updated_at": "2026-04-26T15:20:00.000-07:00"
+    "updated_at": "2026-04-28T00:00:00.000-07:00"
   },
   "links": {
     "brief": "brief.md",
@@ -25,7 +25,8 @@
     "GitHub API verification on 2026-04-25 narrowed Copilot rollout leftovers to draft-review parity on develop, budget/alerts, Dependabot remediation routing, autonomous-agent controls, and the two-week pilot review.",
     ".plans/ is durable repo truth; status.json history[] carries each verification probe command + snippet as evidence.",
     "PostHog analytics read token canonical env name: POSTHOG_ANALYTICS_READ_KEY.",
-    "PostHog checker completed on 2026-04-26: no stale route references; zero expected route page_view events in last 30 days; privacy-sensitive references flagged for review."
+    "PostHog checker completed on 2026-04-26: no stale route references; zero expected route page_view events in last 30 days; privacy-sensitive references flagged for review.",
+    "Closed 2026-04-28: Afo confirmed privacy and GitHub Copilot items are fine, and route-event proof, translation fill, client stacking QA, and admin breakpoint QA are agent-owned follow-up work rather than active manual-ops blockers."
   ],
   "lanes": {
     "ui": {
@@ -56,25 +57,25 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
+      "manual_blocked": false,
       "branch": "claude/qa-pass-1/manual-ops-closeout",
       "depends_on": [],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Runs after each Afo-completed manual item. Invokes the matching gh api / PostHog / locale probe in the same turn and records the command + output snippet in status.json history[].",
+      "handoff_note": "Closed as no longer active manual-ops work. Route-event proof, translation fill, client stacking QA, and admin breakpoint QA should be handled directly by agents in the relevant current hub.",
       "skill_tags": ["review", "testing"]
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
-      "manual_blocked": true,
+      "manual_blocked": false,
       "branch": "codex/qa-pass-2/manual-ops-closeout",
       "branch_trigger": "claude/qa-pass-1/manual-ops-closeout",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Starts once qa_pass_1 has green-checked every AC. Confirms no deleted-plan path remains necessary for the manual-ops evidence trail.",
+      "handoff_note": "Archived 2026-04-28 after Afo clarified the remaining rows should not block a manual closeout plan.",
       "skill_tags": ["review"]
     }
   },
@@ -142,6 +143,14 @@
       "status": "manual_and_agent_work_recorded",
       "branch": null,
       "note": "Marked Afo-only GitHub Copilot checklist complete by report, recorded PostHog checker completion with findings, and separated remaining work into route-event proof, privacy review, translation fill, and browser QA. Added posthog-results-2026-04-26.md evidence summary."
+    },
+    {
+      "timestamp": "2026-04-28T00:00:00.000-07:00",
+      "actor": "human",
+      "lane": "system",
+      "status": "closed_and_archived",
+      "branch": null,
+      "note": "Afo clarified that privacy and GitHub Copilot items are fine, and PostHog route-event proof, translation fill, live client browser QA, and admin breakpoint QA are agent-owned follow-up work, not manual-ops blockers. Hub moved from active to archive."
     }
   ]
 }

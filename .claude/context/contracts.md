@@ -281,6 +281,11 @@ Before upgrading:
 
 ## Deployment Pre-Flight
 
+Use phase-aware artifact checks. Before broadcast, zero or missing addresses for a new module are
+**pending broadcast** unless the deploy, initialization, artifact persistence, or dependent config
+update path is missing. After broadcast, required zero/missing deployment addresses, schema UIDs, or
+indexer addresses are blockers until fixed and re-verified.
+
 ```bash
 # Tests passing
 bun run test

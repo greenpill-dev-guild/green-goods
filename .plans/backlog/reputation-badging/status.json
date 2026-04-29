@@ -24,7 +24,7 @@
     "Hard deadline: Lock + schema deploy 2026-04-25; pilot rollout 2026-06-30.",
     "Portability is a first-class outcome — sibling projects (Coop, WEFA) must render Green Goods badges via the shared EAS schema + Unlock locks without Green Goods-specific integration.",
     "GreenWill broadcast is blocked on a contracts confidence gate: upgrade-preservation unit coverage, GreenWill workflow integration coverage, Arbitrum fork support-flow test.",
-    "This hub owns all remaining GreenWill Phase 0 deployment and reputation badge work.",
+    "This hub owns the later six-badge portable reputation expansion. The initial GreenWill three-badge deployment path is separate and does not require the GreenGoodsBadge EAS schema.",
     "Locks are non-transferable (soulbound); key manager = greenwill issuer address.",
     "No custom badge-issuance contracts — Unlock factory + existing EAS cover the surface.",
     "Moved to backlog on 2026-04-27 as the later six-badge portable reputation expansion. April 28 scope is only the existing initial GreenWill badges: genesis, first-work, and first-support."
@@ -54,7 +54,7 @@
       "branch": "codex/contracts/reputation-badging",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "handoff_note": "Deploy 6 Unlock locks (non-transferable, key manager = greenwill issuer) via Unlock factory. Register GreenGoodsBadge EAS schema. Persist all addresses + schema UIDs in deployments/{chainId}-latest.json. Close GreenWill contracts confidence gate (upgrade-preservation unit coverage, GreenWill workflow integration coverage, Arbitrum fork support-flow test).",
+      "handoff_note": "Later expansion only: deploy 6 Unlock locks (non-transferable, key manager = greenwill issuer) via Unlock factory. Register GreenGoodsBadge EAS schema for portability. Persist all addresses + schema UIDs in deployments/{chainId}-latest.json. Do not treat this as part of the initial Genesis / First Work / First Support GreenWill launch.",
       "skill_tags": ["contracts"]
     },
     "qa_pass_1": {

@@ -170,7 +170,7 @@ bun script/deploy.ts core --network sepolia --broadcast   # Deploy
 bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Deploy + schemas
 ```
 
-**Deployment artifacts**: `deployments/{chainId}-latest.json` is the source of truth for all addresses. Zero addresses mean the module hasn't been deployed yet (not a blocker for optional modules).
+**Deployment artifacts**: `deployments/{chainId}-latest.json` is the source of truth for all addresses. For new contract work before broadcast, zero or missing addresses usually mean **pending broadcast**; review the deploy command, dry-run, artifact persistence, and dependent config update path instead of treating the address absence itself as a P0. After a claimed or authorized broadcast, required zero/missing addresses, schema UIDs, or indexer addresses are **post-broadcast blockers**.
 
 ## Environment
 

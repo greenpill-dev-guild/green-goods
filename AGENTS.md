@@ -47,6 +47,16 @@ For ambiguous, multi-package, or high-risk work, do not jump straight into edits
 4. Surface human judgment points before editing protected or irreversible surfaces.
 5. Implement only after the research and plan are coherent. If the session went down the wrong path, summarize the useful findings and restart with clean context.
 
+## Contract Deployment Review Phases
+
+For new or not-yet-broadcast contract work, missing addresses in
+`deployments/{chainId}-latest.json` or zero addresses in dependent config usually mean
+**pending broadcast**, not an automatic P0. In pre-broadcast reviews, verify the deploy
+command exists, dry-runs safely, persists artifacts, and has a post-broadcast indexer/config
+update path. Call it a **deployment path blocker** only when that path is missing or broken.
+After a claimed or authorized broadcast, required zero/missing addresses, schema UIDs, or
+indexer config become **post-broadcast blockers**.
+
 ## Multi-Agent Repo Safety
 
 This repo runs multiple concurrent Codex/Claude sessions on the same tree and `develop`. Treat working-tree changes you didn't author this session as another agent's work-in-progress.
