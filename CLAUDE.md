@@ -202,6 +202,21 @@ This repo runs multiple concurrent Claude/Codex sessions on the same tree and `d
 
 **Validation before committing**: `bun format && bun lint && bun run test && bun build`
 
+## Codex Dispatch
+
+Codex CLI ships inside the Mac app — there is no globally installed `codex` binary. Use the absolute path:
+
+```bash
+CODEX=/Applications/Codex.app/Contents/Resources/codex
+```
+
+Common invocations:
+- Non-interactive review of the current branch's uncommitted diff: `"$CODEX" exec review --uncommitted - < /path/to/prompt.md`
+- Non-interactive task: `"$CODEX" exec --full-auto -C <worktree> -o <result-file> "<prompt>"`
+- Review a specific commit: `"$CODEX" exec review --commit <sha> "<prompt>"`
+
+Don't reach for `which codex` or attempt to install it globally — the app-bundled binary is the canonical CLI on this machine. Worktree + dispatch protocol details live in the memory note `feedback_claude_orchestrated_codex.md`.
+
 ## Drift Cleanup Ritual
 
 When the working tree is heavy (changes spanning packages, drift across docs/code/tests, "feels off"), don't pile broad sweeps on top of unaudited changes. Run in this order:
