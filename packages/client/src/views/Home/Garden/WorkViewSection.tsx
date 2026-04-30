@@ -199,12 +199,12 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailed",
-          defaultMessage: "Upload Failed",
+          defaultMessage: "Sending didn't work",
         });
       }
       return intl.formatMessage({
         id: "app.home.work.pendingUploadTitle",
-        defaultMessage: "Pending Upload",
+        defaultMessage: "Saved on your device",
       });
     }
 
@@ -252,18 +252,19 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailedInfo",
-          defaultMessage: "This work could not be uploaded. Please retry when connected.",
+          defaultMessage: "We couldn't send this just now. We'll keep trying when you're online.",
         });
       }
       if (effectiveStatus === "syncing" || effectiveStatus === "uploading") {
         return intl.formatMessage({
           id: "app.home.work.syncingInfo",
-          defaultMessage: "This work is being uploaded to the blockchain.",
+          defaultMessage: "Sending to the garden record...",
         });
       }
       return intl.formatMessage({
         id: "app.home.work.offlineInfo",
-        defaultMessage: "This work is saved locally and will be uploaded when connected.",
+        defaultMessage:
+          "Saved on your device — we'll send it to the garden record when you're online.",
       });
     }
 
@@ -353,7 +354,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             id: "view-attestation",
             label: intl.formatMessage({
               id: "app.home.work.viewAttestation",
-              defaultMessage: "View Attestation",
+              defaultMessage: "View certificate",
             }),
             onClick: onViewAttestation,
             icon: <RiExternalLinkLine className="w-6 h-6" />,

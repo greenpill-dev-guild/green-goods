@@ -12,6 +12,10 @@
  */
 export type Platform = "ios" | "android" | "windows" | "unknown";
 export type ClientPresentationMode = "website" | "pwa";
+type LocalPresentationOverride = ClientPresentationMode | "auto";
+
+const LOCAL_PRESENTATION_QUERY_PARAM = "presentation";
+const LOCAL_PRESENTATION_STORAGE_KEY = "gg-local-presentation-mode";
 
 /**
  * Extended Navigator interface for Safari standalone property
@@ -132,6 +136,79 @@ function isLocalHostname(hostname: string): boolean {
   );
 }
 
+function parseLocalPresentationOverride(value: string | null): LocalPresentationOverride | null {
+  if (value === "website" || value === "pwa" || value === "auto") return value;
+  return null;
+}
+
+function getSessionStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.sessionStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function getCurrentLocationUrl(): URL | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    if (window.location.href) return new URL(window.location.href);
+  } catch {
+    // Fall back to hostname below for test/mocked browser environments.
+  }
+
+  const hostname = window.location.hostname;
+  if (!hostname) return null;
+
+  try {
+    const protocol = isLocalHostname(hostname) ? "http:" : "https:";
+    return new URL(`${protocol}//${hostname}/`);
+  } catch {
+    return null;
+  }
+}
+
+function getPresentationUrl(source?: string | URL): URL | null {
+  if (source instanceof URL) return source;
+
+  if (typeof source === "string") {
+    try {
+      return new URL(source, getCurrentLocationUrl()?.href || "https://greengoods.local/");
+    } catch {
+      return null;
+    }
+  }
+
+  return getCurrentLocationUrl();
+}
+
+function getLocalPresentationOverride(url: URL | null): ClientPresentationMode | null {
+  if (!url || !isLocalHostname(url.hostname)) return null;
+
+  const storage = getSessionStorage();
+  const queryOverride = parseLocalPresentationOverride(
+    url.searchParams.get(LOCAL_PRESENTATION_QUERY_PARAM)
+  );
+
+  if (queryOverride === "auto") {
+    storage?.removeItem(LOCAL_PRESENTATION_STORAGE_KEY);
+    return null;
+  }
+
+  if (queryOverride) {
+    storage?.setItem(LOCAL_PRESENTATION_STORAGE_KEY, queryOverride);
+    return queryOverride;
+  }
+
+  const storedOverride = parseLocalPresentationOverride(
+    storage?.getItem(LOCAL_PRESENTATION_STORAGE_KEY) ?? null
+  );
+  return storedOverride === "auto" ? null : storedOverride;
+}
+
 function hasMobileDeviceSignals(): boolean {
   if (typeof navigator === "undefined") return false;
 
@@ -154,13 +231,18 @@ function hasMobileDeviceSignals(): boolean {
  * phone-sized width remains website mode. A real phone visiting localhost can
  * also match these signals and enter preview mode.
  */
-export function isLocalDevicePreviewMode(): boolean {
+export function isLocalDevicePreviewMode(source?: string | URL): boolean {
   if (typeof window === "undefined" || typeof navigator === "undefined") return false;
 
-  return isLocalHostname(window.location.hostname) && hasMobileDeviceSignals();
+  const url = getPresentationUrl(source);
+  return Boolean(url && isLocalHostname(url.hostname) && hasMobileDeviceSignals());
 }
 
-export function getClientPresentationMode(): ClientPresentationMode {
-  if (isAppInstalled() || isLocalDevicePreviewMode()) return "pwa";
+export function getClientPresentationMode(source?: string | URL): ClientPresentationMode {
+  const url = getPresentationUrl(source);
+  const localOverride = getLocalPresentationOverride(url);
+  if (localOverride) return localOverride;
+
+  if (isAppInstalled() || isLocalDevicePreviewMode(url ?? undefined)) return "pwa";
   return "website";
 }

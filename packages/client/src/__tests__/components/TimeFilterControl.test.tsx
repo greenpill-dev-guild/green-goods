@@ -6,10 +6,13 @@
 
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TimeFilterControl } from "../../views/Home/WorkDashboard/TimeFilterControl";
+
+const wrap = (node: ReactNode) => createElement(IntlProvider, { locale: "en", messages: {} }, node);
 
 describe("TimeFilterControl", () => {
   beforeEach(() => {
@@ -21,18 +24,18 @@ describe("TimeFilterControl", () => {
   });
 
   it("renders a select element with all time options", () => {
-    render(createElement(TimeFilterControl, { value: "month", onChange: vi.fn() }));
+    render(wrap(createElement(TimeFilterControl, { value: "month", onChange: vi.fn() })));
 
     const select = screen.getByRole("combobox");
     expect(select).toBeInTheDocument();
 
     const options = screen.getAllByRole("option");
     expect(options).toHaveLength(4);
-    expect(options.map((o) => o.textContent)).toEqual(["day", "week", "month", "year"]);
+    expect(options.map((o) => o.textContent)).toEqual(["Day", "Week", "Month", "Year"]);
   });
 
   it("reflects the current value", () => {
-    render(createElement(TimeFilterControl, { value: "week", onChange: vi.fn() }));
+    render(wrap(createElement(TimeFilterControl, { value: "week", onChange: vi.fn() })));
 
     const select = screen.getByRole("combobox") as HTMLSelectElement;
     expect(select.value).toBe("week");
@@ -42,7 +45,7 @@ describe("TimeFilterControl", () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
 
-    render(createElement(TimeFilterControl, { value: "month", onChange }));
+    render(wrap(createElement(TimeFilterControl, { value: "month", onChange })));
 
     await user.selectOptions(screen.getByRole("combobox"), "day");
     expect(onChange).toHaveBeenCalledWith("day");
@@ -52,7 +55,7 @@ describe("TimeFilterControl", () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
 
-    render(createElement(TimeFilterControl, { value: "month", onChange }));
+    render(wrap(createElement(TimeFilterControl, { value: "month", onChange })));
 
     await user.selectOptions(screen.getByRole("combobox"), "year");
     expect(onChange).toHaveBeenCalledWith("year");

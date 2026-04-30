@@ -19,13 +19,13 @@ export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, cla
           {
             id: "app.cookieJar.walletWithCount",
             defaultMessage:
-              "Wallet, {count, plural, one {# accessible cookie jar} other {# accessible cookie jars}}",
+              "Garden funds, {count, plural, one {# cookie jar available} other {# cookie jars available}}",
           },
           { count: accessibleJarCount }
         )
       : intl.formatMessage({
           id: "app.cookieJar.wallet",
-          defaultMessage: "Wallet",
+          defaultMessage: "Garden funds",
         });
 
   return (

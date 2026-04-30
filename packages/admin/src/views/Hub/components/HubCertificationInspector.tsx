@@ -1,6 +1,5 @@
 import {
   Alert,
-  Button,
   formatRelativeTime,
   HUB_CERTIFY_STATUS_CLASSNAME,
   HUB_META_PILL_CLASSNAME,
@@ -8,6 +7,7 @@ import {
 } from "@green-goods/shared";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 
 export function HubCertificationInspector({
   assessment,
@@ -81,13 +81,16 @@ export function HubCertificationInspector({
                 "This bundle is ready for the minting flow. Open the hypercert form when you are ready to finalize it.",
             })}
           </p>
-          <Button onClick={onOpenMintFlow}>
-            <RiExternalLinkLine className="h-4 w-4" />
+          <AdminButton
+            variant="filled"
+            leadingIcon={<RiExternalLinkLine />}
+            onClick={onOpenMintFlow}
+          >
             {formatMessage({
               id: "cockpit.hub.certify.openMintFlow",
               defaultMessage: "Open mint flow",
             })}
-          </Button>
+          </AdminButton>
         </Surface>
       ) : (
         <Alert variant="info">

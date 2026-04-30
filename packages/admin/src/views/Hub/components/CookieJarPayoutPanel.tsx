@@ -1,6 +1,5 @@
 import {
   type Address,
-  Button,
   Card,
   formatTokenAmount,
   getVaultAssetSymbol,
@@ -9,6 +8,7 @@ import {
 import { RiCupLine, RiHandCoinLine, RiSettings3Line, RiWalletLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
 import { CookieJarManageModal } from "./CookieJarManageModal";
 import { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
@@ -88,28 +88,40 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
         {/* Body: Action buttons */}
         <Card.Body>
           <div className="flex flex-wrap gap-3">
-            <Button variant="primary" size="md" onClick={() => setWithdrawOpen(true)}>
-              <RiHandCoinLine className="h-4 w-4" />
+            <AdminButton
+              variant="filled"
+              size="md"
+              leadingIcon={<RiHandCoinLine />}
+              onClick={() => setWithdrawOpen(true)}
+            >
               {formatMessage({
                 id: "app.cookieJar.withdraw",
                 defaultMessage: "Withdraw",
               })}
-            </Button>
-            <Button variant="secondary" size="md" onClick={() => setDepositOpen(true)}>
-              <RiWalletLine className="h-4 w-4" />
+            </AdminButton>
+            <AdminButton
+              variant="tonal"
+              size="md"
+              leadingIcon={<RiWalletLine />}
+              onClick={() => setDepositOpen(true)}
+            >
               {formatMessage({
                 id: "app.cookieJar.fundJars",
                 defaultMessage: "Fund Jars",
               })}
-            </Button>
+            </AdminButton>
             {canManage && (
-              <Button variant="ghost" size="md" onClick={() => setManageOpen(true)}>
-                <RiSettings3Line className="h-4 w-4" />
+              <AdminButton
+                variant="text"
+                size="md"
+                leadingIcon={<RiSettings3Line />}
+                onClick={() => setManageOpen(true)}
+              >
                 {formatMessage({
                   id: "app.cookieJar.manageJars",
                   defaultMessage: "Manage Jars",
                 })}
-              </Button>
+              </AdminButton>
             )}
           </div>
         </Card.Body>

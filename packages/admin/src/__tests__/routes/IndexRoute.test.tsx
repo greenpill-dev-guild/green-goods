@@ -34,6 +34,8 @@ const { mockAuthState, mockEligibleAdminGardens } = vi.hoisted(() => ({
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+      isError: false,
+      hasStaleBaseList: false,
     },
   },
 }));
@@ -84,6 +86,8 @@ describe("IndexRoute", () => {
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+      isError: false,
+      hasStaleBaseList: false,
     };
   });
 
@@ -169,5 +173,42 @@ describe("IndexRoute", () => {
     );
 
     expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
+  });
+
+  it("renders the indexer-error state when useEligibleAdminGardens reports isError", () => {
+    mockEligibleAdminGardens.current = {
+      ...mockEligibleAdminGardens.current,
+      isError: true,
+    };
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/"]}>
+        <IndexRoute />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId("canvas-indexer-error")).toBeInTheDocument();
+    // The no-access copy must NOT show during an indexer outage — that was the
+    // gaslight scenario the audit flagged.
+    expect(screen.queryByTestId("canvas-no-garden-access")).not.toBeInTheDocument();
+  });
+
+  it("redirects to the hub when role-confirmed gardens land via the stale-base-list cross-check", () => {
+    // Simulates the operator/no-garden symptom: useGardens returned [] but
+    // useRole proved an operator garden, so useEligibleAdminGardens injected
+    // a stub. IndexRoute must redirect to the hub instead of the no-access shell.
+    mockEligibleAdminGardens.current = {
+      ...mockEligibleAdminGardens.current,
+      eligibleGardens: [{ id: "garden-stub", name: "Stub Garden", location: "" }],
+      hasStaleBaseList: true,
+    };
+
+    renderWithProviders(
+      <MemoryRouter initialEntries={["/"]}>
+        <IndexRoute />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByTestId("navigate")).toHaveAttribute("data-to", "/hub/work");
   });
 });

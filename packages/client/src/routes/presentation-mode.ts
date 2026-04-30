@@ -24,11 +24,11 @@ function getPwaEntryRoute(request: Request): string {
 }
 
 export function requireWebsitePresentationLoader({ request }: LoaderFunctionArgs) {
-  if (getClientPresentationMode() === "website") return null;
+  if (getClientPresentationMode(request.url) === "website") return null;
   return redirect(getPwaEntryRoute(request));
 }
 
-export function requirePwaPresentationLoader(_args?: LoaderFunctionArgs) {
-  if (getClientPresentationMode() === "pwa") return null;
+export function requirePwaPresentationLoader(args?: LoaderFunctionArgs) {
+  if (getClientPresentationMode(args?.request.url) === "pwa") return null;
   return redirect(WEBSITE_ENTRY_ROUTE);
 }

@@ -151,7 +151,7 @@ export const Garden: React.FC = () => {
   const { strategies: convictionStrategies } = useConvictionStrategies(validGardenAddress, {
     enabled: Boolean(validGardenAddress),
   });
-  const hasGovernance = convictionStrategies.length > 0;
+  const hasGovernanceConfigured = convictionStrategies.length > 0;
 
   // Check if current user is an operator (can approve/reject work)
   const isOperator = useMemo(() => {
@@ -166,6 +166,14 @@ export const Garden: React.FC = () => {
     "evaluator"
   );
   const canReview = isOperator || canReviewOnChain;
+
+  // Gate header drawers behind operator/funder roles. Default gardeners should not see
+  // governance or endowment chrome — those drawers expose protocol-shaped surfaces (signal pool,
+  // hypercert, vault, treasury) that don't belong on the gardener-default path.
+  const hasOwnEndowmentDeposit = hasEndowmentDeposits;
+  const showGovernanceButton = hasGovernanceConfigured && canReview;
+  const showEndowmentButton = gardenVaults.length > 0 && (canReview || hasOwnEndowmentDeposit);
+  const hasGovernance = showGovernanceButton;
 
   // Check if current user is already a member of this garden
   const isMember = useMemo(() => {
@@ -324,9 +332,9 @@ export const Garden: React.FC = () => {
                     works={mergedWorks}
                     garden={garden}
                     isOperator={canReview}
-                    showGovernanceButton={hasGovernance}
+                    showGovernanceButton={showGovernanceButton}
                     onGovernanceClick={() => setIsGovernanceOpen(true)}
-                    showEndowmentButton={gardenVaults.length > 0}
+                    showEndowmentButton={showEndowmentButton}
                     hasEndowmentDeposits={hasEndowmentDeposits}
                     onEndowmentClick={openEndowmentDrawer}
                   />

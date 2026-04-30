@@ -1,6 +1,5 @@
 import {
   type Address,
-  Button,
   Card,
   ConfirmDialog,
   formatAddress,
@@ -22,6 +21,7 @@ import {
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
+import { AdminButton } from "@/components/AdminButton";
 
 interface PositionCardProps {
   gardenAddress: Address;
@@ -186,8 +186,8 @@ export function PositionCard({
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <Button
-          variant="secondary"
+        <AdminButton
+          variant="tonal"
           size="sm"
           onClick={() => onDeposit(vault.asset)}
           disabled={!vaultAcceptingDeposits}
@@ -198,18 +198,18 @@ export function PositionCard({
           }
         >
           {formatMessage({ id: "app.treasury.deposit" })}
-        </Button>
-        <Button variant="secondary" size="sm" onClick={() => onWithdraw(vault.asset)}>
+        </AdminButton>
+        <AdminButton variant="tonal" size="sm" onClick={() => onWithdraw(vault.asset)}>
           {formatMessage({ id: "app.treasury.withdraw" })}
-        </Button>
+        </AdminButton>
       </div>
 
       {/* Auto-allocation repair — only shown for the specific legacy misconfiguration
            (deposit limit zero + not shutdown), not for paused/full/generic states */}
       {isLegacyMisconfiguration && isModuleOwner && (
         <div className="mt-2">
-          <Button
-            variant="secondary"
+          <AdminButton
+            variant="outlined"
             size="sm"
             className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
             onClick={onEnableAutoAllocate}
@@ -217,22 +217,23 @@ export function PositionCard({
             loading={enableAutoAllocate.isPending}
           >
             {formatMessage({ id: "app.treasury.enableAutoAllocate" })}
-          </Button>
+          </AdminButton>
         </div>
       )}
 
       {canManage && (
         <div className="mt-2">
           <div className="grid grid-cols-2 gap-2">
-            <Button
+            <AdminButton
+              variant="filled"
               size="sm"
               onClick={onHarvest}
               disabled={harvest.isPending}
               loading={harvest.isPending}
             >
               {formatMessage({ id: "app.treasury.harvest" })}
-            </Button>
-            <Button
+            </AdminButton>
+            <AdminButton
               variant="danger"
               size="sm"
               onClick={() => setConfirmPauseOpen(true)}
@@ -240,7 +241,7 @@ export function PositionCard({
               loading={emergencyPause.isPending}
             >
               {formatMessage({ id: "app.treasury.emergencyPause" })}
-            </Button>
+            </AdminButton>
           </div>
         </div>
       )}

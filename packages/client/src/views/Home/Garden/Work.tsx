@@ -121,11 +121,11 @@ export const GardenWork: React.FC = () => {
         toastService.success({
           title: intl.formatMessage({
             id: "app.home.work.retrySuccess",
-            defaultMessage: "Work uploaded successfully",
+            defaultMessage: "Your work was sent",
           }),
           message: intl.formatMessage({
             id: "app.home.work.retrySuccessMessage",
-            defaultMessage: "Your work is now on-chain",
+            defaultMessage: "Saved to the garden record.",
           }),
           context: "work upload",
         });
@@ -133,13 +133,13 @@ export const GardenWork: React.FC = () => {
         toastService.error({
           title: intl.formatMessage({
             id: "app.home.work.retryFailed",
-            defaultMessage: "Upload failed",
+            defaultMessage: "Sending failed",
           }),
           message:
             result.error ||
             intl.formatMessage({
               id: "app.home.work.retryFailedMessage",
-              defaultMessage: "Please try again",
+              defaultMessage: "Please try again.",
             }),
           context: "work upload",
         });
@@ -148,14 +148,14 @@ export const GardenWork: React.FC = () => {
       toastService.error({
         title: intl.formatMessage({
           id: "app.home.work.retryError",
-          defaultMessage: "Failed to retry upload",
+          defaultMessage: "Couldn't send your work",
         }),
         message:
           error instanceof Error
             ? error.message
             : intl.formatMessage({
                 id: "app.home.work.unknownError",
-                defaultMessage: "Unknown error",
+                defaultMessage: "Something went wrong",
               }),
         context: "work upload",
       });
@@ -302,7 +302,8 @@ export const GardenWork: React.FC = () => {
             <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
             {intl.formatMessage({
               id: "app.home.work.pendingUpload",
-              defaultMessage: "This work is pending upload to the blockchain.",
+              defaultMessage:
+                "Saved on your device — we'll send it to the garden record when you're online.",
             })}
           </p>
           <Button
@@ -312,11 +313,11 @@ export const GardenWork: React.FC = () => {
               isRetrying
                 ? intl.formatMessage({
                     id: "app.home.work.uploading",
-                    defaultMessage: "Uploading...",
+                    defaultMessage: "Sending...",
                   })
                 : intl.formatMessage({
                     id: "app.home.work.uploadNow",
-                    defaultMessage: "Upload Now",
+                    defaultMessage: "Send now",
                   })
             }
             className="w-full"
@@ -335,7 +336,7 @@ export const GardenWork: React.FC = () => {
             <p className="text-xs text-warning-base mt-2 text-center">
               {intl.formatMessage({
                 id: "app.home.work.offlineNotice",
-                defaultMessage: "You're offline. Connect to upload.",
+                defaultMessage: "You're offline. We'll send this when you reconnect.",
               })}
             </p>
           )}

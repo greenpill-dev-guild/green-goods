@@ -19,7 +19,7 @@ vi.mock("@green-goods/shared", () => ({
 }));
 
 // Mock client components
-vi.mock("@/components/Layout", () => ({
+vi.mock("@/components/Layout/Hero", () => ({
   Hero: ({ handleSubscribe }: { handleSubscribe: (e: any) => void }) =>
     createElement(
       "div",

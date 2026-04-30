@@ -111,14 +111,14 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
       value: "same-passkey",
       label: intl.formatMessage({
         id: "app.profile.ensChangeReasonSamePasskey",
-        defaultMessage: "I still use this passkey",
+        defaultMessage: "I still use this sign-in",
       }),
     },
     {
       value: "lost-passkey",
       label: intl.formatMessage({
         id: "app.profile.ensChangeReasonLostPasskey",
-        defaultMessage: "I lost the old passkey",
+        defaultMessage: "I lost access to my old sign-in",
       }),
     },
     {
@@ -207,20 +207,17 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     const requestId = createUsernameChangeRequestId(primaryAddress);
     const reasonLabel =
       requestReasonOptions.find((option) => option.value === requestReason)?.label ?? requestReason;
+    // Gardener-visible message — read aloud in the support textarea and copied to clipboard.
+    // Support can derive the underlying account from the request id and current name, so we
+    // keep only details the gardener understands here.
     const message = [
-      "ENS username change request",
+      "Name change request",
       `Request ID: ${requestId}`,
-      `Current username: ${existingSlug}.greengoods.eth`,
-      `Desired username: ${desiredSlug}.greengoods.eth`,
-      `Current account: ${primaryAddress}`,
+      `Current name: ${existingSlug}`,
+      `Desired name: ${desiredSlug}`,
       `Reason: ${reasonLabel}`,
       `Contact: ${requestContact.trim()}`,
       requestNotes.trim() ? `Notes: ${requestNotes.trim()}` : null,
-      "",
-      "Operator path:",
-      requestReason === "same-passkey"
-        ? "Fund this smart account on Arbitrum, have the user sign releaseName(), wait for CCIP, then have them claim the desired username."
-        : "Review exact-name recovery. If the user lost the passkey, L1 recovery may be possible but current L2 sender state can block normal self-service reuse.",
     ]
       .filter(Boolean)
       .join("\n");
@@ -331,7 +328,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     {intl.formatMessage({
                       id: "app.profile.ensChangeSupportDescription",
                       defaultMessage:
-                        "Username changes are support-assisted on this ENS sender. If you still have this passkey, an operator can fund the release transaction. If you lost it, support can review recovery.",
+                        "Username changes need a hand from support right now. We can either help you release this name or look into recovering it if you've lost access.",
                     })}
                   </p>
                   {showChangeRequest && (
@@ -419,7 +416,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                               {
                                 id: "app.profile.ensChangeRequestPrepared",
                                 defaultMessage:
-                                  "Request {id} is ready. {copied, select, true {Details were copied.} other {Copy the details below.}} Send it to support so an operator can help.",
+                                  "Request {id} is ready. {copied, select, true {Details were copied.} other {Copy the details below.}} Send it to support so the team can help.",
                               },
                               { id: preparedRequest.id, copied: String(preparedRequest.copied) }
                             )}
@@ -477,7 +474,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
           <h5 className="text-label-md text-text-strong-950">
             {intl.formatMessage({
               id: "app.profile.ensName",
-              defaultMessage: "Claim ENS name and subdomain",
+              defaultMessage: "Claim your name",
             })}
           </h5>
           <Card>
@@ -492,14 +489,14 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                   <div className="text-sm font-medium">
                     {intl.formatMessage({
                       id: "app.profile.claimENSTitle",
-                      defaultMessage: "Claim ENS name and subdomain",
+                      defaultMessage: "Claim your Green Goods name",
                     })}
                   </div>
                   <div className="text-xs text-text-sub-600">
                     {intl.formatMessage({
                       id: "app.profile.claimENSDescription",
                       defaultMessage:
-                        "Choose a greengoods.eth name tied to your Green Goods identity and garden work. Registration takes about 15-20 minutes.",
+                        "Choose a personal name tied to your work. Registration takes about 15-20 minutes.",
                     })}
                   </div>
                 </div>
@@ -510,7 +507,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     {...slugForm.register("slug")}
                     aria-label={intl.formatMessage({
                       id: "app.profile.slugHint",
-                      defaultMessage: "Choose your personal subdomain on greengoods.eth",
+                      defaultMessage: "Choose your personal Green Goods name",
                     })}
                     placeholder={intl.formatMessage({
                       id: "app.profile.slugPlaceholder",
@@ -546,7 +543,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                       ? `${slugValue}.greengoods.eth`
                       : intl.formatMessage({
                           id: "app.profile.slugHint",
-                          defaultMessage: "Choose your personal subdomain on greengoods.eth",
+                          defaultMessage: "Choose your personal Green Goods name",
                         })}
                   </span>
                   {slugForm.formState.errors.slug && (
@@ -595,7 +592,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           })
                         : intl.formatMessage({
                             id: "app.profile.claimButton",
-                            defaultMessage: "Claim subdomain",
+                            defaultMessage: "Claim name",
                           })
                   }
                   className="w-full"
@@ -611,7 +608,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
           <h5 className="text-label-md text-text-strong-950">
             {intl.formatMessage({
               id: "app.profile.ensRegistration",
-              defaultMessage: "ENS Registration",
+              defaultMessage: "Registration progress",
             })}
           </h5>
           <ENSProgressTimeline data={registrationData} slug={activeSlug} />
@@ -629,7 +626,7 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
         description={intl.formatMessage({
           id: "app.profile.releaseENSConfirmDescription",
           defaultMessage:
-            "It will stop resolving after cross-chain delivery completes, and the name will enter the cooldown period.",
+            "Your name will stop working in a few minutes, and there's a waiting period before someone else can claim it.",
         })}
         variant="warning"
         confirmLabel={intl.formatMessage({

@@ -67,7 +67,7 @@ describe("CookieJarTab", () => {
     // formatTokenAmount truncates to 4 fraction digits by default:
     // 123456 / 10^6 = 0.123456 → displayed as "0.1234"
     expect(screen.getByText("USDC - 0.1234")).toBeInTheDocument();
-    expect(screen.getByText(/Max Withdrawal:\s*0\.1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Available now:\s*0\.1/i)).toBeInTheDocument();
   });
 
   it("uses each jar's actual decimals for the max withdrawal input", async () => {
@@ -78,7 +78,7 @@ describe("CookieJarTab", () => {
     await user.click(screen.getByRole("button", { name: /USDC - 0\.1234/i }));
     await user.click(screen.getByRole("button", { name: "Max" }));
 
-    expect(screen.getByRole("textbox", { name: "Amount" })).toHaveValue("0.1");
+    expect(screen.getByRole("textbox", { name: "How much" })).toHaveValue("0.1");
   });
 
   it("renders the empty state when no jars are confirmed", () => {
@@ -95,8 +95,10 @@ describe("CookieJarTab", () => {
 
     render(<CookieJarTab />);
 
-    expect(screen.getByText("No Cookie Jars found")).toBeInTheDocument();
-    expect(screen.getByText("Cookie Jars you can access will appear here.")).toBeInTheDocument();
+    expect(screen.getByText("No cookie jars yet")).toBeInTheDocument();
+    expect(
+      screen.getByText("Cookie jars you can claim from will appear here.")
+    ).toBeInTheDocument();
   });
 
   it("keeps wallet empty copy primary when eligibility could not be confirmed", () => {
@@ -113,9 +115,9 @@ describe("CookieJarTab", () => {
 
     render(<CookieJarTab />);
 
-    expect(screen.getByText("No Cookie Jars found")).toBeInTheDocument();
+    expect(screen.getByText("No cookie jars yet")).toBeInTheDocument();
     expect(
-      screen.queryByText("Could not confirm Cookie Jar access for 2 gardens.")
+      screen.queryByText("We couldn't confirm cookie jar access for 2 gardens.")
     ).not.toBeInTheDocument();
   });
 
@@ -134,7 +136,7 @@ describe("CookieJarTab", () => {
     render(<CookieJarTab />);
 
     expect(
-      screen.getByText("Could not confirm Cookie Jar access for 1 garden.")
+      screen.getByText("We couldn't confirm cookie jar access for 1 garden.")
     ).toBeInTheDocument();
   });
 });

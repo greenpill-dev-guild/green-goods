@@ -1,5 +1,6 @@
 import { APP_NAME, cn } from "@green-goods/shared";
 import type React from "react";
+import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { Button } from "../Actions";
@@ -59,6 +60,7 @@ export const Splash: React.FC<SplashProps> = ({
   notice,
   infoCallout,
 }) => {
+  const intl = useIntl();
   const stateMessages = {
     welcome: "Welcome",
     "joining-garden": "Joining garden...",
@@ -228,7 +230,10 @@ export const Splash: React.FC<SplashProps> = ({
               loadingState === "joining-garden" ? "opacity-100" : "opacity-0"
             )}
           >
-            Please approve the passkey prompt
+            {intl.formatMessage({
+              id: "app.login.splash.joiningGardenHint",
+              defaultMessage: "Confirm on your device when prompted",
+            })}
           </p>
         </div>
 
@@ -247,7 +252,12 @@ export const Splash: React.FC<SplashProps> = ({
             )}
           >
             <div className="flex w-full items-start gap-2 rounded-lg border border-error-light bg-error-lighter p-3 text-sm text-error-dark">
-              <span className="font-semibold shrink-0">Error:</span>
+              <span className="font-semibold shrink-0">
+                {intl.formatMessage({
+                  id: "app.login.splash.errorPrefix",
+                  defaultMessage: "Error:",
+                })}
+              </span>
               <span>{errorMessage || "\u00A0"}</span>
             </div>
           </div>

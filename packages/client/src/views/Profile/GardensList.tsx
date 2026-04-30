@@ -2,12 +2,8 @@ import {
   type Address,
   cn,
   ConfirmDialog,
-  createPublicClientForChain,
-  DEFAULT_CHAIN_ID,
   debugError,
   type Garden,
-  GardenAccountABI,
-  getDefaultChain,
   hapticLight,
   hapticSuccess,
   isAlreadyGardenerError,
@@ -40,8 +36,6 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const { data: gardens = [], isLoading: gardensLoading, isFetching, refetch } = useGardens();
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
   const [pendingGarden, setPendingGarden] = useState<Garden | null>(null);
-  const [estimatedGas, setEstimatedGas] = useState<bigint | null>(null);
-  const [isEstimatingGas, setIsEstimatingGas] = useState(false);
   const ensDiscoveryTimeout = useTimeout();
 
   const allGardens = useMemo(() => {
@@ -64,28 +58,8 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
       }));
   }, [gardens, primaryAddress]);
 
-  const handleJoinGarden = async (garden: Garden) => {
+  const handleJoinGarden = (garden: Garden) => {
     setPendingGarden(garden);
-    setEstimatedGas(null);
-    if (!primaryAddress) return;
-
-    setIsEstimatingGas(true);
-    try {
-      const chainId = Number(getDefaultChain().chainId ?? DEFAULT_CHAIN_ID);
-      const publicClient = createPublicClientForChain(chainId);
-      const gas = await publicClient.estimateContractGas({
-        abi: GardenAccountABI,
-        address: garden.id as Address,
-        functionName: "joinGarden",
-        args: [],
-        account: primaryAddress as Address,
-      });
-      setEstimatedGas(gas);
-    } catch {
-      setEstimatedGas(null);
-    } finally {
-      setIsEstimatingGas(false);
-    }
   };
 
   const handleConfirmJoinGarden = async () => {
@@ -117,11 +91,11 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
           toastService.info({
             title: intl.formatMessage({
               id: "app.account.ensDiscovery",
-              defaultMessage: "Claim your .greengoods.eth name",
+              defaultMessage: "Claim your Green Goods name",
             }),
             message: intl.formatMessage({
               id: "app.account.ensDiscoveryMessage",
-              defaultMessage: "As a protocol member, you can claim a personal ENS subdomain.",
+              defaultMessage: "Pick a personal name so other gardeners can find you.",
             }),
             context: "ensDiscovery",
           });
@@ -305,7 +279,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 {
                   id: "app.profile.joinGardenConfirmDescription",
                   defaultMessage:
-                    "Garden: {gardenName}. {gardenDescription} You'll join as a Gardener, able to submit work. Estimated gas: {gasEstimate}.",
+                    "Garden: {gardenName}. {gardenDescription} You'll join as a Gardener and be able to submit work.",
                 },
                 {
                   gardenName: pendingGarden.name,
@@ -315,17 +289,6 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                         id: "app.profile.joinGardenNoDescription",
                         defaultMessage: "No garden description provided.",
                       }),
-                  gasEstimate: isEstimatingGas
-                    ? intl.formatMessage({
-                        id: "app.profile.joinGardenGasLoading",
-                        defaultMessage: "calculating",
-                      })
-                    : estimatedGas
-                      ? intl.formatNumber(estimatedGas)
-                      : intl.formatMessage({
-                          id: "app.profile.joinGardenGasUnavailable",
-                          defaultMessage: "unavailable",
-                        }),
                 }
               )
             : undefined

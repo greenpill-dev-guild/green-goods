@@ -1,6 +1,5 @@
 import {
   adminRoutes,
-  Button,
   ErrorBoundary,
   TxInlineFeedback,
   useCreateAssessmentController,
@@ -148,16 +147,17 @@ export default function CreateAssessment() {
           }
           actions={
             <>
-              <Button
+              <AdminButton
                 type="button"
-                variant="secondary"
+                variant="text"
                 onClick={createAssessment.handleCancel}
                 disabled={createAssessment.isSubmitting}
               >
                 {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-              </Button>
-              <Button
+              </AdminButton>
+              <AdminButton
                 type="button"
+                variant="filled"
                 onClick={createAssessment.handleSubmit}
                 disabled={createAssessment.isSubmitting}
                 loading={createAssessment.isSubmitting}
@@ -166,7 +166,7 @@ export default function CreateAssessment() {
                   id: "app.assessment.submitAssessment",
                   defaultMessage: "Submit assessment",
                 })}
-              </Button>
+              </AdminButton>
             </>
           }
         />

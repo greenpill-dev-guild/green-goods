@@ -431,7 +431,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         >
           <div className={cn("w-3 h-3 rounded-full animate-pulse", pwaStatusStyles.error.dot)} />
           <span className={cn("text-sm font-medium", pwaStatusStyles.error.text)}>
-            Recording {formatTime(recordingElapsed)}
+            {intl.formatMessage({
+              id: "app.garden.upload.recordingPrefix",
+              defaultMessage: "Recording",
+            })}{" "}
+            {formatTime(recordingElapsed)}
           </span>
         </div>
       )}

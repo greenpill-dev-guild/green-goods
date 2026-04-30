@@ -50,6 +50,21 @@ function createMatchMedia(matcher: (query: string) => boolean = () => false): Wi
     }) as MediaQueryList) as Window["matchMedia"];
 }
 
+function createSessionStorage(): Storage {
+  const values = new Map<string, string>();
+
+  return {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key: string) => values.get(key) ?? null,
+    key: (index: number) => Array.from(values.keys())[index] ?? null,
+    removeItem: (key: string) => values.delete(key),
+    setItem: (key: string, value: string) => values.set(key, value),
+  } as Storage;
+}
+
 function mockWindow(
   props: Omit<Partial<Window>, "location" | "matchMedia"> & {
     location?: Partial<Location>;
@@ -61,6 +76,7 @@ function mockWindow(
       location: { hostname: "localhost" },
       navigator: global.navigator,
       matchMedia: createMatchMedia(),
+      sessionStorage: createSessionStorage(),
       ...props,
     },
     writable: true,
@@ -300,6 +316,56 @@ describe("getMobileOperatingSystem", () => {
       expect(getClientPresentationMode()).toBe("pwa");
     });
 
+    it("uses website override for localhost mobile/device-like browser signals", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        maxTouchPoints: 5,
+        platform: "Linux armv8l",
+        userAgentData: { mobile: true, platform: "Android" },
+      });
+      mockWindow({
+        location: { hostname: "localhost" },
+      });
+
+      expect(getClientPresentationMode("http://localhost:3001/?presentation=website")).toBe(
+        "website"
+      );
+      expect(getClientPresentationMode("http://localhost:3001/gardens")).toBe("website");
+    });
+
+    it("uses pwa override for localhost desktop browser visits", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        maxTouchPoints: 0,
+        platform: "MacIntel",
+      });
+      mockWindow({
+        location: { hostname: "localhost" },
+      });
+
+      expect(getClientPresentationMode("http://localhost:3001/?presentation=pwa")).toBe("pwa");
+      expect(getClientPresentationMode("http://localhost:3001/home")).toBe("pwa");
+    });
+
+    it("uses website override for localhost standalone preview", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        maxTouchPoints: 0,
+        platform: "MacIntel",
+      });
+      mockWindow({
+        location: { hostname: "localhost" },
+        matchMedia: createMatchMedia((query) => query === "(display-mode: standalone)"),
+      });
+
+      expect(getClientPresentationMode("http://localhost:3001/?presentation=website")).toBe(
+        "website"
+      );
+    });
+
     it("uses PWA mode for standalone display mode", () => {
       mockNavigator({
         userAgent:
@@ -313,6 +379,39 @@ describe("getMobileOperatingSystem", () => {
       });
 
       expect(getClientPresentationMode()).toBe("pwa");
+    });
+
+    it("ignores presentation override on production hosts", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        maxTouchPoints: 0,
+        platform: "MacIntel",
+      });
+      mockWindow({
+        location: { hostname: "www.greengoods.app" },
+      });
+
+      expect(getClientPresentationMode("https://www.greengoods.app/?presentation=pwa")).toBe(
+        "website"
+      );
+    });
+
+    it("clears persisted local override when presentation is auto", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        maxTouchPoints: 0,
+        platform: "MacIntel",
+      });
+      mockWindow({
+        location: { hostname: "localhost" },
+      });
+
+      expect(getClientPresentationMode("http://localhost:3001/?presentation=pwa")).toBe("pwa");
+      expect(getClientPresentationMode("http://localhost:3001/home")).toBe("pwa");
+      expect(getClientPresentationMode("http://localhost:3001/?presentation=auto")).toBe("website");
+      expect(getClientPresentationMode("http://localhost:3001/home")).toBe("website");
     });
 
     it("keeps production mobile browsers website-first when not standalone", () => {

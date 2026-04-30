@@ -106,13 +106,19 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
               className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform"
             >
               <RiUserLine className="h-3 w-3" />
-              Profile
+              {formatMessage({
+                id: "app.offline.installPromptProfile",
+                defaultMessage: "Profile",
+              })}
             </button>
             <button
               type="button"
               onClick={() => setInstallDismissed(true)}
               className="ml-1 text-[10px] text-text-sub-600 hover:text-text-strong-950"
-              aria-label="Dismiss"
+              aria-label={formatMessage({
+                id: "app.offline.installPromptDismiss",
+                defaultMessage: "Dismiss",
+              })}
             >
               ✕
             </button>

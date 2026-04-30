@@ -67,8 +67,8 @@ describe("ENSClaimReminder", () => {
     expect(sharedMocks.toastInfo).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "ens-claim-reminder",
-        title: "Claim your username",
-        action: expect.objectContaining({ label: "Claim username" }),
+        title: "Claim your Green Goods name",
+        action: expect.objectContaining({ label: "Claim name" }),
       })
     );
 

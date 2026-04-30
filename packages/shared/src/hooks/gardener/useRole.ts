@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAccount } from "wagmi";
 import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { greenGoodsGraphQL } from "../../modules/data/graphql";
 import { greenGoodsIndexer } from "../../modules/data/graphql-client";
 import { useAuthContext } from "../../providers/Auth";
+import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useDeploymentRegistry } from "../blockchain/useDeploymentRegistry";
 import { queryKeys } from "../../config/query-keys";
@@ -63,15 +63,17 @@ export interface RoleInfo {
 
 export function useRole(): RoleInfo {
   const auth = useAuthContext();
-  const { address: wagmiAddress, isConnected } = useAccount();
   const chainId = useCurrentChain();
 
-  // Get address - prioritize wagmi for wallet mode, then auth context (wallet or passkey)
-  const address = wagmiAddress ?? auth.walletAddress ?? auth.smartAccountAddress;
+  // Single source of truth for the user's address — matches the rule every other
+  // admin hook (useEligibleAdminGardens, useGardenPermissions, useEffectiveToolbarPermissions)
+  // already follows. Without this, an attached wagmi EOA could outrank the
+  // authenticated smart account and produce zero operator gardens despite a
+  // valid on-chain role grant.
+  const address = usePrimaryAddress();
   const normalizedAddress = address?.toLowerCase();
 
-  // Ready when either wagmi is connected OR auth context is authenticated
-  const ready = isConnected || (auth.isReady && auth.isAuthenticated);
+  const ready = auth.isReady;
 
   const deploymentRegistry = useDeploymentRegistry();
 

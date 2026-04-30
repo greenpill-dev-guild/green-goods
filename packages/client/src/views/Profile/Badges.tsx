@@ -65,17 +65,17 @@ function badgeDescription(intl: ReturnType<typeof useIntl>, slug: string) {
     case "genesis":
       return intl.formatMessage({
         id: "app.profile.badges.genesis.description",
-        defaultMessage: "Awarded to early Green Goods protocol members wearing the protocol hat.",
+        defaultMessage: "Awarded to founding Green Goods community members.",
       });
     case "first-work":
       return intl.formatMessage({
         id: "app.profile.badges.firstWork.description",
-        defaultMessage: "Awarded after this address proves a valid Green Goods work attestation.",
+        defaultMessage: "Awarded after your first piece of approved work.",
       });
     case "first-support":
       return intl.formatMessage({
         id: "app.profile.badges.firstSupport.description",
-        defaultMessage: "Claimable after this address holds a live garden vault position.",
+        defaultMessage: "Awarded after you support a garden.",
       });
     default:
       return "";

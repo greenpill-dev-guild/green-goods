@@ -1,4 +1,5 @@
-import { Button, logger, trackErrorBoundary } from "@green-goods/shared";
+import { logger, trackErrorBoundary } from "@green-goods/shared";
+import { AdminButton } from "@/components/AdminButton";
 import { RiAlertLine, RiArrowLeftLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
 import { useIntl } from "react-intl";
@@ -51,10 +52,13 @@ export default function RouteErrorBoundary() {
         description={formatMessage({ id: "app.error.route.chunk.description" })}
         technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
         actions={
-          <Button onClick={() => window.location.reload()}>
-            <RiRefreshLine className="h-4 w-4" />
+          <AdminButton
+            variant="filled"
+            leadingIcon={<RiRefreshLine />}
+            onClick={() => window.location.reload()}
+          >
             {formatMessage({ id: "app.error.route.chunk.action" })}
-          </Button>
+          </AdminButton>
         }
       />
     );
@@ -69,10 +73,13 @@ export default function RouteErrorBoundary() {
         description={formatMessage({ id: "app.error.route.network.description" })}
         technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
         actions={
-          <Button onClick={() => window.location.reload()}>
-            <RiRefreshLine className="h-4 w-4" />
+          <AdminButton
+            variant="filled"
+            leadingIcon={<RiRefreshLine />}
+            onClick={() => window.location.reload()}
+          >
             {formatMessage({ id: "app.error.route.network.action" })}
-          </Button>
+          </AdminButton>
         }
       />
     );
@@ -89,14 +96,20 @@ export default function RouteErrorBoundary() {
       details={import.meta.env.DEV ? extractMessage(error) : undefined}
       actions={
         <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => navigate(-1)}>
-            <RiArrowLeftLine className="h-4 w-4" />
+          <AdminButton
+            variant="tonal"
+            leadingIcon={<RiArrowLeftLine />}
+            onClick={() => navigate(-1)}
+          >
             {formatMessage({ id: "app.error.route.generic.actionBack" })}
-          </Button>
-          <Button onClick={() => window.location.reload()}>
-            <RiRefreshLine className="h-4 w-4" />
+          </AdminButton>
+          <AdminButton
+            variant="filled"
+            leadingIcon={<RiRefreshLine />}
+            onClick={() => window.location.reload()}
+          >
             {formatMessage({ id: "app.error.route.generic.actionReload" })}
-          </Button>
+          </AdminButton>
         </div>
       }
     />

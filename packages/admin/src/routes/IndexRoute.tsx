@@ -19,24 +19,31 @@ import {
   AppBar,
   MainSheet,
   adminRoutes,
+  queryKeys,
   useAuth,
+  useCurrentChain,
   useEligibleAdminGardens,
 } from "@green-goods/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import { useIntl } from "react-intl";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ConnectButton } from "@/components/ConnectButton";
 import { CanvasGardenAccessState } from "@/components/Layout/CanvasGardenAccessState";
+import { CanvasIndexerErrorState } from "@/components/Layout/CanvasIndexerErrorState";
 import { WalletRequiredConnectShell } from "@/components/Layout/ConnectShell";
 import { SeedlingIllustration } from "@/components/Layout/SeedlingIllustration";
 
 export default function IndexRoute() {
   const intl = useIntl();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const chainId = useCurrentChain();
   const { isAuthenticated, eoaAddress, isReady, authMode, signOut } = useAuth();
   const {
     eligibleGardens,
     isLoaded: eligibleGardensLoaded,
     canCreateGarden,
+    isError: eligibleGardensError,
   } = useEligibleAdminGardens();
 
   // Loading — mirrors the spinner inside CanvasLayout so there's no layout flash.
@@ -122,13 +129,14 @@ export default function IndexRoute() {
   }
 
   // Authenticated with at least one eligible garden — redirect into the hub.
+  // Note: `eligibleGardens` includes role-confirmed stubs from `useRole`, so an
+  // operator with a stale or errored base list still lands on the hub instead
+  // of the no-access shell.
   if (eligibleGardens.length > 0) {
     return <Navigate to={adminRoutes.hub()} replace />;
   }
 
-  // Authenticated with zero eligible gardens — render the no-access CTA inside
-  // the home shell so the surrounding canvas (AppBar + MainSheet) stays consistent.
-  return (
+  const homeShell = (children: React.ReactNode) => (
     <div
       data-workspace="home"
       className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
@@ -145,13 +153,32 @@ export default function IndexRoute() {
       </div>
       <MainSheet isReceded={false}>
         <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
-          <CanvasGardenAccessState
-            onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
-            canCreateGarden={canCreateGarden}
-          />
+          {children}
         </main>
       </MainSheet>
       <div className="canvas-area-bottom" />
     </div>
+  );
+
+  // Indexer outage: distinguish "we can't load gardens" from "you have no
+  // garden access". The previous ladder rendered the no-access copy in both
+  // cases, which gaslit operators during incidents.
+  if (eligibleGardensError) {
+    return homeShell(
+      <CanvasIndexerErrorState
+        onRetry={() => {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
+        }}
+      />
+    );
+  }
+
+  // Authenticated with zero eligible gardens — render the no-access CTA inside
+  // the home shell so the surrounding canvas (AppBar + MainSheet) stays consistent.
+  return homeShell(
+    <CanvasGardenAccessState
+      onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
+      canCreateGarden={canCreateGarden}
+    />
   );
 }

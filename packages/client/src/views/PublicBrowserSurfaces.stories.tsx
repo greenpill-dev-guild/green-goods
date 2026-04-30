@@ -5,8 +5,8 @@ import { withClientAppRuntime } from "../../../shared/.storybook/decorators";
 import { CLIENT_ROUTE_IDS, appRoutes } from "../router.config";
 import PublicShell from "../routes/PublicShell";
 import Root from "../routes/Root";
-import Landing from "./Landing";
 import GardensGallery from "./Public/Gardens";
+import PublicHome from "./Public/Home";
 
 function findRouteById(routes: RouteObject[], id: string): RouteObject | undefined {
   for (const route of routes) {
@@ -48,15 +48,40 @@ function requirePublicRoutePath(routeId: string, expectedPath: string) {
   return publicRoute.path;
 }
 
-// Sentinel: /landing must live exclusively under the public shell. If a future
-// agent moves it under a protected shell (RequireAuth → AppShell), this throws
-// at module load before the story renders.
+function requirePublicIndexRoute(routeId: string) {
+  const publicShell = findRouteById(appRoutes, CLIENT_ROUTE_IDS.publicShell);
+  const publicRoute = publicShell?.children?.find((route) => route.id === routeId);
+
+  if (!publicRoute || publicRoute.index !== true) {
+    throw new Error(`Expected ${routeId} to remain the public-shell index route.`);
+  }
+}
+
+function requireRedirectOnlyPublicRoute(routeId: string, expectedPath: string) {
+  const publicShell = findRouteById(appRoutes, CLIENT_ROUTE_IDS.publicShell);
+  const publicRoute = publicShell?.children?.find((route) => route.id === routeId);
+
+  if (
+    !publicRoute ||
+    publicRoute.path !== expectedPath ||
+    typeof publicRoute.loader !== "function" ||
+    publicRoute.lazy
+  ) {
+    throw new Error(`Expected ${expectedPath} to remain a redirect-only public route.`);
+  }
+}
+
+// Sentinel: /landing must stay as a legacy redirect under the public shell. If
+// a future agent revives the old landing component route, this throws at module
+// load before the story renders.
 const landingPaths = findAllRoutesByPath(appRoutes, "landing");
 if (landingPaths.length !== 1) {
   throw new Error(
     `Expected /landing to appear exactly once in appRoutes (under public-shell); found ${landingPaths.length}.`
   );
 }
+requirePublicIndexRoute(CLIENT_ROUTE_IDS.publicHome);
+requireRedirectOnlyPublicRoute(CLIENT_ROUTE_IDS.publicLanding, "landing");
 
 function PublicRouteSentinel({ title }: { title: string }) {
   return (
@@ -76,8 +101,8 @@ const publicStoryRoutes: RouteObject[] = [
         element: <PublicShell />,
         children: [
           {
-            path: requirePublicRoutePath(CLIENT_ROUTE_IDS.publicLanding, "landing"),
-            element: <Landing />,
+            index: true,
+            element: <PublicHome />,
           },
           {
             path: requirePublicRoutePath(CLIENT_ROUTE_IDS.publicGardens, "gardens"),
@@ -125,17 +150,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const LandingRoute: Story = {
-  render: () => <PublicBrowserRoute route="/landing" />,
+export const HomeRoute: Story = {
+  render: () => <PublicBrowserRoute route="/" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("banner")).toBeVisible();
     await expect(await canvas.findByRole("link", { name: /green goods logo/i })).toBeVisible();
-    await expect(
-      await canvas.findByRole("heading", {
-        name: /from good intentions to green\s+outcomes/i,
-      })
-    ).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Green Goods" })).toBeVisible();
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   },
 };

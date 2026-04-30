@@ -2,8 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import type { LoaderFunctionArgs } from "react-router-dom";
+import type { LoaderFunctionArgs, RouteObject } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
+import { appRoutes, CLIENT_ROUTE_IDS } from "../../router.config";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
@@ -37,6 +38,21 @@ function createMatchMedia(matcher: (query: string) => boolean = () => false): Wi
     }) as MediaQueryList) as Window["matchMedia"];
 }
 
+function createSessionStorage(): Storage {
+  const values = new Map<string, string>();
+
+  return {
+    get length() {
+      return values.size;
+    },
+    clear: () => values.clear(),
+    getItem: (key: string) => values.get(key) ?? null,
+    key: (index: number) => Array.from(values.keys())[index] ?? null,
+    removeItem: (key: string) => values.delete(key),
+    setItem: (key: string, value: string) => values.set(key, value),
+  } as Storage;
+}
+
 function mockNavigator(props: MockNavigator): void {
   Object.defineProperty(global, "navigator", {
     value: props,
@@ -56,6 +72,7 @@ function mockWindow(
       location: { hostname: "www.greengoods.app" },
       navigator: global.navigator,
       matchMedia: createMatchMedia(),
+      sessionStorage: createSessionStorage(),
       ...props,
     },
     writable: true,
@@ -77,6 +94,16 @@ function expectRedirect(result: unknown, location: string): void {
   expect(response.headers.get("Location")).toBe(location);
 }
 
+function findRouteById(routes: RouteObject[], id: string): RouteObject | undefined {
+  for (const route of routes) {
+    if (route.id === id) return route;
+    const childMatch = route.children ? findRouteById(route.children, id) : undefined;
+    if (childMatch) return childMatch;
+  }
+
+  return undefined;
+}
+
 function setWebsiteMode() {
   mockNavigator({
     userAgent:
@@ -85,6 +112,16 @@ function setWebsiteMode() {
     platform: "MacIntel",
   });
   mockWindow({ location: { hostname: "www.greengoods.app" } });
+}
+
+function setLocalDesktopMode() {
+  mockNavigator({
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    maxTouchPoints: 0,
+    platform: "MacIntel",
+  });
+  mockWindow({ location: { hostname: "localhost" } });
 }
 
 function setLocalDevicePreviewMode() {
@@ -131,10 +168,28 @@ describe("presentation-mode route guards", () => {
     expect(requireWebsitePresentationLoader(loaderArgs("https://www.greengoods.app/"))).toBeNull();
   });
 
+  it("allows localhost website override to render the public root", () => {
+    setLocalDevicePreviewMode();
+
+    expect(
+      requireWebsitePresentationLoader(loaderArgs("http://localhost:3001/?presentation=website"))
+    ).toBeNull();
+  });
+
   it("redirects localhost device-preview root to /home", () => {
     setLocalDevicePreviewMode();
 
     const result = requireWebsitePresentationLoader(loaderArgs("http://localhost:3001/"));
+
+    expectRedirect(result, "/home");
+  });
+
+  it("redirects localhost PWA override root to /home", () => {
+    setLocalDesktopMode();
+
+    const result = requireWebsitePresentationLoader(
+      loaderArgs("http://localhost:3001/?presentation=pwa")
+    );
 
     expectRedirect(result, "/home");
   });
@@ -180,6 +235,16 @@ describe("presentation-mode route guards", () => {
     expectRedirect(result, "/");
   });
 
+  it("redirects /home with website override back to the public root", () => {
+    setLocalDevicePreviewMode();
+
+    const result = requirePwaPresentationLoader(
+      loaderArgs("http://localhost:3001/home?presentation=website")
+    );
+
+    expectRedirect(result, "/");
+  });
+
   it.each([
     "/login",
     "/home",
@@ -195,5 +260,20 @@ describe("presentation-mode route guards", () => {
     setStandaloneMode();
 
     expect(requirePwaPresentationLoader(loaderArgs("https://www.greengoods.app/home"))).toBeNull();
+  });
+
+  it("keeps /landing as a redirect-only public compatibility route", async () => {
+    setLocalDesktopMode();
+
+    const landingRoute = findRouteById(appRoutes, CLIENT_ROUTE_IDS.publicLanding);
+    expect(landingRoute?.path).toBe("landing");
+    expect(landingRoute?.lazy).toBeUndefined();
+    expect(landingRoute?.loader).toBeTypeOf("function");
+
+    const result = await (landingRoute!.loader as (args: LoaderFunctionArgs) => unknown)(
+      loaderArgs("http://localhost:3001/landing?presentation=website")
+    );
+
+    expectRedirect(result, "/");
   });
 });

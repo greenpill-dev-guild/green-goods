@@ -115,8 +115,18 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
             </Avatar>
 
             <div className="flex-1">
-              <div className="text-base">Onboarding Form</div>
-              <div className="text-xs text-text-sub-600">Takes ~10 minutes to complete</div>
+              <div className="text-base">
+                {intl.formatMessage({
+                  id: "app.profile.help.onboardingForm.title",
+                  defaultMessage: "Onboarding form",
+                })}
+              </div>
+              <div className="text-xs text-text-sub-600">
+                {intl.formatMessage({
+                  id: "app.profile.help.onboardingForm.description",
+                  defaultMessage: "Takes about 10 minutes",
+                })}
+              </div>
             </div>
             <div className="flex text-right">
               <RiArrowDropRightLine />

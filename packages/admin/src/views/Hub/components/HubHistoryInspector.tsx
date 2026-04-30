@@ -1,5 +1,4 @@
 import {
-  Button,
   formatRelativeTime,
   HUB_HISTORY_STATUS_CLASSNAME,
   Surface,
@@ -7,6 +6,7 @@ import {
 } from "@green-goods/shared";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 
 export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
   const { formatMessage } = useIntl();
@@ -40,15 +40,14 @@ export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
                 "This event is summarized inside Hub. Open the linked surface only if you need the full workflow or record context.",
             })}
           </p>
-          <Button variant="secondary" asChild>
+          <AdminButton variant="tonal" leadingIcon={<RiExternalLinkLine />} asChild>
             <a href={event.href}>
-              <RiExternalLinkLine className="h-4 w-4" />
               {formatMessage({
                 id: "cockpit.hub.history.openLinkedView",
                 defaultMessage: "Open linked view",
               })}
             </a>
-          </Button>
+          </AdminButton>
         </Surface>
       ) : null}
     </div>

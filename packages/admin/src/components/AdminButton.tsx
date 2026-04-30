@@ -65,8 +65,12 @@ export const adminButtonVariants = tv({
       ],
     },
     size: {
-      sm: "h-10 px-4 text-label-sm",
+      // Compact dense action — 32dp. Used in list rows, table actions, and
+      // inline text-variant buttons where 40dp would feel oversized.
+      sm: "h-8 px-3 text-label-sm",
+      // Standard M3 common-button height (40dp).
       md: "h-10 px-6 text-label-lg",
+      // Prominent first-action button (48dp).
       lg: "h-12 px-6 text-body-lg",
     },
     hasLeadingIcon: {
@@ -77,8 +81,8 @@ export const adminButtonVariants = tv({
   compoundVariants: [
     // When hasLeadingIcon + md → pl-4 pr-6
     { size: "md", hasLeadingIcon: true, class: "pl-4 pr-6" },
-    // When hasLeadingIcon + sm → pl-3 pr-4
-    { size: "sm", hasLeadingIcon: true, class: "pl-3 pr-4" },
+    // When hasLeadingIcon + sm → pl-2 pr-3 (tight spacing for the dense size)
+    { size: "sm", hasLeadingIcon: true, class: "pl-2 pr-3" },
     // When hasLeadingIcon + lg → pl-4 pr-6
     { size: "lg", hasLeadingIcon: true, class: "pl-4 pr-6" },
   ],

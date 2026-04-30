@@ -1,7 +1,6 @@
 import {
   type Address,
   AddressDisplay,
-  Button,
   Card,
   EmptyState,
   ErrorBoundary,
@@ -19,6 +18,7 @@ import {
   RiUserLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 
 const roleIcons = {
@@ -68,18 +68,18 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
                     {roleLabel.plural}
                   </h3>
                   {canManageRoles && (
-                    <Button
-                      variant="secondary"
+                    <AdminButton
+                      variant="tonal"
                       size="sm"
+                      leadingIcon={<RiUserAddLine />}
                       onClick={() => onOpenAddMember(role)}
                       aria-label={formatMessage(
                         { id: "app.admin.roles.add" },
                         { role: roleLabel.singular }
                       )}
                     >
-                      <RiUserAddLine className="mr-1 h-4 w-4" />
                       {formatMessage({ id: "app.garden.admin.add" })}
-                    </Button>
+                    </AdminButton>
                   )}
                 </Card.Header>
                 <Card.Body>
@@ -129,8 +129,8 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
                         ))}
                       </div>
                       {members.length > 3 && (
-                        <Button
-                          variant="secondary"
+                        <AdminButton
+                          variant="tonal"
                           size="sm"
                           className="mt-3 w-full"
                           onClick={() => onOpenMembersModal(role)}
@@ -139,7 +139,7 @@ export const GardenRolesPanel: React.FC<GardenRolesPanelProps> = ({
                             { id: "app.garden.admin.viewAllCount" },
                             { count: members.length }
                           )}
-                        </Button>
+                        </AdminButton>
                       )}
                     </>
                   )}

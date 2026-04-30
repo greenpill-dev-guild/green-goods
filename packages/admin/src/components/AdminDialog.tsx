@@ -71,6 +71,9 @@ export function AdminDialog({
             "fixed left-1/2 top-1/2 z-modal -translate-x-1/2 -translate-y-1/2",
             // Width constraints (Rule 14: mobile safety)
             "w-full max-w-[calc(100vw-2rem)] sm:max-w-md",
+            // Height + flex layout — keeps headline + actions pinned and lets
+            // the body scroll inside the panel instead of overflowing the viewport.
+            "max-h-[calc(100dvh-2rem)] flex flex-col",
             // M3 shape: corner-extra-large (28dp)
             "rounded-[var(--m3-shape-xl)]",
             // Surface
@@ -132,13 +135,21 @@ export function AdminDialog({
             </Dialog.Description>
           ) : null}
 
-          {/* Body content */}
-          <div className="mt-4 text-body-md text-[rgb(var(--m3-on-surface-variant))]">
+          {/* Body content — scrolls if the panel hits its max-height. The
+              negative-margin + matching padding restores the panel's 24dp
+              padding visually while allowing the scroll thumb to ride the edge. */}
+          <div
+            className={cn(
+              "mt-4 min-h-0 flex-1 overflow-y-auto text-body-md",
+              "text-[rgb(var(--m3-on-surface-variant))]",
+              "-mx-6 px-6"
+            )}
+          >
             {children}
           </div>
 
-          {/* Actions — right-aligned row */}
-          {actions ? <div className="mt-6 flex justify-end gap-2">{actions}</div> : null}
+          {/* Actions — right-aligned row, pinned below the scrollable body */}
+          {actions ? <div className="mt-6 flex shrink-0 justify-end gap-2">{actions}</div> : null}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

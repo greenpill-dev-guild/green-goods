@@ -1,5 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
+import { IntlProvider } from "react-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared", () => ({
@@ -34,7 +35,9 @@ describe("ProfileAccount", () => {
   });
 
   it("keeps badges out of the account profile stack", () => {
-    render(createElement(ProfileAccount));
+    render(
+      createElement(IntlProvider, { locale: "en", messages: {} }, createElement(ProfileAccount))
+    );
 
     expect(screen.getByTestId("install-cta")).toBeInTheDocument();
     expect(screen.getByTestId("app-settings")).toBeInTheDocument();

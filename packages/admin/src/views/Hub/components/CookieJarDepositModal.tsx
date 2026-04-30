@@ -1,6 +1,5 @@
 import {
   type Address,
-  Button,
   formatTokenAmount,
   getVaultAssetSymbol,
   NativeSelect,
@@ -12,6 +11,7 @@ import {
   useUser,
   validateDecimalInput,
 } from "@green-goods/shared";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -195,8 +195,8 @@ export function CookieJarDepositModal({
         </div>
 
         {/* Submit */}
-        <Button
-          variant="secondary"
+        <AdminButton
+          variant="tonal"
           className="w-full"
           loading={isPending}
           disabled={!selectedDepositJar || parsedDepositAmount <= 0n || Boolean(belowMinDeposit)}
@@ -223,7 +223,7 @@ export function CookieJarDepositModal({
                 defaultMessage: "Depositing...",
               })
             : formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
-        </Button>
+        </AdminButton>
 
         {/* Error feedback */}
         <TxInlineFeedback

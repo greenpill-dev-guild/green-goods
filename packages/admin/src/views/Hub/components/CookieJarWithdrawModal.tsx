@@ -1,6 +1,5 @@
 import {
   type Address,
-  Button,
   formatTokenAmount,
   getVaultAssetSymbol,
   NativeSelect,
@@ -179,8 +178,8 @@ export function CookieJarWithdrawModal({
         </div>
 
         {/* Submit */}
-        <Button
-          variant="primary"
+        <AdminButton
+          variant="filled"
           className="w-full"
           loading={isPending}
           disabled={!selectedWithdrawJar || parsedWithdrawAmount <= 0n}
@@ -208,7 +207,7 @@ export function CookieJarWithdrawModal({
                 defaultMessage: "Withdrawing...",
               })
             : formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Withdraw" })}
-        </Button>
+        </AdminButton>
 
         {/* Error feedback */}
         <TxInlineFeedback

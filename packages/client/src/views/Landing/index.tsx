@@ -1,7 +1,7 @@
 import { toastService } from "@green-goods/shared";
 import React from "react";
 import { useIntl } from "react-intl";
-import { Hero } from "@/components/Layout";
+import { Hero } from "@/components/Layout/Hero";
 
 const Landing: React.FC = () => {
   const { formatMessage } = useIntl();

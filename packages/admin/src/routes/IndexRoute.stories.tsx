@@ -22,6 +22,11 @@ import {
   withSeededQueryClient,
   withWagmi,
 } from "../../../shared/.storybook/decorators";
+import { AppBar, MainSheet } from "@green-goods/shared";
+import { fn } from "storybook/test";
+import { CanvasGardenAccessState } from "@/components/Layout/CanvasGardenAccessState";
+import { CanvasIndexerErrorState } from "@/components/Layout/CanvasIndexerErrorState";
+import { SeedlingIllustration } from "@/components/Layout/SeedlingIllustration";
 import IndexRoute from "./IndexRoute";
 
 const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
@@ -221,5 +226,86 @@ export const RedirectReady: Story = {
     await expect(await canvas.findByRole("status")).toHaveTextContent(
       "Redirected to Hub workbench"
     );
+  },
+};
+
+/**
+ * Visual harness for the indexer-error and operator-misclassification cases.
+ *
+ * The route-driven scenarios above can't simulate `useGardens.isError = true`
+ * via React Query seeds (errors come from queryFn execution, not setQueryData),
+ * so these stories render the terminal-state components directly inside the
+ * home shell. They cover the IndexerError state introduced by the audit fix
+ * and the operator-only no-garden copy that operators see now that
+ * `canCreateGarden` is gated to deployers.
+ */
+function HomeShellHarness({ children }: { children: ReactNode }) {
+  return (
+    <div
+      data-workspace="home"
+      className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
+    >
+      <div className="canvas-area-top">
+        <AppBar
+          gardenChip={
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-strong">
+              <SeedlingIllustration className="h-5 w-5" />
+              Green Goods
+            </span>
+          }
+        />
+      </div>
+      <MainSheet isReceded={false}>
+        <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
+          {children}
+        </main>
+      </MainSheet>
+      <div className="canvas-area-bottom" />
+    </div>
+  );
+}
+
+const harnessDecorators = [
+  withCanvasFrame({
+    className: "p-0",
+    heightClassName: "h-[760px]",
+    workspace: "home",
+  }),
+];
+
+export const NoGardenAccessOperator: Story = {
+  tags: ["visual-harness"],
+  name: "NoGardenAccess (operator copy)",
+  render: () => (
+    <HomeShellHarness>
+      <CanvasGardenAccessState onCreateGarden={fn()} canCreateGarden={false} />
+    </HomeShellHarness>
+  ),
+  decorators: harnessDecorators,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Operator-only copy: no Create Garden CTA, message reads 'Ask a garden owner to add you as an operator.' This is what `useEligibleAdminGardens.canCreateGarden=false` produces — and after the F2 fix that gate is `role === \"deployer\"`, so any operator with zero eligible gardens lands here.",
+      },
+    },
+  },
+};
+
+export const IndexerError: Story = {
+  tags: ["visual-harness"],
+  render: () => (
+    <HomeShellHarness>
+      <CanvasIndexerErrorState onRetry={fn()} />
+    </HomeShellHarness>
+  ),
+  decorators: harnessDecorators,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Distinct from the no-garden state. Renders when `useEligibleAdminGardens.isError` is true and the role-confirmed cross-check did not produce any fallback gardens. Previously this case rendered the no-garden copy, which gaslit operators during indexer outages.",
+      },
+    },
   },
 };

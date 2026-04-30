@@ -79,20 +79,26 @@ export const AccountInfo: React.FC = () => {
               {authMode === "passkey"
                 ? intl.formatMessage({
                     id: "app.account.passkey",
-                    defaultMessage: "Passkey Wallet",
+                    defaultMessage: "Passkey",
                   })
                 : intl.formatMessage({
                     id: "app.account.wallet",
-                    defaultMessage: "External Wallet",
+                    defaultMessage: "Wallet",
                   })}
             </div>
             <div className="text-xs text-text-sub-600">
               {authMode === "passkey" && credential
-                ? "Active"
+                ? intl.formatMessage({ id: "app.account.statusActive", defaultMessage: "Active" })
                 : (authMode === "wallet" && walletAddress) ||
                     (authMode === "embedded" && embeddedAddress)
-                  ? "Connected"
-                  : "Not configured"}
+                  ? intl.formatMessage({
+                      id: "app.account.statusConnected",
+                      defaultMessage: "Connected",
+                    })
+                  : intl.formatMessage({
+                      id: "app.account.statusNotConfigured",
+                      defaultMessage: "Not configured",
+                    })}
             </div>
           </div>
         </div>
@@ -110,8 +116,7 @@ export const AccountInfo: React.FC = () => {
               <div className="text-sm font-medium truncate">
                 {intl.formatMessage({
                   id: "app.account.address",
-                  defaultMessage:
-                    authMode === "passkey" ? "Smart Account Address" : "Wallet Address",
+                  defaultMessage: "Address",
                 })}
               </div>
             </div>
@@ -131,21 +136,20 @@ export const AccountInfo: React.FC = () => {
             <RiAlertLine className="w-3.5 h-3.5 shrink-0" />
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.title",
-              defaultMessage: "Passkey stored locally",
+              defaultMessage: "Save a backup before changing browsers",
             })}
           </p>
           <p className="mt-1 leading-relaxed">
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.message",
               defaultMessage:
-                "Your passkey is stored on this device's browser storage. Clearing browser data or uninstalling the app will permanently remove access to this account.",
+                "This sign-in lives on this device only. Clearing browser data or uninstalling the app will sign you out.",
             })}
           </p>
           <p className="mt-1 leading-relaxed">
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.guidance",
-              defaultMessage:
-                "For persistent access across devices, consider switching to wallet-based login.",
+              defaultMessage: "Want access from another device? Sign in with a wallet instead.",
             })}
           </p>
         </div>
