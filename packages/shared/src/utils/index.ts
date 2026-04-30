@@ -48,6 +48,7 @@ export {
 export {
   aggregateCampaignCookieJarOperators,
   buildCampaignCookieJarMetadata,
+  deriveCampaignCookieJarClaimState,
   diffCampaignCookieJarAllowlist,
   normalizeCampaignAddress,
   parseCampaignAddressList,

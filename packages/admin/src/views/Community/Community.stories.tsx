@@ -114,3 +114,9 @@ export const Members: Story = {
   args: { initialPath: "/community/members" },
   decorators: communityDecorators(),
 };
+
+export const CampaignCookies: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/community/cookies" },
+  decorators: communityDecorators(),
+};

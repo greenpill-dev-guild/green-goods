@@ -128,6 +128,16 @@ export const COOKIE_JAR_ABI = [
     outputs: [{ type: "address[]" }],
   },
   {
+    name: "hasRole",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "role", type: "bytes32" },
+      { name: "account", type: "address" },
+    ],
+    outputs: [{ type: "bool" }],
+  },
+  {
     name: "grantJarAllowlistRole",
     type: "function",
     stateMutability: "nonpayable",

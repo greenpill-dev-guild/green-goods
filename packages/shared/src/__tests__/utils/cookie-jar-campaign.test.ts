@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aggregateCampaignCookieJarOperators,
   buildCampaignCookieJarMetadata,
+  deriveCampaignCookieJarClaimState,
   diffCampaignCookieJarAllowlist,
   parseCampaignAddressList,
   parseCampaignCookieJarMetadata,
@@ -77,5 +78,80 @@ describe("cookie jar campaign utilities", () => {
 
     expect(diff.grant).toEqual([EXTRA]);
     expect(diff.revoke).toEqual([OPERATOR_B]);
+  });
+
+  it("requires fixed jars to cover the fixed amount before claiming", () => {
+    const state = deriveCampaignCookieJarClaimState({
+      hasConnectedUser: true,
+      isEligible: true,
+      isPaused: false,
+      withdrawalType: "fixed",
+      fixedAmount: 10n,
+      maxWithdrawal: 10n,
+      balance: 5n,
+      oneTimeWithdrawal: false,
+      totalWithdrawn: 0n,
+      withdrawalInterval: 0n,
+      lastWithdrawalTime: 0n,
+    });
+
+    expect(state).toEqual({ canClaimNow: false, nextClaimAt: null });
+  });
+
+  it("allows variable jars to claim less than max when the jar has some balance", () => {
+    const state = deriveCampaignCookieJarClaimState({
+      hasConnectedUser: true,
+      isEligible: true,
+      isPaused: false,
+      withdrawalType: "variable",
+      fixedAmount: 0n,
+      maxWithdrawal: 100n,
+      balance: 5n,
+      oneTimeWithdrawal: false,
+      totalWithdrawn: 0n,
+      withdrawalInterval: 0n,
+      lastWithdrawalTime: 0n,
+    });
+
+    expect(state).toEqual({ canClaimNow: true, nextClaimAt: null });
+  });
+
+  it("blocks paused, already-claimed, and cooling-down jars", () => {
+    const base = {
+      hasConnectedUser: true,
+      isEligible: true,
+      withdrawalType: "fixed" as const,
+      fixedAmount: 10n,
+      maxWithdrawal: 10n,
+      balance: 10n,
+      withdrawalInterval: 100n,
+      lastWithdrawalTime: 1_000n,
+      now: 1_050,
+    };
+
+    expect(
+      deriveCampaignCookieJarClaimState({
+        ...base,
+        isPaused: true,
+        oneTimeWithdrawal: false,
+        totalWithdrawn: 0n,
+      }).canClaimNow
+    ).toBe(false);
+    expect(
+      deriveCampaignCookieJarClaimState({
+        ...base,
+        isPaused: false,
+        oneTimeWithdrawal: true,
+        totalWithdrawn: 10n,
+      }).canClaimNow
+    ).toBe(false);
+    expect(
+      deriveCampaignCookieJarClaimState({
+        ...base,
+        isPaused: false,
+        oneTimeWithdrawal: false,
+        totalWithdrawn: 0n,
+      })
+    ).toEqual({ canClaimNow: false, nextClaimAt: 1_100 });
   });
 });

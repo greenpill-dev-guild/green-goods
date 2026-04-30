@@ -23,6 +23,7 @@ import type {
 import type { Address } from "../../types/domain";
 import {
   buildCampaignCookieJarMetadata,
+  deriveCampaignCookieJarClaimState,
   parseCampaignCookieJarMetadata,
 } from "../../utils/cookie-jar-campaign";
 import {
@@ -51,7 +52,8 @@ const ERC20_BALANCE_ABI = [
 ] as const;
 
 const BASE_FIELD_COUNT = 13;
-const FACTORY_DEFAULT_FEE_SENTINEL = 2n ** 256n - 1n;
+const JAR_OWNER_ROLE =
+  "0xf4c05651b21c0b5115a86aea17b8d2ecec6e23e9d6dc086e2b8c9c8e4cd7fefd" as const;
 
 type TxErrorMode = "toast" | "inline" | "auto";
 
@@ -159,6 +161,12 @@ export function useCampaignCookieJar(
         functionName: "totalWithdrawn" as const,
         args: [normalizedUser],
       },
+      {
+        address: normalizedJar,
+        abi: COOKIE_JAR_ABI,
+        functionName: "hasRole" as const,
+        args: [JAR_OWNER_ROLE, normalizedUser],
+      },
     ];
   }, [normalizedJar, normalizedUser]);
 
@@ -222,25 +230,35 @@ export function useCampaignCookieJar(
       normalizedUser && results.length > BASE_FIELD_COUNT + 1
         ? ((results[BASE_FIELD_COUNT + 1]?.result as bigint | undefined) ?? 0n)
         : 0n;
+    const isOwner =
+      normalizedUser && results.length > BASE_FIELD_COUNT + 2
+        ? Boolean(results[BASE_FIELD_COUNT + 2]?.result)
+        : false;
     const rawMetadata = (metadataQuery.data as string | undefined) ?? "";
     const metadata = parseCampaignCookieJarMetadata(rawMetadata);
     const decimals = (tokenQuery.data?.[0]?.result as number | undefined) ?? 18;
     const symbol = (tokenQuery.data?.[1]?.result as string | undefined) ?? "TOKEN";
     const oneTimeWithdrawal = (results[7]?.result as boolean | undefined) ?? false;
     const isPaused = (results[9]?.result as boolean | undefined) ?? false;
-    const now = Math.floor(Date.now() / 1000);
-    const nextClaimAt =
-      withdrawalInterval > 0n && lastWithdrawalTime > 0n
-        ? Number(lastWithdrawalTime + withdrawalInterval)
-        : null;
-    const cooldownReady = !nextClaimAt || nextClaimAt <= now;
     const isEligible = Boolean(
       normalizedUser &&
         (accessType === "allowlist"
           ? allowlist.some((address) => address.toLowerCase() === normalizedUser)
           : accessType !== "unknown")
     );
-    const claimAmount = withdrawalType === "fixed" ? fixedAmount : maxWithdrawal;
+    const claimState = deriveCampaignCookieJarClaimState({
+      hasConnectedUser: Boolean(normalizedUser),
+      isEligible,
+      isPaused,
+      withdrawalType,
+      fixedAmount,
+      maxWithdrawal,
+      balance,
+      oneTimeWithdrawal,
+      totalWithdrawn,
+      withdrawalInterval,
+      lastWithdrawalTime,
+    });
 
     return {
       jarAddress: normalizedJar,
@@ -263,17 +281,11 @@ export function useCampaignCookieJar(
       strictPurpose: (results[8]?.result as boolean | undefined) ?? false,
       allowlist,
       isEligible,
+      isOwner,
       lastWithdrawalTime,
       totalWithdrawn,
-      canClaimNow:
-        Boolean(normalizedUser) &&
-        isEligible &&
-        !isPaused &&
-        claimAmount > 0n &&
-        balance >= claimAmount &&
-        (!oneTimeWithdrawal || totalWithdrawn === 0n) &&
-        cooldownReady,
-      nextClaimAt: cooldownReady ? null : nextClaimAt,
+      canClaimNow: claimState.canClaimNow,
+      nextClaimAt: claimState.nextClaimAt,
     };
   }, [
     currency,
@@ -346,7 +358,7 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
             maxWithdrawal: params.maxWithdrawal,
             withdrawalInterval: params.withdrawalInterval,
             minDeposit: params.minDeposit,
-            feePercentageOnDeposit: FACTORY_DEFAULT_FEE_SENTINEL,
+            feePercentageOnDeposit: 0n,
             maxWithdrawalPerPeriod: 0n,
             metadata,
             multiTokenConfig,

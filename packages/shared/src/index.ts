@@ -595,6 +595,7 @@ export type {
   PublicImpactEvidenceRecord,
   PublicImpactSlice,
 } from "./public-contracts";
+export { derivePublicGardenSlug } from "./public-contracts";
 // ============================================================================
 // I18N
 // ============================================================================
@@ -983,6 +984,7 @@ export {
   compareAddresses,
   // Work utilities
   aggregateCampaignCookieJarOperators,
+  deriveCampaignCookieJarClaimState,
   convertJobsToWorks,
   copyToClipboard,
   createDraftErrorHandler,

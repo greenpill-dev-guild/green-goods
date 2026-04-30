@@ -20,12 +20,38 @@ import { useBalance } from "wagmi";
 
 const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
 
-const CAMPAIGN_COOKIE_JAR_ALIASES: Record<string, Address | undefined> = {};
-
 type CookieMode = "claim" | "deposit";
 
 function formatDisplayAmount(value: bigint, decimals: number, symbol: string): string {
   return `${formatTokenAmount(value, decimals, 4)} ${symbol}`;
+}
+
+function normalizeCampaignSlug(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function readCampaignCookieJarAliases(): Record<string, Address | undefined> {
+  const raw = (import.meta.env as Record<string, string | undefined>).VITE_CAMPAIGN_COOKIE_JARS;
+  if (!raw?.trim()) return {};
+
+  const aliases: Record<string, Address | undefined> = {};
+  const addAlias = (slug: unknown, address: unknown) => {
+    if (typeof slug !== "string" || typeof address !== "string" || !isAddress(address)) return;
+    aliases[normalizeCampaignSlug(slug)] = getAddress(address) as Address;
+  };
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    Object.entries(parsed).forEach(([slug, address]) => addAlias(slug, address));
+    return aliases;
+  } catch {
+    raw.split(/[\n,]+/).forEach((entry) => {
+      const [slug, address] = entry.split(/[=:]/).map((part) => part.trim());
+      addAlias(slug, address);
+    });
+  }
+
+  return aliases;
 }
 
 function resolveCampaignJar(searchParams: URLSearchParams): {
@@ -39,9 +65,9 @@ function resolveCampaignJar(searchParams: URLSearchParams): {
     return { jarAddress: getAddress(jar) as Address };
   }
 
-  const campaignSlug = searchParams.get("campaign")?.trim().toLowerCase();
+  const campaignSlug = normalizeCampaignSlug(searchParams.get("campaign") ?? "");
   if (!campaignSlug) return {};
-  return { jarAddress: CAMPAIGN_COOKIE_JAR_ALIASES[campaignSlug], campaignSlug };
+  return { jarAddress: readCampaignCookieJarAliases()[campaignSlug], campaignSlug };
 }
 
 function CampaignCookieJarPanel({ jarAddress }: { jarAddress: Address }) {

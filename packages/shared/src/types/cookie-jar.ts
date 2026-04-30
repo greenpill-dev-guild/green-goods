@@ -41,6 +41,7 @@ export interface CampaignCookieJar extends Omit<CookieJar, "gardenAddress"> {
   strictPurpose: boolean;
   allowlist: Address[];
   isEligible: boolean;
+  isOwner: boolean;
   lastWithdrawalTime: bigint;
   totalWithdrawn: bigint;
   canClaimNow: boolean;

@@ -110,6 +110,7 @@ function renderPage(path = `/cookies?jar=${TEST_JAR}`) {
 describe("CookiesPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.unstubAllEnvs();
     claimError = null;
     depositError = null;
     mockUseUser.mockReturnValue({ primaryAddress: TEST_WALLET });
@@ -144,6 +145,46 @@ describe("CookiesPage", () => {
       {
         jarAddress: TEST_JAR,
         amount: 10000000000000000000n,
+        purpose: "Campaign cookie claim",
+      },
+      expect.any(Object)
+    );
+  });
+
+  it("resolves campaign aliases from the runtime cookie jar map", async () => {
+    vi.stubEnv("VITE_CAMPAIGN_COOKIE_JARS", JSON.stringify({ "earth-week": TEST_JAR }));
+
+    renderPage("/cookies?campaign=earth-week");
+
+    expect(await screen.findByText("Earth Week Cookie Jar"));
+    expect(mockUseCampaignCookieJar).toHaveBeenCalledWith(TEST_JAR);
+  });
+
+  it("submits a smaller variable claim when the jar balance is below max withdrawal", async () => {
+    const user = userEvent.setup();
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: {
+        ...eligibleJar,
+        balance: 5000000000000000000n,
+        fixedAmount: 0n,
+        maxWithdrawal: 100000000000000000000n,
+        withdrawalType: "variable",
+        canClaimNow: true,
+      },
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: false,
+    });
+
+    renderPage();
+
+    await user.type(await screen.findByLabelText("Amount to claim"), "3");
+    await user.click(screen.getByRole("button", { name: "Claim cookie" }));
+
+    expect(mockClaimMutate).toHaveBeenCalledWith(
+      {
+        jarAddress: TEST_JAR,
+        amount: 3000000000000000000n,
         purpose: "Campaign cookie claim",
       },
       expect.any(Object)

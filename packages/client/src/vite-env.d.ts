@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_QUEUE_DEBUG?: string;
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_PINATA_GATEWAY_URL?: string;
+  readonly VITE_CAMPAIGN_COOKIE_JARS?: string;
 }
 
 interface ImportMeta {

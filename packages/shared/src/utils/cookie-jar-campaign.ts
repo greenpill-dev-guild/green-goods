@@ -5,6 +5,7 @@ import type {
   CampaignCookieJarMetadata,
   CampaignCookieJarOperatorAggregation,
   CampaignCookieJarOperatorSource,
+  CookieJarWithdrawalType,
 } from "../types/cookie-jar";
 
 const METADATA_KIND = "green-goods.campaign-cookie-jar";
@@ -119,6 +120,45 @@ export function buildCampaignCookieJarMetadata(params: {
     extraAllowlist: dedupeAddresses(params.extraAllowlist),
     chainId: params.chainId,
     createdAt: params.createdAt ?? Math.floor(Date.now() / 1000),
+  };
+}
+
+export function deriveCampaignCookieJarClaimState(params: {
+  hasConnectedUser: boolean;
+  isEligible: boolean;
+  isPaused: boolean;
+  withdrawalType: CookieJarWithdrawalType;
+  fixedAmount: bigint;
+  maxWithdrawal: bigint;
+  balance: bigint;
+  oneTimeWithdrawal: boolean;
+  totalWithdrawn: bigint;
+  withdrawalInterval: bigint;
+  lastWithdrawalTime: bigint;
+  now?: number;
+}): { canClaimNow: boolean; nextClaimAt: number | null } {
+  const now = params.now ?? Math.floor(Date.now() / 1000);
+  const nextClaimAt =
+    params.withdrawalInterval > 0n && params.lastWithdrawalTime > 0n
+      ? Number(params.lastWithdrawalTime + params.withdrawalInterval)
+      : null;
+  const cooldownReady = !nextClaimAt || nextClaimAt <= now;
+  const configuredAmountReady =
+    params.withdrawalType === "fixed"
+      ? params.fixedAmount > 0n && params.balance >= params.fixedAmount
+      : params.withdrawalType === "variable"
+        ? params.maxWithdrawal > 0n && params.balance > 0n
+        : false;
+
+  return {
+    canClaimNow:
+      params.hasConnectedUser &&
+      params.isEligible &&
+      !params.isPaused &&
+      configuredAmountReady &&
+      (!params.oneTimeWithdrawal || params.totalWithdrawn === 0n) &&
+      cooldownReady,
+    nextClaimAt: cooldownReady ? null : nextClaimAt,
   };
 }
 

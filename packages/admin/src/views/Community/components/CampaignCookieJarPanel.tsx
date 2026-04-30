@@ -21,13 +21,18 @@ import {
 import { RiAddLine, RiRefreshLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { isAddress, parseUnits } from "viem";
+import { parseUnits } from "viem";
 import { useReadContracts } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
+import {
+  canSyncCampaignCookieJarAllowlist,
+  filterCampaignCookieJarGardens,
+  resolveCampaignCookieJarCreateFollowUp,
+} from "../campaignCookieJarPanel.model";
 
 const PUBLIC_COOKIE_BASE_URL = "https://greengoods.app/cookies";
 
@@ -81,16 +86,7 @@ function GardenSelector({
     [selectedGardenIds]
   );
   const visibleGardens = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    if (!query) return gardens.slice(0, 12);
-    return gardens
-      .filter(
-        (garden) =>
-          garden.name.toLowerCase().includes(query) ||
-          garden.id.toLowerCase().includes(query) ||
-          garden.tokenAddress.toLowerCase().includes(query)
-      )
-      .slice(0, 20);
+    return filterCampaignCookieJarGardens(gardens, search);
   }, [gardens, search]);
 
   return (
@@ -169,6 +165,8 @@ export function CampaignCookieJarPanel() {
   const [gardenSearch, setGardenSearch] = useState("");
   const [extraAddresses, setExtraAddresses] = useState("");
   const [createdJarAddress, setCreatedJarAddress] = useState<Address | null>(null);
+  const [createdJarPendingHash, setCreatedJarPendingHash] = useState<string | null>(null);
+  const [createdJarManualInput, setCreatedJarManualInput] = useState("");
 
   const [syncJarAddressInput, setSyncJarAddressInput] = useState("");
   const [syncGardenIds, setSyncGardenIds] = useState<string[]>([]);
@@ -249,6 +247,7 @@ export function CampaignCookieJarPanel() {
     ? parseAmountInput(maxClaimAmount, tokenDecimals)
     : parsedClaimAmount;
   const normalizedJarOwner = normalizeCampaignAddress(jarOwner);
+  const createdJarManualAddress = normalizeCampaignAddress(createdJarManualInput);
   const hasValidClaimConfig = variableMode
     ? Boolean(parsedMaxClaimAmount)
     : Boolean(parsedClaimAmount);
@@ -280,6 +279,15 @@ export function CampaignCookieJarPanel() {
     );
   };
 
+  const applyCreatedJarAddress = (jarAddress: Address) => {
+    setCreatedJarAddress(jarAddress);
+    setCreatedJarPendingHash(null);
+    setCreatedJarManualInput("");
+    setSyncJarAddressInput(jarAddress);
+    setSyncGardenIds(selectedGardenIds);
+    setSyncExtraAddresses(extraAddresses);
+  };
+
   const handleCreate = () => {
     if (!canCreate || !factoryAddress || !normalizedTokenAddress || !normalizedJarOwner) return;
     const intervalDays = Number(withdrawalIntervalDays);
@@ -306,11 +314,12 @@ export function CampaignCookieJarPanel() {
       },
       {
         onSuccess: (result) => {
-          if (result.jarAddress) {
-            setCreatedJarAddress(result.jarAddress);
-            setSyncJarAddressInput(result.jarAddress);
-            setSyncGardenIds(selectedGardenIds);
-            setSyncExtraAddresses(extraAddresses);
+          const followUp = resolveCampaignCookieJarCreateFollowUp(result);
+          if (followUp.kind === "ready") {
+            applyCreatedJarAddress(followUp.jarAddress);
+          } else {
+            setCreatedJarAddress(null);
+            setCreatedJarPendingHash(followUp.hash);
           }
           setDialogOpen(false);
         },
@@ -318,10 +327,13 @@ export function CampaignCookieJarPanel() {
     );
   };
 
-  const canSync =
-    Boolean(syncJarAddress && isDeployer) &&
-    syncAggregation.invalidAddresses.length === 0 &&
-    (syncDiff.grant.length > 0 || syncDiff.revoke.length > 0);
+  const canSync = canSyncCampaignCookieJarAllowlist({
+    jarAddress: syncJarAddress,
+    isJarOwner: Boolean(syncJar.jar?.isOwner),
+    invalidAddressCount: syncAggregation.invalidAddresses.length,
+    grantCount: syncDiff.grant.length,
+    revokeCount: syncDiff.revoke.length,
+  });
 
   const handleSync = () => {
     if (!syncJarAddress || !canSync) return;
@@ -406,7 +418,7 @@ export function CampaignCookieJarPanel() {
           {formatMessage({
             id: "cockpit.community.cookies.deployerOnly",
             defaultMessage:
-              "This surface is intended for deployer and ops wallets. Connect one to create or sync jars.",
+              "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create jars, or the jar owner to sync an existing jar.",
           })}
         </AdminCard>
       ) : null}
@@ -430,6 +442,65 @@ export function CampaignCookieJarPanel() {
           >
             {publicJarLink(createdJarAddress)}
           </a>
+        </AdminCard>
+      ) : null}
+
+      {createdJarPendingHash ? (
+        <AdminCard variant="outlined" className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-label-lg text-[rgb(var(--m3-on-surface))]">
+              {formatMessage({
+                id: "cockpit.community.cookies.createSubmitted",
+                defaultMessage: "Creation submitted",
+              })}
+            </p>
+            <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+              {formatMessage({
+                id: "cockpit.community.cookies.createSubmittedDescription",
+                defaultMessage:
+                  "The wallet returned a submitted transaction without a final jar address. Once the transaction is executed, paste the created jar address to generate the public link and seed the sync form.",
+              })}
+            </p>
+            <p className="break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+              {formatMessage({
+                id: "cockpit.community.cookies.submittedTransaction",
+                defaultMessage: "Submitted transaction",
+              })}
+              {`: ${createdJarPendingHash}`}
+            </p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+            <AdminTextField
+              label={formatMessage({
+                id: "cockpit.community.cookies.createdJarAddressInput",
+                defaultMessage: "Created jar address",
+              })}
+              value={createdJarManualInput}
+              onChange={(event) => setCreatedJarManualInput(event.target.value)}
+              error={
+                createdJarManualInput && !createdJarManualAddress
+                  ? formatMessage({
+                      id: "cockpit.community.cookies.invalidAddress",
+                      defaultMessage: "Enter a valid Ethereum address.",
+                    })
+                  : undefined
+              }
+              variant="outlined"
+            />
+            <AdminButton
+              type="button"
+              onClick={() => {
+                if (!createdJarManualAddress) return;
+                applyCreatedJarAddress(createdJarManualAddress);
+              }}
+              disabled={!createdJarManualAddress}
+            >
+              {formatMessage({
+                id: "cockpit.community.cookies.useCreatedJar",
+                defaultMessage: "Use jar address",
+              })}
+            </AdminButton>
+          </div>
         </AdminCard>
       ) : null}
 
@@ -457,7 +528,7 @@ export function CampaignCookieJarPanel() {
           value={syncJarAddressInput}
           onChange={(event) => setSyncJarAddressInput(event.target.value)}
           error={
-            syncJarAddressInput && !isAddress(syncJarAddressInput)
+            syncJarAddressInput && !syncJarAddress
               ? formatMessage({
                   id: "cockpit.community.cookies.invalidAddress",
                   defaultMessage: "Enter a valid Ethereum address.",
@@ -518,6 +589,15 @@ export function CampaignCookieJarPanel() {
               },
               { addresses: syncAggregation.invalidAddresses.join(", ") }
             )}
+          </p>
+        ) : null}
+        {syncJarAddress && syncJar.jar && !syncJar.jar.isOwner ? (
+          <p className="text-body-sm text-[rgb(var(--m3-error))]">
+            {formatMessage({
+              id: "cockpit.community.cookies.jarOwnerRequired",
+              defaultMessage:
+                "Connect the jar owner or ops Safe to grant, revoke, and update campaign metadata.",
+            })}
           </p>
         ) : null}
         <AdminButton
