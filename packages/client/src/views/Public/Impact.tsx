@@ -247,8 +247,8 @@ export default function ImpactPage() {
               {
                 labelId: "public.impact.totalCertificates",
                 defaultLabel: "Impact Certificates",
-                value: certificateCount,
-                isLoading: evidence.isLoading,
+                value: 0,
+                isLoading: false,
               },
             ]}
           />
