@@ -83,18 +83,23 @@ interface ProofMarker {
   defaultLabel: string;
   value: number;
   isLoading: boolean;
+  noteId: string;
+  defaultNote: string;
 }
 
 function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
   const { formatMessage } = useIntl();
   return (
     <dl className="grid grid-cols-2 gap-x-12 gap-y-10 md:grid-cols-4 md:gap-x-16">
-      {markers.map(({ labelId, defaultLabel, value, isLoading }) => (
-        <div key={labelId}>
+      {markers.map(({ labelId, defaultLabel, value, isLoading, noteId, defaultNote }) => (
+        <div key={labelId} className="flex flex-col gap-3">
+          <dt className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+            {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+          </dt>
           <dd className="font-serif text-5xl font-normal leading-none tracking-[-0.025em] text-text-strong-950 md:text-6xl">
             {isLoading ? "—" : value > 0 ? new Intl.NumberFormat().format(value) : ""}
             {!isLoading && value === 0 ? (
-              <span className="font-serif text-base italic text-text-soft-400">
+              <span className="font-serif text-2xl italic text-text-soft-400 md:text-2xl">
                 {formatMessage({
                   id: "public.impact.proof.notPublicYet",
                   defaultMessage: "Not public yet",
@@ -102,9 +107,9 @@ function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
               </span>
             ) : null}
           </dd>
-          <dt className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-          </dt>
+          <p className="max-w-[18rem] text-xs leading-[1.55] text-text-sub-600">
+            {formatMessage({ id: noteId, defaultMessage: defaultNote })}
+          </p>
         </div>
       ))}
     </dl>
@@ -169,7 +174,7 @@ export default function ImpactPage() {
   // Combine derived stats into one useMemo so the upstream `records` array
   // doesn't trigger redundant recomputation across separate hooks (Rule 9 in
   // CLAUDE.md — never chain useMemos on the same source).
-  const { counted, certificateCount, filteredRecords } = useMemo(() => {
+  const { counted, filteredRecords, lastUpdatedAt } = useMemo(() => {
     const records = slice?.records ?? [];
     const byKind: Record<KindFilter, number> = {
       all: records.length,
@@ -177,8 +182,10 @@ export default function ImpactPage() {
       work: 0,
       certificate: 0,
     };
+    let mostRecent = 0;
     for (const record of records) {
       byKind[record.kind] += 1;
+      if (record.createdAt > mostRecent) mostRecent = record.createdAt;
     }
     const domainEntry = DOMAIN_FILTERS.find((d) => d.id === domainFilter);
     const filtered = records.filter((record) => {
@@ -190,10 +197,18 @@ export default function ImpactPage() {
     });
     return {
       counted: byKind,
-      certificateCount: byKind.certificate,
       filteredRecords: filtered,
+      lastUpdatedAt: mostRecent || null,
     };
   }, [slice?.records, kindFilter, domainFilter]);
+
+  const lastUpdatedLabel = lastUpdatedAt
+    ? new Intl.DateTimeFormat(undefined, {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(lastUpdatedAt * 1000))
+    : null;
 
   return (
     <>
@@ -211,6 +226,33 @@ export default function ImpactPage() {
           defaultMessage:
             "Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates.",
         })}
+        publicationMark={
+          <>
+            <span>
+              {formatMessage({
+                id: "public.impact.hero.season",
+                defaultMessage: "Season One",
+              })}
+            </span>
+            {lastUpdatedLabel ? (
+              <>
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-0.5 w-0.5 rounded-full bg-current opacity-60"
+                />
+                <span>
+                  {formatMessage(
+                    {
+                      id: "public.impact.hero.lastUpdated",
+                      defaultMessage: "Last updated {date}",
+                    },
+                    { date: lastUpdatedLabel }
+                  )}
+                </span>
+              </>
+            ) : null}
+          </>
+        }
       />
 
       <section
@@ -231,24 +273,32 @@ export default function ImpactPage() {
                 defaultLabel: "Work",
                 value: counts.fieldNoteCount,
                 isLoading: stats.isLoading,
+                noteId: "public.impact.proof.workNote",
+                defaultNote: "Field entries logged across Gardens.",
               },
               {
                 labelId: "public.impact.totalAssessments",
                 defaultLabel: "Assessments",
                 value: counts.attestationCount,
                 isLoading: stats.isLoading,
+                noteId: "public.impact.proof.assessmentsNote",
+                defaultNote: "Source-backed evaluator confirmations.",
               },
               {
                 labelId: "public.impact.totalGardens",
                 defaultLabel: "Gardens",
                 value: counts.gardenCount,
                 isLoading: stats.isLoading,
+                noteId: "public.impact.proof.gardensNote",
+                defaultNote: "Active places under continuous documentation.",
               },
               {
                 labelId: "public.impact.totalCertificates",
                 defaultLabel: "Impact Certificates",
                 value: 0,
                 isLoading: false,
+                noteId: "public.impact.proof.certificatesNote",
+                defaultNote: "Not public yet — first issuance pending.",
               },
             ]}
           />

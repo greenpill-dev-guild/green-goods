@@ -50,6 +50,13 @@ export interface PublicEditorialHeroProps {
    * scroll-to). Pass nothing for read-only heroes (Impact, Actions).
    */
   actions?: ReactNode;
+  /**
+   * Small tracked-uppercase meta strip rendered at the foot of the card
+   * under a hairline — used by Impact for "Season One · Last updated …"
+   * publication marks. Style is up to the consumer; a divider is added
+   * here for consistent spacing.
+   */
+  publicationMark?: ReactNode;
 }
 
 export function PublicEditorialHero({
@@ -63,6 +70,7 @@ export function PublicEditorialHero({
   disclaimer,
   photoCredit,
   actions,
+  publicationMark,
 }: PublicEditorialHeroProps) {
   return (
     <section
@@ -118,6 +126,14 @@ export function PublicEditorialHero({
                 </span>
                 {disclaimer}
               </p>
+            </div>
+          ) : null}
+          {publicationMark ? (
+            <div className="editorial-fade-up-3 mt-7">
+              <EditorialDivider />
+              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+                {publicationMark}
+              </div>
             </div>
           ) : null}
         </div>
