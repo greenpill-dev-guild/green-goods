@@ -109,10 +109,29 @@ import FundPage from "../../views/Public/Fund";
 const messages: Record<string, string> = {
   "public.fund.title": "Fund",
   "public.fund.description": "Support regenerative gardens by funding their vaults",
-  "public.fund.support": "Support this Garden",
-  "public.fund.totalGardens": "Total Gardens",
-  "public.fund.totalContributors": "Total Contributors",
+  "public.fund.support": "Support",
+  "public.fund.supportShort": "Support",
   "public.fund.taxDisclaimer": "tax disclaimer",
+  "public.fund.heroTitle": "A small gesture today, growing over many seasons.",
+  "public.fund.heroLede":
+    "Donate to support a Garden's immediate work, or Endow a Vault designed so yield helps the Garden over time.",
+  "public.fund.paths.kicker": "§ 01 — Two paths of support",
+  "public.fund.paths.title": "Donate now, or Endow for many seasons.",
+  "public.fund.paths.donateTitle": "Donate",
+  "public.fund.paths.donateLede": "Direct support that reaches a Garden's Cookie Jar today.",
+  "public.fund.paths.donateRoutes": "The Garden's Cookie Jar.",
+  "public.fund.paths.donateBestFor": "Immediate needs and near-term work.",
+  "public.fund.paths.endowTitle": "Endow",
+  "public.fund.paths.endowLede":
+    "A Vault designed so the deposit can remain while yield supports the Garden over time.",
+  "public.fund.paths.endowRoutes": "A Vault held by the Garden.",
+  "public.fund.paths.endowBestFor": "Longer-term support that compounds.",
+  "public.fund.gardens.kicker": "§ 02 — Choose where to apply your support",
+  "public.fund.gardens.title": "Gardens accepting support this season.",
+  "public.fund.support.routes": "Routes through",
+  "public.fund.support.bestFor": "Best for",
+  "public.fund.endow.note":
+    "Vault support depends on token, provider, and wallet mechanics. Values and access can vary; review the details before continuing.",
   "public.fund.dialog.intentTitle": "Support {garden}",
   "public.fund.dialog.donate.title": "Donate",
   "public.fund.dialog.donate.description": "donate description",
@@ -147,17 +166,18 @@ describe("FundPage", () => {
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
   });
 
-  it("renders confirmed counts", () => {
+  it("renders the editorial hero with the Donate/Endow narrative + disclaimer", () => {
     renderView();
-    expect(screen.getByText("Total Gardens")).toBeInTheDocument();
-    expect(screen.getByText("Total Contributors")).toBeInTheDocument();
-    expect(screen.getByText("2")).toBeInTheDocument();
-    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(
+      /a small gesture today, growing over many seasons/i
+    );
+    expect(screen.getByText(/donate to support a garden/i)).toBeInTheDocument();
+    expect(screen.getByText(/tax disclaimer/i)).toBeInTheDocument();
   });
 
   it("each Garden gets a Support CTA — no Deposit/Cookie Jar/Connect Wallet on the page", () => {
     renderView();
-    const supportButtons = screen.getAllByRole("button", { name: "Support this Garden" });
+    const supportButtons = screen.getAllByRole("button", { name: "Support" });
     expect(supportButtons).toHaveLength(2);
     expect(screen.queryByRole("button", { name: "Deposit" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Cookie Jar" })).toBeNull();
@@ -167,7 +187,7 @@ describe("FundPage", () => {
   it("Support CTA opens the Donate/Endow intent selector before any wallet prompt", async () => {
     const user = userEvent.setup();
     renderView();
-    await user.click(screen.getAllByRole("button", { name: "Support this Garden" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Support" })[0]);
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /donate/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /endow/i })).toBeInTheDocument();
@@ -179,7 +199,7 @@ describe("FundPage", () => {
     const user = userEvent.setup();
     mockPrimaryAddress.current = "0x9999999999999999999999999999999999999999";
     renderView();
-    await user.click(screen.getAllByRole("button", { name: "Support this Garden" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Support" })[0]);
     await user.click(await screen.findByRole("button", { name: /donate/i }));
     await user.click(screen.getByRole("button", { name: /wallet/i }));
     expect(await screen.findByTestId("cookie-jar-dialog")).toHaveTextContent(
@@ -191,7 +211,7 @@ describe("FundPage", () => {
   it("Donate → Wallet opens AppKit at the wallet-required step when disconnected", async () => {
     const user = userEvent.setup();
     renderView();
-    await user.click(screen.getAllByRole("button", { name: "Support this Garden" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Support" })[0]);
     await user.click(await screen.findByRole("button", { name: /donate/i }));
     await user.click(screen.getByRole("button", { name: /wallet/i }));
     expect(mockOpenWalletModal).toHaveBeenCalledTimes(1);
@@ -201,7 +221,7 @@ describe("FundPage", () => {
   it("hides the Card option by default — provider proof registry is empty", async () => {
     const user = userEvent.setup();
     renderView();
-    await user.click(screen.getAllByRole("button", { name: "Support this Garden" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Support" })[0]);
     await user.click(await screen.findByRole("button", { name: /donate/i }));
     expect(screen.queryByRole("button", { name: /^card$/i })).toBeNull();
   });

@@ -11,8 +11,18 @@ import type {
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
+import {
+  EditorialDivider,
+  EditorialHeading,
+  EditorialKicker,
+  EditorialNumeral,
+  EditorialPrimaryButton,
+} from "@/components/Public/atoms";
+import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
+import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
+import { publicCuration } from "@/content/publicCuration";
 
 const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
 const PublicFundingMethodSelector = lazy(() =>
@@ -70,19 +80,80 @@ interface ActiveWalletDialog {
   garden: PublicGardenSummary;
 }
 
+interface SupportPathProps {
+  numeral: string;
+  titleId: string;
+  defaultTitle: string;
+  ledeId: string;
+  defaultLede: string;
+  routesId: string;
+  defaultRoutes: string;
+  bestForId: string;
+  defaultBestFor: string;
+}
+
+function SupportPath({
+  numeral,
+  titleId,
+  defaultTitle,
+  ledeId,
+  defaultLede,
+  routesId,
+  defaultRoutes,
+  bestForId,
+  defaultBestFor,
+}: SupportPathProps) {
+  const { formatMessage } = useIntl();
+  return (
+    <article className="flex flex-col gap-5">
+      <EditorialNumeral>{numeral}</EditorialNumeral>
+      <h3 className="font-serif text-2xl font-normal leading-[1.05] tracking-[-0.012em] text-text-strong-950 md:text-3xl">
+        {formatMessage({ id: titleId, defaultMessage: defaultTitle })}
+      </h3>
+      <p className="text-base leading-[1.6] text-text-sub-600 md:text-lg">
+        {formatMessage({ id: ledeId, defaultMessage: defaultLede })}
+      </p>
+      <dl className="space-y-3 text-sm leading-[1.55] text-text-sub-600">
+        <div>
+          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+            {formatMessage({ id: "public.fund.support.routes", defaultMessage: "Routes through" })}
+          </dt>
+          <dd className="mt-1">{formatMessage({ id: routesId, defaultMessage: defaultRoutes })}</dd>
+        </div>
+        <div>
+          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+            {formatMessage({ id: "public.fund.support.bestFor", defaultMessage: "Best for" })}
+          </dt>
+          <dd className="mt-1">
+            {formatMessage({ id: bestForId, defaultMessage: defaultBestFor })}
+          </dd>
+        </div>
+      </dl>
+    </article>
+  );
+}
+
 /**
  * Fund — public garden funding gateway.
  *
- * Behavior:
+ * Editorial recomposition:
+ *   Hero (with calm disclaimer) → § 01 Donate vs Endow explanatory diptych
+ *   → § 02 Garden list with single "Support" CTA per row → optional
+ *   receipt / stale-link banner → Footer.
+ *
+ * Behavior preserved from the prior view:
  * - `?intent=<id>` triggers receipt mode (reads X-GG-Receipt-Token from session).
  * - `?garden=<id-or-slug>` resolves via `publicGardenHelpers.deriveSlug`. Stale,
  *   missing, zero-match, or ambiguous queries fall back to the regular Fund
  *   layout with a localized non-blocking message.
- * - Garden support CTAs open `PublicFundingMethodSelector`. Wallet path uses
- *   the existing CookieJarDepositDialog / VaultDepositDialog (Reown/wagmi).
- *   Card path is hidden unless `publicProviderProofRegistry` marks the exact
- *   tuple `live`.
+ * - Support CTA opens `PublicFundingMethodSelector`. Wallet path uses the
+ *   existing CookieJarDepositDialog / VaultDepositDialog (Reown/wagmi). Card
+ *   path is hidden unless `publicProviderProofRegistry` marks the tuple `live`.
  * - No public withdrawal or admin controls (support-only).
+ *
+ * Voice (per chat 8 user feedback): Donate / Endow as terminology (not
+ * Direct/Endowment), single "Support" button per garden, hero copy "A small
+ * gesture today, growing over many seasons."
  */
 export default function FundPage() {
   const { formatMessage } = useIntl();
@@ -93,10 +164,6 @@ export default function FundPage() {
   const gardenQuery = searchParams.get("garden");
 
   const resolved = useMemo(() => resolveGardenQuery(gardenQuery, gardens), [gardenQuery, gardens]);
-  const totalGardeners = useMemo(
-    () => gardens.reduce((sum, g) => sum + g.contributorCount, 0),
-    [gardens]
-  );
 
   const orderedGardens = useMemo(() => {
     if (resolved.status !== "match" || !resolved.garden) return gardens;
@@ -129,145 +196,205 @@ export default function FundPage() {
   const handleCardSelected = useCallback(
     (_intent: PublicFundingIntentKind, _availability: PublicFundingAvailability) => {
       // Card flow lights up only when the provider proof registry has a `live`
-      // entry for the exact tuple. Until that lands, this branch is unreachable
-      // by design and the dialog falls back to wallet.
+      // entry for the exact tuple. Until that lands, this branch is unreachable.
     },
     []
   );
 
   return (
-    <div className="bg-bg-weak-50">
-      {/* Editorial header */}
-      <div className="mx-auto max-w-6xl px-4 pt-12 pb-6 sm:px-6 sm:pt-16">
-        <h1 className="font-serif text-3xl text-text-strong-950 md:text-4xl">
-          {formatMessage({ id: "public.fund.title", defaultMessage: "Fund" })}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm text-text-sub-600 md:text-base">
-          {formatMessage({
-            id: "public.fund.description",
-            defaultMessage:
-              "Support regenerative Gardens directly through Cookie Jars, or Endow a Vault designed to preserve your deposit while yield helps the Garden.",
-          })}
-        </p>
-        <p className="mt-2 max-w-2xl text-xs text-text-soft-400">
-          {formatMessage({
-            id: "public.fund.taxDisclaimer",
-            defaultMessage:
-              "Funding supports the Garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured.",
-          })}
-        </p>
-      </div>
+    <>
+      <PublicEditorialHero
+        imageSrc={publicCuration.heroImagePath}
+        imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
+        imageAlt=""
+        titleId="public-fund-hero-title"
+        title={formatMessage({
+          id: "public.fund.heroTitle",
+          defaultMessage: "A small gesture today, growing over many seasons.",
+        })}
+        lede={formatMessage({
+          id: "public.fund.heroLede",
+          defaultMessage:
+            "Donate to support a Garden's immediate work, or Endow a Vault designed so yield helps the Garden over time.",
+        })}
+        disclaimer={formatMessage({
+          id: "public.fund.taxDisclaimer",
+          defaultMessage:
+            "Funding supports the Garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured.",
+        })}
+      />
 
-      {/* Receipt UI takes priority when ?intent= is present */}
       {intentId ? (
-        <div className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
-          <PublicFundingReceipt intentId={intentId} />
-        </div>
+        <section className="bg-bg-weak-50 px-6 pt-32 pb-12 sm:px-10 md:pt-48">
+          <div className="mx-auto max-w-3xl">
+            <PublicFundingReceipt intentId={intentId} />
+          </div>
+        </section>
       ) : null}
 
-      {/* Stale/ambiguous /fund?garden message */}
-      {resolved.status === "stale" || resolved.status === "ambiguous" ? (
-        <div className="mx-auto max-w-6xl px-4 pb-4 sm:px-6">
-          <div
-            role="status"
-            className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm text-text-sub-600"
-          >
-            {formatMessage(
-              {
-                id:
-                  resolved.status === "ambiguous"
-                    ? "public.fund.gardenQuery.ambiguous"
-                    : "public.fund.gardenQuery.stale",
-                defaultMessage:
-                  resolved.status === "ambiguous"
-                    ? 'We couldn\'t tell which Garden you meant by "{query}". Pick one below.'
-                    : 'We couldn\'t find a Garden matching "{query}". Browse the list below.',
-              },
-              { query: resolved.rawQuery ?? "" }
-            )}
+      {!intentId && (resolved.status === "stale" || resolved.status === "ambiguous") ? (
+        <section className="bg-bg-weak-50 px-6 pt-32 pb-4 sm:px-10 md:pt-48">
+          <div className="mx-auto max-w-3xl">
+            <p
+              role="status"
+              className="border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600"
+            >
+              {formatMessage(
+                {
+                  id:
+                    resolved.status === "ambiguous"
+                      ? "public.fund.gardenQuery.ambiguous"
+                      : "public.fund.gardenQuery.stale",
+                  defaultMessage:
+                    resolved.status === "ambiguous"
+                      ? 'We couldn\'t tell which Garden you meant by "{query}". Pick one below.'
+                      : 'We couldn\'t find a Garden matching "{query}". Browse the list below.',
+                },
+                { query: resolved.rawQuery ?? "" }
+              )}
+            </p>
           </div>
-        </div>
+        </section>
       ) : null}
 
-      {/* Aggregate stats — confirmed counts only */}
-      <div className="mx-auto grid max-w-6xl gap-4 px-4 pb-8 sm:grid-cols-2 sm:px-6">
-        <div className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-            {formatMessage({
-              id: "public.fund.totalGardens",
-              defaultMessage: "Total Gardens",
-            })}
-          </p>
-          <p className="mt-2 font-serif text-3xl text-text-strong-950">
-            {isLoading ? "—" : gardens.length}
-          </p>
-        </div>
-        <div className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-          <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-            {formatMessage({
-              id: "public.fund.totalContributors",
-              defaultMessage: "Total Contributors",
-            })}
-          </p>
-          <p className="mt-2 font-serif text-3xl text-text-strong-950">
-            {isLoading ? "—" : totalGardeners}
-          </p>
-        </div>
-      </div>
+      {/* § 01 — Donate vs Endow editorial diptych */}
+      <section
+        className={
+          intentId || resolved.status === "stale" || resolved.status === "ambiguous"
+            ? "bg-bg-weak-50 px-6 pb-20 sm:px-10 md:pb-28"
+            : "bg-bg-weak-50 px-6 pt-32 pb-20 sm:px-10 md:pt-48 md:pb-28"
+        }
+        aria-labelledby="public-fund-paths-title"
+      >
+        <div className="mx-auto max-w-7xl">
+          <header className="border-b border-stroke-soft-200 pb-6">
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.fund.paths.kicker",
+                defaultMessage: "§ 01 — Two paths of support",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-fund-paths-title">
+              {formatMessage({
+                id: "public.fund.paths.title",
+                defaultMessage: "Donate now, or Endow for many seasons.",
+              })}
+            </EditorialHeading>
+          </header>
 
-      {/* Garden list */}
-      <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
-        {isLoading ? (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-64 animate-pulse rounded-3xl bg-bg-white-0"
-                aria-hidden="true"
-              />
-            ))}
+          <div className="mt-12 grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
+            <SupportPath
+              numeral="i."
+              titleId="public.fund.paths.donateTitle"
+              defaultTitle="Donate"
+              ledeId="public.fund.paths.donateLede"
+              defaultLede="Direct support that reaches a Garden's Cookie Jar today."
+              routesId="public.fund.paths.donateRoutes"
+              defaultRoutes="The Garden's Cookie Jar."
+              bestForId="public.fund.paths.donateBestFor"
+              defaultBestFor="Immediate needs and near-term work."
+            />
+            <SupportPath
+              numeral="ii."
+              titleId="public.fund.paths.endowTitle"
+              defaultTitle="Endow"
+              ledeId="public.fund.paths.endowLede"
+              defaultLede="A Vault designed so the deposit can remain while yield supports the Garden over time."
+              routesId="public.fund.paths.endowRoutes"
+              defaultRoutes="A Vault held by the Garden."
+              bestForId="public.fund.paths.endowBestFor"
+              defaultBestFor="Longer-term support that compounds."
+            />
           </div>
-        ) : orderedGardens.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-stroke-soft-200 bg-bg-white-0 p-8 text-sm text-text-sub-600">
+
+          <div className="mt-10">
+            <EditorialDivider />
+          </div>
+          <p className="mt-4 max-w-2xl text-xs leading-relaxed text-text-soft-400">
+            <span className="mr-1 font-mono uppercase tracking-[0.16em]">on endowments —</span>
             {formatMessage({
-              id: "public.fund.empty",
-              defaultMessage: "Funding destinations will appear here as Gardens enable them.",
+              id: "public.fund.endow.note",
+              defaultMessage:
+                "Vault support depends on token, provider, and wallet mechanics. Values and access can vary; review the details before continuing.",
             })}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {orderedGardens.map((garden) => {
-              const isMatchedHighlight =
-                resolved.status === "match" && resolved.garden?.id === garden.id;
-              return (
+          </p>
+        </div>
+      </section>
+
+      {/* § 02 — Choose a Garden to support */}
+      <section
+        className="bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"
+        aria-labelledby="public-fund-gardens-title"
+      >
+        <div className="mx-auto max-w-7xl">
+          <header className="border-b border-stroke-soft-200 pb-6">
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.fund.gardens.kicker",
+                defaultMessage: "§ 02 — Choose where to apply your support",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-fund-gardens-title">
+              {formatMessage({
+                id: "public.fund.gardens.title",
+                defaultMessage: "Gardens accepting support this season.",
+              })}
+            </EditorialHeading>
+          </header>
+
+          {isLoading ? (
+            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2].map((i) => (
                 <div
-                  key={garden.id}
-                  ref={isMatchedHighlight ? matchHighlightRef : undefined}
-                  className={
-                    isMatchedHighlight
-                      ? "relative rounded-3xl ring-2 ring-primary-base ring-offset-2"
-                      : undefined
-                  }
-                >
-                  <PublicGardenCard garden={garden} />
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setSelectorGarden(garden)}
-                      className="rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
-                    >
-                      {formatMessage({
-                        id: "public.fund.support",
-                        defaultMessage: "Support this Garden",
-                      })}
-                    </button>
+                  key={i}
+                  className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          ) : orderedGardens.length === 0 ? (
+            <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
+              {formatMessage({
+                id: "public.fund.empty",
+                defaultMessage: "Funding destinations will appear here as Gardens enable them.",
+              })}
+            </p>
+          ) : (
+            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              {orderedGardens.map((garden) => {
+                const isMatchedHighlight =
+                  resolved.status === "match" && resolved.garden?.id === garden.id;
+                return (
+                  <div
+                    key={garden.id}
+                    ref={isMatchedHighlight ? matchHighlightRef : undefined}
+                    className={
+                      isMatchedHighlight
+                        ? "relative ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
+                        : undefined
+                    }
+                  >
+                    <div className="flex flex-col gap-5">
+                      <PublicGardenCard garden={garden} />
+                      <EditorialPrimaryButton
+                        onClick={() => setSelectorGarden(garden)}
+                        className="self-start"
+                      >
+                        {formatMessage({
+                          id: "public.fund.supportShort",
+                          defaultMessage: "Support",
+                        })}
+                      </EditorialPrimaryButton>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <PublicFooter />
 
       {hasWalletRuntime ? (
         <Suspense fallback={null}>
@@ -301,6 +428,6 @@ export default function FundPage() {
           </WalletRuntimeProviders>
         </Suspense>
       ) : null}
-    </div>
+    </>
   );
 }
