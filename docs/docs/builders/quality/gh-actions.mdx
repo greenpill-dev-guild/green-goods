@@ -136,7 +136,7 @@ The Storybook/design gate runs `check:design-md`, `check:design-generated`, `che
 | `client.yml` | Manual client Lighthouse advisory |
 | `admin.yml` | Manual admin Lighthouse advisory |
 
-Storybook publication is deliberately outside GitHub Actions. `design.yml` validates and uploads the Storybook artifact for PR review; the standalone public site is deployed by the Vercel project rooted at the repository root, using `vercel.json` to build `@green-goods/shared` and serve `packages/shared/storybook-static`.
+Storybook publication is deliberately outside GitHub Actions. `design.yml` validates and uploads the Storybook artifact for PR review; the standalone public site is deployed by the Vercel project rooted at `packages/shared`, using `packages/shared/vercel.json` to build `@green-goods/shared` and serve `packages/shared/storybook-static`.
 
 Client and admin source maps are deliberately outside GitHub Actions as well. The Vercel projects run each package's `build:deploy` script, process `dist/` with `scripts/ops/upload-sourcemaps.js --deploy`, upload maps to the app-specific PostHog environment, and remove `.js.map` files before Vercel publishes the deployment.
 

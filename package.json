@@ -19,6 +19,7 @@
   ],
   "scripts": {
     "setup": "node scripts/dev/setup.js",
+    "setup:cloud": "node scripts/dev/setup.js --cloud",
     "setup:doctor": "node scripts/dev/doctor.js",
     "dev:doctor": "node scripts/dev/doctor.js",
     "ci:local": "node scripts/dev/ci-local.js",

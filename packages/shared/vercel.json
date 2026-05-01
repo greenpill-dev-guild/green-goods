@@ -1,7 +1,7 @@
 {
-  "installCommand": "bun install --frozen-lockfile",
-  "buildCommand": "bun run --filter @green-goods/shared build-storybook",
-  "outputDirectory": "packages/shared/storybook-static",
+  "installCommand": "cd ../.. && bun install --frozen-lockfile",
+  "buildCommand": "cd ../.. && bun run --filter @green-goods/shared build-storybook",
+  "outputDirectory": "storybook-static",
   "headers": [
     {
       "source": "/assets/:path*",
@@ -95,6 +95,15 @@
     },
     {
       "source": "/storybook-design-manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/social-card.png",
       "headers": [
         {
           "key": "Cache-Control",

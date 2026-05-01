@@ -56,6 +56,12 @@ const assetFiles = [
   {
     from: "docs/static/img/green-goods-logo.png",
     to: "green-goods-logo.png",
+    role: "Storybook chrome logo",
+  },
+  {
+    from: "packages/shared/.storybook/social-card.png",
+    to: "social-card.png",
+    role: "Open Graph and Twitter social preview image",
   },
 ];
 
@@ -106,6 +112,7 @@ const manifest = {
   preferredDialect: "public-browser",
   publicUrl,
   designBundleUrl: publicUrl,
+  socialPreviewImage: "./social-card.png",
   generatedAt: new Date().toISOString(),
   source: {
     repository: sourceRepository,
@@ -197,6 +204,11 @@ const manifest = {
     source: file.from,
     role: file.role,
   })),
+  assets: assetFiles.map((file) => ({
+    path: `./${file.to}`,
+    source: file.from,
+    role: file.role,
+  })),
 };
 
 writeFileSync(
@@ -216,6 +228,7 @@ Use this folder as the import surface for design and agent tools.
 - \`design-md.generated.json\` is the machine-readable token export.
 - \`theme.css\` is the runtime CSS projection used by components.
 - \`storybook-design-manifest.json\` links these files to Storybook's \`./index.json\`.
+- \`social-card.png\` is the 1200x630 preview image used by shared Storybook links.
 
 For Google Stitch, load \`${publicUrl}/DESIGN.md\`, \`${publicUrl}/DESIGN.browser.md\`, and \`${publicUrl}/design-md.generated.json\`.
 For Claude Design, load this README, both DesignMD files, and the Storybook \`${publicUrl}/index.json\`.
