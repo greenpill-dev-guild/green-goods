@@ -2651,6 +2651,7 @@
   "public.impact.evidence.empty": "La evidencia de las Evaluaciones aparecerá aquí cuando los Jardines la publiquen.",
   "public.impact.evidence.error": "La evidencia no está disponible. Inténtalo de nuevo en unos minutos.",
   "public.impact.evidence.noSource": "Fuente pendiente",
+  "public.impact.evidence.thumbnailFallback": "sin imagen",
   "public.impact.evidence.partialData": "Mostrando la evidencia más reciente que pudimos cargar. Puede haber más en los Jardines.",
   "public.impact.evidence.sourceLimitReached": "Mostramos un fragmento limitado para v1; la historia más profunda llegará con la agregación.",
   "public.impact.evidence.timeUnknown": "Fecha desconocida",

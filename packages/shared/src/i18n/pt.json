@@ -2651,6 +2651,7 @@
   "public.impact.evidence.empty": "A evidência das Avaliações aparecerá aqui assim que os Jardins publicarem.",
   "public.impact.evidence.error": "A evidência não está disponível. Tente novamente em alguns minutos.",
   "public.impact.evidence.noSource": "Fonte pendente",
+  "public.impact.evidence.thumbnailFallback": "sem imagem",
   "public.impact.evidence.partialData": "Mostrando a evidência mais recente que conseguimos carregar. Pode haver mais entre os Jardins.",
   "public.impact.evidence.sourceLimitReached": "Mostramos uma fatia limitada para v1; histórico mais profundo virá com a agregação.",
   "public.impact.evidence.timeUnknown": "Data desconhecida",

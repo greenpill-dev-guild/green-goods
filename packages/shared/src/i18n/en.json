@@ -2650,6 +2650,7 @@
   "public.impact.evidence.empty": "Assessment evidence will appear here as Gardens publish it.",
   "public.impact.evidence.error": "Evidence is temporarily unavailable. Please try again in a few minutes.",
   "public.impact.evidence.noSource": "Source pending",
+  "public.impact.evidence.thumbnailFallback": "no image",
   "public.impact.evidence.partialData": "Showing the most recent evidence we could load. More may be available across Gardens.",
   "public.impact.evidence.sourceLimitReached": "We're showing a capped slice for v1; deeper history will arrive as aggregation matures.",
   "public.impact.evidence.timeUnknown": "Date unknown",
