@@ -1,0 +1,103 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)bun test( |$)' && ! printf '%s' \"$CMD\" | grep -qE 'bun run test'; then echo 'BLOCKED: Use `bun run test` not `bun test` — bun test uses the built-in runner which ignores vitest config.' >&2; exit 2; fi",
+            "statusMessage": "Checking test runner..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qiE 'deploy.*mainnet|upgrade.*mainnet|vercel.*--prod'; then echo 'PRODUCTION DEPLOYMENT — Requires explicit user confirmation before proceeding'; fi",
+            "statusMessage": "Checking deployment target..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE 'git.*push.*--force.*(main|master)'; then echo 'BLOCKED: Never force push to main/master' >&2; exit 2; fi",
+            "statusMessage": "Checking git push..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)git commit'; then cd \"$CLAUDE_PROJECT_DIR\" && bun lint --quiet 2>&1 | tail -5; fi; exit 0",
+            "statusMessage": "Pre-commit lint check..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(cat|head|tail|less|more|source|bat)\\s+(\\./)?\\.(env|env\\.[a-z]+)' || printf '%s' \"$CMD\" | grep -qE 'grep\\s+.*\\s+(\\./)?\\.(env|env\\.[a-z]+)'; then echo 'BLOCKED: Direct .env file access via Bash is not allowed. Secrets must not be read in Claude sessions.' >&2; exit 2; fi",
+            "statusMessage": "Checking .env access..."
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/'; then printf '%s\\n' 'CRITICAL SURFACE: packages/contracts/src/**' '  Read every touched line before you finish this change.' '  Run the contracts-security reviewer flow on this diff before merge.' '  Verify access control, storage layout, external calls, and invariant preservation.' '  Log-only failure handling is not acceptable here; add an explicit remediation path instead.'; fi; exit 0",
+            "statusMessage": "Criticality depth check..."
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/shared/src/providers/(Auth|JobQueue|Work)\\.tsx|packages/shared/src/modules/job-queue/|packages/shared/src/hooks/(auth|work|vault|blockchain)/'; then printf '%s\\n' 'CRITICAL SURFACE: shared auth, queue, or mutation path.' '  Read every touched line before you finish this change.' '  Run the mutation-reliability reviewer flow when async or mutation behavior changes.' '  Verify failure states are explicit to the caller or UI and that retries or replays stay coherent.' '  Log-only catch blocks are not acceptable here; add a concrete recovery or user-visible error path instead.'; fi; exit 0",
+            "statusMessage": "Criticality depth check..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE '\\.(ts|tsx|js|jsx|json)$' && ! echo \"$FILE\" | grep -q 'packages/contracts/out/'; then npx @biomejs/biome format --write \"$FILE\" 2>/dev/null; fi; exit 0"
+          }
+        ]
+      },
+      {
+        "matcher": "SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/agent-output-gate.sh",
+            "statusMessage": "Validating agent output contract..."
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '## Post-Compaction Reminders\\n- Use `bun run test` (NEVER `bun test`) — bun test ignores vitest config\\n- Never use `forge build`/`forge test` directly — always use bun wrappers\\n- ALL hooks MUST live in packages/shared/src/hooks/ (not client or admin)\\n- Single .env at root only — never create package-specific .env files\\n- Import from `@green-goods/shared` barrel only — never deep paths\\n- Use `Address` type (not string) for Ethereum addresses\\n- Use `logger` from shared (not console.log)\\n- Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors\\n- Critical surfaces require line-by-line review; log-only failure handling is never enough on auth, queue, or contract paths'"
+          }
+        ]
+      }
+    ]
+  }
+}
