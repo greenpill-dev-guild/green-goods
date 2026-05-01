@@ -1,0 +1,109 @@
+---
+title: Donate to a Garden
+sidebar_label: Donate to a Garden
+slug: /community/funder-guide/donating-to-a-garden
+description: "Donate directly to a garden through its Cookie Jar from the public Fund page."
+audience: funder
+owner: docs
+last_verified: 2026-05-01
+feature_status: Live
+image: /img/social/funding-a-garden.webp
+goal: "Walk a funder through donating to a garden's Cookie Jar from the public funding flow."
+difficulty: "quickstart"
+estimated_time: "3-5 minutes."
+prereqs: "Connected wallet, supported asset, and a garden with an active Cookie Jar."
+next_steps: "./funding-a-garden"
+persona_context: "Funders sending direct support to a garden for verified work."
+source_of_truth:
+  - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/components/Public/PublicFundingMethodSelector.tsx
+  - packages/client/src/components/Dialogs/CookieJarDepositDialog.tsx
+  - packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts
+keywords:
+  - funder
+  - donate
+  - cookie jar
+  - fund page
+  - direct support
+---
+
+import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/docs";
+
+# Donate to a Garden
+
+<StatusBadge status="Live" />
+
+<GuideOpener
+  image="/img/social/funding-a-garden.webp"
+  alt="A funder sending direct support to a garden cookie jar"
+  label="Funder chapter"
+  roleAccent="funder"
+>
+  Pick a garden, choose Donate, then deposit into its Cookie Jar.
+</GuideOpener>
+
+## What this helps you do
+
+Donate directly to a garden through its Cookie Jar. This is direct support for verified regenerative work; it is not an endowment and does not create a withdrawable vault position.
+
+Donate and Endow support the garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless the garden has separately configured that outside Green Goods.
+
+## Before you start
+
+- A wallet or passkey account.
+- A supported token balance for the Cookie Jar you want to fund.
+- A little Arbitrum gas if you are using an external wallet. Passkey or smart-account actions may be sponsored when that support is configured.
+- The garden you want to support.
+- A live internet connection.
+
+:::tip
+If the garden does not have an active Cookie Jar, the donation dialog tells you. You can pick another garden or ask the operator whether direct donations are enabled.
+:::
+
+## Step-by-step flow
+
+### Step 1: Open the public Fund page
+
+1. Open `/fund`.
+2. Browse the garden list or open a shared fund link.
+3. Click **Support this Garden** on the garden you want to support.
+
+### Step 2: Choose Donate
+
+1. In the support dialog, choose **Donate**.
+2. Choose **Wallet**. If you are not connected yet, the app opens the wallet modal first.
+3. Card payment options stay hidden unless the payment provider is live for that exact garden and destination.
+
+### Step 3: Deposit into the Cookie Jar
+
+1. The Cookie Jar dialog opens.
+2. Pick the Cookie Jar if the garden has more than one.
+3. Enter the amount.
+4. Check the wallet balance and any minimum deposit message.
+5. Click **Deposit** and sign the transaction.
+6. Wait for confirmation before closing the flow.
+
+## How to know it worked
+
+- The dialog closes after the transaction succeeds.
+- The donation transaction appears in your wallet history on Arbitrum.
+- The garden's Cookie Jar balance updates after the app refreshes and indexing catches up.
+
+## If something goes wrong
+
+- **Connect wallet prompt appears.** Connect the wallet or passkey account you want to use, then continue.
+- **No active Cookie Jar.** The garden cannot accept direct donations through this flow yet.
+- **Minimum deposit warning.** Increase the amount or choose a different Cookie Jar.
+- **Invalid decimal input.** Match the token's decimal precision.
+- **Transaction cancelled.** Nothing was donated. Try again when ready.
+- **Transaction failed.** Check the wallet error, token balance, chain, and Arbitrum gas.
+- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
+
+## Next step
+
+<NextBestAction
+  title="Endow a garden"
+  why="If you want a withdrawable position instead of a direct donation, use the vault endowment flow."
+  actionLabel="Endow a Garden"
+  actionHref="./funding-a-garden"
+/>

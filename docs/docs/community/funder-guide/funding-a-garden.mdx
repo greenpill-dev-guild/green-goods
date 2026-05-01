@@ -1,36 +1,38 @@
 ---
-title: Deposit Into a Vault
-sidebar_label: Deposit Into a Vault
+title: Endow a Garden
+sidebar_label: Endow a Garden
 slug: /community/funder-guide/funding-a-garden
-description: "Deposit supported assets into a garden Octant vault from the authenticated app or public fund page."
+description: "Endow a garden by depositing supported assets into its vault from the app or public Fund page."
 audience: funder
 owner: docs
-last_verified: 2026-04-20
+last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/funding-a-garden.webp
-goal: "Walk a funder through depositing into a garden's vault, either from the authenticated app or the public /fund page."
+goal: "Walk a funder through endowing a garden's vault, either from the authenticated app or the public /fund page."
 difficulty: "quickstart"
-estimated_time: "5-10 minutes for a first deposit."
-prereqs: "Connected wallet, a supported asset on the target chain, a garden you want to support."
+estimated_time: "5-10 minutes for a first endowment."
+prereqs: "Connected wallet, a supported asset on Arbitrum, and a garden with an active vault."
 next_steps: "./withdraw-from-a-vault"
-persona_context: "Funders making their first (or recurring) deposit into a garden vault."
+persona_context: "Funders making their first or recurring endowment into a garden vault."
 source_of_truth:
   - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
   - packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx
   - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/components/Public/PublicFundingMethodSelector.tsx
+  - packages/client/src/components/Dialogs/VaultDepositDialog.tsx
   - packages/shared/src/hooks/vault/useVaultDeposit.ts
 keywords:
   - funder
+  - endow
   - deposit
   - vault
-  - octant
   - treasury drawer
   - fund page
 ---
 
 import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/docs";
 
-# Deposit Into a Vault
+# Endow a Garden
 
 <StatusBadge status="Live" />
 
@@ -40,90 +42,85 @@ import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/doc
   label="Funder chapter"
   roleAccent="funder"
 >
-  Choose a garden, enter an amount, then confirm the deposit.
+  Choose a garden, enter an amount, then deposit into its vault.
 </GuideOpener>
 
 ## What this helps you do
 
-Support a specific garden by depositing a supported asset into its **Octant vault**. Your principal stays in the vault and harvested strategy yield is routed to garden operations — depositor claim value stays flat by design. You can withdraw at any time; see [Withdraw From a Vault](./withdraw-from-a-vault).
+Endow a garden by depositing supported assets into its vault. The vault is designed to preserve your principal while yield supports the garden. You receive a withdrawable position that you can remove later.
 
-There are two entry points and they do different things:
+The UI still uses the word **Deposit** inside the vault dialog and Treasury drawer. In these docs, **Endow** means making that vault deposit.
 
-- **Authenticated app — Treasury drawer.** Full flow with your existing deposit position and a Cookie Jar tab. Mobile-first PWA surface. Recommended.
-- **Public `/fund` page.** Browser-first gallery that anyone can reach. **Deposit-only.** It does not show your existing position and does not let you withdraw.
+There are two entry points:
+
+- **Public `/fund` page.** Good for shared links and first-time support. It lets you choose **Endow** and deposit by wallet.
+- **Authenticated app Treasury drawer.** Best when you are already signed in and want to see your active position in the same place.
 
 ## Before you start
 
-- A **connected wallet** (passkey account or an external wallet). For `/fund` you'll be prompted to connect before the deposit dialog opens.
-- A **supported asset** on the target chain with enough balance. External wallets also need gas; passkey/smart-account deposits may be sponsored when paymaster support is configured.
-- The **garden you want to support** already identified. If you aren't sure which one, browse `/fund` or the Home screen first.
-- You are **online** — both the drawer and the dialog refuse to submit while offline.
+- A connected wallet or passkey account.
+- A supported token balance on Arbitrum.
+- A little Arbitrum gas if you use an external wallet. Passkey or smart-account actions may be sponsored when that support is configured.
+- The garden you want to endow.
+- A live internet connection.
 
 :::tip
-If the Treasury button doesn't show on the garden, the garden hasn't enabled a vault yet. Pick a different garden or ask the operator to add a vault.
+Endowments carry smart contract, token, yield, provider, and wallet recovery risk. Only endow what you are comfortable managing through this flow.
 :::
 
 ## Step-by-step flow
 
-### Option A: Deposit from the authenticated app (recommended)
+### Option A: Endow from the public `/fund` page
 
-This is the mobile PWA flow for signed-in funders.
+Use this when you are coming from a public garden link.
 
-1. Sign in to the Green Goods app and open the **Home** screen.
-2. Tap the garden you want to support. The garden detail page opens.
-3. Tap the **Treasury** button in the top bar (it only appears when the garden has a vault).
-4. The **Treasury drawer** slides up. Stay on the **Endowments** tab.
-5. Review the **Overview** (asset, net deposited, depositor count) so you know what you're adding to.
-6. Under **Deposit**, pick the asset from the selector (if the garden has more than one vault).
-7. Type the **amount**. Tap **Max** to auto-fill your wallet balance — the form won't let you exceed it.
-8. Check the **Estimated shares** line. This is how many vault shares you'll receive after the transaction confirms.
-9. Tap **Deposit** in the footer. Approve the token allowance and then the deposit transaction in your wallet.
-10. Wait for both transactions to confirm. The amount field clears on success.
+1. Open `/fund`.
+2. Pick the garden you want to support.
+3. Click **Support this Garden**.
+4. Choose **Endow**.
+5. Choose **Wallet**. If you are not connected yet, connect when prompted.
+6. In the vault dialog, pick the asset if more than one is available.
+7. Enter the amount and click **Deposit**.
+8. Sign the transaction and wait for confirmation.
 
-### Option B: Deposit from the public `/fund` page
+### Option B: Endow from the authenticated app
 
-Use this when you want to support a garden without signing in first — for example, from a share link.
+Use this when you want to see the full Treasury drawer.
 
-1. Open `/fund` in the browser.
-2. Scroll the garden gallery and pick the garden you want to support.
-3. Click **Deposit** on the garden card.
-4. If you haven't connected a wallet yet, the app opens the wallet modal first — connect, then the deposit dialog opens.
-5. Pick the asset, type the amount (or tap **Max**), and submit.
-6. Approve the allowance and the deposit in your wallet.
-
-:::note
-The `/fund` page is **deposit-only**. It does not display your existing position or offer withdrawal controls. For those, use the authenticated Treasury drawer (Option A) or the [Withdraw From a Vault](./withdraw-from-a-vault) guide.
-:::
+1. Sign in to the Green Goods app.
+2. Open **Home**, then open the garden.
+3. Tap **Treasury** in the top bar.
+4. Stay on the **Endowments** tab.
+5. Review the overview, including asset, net deposited, and depositor count.
+6. Pick the asset if more than one vault is available.
+7. Enter the amount. Use **Max** only if you want to use the whole wallet balance for that asset.
+8. Check the estimated shares preview.
+9. Tap **Deposit** and sign the transaction.
+10. Wait for confirmation before closing the drawer.
 
 ## How to know it worked
 
-- The amount input clears after a successful deposit.
-- The **Overview** section in the Treasury drawer shows a higher **Net deposited** and an incremented **Depositor count** (on your first deposit).
-- Your deposit appears under **Active deposits** inside the Treasury drawer, with a share count you can later withdraw against.
-- The deposit transaction is visible in your wallet's transaction history on the target chain.
-
-### Behind the scenes
-
-Depositing into an Octant vault mints shares that track your principal claim. Strategies (for example, Aave v3) may generate yield in the background; when harvested, that yield is routed through the garden's configured funding paths — your principal claim value stays flat by design. You can withdraw any time, up to your available balance.
+- The amount input clears or the dialog closes after success.
+- Your wallet history shows the vault deposit transaction on Arbitrum.
+- In the Treasury drawer, **Active deposits** shows your asset, available balance, and shares after the app refreshes.
+- The Treasury overview updates after indexing catches up.
 
 ## If something goes wrong
 
-- **No Treasury button on the garden.** The garden hasn't enabled a vault. Pick a different garden or ask the operator.
-- **"You're offline" warning.** The drawer disables deposits while offline. Reconnect and retry.
-- **Amount exceeds wallet balance.** The Deposit button stays disabled. Tap **Max** to cap at your balance, or top up the asset.
-- **Invalid decimal input.** The field error shows which rule you tripped (for example, too many decimals). Match the asset's decimal precision.
-- **Approval transaction succeeded but deposit didn't fire.** Some wallets split allowance and deposit into two signatures. Tap **Deposit** again to trigger the second transaction.
-- **"Connect Wallet" button on `/fund`.** You're browsing as a guest. Click it to open the wallet modal and connect.
-- **Estimated shares show "--".** The preview is still loading or the amount is 0. Wait a second after typing, or enter a non-zero amount.
+- **No vault or Treasury button.** The garden has not enabled a vault yet.
+- **Connect wallet prompt appears.** Connect the wallet or passkey account that should hold the endowment position.
+- **Offline warning.** Reconnect and retry.
+- **Amount exceeds wallet balance.** Enter a smaller amount or use **Max**.
+- **Invalid decimal input.** Match the token's decimal precision.
+- **Transaction cancelled.** Nothing was deposited. Try again when ready.
+- **Transaction failed.** Check the wallet error, token balance, chain, and Arbitrum gas.
+- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
 
 ## Next step
 
 <NextBestAction
-  title="Withdraw from a vault"
-  why="Depositing is easy. Knowing exactly how to withdraw is what makes the commitment comfortable."
-  actionLabel="Withdraw From a Vault"
+  title="Remove an endowment"
+  why="Endowing does not lock you in forever. Learn where the withdraw controls live before you need them."
+  actionLabel="Remove an Endowment"
   actionHref="./withdraw-from-a-vault"
-  alternatives={[
-    {label: "Submit Work (for gardeners)", href: "/community/gardener-guide/uploading-your-work"},
-  ]}
 />

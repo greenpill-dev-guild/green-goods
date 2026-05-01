@@ -62,13 +62,13 @@ const sidebars: SidebarsConfig = {
       items: [
         {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Create a Garden'},
         {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Make an Assessment'},
-        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Approve Work'},
+        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Review and Approve Work'},
         {type: 'doc', id: 'community/operator-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
       ],
     },
 
     // ── Funder Guide ──
-    // Current guide focus: deposit + withdraw. Other funder pages stay in the repo.
+    // Current guide focus: donate + endow + remove. Other funder pages stay in the repo.
     {
       type: 'category',
       label: 'Funder Guide',
@@ -77,8 +77,9 @@ const sidebars: SidebarsConfig = {
         id: 'community/funder-guide/index',
       },
       items: [
-        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Deposit Into a Vault'},
-        {type: 'doc', id: 'community/funder-guide/withdraw-from-a-vault', label: 'Withdraw From a Vault'},
+        {type: 'doc', id: 'community/funder-guide/donating-to-a-garden', label: 'Donate to a Garden'},
+        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Endow a Garden'},
+        {type: 'doc', id: 'community/funder-guide/withdraw-from-a-vault', label: 'Remove an Endowment'},
       ],
     },
 

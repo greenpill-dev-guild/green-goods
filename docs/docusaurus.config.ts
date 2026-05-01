@@ -45,7 +45,7 @@ const config: Config = {
           routeBasePath: '/', // Docs at root URL
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/greenpill-dev-guild/green-goods/tree/main/docs/docs/',
+            'https://github.com/greenpill-dev-guild/green-goods/edit/main/docs/',
         },
         blog: false, // Using external Paragraph blog
         theme: {

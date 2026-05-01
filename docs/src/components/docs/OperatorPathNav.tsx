@@ -3,9 +3,9 @@ import {useLocation} from "@docusaurus/router";
 import styles from "./styles.module.css";
 
 const OPERATOR_PATH_ITEMS = [
-  {label: "Create Garden", href: "/community/operator-guide/creating-a-garden"},
-  {label: "Make Assessment", href: "/community/operator-guide/making-an-assessment"},
-  {label: "Approve Work", href: "/community/operator-guide/reviewing-work"},
+  {label: "Create a Garden", href: "/community/operator-guide/creating-a-garden"},
+  {label: "Make an Assessment", href: "/community/operator-guide/making-an-assessment"},
+  {label: "Review and Approve Work", href: "/community/operator-guide/reviewing-work"},
   {
     label: "Mint Impact Certificate",
     href: "/community/operator-guide/creating-impact-certificates",

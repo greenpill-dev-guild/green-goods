@@ -1,11 +1,11 @@
 ---
 title: Operator Guide
-sidebar_label: Overview
+sidebar_label: Operator Guide
 slug: /community/operator-guide/
-description: "Core path for operators: create gardens, define the assessment frame, approve work, and mint impact certificates."
+description: "Core path for operators: create gardens, make assessments, review work, and mint impact certificates."
 audience: operator
 owner: docs
-last_verified: 2026-04-21
+last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/operator-overview.webp
 goal: "Give operators the live path: create a garden, make an assessment, approve work, and mint an impact certificate."
@@ -13,7 +13,7 @@ difficulty: "standard"
 estimated_time: "Varies by flow."
 prereqs: "An operator or deployer account, depending on the task."
 next_steps: "./creating-a-garden"
-persona_context: "Operators setting up gardens, setting assessment baselines, keeping the work queue clean, and packaging verified work into impact certificates."
+persona_context: "Operators setting up gardens, making assessments, keeping the work queue clean, and packaging verified work into impact certificates."
 source_of_truth:
   - docs/sidebars.ts
   - packages/contracts/src/resolvers/WorkApproval.sol
@@ -47,9 +47,9 @@ import styles from "@site/src/components/docs/styles.module.css";
 
 ## What this helps you do
 
-This is the core operator path. Use it to stand up a garden, define the assessment frame or baseline, approve incoming work against that frame, and then mint an impact certificate when the evidence is ready.
+This is the core operator path. Use it to create a garden, make an assessment, review incoming work, and mint an impact certificate when the evidence is ready.
 
-The key permission boundary is simple: work approval requires garden owner/operator authority. Evaluators can make assessments, but they do not approve or reject work unless they also have the operator or owner role.
+The key permission boundary is simple: owners, operators, and evaluators can make assessments; only owners and operators approve or reject work.
 
 <div className={[styles.roleGrid, styles.roleGridTwo].join(" ")}>
   <RolePathCard
@@ -61,7 +61,7 @@ The key permission boundary is simple: work approval requires garden owner/opera
     roleAccent="operator"
     audience="Deployers"
     time="10-25 min"
-    description="Deploy a new garden, set its core details and domains, and understand what still needs to be configured after launch."
+    description="Deploy a new garden, set its core details and domains, and prepare the first team and actions before inviting gardeners."
     ctaLabel="Create"
   />
   <RolePathCard
@@ -73,11 +73,11 @@ The key permission boundary is simple: work approval requires garden owner/opera
     roleAccent="assessment"
     audience="Operators and evaluators"
     time="15-30 min"
-    description="Set the reporting context, outcomes, and evidence frame that later approvals and certificates should line up against."
+    description="Record the domain, reporting window, outcomes, and evidence context that later approvals and certificates should line up against."
     ctaLabel="Assess"
   />
   <RolePathCard
-    title="Approve Work"
+    title="Review and Approve Work"
     href="/community/operator-guide/reviewing-work"
     image="/img/social/approving-work.webp"
     imageAlt="Illustrated operator reviewing submitted garden work"
@@ -85,7 +85,7 @@ The key permission boundary is simple: work approval requires garden owner/opera
     roleAccent="operator"
     audience="Operators"
     time="2-10 min"
-    description="Review a gardener submission from the app or admin, leave useful feedback, and create the approval or rejection attestation."
+    description="Review a gardener submission from the app or admin, approve good evidence, or reject with feedback the gardener can act on."
     ctaLabel="Review"
   />
   <RolePathCard
@@ -104,7 +104,7 @@ The key permission boundary is simple: work approval requires garden owner/opera
 
 ## Good operating rhythm
 
-1. Create the garden and confirm its domains before inviting a wider group.
-2. Define the assessment frame early so the review queue has a clear baseline.
-3. Approve or reject submissions with feedback that maps back to that frame.
+1. Create the garden and confirm its domains and eligible actions before inviting a wider group.
+2. Make an assessment early so operators have clear context for later reviews.
+3. Approve or reject submissions with feedback that maps back to the action and assessment.
 4. Mint an impact certificate only after the evidence chain is strong enough to defend.

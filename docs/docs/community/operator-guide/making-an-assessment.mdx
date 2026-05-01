@@ -2,18 +2,18 @@
 title: Make an Assessment
 sidebar_label: Make an Assessment
 slug: /community/operator-guide/making-an-assessment
-description: "Define the garden assessment baseline and reporting frame that approved work should support."
+description: "Define the garden assessment context, reporting window, outcomes, and selected actions."
 audience: operator
 owner: docs
-last_verified: 2026-04-20
+last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/making-an-assessment.webp
-goal: "Walk an operator or evaluator through the three-step assessment wizard as a baseline and reporting-frame attestation."
+goal: "Walk an operator or evaluator through the three-step assessment form."
 difficulty: "standard"
 estimated_time: "15-30 minutes."
-prereqs: "Assessment permission, a clear reporting window, and enough context to define the baseline; approved work is needed before final packaging."
+prereqs: "Assessment permission, a clear reporting window, and enough context to define the garden's current state."
 next_steps: "./reviewing-work"
-persona_context: "Operators setting the baseline and reporting frame that later approvals and impact certificates should support."
+persona_context: "Operators and evaluators recording the context that later approvals and impact certificates should support."
 source_of_truth:
   - packages/admin/src/views/Garden/Assessment.tsx
   - packages/admin/src/views/Hub/CreateAssessment.tsx
@@ -43,95 +43,86 @@ import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/s
   label="Assessment chapter"
   roleAccent="assessment"
 >
-  Set the baseline, reporting window, and evidence frame.
+  Set the domain, reporting window, outcomes, and evidence context.
 </GuideOpener>
 
 ## What this helps you do
 
-Create a standalone **EAS assessment attestation** for a garden. In the operator path, this is the baseline and reporting frame: it records the domain, title, description, location, reporting dates, selected actions, metrics, evidence, and strategy context that later approval work should line up against.
+Create an assessment for a garden. An assessment records the domain, title, location, reporting window, outcomes, selected actions, metrics, and context that operators will use when they review work and later mint impact certificates.
 
-An assessment can support later impact reporting and impact certificates, but it is created from the admin assessment wizard, not from the public Impact page.
+Assessments are operator-first, but the permission is broader: garden owners, operators, and evaluators can create them. Approving or rejecting work is still owner/operator only.
 
-:::important Protocol permission
-The assessment resolver accepts attestations from garden evaluators or operators. Owners/operators can manage the garden; evaluators can submit assessments when they have the evaluator role.
-:::
+Each assessment is single-domain. If a garden is reporting Agroforestry and Education work, make one assessment for Agroforestry and a separate assessment for Education.
 
 ## Before you start
 
-- You are signed in as an **operator** or **evaluator** in the garden.
-- The garden has enough context to set a responsible baseline. If you are making a final evidence-backed assessment rather than an initial frame, wait until the related work is approved.
-- You have a rough sense of:
-  - The **domain** you are reporting in (must be one this garden runs).
-  - A short **diagnosis** of the situation you acted on.
-  - One to three **SMART outcomes** you will report against.
-  - The **domain actions** you want to include.
-  - The **reporting window** (start and end date).
+- You are signed in as a garden **owner**, **operator**, or **evaluator**.
+- You know which **domain** this assessment covers.
+- You have a short diagnosis of the situation the garden is working on.
+- You have one or more SMART outcomes. SMART means specific, measurable, achievable, relevant, and time-bound; in plain terms, each outcome should say what will change, how you will measure it, and by when.
+- You know the reporting window and the actions that belong in this assessment.
 
 :::tip
-If the assessment page says "No permission", you are missing operator/evaluator permission for this garden.
+An assessment can be an early baseline or a later evidence-backed report. It is useful before approvals, but it is not required before every work approval.
 :::
 
 ## Step-by-step flow
 
-The wizard has three steps: **Domain & Context → Strategy Kernel → Actions & Harvest**. Your progress is saved as a draft as you go, so you can close the tab and resume later.
+The assessment form has three steps: **Domain & Context**, **Strategy Kernel**, and **Actions & Harvest**. Your progress is saved as a local draft when browser storage is available.
 
-### Step 1: Open the assessment wizard
+### Step 1: Open the assessment form
 
-1. Open the **Hub** workspace, switch to the **Assess** tab, and click **New assessment** (or go directly to `/hub/assess/create`).
-2. Pick the garden if you haven't already. The wizard refuses to open without one.
+1. Open the **Hub** workspace.
+2. Switch to the **Assess** tab.
+3. Click **New assessment**.
+4. Pick the garden if the form asks for one.
 
 ### Step 2: Fill Domain & Context
 
-1. Pick the **Domain** this assessment reports against. Only domains enabled on this garden are selectable.
-2. Enter the **title** — keep it stable enough that you will still recognise it in six months.
+1. Pick the **Domain** this assessment reports against. Only domains enabled on the garden are selectable.
+2. Enter a stable **title** that will still make sense later.
 3. Enter a short **description** of what the assessment covers.
-4. Enter the **location** (specific enough that a reader can place it on a map).
+4. Enter the **location**.
 5. Click **Continue**.
 
 ### Step 3: Build the Strategy Kernel
 
-1. Enter the **diagnosis** — one or two paragraphs on what was happening before the work started.
-2. Choose the **Cynefin phase** that matches the situation (clear, complicated, complex, chaotic, or confusion). This helps a reader read the assessment with the right frame.
-3. Add one or more **SMART outcomes**. Each outcome needs a description, a metric, and a numeric target. Keep them honest — "15 trees alive after 6 months" beats "trees planted."
-4. Select only the metrics that match the garden's domain. Don't add metrics just to make the assessment look bigger.
+1. Enter the **diagnosis**: what was happening before or during the work.
+2. Choose the situation type: clear, complicated, complex, chaotic, or confusion. The app labels this as the **Cynefin phase**.
+3. Add one or more **SMART outcomes** with a description, metric, and target.
+4. Select the metrics that match the domain and outcomes. Use multiple metrics when they add useful evidence, but do not add metrics just to make the assessment look bigger.
 5. Click **Continue**.
 
 ### Step 4: Pick Actions & Harvest
 
-1. Select the **actions** to include in this assessment. The wizard filters actions by the domain you chose in step 1.
-2. Set the **reporting period** — start date and end date. Make it match the work you selected.
-3. Click **Submit assessment** and sign the transaction in your wallet.
-4. Wait for the transaction to confirm. The wizard stays on this step until it does.
+1. Select the **actions** this assessment covers. The form filters actions to the domain you picked in step 2.
+2. Set the **reporting period** start and end dates.
+3. Review the summary.
+4. Click **Submit assessment** and sign in your wallet.
+5. Wait for confirmation before closing the tab.
 
 ## How to know it worked
 
-- A success toast appears: *"Assessment submitted — Your assessment has been recorded on-chain."*
-- The wizard closes and you return to the assessment list.
-- After indexing catches up, the new assessment appears with its title, domain badge, and reporting date range.
-- If the card exposes an EAS Explorer link, you can open it to verify the attestation independently.
-
-### Behind the scenes
-
-Every assessment submits one EAS attestation to the garden address. The on-chain schema stores title, description, assessment config CID, domain, start date, end date, and location. The richer assessment config on IPFS stores the assessment type, capitals, metrics CID, evidence media CIDs, report documents, linked impact attestations, and tags.
+- A success toast confirms the assessment was submitted.
+- The form closes and returns you to the assessment list.
+- After indexing catches up, the assessment appears with its title, domain badge, and reporting date range.
+- If an explorer link is available, you can open it to verify the record.
 
 ## If something goes wrong
 
-- **"No permission"** on the wizard. You are missing operator/evaluator permission. Ask the garden owner to add the right role.
-- **Domain field missing options.** The garden doesn't have that domain enabled. Fix the garden settings first, or pick a domain the garden actually runs.
-- **"Incomplete form"** toast. The wizard highlights the failing field — scroll to the red label, fill it in, and retry.
-- **"We could not submit the assessment."** The form data didn't assemble into a valid payload — usually a missing garden reference. Reload the page and re-enter the wizard from the Hub.
-- **Transaction cancelled.** You cancelled in your wallet. Click **Retry submission**.
-- **Transaction failed.** Check the inline error card. Common causes: wrong chain, insufficient gas, or a stale signer. Fix the cause and click **Retry submission**. If you need to edit the form, click **Edit details** instead.
-- **"Draft backup unavailable"** info toast. Your draft could not be saved to local storage, but submission still works — just don't close the tab mid-wizard.
+- **No permission.** Ask the garden owner to add you as an owner, operator, or evaluator.
+- **Domain is missing.** The garden does not have that domain enabled. Pick an enabled domain or update the garden settings first.
+- **Action is missing.** Actions are filtered by the selected domain. Check whether the action belongs to a different domain.
+- **Incomplete form.** The form highlights the missing field. Scroll back, fill it in, and retry.
+- **Draft backup unavailable.** Submission can still work, but do not close the tab until you finish.
+- **Transaction cancelled.** Nothing was submitted. Retry when ready.
+- **Transaction failed.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
 
 ## Next step
 
 <NextBestAction
-  title="Keep the review queue clean"
-  why="With the baseline set, approve or reject incoming submissions against the frame you just created."
-  actionLabel="Approve Work"
+  title="Review and approve work"
+  why="With assessment context in place, use it to make consistent approval decisions in the work queue."
+  actionLabel="Review and Approve Work"
   actionHref="./reviewing-work"
-  alternatives={[
-    {label: "Create a Garden", href: "./creating-a-garden"},
-  ]}
 />

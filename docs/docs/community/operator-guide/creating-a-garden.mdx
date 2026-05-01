@@ -5,7 +5,7 @@ slug: /community/operator-guide/creating-a-garden
 description: "Deploy a Green Goods garden from admin with current details, domains, and initial team guidance."
 audience: operator
 owner: docs
-last_verified: 2026-04-20
+last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/creating-a-garden.webp
 goal: "Walk an operator through deploying a new garden end-to-end, including the deployer gate."
@@ -43,105 +43,101 @@ import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/s
   label="Operator chapter"
   roleAccent="operator"
 >
-  Set garden details, seed the first team, then deploy.
+  Set garden details, add the initial team, then deploy.
 </GuideOpener>
 
 ## What this helps you do
 
-Deploy a brand-new garden in the Green Goods admin so your community can start submitting work against it. This is a one-time setup — you will not redo it once the garden is live.
+Create a new garden in Green Goods admin so the community has a place to join, submit work, and later report impact. Deployment creates the starting garden record; members, actions, and settings can still be updated after launch.
 
-Creating a garden is a **deployer-level action**. If you are already an operator inside an existing garden, you probably don't need this page. Jump straight to [Make an Assessment](./making-an-assessment) to set the reporting frame, or [Approve Work](./reviewing-work) if the garden already has one.
+Creating a garden is a deployer-level action. Existing garden operators do not need this page unless they are launching a new garden.
 
 :::note Admin route
-The current admin create route is `/garden/create`. Use that route when you need to open the form directly.
+The current admin create route is `/garden/create`. Use `https://admin.greengoods.app/garden/create` when you need to open the form directly.
 :::
 
 ## Before you start
 
-Have these ready so you don't bounce around mid-form:
+Have these ready so you can finish in one pass:
 
-- **Deployer access** in Green Goods admin. If you hit a permissions error on `/garden/create`, ask the team to add you as a deployer.
-- A **name** and a short **description** of the garden.
-- A **location** (bioregion, city, or community).
-- A **banner image** (optional but recommended).
-- An **ENS subdomain** idea — the form suggests one from the name, but you can edit it.
-- A **domain selection** — Solar, Agro, Education, or Waste. Domains decide which actions gardeners can submit against later.
-- A rough list of the **first operators and gardeners** you want on board. These addresses are included in the deploy transaction, and you can add or fix members later from Garden Members.
-- A **funded wallet** on the target chain for the deployment transaction.
+- **Deployer access** in Green Goods admin. If `/garden/create` shows a permissions error, ask the platform team to add you as a deployer.
+- A **name**, short **description**, and **location** for the garden.
+- A **banner image**, if you have one.
+- An **ENS subdomain** idea. The form suggests one from the garden name, but you can edit it.
+- The garden **domains**: Solar, Agroforestry, Education, or Waste. Domains decide which action templates gardeners can submit against later.
+- Initial **operators** and **gardeners** as `0x` addresses or ENS names. Passkey users may need to share the smart account address shown in Profile. You can add or fix members after launch.
+- A funded deployer wallet on Arbitrum for the deployment transaction.
 
 :::tip
-You need to be online to deploy — the form will block submission if you lose connectivity.
+The form saves draft progress locally as you move through it, but the deployment itself requires a live connection and a wallet signature.
 :::
 
 ## Step-by-step flow
 
 ### Step 1: Open the Create Garden form
 
-1. In admin, open **Garden** from the bottom `NavigationBar`, then click **Create** (or go directly to `/garden/create`).
-2. If you hit a 404 or a permissions warning, you don't have deployer access yet. Stop here and ask the team.
-
-The form opens on **Garden details**. Fill the required fields, pick the garden's domains, then click **Continue**. Step 2 plans the initial team. Step 3 reviews everything before you sign the deploy transaction.
+1. In admin, open **Garden** from the bottom navigation, then click **Create**.
+2. You can also go directly to `/garden/create`.
+3. If you hit a 404 or permissions warning, stop and ask for deployer access.
 
 <img src="/img/screenshots/admin-create-garden.png" alt="Admin create garden form showing garden details and domain selection" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 ### Step 2: Fill in Garden details
 
-1. Enter the **Garden name**. The ENS subdomain field auto-suggests from the name — edit it if you want a cleaner handle.
-2. Enter the **location**.
-3. Add a **description**. Two or three lines is plenty.
-4. Attach a **banner image** if you have one.
-5. Select the **domains** this garden will run. Pick only what you actually plan to use — adding a domain later is easier than explaining unused ones.
+1. Enter the **Garden name**.
+2. Review the suggested ENS subdomain and edit it if needed.
+3. Enter the **location** and a short **description**.
+4. Add a **banner image** if one is ready.
+5. Select the **domains** this garden will actually use: Solar, Agroforestry, Education, or Waste.
 6. Click **Continue**.
 
-### Step 3: Plan the initial team
+### Step 3: Add the initial team
 
-1. Add the wallet addresses of the **operators** you want to seed the garden with.
-2. Add the **gardeners** who will be submitting work from day one.
-3. You can leave either address list empty and add members later from Garden Members. If you include addresses, the deploy transaction passes them to the contract and the contract attempts to seed their roles during deployment.
-4. The current create form does not expose a joining-policy selector in this step. Treat new gardens as invite-only unless your admin build explicitly shows **Open joining** enabled in review.
+1. Add the operators who should manage the garden.
+2. Add the gardeners who should be able to submit from day one.
+3. Use the exact address or ENS name each person uses in Green Goods. Passkey users may need to share the smart account address shown in Profile.
+4. You can leave either list empty and add members later from Garden Members.
 5. Click **Continue**.
 
 ### Step 4: Review and deploy
 
-1. Read back the summary: name, slug, description, Open joining value, domains, and planned team.
-2. If anything is off, click back into the earlier step and fix it — don't edit by memory.
-3. When everything is right, click **Deploy garden** and approve the transaction in your wallet.
-4. Wait for the transaction to confirm. The wizard stays on this step until it does.
+1. Read back the summary: name, slug, description, joining policy, domains, and team.
+2. If the create form does not expose a joining-policy selector, treat the garden as restricted until you confirm settings after launch.
+3. Fix anything that looks wrong before signing.
+4. Click **Deploy garden** and approve the transaction in your wallet.
+5. Wait for confirmation. Keep the tab open while the form finishes.
 
 ## How to know it worked
 
-- You are redirected back to the garden list at `/garden`.
-- A success toast appears: *"Garden created — Your garden has been deployed successfully."*
-- If you seeded members at step 3, you see a reminder to verify those roles in Garden Members after indexing catches up.
+- The app redirects back to the garden list at `/garden`.
+- A success toast confirms the garden was created.
 - The new garden appears in the garden list.
-- If you open it in the client app, the banner, location, and description all render as expected.
+- Initial members appear in Garden Members after indexing catches up.
+- The public/app garden view shows the expected banner, location, description, and domains.
+
+## After launch
+
+- Verify the initial operators and gardeners in Garden Members.
+- Confirm the joining policy before sharing the garden link.
+- Add or activate the actions gardeners should submit against, based on the domains you enabled.
+- Make an assessment before the review queue grows, if the garden needs baseline context.
 
 ## If something goes wrong
 
-- **404 on `/garden/create`.** You are not a deployer, or the route is not available in the current admin build. Contact the platform admin instead of working around it.
-- **"You're offline" toast on Deploy.** The form blocks deployment when the network is down. Reconnect and retry — the form keeps your progress.
-- **Transaction cancelled.** You cancelled the signature in your wallet. Click **Retry deployment** when you are ready.
-- **Transaction failed.** Check the inline error card — it shows the raw wallet message when one is available. Common causes are insufficient gas funds and a wrong chain. Fix the cause and click **Retry deployment**.
-- **Name or ENS collision.** Pick a different garden name or edit the ENS subdomain before retrying.
-- **"Cannot deploy yet."** The form isn't ready for submission. Go back through the earlier steps and look for fields marked as required that are still empty.
-
-After a successful deploy, finish setup by:
-
-- Verifying seeded members in Garden Members, then adding any missing operators or gardeners.
-- Confirming that metadata and banner render in both admin and the client app before sharing the garden link with your community.
-
-### Behind the scenes
-
-The deploy transaction creates the garden account on-chain, registers it in the Green Goods registry, seeds it with the domains you chose, and passes the initial gardener/operator lists to the contract. The contract attempts those role grants during deployment on a best-effort basis, so verify Garden Members afterward in case a grant failed or the indexer has not caught up yet.
+- **404 or permissions warning.** You are not a deployer, or this admin build does not expose the route. Ask the platform team.
+- **Offline warning on deploy.** Reconnect and retry. Your form draft should still be there if local draft storage is available.
+- **Name or ENS already taken.** Pick a different garden name or edit the ENS subdomain.
+- **Cannot deploy yet.** A required field is missing. Go back through the steps and look for highlighted fields.
+- **Transaction cancelled.** You cancelled the wallet signature. Retry when ready.
+- **Transaction failed.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
+- **Member did not appear.** Add them from Garden Members after the garden indexes.
+- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
 
 ## Next step
 
 <NextBestAction
-  title="Set the assessment frame"
-  why="Before the review queue fills up, define the baseline, domain, outcomes, and reporting window that later approvals should support."
+  title="Make an assessment"
+  why="Before the review queue fills up, record the domain, reporting window, outcomes, and context that later approvals should support."
   actionLabel="Make an Assessment"
   actionHref="./making-an-assessment"
-  alternatives={[
-    {label: "Approve Work", href: "./reviewing-work"},
-  ]}
 />

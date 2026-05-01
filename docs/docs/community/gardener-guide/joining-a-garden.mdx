@@ -5,13 +5,13 @@ slug: /community/gardener-guide/joining-a-garden
 description: "Find and join the garden where your work belongs before submitting regenerative work."
 audience: all
 owner: docs
-last_verified: 2026-04-21
+last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/joining-a-garden.webp
 goal: "Help gardeners find, join, and begin working in a garden community."
 difficulty: "quickstart"
 estimated_time: "5 minutes."
-prereqs: "A smartphone with a camera and an internet connection for initial setup."
+prereqs: "A Green Goods sign-in method, the garden you want to join, and an internet connection."
 next_steps: "/community/gardener-guide/uploading-your-work"
 persona_context: "New gardeners discovering and joining garden communities for the first time."
 source_of_truth:
@@ -27,7 +27,6 @@ keywords:
 ---
 
 import {
-  DecisionGuide,
   GuideOpener,
   NextBestAction,
   StatusBadge,
@@ -51,44 +50,38 @@ import {
 
 Join the garden where your work belongs so its actions appear in the app and your submissions can be reviewed by the right operators.
 
-Open gardens can be joined directly. Restricted gardens do not show a join button until an operator invites or adds you.
+Open gardens can be joined directly. Restricted gardens need an operator to add you before they appear as joined.
 
 ## Before you start
 
-- Sign in with the passkey or wallet address you plan to keep using.
-- Make sure you are online. Joining a garden is an on-chain action.
-- If you are using an external wallet, keep a little gas available on the target chain.
-- If someone sent you a public garden link, open **Join this Garden** and sign in when prompted. After login, the app takes you to the authenticated garden page.
+- Sign in with the same passkey or wallet you plan to keep using. If you switch logins later, the app will treat that as a different account.
+- Open your Profile and note the address or ENS name the operator should use if they need to add you. Passkey sign-in creates a smart account address for Green Goods; share the address shown in Profile, not a different wallet you also own.
+- Make sure you are online. Joining a garden needs a live app session.
+- If you use an external wallet, keep a little gas available for the Arbitrum network fee. Passkey or smart-account actions may be sponsored when that support is configured.
 
 ## Step-by-step flow
 
 <StepFlow
   steps={[
-    {title: "Open your gardens list", detail: "In the app, open Profile and find the Gardens section. It lists gardens you already belong to and open gardens you can join."},
-    {title: "Pick the right garden", detail: "Check the name and location before joining. Garden actions, operators, and work history are scoped to that garden."},
-    {title: "Tap Join", detail: "For an open garden, tap Join, review the confirmation, and sign the transaction. Passkey users use their smart account; wallet users sign with their connected wallet."},
-    {title: "Confirm membership", detail: "After the transaction starts, the garden shows as joined in the app. Indexer updates can take a moment, so refresh if the status looks stale."},
-    {title: "Open the garden", detail: "Go to the garden page and check the Work tab. If active actions are available, you are ready to submit work."},
-  ]}
-/>
-
-<DecisionGuide
-  title="Open vs restricted gardens"
-  items={[
     {
-      when: "The garden has an open joining policy",
-      do: "Join directly from Profile or from the authenticated garden page.",
-      next: "Open the garden's Work tab and pick an active action.",
+      title: "Open your gardens list",
+      detail: "In the app, open Profile and find the Gardens section. It lists gardens you already belong to and open gardens you can join.",
     },
     {
-      when: "The garden has a restricted joining policy",
-      do: "Ask the garden operator to add you. The app will not show a direct join path.",
-      next: "Once added, the garden appears in your app and its actions become available.",
+      title: "Pick the right garden",
+      detail: "Check the name and location before joining. If several gardens have similar names, confirm with the operator before you submit any work.",
     },
     {
-      when: "A public garden link sent you here",
-      do: "Use the public page's Join this Garden button. If you are signed out, login redirects you back to the garden.",
-      next: "Finish the join from the authenticated app page.",
+      title: "Join or ask to be added",
+      detail: "For an open garden, tap Join and follow the confirmation. If someone sent you a public garden link, use Join this Garden and sign in when prompted. For a restricted garden, send the operator the address shown in your Profile and wait for them to add you.",
+    },
+    {
+      title: "Wait for the app to catch up",
+      detail: "After joining or being added, the garden should show as joined. If the status looks stale right away, refresh once and give the indexer a moment.",
+    },
+    {
+      title: "Open the Work tab",
+      detail: "Go to the garden page and check the Work tab. If active actions are available, you are ready to submit work.",
     },
   ]}
 />
@@ -96,33 +89,30 @@ Open gardens can be joined directly. Restricted gardens do not show a join butto
 ## How to know it worked
 
 - The garden appears in your Profile gardens list.
-- The garden page no longer shows the join action for your account.
 - The Work tab shows actions you can submit against, if the operator has active actions configured.
-- If the app still looks unchanged right after signing, refresh once. The transaction may have confirmed before the indexer caught up.
+- If an operator added you to a restricted garden, it appears after the app refreshes and indexing catches up.
 
 ## If something goes wrong
 
 - **No Join button.** The garden may be restricted, you may already be a member, or you may be signed out.
-- **Transaction fails.** Check the wallet message. Common causes are the wrong chain, no gas for an external wallet, or a garden that is no longer open for joining.
-- **Joined but still not showing.** Refresh the app. The join is optimistic first and then confirmed by the garden indexer.
+- **Operator cannot find your account.** Share the exact address or ENS shown in your Green Goods Profile, not a different wallet you also own.
+- **Transaction fails.** Check the wallet message. Common causes are the wrong chain, no Arbitrum gas for an external wallet, or a garden that is no longer open for joining.
+- **Joined but still not showing.** Refresh the app. The join may have confirmed before the garden indexer caught up.
 - **Wrong garden.** Contact the operator before submitting work. Your submissions should be tied to the garden that will review them.
+- **Still stuck.** Open Profile help in the app or use the Green Goods Telegram support link in the docs footer.
 
 ## Best practices
 
-- Confirm the garden location and operator before joining if several gardens have similar names
-- When joining a restricted garden, reach out to the operator directly and share the address you use in Green Goods
-- You can belong to multiple gardens at once — each garden tracks your contributions independently
-- Check a garden's active actions before joining to make sure it matches your interests and availability
+- Confirm the garden location and operator before joining if several gardens have similar names.
+- Use one login consistently. Your membership and submissions belong to the account that joined.
+- You can belong to multiple gardens at once; each garden tracks your contributions independently.
+- Check a garden's active actions before joining so you know what kind of work the operators are ready to review.
 
 ## Next step
 
 <NextBestAction
   title="Submit work"
-  why="You have joined a garden — now learn how to document your regenerative work."
-  actionLabel="Document Your Work"
+  why="You have joined a garden. Now document the work so operators can review it."
+  actionLabel="Submit Work"
   actionHref="/community/gardener-guide/uploading-your-work"
-  alternatives={[
-    {label: "Working Offline", href: "/community/gardener-guide/offline-sync-and-drafts"},
-    {label: "Earning Badges", href: "/community/gardener-guide/earning-badges"},
-  ]}
 />

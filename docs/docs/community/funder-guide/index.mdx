@@ -1,34 +1,41 @@
 ---
 title: Funder Guide
-sidebar_label: Overview
+sidebar_label: Funder Guide
 slug: /community/funder-guide/
-description: "Core path for funders: deposit into a garden vault and withdraw when ready."
+description: "Core path for funders: donate to a garden, endow a garden, or remove an endowment."
 audience: funder
 owner: docs
-last_verified: 2026-04-21
+last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/funder-overview.webp
-goal: "Help funders deposit into a garden vault and withdraw their position when ready."
+goal: "Help funders choose between direct donation, endowment, and endowment removal."
 difficulty: "quickstart"
-estimated_time: "5-10 minutes."
-prereqs: "A wallet or passkey account, supported assets, and a garden with an active vault."
-next_steps: "./funding-a-garden"
-persona_context: "Funders supporting garden operations through Octant vault deposits."
+estimated_time: "3-10 minutes."
+prereqs: "A wallet or passkey account, supported assets, and a garden with active funding destinations."
+next_steps: "./donating-to-a-garden"
+persona_context: "Funders supporting garden operations through direct Cookie Jar donations and vault endowments."
 source_of_truth:
   - docs/sidebars.ts
-  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
   - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/components/Public/PublicFundingMethodSelector.tsx
+  - packages/client/src/components/Dialogs/CookieJarDepositDialog.tsx
+  - packages/client/src/components/Dialogs/VaultDepositDialog.tsx
+  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
+  - docs/docs/community/funder-guide/donating-to-a-garden.mdx
   - docs/docs/community/funder-guide/funding-a-garden.mdx
   - docs/docs/community/funder-guide/withdraw-from-a-vault.mdx
 keywords:
   - funder
+  - donate
+  - endow
   - deposit
   - withdraw
   - vault
+  - cookie jar
   - user guide
 ---
 
-import {RiArrowGoBackLine, RiWallet3Line} from "@remixicon/react";
+import {RiArrowGoBackLine, RiHandCoinLine, RiWallet3Line} from "@remixicon/react";
 import {RolePathCard, StatusBadge} from "@site/src/components/docs";
 import styles from "@site/src/components/docs/styles.module.css";
 
@@ -38,13 +45,31 @@ import styles from "@site/src/components/docs/styles.module.css";
 
 ## What this helps you do
 
-This is the core funder path: deposit into a garden vault, then know exactly where to withdraw your position later.
+This is the core funder path: donate directly to a garden, endow a garden through a vault, or remove your endowment later.
 
-The public `/fund` page is deposit-only. To see your active position or withdraw, use the authenticated app and open the garden's Treasury drawer.
+Donate and Endow both support a garden, but they are different:
+
+- **Donate** sends direct support through the garden's Cookie Jar for verified work.
+- **Endow** deposits into a vault designed to preserve your principal while yield supports the garden.
+- **Remove an Endowment** withdraws principal from an existing vault position.
+
+The public `/fund` page supports Donate and Endow. To see your active endowment or remove it, sign in to the app and open the garden's Treasury drawer.
 
 <div className={styles.roleGrid}>
   <RolePathCard
-    title="Deposit Into a Vault"
+    title="Donate to a Garden"
+    href="/community/funder-guide/donating-to-a-garden"
+    image="/img/social/funding-a-garden.webp"
+    imageAlt="Illustrated funder placing direct support into a garden cookie jar"
+    icon={<RiHandCoinLine />}
+    roleAccent="funder"
+    audience="Funders"
+    time="3-5 min"
+    description="Use the public Fund page to send direct support through a garden's Cookie Jar."
+    ctaLabel="Donate"
+  />
+  <RolePathCard
+    title="Endow a Garden"
     href="/community/funder-guide/funding-a-garden"
     image="/img/social/funding-a-garden.webp"
     imageAlt="Illustrated funder placing a gold token into a garden vault"
@@ -52,11 +77,11 @@ The public `/fund` page is deposit-only. To see your active position or withdraw
     roleAccent="funder"
     audience="Funders"
     time="5-10 min"
-    description="Choose a garden, pick a supported asset, submit a vault deposit, and confirm your shares appear in the treasury."
-    ctaLabel="Deposit"
+    description="Choose a garden, pick a supported asset, deposit into its vault, and confirm your endowment position."
+    ctaLabel="Endow"
   />
   <RolePathCard
-    title="Withdraw From a Vault"
+    title="Remove an Endowment"
     href="/community/funder-guide/withdraw-from-a-vault"
     image="/img/social/withdraw-from-a-vault.webp"
     imageAlt="Illustrated funder drawing a gold token back out of a garden vault"
@@ -64,11 +89,11 @@ The public `/fund` page is deposit-only. To see your active position or withdraw
     roleAccent="funder"
     audience="Funders"
     time="3-5 min"
-    description="Open the authenticated Treasury drawer, find your active deposit, choose an amount, and withdraw principal back to your wallet."
-    ctaLabel="Withdraw"
+    description="Open the authenticated Treasury drawer, find your active endowment, choose an amount, and withdraw principal."
+    ctaLabel="Remove"
   />
 </div>
 
 ## Good funding habit
 
-Before depositing, open the garden and look at its recent approved work. After depositing, check the Treasury drawer so you know where your position and withdrawal controls live.
+Before you donate or endow, open the garden and look at its recent approved work. After you endow, check the Treasury drawer so you know where your position and removal controls live.

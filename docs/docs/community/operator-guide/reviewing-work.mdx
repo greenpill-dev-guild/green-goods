@@ -1,17 +1,17 @@
 ---
-title: Approve Work
-sidebar_label: Approve Work
+title: Review and Approve Work
+sidebar_label: Review and Approve Work
 slug: /community/operator-guide/reviewing-work
-description: "Review gardener submissions, approve or reject evidence, and create work approval attestations."
+description: "Review gardener submissions, approve good evidence, or reject with useful feedback."
 audience: operator
 owner: docs
-last_verified: 2026-04-20
+last_verified: 2026-05-01
 feature_status: Live
 image: /img/social/approving-work.webp
 goal: "Walk an operator through approving or rejecting a gardener's submission, with the exact on-screen steps."
 difficulty: "standard"
 estimated_time: "2-10 minutes per submission."
-prereqs: "Garden owner/operator authority, pending work in the queue, and a signer on the target chain."
+prereqs: "Garden owner/operator authority, pending work in the queue, and a signer on Arbitrum."
 next_steps: "./creating-impact-certificates"
 persona_context: "Operators clearing the work queue and giving gardeners timely feedback."
 source_of_truth:
@@ -30,7 +30,7 @@ keywords:
 
 import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/src/components/docs";
 
-# Approve Work
+# Review and Approve Work
 
 <StatusBadge status="Live" />
 
@@ -47,114 +47,96 @@ import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/s
 
 ## What this helps you do
 
-Clear a pending work submission in your garden: look at the evidence, approve or reject it, and leave feedback the gardener can act on. Approvals turn into on-chain attestations that should match the assessment frame you set earlier and can later be bundled into an impact certificate.
+Clear pending gardener submissions: review the action, evidence, and details, then approve good work or reject work that needs correction.
 
-You can approve work from either the mobile app/PWA or the admin. Use the app when you are already in the garden flow. Use admin when you are clearing a queue across gardens.
+Owners and operators can approve or reject work. Evaluators can make assessments, but they cannot approve work unless they are also an owner or operator.
 
-:::important Protocol permission
-Work approval is operator-only at the contract resolver. Garden owners and operators can approve or reject work. Evaluators can create assessments, but they do not approve or reject work unless they also have owner/operator authority.
-:::
+You can review from the mobile app/PWA or from admin. Use the app when you are already in the garden. Use admin when you are working through a queue.
 
 ## Before you start
 
-- You are signed in with an address that is a garden **owner** or **operator**.
+- You are signed in as a garden **owner** or **operator**.
 - There is at least one **pending** submission in the work queue.
-- You are online — approvals and rejections need a wallet signature.
+- You are online and ready to sign the decision.
+- If you use an external wallet, keep a little Arbitrum gas available.
 
 :::tip
-If you only see the submission details and no approve/reject controls, you do not have approval authority for that garden. Ask the garden owner to add you as an operator.
+If you can see the submission but not the approve/reject controls, you do not have approval authority for that garden.
 :::
 
 ## Step-by-step flow
 
-### Option A: Approve in the app/PWA
+### Option A: Review in the app/PWA
 
 Use this when you are on mobile or already looking at the garden.
 
 1. Open the Green Goods app and go to **Home**.
 2. Open the garden that owns the submission.
 3. Open the **Work** tab and select a pending submission.
-4. Review the media, action, details, and gardener notes.
-5. If the work is valid, tap **Approve**, add optional feedback, choose confidence, and submit.
-6. If the work needs changes, tap **Reject**, write specific feedback, and submit.
-7. Sign the transaction and wait for confirmation.
+4. Review the action, details, media, and gardener notes.
+5. Tap **Approve** if the evidence is enough.
+6. Tap **Reject** if the gardener needs to fix or resubmit something.
+7. Add concise feedback, submit, and sign when prompted.
 
-### Option B: Approve in admin
+### Option B: Review in admin
 
 Use this when you are clearing a larger queue or need desktop context.
 
-1. Open the **Hub** workspace from the bottom `NavigationBar`. The default view lands on **Work**, pending across every garden you can review.
-2. Use the garden picker to narrow the queue when you only want one garden.
-3. Filter to **Pending** to see what still needs a decision.
+1. Open the **Hub** workspace.
+2. Stay on **Work**.
+3. Use the garden picker when you only want one garden.
+4. Filter to **Pending** to see what still needs a decision.
 
 <img src="/img/screenshots/admin-work-queue.png" alt="Admin work queue filtered to pending submissions" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
-> The queue only shows submissions in the **Pending** state. Approved and rejected items move to the history view.
+### Open one submission
 
-#### Open one submission
-
-1. Click a submission. The Work Detail surface opens with the evidence on the left and the review controls on the right.
-2. Scroll through the media (photos, audio notes) and read the submission details.
-3. Cross-check the gardener's numbers or notes against the action's requirements.
+1. Click a submission.
+2. Review the action, garden, details, media, and notes.
+3. Compare the evidence against the action requirements and assessment context.
+4. If something is unclear, reject with a specific request instead of guessing.
 
 <img src="/img/screenshots/admin-work-detail.png" alt="Admin work detail page with submission evidence and review controls" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
-> The status badge at the top of the page says **Pending** until you act.
+### Approve or reject
 
-#### Approve or reject
+To approve:
 
-You'll see the review form on the right (or below, on narrow screens).
-
-**To approve:**
-
-1. Add a short verification note if it helps the next reviewer stay consistent.
+1. Add a short verification note if it helps future reviewers.
 2. Click **Approve**.
-3. Sign the transaction in your wallet when prompted.
+3. Sign the transaction.
 
-**To reject:**
+To reject:
 
-1. Explain exactly what is wrong — which field, which photo, which count — and what the gardener should change.
+1. Explain exactly what needs to change: the field, photo, count, action, or garden. If the evidence is inconclusive, ask for the missing proof here.
 2. Click **Reject**.
 3. Sign the transaction.
 
 :::tip
-Be specific in rejection feedback. *"Photo is too dark to verify tree count — retake in daylight and resubmit against the same action"* will land much better than *"insufficient evidence."*
+Specific rejection feedback saves time. "Photo is too dark to verify tree count; retake in daylight and resubmit against this action" is better than "insufficient evidence."
 :::
-
-### Confirm the status update
-
-1. After the transaction confirms, the status badge flips to **Approved** or **Rejected**.
-2. The submission drops out of the pending queue.
-3. You can check it in the Hub **History** view if you want to verify.
 
 ## How to know it worked
 
-- The status badge on the submission shows **Approved** (green) or **Rejected** (red), with the matching icon.
-- The submission no longer appears in the **Pending** Hub queue.
-- The gardener sees the new status (and your feedback, on a rejection) in their Work Dashboard.
-- For approvals, an on-chain attestation is recorded linking the work UID to your decision.
-
-### Behind the scenes
-
-The gardener's submission creates a work attestation. Your approval or rejection creates a separate work approval attestation that references the original work UID. Downstream assessments use that linked evidence chain when they package approved work into a reporting statement.
+- The submission status changes to **Approved** or **Rejected**.
+- It drops out of the pending queue.
+- The gardener sees the new status and any rejection feedback in their Work Dashboard.
+- You can find the reviewed item again in the history/completed view.
 
 ## If something goes wrong
 
-- **No Approve/Reject buttons visible.** You are not an owner/operator for this garden. Ask the garden owner to add you as an operator.
-- **"Select a garden" style errors.** The garden didn't resolve from the submission — reload the page and open the submission from the queue again.
-- **Transaction cancelled.** You cancelled in your wallet. Nothing happens on-chain. Try again when you are ready.
-- **Transaction failed.** Check the wallet error. Common causes: insufficient gas, wrong chain, or the garden's permissions contract changed. Switch chain, top up, and retry.
-- **Evidence is inconclusive.** Reject with a specific request ("add a second photo showing the full bed") rather than guessing. It is faster to let the gardener resubmit than to approve a weak record you will regret at assessment time.
-- **You clicked the wrong decision.** Approvals and rejections are recorded on-chain and can't be flipped in place. If you rejected valid work, ask the gardener to resubmit; if you approved bad evidence, flag the case to the garden owner so it can be annotated in the next assessment.
+- **No Approve/Reject buttons.** You are not an owner/operator for this garden. Ask the garden owner to add the right role.
+- **Selected garden error.** Reload and open the submission from the queue again.
+- **Transaction cancelled.** Nothing was recorded. Retry when ready.
+- **Transaction failed.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
+- **Wrong decision.** Decisions are recorded once submitted. If you rejected valid work, ask the gardener to resubmit; if you approved weak evidence, flag it for the garden owner before assessment or certification.
+- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
 
 ## Next step
 
 <NextBestAction
   title="Mint an impact certificate"
-  why="Once the assessment frame and approved work tell a coherent story, package them into the certificate flow."
+  why="Once the assessment and approved work tell a coherent story, package them into the certificate flow."
   actionLabel="Mint Impact Certificate"
   actionHref="./creating-impact-certificates"
-  alternatives={[
-    {label: "Make an Assessment", href: "./making-an-assessment"},
-  ]}
 />
