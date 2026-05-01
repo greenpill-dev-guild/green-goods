@@ -27,7 +27,8 @@ const mockStats = {
 const mockSliceReady = {
   records: [
     {
-      id: "rec-1",
+      id: "assessment:0xabcd",
+      kind: "assessment" as const,
       gardenId: "0x1",
       gardenName: "Solar Garden",
       title: "Q3 Soil Renewal",
@@ -39,7 +40,8 @@ const mockSliceReady = {
       createdAt: 1710000000,
     },
     {
-      id: "rec-2",
+      id: "assessment:0xdef0",
+      kind: "assessment" as const,
       gardenId: "0x2",
       gardenName: "Compost Hub",
       title: "Composting Pilot",
@@ -58,6 +60,7 @@ const mockSliceReady = {
 
 const mockUsePublicStats = vi.fn();
 const mockUsePublicImpactEvidence = vi.fn();
+const mockUsePublicGardens = vi.fn();
 
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
@@ -65,26 +68,45 @@ vi.mock("@green-goods/shared", async () => {
     ...actual,
     usePublicStats: () => mockUsePublicStats(),
     usePublicImpactEvidence: () => mockUsePublicImpactEvidence(),
+    usePublicGardens: () => mockUsePublicGardens(),
   };
 });
 
 import ImpactPage from "../../views/Public/Impact";
 
 const messages: Record<string, string> = {
-  "public.impact.title": "Impact",
-  "public.impact.kicker": "Public evidence ledger",
-  "public.impact.description": "Confirmed counts and recent evidence.",
-  "public.impact.statsTitle": "Impact stats",
-  "public.impact.totalAssessments": "Total Assessments",
-  "public.impact.totalGardens": "Total Gardens",
-  "public.impact.totalContributors": "Total Contributors",
-  "public.impact.evidence.title": "Recent evidence",
+  "public.impact.heroTitle": "See how Garden work becomes evidence.",
+  "public.impact.heroLede":
+    "Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates.",
+  "public.impact.totalAssessments": "Assessments",
+  "public.impact.totalGardens": "Gardens",
+  "public.impact.totalWork": "Work",
+  "public.impact.totalCertificates": "Impact Certificates",
   "public.impact.evidence.empty": "Assessment evidence will appear here.",
   "public.impact.evidence.error": "Evidence is temporarily unavailable.",
   "public.impact.evidence.partialData": "Showing partial evidence.",
   "public.impact.evidence.sourceLimitReached": "Capped slice.",
   "public.impact.evidence.viewSource": "View source",
   "public.impact.evidence.noSource": "Source pending",
+  "public.impact.evidence.thumbnailFallback": "no image",
+  "public.impact.proof.notPublicYet": "Not public yet",
+  "public.impact.kind.all": "All",
+  "public.impact.kind.assessment": "Assessment",
+  "public.impact.kind.work": "Work",
+  "public.impact.kind.certificate": "Impact Certificate",
+  "public.impact.filters.kind": "Kind",
+  "public.impact.filters.domain": "Domain",
+  "public.impact.pipeline.kicker": "§ 01 — The cycle",
+  "public.impact.pipeline.title": "From plan to public proof, season after season.",
+  "public.impact.pipeline.intro":
+    "Each Garden moves through three stages of evidence — and starts again.",
+  "public.impact.ledger.kicker": "§ 02 — Evidence ledger",
+  "public.impact.ledger.title": "Recent evidence across Gardens.",
+  "public.actions.domain.all": "All",
+  "app.domain.tab.solar": "Solar",
+  "app.domain.tab.agro": "Agroforestry",
+  "app.domain.tab.education": "Education",
+  "app.domain.tab.waste": "Waste",
 };
 
 function renderView() {
@@ -102,26 +124,24 @@ describe("ImpactPage", () => {
     vi.clearAllMocks();
     mockUsePublicStats.mockReturnValue({ data: mockStats, isLoading: false });
     mockUsePublicImpactEvidence.mockReturnValue({ data: mockSliceReady, isLoading: false });
+    mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
   });
 
-  it("renders the editorial header", () => {
+  it("renders the editorial hero", () => {
     renderView();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Impact");
-    expect(screen.getByText(/public evidence ledger/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      /see how garden work becomes evidence/i
+    );
   });
 
-  it("renders confirmed counts from usePublicStats", () => {
+  it("renders confirmed proof markers from usePublicStats", () => {
     renderView();
-    const assessmentsLabel = screen.getByText("Total Assessments");
-    expect(
-      within(assessmentsLabel.closest("div") as HTMLElement).getByText("7")
-    ).toBeInTheDocument();
-    const gardensLabel = screen.getByText("Total Gardens");
-    expect(within(gardensLabel.closest("div") as HTMLElement).getByText("5")).toBeInTheDocument();
-    const contributorsLabel = screen.getByText("Total Contributors");
-    expect(
-      within(contributorsLabel.closest("div") as HTMLElement).getByText("12")
-    ).toBeInTheDocument();
+    expect(screen.getAllByText("Assessments").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Work").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("7")).toBeInTheDocument();
+    expect(screen.getByText("5")).toBeInTheDocument();
+    expect(screen.getByText("30")).toBeInTheDocument();
   });
 
   it("renders evidence cards with the View source / Source pending labels", () => {
@@ -132,8 +152,8 @@ describe("ImpactPage", () => {
     expect(screen.getByText("Source pending")).toBeInTheDocument();
   });
 
-  it("shows loading skeletons while stats are loading", () => {
-    mockUsePublicStats.mockReturnValue({ data: undefined, isLoading: true });
+  it("shows loading skeletons while evidence is loading", () => {
+    mockUsePublicImpactEvidence.mockReturnValue({ data: undefined, isLoading: true });
     const { container } = renderView();
     expect(container.querySelectorAll(".animate-pulse").length).toBeGreaterThanOrEqual(1);
   });
