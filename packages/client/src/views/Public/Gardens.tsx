@@ -1,13 +1,20 @@
 import { type PublicGardenSummary, usePublicGardens } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { EditorialDivider, EditorialKicker } from "@/components/Public/atoms";
+import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
+import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
+import { publicCuration } from "@/content/publicCuration";
 
 /**
- * Gardens — public discovery and browsing page.
+ * Gardens — public discovery and browsing view.
  *
- * Editorial hero on top, then a search input over a structured Garden grid.
- * Cards link to `/gardens/:slug` and render confirmed-only metadata.
+ * Editorial hero (no kicker per chat 3 brief), then a search input over a
+ * structured Garden grid. Cards link to `/gardens/:slug` and render
+ * confirmed-only metadata. The Featured row deliberately doesn't appear here
+ * because the Home page handles curation; this page makes every Garden feel
+ * discoverable.
  */
 export default function GardensGallery() {
   const { formatMessage } = useIntl();
@@ -26,103 +33,119 @@ export default function GardensGallery() {
     });
   }, [gardens, query]);
 
-  const featured = useMemo(
-    () => [...gardens].sort((a, b) => b.lastActivityAt - a.lastActivityAt).slice(0, 3),
-    [gardens]
-  );
-
   return (
-    <div className="bg-bg-weak-50">
-      <header className="mx-auto max-w-7xl px-6 pt-12 pb-6 sm:px-10 sm:pt-16">
-        <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-          {formatMessage({ id: "public.gardens.kicker", defaultMessage: "Living Archive" })}
-        </p>
-        <h1 className="mt-2 font-serif text-3xl text-text-strong-950 md:text-5xl">
-          {formatMessage({ id: "public.gardens.title", defaultMessage: "Gardens" })}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm text-text-sub-600 md:text-base">
-          {formatMessage({
-            id: "public.gardens.description",
-            defaultMessage:
-              "Each Garden is a place where regenerative Work is documented, verified, and rewarded.",
-          })}
-        </p>
-      </header>
+    <>
+      <PublicEditorialHero
+        imageSrc={publicCuration.heroImagePath}
+        imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
+        imageAlt=""
+        titleId="public-gardens-hero-title"
+        title={formatMessage({
+          id: "public.gardens.heroTitle",
+          defaultMessage: "Explore the Gardens growing the public record.",
+        })}
+        lede={formatMessage({
+          id: "public.gardens.heroLede",
+          defaultMessage:
+            "Each Garden is a real place where communities document regenerative Work, gather evidence, and make support visible.",
+        })}
+      />
 
-      {/* Featured row — recent active Gardens */}
-      {featured.length > 0 ? (
-        <section className="mx-auto max-w-7xl px-6 pb-10 sm:px-10" aria-label="Featured Gardens">
-          <div className="grid gap-6 lg:grid-cols-3">
-            {featured.map((garden, index) => (
-              <PublicGardenCard
-                key={garden.id}
-                garden={garden}
-                variant={index === 0 ? "lead" : "default"}
-              />
-            ))}
-          </div>
-        </section>
-      ) : null}
-
-      {/* Browse */}
-      <section className="mx-auto max-w-7xl px-6 pb-16 sm:px-10" aria-label="Browse Gardens">
-        <div className="flex flex-col gap-4 border-y border-stroke-soft-200 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="font-serif text-2xl text-text-strong-950">
-            {formatMessage({ id: "public.gardens.browse", defaultMessage: "Browse all Gardens" })}
-          </h2>
-          <label className="relative w-full sm:max-w-xs">
-            <span className="sr-only">
-              {formatMessage({
-                id: "public.gardens.searchLabel",
-                defaultMessage: "Search Gardens",
-              })}
-            </span>
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={formatMessage({
-                id: "public.gardens.searchPlaceholder",
-                defaultMessage: "Search Gardens…",
-              })}
-              className="w-full rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-sm text-text-strong-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-            />
-          </label>
-        </div>
-
-        {isLoading ? (
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="h-72 animate-pulse rounded-3xl bg-bg-white-0"
-                aria-hidden="true"
-              />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="mt-8 rounded-2xl border border-dashed border-stroke-soft-200 bg-bg-white-0 p-8 text-sm text-text-sub-600">
-            {query.trim().length > 0
-              ? formatMessage(
-                  {
-                    id: "public.gardens.noMatches",
-                    defaultMessage: 'No Gardens match "{query}".',
-                  },
-                  { query: query.trim() }
-                )
-              : formatMessage({
-                  id: "public.gardens.empty",
-                  defaultMessage: "Gardens will appear here as they come online.",
+      <section
+        id="archive"
+        className="bg-bg-weak-50 px-6 pt-32 pb-20 sm:px-10 md:pt-48 md:pb-28"
+        aria-labelledby="public-gardens-archive-title"
+      >
+        <div className="mx-auto max-w-7xl">
+          <header className="flex flex-col gap-6 border-b border-stroke-soft-200 pb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+            <div>
+              <EditorialKicker className="mb-3">
+                {formatMessage({ id: "public.gardens.kicker", defaultMessage: "Living Archive" })}
+              </EditorialKicker>
+              <h2
+                id="public-gardens-archive-title"
+                className="font-serif text-3xl font-normal leading-[1.04] tracking-[-0.02em] text-text-strong-950 md:text-4xl"
+              >
+                {formatMessage({
+                  id: "public.gardens.archiveTitle",
+                  defaultMessage: "Browse every Garden under documentation.",
                 })}
-          </div>
-        ) : (
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((garden: PublicGardenSummary) => (
-              <PublicGardenCard key={garden.id} garden={garden} />
-            ))}
-          </div>
-        )}
+              </h2>
+            </div>
+            <label className="relative w-full sm:max-w-xs">
+              <span className="sr-only">
+                {formatMessage({
+                  id: "public.gardens.searchLabel",
+                  defaultMessage: "Search Gardens",
+                })}
+              </span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={formatMessage({
+                  id: "public.gardens.searchPlaceholder",
+                  defaultMessage: "Search Gardens…",
+                })}
+                className="w-full border-b border-stroke-soft-200 bg-transparent px-1 pb-2 font-serif text-lg text-text-strong-950 placeholder-text-soft-400 focus:border-primary-action focus:outline-none"
+              />
+            </label>
+          </header>
+
+          {!isLoading && filtered.length > 0 ? (
+            <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+              {formatMessage(
+                {
+                  id: "public.gardens.archiveCount",
+                  defaultMessage:
+                    "{count, plural, one {# Garden} other {# Gardens}} · updated daily",
+                },
+                { count: filtered.length }
+              )}
+            </p>
+          ) : null}
+
+          {isLoading ? (
+            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="mt-12">
+              <p className="font-serif text-2xl italic text-text-soft-400">
+                {query.trim().length > 0
+                  ? formatMessage(
+                      {
+                        id: "public.gardens.noMatches",
+                        defaultMessage: 'No Gardens match "{query}".',
+                      },
+                      { query: query.trim() }
+                    )
+                  : formatMessage({
+                      id: "public.gardens.empty",
+                      defaultMessage: "Gardens will appear here as they come online.",
+                    })}
+              </p>
+              <div className="mt-6">
+                <EditorialDivider />
+              </div>
+            </div>
+          ) : (
+            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((garden: PublicGardenSummary) => (
+                <PublicGardenCard key={garden.id} garden={garden} />
+              ))}
+            </div>
+          )}
+        </div>
       </section>
-    </div>
+
+      <PublicFooter />
+    </>
   );
 }

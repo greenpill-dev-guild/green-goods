@@ -61,16 +61,19 @@ vi.mock("@green-goods/shared", async () => {
 import GardensGallery from "../../views/Public/Gardens";
 
 const messages: Record<string, string> = {
-  "public.gardens.title": "Gardens",
+  "public.gardens.heroTitle": "Explore the Gardens growing the public record.",
+  "public.gardens.heroLede":
+    "Each Garden is a real place where communities document regenerative Work, gather evidence, and make support visible.",
+  "public.gardens.archiveTitle": "Browse every Garden under documentation.",
   "public.gardens.kicker": "Living Archive",
-  "public.gardens.description": "Each Garden documents regenerative Work onchain.",
-  "public.gardens.browse": "Browse all Gardens",
   "public.gardens.searchLabel": "Search Gardens",
   "public.gardens.searchPlaceholder": "Search Gardens…",
   "public.gardens.empty": "Gardens will appear here as they come online.",
   "public.gardens.noMatches": 'No Gardens match "{query}".',
   "public.gardens.gardeners": "{count} gardeners",
-  "public.gardens.works": "{count} works",
+  "public.gardens.works": "{count} entries",
+  "public.gardens.archiveCount":
+    "{count, plural, one {# Garden} other {# Gardens}} · updated daily",
 };
 
 function renderView() {
@@ -89,19 +92,24 @@ describe("GardensGallery", () => {
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
   });
 
-  it("renders the kicker, h1, and description", () => {
+  it("renders the editorial hero, kicker, and lede", () => {
     renderView();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(
+      /explore the gardens growing the public record/i
+    );
+    expect(
+      screen.getByText(/each garden is a real place where communities document regenerative work/i)
+    ).toBeInTheDocument();
+    // Living Archive kicker now lives over the archive section, not the hero.
     expect(screen.getByText("Living Archive")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Gardens");
-    expect(screen.getByText(/each garden documents regenerative work/i)).toBeInTheDocument();
   });
 
-  it("renders Garden cards with names and contributor / work counts", () => {
+  it("renders Garden cards with names and contributor / entry counts", () => {
     renderView();
     expect(screen.getAllByText("Solar Community Garden").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Urban Composting Hub").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("2 gardeners").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("3 works").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("3 entries").length).toBeGreaterThanOrEqual(1);
   });
 
   it("links cards to `/gardens/<slug>`", () => {
