@@ -1,7 +1,8 @@
-import type { PublicGardenSummary } from "@green-goods/shared";
+import { cn, type PublicGardenSummary } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
+import { EditorialKicker, EditorialMetaRow } from "./atoms";
 
 export interface PublicGardenCardProps {
   garden: PublicGardenSummary;
@@ -9,90 +10,87 @@ export interface PublicGardenCardProps {
 }
 
 /**
- * PublicGardenCard — editorial Garden card. `lead` variant fills more space
- * for the homepage lead-plus-two layout and is also reused in `/gardens` hero.
+ * PublicGardenCard — editorial Garden card. `lead` fills more vertical space
+ * for the homepage lead-plus-two layout and the Gardens explorer's first row.
+ *
+ * The dialect prefers rules over chrome, so the card has no border, no rounded
+ * corners, and no shadow. Hover scales the image gently and underlines the
+ * link affordance — restraint over flash.
  */
 export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCardProps) {
   const { formatMessage } = useIntl();
   const isLead = variant === "lead";
 
+  const metaItems: { label: string }[] = [];
+  if (garden.location) metaItems.push({ label: garden.location });
+  metaItems.push({
+    label: formatMessage(
+      {
+        id: "public.gardens.gardeners",
+        defaultMessage: "{count} gardeners",
+      },
+      { count: garden.contributorCount }
+    ),
+  });
+  metaItems.push({
+    label: formatMessage(
+      {
+        id: "public.gardens.works",
+        defaultMessage: "{count} entries",
+      },
+      { count: garden.actionCount }
+    ),
+  });
+
   return (
     <Link
       to={`/gardens/${garden.slug}`}
-      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-stroke-soft-200 bg-bg-white-0 shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+      className={cn(
+        "group flex h-full flex-col gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2",
+        isLead ? "" : "gap-3"
+      )}
       aria-label={garden.name}
     >
-      <div className={isLead ? "aspect-[4/3] w-full" : "aspect-[3/2] w-full"}>
+      <div
+        className={cn(
+          "relative w-full overflow-hidden bg-editorial-warm",
+          isLead ? "aspect-[4/3]" : "aspect-[3/2]"
+        )}
+      >
         <ImageWithFallback
           src={garden.bannerImage || "/images/no-image-placeholder.png"}
           alt={garden.name}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
         />
       </div>
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <header>
-          <h3
-            className={
-              isLead
-                ? "font-serif text-2xl text-text-strong-950"
-                : "text-base font-semibold text-text-strong-950"
-            }
-            title={garden.name}
-          >
-            <span className="line-clamp-2">{garden.name || garden.slug}</span>
-          </h3>
-          {garden.location ? (
-            <p className="mt-1 text-xs uppercase tracking-wide text-text-soft-400">
-              {garden.location}
-            </p>
-          ) : null}
-        </header>
-        {garden.description ? (
-          <p
-            className={
-              isLead
-                ? "line-clamp-3 text-sm text-text-sub-600"
-                : "line-clamp-2 text-xs text-text-sub-600"
-            }
-            title={garden.description}
-          >
-            {garden.description}
-          </p>
-        ) : null}
-        <dl className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-sub-600">
-          <div>
-            <dt className="sr-only">
-              {formatMessage({
-                id: "public.gardens.contributors",
-                defaultMessage: "Contributors",
-              })}
-            </dt>
-            <dd>
-              {formatMessage(
-                {
-                  id: "public.gardens.gardeners",
-                  defaultMessage: "{count} gardeners",
-                },
-                { count: garden.contributorCount }
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="sr-only">
-              {formatMessage({ id: "public.gardens.workShort", defaultMessage: "Work" })}
-            </dt>
-            <dd>
-              {formatMessage(
-                {
-                  id: "public.gardens.works",
-                  defaultMessage: "{count} works",
-                },
-                { count: garden.actionCount }
-              )}
-            </dd>
-          </div>
-        </dl>
-      </div>
+
+      {garden.location ? (
+        <EditorialKicker className="-mb-1">{garden.location}</EditorialKicker>
+      ) : null}
+
+      <h3
+        className={cn(
+          "font-serif font-normal leading-[1.1] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action",
+          isLead ? "text-2xl md:text-3xl" : "text-xl"
+        )}
+        title={garden.name}
+      >
+        <span className="line-clamp-2">{garden.name || garden.slug}</span>
+      </h3>
+
+      {garden.description ? (
+        <p
+          className={cn(
+            "text-sm leading-[1.55] text-text-sub-600",
+            isLead ? "line-clamp-3" : "line-clamp-2"
+          )}
+          title={garden.description}
+        >
+          {garden.description}
+        </p>
+      ) : null}
+
+      <EditorialMetaRow className="mt-auto" items={metaItems} />
     </Link>
   );
 }

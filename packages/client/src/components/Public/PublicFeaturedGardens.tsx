@@ -2,6 +2,7 @@ import { type PublicGardenSummary, usePublicGardens } from "@green-goods/shared"
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";
+import { EditorialHeading, EditorialKicker, EditorialLinkArrow } from "./atoms";
 import { PublicGardenCard } from "./PublicGardenCard";
 
 const FEATURED_FALLBACK_LIMIT = 3;
@@ -40,7 +41,14 @@ function pickFeatured(
 
 /**
  * PublicFeaturedGardens — lead-plus-two editorial layout.
- * Pulls curation from `publicCuration` and falls back to recent active Gardens.
+ *
+ * One large lead Garden card and two stacked secondaries — the dialect's
+ * curation rhythm (versus a 3-up grid). Curation comes from publicCuration
+ * keyed by Garden id/address; falls back to recent active Gardens when
+ * curation is empty or unmatched.
+ *
+ * Note: this section is the first thing below the hero on Home, so it
+ * applies generous top padding to absorb the hero card's overlap.
  */
 export function PublicFeaturedGardens() {
   const { formatMessage } = useIntl();
@@ -52,45 +60,60 @@ export function PublicFeaturedGardens() {
   );
 
   return (
-    <section className="bg-bg-weak-50 py-16" aria-labelledby="public-featured-title">
-      <div className="mx-auto max-w-7xl px-6 sm:px-10">
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <h2
-            id="public-featured-title"
-            className="font-serif text-2xl text-text-strong-950 md:text-3xl"
-          >
+    <section
+      className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 md:pt-48 md:pb-24"
+      aria-labelledby="public-featured-title"
+    >
+      <div className="mx-auto max-w-7xl">
+        <header className="flex flex-col gap-4 border-b border-stroke-soft-200 pb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+          <div>
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.home.featured.kicker",
+                defaultMessage: "§ 01 — Featured Gardens",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-featured-title">
+              {formatMessage({
+                id: "public.home.featured.title",
+                defaultMessage: "Tended places, openly recorded.",
+              })}
+            </EditorialHeading>
+          </div>
+          <EditorialLinkArrow to="/gardens">
             {formatMessage({
-              id: "public.home.featured.title",
-              defaultMessage: "Gardens making the work visible",
+              id: "public.home.featured.cta",
+              defaultMessage: "Browse the living archive",
             })}
-          </h2>
+          </EditorialLinkArrow>
         </header>
 
         {isLoading ? (
-          <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <div
-                key={i}
-                className="h-80 animate-pulse rounded-3xl bg-bg-white-0"
-                aria-hidden="true"
-              />
-            ))}
+          <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-[1.35fr_1fr]">
+            <div className="aspect-[4/3] w-full animate-pulse bg-editorial-warm" />
+            <div className="grid gap-12">
+              <div className="aspect-[3/2] w-full animate-pulse bg-editorial-warm" />
+              <div className="aspect-[3/2] w-full animate-pulse bg-editorial-warm" />
+            </div>
           </div>
         ) : featured.length === 0 ? (
-          <p className="mt-8 rounded-2xl border border-dashed border-stroke-soft-200 bg-bg-white-0 p-8 text-sm text-text-sub-600">
+          <p className="mt-12 max-w-md text-sm text-text-sub-600">
             {formatMessage({
               id: "public.home.featured.empty",
               defaultMessage: "Featured Gardens will appear here as they come online.",
             })}
           </p>
         ) : (
-          <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <PublicGardenCard garden={featured[0]} variant="lead" />
-            </div>
-            <div className="grid gap-6">
-              {featured.slice(1, 3).map((garden) => (
-                <PublicGardenCard key={garden.id} garden={garden} />
+          <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-[1.35fr_1fr] lg:gap-16">
+            <PublicGardenCard garden={featured[0]} variant="lead" />
+            <div className="grid gap-12">
+              {featured.slice(1, 3).map((garden, index) => (
+                <div key={garden.id} className="flex flex-col gap-6">
+                  <PublicGardenCard garden={garden} />
+                  {index < featured.slice(1, 3).length - 1 ? (
+                    <hr aria-hidden="true" className="h-px border-0 bg-stroke-soft-200" />
+                  ) : null}
+                </div>
               ))}
             </div>
           </div>
