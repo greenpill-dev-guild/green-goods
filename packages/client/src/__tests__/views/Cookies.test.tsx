@@ -129,7 +129,7 @@ describe("CookiesPage", () => {
 
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "A shared jar for garden operators" }));
+    expect(screen.getByRole("heading", { name: "Campaign cookie jars", level: 1 }));
     expect(await screen.findByText("Connect your wallet to check the jar and take a cookie."));
     expect(screen.getByRole("button", { name: "Connect wallet" }));
   });
@@ -156,8 +156,21 @@ describe("CookiesPage", () => {
 
     renderPage("/cookies?campaign=earth-week");
 
-    expect(await screen.findByText("Earth Week Cookie Jar"));
+    expect((await screen.findAllByText("Earth Week Cookie Jar")).length).toBeGreaterThan(0);
     expect(mockUseCampaignCookieJar).toHaveBeenCalledWith(TEST_JAR);
+  });
+
+  it("opens configured campaign jars in an in-page dialog", async () => {
+    const user = userEvent.setup();
+    vi.stubEnv("VITE_CAMPAIGN_COOKIE_JARS", JSON.stringify({ "earth-week": TEST_JAR }));
+
+    renderPage("/cookies");
+
+    expect(await screen.findByText("Configured jars"));
+    await user.click(await screen.findByRole("button", { name: "Open Earth Week Cookie Jar" }));
+
+    expect(await screen.findByRole("dialog", { name: "Earth Week" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Claim cookie" })).toBeInTheDocument();
   });
 
   it("submits a smaller variable claim when the jar balance is below max withdrawal", async () => {

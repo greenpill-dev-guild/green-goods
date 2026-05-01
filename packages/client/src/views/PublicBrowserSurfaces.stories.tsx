@@ -5,6 +5,7 @@ import { withClientAppRuntime } from "../../../shared/.storybook/decorators";
 import { CLIENT_ROUTE_IDS, appRoutes } from "../router.config";
 import PublicShell from "../routes/PublicShell";
 import Root from "../routes/Root";
+import CookiesPage from "./Public/Cookies";
 import GardensGallery from "./Public/Gardens";
 import PublicHome from "./Public/Home";
 
@@ -109,6 +110,10 @@ const publicStoryRoutes: RouteObject[] = [
             element: <GardensGallery />,
           },
           {
+            path: requirePublicRoutePath(CLIENT_ROUTE_IDS.publicCookies, "cookies"),
+            element: <CookiesPage />,
+          },
+          {
             path: requirePublicRoutePath(CLIENT_ROUTE_IDS.publicFund, "fund"),
             element: <PublicRouteSentinel title="Fund" />,
           },
@@ -166,6 +171,18 @@ export const GardensRouteShell: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("navigation", { name: "Main navigation" })).toBeVisible();
+    expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
+  },
+};
+
+export const CookiesRouteShell: Story = {
+  render: () => <PublicBrowserRoute route="/cookies" />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("navigation", { name: "Main navigation" })).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Campaign cookie jars" })
+    ).toBeVisible();
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   },
 };
