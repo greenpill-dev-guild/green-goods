@@ -7,22 +7,42 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { type EditorialDomain, EditorialDomainChip } from "@/components/Public/atoms";
 import { PublicActionCard } from "@/components/Public/PublicActionCard";
+import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
+import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
+import { publicCuration } from "@/content/publicCuration";
 
-const DOMAINS = [
-  { id: "all", labelId: "public.actions.domain.all", defaultLabel: "All" },
-  { id: "0", labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
-  { id: "1", labelId: "app.domain.tab.agro", defaultLabel: "Agro" },
-  { id: "2", labelId: "app.domain.tab.education", defaultLabel: "Education" },
-  { id: "3", labelId: "app.domain.tab.waste", defaultLabel: "Waste" },
+interface DomainEntry {
+  id: EditorialDomain;
+  filterId: string;
+  labelId: string;
+  defaultLabel: string;
+}
+
+const DOMAINS: readonly DomainEntry[] = [
+  { id: "all", filterId: "all", labelId: "public.actions.domain.all", defaultLabel: "All" },
+  { id: "solar", filterId: "0", labelId: "app.domain.tab.solar", defaultLabel: "Solar" },
+  { id: "agro", filterId: "1", labelId: "app.domain.tab.agro", defaultLabel: "Agroforestry" },
+  {
+    id: "education",
+    filterId: "2",
+    labelId: "app.domain.tab.education",
+    defaultLabel: "Education",
+  },
+  { id: "waste", filterId: "3", labelId: "app.domain.tab.waste", defaultLabel: "Waste" },
 ] as const;
 
 /**
  * Actions — readable public Action library.
  *
- * Filterable by domain, opens a source-anchored read-only dialog per Action.
- * No create/edit controls.
+ * Editorial recomposition:
+ *   Hero ("A field guide for regenerative work.") → domain filter strip
+ *   with per-domain ink chips → grid of PublicActionCard → optional
+ *   PublicSourceDialog → Footer.
+ *
+ * No create/edit controls — each card opens a read-only source dialog.
  */
 export default function ActionsGallery() {
   const { formatMessage } = useIntl();
@@ -36,89 +56,119 @@ export default function ActionsGallery() {
     isMobile
   );
   const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
-  const [domain, setDomain] = useState<string>("all");
+  const [domain, setDomain] = useState<EditorialDomain>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
 
   const filtered = useMemo(() => {
     if (domain === "all") return actions;
-    return actions.filter((action) => String(action.domain) === domain);
+    const entry = DOMAINS.find((d) => d.id === domain);
+    if (!entry) return actions;
+    return actions.filter((action) => String(action.domain) === entry.filterId);
   }, [actions, domain]);
 
+  const counts = useMemo(() => {
+    const byDomain: Record<string, number> = { all: actions.length };
+    for (const entry of DOMAINS) {
+      if (entry.id === "all") continue;
+      byDomain[entry.id] = actions.filter((a) => String(a.domain) === entry.filterId).length;
+    }
+    return byDomain;
+  }, [actions]);
+
   return (
-    <div className="bg-bg-weak-50">
-      <header className="mx-auto max-w-7xl px-6 pt-12 pb-6 sm:px-10 sm:pt-16">
-        <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-          {formatMessage({ id: "public.actions.kicker", defaultMessage: "Library" })}
-        </p>
-        <h1 className="mt-2 font-serif text-3xl text-text-strong-950 md:text-5xl">
-          {formatMessage({ id: "public.actions.title", defaultMessage: "Actions" })}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm text-text-sub-600 md:text-base">
-          {formatMessage({
-            id: "public.actions.description",
-            defaultMessage:
-              "Action templates Gardens use to plan, document, and verify regenerative Work.",
-          })}
-        </p>
-      </header>
-
-      <nav
-        aria-label={formatMessage({
-          id: "public.actions.filterLabel",
-          defaultMessage: "Filter Actions by domain",
+    <>
+      <PublicEditorialHero
+        imageSrc={publicCuration.heroImagePath}
+        imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
+        imageAlt=""
+        titleId="public-actions-hero-title"
+        title={formatMessage({
+          id: "public.actions.heroTitle",
+          defaultMessage: "A field guide for regenerative work.",
         })}
-        className="mx-auto max-w-7xl border-y border-stroke-soft-200 px-6 py-4 sm:px-10"
-      >
-        <ul className="flex flex-wrap gap-2">
-          {DOMAINS.map((entry) => {
-            const isActive = domain === entry.id;
-            return (
-              <li key={entry.id}>
-                <button
-                  type="button"
-                  onClick={() => setDomain(entry.id)}
-                  className={
-                    isActive
-                      ? "rounded-full bg-text-strong-950 px-4 py-1.5 text-xs font-medium text-static-white"
-                      : "rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-1.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
-                  }
-                >
-                  {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
+        lede={formatMessage({
+          id: "public.actions.heroLede",
+          defaultMessage:
+            "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste.",
+        })}
+      />
 
-      <section className="mx-auto max-w-7xl px-6 pb-16 sm:px-10">
-        {isLoading ? (
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                className="h-72 animate-pulse rounded-3xl bg-bg-white-0"
-                aria-hidden="true"
-              />
-            ))}
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="mt-8 rounded-2xl border border-dashed border-stroke-soft-200 bg-bg-white-0 p-8 text-sm text-text-sub-600">
-            {formatMessage({
-              id: "public.actions.empty",
-              defaultMessage: "Action templates will appear here as they are published.",
+      <section
+        className="bg-bg-weak-50 px-6 pt-32 pb-20 sm:px-10 md:pt-48 md:pb-28"
+        aria-labelledby="public-actions-grid-title"
+      >
+        <div className="mx-auto max-w-7xl">
+          <header className="border-b border-stroke-soft-200 pb-6">
+            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-soft-400">
+              {formatMessage({
+                id: "public.actions.kicker",
+                defaultMessage: "Field guide",
+              })}
+            </p>
+            <h2
+              id="public-actions-grid-title"
+              className="mt-3 font-serif text-3xl font-normal leading-[1.04] tracking-[-0.02em] text-text-strong-950 md:text-4xl"
+            >
+              {formatMessage({
+                id: "public.actions.gridTitle",
+                defaultMessage: "Templates Gardens use to plan and document Work.",
+              })}
+            </h2>
+          </header>
+
+          <nav
+            aria-label={formatMessage({
+              id: "public.actions.filterLabel",
+              defaultMessage: "Filter Actions by domain",
             })}
-          </p>
-        ) : (
-          <ul className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((action) => (
-              <li key={action.id}>
-                <PublicActionCard action={action} onOpen={setActiveAction} />
-              </li>
-            ))}
-          </ul>
-        )}
+            className="mt-8"
+          >
+            <ul className="flex flex-wrap gap-2">
+              {DOMAINS.map((entry) => (
+                <li key={entry.id}>
+                  <EditorialDomainChip
+                    domain={entry.id}
+                    active={domain === entry.id}
+                    count={counts[entry.id] ?? 0}
+                    onClick={() => setDomain(entry.id)}
+                  >
+                    {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
+                  </EditorialDomainChip>
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          {isLoading ? (
+            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-[4/3] w-full animate-pulse bg-editorial-warm"
+                  aria-hidden="true"
+                />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
+              {formatMessage({
+                id: "public.actions.empty",
+                defaultMessage: "Action templates will appear here as they are published.",
+              })}
+            </p>
+          ) : (
+            <ul className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+              {filtered.map((action) => (
+                <li key={action.id}>
+                  <PublicActionCard action={action} onOpen={setActiveAction} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
+
+      <PublicFooter />
 
       {activeAction ? (
         <PublicSourceDialog
@@ -151,13 +201,13 @@ export default function ActionsGallery() {
             href="#install"
             onClick={handleInstallClick}
             data-install-action={guidance.primaryAction.type}
-            className="inline-flex w-fit rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
+            className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
           >
             {formatMessage({ id: "public.nav.installApp", defaultMessage: "Install App" })}
           </a>
         </PublicSourceDialog>
       ) : null}
-    </div>
+    </>
   );
 }
 

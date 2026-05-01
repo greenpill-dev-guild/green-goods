@@ -58,8 +58,11 @@ const messages: Record<string, string> = {
   "app.domain.tab.education": "Education",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.waste": "Waste",
-  "public.actions.title": "Actions",
-  "public.actions.description": "Browse available regenerative action templates",
+  "public.actions.heroTitle": "A field guide for regenerative work.",
+  "public.actions.heroLede":
+    "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste.",
+  "public.actions.gridTitle": "Templates Gardens use to plan and document Work.",
+  "public.actions.kicker": "Field guide",
   "public.actions.domain.unknown": "Unknown",
   "public.actions.empty": "Action templates will appear here as they are published.",
 };
@@ -80,14 +83,20 @@ describe("ActionsGallery", () => {
     mockUseActions.mockReturnValue({ data: mockActions, isLoading: false });
   });
 
-  it("renders the page title", () => {
+  it("renders the editorial hero title", () => {
     renderView();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Actions");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      /a field guide for regenerative work/i
+    );
   });
 
-  it("renders the page description", () => {
+  it("renders the editorial hero lede", () => {
     renderView();
-    expect(screen.getByText(/browse available regenerative/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /actions are the templates gardens use to document work across solar, agroforestry/i
+      )
+    ).toBeInTheDocument();
   });
 
   it("renders action cards with titles", () => {
