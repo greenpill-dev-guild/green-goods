@@ -1,5 +1,5 @@
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
+import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";
 
 export interface PublicProofBandProps {
   gardens: number;
@@ -9,10 +9,45 @@ export interface PublicProofBandProps {
   isLoading?: boolean;
 }
 
+interface ProofMarkerProps {
+  value: number;
+  isLoading: boolean;
+  labelId: string;
+  defaultLabel: string;
+  noteId: string;
+  defaultNote: string;
+}
+
+function ProofMarker({
+  value,
+  isLoading,
+  labelId,
+  defaultLabel,
+  noteId,
+  defaultNote,
+}: ProofMarkerProps) {
+  const { formatMessage } = useIntl();
+  const formatted = isLoading ? "—" : new Intl.NumberFormat().format(value);
+  return (
+    <div>
+      <p className="font-serif text-5xl font-normal leading-none tracking-[-0.025em] text-text-strong-950 md:text-6xl">
+        {formatted}
+      </p>
+      <p className="mt-3 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+        {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+      </p>
+      <p className="mt-2 max-w-[16rem] text-sm leading-[1.55] text-text-sub-600">
+        {formatMessage({ id: noteId, defaultMessage: defaultNote })}
+      </p>
+    </div>
+  );
+}
+
 /**
- * PublicProofBand — confirmed counts only (Gardens, contributors, Work,
- * Assessments). Links contextually to `/impact`. Unavailable carbon, water,
- * species, and area metrics are deliberately hidden.
+ * PublicProofBand — confirmed counts only. Editorial "Living Public Record"
+ * band on the warm linen surface. Treats numerals as public proof, not KPI
+ * tiles — no card chrome, no shadows, no domain coloring. Link arrows out to
+ * `/impact` for the full record.
  */
 export function PublicProofBand({
   gardens,
@@ -23,60 +58,74 @@ export function PublicProofBand({
 }: PublicProofBandProps) {
   const { formatMessage } = useIntl();
 
-  const stats = [
-    {
-      labelId: "public.home.proof.gardens",
-      defaultLabel: "Gardens",
-      value: gardens,
-    },
-    {
-      labelId: "public.home.proof.contributors",
-      defaultLabel: "Contributors",
-      value: contributors,
-    },
-    {
-      labelId: "public.home.proof.works",
-      defaultLabel: "Work",
-      value: works,
-    },
-    {
-      labelId: "public.home.proof.assessments",
-      defaultLabel: "Assessments",
-      value: assessments,
-    },
-  ] as const;
-
   return (
-    <section
-      className="border-y border-stroke-soft-200 bg-bg-weak-50 py-12"
-      aria-labelledby="public-proof-title"
-    >
-      <div className="mx-auto max-w-7xl px-6 sm:px-10">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2
-            id="public-proof-title"
-            className="font-serif text-2xl text-text-strong-950 md:text-3xl"
-          >
+    <section className="bg-editorial-warm" aria-labelledby="public-proof-title">
+      <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 sm:px-10 md:py-28 lg:grid-cols-[1fr_1.6fr] lg:gap-24">
+        <div>
+          <EditorialKicker className="mb-5">
+            {formatMessage({
+              id: "public.home.proof.kicker",
+              defaultMessage: "§ 02 — Living Public Record",
+            })}
+          </EditorialKicker>
+          <EditorialHeading id="public-proof-title">
             {formatMessage({
               id: "public.home.proof.title",
-              defaultMessage: "Living public record",
+              defaultMessage: "Quantifiable restoration.",
             })}
-          </h2>
-          <Link to="/impact" className="text-sm font-medium text-primary-base hover:underline">
-            {formatMessage({ id: "public.home.proof.cta", defaultMessage: "See full impact →" })}
-          </Link>
+          </EditorialHeading>
+          <div className="mt-5 max-w-md">
+            <EditorialLede>
+              {formatMessage({
+                id: "public.home.proof.body",
+                defaultMessage:
+                  "This isn't a dashboard. These are confirmed counts — Gardens tended, hands at work, entries logged, assessments held to. Public, verifiable, and small for now, on purpose.",
+              })}
+            </EditorialLede>
+          </div>
+          <div className="mt-7">
+            <EditorialLinkArrow to="/impact">
+              {formatMessage({
+                id: "public.home.proof.cta",
+                defaultMessage: "Read the full record",
+              })}
+            </EditorialLinkArrow>
+          </div>
         </div>
-        <dl className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {stats.map(({ labelId, defaultLabel, value }) => (
-            <div key={labelId} className="rounded-2xl bg-bg-white-0 p-5 shadow-sm">
-              <dt className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-                {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-              </dt>
-              <dd className="mt-2 font-serif text-3xl text-text-strong-950 md:text-4xl">
-                {isLoading ? "—" : new Intl.NumberFormat().format(value)}
-              </dd>
-            </div>
-          ))}
+
+        <dl className="grid grid-cols-2 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-x-16 lg:pl-16">
+          <ProofMarker
+            value={gardens}
+            isLoading={isLoading}
+            labelId="public.home.proof.gardens"
+            defaultLabel="Gardens"
+            noteId="public.home.proof.gardensNote"
+            defaultNote="Active places under continuous documentation."
+          />
+          <ProofMarker
+            value={contributors}
+            isLoading={isLoading}
+            labelId="public.home.proof.contributors"
+            defaultLabel="Contributors"
+            noteId="public.home.proof.contributorsNote"
+            defaultNote="Gardeners, operators, and evaluators with at least one confirmed entry."
+          />
+          <ProofMarker
+            value={works}
+            isLoading={isLoading}
+            labelId="public.home.proof.works"
+            defaultLabel="Entries of work"
+            noteId="public.home.proof.worksNote"
+            defaultNote="Photos, soil cores, plantings, repairs, restorations — each timestamped."
+          />
+          <ProofMarker
+            value={assessments}
+            isLoading={isLoading}
+            labelId="public.home.proof.assessments"
+            defaultLabel="Assessments"
+            noteId="public.home.proof.assessmentsNote"
+            defaultNote="Independent evaluator confirmations, anchored to a public reference."
+          />
         </dl>
       </div>
     </section>

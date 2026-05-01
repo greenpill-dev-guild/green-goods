@@ -5,8 +5,14 @@ import type {
 } from "@green-goods/shared/public-contracts";
 import { type FormEvent, useCallback, useState } from "react";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
 import { publicCuration } from "@/content/publicCuration";
+import {
+  EditorialDivider,
+  EditorialHeading,
+  EditorialKicker,
+  EditorialLede,
+  EditorialPrimaryButton,
+} from "./atoms";
 
 type SubmitState = "idle" | "loading" | "ok" | "error";
 
@@ -15,10 +21,14 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 /**
  * PublicGetInTouch — closing module on the editorial homepage.
  *
- * Calls `POST {VITE_API_BASE_URL}/public/subscribe` with explicit consent.
- * Honest UX: success only on `subscribed` / `already_subscribed`; otherwise
- * a safe failure state + Schedule-a-Call fallback. No fake success on Luma
- * outage.
+ * Editorial walnut surface (`bg-editorial-deep`) with a quiet email subscribe
+ * form and a Schedule-a-Call CTA. Honest UX: success only when the public
+ * Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma
+ * outages render a localized failure with the Schedule-a-Call fallback.
+ *
+ * Mobile: subscribe form first, then a full-width Schedule-a-Call ghost
+ * button so visitors on phones see both paths without scrolling past either.
+ * Desktop: same content reflowed in a two-column editorial layout.
  */
 export function PublicGetInTouch() {
   const { formatMessage } = useIntl();
@@ -92,126 +102,150 @@ export function PublicGetInTouch() {
   );
 
   return (
-    <section className="bg-bg-weak-50 py-20" aria-labelledby="public-get-in-touch-title">
-      <div className="mx-auto max-w-3xl px-6 text-center sm:px-10">
-        <h2
-          id="public-get-in-touch-title"
-          className="font-serif text-3xl text-text-strong-950 md:text-4xl"
-        >
-          {formatMessage({
-            id: "public.home.getInTouch.title",
-            defaultMessage: "Get in touch",
-          })}
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-sm text-text-sub-600 md:text-base">
-          {formatMessage({
-            id: "public.home.getInTouch.description",
-            defaultMessage:
-              "Subscribe for seasonal updates, or schedule a call to talk through what you're working on.",
-          })}
-        </p>
-
-        <form
-          onSubmit={handleSubmit}
-          className="mx-auto mt-8 flex max-w-xl flex-col gap-3"
-          aria-describedby="public-subscribe-help"
-        >
-          <label htmlFor="public-subscribe-email" className="sr-only">
+    <section className="bg-editorial-deep" aria-labelledby="public-get-in-touch-title">
+      <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 sm:px-10 md:py-28 lg:grid-cols-[1fr_1.1fr] lg:gap-24">
+        <div>
+          <EditorialKicker tone="dark" className="mb-5">
             {formatMessage({
-              id: "public.home.getInTouch.emailLabel",
-              defaultMessage: "Email address",
+              id: "public.home.getInTouch.kicker",
+              defaultMessage: "§ 04 — Get In Touch",
             })}
-          </label>
-          <input
-            id="public-subscribe-email"
-            type="email"
-            name="email"
-            required
-            autoComplete="email"
-            placeholder={formatMessage({
-              id: "public.home.getInTouch.emailPlaceholder",
-              defaultMessage: "you@example.com",
+          </EditorialKicker>
+          <EditorialHeading id="public-get-in-touch-title" tone="dark">
+            {formatMessage({
+              id: "public.home.getInTouch.title",
+              defaultMessage: "A letter, once a season.",
             })}
-            className="w-full rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-3 text-sm text-text-strong-950 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
-          />
-          <label className="flex items-start gap-2 text-left text-xs text-text-sub-600">
-            <input
-              type="checkbox"
-              name="consent"
-              required
-              className="mt-0.5 h-4 w-4 rounded border-stroke-soft-200"
-            />
-            <span>
+          </EditorialHeading>
+          <div className="mt-5 max-w-md">
+            <EditorialLede tone="dark">
               {formatMessage({
-                id: "public.home.getInTouch.consent",
+                id: "public.home.getInTouch.description",
                 defaultMessage:
-                  "I want occasional updates from Green Goods. I can unsubscribe any time.",
+                  "Quiet dispatches from the Gardens — what's planted, what's tended, what's ready to be funded. No urgency. No tracking. One opt-in.",
               })}
-            </span>
-          </label>
-          <button
-            type="submit"
-            disabled={submitState === "loading"}
-            className="rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground shadow-sm transition-colors hover:bg-primary-action-hover disabled:opacity-60"
-          >
-            {submitState === "loading"
-              ? formatMessage({
-                  id: "public.home.getInTouch.submitting",
-                  defaultMessage: "Subscribing…",
-                })
-              : formatMessage({
-                  id: "public.home.getInTouch.submit",
-                  defaultMessage: "Subscribe",
-                })}
-          </button>
-          {submitState === "ok" ? (
-            <p
-              role="status"
-              className="mt-2 rounded-full bg-success-lighter px-4 py-2 text-xs text-success-base"
-            >
-              {formatMessage({
-                id: "public.home.getInTouch.success.inline",
-                defaultMessage: "Thanks — check your inbox to confirm.",
-              })}
-            </p>
-          ) : null}
-          {submitState === "error" && errorMessageId ? (
-            <p
-              role="alert"
-              className="mt-2 rounded-full bg-error-lighter px-4 py-2 text-xs text-error-base"
-            >
-              {formatMessage({
-                id: errorMessageId,
-                defaultMessage: "Something went wrong. Please try again or schedule a call below.",
-              })}
-            </p>
-          ) : null}
-          <p id="public-subscribe-help" className="sr-only">
-            {formatMessage({
-              id: "public.home.getInTouch.help",
-              defaultMessage: "Single opt-in subscription. Email stays server-side.",
-            })}
-          </p>
-        </form>
+            </EditorialLede>
+          </div>
+        </div>
 
-        <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-sm">
-          <a
-            href={publicCuration.appointmentUrl}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 transition-colors hover:bg-bg-weak-50"
+        <div>
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-6"
+            aria-describedby="public-subscribe-help"
           >
-            {formatMessage({
-              id: "public.home.getInTouch.scheduleCall",
-              defaultMessage: "Schedule a call",
-            })}
-          </a>
-          <Link to="/gardens" className="text-sm font-medium text-primary-base hover:underline">
-            {formatMessage({
-              id: "public.home.getInTouch.exploreGardens",
-              defaultMessage: "Explore Gardens",
-            })}
-          </Link>
+            <div>
+              <label
+                htmlFor="public-subscribe-email"
+                className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-editorial-deep-fg/60"
+              >
+                {formatMessage({
+                  id: "public.home.getInTouch.emailLabel",
+                  defaultMessage: "Your email",
+                })}
+              </label>
+              <div className="mt-3 flex items-center gap-3 border-b border-editorial-deep-fg/30 pb-2 focus-within:border-editorial-deep-fg/60">
+                <input
+                  id="public-subscribe-email"
+                  type="email"
+                  name="email"
+                  required
+                  autoComplete="email"
+                  placeholder={formatMessage({
+                    id: "public.home.getInTouch.emailPlaceholder",
+                    defaultMessage: "you@example.com",
+                  })}
+                  className="flex-1 bg-transparent font-serif text-xl font-normal text-editorial-deep-fg placeholder-editorial-deep-fg/40 focus:outline-none md:text-2xl"
+                />
+                <EditorialPrimaryButton
+                  type="submit"
+                  disabled={submitState === "loading"}
+                  className="shrink-0 px-5 py-2.5"
+                >
+                  {submitState === "loading"
+                    ? formatMessage({
+                        id: "public.home.getInTouch.submitting",
+                        defaultMessage: "…",
+                      })
+                    : formatMessage({
+                        id: "public.home.getInTouch.submit",
+                        defaultMessage: "Subscribe",
+                      })}
+                </EditorialPrimaryButton>
+              </div>
+            </div>
+
+            <label className="flex items-start gap-3 text-sm leading-relaxed text-editorial-deep-fg/72">
+              <input
+                type="checkbox"
+                name="consent"
+                required
+                className="mt-1 h-4 w-4 shrink-0 rounded border-editorial-deep-fg/40 bg-transparent accent-primary-base"
+              />
+              <span>
+                {formatMessage({
+                  id: "public.home.getInTouch.consent",
+                  defaultMessage:
+                    "I'd like Green Goods to send seasonal letters about the Gardens. I can unsubscribe at any time, from any letter.",
+                })}
+              </span>
+            </label>
+
+            {submitState === "ok" ? (
+              <p
+                role="status"
+                className="rounded-full bg-editorial-deep-fg/10 px-4 py-2 text-xs text-editorial-deep-fg"
+              >
+                {formatMessage({
+                  id: "public.home.getInTouch.success.inline",
+                  defaultMessage: "Thanks — check your inbox to confirm.",
+                })}
+              </p>
+            ) : null}
+            {submitState === "error" && errorMessageId ? (
+              <p
+                role="alert"
+                className="rounded-full bg-error-base/20 px-4 py-2 text-xs text-error-lighter"
+              >
+                {formatMessage({
+                  id: errorMessageId,
+                  defaultMessage:
+                    "Something went wrong. Please try again or schedule a call below.",
+                })}
+              </p>
+            ) : null}
+            <p id="public-subscribe-help" className="sr-only">
+              {formatMessage({
+                id: "public.home.getInTouch.help",
+                defaultMessage: "Single opt-in subscription. Email stays server-side.",
+              })}
+            </p>
+          </form>
+
+          <div className="mt-10">
+            <EditorialDivider tone="dark" />
+            <p className="mt-4 text-sm leading-relaxed text-editorial-deep-fg/72">
+              {formatMessage({
+                id: "public.home.getInTouch.scheduleIntro",
+                defaultMessage:
+                  "Want to talk through what you're working on? Book a quiet half-hour with the team.",
+              })}
+            </p>
+            <div className="mt-5">
+              <a
+                href={publicCuration.appointmentUrl}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-editorial-deep-fg/40 bg-transparent px-6 py-3 text-sm font-medium text-editorial-deep-fg transition-colors hover:bg-editorial-deep-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editorial-deep-fg focus-visible:ring-offset-2 sm:w-auto"
+              >
+                {formatMessage({
+                  id: "public.home.getInTouch.scheduleCall",
+                  defaultMessage: "Schedule a call",
+                })}
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
