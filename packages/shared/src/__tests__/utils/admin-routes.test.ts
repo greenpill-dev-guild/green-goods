@@ -54,4 +54,11 @@ describe("adminRoutes", () => {
       "/actions/action%3A0xabc%2F1/edit?domain=1&lifecycle=active&search=solar&sort=recent"
     );
   });
+
+  it("builds team campaign cookie jar routes", () => {
+    expect(adminRoutes.cookies()).toBe("/cookies");
+    expect(adminRoutes.cookiesDeploy({ source: "campaign" })).toBe(
+      "/cookies/deploy?source=campaign"
+    );
+  });
 });

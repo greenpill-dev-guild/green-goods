@@ -12,6 +12,7 @@ function lazyView(loader: () => Promise<{ default: ComponentType }>): LazyRoute 
 const hubView = lazyView(() => import("@/views/Hub"));
 const gardenView = lazyView(() => import("@/views/Garden"));
 const communityView = lazyView(() => import("@/views/Community"));
+const cookiesView = lazyView(() => import("@/views/Cookies"));
 const actionsView = lazyView(() => import("@/views/Actions"));
 const profileView = lazyView(() => import("@/views/Profile"));
 const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
@@ -222,9 +223,18 @@ export const adminCanvasRoutes: RouteObject[] = [
         path: "members",
         lazy: communityView,
       },
+    ],
+  },
+  {
+    path: "cookies",
+    children: [
       {
-        path: "cookies",
-        lazy: communityView,
+        index: true,
+        lazy: cookiesView,
+      },
+      {
+        path: "deploy",
+        lazy: cookiesView,
       },
     ],
   },

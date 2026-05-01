@@ -1,12 +1,19 @@
 import type { Address } from "../../types/domain";
 
-export type AdminWorkspaceId = "home" | "hub" | "garden" | "community" | "actions" | "profile";
+export type AdminWorkspaceId =
+  | "home"
+  | "hub"
+  | "garden"
+  | "community"
+  | "cookies"
+  | "actions"
+  | "profile";
 
 export type AdminSignalPoolType = "hypercert" | "action";
 export type AdminHubMode = "work" | "assess" | "certify" | "history";
 export type AdminHubView = AdminHubMode;
 export type AdminGardenMode = "overview" | "impact" | "settings";
-export type AdminCommunityMode = "treasury" | "governance" | "payouts" | "members" | "cookies";
+export type AdminCommunityMode = "treasury" | "governance" | "payouts" | "members";
 export type AdminHubSort = "newest" | "oldest";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
@@ -35,6 +42,7 @@ export const ADMIN_WORKSPACE_ROOTS: Record<AdminWorkspaceId, string> = {
   hub: "/hub",
   garden: "/garden",
   community: "/community",
+  cookies: "/cookies",
   actions: "/actions",
   profile: "/profile",
 };
@@ -178,9 +186,6 @@ export const adminRoutes = {
   communityMembers(context?: AdminCommunityRouteContext) {
     return this.communityMode("members", context);
   },
-  communityCookies(context?: AdminCommunityRouteContext) {
-    return this.communityMode("cookies", context);
-  },
   communityTreasuryVault(context?: AdminCommunityRouteContext) {
     return buildAdminHref("/community/treasury/vault", buildCommunityContextSearch(context));
   },
@@ -198,6 +203,12 @@ export const adminRoutes = {
   },
   actions(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/actions", search);
+  },
+  cookies(search?: Record<string, AdminSearchValue>) {
+    return buildAdminHref("/cookies", search);
+  },
+  cookiesDeploy(search?: Record<string, AdminSearchValue>) {
+    return buildAdminHref("/cookies/deploy", search);
   },
   profile(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/profile", search);

@@ -12,7 +12,7 @@ import {
 import { CampaignCookieJarPanel } from "./CampaignCookieJarPanel";
 
 const meta: Meta<typeof CampaignCookieJarPanel> = {
-  title: "Admin/Workspaces/Community/CampaignCookieJarPanel",
+  title: "Admin/Workspaces/Cookies/CampaignCookieJarPanel",
   component: CampaignCookieJarPanel,
   tags: ["autodocs"],
   parameters: {
@@ -20,7 +20,7 @@ const meta: Meta<typeof CampaignCookieJarPanel> = {
     docs: {
       description: {
         component:
-          "Internal campaign Cookie Jar creation and allowlist refresh surface. The story renders inside the Community workspace frame with seeded admin identity.",
+          "Internal campaign Cookie Jar creation and allowlist refresh surface. The story renders inside the team Cookies workspace frame with seeded admin identity.",
       },
     },
   },
@@ -31,7 +31,7 @@ const meta: Meta<typeof CampaignCookieJarPanel> = {
     withCanvasFrame({
       className: "p-0",
       heightClassName: "h-[760px]",
-      workspace: "community",
+      workspace: "hub",
     }),
   ],
 };

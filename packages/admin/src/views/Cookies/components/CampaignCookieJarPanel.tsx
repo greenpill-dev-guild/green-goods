@@ -135,7 +135,11 @@ function GardenSelector({
   );
 }
 
-export function CampaignCookieJarPanel() {
+interface CampaignCookieJarPanelProps {
+  initialCreateOpen?: boolean;
+}
+
+export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCookieJarPanelProps) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
@@ -174,6 +178,12 @@ export function CampaignCookieJarPanel() {
   const [syncExtraAddresses, setSyncExtraAddresses] = useState("");
   const syncJarAddress = normalizeCampaignAddress(syncJarAddressInput) ?? undefined;
   const syncJar = useCampaignCookieJar(syncJarAddress, { enabled: Boolean(syncJarAddress) });
+
+  useEffect(() => {
+    if (initialCreateOpen) {
+      setDialogOpen(true);
+    }
+  }, [initialCreateOpen]);
 
   useEffect(() => {
     if (!dialogOpen) return;

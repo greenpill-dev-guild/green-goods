@@ -32,7 +32,6 @@ export function useCommunityWorkspaceController() {
   const location = useLocation();
   const { poolType } = useParams<{ poolType?: string }>();
   const mode = resolveCommunityMode(location.pathname);
-  const isCampaignCookiesMode = mode === "cookies";
   const hasShownAllGardensToastRef = useRef(false);
   const handleAutoSelectGarden = useCallback(
     (garden: { name: string }) => {
@@ -56,8 +55,8 @@ export function useCommunityWorkspaceController() {
     [formatMessage]
   );
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection({
-    autoSelectFirstGarden: !isCampaignCookiesMode,
-    onAutoSelectGarden: isCampaignCookiesMode ? undefined : handleAutoSelectGarden,
+    autoSelectFirstGarden: true,
+    onAutoSelectGarden: handleAutoSelectGarden,
   });
   const { searchParams } = useCanvasSearchParams();
   const { containerRef } = useSheetWidth();
@@ -186,9 +185,7 @@ export function useCommunityWorkspaceController() {
             ? adminRoutes.communityPayouts({ gardenAddress: selectedGardenAddress })
             : nextMode === "members"
               ? adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })
-              : nextMode === "cookies"
-                ? adminRoutes.communityCookies()
-                : adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })
+              : adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })
       ),
     [navigate, selectedGardenAddress]
   );
@@ -232,7 +229,6 @@ export function useCommunityWorkspaceController() {
     handleSelectGarden,
     hypercerts,
     isCreatingPools,
-    isCampaignCookiesMode,
     isOwner,
     isSignalPoolRoute,
     isStrategiesRoute,

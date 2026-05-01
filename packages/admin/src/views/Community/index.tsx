@@ -29,7 +29,7 @@ export default function CommunityView() {
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
         description={formatMessage({
           id: "cockpit.community.description",
-          defaultMessage: "Manage treasury, governance, payouts, campaign jars, and members",
+          defaultMessage: "Manage treasury, governance, payouts, and members",
         })}
         variant="canvas"
         metadata={
@@ -70,13 +70,6 @@ export default function CommunityView() {
                 defaultMessage: "Payouts",
               }),
               count: community.allocations.length || undefined,
-            },
-            {
-              id: "cookies",
-              label: formatMessage({
-                id: "cockpit.community.cookies",
-                defaultMessage: "Cookies",
-              }),
             },
             {
               id: "members",
