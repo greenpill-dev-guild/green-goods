@@ -1,5 +1,9 @@
 import { chromium, type FullConfig } from "@playwright/test";
 
+function envFlag(name: string): boolean {
+  return process.env[name]?.toLowerCase() === "true";
+}
+
 /**
  * Global setup for E2E tests
  *
@@ -26,7 +30,7 @@ async function globalSetup(config: FullConfig) {
   }
 
   // Skip health check if requested
-  if (process.env.SKIP_HEALTH_CHECK) {
+  if (envFlag("SKIP_HEALTH_CHECK")) {
     console.log("⏭️  Skipping health check (SKIP_HEALTH_CHECK=true)\n");
     console.log("✅ Global setup complete\n");
     return;

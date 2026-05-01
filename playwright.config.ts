@@ -16,6 +16,10 @@ const environments = {
 
 const currentEnv = environments.local;
 
+function envFlag(name: string): boolean {
+  return process.env[name]?.toLowerCase() === "true";
+}
+
 const playwrightApp = process.env.PLAYWRIGHT_APP;
 const shouldStartClient = playwrightApp !== "admin";
 const shouldStartAdmin = playwrightApp !== "client";
@@ -231,7 +235,7 @@ export default defineConfig({
   ],
 
   // WebServer configuration - starts services if not running
-  webServer: process.env.SKIP_WEBSERVER ? undefined : webServers,
+  webServer: envFlag("SKIP_WEBSERVER") ? undefined : webServers,
 
   // Global setup/teardown (ESM-compatible paths)
   globalSetup: "./tests/global-setup.ts",
