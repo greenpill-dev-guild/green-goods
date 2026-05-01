@@ -1,4 +1,8 @@
 export { PublicActionCard, type PublicActionCardProps } from "./PublicActionCard";
+export {
+  PublicEvidenceDialog,
+  type PublicEvidenceDialogProps,
+} from "./PublicEvidenceDialog";
 export { PublicFeaturedGardens } from "./PublicFeaturedGardens";
 export {
   PublicFundingMethodSelector,

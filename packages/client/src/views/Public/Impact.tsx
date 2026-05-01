@@ -13,7 +13,7 @@ import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicEvidenceLedgerRow } from "@/components/Public/PublicEvidenceLedgerRow";
 import { PublicEvidencePipeline } from "@/components/Public/PublicEvidencePipeline";
 import { PublicFooter } from "@/components/Public/PublicFooter";
-import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
+import { PublicEvidenceDialog } from "@/components/Public/PublicEvidenceDialog";
 import { publicCuration } from "@/content/publicCuration";
 
 type KindFilter = "all" | PublicImpactEvidenceKind;
@@ -114,21 +114,6 @@ function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
       ))}
     </dl>
   );
-}
-
-function formatTimeWindow(
-  window: NonNullable<PublicImpactEvidenceRecord["timeWindow"]>,
-  formatMessage: (descriptor: { id: string; defaultMessage: string }) => string
-): string {
-  const start = window.start ? new Date(window.start * 1000).toLocaleDateString() : null;
-  const end = window.end ? new Date(window.end * 1000).toLocaleDateString() : null;
-  if (start && end) return `${start} → ${end}`;
-  if (start) return start;
-  if (end) return end;
-  return formatMessage({
-    id: "public.impact.evidence.timeUnknown",
-    defaultMessage: "Date unknown",
-  });
 }
 
 /**
@@ -500,40 +485,12 @@ export default function ImpactPage() {
       <PublicFooter />
 
       {activeRecord ? (
-        <PublicSourceDialog
+        <PublicEvidenceDialog
           open
           onClose={() => setActiveRecord(null)}
-          title={activeRecord.title}
-          subtitle={activeRecord.gardenName}
-          sourceHref={
-            activeRecord.easUid
-              ? `https://easscan.org/attestation/view/${activeRecord.easUid}`
-              : undefined
-          }
-          sourceLabel={formatMessage({
-            id: "public.impact.evidence.viewEas",
-            defaultMessage: "View Attestation on EAS",
-          })}
-        >
-          {activeRecord.media && activeRecord.media.length > 0 ? (
-            <img src={activeRecord.media[0]} alt="" className="w-full rounded-2xl object-cover" />
-          ) : null}
-          {activeRecord.summary ? (
-            <p className="text-sm text-text-strong-950">{activeRecord.summary}</p>
-          ) : (
-            <p className="text-sm text-text-sub-600">
-              {formatMessage({
-                id: "public.impact.evidence.dialog.noSummary",
-                defaultMessage: "No summary published for this Assessment yet.",
-              })}
-            </p>
-          )}
-          {activeRecord.timeWindow ? (
-            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-              {formatTimeWindow(activeRecord.timeWindow, formatMessage)}
-            </p>
-          ) : null}
-        </PublicSourceDialog>
+          record={activeRecord}
+          garden={gardensById.get(activeRecord.gardenId.toLowerCase())}
+        />
       ) : null}
     </>
   );
