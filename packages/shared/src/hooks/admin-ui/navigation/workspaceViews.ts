@@ -1,5 +1,6 @@
 import { RiAppsLine, RiHammerFill, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { ToolbarSlot } from "../../../components/Canvas";
+import type { UserRole } from "../../gardener/useRole";
 import { adminRoutes } from "../../../utils/navigation/admin-routes";
 
 export type AdminPrimaryWorkspaceId = "hub" | "garden" | "community" | "actions";
@@ -13,6 +14,7 @@ export interface AdminWorkspaceViewDefinition {
   rootPath: string;
   href: string;
   permission: AdminWorkspacePermission;
+  commandRoles?: UserRole[];
 }
 
 export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
@@ -42,6 +44,7 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
     rootPath: "/community",
     href: adminRoutes.community(),
     permission: "showCommunity",
+    commandRoles: ["deployer"],
   },
   {
     id: "actions",
@@ -51,6 +54,7 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
     rootPath: "/actions",
     href: adminRoutes.actions(),
     permission: "showActions",
+    commandRoles: ["deployer"],
   },
 ];
 
@@ -59,4 +63,5 @@ export const ADMIN_COMMAND_ROUTES = ADMIN_WORKSPACE_VIEWS.map((view) => ({
   labelId: view.labelId,
   defaultLabel: view.label,
   href: view.href,
+  roles: view.commandRoles,
 }));

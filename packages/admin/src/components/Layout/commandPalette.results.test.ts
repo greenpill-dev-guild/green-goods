@@ -1,6 +1,7 @@
 import {
   buildCommandPaletteResults,
   groupCommandPaletteResults,
+  type Action,
   type Garden,
   type GardenAssessment,
 } from "@green-goods/shared";
@@ -92,5 +93,20 @@ describe("buildCommandPaletteResults", () => {
       ["garden-1"],
       ["action-1"],
     ]);
+  });
+
+  it("hides action records from non-deployer command palettes", () => {
+    const results = buildCommandPaletteResults({
+      query: "mulch",
+      role: "operator",
+      formatMessage,
+      staticRoutes: [],
+      eligibleGardens: [eligibleGarden],
+      actions: [{ id: "action-1", title: "Mulch day", startTime: null } as Action],
+      assessments: [],
+      selectGarden: vi.fn(),
+    });
+
+    expect(results.some((result) => result.category === "actions")).toBe(false);
   });
 });

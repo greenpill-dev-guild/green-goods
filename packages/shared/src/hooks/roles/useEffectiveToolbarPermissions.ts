@@ -34,7 +34,7 @@ const FAIL_OPEN: ToolbarPermissions = {
 export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   const address = usePrimaryAddress();
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
-  const { isDeployer, isOperator: isPlatformOperator, loading: roleLoading } = useRole();
+  const { isDeployer, loading: roleLoading } = useRole();
   const { data: gardens, isLoading: gardensLoading } = useGardens();
 
   return useMemo(() => {
@@ -51,6 +51,7 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     // Compute aggregated roles across the scope
     let hasAnyRole = false;
     let isOperatorOrOwner = false;
+    let isOwner = false;
 
     for (const garden of scope) {
       const inOperators = isAddressInList(address, garden.operators);
@@ -67,25 +68,17 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
       if (inOperators || inOwners) {
         isOperatorOrOwner = true;
       }
-
-      // Short-circuit: if we already have the highest permissions, stop iterating
-      if (hasAnyRole && isOperatorOrOwner) break;
+      if (inOwners) {
+        isOwner = true;
+      }
     }
 
     return {
       showWork: hasAnyRole,
       showGarden: isOperatorOrOwner,
-      showCommunity: isOperatorOrOwner,
-      showActions: isDeployer || isPlatformOperator,
+      showCommunity: isDeployer || isOwner,
+      showActions: isDeployer,
       isLoading: false,
     };
-  }, [
-    address,
-    selectedGarden,
-    gardens,
-    roleLoading,
-    gardensLoading,
-    isDeployer,
-    isPlatformOperator,
-  ]);
+  }, [address, selectedGarden, gardens, roleLoading, gardensLoading, isDeployer]);
 }

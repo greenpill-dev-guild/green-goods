@@ -248,7 +248,7 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "actions/create",
-    ...roleGatedRoute(["deployer", "operator"], actionsView),
+    ...roleGatedRoute(["deployer"], actionsView),
   },
   {
     path: "actions/:id",
@@ -256,6 +256,6 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "actions/:id/edit",
-    ...roleGatedRoute(["deployer", "operator"], actionsView),
+    ...roleGatedRoute(["deployer"], actionsView),
   },
 ];

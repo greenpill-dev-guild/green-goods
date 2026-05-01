@@ -132,7 +132,7 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("operator sees Work + Garden + Community (not Actions)", () => {
+  it("operator sees Work + Garden while team-only surfaces stay hidden", () => {
     const gardenA = makeGarden("garden-a", {
       operators: [ADDR_USER],
     });
@@ -143,7 +143,7 @@ describe("useEffectiveToolbarPermissions", () => {
 
     expect(result.current.showWork).toBe(true);
     expect(result.current.showGarden).toBe(true);
-    expect(result.current.showCommunity).toBe(true);
+    expect(result.current.showCommunity).toBe(false);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
@@ -164,7 +164,23 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("multi-garden union: operator in A + evaluator in B -> Work + Garden + Community", () => {
+  it("owner sees Community but still not Actions", () => {
+    const gardenA = makeGarden("garden-a", {
+      owners: [ADDR_USER],
+    });
+
+    setupDefaults({ gardens: [gardenA] });
+
+    const { result } = renderHook(() => useEffectiveToolbarPermissions());
+
+    expect(result.current.showWork).toBe(true);
+    expect(result.current.showGarden).toBe(true);
+    expect(result.current.showCommunity).toBe(true);
+    expect(result.current.showActions).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it("multi-garden union: operator in A + evaluator in B -> Work + Garden", () => {
     const gardenA = makeGarden("garden-a", {
       operators: [ADDR_USER],
     });
@@ -176,10 +192,10 @@ describe("useEffectiveToolbarPermissions", () => {
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 
-    // Union across all gardens: operator in A gives Garden+Community, evaluator in B gives Work
+    // Union across all gardens: operator in A gives Garden, evaluator in B gives Work.
     expect(result.current.showWork).toBe(true);
     expect(result.current.showGarden).toBe(true);
-    expect(result.current.showCommunity).toBe(true);
+    expect(result.current.showCommunity).toBe(false);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });

@@ -21,6 +21,7 @@ interface StaticCommandRoute {
   labelId: string;
   defaultLabel: string;
   href: string;
+  roles?: UserRole[];
 }
 
 interface AssessmentCommandItem {
@@ -153,6 +154,7 @@ export function buildCommandPaletteResults({
   }
 
   for (const route of staticRoutes) {
+    if (route.roles && !route.roles.includes(role)) continue;
     const label = formatMessage({ id: route.labelId, defaultMessage: route.defaultLabel });
     pushIfMatches({ id: route.id, label, href: route.href, category: "pages" }, [label]);
   }
@@ -171,19 +173,21 @@ export function buildCommandPaletteResults({
     );
   }
 
-  for (const action of actions) {
-    pushIfMatches(
-      {
-        id: `action-${action.id}`,
-        label: action.title,
-        href: adminRoutes.actionDetail(action.id),
-        category: "actions",
-        subtitle: action.startTime
-          ? new Date(action.startTime * 1000).toLocaleDateString()
-          : undefined,
-      },
-      [action.title]
-    );
+  if (role === "deployer") {
+    for (const action of actions) {
+      pushIfMatches(
+        {
+          id: `action-${action.id}`,
+          label: action.title,
+          href: adminRoutes.actionDetail(action.id),
+          category: "actions",
+          subtitle: action.startTime
+            ? new Date(action.startTime * 1000).toLocaleDateString()
+            : undefined,
+        },
+        [action.title]
+      );
+    }
   }
 
   for (const assessment of assessments) {
