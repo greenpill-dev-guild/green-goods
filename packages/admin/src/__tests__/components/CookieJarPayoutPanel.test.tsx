@@ -55,7 +55,7 @@ describe("CookieJarPayoutPanel", () => {
     expect(screen.getByText(/0xasset/)).toBeInTheDocument();
 
     // Action buttons are rendered
-    expect(screen.getByRole("button", { name: /Withdraw/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Claim/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fund Jars/ })).toBeInTheDocument();
     // Manage Jars is shown when canManage is true
     expect(screen.getByRole("button", { name: /Manage Jars/ })).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe("CookieJarPayoutPanel", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: /Withdraw/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Claim/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fund Jars/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Manage Jars/ })).not.toBeInTheDocument();
   });

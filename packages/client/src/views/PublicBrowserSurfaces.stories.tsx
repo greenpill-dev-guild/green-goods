@@ -154,7 +154,7 @@ export const HomeRoute: Story = {
   render: () => <PublicBrowserRoute route="/" />,
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("banner")).toBeVisible();
+    await expect(await canvas.findByRole("navigation", { name: "Main navigation" })).toBeVisible();
     await expect(await canvas.findByRole("link", { name: /green goods logo/i })).toBeVisible();
     await expect(await canvas.findByRole("heading", { name: "Green Goods" })).toBeVisible();
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();

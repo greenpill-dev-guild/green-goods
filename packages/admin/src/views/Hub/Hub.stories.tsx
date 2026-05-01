@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useMemo } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
@@ -19,14 +20,18 @@ interface HubCanvasStoryProps {
 }
 
 function HubCanvasStory({ initialPath = "/hub/work" }: HubCanvasStoryProps) {
-  const router = createMemoryRouter(
-    [
-      {
-        element: <CanvasLayout />,
-        children: adminCanvasRoutes,
-      },
-    ],
-    { initialEntries: [initialPath] }
+  const router = useMemo(
+    () =>
+      createMemoryRouter(
+        [
+          {
+            element: <CanvasLayout />,
+            children: adminCanvasRoutes,
+          },
+        ],
+        { initialEntries: [initialPath] }
+      ),
+    [initialPath]
   );
 
   return <RouterProvider router={router} />;

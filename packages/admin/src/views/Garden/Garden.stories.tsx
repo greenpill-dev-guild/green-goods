@@ -6,6 +6,7 @@ import {
   type Address,
   type Garden as SharedGarden,
 } from "@green-goods/shared";
+import { useMemo } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
@@ -28,16 +29,20 @@ interface GardenCanvasStoryProps {
 }
 
 function GardenCanvasStory({ initialPath = "/garden/overview" }: GardenCanvasStoryProps) {
-  const router = createMemoryRouter(
-    [
-      {
-        element: <CanvasLayout />,
-        children: adminCanvasRoutes,
-      },
-    ],
-    {
-      initialEntries: [initialPath],
-    }
+  const router = useMemo(
+    () =>
+      createMemoryRouter(
+        [
+          {
+            element: <CanvasLayout />,
+            children: adminCanvasRoutes,
+          },
+        ],
+        {
+          initialEntries: [initialPath],
+        }
+      ),
+    [initialPath]
   );
 
   return <RouterProvider router={router} />;

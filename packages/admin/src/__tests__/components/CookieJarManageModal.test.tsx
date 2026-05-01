@@ -13,52 +13,60 @@ const mockEmergencyWithdraw = vi.fn();
 const mockUpdateMaxWithdrawal = vi.fn();
 const mockUpdateInterval = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
-  ConfirmDialog: () => null,
-  formatTokenAmount: (value: bigint, decimals = 18) =>
-    `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
-  getVaultAssetSymbol: () => "USDC",
-  useCookieJarPause: () => ({ mutate: mockPause, isPending: false }),
-  useCookieJarUnpause: () => ({ mutate: mockUnpause, isPending: false }),
-  useCookieJarEmergencyWithdraw: () => ({
-    mutate: mockEmergencyWithdraw,
-    isPending: false,
-  }),
-  useCookieJarUpdateMaxWithdrawal: () => ({
-    mutate: mockUpdateMaxWithdrawal,
-    isPending: false,
-  }),
-  useCookieJarUpdateInterval: () => ({
-    mutate: mockUpdateInterval,
-    isPending: false,
-  }),
-  useGardenCookieJars: () => ({
-    jars: [
-      {
-        jarAddress: "0xjar1",
-        gardenAddress: "0xgarden",
-        assetAddress: "0xasset",
-        balance: 5000000n,
-        currency: "0xasset",
-        decimals: 6,
-        maxWithdrawal: 1000000n,
-        withdrawalInterval: 3600n,
-        minDeposit: 0n,
-        isPaused: false,
-        emergencyWithdrawalEnabled: false,
-      },
-    ],
-    isLoading: false,
-    moduleConfigured: true,
-  }),
-}));
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+    ConfirmDialog: () => null,
+    formatTokenAmount: (value: bigint, decimals = 18) =>
+      `${Number(value) / 10 ** decimals}`.replace(/\.0$/, ""),
+    getVaultAssetSymbol: () => "USDC",
+    useCookieJarPause: () => ({ mutate: mockPause, isPending: false }),
+    useCookieJarUnpause: () => ({ mutate: mockUnpause, isPending: false }),
+    useCookieJarEmergencyWithdraw: () => ({
+      mutate: mockEmergencyWithdraw,
+      isPending: false,
+    }),
+    useCookieJarUpdateMaxWithdrawal: () => ({
+      mutate: mockUpdateMaxWithdrawal,
+      isPending: false,
+    }),
+    useCookieJarUpdateInterval: () => ({
+      mutate: mockUpdateInterval,
+      isPending: false,
+    }),
+    useGardenCookieJars: () => ({
+      jars: [
+        {
+          jarAddress: "0xjar1",
+          gardenAddress: "0xgarden",
+          assetAddress: "0xasset",
+          balance: 5000000n,
+          currency: "0xasset",
+          decimals: 6,
+          maxWithdrawal: 1000000n,
+          withdrawalInterval: 3600n,
+          minDeposit: 0n,
+          isPaused: false,
+          emergencyWithdrawalEnabled: false,
+        },
+      ],
+      isLoading: false,
+      moduleConfigured: true,
+    }),
+  };
+});
 
-vi.mock("@remixicon/react", () => ({
-  RiCloseLine: (props: any) => React.createElement("span", props, "close"),
-  RiPencilLine: (props: any) => React.createElement("span", props, "edit"),
-  RiCheckLine: (props: any) => React.createElement("span", props, "check"),
-}));
+vi.mock("@remixicon/react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@remixicon/react")>();
+  return {
+    ...actual,
+    RiCloseLine: (props: any) => React.createElement("span", props, "close"),
+    RiPencilLine: (props: any) => React.createElement("span", props, "edit"),
+    RiCheckLine: (props: any) => React.createElement("span", props, "check"),
+  };
+});
 
 vi.mock("viem", () => ({
   formatUnits: (value: bigint, decimals: number) => {

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
@@ -53,14 +53,18 @@ interface ProfileCanvasStoryProps {
 }
 
 function ProfileCanvasStory({ initialPath = "/profile" }: ProfileCanvasStoryProps) {
-  const router = createMemoryRouter(
-    [
-      {
-        element: <CanvasLayout />,
-        children: adminCanvasRoutes,
-      },
-    ],
-    { initialEntries: [initialPath] }
+  const router = useMemo(
+    () =>
+      createMemoryRouter(
+        [
+          {
+            element: <CanvasLayout />,
+            children: adminCanvasRoutes,
+          },
+        ],
+        { initialEntries: [initialPath] }
+      ),
+    [initialPath]
   );
 
   return (

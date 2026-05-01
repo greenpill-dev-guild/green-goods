@@ -9,28 +9,32 @@ const mockReset = vi.fn();
 const mockUseCreateListing = vi.fn();
 const mockLoggerError = vi.fn();
 
-vi.mock("@green-goods/shared", () => ({
-  Alert: ({ children }: { children: ReactNode }) =>
-    createElement("div", { role: "alert" }, children),
-  DialogShell: ({
-    open,
-    title,
-    children,
-  }: {
-    open: boolean;
-    title: string;
-    children: ReactNode;
-  }) => (open ? createElement("div", null, createElement("h1", null, title), children) : null),
-  LISTING_DEFAULTS: {
-    durationDays: 30,
-    sellLeftover: false,
-    maxUnitAmount: 1000n,
-  },
-  logger: {
-    error: (...args: unknown[]) => mockLoggerError(...args),
-  },
-  useCreateListing: (...args: unknown[]) => mockUseCreateListing(...args),
-}));
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    Alert: ({ children }: { children: ReactNode }) =>
+      createElement("div", { role: "alert" }, children),
+    DialogShell: ({
+      open,
+      title,
+      children,
+    }: {
+      open: boolean;
+      title: string;
+      children: ReactNode;
+    }) => (open ? createElement("div", null, createElement("h1", null, title), children) : null),
+    LISTING_DEFAULTS: {
+      durationDays: 30,
+      sellLeftover: false,
+      maxUnitAmount: 1000n,
+    },
+    logger: {
+      error: (...args: unknown[]) => mockLoggerError(...args),
+    },
+    useCreateListing: (...args: unknown[]) => mockUseCreateListing(...args),
+  };
+});
 
 import { CreateListingDialog } from "../../../components/Hypercerts/CreateListingDialog";
 

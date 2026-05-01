@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DEFAULT_CHAIN_ID, queryKeys, type Action } from "@green-goods/shared";
+import { useMemo } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
@@ -21,14 +22,18 @@ interface RouteBackedActionsInspectorStoryProps {
 function RouteBackedActionsInspectorStory({
   initialPath = "/actions",
 }: RouteBackedActionsInspectorStoryProps) {
-  const router = createMemoryRouter(
-    [
-      {
-        element: <CanvasLayout />,
-        children: adminCanvasRoutes,
-      },
-    ],
-    { initialEntries: [initialPath] }
+  const router = useMemo(
+    () =>
+      createMemoryRouter(
+        [
+          {
+            element: <CanvasLayout />,
+            children: adminCanvasRoutes,
+          },
+        ],
+        { initialEntries: [initialPath] }
+      ),
+    [initialPath]
   );
 
   return <RouterProvider router={router} />;

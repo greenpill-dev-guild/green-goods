@@ -52,6 +52,60 @@ vi.mock("@green-goods/shared", () => ({
       }),
     ]);
   },
+  NativeSelect: ({
+    id,
+    value,
+    onChange,
+    disabled,
+    children,
+    ...props
+  }: {
+    id?: string;
+    value?: string;
+    onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+    disabled?: boolean;
+    children?: React.ReactNode;
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement(
+      "select",
+      {
+        id,
+        value: value ?? "",
+        onChange,
+        disabled,
+        "aria-label": props["aria-label"],
+        "data-testid": props["data-testid"] ?? "native-select",
+      },
+      children
+    );
+  },
+  Button: ({
+    children,
+    disabled,
+    onClick,
+    type = "button",
+    ...props
+  }: {
+    children?: React.ReactNode;
+    disabled?: boolean;
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+    type?: "button" | "submit" | "reset";
+    [key: string]: unknown;
+  }) => {
+    const React = require("react");
+    return React.createElement(
+      "button",
+      {
+        ...props,
+        type,
+        disabled,
+        onClick,
+      },
+      children
+    );
+  },
 }));
 
 import { AttestationSelector } from "../../../components/Hypercerts/Steps/AttestationSelector";
