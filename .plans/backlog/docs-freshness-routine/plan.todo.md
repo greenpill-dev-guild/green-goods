@@ -4,95 +4,233 @@
 **Stage**: `backlog`
 **Status**: `BACKLOG`
 **Created**: `2026-04-25`
-**Last Updated**: `2026-04-25`
+**Last Updated**: `2026-05-01`
 
 ## Decision Log
 
 | # | Decision | Rationale |
 |---|---|---|
-| 1 | Promote the docs freshness note to backlog | The work is specific, pickable, and tied to current docs assets. |
-| 2 | One docs freshness family per run | Keeps maintenance PRs reviewable and avoids docs churn. |
-| 3 | Keep docs redesign out of scope | This routine is about drift and freshness, not information architecture. |
-| 4 | Regenerate visual assets from real surfaces | Social cards and screenshots must reflect actual docs/client/admin output. |
+| 1 | Keep this in the existing `docs-freshness-routine` hub | Avoids duplicate truth for screenshots, social cards, and docs freshness work. |
+| 2 | Treat the Matt audit copy remediation as complete baseline work | The reviewed copy/docs changes have already passed the docs gates and should not be reopened casually. |
+| 3 | Wait for UI stabilization before screenshot replacement | Funder and admin UI naming/surfaces are actively changing; early screenshots would churn. |
+| 4 | Refresh only scoped community docs media | The user asked about the docs scope discussed: Gardener, Operator, Funder, and the six reviewed flows. |
+| 5 | Use real app/admin/docs surfaces for all screenshots | Docs media must be source-backed and should not teach fabricated states. |
+| 6 | Add a distinct Donate visual | Donate and Endow are now separate visible funder flows; sharing the same image weakens comprehension. |
+| 7 | Keep app UI changes out of this plan | Donate/Endow/Remove UI work is already active elsewhere and should be aligned later, not duplicated here. |
+
+## Research / Plan Gate
+
+- [x] Record research evidence in `spec.md`
+- [x] Identify the existing repo pattern to mirror
+- [x] List human judgment points before implementation
+- [x] Define what is out of scope
+- [x] Choose the lightest honest validation commands
+- [ ] Confirm the UI update is stable enough for screenshot recapture
 
 ## Requirements Coverage
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| Script per-route social-card regeneration | `state_api` | Step 1 | ⏳ |
-| Expand social card coverage to high-value pages | `state_api` | Step 2 | ⏳ |
-| Ground adjacent gardener-guide pages in source/UI behavior | `state_api` | Step 3 | ⏳ |
-| Refresh stale legacy deck/community assets | `state_api` | Step 4 | ⏳ |
-| Add MDX build-break prevention checks | `state_api` | Step 5 | ⏳ |
-| Add stale screenshot/card/last-verified drift detection | `state_api` | Step 6 | ⏳ |
+| Preserve completed community docs copy remediation | `state_api` | Phase 0 | Done |
+| Wait for active UI updates before capture | `state_api` | Phase 1 | Pending |
+| Recapture stale admin screenshots | `state_api` | Phase 3 | Pending |
+| Replace mismatched Work Dashboard screenshot | `state_api` | Phase 2 | Pending |
+| Add distinct Donate social image | `state_api` | Phase 4 | Pending |
+| Decide whether funder UI screenshots are needed | `state_api` + human | Phase 4 | Pending |
+| Wire updated media into scoped MDX pages | `state_api` | Phase 5 | Pending |
+| Verify rendered docs desktop/mobile | `qa_pass_1` + `qa_pass_2` | Phase 6 | Pending |
 
-## Steps
+## Impact Analysis
 
-### Step 1: Script social-card regeneration
+### Files Likely To Modify
 
-- [ ] Add or refine `docs/scripts/gen-social-cards.mjs`.
-- [ ] Capture cards at 1440x900 from real docs pages.
-- [ ] Convert/write outputs under `docs/static/img/social/`.
-- [ ] Add a docs package script if needed.
+- `docs/docs/community/gardener-guide/uploading-your-work.mdx`
+  - Update image reference/alt text if the Work Dashboard screenshot filename or framing changes.
+- `docs/docs/community/operator-guide/creating-a-garden.mdx`
+  - Keep `admin-create-garden.png` aligned to the actual Create Garden form.
+- `docs/docs/community/operator-guide/reviewing-work.mdx`
+  - Keep queue/detail screenshots aligned to pending work and review controls.
+- `docs/docs/community/operator-guide/creating-impact-certificates.mdx`
+  - Keep Certify/Create Hypercert screenshot aligned to the final admin surface.
+- `docs/docs/community/funder-guide/index.mdx`
+  - Use distinct visuals for Donate, Endow, and Remove cards.
+- `docs/docs/community/funder-guide/donating-to-a-garden.mdx`
+  - Use the distinct Donate image and optional screenshot if approved.
+- `docs/docs/community/funder-guide/funding-a-garden.mdx`
+  - Keep Endow image and optional screenshot aligned to the vault deposit flow.
+- `docs/docs/community/funder-guide/withdraw-from-a-vault.mdx`
+  - Keep Remove image and optional screenshot aligned to withdrawal/removal.
 
-### Step 2: Expand L1 cards
+### Files Likely To Replace Or Add
 
-- [ ] Add social-card frontmatter/assets for selected high-value pages.
-- [ ] Prioritize top-level explainers, gardener payouts, operator assessment pages, vault/hypercert pages, glossary, and FAQ.
+- `docs/static/img/screenshots/client-work-dashboard.png`
+- `docs/static/img/screenshots/admin-create-garden.png`
+- `docs/static/img/screenshots/admin-work-queue.png`
+- `docs/static/img/screenshots/admin-work-detail.png`
+- `docs/static/img/screenshots/admin-garden-impact.png`
+- `docs/static/img/social/donating-to-a-garden.webp` (new, if distinct Donate asset is approved)
 
-### Step 3: Refresh adjacent gardener-guide pages
+### Files To Avoid Unless Explicitly Needed
 
-- [ ] Ground `common-errors.mdx` in real error states.
-- [ ] Expand `track-status-and-attestations.mdx` with current Work Dashboard behavior.
-- [ ] Verify `garden-payouts.mdx` against current payout/vault UI.
-- [ ] Consolidate or differentiate `offline-sync-and-drafts.mdx`.
+- App UI files under `packages/client/**`, `packages/admin/**`, and `packages/shared/**`
+- Contract, indexer, schema, deployment, or i18n files
+- Unrelated docs outside the scoped community guide path
 
-### Step 4: Refresh legacy deck assets
+## Implementation Phases
 
-- [ ] Review old community/deck images for stale UI and terminology.
-- [ ] Replace, regenerate, or explicitly flag assets that should not be updated yet.
+### Phase 0: Preserve Completed Copy Baseline
 
-### Step 5: Prevent MDX build breaks
+Status: complete.
 
-- [ ] Extend docs audit to flag `<https://...>` and `<http://...>` autolinks in markdown/MDX.
-- [ ] Run the docs audit/build gate.
+- [x] Gardener guide narrowed to Join and Submit paths.
+- [x] Operator guide narrowed to Create, Assess, Review, and Mint paths.
+- [x] Funder guide reshaped around Donate, Endow, and Remove.
+- [x] Docs chrome fixes applied for edit URL and previous/next labels.
+- [x] Inline help added for same-login, passkey/smart-account address, Arbitrum gas, draft/offline clarity, and Telegram/help pointer.
+- [x] Stale terms removed from scoped docs: old vault labels, `assessment frame`, `same action`, behind-the-scenes protocol detail, and confusing internal language.
 
-### Step 6: Detect drift
+Validation evidence already recorded in chat:
 
-- [ ] Flag screenshots older than the last relevant admin/client package bump.
-- [ ] Flag social cards older than the page they describe.
-- [ ] Flag `.mdx` files with `last_verified` older than 90 days.
+- `bun run build:docs` passed.
+- Generated HTML scan passed for pagination labels, edit URL, funder labels, and core links.
+- `bun run lint:vocab` passed.
+- `bun run docs:audit` passed with existing unrelated builder/reference warnings only.
+- Scoped stale-copy scan and `git diff --check` passed.
+
+### Phase 1: UI Readiness Gate
+
+Do not capture screenshots until this phase is satisfied.
+
+- [ ] Confirm the Donate / Endow / Remove UI work has landed or reached a stable review point.
+- [ ] Confirm admin Create Garden, Work review, and Certify surfaces are stable enough for docs captures.
+- [ ] Confirm whether captures should use local seeded data, staging data, or manually prepared demo data.
+- [ ] Confirm that no private user data, secrets, unrelated browser overlays, or active-agent toasts are visible.
+- [ ] Decide whether funder pages get screenshots now or remain illustration-led until a later pass.
+
+### Phase 2: Recapture Gardener Work Dashboard
+
+- [ ] Open the client app with a gardener account or fixture that has at least one submitted work record.
+- [ ] Capture a phone-shaped screenshot of the Work Dashboard showing one queued, pending, approved, or rejected submission.
+- [ ] Replace `docs/static/img/screenshots/client-work-dashboard.png` or add a better-named replacement if needed.
+- [ ] Update `uploading-your-work.mdx` alt text if the visible state changes.
+- [ ] Verify the screenshot renders legibly at `320px` width inside the docs page.
+
+Acceptance notes:
+
+- The screenshot should not look like the Home garden list.
+- The visible state should match the "How to know it worked" copy.
+- If showing rejection feedback, use safe demo data and keep the copy generic.
+
+### Phase 3: Recapture Operator Admin Screenshots
+
+#### 3A: Create Garden
+
+- [ ] Capture a desktop admin screenshot showing the Create Garden form, not an empty create route.
+- [ ] Ensure visible fields include enough of name/ENS/location/description/domain selection to support the docs step.
+- [ ] Remove any unrelated overlays such as "Claude is active", browser prompts, or local tooling toasts.
+- [ ] Replace `docs/static/img/screenshots/admin-create-garden.png`.
+
+#### 3B: Review Work Queue
+
+- [ ] Capture a desktop admin screenshot showing a pending work queue with at least one pending submission.
+- [ ] Make the garden picker/filter and pending state visible enough to support the page steps.
+- [ ] Replace `docs/static/img/screenshots/admin-work-queue.png`.
+
+#### 3C: Work Detail Review
+
+- [ ] Capture a desktop admin screenshot showing a selected submission with action, evidence/media, details, notes, and approve/reject controls where possible.
+- [ ] Crop or frame the screenshot so the review area is legible in docs.
+- [ ] Replace `docs/static/img/screenshots/admin-work-detail.png`.
+
+#### 3D: Certify / Create Hypercert
+
+- [ ] Capture a desktop admin screenshot of the Certify workspace or Create Hypercert form after the UI settles.
+- [ ] Prefer a state with assessment/certificate context visible, not an empty "no hypercerts yet" placeholder.
+- [ ] Replace `docs/static/img/screenshots/admin-garden-impact.png` or add a better-named replacement and update MDX.
+
+### Phase 4: Refresh Funder Visuals
+
+#### 4A: Distinct Donate Social Image
+
+- [ ] Create or source a distinct `docs/static/img/social/donating-to-a-garden.webp`.
+- [ ] Keep dimensions at 1440x900.
+- [ ] Make the visual read as direct Cookie Jar support, not a vault/endowment.
+- [ ] Wire Donate overview card and `donating-to-a-garden.mdx` to the new image.
+- [ ] Keep Endow using the vault/endowment visual unless a better Endow asset is created.
+
+#### 4B: Optional Funder Screenshots
+
+Only do this if the UI is stable and screenshots clarify the flow.
+
+- [ ] Capture Donate from public `/fund` showing Support this Garden, Donate, and Cookie Jar deposit dialog.
+- [ ] Capture Endow from public `/fund` or Treasury drawer showing the vault deposit dialog.
+- [ ] Capture Remove from authenticated Treasury drawer showing Active deposits and Withdraw controls.
+- [ ] Add screenshots only where they reduce ambiguity; do not turn the funder docs into a screenshot-heavy guide if the UI is still moving.
+
+### Phase 5: Wire Docs Media And Metadata
+
+- [ ] Update MDX `image:` frontmatter where a new social image is added.
+- [ ] Update `GuideOpener` image paths and alt text where needed.
+- [ ] Update inline `<img>` paths and alt text where screenshots change.
+- [ ] Keep `last_verified` aligned only for pages actually verified after replacement.
+- [ ] Avoid expanding `docs/sidebars.ts` unless a media change exposes a broken nav label.
+
+### Phase 6: Rendered QA And Validation
+
+- [ ] Run `bun run docs:audit`.
+- [ ] Run `bun run build:docs`.
+- [ ] Run `bun run lint:vocab`.
+- [ ] Run `git diff --check -- <touched docs/media files>`.
+- [ ] Render desktop and mobile docs pages for:
+  - `/community/gardener-guide/uploading-your-work`
+  - `/community/operator-guide/creating-a-garden`
+  - `/community/operator-guide/reviewing-work`
+  - `/community/operator-guide/creating-impact-certificates`
+  - `/community/funder-guide`
+  - `/community/funder-guide/donating-to-a-garden`
+  - `/community/funder-guide/funding-a-garden`
+  - `/community/funder-guide/withdraw-from-a-vault`
+- [ ] Confirm every replaced image is legible at rendered docs size.
+- [ ] Confirm no screenshot contains private data or unrelated overlays.
+- [ ] Confirm generated HTML still has correct edit URL and previous/next labels.
 
 ## Lane Checklists
 
 ### UI (`claude/ui/docs-freshness-routine`)
 
-- [x] Mark this lane `n/a` unless a specific docs visual QA pass is promoted.
+- [x] Keep lane `n/a` for now.
+- [ ] Reopen only if the docs components themselves need visual treatment changes.
 
 ### State / API (`codex/state-api/docs-freshness-routine`)
 
-- [ ] Pick exactly one work family before editing.
-- [ ] Keep changes inside docs/scripts/assets for the selected family.
-- [ ] Run the lightest docs validation that proves the change.
-- [ ] Write `handoffs/codex-state-api.md`.
+- [ ] Claim this lane only after UI readiness gate passes.
+- [ ] Keep implementation docs/media-only.
+- [ ] Replace or add only the approved images.
+- [ ] Update only the MDX files whose images changed.
+- [ ] Write `handoffs/codex-state-api.md` with capture commands, replaced files, and validation evidence.
 
 ### Contracts (`codex/contracts/docs-freshness-routine`)
 
-- [x] Mark this lane `n/a`.
+- [x] Keep lane `n/a`.
 
 ### QA Pass 1 (`claude/qa-pass-1/docs-freshness-routine`)
 
-- [ ] Confirm the routine stayed within one work family.
-- [ ] Confirm visual assets were generated from real surfaces.
+- [ ] Review desktop/mobile screenshots in context.
+- [ ] Check whether image content supports the revised user-facing copy.
+- [ ] Confirm screenshots came from real app/admin/docs surfaces.
 - [ ] Write `handoffs/claude-qa-pass-1.md`.
 
 ### QA Pass 2 (`codex/qa-pass-2/docs-freshness-routine`)
 
-- [ ] Re-run the docs validation used by the implementation lane.
-- [ ] Confirm status/history reflects the actual routine outcome.
+- [ ] Re-run docs validation.
+- [ ] Re-run generated-page scans for edit URL, pagination labels, sidebar labels, and stale labels.
+- [ ] Confirm no unrelated dirty files were touched.
 - [ ] Write `handoffs/codex-qa-pass-2.md`.
 
 ## Validation
 
-- [ ] Relevant docs audit/build command for touched files.
-- [ ] `node scripts/plan-hub.mjs validate`
+- [ ] `bun run docs:audit`
+- [ ] `bun run build:docs`
+- [ ] `bun run lint:vocab`
+- [ ] `node scripts/harness/plan-hub.mjs validate`
+- [ ] Scoped visual/rendered docs screenshot review
