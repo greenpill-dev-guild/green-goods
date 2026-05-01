@@ -490,15 +490,34 @@ export type PublicImpactGardenSource = {
   latestActivityAt?: number;
 };
 
+/**
+ * Tag identifying which stage of the regenerative cycle a record represents.
+ *
+ * Cycle order on the public Impact ledger: **Assessment → Work → Impact
+ * Certificate → (next) Assessment**. The kinds let the UI filter and group
+ * records by stage and show the cycle figure with honest counts per kind.
+ */
+export type PublicImpactEvidenceKind = "assessment" | "work" | "certificate";
+
 export type PublicImpactEvidenceRecord = {
+  /** Namespaced id (`assessment:0x…` / `work:0x…` / `certificate:tokenId`) so
+   * records from different sources can't collide on a shared list. */
   id: string;
+  kind: PublicImpactEvidenceKind;
   gardenId: string;
   gardenName: string;
   title: string;
   domain?: string | number;
   summary?: string;
   timeWindow?: { start?: number | null; end?: number | null };
+  /** Image URLs from the underlying record. Populated for `work` (EAS media)
+   * and `certificate` (Hypercert imageUri). Assessments only carry an IPFS
+   * config CID, so they fall back to the Garden image when rendered. */
+  media?: readonly string[];
+  /** EAS UID for assessment + work; absent for certificates. */
   easUid?: string;
+  /** Hypercert id when `kind === "certificate"`. */
+  hypercertId?: string;
   sourceAvailable: boolean;
   createdAt: number;
 };

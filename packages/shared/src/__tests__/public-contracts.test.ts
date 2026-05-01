@@ -113,7 +113,8 @@ describe("@green-goods/shared/public-contracts", () => {
       latestActivityAt: 1_000 - index,
     }));
     const records = Array.from({ length: 120 }, (_, index) => ({
-      id: `assessment-${index.toString().padStart(3, "0")}`,
+      id: `assessment:${index.toString().padStart(3, "0")}`,
+      kind: "assessment" as const,
       gardenId: `garden-${(index % 55).toString().padStart(2, "0")}`,
       gardenName: "Garden",
       title: "Assessment",
@@ -126,5 +127,49 @@ describe("@green-goods/shared/public-contracts", () => {
     expect(slice.totalFetchedRecords).toBe(100);
     expect(slice.partialData).toBe(true);
     expect(slice.sourceLimitReached).toBe(true);
+  });
+
+  it("preserves the kind discriminator across the slice and respects createdAt order", () => {
+    const gardens = [{ id: "garden-mix", name: "Mixed", latestActivityAt: 9_000 }];
+    const records = [
+      {
+        id: "work:1",
+        kind: "work" as const,
+        gardenId: "garden-mix",
+        gardenName: "Mixed",
+        title: "Planted hedge",
+        media: ["ipfs://photo.jpg"],
+        sourceAvailable: true,
+        createdAt: 8_000,
+      },
+      {
+        id: "assessment:1",
+        kind: "assessment" as const,
+        gardenId: "garden-mix",
+        gardenName: "Mixed",
+        title: "Spring plan",
+        sourceAvailable: true,
+        createdAt: 9_000,
+      },
+      {
+        id: "certificate:1",
+        kind: "certificate" as const,
+        gardenId: "garden-mix",
+        gardenName: "Mixed",
+        title: "Vol. 01 Certificate",
+        media: ["ipfs://cert.png"],
+        hypercertId: "1",
+        sourceAvailable: true,
+        createdAt: 7_500,
+      },
+    ];
+
+    const slice = createPublicImpactSlice({ gardens, records });
+    // The slice sorts by `createdAt desc`, so the order is by timestamp
+    // (assessment 9000 > work 8000 > certificate 7500) regardless of kind.
+    const kinds = slice.records.map((record) => record.kind);
+    expect(kinds).toEqual(["assessment", "work", "certificate"]);
+    expect(slice.records[1]?.media).toEqual(["ipfs://photo.jpg"]);
+    expect(slice.records[2]?.hypercertId).toBe("1");
   });
 });
