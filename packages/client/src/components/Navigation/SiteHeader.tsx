@@ -80,10 +80,10 @@ export const SiteHeader = () => {
     <>
       <header className="sticky top-0 z-sticky border-b border-stroke-soft-200 bg-bg-white-0/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src="/icon.png" alt={`${APP_NAME} logo`} className="h-8 w-8" />
-            <span className="text-lg font-bold text-text-strong-950">{APP_NAME}</span>
+          {/* Logo — image only, h-8 keeps the GG mark at a stable height while w-auto
+              preserves the 16:9 aspect ratio (the source asset is 819x464). */}
+          <Link to="/" className="flex items-center" aria-label={APP_NAME}>
+            <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
           </Link>
 
           {/* Desktop nav — hidden on mobile */}
@@ -162,11 +162,11 @@ export const SiteHeader = () => {
             <div className="flex h-16 items-center justify-between border-b border-stroke-soft-200 px-4">
               <Link
                 to="/"
-                className="flex items-center gap-2"
+                className="flex items-center"
+                aria-label={APP_NAME}
                 onClick={() => setIsDrawerOpen(false)}
               >
-                <img src="/icon.png" alt={`${APP_NAME} logo`} className="h-8 w-8" />
-                <span className="text-lg font-bold text-text-strong-950">{APP_NAME}</span>
+                <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
               </Link>
               <button
                 type="button"
