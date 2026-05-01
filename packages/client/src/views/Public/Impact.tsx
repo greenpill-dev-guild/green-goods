@@ -320,6 +320,11 @@ export default function ImpactPage() {
           defaultMessage:
             "Each Garden moves through three stages of evidence — and starts again. The cycle is what turns a place's intentions into something the public can verify.",
         })}
+        footnote={formatMessage({
+          id: "public.impact.pipeline.footnote",
+          defaultMessage:
+            "Most cycles produce an Assessment and Work. The Impact Certificate is the rare end-state, issued only when the source record will hold up to public reading.",
+        })}
       />
 
       <section

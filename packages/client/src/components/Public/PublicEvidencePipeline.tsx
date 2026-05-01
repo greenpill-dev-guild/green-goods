@@ -77,6 +77,11 @@ export interface PublicEvidencePipelineProps {
   titleId: string;
   /** Short editorial intro under the heading; omit for a tighter layout. */
   intro?: ReactNode;
+  /**
+   * Italic Fraunces footnote rendered under the figure. Sets honest
+   * expectations about what's commonplace vs rare in the cycle.
+   */
+  footnote?: ReactNode;
 }
 
 export function PublicEvidencePipeline({
@@ -84,6 +89,7 @@ export function PublicEvidencePipeline({
   title,
   titleId,
   intro,
+  footnote,
 }: PublicEvidencePipelineProps) {
   return (
     <section className="bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-24" aria-labelledby={titleId}>
@@ -101,27 +107,39 @@ export function PublicEvidencePipeline({
           </p>
         ) : null}
 
-        <ol className="mt-12 grid grid-cols-1 gap-8 border-t border-stroke-soft-200 pt-10 md:grid-cols-3 md:gap-10">
-          <PipelineNode
-            kind="assessment"
-            numeral="i."
-            title="Assessment"
-            description="Operators and evaluators document what the place needs and what counts as good. The Assessment names the soil, the species, the work plan, and the standard of proof."
+        <div className="relative mt-12 border-t border-stroke-soft-200 pt-10">
+          <div
+            aria-hidden="true"
+            className="absolute top-[calc(2.5rem+18px)] right-6 left-6 hidden h-px bg-stroke-soft-200 md:block"
           />
-          <PipelineNode
-            kind="work"
-            numeral="ii."
-            title="Work"
-            description="Gardeners do the regenerative work and document it as it happens — photos, soil cores, plantings, repairs, restorations — each timestamped and attached to the Garden."
-          />
-          <PipelineNode
-            kind="certificate"
-            numeral="iii."
-            title="Impact Certificate"
-            description="When the evidence is strong enough, the work is bundled into an Impact Certificate. This is the highest proof layer — public, verifiable, and on-chain."
-            closesCycle
-          />
-        </ol>
+          <ol className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-10">
+            <PipelineNode
+              kind="assessment"
+              numeral="i."
+              title="Assessment"
+              description="Operators and evaluators document what the place needs and what counts as good. The Assessment names the soil, the species, the work plan, and the standard of proof."
+            />
+            <PipelineNode
+              kind="work"
+              numeral="ii."
+              title="Work"
+              description="Gardeners do the regenerative work and document it as it happens — photos, soil cores, plantings, repairs, restorations — each timestamped and attached to the Garden."
+            />
+            <PipelineNode
+              kind="certificate"
+              numeral="iii."
+              title="Impact Certificate"
+              description="When the evidence is strong enough, the work is bundled into an Impact Certificate. This is the highest proof layer — public, verifiable, and on-chain."
+              closesCycle
+            />
+          </ol>
+        </div>
+
+        {footnote ? (
+          <p className="mt-10 max-w-3xl border-t border-stroke-soft-200 pt-6 font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
+            {footnote}
+          </p>
+        ) : null}
       </div>
     </section>
   );
