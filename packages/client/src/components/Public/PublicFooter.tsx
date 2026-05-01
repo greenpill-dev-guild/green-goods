@@ -57,16 +57,29 @@ export function PublicFooter() {
           <EditorialDivider />
         </div>
 
-        <p className="mt-4 text-xs leading-relaxed tracking-[0.02em] text-text-soft-400">
-          {formatMessage(
-            {
-              id: "public.footer.legal",
-              defaultMessage:
-                "© {year} Green Goods. A living public record, rooted in regenerative work.",
-            },
-            { year: currentYear }
-          )}
-        </p>
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-relaxed tracking-[0.02em] text-text-soft-400">
+            {formatMessage(
+              {
+                id: "public.footer.legal",
+                defaultMessage:
+                  "© {year} Green Goods. A living public record, rooted in regenerative work.",
+              },
+              { year: currentYear }
+            )}
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs tracking-[0.02em] text-text-soft-400">
+            <a
+              href="mailto:afo@greenpill.builders"
+              className="transition-colors hover:text-text-strong-950"
+            >
+              {formatMessage({
+                id: "public.footer.contact",
+                defaultMessage: "Contact",
+              })}
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
   );

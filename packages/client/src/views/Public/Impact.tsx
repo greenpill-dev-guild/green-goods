@@ -144,10 +144,21 @@ function formatTimeWindow(
  * Assessment first, then Work, then Impact Certificate, with the cycle
  * looping back to a new Assessment.
  */
+/**
+ * Page size used when the visitor expands the ledger past its default
+ * window. The hook still respects the upstream source cap
+ * (PUBLIC_IMPACT_RECORD_FETCH_CAP — 100 records per kind today), so this
+ * lifts the *page* slice but not the source slice.
+ */
+const EXPANDED_LEDGER_PAGE_SIZE = 200;
+
 export default function ImpactPage() {
   const { formatMessage } = useIntl();
   const stats = usePublicStats();
-  const evidence = usePublicImpactEvidence();
+  const [isLedgerExpanded, setIsLedgerExpanded] = useState(false);
+  const evidence = usePublicImpactEvidence(
+    isLedgerExpanded ? { pageSize: EXPANDED_LEDGER_PAGE_SIZE } : {}
+  );
   const { data: gardens = [] } = usePublicGardens();
   const [activeRecord, setActiveRecord] = useState<PublicImpactEvidenceRecord | null>(null);
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
@@ -328,7 +339,7 @@ export default function ImpactPage() {
       />
 
       <section
-        className="bg-bg-weak-50 px-6 py-20 sm:px-10 md:py-28"
+        className="bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
         aria-labelledby="public-impact-ledger-title"
       >
         <div className="mx-auto max-w-7xl">
@@ -395,7 +406,7 @@ export default function ImpactPage() {
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-24 w-full animate-pulse bg-editorial-warm"
+                  className="h-24 w-full animate-pulse bg-stroke-soft-200/60"
                   aria-hidden="true"
                 />
               ))}
@@ -433,22 +444,55 @@ export default function ImpactPage() {
           )}
 
           {slice?.partialData ? (
-            <p className="mt-6 max-w-2xl text-xs text-text-soft-400">
-              {formatMessage({
-                id: "public.impact.evidence.partialData",
-                defaultMessage:
-                  "Showing the most recent evidence we could load. More may be available across Gardens.",
-              })}
-            </p>
+            <div className="mt-8 border border-stroke-soft-200 bg-bg-weak-50 px-6 py-5 sm:px-8">
+              <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+                {formatMessage({
+                  id: "public.impact.evidence.partialDataKicker",
+                  defaultMessage: "Reading the source",
+                })}
+              </p>
+              <p className="mt-2 max-w-2xl font-serif text-base font-normal leading-[1.4] tracking-[-0.005em] text-text-strong-950">
+                {formatMessage({
+                  id: "public.impact.evidence.partialData",
+                  defaultMessage:
+                    "Showing the most recent evidence we could load. More may be available across Gardens.",
+                })}
+              </p>
+            </div>
           ) : null}
           {slice?.sourceLimitReached ? (
-            <p className="mt-2 max-w-2xl text-xs text-text-soft-400">
-              {formatMessage({
-                id: "public.impact.evidence.sourceLimitReached",
-                defaultMessage:
-                  "We're showing a capped slice for v1; deeper history will arrive as aggregation matures.",
-              })}
-            </p>
+            <div className="mt-4 border border-stroke-soft-200 bg-bg-weak-50 px-6 py-5 sm:px-8">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+                    {formatMessage({
+                      id: "public.impact.evidence.sourceLimitKicker",
+                      defaultMessage: "Source limit reached",
+                    })}
+                  </p>
+                  <p className="mt-2 max-w-2xl font-serif text-base font-normal leading-[1.4] tracking-[-0.005em] text-text-strong-950">
+                    {formatMessage({
+                      id: "public.impact.evidence.sourceLimitReached",
+                      defaultMessage:
+                        "We're showing a capped slice for v1; deeper history will arrive as aggregation matures.",
+                    })}
+                  </p>
+                </div>
+                {!isLedgerExpanded ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsLedgerExpanded(true)}
+                    className="inline-flex items-center gap-2 border-b border-domain-agro/40 pb-0.5 text-sm font-medium text-domain-agro transition-colors hover:border-domain-agro"
+                  >
+                    {formatMessage({
+                      id: "public.impact.evidence.viewArchive",
+                      defaultMessage: "Show all loaded entries",
+                    })}
+                    <span aria-hidden="true">→</span>
+                  </button>
+                ) : null}
+              </div>
+            </div>
           ) : null}
         </div>
       </section>
