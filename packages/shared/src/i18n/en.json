@@ -2691,6 +2691,7 @@
   "public.impact.evidence.thumbnailFallback": "no image",
   "public.impact.evidence.partialData": "Showing the most recent evidence we could load. More may be available across Gardens.",
   "public.impact.evidence.partialDataKicker": "Reading the source",
+  "public.impact.evidence.stagePrefix": "Stage",
   "public.impact.evidence.sourceLimitKicker": "Source limit reached",
   "public.impact.evidence.sourceLimitReached": "We're showing a capped slice for v1; deeper history will arrive as aggregation matures.",
   "public.impact.evidence.viewArchive": "Show all loaded entries",

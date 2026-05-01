@@ -45,6 +45,17 @@ function formatTimeWindow(window: PublicImpactEvidenceRecord["timeWindow"]): str
   return start ?? end;
 }
 
+function shortHex(value: string | undefined): string | null {
+  if (!value) return null;
+  const stripped = value.startsWith("0x") ? value.slice(2) : value;
+  if (stripped.length <= 12) return value;
+  return `0x${stripped.slice(0, 6)}…${stripped.slice(-4)}`;
+}
+
+function deriveRecordIdShort(record: PublicImpactEvidenceRecord): string | null {
+  return record.easUid ? shortHex(record.easUid) : (shortHex(record.id.split(":")[1]) ?? null);
+}
+
 export interface PublicEvidenceLedgerRowProps {
   record: PublicImpactEvidenceRecord;
   /** Garden image URL used as a thumbnail when the record carries no media of
@@ -77,6 +88,11 @@ export function PublicEvidenceLedgerRow({
   const kindLabel = EVIDENCE_KIND_LABELS[record.kind];
   const kindDomain = EVIDENCE_KIND_DOMAINS[record.kind];
   const timeWindow = formatTimeWindow(record.timeWindow);
+  const recordIdShort = deriveRecordIdShort(record);
+  const stagePrefix = intl.formatMessage({
+    id: "public.impact.evidence.stagePrefix",
+    defaultMessage: "Stage",
+  });
 
   const sourceLabel = record.sourceAvailable
     ? intl.formatMessage({
@@ -117,19 +133,30 @@ export function PublicEvidenceLedgerRow({
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex flex-wrap items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em]">
-            <span className={cn("text-text-soft-400", kindDomain && DOMAIN_INK[kindDomain])}>
-              {kindLabel}
-            </span>
-            {domain ? (
-              <>
-                <span aria-hidden="true" className="text-text-soft-400">
-                  ·
-                </span>
-                <span className={cn("text-text-soft-400", DOMAIN_INK[domain])}>
-                  {DOMAIN_LABELS[domain]}
-                </span>
-              </>
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-medium uppercase tracking-[0.18em]">
+              <span className="text-text-soft-400">{stagePrefix}</span>
+              <span aria-hidden="true" className="text-text-soft-400">
+                ·
+              </span>
+              <span className={cn("text-text-soft-400", kindDomain && DOMAIN_INK[kindDomain])}>
+                {kindLabel}
+              </span>
+              {domain ? (
+                <>
+                  <span aria-hidden="true" className="text-text-soft-400">
+                    ·
+                  </span>
+                  <span className={cn("text-text-soft-400", DOMAIN_INK[domain])}>
+                    {DOMAIN_LABELS[domain]}
+                  </span>
+                </>
+              ) : null}
+            </div>
+            {recordIdShort ? (
+              <span className="shrink-0 font-serif text-xs font-normal italic text-text-soft-400">
+                № {recordIdShort}
+              </span>
             ) : null}
           </div>
           <h3

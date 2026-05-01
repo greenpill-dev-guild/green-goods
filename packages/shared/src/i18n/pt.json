@@ -2692,6 +2692,7 @@
   "public.impact.evidence.thumbnailFallback": "sem imagem",
   "public.impact.evidence.partialData": "Mostrando a evidência mais recente que conseguimos carregar. Pode haver mais entre os Jardins.",
   "public.impact.evidence.partialDataKicker": "Lendo a fonte",
+  "public.impact.evidence.stagePrefix": "Etapa",
   "public.impact.evidence.sourceLimitKicker": "Limite da fonte atingido",
   "public.impact.evidence.sourceLimitReached": "Mostramos uma fatia limitada para v1; histórico mais profundo virá com a agregação.",
   "public.impact.evidence.viewArchive": "Mostrar todas as entradas carregadas",
