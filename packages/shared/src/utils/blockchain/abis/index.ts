@@ -22,4 +22,6 @@ export { YIELD_SPLITTER_ABI, JUICEBOX_ABI } from "./yield";
 
 export { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI, COOKIE_JAR_MODULE_ABI } from "./cookie-jar";
 
+export { DEPLOYMENT_REGISTRY_ABI } from "./deployment-registry";
+
 export { ERC20_ALLOWANCE_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI } from "./erc20";

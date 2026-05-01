@@ -2,13 +2,15 @@ import { getAddress, isAddress } from "viem";
 import { derivePublicGardenSlug } from "../public-contracts";
 import type { Address } from "../types/domain";
 import type {
+  CampaignCookieJarCampaign,
+  IndexedCampaignCookieJar,
   CampaignCookieJarMetadata,
   CampaignCookieJarOperatorAggregation,
   CampaignCookieJarOperatorSource,
   CookieJarWithdrawalType,
 } from "../types/cookie-jar";
 
-const METADATA_KIND = "green-goods.campaign-cookie-jar";
+export const CAMPAIGN_COOKIE_JAR_METADATA_KIND = "green-goods.campaign-cookie-jar";
 
 export function normalizeCampaignAddress(value: string): Address | null {
   const trimmed = value.trim();
@@ -111,7 +113,7 @@ export function buildCampaignCookieJarMetadata(params: {
   createdAt?: number;
 }): CampaignCookieJarMetadata {
   return {
-    kind: METADATA_KIND,
+    kind: CAMPAIGN_COOKIE_JAR_METADATA_KIND,
     version: 1,
     title: params.title.trim(),
     slug: params.slug.trim(),
@@ -169,18 +171,22 @@ export function parseCampaignCookieJarMetadata(
   try {
     const parsed = JSON.parse(raw) as Partial<CampaignCookieJarMetadata>;
     if (
-      parsed.kind !== METADATA_KIND ||
+      parsed.kind !== CAMPAIGN_COOKIE_JAR_METADATA_KIND ||
       parsed.version !== 1 ||
       typeof parsed.slug !== "string" ||
       typeof parsed.title !== "string"
     ) {
       return null;
     }
+    const slug = parsed.slug.trim();
+    const title = parsed.title.trim();
+    if (!slug || !title) return null;
+
     return {
-      kind: METADATA_KIND,
+      kind: CAMPAIGN_COOKIE_JAR_METADATA_KIND,
       version: 1,
-      slug: parsed.slug,
-      title: parsed.title,
+      slug,
+      title,
       sourceGardens: dedupeAddresses((parsed.sourceGardens ?? []) as Address[]),
       operatorPolicy: "one-operator-per-garden",
       extraAllowlist: dedupeAddresses((parsed.extraAllowlist ?? []) as Address[]),
@@ -190,6 +196,98 @@ export function parseCampaignCookieJarMetadata(
   } catch {
     return null;
   }
+}
+
+export function buildCampaignCookieJarCampaigns(params: {
+  indexedJars: readonly IndexedCampaignCookieJar[];
+  trustedCreators: readonly Address[];
+  metadataByJarAddress?: Readonly<Record<string, string | undefined>>;
+}): CampaignCookieJarCampaign[] {
+  const trusted = new Set(params.trustedCreators.map((address) => address.toLowerCase()));
+  const seen = new Set<string>();
+  const campaigns: CampaignCookieJarCampaign[] = [];
+
+  for (const indexedJar of params.indexedJars) {
+    const jarAddress = normalizeCampaignAddress(indexedJar.jarAddress);
+    const creator = normalizeCampaignAddress(indexedJar.creator);
+    if (!jarAddress || !creator || !trusted.has(creator.toLowerCase())) continue;
+
+    const jarKey = jarAddress.toLowerCase();
+    if (seen.has(jarKey)) continue;
+
+    const rawMetadata =
+      params.metadataByJarAddress?.[jarKey] ??
+      params.metadataByJarAddress?.[jarAddress] ??
+      indexedJar.rawMetadata;
+    const metadata = parseCampaignCookieJarMetadata(rawMetadata);
+    if (!metadata) continue;
+    if (metadata.chainId && metadata.chainId !== indexedJar.chainId) continue;
+
+    seen.add(jarKey);
+    campaigns.push({
+      address: jarAddress,
+      jarAddress,
+      slug: metadata.slug,
+      label: metadata.title,
+      title: metadata.title,
+      metadata,
+      rawMetadata,
+      creator,
+      createdAt: indexedJar.createdAt,
+      source: "indexed",
+    });
+  }
+
+  return campaigns;
+}
+
+function parseFallbackCampaignEntry(
+  slug: string,
+  value: unknown
+): CampaignCookieJarCampaign | null {
+  if (typeof value !== "string") return null;
+  const segments = value.split(":");
+  const address = normalizeCampaignAddress(segments[0] ?? "");
+  if (!address) return null;
+  const label = segments.slice(1).join(":").trim() || slug.replace(/[-_]/g, " ");
+
+  return {
+    address,
+    jarAddress: address,
+    slug,
+    label,
+    title: label,
+    metadata: null,
+    rawMetadata: "",
+    source: "fallback",
+  };
+}
+
+export function parseCampaignCookieJarFallbacks(
+  raw: string | undefined
+): CampaignCookieJarCampaign[] {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((entry, index) => parseFallbackCampaignEntry(`jar-${index + 1}`, entry))
+        .filter((entry): entry is CampaignCookieJarCampaign => Boolean(entry));
+    }
+    if (parsed && typeof parsed === "object") {
+      return Object.entries(parsed as Record<string, unknown>)
+        .map(([slug, value]) => parseFallbackCampaignEntry(slug, value))
+        .filter((entry): entry is CampaignCookieJarCampaign => Boolean(entry));
+    }
+  } catch {
+    return raw
+      .split(",")
+      .map((entry, index) => parseFallbackCampaignEntry(`jar-${index + 1}`, entry.trim()))
+      .filter((entry): entry is CampaignCookieJarCampaign => Boolean(entry));
+  }
+
+  return [];
 }
 
 export function diffCampaignCookieJarAllowlist({

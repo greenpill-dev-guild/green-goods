@@ -47,6 +47,13 @@ function roleGatedRoute(allowedRoles: UserRole[], lazy: LazyRoute): RouteObject 
   };
 }
 
+function roleGatedBranch(allowedRoles: UserRole[], children: RouteObject[]): RouteObject {
+  return {
+    element: <RequireRole allowedRoles={allowedRoles} loadingFallback={<RoleGateSkeleton />} />,
+    children,
+  };
+}
+
 const HubIndexRedirect = () => {
   const location = useLocation();
   return (
@@ -227,35 +234,28 @@ export const adminCanvasRoutes: RouteObject[] = [
   },
   {
     path: "cookies",
-    children: [
-      {
-        index: true,
-        lazy: cookiesView,
-      },
-      {
-        path: "deploy",
-        lazy: cookiesView,
-      },
-    ],
+    ...roleGatedBranch(
+      ["deployer"],
+      [
+        { index: true, lazy: cookiesView },
+        { path: "deploy", lazy: cookiesView },
+      ]
+    ),
   },
   {
     path: "actions",
-    lazy: actionsView,
+    ...roleGatedBranch(
+      ["deployer"],
+      [
+        { index: true, lazy: actionsView },
+        { path: "create", lazy: actionsView },
+        { path: ":id", lazy: actionsView },
+        { path: ":id/edit", lazy: actionsView },
+      ]
+    ),
   },
   {
     path: "profile",
     lazy: profileView,
-  },
-  {
-    path: "actions/create",
-    ...roleGatedRoute(["deployer"], actionsView),
-  },
-  {
-    path: "actions/:id",
-    lazy: actionsView,
-  },
-  {
-    path: "actions/:id/edit",
-    ...roleGatedRoute(["deployer"], actionsView),
   },
 ];

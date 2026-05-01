@@ -39,10 +39,15 @@ export function canSyncCampaignCookieJarAllowlist(params: {
   invalidAddressCount: number;
   grantCount: number;
   revokeCount: number;
+  metadataChanged?: boolean;
+  canUpdateMetadata?: boolean;
 }): boolean {
+  const hasAllowlistDiff = params.grantCount > 0 || params.revokeCount > 0;
+  const hasMetadataRefresh = Boolean(params.metadataChanged && params.canUpdateMetadata);
+
   return (
     Boolean(params.jarAddress && params.isJarOwner) &&
     params.invalidAddressCount === 0 &&
-    (params.grantCount > 0 || params.revokeCount > 0)
+    (hasAllowlistDiff || hasMetadataRefresh)
   );
 }

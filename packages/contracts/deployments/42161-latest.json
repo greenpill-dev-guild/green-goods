@@ -2,6 +2,7 @@
   "accountProxy": "0x0DeAf867724154C0Cf58000884df925D79070F22",
   "actionRegistry": "0xA514eA2730b9eD401875693793BEfA9e2D51C0b4",
   "assessmentResolver": "0x0646B09bcf3993F02957651354dC267c450CFE58",
+  "cookieJarFactory": "0x294d222eDE6DF6625B43544F1C634322467528Da",
   "cookieJarModule": "0x726bfbd0B7449C8f4aBfbcc2FBC5a89eB18fF157",
   "deploymentRegistry": "0x4A42a13232f9dF989127C549036CBdEDb7e2785c",
   "eas": {

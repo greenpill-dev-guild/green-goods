@@ -41,7 +41,7 @@ describe("campaign cookie jar admin model", () => {
     });
   });
 
-  it("requires jar ownership, valid addresses, and a diff before syncing", () => {
+  it("requires jar ownership, valid addresses, and an allowlist or metadata change before syncing", () => {
     expect(
       canSyncCampaignCookieJarAllowlist({
         jarAddress: JAR,
@@ -61,5 +61,29 @@ describe("campaign cookie jar admin model", () => {
         revokeCount: 1,
       })
     ).toBe(true);
+
+    expect(
+      canSyncCampaignCookieJarAllowlist({
+        jarAddress: JAR,
+        isJarOwner: true,
+        invalidAddressCount: 0,
+        grantCount: 0,
+        revokeCount: 0,
+        metadataChanged: true,
+        canUpdateMetadata: true,
+      })
+    ).toBe(true);
+
+    expect(
+      canSyncCampaignCookieJarAllowlist({
+        jarAddress: JAR,
+        isJarOwner: true,
+        invalidAddressCount: 0,
+        grantCount: 0,
+        revokeCount: 0,
+        metadataChanged: true,
+        canUpdateMetadata: false,
+      })
+    ).toBe(false);
   });
 });

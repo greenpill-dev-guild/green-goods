@@ -224,6 +224,15 @@ export const COOKIE_JAR_FACTORY_ABI = [
     anonymous: false,
   },
   {
+    type: "event",
+    name: "MetadataUpdated",
+    inputs: [
+      { name: "jarAddress", type: "address", indexed: true },
+      { name: "metadata", type: "string", indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
     name: "createCookieJar",
     type: "function",
     stateMutability: "nonpayable",

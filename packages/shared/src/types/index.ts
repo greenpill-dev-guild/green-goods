@@ -66,6 +66,7 @@ export type {
 // ============================================
 export type {
   CampaignCookieJar,
+  CampaignCookieJarCampaign,
   CampaignCookieJarMetadata,
   CampaignCookieJarOperatorAggregation,
   CampaignCookieJarOperatorPolicy,
@@ -80,6 +81,7 @@ export type {
   CookieJarUpdateMaxWithdrawalParams,
   CookieJarWithdrawParams,
   CreateCampaignCookieJarParams,
+  IndexedCampaignCookieJar,
   SyncCampaignCookieJarAllowlistParams,
 } from "./cookie-jar";
 // ============================================

@@ -48,6 +48,39 @@ export interface CampaignCookieJar extends Omit<CookieJar, "gardenAddress"> {
   nextClaimAt: number | null;
 }
 
+export interface IndexedCampaignCookieJar {
+  id: string;
+  chainId: number;
+  factoryAddress: Address;
+  jarAddress: Address;
+  creator: Address;
+  rawMetadata: string;
+  metadataKind?: string | null;
+  metadataVersion?: number | null;
+  slug?: string | null;
+  title?: string | null;
+  sourceGardens: Address[];
+  operatorPolicy?: string | null;
+  extraAllowlist: Address[];
+  isValidCampaign: boolean;
+  createdAt: number;
+  metadataUpdatedAt: number;
+  txHash: string;
+}
+
+export interface CampaignCookieJarCampaign {
+  address: Address;
+  jarAddress: Address;
+  slug: string;
+  label: string;
+  title: string;
+  metadata: CampaignCookieJarMetadata | null;
+  rawMetadata: string;
+  creator?: Address;
+  createdAt?: number;
+  source: "indexed" | "fallback" | "direct";
+}
+
 export interface CampaignCookieJarOperatorSource {
   gardenAddress: Address;
   gardenName: string;

@@ -39,6 +39,7 @@ const ALLOWED_CONTRACT_EVENTS = {
   YieldSplitter: new Set(["YieldSplit"]),
   HypercertMinter: new Set(["TransferSingle", "ClaimStored"]),
   GreenWill: new Set(["BadgeClassConfigured", "BadgeIssued"]),
+  CookieJarFactory: new Set(["JarCreated", "MetadataUpdated"]),
 };
 
 const ALLOWED_CONTRACTS = new Set(Object.keys(ALLOWED_CONTRACT_EVENTS));

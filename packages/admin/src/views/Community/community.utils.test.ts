@@ -19,8 +19,8 @@ describe("buildCommunityFabConfig", () => {
     expect(navigate).toHaveBeenNthCalledWith(2, "/community/treasury/vault?gardenAddress=0xAAA");
   });
 
-  it("keeps campaign cookies out of the garden-scoped Community modes", () => {
-    expect(resolveCommunityMode("/community/cookies")).toBe("treasury");
+  it("keeps garden cookie jars scoped to the payouts Community mode", () => {
+    expect(resolveCommunityMode("/community/payouts")).toBe("payouts");
     expect(communitySectionForMode("payouts")).toBe("cookie-jars");
   });
 });

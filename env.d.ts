@@ -6,19 +6,15 @@
 /* eslint-disable */
 export type CoercedEnvSchema = {
   /**
-   * **APP_ENV**
+   * **APP_ENV**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M7.885%2010.23L12%203.463l4.116%206.769zm9.606%2011q-1.558%200-2.64-1.081t-1.082-2.64t1.082-2.649t2.64-1.09t2.649%201.09t1.09%202.649t-1.09%202.64t-2.649%201.082m-13.722-.5v-6.462h6.462v6.462z%22%2F%3E%3C%2Fsvg%3E)   
    */
   APP_ENV?: "development" | "test" | "staging" | "production";
   
   /**
    * **OP_ENABLE_ENVIRONMENT_LOAD** 🔐 _sensitive_  
-   * Baseline web development should work without shared secrets or 1Password.
-   * Leave OP refs and bulk loading blank unless your role needs shared team,
-   * upload, deploy, or CI credentials.
-   *
-   * Enable bulk loading only for CI/service-account flows, or locally only if
-   * your CLI supports `op environment`. Keep false for normal local development.
+   * 1Password integration  
+   * Keep bulk environment loading off for stable local CLI usage.  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   OP_ENABLE_ENVIRONMENT_LOAD?: boolean;
@@ -117,8 +113,8 @@ export type CoercedEnvSchema = {
   
   /**
    * **ARBITRUM_RPC_URL** 🔐 _sensitive_  
-   * Keep standard RPC URL vars blank by default. Runtime helpers provide public
-   * fallbacks; explicit env values may contain provider keys and must stay private.
+   * Keep standard RPC URL vars blank by default. Runtime helpers provide public  
+   * fallbacks; explicit env values may contain provider keys and must stay private.  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
    */
   ARBITRUM_RPC_URL?: string;
@@ -218,7 +214,7 @@ export type CoercedEnvSchema = {
   ENS_L1_RECEIVER?: string;
   
   /**
-   * **COMMUNITY_GARDEN_SLUG**
+   * **COMMUNITY_GARDEN_SLUG**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
    */
   COMMUNITY_GARDEN_SLUG?: string;
@@ -260,13 +256,13 @@ export type CoercedEnvSchema = {
   FORCE_REDEPLOY?: boolean;
   
   /**
-   * **GG_CONTRACTS_BUILD_MODE**
+   * **GG_CONTRACTS_BUILD_MODE**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M7.885%2010.23L12%203.463l4.116%206.769zm9.606%2011q-1.558%200-2.64-1.081t-1.082-2.64t1.082-2.649t2.64-1.09t2.649%201.09t1.09%202.649t-1.09%202.64t-2.649%201.082m-13.722-.5v-6.462h6.462v6.462z%22%2F%3E%3C%2Fsvg%3E)   
    */
   GG_CONTRACTS_BUILD_MODE?: "auto" | "fast" | "full";
   
   /**
-   * **GG_CONTRACTS_BUILD_QUIET**
+   * **GG_CONTRACTS_BUILD_QUIET**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   GG_CONTRACTS_BUILD_QUIET?: boolean;
@@ -285,8 +281,7 @@ export type CoercedEnvSchema = {
   
   /**
    * **PINATA_JWT_OP_REF** 🔐 _sensitive_  
-   * PINATA_JWT is a server/script upload credential. Browser uploads request
-   * short-lived signed Pinata URLs from the agent instead of embedding this secret.
+   * Replace the item and field names only if your 1Password vault differs.  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
    */
   PINATA_JWT_OP_REF?: string;
@@ -298,19 +293,19 @@ export type CoercedEnvSchema = {
   PINATA_JWT?: string;
   
   /**
-   * **PINATA_GATEWAY_URL**
+   * **PINATA_GATEWAY_URL**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
    */
   PINATA_GATEWAY_URL?: string;
   
   /**
-   * **PINATA_API_URL**
+   * **PINATA_API_URL**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
    */
   PINATA_API_URL?: string;
   
   /**
-   * **PINATA_UPLOADS_API_URL**
+   * **PINATA_UPLOADS_API_URL**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
    */
   PINATA_UPLOADS_API_URL?: string;
@@ -527,7 +522,7 @@ export type CoercedEnvSchema = {
   ENCRYPTION_SECRET?: string;
   
   /**
-   * **BOT_MODE**
+   * **BOT_MODE**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M7.885%2010.23L12%203.463l4.116%206.769zm9.606%2011q-1.558%200-2.64-1.081t-1.082-2.64t1.082-2.649t2.64-1.09t2.649%201.09t1.09%202.649t-1.09%202.64t-2.649%201.082m-13.722-.5v-6.462h6.462v6.462z%22%2F%3E%3C%2Fsvg%3E)   
    */
   BOT_MODE?: "polling" | "webhook";
@@ -539,7 +534,7 @@ export type CoercedEnvSchema = {
   PORT?: number;
   
   /**
-   * **HOST**
+   * **HOST**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
    */
   HOST?: string;
@@ -593,7 +588,7 @@ export type CoercedEnvSchema = {
   LUMA_GREEN_GOODS_TAG_ID?: string;
   
   /**
-   * **LUMA_GREEN_GOODS_TAG_NAME**
+   * **LUMA_GREEN_GOODS_TAG_NAME**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
    */
   LUMA_GREEN_GOODS_TAG_NAME?: string;
@@ -666,67 +661,67 @@ export type CoercedEnvSchema = {
   AGENT_UPLOAD_SIGN_RATE_LIMIT_WINDOW_MS?: number;
   
   /**
-   * **NODE_ENV**
+   * **NODE_ENV**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M7.885%2010.23L12%203.463l4.116%206.769zm9.606%2011q-1.558%200-2.64-1.081t-1.082-2.64t1.082-2.649t2.64-1.09t2.649%201.09t1.09%202.649t-1.09%202.64t-2.649%201.082m-13.722-.5v-6.462h6.462v6.462z%22%2F%3E%3C%2Fsvg%3E)   
    */
   NODE_ENV?: "development" | "test" | "production";
   
   /**
-   * **CI**
+   * **CI**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   CI?: boolean;
   
   /**
-   * **DEVCONTAINER**
+   * **DEVCONTAINER**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   DEVCONTAINER?: boolean;
   
   /**
-   * **SKIP_MKCERT**
+   * **SKIP_MKCERT**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   SKIP_MKCERT?: boolean;
   
   /**
-   * **SKIP_WEBSERVER**
+   * **SKIP_WEBSERVER**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   SKIP_WEBSERVER?: boolean;
   
   /**
-   * **SKIP_HEALTH_CHECK**
+   * **SKIP_HEALTH_CHECK**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   SKIP_HEALTH_CHECK?: boolean;
   
   /**
-   * **ENABLE_PWA_E2E**
+   * **ENABLE_PWA_E2E**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   ENABLE_PWA_E2E?: boolean;
   
   /**
-   * **RUN_REAL_PASSKEY_E2E**
+   * **RUN_REAL_PASSKEY_E2E**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   RUN_REAL_PASSKEY_E2E?: boolean;
   
   /**
-   * **TESTNET**
+   * **TESTNET**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   TESTNET?: boolean;
   
   /**
-   * **ANVIL_FORK_BLOCK**
+   * **ANVIL_FORK_BLOCK**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M26%2012h-4v2h4v2h-3v2h3v2h-4v2h4a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-7%2010h-6v-4a2%202%200%200%201%202-2h2v-2h-4v-2h4a2%202%200%200%201%202%202v2a2%202%200%200%201-2%202h-2v2h4ZM8%2020v-8H6v1H4v2h2v5H4v2h6v-2z%22%2F%3E%3C%2Fsvg%3E)   
    */
   ANVIL_FORK_BLOCK?: number;
   
   /**
-   * **ANVIL_RUNNING**
+   * **ANVIL_RUNNING**  
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
    */
   ANVIL_RUNNING?: boolean;
@@ -780,6 +775,49 @@ export type CoercedEnvSchema = {
    * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M26%2012h-4v2h4v2h-3v2h3v2h-4v2h4a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-7%2010h-6v-4a2%202%200%200%201%202-2h2v-2h-4v-2h4a2%202%200%200%201%202%202v2a2%202%200%200%201-2%202h-2v2h4ZM8%2020v-8H6v1H4v2h2v5H4v2h6v-2z%22%2F%3E%3C%2Fsvg%3E)   
    */
   INDEXER_SYNC_POLL_SECONDS?: number;
+  
+  /**
+   * **LOCALHOST_RPC_URL** 🔐 _sensitive_  
+   * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
+   */
+  LOCALHOST_RPC_URL: string;
+  
+  /**
+   * **BASE_SEPOLIA_RPC_URL** 🔐 _sensitive_  
+   * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
+   */
+  BASE_SEPOLIA_RPC_URL: string;
+  
+  /**
+   * **ENS_PARENT_NAME** 🔐 _sensitive_  
+   * ENS  
+   * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
+   */
+  ENS_PARENT_NAME: string;
+  
+  /**
+   * **ENS_RESOLVER_ADDRESS** 🔐 _sensitive_  
+   * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
+   */
+  ENS_RESOLVER_ADDRESS: string;
+  
+  /**
+   * **VITE_DESKTOP_DEV** 🔐 _sensitive_  
+   * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M23%2023a7%207%200%201%201%207-7a7.01%207.01%200%200%201-7%207m0-12a5%205%200%201%200%205%205a5.006%205.006%200%200%200-5-5%22%2F%3E%3Ccircle%20cx%3D%229%22%20cy%3D%2216%22%20r%3D%227%22%20fill%3D%22%23808080%22%2F%3E%3C%2Fsvg%3E)   
+   */
+  VITE_DESKTOP_DEV: boolean;
+  
+  /**
+   * **MCP_SERVER_PORT** 🔐 _sensitive_  
+   * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M26%2012h-4v2h4v2h-3v2h3v2h-4v2h4a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-7%2010h-6v-4a2%202%200%200%201%202-2h2v-2h-4v-2h4a2%202%200%200%201%202%202v2a2%202%200%200%201-2%202h-2v2h4ZM8%2020v-8H6v1H4v2h2v5H4v2h6v-2z%22%2F%3E%3C%2Fsvg%3E)   
+   */
+  MCP_SERVER_PORT: number;
+  
+  /**
+   * **POSTHOG_ANALYTICS_READ_KEY** 🔐 _sensitive_  
+   * ![icon](data:image/svg+xml;utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2220%22%20height%3D%2220%22%20viewBox%3D%220%200%2032%2032%22%3E%3Cpath%20fill%3D%22%23808080%22%20d%3D%22M29%2022h-5a2.003%202.003%200%200%201-2-2v-6a2%202%200%200%201%202-2h5v2h-5v6h5ZM18%2012h-4V8h-2v14h6a2.003%202.003%200%200%200%202-2v-6a2%202%200%200%200-2-2m-4%208v-6h4v6Zm-6-8H3v2h5v2H4a2%202%200%200%200-2%202v2a2%202%200%200%200%202%202h6v-8a2%202%200%200%200-2-2m0%208H4v-2h4Z%22%2F%3E%3C%2Fsvg%3E)   
+   */
+  POSTHOG_ANALYTICS_READ_KEY: string;
   
 };
 

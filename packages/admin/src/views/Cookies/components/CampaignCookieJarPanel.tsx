@@ -59,6 +59,12 @@ function publicJarLink(jarAddress: Address): string {
   return `${PUBLIC_COOKIE_BASE_URL}?jar=${jarAddress}`;
 }
 
+function haveSameAddressSet(left: readonly Address[], right: readonly Address[]): boolean {
+  if (left.length !== right.length) return false;
+  const rightKeys = new Set(right.map((address) => address.toLowerCase()));
+  return left.every((address) => rightKeys.has(address.toLowerCase()));
+}
+
 function gardensForAggregation(gardens: readonly Garden[]) {
   return gardens.map((garden) => ({
     id: garden.id,
@@ -251,6 +257,46 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
       }),
     [syncAggregation.allowlist, syncJar.jar?.allowlist]
   );
+  const syncSourceGardens = useMemo(
+    () => syncAggregation.sources.map((source) => source.gardenAddress),
+    [syncAggregation.sources]
+  );
+  const syncMetadataChanged = useMemo(() => {
+    if (!syncJar.jar) return false;
+    if (!syncJar.jar.metadata) return true;
+
+    return (
+      !haveSameAddressSet(syncJar.jar.metadata.sourceGardens, syncSourceGardens) ||
+      !haveSameAddressSet(syncJar.jar.metadata.extraAllowlist, syncAggregation.extraAllowlist)
+    );
+  }, [syncAggregation.extraAllowlist, syncJar.jar, syncSourceGardens]);
+  const syncMetadataPayload = useMemo(() => {
+    if (!syncJar.jar || !factoryAddress || !syncMetadataChanged) return null;
+
+    return JSON.stringify(
+      buildCampaignCookieJarMetadata({
+        title:
+          syncJar.jar.metadata?.title ??
+          formatMessage({
+            id: "cockpit.community.cookies.untitledCampaign",
+            defaultMessage: "Campaign cookie jar",
+          }),
+        slug: syncJar.jar.metadata?.slug ?? "campaign-cookie-jar",
+        sourceGardens: syncSourceGardens,
+        extraAllowlist: syncAggregation.extraAllowlist,
+        chainId,
+        createdAt: syncJar.jar.metadata?.createdAt,
+      })
+    );
+  }, [
+    chainId,
+    factoryAddress,
+    formatMessage,
+    syncAggregation.extraAllowlist,
+    syncJar.jar,
+    syncMetadataChanged,
+    syncSourceGardens,
+  ]);
 
   const parsedClaimAmount = parseAmountInput(claimAmount, tokenDecimals);
   const parsedMaxClaimAmount = variableMode
@@ -343,10 +389,23 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
     invalidAddressCount: syncAggregation.invalidAddresses.length,
     grantCount: syncDiff.grant.length,
     revokeCount: syncDiff.revoke.length,
+    metadataChanged: syncMetadataChanged,
+    canUpdateMetadata: Boolean(factoryAddress),
   });
 
   const handleSync = () => {
     if (!syncJarAddress || !canSync) return;
+    const hasAllowlistDiff = syncDiff.grant.length > 0 || syncDiff.revoke.length > 0;
+    if (!hasAllowlistDiff) {
+      if (!factoryAddress || !syncMetadataPayload) return;
+      updateMetadata.mutate({
+        factoryAddress,
+        jarAddress: syncJarAddress,
+        metadata: syncMetadataPayload,
+      });
+      return;
+    }
+
     syncAllowlist.mutate(
       {
         jarAddress: syncJarAddress,
@@ -355,23 +414,12 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
       },
       {
         onSuccess: () => {
-          if (!factoryAddress) return;
-          const metadata = JSON.stringify(
-            buildCampaignCookieJarMetadata({
-              title:
-                syncJar.jar?.metadata?.title ??
-                formatMessage({
-                  id: "cockpit.community.cookies.untitledCampaign",
-                  defaultMessage: "Campaign cookie jar",
-                }),
-              slug: syncJar.jar?.metadata?.slug ?? "campaign-cookie-jar",
-              sourceGardens: syncAggregation.sources.map((source) => source.gardenAddress),
-              extraAllowlist: syncAggregation.extraAllowlist,
-              chainId,
-              createdAt: syncJar.jar?.metadata?.createdAt,
-            })
-          );
-          updateMetadata.mutate({ factoryAddress, jarAddress: syncJarAddress, metadata });
+          if (!factoryAddress || !syncMetadataPayload) return;
+          updateMetadata.mutate({
+            factoryAddress,
+            jarAddress: syncJarAddress,
+            metadata: syncMetadataPayload,
+          });
         },
       }
     );

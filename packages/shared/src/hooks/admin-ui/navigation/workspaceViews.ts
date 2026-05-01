@@ -44,7 +44,6 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
     rootPath: "/community",
     href: adminRoutes.community(),
     permission: "showCommunity",
-    commandRoles: ["deployer"],
   },
   {
     id: "actions",
@@ -58,10 +57,23 @@ export const ADMIN_WORKSPACE_VIEWS: AdminWorkspaceViewDefinition[] = [
   },
 ];
 
-export const ADMIN_COMMAND_ROUTES = ADMIN_WORKSPACE_VIEWS.map((view) => ({
-  id: `page-${view.id}`,
-  labelId: view.labelId,
-  defaultLabel: view.label,
-  href: view.href,
-  roles: view.commandRoles,
-}));
+const ADMIN_TEAM_COMMAND_ROUTES = [
+  {
+    id: "page-cookies",
+    labelId: "cockpit.community.cookies.title",
+    defaultLabel: "Campaign cookie jars",
+    href: adminRoutes.cookies(),
+    roles: ["deployer"] as UserRole[],
+  },
+];
+
+export const ADMIN_COMMAND_ROUTES = [
+  ...ADMIN_WORKSPACE_VIEWS.map((view) => ({
+    id: `page-${view.id}`,
+    labelId: view.labelId,
+    defaultLabel: view.label,
+    href: view.href,
+    roles: view.commandRoles,
+  })),
+  ...ADMIN_TEAM_COMMAND_ROUTES,
+];

@@ -70,6 +70,27 @@ function renderAdminCanvasRoute(initialEntry: string) {
 }
 
 describe("admin canvas runtime navigation", () => {
+  it("route-gates only team campaign Cookies and Actions branches", () => {
+    const topLevelRoutes = new Map(adminCanvasRoutes.map((route) => [route.path, route]));
+    const cookiesRoute = topLevelRoutes.get("cookies");
+    const actionsRoute = topLevelRoutes.get("actions");
+
+    expect(cookiesRoute?.element).toBeTruthy();
+    expect(cookiesRoute?.children?.map((route) => (route.index ? "index" : route.path))).toEqual([
+      "index",
+      "deploy",
+    ]);
+    expect(actionsRoute?.element).toBeTruthy();
+    expect(actionsRoute?.children?.map((route) => (route.index ? "index" : route.path))).toEqual([
+      "index",
+      "create",
+      ":id",
+      ":id/edit",
+    ]);
+    expect(topLevelRoutes.has("actions/create")).toBe(false);
+    expect(topLevelRoutes.get("community")?.element).toBeUndefined();
+  });
+
   it("redirects /hub to canonical work mode while preserving shareable context", async () => {
     const router = renderAdminCanvasRoute("/hub?view=history&gardenAddress=0xAAA&sort=oldest");
 

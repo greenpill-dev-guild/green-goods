@@ -184,6 +184,10 @@ export function getCookieJarId(chainId: number, garden: string, asset: string): 
   return `${chainId}-${normalizeAddress(garden)}-${normalizeAddress(asset)}`;
 }
 
+export function getCampaignCookieJarId(chainId: number, jarAddress: string): string {
+  return `${chainId}-${normalizeAddress(jarAddress)}`;
+}
+
 export function mapWeightScheme(value: bigint): WeightScheme {
   return WEIGHT_SCHEME_MAP[Number(value)] ?? "LINEAR";
 }

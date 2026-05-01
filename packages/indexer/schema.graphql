@@ -256,6 +256,26 @@ type GreenWillBadgeOwnership {
   lastGrantId: String!
 }
 
+type CampaignCookieJar {
+  id: ID! # chainId-jarAddress
+  chainId: Int!
+  factoryAddress: String! # CookieJarFactory address
+  jarAddress: String! # CookieJar address
+  creator: String! # Factory caller
+  rawMetadata: String!
+  metadataKind: String
+  metadataVersion: Int
+  slug: String
+  title: String
+  sourceGardens: [String!]!
+  operatorPolicy: String
+  extraAllowlist: [String!]!
+  isValidCampaign: Boolean!
+  createdAt: Int!
+  metadataUpdatedAt: Int!
+  txHash: String!
+}
+
 # =============================================================================
 # EAS Attestation Data (NOT indexed here)
 # =============================================================================

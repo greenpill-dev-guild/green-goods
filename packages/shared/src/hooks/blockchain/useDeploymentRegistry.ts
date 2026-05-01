@@ -10,52 +10,9 @@ import type { Address } from "../../types/domain";
 import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { queryKeys } from "../../config/query-keys";
+import { DEPLOYMENT_REGISTRY_ABI } from "../../utils/blockchain/abis";
 
-// DeploymentRegistry ABI - read + write functions needed by hooks and views
-export const DEPLOYMENT_REGISTRY_ABI = [
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "isInAllowlist",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "owner",
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getAllowlist",
-    outputs: [{ name: "", type: "address[]" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "allowlistLength",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "addToAllowlist",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "removeFromAllowlist",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
+export { DEPLOYMENT_REGISTRY_ABI };
 
 interface DeploymentRegistryData {
   isOwner: boolean;

@@ -9,7 +9,10 @@ import { useCurrentChain } from "../blockchain/useChainConfig";
 export function useCookieJarFactoryAddress(options: { enabled?: boolean } = {}) {
   const chainId = useCurrentChain();
   const contracts = getNetworkContracts(chainId);
+  const configuredFactoryAddress = contracts.cookieJarFactory;
   const moduleAddress = contracts.cookieJarModule;
+  const factoryConfigured =
+    !!configuredFactoryAddress && configuredFactoryAddress.toLowerCase() !== ZERO_ADDRESS;
   const moduleConfigured = !!moduleAddress && moduleAddress.toLowerCase() !== ZERO_ADDRESS;
 
   const query = useReadContract({
@@ -17,20 +20,21 @@ export function useCookieJarFactoryAddress(options: { enabled?: boolean } = {}) 
     abi: COOKIE_JAR_MODULE_ABI,
     functionName: "cookieJarFactory",
     query: {
-      enabled: (options.enabled ?? true) && moduleConfigured,
+      enabled: (options.enabled ?? true) && !factoryConfigured && moduleConfigured,
       staleTime: STALE_TIME_RARE,
     },
   });
 
-  const factoryAddress =
-    typeof query.data === "string" && query.data.toLowerCase() !== ZERO_ADDRESS
+  const factoryAddress = factoryConfigured
+    ? (configuredFactoryAddress as Address)
+    : typeof query.data === "string" && query.data.toLowerCase() !== ZERO_ADDRESS
       ? (query.data as Address)
       : undefined;
 
   return {
     factoryAddress,
-    moduleConfigured,
-    isLoading: query.isLoading,
+    moduleConfigured: factoryConfigured || moduleConfigured,
+    isLoading: !factoryConfigured && query.isLoading,
     error: query.error,
   };
 }

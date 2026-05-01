@@ -18,6 +18,7 @@ const mockDepositMutate = vi.fn();
 const mockClaimReset = vi.fn();
 const mockDepositReset = vi.fn();
 const mockUseCampaignCookieJar = vi.fn();
+const mockUseCampaignCookieJarCampaigns = vi.fn();
 const mockUseUser = vi.fn();
 let claimError: Error | null = null;
 let depositError: Error | null = null;
@@ -81,6 +82,7 @@ vi.mock("@green-goods/shared", async () => {
     }) => (visible ? <div role="alert">{`${title}: ${message}`}</div> : null),
     useAppKit: () => ({ open: mockOpenWallet }),
     useCampaignCookieJar: (jarAddress: string) => mockUseCampaignCookieJar(jarAddress),
+    useCampaignCookieJarCampaigns: () => mockUseCampaignCookieJarCampaigns(),
     useCampaignCookieJarDeposit: () => ({
       mutate: mockDepositMutate,
       isPending: false,
@@ -114,6 +116,25 @@ describe("CookiesPage", () => {
     claimError = null;
     depositError = null;
     mockUseUser.mockReturnValue({ primaryAddress: TEST_WALLET });
+    mockUseCampaignCookieJarCampaigns.mockReturnValue({
+      campaigns: [
+        {
+          address: TEST_JAR,
+          jarAddress: TEST_JAR,
+          slug: "earth-week",
+          label: "Earth Week",
+          title: "Earth Week",
+          metadata: null,
+          rawMetadata: "",
+          source: "indexed",
+        },
+      ],
+      indexedCampaigns: [],
+      fallbackCampaigns: [],
+      isLoading: false,
+      isFallback: false,
+      error: null,
+    });
     mockUseCampaignCookieJar.mockReturnValue({
       jar: eligibleJar,
       isLoading: false,
@@ -151,9 +172,7 @@ describe("CookiesPage", () => {
     );
   });
 
-  it("resolves campaign aliases from the runtime cookie jar map", async () => {
-    vi.stubEnv("VITE_CAMPAIGN_COOKIE_JARS", JSON.stringify({ "earth-week": TEST_JAR }));
-
+  it("resolves campaign aliases from the indexed campaign list", async () => {
     renderPage("/cookies?campaign=earth-week");
 
     expect((await screen.findAllByText("Earth Week Cookie Jar")).length).toBeGreaterThan(0);
@@ -162,7 +181,6 @@ describe("CookiesPage", () => {
 
   it("opens configured campaign jars in an in-page dialog", async () => {
     const user = userEvent.setup();
-    vi.stubEnv("VITE_CAMPAIGN_COOKIE_JARS", JSON.stringify({ "earth-week": TEST_JAR }));
 
     renderPage("/cookies");
 

@@ -5,8 +5,15 @@ import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const generated = require("../generated");
 const { TestHelpers } = generated;
-const { MockDb, Addresses, GardenAccount, HatsModule, YieldSplitter, HypercertMinter } =
-  TestHelpers;
+const {
+  MockDb,
+  Addresses,
+  GardenAccount,
+  HatsModule,
+  YieldSplitter,
+  HypercertMinter,
+  CookieJarFactory,
+} = TestHelpers;
 
 const CHAIN_ID = 42161;
 
@@ -156,6 +163,91 @@ describe("retained yield + hypercert handlers", () => {
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+});
+
+describe("campaign cookie jar factory handlers", () => {
+  it("stores JarCreated candidates without requiring metadata on the create event", async () => {
+    const mockDb = MockDb.createMockDb();
+    const jarAddress = addr(50);
+    const creator = addr(51);
+
+    const event = CookieJarFactory.JarCreated.createMockEvent({
+      jarAddress,
+      creator,
+      mockEventData: mockEvent(CHAIN_ID, 40_000, {
+        srcAddress: addr(52),
+        txHash: txHash(400),
+      }),
+    });
+
+    const result = await CookieJarFactory.JarCreated.processEvent({ event, mockDb });
+    const jar = result.entities.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
+
+    assert.ok(jar);
+    assert.equal(jar.jarAddress, jarAddress.toLowerCase());
+    assert.equal(jar.creator, creator.toLowerCase());
+    assert.equal(jar.isValidCampaign, false);
+    assert.equal(jar.rawMetadata, "");
+  });
+
+  it("parses valid campaign metadata updates", async () => {
+    const mockDb = MockDb.createMockDb();
+    const jarAddress = addr(53);
+    const metadata = JSON.stringify({
+      kind: "green-goods.campaign-cookie-jar",
+      version: 1,
+      slug: "earth-week",
+      title: "Earth Week Cookie Jar",
+      sourceGardens: [addr(54), addr(54)],
+      operatorPolicy: "one-operator-per-garden",
+      extraAllowlist: [addr(55)],
+      chainId: CHAIN_ID,
+      createdAt: 1770000000,
+    });
+
+    const event = CookieJarFactory.MetadataUpdated.createMockEvent({
+      jarAddress,
+      metadata,
+      mockEventData: mockEvent(CHAIN_ID, 41_000, {
+        srcAddress: addr(52),
+        txHash: txHash(410),
+      }),
+    });
+
+    const result = await CookieJarFactory.MetadataUpdated.processEvent({ event, mockDb });
+    const jar = result.entities.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
+
+    assert.ok(jar);
+    assert.equal(jar.slug, "earth-week");
+    assert.equal(jar.title, "Earth Week Cookie Jar");
+    assert.equal(jar.metadataKind, "green-goods.campaign-cookie-jar");
+    assert.equal(jar.metadataVersion, 1);
+    assert.equal(jar.isValidCampaign, true);
+    assert.deepEqual(jar.sourceGardens, [addr(54).toLowerCase()]);
+    assert.deepEqual(jar.extraAllowlist, [addr(55).toLowerCase()]);
+    assert.equal(jar.metadataUpdatedAt, 41_000);
+  });
+
+  it("stores invalid metadata without classifying the jar as public", async () => {
+    const mockDb = MockDb.createMockDb();
+    const jarAddress = addr(56);
+
+    const event = CookieJarFactory.MetadataUpdated.createMockEvent({
+      jarAddress,
+      metadata: JSON.stringify({ kind: "other", version: 1, slug: "test", title: "Test" }),
+      mockEventData: mockEvent(CHAIN_ID, 42_000, {
+        srcAddress: addr(52),
+        txHash: txHash(420),
+      }),
+    });
+
+    const result = await CookieJarFactory.MetadataUpdated.processEvent({ event, mockDb });
+    const jar = result.entities.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
+
+    assert.ok(jar);
+    assert.equal(jar.isValidCampaign, false);
+    assert.equal(jar.metadataKind, "other");
   });
 });
 

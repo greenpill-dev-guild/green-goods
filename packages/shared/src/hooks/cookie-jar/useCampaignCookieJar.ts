@@ -300,6 +300,8 @@ export function useCampaignCookieJar(
     () => (detailsQuery.data ?? []).filter((result) => result?.status !== "success").length,
     [detailsQuery.data]
   );
+  const hasMetadataReadFailure = Boolean(metadataQuery.error || factory.error);
+  const hasDetailReadFailure = detailErrorCount > 0 || hasMetadataReadFailure;
 
   return {
     jar,
@@ -310,9 +312,11 @@ export function useCampaignCookieJar(
       detailsQuery.isLoading ||
       tokenQuery.isLoading ||
       metadataQuery.isLoading,
-    error: detailsQuery.error || tokenQuery.error || metadataQuery.error || factory.error,
+    error: detailsQuery.error || tokenQuery.error,
+    metadataError: metadataQuery.error || factory.error,
     detailErrorCount,
-    hasDetailReadFailure: detailErrorCount > 0,
+    hasMetadataReadFailure,
+    hasDetailReadFailure,
   };
 }
 
@@ -402,6 +406,7 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
         message: formatMessage({ id: "app.campaignCookieJar.create.success" }),
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.cookieJar.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.cookieJar.campaigns(chainId) });
       if (result.jarAddress) {
         campaignInvalidationKeys(result.jarAddress, primaryAddress ?? undefined, chainId).forEach(
           (queryKey) => queryClient.invalidateQueries({ queryKey })

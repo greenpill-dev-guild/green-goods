@@ -47,6 +47,7 @@ interface DeploymentConfig {
   octantFactory?: string;
   hatsModule?: string;
   karmaGAPModule?: string;
+  cookieJarFactory?: string;
   cookieJarModule?: string;
   goodsToken?: string;
   juiceboxProjectId?: number;
@@ -209,6 +210,8 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
       octantFactory: deployment.octantFactory || "0x0000000000000000000000000000000000000000",
       hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
       karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
+      cookieJarFactory: deployment.cookieJarFactory || "0x0000000000000000000000000000000000000000",
+      cookieJarModule: deployment.cookieJarModule || "0x0000000000000000000000000000000000000000",
       // Add contracts from networks.json
       eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",
       easSchemaRegistry:

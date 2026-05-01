@@ -407,6 +407,7 @@ export {
   useEnableAutoAllocate,
   useConvictionStrategies,
   useCampaignCookieJar,
+  useCampaignCookieJarCampaigns,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
   useCookieJarDeposit,
@@ -783,6 +784,7 @@ export type {
   ConvictionWeight,
   // Cookie jar types
   CampaignCookieJar,
+  CampaignCookieJarCampaign,
   CampaignCookieJarMetadata,
   CampaignCookieJarOperatorAggregation,
   CampaignCookieJarOperatorPolicy,
@@ -797,6 +799,7 @@ export type {
   CookieJarWithdrawalType,
   CookieJarWithdrawParams,
   CreateCampaignCookieJarParams,
+  IndexedCampaignCookieJar,
   SyncCampaignCookieJarAllowlistParams,
   // Contract types
   CreateGardenParams,
@@ -984,6 +987,7 @@ export {
   compareAddresses,
   // Work utilities
   aggregateCampaignCookieJarOperators,
+  buildCampaignCookieJarCampaigns,
   deriveCampaignCookieJarClaimState,
   convertJobsToWorks,
   copyToClipboard,
@@ -1017,6 +1021,7 @@ export {
   hasCompleteActionTranslationContent,
   parseActionUID,
   parseCampaignAddressList,
+  parseCampaignCookieJarFallbacks,
   parseCampaignCookieJarMetadata,
   formatAddress,
   formatEnsNameForDisplay,
@@ -1105,6 +1110,7 @@ export {
   resolveEnsAddress,
   saveFormDraft,
   buildCampaignCookieJarMetadata,
+  CAMPAIGN_COOKIE_JAR_METADATA_KIND,
   diffCampaignCookieJarAllowlist,
   shareWork,
   suggestSlug,

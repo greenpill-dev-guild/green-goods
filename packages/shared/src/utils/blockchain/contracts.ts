@@ -97,6 +97,7 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     communityToken: asAddress(networkConfig.contracts?.communityToken),
     erc4337EntryPoint: asAddress(networkConfig.contracts?.erc4337EntryPoint),
     multicallForwarder: asAddress(networkConfig.contracts?.multicallForwarder),
+    cookieJarFactory: asAddress(deployment.cookieJarFactory),
     cookieJarModule: asAddress(deployment.cookieJarModule),
     yieldSplitter: asAddress(deployment.yieldSplitter),
     gardensModule: asAddress(deployment.gardensModule),

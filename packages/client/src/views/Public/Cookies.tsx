@@ -1,19 +1,21 @@
 import {
   type Address,
   Button,
+  type CampaignCookieJarCampaign,
   classifyTxError,
   formatTokenAmount,
   isMeaningfulTxErrorMessage,
   TxInlineFeedback,
   useAppKit,
   useCampaignCookieJar,
+  useCampaignCookieJarCampaigns,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
   useUser,
   validateDecimalInput,
 } from "@green-goods/shared";
 import { RiCloseLine } from "@remixicon/react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import { formatUnits, getAddress, isAddress, parseUnits } from "viem";
@@ -24,12 +26,6 @@ const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProvider
 
 type CookieMode = "claim" | "deposit";
 
-interface CampaignCookieJarListItem {
-  slug: string;
-  address: Address;
-  label: string;
-}
-
 function formatDisplayAmount(value: bigint, decimals: number, symbol: string): string {
   return `${formatTokenAmount(value, decimals, 4)} ${symbol}`;
 }
@@ -38,51 +34,14 @@ function normalizeCampaignSlug(value: string): string {
   return value.trim().toLowerCase();
 }
 
-function humanizeCampaignSlug(slug: string): string {
-  return slug
-    .split(/[-_\s]+/)
-    .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
-}
-
-function readCampaignCookieJarCampaigns(): CampaignCookieJarListItem[] {
-  const raw = (import.meta.env as Record<string, string | undefined>).VITE_CAMPAIGN_COOKIE_JARS;
-  if (!raw?.trim()) return [];
-
-  const campaigns = new Map<string, CampaignCookieJarListItem>();
-  const addCampaign = (slug: unknown, address: unknown) => {
-    if (typeof slug !== "string" || typeof address !== "string" || !isAddress(address)) return;
-    const normalizedSlug = normalizeCampaignSlug(slug);
-    if (!normalizedSlug) return;
-    campaigns.set(normalizedSlug, {
-      slug: normalizedSlug,
-      address: getAddress(address) as Address,
-      label: humanizeCampaignSlug(normalizedSlug),
-    });
-  };
-
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    Object.entries(parsed).forEach(([slug, address]) => addCampaign(slug, address));
-  } catch {
-    raw.split(/[\n,]+/).forEach((entry) => {
-      const [slug, address] = entry.split(/[=:]/).map((part) => part.trim());
-      addCampaign(slug, address);
-    });
-  }
-
-  return [...campaigns.values()];
-}
-
 function resolveCampaignJar(
   searchParams: URLSearchParams,
-  campaigns: readonly CampaignCookieJarListItem[]
+  campaigns: readonly CampaignCookieJarCampaign[]
 ): {
   jarAddress?: Address;
   campaignSlug?: string;
   invalidJar?: string;
-  campaign?: CampaignCookieJarListItem;
+  campaign?: CampaignCookieJarCampaign;
 } {
   const jar = searchParams.get("jar")?.trim();
   if (jar) {
@@ -651,8 +610,8 @@ function CampaignCookieJarCard({
   campaign,
   onOpen,
 }: {
-  campaign: CampaignCookieJarListItem;
-  onOpen: (campaign: CampaignCookieJarListItem) => void;
+  campaign: CampaignCookieJarCampaign;
+  onOpen: (campaign: CampaignCookieJarCampaign) => void;
 }) {
   const { formatMessage } = useIntl();
   const { jar, isLoading, error, hasDetailReadFailure } = useCampaignCookieJar(campaign.address);
@@ -729,21 +688,52 @@ function CampaignCookieJarCard({
 
 function CampaignCookieJarGrid({
   campaigns,
+  isLoading,
+  registryError,
   onOpen,
 }: {
-  campaigns: readonly CampaignCookieJarListItem[];
-  onOpen: (campaign: CampaignCookieJarListItem) => void;
+  campaigns: readonly CampaignCookieJarCampaign[];
+  isLoading: boolean;
+  registryError: Error | null;
+  onOpen: (campaign: CampaignCookieJarCampaign) => void;
 }) {
   const { formatMessage } = useIntl();
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2].map((index) => (
+          <div
+            key={index}
+            className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-sm"
+          >
+            <div className="h-3 w-24 animate-pulse rounded bg-bg-soft-200" />
+            <div className="mt-4 h-8 w-3/4 animate-pulse rounded bg-bg-soft-200" />
+            <div className="mt-8 space-y-4">
+              <div className="h-4 animate-pulse rounded bg-bg-weak-50" />
+              <div className="h-4 animate-pulse rounded bg-bg-weak-50" />
+              <div className="h-4 animate-pulse rounded bg-bg-weak-50" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (campaigns.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-stroke-soft-200 bg-bg-white-0 p-8 text-sm text-text-sub-600">
-        {formatMessage({
-          id: "public.cookies.emptyList",
-          defaultMessage:
-            "Campaign jars will appear here once the Green Goods team configures them.",
-        })}
+        {registryError
+          ? formatMessage({
+              id: "public.cookies.registryLoadFailed",
+              defaultMessage:
+                "The campaign jar list could not be loaded. Direct jar links still work.",
+            })
+          : formatMessage({
+              id: "public.cookies.emptyList",
+              defaultMessage:
+                "Campaign jars will appear here once the Green Goods team configures them.",
+            })}
       </div>
     );
   }
@@ -751,7 +741,7 @@ function CampaignCookieJarGrid({
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
       {campaigns.map((campaign) => (
-        <CampaignCookieJarCard key={campaign.slug} campaign={campaign} onOpen={onOpen} />
+        <CampaignCookieJarCard key={campaign.address} campaign={campaign} onOpen={onOpen} />
       ))}
     </div>
   );
@@ -767,16 +757,45 @@ function CampaignCookieJarDialog({
   onClose: () => void;
 }) {
   const { formatMessage } = useIntl();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab" || !panelRef.current) return;
+      const focusableElements = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter((element) => element.offsetParent !== null);
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      if (!firstElement || !lastElement) return;
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
     };
+    const previousOverflow = document.body.style.overflow;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
     document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
     };
   }, [onClose]);
 
@@ -796,12 +815,16 @@ function CampaignCookieJarDialog({
           defaultMessage: "Close jar dialog",
         })}
       />
-      <div className="absolute inset-x-3 top-6 bottom-6 mx-auto flex max-w-6xl flex-col overflow-hidden rounded-lg bg-bg-weak-50 shadow-2xl sm:inset-x-6">
+      <div
+        ref={panelRef}
+        className="absolute inset-x-3 top-6 bottom-6 mx-auto flex max-w-6xl flex-col overflow-hidden rounded-lg bg-bg-weak-50 shadow-2xl sm:inset-x-6"
+      >
         <div className="flex items-center justify-between gap-4 border-b border-stroke-soft-200 bg-bg-white-0 px-4 py-3 sm:px-5">
           <h2 id="cookie-dialog-title" className="font-serif text-xl text-text-strong-950">
             {title}
           </h2>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-stroke-soft-200 text-text-sub-600 transition hover:text-text-strong-950"
@@ -821,17 +844,21 @@ function CampaignCookieJarDialog({
   );
 }
 
-export default function CookiesPage() {
+function CookiesCampaignSurface() {
   const { formatMessage } = useIntl();
   const [searchParams, setSearchParams] = useSearchParams();
-  const campaigns = useMemo(() => readCampaignCookieJarCampaigns(), []);
+  const {
+    campaigns,
+    isLoading: isCampaignListLoading,
+    error: campaignListError,
+  } = useCampaignCookieJarCampaigns();
   const { jarAddress, campaignSlug, invalidJar, campaign } = useMemo(
     () => resolveCampaignJar(searchParams, campaigns),
     [campaigns, searchParams]
   );
 
   const openCampaign = useCallback(
-    (nextCampaign: CampaignCookieJarListItem) => {
+    (nextCampaign: CampaignCookieJarCampaign) => {
       const nextParams = new URLSearchParams(searchParams);
       nextParams.delete("jar");
       nextParams.set("campaign", nextCampaign.slug);
@@ -848,6 +875,7 @@ export default function CookiesPage() {
   }, [searchParams, setSearchParams]);
 
   const dialogTitle =
+    campaign?.title ??
     campaign?.label ??
     formatMessage({
       id: "public.cookies.directJar",
@@ -855,46 +883,7 @@ export default function CookiesPage() {
     });
 
   return (
-    <div className="min-h-screen bg-bg-weak-50">
-      <header className="relative isolate overflow-hidden border-b border-stroke-soft-200 text-static-white">
-        <img
-          src={publicCuration.heroImagePath}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 -z-10 h-full w-full object-cover"
-          onError={(event) => {
-            const fallback = publicCuration.fallbackImagePaths[0];
-            if (fallback && event.currentTarget.src.indexOf(fallback) === -1) {
-              event.currentTarget.src = fallback;
-            }
-          }}
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-static-black/75 via-static-black/50 to-static-black/20" />
-        <div className="mx-auto flex min-h-[48vh] max-w-7xl flex-col justify-end px-6 py-14 sm:px-10 sm:py-20">
-          <div className="max-w-2xl">
-            <p className="text-xs font-medium uppercase text-static-white/70">
-              {formatMessage({
-                id: "public.cookies.eyebrow",
-                defaultMessage: "Campaign cookie jars",
-              })}
-            </p>
-            <h1 className="mt-3 font-serif text-4xl text-static-white md:text-6xl">
-              {formatMessage({
-                id: "public.cookies.title",
-                defaultMessage: "Campaign cookie jars",
-              })}
-            </h1>
-            <p className="mt-4 text-base leading-7 text-static-white/85 md:text-lg">
-              {formatMessage({
-                id: "public.cookies.description",
-                defaultMessage:
-                  "Shared jars hold campaign funds in one place. Operators from selected gardens can claim their cookie, and supporters can top up the jar for the next round.",
-              })}
-            </p>
-          </div>
-        </div>
-      </header>
-
+    <>
       <section
         className="mx-auto max-w-7xl px-6 sm:px-10"
         aria-label={formatMessage({
@@ -944,7 +933,7 @@ export default function CookiesPage() {
               { jar: invalidJar }
             )}
           </div>
-        ) : campaignSlug && !jarAddress ? (
+        ) : campaignSlug && !jarAddress && !isCampaignListLoading ? (
           <div className="mb-6 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-5 text-sm text-text-sub-600">
             {formatMessage(
               {
@@ -975,19 +964,73 @@ export default function CookiesPage() {
           </div>
         </div>
 
-        <Suspense fallback={null}>
-          <WalletRuntimeProviders>
-            <CampaignCookieJarGrid campaigns={campaigns} onOpen={openCampaign} />
-            {jarAddress ? (
-              <CampaignCookieJarDialog
-                jarAddress={jarAddress}
-                title={dialogTitle}
-                onClose={closeDialog}
-              />
-            ) : null}
-          </WalletRuntimeProviders>
-        </Suspense>
+        <CampaignCookieJarGrid
+          campaigns={campaigns}
+          isLoading={isCampaignListLoading}
+          registryError={campaignListError}
+          onOpen={openCampaign}
+        />
+        {jarAddress ? (
+          <CampaignCookieJarDialog
+            jarAddress={jarAddress}
+            title={dialogTitle}
+            onClose={closeDialog}
+          />
+        ) : null}
       </main>
+    </>
+  );
+}
+
+export default function CookiesPage() {
+  const { formatMessage } = useIntl();
+
+  return (
+    <div className="min-h-screen bg-bg-weak-50">
+      <header className="relative isolate overflow-hidden border-b border-stroke-soft-200 text-static-white">
+        <img
+          src={publicCuration.heroImagePath}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 h-full w-full object-cover"
+          onError={(event) => {
+            const fallback = publicCuration.fallbackImagePaths[0];
+            if (fallback && event.currentTarget.src.indexOf(fallback) === -1) {
+              event.currentTarget.src = fallback;
+            }
+          }}
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-static-black/75 via-static-black/50 to-static-black/20" />
+        <div className="mx-auto flex min-h-[48vh] max-w-7xl flex-col justify-end px-6 py-14 sm:px-10 sm:py-20">
+          <div className="max-w-2xl">
+            <p className="text-xs font-medium uppercase text-static-white/70">
+              {formatMessage({
+                id: "public.cookies.eyebrow",
+                defaultMessage: "Campaign cookie jars",
+              })}
+            </p>
+            <h1 className="mt-3 font-serif text-4xl text-static-white md:text-6xl">
+              {formatMessage({
+                id: "public.cookies.title",
+                defaultMessage: "Campaign cookie jars",
+              })}
+            </h1>
+            <p className="mt-4 text-base leading-7 text-static-white/85 md:text-lg">
+              {formatMessage({
+                id: "public.cookies.description",
+                defaultMessage:
+                  "Shared jars hold campaign funds in one place. Operators from selected gardens can claim their cookie, and supporters can top up the jar for the next round.",
+              })}
+            </p>
+          </div>
+        </div>
+      </header>
+
+      <Suspense fallback={null}>
+        <WalletRuntimeProviders>
+          <CookiesCampaignSurface />
+        </WalletRuntimeProviders>
+      </Suspense>
     </div>
   );
 }

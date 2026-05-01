@@ -47,11 +47,14 @@ export {
 } from "./app/garden";
 export {
   aggregateCampaignCookieJarOperators,
+  buildCampaignCookieJarCampaigns,
   buildCampaignCookieJarMetadata,
+  CAMPAIGN_COOKIE_JAR_METADATA_KIND,
   deriveCampaignCookieJarClaimState,
   diffCampaignCookieJarAllowlist,
   normalizeCampaignAddress,
   parseCampaignAddressList,
+  parseCampaignCookieJarFallbacks,
   parseCampaignCookieJarMetadata,
 } from "./cookie-jar-campaign";
 export type {
@@ -124,6 +127,7 @@ export {
   COOKIE_JAR_ABI,
   COOKIE_JAR_FACTORY_ABI,
   COOKIE_JAR_MODULE_ABI,
+  DEPLOYMENT_REGISTRY_ABI,
   ERC20_ALLOWANCE_ABI,
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,

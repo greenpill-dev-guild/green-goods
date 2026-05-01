@@ -109,4 +109,55 @@ describe("buildCommandPaletteResults", () => {
 
     expect(results.some((result) => result.category === "actions")).toBe(false);
   });
+
+  it("keeps team-only static routes deployer-only", () => {
+    const staticRoutes = [
+      {
+        id: "page-community",
+        labelId: "cockpit.nav.community",
+        defaultLabel: "Community",
+        href: "/community",
+      },
+      {
+        id: "page-cookies",
+        labelId: "cockpit.community.cookies.title",
+        defaultLabel: "Campaign cookie jars",
+        href: "/cookies",
+        roles: ["deployer" as const],
+      },
+      {
+        id: "page-actions",
+        labelId: "app.admin.nav.actions",
+        defaultLabel: "Actions",
+        href: "/actions",
+        roles: ["deployer" as const],
+      },
+    ];
+
+    const operatorResults = buildCommandPaletteResults({
+      query: "co",
+      role: "operator",
+      formatMessage,
+      staticRoutes,
+      eligibleGardens: [],
+      actions: [],
+      assessments: [],
+      selectGarden: vi.fn(),
+    });
+    const deployerResults = buildCommandPaletteResults({
+      query: "cookie",
+      role: "deployer",
+      formatMessage,
+      staticRoutes,
+      eligibleGardens: [],
+      actions: [],
+      assessments: [],
+      selectGarden: vi.fn(),
+    });
+
+    expect(operatorResults).toEqual([expect.objectContaining({ id: "page-community" })]);
+    expect(deployerResults).toEqual([
+      expect.objectContaining({ id: "page-cookies", href: "/cookies" }),
+    ]);
+  });
 });

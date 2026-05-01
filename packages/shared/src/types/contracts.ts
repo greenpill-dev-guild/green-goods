@@ -16,6 +16,7 @@ export interface NetworkContracts {
   communityToken: Address;
   erc4337EntryPoint: Address;
   multicallForwarder: Address;
+  cookieJarFactory: Address;
   cookieJarModule: Address;
   yieldSplitter: Address;
   gardensModule: Address;

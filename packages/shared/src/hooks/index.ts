@@ -166,6 +166,7 @@ export {
   useSyncCampaignCookieJarAllowlist,
   useUpdateCampaignCookieJarMetadata,
 } from "./cookie-jar/useCampaignCookieJar";
+export { useCampaignCookieJarCampaigns } from "./cookie-jar/useCampaignCookieJarCampaigns";
 export { useCookieJarDeposit } from "./cookie-jar/useCookieJarDeposit";
 export { useCookieJarFactoryAddress } from "./cookie-jar/useCookieJarFactoryAddress";
 export { useCookieJarWithdraw } from "./cookie-jar/useCookieJarWithdraw";

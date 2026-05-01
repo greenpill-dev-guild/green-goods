@@ -87,11 +87,13 @@ export const financeInvalidation = {
       | ReturnType<typeof queryKeys.cookieJar.byGarden>
       | ReturnType<typeof queryKeys.cookieJar.jarDetail>
       | ReturnType<typeof queryKeys.cookieJar.campaign>
+      | ReturnType<typeof queryKeys.cookieJar.campaigns>
       | ReturnType<typeof queryKeys.cookieJar.userHistory>
     > = [
       queryKeys.cookieJar.byGarden(gardenAddress, chainId),
       queryKeys.cookieJar.jarDetail(jarAddress, chainId),
       queryKeys.cookieJar.campaign(jarAddress, userAddress, chainId),
+      queryKeys.cookieJar.campaigns(chainId),
     ];
 
     if (userAddress) {
@@ -105,12 +107,14 @@ export const financeInvalidation = {
     queryKeys.cookieJar.byGarden(gardenAddress, chainId),
     queryKeys.cookieJar.jarDetail(jarAddress, chainId),
     queryKeys.cookieJar.campaign(jarAddress, undefined, chainId),
+    queryKeys.cookieJar.campaigns(chainId),
   ],
 
   onCookieJarAdminAction: (gardenAddress: string, jarAddress: string, chainId: number) => [
     queryKeys.cookieJar.byGarden(gardenAddress, chainId),
     queryKeys.cookieJar.jarDetail(jarAddress, chainId),
     queryKeys.cookieJar.campaign(jarAddress, undefined, chainId),
+    queryKeys.cookieJar.campaigns(chainId),
   ],
 
   onCampaignCookieJarChanged: (
@@ -121,5 +125,6 @@ export const financeInvalidation = {
     queryKeys.cookieJar.jarDetail(jarAddress, chainId),
     queryKeys.cookieJar.campaign(jarAddress, userAddress, chainId),
     queryKeys.cookieJar.campaign(jarAddress, undefined, chainId),
+    queryKeys.cookieJar.campaigns(chainId),
   ],
 };
