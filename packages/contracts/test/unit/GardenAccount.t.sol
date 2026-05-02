@@ -130,6 +130,8 @@ contract MockGardensModuleForAccount is IGardensModule {
 
     function seedGardenTreasury(address) external pure { }
 
+    function setGardenHypercertSignalPool(address, address) external pure { }
+
     function getGardenCommunity(address garden) external view returns (address) {
         return gardenCommunities[garden];
     }
@@ -156,6 +158,14 @@ contract MockGardensModuleForAccount is IGardensModule {
 
     function goodsToken() external view returns (IERC20) {
         return goodsToken_;
+    }
+
+    function yieldResolver() external pure returns (address) {
+        return address(0);
+    }
+
+    function gardenHypercertSignalPools(address) external pure returns (address) {
+        return address(0);
     }
 }
 

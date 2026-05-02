@@ -9,6 +9,7 @@ import { GardenToken } from "../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
 import { ActionRegistry, Domain } from "../../src/registries/Action.sol";
 import { GardensModule } from "../../src/modules/Gardens.sol";
+import { YieldResolver } from "../../src/resolvers/Yield.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 import { IGardenAccount } from "../../src/interfaces/IGardenAccount.sol";
 import { IHatsModule } from "../../src/interfaces/IHatsModule.sol";
@@ -69,6 +70,7 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
     GardenToken public gardenToken;
     MockHatsModule public hatsModule;
     GardensModule public gardensModule;
+    YieldResolver public yieldResolver;
     ActionRegistry public actionRegistry;
     MockCookieJarModuleForWiring public cookieJarModule;
     MockGOODSTokenForWiring public goodsToken;
@@ -115,6 +117,12 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         );
         gardensModule = GardensModule(address(new ERC1967Proxy(address(gardensImpl), gardensInitData)));
 
+        // Deploy YieldResolver so GardensModule.isWiringComplete() covers the current production wiring contract
+        YieldResolver yieldImpl = new YieldResolver();
+        bytes memory yieldInitData =
+            abi.encodeWithSelector(YieldResolver.initialize.selector, multisig, address(0), address(hatsModule), 0);
+        yieldResolver = YieldResolver(address(new ERC1967Proxy(address(yieldImpl), yieldInitData)));
+
         // Deploy real ActionRegistry
         ActionRegistry arImpl = new ActionRegistry();
         bytes memory arInitData = abi.encodeWithSelector(ActionRegistry.initialize.selector, multisig);
@@ -136,6 +144,8 @@ contract FullModuleWiringTest is Test, ERC6551Helper {
         // KarmaGAP and Octant intentionally NOT set — tests graceful degradation
 
         gardensModule.setGardenToken(address(gardenToken));
+        gardensModule.setYieldResolver(address(yieldResolver));
+        yieldResolver.setGardensModule(address(gardensModule));
         actionRegistry.setGardenToken(address(gardenToken));
         actionRegistry.setHatsModule(address(hatsModule));
         cookieJarModule.setGardenToken(address(gardenToken));

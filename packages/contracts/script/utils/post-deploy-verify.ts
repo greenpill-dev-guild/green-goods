@@ -262,6 +262,15 @@ function parseAddressArray(output: string): string[] {
   return output.match(/0x[a-fA-F0-9]{40}/g) ?? [];
 }
 
+function parseTopicAddress(topic: string | undefined): string {
+  if (!topic) return ZERO_ADDRESS;
+  const normalized = topic.toLowerCase();
+  if (/^0x[a-f0-9]{64}$/.test(normalized)) {
+    return `0x${normalized.slice(-40)}`;
+  }
+  return parseAddress(topic);
+}
+
 function parseUint(output: string): bigint {
   const token = output.match(/0x[a-fA-F0-9]+|\d+/)?.[0];
   if (!token) return 0n;
@@ -358,7 +367,7 @@ function loadGardensFromChain(options: VerifyOptions, deployment: DeploymentReco
 
   const logs = castLogs(options.rpcUrl, deployment.gardenToken as string, "Transfer(address,address,uint256)");
   const tokenIds = logs
-    .filter((entry) => normalizeAddress(parseAddress(entry.topics?.[1] ?? "")) === normalizeAddress(ZERO_ADDRESS))
+    .filter((entry) => normalizeAddress(parseTopicAddress(entry.topics?.[1])) === normalizeAddress(ZERO_ADDRESS))
     .map((entry) => entry.topics?.[3])
     .filter((tokenId): tokenId is string => typeof tokenId === "string")
     .map((tokenId) => BigInt(tokenId));
@@ -865,6 +874,64 @@ function validateCookieJars(
   }
 }
 
+function validateSignalPoolYieldWiring(
+  options: VerifyOptions,
+  deployment: DeploymentRecord,
+  gardens: string[],
+  failures: string[],
+): void {
+  const gardensModule = deployment.gardensModule ?? ZERO_ADDRESS;
+  const yieldResolver = deployment.yieldSplitter ?? ZERO_ADDRESS;
+
+  assert(!isZeroAddress(gardensModule), "deployment.gardensModule is zero", failures);
+  assert(!isZeroAddress(yieldResolver), "deployment.yieldSplitter is zero", failures);
+  if (isZeroAddress(gardensModule) || isZeroAddress(yieldResolver)) {
+    return;
+  }
+
+  const moduleResolver = parseAddress(castCall(options.rpcUrl, gardensModule, "yieldResolver()(address)"));
+  assert(
+    normalizeAddress(moduleResolver) === normalizeAddress(yieldResolver),
+    `gardensModule.yieldResolver != yieldSplitter (${moduleResolver})`,
+    failures,
+  );
+
+  const resolverModule = parseAddress(castCall(options.rpcUrl, yieldResolver, "gardensModule()(address)"));
+  assert(
+    normalizeAddress(resolverModule) === normalizeAddress(gardensModule),
+    `yieldResolver.gardensModule != gardensModule (${resolverModule})`,
+    failures,
+  );
+
+  for (const garden of gardens) {
+    const pools = parseAddressArray(
+      castCall(options.rpcUrl, gardensModule, "getGardenSignalPools(address)(address[])", [garden]),
+    );
+    const typedPool = parseAddress(
+      castCall(options.rpcUrl, gardensModule, "gardenHypercertSignalPools(address)(address)", [garden]),
+    );
+    const resolverPool = parseAddress(
+      castCall(options.rpcUrl, yieldResolver, "gardenHypercertPools(address)(address)", [garden]),
+    );
+    const treasury = parseAddress(
+      castCall(options.rpcUrl, yieldResolver, "gardenTreasuries(address)(address)", [garden]),
+    );
+
+    if (pools.length === 0) {
+      failures.push(`garden ${garden} has no signal pools; operator pool creation is still required`);
+    } else {
+      assert(!isZeroAddress(typedPool), `garden ${garden} typed HypercertSignal pool is zero`, failures);
+      assert(
+        normalizeAddress(resolverPool) === normalizeAddress(typedPool),
+        `garden ${garden} resolver hypercert pool ${resolverPool} != typed pool ${typedPool}`,
+        failures,
+      );
+    }
+
+    assert(!isZeroAddress(treasury), `garden ${garden} treasury fallback is zero`, failures);
+  }
+}
+
 async function main(): Promise<void> {
   const options = parseArgs(process.argv);
   const failures: string[] = [];
@@ -984,6 +1051,10 @@ async function main(): Promise<void> {
 
     const cookieJarRef = parseAddress(castCall(options.rpcUrl, yieldResolver, "cookieJarModule()(address)"));
     assert(!isZeroAddress(cookieJarRef), "yieldResolver.cookieJarModule is zero", failures);
+  }
+
+  if (failures.length === 0) {
+    validateSignalPoolYieldWiring(options, deployment, allGardens, failures);
   }
 
   if (options.requireOctant && failures.length === 0) {

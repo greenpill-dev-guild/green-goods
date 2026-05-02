@@ -43,6 +43,12 @@ interface IGardenCommunityMembership {
     function attemptCommunityMembership() external;
 }
 
+/// @notice Minimal interface for YieldResolver pool wiring
+interface IYieldResolverForGardens {
+    function setGardenHypercertPool(address garden, address pool) external;
+    function gardensModule() external view returns (address);
+}
+
 /// @title GardensModule
 /// @notice Orchestrates Gardens V2 community + signal pool creation on garden mint
 /// @dev Implements IGardensModule. UUPS upgradeable with Hats-gated admin.
@@ -67,6 +73,7 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     error InvalidWeightScheme();
     error FactoriesNotConfigured(string missing);
     error OnlySelfCall();
+    error PoolNotRegisteredForGarden(address garden, address pool);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constants
@@ -134,9 +141,15 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
     /// @dev Defaults to owner at initialization; can be set to protocol multisig.
     address public communityCouncilSafe;
 
+    /// @notice YieldResolver for auto-wiring HypercertSignal pools to conviction-weighted yield routing
+    address public yieldResolver;
+
+    /// @notice Typed HypercertSignal pool per garden for validation and UI reads
+    mapping(address garden => address pool) public gardenHypercertSignalPools;
+
     /// @notice Storage gap for future upgrades
-    /// @dev 14 storage vars + 36 gap = 50 slots total
-    uint256[36] private __gap;
+    /// @dev 16 storage vars + 34 gap = 50 slots total
+    uint256[34] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -318,6 +331,12 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         if (address(goodsToken) == address(0)) return (false, "goodsToken not set");
         if (hatsProtocol == address(0)) return (false, "hatsProtocol not set");
         if (address(hatsModule) == address(0)) return (false, "hatsModule not set");
+        if (yieldResolver == address(0)) return (false, "yieldResolver not set");
+        try IYieldResolverForGardens(yieldResolver).gardensModule() returns (address resolverGardensModule) {
+            if (resolverGardensModule != address(this)) return (false, "yieldResolver.gardensModule mismatch");
+        } catch {
+            return (false, "yieldResolver invalid");
+        }
         return (true, "");
     }
 
@@ -427,6 +446,25 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         communityCouncilSafe = _communityCouncilSafe;
     }
 
+    /// @notice Set YieldResolver address for auto-wiring HypercertSignal pools to yield routing
+    /// @dev address(0) is allowed to disable auto-wiring on networks where YieldResolver is not deployed yet.
+    function setYieldResolver(address _yieldResolver) external onlyOwner {
+        emit ConfigUpdated("yieldResolver", yieldResolver, _yieldResolver);
+        yieldResolver = _yieldResolver;
+    }
+
+    /// @notice Backfill or clear the typed HypercertSignal pool for a garden.
+    /// @dev Used by migrations and emergency correction. Normal pool creation records this automatically.
+    function setGardenHypercertSignalPool(address garden, address pool) external onlyOwner {
+        if (pool != address(0) && !_isStoredSignalPool(garden, pool)) {
+            revert PoolNotRegisteredForGarden(garden, pool);
+        }
+
+        address oldPool = gardenHypercertSignalPools[garden];
+        gardenHypercertSignalPools[garden] = pool;
+        emit GardenHypercertSignalPoolUpdated(garden, oldPool, pool);
+    }
+
     /// @notice Reset garden initialization to allow re-running onGardenMinted
     /// @dev Use when partial failure leaves garden in half-configured state.
     ///      Also cleans up the UnifiedPowerRegistry so re-initialization can register fresh sources.
@@ -446,6 +484,12 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         delete gardenCommunities[garden];
         delete gardenSignalPools[garden];
         delete gardenWeightSchemes[garden];
+        address oldHypercertPool = gardenHypercertSignalPools[garden];
+        delete gardenHypercertSignalPools[garden];
+        if (oldHypercertPool != address(0)) {
+            emit GardenHypercertSignalPoolUpdated(garden, oldHypercertPool, address(0));
+        }
+        _wireYieldResolver(garden, address(0));
         emit GardenInitializationReset(garden);
     }
 
@@ -665,7 +709,11 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
             _createPool(garden, community, PointSystem.Custom, cvParams, registry, HYPERCERT_SIGNAL_POOL_METADATA);
         if (hypercertPool != address(0)) {
             pools[created++] = hypercertPool;
+            address oldPool = gardenHypercertSignalPools[garden];
+            gardenHypercertSignalPools[garden] = hypercertPool;
+            emit GardenHypercertSignalPoolUpdated(garden, oldPool, hypercertPool);
             emit SignalPoolCreated(garden, hypercertPool, PoolType.HypercertSignal, community);
+            _wireYieldResolver(garden, hypercertPool);
         }
 
         // Trim array to actual count
@@ -678,6 +726,27 @@ contract GardensModule is IGardensModule, OwnableUpgradeable, ReentrancyGuardUpg
         }
 
         return pools;
+    }
+
+    /// @notice Best-effort HypercertSignal pool wiring into YieldResolver.
+    /// @dev Non-blocking so garden mint/recovery remains resilient if resolver wiring is temporarily broken.
+    function _wireYieldResolver(address garden, address pool) internal {
+        if (yieldResolver == address(0)) return;
+
+        // solhint-disable-next-line no-empty-blocks
+        try IYieldResolverForGardens(yieldResolver).setGardenHypercertPool(garden, pool) {
+            // Success
+        } catch {
+            emit YieldWiringFailed(garden, pool);
+        }
+    }
+
+    function _isStoredSignalPool(address garden, address pool) internal view returns (bool) {
+        address[] storage pools = gardenSignalPools[garden];
+        for (uint256 i = 0; i < pools.length; i++) {
+            if (pools[i] == pool) return true;
+        }
+        return false;
     }
 
     /// @notice Best-effort member registration before pool creation for compatibility with stricter community setups.

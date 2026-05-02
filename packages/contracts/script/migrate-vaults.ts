@@ -12,6 +12,7 @@ dotenv.config({ path: path.join(__dirname, "../../../", ".env") });
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TOKENBOUND_REGISTRY = "0x000000006551c19487814612e58FE06813775758";
 const TOKENBOUND_SALT = "0x6551655165516551655165516551655165516551655165516551655165516551";
+const HYPERCERT_SIGNAL_POOL_TYPE = 1n;
 
 type NetworkName = "localhost" | "mainnet" | "arbitrum" | "sepolia" | "celo";
 
@@ -20,6 +21,7 @@ interface DeploymentRecord {
   gardenAccountImpl?: string;
   octantFactory?: string;
   octantModule?: string;
+  gardensModule?: string;
   yieldSplitter?: string;
   rootGarden?: {
     address?: string;
@@ -33,6 +35,7 @@ interface GardensFile {
 
 interface RpcLog {
   topics?: string[];
+  data?: string;
 }
 
 interface MigrateOptions {
@@ -60,6 +63,20 @@ interface TemplateValidation {
   asset: string;
   template: string;
   errors: string[];
+}
+
+interface MigrationPlan {
+  octantModule: string;
+  gardensModule: string;
+  yieldResolver: string;
+  vaultGardens: string[];
+  vaultAssets: string[];
+  typedPoolGardens: string[];
+  typedPools: string[];
+  resolverPoolGardens: string[];
+  resolverPools: string[];
+  treasuryGardens: string[];
+  treasuries: string[];
 }
 
 function parseArgs(argv: string[]): MigrateOptions {
@@ -98,6 +115,7 @@ function parseArgs(argv: string[]): MigrateOptions {
       case "-h":
         showHelp();
         process.exit(0);
+        break;
       default:
         break;
     }
@@ -162,6 +180,15 @@ function parseAddressArray(output: string): string[] {
   return output.match(/0x[a-fA-F0-9]{40}/g) ?? [];
 }
 
+function parseTopicAddress(topic: string | undefined): string {
+  if (!topic) return ZERO_ADDRESS;
+  const normalized = topic.toLowerCase();
+  if (/^0x[a-f0-9]{64}$/.test(normalized)) {
+    return `0x${normalized.slice(-40)}`;
+  }
+  return parseAddress(topic);
+}
+
 function parseBool(output: string): boolean {
   const value = output.trim().toLowerCase();
   return value === "true" || value === "1";
@@ -171,6 +198,12 @@ function parseUint(output: string): bigint {
   const token = output.match(/0x[a-fA-F0-9]+|\d+/)?.[0];
   if (!token) return 0n;
   return token.startsWith("0x") ? BigInt(token) : BigInt(token);
+}
+
+function parseLogDataUint(data: string | undefined): bigint {
+  if (!data || data === "0x") return 0n;
+  const firstWord = data.slice(0, 66);
+  return BigInt(firstWord);
 }
 
 function castCall(rpcUrl: string, to: string, signature: string, args: string[] = []): string {
@@ -247,7 +280,7 @@ function loadGardensFromChain(options: MigrateOptions, deployment: DeploymentRec
 
   const logs = castLogs(options.rpcUrl, deployment.gardenToken as string, "Transfer(address,address,uint256)");
   const mintedTokenIds = logs
-    .filter((entry) => normalizeAddress(parseAddress(entry.topics?.[1] ?? "")) === normalizeAddress(ZERO_ADDRESS))
+    .filter((entry) => normalizeAddress(parseTopicAddress(entry.topics?.[1])) === normalizeAddress(ZERO_ADDRESS))
     .map((entry) => {
       const tokenIdTopic = entry.topics?.[3];
       return tokenIdTopic ? BigInt(tokenIdTopic) : 0n;
@@ -400,38 +433,233 @@ function isMigrated(status: VaultStatus, expectedResolver: string): boolean {
   );
 }
 
-function sendEnableAutoAllocate(options: MigrateOptions, octantModule: string, garden: string, asset: string): void {
+function createMigrationPlan(deployment: DeploymentRecord): MigrationPlan {
+  return {
+    octantModule: deployment.octantModule ?? ZERO_ADDRESS,
+    gardensModule: deployment.gardensModule ?? ZERO_ADDRESS,
+    yieldResolver: deployment.yieldSplitter ?? ZERO_ADDRESS,
+    vaultGardens: [],
+    vaultAssets: [],
+    typedPoolGardens: [],
+    typedPools: [],
+    resolverPoolGardens: [],
+    resolverPools: [],
+    treasuryGardens: [],
+    treasuries: [],
+  };
+}
+
+function hasMigrationPlanWrites(plan: MigrationPlan): boolean {
+  return (
+    plan.vaultGardens.length > 0 ||
+    plan.typedPoolGardens.length > 0 ||
+    plan.resolverPoolGardens.length > 0 ||
+    plan.treasuryGardens.length > 0
+  );
+}
+
+function writeMigrationPlan(options: MigrateOptions, plan: MigrationPlan): string {
+  const planDir = path.join(__dirname, "../.generated/migrations");
+  fs.mkdirSync(planDir, { recursive: true });
+  const planPath = path.join(planDir, `vaults-${options.chainId}-${Date.now()}.json`);
+  fs.writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`);
+  return planPath;
+}
+
+function executeMigrationPlan(options: MigrateOptions, plan: MigrationPlan): void {
+  if (!hasMigrationPlanWrites(plan)) {
+    console.log("\nBroadcast plan empty: no migration writes needed");
+    return;
+  }
+
   const privateKey = process.env.MIGRATION_PRIVATE_KEY || process.env.PRIVATE_KEY;
   const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
-  const args = [
-    "send",
-    octantModule,
-    "enableAutoAllocate(address,address)",
-    garden,
-    asset,
+  const planPath = writeMigrationPlan(options, plan);
+  const forgeArgs = [
+    "script",
+    "script/MigrateVaults.s.sol:MigrateVaults",
+    "--sig",
+    "run(string)",
+    planPath,
     "--rpc-url",
     options.rpcUrl,
+    "--chain-id",
+    options.chainId,
+    "--broadcast",
   ];
 
   if (options.sender) {
-    args.push("--from", options.sender);
+    forgeArgs.push("--sender", options.sender);
   }
 
   if (privateKey) {
-    args.push("--private-key", privateKey);
+    forgeArgs.push("--private-key", privateKey);
   } else {
-    args.push("--account", keystoreName);
+    forgeArgs.push("--account", keystoreName);
+    console.log(`\nUsing Foundry keystore: ${keystoreName}`);
+    console.log("Foundry will prompt once for the migration broadcast session");
   }
 
-  execFileSync("cast", args, {
+  console.log(`\nExecuting migration broadcast plan: ${planPath}`);
+  execFileSync("forge", forgeArgs, {
     stdio: "inherit",
-    env: process.env,
+    cwd: path.join(__dirname, ".."),
+    env: {
+      ...process.env,
+      FOUNDRY_PROFILE: "production",
+      FORGE_BROADCAST: "true",
+    },
   });
+}
+
+function loadHypercertSignalPoolsFromEvents(options: MigrateOptions, gardensModule: string): Map<string, string> {
+  const hypercertPools = new Map<string, string>();
+  const logs = castLogs(options.rpcUrl, gardensModule, "SignalPoolCreated(address,address,uint8,address)");
+
+  for (const entry of logs) {
+    if (parseLogDataUint(entry.data) !== HYPERCERT_SIGNAL_POOL_TYPE) continue;
+    const garden = parseTopicAddress(entry.topics?.[1]);
+    const pool = parseTopicAddress(entry.topics?.[2]);
+    if (isZeroAddress(garden) || isZeroAddress(pool)) continue;
+    hypercertPools.set(normalizeAddress(garden), pool);
+  }
+
+  return hypercertPools;
+}
+
+function runSignalPoolWiringBackfill(
+  options: MigrateOptions,
+  deployment: DeploymentRecord,
+  gardens: string[],
+  plan: MigrationPlan,
+): number {
+  const gardensModule = deployment.gardensModule ?? ZERO_ADDRESS;
+  const yieldResolver = deployment.yieldSplitter ?? ZERO_ADDRESS;
+
+  console.log("\nSignal pool wiring + treasury backfill");
+
+  if (isZeroAddress(gardensModule) || isZeroAddress(yieldResolver)) {
+    console.log("  skipped: gardensModule or yieldSplitter missing from deployment artifact");
+    return 1;
+  }
+
+  let failures = 0;
+  const moduleResolver = parseAddress(castCall(options.rpcUrl, gardensModule, "yieldResolver()(address)"));
+  const resolverModule = parseAddress(castCall(options.rpcUrl, yieldResolver, "gardensModule()(address)"));
+  if (normalizeAddress(moduleResolver) !== normalizeAddress(yieldResolver)) {
+    console.log(`  failure: gardensModule.yieldResolver != yieldSplitter (${moduleResolver})`);
+    failures += 1;
+  }
+  if (normalizeAddress(resolverModule) !== normalizeAddress(gardensModule)) {
+    console.log(`  failure: yieldResolver.gardensModule != gardensModule (${resolverModule})`);
+    failures += 1;
+  }
+  if (failures > 0) return failures;
+
+  const eventHypercertPools = loadHypercertSignalPoolsFromEvents(options, gardensModule);
+  let wired = 0;
+  let treasuryBackfilled = 0;
+  let noPools = 0;
+  let manualReview = 0;
+
+  for (const garden of gardens) {
+    const storedPools = parseAddressArray(
+      castCall(options.rpcUrl, gardensModule, "getGardenSignalPools(address)(address[])", [garden]),
+    );
+    const eventHypercertPool = eventHypercertPools.get(normalizeAddress(garden)) ?? ZERO_ADDRESS;
+    let hypercertPool = eventHypercertPool;
+    const eventSourced = !isZeroAddress(eventHypercertPool);
+
+    if (storedPools.length === 0) {
+      noPools += 1;
+      console.log(`- ${garden}`);
+      console.log("  pools: none - operator must create pools in admin; new creation will auto-wire");
+    } else if (!eventSourced) {
+      manualReview += 1;
+      hypercertPool = storedPools.length > 1 ? storedPools[1] : ZERO_ADDRESS;
+      console.log(`- ${garden}`);
+      console.log(`  pools: ${storedPools.length}`);
+      console.log(`  hypercertPool: ${hypercertPool}`);
+      console.log("  source: array-index fallback only - manual review required, no automatic pool write");
+      if (options.broadcast) {
+        failures += 1;
+      }
+    } else {
+      console.log(`- ${garden}`);
+      console.log(`  hypercertPool: ${hypercertPool}`);
+      console.log("  source: SignalPoolCreated(PoolType.HypercertSignal)");
+    }
+
+    if (eventSourced) {
+      const typedPool = parseAddress(
+        castCall(options.rpcUrl, gardensModule, "gardenHypercertSignalPools(address)(address)", [garden]),
+      );
+      const resolverPool = parseAddress(
+        castCall(options.rpcUrl, yieldResolver, "gardenHypercertPools(address)(address)", [garden]),
+      );
+
+      if (normalizeAddress(typedPool) !== normalizeAddress(hypercertPool)) {
+        console.log(`  typedPool: ${typedPool} -> ${hypercertPool}`);
+        if (options.broadcast) {
+          plan.typedPoolGardens.push(garden);
+          plan.typedPools.push(hypercertPool);
+        }
+      }
+
+      if (normalizeAddress(resolverPool) !== normalizeAddress(hypercertPool)) {
+        console.log(`  resolverPool: ${resolverPool} -> ${hypercertPool}`);
+        if (options.broadcast) {
+          plan.resolverPoolGardens.push(garden);
+          plan.resolverPools.push(hypercertPool);
+        }
+      }
+
+      const needsSignalWrite =
+        normalizeAddress(typedPool) !== normalizeAddress(hypercertPool) ||
+        normalizeAddress(resolverPool) !== normalizeAddress(hypercertPool);
+
+      if (!needsSignalWrite) {
+        console.log("  result: signal wiring already matched");
+      } else if (!options.broadcast) {
+        wired += 1;
+        console.log("  result: would wire typed pool and/or resolver pool");
+      } else {
+        wired += 1;
+      }
+    }
+
+    const treasury = parseAddress(
+      castCall(options.rpcUrl, yieldResolver, "gardenTreasuries(address)(address)", [garden]),
+    );
+    if (isZeroAddress(treasury)) {
+      console.log(`  treasury: ${ZERO_ADDRESS} -> ${garden}`);
+      if (options.broadcast) {
+        plan.treasuryGardens.push(garden);
+        plan.treasuries.push(garden);
+        treasuryBackfilled += 1;
+      } else {
+        treasuryBackfilled += 1;
+      }
+    } else {
+      console.log(`  treasury: ${treasury}`);
+    }
+  }
+
+  console.log("\nSignal wiring summary");
+  console.log(`  event-derived hypercert pools: ${eventHypercertPools.size}`);
+  console.log(`  wired / would wire: ${wired}`);
+  console.log(`  treasury backfilled / would backfill: ${treasuryBackfilled}`);
+  console.log(`  no-pool gardens needing operator action: ${noPools}`);
+  console.log(`  manual-review fallback candidates: ${manualReview}`);
+  console.log(`  failures: ${failures}`);
+
+  return failures;
 }
 
 async function main(): Promise<void> {
   const options = parseArgs(process.argv);
   const deployment = loadDeployment(options.chainId);
+  const plan = createMigrationPlan(deployment);
 
   if (isZeroAddress(deployment.octantModule)) {
     throw new Error("octantModule is missing from deployment artifact");
@@ -441,7 +669,7 @@ async function main(): Promise<void> {
     throw new Error("Refusing to run in a non-dry, non-broadcast mode");
   }
 
-  console.log(`\nVault migration audit`);
+  console.log("\nVault migration audit");
   console.log(`  network: ${options.network}`);
   console.log(`  chainId: ${options.chainId}`);
   console.log(`  mode: ${options.broadcast ? "broadcast" : "dry-run"}`);
@@ -452,7 +680,7 @@ async function main(): Promise<void> {
   const invalidTemplates = templateChecks.filter((check) => check.errors.length > 0);
 
   if (invalidTemplates.length > 0) {
-    console.log(`\nInvalid Octant strategy templates detected:`);
+    console.log("\nInvalid Octant strategy templates detected:");
     for (const check of invalidTemplates) {
       console.log(`- ${check.asset}`);
       console.log(`  template: ${check.template}`);
@@ -461,12 +689,13 @@ async function main(): Promise<void> {
       }
     }
 
-    console.log(`\nRefusing to run vault migration until supportedAssets point to ERC4626-compatible templates.`);
+    console.log("\nRefusing to run vault migration until supportedAssets point to ERC4626-compatible templates.");
     if (options.network === "arbitrum") {
-      console.log(`Repair first with: bun run contracts:repair:octant-assets:arbitrum`);
-      console.log(`Validate the repair first with: bun run contracts:repair:octant-assets:dry:arbitrum`);
+      console.log("Repair first with: bun run contracts:repair:octant-assets:arbitrum");
+      console.log("Validate the repair first with: bun run contracts:repair:octant-assets:dry:arbitrum");
     }
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
 
   console.log(`  gardens: ${gardens.length}`);
@@ -499,20 +728,10 @@ async function main(): Promise<void> {
       console.log(`  protocolFeeBps: ${status.protocolFeeBps}`);
 
       if (options.broadcast) {
-        try {
-          sendEnableAutoAllocate(options, deployment.octantModule as string, garden, asset);
-          const refreshed = getVaultStatus(options, deployment, garden, asset);
-          if (!refreshed || !isMigrated(refreshed, deployment.yieldSplitter ?? ZERO_ADDRESS)) {
-            failures += 1;
-            console.log("  result: verification failed after broadcast");
-            continue;
-          }
-          migrated += 1;
-          console.log("  result: migrated");
-        } catch (error) {
-          failures += 1;
-          console.log(`  result: failed (${error instanceof Error ? error.message : String(error)})`);
-        }
+        plan.vaultGardens.push(garden);
+        plan.vaultAssets.push(asset);
+        migrated += 1;
+        console.log("  result: queued for migration");
       } else {
         migrated += 1;
         console.log("  result: would migrate");
@@ -520,14 +739,75 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`\nSummary`);
+  failures += runSignalPoolWiringBackfill(options, deployment, gardens, plan);
+
+  console.log("\nSummary");
   console.log(`  would migrate / migrated: ${migrated}`);
   console.log(`  already migrated: ${skipped}`);
   console.log(`  missing vault slots: ${missingVaults}`);
   console.log(`  failures: ${failures}`);
 
+  if (options.broadcast && failures === 0) {
+    executeMigrationPlan(options, plan);
+
+    for (let i = 0; i < plan.vaultGardens.length; i++) {
+      const refreshed = getVaultStatus(
+        options,
+        deployment,
+        plan.vaultGardens[i] as string,
+        plan.vaultAssets[i] as string,
+      );
+      if (!refreshed || !isMigrated(refreshed, deployment.yieldSplitter ?? ZERO_ADDRESS)) {
+        failures += 1;
+        console.log(`  verification failed after broadcast: ${plan.vaultGardens[i]} / ${plan.vaultAssets[i]}`);
+      }
+    }
+
+    for (let i = 0; i < plan.typedPoolGardens.length; i++) {
+      const garden = plan.typedPoolGardens[i] as string;
+      const pool = plan.typedPools[i] as string;
+      const typedPool = parseAddress(
+        castCall(options.rpcUrl, plan.gardensModule, "gardenHypercertSignalPools(address)(address)", [garden]),
+      );
+      if (normalizeAddress(typedPool) !== normalizeAddress(pool)) {
+        failures += 1;
+        console.log(`  typed pool verification failed after broadcast: ${garden}`);
+      }
+    }
+
+    for (let i = 0; i < plan.resolverPoolGardens.length; i++) {
+      const garden = plan.resolverPoolGardens[i] as string;
+      const pool = plan.resolverPools[i] as string;
+      const resolverPool = parseAddress(
+        castCall(options.rpcUrl, plan.yieldResolver, "gardenHypercertPools(address)(address)", [garden]),
+      );
+      if (normalizeAddress(resolverPool) !== normalizeAddress(pool)) {
+        failures += 1;
+        console.log(`  resolver pool verification failed after broadcast: ${garden}`);
+      }
+    }
+
+    for (let i = 0; i < plan.treasuryGardens.length; i++) {
+      const garden = plan.treasuryGardens[i] as string;
+      const treasury = plan.treasuries[i] as string;
+      const storedTreasury = parseAddress(
+        castCall(options.rpcUrl, plan.yieldResolver, "gardenTreasuries(address)(address)", [garden]),
+      );
+      if (normalizeAddress(storedTreasury) !== normalizeAddress(treasury)) {
+        failures += 1;
+        console.log(`  treasury verification failed after broadcast: ${garden}`);
+      }
+    }
+
+    if (failures === 0) {
+      console.log("\nBroadcast verification passed");
+    } else {
+      console.log(`\nBroadcast verification failures: ${failures}`);
+    }
+  }
+
   if (failures > 0) {
-    process.exit(1);
+    process.exitCode = 1;
   }
 }
 

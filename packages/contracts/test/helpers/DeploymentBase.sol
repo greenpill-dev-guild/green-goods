@@ -366,6 +366,9 @@ abstract contract DeploymentBase is Test, DeployHelper {
         }
         // Wire OctantModule → YieldResolver (for share registration during harvest)
         octantModule.setYieldResolver(address(yieldSplitter));
+        // Wire GardensModule ↔ YieldResolver for HypercertSignal pool auto-wiring
+        yieldSplitter.setGardensModule(address(gardensModule));
+        gardensModule.setYieldResolver(address(yieldSplitter));
         // HypercertMarketplaceAdapter wiring
         if (address(marketplaceAdapter) != address(0)) {
             yieldSplitter.setHypercertMarketplace(address(marketplaceAdapter));

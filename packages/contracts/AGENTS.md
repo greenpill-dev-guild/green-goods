@@ -9,6 +9,22 @@ The contracts package contains Solidity smart contracts for the Green Goods prot
 - `bun run lint`
 - `bun run test:audit:full`
 
+## Deployment Script Defaults
+
+- Use package scripts for deploys, upgrades, migrations, and verification. Do not hand operators raw
+  `forge` commands or ad hoc shell sequences.
+- Root `contracts:*:arbitrum` wrappers set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`.
+- Contract wrappers clear `PINATA_JWT_OP_REF`; media upload credentials must not block contract
+  upgrades.
+- Arbitrum upgrade/broadcast scripts that need the proxy owner use sender
+  `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
+- Signal-pool/yield lane commands, in order:
+  - `bun run contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum`
+  - `bun run contracts:upgrade:signal-pool-yield-wiring:arbitrum`
+  - `bun run contracts:migrate:vaults:dry:arbitrum`
+  - `bun run contracts:migrate:vaults:arbitrum`
+  - `bun run contracts:verify:post-deploy:arbitrum`
+
 ## Architecture Overview
 
 ```

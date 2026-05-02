@@ -211,6 +211,34 @@ contract MockGardenMembershipJoiner {
     }
 }
 
+interface IExpectedGardensModuleYieldWiring {
+    function yieldResolver() external view returns (address);
+    function gardenHypercertSignalPools(address garden) external view returns (address);
+    function setYieldResolver(address resolver) external;
+    function setGardenHypercertSignalPool(address garden, address pool) external;
+}
+
+contract MockYieldResolverForGardens {
+    address public gardensModule;
+    bool public shouldRevertSet;
+    uint256 public setCallCount;
+    mapping(address garden => address pool) public gardenHypercertPools;
+
+    function setGardensModule(address _gardensModule) external {
+        gardensModule = _gardensModule;
+    }
+
+    function setShouldRevertSet(bool shouldRevert) external {
+        shouldRevertSet = shouldRevert;
+    }
+
+    function setGardenHypercertPool(address garden, address pool) external {
+        if (shouldRevertSet) revert("MockYieldResolverForGardens: forced revert");
+        gardenHypercertPools[garden] = pool;
+        setCallCount++;
+    }
+}
+
 /// @title GardensModuleTest
 /// @notice Unit tests for GardensModule contract (v14 — community-first, separate pools)
 contract GardensModuleTest is Test {
@@ -219,6 +247,7 @@ contract GardensModuleTest is Test {
     MockRegistryFactory public registryFactory;
     MockUnifiedPowerRegistry public mockPowerRegistry;
     MockHatsModuleForGardens public hatsModule;
+    MockYieldResolverForGardens public yieldResolver;
 
     address public owner = address(0x1);
     address public gardenToken = address(0x2);
@@ -233,6 +262,7 @@ contract GardensModuleTest is Test {
         registryFactory = new MockRegistryFactory();
         mockPowerRegistry = new MockUnifiedPowerRegistry();
         hatsModule = new MockHatsModuleForGardens();
+        yieldResolver = new MockYieldResolverForGardens();
 
         // Deploy GardensModule behind proxy
         GardensModule impl = new GardensModule();
@@ -260,6 +290,12 @@ contract GardensModuleTest is Test {
 
         // Set operator1 as operator for garden1
         hatsModule.setOperator(garden1, operator1, true);
+    }
+
+    function _wireYieldResolver() internal {
+        yieldResolver.setGardensModule(address(gardensModule));
+        vm.prank(owner);
+        IExpectedGardensModuleYieldWiring(address(gardensModule)).setYieldResolver(address(yieldResolver));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -429,6 +465,99 @@ contract GardensModuleTest is Test {
 
         vm.prank(gardenToken);
         gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Signal Pool → Yield Wiring
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function test_signalPoolYieldWiring_mintPath_recordsTypedPoolAndAutoWiresResolver() public {
+        _wireYieldResolver();
+
+        vm.prank(gardenToken);
+        (, address[] memory pools) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
+
+        address hypercertPool = pools[1];
+        assertEq(
+            IExpectedGardensModuleYieldWiring(address(gardensModule)).gardenHypercertSignalPools(garden1),
+            hypercertPool,
+            "typed HypercertSignal pool should be recorded"
+        );
+        assertEq(yieldResolver.gardenHypercertPools(garden1), hypercertPool, "resolver should be auto-wired");
+        assertEq(yieldResolver.setCallCount(), 1, "resolver wiring should happen exactly once");
+    }
+
+    function test_signalPoolYieldWiring_createGardenPoolsRecoveryPath_autoWiresResolver() public {
+        _wireYieldResolver();
+
+        registryFactory.setCreateFailingCommunities(true);
+        vm.prank(gardenToken);
+        gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
+
+        MockRegistryCommunity(gardensModule.getGardenCommunity(garden1)).setShouldRevertPoolCreation(false);
+
+        vm.prank(operator1);
+        address[] memory pools = gardensModule.createGardenPools(garden1);
+
+        address hypercertPool = pools[1];
+        assertEq(
+            IExpectedGardensModuleYieldWiring(address(gardensModule)).gardenHypercertSignalPools(garden1),
+            hypercertPool,
+            "typed HypercertSignal pool should be recorded on recovery"
+        );
+        assertEq(yieldResolver.gardenHypercertPools(garden1), hypercertPool, "resolver should be wired on recovery");
+    }
+
+    function test_signalPoolYieldWiring_resetClearsTypedPoolAndResolverThenReinitWiresFreshPool() public {
+        _wireYieldResolver();
+
+        vm.prank(gardenToken);
+        (, address[] memory firstPools) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
+        address firstHypercertPool = firstPools[1];
+        assertEq(yieldResolver.gardenHypercertPools(garden1), firstHypercertPool, "precondition: wired before reset");
+
+        vm.prank(owner);
+        gardensModule.resetGardenInitialization(garden1);
+
+        assertEq(
+            IExpectedGardensModuleYieldWiring(address(gardensModule)).gardenHypercertSignalPools(garden1),
+            address(0),
+            "typed HypercertSignal pool should clear on reset"
+        );
+        assertEq(yieldResolver.gardenHypercertPools(garden1), address(0), "resolver pool should clear on reset");
+
+        vm.prank(gardenToken);
+        (, address[] memory freshPools) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Power, "Test Garden", "Test Description");
+
+        address freshHypercertPool = freshPools[1];
+        assertTrue(freshHypercertPool != firstHypercertPool, "reinit should create a fresh HypercertSignal pool");
+        assertEq(
+            IExpectedGardensModuleYieldWiring(address(gardensModule)).gardenHypercertSignalPools(garden1),
+            freshHypercertPool,
+            "typed HypercertSignal pool should update after reinit"
+        );
+        assertEq(yieldResolver.gardenHypercertPools(garden1), freshHypercertPool, "resolver should wire fresh pool");
+    }
+
+    function test_signalPoolYieldWiring_backfillSetterRequiresStoredSignalPool() public {
+        vm.prank(gardenToken);
+        (, address[] memory pools) =
+            gardensModule.onGardenMinted(garden1, IGardensModule.WeightScheme.Linear, "Test Garden", "Test Description");
+
+        vm.prank(owner);
+        IExpectedGardensModuleYieldWiring(address(gardensModule)).setGardenHypercertSignalPool(garden1, pools[1]);
+        assertEq(
+            IExpectedGardensModuleYieldWiring(address(gardensModule)).gardenHypercertSignalPools(garden1),
+            pools[1],
+            "owner should be able to backfill a stored signal pool"
+        );
+
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSignature("PoolNotRegisteredForGarden(address,address)", garden1, address(0xBAD)));
+        IExpectedGardensModuleYieldWiring(address(gardensModule)).setGardenHypercertSignalPool(garden1, address(0xBAD));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1057,9 +1186,26 @@ contract GardensModuleTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_isWiringComplete_returnsTrueWhenFullyWired() public {
+        _wireYieldResolver();
+
         (bool wired, string memory missing) = gardensModule.isWiringComplete();
         assertTrue(wired, "Should be fully wired");
         assertEq(bytes(missing).length, 0, "Missing should be empty string");
+    }
+
+    function test_isWiringComplete_detectsMissingYieldResolver() public {
+        (bool wired, string memory missing) = gardensModule.isWiringComplete();
+        assertFalse(wired, "Should not be wired without yieldResolver");
+        assertEq(missing, "yieldResolver not set");
+    }
+
+    function test_isWiringComplete_detectsYieldResolverGardensModuleMismatch() public {
+        vm.prank(owner);
+        IExpectedGardensModuleYieldWiring(address(gardensModule)).setYieldResolver(address(yieldResolver));
+
+        (bool wired, string memory missing) = gardensModule.isWiringComplete();
+        assertFalse(wired, "Should not be wired when resolver points at another module");
+        assertEq(missing, "yieldResolver.gardensModule mismatch");
     }
 
     function test_isWiringComplete_detectsMissingGardenToken() public {

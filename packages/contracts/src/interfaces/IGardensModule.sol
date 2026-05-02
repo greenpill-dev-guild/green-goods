@@ -70,6 +70,12 @@ interface IGardensModule {
     /// @notice Emitted when the require-full-setup flag is toggled
     event RequireFullSetupUpdated(bool newValue);
 
+    /// @notice Emitted when the typed HypercertSignal pool for a garden changes
+    event GardenHypercertSignalPoolUpdated(address indexed garden, address indexed oldPool, address indexed newPool);
+
+    /// @notice Emitted when YieldResolver auto-wiring fails without blocking pool creation or reset
+    event YieldWiringFailed(address indexed garden, address indexed pool);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Garden Mint Callback
     // ═══════════════════════════════════════════════════════════════════════════
@@ -112,6 +118,10 @@ interface IGardensModule {
     /// @param garden The garden account address
     function seedGardenTreasury(address garden) external;
 
+    /// @notice Set the typed HypercertSignal pool for a garden during migration/backfill.
+    /// @dev Owner-only in the implementation. The pool must already be stored for the garden unless clearing to zero.
+    function setGardenHypercertSignalPool(address garden, address pool) external;
+
     // ═══════════════════════════════════════════════════════════════════════════
     // View Functions
     // ═══════════════════════════════════════════════════════════════════════════
@@ -136,4 +146,10 @@ interface IGardensModule {
 
     /// @notice Get the GOODS token
     function goodsToken() external view returns (IERC20);
+
+    /// @notice Get the YieldResolver used for HypercertSignal pool auto-wiring
+    function yieldResolver() external view returns (address);
+
+    /// @notice Get the typed HypercertSignal pool recorded for a garden
+    function gardenHypercertSignalPools(address garden) external view returns (address);
 }

@@ -16,6 +16,10 @@ import { ICookieJarModule } from "../interfaces/ICookieJarModule.sol";
 import { IAccountant } from "@octant/interfaces/IAccountant.sol";
 import { ZeroAddress, UnauthorizedCaller } from "../CommonErrors.sol";
 
+interface IGardensModuleYieldView {
+    function gardenHypercertSignalPools(address garden) external view returns (address pool);
+}
+
 /// @title YieldResolver
 /// @notice Splits yield from Octant ERC-4626 vaults into three configurable destinations:
 ///         1. Cookie Jar (gardener operational compensation)
@@ -84,6 +88,18 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
 
     event ConvictionCapReached(address indexed garden, uint256 proposalCount, uint256 maxProcessed);
 
+    event YieldToTreasury(
+        address indexed garden, address indexed asset, uint256 amount, address indexed treasury, string source
+    );
+
+    event GardenTreasuryUpdated(address indexed garden, address indexed oldTreasury, address indexed newTreasury);
+
+    event GardenHypercertPoolUpdated(
+        address indexed garden, address indexed oldPool, address indexed newPool, address caller
+    );
+
+    event GardensModuleUpdated(address indexed oldModule, address indexed newModule);
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
@@ -92,6 +108,8 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     error NoVaultShares(address garden, address asset);
     error InvalidVault(address garden, address asset, address expected, address provided);
     error NoEscrowedFractions(address garden, address asset);
+    error InvalidPool(address pool);
+    error InvalidGardenPool(address garden, address pool, address expectedPool);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constants
@@ -183,14 +201,17 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     /// @notice Per-asset minimum yield threshold override (0 = use global minYieldThreshold)
     mapping(address asset => uint256 threshold) public assetYieldThresholds;
 
+    /// @notice GardensModule address trusted to auto-wire freshly created HypercertSignal pools
+    address public gardensModule;
+
     /// @notice Storage gap for future upgrades
-    /// @dev 18 storage vars + 32 gap = 50 slots total
+    /// @dev 19 storage vars + 31 gap = 50 slots total
     ///      Vars: octantModule, hypercertMarketplace, jbMultiTerminal, juiceboxProjectId,
     ///            minYieldThreshold, minAllocationAmount, hatsModule,
     ///            gardenSplitConfig, gardenCookieJars, gardenTreasuries, pendingYield, gardenVaults,
     ///            gardenShares, cookieJarModule, escrowedFractions, totalRegisteredShares,
-    ///            gardenHypercertPools, assetYieldThresholds
-    uint256[32] private __gap;
+    ///            gardenHypercertPools, assetYieldThresholds, gardensModule
+    uint256[31] private __gap;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Constructor & Initializer
@@ -367,8 +388,15 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     }
 
     /// @notice Set treasury (Safe) address for a garden
-    function setGardenTreasury(address garden, address treasury) external onlyOwner {
+    function setGardenTreasury(address garden, address treasury) external {
+        if (msg.sender != owner()) {
+            _requireOperatorOrOwner(garden);
+        }
+        if (treasury == address(0)) revert ZeroAddress();
+
+        address oldTreasury = gardenTreasuries[garden];
         gardenTreasuries[garden] = treasury;
+        emit GardenTreasuryUpdated(garden, oldTreasury, treasury);
     }
 
     /// @notice Set vault address for a garden+asset pair
@@ -456,11 +484,31 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         cookieJarModule = ICookieJarModule(_cookieJarModule);
     }
 
+    /// @notice Set the GardensModule trusted to auto-wire freshly created HypercertSignal pools
+    function setGardensModule(address _gardensModule) external onlyOwner {
+        address oldModule = gardensModule;
+        gardensModule = _gardensModule;
+        emit GardensModuleUpdated(oldModule, _gardensModule);
+    }
+
     /// @notice Set the HypercertSignalPool (CVStrategy) address for a garden
-    /// @dev Pool addresses are only known after gardens are minted and signal pools are created.
+    /// @dev Callable by trusted GardensModule during pool creation, garden operators, or protocol owner.
+    ///      Manual operator/owner writes validate CVStrategy compatibility and typed GardensModule pool identity.
     ///      Set to address(0) to revert to escrow mode for a garden.
-    function setGardenHypercertPool(address garden, address pool) external onlyOwner {
+    function setGardenHypercertPool(address garden, address pool) external {
+        bool isGardensModuleCall = (gardensModule != address(0) && msg.sender == gardensModule);
+
+        if (!isGardensModuleCall && msg.sender != owner()) {
+            _requireOperatorOrOwner(garden);
+        }
+
+        if (pool != address(0) && !isGardensModuleCall) {
+            _validateManualHypercertPool(garden, pool);
+        }
+
+        address oldPool = gardenHypercertPools[garden];
         gardenHypercertPools[garden] = pool;
+        emit GardenHypercertPoolUpdated(garden, oldPool, pool, msg.sender);
     }
 
     /// @notice Set per-asset minimum yield threshold (0 to use global default)
@@ -488,12 +536,9 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     }
 
     /// @notice Rescue ERC-20 tokens stranded in this contract
-    /// @dev Primary recovery mechanism for stranded funds. Tokens can become stranded when:
-    ///      1. Neither Cookie Jar nor treasury is configured (YieldStranded events emitted)
-    ///      2. A fraction purchase fails and tokens remain in this contract
-    ///      3. A Juicebox payment fails and treasury fallback is also unconfigured
-    ///      Off-chain monitoring should alert on YieldStranded events; the owner then calls
-    ///      rescueTokens() to redirect the stranded balance to the correct destination.
+    /// @dev Primary recovery mechanism for unexpected stranded funds. Cookie Jar and Juicebox
+    ///      fallbacks route to the garden TBA when no treasury is configured, but failed
+    ///      marketplace purchases and unexpected token transfers can still leave recoverable balances.
     /// @param token The ERC-20 token address to rescue
     /// @param to The recipient address
     /// @param amount The amount to rescue
@@ -532,11 +577,8 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
     ///      is universally compatible. If a Cookie Jar contract with a deposit() function is
     ///      adopted, this should be updated to call that interface.
     ///
-    ///      **Stranded funds:** If neither gardenCookieJars[garden] nor gardenTreasuries[garden]
-    ///      is configured, the ERC-20 tokens remain in this contract and a YieldStranded event is
-    ///      emitted. The protocol owner can recover stranded tokens via rescueTokens(). Off-chain
-    ///      monitoring should alert on YieldStranded events so configuration can be corrected
-    ///      before the next yield split.
+    ///      If neither gardenCookieJars[garden] nor gardenTreasuries[garden] is configured,
+    ///      the garden TBA receives the fallback transfer.
     function _routeToCookieJar(address garden, address asset, uint256 amount) internal {
         // Try per-asset jar from CookieJarModule first, fall back to legacy mapping
         address jar = address(0);
@@ -552,12 +594,9 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         if (jar == address(0)) {
             // No Cookie Jar configured — send to garden treasury as fallback
             address treasury = gardenTreasuries[garden];
-            if (treasury != address(0)) {
-                IERC20(asset).safeTransfer(treasury, amount);
-                emit YieldToCookieJar(garden, asset, amount, treasury);
-            } else {
-                emit YieldStranded(garden, asset, amount, "cookieJar");
-            }
+            if (treasury == address(0)) treasury = garden;
+            IERC20(asset).safeTransfer(treasury, amount);
+            emit YieldToTreasury(garden, asset, amount, treasury, "cookieJar");
             return;
         }
 
@@ -761,11 +800,9 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         if (address(jbMultiTerminal) == address(0) || juiceboxProjectId == 0) {
             // No Juicebox configured — send to garden treasury as fallback
             address treasury = gardenTreasuries[garden];
-            if (treasury != address(0)) {
-                IERC20(asset).safeTransfer(treasury, amount);
-            } else {
-                emit YieldStranded(garden, asset, amount, "juicebox");
-            }
+            if (treasury == address(0)) treasury = garden;
+            IERC20(asset).safeTransfer(treasury, amount);
+            emit YieldToTreasury(garden, asset, amount, treasury, "juicebox");
             return;
         }
 
@@ -787,11 +824,9 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
             IERC20(asset).forceApprove(address(jbMultiTerminal), 0);
             // JB payment failed — send to treasury as fallback
             address treasury = gardenTreasuries[garden];
-            if (treasury != address(0)) {
-                IERC20(asset).safeTransfer(treasury, amount);
-            } else {
-                emit YieldStranded(garden, asset, amount, "juicebox");
-            }
+            if (treasury == address(0)) treasury = garden;
+            IERC20(asset).safeTransfer(treasury, amount);
+            emit YieldToTreasury(garden, asset, amount, treasury, "juicebox");
         }
     }
 
@@ -823,6 +858,29 @@ contract YieldResolver is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUp
         if (hatsModule.isOwnerOf(garden, msg.sender)) return;
 
         revert UnauthorizedCaller(msg.sender);
+    }
+
+    function _validateManualHypercertPool(address garden, address pool) internal view {
+        if (pool.code.length == 0) revert InvalidPool(pool);
+
+        try ICVStrategy(pool).proposalCounter() returns (uint256) {
+            // Valid CVStrategy-compatible pool.
+        } catch {
+            revert InvalidPool(pool);
+        }
+
+        if (gardensModule == address(0)) return;
+
+        address expectedPool;
+        try IGardensModuleYieldView(gardensModule).gardenHypercertSignalPools(garden) returns (address typedPool) {
+            expectedPool = typedPool;
+        } catch {
+            revert InvalidPool(pool);
+        }
+
+        if (expectedPool != address(0) && expectedPool != pool) {
+            revert InvalidGardenPool(garden, pool, expectedPool);
+        }
     }
 
     /// @notice Get the yield threshold for an asset (per-asset if set, else global)

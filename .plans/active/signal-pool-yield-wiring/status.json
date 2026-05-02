@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-03-16",
-    "updated_at": "2026-04-26T17:34:07.000Z",
+    "updated_at": "2026-05-01T21:26:17.819Z",
     "target_date": "2026-05-15"
   },
   "links": {
@@ -38,27 +38,67 @@
       "depends_on": ["state_api", "contracts"],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "Admin /community owns reconnect UX; compact status elsewhere deep-links to /community. Do not infer Hypercert pool by array index.",
-      "skill_tags": ["ui", "frontend-design", "react"]
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      }
     },
     "state_api": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/state-api/signal-pool-yield-wiring",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Shared hooks expose typed expected/resolver wiring state; useGardenPools must stop classifying pools by trimmed array index.",
-      "skill_tags": ["react", "tanstack-query", "data-layer"]
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      }
     },
     "contracts": {
       "owner": "codex",
-      "status": "ready",
+      "status": "completed",
       "branch": "codex/contracts/signal-pool-yield-wiring",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "handoff_note": "Implement typed HypercertSignal pool mapping, trusted GardensModule caller, stronger manual validation, reset cleanup, migration/backfill, post-deploy checks, and upgrade-script cross-wiring.",
-      "skill_tags": ["contracts"]
+      "skill_tags": ["contracts"],
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "cd packages/contracts && bun run test -- --match-test 'test_signalPoolYieldWiring|test_yieldResolverWiring' --offline",
+          "evidence": "handoffs/codex-contracts.md#tdd-proof"
+        },
+        "green": {
+          "command": "cd packages/contracts && bun run test -- --match-test 'test_signalPoolYieldWiring|test_yieldResolverWiring' --offline",
+          "evidence": "handoffs/codex-contracts.md#tdd-proof"
+        },
+        "note": ""
+      },
+      "manual_blocked": false
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -132,6 +172,30 @@
       "status": "plan_strengthened",
       "branch": null,
       "note": "Patched plan to require typed HypercertSignal pool state, no array-index pool classification, bidirectional YieldResolver/GardensModule verification, reset cleanup, upgrade-script cross-wiring, stronger migration/backfill checks, and concrete lane handoffs."
+    },
+    {
+      "timestamp": "2026-05-01T20:42:09.716Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "tdd_policy_applied",
+      "branch": null,
+      "note": "Added TDD proof metadata for active implementation lanes."
+    },
+    {
+      "timestamp": "2026-05-01T21:26:15.290Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "codex/contracts/signal-pool-yield-wiring",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-01T21:26:17.819Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "completed",
+      "branch": "codex/contracts/signal-pool-yield-wiring",
+      "note": "Contracts wiring implemented with RED/GREEN proof in codex-contracts handoff."
     }
   ]
 }
