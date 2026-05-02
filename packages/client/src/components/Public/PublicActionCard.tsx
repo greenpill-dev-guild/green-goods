@@ -43,7 +43,7 @@ export function PublicActionCard({ action, onOpen }: PublicActionCardProps) {
         <ImageWithFallback
           src={action.media[0] ?? "/images/no-image-placeholder.png"}
           alt={action.title}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
         />
       </div>
       <span

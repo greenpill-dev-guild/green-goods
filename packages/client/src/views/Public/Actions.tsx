@@ -1,18 +1,21 @@
-import {
-  type Action,
-  useActions,
-  useApp,
-  useInstallGuidance,
-  usePublicInstallHandler,
-} from "@green-goods/shared";
+import { type Action, useActions } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { type EditorialDomain, EditorialDomainChip } from "@/components/Public/atoms";
+import {
+  type EditorialDomain,
+  EditorialDomainChip,
+  EditorialHeading,
+  EditorialKicker,
+  EditorialNumeral,
+  EditorialTitleAccent,
+} from "@/components/Public/atoms";
+import { cn } from "@green-goods/shared";
 import { PublicActionCard } from "@/components/Public/PublicActionCard";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
+import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicSourceDialog } from "@/components/Public/PublicSourceDialog";
-import { publicCuration } from "@/content/publicCuration";
+import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 interface DomainEntry {
   id: EditorialDomain;
@@ -34,6 +37,66 @@ const DOMAINS: readonly DomainEntry[] = [
   { id: "waste", filterId: "3", labelId: "app.domain.tab.waste", defaultLabel: "Waste" },
 ] as const;
 
+interface DomainExplainer {
+  id: Exclude<EditorialDomain, "all">;
+  numeral: string;
+  titleId: string;
+  defaultTitle: string;
+  bodyId: string;
+  defaultBody: string;
+  /** Tailwind utility for the top accent bar; uses domain ink tokens. */
+  accentClass: string;
+  /** Tailwind utility for the numeral tint; uses domain ink tokens. */
+  numeralClass: string;
+}
+
+const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
+  {
+    id: "solar",
+    numeral: "i.",
+    titleId: "public.actions.domains.solar.title",
+    defaultTitle: "Solar",
+    bodyId: "public.actions.domains.solar.body",
+    defaultBody:
+      "Distributed energy work — small installations, microgrid maintenance, and the people learning to keep them running.",
+    accentClass: "bg-domain-solar",
+    numeralClass: "text-domain-solar",
+  },
+  {
+    id: "agro",
+    numeral: "ii.",
+    titleId: "public.actions.domains.agro.title",
+    defaultTitle: "Agroforestry",
+    bodyId: "public.actions.domains.agro.body",
+    defaultBody:
+      "Tree planting, harvest records, and soil care — the slow work of rebuilding land while keeping it productive.",
+    accentClass: "bg-domain-agro",
+    numeralClass: "text-domain-agro",
+  },
+  {
+    id: "education",
+    numeral: "iii.",
+    titleId: "public.actions.domains.education.title",
+    defaultTitle: "Education",
+    bodyId: "public.actions.domains.education.body",
+    defaultBody:
+      "Workshops, learning circles, and curriculum that pass regenerative practice from one generation to the next.",
+    accentClass: "bg-domain-education",
+    numeralClass: "text-domain-education",
+  },
+  {
+    id: "waste",
+    numeral: "iv.",
+    titleId: "public.actions.domains.waste.title",
+    defaultTitle: "Waste",
+    bodyId: "public.actions.domains.waste.body",
+    defaultBody:
+      "Recycling streams, composting, and reuse projects that close loops and keep materials out of landfills.",
+    accentClass: "bg-domain-waste",
+    numeralClass: "text-domain-waste",
+  },
+] as const;
+
 /**
  * Actions — readable public Action library.
  *
@@ -47,15 +110,6 @@ const DOMAINS: readonly DomainEntry[] = [
 export default function ActionsGallery() {
   const { formatMessage } = useIntl();
   const { data: actions = [], isLoading } = useActions();
-  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
-  const guidance = useInstallGuidance(
-    platform,
-    isInstalled,
-    wasInstalled,
-    deferredPrompt,
-    isMobile
-  );
-  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
   const [domain, setDomain] = useState<EditorialDomain>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
 
@@ -78,14 +132,20 @@ export default function ActionsGallery() {
   return (
     <>
       <PublicEditorialHero
-        imageSrc={publicCuration.heroImagePath}
+        variant="banner"
+        imageSrc={getPublicHeroImage("actions")}
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
         titleId="public-actions-hero-title"
-        title={formatMessage({
-          id: "public.actions.heroTitle",
-          defaultMessage: "A field guide for regenerative work.",
-        })}
+        title={formatMessage(
+          {
+            id: "public.actions.heroTitle",
+            defaultMessage: "A field guide for <accent>regenerative work</accent>.",
+          },
+          {
+            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
+          }
+        )}
         lede={formatMessage({
           id: "public.actions.heroLede",
           defaultMessage:
@@ -93,8 +153,65 @@ export default function ActionsGallery() {
         })}
       />
 
+      {/* § 01 — Four domains explainer */}
       <section
-        className="bg-bg-weak-50 px-6 pt-32 pb-20 sm:px-10 md:pt-48 md:pb-28"
+        className="bg-bg-weak-50 px-6 pt-20 pb-12 sm:px-10 md:pt-24 md:pb-16"
+        aria-labelledby="public-actions-domains-title"
+      >
+        <div className="mx-auto max-w-7xl">
+          <header className="border-b border-stroke-soft-200 pb-6">
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.actions.domains.kicker",
+                defaultMessage: "§ 01 — Four domains",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-actions-domains-title">
+              {formatMessage({
+                id: "public.actions.domains.title",
+                defaultMessage: "Where regenerative work shows up.",
+              })}
+            </EditorialHeading>
+          </header>
+
+          <ul className="mt-12 grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+            {DOMAIN_EXPLAINERS.map((domain) => (
+              <li key={domain.id} className="flex flex-col gap-4">
+                <span aria-hidden="true" className={cn("h-[3px] w-12", domain.accentClass)} />
+                <EditorialNumeral className={domain.numeralClass}>
+                  {domain.numeral}
+                </EditorialNumeral>
+                <h3 className="font-serif text-2xl font-normal leading-[1.05] tracking-[-0.012em] text-text-strong-950 md:text-3xl">
+                  {formatMessage({
+                    id: domain.titleId,
+                    defaultMessage: domain.defaultTitle,
+                  })}
+                </h3>
+                <p className="text-sm leading-[1.6] text-text-sub-600 md:text-base">
+                  {formatMessage({
+                    id: domain.bodyId,
+                    defaultMessage: domain.defaultBody,
+                  })}
+                </p>
+                <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-soft-400">
+                  {formatMessage(
+                    {
+                      id: "public.actions.domains.count",
+                      defaultMessage:
+                        "{count, plural, =0 {No templates yet} one {# template} other {# templates}}",
+                    },
+                    { count: counts[domain.id] ?? 0 }
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* § 02 — Field guide */}
+      <section
+        className="bg-bg-weak-50 px-6 pt-12 pb-16 sm:px-10 md:pt-16 md:pb-20"
         aria-labelledby="public-actions-grid-title"
       >
         <div className="mx-auto max-w-7xl">
@@ -102,7 +219,7 @@ export default function ActionsGallery() {
             <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-soft-400">
               {formatMessage({
                 id: "public.actions.kicker",
-                defaultMessage: "Field guide",
+                defaultMessage: "§ 02 — Field guide",
               })}
             </p>
             <h2
@@ -168,7 +285,7 @@ export default function ActionsGallery() {
         </div>
       </section>
 
-      <PublicFooter />
+      <PublicFooter variant="soil" />
 
       {activeAction ? (
         <PublicSourceDialog
@@ -197,14 +314,18 @@ export default function ActionsGallery() {
                 "Install the Green Goods app to log Work for this Action with your Garden.",
             })}
           </p>
-          <a
-            href="#install"
-            onClick={handleInstallClick}
-            data-install-action={guidance.primaryAction.type}
-            className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
-          >
-            {formatMessage({ id: "public.nav.installApp", defaultMessage: "Install App" })}
-          </a>
+          <PublicInstallAction>
+            {({ label, href, onClick, dataInstallAction }) => (
+              <a
+                href={href}
+                onClick={onClick}
+                data-install-action={dataInstallAction}
+                className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
+              >
+                {label}
+              </a>
+            )}
+          </PublicInstallAction>
         </PublicSourceDialog>
       ) : null}
     </>

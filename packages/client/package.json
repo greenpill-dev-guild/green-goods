@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "predev": "lsof -t -iTCP:3001 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
-    "dev": "APP_ENV=development bun --bun vite",
+    "dev": "APP_ENV=development node ../../scripts/dev/node-cli.js vite",
     "test": "APP_ENV=test vitest run",
     "test:watch": "APP_ENV=test vitest --standalone",
     "coverage": "APP_ENV=test vitest run --coverage",

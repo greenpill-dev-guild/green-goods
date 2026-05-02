@@ -13,39 +13,39 @@ interface LoopStep {
 
 const STEPS: readonly LoopStep[] = [
   {
-    numeral: "i.",
+    numeral: "1.",
     titleId: "public.home.loop.assess",
     defaultTitle: "Assess the place.",
     bodyId: "public.home.loop.assessBody",
     defaultBody:
-      "Begin where you are. Map what's living, what's struggling, and what the land remembers — recorded simply, in the gardener's own hand.",
+      "A Garden starts as a real community hub with members, roles, and a place-based brief, so every Work record has somewhere accountable to land.",
     to: "/impact",
   },
   {
-    numeral: "ii.",
+    numeral: "2.",
     titleId: "public.home.loop.work",
     defaultTitle: "Do the work.",
     bodyId: "public.home.loop.workBody",
     defaultBody:
-      "Plant, prune, mulch, repair. Each entry is timestamped, photographed, and attached to a Garden — the ledger of a season's labour.",
+      "Gardeners submit Work from the field with media, details, and metadata. Operators review those submissions before they become part of the public record.",
     to: "/actions",
   },
   {
-    numeral: "iii.",
+    numeral: "3.",
     titleId: "public.home.loop.verify",
     defaultTitle: "Verify impact.",
     bodyId: "public.home.loop.verifyBody",
     defaultBody:
-      "An independent evaluator visits, witnesses, and signs off. Not an audit — a neighbourly second opinion, anchored to public reference.",
+      "Evaluators create Assessments that connect approved Work to evidence and impact across the Eight Forms of Capital.",
     to: "/impact",
   },
   {
-    numeral: "iv.",
+    numeral: "4.",
     titleId: "public.home.loop.fund",
     defaultTitle: "Fund what grows.",
     bodyId: "public.home.loop.fundBody",
     defaultBody:
-      "Funders read the record and support what's working. The loop closes; another season begins.",
+      "Funders can Donate through Cookie Jars for direct support or Endow Garden Vaults designed so yield supports the Work over time.",
     to: "/fund",
   },
 ] as const;
@@ -63,20 +63,28 @@ export function PublicRecordLoop() {
   const { formatMessage } = useIntl();
 
   return (
-    <section className="bg-bg-weak-50" aria-labelledby="public-loop-title">
-      <div className="mx-auto max-w-7xl px-6 py-20 sm:px-10 md:py-28">
+    <section
+      className="bg-bg-weak-50 px-6 py-20 sm:px-10 md:py-28"
+      aria-labelledby="public-loop-title"
+    >
+      <div className="mx-auto max-w-7xl">
         <div className="max-w-3xl">
-          <EditorialKicker className="mb-5">
+          <EditorialKicker className="mb-5 whitespace-nowrap text-[10px] tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
             {formatMessage({
               id: "public.home.loop.kicker",
-              defaultMessage: "§ 03 — Regenerative Work Loop",
+              defaultMessage: "§ 03: Regenerative Work Loop",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-loop-title">
-            {formatMessage({
-              id: "public.home.loop.title",
-              defaultMessage: "Four steps. Repeated, season after season, in public.",
-            })}
+            {formatMessage(
+              {
+                id: "public.home.loop.title",
+                defaultMessage: "Four steps. Repeated, <line2>season after season</line2>",
+              },
+              {
+                line2: (chunks) => <span className="block">{chunks}</span>,
+              }
+            )}
           </EditorialHeading>
         </div>
 
@@ -93,10 +101,10 @@ export function PublicRecordLoop() {
                 <span className="pt-2">
                   <EditorialNumeral>{numeral}</EditorialNumeral>
                 </span>
-                <h3 className="font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action md:text-4xl">
+                <h3 className="min-w-0 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action md:text-4xl">
                   {formatMessage({ id: titleId, defaultMessage: defaultTitle })}
                 </h3>
-                <p className="text-sm leading-[1.6] text-text-sub-600 md:text-base">
+                <p className="col-start-2 min-w-0 text-sm leading-[1.6] text-text-sub-600 md:col-start-auto md:text-base">
                   {formatMessage({ id: bodyId, defaultMessage: defaultBody })}
                 </p>
               </Link>

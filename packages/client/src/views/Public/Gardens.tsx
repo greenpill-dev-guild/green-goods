@@ -1,11 +1,11 @@
 import { type PublicGardenSummary, usePublicGardens } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { EditorialDivider, EditorialKicker } from "@/components/Public/atoms";
+import { EditorialDivider, EditorialKicker, EditorialTitleAccent } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
-import { publicCuration } from "@/content/publicCuration";
+import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 /**
  * Gardens — public discovery and browsing view.
@@ -36,14 +36,20 @@ export default function GardensGallery() {
   return (
     <>
       <PublicEditorialHero
-        imageSrc={publicCuration.heroImagePath}
+        variant="banner"
+        imageSrc={getPublicHeroImage("gardens")}
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
         titleId="public-gardens-hero-title"
-        title={formatMessage({
-          id: "public.gardens.heroTitle",
-          defaultMessage: "Explore the Gardens growing the public record.",
-        })}
+        title={formatMessage(
+          {
+            id: "public.gardens.heroTitle",
+            defaultMessage: "Explore the <accent>Gardens</accent> growing the public record.",
+          },
+          {
+            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
+          }
+        )}
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
@@ -53,7 +59,7 @@ export default function GardensGallery() {
 
       <section
         id="archive"
-        className="bg-bg-weak-50 px-6 pt-32 pb-20 sm:px-10 md:pt-48 md:pb-28"
+        className="bg-bg-weak-50 px-6 pt-20 pb-16 sm:px-10 md:pt-24 md:pb-20"
         aria-labelledby="public-gardens-archive-title"
       >
         <div className="mx-auto max-w-7xl">
@@ -97,55 +103,58 @@ export default function GardensGallery() {
               {formatMessage(
                 {
                   id: "public.gardens.archiveCount",
-                  defaultMessage:
-                    "{count, plural, one {# Garden} other {# Gardens}} · updated daily",
+                  defaultMessage: "{count, plural, one {# Garden} other {# Gardens}}",
                 },
                 { count: filtered.length }
               )}
             </p>
           ) : null}
 
-          {isLoading ? (
-            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-              {[0, 1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
-                  aria-hidden="true"
-                />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="mt-12">
-              <p className="font-serif text-2xl italic text-text-soft-400">
-                {query.trim().length > 0
-                  ? formatMessage(
-                      {
-                        id: "public.gardens.noMatches",
-                        defaultMessage: 'No Gardens match "{query}".',
-                      },
-                      { query: query.trim() }
-                    )
-                  : formatMessage({
-                      id: "public.gardens.empty",
-                      defaultMessage: "Gardens will appear here as they come online.",
-                    })}
-              </p>
-              <div className="mt-6">
-                <EditorialDivider />
+          {/* Reserve a stable height so filtering down to a single result
+              does not collapse the page and shift the footer up. */}
+          <div className="min-h-[60vh]">
+            {isLoading ? (
+              <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
+                    aria-hidden="true"
+                  />
+                ))}
               </div>
-            </div>
-          ) : (
-            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((garden: PublicGardenSummary) => (
-                <PublicGardenCard key={garden.id} garden={garden} />
-              ))}
-            </div>
-          )}
+            ) : filtered.length === 0 ? (
+              <div className="mt-12">
+                <p className="font-serif text-2xl italic text-text-soft-400">
+                  {query.trim().length > 0
+                    ? formatMessage(
+                        {
+                          id: "public.gardens.noMatches",
+                          defaultMessage: 'No Gardens match "{query}".',
+                        },
+                        { query: query.trim() }
+                      )
+                    : formatMessage({
+                        id: "public.gardens.empty",
+                        defaultMessage: "Gardens will appear here as they come online.",
+                      })}
+                </p>
+                <div className="mt-6">
+                  <EditorialDivider />
+                </div>
+              </div>
+            ) : (
+              <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((garden: PublicGardenSummary) => (
+                  <PublicGardenCard key={garden.id} garden={garden} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
-      <PublicFooter />
+      <PublicFooter variant="soil" />
     </>
   );
 }

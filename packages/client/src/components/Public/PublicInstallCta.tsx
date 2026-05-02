@@ -1,5 +1,5 @@
-import { useApp, useInstallGuidance, usePublicInstallHandler } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { PublicInstallAction } from "./PublicInstallAction";
 
 export interface PublicInstallCtaProps {
   variant?: "section" | "compact";
@@ -7,47 +7,31 @@ export interface PublicInstallCtaProps {
 }
 
 /**
- * PublicInstallCta — install/open module reused on home, header, and drawers.
+ * PublicInstallCta — install/open module reused on public browser surfaces.
  *
- * Desktop scenario: shows guidance to open on mobile / use a recommended browser.
- * Already-installed: shows `Open App`.
- * Otherwise: surfaces install primary action label from `useInstallGuidance`.
- *
- * Section variant additionally renders `guidance.manualInstructions` when the
- * scenario calls for it (iOS Safari Add-to-Home, Android manual flow), so
- * users who land here from a header/hero CTA see real next steps.
+ * The click behavior is owned by `PublicInstallAction`: desktop opens the QR
+ * handoff, mobile tries native install first, and manual fallback opens in the
+ * public install sheet.
  */
 export function PublicInstallCta({ variant = "section", className = "" }: PublicInstallCtaProps) {
   const { formatMessage } = useIntl();
-  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
-  const guidance = useInstallGuidance(
-    platform,
-    isInstalled,
-    wasInstalled,
-    deferredPrompt,
-    isMobile
-  );
-  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
-
-  const labelId = isInstalled ? "public.nav.openApp" : "public.nav.installApp";
-  const defaultLabel = isInstalled ? "Open App" : "Install App";
 
   if (variant === "compact") {
     return (
-      <a
-        href="#install"
-        onClick={handleInstallClick}
-        data-install-action={guidance.primaryAction.type}
-        className={`rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${className}`}
-      >
-        {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-      </a>
+      <PublicInstallAction>
+        {({ label, href, onClick, dataInstallAction }) => (
+          <a
+            href={href}
+            onClick={onClick}
+            data-install-action={dataInstallAction}
+            className={`cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${className}`}
+          >
+            {label}
+          </a>
+        )}
+      </PublicInstallAction>
     );
   }
-
-  const showManualSteps =
-    !isInstalled && guidance.manualInstructions && guidance.manualInstructions.length > 0;
-  const browserSwitchReason = !isInstalled ? guidance.browserSwitchReason : null;
 
   return (
     <section id="install" className="bg-bg-white-0 py-16" aria-labelledby="public-install-title">
@@ -65,42 +49,23 @@ export function PublicInstallCta({ variant = "section", className = "" }: Public
           {formatMessage({
             id: "public.home.install.description",
             defaultMessage:
-              "Install the Green Goods app to log Work, capture evidence, and follow Gardens you support — even offline.",
+              "Install the Green Goods app to log Work, capture evidence, and follow Gardens you support, even offline.",
           })}
         </p>
         <div className="mt-8 flex justify-center">
-          <a
-            href="#install"
-            onClick={handleInstallClick}
-            data-install-action={guidance.primaryAction.type}
-            className="rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
-          >
-            {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-          </a>
-        </div>
-
-        {browserSwitchReason ? (
-          <p className="mx-auto mt-6 max-w-xl text-sm text-text-sub-600">{browserSwitchReason}</p>
-        ) : null}
-
-        {showManualSteps && guidance.manualInstructions ? (
-          <ol className="mx-auto mt-8 max-w-xl space-y-3 text-left text-sm text-text-sub-600">
-            {guidance.manualInstructions.map((step) => (
-              <li
-                key={step.stepNumber}
-                className="flex gap-3 rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 p-3"
+          <PublicInstallAction>
+            {({ label, href, onClick, dataInstallAction }) => (
+              <a
+                href={href}
+                onClick={onClick}
+                data-install-action={dataInstallAction}
+                className="cursor-pointer rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
               >
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-action text-xs font-semibold text-primary-action-foreground">
-                  {step.stepNumber}
-                </span>
-                <div className="flex-1">
-                  <p className="font-medium text-text-strong-950">{step.title}</p>
-                  <p className="mt-1">{step.description.replace(/\*\*/g, "")}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        ) : null}
+                {label}
+              </a>
+            )}
+          </PublicInstallAction>
+        </div>
       </div>
     </section>
   );

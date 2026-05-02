@@ -15,7 +15,7 @@ dialect: public-browser
 
 | Mode | Detection | Audiences | Metaphor | Paradigm | Navigation |
 |------|-----------|-----------|----------|----------|------------|
-| **Public browser** | Standard browser visit | Funders, community members, partners | Coffee-table garden journal crossed with a living public record | Editorial gateway → ambient data landscape | `SiteHeader` (sticky, glassy, no bottom AppBar) |
+| **Public browser** | Standard browser visit | Funders, community members, partners | Coffee-table garden journal crossed with a living public record | Editorial gateway → ambient data landscape | `SiteHeader` (sticky, transparent, fades on scroll, no bottom AppBar) |
 
 **Hard rule:** Browser = website. Use `SiteHeader` at the top; never show installed-PWA bottom `AppBar` chrome.
 
@@ -30,24 +30,41 @@ dialect: public-browser
 
 ## SiteHeader
 
-- Sticky, with backdrop blur. Logo links home.
-- **Nav order:** Gardens, Impact, Fund, Actions.
+- **Fixed at top, fully transparent** on every public route — no background, no border, no blur. The header is removed from the layout flow so the hero image plate runs all the way to the top of the viewport and the header floats over it.
+- **Fades out on scroll** rather than turning into a solid sticky bar. Opacity goes from `1` at the top to `0` after ~220px of scroll, with `pointer-events: none` once hidden so the page below stays interactive. The mobile drawer pins the header back to fully visible while open.
+- Wayfinding once the hero leaves the viewport is owned by the **compact utility footer** at the bottom of every public page.
+- Logo links home. **Nav order:** Gardens, Impact, Fund, Actions.
 - **Primary CTA:** `Install App` (or `Open App` when `useInstallGuidance` reports already-installed). The CTA carries `data-install-action` from the guidance hook so the install logic stays one source of truth.
 - **No wallet connect in the header.** Wallet connect appears only at the wallet-required step inside funding flows.
 - Mobile drawer mirrors the desktop nav and footers with the same `Install App` / `Open App` CTA.
 
 ## Homepage (`/`)
 
-Composed of six sections in this exact order:
+Composed of seven sections in this exact order:
 
-1. **`PublicHero`** — full-bleed curated Garden image, anchored bottom-left, dark gradient overlay using `static-black/*` semantic tokens. H1 `Green Goods`, tagline `From good intentions to green outcomes`, one-sentence lede about communities documenting, verifying, and funding regenerative work. Primary CTA `Explore Gardens`, secondary CTA `Install App`. **Never** stats, route grids, wallet connect, or waitlist forms in the hero.
-2. **`PublicFeaturedGardens`** — lead-plus-two layout. Curation comes from `packages/client/src/content/publicCuration.ts` keyed by Garden id/address (canonical) — slugs are display aliases. Falls back to recent active Gardens when curation is empty or unmatched.
-3. **`PublicProofBand`** — confirmed counts only (Gardens, Contributors, Work, Assessments). Links contextually to `/impact`. Unavailable carbon, water, species, and area metrics stay hidden.
-4. **`PublicRecordLoop`** — visitor-facing four-step narrative: `Assess the place` → `Do the work` → `Verify impact` → `Fund what grows`. Links each step contextually. This is narrative copy; it does **not** imply formal EAS Assessment happens before Work.
-5. **`PublicInstallCta`** — install/open module section. Reuses the same install action as the header.
-6. **`PublicGetInTouch`** — closing module: email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent) plus a Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma outages render a localized failure with the Schedule-a-Call fallback.
+1. **`PublicEditorialHero`** — full-bleed curated Garden image plate. The linen content card sits as a **bottom-left overlay inside the hero image** (no negative overlap, no clipping, fully contained). The card carries the H1 (the tagline `From good intentions to green outcomes`), the one-sentence lede, and the hero CTAs.
+   - **Desktop CTAs:** `Explore Gardens` only (single primary). The `Install App` CTA already lives in the header on desktop, so the hero stays focused on the editorial gesture.
+   - **Mobile CTAs:** `Install App` (or `Open App`) **first**, then `Explore Gardens` second. A phone visitor lands on the install path; the secondary keeps the editorial route open.
+   - The CTAs land **above the fold** on standard browser viewports (1440 / 1024 / 768 / 375 px) because the card is contained inside the image, not protruding below it.
+   - **Never** stats, route grids, wallet connect, or waitlist forms in the hero.
+2. **`PublicFeaturedGardens`** — **four featured Gardens in an editorial masonry column flow** (not a fake stagger). Image-backed Gardens are preferred so the grid feels alive rather than placeholder-heavy. Curation comes from `packages/client/src/content/publicCuration.ts` keyed by Garden id/address (canonical) — slugs are display aliases. Falls back to recent active Gardens when curation is empty or unmatched. The section uses standard vertical rhythm — no oversized top padding to absorb a hero overlap, since the hero is now self-contained.
+3. **`PublicProofBand`** — confirmed counts only (Gardens, Contributors, Work, Assessments). Links contextually to `/impact`. Unavailable carbon, water, species, and area metrics stay hidden. Renders on the warm linen surface in light mode and a warm walnut surface in dark mode (both via `--editorial-warm-rgb`); body text uses semantic tokens that auto-flip.
+4. **`PublicRecordLoop`** — visitor-facing four-step narrative: `Assess the place` → `Do the work` → `Verify impact` → `Fund what grows`. Links each step contextually. Body copy must stay grounded in the actual protocol: Gardens as community hubs, Work submissions, operator review, evaluator Assessments, Cookie Jars, and Vault endowments. This is narrative copy; it does **not** imply formal EAS Assessment happens before Work.
+5. **`PublicFundingBridge`** — cardless trust section explaining the two public support paths: `Donate` through a Garden Cookie Jar for direct support, or `Endow` through a Garden Vault designed so yield supports the Garden over time. One primary CTA routes to `/fund`; no wallet connect, amount form, or per-Garden funding selector lives on Home.
+6. **`PublicGetInTouch`** — closing module: email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent copy) plus a secondary Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. The Schedule-a-Call link is inline after a divider, not inside its own card. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma outages render a localized failure with the Schedule-a-Call fallback.
+7. **`PublicFooter`** — compact provenance row with restored living-public-record message, public route links, and contact. Footer links are neutral by default; green is a hover/focus affordance only.
 
 No final sitemap-style "choose your path" route grid.
+
+### Compact utility footer
+
+Every public-browser page ends with `PublicFooter` — a single quiet row containing:
+
+- Small wordmark (`Green Goods`, regular Fraunces, base size — **not** the oversized italic display treatment).
+- Public nav links (Gardens, Impact, Fund, Actions) + Contact (`mailto:`).
+- Copyright/provenance (`© <year> Green Goods. A living public record, rooted in regenerative work.`).
+
+Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above the footer; the footer is wayfinding + provenance, not a hero moment.
 
 ## `/gardens`
 
@@ -127,6 +144,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 - **Semantic Warm Earth tokens only.** Never raw color, radius, motion, or duration values. Image overlays use `text-static-white` / `bg-static-black` semantic tokens (audited via `check:design-tokens`).
 - 4-role volume hierarchy: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%.
 - Accent green (`primary-action`) is reserved for interactive support / install CTAs. Editorial accents (kicker, link green) come from semantic primary-base.
+- **Dark mode** is supported on all public-browser surfaces. Editorial-specific tokens (`--editorial-warm-rgb`, `--editorial-deep-rgb`) get warm dark overrides under `[data-theme="dark"]` so the Living Public Record and Get In Touch sections render as warm walnut with linen ink instead of cold neutral grey. Domain palette stays the same in both modes.
 
 ## Motion & Dialogs
 

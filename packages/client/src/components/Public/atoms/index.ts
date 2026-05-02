@@ -17,6 +17,8 @@ export {
   type EditorialLedeProps,
   EditorialLinkArrow,
   type EditorialLinkArrowProps,
+  EditorialTitleAccent,
+  type EditorialTitleAccentProps,
   type EditorialMetaItem,
   EditorialMetaRow,
   type EditorialMetaRowProps,

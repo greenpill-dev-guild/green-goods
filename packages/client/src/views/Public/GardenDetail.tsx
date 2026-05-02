@@ -1,14 +1,9 @@
-import {
-  publicGardenHelpers,
-  useApp,
-  useInstallGuidance,
-  usePublicGardens,
-  usePublicInstallHandler,
-} from "@green-goods/shared";
+import { publicGardenHelpers, usePublicGardens } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Link, useParams } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
+import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicInstallCta } from "@/components/Public/PublicInstallCta";
 
 /**
@@ -21,15 +16,6 @@ export default function GardenDetail() {
   const { id } = useParams<{ id: string }>();
   const { formatMessage } = useIntl();
   const { data: gardens = [] } = usePublicGardens();
-  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
-  const guidance = useInstallGuidance(
-    platform,
-    isInstalled,
-    wasInstalled,
-    deferredPrompt,
-    isMobile
-  );
-  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
 
   const garden = useMemo(() => {
     if (!id) return undefined;
@@ -75,10 +61,6 @@ export default function GardenDetail() {
 
   const slug = garden.slug;
   const fundHref = `/fund?garden=${encodeURIComponent(slug)}`;
-  const installLabel = isInstalled
-    ? formatMessage({ id: "public.nav.openApp", defaultMessage: "Open App" })
-    : formatMessage({ id: "public.nav.installApp", defaultMessage: "Install App" });
-
   return (
     <article className="bg-bg-weak-50">
       <header className="relative">
@@ -229,14 +211,18 @@ export default function GardenDetail() {
               defaultMessage: "Support this Garden",
             })}
           </Link>
-          <a
-            href="#install"
-            onClick={handleInstallClick}
-            data-install-action={guidance.primaryAction.type}
-            className="rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-3 text-center text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
-          >
-            {installLabel}
-          </a>
+          <PublicInstallAction>
+            {({ label, href, onClick, dataInstallAction }) => (
+              <a
+                href={href}
+                onClick={onClick}
+                data-install-action={dataInstallAction}
+                className="cursor-pointer rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-3 text-center text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
+              >
+                {label}
+              </a>
+            )}
+          </PublicInstallAction>
         </aside>
       </div>
 

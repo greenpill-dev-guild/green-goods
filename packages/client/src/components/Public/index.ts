@@ -12,6 +12,7 @@ export {
   PublicFundingReceipt,
   type PublicFundingReceiptProps,
 } from "./PublicFundingReceipt";
+export { PublicFundingBridge } from "./PublicFundingBridge";
 export type { PublicGardenCardProps } from "./PublicGardenCard";
 export { PublicGardenCard } from "./PublicGardenCard";
 export { PublicGetInTouch } from "./PublicGetInTouch";

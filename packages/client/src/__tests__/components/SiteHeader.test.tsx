@@ -30,6 +30,7 @@ vi.mock("@green-goods/shared", () => ({
   useApp: mockUseApp,
   useInstallGuidance: mockUseInstallGuidance,
   usePublicInstallHandler: mockUsePublicInstallHandler,
+  useEventListener: vi.fn(),
 }));
 
 import { SiteHeader } from "../../components/Navigation/SiteHeader";
@@ -131,14 +132,16 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Open App").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("install CTAs wire to the public install handler (no dead-end href=#install)", () => {
+  it("desktop install CTA opens the QR handoff dialog", () => {
     renderHeader();
-    const desktopCta = screen.getAllByText("Install App")[0];
-    expect(desktopCta.closest("a")?.getAttribute("data-install-action")).toBe(
-      "continue-in-browser"
-    );
+    const desktopCta = screen.getByRole("button", { name: "Install App" });
+    expect(desktopCta.getAttribute("data-install-action")).toBe("continue-in-browser");
+    expect(desktopCta.className).toMatch(/cursor-pointer/);
     fireEvent.click(desktopCta);
-    expect(mockInstallHandler).toHaveBeenCalledTimes(1);
+    expect(mockInstallHandler).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: "Bring Green Goods into the field" })
+    ).toBeInTheDocument();
   });
 
   it("mobile: hamburger button is in the DOM with aria-expanded false", () => {
@@ -165,5 +168,34 @@ describe("SiteHeader", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("renders transparent on home (`/`) so the header floats over the hero image", () => {
+    renderHeader("/");
+    const header = document.querySelector("header");
+    expect(header).not.toBeNull();
+    expect(header!.getAttribute("data-variant")).toBe("transparent");
+    expect(header!.className).toMatch(/bg-transparent/);
+    expect(header!.className).not.toMatch(/backdrop-blur/);
+  });
+
+  it("renders transparent on every public route (not just home)", () => {
+    for (const route of ["/", "/gardens", "/impact", "/fund", "/actions"]) {
+      cleanup();
+      renderHeader(route);
+      const header = document.querySelector("header");
+      expect(header, `header missing on ${route}`).not.toBeNull();
+      expect(header!.getAttribute("data-variant"), `expected transparent variant on ${route}`).toBe(
+        "transparent"
+      );
+      expect(header!.className, `expected bg-transparent on ${route}`).toMatch(/bg-transparent/);
+    }
+  });
+
+  it("starts at full opacity (header fully visible at the top of the page)", () => {
+    renderHeader("/");
+    const header = document.querySelector("header");
+    expect(header).not.toBeNull();
+    expect((header as HTMLElement).style.opacity).toBe("1");
   });
 });

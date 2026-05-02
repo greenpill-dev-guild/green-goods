@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
 import { EditorialKicker, EditorialMetaRow } from "./atoms";
+import { GardenCoverFallback } from "./GardenCoverFallback";
 
 export interface PublicGardenCardProps {
   garden: PublicGardenSummary;
@@ -58,9 +59,10 @@ export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCa
         )}
       >
         <ImageWithFallback
-          src={garden.bannerImage || "/images/no-image-placeholder.png"}
+          src={garden.bannerImage}
           alt={garden.name}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+          className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
+          backgroundFallback={<GardenCoverFallback name={garden.name} slug={garden.slug} />}
         />
       </div>
 
@@ -81,7 +83,7 @@ export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCa
       {garden.description ? (
         <p
           className={cn(
-            "text-sm leading-[1.55] text-text-sub-600",
+            "text-sm font-medium leading-[1.55] text-text-sub-600",
             isLead ? "line-clamp-3" : "line-clamp-2"
           )}
           title={garden.description}
@@ -90,7 +92,7 @@ export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCa
         </p>
       ) : null}
 
-      <EditorialMetaRow className="mt-auto" items={metaItems} />
+      <EditorialMetaRow className="mt-auto text-text-sub-600" items={metaItems} />
     </Link>
   );
 }

@@ -43,6 +43,7 @@ vi.mock("@green-goods/shared", () => ({
     openInBrowserUrl: null,
   }),
   usePublicInstallHandler: () => vi.fn(),
+  useEventListener: vi.fn(),
 }));
 
 import { AppBar } from "../../components/Layout/AppBar";
@@ -155,8 +156,8 @@ describe("Display mode — AppBar visibility", () => {
     expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
 
-    // The SiteHeader has a sticky top-0 header, NOT a fixed bottom-0 nav
-    expect(header!.className).toMatch(/sticky/);
+    // The SiteHeader is a fixed top-0 overlay header, NOT a fixed bottom-0 nav
+    expect(header!.className).toMatch(/fixed/);
     expect(header!.className).toMatch(/top-0/);
   });
 

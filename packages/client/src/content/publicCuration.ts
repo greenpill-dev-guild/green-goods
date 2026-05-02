@@ -15,11 +15,20 @@ import type { Address } from "@green-goods/shared";
 
 export type CuratedGardenKey = string | Address;
 
+/** Browser-mode views that get their own hero image when curated. */
+export type PublicCurationViewKey = "gardens" | "impact" | "fund" | "actions" | "cookies";
+
 export interface PublicCuration {
   /** Ordered featured garden keys (id or address) for the lead-plus-two layout. */
   featuredGardens: readonly CuratedGardenKey[];
   /** Curated local hero image path (relative to /public). Falls back if missing. */
   heroImagePath: string;
+  /**
+   * Per-view hero image overrides. When a view's key is set, that view uses
+   * its own image; otherwise everyone falls back to `heroImagePath`. Drop
+   * curated images into `packages/client/public/images/` and wire them here.
+   */
+  viewHeroImages: Partial<Record<PublicCurationViewKey, string>>;
   /** Fallback image set used when curated image fails to load. */
   fallbackImagePaths: readonly string[];
   /** Public Agent route for email subscription. */
@@ -33,7 +42,19 @@ const fallbackAppointmentUrl = "https://calendar.app.google/" as const;
 export const publicCuration: PublicCuration = {
   featuredGardens: [],
   heroImagePath: "/images/hero.webp",
+  viewHeroImages: {
+    // Set per-view image paths here when curated images are ready, e.g.:
+    // gardens: "/images/hero-gardens.webp",
+  },
   fallbackImagePaths: ["/images/no-image-placeholder.png"],
   subscribeRoute: "/public/subscribe",
   appointmentUrl: import.meta.env.VITE_GOOGLE_APPOINTMENT_URL || fallbackAppointmentUrl,
 } as const;
+
+/**
+ * Returns the hero image for a given browser-mode view, falling back to the
+ * shared `heroImagePath` when no per-view override exists.
+ */
+export function getPublicHeroImage(view: PublicCurationViewKey): string {
+  return publicCuration.viewHeroImages[view] ?? publicCuration.heroImagePath;
+}

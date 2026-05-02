@@ -8,13 +8,17 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { type EditorialDomain, EditorialDomainChip } from "@/components/Public/atoms";
+import {
+  type EditorialDomain,
+  EditorialDomainChip,
+  EditorialTitleAccent,
+} from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicEvidenceLedgerRow } from "@/components/Public/PublicEvidenceLedgerRow";
 import { PublicEvidencePipeline } from "@/components/Public/PublicEvidencePipeline";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicEvidenceDialog } from "@/components/Public/PublicEvidenceDialog";
-import { publicCuration } from "@/content/publicCuration";
+import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 type KindFilter = "all" | PublicImpactEvidenceKind;
 
@@ -209,14 +213,20 @@ export default function ImpactPage() {
   return (
     <>
       <PublicEditorialHero
-        imageSrc={publicCuration.heroImagePath}
+        variant="banner"
+        imageSrc={getPublicHeroImage("impact")}
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
         titleId="public-impact-hero-title"
-        title={formatMessage({
-          id: "public.impact.heroTitle",
-          defaultMessage: "See how Garden work becomes evidence.",
-        })}
+        title={formatMessage(
+          {
+            id: "public.impact.heroTitle",
+            defaultMessage: "See how Garden work becomes <accent>evidence</accent>.",
+          },
+          {
+            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
+          }
+        )}
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
@@ -252,16 +262,21 @@ export default function ImpactPage() {
       />
 
       <section
-        className="bg-bg-weak-50 px-6 pt-32 pb-20 sm:px-10 md:pt-48 md:pb-28"
+        className="bg-bg-weak-50 px-6 pt-20 pb-16 sm:px-10 md:pt-24 md:pb-20"
         aria-labelledby="public-impact-proof-title"
       >
         <div className="mx-auto max-w-7xl">
-          <h2 id="public-impact-proof-title" className="sr-only">
-            {formatMessage({
-              id: "public.impact.proof.title",
-              defaultMessage: "Proof markers",
-            })}
-          </h2>
+          <header className="mb-10 border-b border-stroke-soft-200 pb-6">
+            <h2
+              id="public-impact-proof-title"
+              className="font-serif text-3xl font-normal leading-[1.04] tracking-[-0.02em] text-text-strong-950 md:text-4xl"
+            >
+              {formatMessage({
+                id: "public.impact.proof.title",
+                defaultMessage: "Proof markers",
+              })}
+            </h2>
+          </header>
           <ProofMarkers
             markers={[
               {
@@ -482,7 +497,7 @@ export default function ImpactPage() {
         </div>
       </section>
 
-      <PublicFooter />
+      <PublicFooter variant="soil" />
 
       {activeRecord ? (
         <PublicEvidenceDialog

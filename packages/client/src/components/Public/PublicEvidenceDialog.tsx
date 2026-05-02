@@ -190,7 +190,7 @@ export function PublicEvidenceDialog({ open, onClose, record, garden }: PublicEv
         onClick={onClose}
         className="absolute inset-0 bg-static-black/40 backdrop-blur-[2px]"
       />
-      <div className="relative flex h-[92vh] w-full flex-col overflow-hidden rounded-t-[var(--radius-lg)] bg-bg-weak-50 shadow-[-30px_0_80px_-30px_rgba(28,25,23,0.5)] sm:h-screen sm:max-w-[42rem] sm:rounded-none">
+      <div className="relative flex h-[92vh] w-full flex-col overflow-hidden rounded-t-[var(--radius-lg)] bg-bg-weak-50 shadow-[var(--shadow-editorial-drawer)] sm:h-screen sm:max-w-[42rem] sm:rounded-none">
         <header className="flex items-center justify-between border-b border-stroke-soft-200 px-6 pt-5 pb-4 sm:px-10">
           <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
             {formatMessage(

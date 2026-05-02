@@ -34,13 +34,22 @@ export function EditorialKicker({ children, tone = "default", className }: Edito
     <p
       className={cn(
         "font-mono text-[11px] font-medium uppercase tracking-[0.16em]",
-        tone === "dark" ? "text-editorial-deep-fg/72" : "text-text-soft-400",
+        tone === "dark" ? "text-editorial-deep-fg/72" : "text-text-sub-600",
         className
       )}
     >
       {children}
     </p>
   );
+}
+
+export interface EditorialTitleAccentProps {
+  children: ReactNode;
+  className?: string;
+}
+
+export function EditorialTitleAccent({ children, className }: EditorialTitleAccentProps) {
+  return <em className={cn("font-serif italic text-primary-dark", className)}>{children}</em>;
 }
 
 export type EditorialHeadingSize = "display" | "section" | "sub";
@@ -54,7 +63,7 @@ export interface EditorialHeadingProps {
 }
 
 const HEADING_SIZE_CLASS: Record<EditorialHeadingSize, string> = {
-  display: "text-4xl leading-[1.02] tracking-[-0.022em] sm:text-5xl md:text-6xl lg:text-7xl",
+  display: "text-3xl leading-[1.04] tracking-[-0.018em] sm:text-4xl md:text-5xl lg:text-6xl",
   section: "text-3xl leading-[1.04] tracking-[-0.02em] md:text-5xl",
   sub: "text-xl leading-[1.18] tracking-[-0.012em] md:text-2xl",
 };

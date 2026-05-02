@@ -1,16 +1,18 @@
-import {
-  useApp,
-  useInstallGuidance,
-  usePublicInstallHandler,
-  usePublicStats,
-} from "@green-goods/shared";
+import { useApp, usePublicStats } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { Navigate, useLocation } from "react-router-dom";
-import { EditorialGhostButton, EditorialPrimaryLink } from "@/components/Public/atoms";
+import {
+  EditorialGhostLink,
+  EditorialPrimaryButton,
+  EditorialPrimaryLink,
+  EditorialTitleAccent,
+} from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFeaturedGardens } from "@/components/Public/PublicFeaturedGardens";
 import { PublicFooter } from "@/components/Public/PublicFooter";
+import { PublicFundingBridge } from "@/components/Public/PublicFundingBridge";
 import { PublicGetInTouch } from "@/components/Public/PublicGetInTouch";
+import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicProofBand } from "@/components/Public/PublicProofBand";
 import { PublicRecordLoop } from "@/components/Public/PublicRecordLoop";
 import { publicCuration } from "@/content/publicCuration";
@@ -24,29 +26,13 @@ import { publicCuration } from "@/content/publicCuration";
  *
  * Composition order matches the editorial dialect:
  *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
- *   Get In Touch → Footer.
+ *   Funding Bridge → Get In Touch → Footer.
  */
 export default function Home() {
   const { formatMessage } = useIntl();
-  const {
-    isPwaPresentation,
-    isMobile,
-    platform,
-    isInstalled,
-    wasInstalled,
-    deferredPrompt,
-    promptInstall,
-  } = useApp();
+  const { isPwaPresentation, isMobile } = useApp();
   const location = useLocation();
   const stats = usePublicStats();
-  const guidance = useInstallGuidance(
-    platform,
-    isInstalled,
-    wasInstalled,
-    deferredPrompt,
-    isMobile
-  );
-  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
 
   if (isPwaPresentation) {
     const redirectTo = new URLSearchParams(location.search).get("redirectTo");
@@ -60,11 +46,9 @@ export default function Home() {
     attestationCount: 0,
   };
 
-  // On mobile, "Install App" is the primary CTA so a phone visitor lands on
-  // the install path; desktop keeps "Explore Gardens" as primary.
-  const installLabelId = isInstalled ? "public.nav.openApp" : "public.nav.installApp";
-  const installDefault = isInstalled ? "Open App" : "Install App";
-  const installLabel = formatMessage({ id: installLabelId, defaultMessage: installDefault });
+  // Mobile: lead with the app CTA so a phone visitor lands on the install
+  // path, then offer Explore as the secondary route. Desktop drops the
+  // secondary entirely — Explore Gardens is the only above-the-fold CTA.
   const exploreLabel = formatMessage({
     id: "public.home.hero.exploreGardens",
     defaultMessage: "Explore Gardens",
@@ -72,24 +56,17 @@ export default function Home() {
 
   const heroActions = isMobile ? (
     <>
-      <EditorialGhostButton
-        onClick={handleInstallClick}
-        data-install-action={guidance.primaryAction.type}
-      >
-        {installLabel}
-      </EditorialGhostButton>
-      <EditorialPrimaryLink to="/gardens">{exploreLabel}</EditorialPrimaryLink>
+      <PublicInstallAction>
+        {({ label, onClick, dataInstallAction }) => (
+          <EditorialPrimaryButton onClick={onClick} data-install-action={dataInstallAction}>
+            {label}
+          </EditorialPrimaryButton>
+        )}
+      </PublicInstallAction>
+      <EditorialGhostLink to="/gardens">{exploreLabel}</EditorialGhostLink>
     </>
   ) : (
-    <>
-      <EditorialPrimaryLink to="/gardens">{exploreLabel}</EditorialPrimaryLink>
-      <EditorialGhostButton
-        onClick={handleInstallClick}
-        data-install-action={guidance.primaryAction.type}
-      >
-        {installLabel}
-      </EditorialGhostButton>
-    </>
+    <EditorialPrimaryLink to="/gardens">{exploreLabel}</EditorialPrimaryLink>
   );
 
   return (
@@ -99,25 +76,21 @@ export default function Home() {
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
         titleId="public-home-hero-title"
-        title={
-          <>
-            {formatMessage({
-              id: "public.home.hero.title.line1",
-              defaultMessage: "From good intentions to ",
-            })}
-            <em className="font-serif italic">
-              {formatMessage({
-                id: "public.home.hero.title.line2",
-                defaultMessage: "green outcomes",
-              })}
-            </em>
-            .
-          </>
-        }
+        title={formatMessage(
+          {
+            id: "public.home.hero.title",
+            defaultMessage:
+              "From <accent>good</accent> intentions to <noBreak><accent>green</accent> outcomes</noBreak>.",
+          },
+          {
+            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
+            noBreak: (chunks) => <span className="whitespace-nowrap">{chunks}</span>,
+          }
+        )}
         lede={formatMessage({
           id: "public.home.hero.lede",
           defaultMessage:
-            "Communities document, verify, and fund regenerative work — Garden by Garden. A quiet, public record of what restores soil, water, and the people who tend them.",
+            "Green Goods makes regenerative work easier to support, turning accessible contributions into a trusted public record of how land, water, and community grow healthier together.",
         })}
         actions={heroActions}
       />
@@ -130,6 +103,7 @@ export default function Home() {
         isLoading={stats.isLoading}
       />
       <PublicRecordLoop />
+      <PublicFundingBridge />
       <PublicGetInTouch />
       <PublicFooter />
     </>

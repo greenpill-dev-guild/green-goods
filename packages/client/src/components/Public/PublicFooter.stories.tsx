@@ -4,14 +4,15 @@ import { MemoryRouter } from "react-router-dom";
 import { PublicFooter } from "./PublicFooter";
 
 const messages = {
-  "public.nav.gardens": "Gardens",
-  "public.nav.impact": "Impact",
-  "public.nav.fund": "Fund",
-  "public.nav.actions": "Actions",
+  "public.footer.contact": "Contact",
   "public.footer.wordmark": "Green Goods",
-  "public.footer.navLabel": "Footer navigation",
+  "public.footer.navLabel": "Footer links",
   "public.footer.legal":
     "© {year} Green Goods. A living public record, rooted in regenerative work.",
+  "public.nav.actions": "Actions",
+  "public.nav.fund": "Fund",
+  "public.nav.gardens": "Gardens",
+  "public.nav.impact": "Impact",
 };
 
 const meta: Meta<typeof PublicFooter> = {
@@ -31,8 +32,10 @@ const meta: Meta<typeof PublicFooter> = {
     docs: {
       description: {
         component:
-          "Closing editorial mark for every public-browser page — oversized italic " +
-          "Fraunces wordmark, footer nav, hairline rule, and small legal copy on linen.",
+          "Compact utility footer for every public-browser page — small Fraunces " +
+          "wordmark, restored provenance message, and public route links in a " +
+          "single quiet row (stacks on mobile). Wayfinding + provenance only — " +
+          "Schedule-a-Call lives in PublicGetInTouch above the footer.",
       },
     },
   },

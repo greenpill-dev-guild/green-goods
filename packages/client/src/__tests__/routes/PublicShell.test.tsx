@@ -42,6 +42,7 @@ vi.mock("@green-goods/shared", () => ({
     openInBrowserUrl: null,
   }),
   usePublicInstallHandler: () => vi.fn(),
+  useEventListener: vi.fn(),
 }));
 
 // ScrollRestoration requires a data router (createBrowserRouter) which is

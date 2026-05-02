@@ -27,7 +27,7 @@ function ProofMarker({
   defaultNote,
 }: ProofMarkerProps) {
   const { formatMessage } = useIntl();
-  const formatted = isLoading ? "—" : new Intl.NumberFormat().format(value);
+  const formatted = isLoading ? "..." : new Intl.NumberFormat().format(value);
   return (
     <div>
       <p className="font-serif text-5xl font-normal leading-none tracking-[-0.025em] text-text-strong-950 md:text-6xl">
@@ -47,7 +47,7 @@ function ProofMarker({
  * PublicProofBand — confirmed counts only. Editorial "Living Public Record"
  * band on the warm linen surface. Treats numerals as public proof, not KPI
  * tiles — no card chrome, no shadows, no domain coloring. Link arrows out to
- * `/impact` for the full record.
+ * `/impact` for the evidence view.
  */
 export function PublicProofBand({
   gardens,
@@ -59,13 +59,16 @@ export function PublicProofBand({
   const { formatMessage } = useIntl();
 
   return (
-    <section className="bg-editorial-warm" aria-labelledby="public-proof-title">
-      <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 sm:px-10 md:py-28 lg:grid-cols-[1fr_1.6fr] lg:gap-24">
+    <section
+      className="bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
+      aria-labelledby="public-proof-title"
+    >
+      <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.6fr] lg:gap-24">
         <div>
           <EditorialKicker className="mb-5">
             {formatMessage({
               id: "public.home.proof.kicker",
-              defaultMessage: "§ 02 — Living Public Record",
+              defaultMessage: "§ 02: Living Public Record",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-proof-title">
@@ -79,7 +82,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "This isn't a dashboard. These are confirmed counts — Gardens tended, hands at work, entries logged, assessments held to. Public, verifiable, and small for now, on purpose.",
+                  "This isn't a dashboard. These are confirmed counts: Gardens tended, hands at work, entries logged, assessments held to. Public, verifiable, and small for now, on purpose.",
               })}
             </EditorialLede>
           </div>
@@ -87,7 +90,7 @@ export function PublicProofBand({
             <EditorialLinkArrow to="/impact">
               {formatMessage({
                 id: "public.home.proof.cta",
-                defaultMessage: "Read the full record",
+                defaultMessage: "View public evidence",
               })}
             </EditorialLinkArrow>
           </div>
@@ -116,7 +119,7 @@ export function PublicProofBand({
             labelId="public.home.proof.works"
             defaultLabel="Entries of work"
             noteId="public.home.proof.worksNote"
-            defaultNote="Photos, soil cores, plantings, repairs, restorations — each timestamped."
+            defaultNote="Photos, soil cores, plantings, repairs, restorations, each timestamped."
           />
           <ProofMarker
             value={assessments}

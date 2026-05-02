@@ -17,12 +17,13 @@ import {
   EditorialKicker,
   EditorialNumeral,
   EditorialPrimaryButton,
+  EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
-import { publicCuration } from "@/content/publicCuration";
+import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
 const PublicFundingMethodSelector = lazy(() =>
@@ -204,14 +205,20 @@ export default function FundPage() {
   return (
     <>
       <PublicEditorialHero
-        imageSrc={publicCuration.heroImagePath}
+        variant="banner"
+        imageSrc={getPublicHeroImage("fund")}
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
         titleId="public-fund-hero-title"
-        title={formatMessage({
-          id: "public.fund.heroTitle",
-          defaultMessage: "A small gesture today, growing over many seasons.",
-        })}
+        title={formatMessage(
+          {
+            id: "public.fund.heroTitle",
+            defaultMessage: "A small gesture, <accent>growing</accent> over many seasons.",
+          },
+          {
+            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
+          }
+        )}
         lede={formatMessage({
           id: "public.fund.heroLede",
           defaultMessage:
@@ -225,7 +232,7 @@ export default function FundPage() {
       />
 
       {intentId ? (
-        <section className="bg-bg-weak-50 px-6 pt-32 pb-12 sm:px-10 md:pt-48">
+        <section className="bg-bg-weak-50 px-6 pt-20 pb-8 sm:px-10 md:pt-24">
           <div className="mx-auto max-w-3xl">
             <PublicFundingReceipt intentId={intentId} />
           </div>
@@ -233,7 +240,7 @@ export default function FundPage() {
       ) : null}
 
       {!intentId && (resolved.status === "stale" || resolved.status === "ambiguous") ? (
-        <section className="bg-bg-weak-50 px-6 pt-32 pb-4 sm:px-10 md:pt-48">
+        <section className="bg-bg-weak-50 px-6 pt-20 pb-4 sm:px-10 md:pt-24">
           <div className="mx-auto max-w-3xl">
             <p
               role="status"
@@ -261,8 +268,8 @@ export default function FundPage() {
       <section
         className={
           intentId || resolved.status === "stale" || resolved.status === "ambiguous"
-            ? "bg-bg-weak-50 px-6 pb-20 sm:px-10 md:pb-28"
-            : "bg-bg-weak-50 px-6 pt-32 pb-20 sm:px-10 md:pt-48 md:pb-28"
+            ? "bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
+            : "bg-bg-weak-50 px-6 pt-20 pb-16 sm:px-10 md:pt-24 md:pb-20"
         }
         aria-labelledby="public-fund-paths-title"
       >
@@ -394,7 +401,7 @@ export default function FundPage() {
         </div>
       </section>
 
-      <PublicFooter />
+      <PublicFooter variant="soil" />
 
       {hasWalletRuntime ? (
         <Suspense fallback={null}>

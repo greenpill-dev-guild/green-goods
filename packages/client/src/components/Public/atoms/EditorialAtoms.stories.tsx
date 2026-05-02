@@ -66,8 +66,8 @@ export const Typography: Story = {
       </Section>
       <Section title="§ Lede">
         <EditorialLede>
-          Communities document, verify, and fund regenerative work — Garden by Garden. A quiet,
-          public record of what restores soil, water, and the people who tend them.
+          Green Goods makes regenerative work easier to support, turning accessible contributions
+          into a trusted public record of how land, water, and community grow healthier together.
         </EditorialLede>
       </Section>
       <Section title="§ Numeral">

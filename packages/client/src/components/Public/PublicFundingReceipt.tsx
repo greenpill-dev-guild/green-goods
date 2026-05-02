@@ -1,4 +1,4 @@
-import { logger, useApp, useInstallGuidance, usePublicInstallHandler } from "@green-goods/shared";
+import { logger } from "@green-goods/shared";
 import type {
   PublicFundingReceipt as PublicFundingReceiptShape,
   ReadFundingIntentReceiptResponse,
@@ -10,6 +10,7 @@ import {
   RECEIPT_TOKEN_SESSION_KEY,
   scrubReceiptTokenFragmentFromLocation,
 } from "@/routes/receipt-token";
+import { PublicInstallAction } from "./PublicInstallAction";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -72,15 +73,6 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
     };
   }, [intentId]);
 
-  const formatStatus = useCallback(
-    (status: PublicFundingReceiptShape["status"]) =>
-      formatMessage({
-        id: `public.fund.receipt.status.${status}`,
-        defaultMessage: status,
-      }),
-    [formatMessage]
-  );
-
   if (state.status === "loading") {
     return (
       <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
@@ -135,15 +127,14 @@ function ReceiptBody({
   showAppCta: boolean;
 }) {
   const { formatMessage } = useIntl();
-  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
-  const guidance = useInstallGuidance(
-    platform,
-    isInstalled,
-    wasInstalled,
-    deferredPrompt,
-    isMobile
+  const formatStatus = useCallback(
+    (status: PublicFundingReceiptShape["status"]) =>
+      formatMessage({
+        id: `public.fund.receipt.status.${status}`,
+        defaultMessage: status,
+      }),
+    [formatMessage]
   );
-  const handleInstallClick = usePublicInstallHandler(guidance, promptInstall);
 
   return (
     <section
@@ -236,21 +227,19 @@ function ReceiptBody({
 
       {showAppCta ? (
         <div className="mt-6 flex flex-wrap gap-3">
-          <a
-            href="#install"
-            onClick={handleInstallClick}
-            data-app-cta={receipt.appManagementCta}
-            data-install-action={guidance.primaryAction.type}
-            className="rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
-          >
-            {formatMessage({
-              id:
-                receipt.appManagementCta === "open_app"
-                  ? "public.nav.openApp"
-                  : "public.nav.installApp",
-              defaultMessage: receipt.appManagementCta === "open_app" ? "Open App" : "Install App",
-            })}
-          </a>
+          <PublicInstallAction forceOpenApp={receipt.appManagementCta === "open_app"}>
+            {({ label, href, onClick, dataInstallAction }) => (
+              <a
+                href={href}
+                onClick={onClick}
+                data-app-cta={receipt.appManagementCta}
+                data-install-action={dataInstallAction}
+                className="cursor-pointer rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
+              >
+                {label}
+              </a>
+            )}
+          </PublicInstallAction>
         </div>
       ) : null}
     </section>

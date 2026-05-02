@@ -4,16 +4,17 @@ import { EditorialGhostButton, EditorialPrimaryLink } from "./atoms";
 import { PublicEditorialHero } from "./PublicEditorialHero";
 
 /**
- * Stories cover the four canonical hero shapes:
+ * Stories cover the canonical hero shapes:
  *  - Home: with kicker + dual actions
  *  - Gardens: kickerless, narrative headline + dual actions
  *  - Impact: read-only (no actions, photo credit + lede)
  *  - Fund: lede + visible disclaimer
  *  - Actions: minimal (no kicker, no photo credit, no actions)
  *
- * Each story renders the hero plus a placeholder section below so the
- * editorial overlap is visible — visit the story to confirm the card's
- * lower edge lands cleanly on the next section's linen surface.
+ * The hero is self-contained — the linen card sits inside the image at
+ * bottom-left and does not protrude into the next section. The placeholder
+ * `NextSection` below each story is just visual context; consumers no
+ * longer need to reserve oversized top padding to absorb a card overlap.
  */
 
 const HERO_IMG =
@@ -21,15 +22,15 @@ const HERO_IMG =
 const HERO_FALLBACK = "/images/no-image-placeholder.png";
 
 const NextSection = ({ children }: { children: React.ReactNode }) => (
-  <section className="bg-bg-weak-50 px-6 pt-32 pb-24 sm:px-10 md:pt-48">
+  <section className="bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20">
     <div className="mx-auto max-w-7xl">
       <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-soft-400">
         § Next section preview
       </p>
       <h2 className="mt-3 font-serif text-3xl text-text-strong-950">{children}</h2>
       <p className="mt-3 max-w-prose text-sm text-text-sub-600">
-        The hero card protrudes from the image plate above into this linen surface. The card&apos;s
-        bottom edge lands here, around the area where this lede sits.
+        The hero above is self-contained — its content card sits inside the image plate at
+        bottom-left and does not protrude into this section.
       </p>
     </div>
   </section>
@@ -50,9 +51,10 @@ const meta: Meta<typeof PublicEditorialHero> = {
     docs: {
       description: {
         component:
-          "Canonical editorial hero — image plate + overlapping linen card. " +
-          "Pair with a section that has `pt-32 md:pt-48` so the protruding " +
-          "card lands cleanly. See `PublicEditorialHeroProps` for the slot API.",
+          "Canonical editorial hero — image plate + bottom-left linen card " +
+          "fully contained inside the image (no negative overlap, no clipping). " +
+          "Consumers do not need to reserve top padding on the next section. " +
+          "See `PublicEditorialHeroProps` for the slot API.",
       },
     },
   },
@@ -74,7 +76,7 @@ export const Home: Story = {
             From good intentions to <em className="font-serif italic">green outcomes</em>.
           </>
         }
-        lede="Communities document, verify, and fund regenerative work — Garden by Garden. A quiet, public record of what restores soil, water, and the people who tend them."
+        lede="Green Goods makes regenerative work easier to support, turning accessible contributions into a trusted public record of how land, water, and community grow healthier together."
         photoCredit="Riverbend Commons — Hudson Valley, NY"
         actions={
           <>
