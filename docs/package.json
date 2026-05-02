@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "dev": "docusaurus start --port 3003 --no-open",
-    "start": "docusaurus start --port 3003 --no-open",
+    "dev": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
+    "start": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
     "test": "bun test",
     "build": "docusaurus build",
     "protocol-status:generate": "node scripts/generate-protocol-status.mjs",

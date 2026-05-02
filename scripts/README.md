@@ -24,6 +24,7 @@ scripts/
 |---|---|---|
 | `setup.js` | `bun run setup` | First-clone setup; checks deps, installs, configures env |
 | `doctor.js` | `bun run dev:doctor` / `setup:doctor` | Non-mutating readiness check (ports, tools, env, profiles) |
+| `node-cli.js` | `packages/client dev`, `packages/admin dev`, `packages/shared storybook`, `docs dev` | Run local JS dev CLIs under real system Node instead of Bun's injected `node` shim |
 | `stack.js` | `bun run dev:web` / `dev` / `dev:stop` | Start/stop PM2 app groups from `ecosystem.config.cjs` |
 | `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs/storybook respond on local ports |
 | `tunnel.js` | `bun run dev:tunnel`, `ecosystem.config.cjs` | Cloudflared tunnel for PWA device testing; writes `.tunnel-url` |

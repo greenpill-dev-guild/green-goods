@@ -36,6 +36,11 @@ const VALID_LANE_STATUSES = new Set([
   "completed",
 ]);
 const DONE_LANE_STATUSES = new Set(["passed", "completed", "n/a", "skipped"]);
+const IMPLEMENTATION_LANES = new Set(["ui", "state_api", "contracts"]);
+const TDD_TERMINAL_STATUSES = new Set(["passed", "completed"]);
+const VALID_TDD_MODES = new Set(["required", "not_applicable", "proof_limit", "legacy_unrecorded"]);
+const VALID_TDD_STATUSES = new Set(["pending", "red_recorded", "green_recorded"]);
+const TDD_POLICY_STARTED_AT = Date.parse("2026-05-01T00:00:00.000Z");
 const LANE_ALIASES = {
   ui: "ui",
   "state-api": "state_api",
@@ -60,6 +65,7 @@ function usage() {
   node scripts/harness/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active>
   node scripts/harness/plan-hub.mjs list --agent <claude|codex> --lane <lane> [--stage active] [--json]
   node scripts/harness/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
+  node scripts/harness/plan-hub.mjs record-tdd --feature <feature-slug> --lane <ui|state-api|contracts> --red-command "..." --red-evidence "..." --green-command "..." --green-evidence "..." [--actor human]
   node scripts/harness/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
   node scripts/harness/plan-hub.mjs validate`);
 }
@@ -381,6 +387,108 @@ function priorityWeight(priority) {
   }
 }
 
+function hasText(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function proofHasCommandAndEvidence(proof) {
+  return proof && hasText(proof.command) && hasText(proof.evidence);
+}
+
+function validateRequiredTdd(laneName, lane, errors) {
+  const tdd = lane.tdd;
+
+  if (tdd.status === "red_recorded" && !proofHasCommandAndEvidence(tdd.red)) {
+    errors.push(`lane "${laneName}" TDD status red_recorded requires RED command and evidence`);
+  }
+
+  if (tdd.status === "green_recorded") {
+    if (!proofHasCommandAndEvidence(tdd.red)) {
+      errors.push(`lane "${laneName}" TDD status green_recorded requires RED command and evidence`);
+    }
+    if (!proofHasCommandAndEvidence(tdd.green)) {
+      errors.push(`lane "${laneName}" TDD status green_recorded requires GREEN command and evidence`);
+    }
+  }
+
+  if (TDD_TERMINAL_STATUSES.has(lane.status) && tdd.status !== "green_recorded") {
+    errors.push(`lane "${laneName}" TDD required lane cannot be ${lane.status} without green_recorded RED/GREEN evidence`);
+  }
+}
+
+function validateLegacyTdd(status, laneName, lane, stage, errors) {
+  const createdAt = Date.parse(status.workflow.created_at);
+
+  if (stage !== "active") {
+    errors.push(`lane "${laneName}" legacy_unrecorded TDD mode is only allowed on active hubs`);
+  }
+
+  if (!TDD_TERMINAL_STATUSES.has(lane.status)) {
+    errors.push(`lane "${laneName}" legacy_unrecorded TDD mode is only allowed for completed pre-policy work`);
+  }
+
+  if (!Number.isFinite(createdAt) || createdAt >= TDD_POLICY_STARTED_AT) {
+    errors.push(`lane "${laneName}" legacy_unrecorded TDD mode is only allowed for pre-policy active work`);
+  }
+
+  if (!hasText(lane.tdd.note)) {
+    errors.push(`lane "${laneName}" legacy_unrecorded TDD mode requires a note`);
+  }
+}
+
+function validateLaneTdd(status, laneName, lane, stage, errors) {
+  if (!IMPLEMENTATION_LANES.has(laneName)) {
+    return;
+  }
+
+  if (!lane.tdd) {
+    if (stage === "active") {
+      errors.push(`lane "${laneName}" is missing TDD proof metadata`);
+    }
+    return;
+  }
+
+  const tdd = lane.tdd;
+  if (!VALID_TDD_MODES.has(tdd.mode)) {
+    errors.push(`lane "${laneName}" has invalid TDD mode "${tdd.mode}"`);
+  }
+  if (!VALID_TDD_STATUSES.has(tdd.status)) {
+    errors.push(`lane "${laneName}" has invalid TDD status "${tdd.status}"`);
+  }
+
+  if (!tdd.red || typeof tdd.red !== "object") {
+    errors.push(`lane "${laneName}" TDD red proof must be an object`);
+  }
+  if (!tdd.green || typeof tdd.green !== "object") {
+    errors.push(`lane "${laneName}" TDD green proof must be an object`);
+  }
+  if (typeof tdd.note !== "string") {
+    errors.push(`lane "${laneName}" TDD note must be a string`);
+  }
+
+  switch (tdd.mode) {
+    case "required":
+      validateRequiredTdd(laneName, lane, errors);
+      break;
+    case "not_applicable":
+      if (!hasText(tdd.note)) {
+        errors.push(`lane "${laneName}" TDD mode not_applicable requires a note`);
+      }
+      break;
+    case "proof_limit":
+      if (!hasText(tdd.note)) {
+        errors.push(`lane "${laneName}" TDD mode proof_limit requires a note`);
+      }
+      if (!proofHasCommandAndEvidence(tdd.green)) {
+        errors.push(`lane "${laneName}" TDD mode proof_limit requires fallback validation command and evidence`);
+      }
+      break;
+    case "legacy_unrecorded":
+      validateLegacyTdd(status, laneName, lane, stage, errors);
+      break;
+  }
+}
+
 function validateFeatureStatus(status, featureDirPath, stage) {
   const errors = [];
   const slug = slugFromPath(featureDirPath);
@@ -435,6 +543,7 @@ function validateFeatureStatus(status, featureDirPath, stage) {
       errors.push(`lane "${laneName}" handoff must live under handoffs/`);
     }
 
+    validateLaneTdd(status, laneName, lane, stage, errors);
   }
 
   return errors;
@@ -558,6 +667,7 @@ function setLane(flags) {
   }
 
   const found = findFeature(slug);
+  let validationErrors = [];
   withFeatureLock(found.dir, () => {
     const { path, status } = readFeatureStatus(found.dir);
 
@@ -578,10 +688,74 @@ function setLane(flags) {
       }),
     );
     refreshLaneStatuses(status);
+    const errors = validateFeatureStatus(status, found.dir, found.stage);
+    if (errors.length > 0) {
+      validationErrors = errors;
+      return;
+    }
     saveJson(path, status);
   });
 
+  if (validationErrors.length > 0) {
+    fail(validationErrors.join("\n"));
+  }
+
   console.log(`Updated ${slug} lane ${laneName} -> ${laneStatus}`);
+}
+
+function recordTdd(flags) {
+  const slug = requireFlag(flags, "feature");
+  const laneName = normalizeLane(requireFlag(flags, "lane"));
+  const actor = flags.actor || "human";
+
+  if (!IMPLEMENTATION_LANES.has(laneName)) {
+    fail(`TDD proof can only be recorded for implementation lanes: ${Array.from(IMPLEMENTATION_LANES).join(", ")}`);
+  }
+
+  const red = {
+    command: requireFlag(flags, "red-command"),
+    evidence: requireFlag(flags, "red-evidence"),
+  };
+  const green = {
+    command: requireFlag(flags, "green-command"),
+    evidence: requireFlag(flags, "green-evidence"),
+  };
+
+  const found = findFeature(slug);
+  let validationErrors = [];
+  withFeatureLock(found.dir, () => {
+    const { path, status } = readFeatureStatus(found.dir);
+    status.lanes[laneName].tdd = {
+      mode: "required",
+      status: "green_recorded",
+      red,
+      green,
+      note: flags.note || "",
+    };
+    status.workflow.updated_at = nowIso();
+    status.history.push(
+      historyEntry({
+        actor,
+        lane: laneName,
+        status: "tdd_recorded",
+        branch: status.lanes[laneName].branch,
+        note: flags.note || "Recorded RED/GREEN TDD proof",
+      }),
+    );
+
+    const errors = validateFeatureStatus(status, found.dir, found.stage);
+    if (errors.length > 0) {
+      validationErrors = errors;
+      return;
+    }
+    saveJson(path, status);
+  });
+
+  if (validationErrors.length > 0) {
+    fail(validationErrors.join("\n"));
+  }
+
+  console.log(`Recorded TDD proof for ${slug} lane ${laneName}`);
 }
 
 function checkBranch(flags) {
@@ -647,6 +821,9 @@ switch (command) {
     break;
   case "set-lane":
     setLane(flags);
+    break;
+  case "record-tdd":
+    recordTdd(flags);
     break;
   case "check-branch":
     checkBranch(flags);

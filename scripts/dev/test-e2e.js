@@ -12,11 +12,11 @@
  *   node scripts/dev/test-e2e.js smoke    # smoke specs only
  */
 
-import { spawn, execSync } from "node:child_process";
+import { spawn, spawnSync, execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { waitForService, reexecUnderSystemNodeIfNeeded } from "../lib/dev-shared.js";
+import { waitForService, reexecUnderSystemNodeIfNeeded, findSystemNode } from "../lib/dev-shared.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const projectRoot = path.resolve(path.dirname(__filename), "../..");
@@ -145,23 +145,35 @@ async function main() {
         ]
       : ["test"];
 
-  try {
-    execSync(`npx playwright ${testArgs.join(" ")}`, {
-      stdio: "inherit",
-      env: {
-        ...process.env,
-        SKIP_WEBSERVER: "true",
-        SKIP_HEALTH_CHECK: "true",
-      },
-    });
+  // Invoke Playwright via system Node directly. Going through `npx playwright`
+  // resolves Node via the parent's PATH, which `bun run` populates with a
+  // bun-node shim (`/private/tmp/bun-node-XXXX/node` -> bun). Playwright's TS
+  // config loader skips ESM-loader registration under Bun and then crashes
+  // trying to import the synthetic `<config>.ts.esm.preflight` URL. Spawning
+  // the CLI under a real node binary keeps the loader hook active.
+  const systemNode = findSystemNode() || process.execPath;
+  const playwrightCli = path.join(projectRoot, "node_modules/@playwright/test/cli.js");
+  const result = spawnSync(systemNode, [playwrightCli, ...testArgs], {
+    cwd: projectRoot,
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      SKIP_WEBSERVER: "true",
+      SKIP_HEALTH_CHECK: "true",
+    },
+  });
+  if (result.error) {
+    log.error(`Failed to launch Playwright: ${result.error.message}`);
+    process.exit(1);
+  }
+  if (result.status === 0) {
     console.log("");
     log.success("All tests passed!");
     process.exit(0);
-  } catch (err) {
-    console.log("");
-    log.error(`Some tests failed (exit code: ${err.status || 1})`);
-    process.exit(err.status || 1);
   }
+  console.log("");
+  log.error(`Some tests failed (exit code: ${result.status ?? 1})`);
+  process.exit(result.status ?? 1);
 }
 
 main().catch((err) => {

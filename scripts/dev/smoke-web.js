@@ -27,11 +27,13 @@ const services = [
     name: "client",
     port: 3001,
     urls: ["https://localhost:3001", "http://localhost:3001"],
+    hmr: "vite",
   },
   {
     name: "admin",
     port: 3002,
     urls: ["https://localhost:3002", "http://localhost:3002"],
+    hmr: "vite",
   },
   {
     name: "docs",
@@ -42,13 +44,14 @@ const services = [
     name: "storybook",
     port: 6006,
     urls: ["http://localhost:6006"],
+    hmr: "vite",
   },
 ];
 
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(
-    "Usage: node scripts/dev/smoke-web.js [--json] [--skip-doctor] [--timeout seconds]\n"
+    "Usage: node scripts/dev/smoke-web.js [--json] [--skip-doctor] [--skip-hmr] [--timeout seconds]\n"
   );
   process.exit(exitCode);
 }
@@ -57,6 +60,7 @@ function parseArgs(argv) {
   const options = {
     json: false,
     skipDoctor: false,
+    skipHmr: false,
     timeoutMs: 60_000,
   };
 
@@ -70,6 +74,10 @@ function parseArgs(argv) {
     }
     if (arg === "--skip-doctor") {
       options.skipDoctor = true;
+      continue;
+    }
+    if (arg === "--skip-hmr") {
+      options.skipHmr = true;
       continue;
     }
     if (arg === "--timeout") {
@@ -177,6 +185,115 @@ async function waitForService(service, deadlineMs) {
   };
 }
 
+async function checkViteHmr(service, serviceResult, browser) {
+  if (!serviceResult?.ready) {
+    return {
+      name: service.name,
+      level: "skipped",
+      ready: true,
+      detail: "Service readiness check failed; HMR check skipped.",
+    };
+  }
+
+  const page = await browser.newPage({ ignoreHTTPSErrors: true });
+  const events = [];
+  page.on("console", (message) => events.push(`${message.type()}: ${message.text()}`));
+  page.on("pageerror", (error) => events.push(`pageerror: ${error.message}`));
+
+  try {
+    await page.goto(serviceResult.url, { waitUntil: "domcontentloaded", timeout: 20_000 });
+    await page.waitForTimeout(3_500);
+  } catch (error) {
+    return {
+      name: service.name,
+      level: "fail",
+      ready: false,
+      url: serviceResult.url,
+      detail: `Browser HMR probe failed: ${error.message}`,
+      fix: "Restart the web stack with bun run dev:web and rerun bun run dev:smoke:web.",
+    };
+  } finally {
+    await page.close();
+  }
+
+  const failure = events.find((event) =>
+    /\[vite\] failed to connect to websocket|WebSocket connection .* failed|ERR_SSL_PROTOCOL_ERROR|server connection lost/i.test(
+      event
+    )
+  );
+  const connected = events.some((event) => /\[vite\] connected\./i.test(event));
+
+  if (!failure && connected) {
+    return {
+      name: service.name,
+      level: "pass",
+      ready: true,
+      url: serviceResult.url,
+      detail: "Vite HMR websocket connected in the browser.",
+    };
+  }
+
+  return {
+    name: service.name,
+    level: "fail",
+    ready: false,
+    url: serviceResult.url,
+    detail: failure || "Browser did not report a Vite HMR connection.",
+    fix: "Run the Vite dev server under real Node instead of Bun, then rerun bun run dev:smoke:web.",
+  };
+}
+
+async function runHmrChecks(serviceResults) {
+  if (options.skipHmr) {
+    return [
+      {
+        name: "vite",
+        level: "skipped",
+        ready: true,
+        detail: "Skipped by --skip-hmr.",
+      },
+    ];
+  }
+
+  let chromium;
+  try {
+    ({ chromium } = await import("@playwright/test"));
+  } catch (error) {
+    return [
+      {
+        name: "vite",
+        level: "fail",
+        ready: false,
+        detail: `Unable to load Playwright for HMR smoke: ${error.message}`,
+        fix: "Install repo dependencies with bun install, then rerun bun run dev:smoke:web.",
+      },
+    ];
+  }
+
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+    const checks = [];
+    for (const service of services.filter((item) => item.hmr === "vite")) {
+      const serviceResult = serviceResults.find((result) => result.name === service.name);
+      checks.push(await checkViteHmr(service, serviceResult, browser));
+    }
+    return checks;
+  } catch (error) {
+    return [
+      {
+        name: "vite",
+        level: "fail",
+        ready: false,
+        detail: `Browser HMR smoke failed: ${error.message}`,
+        fix: "Ensure Playwright browsers are installed and rerun bun run dev:smoke:web.",
+      },
+    ];
+  } finally {
+    await browser?.close();
+  }
+}
+
 function printText(payload) {
   console.log("\nGreen Goods Web Smoke\n");
 
@@ -201,6 +318,19 @@ function printText(payload) {
     if (service.fix) console.log(`       Fix: ${service.fix}`);
   }
 
+  for (const hmr of payload.hmr || []) {
+    if (hmr.ready) {
+      const mark = hmr.level === "skipped" ? "SKIP" : "PASS";
+      console.log(`[${mark}] ${hmr.name} HMR`);
+      if (hmr.detail) console.log(`       ${hmr.detail}`);
+      continue;
+    }
+
+    console.log(`[FAIL] ${hmr.name} HMR`);
+    console.log(`       ${hmr.detail}`);
+    if (hmr.fix) console.log(`       Fix: ${hmr.fix}`);
+  }
+
   if (payload.summary.ready) {
     console.log("\nWeb stack smoke passed.");
     return;
@@ -215,12 +345,17 @@ const serviceResults = doctor.ready
       services.map((service) => waitForService(service, Date.now() + options.timeoutMs))
     )
   : [];
+const hmrResults = doctor.ready ? await runHmrChecks(serviceResults) : [];
 
-const failures = (doctor.ready ? 0 : 1) + serviceResults.filter((service) => !service.ready).length;
+const failures =
+  (doctor.ready ? 0 : 1) +
+  serviceResults.filter((service) => !service.ready).length +
+  hmrResults.filter((hmr) => !hmr.ready).length;
 const payload = {
   profile: "web",
   doctor,
   services: serviceResults,
+  hmr: hmrResults,
   summary: {
     ready: failures === 0,
     failures,
