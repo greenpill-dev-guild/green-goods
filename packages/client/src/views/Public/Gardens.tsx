@@ -53,7 +53,7 @@ export default function GardensGallery() {
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Each Garden is a real place where communities document regenerative Work. Operators, gardeners, and evaluators take turns making the record honest. What lands here is meant to hold up under public reading.",
+            "Each Garden is a real place where a community documents regenerative Work. The public record they build is meant to hold up under reading.",
         })}
       />
 

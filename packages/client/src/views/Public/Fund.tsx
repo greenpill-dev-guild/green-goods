@@ -222,7 +222,7 @@ export default function FundPage() {
         lede={formatMessage({
           id: "public.fund.heroLede",
           defaultMessage:
-            "Donate to support a Garden's immediate Work, or Endow a Vault so yield helps the Garden over many seasons. Both are direct: every contribution lands with a Garden, not a platform. Pick the rhythm that matches what you want to sustain.",
+            "Donate to a Garden's immediate Work, or Endow a Vault so yield supports the Garden over many seasons. Every contribution lands with a Garden, not a platform.",
         })}
       />
 

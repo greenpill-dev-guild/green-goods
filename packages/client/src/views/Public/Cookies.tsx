@@ -1022,7 +1022,7 @@ export default function CookiesPage() {
         lede={formatMessage({
           id: "public.cookies.description",
           defaultMessage:
-            "Shared jars hold campaign funds in one place. Operators from selected Gardens claim their share when they're ready; supporters top up the jar for the next round. Each claim leaves a record so the season's spending stays legible.",
+            "Shared jars hold campaign funds in one place. Operators from selected Gardens claim their share; supporters top up the jar for the next round.",
         })}
       />
 

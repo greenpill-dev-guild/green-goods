@@ -221,7 +221,7 @@ export default function ImpactPage() {
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
-            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments first, then Work, then — when ready — an Impact Certificate. The cycle keeps repeating, season after season.",
+            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, then — when ready — an Impact Certificate.",
         })}
       />
 

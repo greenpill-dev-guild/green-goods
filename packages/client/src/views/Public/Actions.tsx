@@ -148,7 +148,7 @@ export default function ActionsGallery() {
         lede={formatMessage({
           id: "public.actions.heroLede",
           defaultMessage:
-            "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste. Each Action names what to do, what to capture, and what proof the next stage will need. Together they form a field guide every Gardener can run from.",
+            "Actions are the templates Gardens use to document Work — solar, agroforestry, education, waste. Each one names what to do, what to capture, and what proof comes next.",
         })}
       />
 
