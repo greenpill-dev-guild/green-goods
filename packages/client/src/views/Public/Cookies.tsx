@@ -20,7 +20,10 @@ import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import { formatUnits, getAddress, isAddress, parseUnits } from "viem";
 import { useBalance } from "wagmi";
-import { publicCuration } from "@/content/publicCuration";
+import { EditorialTitleAccent } from "@/components/Public/atoms";
+import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
+import { PublicFooter } from "@/components/Public/PublicFooter";
+import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
 
@@ -857,6 +860,15 @@ function CookiesCampaignSurface() {
     [campaigns, searchParams]
   );
 
+  // Lightweight registry-level proxy for "active this season" — campaigns
+  // whose metadata loaded and is marked valid. Per-jar paused/cooldown state
+  // requires N hook calls (`useCampaignCookieJar`) and is deferred to a
+  // follow-up that can aggregate cleanly without per-card duplication.
+  const activeThisSeasonCount = useMemo(
+    () => campaigns.filter((entry) => entry.metadata?.isValidCampaign === true).length,
+    [campaigns]
+  );
+
   const openCampaign = useCallback(
     (nextCampaign: CampaignCookieJarCampaign) => {
       const nextParams = new URLSearchParams(searchParams);
@@ -901,22 +913,19 @@ function CookiesCampaignSurface() {
           />
           <CookieIndexStat
             label={formatMessage({
+              id: "public.cookies.stats.activeThisSeason",
+              defaultMessage: "Active this season",
+            })}
+            value={String(activeThisSeasonCount)}
+          />
+          <CookieIndexStat
+            label={formatMessage({
               id: "public.cookies.stats.access",
               defaultMessage: "Access model",
             })}
             value={formatMessage({
               id: "public.cookies.stats.accessValue",
               defaultMessage: "Garden operators",
-            })}
-          />
-          <CookieIndexStat
-            label={formatMessage({
-              id: "public.cookies.stats.flow",
-              defaultMessage: "Flow",
-            })}
-            value={formatMessage({
-              id: "public.cookies.stats.flowValue",
-              defaultMessage: "Claim or top up",
             })}
           />
         </div>
@@ -964,12 +973,16 @@ function CookiesCampaignSurface() {
           </div>
         </div>
 
-        <CampaignCookieJarGrid
-          campaigns={campaigns}
-          isLoading={isCampaignListLoading}
-          registryError={campaignListError}
-          onOpen={openCampaign}
-        />
+        {/* Reserve a stable height so the empty / single-campaign state does
+            not collapse the page and shift the footer up. */}
+        <div className="min-h-[60vh]">
+          <CampaignCookieJarGrid
+            campaigns={campaigns}
+            isLoading={isCampaignListLoading}
+            registryError={campaignListError}
+            onOpen={openCampaign}
+          />
+        </div>
         {jarAddress ? (
           <CampaignCookieJarDialog
             jarAddress={jarAddress}
@@ -986,51 +999,42 @@ export default function CookiesPage() {
   const { formatMessage } = useIntl();
 
   return (
-    <div className="min-h-screen bg-bg-weak-50">
-      <header className="relative isolate overflow-hidden border-b border-stroke-soft-200 text-static-white">
-        <img
-          src={publicCuration.heroImagePath}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 -z-10 h-full w-full object-cover"
-          onError={(event) => {
-            const fallback = publicCuration.fallbackImagePaths[0];
-            if (fallback && event.currentTarget.src.indexOf(fallback) === -1) {
-              event.currentTarget.src = fallback;
-            }
-          }}
-        />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-static-black/75 via-static-black/50 to-static-black/20" />
-        <div className="mx-auto flex min-h-[48vh] max-w-7xl flex-col justify-end px-6 py-14 sm:px-10 sm:py-20">
-          <div className="max-w-2xl">
-            <p className="text-xs font-medium uppercase text-static-white/70">
-              {formatMessage({
-                id: "public.cookies.eyebrow",
-                defaultMessage: "Campaign cookie jars",
-              })}
-            </p>
-            <h1 className="mt-3 font-serif text-4xl text-static-white md:text-6xl">
-              {formatMessage({
-                id: "public.cookies.title",
-                defaultMessage: "Campaign cookie jars",
-              })}
-            </h1>
-            <p className="mt-4 text-base leading-7 text-static-white/85 md:text-lg">
-              {formatMessage({
-                id: "public.cookies.description",
-                defaultMessage:
-                  "Shared jars hold campaign funds in one place. Operators from selected gardens can claim their cookie, and supporters can top up the jar for the next round.",
-              })}
-            </p>
-          </div>
-        </div>
-      </header>
+    <>
+      <PublicEditorialHero
+        variant="banner"
+        imageSrc={getPublicHeroImage("cookies")}
+        imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
+        imageAlt=""
+        titleId="public-cookies-hero-title"
+        kicker={formatMessage({
+          id: "public.cookies.eyebrow",
+          defaultMessage: "Campaign jars",
+        })}
+        title={formatMessage(
+          {
+            id: "public.cookies.title",
+            defaultMessage: "Shared <accent>jars</accent> for campaign funds.",
+          },
+          {
+            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
+          }
+        )}
+        lede={formatMessage({
+          id: "public.cookies.description",
+          defaultMessage:
+            "Operators from selected Gardens claim their share. Supporters top up the jar for the next round.",
+        })}
+      />
 
-      <Suspense fallback={null}>
-        <WalletRuntimeProviders>
-          <CookiesCampaignSurface />
-        </WalletRuntimeProviders>
-      </Suspense>
-    </div>
+      <div className="bg-bg-weak-50 pt-20 pb-16 sm:pt-24 sm:pb-20">
+        <Suspense fallback={null}>
+          <WalletRuntimeProviders>
+            <CookiesCampaignSurface />
+          </WalletRuntimeProviders>
+        </Suspense>
+      </div>
+
+      <PublicFooter variant="soil" />
+    </>
   );
 }

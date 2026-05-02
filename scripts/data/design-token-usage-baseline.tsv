@@ -153,3 +153,4 @@ packages/shared/src/config/domain.ts to: "to-blue-50",	legacy-runtime	shared	202
 packages/shared/src/config/domain.ts to: "to-green-50",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/config/domain.ts to: "to-orange-50",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/config/domain.ts to: "to-yellow-50",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
+packages/client/src/components/Public/GardenCoverFallback.tsx backgroundImage: `linear-gradient(${angle}deg, ${palette.ink} 0%, ${palette.soft} 100%)`,	legacy-runtime	client	2026-12-31	procedural domain-themed gradient seeded from garden slug; tokens drive the ink/soft RGB triplets
