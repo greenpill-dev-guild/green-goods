@@ -18,7 +18,6 @@ interface HubAssessmentQueueProps {
   worksLoading: boolean;
   hasDataError: boolean;
   actionsMap: Map<number, { title: string }>;
-  selectedGardenName: string | undefined;
   selectedWorkId: string | undefined;
   onOpenWorkDetail: (workId: string) => void;
 }
@@ -28,7 +27,6 @@ export function HubAssessmentQueue({
   worksLoading,
   hasDataError,
   actionsMap,
-  selectedGardenName,
   selectedWorkId,
   onOpenWorkDetail,
 }: HubAssessmentQueueProps) {
@@ -89,11 +87,11 @@ export function HubAssessmentQueue({
                 ? `${actionTitle} · ${formatAddress(work.gardenerAddress, { variant: "card" })}`
                 : formatAddress(work.gardenerAddress, { variant: "card" })
             }
+            // Garden name removed from meta — chrome already shows it (Rule 17).
             meta={[
               formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" }),
               formatRelativeTime(work.createdAt),
-              selectedGardenName ?? "",
-            ].filter(Boolean)}
+            ]}
             statusLabel={formatMessage({
               id: "app.admin.work.filter.approved",
               defaultMessage: "Approved",

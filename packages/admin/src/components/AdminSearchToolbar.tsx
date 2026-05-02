@@ -71,9 +71,10 @@ export function AdminSearchToolbar({
           "flex w-full items-center sm:flex-1"
         )}
       >
-        {/* Leading search icon */}
+        {/* Leading search icon — 18dp keeps the pill from reading as a heavy
+            "submission" button. Was 20dp; M3 list-toolbar spec accepts 18-20dp. */}
         <RiSearchLine
-          className="ml-3 h-5 w-5 shrink-0 text-[rgb(var(--m3-on-surface-variant))]"
+          className="ml-3 h-[18px] w-[18px] shrink-0 text-[rgb(var(--m3-on-surface-variant))]"
           aria-hidden
         />
 

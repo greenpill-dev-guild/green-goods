@@ -29,6 +29,11 @@ import {
   bindCanvasScrollPositionPersistence,
   restoreCanvasScrollPosition,
 } from "../navigation/workspaceScroll";
+import type { UserRole } from "../../gardener/useRole";
+
+export function canManageActionsForRole(role: UserRole): boolean {
+  return role === "deployer";
+}
 
 export function useActionsController() {
   const intl = useIntl();
@@ -37,7 +42,7 @@ export function useActionsController() {
   const { activeSheet, activeContentId, openSheet, closeSheet } = useSheetOrchestrator();
   const { role } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
-  const canManageActions = role === "deployer" || role === "operator";
+  const canManageActions = canManageActionsForRole(role);
   const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const hydratedRef = useRef(false);

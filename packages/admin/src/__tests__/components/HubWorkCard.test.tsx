@@ -45,10 +45,15 @@ describe("HubWorkCard", () => {
     expect(screen.getByText("Planted 50 native saplings")).toBeInTheDocument();
   });
 
-  it("renders gardener name and garden name in metadata", () => {
+  it("renders gardener name in metadata, garden name only in hover-title", () => {
+    // Per Rule 17, garden name is declared by AppBar GardenChip — the card body
+    // does not redeclare it. The hover-title preserves the gardener+garden context
+    // for accessibility / detached contexts (PDF, screenshot share).
     renderCard();
     expect(screen.getByText(/0x1234...5678/)).toBeInTheDocument();
-    expect(screen.getByText(/Milpa Alta/)).toBeInTheDocument();
+    expect(screen.queryByText(/^Milpa Alta$/)).not.toBeInTheDocument();
+    const tooltipHost = screen.getByText(/0x1234...5678/).closest('[title*="Milpa Alta"]');
+    expect(tooltipHost).not.toBeNull();
   });
 
   it("renders domain badge for AGRO", () => {

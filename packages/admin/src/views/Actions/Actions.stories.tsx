@@ -3,11 +3,11 @@ import { useMemo } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
-  STORYBOOK_ADMIN_SHELL_SEEDS,
+  STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
 } from "../../../../shared/.storybook/adminFixtures";
 import {
-  withAdminIdentity,
+  withAdminIdentityRole,
   withCanvasFrame,
   withSeededQueryClient,
   withSelectedAdminGarden,
@@ -57,8 +57,8 @@ type Story = StoryObj<typeof ActionsCanvasStory>;
 
 function actionsDecorators() {
   return [
-    withAdminIdentity,
-    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withAdminIdentityRole("deployer"),
+    withSeededQueryClient(STORYBOOK_ADMIN_DEPLOYER_SEEDS),
     withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
     withCanvasFrame({
       className: "p-0",

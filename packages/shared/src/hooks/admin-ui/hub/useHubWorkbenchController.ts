@@ -404,7 +404,7 @@ export function useHubWorkbenchController() {
   );
 
   const stageTitle = getStageTitle(stage, formatMessage);
-  const headerDescription = getStageDescription(stage, selectedGarden?.name, formatMessage);
+  const headerDescription = getStageDescription(stage, formatMessage);
   const searchPlaceholder = getSearchPlaceholder(stage, formatMessage);
 
   const handleClearSearch = useCallback(() => {

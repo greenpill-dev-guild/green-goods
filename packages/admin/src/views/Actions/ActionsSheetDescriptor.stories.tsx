@@ -5,10 +5,10 @@ import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_ACTIONS,
-  STORYBOOK_ADMIN_SHELL_SEEDS,
+  STORYBOOK_ADMIN_DEPLOYER_SEEDS,
 } from "../../../../shared/.storybook/adminFixtures";
 import {
-  withAdminIdentity,
+  withAdminIdentityRole,
   withCanvasFrame,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
@@ -63,13 +63,13 @@ const STORYBOOK_DESCRIPTOR_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((acti
 }));
 
 const STORYBOOK_DESCRIPTOR_SEEDS = [
-  ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  ...STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   [queryKeys.actions.byChain(DEFAULT_CHAIN_ID), STORYBOOK_DESCRIPTOR_ACTIONS],
 ] as const;
 
 function actionsDescriptorDecorators() {
   return [
-    withAdminIdentity,
+    withAdminIdentityRole("deployer"),
     withSeededQueryClient(STORYBOOK_DESCRIPTOR_SEEDS),
     withCanvasFrame({
       className: "p-0",

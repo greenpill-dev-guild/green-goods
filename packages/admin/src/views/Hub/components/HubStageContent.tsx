@@ -26,7 +26,6 @@ interface HubStageContentProps {
   normalizedSearch: string;
   debouncedSearch: string;
   actionsMap: Map<number, { title: string }>;
-  selectedGardenName: string | undefined;
   selectedWorkId: string | undefined;
   selectedCertificationId: string | undefined;
   selectedHistoryEventId: string | undefined;
@@ -51,7 +50,6 @@ export function HubStageContent({
   normalizedSearch,
   debouncedSearch,
   actionsMap,
-  selectedGardenName,
   selectedWorkId,
   selectedCertificationId,
   selectedHistoryEventId,
@@ -70,7 +68,6 @@ export function HubStageContent({
         normalizedSearch={normalizedSearch}
         debouncedSearch={debouncedSearch}
         actionsMap={actionsMap}
-        selectedGardenName={selectedGardenName}
         selectedWorkId={selectedWorkId}
         onOpenWorkDetail={onOpenWorkDetail}
         onClearSearch={onClearSearch}
@@ -85,7 +82,6 @@ export function HubStageContent({
         worksLoading={worksLoading}
         hasDataError={hasDataError}
         actionsMap={actionsMap}
-        selectedGardenName={selectedGardenName}
         selectedWorkId={selectedWorkId}
         onOpenWorkDetail={onOpenWorkDetail}
       />

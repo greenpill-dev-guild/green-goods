@@ -4,6 +4,7 @@ import {
   defaultTemplate,
   Domain,
   getActionsListSearch,
+  canManageActionsForRole,
   resolveActionsRouteState,
   restoreCreateActionDraft,
   restoreEditActionDraft,
@@ -101,5 +102,11 @@ describe("actions workspace model", () => {
     expect(restored?.title).toBe("Updated action");
     expect(restored?.startTime.toISOString()).toBe("2026-03-01T12:00:00.000Z");
     expect(restored?.isEditingInstructions).toBe(true);
+  });
+
+  it("keeps Actions management deployer-only", () => {
+    expect(canManageActionsForRole("deployer")).toBe(true);
+    expect(canManageActionsForRole("operator")).toBe(false);
+    expect(canManageActionsForRole("user")).toBe(false);
   });
 });

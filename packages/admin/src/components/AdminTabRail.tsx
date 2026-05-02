@@ -167,8 +167,8 @@ export function AdminTabRail({
               {/* Label */}
               <span className="min-w-0 truncate">{tab.label}</span>
 
-              {/* Inline count badge */}
-              {tab.count !== undefined ? (
+              {/* Inline count badge — M3: zero-count carries no signal, do not render */}
+              {tab.count !== undefined && tab.count > 0 ? (
                 <span
                   className={cn(
                     "inline-flex shrink-0 items-center justify-center",

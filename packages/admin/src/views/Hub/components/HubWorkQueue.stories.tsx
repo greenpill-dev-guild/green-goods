@@ -56,7 +56,6 @@ const meta: Meta<typeof HubWorkQueue> = {
   },
   args: {
     actionsMap: ACTIONS_MAP,
-    selectedGardenName: "Rio Rainforest Lab",
     selectedWorkId: undefined,
     normalizedSearch: "",
     debouncedSearch: "",

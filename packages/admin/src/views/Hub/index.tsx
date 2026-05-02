@@ -1,7 +1,6 @@
 import {
   Button,
   HUB_STAGE_RAIL_ID,
-  MetaStrip,
   NativeSelect,
   useHubWorkbenchController,
 } from "@green-goods/shared";
@@ -67,11 +66,6 @@ export default function HubView() {
             title={hub.stageTitle}
             description={hub.headerDescription}
             variant="canvas"
-            metadata={
-              hub.selectedGarden ? (
-                <MetaStrip items={[{ id: "garden", label: hub.selectedGarden.name }]} />
-              ) : undefined
-            }
             toolbar={
               <AdminSearchToolbar
                 search={hub.searchTerm}
@@ -96,8 +90,8 @@ export default function HubView() {
                   <RiRefreshLine className="h-4 w-4" />
                 </Button>
                 {(hub.stage === "work" || hub.stage === "history") && (
-                  <label className="flex h-10 items-center gap-2 rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
-                    <span>
+                  <label className="flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+                    <span className="whitespace-nowrap">
                       {formatMessage({
                         id: "app.admin.sortSelect.sortBy",
                         defaultMessage: "Sort by",
@@ -175,7 +169,6 @@ export default function HubView() {
                   normalizedSearch={hub.normalizedSearch}
                   debouncedSearch={hub.debouncedSearch}
                   actionsMap={hub.actionsMap}
-                  selectedGardenName={hub.selectedGarden?.name}
                   selectedWorkId={hub.selectedWork?.id}
                   selectedCertificationId={hub.selectedCertification?.id}
                   selectedHistoryEventId={hub.selectedHistoryEvent?.id}

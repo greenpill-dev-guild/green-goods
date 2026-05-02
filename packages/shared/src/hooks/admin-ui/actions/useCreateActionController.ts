@@ -47,7 +47,7 @@ export function useCreateActionController() {
     },
     {
       value: Domain.AGRO,
-      label: formatMessage({ id: "app.domain.tab.agro", defaultMessage: "Agro" }),
+      label: formatMessage({ id: "app.domain.tab.agro", defaultMessage: "Agroforestry" }),
     },
     {
       value: Domain.EDU,

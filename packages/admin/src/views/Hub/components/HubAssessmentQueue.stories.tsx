@@ -48,7 +48,6 @@ const meta: Meta<typeof HubAssessmentQueue> = {
   },
   args: {
     actionsMap: ACTIONS_MAP,
-    selectedGardenName: "Rio Rainforest Lab",
     selectedWorkId: undefined,
     onOpenWorkDetail: fn(),
   },

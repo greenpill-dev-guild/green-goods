@@ -108,10 +108,13 @@ const STAGE_LABELS: Record<HubPipelineStage, { id: string; defaultMessage: strin
   history: { id: "cockpit.hub.tab.history", defaultMessage: "History" },
 };
 
+// Stage descriptions never name the garden — the AppBar's GardenChip already
+// declares which garden the operator is in. Re-stating it here would double the
+// chrome and steal a row of vertical space (see Rule 17).
 const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage: string }> = {
   work: {
     id: "cockpit.hub.description",
-    defaultMessage: "Review, assess, and certify work flowing through {garden}.",
+    defaultMessage: "Review and triage pending submissions.",
   },
   assess: {
     id: "cockpit.hub.assess.placeholder.description",
@@ -123,7 +126,7 @@ const STAGE_DESCRIPTIONS: Record<HubPipelineStage, { id: string; defaultMessage:
   },
   history: {
     id: "cockpit.hub.history.description",
-    defaultMessage: "Audit the recent work, impact, and community decisions tied to this garden.",
+    defaultMessage: "Audit the recent work, impact, and community decisions in this pipeline.",
   },
 };
 
@@ -141,16 +144,7 @@ export function getStageTitle(stage: HubPipelineStage, formatMessage: FormatMess
   return formatMessage(STAGE_LABELS[stage]);
 }
 
-export function getStageDescription(
-  stage: HubPipelineStage,
-  gardenName: string | undefined,
-  formatMessage: FormatMessage
-): string {
-  if (stage === "work") {
-    return formatMessage(STAGE_DESCRIPTIONS.work, {
-      garden: gardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" }),
-    });
-  }
+export function getStageDescription(stage: HubPipelineStage, formatMessage: FormatMessage): string {
   return formatMessage(STAGE_DESCRIPTIONS[stage]);
 }
 

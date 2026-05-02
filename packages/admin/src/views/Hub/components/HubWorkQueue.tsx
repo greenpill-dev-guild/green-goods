@@ -20,7 +20,6 @@ interface HubWorkQueueProps {
   normalizedSearch: string;
   debouncedSearch: string;
   actionsMap: Map<number, { title: string }>;
-  selectedGardenName: string | undefined;
   selectedWorkId: string | undefined;
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
@@ -33,7 +32,6 @@ export function HubWorkQueue({
   normalizedSearch,
   debouncedSearch,
   actionsMap,
-  selectedGardenName,
   selectedWorkId,
   onOpenWorkDetail,
   onClearSearch,
@@ -109,9 +107,9 @@ export function HubWorkQueue({
         return (
           <WorkbenchRow
             key={work.id}
-            eyebrow={
-              selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })
-            }
+            // Eyebrow names the stage, not the garden — chrome (AppBar GardenChip)
+            // already declares the garden context. See Rule 17.
+            eyebrow={formatMessage({ id: "cockpit.hub.tab.review", defaultMessage: "Review" })}
             title={
               work.title ||
               formatMessage({

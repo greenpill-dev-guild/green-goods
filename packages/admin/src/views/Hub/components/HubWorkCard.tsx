@@ -206,7 +206,8 @@ export function HubWorkCard({
         >
           <div className="min-w-0">
             <p className="truncate text-body-sm font-medium text-text-sub">{gardenerDisplayName}</p>
-            <p className="truncate text-body-sm text-text-soft">{gardenName}</p>
+            {/* Garden name removed from visible body — chrome (AppBar GardenChip) declares
+                garden context. Kept in hover-title above for accessibility. See Rule 17. */}
           </div>
           <span className="rounded-full bg-bg-soft/90 px-2.5 py-1 text-label-sm font-medium text-text-soft shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)] transition-colors group-hover:bg-bg-weak">
             {formatMessage({ id: "cockpit.hub.tab.review", defaultMessage: "Review" })}
