@@ -296,13 +296,34 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
   return (
     <>
       {!isDesktop && fab && !hideMobileChrome ? (
+        // Inline-style position: Tailwind v4 does not scan packages/shared/src/
+        // from admin/client builds, so `fixed`, `inset-x-0`, `bottom-[…]`, `z-nav`,
+        // and `px-4` would silently fail to generate. See CLAUDE.md "Known Gotchas".
         <div
-          className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-nav px-4 min-[600px]:hidden"
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: "calc(env(safe-area-inset-bottom) + 5.5rem)",
+            zIndex: "var(--z-nav)",
+            paddingLeft: "1rem",
+            paddingRight: "1rem",
+            pointerEvents: "none",
+          }}
           data-component="NavigationBar"
           data-slot="mobile-fab-layer"
         >
-          <div className="mx-auto flex w-full max-w-[1400px] justify-end">
-            <div className="pointer-events-auto">
+          <div
+            style={{
+              marginLeft: "auto",
+              marginRight: "auto",
+              width: "100%",
+              maxWidth: "1400px",
+              display: "flex",
+              justifyContent: "flex-end",
+            }}
+          >
+            <div style={{ pointerEvents: "auto" }}>
               <FabButton config={fab} mobileFloating />
             </div>
           </div>
@@ -340,9 +361,17 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
       )}
 
       {isDesktop && fab && (
+        // Inline-style position so it survives admin's Tailwind scan (see Crack 3
+        // / CLAUDE.md "Known Gotchas"). Right offset clamps to a 24px gutter on
+        // narrow viewports and to the 1400px content rail's right edge on wider ones.
         <div
+          style={{
+            position: "fixed",
+            bottom: "1rem",
+            right: "max(1.5rem, calc((100vw - 1400px) / 2))",
+            zIndex: "var(--z-nav)",
+          }}
           className={cn(
-            "fixed bottom-4 right-6 z-nav",
             "animate-[nav-bar-enter_var(--spring-spatial)_both]",
             "motion-reduce:animate-none"
           )}

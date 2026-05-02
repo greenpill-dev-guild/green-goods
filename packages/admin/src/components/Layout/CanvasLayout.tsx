@@ -93,6 +93,19 @@ export function CanvasLayout() {
     },
     [openSheet]
   );
+  // Toggle: clicking the same trigger that opened the sheet should close it.
+  // Plain open is kept above for callers (event handlers, redirect bridge) that
+  // need to force-open a specific content id without toggling.
+  const toggleRightSheetContent = useCallback(
+    (contentId: AdminRightSheetContentId) => {
+      if (activeSheet === "right" && activeContentId === contentId) {
+        closeSheet();
+      } else {
+        openSheet("right", contentId);
+      }
+    },
+    [activeContentId, activeSheet, closeSheet, openSheet]
+  );
   const renderAccountSurface = useCallback(
     ({
       activeTab,
@@ -132,12 +145,16 @@ export function CanvasLayout() {
 
   const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
   const openProfile = useCallback(
-    () => openRightSheetContent(PROFILE_SHEET_CONTENT_ID),
-    [openRightSheetContent]
+    () => toggleRightSheetContent(PROFILE_SHEET_CONTENT_ID),
+    [toggleRightSheetContent]
   );
   const openSettings = useCallback(
-    () => openRightSheetContent(SETTINGS_SHEET_CONTENT_ID),
-    [openRightSheetContent]
+    () => toggleRightSheetContent(SETTINGS_SHEET_CONTENT_ID),
+    [toggleRightSheetContent]
+  );
+  const openNotifications = useCallback(
+    () => toggleRightSheetContent(NOTIFICATIONS_SHEET_CONTENT_ID),
+    [toggleRightSheetContent]
   );
 
   // Build toolbar slots — visibility driven by role-adaptive permissions
@@ -294,7 +311,7 @@ export function CanvasLayout() {
               gardenChip={gardenChipNode}
               onOpenSearch={handleOpenSearch}
               onOpenSettings={isDesktop ? openSettings : undefined}
-              onOpenNotifications={() => openRightSheetContent(NOTIFICATIONS_SHEET_CONTENT_ID)}
+              onOpenNotifications={openNotifications}
               onOpenProfile={isDesktop ? openProfile : undefined}
             />
           </div>
