@@ -3,6 +3,7 @@ description: Green Goods Indexer
 field_selection:
   transaction_fields:
     - hash
+    - input
 contracts:
   - name: ActionRegistry
     handler: src/EventHandlers.ts
@@ -84,7 +85,7 @@ networks:
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
       - name: GreenWill
-        address: "0x0000000000000000000000000000000000000000"
+        address: "0x6e6895580b386eB3aB9efe228f79cdBe5B61F5e7"
       - name: CookieJarFactory
         address: "0x294d222eDE6DF6625B43544F1C634322467528Da"
   - id: 11155111

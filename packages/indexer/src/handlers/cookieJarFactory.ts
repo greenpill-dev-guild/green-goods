@@ -7,6 +7,9 @@ import { getCampaignCookieJarId, getTxHash, normalizeAddress } from "./shared";
 const CAMPAIGN_METADATA_KIND = "green-goods.campaign-cookie-jar";
 const CAMPAIGN_METADATA_VERSION = 1;
 const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
+const CREATE_COOKIE_JAR_SELECTOR = "0x203d4c12";
+const ABI_WORD_HEX_LENGTH = 64;
+const JAR_CONFIG_METADATA_SLOT = 14;
 
 interface JarCreatedArgs {
   jarAddress: string;
@@ -87,6 +90,55 @@ function parseCampaignMetadata(rawMetadata: string): ParsedCampaignMetadata {
   }
 }
 
+function readAbiWord(data: string, offsetBytes: number): bigint | null {
+  const start = offsetBytes * 2;
+  const word = data.slice(start, start + ABI_WORD_HEX_LENGTH);
+  if (word.length !== ABI_WORD_HEX_LENGTH || !/^[a-fA-F0-9]+$/.test(word)) return null;
+  return BigInt(`0x${word}`);
+}
+
+function toSafeAbiOffset(value: bigint | null): number | null {
+  if (value === null || value > BigInt(Number.MAX_SAFE_INTEGER)) return null;
+  return Number(value);
+}
+
+function readAbiString(data: string, offsetBytes: number): string | null {
+  const byteLength = toSafeAbiOffset(readAbiWord(data, offsetBytes));
+  if (byteLength === null) return null;
+
+  const start = (offsetBytes + 32) * 2;
+  const end = start + byteLength * 2;
+  const bytes = data.slice(start, end);
+  if (bytes.length !== byteLength * 2 || !/^[a-fA-F0-9]*$/.test(bytes)) return null;
+
+  return Buffer.from(bytes, "hex").toString("utf8");
+}
+
+function decodeCreateCookieJarMetadata(transaction: unknown): ParsedCampaignMetadata | undefined {
+  const input =
+    typeof transaction === "object" &&
+    transaction !== null &&
+    "input" in transaction &&
+    typeof transaction.input === "string"
+      ? transaction.input
+      : undefined;
+  if (!input?.toLowerCase().startsWith(CREATE_COOKIE_JAR_SELECTOR)) return undefined;
+
+  const encodedArgs = input.slice(CREATE_COOKIE_JAR_SELECTOR.length);
+  if (encodedArgs.length < ABI_WORD_HEX_LENGTH) return undefined;
+
+  const jarConfigOffset = toSafeAbiOffset(readAbiWord(encodedArgs, 0));
+  if (jarConfigOffset === null) return undefined;
+
+  const metadataRelativeOffset = toSafeAbiOffset(
+    readAbiWord(encodedArgs, jarConfigOffset + JAR_CONFIG_METADATA_SLOT * 32)
+  );
+  if (metadataRelativeOffset === null) return undefined;
+
+  const metadata = readAbiString(encodedArgs, jarConfigOffset + metadataRelativeOffset);
+  return metadata ? parseCampaignMetadata(metadata) : undefined;
+}
+
 function buildCampaignCookieJarCandidate(params: {
   event: {
     chainId: number;
@@ -137,6 +189,7 @@ CookieJarFactory.JarCreated.handler(
         existing,
         jarAddress,
         creator: event.params.creator,
+        metadata: decodeCreateCookieJarMetadata(event.transaction),
       })
     );
   }

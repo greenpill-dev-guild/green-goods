@@ -1,5 +1,6 @@
 import assert from "assert";
 import { createRequire } from "module";
+import { encodeFunctionData } from "viem";
 
 // @ts-expect-error import.meta.url is valid at runtime in tsx.
 const require = createRequire(import.meta.url);
@@ -16,9 +17,79 @@ const {
 } = TestHelpers;
 
 const CHAIN_ID = 42161;
+type HexAddress = `0x${string}`;
+const CREATE_COOKIE_JAR_ABI = [
+  {
+    type: "function",
+    name: "createCookieJar",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "params",
+        type: "tuple",
+        components: [
+          { name: "jarOwner", type: "address" },
+          { name: "supportedCurrency", type: "address" },
+          { name: "feeCollector", type: "address" },
+          { name: "accessType", type: "uint8" },
+          { name: "withdrawalOption", type: "uint8" },
+          { name: "strictPurpose", type: "bool" },
+          { name: "emergencyWithdrawalEnabled", type: "bool" },
+          { name: "oneTimeWithdrawal", type: "bool" },
+          { name: "fixedAmount", type: "uint256" },
+          { name: "maxWithdrawal", type: "uint256" },
+          { name: "withdrawalInterval", type: "uint256" },
+          { name: "minDeposit", type: "uint256" },
+          { name: "feePercentageOnDeposit", type: "uint256" },
+          { name: "maxWithdrawalPerPeriod", type: "uint256" },
+          { name: "metadata", type: "string" },
+          {
+            name: "multiTokenConfig",
+            type: "tuple",
+            components: [
+              { name: "enabled", type: "bool" },
+              { name: "maxSlippagePercent", type: "uint256" },
+              { name: "minSwapAmount", type: "uint256" },
+              { name: "defaultFee", type: "uint24" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "accessConfig",
+        type: "tuple",
+        components: [
+          { name: "allowlist", type: "address[]" },
+          {
+            name: "nftRequirement",
+            type: "tuple",
+            components: [
+              { name: "nftContract", type: "address" },
+              { name: "tokenId", type: "uint256" },
+              { name: "minBalance", type: "uint256" },
+              { name: "isPoapEventGate", type: "bool" },
+            ],
+          },
+        ],
+      },
+      {
+        name: "multiTokenConfig",
+        type: "tuple",
+        components: [
+          { name: "enabled", type: "bool" },
+          { name: "maxSlippagePercent", type: "uint256" },
+          { name: "minSwapAmount", type: "uint256" },
+          { name: "defaultFee", type: "uint24" },
+        ],
+      },
+    ],
+    outputs: [{ name: "jarAddress", type: "address" }],
+  },
+] as const;
 
-function addr(index: number): string {
-  return Addresses.mockAddresses[index] || `0x${index.toString().padStart(40, "0")}`;
+function addr(index: number): HexAddress {
+  return (Addresses.mockAddresses[index] ||
+    `0x${index.toString().padStart(40, "0")}`) as HexAddress;
 }
 
 function txHash(index: number): string {
@@ -28,15 +99,65 @@ function txHash(index: number): string {
 function mockEvent(
   chainId: number,
   timestamp: number,
-  opts: { srcAddress?: string; txHash?: string; logIndex?: number; blockNumber?: number } = {}
+  opts: {
+    srcAddress?: string;
+    txHash?: string;
+    txInput?: string;
+    logIndex?: number;
+    blockNumber?: number;
+  } = {}
 ) {
   return {
     chainId,
     block: { timestamp, number: opts.blockNumber ?? 0 },
     srcAddress: opts.srcAddress ?? addr(99),
-    transaction: { hash: opts.txHash ?? txHash(timestamp) },
+    transaction: { hash: opts.txHash ?? txHash(timestamp), input: opts.txInput },
     logIndex: opts.logIndex ?? 0,
   };
+}
+
+function createCookieJarInput(metadata: string): string {
+  const multiTokenConfig = {
+    enabled: false,
+    maxSlippagePercent: 0n,
+    minSwapAmount: 0n,
+    defaultFee: 0,
+  };
+
+  return encodeFunctionData({
+    abi: CREATE_COOKIE_JAR_ABI,
+    functionName: "createCookieJar",
+    args: [
+      {
+        jarOwner: addr(1),
+        supportedCurrency: addr(2),
+        feeCollector: addr(3),
+        accessType: 0,
+        withdrawalOption: 0,
+        strictPurpose: false,
+        emergencyWithdrawalEnabled: false,
+        oneTimeWithdrawal: true,
+        fixedAmount: 1n,
+        maxWithdrawal: 1n,
+        withdrawalInterval: 0n,
+        minDeposit: 0n,
+        feePercentageOnDeposit: 0n,
+        maxWithdrawalPerPeriod: 0n,
+        metadata,
+        multiTokenConfig,
+      },
+      {
+        allowlist: [addr(4)],
+        nftRequirement: {
+          nftContract: addr(5),
+          tokenId: 0n,
+          minBalance: 0n,
+          isPoapEventGate: false,
+        },
+      },
+      multiTokenConfig,
+    ],
+  });
 }
 
 describe("retained garden + role handlers", () => {
@@ -167,6 +288,45 @@ describe("retained yield + hypercert handlers", () => {
 });
 
 describe("campaign cookie jar factory handlers", () => {
+  it("parses campaign metadata from JarCreated transaction input", async () => {
+    const mockDb = MockDb.createMockDb();
+    const jarAddress = addr(50);
+    const creator = addr(51);
+    const metadata = JSON.stringify({
+      kind: "green-goods.campaign-cookie-jar",
+      version: 1,
+      slug: "earth-week",
+      title: "Earth Week Cookie Jar",
+      sourceGardens: [addr(54)],
+      operatorPolicy: "one-operator-per-garden",
+      extraAllowlist: [addr(55)],
+      chainId: CHAIN_ID,
+      createdAt: 1770000000,
+    });
+
+    const event = CookieJarFactory.JarCreated.createMockEvent({
+      jarAddress,
+      creator,
+      mockEventData: mockEvent(CHAIN_ID, 40_000, {
+        srcAddress: addr(52),
+        txHash: txHash(400),
+        txInput: createCookieJarInput(metadata),
+      }),
+    });
+
+    const result = await CookieJarFactory.JarCreated.processEvent({ event, mockDb });
+    const jar = result.entities.CampaignCookieJar.get(`${CHAIN_ID}-${jarAddress.toLowerCase()}`);
+
+    assert.ok(jar);
+    assert.equal(jar.jarAddress, jarAddress.toLowerCase());
+    assert.equal(jar.creator, creator.toLowerCase());
+    assert.equal(jar.slug, "earth-week");
+    assert.equal(jar.title, "Earth Week Cookie Jar");
+    assert.equal(jar.isValidCampaign, true);
+    assert.equal(jar.rawMetadata, metadata);
+    assert.equal(jar.metadataUpdatedAt, 40_000);
+  });
+
   it("stores JarCreated candidates without requiring metadata on the create event", async () => {
     const mockDb = MockDb.createMockDb();
     const jarAddress = addr(50);
