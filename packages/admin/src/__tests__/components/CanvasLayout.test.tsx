@@ -4,7 +4,7 @@
  */
 
 import type React from "react";
-import { MemoryRouter } from "react-router-dom";
+import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
@@ -13,14 +13,17 @@ import { useSheetOrchestratorStore } from "@green-goods/shared";
 const {
   mockUseGardenUrlSync,
   mockUseStaleGardenGuard,
+  mockEnsureBaseLists,
   mockSetSelectedGarden,
   mockAppBarProps,
   mockAuthState,
   mockEligibleAdminGardens,
+  mockAdminAccessState,
   mockRouteLeftSheetConfig,
 } = vi.hoisted(() => ({
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
+  mockEnsureBaseLists: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
   mockAppBarProps: vi.fn(),
   mockRouteLeftSheetConfig: {
@@ -47,6 +50,14 @@ const {
       scopeKey: "0x123:10",
       canCreateGarden: true,
       isLoaded: true,
+    },
+  },
+  mockAdminAccessState: {
+    current: {
+      status: "ready" as const,
+      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
+      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      hasStaleBaseList: false,
     },
   },
 }));
@@ -201,6 +212,8 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     }),
     useGardenUrlSync: mockUseGardenUrlSync,
     useStaleGardenGuard: mockUseStaleGardenGuard,
+    useAdminAccessState: () => mockAdminAccessState.current,
+    ensureBaseLists: mockEnsureBaseLists,
   };
 });
 
@@ -233,6 +246,7 @@ vi.mock("@/components/Layout/AccountSettingsPanel", () => ({
 }));
 
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
+import CanvasShell from "@/routes/CanvasShell";
 
 describe("CanvasLayout", () => {
   beforeEach(() => {
@@ -511,5 +525,72 @@ describe("CanvasLayout", () => {
 
     expect(dialog).toHaveAttribute("data-boundary", "bounded");
     expect(overlayRoot).toContainElement(dialog);
+  });
+});
+
+function renderCanvasShell(initialEntry = "/hub/work") {
+  const router = createMemoryRouter([{ path: "*", element: <CanvasShell /> }], {
+    initialEntries: [initialEntry],
+  });
+  renderWithProviders(<RouterProvider router={router} />);
+  return router;
+}
+
+describe("CanvasShell access states", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAdminAccessState.current = {
+      status: "ready",
+      eligibleGardens: [{ id: "garden-1", name: "Garden One", location: "Quito" }],
+      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
+      hasStaleBaseList: false,
+    };
+  });
+
+  it("renders the shared disconnected state for direct canvas bookmarks", () => {
+    mockAdminAccessState.current = { status: "disconnected" };
+
+    renderCanvasShell("/hub/work");
+
+    expect(screen.getByRole("button", { name: /connect wallet/i })).toBeInTheDocument();
+    expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
+    expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
+  });
+
+  it("renders the shared embedded-wallet state for direct canvas bookmarks", () => {
+    const signOut = vi.fn();
+    mockAdminAccessState.current = { status: "embedded-wallet", signOut };
+
+    renderCanvasShell("/hub/work");
+
+    expect(screen.getByTestId("wallet-required-shell")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /sign out & connect wallet/i })).toBeInTheDocument();
+    expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
+  });
+
+  it("renders the shared no-access state for direct canvas bookmarks", () => {
+    mockAdminAccessState.current = { status: "no-access", canCreateGarden: false };
+
+    renderCanvasShell("/hub/work");
+
+    expect(screen.getByTestId("canvas-no-garden-access")).toBeInTheDocument();
+    expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
+  });
+
+  it("renders the shared indexer-error state for direct canvas bookmarks", () => {
+    mockAdminAccessState.current = { status: "indexer-error" };
+
+    renderCanvasShell("/hub/work");
+
+    expect(screen.getByTestId("canvas-indexer-error")).toBeInTheDocument();
+    expect(screen.queryByText("Page Transition")).not.toBeInTheDocument();
+  });
+
+  it("keeps CanvasLayout as the ready shell for direct canvas bookmarks", () => {
+    renderCanvasShell("/hub/work");
+
+    expect(mockEnsureBaseLists).toHaveBeenCalled();
+    expect(screen.getByText("Page Transition")).toBeInTheDocument();
+    expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
   });
 });

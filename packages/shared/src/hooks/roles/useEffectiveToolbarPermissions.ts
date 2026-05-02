@@ -11,9 +11,9 @@
 import { useMemo } from "react";
 import { isAddressInList } from "../../utils/blockchain/address";
 import { useAdminStore } from "../../stores/useAdminStore";
-import { useGardens } from "../blockchain/useBaseLists";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useRole } from "../gardener/useRole";
+import { useEligibleAdminGardens } from "../garden/useEligibleAdminGardens";
 
 export interface ToolbarPermissions {
   showWork: boolean;
@@ -35,18 +35,26 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   const address = usePrimaryAddress();
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const { isDeployer, loading: roleLoading } = useRole();
-  const { data: gardens, isLoading: gardensLoading } = useGardens();
+  const {
+    eligibleGardens,
+    isLoaded: eligibleGardensLoaded,
+    isError: eligibleGardensError,
+  } = useEligibleAdminGardens();
 
   return useMemo(() => {
     // Fail-open while loading or on error (gardens data undefined)
-    if (roleLoading || gardensLoading || !address || !gardens) {
+    if (roleLoading || !eligibleGardensLoaded || !address) {
+      return FAIL_OPEN;
+    }
+
+    if (eligibleGardensError && eligibleGardens.length === 0) {
       return FAIL_OPEN;
     }
 
     // Determine which gardens to check
     const scope = selectedGarden
-      ? (gardens ?? []).filter((g) => g.id === selectedGarden.id)
-      : (gardens ?? []);
+      ? eligibleGardens.filter((g) => g.id === selectedGarden.id)
+      : eligibleGardens;
 
     // Compute aggregated roles across the scope
     let hasAnyRole = false;
@@ -80,5 +88,13 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
       showActions: isDeployer,
       isLoading: false,
     };
-  }, [address, selectedGarden, gardens, roleLoading, gardensLoading, isDeployer]);
+  }, [
+    address,
+    selectedGarden,
+    eligibleGardens,
+    roleLoading,
+    eligibleGardensLoaded,
+    eligibleGardensError,
+    isDeployer,
+  ]);
 }

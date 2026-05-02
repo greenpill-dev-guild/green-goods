@@ -22,9 +22,9 @@ vi.mock("../../../hooks/gardener/useRole", () => ({
   useRole: () => mockUseRole(),
 }));
 
-const mockUseGardens = vi.fn();
-vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
-  useGardens: () => mockUseGardens(),
+const mockUseEligibleAdminGardens = vi.fn();
+vi.mock("../../../hooks/garden/useEligibleAdminGardens", () => ({
+  useEligibleAdminGardens: () => mockUseEligibleAdminGardens(),
 }));
 
 const mockUseAdminStore = vi.fn();
@@ -63,7 +63,9 @@ function setupDefaults(
     address?: string;
     selectedGarden?: { id: string } | null;
     roleLoading?: boolean;
-    gardensLoading?: boolean;
+    eligibleGardensLoaded?: boolean;
+    eligibleGardensError?: boolean;
+    hasStaleBaseList?: boolean;
     isDeployer?: boolean;
     isOperator?: boolean;
     gardens?: ReturnType<typeof makeGarden>[];
@@ -73,7 +75,9 @@ function setupDefaults(
     address = ADDR_USER,
     selectedGarden = null,
     roleLoading = false,
-    gardensLoading = false,
+    eligibleGardensLoaded = true,
+    eligibleGardensError = false,
+    hasStaleBaseList = false,
     isDeployer = false,
     isOperator = false,
     gardens = [],
@@ -89,9 +93,11 @@ function setupDefaults(
     isOperator,
     loading: roleLoading,
   });
-  mockUseGardens.mockReturnValue({
-    data: gardens,
-    isLoading: gardensLoading,
+  mockUseEligibleAdminGardens.mockReturnValue({
+    eligibleGardens: gardens,
+    isLoaded: eligibleGardensLoaded,
+    isError: eligibleGardensError,
+    hasStaleBaseList,
   });
 }
 
@@ -224,13 +230,7 @@ describe("useEffectiveToolbarPermissions", () => {
   });
 
   it("error state: useGardens errors -> all visible (fail-open)", () => {
-    setupDefaults();
-    // Simulate error by returning undefined data with error
-    mockUseGardens.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: new Error("Network failure"),
-    });
+    setupDefaults({ eligibleGardensError: true, gardens: [] });
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 
@@ -243,5 +243,26 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.showGarden).toBe(true);
     expect(result.current.showCommunity).toBe(true);
     expect(result.current.showActions).toBe(true);
+  });
+
+  it("uses role-confirmed fallback gardens when the base list is stale", () => {
+    const recoveredGarden = makeGarden("garden-recovered", {
+      operators: [ADDR_USER],
+    });
+
+    setupDefaults({
+      gardens: [recoveredGarden],
+      selectedGarden: { id: "garden-recovered" },
+      eligibleGardensError: true,
+      hasStaleBaseList: true,
+    });
+
+    const { result } = renderHook(() => useEffectiveToolbarPermissions());
+
+    expect(result.current.showWork).toBe(true);
+    expect(result.current.showGarden).toBe(true);
+    expect(result.current.showCommunity).toBe(false);
+    expect(result.current.showActions).toBe(false);
+    expect(result.current.isLoading).toBe(false);
   });
 });

@@ -20,13 +20,22 @@ import { useYieldAllocations } from "../yield/useYieldAllocations";
 import type { GardenOperationResult } from "./createGardenOperation";
 import { useGardenOperations } from "./useGardenOperations";
 import { useGardenPermissions } from "./useGardenPermissions";
+import { useEligibleAdminGardens } from "./useEligibleAdminGardens";
 
 export function useGardenDetailData(id: string | undefined) {
   const queryClient = useQueryClient();
   const gardenPermissions = useGardenPermissions();
 
-  const { data: gardens = [], isLoading: fetching, error } = useGardens();
-  const garden = gardens.find((g) => g.id === id);
+  const { data: gardens = [], isLoading: fetching, error, isError } = useGardens();
+  const {
+    eligibleGardens,
+    hasStaleBaseList,
+    isError: eligibleGardenBaseListError,
+  } = useEligibleAdminGardens();
+  const baseGarden = gardens.find((g) => g.id === id) ?? null;
+  const recoveredEligibleGarden = eligibleGardens.find((g) => g.id === id) ?? null;
+  const garden = baseGarden ?? recoveredEligibleGarden ?? undefined;
+  const isRecoveredEligibleGarden = baseGarden === null && recoveredEligibleGarden !== null;
 
   const { start: scheduleBackgroundRefetch } = useDelayedInvalidation(() => {
     const keysToInvalidate = queryInvalidation.invalidateGardens(DEFAULT_CHAIN_ID);
@@ -136,6 +145,11 @@ export function useGardenDetailData(id: string | undefined) {
 
   return {
     garden,
+    baseGarden,
+    isRecoveredEligibleGarden,
+    hasStaleBaseList,
+    baseListError: error ?? null,
+    isBaseListError: isError || eligibleGardenBaseListError,
     fetching,
     error,
     gardenId,

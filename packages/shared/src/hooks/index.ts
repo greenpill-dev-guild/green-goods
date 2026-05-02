@@ -25,6 +25,8 @@ export { usePageView } from "./analytics/usePageView";
 // ============================================================================
 export { useBrowserNavigation } from "./app/useBrowserNavigation";
 export { useUrlFilters } from "./app/useUrlFilters";
+export type { AdminAccessState } from "./admin-ui/useAdminAccessState";
+export { useAdminAccessState } from "./admin-ui/useAdminAccessState";
 // ============================================================================
 // UI
 // ============================================================================

@@ -52,6 +52,31 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ),
     useAuth: () => mockAuthState.current,
     useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+    useAdminAccessState: () => {
+      const auth = mockAuthState.current;
+      const eligible = mockEligibleAdminGardens.current;
+      if (!auth.isReady || (auth.isAuthenticated && !eligible.isLoaded)) {
+        return { status: "checking" };
+      }
+      if (auth.authMode === "embedded") {
+        return { status: "embedded-wallet", signOut: auth.signOut };
+      }
+      if (!auth.isAuthenticated || !auth.eoaAddress) {
+        return { status: "disconnected" };
+      }
+      if (eligible.eligibleGardens.length > 0) {
+        return {
+          status: "ready",
+          eligibleGardens: eligible.eligibleGardens,
+          resolvedDefaultGarden: eligible.resolvedDefaultGarden,
+          hasStaleBaseList: eligible.hasStaleBaseList,
+        };
+      }
+      if (eligible.isError) {
+        return { status: "indexer-error" };
+      }
+      return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
+    },
   };
 });
 

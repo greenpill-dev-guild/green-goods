@@ -71,6 +71,21 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       signOut: vi.fn(),
     }),
     useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+    useAdminAccessState: () => {
+      const eligible = mockEligibleAdminGardens.current;
+      if (!eligible.isLoaded) {
+        return { status: "checking" };
+      }
+      if (eligible.eligibleGardens.length > 0) {
+        return {
+          status: "ready",
+          eligibleGardens: eligible.eligibleGardens,
+          resolvedDefaultGarden: eligible.resolvedDefaultGarden,
+          hasStaleBaseList: false,
+        };
+      }
+      return { status: "no-access", canCreateGarden: eligible.canCreateGarden };
+    },
     useEffectiveToolbarPermissions: () => ({
       showWork: true,
       showGarden: true,
