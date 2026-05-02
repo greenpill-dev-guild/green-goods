@@ -7,58 +7,20 @@
  * runs the web doctor, then verifies that client/admin/docs/storybook respond locally.
  */
 
-import http from "node:http";
-import https from "node:https";
 import { spawnSync } from "node:child_process";
-import { accessSync, constants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { requestUrl, reexecUnderSystemNodeIfNeeded } from "../lib/dev-shared.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 
-function findSystemNode() {
-  const executable = process.platform === "win32" ? "node.exe" : "node";
-  const pathEntries = (process.env.PATH || "").split(path.delimiter);
-
-  for (const entry of pathEntries) {
-    if (!entry || entry.includes("bun-node") || entry.includes(`${path.sep}.bun${path.sep}bin`)) {
-      continue;
-    }
-
-    const candidate = path.join(entry, executable);
-    try {
-      accessSync(candidate, constants.X_OK);
-      return candidate;
-    } catch {
-      // Keep scanning PATH.
-    }
-  }
-
-  return "";
-}
-
-function reexecUnderSystemNodeIfNeeded() {
-  if (!process.versions.bun || process.env.GREEN_GOODS_SMOKE_NODE_REEXEC === "1") return;
-
-  const systemNode = findSystemNode();
-  if (!systemNode) return;
-
-  const result = spawnSync(systemNode, [__filename, ...process.argv.slice(2)], {
-    cwd: projectRoot,
-    env: {
-      ...process.env,
-      GREEN_GOODS_SMOKE_NODE_REEXEC: "1",
-    },
-    stdio: "inherit",
-  });
-
-  if (result.error) return;
-  process.exit(result.status ?? (result.signal ? 1 : 0));
-}
-
-reexecUnderSystemNodeIfNeeded();
+reexecUnderSystemNodeIfNeeded({
+  scriptPath: __filename,
+  sentinel: "GREEN_GOODS_SMOKE_NODE_REEXEC",
+  cwd: projectRoot,
+});
 
 const services = [
   {
@@ -175,63 +137,6 @@ function runDoctor() {
     stdout: payload ? undefined : result.stdout.trim(),
     stderr: result.stderr.trim(),
   };
-}
-
-function requestUrl(url, timeoutMs) {
-  const parsed = new URL(url);
-  const client = parsed.protocol === "https:" ? https : http;
-
-  return new Promise((resolve) => {
-    let settled = false;
-    let request;
-    let timer;
-    const finish = (result) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve(result);
-      request?.destroy();
-    };
-    timer = setTimeout(() => {
-      finish({
-        ok: false,
-        url,
-        error: `Timed out after ${timeoutMs}ms`,
-      });
-    }, timeoutMs);
-
-    request = client.get(
-      {
-        hostname: parsed.hostname,
-        port: parsed.port,
-        path: parsed.pathname || "/",
-        rejectUnauthorized: false,
-      },
-      (response) => {
-        response.resume();
-        finish({
-          ok: true,
-          url,
-          statusCode: response.statusCode,
-        });
-      }
-    );
-
-    request.setTimeout(timeoutMs, () => {
-      finish({
-        ok: false,
-        url,
-        error: `Timed out after ${timeoutMs}ms`,
-      });
-    });
-    request.on("error", (error) => {
-      finish({
-        ok: false,
-        url,
-        error: error.code || error.message,
-      });
-    });
-  });
 }
 
 async function waitForService(service, deadlineMs) {

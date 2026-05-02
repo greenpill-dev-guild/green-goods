@@ -9,12 +9,13 @@
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { execFileSync, execSync, spawnSync } from "child_process";
+import { execSync } from "child_process";
+import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
 
 // `--cloud` skips human-onboarding steps (Docker check, .env generation via
-// the 1Password CLI) and runs faster on repeat invocations. Intended for
-// Claude Code on the web and other ephemeral cloud environments where bun is
-// preinstalled and secrets are injected by the platform, not resolved from op.
+// the 1Password CLI). Intended for Claude Code on the web and other ephemeral
+// cloud environments where bun is preinstalled and secrets are injected by the
+// platform, not resolved from op.
 const isCloud = process.argv.includes("--cloud");
 
 // Simple color helpers
@@ -35,13 +36,9 @@ const log = {
 };
 
 function checkCommand(cmd, name) {
-  const probe = process.platform === "win32" ? `where ${cmd}` : `command -v ${cmd}`;
-  const result = spawnSync(probe, { shell: true, stdio: "ignore" });
-  if (result.status !== 0) {
-    log.error(`${name} not found`);
-    return false;
-  }
-  return true;
+  if (commandExists(cmd)) return true;
+  log.error(`${name} not found`);
+  return false;
 }
 
 function installBun() {
@@ -109,7 +106,17 @@ function installFoundry() {
     // husky hooks, where ~/.bashrc skips its body via `[ -z "$PS1" ] && return`).
     // Fall back to a PATH export in ~/.bashrc/~/.zshrc if no system dir is writable.
     const binaries = ["forge", "cast", "anvil", "chisel"];
-    const candidateDirs = ["/usr/local/bin", path.join(home, ".local", "bin")];
+    // Only consider system dirs that already exist — `mkdirSync(..., { recursive: true })`
+    // would otherwise materialise a stray /opt/homebrew/bin on Intel/Linux. Apple
+    // Silicon Homebrew lives at /opt/homebrew; Intel/macOS legacy and most Linuxes
+    // expose /usr/local/bin. ~/.local/bin is a per-user fallback we always create.
+    const isAppleSilicon = process.platform === "darwin" && os.arch() === "arm64";
+    const userLocalBin = path.join(home, ".local", "bin");
+    const candidateDirs = [
+      ...(isAppleSilicon && fs.existsSync("/opt/homebrew/bin") ? ["/opt/homebrew/bin"] : []),
+      ...(fs.existsSync("/usr/local/bin") ? ["/usr/local/bin"] : []),
+      userLocalBin,
+    ];
     let symlinked = false;
     for (const dir of candidateDirs) {
       try {
@@ -129,8 +136,15 @@ function installFoundry() {
 
     if (!symlinked) {
       const pathLine = `export PATH="${binDir}:$PATH"`;
+      // Default macOS shell is zsh; .zprofile is sourced for login shells
+      // (including the first Terminal tab), .zshrc only for interactive shells.
+      // Append to both so subsequent shells pick up Foundry without a manual
+      // sourcing step.
       const rcFiles = [path.join(home, ".bashrc")];
-      if (platform === "darwin") rcFiles.push(path.join(home, ".zshrc"));
+      if (platform === "darwin") {
+        rcFiles.push(path.join(home, ".zshrc"));
+        rcFiles.push(path.join(home, ".zprofile"));
+      }
       for (const rc of rcFiles) {
         try {
           const existing = fs.existsSync(rc) ? fs.readFileSync(rc, "utf8") : "";
@@ -154,26 +168,25 @@ function installFoundry() {
 }
 
 function checkVersion(cmd, minVersion, name) {
-  try {
-    const version = execFileSync(cmd, ["--version"], { encoding: "utf8" }).trim();
-    const match = version.match(/(\d+)/);
-    if (match && parseInt(match[1]) >= minVersion) {
-      log.success(`${name} ${version.split("\n")[0]}`);
-      return true;
-    }
-    log.error(`${name} version ${minVersion}+ required`);
-    return false;
-  } catch {
+  const version = commandVersion(cmd);
+  if (!version) {
     log.error(`${name} not found`);
     return false;
   }
+  const major = majorVersion(version);
+  if (major !== null && major >= minVersion) {
+    log.success(`${name} ${version.split("\n")[0]}`);
+    return true;
+  }
+  log.error(`${name} version ${minVersion}+ required`);
+  return false;
 }
 
 function checkDocker() {
   try {
-    execFileSync("docker", ["ps"], { stdio: "ignore" });
-    const version = execFileSync("docker", ["--version"], { encoding: "utf8" }).trim();
-    log.success(version);
+    execSync("docker ps", { stdio: "ignore" });
+    const version = commandVersion("docker");
+    log.success(version || "Docker available");
     return true;
   } catch {
     log.error("Docker not running or not installed");
@@ -232,18 +245,16 @@ if (!hasForge) {
   }
 }
 
-// Install dependencies
-if (!fs.existsSync("node_modules")) {
-  log.info("Installing dependencies...\n");
-  try {
-    execSync("bun install", { stdio: "inherit" });
-    log.success("Dependencies installed\n");
-  } catch {
-    log.error("Failed to install dependencies\n");
-    process.exit(1);
-  }
-} else {
-  log.success("Dependencies already installed\n");
+// Install dependencies — always run so lockfile drift after `git pull`
+// doesn't leave the developer with an inconsistent node_modules. `bun install`
+// is idempotent and fast on a warm cache.
+log.info("Installing dependencies (idempotent)...\n");
+try {
+  execSync("bun install", { stdio: "inherit" });
+  log.success("Dependencies installed\n");
+} catch {
+  log.error("Failed to install dependencies\n");
+  process.exit(1);
 }
 
 // Setup environment — skipped in cloud since secrets are injected directly by

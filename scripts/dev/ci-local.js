@@ -549,19 +549,12 @@ async function main() {
   // Phase 6: Lighthouse Performance Tests (matches client.yml/admin.yml advisory jobs)
   // ============================================================================
   if (!config.skipLighthouse && !config.skipBuild) {
-    // Check if lhci is available
-    const hasLhci = await commandExists("lhci");
-    if (!hasLhci) {
-      printWarning(
-        "Lighthouse CI not found. Installing @lhci/cli..."
-      );
-      await runStep("Install Lighthouse CI", "npm install -g @lhci/cli");
-    }
-
+    // @lhci/cli is a root devDep; run it via bunx so we use the workspace
+    // version instead of polluting global node_modules with `npm install -g`.
     printSection("Lighthouse CI - Client");
     await runStep(
       "Lighthouse client",
-      "npx lhci autorun",
+      "bunx lhci autorun",
       resolve(projectRoot, "packages/client"),
       { CI: "true" }
     );
@@ -569,7 +562,7 @@ async function main() {
     printSection("Lighthouse CI - Admin");
     await runStep(
       "Lighthouse admin",
-      "npx lhci autorun",
+      "bunx lhci autorun",
       resolve(projectRoot, "packages/admin"),
       { CI: "true" }
     );

@@ -1,2 +1,6 @@
 [tools]
 node = "22"
+# CI uses oven-sh/setup-bun@v2 with `bun-version: latest` and the doctor only
+# enforces major 1, so pin to the same minor to stay close to CI without
+# locking patches lockstep.
+bun = "1.3"

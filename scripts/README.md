@@ -28,7 +28,7 @@ scripts/
 | `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs/storybook respond on local ports |
 | `tunnel.js` | `bun run dev:tunnel`, `ecosystem.config.cjs` | Cloudflared tunnel for PWA device testing; writes `.tunnel-url` |
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
-| `test-e2e.js` | `bun run test:e2e[:smoke]` | Boot dev stack, run Playwright, clean up |
+| `test-e2e.js` | `bun run test:e2e[:smoke]` | Boot the web stack (client + admin + docs + storybook) via `bun run dev:web`, wait on health, run Playwright, stop via `bun run dev:stop` |
 | `seed-test-data.ts` | `bun run seed:test` / `seed:anvil` | Seed local/anvil chain with test fixtures |
 | `ci-local.js` | `bun run ci:local` | Local mirror of the CI gates |
 
@@ -71,18 +71,19 @@ scripts/
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |
 |---|---|---|
-| `fetch-stitch.sh` | `stitch-design` skill | Download Stitch assets through GCS redirect chain |
 | `plan-hub.mjs` | `plan` skill, `.plans/_automation/*` | Manage `.plans/{ideas,backlog,active}/` queue + lane status |
+| `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema and TDD proof gates |
 | `log-automation-run.mjs` | `.plans/_automation/*` prompts | Append plan-run telemetry under `.plans/_automation/runs/` |
 | `parse-docx-feedback.ts` | `doc-feedback` skill | Parse a Google Doc downloaded as `.docx` into markdown with body + comments + tracked changes |
 
 ### `postinstall/`
 | Script | Caller | Purpose |
 |---|---|---|
-| `fix-multiformats.js` | `npm`/`bun` postinstall | Adds `multiformats/basics.js` shim for older deps that still import it |
+| `fix-multiformats.js` | `npm`/`bun` postinstall | Patches `multiformats/basics`, `uint8arrays`, and walletconnect bundles to keep the Node CJS resolver happy in vitest workers; also synchronizes `.bun/react@*` cache slots with the override-pinned root React version |
 
 ### `lib/`
 - `ipfs-hybrid.ts` — Pinata client helpers used by `ops/ipfs-repin.ts` and `ops/upload-action-images.ts`.
+- `dev-shared.js` — `commandExists` / `commandVersion` / `majorVersion` helpers shared by `dev/setup.js` and `dev/doctor.js`.
 
 ### `data/`
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.

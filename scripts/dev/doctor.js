@@ -12,6 +12,7 @@ import net from "node:net";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { commandExists, commandVersion, majorVersion } from "../lib/dev-shared.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,26 +117,6 @@ function add(level, title, detail = "", fix = "", metadata = {}) {
 
 function requiredLevel(requiredProfiles, fallback = "warn") {
   return requiredProfiles.includes(options.profile) ? "fail" : fallback;
-}
-
-function commandExists(cmd) {
-  const probe = process.platform === "win32" ? `where ${cmd}` : `command -v ${cmd}`;
-  return spawnSync(probe, { shell: true, stdio: "ignore" }).status === 0;
-}
-
-function commandVersion(cmd) {
-  if (cmd === "node" && process.versions.node) {
-    return `v${process.versions.node}`;
-  }
-
-  const result = spawnSync(cmd, ["--version"], { encoding: "utf8" });
-  if (result.status !== 0) return "";
-  return `${result.stdout || result.stderr}`.trim().split("\n")[0] || "";
-}
-
-function majorVersion(version) {
-  const match = version.match(/(\d+)/);
-  return match ? Number.parseInt(match[1], 10) : null;
 }
 
 function parseEnvFile(filePath) {
