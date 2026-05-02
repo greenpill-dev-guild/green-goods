@@ -4,8 +4,7 @@ import {
   useInstallGuidance,
   usePublicInstallHandler,
 } from "@green-goods/shared";
-import type { MouseEventHandler, ReactNode } from "react";
-import { useCallback, useState } from "react";
+import { type MouseEventHandler, type ReactNode, useCallback, useState } from "react";
 import { useIntl } from "react-intl";
 import {
   PUBLIC_PWA_LAUNCH_URL,

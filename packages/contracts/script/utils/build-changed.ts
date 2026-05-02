@@ -21,6 +21,7 @@ const CONTRACTS_PATH_PREFIX = "packages/contracts/";
 const SHARED_SOURCE_PREFIXES = ["src/interfaces/", "src/lib/"] as const;
 
 function log(msg: string) {
+  // eslint-disable-next-line no-console -- contracts scripts run outside the shared logger boundary
   console.log(`[build-changed] ${msg}`);
 }
 

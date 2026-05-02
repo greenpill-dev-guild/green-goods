@@ -115,19 +115,19 @@ export function PublicEvidencePipeline({
           <ol className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-10">
             <PipelineNode
               kind="assessment"
-              numeral="i."
+              numeral="1."
               title="Assessment"
               description="Operators and evaluators document what the place needs and what counts as good. The Assessment names the soil, the species, the work plan, and the standard of proof."
             />
             <PipelineNode
               kind="work"
-              numeral="ii."
+              numeral="2."
               title="Work"
               description="Gardeners do the regenerative work and document it as it happens — photos, soil cores, plantings, repairs, restorations — each timestamped and attached to the Garden."
             />
             <PipelineNode
               kind="certificate"
-              numeral="iii."
+              numeral="3."
               title="Impact Certificate"
               description="When the evidence is strong enough, the work is bundled into an Impact Certificate. This is the highest proof layer — public, verifiable, and on-chain."
               closesCycle

@@ -27,7 +27,7 @@ export interface EditorialKickerProps {
 
 /**
  * § 01 — Section marker. Inter, 11px, tracked uppercase.
- * Reserves an "i." style numeral via `EditorialNumeral` for ordinal ranks.
+ * Reserves an "1." style numeral via `EditorialNumeral` for ordinal ranks.
  */
 export function EditorialKicker({ children, tone = "default", className }: EditorialKickerProps) {
   return (
@@ -123,7 +123,7 @@ export interface EditorialNumeralProps {
 }
 
 /**
- * Italic Fraunces ordinal — `i.` `ii.` `iii.` `iv.`. Used by loop steps,
+ * Italic Fraunces ordinal — `1.` `2.` `3.` `4.`. Used by loop steps,
  * pipeline nodes, and ledger row numbers.
  */
 export function EditorialNumeral({ children, tone = "default", className }: EditorialNumeralProps) {

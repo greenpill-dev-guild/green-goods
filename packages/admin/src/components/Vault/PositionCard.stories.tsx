@@ -1,4 +1,4 @@
-import { type Address, Button, Card, formatTokenAmount } from "@green-goods/shared";
+import { Button, Card, formatTokenAmount } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 
@@ -55,13 +55,13 @@ function PositionCardHarness({
             </span>
           )}
         </div>
-        <a
-          href="#"
-          className="mt-1 inline-block text-xs text-primary-base hover:underline"
-          onClick={(e) => e.preventDefault()}
+        <button
+          type="button"
+          className="mt-1 inline-block text-left text-xs text-primary-base hover:underline"
+          onClick={() => {}}
         >
           View vault: 0xAaaa…aaa1
-        </a>
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">

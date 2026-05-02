@@ -1022,11 +1022,11 @@ export default function CookiesPage() {
         lede={formatMessage({
           id: "public.cookies.description",
           defaultMessage:
-            "Operators from selected Gardens claim their share. Supporters top up the jar for the next round.",
+            "Shared jars hold campaign funds in one place. Operators from selected Gardens claim their share when they're ready; supporters top up the jar for the next round. Each claim leaves a record so the season's spending stays legible.",
         })}
       />
 
-      <div className="bg-bg-weak-50 pt-20 pb-16 sm:pt-24 sm:pb-20">
+      <div className="bg-bg-weak-50 pt-32 pb-16 sm:pt-36 sm:pb-20 md:pt-40">
         <Suspense fallback={null}>
           <WalletRuntimeProviders>
             <CookiesCampaignSurface />

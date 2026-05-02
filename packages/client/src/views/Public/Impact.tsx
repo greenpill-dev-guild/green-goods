@@ -11,6 +11,8 @@ import { useIntl } from "react-intl";
 import {
   type EditorialDomain,
   EditorialDomainChip,
+  EditorialHeading,
+  EditorialKicker,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -124,9 +126,9 @@ function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
  * Impact — credible public evidence ledger.
  *
  * Editorial recomposition:
- *   Hero ("See how Garden work becomes evidence.") → quiet proof markers
- *   strip → § 01 evidence pipeline (Assessment → Work → Impact Certificate)
- *   → § 02 evidence ledger filterable by Kind + Domain → optional source
+ *   Hero ("See how Garden work becomes evidence.") → § 01 Proof markers →
+ *   § 02 evidence pipeline (Assessment → Work → Impact Certificate) → § 03
+ *   evidence ledger with combined Kind + Domain filter row → optional source
  *   dialog → Footer.
  *
  * Cycle order on the pipeline figure follows the user's correction:
@@ -174,7 +176,7 @@ export default function ImpactPage() {
   // Combine derived stats into one useMemo so the upstream `records` array
   // doesn't trigger redundant recomputation across separate hooks (Rule 9 in
   // CLAUDE.md — never chain useMemos on the same source).
-  const { counted, filteredRecords, lastUpdatedAt } = useMemo(() => {
+  const { counted, filteredRecords } = useMemo(() => {
     const records = slice?.records ?? [];
     const byKind: Record<KindFilter, number> = {
       all: records.length,
@@ -182,10 +184,8 @@ export default function ImpactPage() {
       work: 0,
       certificate: 0,
     };
-    let mostRecent = 0;
     for (const record of records) {
       byKind[record.kind] += 1;
-      if (record.createdAt > mostRecent) mostRecent = record.createdAt;
     }
     const domainEntry = DOMAIN_FILTERS.find((d) => d.id === domainFilter);
     const filtered = records.filter((record) => {
@@ -198,17 +198,8 @@ export default function ImpactPage() {
     return {
       counted: byKind,
       filteredRecords: filtered,
-      lastUpdatedAt: mostRecent || null,
     };
   }, [slice?.records, kindFilter, domainFilter]);
-
-  const lastUpdatedLabel = lastUpdatedAt
-    ? new Intl.DateTimeFormat(undefined, {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }).format(new Date(lastUpdatedAt * 1000))
-    : null;
 
   return (
     <>
@@ -230,52 +221,28 @@ export default function ImpactPage() {
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
-            "Green Goods turns documented regenerative work into public evidence through Assessments and, when ready, Impact Certificates.",
+            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments first, then Work, then — when ready — an Impact Certificate. The cycle keeps repeating, season after season.",
         })}
-        publicationMark={
-          <>
-            <span>
-              {formatMessage({
-                id: "public.impact.hero.season",
-                defaultMessage: "Season One",
-              })}
-            </span>
-            {lastUpdatedLabel ? (
-              <>
-                <span
-                  aria-hidden="true"
-                  className="inline-block h-0.5 w-0.5 rounded-full bg-current opacity-60"
-                />
-                <span>
-                  {formatMessage(
-                    {
-                      id: "public.impact.hero.lastUpdated",
-                      defaultMessage: "Last updated {date}",
-                    },
-                    { date: lastUpdatedLabel }
-                  )}
-                </span>
-              </>
-            ) : null}
-          </>
-        }
       />
 
       <section
-        className="bg-bg-weak-50 px-6 pt-20 pb-16 sm:px-10 md:pt-24 md:pb-20"
+        className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         aria-labelledby="public-impact-proof-title"
       >
         <div className="mx-auto max-w-7xl">
           <header className="mb-10 border-b border-stroke-soft-200 pb-6">
-            <h2
-              id="public-impact-proof-title"
-              className="font-serif text-3xl font-normal leading-[1.04] tracking-[-0.02em] text-text-strong-950 md:text-4xl"
-            >
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.impact.proof.kicker",
+                defaultMessage: "§ 01 — Proof markers",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-impact-proof-title">
               {formatMessage({
                 id: "public.impact.proof.title",
-                defaultMessage: "Proof markers",
+                defaultMessage: "What the public record holds today.",
               })}
-            </h2>
+            </EditorialHeading>
           </header>
           <ProofMarkers
             markers={[
@@ -319,7 +286,7 @@ export default function ImpactPage() {
       <PublicEvidencePipeline
         kicker={formatMessage({
           id: "public.impact.pipeline.kicker",
-          defaultMessage: "§ 01 — The cycle",
+          defaultMessage: "§ 02 — The cycle",
         })}
         title={formatMessage({
           id: "public.impact.pipeline.title",
@@ -344,73 +311,74 @@ export default function ImpactPage() {
       >
         <div className="mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-soft-400">
+            <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.impact.ledger.kicker",
-                defaultMessage: "§ 02 — Evidence ledger",
+                defaultMessage: "§ 03 — Evidence ledger",
               })}
-            </p>
-            <h2
-              id="public-impact-ledger-title"
-              className="mt-3 font-serif text-3xl font-normal leading-[1.04] tracking-[-0.02em] text-text-strong-950 md:text-4xl"
-            >
+            </EditorialKicker>
+            <EditorialHeading id="public-impact-ledger-title">
               {formatMessage({
                 id: "public.impact.ledger.title",
                 defaultMessage: "Recent evidence across Gardens.",
               })}
-            </h2>
+            </EditorialHeading>
+            <p className="mt-4 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
+              {formatMessage({
+                id: "public.impact.ledger.intro",
+                defaultMessage:
+                  "Filter by record kind or domain. Each row links to the source — the full assessment, work entry, or certificate behind the line.",
+              })}
+            </p>
           </header>
 
-          <div className="mt-8 flex flex-col gap-4">
-            <div>
-              <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-                {formatMessage({ id: "public.impact.filters.kind", defaultMessage: "Kind" })}
-              </p>
-              <ul className="flex flex-wrap gap-2">
-                {KIND_FILTERS.map((entry) => (
-                  <li key={entry.id}>
-                    <EditorialDomainChip
-                      domain={entry.domain}
-                      active={kindFilter === entry.id}
-                      count={counted[entry.id]}
-                      onClick={() => setKindFilter(entry.id)}
-                    >
-                      {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
-                    </EditorialDomainChip>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-                {formatMessage({ id: "public.impact.filters.domain", defaultMessage: "Domain" })}
-              </p>
-              <ul className="flex flex-wrap gap-2">
-                {DOMAIN_FILTERS.map((entry) => (
-                  <li key={entry.id}>
-                    <EditorialDomainChip
-                      domain={entry.id}
-                      active={domainFilter === entry.id}
-                      onClick={() => setDomainFilter(entry.id)}
-                    >
-                      {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
-                    </EditorialDomainChip>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+          <nav
+            className="mt-8 flex flex-wrap items-center gap-2"
+            aria-label={formatMessage({
+              id: "public.impact.filters.label",
+              defaultMessage: "Filter evidence by record kind and domain",
+            })}
+          >
+            {KIND_FILTERS.map((entry) => (
+              <EditorialDomainChip
+                key={`kind-${entry.id}`}
+                domain={entry.domain}
+                active={kindFilter === entry.id}
+                count={counted[entry.id]}
+                onClick={() => setKindFilter(entry.id)}
+              >
+                {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
+              </EditorialDomainChip>
+            ))}
+            <span aria-hidden="true" className="mx-2 h-4 w-px bg-stroke-soft-200" />
+            {DOMAIN_FILTERS.map((entry) => (
+              <EditorialDomainChip
+                key={`domain-${entry.id}`}
+                domain={entry.id}
+                active={domainFilter === entry.id}
+                onClick={() => setDomainFilter(entry.id)}
+              >
+                {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
+              </EditorialDomainChip>
+            ))}
+          </nav>
 
           {evidence.isLoading ? (
-            <div className="mt-12 flex flex-col gap-4">
-              {[0, 1, 2, 3].map((i) => (
-                <div
+            <ul className="mt-12 flex flex-col" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <li
                   key={i}
-                  className="h-24 w-full animate-pulse bg-stroke-soft-200/60"
-                  aria-hidden="true"
-                />
+                  className="flex items-stretch gap-4 border-b border-stroke-soft-200 py-5 last:border-b-0 sm:gap-6 sm:py-6"
+                >
+                  <div className="h-20 w-20 shrink-0 animate-pulse bg-editorial-warm sm:h-28 sm:w-28" />
+                  <div className="flex flex-1 flex-col gap-3 py-1">
+                    <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
+                    <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
+                    <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : slice && slice.status === "error" ? (
             <p className="mt-12 max-w-2xl border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
               {formatMessage({
@@ -420,12 +388,20 @@ export default function ImpactPage() {
               })}
             </p>
           ) : filteredRecords.length === 0 ? (
-            <p className="mt-12 max-w-2xl font-serif text-xl italic text-text-soft-400">
-              {formatMessage({
-                id: "public.impact.evidence.empty",
-                defaultMessage: "Assessment evidence will appear here as Gardens publish it.",
-              })}
-            </p>
+            <div className="mt-12 max-w-2xl border-t border-stroke-soft-200 pt-6">
+              <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+                {formatMessage({
+                  id: "public.impact.evidence.emptyKicker",
+                  defaultMessage: "Reading the ledger",
+                })}
+              </p>
+              <p className="mt-2 font-serif text-xl italic text-text-sub-600 md:text-2xl">
+                {formatMessage({
+                  id: "public.impact.evidence.empty",
+                  defaultMessage: "Assessment evidence will appear here as Gardens publish it.",
+                })}
+              </p>
+            </div>
           ) : (
             <ul className="mt-8">
               {filteredRecords.map((record) => {
@@ -444,14 +420,14 @@ export default function ImpactPage() {
           )}
 
           {slice?.partialData ? (
-            <div className="mt-8 border border-stroke-soft-200 bg-bg-weak-50 px-6 py-5 sm:px-8">
+            <div className="mt-8 max-w-2xl border-t border-stroke-soft-200 pt-6">
               <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                 {formatMessage({
                   id: "public.impact.evidence.partialDataKicker",
                   defaultMessage: "Reading the source",
                 })}
               </p>
-              <p className="mt-2 max-w-2xl font-serif text-base font-normal leading-[1.4] tracking-[-0.005em] text-text-strong-950">
+              <p className="mt-2 font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
                 {formatMessage({
                   id: "public.impact.evidence.partialData",
                   defaultMessage:
@@ -461,16 +437,16 @@ export default function ImpactPage() {
             </div>
           ) : null}
           {slice?.sourceLimitReached ? (
-            <div className="mt-4 border border-stroke-soft-200 bg-bg-weak-50 px-6 py-5 sm:px-8">
+            <div className="mt-6 border-t border-stroke-soft-200 pt-6">
               <div className="flex flex-wrap items-end justify-between gap-4">
-                <div>
+                <div className="max-w-2xl">
                   <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                     {formatMessage({
                       id: "public.impact.evidence.sourceLimitKicker",
                       defaultMessage: "Source limit reached",
                     })}
                   </p>
-                  <p className="mt-2 max-w-2xl font-serif text-base font-normal leading-[1.4] tracking-[-0.005em] text-text-strong-950">
+                  <p className="mt-2 font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
                     {formatMessage({
                       id: "public.impact.evidence.sourceLimitReached",
                       defaultMessage:

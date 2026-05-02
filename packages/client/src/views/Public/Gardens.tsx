@@ -53,13 +53,13 @@ export default function GardensGallery() {
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Each Garden is a real place where communities document regenerative Work, gather evidence, and make support visible.",
+            "Each Garden is a real place where communities document regenerative Work. Operators, gardeners, and evaluators take turns making the record honest. What lands here is meant to hold up under public reading.",
         })}
       />
 
       <section
         id="archive"
-        className="bg-bg-weak-50 px-6 pt-20 pb-16 sm:px-10 md:pt-24 md:pb-20"
+        className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         aria-labelledby="public-gardens-archive-title"
       >
         <div className="mx-auto max-w-7xl">

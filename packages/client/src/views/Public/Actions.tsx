@@ -1,4 +1,4 @@
-import { type Action, useActions } from "@green-goods/shared";
+import { type Action, cn, useActions } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -9,7 +9,6 @@ import {
   EditorialNumeral,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
-import { cn } from "@green-goods/shared";
 import { PublicActionCard } from "@/components/Public/PublicActionCard";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
@@ -53,7 +52,7 @@ interface DomainExplainer {
 const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
   {
     id: "solar",
-    numeral: "i.",
+    numeral: "1.",
     titleId: "public.actions.domains.solar.title",
     defaultTitle: "Solar",
     bodyId: "public.actions.domains.solar.body",
@@ -64,7 +63,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
   },
   {
     id: "agro",
-    numeral: "ii.",
+    numeral: "2.",
     titleId: "public.actions.domains.agro.title",
     defaultTitle: "Agroforestry",
     bodyId: "public.actions.domains.agro.body",
@@ -75,7 +74,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
   },
   {
     id: "education",
-    numeral: "iii.",
+    numeral: "3.",
     titleId: "public.actions.domains.education.title",
     defaultTitle: "Education",
     bodyId: "public.actions.domains.education.body",
@@ -86,7 +85,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
   },
   {
     id: "waste",
-    numeral: "iv.",
+    numeral: "4.",
     titleId: "public.actions.domains.waste.title",
     defaultTitle: "Waste",
     bodyId: "public.actions.domains.waste.body",
@@ -149,13 +148,13 @@ export default function ActionsGallery() {
         lede={formatMessage({
           id: "public.actions.heroLede",
           defaultMessage:
-            "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste.",
+            "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste. Each Action names what to do, what to capture, and what proof the next stage will need. Together they form a field guide every Gardener can run from.",
         })}
       />
 
       {/* § 01 — Four domains explainer */}
       <section
-        className="bg-bg-weak-50 px-6 pt-20 pb-12 sm:px-10 md:pt-24 md:pb-16"
+        className="bg-bg-weak-50 px-6 pt-32 pb-12 sm:px-10 sm:pt-36 md:pt-40 md:pb-16"
         aria-labelledby="public-actions-domains-title"
       >
         <div className="mx-auto max-w-7xl">

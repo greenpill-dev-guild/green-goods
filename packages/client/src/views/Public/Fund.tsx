@@ -222,17 +222,12 @@ export default function FundPage() {
         lede={formatMessage({
           id: "public.fund.heroLede",
           defaultMessage:
-            "Donate to support a Garden's immediate work, or Endow a Vault designed so yield helps the Garden over time.",
-        })}
-        disclaimer={formatMessage({
-          id: "public.fund.taxDisclaimer",
-          defaultMessage:
-            "Funding supports the Garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured.",
+            "Donate to support a Garden's immediate Work, or Endow a Vault so yield helps the Garden over many seasons. Both are direct: every contribution lands with a Garden, not a platform. Pick the rhythm that matches what you want to sustain.",
         })}
       />
 
       {intentId ? (
-        <section className="bg-bg-weak-50 px-6 pt-20 pb-8 sm:px-10 md:pt-24">
+        <section className="bg-bg-weak-50 px-6 pt-32 pb-8 sm:px-10 sm:pt-36 md:pt-40">
           <div className="mx-auto max-w-3xl">
             <PublicFundingReceipt intentId={intentId} />
           </div>
@@ -240,7 +235,7 @@ export default function FundPage() {
       ) : null}
 
       {!intentId && (resolved.status === "stale" || resolved.status === "ambiguous") ? (
-        <section className="bg-bg-weak-50 px-6 pt-20 pb-4 sm:px-10 md:pt-24">
+        <section className="bg-bg-weak-50 px-6 pt-32 pb-4 sm:px-10 sm:pt-36 md:pt-40">
           <div className="mx-auto max-w-3xl">
             <p
               role="status"
@@ -269,7 +264,7 @@ export default function FundPage() {
         className={
           intentId || resolved.status === "stale" || resolved.status === "ambiguous"
             ? "bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
-            : "bg-bg-weak-50 px-6 pt-20 pb-16 sm:px-10 md:pt-24 md:pb-20"
+            : "bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         }
         aria-labelledby="public-fund-paths-title"
       >
@@ -291,7 +286,7 @@ export default function FundPage() {
 
           <div className="mt-12 grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
             <SupportPath
-              numeral="i."
+              numeral="1."
               titleId="public.fund.paths.donateTitle"
               defaultTitle="Donate"
               ledeId="public.fund.paths.donateLede"
@@ -302,7 +297,7 @@ export default function FundPage() {
               defaultBestFor="Immediate needs and near-term work."
             />
             <SupportPath
-              numeral="ii."
+              numeral="2."
               titleId="public.fund.paths.endowTitle"
               defaultTitle="Endow"
               ledeId="public.fund.paths.endowLede"
