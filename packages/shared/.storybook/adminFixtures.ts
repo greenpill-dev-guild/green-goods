@@ -22,8 +22,11 @@ import { daysAgo, daysFromNow, FIXTURE_IMAGE_AGROFORESTRY } from "./fixtures";
 
 export const STORYBOOK_OPERATOR_ADDRESS =
   "0x04D60647836bcA09c37B379550038BdaaFD82503" as Address;
+export const STORYBOOK_DEPLOYER_ADDRESS =
+  "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e" as Address;
 
 const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
+const STORYBOOK_DEPLOYER_ADDRESS_KEY = STORYBOOK_DEPLOYER_ADDRESS.toLowerCase() as Address;
 
 const RIO_GARDEN_ADDRESS = "0xabcd1234567890123456789012345678901234ef" as Address;
 const BOTANIC_GARDEN_ADDRESS = "0xbcde2345678901234567890123456789012345f0" as Address;
@@ -79,6 +82,14 @@ export const STORYBOOK_ADMIN_GARDENS: Garden[] = [
 ];
 
 export const STORYBOOK_PRIMARY_ADMIN_GARDEN = STORYBOOK_ADMIN_GARDENS[0] as Garden;
+
+const STORYBOOK_DEPLOYER_ADMIN_GARDENS: Garden[] = STORYBOOK_ADMIN_GARDENS.map((garden) => ({
+  ...garden,
+  gardeners: Array.from(new Set([...garden.gardeners, STORYBOOK_DEPLOYER_ADDRESS])),
+  operators: Array.from(new Set([...garden.operators, STORYBOOK_DEPLOYER_ADDRESS])),
+  owners: Array.from(new Set([...garden.owners, STORYBOOK_DEPLOYER_ADDRESS])),
+  evaluators: Array.from(new Set([...garden.evaluators, STORYBOOK_DEPLOYER_ADDRESS])),
+}));
 
 export const STORYBOOK_ADMIN_ACTIONS: Action[] = [
   {
@@ -310,4 +321,19 @@ export const STORYBOOK_ADMIN_SHELL_SEEDS: ReadonlyArray<readonly [QueryKey, unkn
   ],
   [queryKeys.ens.name(STORYBOOK_OPERATOR_ADDRESS_KEY), "operator.greengoods.eth"],
   [queryKeys.ens.avatar(STORYBOOK_OPERATOR_ADDRESS_KEY), null],
+];
+
+export const STORYBOOK_ADMIN_DEPLOYER_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
+  ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), STORYBOOK_DEPLOYER_ADMIN_GARDENS],
+  [
+    queryKeys.role.operatorGardens(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    STORYBOOK_DEPLOYER_ADMIN_GARDENS.map((garden) => ({ id: garden.id, name: garden.name })),
+  ],
+  [
+    queryKeys.role.deploymentPermissions(STORYBOOK_DEPLOYER_ADDRESS_KEY, DEFAULT_CHAIN_ID),
+    { isOwner: false, isInAllowlist: true, canDeploy: true },
+  ],
+  [queryKeys.ens.name(STORYBOOK_DEPLOYER_ADDRESS_KEY), "deployer.greengoods.eth"],
+  [queryKeys.ens.avatar(STORYBOOK_DEPLOYER_ADDRESS_KEY), null],
 ];

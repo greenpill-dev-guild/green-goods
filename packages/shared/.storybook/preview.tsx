@@ -1,6 +1,6 @@
 import "./storybook.css";
 import type { Preview } from "@storybook/react";
-import { withI18n, withQueryClient, withTheme } from "./decorators";
+import { withAdminStoryIsolation, withI18n, withQueryClient, withTheme } from "./decorators";
 
 const preview: Preview = {
   globalTypes: {
@@ -24,7 +24,7 @@ const preview: Preview = {
     controls: { expanded: true },
     backgrounds: { disable: true }, // Handled by theme decorator
   },
-  decorators: [withQueryClient, withI18n, withTheme],
+  decorators: [withAdminStoryIsolation, withQueryClient, withI18n, withTheme],
 };
 
 export default preview;

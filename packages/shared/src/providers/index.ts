@@ -31,6 +31,12 @@ export {
   useAuthState,
 } from "./Auth";
 export { AuthGate } from "./AuthGate";
+export type { DevMockAuthRole } from "./DevAuthProvider";
+export {
+  DEV_MOCK_AUTH_ADDRESSES,
+  DEV_MOCK_AUTH_STORAGE_KEY,
+  DevAuthProvider,
+} from "./DevAuthProvider";
 
 // Job Queue Provider
 export { JobQueueProvider, useJobQueue, useQueueFlush, useQueueStats } from "./JobQueue";

@@ -14,7 +14,12 @@ import { JobQueueProvider } from "../src/providers/JobQueue";
 import { WorkProvider } from "../src/providers/Work";
 import { AppContext, supportedLanguages } from "../src/providers/App";
 import { DevAuthProvider } from "../src/providers/DevAuthProvider";
+import {
+  DEV_MOCK_AUTH_ADDRESSES,
+  type DevMockAuthRole,
+} from "../src/providers/DevAuthProvider";
 import { useAdminStore, type Garden as AdminStoreGarden } from "../src/stores/useAdminStore";
+import { resetAdminStoryState } from "./adminStoryIsolation";
 import { STORYBOOK_NOW_SECONDS } from "./fixtures";
 import messages from "../src/i18n/en.json";
 
@@ -107,6 +112,15 @@ export const withQueryClient: Decorator = (Story, context) => {
       <Story />
     </QueryClientProvider>
   );
+};
+
+export const withAdminStoryIsolation: Decorator = (Story, context) => {
+  useMemo(() => {
+    resetAdminStoryState();
+    return context.id;
+  }, [context.id]);
+
+  return <Story />;
 };
 
 export const withTheme: Decorator = (Story) => {
@@ -248,23 +262,27 @@ export const withAdminPrimitiveFrame: Decorator = (Story) => (
  * without throwing. Contract reads return undefined → components render
  * their loading / empty states. Writes are inert.
  */
-const STORYBOOK_MOCK_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503" as const;
+const STORYBOOK_MOCK_ADDRESS = DEV_MOCK_AUTH_ADDRESSES.operator;
 
-const storybookWagmiConfig = createConfig({
-  chains: [arbitrum, arbitrumSepolia, mainnet, sepolia],
-  connectors: [
-    mock({
-      accounts: [STORYBOOK_MOCK_ADDRESS],
-      features: { reconnect: true },
-    }),
-  ],
-  transports: {
-    [arbitrum.id]: http(),
-    [arbitrumSepolia.id]: http(),
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
-  },
-});
+function createStorybookWagmiConfig(address: `0x${string}` = STORYBOOK_MOCK_ADDRESS) {
+  return createConfig({
+    chains: [arbitrum, arbitrumSepolia, mainnet, sepolia],
+    connectors: [
+      mock({
+        accounts: [address],
+        features: { reconnect: true },
+      }),
+    ],
+    transports: {
+      [arbitrum.id]: http(),
+      [arbitrumSepolia.id]: http(),
+      [mainnet.id]: http(),
+      [sepolia.id]: http(),
+    },
+  });
+}
+
+const storybookWagmiConfig = createStorybookWagmiConfig();
 
 export const withWagmi: Decorator = (Story) => (
   <WagmiProvider config={storybookWagmiConfig} reconnectOnMount={false}>
@@ -298,6 +316,20 @@ export const withAdminIdentity: Decorator = (Story, context) => (
     </DevAuthProvider>
   </WagmiProvider>
 );
+
+export function withAdminIdentityRole(role: Exclude<DevMockAuthRole, "disconnected">): Decorator {
+  return (Story, context) => {
+    const config = useMemo(() => createStorybookWagmiConfig(DEV_MOCK_AUTH_ADDRESSES[role]), [role]);
+
+    return (
+      <WagmiProvider config={config} reconnectOnMount={false}>
+        <DevAuthProvider mockRole={role}>
+          <Story {...context} />
+        </DevAuthProvider>
+      </WagmiProvider>
+    );
+  };
+}
 
 /**
  * Client runtime harness for protected PWA/client stories that render the real
@@ -334,8 +366,8 @@ export const withClientAppRuntime: Decorator = (Story, context) => (
 export function withSeededQueryClient(
   seeds: ReadonlyArray<readonly [QueryKey, unknown]>,
 ): Decorator {
-  return (Story) => {
-    const [client] = useState(() => {
+  return (Story, context) => {
+    const client = useMemo(() => {
       const c = new QueryClient({
         defaultOptions: {
           queries: { retry: false, staleTime: Infinity },
@@ -345,7 +377,14 @@ export function withSeededQueryClient(
         c.setQueryData(key, data);
       }
       return c;
-    });
+    }, [context.id]);
+
+    useEffect(() => {
+      return () => {
+        client.clear();
+      };
+    }, [client]);
+
     return (
       <QueryClientProvider client={client}>
         <Story />

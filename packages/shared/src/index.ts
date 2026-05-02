@@ -703,6 +703,9 @@ export {
   // Unified auth provider (supports both passkey and wallet)
   AuthGate,
   AuthProvider,
+  DEV_MOCK_AUTH_ADDRESSES,
+  DEV_MOCK_AUTH_STORAGE_KEY,
+  DevAuthProvider,
   // Job Queue & Work
   JobQueueProvider,
   useApp,
