@@ -36,13 +36,46 @@ interface CampaignCookieJarIndexerResponse {
   CampaignCookieJar?: CampaignCookieJarIndexerRow[];
 }
 
+interface GetIndexedCampaignCookieJarsOptions {
+  trustedCreators?: readonly Address[];
+  limit?: number;
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 const CAMPAIGN_COOKIE_JARS_QUERY = /* GraphQL */ `
-  query CampaignCookieJars($chainId: Int!) {
-    CampaignCookieJar(where: { chainId: { _eq: $chainId } }, order_by: { createdAt: desc }, limit: 100) {
+  query CampaignCookieJars($chainId: Int!, $limit: Int!) {
+    CampaignCookieJar(where: { chainId: { _eq: $chainId } }, order_by: { createdAt: desc }, limit: $limit) {
+      id
+      chainId
+      factoryAddress
+      jarAddress
+      creator
+      rawMetadata
+      metadataKind
+      metadataVersion
+      slug
+      title
+      sourceGardens
+      operatorPolicy
+      extraAllowlist
+      isValidCampaign
+      createdAt
+      metadataUpdatedAt
+      txHash
+    }
+  }
+`;
+
+const CAMPAIGN_COOKIE_JARS_BY_CREATORS_QUERY = /* GraphQL */ `
+  query CampaignCookieJarsByCreators($chainId: Int!, $creators: [String!]!, $limit: Int!) {
+    CampaignCookieJar(
+      where: { chainId: { _eq: $chainId }, creator: { _in: $creators } }
+      order_by: { createdAt: desc }
+      limit: $limit
+    ) {
       id
       chainId
       factoryAddress
@@ -113,13 +146,57 @@ function normalizeIndexedCampaignCookieJar(
   };
 }
 
+function normalizeTrustedCreatorQueryValues(
+  creators: readonly Address[] | undefined
+): string[] | undefined {
+  if (!creators) return undefined;
+
+  const seen = new Set<string>();
+  const normalized: string[] = [];
+  for (const creator of creators) {
+    const address = normalizeCampaignAddress(creator);
+    if (!address) continue;
+    const key = address.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push(key);
+  }
+
+  return normalized;
+}
+
+function filterIndexedJarsByTrustedCreators(
+  indexedJars: readonly IndexedCampaignCookieJar[],
+  trustedCreators: readonly Address[]
+): IndexedCampaignCookieJar[] {
+  const trusted = new Set(
+    normalizeTrustedCreatorQueryValues(trustedCreators)?.map((address) => address.toLowerCase()) ??
+      []
+  );
+  if (trusted.size === 0) return [];
+
+  return indexedJars.filter((indexedJar) => {
+    const creator = normalizeCampaignAddress(indexedJar.creator);
+    return Boolean(creator && trusted.has(creator.toLowerCase()));
+  });
+}
+
 export async function getIndexedCampaignCookieJars(
-  chainId = DEFAULT_CHAIN_ID
+  chainId = DEFAULT_CHAIN_ID,
+  options: GetIndexedCampaignCookieJarsOptions = {}
 ): Promise<IndexedCampaignCookieJar[]> {
+  const creators = normalizeTrustedCreatorQueryValues(options.trustedCreators);
+  if (options.trustedCreators && creators?.length === 0) return [];
+
+  const query = creators ? CAMPAIGN_COOKIE_JARS_BY_CREATORS_QUERY : CAMPAIGN_COOKIE_JARS_QUERY;
+  const variables = creators
+    ? { chainId, creators, limit: options.limit ?? 100 }
+    : { chainId, limit: options.limit ?? 100 };
+
   const { data, error } = await greenGoodsIndexer.query<
     CampaignCookieJarIndexerResponse,
-    { chainId: number }
-  >(CAMPAIGN_COOKIE_JARS_QUERY, { chainId }, "getIndexedCampaignCookieJars");
+    { chainId: number; limit: number; creators?: string[] }
+  >(query, variables, "getIndexedCampaignCookieJars");
 
   if (error) {
     logger.warn("[CampaignCookieJars] Indexer query failed", { error: error.message });
@@ -219,16 +296,16 @@ async function readCampaignCookieJarMetadata(
 export async function getCampaignCookieJarCampaigns(
   chainId = DEFAULT_CHAIN_ID
 ): Promise<CampaignCookieJarCampaign[]> {
-  const [indexedJars, trustedCreators] = await Promise.all([
-    getIndexedCampaignCookieJars(chainId),
-    getCampaignCookieJarTrustedCreators(chainId),
-  ]);
+  const trustedCreators = await getCampaignCookieJarTrustedCreators(chainId);
+  if (trustedCreators.length === 0) return [];
 
-  if (indexedJars.length === 0 || trustedCreators.length === 0) return [];
+  const indexedJars = await getIndexedCampaignCookieJars(chainId, { trustedCreators });
+  const trustedIndexedJars = filterIndexedJarsByTrustedCreators(indexedJars, trustedCreators);
+  if (trustedIndexedJars.length === 0) return [];
 
-  const metadataByJarAddress = await readCampaignCookieJarMetadata(chainId, indexedJars);
+  const metadataByJarAddress = await readCampaignCookieJarMetadata(chainId, trustedIndexedJars);
   return buildCampaignCookieJarCampaigns({
-    indexedJars,
+    indexedJars: trustedIndexedJars,
     trustedCreators,
     metadataByJarAddress,
   });

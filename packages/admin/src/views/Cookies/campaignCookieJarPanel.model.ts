@@ -51,3 +51,34 @@ export function canSyncCampaignCookieJarAllowlist(params: {
     (hasAllowlistDiff || hasMetadataRefresh)
   );
 }
+
+export function isUsableCampaignCookieJarTokenDecimals(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+export function canCreateCampaignCookieJar(params: {
+  factoryAddress?: Address;
+  tokenAddress?: Address | null;
+  tokenDecimalsConfirmed: boolean;
+  jarOwner?: Address | null;
+  campaignTitle: string;
+  campaignSlug: string;
+  hasValidClaimConfig: boolean;
+  allowlistCount: number;
+  invalidAddressCount: number;
+  isDeployer: boolean;
+}): boolean {
+  return (
+    Boolean(
+      params.factoryAddress &&
+        params.tokenAddress &&
+        params.tokenDecimalsConfirmed &&
+        params.jarOwner &&
+        params.campaignTitle.trim() &&
+        params.campaignSlug.trim() &&
+        params.hasValidClaimConfig &&
+        params.allowlistCount > 0 &&
+        params.isDeployer
+    ) && params.invalidAddressCount === 0
+  );
+}

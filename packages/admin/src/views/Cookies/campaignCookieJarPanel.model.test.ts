@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Address, Garden } from "@green-goods/shared";
 import {
+  canCreateCampaignCookieJar,
   canSyncCampaignCookieJarAllowlist,
   filterCampaignCookieJarGardens,
+  isUsableCampaignCookieJarTokenDecimals,
   resolveCampaignCookieJarCreateFollowUp,
 } from "./campaignCookieJarPanel.model";
 
@@ -85,5 +87,36 @@ describe("campaign cookie jar admin model", () => {
         canUpdateMetadata: false,
       })
     ).toBe(false);
+  });
+
+  it("requires confirmed ERC20 decimals before enabling campaign creation", () => {
+    const baseParams = {
+      factoryAddress: GARDEN_A,
+      tokenAddress: TOKEN_A,
+      tokenDecimalsConfirmed: true,
+      jarOwner: JAR,
+      campaignTitle: "Earth Week",
+      campaignSlug: "earth-week",
+      hasValidClaimConfig: true,
+      allowlistCount: 1,
+      invalidAddressCount: 0,
+      isDeployer: true,
+    };
+
+    expect(canCreateCampaignCookieJar(baseParams)).toBe(true);
+    expect(
+      canCreateCampaignCookieJar({
+        ...baseParams,
+        tokenDecimalsConfirmed: false,
+      })
+    ).toBe(false);
+  });
+
+  it("accepts only positive integer token decimals for create flow scaling", () => {
+    expect(isUsableCampaignCookieJarTokenDecimals(6)).toBe(true);
+    expect(isUsableCampaignCookieJarTokenDecimals(18)).toBe(true);
+    expect(isUsableCampaignCookieJarTokenDecimals(0)).toBe(false);
+    expect(isUsableCampaignCookieJarTokenDecimals("18")).toBe(false);
+    expect(isUsableCampaignCookieJarTokenDecimals(undefined)).toBe(false);
   });
 });

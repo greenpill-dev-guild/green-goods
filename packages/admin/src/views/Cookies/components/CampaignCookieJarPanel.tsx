@@ -29,8 +29,10 @@ import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
+  canCreateCampaignCookieJar,
   canSyncCampaignCookieJarAllowlist,
   filterCampaignCookieJarGardens,
+  isUsableCampaignCookieJarTokenDecimals,
   resolveCampaignCookieJarCreateFollowUp,
 } from "../campaignCookieJarPanel.model";
 
@@ -228,8 +230,15 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
       enabled: Boolean(normalizedTokenAddress),
     },
   });
-  const tokenDecimals = (tokenInfoQuery.data?.[0]?.result as number | undefined) ?? 18;
+  const tokenDecimalsResult = tokenInfoQuery.data?.[0];
+  const tokenDecimalsValue = tokenDecimalsResult?.result;
+  const tokenDecimalsConfirmed = isUsableCampaignCookieJarTokenDecimals(tokenDecimalsValue);
+  const tokenDecimals = tokenDecimalsConfirmed ? tokenDecimalsValue : 18;
   const tokenSymbol = (tokenInfoQuery.data?.[1]?.result as string | undefined) ?? "";
+  const tokenDecimalsLoading =
+    Boolean(normalizedTokenAddress) && (tokenInfoQuery.isLoading || tokenInfoQuery.isFetching);
+  const tokenDecimalsError =
+    Boolean(normalizedTokenAddress) && !tokenDecimalsLoading && !tokenDecimalsConfirmed;
 
   const aggregation = useMemo(
     () =>
@@ -307,17 +316,18 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
   const hasValidClaimConfig = variableMode
     ? Boolean(parsedMaxClaimAmount)
     : Boolean(parsedClaimAmount);
-  const canCreate =
-    Boolean(
-      factoryAddress &&
-        normalizedTokenAddress &&
-        normalizedJarOwner &&
-        campaignTitle.trim() &&
-        campaignSlug.trim() &&
-        hasValidClaimConfig &&
-        aggregation.allowlist.length > 0 &&
-        isDeployer
-    ) && aggregation.invalidAddresses.length === 0;
+  const canCreate = canCreateCampaignCookieJar({
+    factoryAddress,
+    tokenAddress: normalizedTokenAddress,
+    tokenDecimalsConfirmed,
+    jarOwner: normalizedJarOwner,
+    campaignTitle,
+    campaignSlug,
+    hasValidClaimConfig,
+    allowlistCount: aggregation.allowlist.length,
+    invalidAddressCount: aggregation.invalidAddresses.length,
+    isDeployer,
+  });
 
   const toggleGarden = (gardenId: string) => {
     setSelectedGardenIds((current) =>
@@ -739,7 +749,12 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
                     },
                     { symbol: tokenSymbol, decimals: tokenDecimals }
                   )
-                : undefined
+                : tokenDecimalsLoading
+                  ? formatMessage({
+                      id: "cockpit.community.cookies.tokenInfoLoading",
+                      defaultMessage: "Reading token decimals...",
+                    })
+                  : undefined
             }
             error={
               tokenAddress && !normalizedTokenAddress
@@ -747,7 +762,13 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
                     id: "cockpit.community.cookies.invalidAddress",
                     defaultMessage: "Enter a valid Ethereum address.",
                   })
-                : undefined
+                : tokenDecimalsError
+                  ? formatMessage({
+                      id: "cockpit.community.cookies.tokenDecimalsRequired",
+                      defaultMessage:
+                        "Token decimals could not be read. Check the ERC20 address and try again.",
+                    })
+                  : undefined
             }
             variant="outlined"
           />
