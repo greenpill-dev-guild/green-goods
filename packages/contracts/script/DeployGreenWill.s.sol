@@ -5,6 +5,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { Script, console2 } from "forge-std/Script.sol";
 
 import { Deployment } from "../src/registries/Deployment.sol";
+import { IPublicLock } from "../src/interfaces/IUnlock.sol";
 import { GreenWill } from "../src/registries/GreenWill.sol";
 
 /// @title DeployGreenWill
@@ -19,6 +20,7 @@ contract DeployGreenWill is Script {
     bytes32 internal constant GENESIS_BADGE = keccak256("GENESIS");
     bytes32 internal constant FIRST_WORK_BADGE = keccak256("FIRST_WORK");
     bytes32 internal constant FIRST_SUPPORT_BADGE = keccak256("FIRST_SUPPORT");
+    bytes32 private constant KEY_GRANTER_ROLE = keccak256("KEY_GRANTER");
 
     struct GreenWillConfig {
         address owner;
@@ -51,6 +53,7 @@ contract DeployGreenWill is Script {
         );
 
         _configureBadges(greenWill, config);
+        _grantUnlockKeyGranterRoles(address(greenWill), config);
         Deployment(config.deploymentRegistry).updateGreenWill(address(greenWill));
         greenWill.transferOwnership(config.owner);
 
@@ -92,6 +95,18 @@ contract DeployGreenWill is Script {
             true
         );
         greenWill.configureBadgeRule(FIRST_SUPPORT_BADGE, GreenWill.BadgeRule.VaultShares, bytes32(0), 0);
+    }
+
+    function _grantUnlockKeyGranterRoles(address greenWill, GreenWillConfig memory config) internal {
+        _grantUnlockKeyGranter(config.genesisLock, greenWill);
+        _grantUnlockKeyGranter(config.firstWorkLock, greenWill);
+        _grantUnlockKeyGranter(config.firstSupportLock, greenWill);
+    }
+
+    function _grantUnlockKeyGranter(address lock, address account) internal {
+        if (!IPublicLock(lock).hasRole(KEY_GRANTER_ROLE, account)) {
+            IPublicLock(lock).grantRole(KEY_GRANTER_ROLE, account);
+        }
     }
 
     function _loadConfig() internal view returns (GreenWillConfig memory config) {

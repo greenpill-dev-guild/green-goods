@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { getAddress, Interface, isAddress, ZeroAddress } from "ethers";
+import { getAddress, id, Interface, isAddress, ZeroAddress } from "ethers";
 import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
-import { CHAIN_ID_MAP, NetworkManager } from "../utils/network";
+import { NetworkManager } from "../utils/network";
 import { assertSepoliaGate } from "../utils/release-gate";
 
 interface BadgeDeployDependencies {
@@ -40,8 +40,9 @@ interface PersistedBadgeLock {
 }
 
 const MAX_KEYS = (1n << 256n) - 1n;
-const DRY_RUN_PUBLIC_LOCK_VERSION = 14;
+const DRY_RUN_PUBLIC_LOCK_VERSION = 15;
 const DISABLED_TRANSFER_FEE_BASIS_POINTS = 10_000n;
+const LOCK_MANAGER_ROLE = id("LOCK_MANAGER");
 
 const BADGE_LOCKS: BadgeLockPlan[] = [
   {
@@ -71,13 +72,13 @@ const BADGE_LOCKS: BadgeLockPlan[] = [
 ];
 
 const unlockFactoryInterface = new Interface([
-  "function createLock(bytes data,uint16 lockVersion) returns (address lock)",
+  "function createUpgradeableLockAtVersion(bytes data,uint16 lockVersion) returns (address lock)",
 ]);
 
 const publicLockInterface = new Interface([
   "function initialize(address lockCreator,uint256 expirationDuration,address tokenAddress,uint256 keyPrice,uint256 maxNumberOfKeys,string lockName)",
   "function updateTransferFee(uint256 transferFeeBasisPoints)",
-  "function addLockManager(address account)",
+  "function grantRole(bytes32 role,address account)",
 ]);
 
 export class BadgeLocksDeployer {
@@ -125,28 +126,60 @@ export class BadgeLocksDeployer {
     console.log("Transferrable: false");
     console.log(`Default lock managers: ${lockManagers.length > 0 ? lockManagers.join(", ") : "<none configured>"}`);
 
-    console.log("\nPlanned Unlock createLock calldata packets:");
+    console.log("\nPlanned Unlock createUpgradeableLockAtVersion calldata packets:");
     for (const [index, plan] of plans.entries()) {
       console.log(`\n${index + 1}. ${plan.id}`);
       console.log(`   name: ${plan.name}`);
       console.log(`   expirationDuration: ${plan.expirationLabel}`);
       console.log(`   to: ${unlockFactory}`);
-      console.log("   method: createLock(bytes,uint16)");
+      console.log("   method: createUpgradeableLockAtVersion(bytes,uint16)");
       console.log(`   lockInitializerCalldata: ${plan.lockInitializerCalldata}`);
       console.log(`   createLockCalldata: ${plan.createLockCalldata}`);
       console.log("   postCreate.transferPolicy: transferrable=false");
       console.log(`   postCreate.updateTransferFeeCalldata: ${plan.updateTransferFeeCalldata}`);
 
-      if (plan.addLockManagerCalldata.length === 0) {
+      if (plan.grantLockManagerCalldata.length === 0) {
         console.log("   postCreate.lockManagers: <none configured>");
       } else {
-        for (const [managerIndex, managerCalldata] of plan.addLockManagerCalldata.entries()) {
-          console.log(`   postCreate.addLockManager[${managerIndex}]: ${managerCalldata}`);
+        for (const [managerIndex, managerCalldata] of plan.grantLockManagerCalldata.entries()) {
+          console.log(`   postCreate.grantRole(LOCK_MANAGER)[${managerIndex}]: ${managerCalldata}`);
         }
       }
     }
 
     console.log("\nBadge lock dry-run plan complete.");
+    this.runForgeSimulation(options, networkConfig.chainId.toString());
+  }
+
+  private runForgeSimulation(options: ParsedOptions, chainId: string): void {
+    const rpcUrl = this.networkManager.getRpcUrl(options.network);
+    const args = [
+      "script",
+      "script/DeployBadgeLocks.s.sol:DeployBadgeLocks",
+      "--chain-id",
+      chainId,
+      "--rpc-url",
+      rpcUrl,
+    ];
+
+    const senderAddress =
+      options.sender ?? this.resolveConfiguredDeployer(options.network) ?? process.env.SENDER_ADDRESS;
+    if (senderAddress) {
+      args.push("--sender", senderAddress);
+    }
+
+    console.log("\nExecuting no-broadcast Foundry simulation...");
+    console.log("forge", redactSensitiveArgs(args).join(" "));
+
+    execFileSync("forge", args, {
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        FOUNDRY_PROFILE: "production",
+        BADGE_LOCKS_WRITE_ARTIFACT: "false",
+      },
+      cwd: path.join(__dirname, "../.."),
+    });
   }
 
   private broadcastBadgeLocks(
@@ -195,6 +228,7 @@ export class BadgeLocksDeployer {
           ...process.env,
           FOUNDRY_PROFILE: "production",
           FORGE_BROADCAST: "true",
+          BADGE_LOCKS_WRITE_ARTIFACT: "true",
         },
         cwd: path.join(__dirname, "../.."),
       });
@@ -343,23 +377,23 @@ export class BadgeLocksDeployer {
       MAX_KEYS,
       badge.name,
     ]);
-    const createLockCalldata = unlockFactoryInterface.encodeFunctionData("createLock", [
+    const createLockCalldata = unlockFactoryInterface.encodeFunctionData("createUpgradeableLockAtVersion", [
       lockInitializerCalldata,
       DRY_RUN_PUBLIC_LOCK_VERSION,
     ]);
     const updateTransferFeeCalldata = publicLockInterface.encodeFunctionData("updateTransferFee", [
       DISABLED_TRANSFER_FEE_BASIS_POINTS,
     ]);
-    const addLockManagerCalldata = lockManagers
+    const grantLockManagerCalldata = lockManagers
       .filter((manager) => manager !== lockCreator)
-      .map((manager) => publicLockInterface.encodeFunctionData("addLockManager", [manager]));
+      .map((manager) => publicLockInterface.encodeFunctionData("grantRole", [LOCK_MANAGER_ROLE, manager]));
 
     return {
       ...badge,
       lockInitializerCalldata,
       createLockCalldata,
       updateTransferFeeCalldata,
-      addLockManagerCalldata,
+      grantLockManagerCalldata,
     };
   }
 }

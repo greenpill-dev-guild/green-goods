@@ -6,11 +6,11 @@ pragma solidity ^0.8.25;
 /// @dev Used to deploy new PublicLock contracts (badge/membership contracts)
 /// @custom:see https://docs.unlock-protocol.com/core-protocol/smart-contracts-api/Unlock
 interface IUnlockFactory {
-    /// @notice Creates a new lock (membership/badge contract)
+    /// @notice Creates a new upgradeable lock (membership/badge contract) at a specific PublicLock version.
     /// @param data Encoded lock initialization data
     /// @param lockVersion Version of the lock template to use
     /// @return lock Address of the newly created lock
-    function createLock(bytes calldata data, uint16 lockVersion) external returns (address lock);
+    function createUpgradeableLockAtVersion(bytes calldata data, uint16 lockVersion) external returns (address lock);
 
     /// @notice Gets the latest lock template version
     /// @return The latest version number
@@ -34,7 +34,7 @@ interface IPublicLock {
         external;
 
     /// @notice Grants keys (badges/memberships) to recipients without payment
-    /// @dev Only lock managers can call this function
+    /// @dev Only lock managers/key granters can call this function on Unlock v15 locks
     /// @param _recipients Array of addresses to receive keys
     /// @param _expirationTimestamps Array of expiration timestamps for each key
     /// @param _keyManagers Array of addresses to manage each key
@@ -46,6 +46,17 @@ interface IPublicLock {
     )
         external
         returns (uint256[] memory tokenIds);
+
+    /// @notice Grants an Unlock AccessControl role to an account.
+    /// @param role Unlock role hash, for example keccak256("LOCK_MANAGER") or keccak256("KEY_GRANTER")
+    /// @param account Address receiving the role
+    function grantRole(bytes32 role, address account) external;
+
+    /// @notice Checks whether an account has an Unlock AccessControl role.
+    /// @param role Unlock role hash
+    /// @param account Address to check
+    /// @return True if the account has the role
+    function hasRole(bytes32 role, address account) external view returns (bool);
 
     /// @notice Checks if an address has a valid (non-expired) key
     /// @param _user The address to check

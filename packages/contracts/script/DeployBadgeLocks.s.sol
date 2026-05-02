@@ -15,6 +15,7 @@ contract DeployBadgeLocks is Script {
     error UnsupportedChain(uint256 chainId);
 
     uint256 private constant DISABLED_TRANSFER_FEE_BASIS_POINTS = 10_000;
+    bytes32 private constant LOCK_MANAGER_ROLE = keccak256("LOCK_MANAGER");
 
     function run() external {
         string memory networksJson = vm.readFile(string.concat(vm.projectRoot(), "/deployments/networks.json"));
@@ -33,7 +34,11 @@ contract DeployBadgeLocks is Script {
 
         vm.stopBroadcast();
 
-        _saveResult(unlockFactory, lockVersion, managerDefaults.length, genesis, firstWork, firstSupport);
+        if (_shouldWriteArtifact()) {
+            _saveResult(unlockFactory, lockVersion, managerDefaults.length, genesis, firstWork, firstSupport);
+        } else {
+            console2.log("Badge lock artifact write disabled for simulation.");
+        }
     }
 
     function _deployLock(
@@ -50,14 +55,14 @@ contract DeployBadgeLocks is Script {
             IPublicLock.initialize.selector, msg.sender, expirationDuration, address(0), 0, type(uint256).max, lockName
         );
 
-        lock = IUnlockFactory(unlockFactory).createLock(initializer, lockVersion);
+        lock = IUnlockFactory(unlockFactory).createUpgradeableLockAtVersion(initializer, lockVersion);
         IPublicLock(lock).updateTransferFee(DISABLED_TRANSFER_FEE_BASIS_POINTS);
 
         for (uint256 i = 0; i < managerDefaults.length; i++) {
             address manager = managerDefaults[i];
             if (manager == address(0) || manager == msg.sender) continue;
-            if (!IPublicLock(lock).isLockManager(manager)) {
-                IPublicLock(lock).addLockManager(manager);
+            if (!IPublicLock(lock).hasRole(LOCK_MANAGER_ROLE, manager)) {
+                IPublicLock(lock).grantRole(LOCK_MANAGER_ROLE, manager);
             }
         }
 
@@ -88,6 +93,14 @@ contract DeployBadgeLocks is Script {
             string.concat(vm.projectRoot(), "/deployments/", vm.toString(block.chainid), "-badge-locks.json");
         vm.writeJson(finalJson, outPath);
         console2.log("Saved to:", outPath);
+    }
+
+    function _shouldWriteArtifact() internal view returns (bool) {
+        try vm.envBool("BADGE_LOCKS_WRITE_ARTIFACT") returns (bool shouldWrite) {
+            return shouldWrite;
+        } catch {
+            return true;
+        }
     }
 
     function _resolveManagerDefaults(string memory networksJson) internal view returns (address[] memory managers) {
