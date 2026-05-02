@@ -68,6 +68,7 @@ const results = [];
 let opReady = null;
 
 const uploadOpRefKeys = new Set(["PINATA_JWT_OP_REF"]);
+const varlockProbeTimeoutMs = 45_000;
 
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
@@ -163,6 +164,12 @@ function hasOpRef(value) {
   return /^op:\/\//.test(value.trim());
 }
 
+function localVarlockCommand() {
+  const executable = process.platform === "win32" ? "varlock.cmd" : "varlock";
+  const localBin = path.join(projectRoot, "node_modules", ".bin", executable);
+  return fs.existsSync(localBin) ? localBin : "varlock";
+}
+
 function schemaOpRefKeys(schema) {
   return new Set(Object.keys(schema).filter((key) => key.endsWith("_OP_REF")));
 }
@@ -180,6 +187,57 @@ function ignoredOpRefEntries(envFile, allowedKeys) {
 function opRefRequiredForCurrentProfile(key) {
   if (uploadOpRefKeys.has(key)) return options.profile === "upload";
   return true;
+}
+
+function profileVarlockEnv(envFile, schema) {
+  const env = { ...process.env };
+  const appEnv = valueFor(envFile, "APP_ENV");
+  if (appEnv) env.APP_ENV = appEnv;
+
+  for (const key of schemaOpRefKeys(schema)) {
+    if (!opRefRequiredForCurrentProfile(key)) {
+      env[key] = "";
+    }
+  }
+
+  return env;
+}
+
+function sanitizeVarlockOutput(value) {
+  return value
+    .replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "")
+    .replace(/op:\/\/[^\s'"]+/g, "op://...")
+    .replace(/\0/g, " ")
+    .trim();
+}
+
+function summarizeVarlockFailure(result) {
+  if (result.error) return result.error.message;
+
+  const output = sanitizeVarlockOutput(`${result.stderr || ""}\n${result.stdout || ""}`);
+  const interesting = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) =>
+      /Invalid items|error resolving value|1Password|config directory|authorization|not signed in|not found|does not have a field|environment|Varlock|⛔/.test(
+        line
+      )
+    );
+
+  return (interesting.length > 0 ? interesting : output.split(/\r?\n/).filter(Boolean))
+    .slice(0, 5)
+    .join(" ");
+}
+
+function runVarlockResolutionProbe(envFile, schema) {
+  const command = localVarlockCommand();
+  return spawnSync(command, ["run", "--", process.execPath, "-e", "process.exit(0)"], {
+    cwd: projectRoot,
+    encoding: "utf8",
+    env: profileVarlockEnv(envFile, schema),
+    timeout: varlockProbeTimeoutMs,
+  });
 }
 
 function checkPortHost(port, host) {
@@ -334,12 +392,60 @@ function activeOpDetail(opRefs, usesBulkOp) {
 }
 
 function checkOpReadiness(envFile, schema) {
-  const opRefs = opRefEntries(envFile, schemaOpRefKeys(schema)).filter(([key]) =>
+  const schemaBackedOpRefs = opRefEntries(envFile, schemaOpRefKeys(schema));
+  const opRefs = schemaBackedOpRefs.filter(([key]) =>
     opRefRequiredForCurrentProfile(key)
   );
+  const skippedOpRefs = schemaBackedOpRefs.filter(([key]) => !opRefRequiredForCurrentProfile(key));
   const usesBulkOp = valueFor(envFile, "OP_ENABLE_ENVIRONMENT_LOAD").toLowerCase() === "true";
+
+  if (skippedOpRefs.length > 0) {
+    add(
+      "info",
+      "Upload-only 1Password refs ignored for this profile",
+      skippedOpRefs
+        .map(([key]) => key)
+        .sort()
+        .join(", "),
+      "",
+      { check: "env:profile-op-refs" }
+    );
+  }
+
+  const opAccount = valueFor(envFile, "OP_ACCOUNT");
+  if (hasUsableValue(opAccount)) {
+    add(
+      "warn",
+      "OP_ACCOUNT is configured but not wired into Varlock",
+      "The current 1Password plugin requires a static account in .env.schema, so root .env OP_ACCOUNT does not select the account.",
+      "Use a single signed-in 1Password account for now, or switch this repo to service-account or environment loading.",
+      { check: "env:op-account" }
+    );
+  }
+
   if (opRefs.length === 0 && !usesBulkOp) {
-    opReady = true;
+    const probe = runVarlockResolutionProbe(envFile, schema);
+    if (probe.status === 0) {
+      opReady = true;
+      add(
+        "pass",
+        "Varlock profile bootstrap works",
+        skippedOpRefs.length > 0
+          ? "Upload-only OP refs were bypassed for this non-upload profile."
+          : "No profile-required 1Password refs are active.",
+        "",
+        { check: "varlock:profile" }
+      );
+    } else {
+      opReady = false;
+      add(
+        "fail",
+        "Varlock profile bootstrap failed",
+        summarizeVarlockFailure(probe),
+        "Fix the Varlock error, or remove profile-required OP refs from root .env for baseline local work.",
+        { check: "varlock:profile" }
+      );
+    }
     return;
   }
 
@@ -355,21 +461,17 @@ function checkOpReadiness(envFile, schema) {
     return;
   }
 
-  const opStatus = spawnSync("op", ["whoami", "--format", "json"], {
-    encoding: "utf8",
-    stdio: "ignore",
-    timeout: 3000,
-  });
+  const probe = runVarlockResolutionProbe(envFile, schema);
 
-  if (opStatus.status === 0) {
+  if (probe.status === 0) {
     opReady = true;
     add(
       "pass",
-      "1Password CLI signed in",
-      activeOpDetail(opRefs, usesBulkOp).replace("configured.", "can be resolved locally."),
+      "Varlock can resolve profile 1Password refs",
+      activeOpDetail(opRefs, usesBulkOp).replace("configured.", "resolved through the real Varlock path."),
       "",
       {
-        check: "op-cli",
+        check: "varlock:op-refs",
       }
     );
     return;
@@ -378,10 +480,10 @@ function checkOpReadiness(envFile, schema) {
   opReady = false;
   add(
     "fail",
-    "1Password CLI is not signed in",
-    activeOpDetail(opRefs, usesBulkOp),
-    "Run op signin, or replace active OP refs with direct root .env values for local-only work.",
-    { check: "op-cli" }
+    "Varlock cannot resolve profile 1Password refs",
+    `${activeOpDetail(opRefs, usesBulkOp)} ${summarizeVarlockFailure(probe)}`.trim(),
+    "Run op signin and confirm Varlock can resolve this profile, use direct local values for local-only work, or switch to OP service-account/environment loading.",
+    { check: "varlock:op-refs" }
   );
 }
 

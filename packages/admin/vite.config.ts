@@ -7,11 +7,21 @@ import { defineConfig, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const browserIgnoredOpRefKeys = ["PINATA_JWT_OP_REF"];
+
+function disableServerOnlyOpRefsForBrowserBuild() {
+  for (const key of browserIgnoredOpRefKeys) {
+    process.env[key] = "";
+  }
+}
 
 export default defineConfig(async (): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve env schema from monorepo root even when this package script runs with a package cwd.
   process.chdir(rootDir);
+  // Browser builds never need the server-side Pinata upload credential.
+  // Keeping this OP ref active makes Varlock resolve it before Vite can boot.
+  disableServerOnlyOpRefsForBrowserBuild();
   const [{ varlockVitePlugin }, { ENV }] = await Promise.all([
     import("@varlock/vite-integration"),
     import("varlock/env"),
@@ -55,7 +65,7 @@ export default defineConfig(async (): Promise<UserConfig> => {
     root: __dirname,
     base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
-    envPrefix: ["VITE_", "PINATA_", "SKIP_"],
+    envPrefix: ["VITE_", "SKIP_"],
     build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances

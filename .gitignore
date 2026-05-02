@@ -295,6 +295,7 @@ docker-compose.local.yml
 
 # Temp patches
 *.patch
+!patches/@varlock%2F1password-plugin@0.2.2.patch
 
 # ================================
 # OS Generated

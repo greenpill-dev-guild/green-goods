@@ -217,5 +217,8 @@
     "test": "tests"
   },
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "patchedDependencies": {
+    "@varlock/1password-plugin@0.2.2": "patches/@varlock%2F1password-plugin@0.2.2.patch"
+  }
 }
