@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-25T18:43:29.436Z",
-    "updated_at": "2026-04-29T05:33:38Z"
+    "updated_at": "2026-05-01T20:42:09.716Z"
   },
   "links": {
     "brief": "brief.md",
@@ -32,15 +32,41 @@
       "branch": "claude/ui/agent-upload-signer",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "skill_tags": []
+      "skill_tags": [],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No UI implementation lane is planned for the upload signer work."
+      }
     },
     "state_api": {
       "owner": "codex",
-      "status": "completed",
+      "status": "in_progress",
       "branch": "codex/state-api/agent-upload-signer",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "skill_tags": ["hono", "ipfs", "pinata", "data-layer"]
+      "skill_tags": ["hono", "ipfs", "pinata", "data-layer"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      }
     },
     "contracts": {
       "owner": "codex",
@@ -48,11 +74,24 @@
       "branch": "codex/contracts/agent-upload-signer",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "skill_tags": []
+      "skill_tags": [],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract implementation lane is planned for the upload signer work."
+      }
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/agent-upload-signer",
@@ -120,6 +159,22 @@
       "status": "review_fixes_completed",
       "branch": "develop",
       "note": "Closed review findings and remaining proof gaps: signer origins fail closed, production config requires allowed origins, doctor flags stale VITE_PINATA_JWT, stale router wording and legacy public Pinata JWT references were removed, browser signing stays on VITE_API_BASE_URL, and the escalated quick gate now passes."
+    },
+    {
+      "timestamp": "2026-05-01T20:42:09.716Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "codex/state-api/agent-upload-signer",
+      "note": "Reopened under the TDD proof gate until RED/GREEN evidence is recorded."
+    },
+    {
+      "timestamp": "2026-05-01T20:42:09.716Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "tdd_policy_applied",
+      "branch": null,
+      "note": "Added TDD proof metadata for active implementation lanes."
     }
   ]
 }

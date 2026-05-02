@@ -10,7 +10,7 @@
     "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-04-25",
-    "updated_at": "2026-04-29T06:08:12.579Z"
+    "updated_at": "2026-05-01T20:42:09.716Z"
   },
   "links": {
     "brief": "brief.md",
@@ -131,7 +131,20 @@
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "Implement public editorial homepage, route layouts, public card/dialog polish, install CTA, Get In Touch closing through POST /public/subscribe plus Google appointment link, Donate/Endow support-only funding choice, reasonCode-localized availability copy, amount validation separate from base availability with amount_below_min/amount_above_max PublicApiErrorCode handling, /fund?garden exact-id and publicGardenHelpers.deriveSlug unique-slug fallback messaging, card funding create destinationAddress/canonical availabilityKey/clientRequestId handling, allowlisted checkout payload consumption only, root pre-pageview receipt scrub plus usePageView hash redaction, receipt fundingTxHash display, hidden-by-default card states, Card Endow receipt/recovery/app handoff, risk-safe Endow copy, Donate/support tax/charity copy guard, accessible dialogs, unique/fallback motion behavior, and packages/client/DESIGN.browser.md update after contract_stability_checklist is complete.",
-      "skill_tags": ["frontend", "design", "storybook"]
+      "skill_tags": ["frontend", "design", "storybook"],
+      "tdd": {
+        "mode": "legacy_unrecorded",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Completed before the TDD proof policy; do not invent historical RED/GREEN evidence."
+      }
     },
     "state_api": {
       "owner": "codex",
@@ -141,7 +154,20 @@
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Migrate Agent HTTP API to Hono while preserving existing health/ready/webhook/internal API/startup/shutdown behavior, align public hook naming and data contracts, add canonical-id curation/contact contract using existing VITE_API_BASE_URL, lock /public/* and /webhooks/thirdweb route paths, define full public TypeScript-style route contracts in server-safe @green-goods/shared/public-contracts with packages/shared/package.json exports, client TypeScript/Vite resolution, canonical availabilityKey builder, FundingTransactionAttempt types, allowlisted checkout payload types, explicit amount validation error codes, and seeded fixtures under artifacts/fixtures, define fragment-to-header receipt-token protected public funding reads with root pre-pageview scrub, usePageView hash redaction, and no-store/no-cache response headers, return only allowlisted client-safe checkout data from public funding-intent creation, keep FundingIntent creation card-only and subscription-free, require destinationAddress, canonical availabilityKey, and clientRequestId with Agent recomputation/idempotency against live reads/proof registry using the pinned normalized fingerprint fields, define shared-read PublicFundingAvailability with explicit reasonCode state/params semantics, amount validation split, and code-owned provider proof registry, strict FundingIntent SQLite storage/reconciliation with transactionAttempts, canonical fundingTxHash, Agent viem receipt/log polling, server RPC resolver, minAssetAmount matching, abandoned started/pending_provider expiry via read-time reconciliation plus scheduled sweep, and expired-to-funded_late late confirmation handling, thirdweb direct-card approve/deposit and embedded-wallet Endow contract with destination-specific reconciliation, split Hono Agent API/Luma/env protections with route-specific rate-limit keys, trusted-proxy rules, two-stage webhook throttling, and concrete moderate thresholds, public assessment/evidence finite shared-EAS deterministic local slicing limits with explicit overfetch behavior, and support /fund?garden=... exact-id/publicGardenHelpers.deriveSlug unique-slug fallback without changing runtime UI first.",
       "skill_tags": ["client", "shared", "agent"],
-      "manual_blocked": false
+      "manual_blocked": false,
+      "tdd": {
+        "mode": "legacy_unrecorded",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Completed before the TDD proof policy; do not invent historical RED/GREEN evidence."
+      }
     },
     "contracts": {
       "owner": "codex",
@@ -150,7 +176,20 @@
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "handoff_note": "No contract work expected for this public browser UI pass.",
-      "skill_tags": []
+      "skill_tags": [],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract implementation lane was planned for the public read-side journal work."
+      }
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -408,6 +447,14 @@
       "status": "passed",
       "branch": "codex/qa-pass-2/public-read-side-journal",
       "note": "Re-pass after regression fixes on develop: (1) wired install CTAs through new shared usePublicInstallHandler — header (desktop+drawer), PublicHero, PublicInstallCta (compact+section), PublicFundingReceipt, Public Actions dialog, GardenDetail rail; (2) loaded Fraunces in client/index.html and overrode --font-serif in shared theme.css so font-serif headlines actually render Fraunces; (3) PublicInstallCta section now renders guidance.manualInstructions for iOS/Android manual flow; (4) added en/es/pt strings for copy toast; (5) documented serif swap recipe + alternatives table in DESIGN.browser.md. Validation ladder green: 327 client tests, 2855 shared tests, 100 agent tests, design+vocab+lint+format pass, build:client passes (45.5s). Browser screenshot/install proof on real devices needs Afo or codex with Chrome MCP. check:design-generated stale doc (client-pwa-token-audit.generated.md) is unrelated WIP from another agent."
+    },
+    {
+      "timestamp": "2026-05-01T20:42:09.716Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "tdd_policy_applied",
+      "branch": null,
+      "note": "Added TDD proof metadata for active implementation lanes."
     }
   ]
 }

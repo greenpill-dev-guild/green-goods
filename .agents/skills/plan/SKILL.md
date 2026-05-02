@@ -3,12 +3,12 @@ name: plan
 user-invocable: false
 description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Codex+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed codex and Codex', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
-version: "1.2.0"
+version: "1.2.1"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-04-24"
-last_verified: "2026-04-24"
+last_updated: "2026-05-01"
+last_verified: "2026-05-01"
 ---
 
 # Plan Skill
@@ -94,6 +94,14 @@ Minimum files:
 - `handoffs/`
 
 `status.json` is the machine-readable contract for automations. The Markdown files stay optimized for humans.
+Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavior work:
+
+- Use the `testing` skill as the RED/GREEN source of truth.
+- Record detailed RED/GREEN proof in the lane handoff.
+- Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`.
+- If no behavior changed, set the lane TDD mode to `not_applicable` with a concrete note.
+- If TDD cannot honestly apply, set `proof_limit` with fallback validation evidence and a concrete note.
+- Do not mark a behavior-changing implementation lane `passed` or `completed` until its TDD proof is recorded.
 
 ```markdown
 # [Feature Name] Plan
@@ -179,7 +187,7 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 
 **Ordering**:
 - Follow dependency order: contracts → indexer → shared → client/admin → agent
-- Within a package: types/interfaces first, then implementation, then tests, then wiring
+- Within a package: behavior boundary + RED proof first, then types/interfaces, implementation, GREEN proof, then wiring
 - Infrastructure steps (new files, new exports) before behavior steps (logic, handlers)
 
 **When to decompose further**:

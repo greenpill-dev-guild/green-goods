@@ -10,13 +10,13 @@
 
 ## Acceptance Checks
 
-| ID | Check | Owner | Evidence |
-|---|---|---|---|
-| AC-1 | | `ui` | |
-| AC-2 | | `state_api` | |
-| AC-3 | | `contracts` | |
-| AC-4 | | `qa_pass_1` | |
-| AC-5 | | `qa_pass_2` | |
+| ID | Behavior Boundary | Check | Owner | Evidence |
+|---|---|---|---|---|
+| AC-1 | | | `ui` | |
+| AC-2 | | | `state_api` | |
+| AC-3 | | | `contracts` | |
+| AC-4 | QA review | | `qa_pass_1` | |
+| AC-5 | Regression review | | `qa_pass_2` | |
 
 ## Test Strategy
 
@@ -24,6 +24,7 @@
 - Integration:
 - E2E / Playwright:
 - Manual checks:
+- TDD proof: RED/GREEN commands and evidence are recorded in lane handoffs and summarized in `status.json`.
 
 ## QA Sequence
 
