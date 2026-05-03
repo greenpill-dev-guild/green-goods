@@ -41,7 +41,7 @@ const fallbackAppointmentUrl = "https://calendar.app.google/" as const;
 
 export const publicCuration: PublicCuration = {
   featuredGardens: [],
-  heroImagePath: "/images/hero-garden.webp",
+  heroImagePath: "/images/hero-home.webp",
   viewHeroImages: {
     gardens: "/images/hero-garden.webp",
     impact: "/images/hero-impact.webp",

@@ -41,7 +41,7 @@ export function PublicFundingBridge() {
                 {formatMessage({
                   id: "public.home.funding.body",
                   defaultMessage:
-                    "Green Goods gives funders two protocol paths: direct support for verified Work, or a Vault position designed so yield can keep supporting a Garden over time.",
+                    "Two paths for a Garden's community and funders alike: direct support for the Work today, or a deposit whose yield keeps supporting the Garden over time.",
                 })}
               </EditorialLede>
             </div>
@@ -69,7 +69,7 @@ export function PublicFundingBridge() {
                   {formatMessage({
                     id: "public.home.funding.donateBody",
                     defaultMessage:
-                      "Send direct support through a Garden's Cookie Jar for verified regenerative Work.",
+                      "Send direct support to a Garden's shared fund for verified Work.",
                   })}
                 </p>
               </article>
@@ -86,7 +86,7 @@ export function PublicFundingBridge() {
                   {formatMessage({
                     id: "public.home.funding.endowBody",
                     defaultMessage:
-                      "Deposit into a Garden Vault designed to preserve principal while yield supports the Garden.",
+                      "Make a long-term deposit. The principal stays; the yield supports the Garden's Work.",
                   })}
                 </p>
               </article>
@@ -105,7 +105,7 @@ export function PublicFundingBridge() {
                 {formatMessage({
                   id: "public.home.funding.note",
                   defaultMessage:
-                    "Donate and Endow support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Vaults also carry smart contract, token, yield, provider, and wallet recovery risk.",
+                    "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Long-term deposits also carry the usual smart-contract, token, yield, provider, and wallet-recovery risks.",
                 })}
               </p>
             </div>

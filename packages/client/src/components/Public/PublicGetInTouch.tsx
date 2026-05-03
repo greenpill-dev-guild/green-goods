@@ -118,7 +118,7 @@ export function PublicGetInTouch() {
               {formatMessage({
                 id: "public.home.getInTouch.description",
                 defaultMessage:
-                  "Quiet dispatches from the Gardens: what's planted, what's tended, what's ready to be funded. No urgency. No tracking. One opt-in.",
+                  "Quiet dispatches from the Gardens: what's planted, what's tended, what's ready to be funded.",
               })}
             </EditorialLede>
           </div>

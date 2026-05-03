@@ -82,7 +82,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "This isn't a dashboard. These are confirmed counts: Gardens tended, hands at work, entries logged, assessments held to. Public, verifiable, and small for now, on purpose.",
+                  "This isn't a dashboard. These are confirmed counts: gardens attended, hands at work, entries logged, assessments held. Public, verifiable.",
               })}
             </EditorialLede>
           </div>
@@ -101,7 +101,7 @@ export function PublicProofBand({
             value={gardens}
             isLoading={isLoading}
             labelId="public.home.proof.gardens"
-            defaultLabel="Gardens"
+            defaultLabel="Gardens attended"
             noteId="public.home.proof.gardensNote"
             defaultNote="Active places under continuous documentation."
           />
@@ -109,15 +109,15 @@ export function PublicProofBand({
             value={contributors}
             isLoading={isLoading}
             labelId="public.home.proof.contributors"
-            defaultLabel="Contributors"
+            defaultLabel="Hands at work"
             noteId="public.home.proof.contributorsNote"
-            defaultNote="Gardeners, operators, and evaluators with at least one confirmed entry."
+            defaultNote="Gardeners with a role in at least one Garden. Each address counted once."
           />
           <ProofMarker
             value={works}
             isLoading={isLoading}
             labelId="public.home.proof.works"
-            defaultLabel="Entries of work"
+            defaultLabel="Entries logged"
             noteId="public.home.proof.worksNote"
             defaultNote="Photos, soil cores, plantings, repairs, restorations, each timestamped."
           />
@@ -125,7 +125,7 @@ export function PublicProofBand({
             value={assessments}
             isLoading={isLoading}
             labelId="public.home.proof.assessments"
-            defaultLabel="Assessments"
+            defaultLabel="Assessments held"
             noteId="public.home.proof.assessmentsNote"
             defaultNote="Independent evaluator confirmations, anchored to a public reference."
           />

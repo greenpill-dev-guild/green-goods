@@ -18,7 +18,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Assess the place.",
     bodyId: "public.home.loop.assessBody",
     defaultBody:
-      "A Garden starts as a real community hub with members, roles, and a place-based brief, so every Work record has somewhere accountable to land.",
+      "A Garden gathers gardeners, operators, evaluators, and (ideally) funders around a real place — together they read where it is and where it's meant to go.",
     to: "/impact",
   },
   {
@@ -36,7 +36,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Verify impact.",
     bodyId: "public.home.loop.verifyBody",
     defaultBody:
-      "Evaluators create Assessments that connect approved Work to evidence and impact across the Eight Forms of Capital.",
+      "Operators bundle the approved Work into an Impact Certificate. Evaluators — from many backgrounds, not only topical experts — then verify what the certificate claims.",
     to: "/impact",
   },
   {
@@ -45,7 +45,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Fund what grows.",
     bodyId: "public.home.loop.fundBody",
     defaultBody:
-      "Funders can Donate through Cookie Jars for direct support or Endow Garden Vaults designed so yield supports the Work over time.",
+      "A Garden's community and funders give directly today, or commit a deposit so yield supports the Work over time.",
     to: "/fund",
   },
 ] as const;
