@@ -877,13 +877,13 @@
 
   .gg-button-primary,
   .gg-button-primary.gg-button-filled {
-    background: rgb(var(--ws-action, var(--primary-action)));
-    color: rgb(var(--ws-on-action, var(--primary-action-foreground)));
+    background: rgb(var(--tone-action, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
   }
 
   .gg-button-primary:hover,
   .gg-button-primary.gg-button-filled:hover {
-    background: rgb(var(--ws-action-hover, var(--primary-action-hover)));
+    background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
   }
 
   .gg-button-primary.gg-button-stroke {

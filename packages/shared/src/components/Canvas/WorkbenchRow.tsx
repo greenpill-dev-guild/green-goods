@@ -99,7 +99,7 @@ export function WorkbenchRow({
   const sharedClassName = cn(
     "relative grid w-full items-center gap-[0.875rem] px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]",
     "grid-cols-[auto_minmax(0,1fr)_auto]",
-    selected && "bg-[rgb(var(--ws-primary-container)/0.12)] shadow-[var(--edge-focus)]",
+    selected && "bg-[rgb(var(--tone-primary-container)/0.12)] shadow-[var(--edge-focus)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&
       !disabled &&

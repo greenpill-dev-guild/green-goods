@@ -253,7 +253,7 @@ export function BottomSheet({
           data-testid="bottom-sheet-drag-handle"
           {...bind()}
         >
-          <div className="h-1.5 w-10 rounded-full bg-[rgb(var(--ws-primary,var(--primary-base))/0.32)]" />
+          <div className="h-1.5 w-10 rounded-full bg-[rgb(var(--tone-primary,var(--primary-base))/0.32)]" />
         </div>
 
         {/* Header */}

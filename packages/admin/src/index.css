@@ -224,7 +224,7 @@
   }
 
   /* Disable workspace color dissolve */
-  [data-workspace] {
+  [data-tone] {
     transition: none;
   }
 
@@ -280,7 +280,7 @@
 }
 
 /* Animatable workspace tint — enables color cross-dissolve between views */
-@property --ws-surface-tint-color {
+@property --tone-surface-tint-color {
   syntax: "<color>";
   inherits: true;
   initial-value: transparent;
@@ -289,182 +289,182 @@
 /* ============================================================================
  * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
  * hub=blue, garden=green, community=orange, actions=red
- * Each defines 8 tonal roles consumed by --ws-* utilities across the admin UI
+ * Each defines 8 tonal roles consumed by --tone-* utilities across the admin UI
  * ============================================================================ */
 
 /* Hub — Blue */
-[data-workspace="hub"] {
-  --ws-primary: var(--blue-500);
-  --ws-on-primary: 255 255 255;
-  --ws-action: var(--blue-500);
-  --ws-action-hover: var(--blue-700);
-  --ws-on-action: 255 255 255;
-  --ws-primary-container: var(--blue-100);
-  --ws-on-primary-container: var(--blue-900);
-  --ws-secondary: var(--blue-300);
-  --ws-surface-tint: var(--blue-500) / 8%;
-  --ws-outline: var(--blue-200);
-  --ws-surface-variant: var(--blue-50);
-  --ws-surface-tint-color: rgb(var(--blue-500) / 8%);
+[data-tone="hub"] {
+  --tone-primary: var(--blue-500);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--blue-500);
+  --tone-action-hover: var(--blue-700);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--blue-100);
+  --tone-on-primary-container: var(--blue-900);
+  --tone-secondary: var(--blue-300);
+  --tone-surface-tint: var(--blue-500) / 8%;
+  --tone-outline: var(--blue-200);
+  --tone-surface-variant: var(--blue-50);
+  --tone-surface-tint-color: rgb(var(--blue-500) / 8%);
 }
 
 /* Garden — Green */
-[data-workspace="garden"] {
-  --ws-primary: var(--green-500);
-  --ws-on-primary: 255 255 255;
-  --ws-action: var(--green-800);
-  --ws-action-hover: var(--green-900);
-  --ws-on-action: 255 255 255;
-  --ws-primary-container: var(--green-100);
-  --ws-on-primary-container: var(--green-900);
-  --ws-secondary: var(--green-300);
-  --ws-surface-tint: var(--green-500) / 8%;
-  --ws-outline: var(--green-200);
-  --ws-surface-variant: var(--green-50);
-  --ws-surface-tint-color: rgb(var(--green-500) / 8%);
+[data-tone="garden"] {
+  --tone-primary: var(--green-500);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--green-800);
+  --tone-action-hover: var(--green-900);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--green-100);
+  --tone-on-primary-container: var(--green-900);
+  --tone-secondary: var(--green-300);
+  --tone-surface-tint: var(--green-500) / 8%;
+  --tone-outline: var(--green-200);
+  --tone-surface-variant: var(--green-50);
+  --tone-surface-tint-color: rgb(var(--green-500) / 8%);
 }
 
 /* Community — Orange */
-[data-workspace="community"] {
-  --ws-primary: var(--orange-500);
-  --ws-on-primary: 255 255 255;
-  --ws-action: var(--orange-800);
-  --ws-action-hover: var(--orange-900);
-  --ws-on-action: 255 255 255;
-  --ws-primary-container: var(--orange-100);
-  --ws-on-primary-container: var(--orange-900);
-  --ws-secondary: var(--orange-300);
-  --ws-surface-tint: var(--orange-500) / 8%;
-  --ws-outline: var(--orange-200);
-  --ws-surface-variant: var(--orange-50);
-  --ws-surface-tint-color: rgb(var(--orange-500) / 8%);
+[data-tone="community"] {
+  --tone-primary: var(--orange-500);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--orange-800);
+  --tone-action-hover: var(--orange-900);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--orange-100);
+  --tone-on-primary-container: var(--orange-900);
+  --tone-secondary: var(--orange-300);
+  --tone-surface-tint: var(--orange-500) / 8%;
+  --tone-outline: var(--orange-200);
+  --tone-surface-variant: var(--orange-50);
+  --tone-surface-tint-color: rgb(var(--orange-500) / 8%);
 }
 
 /* Actions — Red */
-[data-workspace="actions"] {
-  --ws-primary: var(--red-500);
-  --ws-on-primary: 255 255 255;
-  --ws-action: var(--red-700);
-  --ws-action-hover: var(--red-800);
-  --ws-on-action: 255 255 255;
-  --ws-primary-container: var(--red-100);
-  --ws-on-primary-container: var(--red-900);
-  --ws-secondary: var(--red-300);
-  --ws-surface-tint: var(--red-500) / 8%;
-  --ws-outline: var(--red-200);
-  --ws-surface-variant: var(--red-50);
-  --ws-surface-tint-color: rgb(var(--red-500) / 8%);
+[data-tone="actions"] {
+  --tone-primary: var(--red-500);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--red-100);
+  --tone-on-primary-container: var(--red-900);
+  --tone-secondary: var(--red-300);
+  --tone-surface-tint: var(--red-500) / 8%;
+  --tone-outline: var(--red-200);
+  --tone-surface-variant: var(--red-50);
+  --tone-surface-tint-color: rgb(var(--red-500) / 8%);
 }
 
 /* Home — Stone/Neutral (unauthenticated) */
-[data-workspace="home"] {
-  --ws-primary: 120 113 108;
-  --ws-on-primary: 255 255 255;
-  --ws-action: 68 64 60;
-  --ws-action-hover: 41 37 36;
-  --ws-on-action: 255 255 255;
-  --ws-primary-container: 231 229 228;
-  --ws-on-primary-container: 41 37 36;
-  --ws-secondary: 168 162 158;
-  --ws-surface-tint: 120 113 108 / 8%;
-  --ws-outline: 214 211 209;
-  --ws-surface-variant: 245 245 244;
-  --ws-surface-tint-color: rgb(120 113 108 / 8%);
+[data-tone="home"] {
+  --tone-primary: 120 113 108;
+  --tone-on-primary: 255 255 255;
+  --tone-action: 68 64 60;
+  --tone-action-hover: 41 37 36;
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: 231 229 228;
+  --tone-on-primary-container: 41 37 36;
+  --tone-secondary: 168 162 158;
+  --tone-surface-tint: 120 113 108 / 8%;
+  --tone-outline: 214 211 209;
+  --tone-surface-variant: 245 245 244;
+  --tone-surface-tint-color: rgb(120 113 108 / 8%);
 }
 
 /* Dark mode workspace overrides */
-[data-theme="dark"] [data-workspace="hub"] {
-  --ws-primary: var(--blue-200);
-  --ws-on-primary: var(--blue-900);
-  --ws-action: var(--blue-200);
-  --ws-action-hover: var(--blue-100);
-  --ws-on-action: var(--blue-900);
-  --ws-primary-container: var(--blue-900);
-  --ws-on-primary-container: var(--blue-100);
-  --ws-secondary: var(--blue-400);
-  --ws-surface-tint: var(--blue-200) / 10%;
-  --ws-outline: var(--blue-700);
-  --ws-surface-variant: var(--blue-900);
-  --ws-surface-tint-color: rgb(var(--blue-200) / 10%);
+[data-theme="dark"] [data-tone="hub"] {
+  --tone-primary: var(--blue-200);
+  --tone-on-primary: var(--blue-900);
+  --tone-action: var(--blue-200);
+  --tone-action-hover: var(--blue-100);
+  --tone-on-action: var(--blue-900);
+  --tone-primary-container: var(--blue-900);
+  --tone-on-primary-container: var(--blue-100);
+  --tone-secondary: var(--blue-400);
+  --tone-surface-tint: var(--blue-200) / 10%;
+  --tone-outline: var(--blue-700);
+  --tone-surface-variant: var(--blue-900);
+  --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
 }
 
-[data-theme="dark"] [data-workspace="garden"] {
-  --ws-primary: var(--green-200);
-  --ws-on-primary: var(--green-900);
-  --ws-action: var(--green-200);
-  --ws-action-hover: var(--green-100);
-  --ws-on-action: var(--green-900);
-  --ws-primary-container: var(--green-900);
-  --ws-on-primary-container: var(--green-100);
-  --ws-secondary: var(--green-400);
-  --ws-surface-tint: var(--green-200) / 10%;
-  --ws-outline: var(--green-700);
-  --ws-surface-variant: var(--green-900);
-  --ws-surface-tint-color: rgb(var(--green-200) / 10%);
+[data-theme="dark"] [data-tone="garden"] {
+  --tone-primary: var(--green-200);
+  --tone-on-primary: var(--green-900);
+  --tone-action: var(--green-200);
+  --tone-action-hover: var(--green-100);
+  --tone-on-action: var(--green-900);
+  --tone-primary-container: var(--green-900);
+  --tone-on-primary-container: var(--green-100);
+  --tone-secondary: var(--green-400);
+  --tone-surface-tint: var(--green-200) / 10%;
+  --tone-outline: var(--green-700);
+  --tone-surface-variant: var(--green-900);
+  --tone-surface-tint-color: rgb(var(--green-200) / 10%);
 }
 
-[data-theme="dark"] [data-workspace="community"] {
-  --ws-primary: var(--orange-200);
-  --ws-on-primary: var(--orange-900);
-  --ws-action: var(--orange-200);
-  --ws-action-hover: var(--orange-100);
-  --ws-on-action: var(--orange-900);
-  --ws-primary-container: var(--orange-900);
-  --ws-on-primary-container: var(--orange-100);
-  --ws-secondary: var(--orange-400);
-  --ws-surface-tint: var(--orange-200) / 10%;
-  --ws-outline: var(--orange-700);
-  --ws-surface-variant: var(--orange-900);
-  --ws-surface-tint-color: rgb(var(--orange-200) / 10%);
+[data-theme="dark"] [data-tone="community"] {
+  --tone-primary: var(--orange-200);
+  --tone-on-primary: var(--orange-900);
+  --tone-action: var(--orange-200);
+  --tone-action-hover: var(--orange-100);
+  --tone-on-action: var(--orange-900);
+  --tone-primary-container: var(--orange-900);
+  --tone-on-primary-container: var(--orange-100);
+  --tone-secondary: var(--orange-400);
+  --tone-surface-tint: var(--orange-200) / 10%;
+  --tone-outline: var(--orange-700);
+  --tone-surface-variant: var(--orange-900);
+  --tone-surface-tint-color: rgb(var(--orange-200) / 10%);
 }
 
-[data-theme="dark"] [data-workspace="actions"] {
-  --ws-primary: var(--red-200);
-  --ws-on-primary: var(--red-900);
-  --ws-action: var(--red-200);
-  --ws-action-hover: var(--red-100);
-  --ws-on-action: var(--red-900);
-  --ws-primary-container: var(--red-900);
-  --ws-on-primary-container: var(--red-100);
-  --ws-secondary: var(--red-400);
-  --ws-surface-tint: var(--red-200) / 10%;
-  --ws-outline: var(--red-700);
-  --ws-surface-variant: var(--red-900);
-  --ws-surface-tint-color: rgb(var(--red-200) / 10%);
+[data-theme="dark"] [data-tone="actions"] {
+  --tone-primary: var(--red-200);
+  --tone-on-primary: var(--red-900);
+  --tone-action: var(--red-200);
+  --tone-action-hover: var(--red-100);
+  --tone-on-action: var(--red-900);
+  --tone-primary-container: var(--red-900);
+  --tone-on-primary-container: var(--red-100);
+  --tone-secondary: var(--red-400);
+  --tone-surface-tint: var(--red-200) / 10%;
+  --tone-outline: var(--red-700);
+  --tone-surface-variant: var(--red-900);
+  --tone-surface-tint-color: rgb(var(--red-200) / 10%);
 }
 
-[data-theme="dark"] [data-workspace="home"] {
-  --ws-primary: 214 211 209;
-  --ws-on-primary: 41 37 36;
-  --ws-action: 214 211 209;
-  --ws-action-hover: 231 229 228;
-  --ws-on-action: 41 37 36;
-  --ws-primary-container: 68 64 60;
-  --ws-on-primary-container: 231 229 228;
-  --ws-secondary: 168 162 158;
-  --ws-surface-tint: 214 211 209 / 10%;
-  --ws-outline: 87 83 78;
-  --ws-surface-variant: 68 64 60;
-  --ws-surface-tint-color: rgb(214 211 209 / 10%);
+[data-theme="dark"] [data-tone="home"] {
+  --tone-primary: 214 211 209;
+  --tone-on-primary: 41 37 36;
+  --tone-action: 214 211 209;
+  --tone-action-hover: 231 229 228;
+  --tone-on-action: 41 37 36;
+  --tone-primary-container: 68 64 60;
+  --tone-on-primary-container: 231 229 228;
+  --tone-secondary: 168 162 158;
+  --tone-surface-tint: 214 211 209 / 10%;
+  --tone-outline: 87 83 78;
+  --tone-surface-variant: 68 64 60;
+  --tone-surface-tint-color: rgb(214 211 209 / 10%);
 }
 
 /* Workspace-aware tab rail tint */
-[data-workspace="hub"] .canvas-stage-tab-rail-tint {
-  background: linear-gradient(180deg, rgb(var(--ws-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+[data-tone="hub"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
 }
-[data-workspace="garden"] .canvas-stage-tab-rail-tint {
-  background: linear-gradient(180deg, rgb(var(--ws-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+[data-tone="garden"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
 }
-[data-workspace="community"] .canvas-stage-tab-rail-tint {
-  background: linear-gradient(180deg, rgb(var(--ws-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+[data-tone="community"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
 }
-[data-workspace="actions"] .canvas-stage-tab-rail-tint {
-  background: linear-gradient(180deg, rgb(var(--ws-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+[data-tone="actions"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
 }
 
 /* Workspace color cross-dissolve when switching views */
-[data-workspace] {
-  transition: --ws-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
+[data-tone] {
+  transition: --tone-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
 }
 
 /* ============================================================================
@@ -1167,15 +1167,15 @@
     height: 2.75rem;
     border: 0;
     border-radius: 999px;
-    background: rgb(var(--ws-surface-variant, var(--neutral-100)) / 0.65);
-    box-shadow: inset 0 0 0 1px rgb(var(--ws-outline, var(--neutral-200)) / 0.4);
+    background: rgb(var(--tone-surface-variant, var(--neutral-100)) / 0.65);
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-outline, var(--neutral-200)) / 0.4);
     padding-right: 2.5rem;
   }
 
   .hub-list-toolbar input:focus {
     box-shadow:
-      inset 0 0 0 1px rgb(var(--ws-primary, var(--primary-base)) / 0.4),
-      0 0 0 3px rgb(var(--ws-primary, var(--primary-base)) / 0.12);
+      inset 0 0 0 1px rgb(var(--tone-primary, var(--primary-base)) / 0.4),
+      0 0 0 3px rgb(var(--tone-primary, var(--primary-base)) / 0.12);
   }
 
   .hub-sort-select select,
@@ -1185,7 +1185,7 @@
     border: 0;
     background: rgb(var(--admin-surface-0) / 0.86);
     box-shadow:
-      inset 0 0 0 1px rgb(var(--ws-outline, var(--neutral-200)) / 0.3),
+      inset 0 0 0 1px rgb(var(--tone-outline, var(--neutral-200)) / 0.3),
       0 4px 12px rgb(var(--warm-shadow-deep) / 0.04);
   }
 
@@ -1237,62 +1237,62 @@
 /* ============================================================================
  * WORKSPACE CANVAS - M3 solid ground behind the main sheet
  *
- * Workspace identity travels via --workspace-tint / --workspace-tint-2 /
- * --workspace-accent CSS vars, consumed by NavigationBar, UserAvatar,
+ * Workspace identity travels via --tone-tint / --tone-tint-2 /
+ * --tone-accent CSS vars, consumed by NavigationBar, UserAvatar,
  * PageHeader, AccountProfilePanel, AccountSettingsPanel, WorkbenchRow.
  * Atmospheric radial-gradient backdrop + noise texture retired 2026-04-17
  * per D1 (strict M3 over hybrid visual system).
  * ============================================================================ */
 .workspace-canvas {
-  --workspace-tint: 59 130 246;
-  --workspace-tint-2: 125 211 252;
-  --workspace-accent: 37 99 235;
+  --tone-tint: 59 130 246;
+  --tone-tint-2: 125 211 252;
+  --tone-accent: 37 99 235;
   position: relative;
   isolation: isolate;
   background:
     radial-gradient(
       ellipse 100% 60% at 50% 0%,
-      var(--ws-surface-tint-color, transparent) 0%,
+      var(--tone-surface-tint-color, transparent) 0%,
       transparent 70%
     ),
     rgb(var(--m3-surface-container-lowest));
   transition: background-color var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
 }
 
-.workspace-canvas[data-workspace="home"] {
-  --workspace-tint: 120 113 108;
-  --workspace-tint-2: 168 162 158;
-  --workspace-accent: 87 83 78;
+.workspace-canvas[data-tone="home"] {
+  --tone-tint: 120 113 108;
+  --tone-tint-2: 168 162 158;
+  --tone-accent: 87 83 78;
 }
 
-.workspace-canvas[data-workspace="hub"] {
-  --workspace-tint: 59 130 246;
-  --workspace-tint-2: 147 197 253;
-  --workspace-accent: 37 99 235;
+.workspace-canvas[data-tone="hub"] {
+  --tone-tint: 59 130 246;
+  --tone-tint-2: 147 197 253;
+  --tone-accent: 37 99 235;
 }
 
-.workspace-canvas[data-workspace="garden"] {
-  --workspace-tint: 34 197 94;
-  --workspace-tint-2: 110 231 183;
-  --workspace-accent: 22 163 74;
+.workspace-canvas[data-tone="garden"] {
+  --tone-tint: 34 197 94;
+  --tone-tint-2: 110 231 183;
+  --tone-accent: 22 163 74;
 }
 
-.workspace-canvas[data-workspace="community"] {
-  --workspace-tint: 245 158 11;
-  --workspace-tint-2: 250 204 21;
-  --workspace-accent: 217 119 6;
+.workspace-canvas[data-tone="community"] {
+  --tone-tint: 245 158 11;
+  --tone-tint-2: 250 204 21;
+  --tone-accent: 217 119 6;
 }
 
-.workspace-canvas[data-workspace="actions"] {
-  --workspace-tint: 239 68 68;
-  --workspace-tint-2: 248 113 113;
-  --workspace-accent: 220 38 38;
+.workspace-canvas[data-tone="actions"] {
+  --tone-tint: 239 68 68;
+  --tone-tint-2: 248 113 113;
+  --tone-accent: 220 38 38;
 }
 
-.workspace-canvas[data-workspace="profile"] {
-  --workspace-tint: 168 85 247;
-  --workspace-tint-2: 196 181 253;
-  --workspace-accent: 147 51 234;
+.workspace-canvas[data-tone="profile"] {
+  --tone-tint: 168 85 247;
+  --tone-tint-2: 196 181 253;
+  --tone-accent: 147 51 234;
 }
 
 .main-scroll-area {
@@ -1328,4 +1328,190 @@
     transition: none !important;
     transform: none !important;
   }
+}
+
+/* ============================================================================
+ * WARM-EARTH ADMIN ALIASES (Tier 1a — additive, non-breaking)
+ * Source-of-truth values: design_handoff_admin-revamp/screens/tokens.css
+ * Decision log: docs/admin-revamp/audit.md §5.1
+ *
+ * These aliases give admin code a stable Warm-Earth vocabulary
+ * (--canvas / --ink / --stone / --g-* / --r-* / --e*) that points at our
+ * existing scales (--neutral-*, --green-*, --admin-radius-*). No existing
+ * runtime value changes — consumers can opt into the new names without a
+ * forced migration.
+ * ============================================================================ */
+:root {
+  /* Surface aliases — DesignMD colors.neutral = #FAF8F5 */
+  --canvas: rgb(var(--neutral-100) / 1);
+  --ink: rgb(var(--neutral-800));
+  --stone: rgb(var(--neutral-500));
+  --on-surface-muted: rgb(var(--neutral-600));
+  --on-surface-soft: rgb(var(--neutral-500));
+  --surface: var(--canvas);
+  --surface-raised: rgb(var(--neutral-0));
+  --surface-sunken: #f2efea;
+  --surface-quiet: #efebe5;
+  --hairline: rgb(var(--neutral-800) / 0.08);
+  --hairline-strong: rgb(var(--neutral-800) / 0.14);
+  --outline: rgb(var(--neutral-800) / 0.10);
+  --outline-strong: rgb(var(--neutral-800) / 0.18);
+
+  /* Hub green role chain — alias to existing --primary-action / --green-* */
+  --g-action: rgb(var(--green-800));
+  --g-action-hover: rgb(var(--green-900));
+  --g-action-ring: rgb(var(--green-800) / 0.16);
+  --g-soft-bg: rgb(var(--green-800) / 0.10);
+  --g-soft-fg: rgb(var(--green-800));
+  --g-on-action: rgb(var(--neutral-0));
+
+  /* Radius aliases — exact match to admin M3 shape scale */
+  --r-xs: var(--admin-radius-xs);
+  --r-sm: var(--admin-radius-sm);
+  --r-md: var(--admin-radius-md);
+  --r-lg: var(--admin-radius-lg);
+  --r-xl: var(--admin-radius-xl);
+  --r-full: var(--admin-radius-full);
+
+  /* Warm-shadow elevation — parallel to --m3-elevation-*, do NOT remap */
+  --e1: 0 1px 2px rgb(var(--neutral-800) / 0.06), 0 1px 1px rgb(var(--neutral-800) / 0.04);
+  --e2: 0 2px 6px rgb(var(--neutral-800) / 0.08), 0 1px 2px rgb(var(--neutral-800) / 0.06);
+  --e3: 0 6px 16px rgb(var(--neutral-800) / 0.10), 0 2px 4px rgb(var(--neutral-800) / 0.06);
+  --e-float: 0 12px 32px rgb(var(--neutral-800) / 0.14), 0 2px 6px rgb(var(--neutral-800) / 0.08);
+
+  /* Typography alias to existing --font-heading */
+  --font-sans: var(--font-heading);
+}
+
+[data-theme="dark"] {
+  /* Dark-mode warm canvas — neutral-950 (matches our existing dark surface ladder) */
+  --canvas: rgb(var(--neutral-950));
+  --ink: rgb(var(--neutral-50));
+  --stone: rgb(var(--neutral-400));
+  --on-surface-muted: rgb(var(--neutral-300));
+  --on-surface-soft: rgb(var(--neutral-400));
+  --surface: var(--canvas);
+  --surface-raised: rgb(var(--neutral-900));
+  --surface-sunken: rgb(var(--neutral-975));
+  --surface-quiet: rgb(var(--neutral-925));
+  --hairline: rgb(var(--neutral-50) / 0.08);
+  --hairline-strong: rgb(var(--neutral-50) / 0.14);
+  --outline: rgb(var(--neutral-50) / 0.10);
+  --outline-strong: rgb(var(--neutral-50) / 0.18);
+
+  /* Greens lighten in dark mode — match existing --green-* dark behavior in theme.css */
+  --g-action: rgb(var(--green-500));
+  --g-action-hover: rgb(var(--green-400));
+  --g-action-ring: rgb(var(--green-400) / 0.20);
+  --g-soft-bg: rgb(var(--green-400) / 0.16);
+  --g-soft-fg: rgb(var(--green-300));
+  --g-on-action: rgb(var(--neutral-950));
+
+  --e1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --e2: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --e3: 0 8px 20px rgba(0, 0, 0, 0.55);
+  --e-float: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================================
+ * TONE SYSTEM (Tier 1a — additive)
+ * Per-view canvas wash. Tone is a peripheral signal that touches:
+ *   - canvas background (this --tone-canvas variable)
+ *   - active tab underline (consumer-driven, Tier 2)
+ *   - page-header bottom hairline (consumer-driven, Tier 2)
+ *   - garden-pill leaf in AppBar (consumer-driven, Tier 2)
+ * Tone does NOT touch: header background, title text, cards, status chips,
+ * buttons, FAB. Action color (green) stays a single source.
+ *
+ * Strength axis: off | subtle | default. Default for dark mode is subtle
+ * per audit §5.4.3.
+ * ============================================================================ */
+:root {
+  --tone-strength: 1;
+}
+[data-tone-strength="off"]     { --tone-strength: 0; }
+[data-tone-strength="subtle"]  { --tone-strength: 0.5; }
+[data-tone-strength="default"] { --tone-strength: 1; }
+
+/* Dark mode default = subtle (per audit §5.4.3) */
+[data-theme="dark"]                                  { --tone-strength: 0.5; }
+[data-theme="dark"][data-tone-strength="off"]        { --tone-strength: 0; }
+[data-theme="dark"][data-tone-strength="default"]    { --tone-strength: 1; }
+
+[data-tone="hub"]       { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 240); }
+[data-tone="garden"]    { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 145); }
+[data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 50);  }
+[data-tone="actions"]   { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);  }
+
+[data-theme="dark"][data-tone="hub"]       { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240); }
+[data-theme="dark"][data-tone="garden"]    { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145); }
+[data-theme="dark"][data-tone="community"] { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 50);  }
+[data-theme="dark"][data-tone="actions"]   { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);  }
+
+/* ============================================================================
+ * STATUS PALETTE REMAP (Tier 1b — admin-scoped global remap)
+ * Decision log: docs/admin-revamp/audit.md §5.5 (Global remap to handoff palette)
+ * Source-of-truth: design_handoff_admin-revamp/screens/tokens.css
+ *
+ * Scope: .admin-m3 only — client PWA's --orange/--red/--sky scales unchanged.
+ * Mechanism: redefine the base color RGB triplets inside admin scope; the
+ * --warning-* / --error-* aliases in shared theme.css resolve their var()
+ * references in this scope and pick up the new values automatically.
+ * --information-* historically uses --blue-*, so we additionally remap it
+ * to --sky-* so info badges in admin also shift to the handoff azure.
+ * ============================================================================ */
+.admin-m3 {
+  /* Amber (warning) — handoff #D97706 anchor, full scale extrapolated from Tailwind amber */
+  --orange-50: 255 251 235;
+  --orange-100: 254 243 199;
+  --orange-200: 253 230 138;
+  --orange-300: 252 211 77;
+  --orange-400: 251 191 36;
+  --orange-500: 217 119 6;     /* #D97706 — handoff --amber-500 */
+  --orange-600: 180 83 9;
+  --orange-700: 180 83 9;      /* #B45309 — handoff --amber-700 */
+  --orange-800: 146 64 14;
+  --orange-900: 120 53 15;
+  --orange-950: 69 26 3;
+
+  /* Red — less-vivid handoff red */
+  --red-50: 254 242 242;
+  --red-100: 254 226 226;
+  --red-200: 254 202 202;
+  --red-300: 252 165 165;
+  --red-400: 248 113 113;
+  --red-500: 224 56 53;        /* #E03835 — handoff --red-500 */
+  --red-600: 220 38 38;
+  --red-700: 185 28 28;        /* #B91C1C — handoff --red-700 */
+  --red-800: 153 27 27;
+  --red-900: 127 29 29;
+  --red-950: 69 10 10;
+
+  /* Sky — handoff azure replaces our cyan-ish */
+  --sky-50: 239 246 255;
+  --sky-100: 219 234 254;
+  --sky-200: 191 219 254;
+  --sky-300: 147 197 253;
+  --sky-400: 96 165 250;
+  --sky-500: 59 130 246;       /* #3B82F6 — handoff --sky-500 */
+  --sky-600: 37 99 235;
+  --sky-700: 29 78 216;
+  --sky-800: 30 64 175;
+  --sky-900: 30 58 138;
+  --sky-950: 23 37 84;
+
+  /* Information state — remap from --blue-* to --sky-* so info badges in admin
+   * also pick up the handoff azure. Without this, --information-* would
+   * continue to resolve through --blue-* (unchanged in this scope). */
+  --information-dark: var(--sky-950);
+  --information-base: var(--sky-500);
+  --information-light: var(--sky-200);
+  --information-lighter: var(--sky-50);
+}
+
+[data-theme="dark"] .admin-m3 {
+  /* Dark-mode handoff palette — slightly lighter shades for AA on dark surfaces */
+  --orange-500: 245 158 11;    /* #F59E0B */
+  --red-500: 248 113 113;      /* #F87171 */
+  --sky-500: 96 165 250;       /* #60A5FA */
 }

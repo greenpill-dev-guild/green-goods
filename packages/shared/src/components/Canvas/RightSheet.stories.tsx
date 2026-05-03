@@ -98,7 +98,7 @@ function BoundedRightSheetStory(args: ComponentProps<typeof RightSheet>) {
   return (
     <div
       ref={setContainer}
-      data-workspace="profile"
+      data-tone="profile"
       className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
     >
       <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>

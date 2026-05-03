@@ -55,10 +55,10 @@
   --m3-inverse-surface: var(--neutral-900);
   --m3-inverse-on-surface: var(--neutral-100);
   --m3-inverse-primary: var(--green-200);
-  --m3-primary: var(--ws-primary, var(--green-500));
-  --m3-on-primary: var(--ws-on-primary, 255 255 255);
-  --m3-primary-container: var(--ws-primary-container, var(--green-100));
-  --m3-on-primary-container: var(--ws-on-primary-container, var(--green-900));
+  --m3-primary: var(--tone-primary, var(--green-500));
+  --m3-on-primary: var(--tone-on-primary, 255 255 255);
+  --m3-primary-container: var(--tone-primary-container, var(--green-100));
+  --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
   --m3-secondary-container: var(--neutral-200);
   --m3-on-secondary-container: var(--neutral-900);
   --m3-error: var(--error-base);
@@ -86,10 +86,10 @@
   --m3-inverse-surface: var(--neutral-100);
   --m3-inverse-on-surface: var(--neutral-900);
   --m3-inverse-primary: var(--green-700);
-  --m3-primary: var(--ws-primary, var(--green-200));
-  --m3-on-primary: var(--ws-on-primary, var(--green-900));
-  --m3-primary-container: var(--ws-primary-container, var(--green-900));
-  --m3-on-primary-container: var(--ws-on-primary-container, var(--green-100));
+  --m3-primary: var(--tone-primary, var(--green-200));
+  --m3-on-primary: var(--tone-on-primary, var(--green-900));
+  --m3-primary-container: var(--tone-primary-container, var(--green-900));
+  --m3-on-primary-container: var(--tone-on-primary-container, var(--green-100));
   --m3-secondary-container: var(--neutral-700);
   --m3-on-secondary-container: var(--neutral-100);
 }

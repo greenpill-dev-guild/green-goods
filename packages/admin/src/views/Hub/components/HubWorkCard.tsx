@@ -115,7 +115,7 @@ export function HubWorkCard({
         "group block w-full overflow-hidden text-left",
         "active:translate-y-0 active:scale-[0.992]",
         "motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100 motion-reduce:active:scale-100 motion-reduce:transition-none",
-        "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))] focus-visible:ring-offset-2"
+        "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-primary,var(--primary-base)))] focus-visible:ring-offset-2"
       )}
     >
       <div className="relative overflow-hidden border-b border-black/5">

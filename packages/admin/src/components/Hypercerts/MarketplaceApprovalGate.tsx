@@ -84,7 +84,7 @@ export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGatePro
             type="button"
             onClick={() => grantApprovals()}
             disabled={isGranting}
-            className="mt-4 flex items-center gap-2 rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-4 flex items-center gap-2 rounded-md bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isGranting ? (
               <>

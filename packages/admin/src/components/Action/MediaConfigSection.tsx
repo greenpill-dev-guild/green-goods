@@ -206,7 +206,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               type="button"
               size="sm"
               onClick={addNeeded}
-              className="px-3 py-2 bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
+              className="px-3 py-2 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
             >
               <RiAddLine className="h-4 w-4" />
               {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
@@ -273,7 +273,7 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               type="button"
               size="sm"
               onClick={addOptional}
-              className="px-3 py-2 bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
+              className="px-3 py-2 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
             >
               <RiAddLine className="h-4 w-4" />
               {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}

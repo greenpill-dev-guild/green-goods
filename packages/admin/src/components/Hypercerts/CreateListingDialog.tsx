@@ -238,7 +238,7 @@ export function CreateListingDialog({
             </Button>
             <Button
               type="submit"
-              className="flex items-center gap-1.5 rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))]"
+              className="flex items-center gap-1.5 rounded-md bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))]"
             >
               {formatMessage({
                 id: "app.listing.signAndList",
@@ -283,7 +283,7 @@ export function CreateListingDialog({
                   reset();
                   setPhase("configure");
                 }}
-                className="rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))]"
+                className="rounded-md bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))]"
               >
                 {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
               </Button>

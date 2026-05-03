@@ -52,8 +52,8 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
                   "flex items-center justify-between rounded-2xl px-4 py-3 text-left transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
                   "shadow-[var(--edge-rest),0_10px_20px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0",
                   isActive
-                    ? "bg-[rgb(var(--workspace-tint,59_130_246)/0.14)] text-[rgb(var(--workspace-accent,37_99_235))] shadow-[inset_0_0_0_1px_rgb(var(--workspace-tint,59_130_246)/0.18),0_18px_32px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
-                    : "bg-bg-white text-text-sub hover:bg-[rgb(var(--workspace-tint,59_130_246)/0.06)]"
+                    ? "bg-[rgb(var(--tone-tint,59_130_246)/0.14)] text-[rgb(var(--tone-accent,37_99_235))] shadow-[inset_0_0_0_1px_rgb(var(--tone-tint,59_130_246)/0.18),0_18px_32px_rgb(var(--tone-tint,59_130_246)/0.18)]"
+                    : "bg-bg-white text-text-sub hover:bg-[rgb(var(--tone-tint,59_130_246)/0.06)]"
                 )}
               >
                 <span className="text-sm font-medium">{formatMessage({ id: labelId })}</span>

@@ -67,9 +67,9 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
           : "min-w-[4.25rem] rounded-[1.1rem] px-3 py-2",
         "transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
         "motion-reduce:transition-none",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-tint,59_130_246))]",
         isActive
-          ? "bg-[rgb(var(--ws-primary-container,var(--blue-100)))] text-[rgb(var(--ws-on-primary-container,var(--blue-900)))] shadow-[inset_0_0_0_1px_rgb(var(--workspace-tint,59_130_246)/0.18),0_16px_30px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
+          ? "bg-[rgb(var(--tone-primary-container,var(--blue-100)))] text-[rgb(var(--tone-on-primary-container,var(--blue-900)))] shadow-[inset_0_0_0_1px_rgb(var(--tone-tint,59_130_246)/0.18),0_16px_30px_rgb(var(--tone-tint,59_130_246)/0.18)]"
           : "text-text-sub hover:bg-white/60 hover:text-text-strong"
       )}
       data-component="NavigationBar"
@@ -82,7 +82,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
           "flex items-center justify-center rounded-full",
           mobile ? "h-8 w-8" : "h-9 w-9",
           isActive
-            ? "bg-white/78 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.58),0_6px_16px_rgb(var(--workspace-tint,59_130_246)/0.18)]"
+            ? "bg-white/78 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.58),0_6px_16px_rgb(var(--tone-tint,59_130_246)/0.18)]"
             : "bg-black/3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)] group-hover:bg-white/72"
         )}
         data-slot="icon"
@@ -93,7 +93,9 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
         className={cn(
           "text-[11px] font-medium leading-tight",
           mobile && "truncate",
-          isActive ? "text-[rgb(var(--ws-on-primary-container,var(--blue-900)))]" : "text-text-soft"
+          isActive
+            ? "text-[rgb(var(--tone-on-primary-container,var(--blue-900)))]"
+            : "text-text-soft"
         )}
         data-slot="label"
       >
@@ -180,7 +182,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   "dark:border-stroke-soft dark:bg-[linear-gradient(180deg,rgb(var(--bg-soft-200)/0.92)_0%,rgb(var(--bg-weak-50)/0.86)_100%)] dark:shadow-[0_16px_30px_rgba(0,0,0,0.3)]",
                   "text-sm font-medium text-text-strong",
                   "transition-all hover:shadow-[0_20px_34px_rgba(15,23,42,0.18)]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--workspace-tint,59_130_246))]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-tint,59_130_246))]",
                   "speed-dial-item",
                   "motion-reduce:animate-none"
                 )}
@@ -207,12 +209,12 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         className={cn(
           "flex cursor-pointer items-center justify-center rounded-full border border-white/35",
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
-          "bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
+          "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "transition-all hover:scale-105 hover:shadow-[0_24px_40px_rgba(15,23,42,0.28),inset_0_0_0_1px_rgba(255,255,255,0.28)]",
           mobileFloating &&
-            "shadow-[0_24px_44px_rgb(var(--workspace-tint,59_130_246)/0.32),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
+            "shadow-[0_24px_44px_rgb(var(--tone-tint,59_130_246)/0.32),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "active:scale-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-action,var(--primary-action)))] focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-2",
           "motion-reduce:transition-none"
         )}
       >

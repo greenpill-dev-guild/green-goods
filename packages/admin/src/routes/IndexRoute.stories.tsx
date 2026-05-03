@@ -240,7 +240,7 @@ export const RedirectReady: Story = {
 function HomeShellHarness({ children }: { children: ReactNode }) {
   return (
     <div
-      data-workspace="home"
+      data-tone="home"
       className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
     >
       <div className="canvas-area-top">

@@ -114,7 +114,7 @@ function BoundedBottomSheetStory(args: ComponentProps<typeof BottomSheet>) {
   return (
     <div
       ref={setContainer}
-      data-workspace="hub"
+      data-tone="hub"
       className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
     >
       <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>

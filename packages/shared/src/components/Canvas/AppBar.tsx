@@ -21,7 +21,7 @@ const ICON_BTN = cn(
   "active:bg-[rgb(var(--m3-on-surface,15_23_42)/0.12)] active:scale-95",
   "transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
   "motion-reduce:transition-none motion-reduce:active:scale-100 motion-reduce:hover:scale-100",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-primary,var(--primary-base)))]"
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-primary,var(--primary-base)))]"
 );
 
 // ----------------------------------------------------------------------------

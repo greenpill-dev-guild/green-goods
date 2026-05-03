@@ -55,7 +55,7 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
             onClick={() => {
               void state.signOut();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-[rgb(var(--ws-action,var(--primary-action)))] px-6 py-3 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-action,var(--primary-action)))] focus-visible:ring-offset-2"
+            className="inline-flex items-center justify-center rounded-md bg-[rgb(var(--tone-action,var(--primary-action)))] px-6 py-3 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-2"
           >
             {intl.formatMessage({
               id: "app.admin.auth.signOutAndReconnect",
@@ -127,7 +127,7 @@ function AdminAccessHomeShell({ children }: { children: ReactNode }) {
 
   return (
     <div
-      data-workspace="home"
+      data-tone="home"
       className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
     >
       <div className="canvas-area-top">

@@ -28,9 +28,9 @@ export const adminButtonVariants = tv({
     variant: {
       // Filled — highest emphasis
       filled: [
-        "bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))]",
+        "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
         "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
-        "[--state-layer-color:var(--ws-on-action,var(--primary-action-foreground))]",
+        "[--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
       ],
       // Tonal — medium emphasis
       tonal: [

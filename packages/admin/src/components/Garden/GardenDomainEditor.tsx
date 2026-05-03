@@ -167,7 +167,7 @@ export function GardenDomainModal({ isOpen, onClose, gardenAddress }: GardenDoma
           type="button"
           onClick={handleSave}
           disabled={isPending || !hasChanges || selected.length === 0}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[rgb(var(--ws-action,var(--primary-action)))] px-4 py-3 text-sm font-medium text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--ws-action,var(--primary-action)))] focus-visible:ring-offset-2"
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-3 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-2"
         >
           {isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
           {formatMessage({ id: "app.garden.domains.save", defaultMessage: "Save domains" })}

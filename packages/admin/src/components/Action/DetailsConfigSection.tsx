@@ -143,7 +143,7 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
             type="button"
             size="sm"
             onClick={addInput}
-            className="px-3 py-1.5 bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
+            className="px-3 py-1.5 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
           >
             <RiAddLine className="h-4 w-4" />
             {formatMessage({
@@ -463,7 +463,7 @@ function InputFieldEditor({
                   type="button"
                   size="sm"
                   onClick={addOption}
-                  className="px-2 py-1 bg-[rgb(var(--ws-action,var(--primary-action)))] text-[rgb(var(--ws-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--ws-action-hover,var(--primary-action-hover)))] text-xs"
+                  className="px-2 py-1 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-xs"
                 >
                   <RiAddLine className="h-3.5 w-3.5" />
                 </Button>
