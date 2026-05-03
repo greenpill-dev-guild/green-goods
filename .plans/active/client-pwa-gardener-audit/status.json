@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-30T00:00:00.000Z",
-    "updated_at": "2026-05-03T00:00:00.000Z"
+    "updated_at": "2026-05-03T12:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -77,17 +77,30 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "passed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/client-pwa-gardener-audit",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": ["testing", "review"]
+      "skill_tags": ["testing", "review"],
+      "evidence": {
+        "browser_verified": [
+          "browser-vs-pwa boundary at desktop 1302x629 and mobile 447x629",
+          "/home/:id non-operator header (Ilhas, Vida Verde, Green Goods Community Garden) — no governance/endowment icons",
+          "/home/:id operator positive contrast (Aiyeloja Family Garden) — View notifications + Open endowment chips appear; governance icon still absent because Aiyeloja has no Conviction strategy configured (matches gating)",
+          "/profile <details> Account details collapsed by default; toggle increases #profile-scroll.scrollHeight by exactly 254px (the inner block height)"
+        ],
+        "code_only": [
+          "/login passkey-first (would require destroying authenticated session)",
+          "/home/:id/assessments/:assessmentId gardener-friendly rows (no assessment data exists in local dev dataset, even on operator-side Aiyeloja)",
+          "/home/:id Governance icon positive case (no garden in dev has Conviction strategy + active user as operator)"
+        ]
+      }
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/client-pwa-gardener-audit",
@@ -105,6 +118,14 @@
       "status": "formalized",
       "branch": null,
       "note": "Formalized active loose audit as QA-ready hub; implementation proof remains legacy_unrecorded and manual browser pass is next."
+    },
+    {
+      "timestamp": "2026-05-03T12:00:00.000Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "passed",
+      "branch": "claude/qa-pass-1/client-pwa-gardener-audit",
+      "note": "Browser walkthrough completed at desktop 1302x629 and mobile 447x629 against running dev:web. Browser-verified: shell boundary, /home/:id non-operator header gating, /profile Account details disclosure collapsed default. Code-only: /login passkey-first (would require destroying auth session) and /home/:id/assessments/:assessmentId (no assessment data in local dataset). Evidence in handoffs/claude-qa-pass-1.md."
     }
   ]
 }

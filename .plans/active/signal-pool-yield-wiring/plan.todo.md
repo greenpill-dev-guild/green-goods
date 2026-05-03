@@ -3,7 +3,7 @@
 **Parent Plan**: `vault-strategy-autoallocate-fix.todo.md`
 **Status**: ACTIVE
 **Created**: 2026-03-16
-**Last Updated**: 2026-04-26
+**Last Updated**: 2026-05-03 (Tier-5 conviction wiring coordination notes added — see new "Coordination" section before Problem Statement)
 **Target**: 2026-05-15 (complete by the second week of May)
 **Depends on**: Octant fix Phase 2 (YieldResolver upgrade)
 
@@ -35,6 +35,42 @@ Scope lock from 2026-04-26:
 - Shared/admin must not classify pools by array index. Pool type comes from typed contract state or event-derived migration/subgraph data.
 - Deployment verification must prove both directions: `gardensModule.yieldResolver() == yieldResolver` and `yieldResolver.gardensModule() == gardensModule`.
 - Reset/reinitialization recovery must clear stale yield pool wiring before a garden can be considered repaired.
+
+## Coordination — Tier 5 Conviction Wiring (2026-05-03)
+
+> **Read this before starting the UI lane.** Sibling Tier-5 conviction-voting wiring landed in commit `a8586c26 feat(shared,admin): conviction-voting wiring + GovernancePanel (Tier 5)`. It touches Community → Governance, so there are real adjacency points (none are conflicts; all are reuse opportunities or "don't duplicate" guardrails). No work in this hub's existing scope needs to change — this section just maps the surface area so the UI implementer doesn't trip over freshly-landed neighbors.
+
+### What landed in conviction wiring
+
+- `packages/shared/src/utils/conviction/{percent-points,derivation,index}.ts` — pure points↔percent translation + threshold/accrual derivation utilities. Tier-5 conservative defaults (`FALLBACK_POOL_CONFIG` in `useConvictionProposalsForPool`) document the exact contract reads still missing. **If a `useHypercertSignalPoolConfig()`-style hook lands as part of this hub or a follow-up, swap it into the adapter to retire the fallback.**
+- `packages/shared/src/hooks/conviction/useConvictionProposalsForPool.ts` — composes registered hypercerts + weights + member power + metadata into the `ConvictionProposal[]` view-model.
+- `packages/shared/src/hooks/conviction/useConvictionWeightAllocator.ts` — optimistic state container for the WeightAllocator (400ms debounce, computes signed deltas via `percentMapToSignedDeltas`).
+- `packages/admin/src/views/Community/components/GovernancePanel.tsx` — net-new sibling to `GardenCommunityCard`. Mounted inside `CommunityTab` in the same `section === "governance"` block where this hub plans to surface wiring status. Filters `pools` to `PoolType.Hypercert`; renders `WeightAllocator` + `ProposalCardConviction` grid.
+- `packages/admin/src/views/Community/components/CommunityTab.tsx:38` — `pools` prop tightened from `unknown` → `GardenSignalPool[]` (audit finding #8). Both the conviction panel and your wiring UI receive the typed pool list.
+
+### Adjacency map for this hub's UI lane
+
+1. **`GovernancePanel` already lives in `CommunityTab`'s governance section.** Your Change 6 (`GardenCommunityCard` wiring status) is upstream of it in the same render tree. Both consume `pools: GardenSignalPool[]`. No prop changes needed on either side; they coexist additively.
+
+2. **Both surfaces use `PoolType.Hypercert` for typed pool identity** — no array-index assumptions on either side. If you change the typed-pool helper signature in `gardens-community.ts` or `useGardenPools`, the conviction adapter (`useConvictionProposalsForPool`) reads the same shape and will need the matching update.
+
+3. **`useGardenSignalPoolWiring(gardenAddress)` is the most useful new hook for me.** Once it lands, I'd like to consume it from `GovernancePanel` to show an inline "yield routing connected" indicator above the `WeightAllocator` so members see "your votes will route yield correctly" before they commit weight. That's a follow-up after this hub merges — not a blocker on your delivery.
+
+4. **`useCreateGardenPools` enhancement (Change 5)** — confirm the function signature stays a `() => void` mutation trigger from the consumer's POV. `CommunityWorkspaceContent` → `CommunityTab` passes it as a prop named `createPools`; renaming or changing arity would break the conviction-adjacent code path.
+
+5. **Avoid duplicate yield-status displays** — your guardrail says "No duplicate repair UX in yield cards or detail cards." `GovernancePanel` does **not** display yield wiring status today, so no duplication. If a future iteration asks for it there, it should reuse `useGardenSignalPoolWiring` and route the repair action to the same `/community` destination per S10.
+
+6. **i18n vocab** — `GovernancePanel` introduced 7 new keys under `cockpit.community.governance.*` in commit `a8586c26`. They've already been through `bun run lint:vocab` (clean). If your i18n additions touch the same `cockpit.community.*` namespace, sort alphabetically against the existing entries to keep the file diff-friendly.
+
+### Things this hub could surface that would let me retire Tier-5 caveats
+
+If easy and aligned with this hub's scope, exposing any of the following as part of state_api/ui would close known gaps in the conviction wiring (no obligation — flagging for opportunistic pickup):
+
+- **Pool config reads** — `decayRate()`, `pointsPerVoter()`, member count for `HypercertSignalPool`. Any one of these lets me retire the corresponding TODO in `derivation.ts` and the `FALLBACK_POOL_CONFIG` in `useConvictionProposalsForPool`.
+- **Per-member breakdown** — current `countSupporters` returns `1` if any weight present, `0` otherwise. A `useHypercertSupporters(poolAddress, hypercertId)` returning the distinct-voter count would replace it.
+- **Threshold formula** — if the contract math is reverse-engineered for the wiring UI, port it into `deriveThreshold` in `derivation.ts` (the function signature is intentionally stable for a swap).
+
+These are **out of this hub's stated scope** ("Out of scope: redesigning conviction pools") so no expectation. Just flagging.
 
 ## Problem Statement
 
