@@ -286,6 +286,7 @@ docker-compose.local.yml
 .claude/statsig/
 .claude/worktrees/
 .claude/*.db
+.claude/*.lock
 
 # Keep shared Claude settings
 !.claude/settings.json
