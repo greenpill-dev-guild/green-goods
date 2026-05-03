@@ -145,7 +145,7 @@ export const SiteHeader = () => {
               <div className="mx-auto flex h-16 max-w-7xl items-center justify-between">
                 {/* Logo — image only, h-8 keeps the GG mark at a stable height while w-auto
                 preserves the 16:9 aspect ratio (the source asset is 819x464). */}
-                <Link to="/" className="flex items-center" aria-label={APP_NAME}>
+                <Link to="/" viewTransition className="flex items-center" aria-label={APP_NAME}>
                   <img src="/icon.png" alt={APP_NAME} className="h-8 w-auto" />
                 </Link>
 
@@ -159,6 +159,7 @@ export const SiteHeader = () => {
                       <Link
                         key={path}
                         to={path}
+                        viewTransition
                         className={cn(
                           "rounded-lg px-3 py-2 text-base font-medium transition-colors",
                           isActive
@@ -228,6 +229,7 @@ export const SiteHeader = () => {
                 <div className="flex h-16 items-center justify-between border-b border-stroke-soft-200 px-4">
                   <Link
                     to="/"
+                    viewTransition
                     className="flex items-center"
                     aria-label={APP_NAME}
                     onClick={() => setIsDrawerOpen(false)}
@@ -254,6 +256,7 @@ export const SiteHeader = () => {
                       <Link
                         key={path}
                         to={path}
+                        viewTransition
                         className={cn(
                           "rounded-lg px-3 py-3 text-base transition-colors",
                           isActive

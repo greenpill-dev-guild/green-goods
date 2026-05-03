@@ -1,4 +1,9 @@
-import { cn, type PublicGardenSummary, usePublicGardens } from "@green-goods/shared";
+import {
+  cn,
+  type PublicGardenSummary,
+  useInViewReveal,
+  usePublicGardens,
+} from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";
@@ -71,6 +76,7 @@ function pickFeatured(
 export function PublicFeaturedGardens() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = usePublicGardens();
+  const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
 
   const featured = useMemo(
     () => pickFeatured(gardens, publicCuration.featuredGardens as string[]),
@@ -79,7 +85,9 @@ export function PublicFeaturedGardens() {
 
   return (
     <section
-      className="bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20"
+      ref={sectionRef}
+      data-revealed={revealed}
+      className="editorial-section-reveal bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20"
       aria-labelledby="public-featured-title"
     >
       <div className="mx-auto max-w-7xl">

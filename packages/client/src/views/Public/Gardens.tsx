@@ -1,6 +1,7 @@
 import { type PublicGardenSummary, usePublicGardens } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { Outlet, useMatch } from "react-router-dom";
 import {
   EditorialDivider,
   EditorialHeading,
@@ -25,6 +26,7 @@ export default function GardensGallery() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = usePublicGardens();
   const [query, setQuery] = useState("");
+  const dialogRouteActive = Boolean(useMatch("/gardens/:id"));
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -42,6 +44,7 @@ export default function GardensGallery() {
     <>
       <PublicEditorialHero
         variant="banner"
+        disableViewTransition={dialogRouteActive}
         imageSrc={getPublicHeroImage("gardens")}
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
@@ -157,6 +160,7 @@ export default function GardensGallery() {
       </section>
 
       <PublicFooter variant="soil" />
+      <Outlet />
     </>
   );
 }

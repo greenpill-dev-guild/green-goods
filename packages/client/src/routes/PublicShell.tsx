@@ -11,7 +11,7 @@ export default function PublicShell() {
   return (
     <div className="flex min-h-screen flex-col bg-bg-white-0">
       <SiteHeader />
-      <main className="flex-1">
+      <main className="vt-main flex-1">
         <Outlet />
       </main>
       <ScrollRestoration />

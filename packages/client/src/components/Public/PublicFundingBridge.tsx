@@ -1,3 +1,4 @@
+import { useInViewReveal } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import {
   EditorialDivider,
@@ -15,10 +16,13 @@ import {
  */
 export function PublicFundingBridge() {
   const { formatMessage } = useIntl();
+  const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
 
   return (
     <section
-      className="bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
+      ref={sectionRef}
+      data-revealed={revealed}
+      className="editorial-section-reveal bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-funding-bridge-title"
     >
       <div className="mx-auto max-w-7xl">

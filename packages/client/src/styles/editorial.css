@@ -188,6 +188,84 @@
       var(--spring-effects-easing, ease-out) 740ms forwards;
   }
 
+  /*
+   * Section reveal — pair with `useInViewReveal()` from @green-goods/shared.
+   * The hook flips `data-revealed="true"` on the section once it scrolls into
+   * the viewport; the CSS below handles the fade + rise. Honors reduced motion
+   * (handled together with the other editorial animations below).
+   */
+  .editorial-section-reveal {
+    opacity: 0;
+    transform: translateY(16px);
+    transition:
+      opacity var(--spring-spatial-duration, 300ms)
+        var(--spring-spatial-easing, ease-out),
+      transform var(--spring-spatial-duration, 300ms)
+        var(--spring-spatial-easing, ease-out);
+  }
+
+  .editorial-section-reveal[data-revealed="true"] {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /*
+   * Public Garden dialog — Radix Dialog rendered as a modal route over the
+   * Gardens index. The hero image inside carries a per-garden
+   * `view-transition-name` matching the clicked card; PublicGardenCard
+   * suppresses its own name on the active card so the API can pair card →
+   * dialog hero into a single morphing element. Mobile = full-screen, desktop
+   * = centered modal sitting above an overlay-blurred index.
+   */
+  .public-garden-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background-color: var(--color-overlay, rgba(0, 0, 0, 0.45));
+    backdrop-filter: blur(var(--blur-material-thick, 18px));
+    -webkit-backdrop-filter: blur(var(--blur-material-thick, 18px));
+    animation-duration: var(--spring-effects-fast-duration, 150ms);
+    animation-timing-function: var(--spring-effects-fast-easing, ease-out);
+  }
+
+  .public-garden-dialog-overlay[data-state="open"] {
+    animation-name: public-install-overlay-in;
+  }
+
+  .public-garden-dialog-overlay[data-state="closed"] {
+    animation-name: public-install-overlay-out;
+  }
+
+  .public-garden-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--color-bg-white-0, #fff);
+    overflow-y: auto;
+    outline: none;
+  }
+
+  @media (min-width: 768px) {
+    .public-garden-dialog {
+      inset: auto;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: min(calc(100vw - 4rem), 56rem);
+      max-height: calc(100vh - 4rem);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      box-shadow: var(--shadow-editorial-panel, 0 24px 64px rgba(0, 0, 0, 0.18));
+    }
+
+    .public-garden-dialog-body {
+      overflow-y: auto;
+      flex: 1;
+    }
+  }
+
   .public-install-overlay[data-state="open"] {
     animation: public-install-overlay-in var(--spring-effects-fast-duration, 150ms)
       var(--spring-effects-fast-easing, ease-out) forwards;
@@ -227,6 +305,12 @@
     .public-install-sheet[data-state] {
       animation: none;
       opacity: 1;
+    }
+
+    .editorial-section-reveal {
+      opacity: 1;
+      transform: none;
+      transition: none;
     }
 
     .public-install-sheet {

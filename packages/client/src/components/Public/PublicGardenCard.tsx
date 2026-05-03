@@ -1,6 +1,6 @@
 import { cn, type PublicGardenSummary } from "@green-goods/shared";
 import { useIntl } from "react-intl";
-import { Link } from "react-router-dom";
+import { Link, useMatch } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
 import { EditorialKicker, EditorialMetaRow } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
@@ -21,6 +21,14 @@ export interface PublicGardenCardProps {
 export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCardProps) {
   const { formatMessage } = useIntl();
   const isLead = variant === "lead";
+  const match = useMatch("/gardens/:id");
+  const openId = match?.params.id?.toLowerCase();
+  const isActiveDialogTarget = openId
+    ? openId === garden.id.toLowerCase() ||
+      openId === garden.address.toLowerCase() ||
+      openId === garden.slug.toLowerCase()
+    : false;
+  const heroVtName = isActiveDialogTarget ? undefined : `garden-card-${garden.id}`;
 
   const metaItems: { label: string }[] = [];
   if (garden.location) metaItems.push({ label: garden.location });
@@ -46,6 +54,7 @@ export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCa
   return (
     <Link
       to={`/gardens/${garden.slug}`}
+      viewTransition
       className={cn(
         "group flex h-full flex-col gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2",
         isLead ? "" : "gap-3"
@@ -57,6 +66,7 @@ export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCa
           "relative w-full overflow-hidden bg-editorial-warm",
           isLead ? "aspect-[4/3]" : "aspect-[3/2]"
         )}
+        style={heroVtName ? { viewTransitionName: heroVtName } : undefined}
       >
         <ImageWithFallback
           src={garden.bannerImage}

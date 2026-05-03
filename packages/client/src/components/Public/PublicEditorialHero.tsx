@@ -23,6 +23,13 @@ import { EditorialDivider, EditorialHeading, EditorialKicker, EditorialLede } fr
 export interface PublicEditorialHeroProps {
   /** Fullscreen home hero or shorter banner hero for sub-pages. */
   variant?: "fullscreen" | "banner";
+  /**
+   * Drop the shared `view-transition-name: header` morph for this render.
+   * Use when another element on the page (e.g. a modal dialog opening over
+   * this view) is already morphing — preserving both creates competing
+   * transitions and feels jarring.
+   */
+  disableViewTransition?: boolean;
   /** Primary background image URL. */
   imageSrc: string;
   /** Decorative imagery should pass `""`; otherwise describe the place. */
@@ -61,6 +68,7 @@ export interface PublicEditorialHeroProps {
 
 export function PublicEditorialHero({
   variant = "fullscreen",
+  disableViewTransition = false,
   imageSrc,
   imageAlt = "",
   imageFallbackSrc,
@@ -78,6 +86,7 @@ export function PublicEditorialHero({
   return (
     <section
       className={cn(
+        !disableViewTransition && "vt-header",
         "relative isolate bg-editorial-deep",
         isBanner ? "overflow-visible" : "min-h-screen min-h-[100svh] overflow-hidden"
       )}

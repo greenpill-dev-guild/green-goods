@@ -1,4 +1,4 @@
-import { logger, toastService } from "@green-goods/shared";
+import { logger, toastService, useInViewReveal } from "@green-goods/shared";
 import type {
   PublicSubscribeRequest,
   PublicSubscribeResponse,
@@ -33,6 +33,7 @@ export function PublicGetInTouch() {
   const { formatMessage } = useIntl();
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [errorMessageId, setErrorMessageId] = useState<string | null>(null);
+  const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
 
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -96,7 +97,9 @@ export function PublicGetInTouch() {
 
   return (
     <section
-      className="bg-editorial-deep px-6 py-20 sm:px-10 md:py-28"
+      ref={sectionRef}
+      data-revealed={revealed}
+      className="editorial-section-reveal bg-editorial-deep px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-get-in-touch-title"
     >
       <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-24">

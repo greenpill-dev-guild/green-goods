@@ -270,9 +270,14 @@ export interface EditorialPrimaryLinkProps extends LinkProps {
 }
 
 /** Capsule green primary action that routes via React Router Link. */
-export function EditorialPrimaryLink({ children, className, ...rest }: EditorialPrimaryLinkProps) {
+export function EditorialPrimaryLink({
+  children,
+  className,
+  viewTransition = true,
+  ...rest
+}: EditorialPrimaryLinkProps) {
   return (
-    <Link className={cn(PRIMARY_CLASSES, className)} {...rest}>
+    <Link className={cn(PRIMARY_CLASSES, className)} viewTransition={viewTransition} {...rest}>
       {children}
     </Link>
   );
@@ -288,10 +293,15 @@ export function EditorialGhostLink({
   children,
   className,
   tone = "default",
+  viewTransition = true,
   ...rest
 }: EditorialGhostLinkProps) {
   return (
-    <Link className={cn(tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES, className)} {...rest}>
+    <Link
+      className={cn(tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES, className)}
+      viewTransition={viewTransition}
+      {...rest}
+    >
       {children}
     </Link>
   );
@@ -334,7 +344,7 @@ export function EditorialLinkArrow({
   }
 
   return (
-    <Link to={to} className={baseClasses}>
+    <Link to={to} className={baseClasses} viewTransition>
       {children}
       <span aria-hidden="true">→</span>
     </Link>

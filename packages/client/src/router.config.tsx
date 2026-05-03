@@ -57,12 +57,14 @@ export const appRoutes = [
             lazy: async () => ({
               Component: (await import("@/views/Public/Gardens")).default,
             }),
-          },
-          {
-            path: "gardens/:id",
-            lazy: async () => ({
-              Component: (await import("@/views/Public/GardenDetail")).default,
-            }),
+            children: [
+              {
+                path: ":id",
+                lazy: async () => ({
+                  Component: (await import("@/views/Public/GardenDialog")).default,
+                }),
+              },
+            ],
           },
           {
             id: CLIENT_ROUTE_IDS.publicCookies,

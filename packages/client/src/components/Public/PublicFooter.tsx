@@ -66,6 +66,7 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-8">
         <Link
           to="/"
+          viewTransition
           className={cn(
             "justify-self-start font-serif text-base font-medium tracking-[-0.01em]",
             isSoil ? "text-static-white" : "text-text-strong-950"
@@ -115,7 +116,7 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
                 {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
               </a>
             ) : (
-              <Link key={to} to={to} className={linkClass}>
+              <Link key={to} to={to} viewTransition className={linkClass}>
                 {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
               </Link>
             );

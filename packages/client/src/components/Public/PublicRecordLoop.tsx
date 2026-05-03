@@ -1,3 +1,4 @@
+import { useInViewReveal } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { EditorialHeading, EditorialKicker, EditorialNumeral } from "./atoms";
@@ -61,10 +62,13 @@ const STEPS: readonly LoopStep[] = [
  */
 export function PublicRecordLoop() {
   const { formatMessage } = useIntl();
+  const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
 
   return (
     <section
-      className="bg-bg-weak-50 px-6 py-20 sm:px-10 md:py-28"
+      ref={sectionRef}
+      data-revealed={revealed}
+      className="editorial-section-reveal bg-bg-weak-50 px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-loop-title"
     >
       <div className="mx-auto max-w-7xl">
@@ -96,6 +100,7 @@ export function PublicRecordLoop() {
             >
               <Link
                 to={to}
+                viewTransition
                 className="group grid grid-cols-[3rem_1fr] gap-4 border-t border-stroke-soft-200 py-7 transition-colors hover:bg-bg-white-0/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:grid-cols-[5rem_1fr] sm:gap-8 md:grid-cols-[7rem_1.1fr_1fr] md:gap-12"
               >
                 <span className="pt-2">

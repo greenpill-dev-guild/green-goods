@@ -1,3 +1,4 @@
+import { useInViewReveal } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { EditorialHeading, EditorialKicker, EditorialLede, EditorialLinkArrow } from "./atoms";
 
@@ -57,10 +58,13 @@ export function PublicProofBand({
   isLoading = false,
 }: PublicProofBandProps) {
   const { formatMessage } = useIntl();
+  const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
 
   return (
     <section
-      className="bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
+      ref={sectionRef}
+      data-revealed={revealed}
+      className="editorial-section-reveal bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-proof-title"
     >
       <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.6fr] lg:gap-24">
