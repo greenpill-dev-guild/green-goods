@@ -1,5 +1,5 @@
 name: Polish
-description: UI polish and UX improvements
+description: UI polish and UX improvements. File customer/user signals in Linear unless this is specifically code-local.
 body:
   - type: textarea
     id: current

@@ -7,10 +7,10 @@ Guild-level routines (research-synthesis, design-synthesis, routine-issue-cleanu
 ## Files (7 routines)
 
 - `pr-review.md` — GitHub-triggered inline PR review (event)
-- `bug-intake.md` — Daily 04:00 weekday: harvests user-reported bugs from Discord/Telegram/Drive → Bug Board #18 → @mentions Afo on triage queue
-- `plan-executor.md` — Daily 06:30 weekday: picks up issues labeled `plan-task` → bundled PRs to `develop`
+- `bug-intake.md` — Daily 04:00 weekday: harvests user-reported bugs/ideas from Discord/Telegram/Drive → **Linear `Green Goods` project** as Customer Needs (and linked Issues when actionable) → @mentions Afo when the Customer Need triage queue grows
+- `plan-executor.md` — Daily 06:30 weekday: picks up GitHub issues labeled `plan-task` → bundled PRs to `develop`. Linear dispatch (`Ready` + `automation:claude`) is documented as a future follow-up, not active yet
 - `health-watch.md` — Daily 07:30 weekday: indexer + 8-lane CI + contracts health → board #4 issues, auto-closes on recovery
-- `hotfix.md` — Twice weekday (10:00 + 16:00 PT): user-reported p2 in Bug Board `Ready` → solo PR to `main` → @mentions on PR open + CI green
+- `hotfix.md` — Twice weekday (10:00 + 16:00 PT): user-reported p2 in legacy Bug Board #18 `Ready` → solo PR to `main` → @mentions on PR open + CI green. Linear dispatch is documented as a future follow-up; expect mostly-empty runs during the intake migration
 - `drift-watch.md` — Weekly Sunday 02:00: code drift vs CLAUDE.md/AGENTS.md invariants, retired workflow guardrails, and package boundaries → one rolling issue per package
 - `metrics.md` — Weekly Sunday 22:00: Dune + PostHog + indexer → digest PR + anomaly issues, primary post #product, grant cross-post #funding
 
@@ -34,7 +34,7 @@ order and routine hardening backlog.
 ## Notification policy
 
 Routines @mention Afo only when his action is required:
-- `bug-intake` — when triage queue > 3
+- `bug-intake` — when unlinked/unreviewed Linear Customer Needs plus linked Issues needing triage exceed 3, or when a Linear setup failure (missing project, missing label, auth error) needs attention
 - `hotfix` — on PR open AND on CI green/red
 - `plan-executor` — only on aborts/blockers
 - `health-watch` — on real (🔴) anomalies only
@@ -60,7 +60,9 @@ Every Discord post in a routine is preceded by a `Channel guard` that pins the p
 
 ## Required labels
 
-Ensure these GitHub labels exist before enabling the corresponding routines.
+Labels live in two places now: GitHub (still the home for code-local issues, drift snapshots, health, metrics, and dispatch) and Linear (the new home for user-reported bugs, ideas, and operator pain). Ensure both label sets exist before enabling the corresponding routines.
+
+### GitHub labels
 
 **Automation umbrella** — every routine-authored issue/PR carries this:
 
@@ -82,17 +84,6 @@ Ensure these GitHub labels exist before enabling the corresponding routines.
 |---|---|
 | `metrics:anomaly` | Metric anomaly in Dune or PostHog |
 
-**`bug-intake`** (umbrella + source + package + automation):
-
-| Label | Purpose |
-|---|---|
-| `polish` | Umbrella applied to every bug-intake output |
-| `source:discord` | Reported via Discord |
-| `source:telegram` | Reported via Telegram bot |
-| `source:drive` | Surfaced from Drive meeting notes |
-| `client` | Client PWA — `packages/client/` |
-| `admin` | Admin dashboard — `packages/admin/` |
-
 **`drift-watch`** (per-package rolling snapshot):
 
 | Label | Purpose |
@@ -100,46 +91,96 @@ Ensure these GitHub labels exist before enabling the corresponding routines.
 | `drift-snapshot` | One rolling issue per package, weekly refresh |
 | `client` / `admin` / `shared` / `contracts` / `indexer` | Package scope |
 
-**`plan-executor` dispatch**:
+**`plan-executor` dispatch (active GitHub path)**:
 
 | Label | Purpose |
 |---|---|
-| `plan-task` | Applied by the user to dispatch an issue to plan-executor |
+| `plan-task` | Applied by the user to dispatch a GitHub issue to plan-executor |
 | `agent:assigned:claude` | Plan-executor or hotfix is implementing this — remove to re-dispatch |
 
-## Project board coordination
+> The legacy `polish` + `source:*` GitHub labels used by the previous bug-intake regime are no longer applied by the routine. They remain in the repo for historical records; do not file new GitHub issues with them.
 
-`bug-intake` (producer) and `hotfix`/`plan-executor` (implementers) coordinate through two GitHub Projects under `greenpill-dev-guild`:
+### Linear Issue labels (new — `Green Goods` project)
+
+`bug-intake` writes Customer Needs and linked Issues into the existing `Green Goods` project in Linear. Customer Needs carry source/reporter context in their body and project/customer/Issue links; they do not carry Issue labels or workflow status. Required intake labels are present on the current `Contributors` team; re-check label visibility if the routine moves to dedicated product teams.
+
+| Label | Status | Purpose |
+|---|---|---|
+| `source:discord` | exists on `Contributors` | Reported via Discord |
+| `source:telegram` | already exists | Reported via Telegram bot |
+| `source:drive` | exists on `Contributors` | Surfaced from Drive meeting notes |
+| `work:customer-need` | already exists | Optional label for triage Issues that group feedback; do not apply to Customer Needs themselves |
+| `work:polish` | already exists | Applied to every linked Linear Issue created from a Customer Need |
+| `area:client` / `area:admin` / `area:shared` / `area:contracts` / `area:indexer` / `area:agent` | already exists | Affected surface — reuse existing `area:*` set |
+| `automation:routine` | already exists | Umbrella for any routine-authored Linear record |
+| `automation:claude` | already exists | Human-applied on a `Ready` Linear Issue to release it to a Claude implementer (plan-executor / hotfix Linear path) |
+| `automation:codex` | already exists | Human-applied on a `Ready` Linear Issue to release it to a Codex implementer |
+
+## Producer / implementer coordination
+
+User-reported intake lives in **Linear**. Routine-generated audits, drift snapshots, health, and metrics still live in **GitHub Projects**. Implementers (`plan-executor`, `hotfix`) remain GitHub-driven in this pass; their future Linear path is documented but not active yet.
+
+### Linear (primary intake — `Green Goods` project)
+
+| Surface | Purpose | Workflow state | Created by |
+|---|---|---|---|
+| Customer Need | Every validated user/community signal — bug, idea, operator pain, UX feedback | none — request record linked to project/customer/Issue | bug-intake |
+| Linked Issue | The actionable subset of Customer Needs (clear bug or polish task with a known surface) | `Backlog` (exploratory) or `Todo` (well-scoped) | bug-intake |
+
+Linked Issues use the Linear lane structure: `Backlog → Todo → Ready → In Progress → In Review → Done`. The Linear team is `Contributors` (key `CRBT`); future PR bodies that close a Linear Issue use `Closes CRBT-XYZ`.
+
+### GitHub Projects (audits, drift, ops health, plus the legacy bug queue)
 
 | Project | Purpose | Starting column | Used by |
 |---|---|---|---|
 | **#4 "Green Goods"** | General kanban — drift snapshots, health, metrics, plan tasks | `Backlog` | health-watch, drift-watch, metrics |
-| **#18 "Bug Board"** | User-reported bug triage | `To triage` | bug-intake |
+| **#18 "Bug Board"** | Legacy user-reported bug triage — read-only during the Linear crossover; `hotfix` still drains any `Ready` items here | `To triage` (no new entries from bug-intake) | (none for new entries — `hotfix` reads-only) |
 
 Both share the lane structure `{starting} → Ready → In progress → In review → Done`.
 
 ### Lifecycle
 
-1. **Producer creates + attaches** — bug-intake creates an issue, applies labels, attaches it to Bug Board #18 in `To triage`. Drift-watch + health-watch + metrics attach to Project #4 in `Backlog` with `Sprints = active iteration`.
+1. **Producer creates + attaches**:
+   - `bug-intake` creates a Customer Need in the Linear `Green Goods` project and, when actionable, an optional linked Issue in `Backlog`/`Todo`. No GitHub write.
+   - `drift-watch`, `health-watch`, `metrics` attach GitHub issues to Project #4 in `Backlog` with `Sprints = active iteration`.
 2. **Human triages (the only manual step)** —
-   - For Bug Board #18: drag urgent items to `Ready` so hotfix picks them up
-   - For Project #4 audits: label issues with `plan-task` to dispatch them to plan-executor
-3. **Implementer dispatches + implements + opens PR**:
-   - `plan-executor` (06:30 weekday): picks `plan-task`-labeled issues, bundles, opens PRs against `develop`
-   - `hotfix` (every 4h): picks Bug Board `Ready` items at p2, solo PRs against `main`
-   - Both apply `agent:assigned:claude` and move Status to `In progress`. GitHub project automation flips to `In review` when the PR opens.
-4. **Human reviews the PR** — merge, request changes, or close.
-5. **Done** — issue auto-closes on merge via `Closes #N` in the PR body; board moves to `Done`.
+   - For Linear Customer Needs: review the Customer Need, decide whether the linked Issue is worth doing, and keep the Customer Need as the user-facing context. Future Linear dispatch will use the linked Issue: move it to `Ready` and add `automation:claude` or `automation:codex` when that later pass is enabled.
+   - For Project #4 audits: label GitHub issues with `plan-task` to dispatch them to `plan-executor`.
+   - Bug Board #18 is dormant for new bugs; only items left in `Ready` from the pre-migration window are still drained by `hotfix`.
+3. **Implementer dispatches + implements + opens PR** —
+   - `plan-executor` (06:30 weekday): picks `plan-task`-labeled GitHub issues, bundles, opens PRs against `develop`. Linear pickup (`Ready` + `automation:claude`) is a documented follow-up and is not active yet.
+   - `hotfix` (10:00 + 16:00 weekday): picks legacy Bug Board #18 `Ready` items at p2 today; this queue stays mostly empty during the migration. Linear pickup is a documented follow-up and is not active yet.
+   - Both apply `agent:assigned:claude` (GitHub label) and move GitHub Status to `In progress`. GitHub project automation flips to `In review` when the PR opens.
+4. **Human reviews the PR** — merge, request changes, or close on GitHub.
+5. **Done** — GitHub issue auto-closes on merge via `Closes #N`; the future Linear dispatch pass will handle Linear Issue closure through Linear's GitHub integration. Customer Needs remain the feedback context attached to the Issue/project rather than the workflow-status driver.
 
 ### Never auto-dispatched
 
 - p1 from any source — skipped silently by both implementers. Needs human ownership.
 - Anything touching critical paths from CLAUDE.md criticality matrix (contracts, providers, job-queue, auth/work/vault/blockchain hooks) — rejected up-front by criticality gates.
 - Any issue with an existing linked PR — no dispatch racing.
+- Any Linear Customer Need without an actionable linked Issue remains feedback context, not dispatchable work.
 
 ### Re-dispatching
 
-To force `plan-executor` to retry an issue it already handled (bundle aborted, PR closed without merge), remove the `agent:assigned:claude` label manually. The issue becomes eligible again on the next run if all other gates still pass.
+- GitHub path: remove `agent:assigned:claude` from the GitHub issue. It becomes eligible on the next run if all other gates still pass.
+- Linear path: future dispatch will use linked Issue status and dispatch label; not active in this pass.
+
+### Future comment surfaces (Linear path)
+
+- **Rejection / abort comments** go on the **Linear Issue** (the dispatch surface), symmetric to commenting on a GitHub issue.
+- **PR-opened and CI-result status comments** should go on the **linked Customer Need** (the user-facing record). Hotfix CI green/red comments mirror the `<@${DISCORD_USER_ID_AFO}>` mention from `#product`.
+
+## Native Linear ↔ Discord usage (humans)
+
+The team uses Linear's native Discord integration directly for in-the-moment routing — this is independent of `bug-intake`'s scheduled run:
+
+- `/linear issue` in Discord — file a Linear Issue from the message thread; the message URL is preserved on the Linear record so `bug-intake` can detect the duplicate on the next run.
+- `/linear search` — find an existing Linear Issue or Customer Need without leaving Discord.
+- `/linear wrap` — post a daily summary of your own Linear issue updates.
+- Link Discord message threads to Linear records through Linear's Discord link flow or issue UI when a discussion turns actionable.
+
+Limitation to plan around: Linear's native Discord integration does not currently push project-update notifications, so the daily `#product` digest still comes from `bug-intake` (Phase 5). One-time setup happens in the Linear admin UI; the scheduled routine assumes the integration is enabled and dedupes against records the integration has already created.
 
 ## Bot API environment
 
@@ -151,6 +192,18 @@ Routines that consume Telegram feedback need:
 | `BOT_API_TOKEN` | Bearer token for authenticating API requests to the agent |
 
 Used by: `bug-intake` (read + respond), `health-watch` (read-only).
+
+## Linear environment
+
+`bug-intake` writes to the existing `Green Goods` project in Linear. The cloud routine env exposes Linear access via whichever of these the harness provides:
+
+| Variable / surface | Description |
+|---|---|
+| `LINEAR_API_KEY` | Personal API key with read/write access to the `Green Goods` project — fallback when no connector is configured |
+| Linear connector | Native Linear connector wired into the cloud routine environment |
+| Linear MCP | Linear MCP server exposed to the routine |
+
+Whichever surface is wired up, the routine resolves project/team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in the daily `#product` summary instead of skipping records silently.
 
 ## Rebuilding a routine
 

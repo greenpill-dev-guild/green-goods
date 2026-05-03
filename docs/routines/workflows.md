@@ -6,9 +6,9 @@ Where you (Afo) plug into the routine system. Routines do the inventory; you mak
 
 | Routine | Your action | Trigger / signal | Frequency |
 |---|---|---|---|
-| **Green Goods Bug Intake** | Triage bugs on Bug Board #18 (`To triage` → `Ready`) | @mention when triage queue > 3 | ~5 min/day |
-| **Green Goods Hotfix** | Review + merge PR to `main` | @mention on PR open + CI green/red | ~10 min when fired |
-| **Green Goods Plan Executor** | Apply `plan-task` label to dispatch issues | Daily summary in `#product` | ~10 min/day |
+| **Green Goods Bug Intake** | Review Customer Needs in Linear and decide whether a linked Issue should exist; linked Issues stay in `Backlog`/`Todo` until a later dispatch pass | @mention when unlinked/unreviewed Customer Needs plus linked Issues needing triage exceed 3, or on Linear setup failure | ~5 min/day |
+| **Green Goods Hotfix** | Review + merge PR to `main` | @mention on PR open + CI green/red | ~10 min when fired (most runs fire zero — the legacy GitHub queue is exception-only) |
+| **Green Goods Plan Executor** | Apply `plan-task` label to dispatch GitHub issues; Linear `Ready` + `automation:claude` is documented but not active yet | Daily summary in `#product` | ~10 min/day |
 | | Review + merge PRs to `develop` | (PR Review comments inline) | per PR |
 | **Green Goods Health Watch** | Investigate real anomalies across indexer, 8-lane CI, and contracts | @mention only on 🔴 | rare |
 | **Green Goods Drift Watch** | Read package snapshots → label `plan-task` on items worth fixing | Sunday morning Discord summary | ~45 min/week |
@@ -28,14 +28,17 @@ Where you (Afo) plug into the routine system. Routines do the inventory; you mak
 
 ## Gating signals — where you control the flow
 
-Three signals you control move work through the system:
+Signals you control move work through the system. In this pass, Linear is the intake and triage surface for user-reported signals, while GitHub remains the active implementation dispatch surface. Linear `Ready` + an `automation:*` label is documented for the later implementer migration but not active yet.
 
 | Signal | What it does | Applied where |
 |---|---|---|
-| **Bug Board #18 `Ready` column** | Releases bug to Hotfix → PR to main | Drag bug card on board |
-| **`plan-task` label** | Releases issue to Plan Executor → PR to develop | Apply label on any issue |
+| **Linear Customer Need → linked Issue in `Backlog`/`Todo`** | Records the actionable subset of user-reported intake for human review; future dispatch uses this Issue | Linear `Green Goods` project |
+| **Future: linked Issue → `Ready` + `automation:claude` / `automation:codex`** | Later migration path for Claude/Codex implementers, not active in this pass | Linear `Green Goods` project, on the linked Issue |
+| **Bug Board #18 `Ready` column** | Releases legacy GitHub bug to Hotfix → PR to `main` (expected to stay near-empty because bug-intake no longer writes there) | Drag bug card on board (legacy) |
+| **GitHub `plan-task` label** | Releases routine-generated GitHub issue to Plan Executor → PR to `develop` | Apply label on any GitHub issue |
 | **Grant lifecycle labels** | Promotes grant from prospect → drafting → submitted | Apply after manual submit |
-| **Remove `agent:assigned:claude`** | Releases issue back into dispatch pool (retry) | Remove label to re-dispatch |
+| **Remove `agent:assigned:claude` (GitHub)** | Releases GitHub issue back into dispatch pool (retry) | Remove label to re-dispatch |
+| **Future: move Linear Issue back to `Ready`** | Later retry mechanism after Linear dispatch is enabled | Linear `Green Goods` project, on the Issue |
 
 Without these signals, routines write evidence and stop. They never auto-merge, never auto-submit, never auto-promote without a human signal.
 
@@ -57,23 +60,25 @@ flowchart LR
     Discord([Discord channels])
     Code([Codebase])
     OnChain([Indexer + RPC + CI])
-    
-    Users -->|/bug, Discord, Drive notes| BI[Bug Intake]
+    Linear([Linear Green Goods project])
+
+    Users -->|Discord, Telegram, Drive notes| BI[Bug Intake]
     Discord -->|#research| RS[Research Synthesis]
     Discord -->|#design| DSY[Design Synthesis]
     Code -->|invariants| DW[Drift Watch]
     Code -->|metrics events| M[Metrics]
     OnChain -->|status| HW[Health Watch]
-    
-    BI -->|Bug Board To triage| AFO((You))
+
+    BI -->|Customer Needs + linked Issues| Linear
+    Linear -->|Customer Needs + linked Issues<br/>waiting on triage| AFO((You))
     DW -->|drift snapshots| AFO
     RS -.->|insights| AFO
     DSY -.->|design issues| AFO
     HW -.->|🔴 anomalies| AFO
     M -.->|metric anomalies| AFO
-    
-    AFO -->|drag Ready| HF[Hotfix]
-    AFO -->|label plan-task| PE[Plan Executor]
+
+    AFO -->|legacy Bug Board Ready| HF[Hotfix]
+    AFO -->|GitHub plan-task label| PE[Plan Executor]
     AFO -->|investigate + fix| Code
     
     HF -->|PR to main| PRR[PR Review]
@@ -85,16 +90,26 @@ flowchart LR
     class AFO human
 ```
 
-### Bug pipeline — user report → fix on main
+### Bug pipeline — user report → Linear → fix on main
 
 ```mermaid
 flowchart LR
-    U[User reports bug<br/>Discord/Telegram/Drive]
+    U[User reports bug or idea<br/>Discord / Telegram / Drive]
     U --> BI[Green Goods Bug Intake<br/>daily 04:00 weekday]
-    BI -->|creates issue| BBT[Bug Board #18<br/>To triage]
-    BI -.->|@mention if<br/>queue > 3| AFO1((You))
-    AFO1 -->|drag to Ready| BBR[Bug Board #18<br/>Ready]
-    BBR --> HF[Green Goods Hotfix<br/>10:00 + 16:00 weekday]
+    BI -->|every validated signal| CN[Linear Customer Need<br/>project/customer/request context<br/>no workflow status]
+    BI -->|actionable subset only| LI[Linear Issue<br/>status: Backlog or Todo<br/>label: work:polish + area:*]
+    CN -.->|relates to| LI
+    BI -.->|@mention if<br/>un-triaged > 3<br/>OR setup failure| AFO1((You))
+
+    AFO1 -->|review Customer Need<br/>decide if Issue is worth doing| DEC{Worth shipping?}
+    DEC -->|yes — create/review actionable work| TRIAGE[Linked Issue remains<br/>Backlog or Todo]
+    TRIAGE -.->|later implementer migration| DISPATCH[Future: Ready<br/>+ automation:*]
+    DEC -->|stays as feedback| KEEP[Customer Need remains<br/>feedback context]
+
+    DISPATCH -.->|future Linear pickup| HF[Green Goods Hotfix<br/>10:00 + 16:00 weekday]
+    DISPATCH -.->|future Linear pickup| PE[Plan Executor<br/>06:30 weekday]
+    DISPATCH -.->|future Codex pickup| CDX[Codex implementer]
+
     HF -->|cap 2/run<br/>opens PR| PR[PR to main]
     PR --> PRR[PR Review<br/>inline]
     HF -.->|@mention on PR open<br/>and CI green/red| AFO2((You))
@@ -103,11 +118,14 @@ flowchart LR
     HF2 -->|follow-up PR| BPR[Backport PR to develop]
     BPR --> AFO3((You))
     AFO3 -->|merge| Dev[develop]
+    PR -.->|Linear GitHub integration<br/>flips Issue → In Review<br/>then Done on merge| LI
     
     classDef human fill:#fef3c7,stroke:#d97706,stroke-width:2px
     classDef routine fill:#e0e7ff,stroke:#4f46e5
+    classDef linear fill:#e0f2fe,stroke:#0284c7
     class AFO1,AFO2,AFO3 human
-    class BI,HF,HF2,PRR routine
+    class BI,HF,HF2,PRR,PE routine
+    class CN,LI,READY,READYC linear
 ```
 
 ### Plan pipeline — labeled issue → fix on develop

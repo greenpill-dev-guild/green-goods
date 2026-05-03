@@ -82,7 +82,7 @@ BOT_API_URL = https://green-goods-agent.fly.dev
 BOT_API_TOKEN = <same value as the deployed secret>
 ```
 
-`gg-client-polish` (Phase 1b) and `gg-morning-watch` (Telegram read-only enrichment) will start ingesting `/bug` and `/idea` reports from the gardener Telegram channel on their next scheduled runs.
+The Green Goods `bug-intake` routine consumes `/bug` and `/idea` reports from `/api/feedback`, creates Linear Customer Needs for validated signals, and uses `/api/notify` to acknowledge gardeners after intake.
 
 ## Deploy to Railway (legacy)
 
