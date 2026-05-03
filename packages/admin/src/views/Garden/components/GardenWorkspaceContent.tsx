@@ -1,5 +1,6 @@
 import {
   type Address,
+  AddressDisplay,
   Alert,
   EmptyState,
   Surface,
@@ -110,20 +111,10 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           ) : null}
 
           {workspace.view === "members" ? (
-            <EmptyState
-              icon={<RiTeamLine className="h-6 w-6" />}
-              title={formatMessage({
-                id: "cockpit.garden.members.empty.title",
-                defaultMessage: "Members roster coming soon",
-              })}
-              description={formatMessage(
-                {
-                  id: "cockpit.garden.members.empty.description",
-                  defaultMessage:
-                    "{count, plural, one {# gardener} other {# gardeners}} are currently registered. The full roster, role chips, and last-active state will land here.",
-                },
-                { count: workspace.garden.gardeners.length }
-              )}
+            <GardenMembersList
+              gardeners={workspace.garden.gardeners}
+              operators={workspace.garden.operators ?? []}
+              gardenName={workspace.garden.name}
             />
           ) : null}
 
@@ -188,6 +179,96 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           />
         ) : null}
       </div>
+    </div>
+  );
+}
+
+interface GardenMembersListProps {
+  gardeners: Address[];
+  operators: Address[];
+  gardenName: string;
+}
+
+/**
+ * Tier 5c: real Members tab roster — replaces the Tier 4 EmptyState
+ * placeholder with a list of gardeners + operator chips. Uses
+ * AddressDisplay for ENS resolution + truncation. Activity-state /
+ * role chips beyond operator/gardener defer to a later iteration when
+ * the data layer surfaces last-active timestamps.
+ */
+function GardenMembersList({ gardeners, operators, gardenName }: GardenMembersListProps) {
+  const { formatMessage } = useIntl();
+  const operatorSet = new Set(operators.map((address) => address.toLowerCase()));
+
+  if (gardeners.length === 0) {
+    return (
+      <EmptyState
+        icon={<RiTeamLine className="h-6 w-6" />}
+        title={formatMessage({
+          id: "cockpit.garden.members.empty.title",
+          defaultMessage: "No gardeners yet",
+        })}
+        description={formatMessage(
+          {
+            id: "cockpit.garden.members.empty.solo.description",
+            defaultMessage:
+              "{name} is open for joining — gardeners will appear here as they sign up.",
+          },
+          { name: gardenName }
+        )}
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3" data-component="GardenMembersList">
+      <header className="flex items-baseline justify-between gap-3">
+        <h2 className="text-title-md font-semibold text-text-strong">
+          {formatMessage({
+            id: "cockpit.garden.members.title",
+            defaultMessage: "Gardeners",
+          })}
+        </h2>
+        <p className="text-label-sm font-medium text-text-soft tabular-nums">
+          {formatMessage(
+            {
+              id: "cockpit.garden.members.count",
+              defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
+            },
+            { count: gardeners.length }
+          )}
+        </p>
+      </header>
+
+      <ul className="flex flex-col gap-2" role="list">
+        {gardeners.map((address) => {
+          const isOperator = operatorSet.has(address.toLowerCase());
+          return (
+            <li
+              key={address}
+              data-slot="member-row"
+              data-role={isOperator ? "operator" : "gardener"}
+              className="flex items-center justify-between gap-3 rounded-[var(--r-md,12px)] border border-stroke-soft bg-bg-white-0 px-3 py-2.5 shadow-[var(--edge-rest)]"
+            >
+              <AddressDisplay address={address} className="min-w-0 flex-1" />
+              {isOperator ? (
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-success-lighter px-2 py-0.5 text-label-sm font-medium text-success-dark"
+                  aria-label={formatMessage({
+                    id: "cockpit.garden.members.operatorBadge",
+                    defaultMessage: "Operator",
+                  })}
+                >
+                  {formatMessage({
+                    id: "cockpit.garden.members.operatorBadge",
+                    defaultMessage: "Operator",
+                  })}
+                </span>
+              ) : null}
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
