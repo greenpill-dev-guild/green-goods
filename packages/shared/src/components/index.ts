@@ -225,6 +225,16 @@ export { DomainBadge } from "./DomainBadge";
 // Status Badge
 export type { StatusBadgeProps } from "./StatusBadge";
 export { getStatusColors, StatusBadge } from "./StatusBadge";
+// Conviction Voting Components (Tier 3 of admin design handoff)
+export {
+  ConvictionMeter,
+  type ConvictionMeterProps,
+  ProposalCardConviction,
+  type ProposalCardConvictionProps,
+  WeightAllocator,
+  type WeightAllocatorProposal,
+  type WeightAllocatorProps,
+} from "./Conviction";
 export {
   StatCard,
   type StatCardProps,

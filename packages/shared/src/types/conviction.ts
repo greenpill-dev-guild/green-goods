@@ -84,3 +84,37 @@ export interface SetRoleHatIdsParams {
   poolAddress: Address;
   hatIds: bigint[];
 }
+
+// ============================================
+// Frontend View-Models (Tier 3 of admin design handoff)
+// ============================================
+// These types are the visual layer for ConvictionMeter / WeightAllocator /
+// ProposalCardConviction. Tier 4 maps the on-chain types above
+// (HypercertEntry / ConvictionWeight / MemberPower) into these shapes.
+// Spec: design_handoff_admin-revamp/README.md § 7 + DESIGN_NOTES.md.
+
+/** Lifecycle of a conviction-voting proposal as the UI presents it. */
+export type ConvictionProposalStatus = "accruing" | "passing" | "funded" | "withdrawn" | "expired";
+
+/** A proposal as the UI consumes it. Numbers are 0–100 percent. */
+export interface ConvictionProposal {
+  id: string;
+  title: string;
+  summary: string;
+  /** Current accrued conviction (0–100). */
+  conviction: number;
+  /** Conviction threshold to pass (0–100, per-proposal). */
+  threshold: number;
+  /** Daily accrual rate in percent at the proposal's current weight. */
+  dailyAccrual: number;
+  /** Number of members with weight on this proposal. */
+  supporters: number;
+  /** Lifecycle state. */
+  status: ConvictionProposalStatus;
+}
+
+/**
+ * Per-member weight allocation across active proposals.
+ * Sum of values must satisfy ≤ 100 (frontend validates; on-chain enforces).
+ */
+export type ConvictionAllocations = Record<string, number>;

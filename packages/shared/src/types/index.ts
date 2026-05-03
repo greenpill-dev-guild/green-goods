@@ -49,6 +49,9 @@ export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./c
 // ============================================
 export type {
   AllocateHypercertSupportParams,
+  ConvictionAllocations,
+  ConvictionProposal,
+  ConvictionProposalStatus,
   ConvictionWeight,
   DeregisterHypercertParams,
   HypercertEntry,
