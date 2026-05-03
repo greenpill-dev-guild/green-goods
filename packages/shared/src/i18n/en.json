@@ -2875,7 +2875,6 @@
   "public.cookies.description": "Shared jars hold campaign funds in one place. Operators from selected Gardens claim their share; supporters top up the jar for the next round.",
   "public.cookies.directJar": "Direct jar",
   "public.cookies.emptyList": "Campaign jars will appear here once the Green Goods team configures them.",
-  "public.cookies.eyebrow": "Campaign jars",
   "public.cookies.feedJar": "Feed the jar",
   "public.cookies.closeDialog": "Close jar dialog",
   "public.cookies.invalidJar": "\"{jar}\" is not a valid jar address.",

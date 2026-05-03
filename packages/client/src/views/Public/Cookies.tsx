@@ -603,7 +603,9 @@ function EligibilityNote({
 function CookieIndexStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-0 border-b border-stroke-soft-200 py-4 last:border-b-0 sm:border-r sm:border-b-0 sm:px-6 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0">
-      <p className="text-xs font-medium uppercase text-text-soft-400">{label}</p>
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+        {label}
+      </p>
       <p className="mt-1 font-serif text-2xl text-text-strong-950">{value}</p>
     </div>
   );
@@ -1006,10 +1008,6 @@ export default function CookiesPage() {
         imageFallbackSrc={publicCuration.fallbackImagePaths[0]}
         imageAlt=""
         titleId="public-cookies-hero-title"
-        kicker={formatMessage({
-          id: "public.cookies.eyebrow",
-          defaultMessage: "Campaign jars",
-        })}
         title={formatMessage(
           {
             id: "public.cookies.title",

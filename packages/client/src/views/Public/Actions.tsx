@@ -215,21 +215,18 @@ export default function ActionsGallery() {
       >
         <div className="mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-text-soft-400">
+            <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.actions.kicker",
                 defaultMessage: "§ 02 — Field guide",
               })}
-            </p>
-            <h2
-              id="public-actions-grid-title"
-              className="mt-3 font-serif text-3xl font-normal leading-[1.04] tracking-[-0.02em] text-text-strong-950 md:text-4xl"
-            >
+            </EditorialKicker>
+            <EditorialHeading id="public-actions-grid-title">
               {formatMessage({
                 id: "public.actions.gridTitle",
                 defaultMessage: "Templates Gardens use to plan and document Work.",
               })}
-            </h2>
+            </EditorialHeading>
           </header>
 
           <nav

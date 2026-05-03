@@ -1,7 +1,12 @@
 import { type PublicGardenSummary, usePublicGardens } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { EditorialDivider, EditorialKicker, EditorialTitleAccent } from "@/components/Public/atoms";
+import {
+  EditorialDivider,
+  EditorialHeading,
+  EditorialKicker,
+  EditorialTitleAccent,
+} from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
@@ -68,15 +73,12 @@ export default function GardensGallery() {
               <EditorialKicker className="mb-3">
                 {formatMessage({ id: "public.gardens.kicker", defaultMessage: "Living Archive" })}
               </EditorialKicker>
-              <h2
-                id="public-gardens-archive-title"
-                className="font-serif text-3xl font-normal leading-[1.04] tracking-[-0.02em] text-text-strong-950 md:text-4xl"
-              >
+              <EditorialHeading id="public-gardens-archive-title">
                 {formatMessage({
                   id: "public.gardens.archiveTitle",
                   defaultMessage: "Browse every Garden under documentation.",
                 })}
-              </h2>
+              </EditorialHeading>
             </div>
             <label className="relative w-full sm:max-w-xs">
               <span className="sr-only">

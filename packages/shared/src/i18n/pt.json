@@ -2876,7 +2876,6 @@
   "public.cookies.description": "Jars compartilhadas guardam os fundos de campanha em um só lugar. Operadores de Jardins selecionados reclamam sua parte; apoiadores recarregam a jar para a próxima rodada.",
   "public.cookies.directJar": "Jar direta",
   "public.cookies.emptyList": "As jars de campanha aparecerão aqui quando a equipe Green Goods configurá-las.",
-  "public.cookies.eyebrow": "Jars de campanha",
   "public.cookies.feedJar": "Alimentar a jar",
   "public.cookies.closeDialog": "Fechar diálogo da jar",
   "public.cookies.invalidJar": "\"{jar}\" não é um endereço de jar válido.",
