@@ -6,9 +6,9 @@ import type { Address } from "../../types/domain";
 import {
   type GardenCommunity,
   type GardenSignalPool,
-  PoolType,
   WeightScheme,
 } from "../../types/gardens-community";
+import { annotateGardenSignalPools } from "../../utils/blockchain/garden-yield-wiring";
 import { logger } from "../app/logger";
 import { GQLClient } from "./graphql-client";
 
@@ -189,12 +189,13 @@ interface CVStrategiesResponse {
 
 /**
  * Fetches signal pools (CV strategies) for a garden from the subgraph.
- * Pool ordering matches the contract: index 0 = Action, index 1 = Hypercert.
+ * Pool identity comes from typed contract state when available; ordering is display-only.
  */
 export async function getGardenPoolsFromSubgraph(
   communityAddress: Address,
   gardenAddress: Address,
-  chainId: number
+  chainId: number,
+  typedHypercertPoolAddress?: Address | null
 ): Promise<GardenSignalPool[]> {
   const client = getClient(chainId);
 
@@ -215,12 +216,12 @@ export async function getGardenPoolsFromSubgraph(
 
   const strategies = data?.cvstrategies ?? [];
 
-  return strategies.map((strategy, index) => ({
-    poolAddress: strategy.id as Address,
-    poolType: index === 0 ? PoolType.Action : PoolType.Hypercert,
+  return annotateGardenSignalPools({
+    poolAddresses: strategies.map((strategy) => strategy.id as Address),
+    typedHypercertPoolAddress,
     gardenAddress,
     communityAddress: communityAddress as Address,
-  }));
+  });
 }
 
 // ---------------------------------------------------------------------------

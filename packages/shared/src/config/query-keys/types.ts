@@ -60,6 +60,7 @@ export type QueryKey =
   | ReturnType<typeof queryKeys.yield.allocations>
   | ReturnType<typeof queryKeys.yield.byAsset>
   | ReturnType<typeof queryKeys.yield.splitConfig>
+  | ReturnType<typeof queryKeys.yield.wiring>
   | ReturnType<typeof queryKeys.yield.pendingYield>
   | ReturnType<typeof queryKeys.yield.protocolSummary>
   | typeof queryKeys.ens.all

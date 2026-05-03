@@ -58,6 +58,8 @@ export const yieldKeys = {
     ["greengoods", "yield", "byAsset", assetAddress, chainId] as const,
   splitConfig: (gardenAddress: string, chainId: number) =>
     ["greengoods", "yield", "splitConfig", gardenAddress, chainId] as const,
+  wiring: (gardenAddress: string, chainId: number) =>
+    ["greengoods", "yield", "wiring", gardenAddress, chainId] as const,
   pendingYield: (gardenAddress: string, assetAddress: string, chainId: number) =>
     ["greengoods", "yield", "pending", gardenAddress, assetAddress, chainId] as const,
   /** Per-garden yield summary (all allocations, aggregated client-side) */

@@ -458,7 +458,8 @@ describe("useGardenPools — subgraph path", () => {
     expect(mockGetGardenPools).toHaveBeenCalledWith(
       TEST_COMMUNITY,
       mixedCase.toLowerCase(),
-      TEST_CHAIN_ID
+      TEST_CHAIN_ID,
+      undefined
     );
     expect(result.current.pools[0].gardenAddress).toBe(mixedCase.toLowerCase());
   });
@@ -494,6 +495,7 @@ describe("useGardenPools — RPC fallback", () => {
   it("returns pools via RPC when no communityAddress", async () => {
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
     mockReadContract
+      .mockResolvedValueOnce(TEST_POOL_2) // gardenHypercertSignalPools
       .mockResolvedValueOnce([TEST_POOL_1, TEST_POOL_2]) // getGardenSignalPools
       .mockResolvedValueOnce(TEST_COMMUNITY); // getGardenCommunity
 
@@ -523,7 +525,9 @@ describe("useGardenPools — RPC fallback", () => {
 
   it("returns isError when RPC rejects", async () => {
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
-    mockReadContract.mockRejectedValueOnce(new Error("RPC error"));
+    mockReadContract
+      .mockResolvedValueOnce(TEST_POOL_2) // gardenHypercertSignalPools
+      .mockRejectedValueOnce(new Error("RPC error"));
 
     const { result } = renderHook(() => useGardenPools(TEST_GARDEN as Address), {
       wrapper: createWrapper(queryClient),
@@ -536,7 +540,10 @@ describe("useGardenPools — RPC fallback", () => {
   it("normalizes garden address in RPC path", async () => {
     const mixedCase = "0xAbCdEf1234567890AbCdEf1234567890AbCdEf12";
     mockFetchGardensModuleAddress.mockResolvedValueOnce(TEST_GARDENS_MODULE);
-    mockReadContract.mockResolvedValueOnce([TEST_POOL_1]).mockResolvedValueOnce(TEST_COMMUNITY);
+    mockReadContract
+      .mockResolvedValueOnce(TEST_POOL_1) // gardenHypercertSignalPools
+      .mockResolvedValueOnce([TEST_POOL_1])
+      .mockResolvedValueOnce(TEST_COMMUNITY);
 
     const { result } = renderHook(() => useGardenPools(mixedCase as Address), {
       wrapper: createWrapper(queryClient),

@@ -26,5 +26,6 @@ export {
   OCTANT_MODULE_ABI,
   OCTANT_VAULT_ABI,
   STRATEGY_ABI,
+  YIELD_RESOLVER_ABI,
   YIELD_SPLITTER_ABI,
 } from "./abis/index";

@@ -42,6 +42,9 @@ export function useCreateGardenPools(gardenAddress?: Address) {
         queryClient.invalidateQueries({
           queryKey: queryKeys.community.pools(garden, chainId),
         });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.yield.wiring(garden, chainId),
+        });
       }
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
@@ -81,6 +84,9 @@ export function useCreateGardenPools(gardenAddress?: Address) {
         lastGardenRef.current = normalizedGarden;
         queryClient.invalidateQueries({
           queryKey: queryKeys.community.pools(normalizedGarden, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.yield.wiring(normalizedGarden, chainId),
         });
       }
       schedulePoolSync();

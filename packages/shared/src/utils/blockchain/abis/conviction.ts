@@ -138,6 +138,20 @@ export const GARDENS_MODULE_ABI = [
   },
   {
     type: "function",
+    name: "gardenHypercertSignalPools",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "yieldResolver",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
     name: "getGardenWeightScheme",
     stateMutability: "view",
     inputs: [{ name: "garden", type: "address" }],

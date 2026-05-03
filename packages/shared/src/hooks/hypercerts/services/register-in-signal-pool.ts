@@ -54,39 +54,17 @@ export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
 
     const publicClient = createPublicClientForChain(currentChainId);
 
-    // Read signal pools for this garden (index 1 = HypercertSignalPool)
-    const pools = (await publicClient.readContract({
+    const hypercertPoolAddress = (await publicClient.readContract({
       address: gardensModuleAddr,
       abi: GARDENS_MODULE_ABI,
-      functionName: "getGardenSignalPools",
+      functionName: "gardenHypercertSignalPools",
       args: [gardenAddress],
-    })) as Address[];
-
-    if (!pools || pools.length === 0) {
-      logger.info("[useMintHypercert] No signal pools for garden, skipping registration", {
-        gardenAddress,
-        chainId: currentChainId,
-      });
-      return { registered: false, poolAddress: null };
-    }
-
-    if (pools.length < 2) {
-      logger.info(
-        "[useMintHypercert] HypercertSignalPool missing (action-only pool set), skipping registration",
-        {
-          gardenAddress,
-          poolsCount: pools.length,
-        }
-      );
-      return { registered: false, poolAddress: null };
-    }
-
-    const hypercertPoolAddress = pools[1];
+    })) as Address;
 
     if (!hypercertPoolAddress || isZeroAddress(hypercertPoolAddress)) {
-      logger.warn("[useMintHypercert] HypercertSignalPool is zero address", {
+      logger.info("[useMintHypercert] No HypercertSignal pool for garden, skipping registration", {
         gardenAddress,
-        poolsCount: pools.length,
+        chainId: currentChainId,
       });
       return { registered: false, poolAddress: null };
     }

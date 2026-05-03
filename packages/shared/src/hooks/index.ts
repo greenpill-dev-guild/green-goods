@@ -389,6 +389,7 @@ export { useDebouncedValue } from "./utils/useDebouncedValue";
 // ============================================================================
 // UI (General-purpose UI utilities)
 // ============================================================================
+export { useInViewReveal } from "./ui/useInViewReveal";
 export { useIsDarkMode } from "./ui/useIsDarkMode";
 export { useMediaQuery } from "./ui/useMediaQuery";
 export { useContainerQuery } from "./useContainerQuery";
@@ -493,6 +494,7 @@ export {
 // YIELD
 // ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
+export { useGardenYieldWiringState } from "./yield/useGardenYieldWiringState";
 export { usePendingYield } from "./yield/usePendingYield";
 export {
   useGardenYieldSummary,

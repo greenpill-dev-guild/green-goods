@@ -136,6 +136,7 @@ describe("queryKeys", () => {
       queryKeys.yield.allocations(TEST_GARDEN, TEST_CHAIN_ID, 10),
       queryKeys.yield.allocationsBase(TEST_GARDEN, TEST_CHAIN_ID)
     );
+    expectRooted(queryKeys.yield.wiring(TEST_GARDEN, TEST_CHAIN_ID), queryKeys.yield.all);
   });
 
   it("keeps stable keys for identical inputs", () => {

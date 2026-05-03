@@ -132,6 +132,8 @@ export {
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,
   GARDEN_ACCOUNT_ROLE_ABI,
+  GARDENS_MODULE_ABI,
+  YIELD_RESOLVER_ABI,
   OCTANT_MODULE_ABI,
   OCTANT_VAULT_ABI,
 } from "./blockchain/abis";
@@ -181,6 +183,17 @@ export type {
 } from "./blockchain/ens";
 export { resolveEnsAddress, resolveEnsName, suggestSlug, validateSlug } from "./blockchain/ens";
 export type { GardenRole, RoleColorScheme } from "./blockchain/garden-roles";
+export {
+  annotateGardenSignalPools,
+  deriveGardenYieldWiringState,
+} from "./blockchain/garden-yield-wiring";
+export type {
+  GardenYieldWiringIssue,
+  GardenYieldWiringReadStatus,
+  GardenYieldWiringSnapshot,
+  GardenYieldWiringState,
+  GardenYieldWiringStatus,
+} from "./blockchain/garden-yield-wiring";
 export {
   GARDEN_ROLE_COLORS,
   GARDEN_ROLE_FUNCTIONS,
