@@ -18,10 +18,12 @@ const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "../..");
 const PLANS_ROOT = join(REPO_ROOT, ".plans");
 const STAGES = ["ideas", "backlog", "active"];
+const MOVE_STAGES = [...STAGES, "archive"];
 const STAGE_TO_STATUS = {
   ideas: "idea",
   backlog: "backlog",
   active: "active",
+  archive: "done",
 };
 const VALID_PRIORITIES = new Set(["p0", "p1", "p2", "p3"]);
 const VALID_LANE_STATUSES = new Set([
@@ -41,6 +43,42 @@ const TDD_TERMINAL_STATUSES = new Set(["passed", "completed"]);
 const VALID_TDD_MODES = new Set(["required", "not_applicable", "proof_limit", "legacy_unrecorded"]);
 const VALID_TDD_STATUSES = new Set(["pending", "red_recorded", "green_recorded"]);
 const TDD_POLICY_STARTED_AT = Date.parse("2026-05-01T00:00:00.000Z");
+const VALID_TAXONOMY_INITIATIVES = new Set([
+  "agent-platform",
+  "design-system",
+  "engineering-quality",
+  "environmental-data",
+  "identity-ens",
+  "identity-wallet",
+  "protocol-readiness",
+  "public-experience",
+  "reputation",
+  "seasons",
+  "yield-to-impact",
+]);
+const VALID_TAXONOMY_TRACKS = new Set([
+  "admin",
+  "agent",
+  "client",
+  "client-browser",
+  "client-pwa",
+  "contracts",
+  "docs",
+  "indexer",
+  "ops",
+  "shared",
+]);
+const VALID_TAXONOMY_WORK_TYPES = new Set([
+  "cleanup",
+  "hardening",
+  "implementation",
+  "maintenance",
+  "observability",
+  "ops",
+  "qa",
+  "research",
+  "review",
+]);
 const LANE_ALIASES = {
   ui: "ui",
   "state-api": "state_api",
@@ -62,10 +100,11 @@ const LANE_BRANCHES = {
 function usage() {
   console.log(`Usage:
   node scripts/harness/plan-hub.mjs scaffold <feature-slug> [--title "Feature Title"] [--stage backlog]
-  node scripts/harness/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active>
+  node scripts/harness/plan-hub.mjs move --feature <feature-slug> --to <ideas|backlog|active|archive>
   node scripts/harness/plan-hub.mjs list --agent <claude|codex> --lane <lane> [--stage active] [--json]
   node scripts/harness/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
   node scripts/harness/plan-hub.mjs record-tdd --feature <feature-slug> --lane <ui|state-api|contracts> --red-command "..." --red-evidence "..." --green-command "..." --green-evidence "..." [--actor human]
+  node scripts/harness/plan-hub.mjs summary [--initiative <initiative>] [--track <track>] [--json]
   node scripts/harness/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
   node scripts/harness/plan-hub.mjs validate`);
 }
@@ -113,6 +152,12 @@ function requireFlag(flags, key) {
 function assertStage(stage) {
   if (!STAGES.includes(stage)) {
     fail(`Invalid stage "${stage}". Expected one of: ${STAGES.join(", ")}`);
+  }
+}
+
+function assertMoveStage(stage) {
+  if (!MOVE_STAGES.includes(stage)) {
+    fail(`Invalid stage "${stage}". Expected one of: ${MOVE_STAGES.join(", ")}`);
   }
 }
 
@@ -326,6 +371,10 @@ function featureRecords(stage) {
     });
 }
 
+function formalFeatureSlugs() {
+  return new Set(STAGES.flatMap((stage) => featureRecords(stage).map((record) => record.status.feature.slug)));
+}
+
 function historyEntry({ actor, lane, status, branch, note }) {
   return {
     timestamp: nowIso(),
@@ -368,6 +417,38 @@ function printFeatureList(records, laneName, asJson) {
   for (const item of list) {
     console.log(
       `${item.slug} | ${item.priority} | ${item.lane_status} | ${item.branch} | ${item.path}`,
+    );
+  }
+}
+
+function printFeatureSummary(records, asJson) {
+  const list = records.map((record) => ({
+    slug: record.status.feature.slug,
+    title: record.status.feature.title,
+    stage: record.status.feature.stage,
+    priority: record.status.workflow.priority,
+    overall_status: record.status.workflow.overall_status,
+    initiative: record.status.taxonomy.initiative,
+    tracks: record.status.taxonomy.tracks,
+    work_types: record.status.taxonomy.work_types,
+    surfaces: record.status.taxonomy.surfaces,
+    depends_on_features: record.status.taxonomy.depends_on_features,
+    path: record.dir,
+  }));
+
+  if (asJson) {
+    console.log(JSON.stringify(list, null, 2));
+    return;
+  }
+
+  if (list.length === 0) {
+    console.log("No matching features.");
+    return;
+  }
+
+  for (const item of list) {
+    console.log(
+      `${item.slug} | ${item.stage} | ${item.priority} | ${item.initiative} | ${item.tracks.join(",")} | ${item.overall_status} | ${item.path}`,
     );
   }
 }
@@ -489,7 +570,61 @@ function validateLaneTdd(status, laneName, lane, stage, errors) {
   }
 }
 
-function validateFeatureStatus(status, featureDirPath, stage) {
+function arrayOfStrings(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function validateTaxonomy(status, knownSlugs, errors) {
+  const taxonomy = status.taxonomy;
+  if (!taxonomy || typeof taxonomy !== "object" || Array.isArray(taxonomy)) {
+    errors.push("taxonomy is required");
+    return;
+  }
+
+  if (!VALID_TAXONOMY_INITIATIVES.has(taxonomy.initiative)) {
+    errors.push(
+      `taxonomy.initiative must be one of ${Array.from(VALID_TAXONOMY_INITIATIVES).join(", ")}`,
+    );
+  }
+
+  for (const [field, validValues] of [
+    ["tracks", VALID_TAXONOMY_TRACKS],
+    ["work_types", VALID_TAXONOMY_WORK_TYPES],
+  ]) {
+    if (!arrayOfStrings(taxonomy[field])) {
+      errors.push(`taxonomy.${field} must be an array of strings`);
+      continue;
+    }
+
+    const invalid = taxonomy[field].filter((value) => !validValues.has(value));
+    if (invalid.length > 0) {
+      errors.push(`taxonomy.${field} has invalid values: ${invalid.join(", ")}`);
+    }
+  }
+
+  if (!arrayOfStrings(taxonomy.surfaces)) {
+    errors.push("taxonomy.surfaces must be an array of repo-relative paths");
+  } else {
+    const invalidSurfaces = taxonomy.surfaces.filter(
+      (surface) => surface.trim().length === 0 || surface.startsWith("/") || surface.includes(".."),
+    );
+    if (invalidSurfaces.length > 0) {
+      errors.push(`taxonomy.surfaces has invalid repo-relative paths: ${invalidSurfaces.join(", ")}`);
+    }
+  }
+
+  if (!arrayOfStrings(taxonomy.depends_on_features)) {
+    errors.push("taxonomy.depends_on_features must be an array of feature slugs");
+    return;
+  }
+
+  const missingDependencies = taxonomy.depends_on_features.filter((slug) => !knownSlugs.has(slug));
+  if (missingDependencies.length > 0) {
+    errors.push(`taxonomy.depends_on_features references unknown feature slugs: ${missingDependencies.join(", ")}`);
+  }
+}
+
+function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = formalFeatureSlugs()) {
   const errors = [];
   const slug = slugFromPath(featureDirPath);
 
@@ -504,6 +639,8 @@ function validateFeatureStatus(status, featureDirPath, stage) {
   if (!VALID_PRIORITIES.has(status.workflow.priority)) {
     errors.push(`workflow.priority must be one of ${Array.from(VALID_PRIORITIES).join(", ")}`);
   }
+
+  validateTaxonomy(status, knownSlugs, errors);
 
   for (const requiredLane of Object.keys(LANE_BRANCHES)) {
     if (!status.lanes[requiredLane]) {
@@ -600,7 +737,7 @@ function scaffoldFeature(slug, flags) {
 function moveFeature(flags) {
   const slug = requireFlag(flags, "feature");
   const toStage = requireFlag(flags, "to");
-  assertStage(toStage);
+  assertMoveStage(toStage);
 
   const found = findFeature(slug);
   if (found.stage === toStage) {
@@ -654,6 +791,37 @@ function listReady(flags) {
     });
 
   printFeatureList(matches, laneName, Boolean(flags.json));
+}
+
+function summary(flags) {
+  if (flags.initiative && !VALID_TAXONOMY_INITIATIVES.has(flags.initiative)) {
+    fail(`Invalid initiative "${flags.initiative}". Expected one of: ${Array.from(VALID_TAXONOMY_INITIATIVES).join(", ")}`);
+  }
+
+  if (flags.track && !VALID_TAXONOMY_TRACKS.has(flags.track)) {
+    fail(`Invalid track "${flags.track}". Expected one of: ${Array.from(VALID_TAXONOMY_TRACKS).join(", ")}`);
+  }
+
+  const matches = STAGES.flatMap((stage) => featureRecords(stage))
+    .filter((record) => !flags.initiative || record.status.taxonomy.initiative === flags.initiative)
+    .filter((record) => !flags.track || record.status.taxonomy.tracks.includes(flags.track))
+    .sort((left, right) => {
+      const leftStage = STAGES.indexOf(left.status.feature.stage);
+      const rightStage = STAGES.indexOf(right.status.feature.stage);
+      if (leftStage !== rightStage) {
+        return rightStage - leftStage;
+      }
+
+      const leftPriority = priorityWeight(left.status.workflow.priority);
+      const rightPriority = priorityWeight(right.status.workflow.priority);
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+
+      return left.status.feature.slug.localeCompare(right.status.feature.slug);
+    });
+
+  printFeatureSummary(matches, Boolean(flags.json));
 }
 
 function setLane(flags) {
@@ -776,14 +944,14 @@ function checkBranch(flags) {
 function validate() {
   const failures = [];
   let checked = 0;
+  const records = STAGES.flatMap((stage) => featureRecords(stage));
+  const knownSlugs = new Set(records.map((record) => record.status.feature.slug));
 
-  for (const stage of STAGES) {
-    for (const record of featureRecords(stage)) {
-      checked += 1;
-      const errors = validateFeatureStatus(record.status, record.dir, stage);
-      for (const error of errors) {
-        failures.push(`${record.dir}: ${error}`);
-      }
+  for (const record of records) {
+    checked += 1;
+    const errors = validateFeatureStatus(record.status, record.dir, record.status.feature.stage, knownSlugs);
+    for (const error of errors) {
+      failures.push(`${record.dir}: ${error}`);
     }
   }
 
@@ -824,6 +992,9 @@ switch (command) {
     break;
   case "record-tdd":
     recordTdd(flags);
+    break;
+  case "summary":
+    summary(flags);
     break;
   case "check-branch":
     checkBranch(flags);

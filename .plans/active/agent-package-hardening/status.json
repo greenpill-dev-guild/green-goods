@@ -1,16 +1,16 @@
 {
   "version": 1,
   "feature": {
-    "slug": "{{FEATURE_SLUG}}",
-    "title": "{{FEATURE_TITLE}}",
+    "slug": "agent-package-hardening",
+    "title": "Agent Package Hardening",
     "kind": "feature",
-    "stage": "{{STAGE}}"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "{{WORKFLOW_STATUS}}",
+    "overall_status": "active",
     "priority": "p2",
-    "created_at": "{{DATE}}",
-    "updated_at": "{{DATE}}"
+    "created_at": "2026-04-25T00:00:00.000Z",
+    "updated_at": "2026-05-03T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,38 +19,36 @@
     "eval": "eval.md"
   },
   "taxonomy": {
-    "initiative": "engineering-quality",
-    "tracks": [],
-    "work_types": ["implementation"],
-    "surfaces": [],
+    "initiative": "agent-platform",
+    "tracks": ["agent"],
+    "work_types": ["hardening", "qa"],
+    "surfaces": ["packages/agent"],
     "depends_on_features": []
   },
   "notes": [
-    "Mark unused lanes as n/a before promoting QA.",
-    "status.json is authoritative; branch names are automation signals.",
-    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    "Formalized from an active loose plan during the validated-taxonomy cleanup.",
+    "Keep SMS, WhatsApp, phone linking, and session-key work in agent-messaging-channels."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
-      "branch": "claude/ui/{{FEATURE_SLUG}}",
+      "status": "n/a",
+      "branch": "claude/ui/agent-package-hardening",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
-        "mode": "required",
+        "mode": "not_applicable",
         "status": "pending",
         "red": { "command": "", "evidence": "" },
         "green": { "command": "", "evidence": "" },
-        "note": ""
+        "note": "No UI lane is planned for this agent-package hardening pass."
       },
-      "skill_tags": ["ui", "frontend-design", "react"]
+      "skill_tags": ["testing", "agent"]
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
-      "branch": "codex/state-api/{{FEATURE_SLUG}}",
+      "status": "ready",
+      "branch": "codex/state-api/agent-package-hardening",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
@@ -60,30 +58,30 @@
         "green": { "command": "", "evidence": "" },
         "note": ""
       },
-      "skill_tags": ["react", "tanstack-query", "data-layer"]
+      "skill_tags": ["testing", "agent"]
     },
     "contracts": {
       "owner": "codex",
-      "status": "todo",
-      "branch": "codex/contracts/{{FEATURE_SLUG}}",
+      "status": "n/a",
+      "branch": "codex/contracts/agent-package-hardening",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "tdd": {
-        "mode": "required",
+        "mode": "not_applicable",
         "status": "pending",
         "red": { "command": "", "evidence": "" },
         "green": { "command": "", "evidence": "" },
-        "note": ""
+        "note": "No contract lane is planned for existing agent-package hardening."
       },
-      "skill_tags": ["contracts"]
+      "skill_tags": ["agent"]
     },
     "qa_pass_1": {
       "owner": "claude",
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "claude/qa-pass-1/{{FEATURE_SLUG}}",
-      "depends_on": ["ui", "state_api", "contracts"],
+      "branch": "claude/qa-pass-1/agent-package-hardening",
+      "depends_on": ["state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "skill_tags": ["testing", "review"]
     },
@@ -92,12 +90,21 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "codex/qa-pass-2/{{FEATURE_SLUG}}",
-      "branch_trigger": "claude/qa-pass-1/{{FEATURE_SLUG}}",
+      "branch": "codex/qa-pass-2/agent-package-hardening",
+      "branch_trigger": "claude/qa-pass-1/agent-package-hardening",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "skill_tags": ["testing", "review"]
     }
   },
-  "history": []
+  "history": [
+    {
+      "timestamp": "2026-05-03T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized",
+      "branch": null,
+      "note": "Formalized active loose plan with validated taxonomy and state/API TDD gate."
+    }
+  ]
 }

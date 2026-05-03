@@ -4,13 +4,13 @@
     "slug": "agent-upload-signer",
     "title": "Agent Upload Signer",
     "kind": "feature",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
     "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-04-25T18:43:29.436Z",
-    "updated_at": "2026-05-03T07:10:02.175Z"
+    "updated_at": "2026-05-03T19:17:16.238Z"
   },
   "links": {
     "brief": "brief.md",
@@ -248,6 +248,14 @@
       "status": "passed",
       "branch": "codex/qa-pass-2/agent-upload-signer",
       "note": "Added live Pinata signer-route upload proof with 1Password-backed PINATA_JWT: route/upload/gateway all returned 200."
+    },
+    {
+      "timestamp": "2026-05-03T19:17:16.238Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "archived",
+      "branch": null,
+      "note": "Archived after state/API completion, proof-limit closeout, and QA pass 1/2 passed."
     }
   ]
 }

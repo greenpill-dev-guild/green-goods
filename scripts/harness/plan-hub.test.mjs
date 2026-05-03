@@ -168,3 +168,109 @@ test("legacy_unrecorded is limited to pre-policy completed active work", () =>
 
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
+
+test("active backlog and idea hubs require valid taxonomy", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "taxonomy-required", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "taxonomy-required");
+    delete status.taxonomy;
+    writeStatus(root, "backlog", "taxonomy-required", status);
+
+    const missing = runPlanHub(root, ["validate"]);
+    assert.notEqual(missing.status, 0);
+    assert.match(missing.stderr, /taxonomy is required/);
+
+    status.taxonomy = {
+      initiative: "unknown",
+      tracks: ["shared", "mystery"],
+      work_types: ["implementation", "unknown"],
+      surfaces: ["packages/shared", "/absolute/path"],
+      depends_on_features: [],
+    };
+    writeStatus(root, "backlog", "taxonomy-required", status);
+
+    const invalid = runPlanHub(root, ["validate"]);
+    assert.notEqual(invalid.status, 0);
+    assert.match(invalid.stderr, /taxonomy.initiative/);
+    assert.match(invalid.stderr, /taxonomy.tracks/);
+    assert.match(invalid.stderr, /taxonomy.work_types/);
+    assert.match(invalid.stderr, /taxonomy.surfaces/);
+  }));
+
+test("taxonomy depends_on_features must reference formal hubs", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "known-dependency", "--stage", "backlog"]).status, 0);
+    assert.equal(runPlanHub(root, ["scaffold", "dependent-hub", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "dependent-hub");
+    status.taxonomy.depends_on_features = ["known-dependency", "missing-dependency"];
+    writeStatus(root, "backlog", "dependent-hub", status);
+
+    const invalid = runPlanHub(root, ["validate"]);
+    assert.notEqual(invalid.status, 0);
+    assert.match(invalid.stderr, /taxonomy.depends_on_features.*missing-dependency/);
+
+    status.taxonomy.depends_on_features = ["known-dependency"];
+    writeStatus(root, "backlog", "dependent-hub", status);
+
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("summary filters hubs by initiative and track", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "yield-hub", "--stage", "active"]).status, 0);
+    assert.equal(runPlanHub(root, ["scaffold", "agent-hub", "--stage", "backlog"]).status, 0);
+
+    const yieldStatus = readStatus(root, "active", "yield-hub");
+    yieldStatus.taxonomy = {
+      initiative: "yield-to-impact",
+      tracks: ["shared", "admin"],
+      work_types: ["implementation", "qa"],
+      surfaces: ["packages/shared", "packages/admin"],
+      depends_on_features: [],
+    };
+    writeStatus(root, "active", "yield-hub", yieldStatus);
+
+    const agentStatus = readStatus(root, "backlog", "agent-hub");
+    agentStatus.taxonomy = {
+      initiative: "agent-platform",
+      tracks: ["agent", "ops"],
+      work_types: ["observability", "implementation"],
+      surfaces: ["packages/agent"],
+      depends_on_features: [],
+    };
+    writeStatus(root, "backlog", "agent-hub", agentStatus);
+
+    const initiative = runPlanHub(root, ["summary", "--initiative", "yield-to-impact", "--json"]);
+    assert.equal(initiative.status, 0, initiative.stderr);
+    assert.deepEqual(
+      JSON.parse(initiative.stdout).map((item) => item.slug),
+      ["yield-hub"],
+    );
+
+    const track = runPlanHub(root, ["summary", "--track", "agent", "--json"]);
+    assert.equal(track.status, 0, track.stderr);
+    assert.deepEqual(
+      JSON.parse(track.stdout).map((item) => item.slug),
+      ["agent-hub"],
+    );
+  }));
+
+test("archive hubs do not require taxonomy", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "archived-hub", "--stage", "active"]).status, 0);
+    mkdirSync(join(root, ".plans", "archive"), { recursive: true });
+    cpSync(join(root, ".plans", "active", "archived-hub"), join(root, ".plans", "archive", "archived-hub"), {
+      recursive: true,
+    });
+    rmSync(join(root, ".plans", "active", "archived-hub"), { recursive: true, force: true });
+
+    const status = JSON.parse(readFileSync(join(root, ".plans", "archive", "archived-hub", "status.json"), "utf8"));
+    status.feature.stage = "archive";
+    delete status.taxonomy;
+    writeFileSync(
+      join(root, ".plans", "archive", "archived-hub", "status.json"),
+      `${JSON.stringify(status, null, 2)}\n`,
+    );
+
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T23:55:33Z",
-    "updated_at": "2026-04-25T23:55:33Z"
+    "updated_at": "2026-05-03T19:17:16.238Z"
   },
   "links": {
     "brief": "brief.md",
@@ -87,5 +87,12 @@
       "branch": null,
       "note": "Captured future ENS operations and reliability optimizations after core deploy readiness work."
     }
-  ]
+  ],
+  "taxonomy": {
+    "initiative": "identity-ens",
+    "tracks": ["contracts", "indexer", "shared", "client"],
+    "work_types": ["implementation", "ops", "qa"],
+    "surfaces": ["packages/contracts", "packages/indexer", "packages/shared", "packages/client"],
+    "depends_on_features": ["ens-l2-sender-admin-recovery"]
+  }
 }

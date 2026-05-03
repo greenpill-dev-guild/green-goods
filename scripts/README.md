@@ -72,8 +72,8 @@ scripts/
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |
 |---|---|---|
-| `plan-hub.mjs` | `plan` skill, `.plans/_automation/*` | Manage `.plans/{ideas,backlog,active}/` queue + lane status |
-| `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema and TDD proof gates |
+| `plan-hub.mjs` | `plan` skill, `.plans/_automation/*` | Manage `.plans/{ideas,backlog,active}/` queue, lane status, TDD gates, and taxonomy summaries |
+| `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema, taxonomy, summaries, and TDD proof gates |
 | `log-automation-run.mjs` | `.plans/_automation/*` prompts | Append plan-run telemetry under `.plans/_automation/runs/` |
 | `parse-docx-feedback.ts` | `doc-feedback` skill | Parse a Google Doc downloaded as `.docx` into markdown with body + comments + tracked changes |
 

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p0",
     "created_at": "2026-04-17",
-    "updated_at": "2026-04-26T19:08:17.489Z"
+    "updated_at": "2026-05-03T19:17:16.238Z"
   },
   "links": {
     "brief": "brief.md",
@@ -113,5 +113,12 @@
       "branch": null,
       "note": "Moved feature hub from active to backlog"
     }
-  ]
+  ],
+  "taxonomy": {
+    "initiative": "yield-to-impact",
+    "tracks": ["contracts", "shared", "admin", "client"],
+    "work_types": ["research", "implementation", "qa", "ops"],
+    "surfaces": ["packages/contracts", "packages/shared", "packages/admin", "packages/client"],
+    "depends_on_features": ["yield-split-ui"]
+  }
 }

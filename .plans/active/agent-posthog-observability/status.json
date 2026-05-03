@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "agent-posthog-observability",
+    "title": "Agent PostHog Observability",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-04-25T00:00:00.000Z",
+    "updated_at": "2026-05-03T00:00:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "taxonomy": {
+    "initiative": "agent-platform",
+    "tracks": ["agent", "ops"],
+    "work_types": ["observability", "implementation"],
+    "surfaces": ["scripts/agents", "docs/routines", "packages/agent", ".claude/skills/debug"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Formalized from an active loose plan during the validated-taxonomy cleanup.",
+    "Replay links remain private-context evidence and must not be placed in public issue bodies."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/agent-posthog-observability",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No UI lane is planned for the PostHog read-side query surface."
+      },
+      "skill_tags": ["agent", "ops"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "ready",
+      "branch": "codex/state-api/agent-posthog-observability",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["agent", "ops", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/agent-posthog-observability",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No contract lane is planned for observability query access."
+      },
+      "skill_tags": ["agent"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/agent-posthog-observability",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/agent-posthog-observability",
+      "branch_trigger": "claude/qa-pass-1/agent-posthog-observability",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-03T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized",
+      "branch": null,
+      "note": "Formalized active loose plan with validated taxonomy and state/API TDD gate."
+    }
+  ]
+}

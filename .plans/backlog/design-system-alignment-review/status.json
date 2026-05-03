@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-04-25T05:11:42.581Z"
+    "updated_at": "2026-05-03T19:17:16.238Z"
   },
   "links": {
     "brief": "brief.md",
@@ -88,5 +88,12 @@
       "branch": null,
       "note": "Scoped as the follow-up read-only design-system alignment review after deleting the old implementation plan."
     }
-  ]
+  ],
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["admin", "client-browser", "client-pwa", "shared", "docs"],
+    "work_types": ["review"],
+    "surfaces": ["DESIGN.md", "packages/shared", "packages/admin", "packages/client", "docs"],
+    "depends_on_features": ["css-maintainability-polish"]
+  }
 }

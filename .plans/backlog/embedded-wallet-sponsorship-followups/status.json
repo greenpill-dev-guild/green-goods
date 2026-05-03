@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-12T02:12:20.845Z",
-    "updated_at": "2026-04-12T02:12:11Z"
+    "updated_at": "2026-05-03T19:17:16.238Z"
   },
   "links": {
     "brief": "brief.md",
@@ -87,5 +87,12 @@
       "branch": null,
       "note": "Created as the focused replacement for the old broad web2 auth and gas sponsorship scope."
     }
-  ]
+  ],
+  "taxonomy": {
+    "initiative": "identity-wallet",
+    "tracks": ["client", "shared", "agent"],
+    "work_types": ["implementation", "review"],
+    "surfaces": ["packages/client", "packages/shared", "packages/agent"],
+    "depends_on_features": []
+  }
 }

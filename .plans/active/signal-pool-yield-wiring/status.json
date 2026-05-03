@@ -219,5 +219,12 @@
       "branch": "codex/state-api/signal-pool-yield-wiring",
       "note": "Shared/state yield wiring status implemented with RED/GREEN proof."
     }
-  ]
+  ],
+  "taxonomy": {
+    "initiative": "yield-to-impact",
+    "tracks": ["contracts", "shared", "admin"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/contracts", "packages/shared", "packages/admin"],
+    "depends_on_features": []
+  }
 }

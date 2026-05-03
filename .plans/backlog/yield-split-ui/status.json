@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-03-16",
-    "updated_at": "2026-04-12T02:12:11Z"
+    "updated_at": "2026-05-03T19:17:16.238Z"
   },
   "links": {
     "brief": "brief.md",
@@ -102,5 +102,12 @@
       "branch": null,
       "note": "Reclassified as a shared/admin/client backlog feature downstream from signal-pool-yield-wiring."
     }
-  ]
+  ],
+  "taxonomy": {
+    "initiative": "yield-to-impact",
+    "tracks": ["admin", "client", "shared"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/admin", "packages/client", "packages/shared"],
+    "depends_on_features": ["signal-pool-yield-wiring"]
+  }
 }

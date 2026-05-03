@@ -1,5 +1,7 @@
 # Admin Claude Design Export
 
+**Status**: `BACKLOG REFERENCE` — demoted from active on 2026-05-03 until the reference image and Claude Design intake path are confirmed.
+
 Per-view bundle for handing the admin UI to claude.ai/design. Sized for **bite-sized session feeding** — one Claude Design session per route — with a system context + per-view prompt model.
 
 ## Goal
@@ -9,7 +11,7 @@ Produce `~/Downloads/admin-claude-design-export-<YYYY-MM-DD>/` containing the sy
 ## File layout
 
 ```
-.plans/active/admin-claude-design-export/
+.plans/backlog/admin-claude-design-export/
 ├── plan.todo.md                         # this file
 ├── READ-ME-FIRST.md                     # bundle entry doc — session model
 ├── 00-SYSTEM.md                         # design system context (every session)
@@ -61,16 +63,16 @@ Full = `--variants=all` (~143 × 2 = 286 PNGs).
 
 ```bash
 # One-shot bundle: rebuild + text bundle + captures + copy to ~/Downloads
-.plans/active/admin-claude-design-export/scripts/bundle-export.sh
+.plans/backlog/admin-claude-design-export/scripts/bundle-export.sh
 
 # Skip Storybook rebuild (use existing storybook-static/)
-.plans/active/admin-claude-design-export/scripts/bundle-export.sh --skip-rebuild
+.plans/backlog/admin-claude-design-export/scripts/bundle-export.sh --skip-rebuild
 
 # All variants (~286 PNGs)
-.plans/active/admin-claude-design-export/scripts/bundle-export.sh --variants=all
+.plans/backlog/admin-claude-design-export/scripts/bundle-export.sh --variants=all
 
 # Text-only refresh (no screenshots)
-.plans/active/admin-claude-design-export/scripts/bundle-export.sh --skip-captures
+.plans/backlog/admin-claude-design-export/scripts/bundle-export.sh --skip-captures
 ```
 
 ## Status
@@ -83,5 +85,7 @@ Full = `--variants=all` (~143 × 2 = 286 PNGs).
 - [ ] Run full bundle end-to-end and verify output structure
 
 ## Notes
+
+Demotion note: this remains a useful reference bundle, but it is not an active formal hub until the reference image and Claude Design intake path are confirmed.
 
 Per CLAUDE.md script policy: capture script lives in `packages/shared/.storybook/` (storybook-adjacent tooling). Bundle orchestrator + prompts live in `.plans/` (one-shot). Earn a `scripts/` slot only after used twice.

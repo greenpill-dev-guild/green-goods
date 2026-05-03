@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "client-pwa-gardener-audit",
+    "title": "Client PWA Gardener Audit",
+    "kind": "quality",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-04-30T00:00:00.000Z",
+    "updated_at": "2026-05-03T00:00:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["client-pwa", "client", "shared"],
+    "work_types": ["review", "qa"],
+    "surfaces": ["packages/client", "packages/shared"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Formalized from active loose audit/fixes notes during the validated-taxonomy cleanup.",
+    "Implementation predates the 2026-05-01 TDD policy; remaining work is browser QA."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "claude/ui/client-pwa-gardener-audit",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "legacy_unrecorded",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Gardener-facing UI fixes were completed before the TDD proof policy; do not invent historical RED/GREEN evidence."
+      },
+      "skill_tags": ["ui", "testing", "review"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/client-pwa-gardener-audit",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "legacy_unrecorded",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Shared/client gating and copy-support changes were completed before the TDD proof policy; do not invent historical RED/GREEN evidence."
+      },
+      "skill_tags": ["react", "testing", "review"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/client-pwa-gardener-audit",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No contract lane is planned for the gardener-first PWA audit."
+      },
+      "skill_tags": ["testing"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "ready",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/client-pwa-gardener-audit",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/client-pwa-gardener-audit",
+      "branch_trigger": "claude/qa-pass-1/client-pwa-gardener-audit",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-03T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized",
+      "branch": null,
+      "note": "Formalized active loose audit as QA-ready hub; implementation proof remains legacy_unrecorded and manual browser pass is next."
+    }
+  ]
+}

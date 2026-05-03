@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-28T00:00:00.000Z",
-    "updated_at": "2026-04-28T00:46:15.000Z"
+    "updated_at": "2026-05-03T19:17:16.238Z"
   },
   "links": {
     "brief": "brief.md",
@@ -99,5 +99,12 @@
       "branch": null,
       "note": "Reviewed the hub after concurrent worktree churn and corrected stale PWA dependency wording in status.json so machine-readable notes match the plan artifacts."
     }
-  ]
+  ],
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["admin", "client", "shared"],
+    "work_types": ["cleanup", "maintenance"],
+    "surfaces": ["packages/admin", "packages/client", "packages/shared"],
+    "depends_on_features": ["client-pwa-gardener-audit"]
+  }
 }
