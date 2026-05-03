@@ -18,6 +18,13 @@
     "plan": "plan.todo.md",
     "eval": "eval.md"
   },
+  "linear": {
+    "initiative": "02b1504f-8aa1-475d-aeff-5d181a918cae",
+    "project": "49fe6466-06cb-41f5-a4ee-d8da62420929",
+    "issue": "CRBT-351",
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-03T01:35:00.000Z"
+  },
   "notes": [
     "Downstream UI backlog item after signal-pool-yield-wiring.",
     "Shared hooks and admin/client surfaces only; no contract work in this hub.",

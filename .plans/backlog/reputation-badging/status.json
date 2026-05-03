@@ -18,6 +18,13 @@
     "plan": "plan.todo.md",
     "eval": "eval.md"
   },
+  "linear": {
+    "initiative": "03e45d7c-97be-440c-a554-f89918b6f1fb",
+    "project": "49fe6466-06cb-41f5-a4ee-d8da62420929",
+    "issue": "CRBT-292",
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-03T01:35:00.000Z"
+  },
   "notes": [
     "Outcome milestone #16 — Badges live across 3+ pilot gardens; due 2026-06-30.",
     "Epic #466. Groundwork: #457 (feat(greenwill): async badge issuer service).",

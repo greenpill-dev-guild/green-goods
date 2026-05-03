@@ -18,6 +18,10 @@ Guild-level routines (research-synthesis, design-synthesis, routine-issue-cleanu
 
 See [`workflows.md`](./workflows.md) for human-in-the-loop touchpoints, gating signals, and mermaid diagrams of each pipeline.
 
+See [`product-development-harness.md`](./product-development-harness.md) for the current
+Linear/GitHub/Codex/Claude improvement notes, including the recommended Linear migration
+order and routine hardening backlog.
+
 ## Channel mapping
 
 | Channel | Used by | Why |

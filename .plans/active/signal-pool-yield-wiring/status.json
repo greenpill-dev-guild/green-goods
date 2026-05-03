@@ -19,6 +19,12 @@
     "plan": "plan.todo.md",
     "eval": "eval.md"
   },
+  "linear": {
+    "initiative": "02b1504f-8aa1-475d-aeff-5d181a918cae",
+    "project": "83efbbc9-3910-42e0-ae95-2ef1f888e449",
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-03T01:35:00.000Z"
+  },
   "notes": [
     "Protocol prerequisite for yield-split-ui.",
     "Contracts are the primary lane; shared/admin only verify and recover failed wiring.",
