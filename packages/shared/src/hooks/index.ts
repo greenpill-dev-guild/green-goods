@@ -139,7 +139,9 @@ export { useAllocateHypercertSupport } from "./conviction/useAllocateHypercertSu
 // ============================================================================
 // CONVICTION VOTING
 // ============================================================================
+export { useConvictionProposalsForPool } from "./conviction/useConvictionProposalsForPool";
 export { useConvictionStrategies } from "./conviction/useConvictionStrategies";
+export { useConvictionWeightAllocator } from "./conviction/useConvictionWeightAllocator";
 export { useCreateGardenPools } from "./conviction/useCreateGardenPools";
 export { useDeregisterHypercert } from "./conviction/useDeregisterHypercert";
 export { useGardenCommunity } from "./conviction/useGardenCommunity";

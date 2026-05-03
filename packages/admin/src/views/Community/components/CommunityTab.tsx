@@ -9,6 +9,7 @@ import {
   formatTokenAmount,
   type GardenDetailTab,
   type GardenRole,
+  type GardenSignalPool,
   type RoleDirectoryEntry,
   type TabBadgeSeverity,
   type YieldAllocation,
@@ -23,6 +24,7 @@ import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
 import { SectionStateCard } from "@/views/Garden/components/GardenDetailHelpers";
+import { GovernancePanel } from "./GovernancePanel";
 
 export interface CommunityTabProps {
   garden: { id: string; name: string };
@@ -35,7 +37,9 @@ export interface CommunityTabProps {
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
   community: unknown;
   communityLoading: boolean;
-  pools: unknown;
+  /** Tightened from `unknown` per Tier-5 audit finding #8 — the actual shape
+   *  is GardenSignalPool[] (returned by useGardenPools). */
+  pools: GardenSignalPool[];
   createPools: () => void;
   isCreatingPools: boolean;
   vaultsLoading: boolean;
@@ -164,6 +168,10 @@ export function CommunityTab({
                 onCreatePools={createPools}
                 onScheduleRefetch={scheduleBackgroundRefetch}
               />
+            )}
+
+            {(section === undefined || section === "governance") && (
+              <GovernancePanel pools={pools} gardenId={gardenId} />
             )}
 
             {(section === undefined || section === "governance") && (
