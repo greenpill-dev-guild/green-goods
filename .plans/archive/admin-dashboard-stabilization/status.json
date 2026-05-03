@@ -4,13 +4,13 @@
     "slug": "admin-dashboard-stabilization",
     "title": "Admin Dashboard Stabilization",
     "kind": "quality",
-    "stage": "backlog"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "completed",
     "priority": "p1",
     "created_at": "2026-05-01T00:00:00.000Z",
-    "updated_at": "2026-05-02T02:30:00.000Z"
+    "updated_at": "2026-05-03T06:26:30.391Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,7 +27,8 @@
     "Runtime hooks remain in @green-goods/shared; admin owns shell rendering and admin-only terminal-state UI.",
     "Storybook admin harness fixes should be centralized in shared Storybook helpers instead of copied into each story.",
     "Audit proof limits include sandbox/Varlock escalation and a dirty develop worktree with unrelated changes.",
-    "Implementation was explicitly scope-locked by the user on 2026-05-02; state_api and ui lanes are complete, while QA remains blocked."
+    "Implementation was explicitly scope-locked by the user on 2026-05-02; state_api and ui lanes are complete, while QA remains blocked.",
+    "Archived on 2026-05-02 after state/API, UI, QA pass 1, and QA pass 2 completed for the admin scope."
   ],
   "lanes": {
     "ui": {
@@ -173,6 +174,14 @@
       "status": "passed",
       "branch": null,
       "note": "QA Pass 2 verdict: pass for admin stabilization scope. Re-ran tsc admin (exit 0), admin test:hub (13 files / 96 tests), shared check:stories (PASS), shared check:story-quality (PASS, 134 story files), shared test:stories:ci (1 failed / 102 passed — same single PublicBrowserSurfaces.stories.tsx out-of-scope failure as Pass 1). admin build proof-limited by local Varlock/1Password authorization timeout for PINATA_JWT, identical to the documented sandbox constraint in spec.md; admin code itself is clean (tsc passes). Source diff agrees with claude-ui.md / codex-state-api.md / claude-qa-pass-1.md handoffs and status.json lane records. Two non-blocking out-of-scope items remain: public-browser story assertion fix and a clean local admin build under refreshed Varlock credentials. Note: branch_trigger claude/qa-pass-1/admin-dashboard-stabilization does not exist locally; Pass 2 proceeded under explicit user request because durable Pass 1 evidence is on disk."
+    },
+    {
+      "timestamp": "2026-05-03T06:26:30.391Z",
+      "branch": null,
+      "actor": "codex",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "note": "Closed out after state_api/ui completion and QA pass 1/2 passed for admin scope; out-of-scope public story/build credential limits remain non-blocking."
     }
   ]
 }

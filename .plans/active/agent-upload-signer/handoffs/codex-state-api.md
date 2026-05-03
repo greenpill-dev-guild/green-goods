@@ -73,9 +73,25 @@ Implemented the server-side browser upload signing lane against the current Hono
   - The first sandboxed run failed shared/client/admin test steps on `ENOTFOUND registry.npmjs.org` while Bun tried to resolve its managed Node runtime.
   - The escalated rerun passed format, lint, shared and agent typecheck, shared tests, client tests, admin hub tests, and agent tests.
 
+## Proof Limit
+
+The state/API implementation predates the 2026-05-01 TDD proof gate, so this closeout does not claim historical RED evidence. I rechecked AC-1 through AC-5 from source, tests, docs, and scripts, found no behavior gap that warranted a new failing test, and recorded `proof_limit` in `status.json` instead of manufacturing RED/GREEN history.
+
+Fallback validation rerun on 2026-05-03:
+
+- Passed: `cd packages/agent && bun run test src/__tests__/upload-signer.test.ts` — 5 tests.
+- Passed: `cd packages/agent && bun run test` — 100 tests.
+- Passed: `cd packages/agent && bun run lint` — 0 warnings/errors.
+- Passed: `cd packages/agent && bun run typecheck`.
+- Passed after approved network rerun: `cd packages/shared && bun run test -- src/__tests__/modules/ipfs.module.test.ts` — 11 tests. The sandboxed attempt failed on `ENOTFOUND registry.npmjs.org` while Bun resolved its managed Node package.
+- Passed after approved network rerun: `cd packages/shared && bun run test -- src/__tests__/modules/wallet-submission.test.ts` — 10 tests. The sandboxed attempt hit the same Bun managed Node DNS failure.
+- Expected nonzero with intended warning: `VITE_PINATA_JWT=stale-token node scripts/dev/doctor.js --profile upload --json` emitted `env:pinata-browser-secret` and confirmed `VITE_API_BASE_URL=https://agent.greengoods.app`. The same output also showed local upload QA is not ready because 1Password cannot resolve `PINATA_JWT` and no direct Pinata signing credential is available locally.
+- Passed: `node scripts/harness/plan-hub.mjs validate` — validated 19 feature hubs.
+
 ## Remaining blockers and proof limits
 
-- No live Pinata upload was executed in this lane; Pinata signing and upload response parsing are covered by focused mocked tests.
+- The initial state/API closeout did not have historical RED evidence because the implementation predated the TDD gate; this remains a TDD proof limit.
+- Follow-up QA on 2026-05-03 did execute live Pinata proof through the in-process Hono signer route: route status 200, upload status 200, CID `bafkreiga3mw4kc4vljuxurbno4nn5dc652dglkjigfdcp3knzoao5wlefi`, gateway status 200.
 - Production deploys must provide root `.env` values for `PINATA_JWT`, `AGENT_ALLOWED_ORIGINS` or `AGENT_PUBLIC_ALLOWED_ORIGINS`, and browser `VITE_API_BASE_URL`.
 - The repo still has unrelated dirty files and archived-plan deletions that predate this lane; they were not touched or normalized here.
 - `node scripts/dev/ci-local.js --quick` passed only after network permission because sandbox DNS blocked Bun's managed Node resolution.

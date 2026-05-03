@@ -1,11 +1,15 @@
 # Public Browser Editorial UI Build Plan
 
 **Slug:** `public-read-side-journal`
-**Status:** `ACTIVE`
+**Status:** `ARCHIVED`
 **Created:** `2026-04-25`
-**Updated:** `2026-04-26`
+**Updated:** `2026-05-02`
 **Priority:** `p1`
 **Primary surface:** `packages/client` public browser
+
+> Closed out on 2026-05-02 after UI/state implementation, QA pass 1, QA pass 2,
+> install CTA fixes, and Fraunces font fixes. Remaining real-device/browser
+> screenshot proof is out-of-band and should not keep this hub active.
 
 ## Intent
 

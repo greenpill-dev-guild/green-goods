@@ -1,8 +1,8 @@
 # Admin Dashboard Stabilization Plan
 
 **Feature Slug**: `admin-dashboard-stabilization`
-**Stage**: `backlog`
-**Status**: `QA PASS 1 + QA PASS 2 PASSED FOR ADMIN SCOPE; PUBLIC-BROWSER STORY ASSERTION DEFERRED OUT-OF-SCOPE`
+**Stage**: `archive`
+**Status**: `ARCHIVED — QA PASS 1 + QA PASS 2 PASSED FOR ADMIN SCOPE`
 **Created**: `2026-05-01`
 **Last Updated**: `2026-05-02`
 
@@ -15,7 +15,8 @@
 | 3 | Keep `/actions` deployer-only | Route gating already encodes this policy and the stabilization pass should align controller/story behavior to it. |
 | 4 | Direct canvas routes render terminal states in place | Bookmarks should show the same disconnected, embedded-wallet, indexer-error, and no-access states as `/`. |
 | 5 | Runtime code changes require a later scope lock | This hub's first pass is an audit/remediation plan, not an implementation branch. |
-| 6 | Codex implemented after explicit user scope lock on 2026-05-02 | State/API and UI lanes are complete, but QA remains blocked by the missing Claude QA pass and one unrelated public Storybook assertion. |
+| 6 | Codex implemented after explicit user scope lock on 2026-05-02 | State/API and UI lanes completed with TDD proof; QA pass 1 and QA pass 2 passed for admin scope. |
+| 7 | Archive after admin-scope QA closeout | The remaining public-browser Storybook assertion and local Varlock build proof-limit are recorded as out-of-scope/non-blocking, not active admin blockers. |
 
 ## Research / Plan Gate
 

@@ -2,9 +2,9 @@
 
 **Feature Slug**: `agent-upload-signer`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `DONE`
 **Created**: `2026-04-25T18:43:29.436Z`
-**Last Updated**: `2026-04-29`
+**Last Updated**: `2026-05-03`
 
 > Promoted to active on 2026-04-27 as non-product security/ops hardening: remove browser upload dependence on long-lived Pinata authority while keeping direct browser-to-Pinata uploads.
 
@@ -49,16 +49,25 @@
 
 ### QA Pass 1 (`claude/qa-pass-1/agent-upload-signer`)
 
-- [ ] Verify upload-capable user flows from client/admin surfaces.
-- [ ] Confirm no new user-facing copy bypasses i18n.
-- [ ] Record any UX, documentation, or release-readiness gaps in `handoffs/claude-qa-pass-1.md`.
+- [x] Verified upload-capable flow routing from client/admin surfaces through shared work submission and IPFS helpers.
+- [x] Confirmed no new user-facing copy was introduced by this QA pass; no UI lane was planned or implemented.
+- [x] Recorded QA result and proof limit in `handoffs/claude-qa-pass-1.md`.
 
 ### QA Pass 2 (`codex/qa-pass-2/agent-upload-signer`)
 
-- [ ] Confirm `qa_pass_1` is passed and branch trigger exists.
-- [ ] Re-run targeted agent/shared validation.
-- [ ] Confirm `VITE_PINATA_JWT` is not required for browser uploads.
-- [ ] Write `handoffs/codex-qa-pass-2.md`.
+- [x] Ran after QA pass 1 in this user-directed session; original branch trigger was absent locally and recorded as a process deviation.
+- [x] Re-ran targeted agent/shared validation.
+- [x] Confirmed `VITE_PINATA_JWT` is not required for browser uploads and stale-secret warning is emitted by the upload doctor.
+- [x] Wrote `handoffs/codex-qa-pass-2.md`.
+
+## Closeout
+
+- Closed on 2026-05-03 after state/API was marked completed with proof-limit validation.
+- `ui` and `contracts` remain `n/a`.
+- `qa_pass_1` and `qa_pass_2` were run on 2026-05-03 after explicit user request.
+- Live upload proof was run on 2026-05-03 after allowing Varlock to resolve `PINATA_JWT` from 1Password outside the sandbox.
+- The live in-process Hono signer route returned 200, the signed Pinata upload returned 200, and the gateway returned 200 for CID `bafkreiga3mw4kc4vljuxurbno4nn5dc652dglkjigfdcp3knzoao5wlefi`.
+- `status.json` is terminal with `workflow.overall_status = "done"`.
 
 ## Validation
 

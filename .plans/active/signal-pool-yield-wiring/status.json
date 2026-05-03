@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-03-16",
-    "updated_at": "2026-05-01T21:26:17.819Z",
+    "updated_at": "2026-05-03T07:24:28.337Z",
     "target_date": "2026-05-15"
   },
   "links": {
@@ -37,7 +37,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/ui/signal-pool-yield-wiring",
@@ -61,7 +61,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "ready",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/state-api/signal-pool-yield-wiring",
@@ -71,14 +71,14 @@
       "skill_tags": ["react", "tanstack-query", "data-layer"],
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/shared && bun run test -- src/__tests__/utils/garden-yield-wiring.test.ts",
+          "evidence": "handoffs/codex-state-api.md#tdd-proof"
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/shared && bun run test -- src/__tests__/utils/garden-yield-wiring.test.ts",
+          "evidence": "handoffs/codex-state-api.md#tdd-proof"
         },
         "note": ""
       }
@@ -202,6 +202,22 @@
       "status": "completed",
       "branch": "codex/contracts/signal-pool-yield-wiring",
       "note": "Contracts wiring implemented with RED/GREEN proof in codex-contracts handoff."
+    },
+    {
+      "timestamp": "2026-05-03T07:24:25.710Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/signal-pool-yield-wiring",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-03T07:24:28.337Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/signal-pool-yield-wiring",
+      "note": "Shared/state yield wiring status implemented with RED/GREEN proof."
     }
   ]
 }

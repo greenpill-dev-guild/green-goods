@@ -1,10 +1,12 @@
 # Garden Domain New Admin UI Parity
 
-**Status**: ACTIVE
+**Status**: ARCHIVED
 **Created**: 2026-03-24
-**Last Updated**: 2026-04-27
+**Last Updated**: 2026-05-02
 
 > 2026-04-27 scope update: the garden-domain UI/data fix has already landed on `main`, but the current admin UI is substantially different. Do **not** cherry-pick those commits. Use the `main` behavior as acceptance reference, then verify or adapt the current new admin UI so the same recovery path exists here.
+>
+> 2026-05-02 closeout: QA pass 1 verified all in-scope acceptance checks; QA pass 2 is recorded as skipped per accepted targeted-proof closeout.
 
 ## Decision Log
 
