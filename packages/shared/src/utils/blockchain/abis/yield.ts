@@ -58,6 +58,30 @@ export const YIELD_SPLITTER_ABI = [
   },
   {
     type: "function",
+    name: "gardenHypercertPools",
+    stateMutability: "view",
+    inputs: [{ name: "garden", type: "address" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "gardensModule",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "setGardenHypercertPool",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "garden", type: "address" },
+      { name: "pool", type: "address" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "minYieldThreshold",
     stateMutability: "view",
     inputs: [],
@@ -117,6 +141,8 @@ export const YIELD_SPLITTER_ABI = [
     outputs: [],
   },
 ] as const;
+
+export const YIELD_RESOLVER_ABI = YIELD_SPLITTER_ABI;
 
 export const JUICEBOX_ABI = [
   {
