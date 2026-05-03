@@ -1,4 +1,4 @@
-import { MetaStrip, useGardenWorkspaceController } from "@green-goods/shared";
+import { useGardenWorkspaceController } from "@green-goods/shared";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { GardenSheetDescriptor } from "./components/GardenSheetDescriptor";
@@ -27,14 +27,10 @@ export default function GardenView() {
         title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
         description={formatMessage({
           id: "cockpit.garden.description",
-          defaultMessage: "Manage your garden overview, impact metrics, and settings",
+          defaultMessage:
+            "What's growing in this garden — overview, activity, gardeners, and settings.",
         })}
         variant="canvas"
-        metadata={
-          garden.selectedGarden ? (
-            <MetaStrip items={[{ id: "garden", label: garden.selectedGarden.name }]} />
-          ) : undefined
-        }
         sticky
       >
         <AdminTabRail
@@ -54,12 +50,18 @@ export default function GardenView() {
               count: garden.derived.overviewAlerts.length || undefined,
             },
             {
-              id: "impact",
+              id: "activity",
               label: formatMessage({
-                id: "cockpit.garden.impact",
-                defaultMessage: "Impact",
+                id: "cockpit.garden.activity",
+                defaultMessage: "Activity",
               }),
-              count: garden.hypercerts.length || undefined,
+            },
+            {
+              id: "members",
+              label: formatMessage({
+                id: "cockpit.garden.members",
+                defaultMessage: "Members",
+              }),
             },
             {
               id: "settings",

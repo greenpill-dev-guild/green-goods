@@ -76,6 +76,10 @@ export default function Actions() {
             defaultMessage:
               "Scan the registry, review lifecycle status, and maintain submission requirements.",
           })}
+          eyebrow={intl.formatMessage({
+            id: "cockpit.actions.eyebrow",
+            defaultMessage: "Catalog",
+          })}
           variant="canvas"
           sticky
           actions={

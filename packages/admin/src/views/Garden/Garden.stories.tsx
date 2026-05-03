@@ -120,15 +120,15 @@ export const Overview: Story = {
   },
 };
 
-export const Impact: Story = {
+export const Activity: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/garden/impact" },
+  args: { initialPath: "/garden/activity" },
   decorators: gardenDecorators(),
 };
 
-export const HypercertInspector: Story = {
+export const Members: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/garden/impact/hypercerts/hypercert-rio-baseline" },
+  args: { initialPath: "/garden/members" },
   decorators: gardenDecorators(),
 };
 

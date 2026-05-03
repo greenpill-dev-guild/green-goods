@@ -1,10 +1,12 @@
 import {
   type Address,
   Alert,
+  EmptyState,
   Surface,
   type AdminWorkspaceSectionTab,
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
+import { RiPulseLine, RiTeamLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
@@ -14,7 +16,6 @@ import {
   CanvasWorkspaceLoadingState,
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
-import { ImpactTab } from "./ImpactTab";
 import { OverviewTab } from "./OverviewTab";
 import { GardenDomainSummaryRow } from "./GardenDetailHelpers";
 
@@ -93,23 +94,36 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
             />
           ) : null}
 
-          {workspace.view === "impact" ? (
-            <ImpactTab
-              garden={{ id: workspace.garden.id, chainId: workspace.garden.chainId }}
-              gardenId={workspace.garden.id}
-              canManage={workspace.canManage}
-              canReview={workspace.canReview}
-              section={workspace.section}
-              selectedItem={workspace.selectedItem}
-              clearSection={workspace.clearSection}
-              openSection={workspace.openSection}
-              assessments={workspace.assessments}
-              fetchingAssessments={workspace.fetchingAssessments}
-              assessmentsError={workspace.assessmentsError}
-              hypercerts={workspace.hypercerts}
-              hypercertsLoading={workspace.fetching}
-              domainLabels={workspace.derived.domainLabels}
-              approvedInLastThirtyDays={workspace.derived.approvedInLastThirtyDays}
+          {workspace.view === "activity" ? (
+            <EmptyState
+              icon={<RiPulseLine className="h-6 w-6" />}
+              title={formatMessage({
+                id: "cockpit.garden.activity.empty.title",
+                defaultMessage: "Activity feed coming soon",
+              })}
+              description={formatMessage({
+                id: "cockpit.garden.activity.empty.description",
+                defaultMessage:
+                  "Submitted Work, plot updates, plantings, and milestones will surface here as the gardener-floor of this Garden.",
+              })}
+            />
+          ) : null}
+
+          {workspace.view === "members" ? (
+            <EmptyState
+              icon={<RiTeamLine className="h-6 w-6" />}
+              title={formatMessage({
+                id: "cockpit.garden.members.empty.title",
+                defaultMessage: "Members roster coming soon",
+              })}
+              description={formatMessage(
+                {
+                  id: "cockpit.garden.members.empty.description",
+                  defaultMessage:
+                    "{count, plural, one {# gardener} other {# gardeners}} are currently registered. The full roster, role chips, and last-active state will land here.",
+                },
+                { count: workspace.garden.gardeners.length }
+              )}
             />
           ) : null}
 

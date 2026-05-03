@@ -163,6 +163,18 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: gardenView,
       },
       {
+        path: "activity",
+        lazy: gardenView,
+      },
+      {
+        path: "members",
+        lazy: gardenView,
+      },
+      {
+        // Legacy /garden/impact retained so existing URLs and external links
+        // do not 404. resolveGardenView falls back to "overview" for these
+        // paths after the Tier 4 IA change (audit IA-Garden decision); the
+        // hypercert sheet still opens via GardenSheetDescriptor.
         path: "impact",
         children: [
           {

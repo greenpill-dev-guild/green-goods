@@ -211,13 +211,18 @@ export function useGardenWorkspaceController() {
 
   const handleTabChange = useCallback(
     (nextView: string) => {
-      navigate(
-        nextView === "impact"
-          ? adminRoutes.gardenImpact({ gardenAddress: selectedGardenAddress, range })
-          : nextView === "settings"
-            ? adminRoutes.gardenSettings({ gardenAddress: selectedGardenAddress })
-            : adminRoutes.gardenOverview({ gardenAddress: selectedGardenAddress, range })
-      );
+      if (nextView === "settings") {
+        navigate(adminRoutes.gardenSettings({ gardenAddress: selectedGardenAddress }));
+      } else if (nextView === "activity") {
+        // Tier 4: Activity + Members are net-new tabs per audit IA-Garden.
+        // First-delivery navigation is path-only; range/garden context is
+        // carried in the workspace controller, not the URL.
+        navigate("/garden/activity");
+      } else if (nextView === "members") {
+        navigate("/garden/members");
+      } else {
+        navigate(adminRoutes.gardenOverview({ gardenAddress: selectedGardenAddress, range }));
+      }
     },
     [navigate, range, selectedGardenAddress]
   );

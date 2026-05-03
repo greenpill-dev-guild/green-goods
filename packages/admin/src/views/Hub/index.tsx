@@ -65,30 +65,37 @@ export default function HubView() {
             wrapperClassName="hub-route-content flex flex-col gap-3 sm:gap-4"
             title={hub.stageTitle}
             description={hub.headerDescription}
+            eyebrow={formatMessage({
+              id: "cockpit.hub.eyebrow",
+              defaultMessage: "Workbench",
+            })}
             variant="canvas"
+            sticky
+            actions={
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={hub.handleRefresh}
+                title={`Last refreshed: ${hub.refreshAgoText}`}
+                aria-label={formatMessage({
+                  id: "app.common.refresh",
+                  defaultMessage: "Refresh",
+                })}
+                className={
+                  hub.worksFetching
+                    ? "hub-refresh-button h-10 min-h-10 w-10 rounded-full p-0 [&>svg]:animate-spin"
+                    : "hub-refresh-button h-10 min-h-10 w-10 rounded-full p-0"
+                }
+              >
+                <RiRefreshLine className="h-4 w-4" />
+              </Button>
+            }
             toolbar={
               <AdminSearchToolbar
                 search={hub.searchTerm}
                 onSearchChange={hub.setSearchTerm}
                 placeholder={hub.searchPlaceholder}
               >
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={hub.handleRefresh}
-                  title={`Last refreshed: ${hub.refreshAgoText}`}
-                  aria-label={formatMessage({
-                    id: "app.common.refresh",
-                    defaultMessage: "Refresh",
-                  })}
-                  className={
-                    hub.worksFetching
-                      ? "hub-refresh-button h-10 min-h-10 w-10 rounded-full p-0 [&>svg]:animate-spin"
-                      : "hub-refresh-button h-10 min-h-10 w-10 rounded-full p-0"
-                  }
-                >
-                  <RiRefreshLine className="h-4 w-4" />
-                </Button>
                 {(hub.stage === "work" || hub.stage === "history") && (
                   <label className="flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
                     <span className="whitespace-nowrap">

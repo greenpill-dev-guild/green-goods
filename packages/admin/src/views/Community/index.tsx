@@ -1,4 +1,4 @@
-import { MetaStrip, useCommunityWorkspaceController } from "@green-goods/shared";
+import { useCommunityWorkspaceController } from "@green-goods/shared";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { CommunitySheetDescriptor } from "./components/CommunitySheetDescriptor";
@@ -8,7 +8,7 @@ import { useIntl } from "react-intl";
 export default function CommunityView() {
   const { formatMessage } = useIntl();
   const community = useCommunityWorkspaceController();
-  const totalMembers = community.derived.directoryEntries.length;
+  const totalPeople = community.derived.directoryEntries.length;
 
   return (
     <CanvasRouteFrame
@@ -29,14 +29,13 @@ export default function CommunityView() {
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
         description={formatMessage({
           id: "cockpit.community.description",
-          defaultMessage: "Manage treasury, governance, payouts, and members",
+          defaultMessage: "Treasury, governance, payouts, and the people around the garden.",
+        })}
+        eyebrow={formatMessage({
+          id: "cockpit.community.eyebrow",
+          defaultMessage: "Engagement",
         })}
         variant="canvas"
-        metadata={
-          community.selectedGarden ? (
-            <MetaStrip items={[{ id: "garden", label: community.selectedGarden.name }]} />
-          ) : undefined
-        }
         sticky
       >
         <AdminTabRail
@@ -72,12 +71,16 @@ export default function CommunityView() {
               count: community.allocations.length || undefined,
             },
             {
+              // Internal id stays "members" (controller, route resolver, and
+              // backend hooks all key off it). The user-facing label is "People"
+              // per the IA-Community decision in audit §5 — broader community of
+              // funders + supporters + contributors, not a garden roster.
               id: "members",
               label: formatMessage({
-                id: "cockpit.community.members",
-                defaultMessage: "Members",
+                id: "cockpit.community.people",
+                defaultMessage: "People",
               }),
-              count: totalMembers || undefined,
+              count: totalPeople || undefined,
             },
           ]}
         />

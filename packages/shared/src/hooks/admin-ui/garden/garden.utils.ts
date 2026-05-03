@@ -1,10 +1,16 @@
 import { adminRoutes, type AdminGardenRouteContext, type FabConfig } from "@green-goods/shared";
 import { RiAddLine, RiSettings3Line } from "@remixicon/react";
 
-export type GardenWorkspaceView = "overview" | "impact" | "settings";
+/**
+ * Per Tier 4 of the admin design handoff (audit IA-Garden decision):
+ * Overview / Activity / Members / Settings. The legacy "impact" tab was
+ * dropped — Hub Certify + History abstracts hypercert flow.
+ */
+export type GardenWorkspaceView = "overview" | "activity" | "members" | "settings";
 
 export function resolveGardenView(pathname: string): GardenWorkspaceView {
-  if (pathname.startsWith("/garden/impact")) return "impact";
+  if (pathname.startsWith("/garden/activity")) return "activity";
+  if (pathname.startsWith("/garden/members")) return "members";
   if (pathname.startsWith("/garden/settings")) return "settings";
   return "overview";
 }
