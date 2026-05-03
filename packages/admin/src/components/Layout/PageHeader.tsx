@@ -11,6 +11,13 @@ type BackLinkConfig = {
 
 type PageHeaderProps = {
   title: string;
+  /**
+   * Optional 11px caps label rendered above the title (route name, breadcrumb,
+   * stage context). Per Tier 2a of the admin design handoff — see audit §5
+   * decision row "5.4.4 / IA". Use it to communicate *which* surface a member
+   * is on without re-declaring chrome (Frontend Rule 17).
+   */
+  eyebrow?: ReactNode;
   description?: ReactNode;
   metadata?: ReactNode;
   actions?: ReactNode;
@@ -32,6 +39,7 @@ type PageHeaderProps = {
 
 export function PageHeader({
   title,
+  eyebrow,
   description,
   metadata,
   actions,
@@ -78,6 +86,14 @@ export function PageHeader({
         <div
           className={cn("min-w-0 flex-1", isCanvas ? "space-y-1.5" : "space-y-0.5 sm:space-y-1")}
         >
+          {eyebrow ? (
+            <div
+              data-region="route-header-eyebrow"
+              className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-text-soft"
+            >
+              {eyebrow}
+            </div>
+          ) : null}
           <h1
             className={cn(
               "truncate text-headline-lg font-semibold text-text-strong",

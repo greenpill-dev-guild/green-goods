@@ -263,6 +263,12 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
   const [isDesktop, setIsDesktop] = useState(
     () => typeof window === "undefined" || window.matchMedia("(min-width: 600px)").matches
   );
+  // Tier 2e of the admin design handoff (audit §5.4.4): the FAB is hidden at
+  // >=1024px so the page header carries the inline header actions instead.
+  // Below 1024px, FAB+speed-dial floats above the navbar on tablet and mobile.
+  const [isLargeDesktop, setIsLargeDesktop] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+  );
   const visibleSlots = slots.filter((s) => s.visible);
   const desktopSlots = useMemo(
     () => visibleSlots.filter((slot) => !slot.mobileOnly),
@@ -287,6 +293,19 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
     return () => mediaQuery.removeEventListener("change", syncDesktop);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const syncLargeDesktop = (event?: MediaQueryListEvent) => {
+      setIsLargeDesktop(event ? event.matches : mediaQuery.matches);
+    };
+
+    syncLargeDesktop();
+    mediaQuery.addEventListener("change", syncLargeDesktop);
+    return () => mediaQuery.removeEventListener("change", syncLargeDesktop);
+  }, []);
+
   // Role-based visibility: no nav bar if ≤1 tab and no FAB
   if (visibleSlots.length === 0 && !fab) return null;
   if (desktopSlots.length <= 1 && mobileSlots.length <= 1 && !fab) {
@@ -297,7 +316,10 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
 
   return (
     <>
-      {!isDesktop && fab && !hideMobileChrome ? (
+      {!isLargeDesktop && fab && !hideMobileChrome ? (
+        // Tier 2e: Floating FAB layer for tablet (600–1023px) and mobile (<600px).
+        // Hidden at >=1024px per audit §5.4.4 — desktop puts inline header actions
+        // in the page header instead.
         // Inline-style position: Tailwind v4 does not scan packages/shared/src/
         // from admin/client builds, so `fixed`, `inset-x-0`, `bottom-[…]`, `z-nav`,
         // and `px-4` would silently fail to generate. See CLAUDE.md "Known Gotchas".
@@ -362,27 +384,10 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
         </nav>
       )}
 
-      {isDesktop && fab && (
-        // Inline-style position so it survives admin's Tailwind scan (see Crack 3
-        // / CLAUDE.md "Known Gotchas"). Right offset clamps to a 24px gutter on
-        // narrow viewports and to the 1400px content rail's right edge on wider ones.
-        <div
-          style={{
-            position: "fixed",
-            bottom: "1rem",
-            right: "max(1.5rem, calc((100vw - 1400px) / 2))",
-            zIndex: "var(--z-nav)",
-          }}
-          className={cn(
-            "animate-[nav-bar-enter_var(--spring-spatial)_both]",
-            "motion-reduce:animate-none"
-          )}
-          data-component="NavigationBar"
-          data-slot="desktop-fab-layer"
-        >
-          <FabButton config={fab} />
-        </div>
-      )}
+      {/* Tier 2e: desktop-docked FAB rendering removed per audit §5.4.4 — at
+          >=1024px the page header's inline header actions carry the creation
+          flows; no FAB on desktop. The mobile-floating FAB block above now
+          covers tablet (600–1023px) too. */}
 
       {!isDesktop && mobileSlots.length > 1 && !hideMobileChrome && (
         <nav

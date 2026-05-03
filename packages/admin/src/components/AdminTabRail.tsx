@@ -92,10 +92,12 @@ export function AdminTabRail({
         className
       )}
     >
-      {/* Sliding active indicator — 3dp height, rounded top corners */}
+      {/* Sliding active indicator — 3dp height, rounded top corners.
+          Color picks up --tone-primary when a [data-tone] ancestor is set
+          (per audit §5.2 + Tier 2c), falling back to --m3-primary otherwise. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 z-10 h-[3px] rounded-t-sm bg-[rgb(var(--m3-primary))] motion-reduce:transition-none"
+        className="pointer-events-none absolute bottom-0 z-10 h-[3px] rounded-t-sm bg-[rgb(var(--tone-primary,var(--m3-primary)))] motion-reduce:transition-none"
         style={{
           left: indicator.left,
           width: indicator.width,

@@ -1,6 +1,9 @@
 import {
   RiAlertLine,
+  RiArrowGoBackLine,
+  RiArrowUpCircleLine,
   RiCheckLine,
+  RiCloseCircleLine,
   RiCloseLine,
   RiInformationLine,
   RiLoader4Line,
@@ -11,6 +14,13 @@ import {
 import React from "react";
 import type { WorkDisplayStatus } from "../types/domain";
 import { cn } from "../utils/styles/cn";
+
+/**
+ * Conviction-voting status states. Per audit §5.5 + Tier 2d of the admin
+ * design handoff. A proposal moves through these states based on weight
+ * allocation and decay rather than discrete for/against votes.
+ */
+export type ConvictionStatus = "accruing" | "passing" | "funded" | "withdrawn" | "expired";
 
 interface WorkStatusBadgeProps {
   status: WorkDisplayStatus;
@@ -30,9 +40,25 @@ interface GenericStatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> 
   variant?: GenericStatusVariant;
   icon?: React.ReactNode;
   status?: never;
+  convictionStatus?: never;
 }
 
-export type StatusBadgeProps = WorkStatusBadgeProps | GenericStatusBadgeProps;
+interface ConvictionStatusBadgeProps {
+  className?: string;
+  showIcon?: boolean;
+  size?: "sm" | "md";
+  /** One of the five conviction-voting states. Auto-supplies icon + label. */
+  convictionStatus: ConvictionStatus;
+  /** Override the auto-supplied label (e.g. for translation). */
+  label?: string;
+  status?: never;
+  variant?: never;
+}
+
+export type StatusBadgeProps =
+  | WorkStatusBadgeProps
+  | ConvictionStatusBadgeProps
+  | GenericStatusBadgeProps;
 
 interface StatusConfig {
   icon: React.ReactNode;
@@ -259,8 +285,58 @@ export function getStatusColors(
   };
 }
 
+function getConvictionStatusConfig(state: ConvictionStatus): StatusConfig {
+  const iconClass = "w-3 h-3";
+  switch (state) {
+    case "accruing":
+      return {
+        icon: <RiTimeLine className={iconClass} />,
+        label: "Accruing",
+        bgColor: "bg-information-lighter",
+        textColor: "text-information-dark",
+        borderColor: "border-information-light",
+      };
+    case "passing":
+      return {
+        icon: <RiArrowUpCircleLine className={iconClass} />,
+        label: "Passing",
+        bgColor: "bg-success-lighter",
+        textColor: "text-success-dark",
+        borderColor: "border-success-light",
+      };
+    case "funded":
+      return {
+        icon: <RiCheckLine className={iconClass} />,
+        label: "Funded",
+        bgColor: "bg-success-lighter",
+        textColor: "text-success-dark",
+        borderColor: "border-success-light",
+      };
+    case "withdrawn":
+      return {
+        icon: <RiArrowGoBackLine className={iconClass} />,
+        label: "Withdrawn",
+        bgColor: "bg-bg-soft",
+        textColor: "text-text-sub",
+        borderColor: "border-stroke-soft",
+      };
+    case "expired":
+      return {
+        icon: <RiCloseCircleLine className={iconClass} />,
+        label: "Expired",
+        bgColor: "bg-error-lighter",
+        textColor: "text-error-dark",
+        borderColor: "border-error-light",
+      };
+  }
+}
+
 function isWorkStatusProps(props: StatusBadgeProps): props is WorkStatusBadgeProps {
-  return "status" in props;
+  return "status" in props && props.status !== undefined;
+}
+
+function isConvictionStatusProps(props: StatusBadgeProps): props is ConvictionStatusBadgeProps {
+  return "convictionStatus" in props && props.convictionStatus !== undefined;
 }
 
 /**
@@ -302,6 +378,29 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
       >
         {showIcon && config.icon}
         {config.label}
+      </span>
+    );
+  }
+
+  if (isConvictionStatusProps(resolvedProps)) {
+    const config = getConvictionStatusConfig(resolvedProps.convictionStatus);
+    const label = resolvedProps.label ?? config.label;
+
+    return (
+      <span
+        role="status"
+        aria-live="polite"
+        className={cn(
+          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
+          config.bgColor,
+          config.textColor,
+          config.borderColor,
+          textSize,
+          className
+        )}
+      >
+        {showIcon && config.icon}
+        {label}
       </span>
     );
   }
