@@ -266,6 +266,41 @@
     }
   }
 
+  /*
+   * Body stagger — each top-level child of `.public-garden-dialog-stagger`
+   * fades up after the card → dialog hero morph has time to settle. The
+   * leading 200ms delay keeps the first body block from racing the morph;
+   * subsequent children land 70ms apart so the eye reads top-to-bottom.
+   * `both` fill so the children stay invisible during their delay window
+   * (otherwise React renders them at full opacity for a frame before the
+   * animation kicks in — the stutter Afo flagged).
+   */
+  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > * {
+    animation: editorial-fade-up var(--spring-spatial-duration, 300ms)
+      var(--spring-spatial-easing, ease-out) both;
+  }
+  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(1) {
+    animation-delay: 200ms;
+  }
+  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(2) {
+    animation-delay: 270ms;
+  }
+  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(3) {
+    animation-delay: 340ms;
+  }
+  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(4) {
+    animation-delay: 410ms;
+  }
+  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(5) {
+    animation-delay: 480ms;
+  }
+  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(6) {
+    animation-delay: 550ms;
+  }
+  .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(n + 7) {
+    animation-delay: 620ms;
+  }
+
   .public-install-overlay[data-state="open"] {
     animation: public-install-overlay-in var(--spring-effects-fast-duration, 150ms)
       var(--spring-effects-fast-easing, ease-out) forwards;
@@ -311,6 +346,12 @@
       opacity: 1;
       transform: none;
       transition: none;
+    }
+
+    .public-garden-dialog .public-garden-dialog-stagger > * {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
     }
 
     .public-install-sheet {

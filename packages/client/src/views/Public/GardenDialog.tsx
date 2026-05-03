@@ -41,26 +41,36 @@ export default function GardenDialog() {
             aria-describedby={undefined}
             onOpenAutoFocus={(event) => event.preventDefault()}
           >
-            <Dialog.Title className="px-6 py-12 text-center font-serif text-2xl text-text-strong-950">
+            <Dialog.Title className="sr-only">
               {detailLoading
                 ? formatMessage({
                     id: "public.gardenDialog.loading",
-                    defaultMessage: "Loading Garden…",
+                    defaultMessage: "Loading Garden",
                   })
                 : formatMessage({
                     id: "public.gardenDetail.notFound",
                     defaultMessage: "Garden not found",
                   })}
             </Dialog.Title>
-            {!detailLoading ? (
-              <p className="px-6 pb-12 text-center text-sm text-text-sub-600">
-                {formatMessage({
-                  id: "public.gardenDetail.notFoundHelp",
-                  defaultMessage:
-                    "The link may be stale. Browse all Gardens to find what you're looking for.",
-                })}
-              </p>
-            ) : null}
+            {detailLoading ? (
+              <GardenDialogSkeleton />
+            ) : (
+              <div className="px-6 py-12 text-center">
+                <p className="font-serif text-2xl text-text-strong-950">
+                  {formatMessage({
+                    id: "public.gardenDetail.notFound",
+                    defaultMessage: "Garden not found",
+                  })}
+                </p>
+                <p className="mt-3 text-sm text-text-sub-600">
+                  {formatMessage({
+                    id: "public.gardenDetail.notFoundHelp",
+                    defaultMessage:
+                      "The link may be stale. Browse all Gardens to find what you're looking for.",
+                  })}
+                </p>
+              </div>
+            )}
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
@@ -109,159 +119,164 @@ export default function GardenDialog() {
           </div>
 
           <div className="public-garden-dialog-body px-6 py-8 sm:px-10 sm:py-10">
-            <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
-              {garden.location}
-            </p>
-            <Dialog.Title
-              className="mt-2 font-serif text-3xl text-text-strong-950 md:text-4xl"
-              title={garden.name}
-            >
-              {garden.name}
-            </Dialog.Title>
-            <p
-              id="public-garden-dialog-description"
-              className="mt-4 max-w-2xl text-sm text-text-sub-600 md:text-base"
-            >
-              {garden.description ||
-                formatMessage({
-                  id: "public.gardenDetail.place.empty",
-                  defaultMessage: "Garden narrative will appear here as it is published.",
-                })}
-            </p>
+            <div className="public-garden-dialog-stagger flex flex-col gap-8">
+              <header>
+                <p className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
+                  {garden.location}
+                </p>
+                <Dialog.Title
+                  className="mt-2 font-serif text-3xl text-text-strong-950 md:text-4xl"
+                  title={garden.name}
+                >
+                  {garden.name}
+                </Dialog.Title>
+                <p
+                  id="public-garden-dialog-description"
+                  className="mt-4 max-w-2xl text-sm text-text-sub-600 md:text-base"
+                >
+                  {garden.description ||
+                    formatMessage({
+                      id: "public.gardenDetail.place.empty",
+                      defaultMessage: "Garden narrative will appear here as it is published.",
+                    })}
+                </p>
+              </header>
 
-            <dl className="mt-8 grid grid-cols-2 gap-x-8 gap-y-5 border-y border-stroke-soft-200 py-6 sm:grid-cols-4">
-              <StatCell
-                label={formatMessage({
-                  id: "public.gardenDialog.entries",
-                  defaultMessage: "Entries",
-                })}
-                value={totalEntries}
-              />
-              <StatCell
-                label={formatMessage({
-                  id: "public.gardenDialog.handsAtWork",
-                  defaultMessage: "Hands at work",
-                })}
-                value={handsAtWork}
-              />
-              <StatCell
-                label={formatMessage({
-                  id: "public.gardenDialog.assessments",
-                  defaultMessage: "Assessments",
-                })}
-                value={assessmentCount}
-              />
-              <StatCell
-                label={formatMessage({
-                  id: "public.gardenDialog.certificates",
-                  defaultMessage: "Certificates",
-                })}
-                value={hypercertsLoading ? "…" : hypercerts.length}
-              />
-            </dl>
-
-            <FieldNotesSection notes={fieldNotes} />
-
-            {hypercerts.length > 0 ? (
-              <section className="mt-10" aria-labelledby="public-garden-dialog-certs">
-                <SectionHeading
-                  id="public-garden-dialog-certs"
+              <dl className="grid grid-cols-2 gap-x-8 gap-y-5 border-y border-stroke-soft-200 py-6 sm:grid-cols-4">
+                <StatCell
                   label={formatMessage({
-                    id: "public.gardenDialog.certificates.heading",
-                    defaultMessage: "Impact Certificates",
+                    id: "public.gardenDialog.entries",
+                    defaultMessage: "Entries",
                   })}
-                  helper={formatMessage({
-                    id: "public.gardenDialog.certificates.helper",
-                    defaultMessage: "Bundles of approved Work, evaluator-verified and on-chain.",
-                  })}
+                  value={totalEntries}
                 />
-                <ul className="mt-4 flex flex-col divide-y divide-stroke-soft-200 border-y border-stroke-soft-200">
-                  {hypercerts.map((cert) => (
-                    <li key={cert.id} className="flex items-start justify-between gap-4 py-3">
-                      <div className="min-w-0">
-                        <p
-                          className="truncate font-serif text-base text-text-strong-950"
-                          title={cert.title ?? cert.id}
-                        >
-                          {cert.title ||
-                            formatMessage({
-                              id: "public.gardenDialog.certificates.untitled",
-                              defaultMessage: "Untitled certificate",
-                            })}
-                        </p>
-                        {cert.workScopes && cert.workScopes.length > 0 ? (
+                <StatCell
+                  label={formatMessage({
+                    id: "public.gardenDialog.handsAtWork",
+                    defaultMessage: "Hands at work",
+                  })}
+                  value={handsAtWork}
+                />
+                <StatCell
+                  label={formatMessage({
+                    id: "public.gardenDialog.assessments",
+                    defaultMessage: "Assessments",
+                  })}
+                  value={assessmentCount}
+                />
+                <StatCell
+                  label={formatMessage({
+                    id: "public.gardenDialog.certificates",
+                    defaultMessage: "Certificates",
+                  })}
+                  value={hypercertsLoading ? "…" : hypercerts.length}
+                />
+              </dl>
+
+              <FieldNotesSection notes={fieldNotes} />
+
+              {hypercerts.length > 0 ? (
+                <section aria-labelledby="public-garden-dialog-certs">
+                  <SectionHeading
+                    id="public-garden-dialog-certs"
+                    label={formatMessage({
+                      id: "public.gardenDialog.certificates.heading",
+                      defaultMessage: "Impact Certificates",
+                    })}
+                    helper={formatMessage({
+                      id: "public.gardenDialog.certificates.helper",
+                      defaultMessage: "Bundles of approved Work, evaluator-verified and on-chain.",
+                    })}
+                  />
+                  <ul className="mt-4 flex flex-col divide-y divide-stroke-soft-200 border-y border-stroke-soft-200">
+                    {hypercerts.map((cert) => (
+                      <li key={cert.id} className="flex items-start justify-between gap-4 py-3">
+                        <div className="min-w-0">
                           <p
-                            className="mt-1 truncate text-xs uppercase tracking-wide text-text-soft-400"
-                            title={cert.workScopes.join(" · ")}
+                            className="truncate font-serif text-base text-text-strong-950"
+                            title={cert.title ?? cert.id}
                           >
-                            {cert.workScopes.join(" · ")}
+                            {cert.title ||
+                              formatMessage({
+                                id: "public.gardenDialog.certificates.untitled",
+                                defaultMessage: "Untitled certificate",
+                              })}
                           </p>
-                        ) : null}
-                      </div>
-                      <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-                        {formatMessage(
-                          {
-                            id: "public.gardenDialog.certificates.attestations",
-                            defaultMessage:
-                              "{count, plural, one {# attestation} other {# attestations}}",
-                          },
-                          { count: cert.attestationCount }
-                        )}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+                          {cert.workScopes && cert.workScopes.length > 0 ? (
+                            <p
+                              className="mt-1 truncate text-xs uppercase tracking-wide text-text-soft-400"
+                              title={cert.workScopes.join(" · ")}
+                            >
+                              {cert.workScopes.join(" · ")}
+                            </p>
+                          ) : null}
+                        </div>
+                        <p className="shrink-0 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+                          {formatMessage(
+                            {
+                              id: "public.gardenDialog.certificates.attestations",
+                              defaultMessage:
+                                "{count, plural, one {# attestation} other {# attestations}}",
+                            },
+                            { count: cert.attestationCount }
+                          )}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
 
-            {operators.length > 0 ? (
-              <section className="mt-10" aria-labelledby="public-garden-dialog-operators">
-                <SectionHeading
-                  id="public-garden-dialog-operators"
-                  label={formatMessage({
-                    id: "public.gardenDialog.operators.heading",
-                    defaultMessage: "Operators",
-                  })}
-                  helper={formatMessage({
-                    id: "public.gardenDialog.operators.helper",
-                    defaultMessage: "Trusted coordinators who approve Work and steward the Garden.",
-                  })}
-                />
-                <ul className="mt-4 flex flex-wrap gap-2">
-                  {operators.map((address) => (
-                    <li
-                      key={address}
-                      className="rounded-full border border-stroke-soft-200 bg-bg-weak-50 px-3 py-1 font-mono text-[11px] tracking-[0.04em] text-text-sub-600"
-                      title={address}
-                    >
-                      {shortenAddress(address)}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+              {operators.length > 0 ? (
+                <section aria-labelledby="public-garden-dialog-operators">
+                  <SectionHeading
+                    id="public-garden-dialog-operators"
+                    label={formatMessage({
+                      id: "public.gardenDialog.operators.heading",
+                      defaultMessage: "Operators",
+                    })}
+                    helper={formatMessage({
+                      id: "public.gardenDialog.operators.helper",
+                      defaultMessage:
+                        "Trusted coordinators who approve Work and steward the Garden.",
+                    })}
+                  />
+                  <ul className="mt-4 flex flex-wrap gap-2">
+                    {operators.map((address) => (
+                      <li
+                        key={address}
+                        className="rounded-full border border-stroke-soft-200 bg-bg-weak-50 px-3 py-1 font-mono text-[11px] tracking-[0.04em] text-text-sub-600"
+                        title={address}
+                      >
+                        {shortenAddress(address)}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
 
-            <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-6">
-              <Link
-                to={fundHref}
-                viewTransition
-                className="inline-flex items-center rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-              >
-                {formatMessage({
-                  id: "public.gardenDialog.support",
-                  defaultMessage: "Support this Garden",
-                })}
-              </Link>
-              <Link
-                to="/impact"
-                viewTransition
-                className="inline-flex items-center rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 transition-colors hover:bg-bg-weak-50"
-              >
-                {formatMessage({
-                  id: "public.gardenDialog.evidence",
-                  defaultMessage: "View public evidence",
-                })}
-              </Link>
+              <div className="flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-6">
+                <Link
+                  to={fundHref}
+                  viewTransition
+                  className="inline-flex items-center rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+                >
+                  {formatMessage({
+                    id: "public.gardenDialog.support",
+                    defaultMessage: "Support this Garden",
+                  })}
+                </Link>
+                <Link
+                  to="/impact"
+                  viewTransition
+                  className="inline-flex items-center rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 transition-colors hover:bg-bg-weak-50"
+                >
+                  {formatMessage({
+                    id: "public.gardenDialog.evidence",
+                    defaultMessage: "View public evidence",
+                  })}
+                </Link>
+              </div>
             </div>
           </div>
         </Dialog.Content>
@@ -363,4 +378,41 @@ function formatRelativeDate(secondsSinceEpoch: number): string {
   const days = Math.round(diffMs / day);
   if (days < 14) return `${days}d ago`;
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+/**
+ * GardenDialogSkeleton — quiet placeholder shown while `usePublicGardenDetail`
+ * resolves. Mimics the dialog's hero + body shape so the morph from a card
+ * lands on something with structure (no blank flash).
+ */
+function GardenDialogSkeleton() {
+  return (
+    <div aria-hidden="true">
+      <div className="aspect-[16/9] w-full animate-pulse bg-editorial-warm sm:aspect-[3/1]" />
+      <div className="space-y-6 px-6 py-8 sm:px-10 sm:py-10">
+        <div className="space-y-3">
+          <div className="h-3 w-24 animate-pulse rounded-sm bg-stroke-soft-200" />
+          <div className="h-9 w-3/4 animate-pulse rounded-sm bg-stroke-soft-200" />
+          <div className="space-y-2 pt-1">
+            <div className="h-3 w-full animate-pulse rounded-sm bg-stroke-soft-200" />
+            <div className="h-3 w-5/6 animate-pulse rounded-sm bg-stroke-soft-200" />
+            <div className="h-3 w-2/3 animate-pulse rounded-sm bg-stroke-soft-200" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4 border-y border-stroke-soft-200 py-6 sm:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 w-16 animate-pulse rounded-sm bg-stroke-soft-200" />
+              <div className="h-7 w-10 animate-pulse rounded-sm bg-stroke-soft-200" />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-3">
+          <div className="h-4 w-40 animate-pulse rounded-sm bg-stroke-soft-200" />
+          <div className="h-3 w-full animate-pulse rounded-sm bg-stroke-soft-200" />
+          <div className="h-3 w-3/4 animate-pulse rounded-sm bg-stroke-soft-200" />
+        </div>
+      </div>
+    </div>
+  );
 }
