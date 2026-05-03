@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-03-16",
-    "updated_at": "2026-05-03T07:24:28.337Z",
+    "updated_at": "2026-05-03T19:58:15.343Z",
     "target_date": "2026-05-15"
   },
   "links": {
@@ -37,7 +37,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/ui/signal-pool-yield-wiring",
@@ -47,14 +47,14 @@
       "skill_tags": ["ui", "frontend-design", "react"],
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/admin && bun run test -- src/__tests__/components/Garden/GardenCommunityCard.test.tsx src/__tests__/components/Garden/GardenYieldCard.test.tsx src/__tests__/components/Garden/conviction-title.test.tsx",
+          "evidence": "handoffs/claude-ui.md#tdd-proof"
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/admin && bun run test -- src/__tests__/components/Garden/GardenCommunityCard.test.tsx src/__tests__/components/Garden/GardenYieldCard.test.tsx src/__tests__/components/Garden/conviction-title.test.tsx",
+          "evidence": "handoffs/claude-ui.md#tdd-proof"
         },
         "note": ""
       }
@@ -108,7 +108,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/signal-pool-yield-wiring",
@@ -218,6 +218,30 @@
       "status": "completed",
       "branch": "codex/state-api/signal-pool-yield-wiring",
       "note": "Shared/state yield wiring status implemented with RED/GREEN proof."
+    },
+    {
+      "timestamp": "2026-05-03T20:30:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "coordination_notes_added",
+      "branch": null,
+      "note": "Added Tier-5 conviction wiring coordination section to plan.todo.md (before Problem Statement) and a 'Read first' callout to handoffs/claude-ui.md. No scope changes; maps adjacency between sibling GovernancePanel (commit a8586c26) and the planned GardenCommunityCard wiring UI; flags opportunistic pickup items (pool-config reads, per-member breakdown, threshold formula) that would let the conviction adapter retire its TODO-flagged fallbacks."
+    },
+    {
+      "timestamp": "2026-05-03T19:58:09.441Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/signal-pool-yield-wiring",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-03T19:58:15.343Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "claude/ui/signal-pool-yield-wiring",
+      "note": "Admin UI yield wiring status and community repair path implemented with RED/GREEN proof."
     }
   ],
   "taxonomy": {

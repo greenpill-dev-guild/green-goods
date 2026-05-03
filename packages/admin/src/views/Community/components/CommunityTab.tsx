@@ -307,7 +307,11 @@ export function CommunityTab({
             )}
 
             {(section === undefined || section === "yield" || section === "treasury") && (
-              <GardenYieldCard allocations={allocations} allocationsLoading={allocationsLoading} />
+              <GardenYieldCard
+                allocations={allocations}
+                allocationsLoading={allocationsLoading}
+                gardenAddress={garden.id as Address}
+              />
             )}
           </ErrorBoundary>
         </div>

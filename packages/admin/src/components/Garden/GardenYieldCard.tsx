@@ -1,18 +1,22 @@
 import {
+  type Address,
   Button,
   DEFAULT_SPLIT_CONFIG,
   formatDate,
   formatTokenAmount,
   MIN_YIELD_THRESHOLD_USD,
+  useGardenYieldWiringState,
   type YieldAllocation,
 } from "@green-goods/shared";
-import { RiPieChart2Line } from "@remixicon/react";
+import { RiAlertLine, RiPieChart2Line, RiQuestionLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { Link } from "react-router-dom";
 
 interface GardenYieldCardProps {
   allocations: YieldAllocation[];
   allocationsLoading: boolean;
+  gardenAddress?: Address;
 }
 
 const INITIAL_ALLOCATION_COUNT = 5;
@@ -20,9 +24,22 @@ const INITIAL_ALLOCATION_COUNT = 5;
 export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
   allocations,
   allocationsLoading,
+  gardenAddress,
 }) => {
   const { formatMessage } = useIntl();
   const [showAllAllocations, setShowAllAllocations] = useState(false);
+
+  const { wiringState, wiringStatus, repairHref } = useGardenYieldWiringState(gardenAddress, {
+    enabled: Boolean(gardenAddress),
+  });
+  const expectedHypercertPoolKnown = Boolean(wiringState?.expectedHypercertPoolAddress);
+  const showRepairLink =
+    Boolean(gardenAddress) &&
+    (wiringStatus === "missing-resolver-wiring" || wiringStatus === "mismatch") &&
+    expectedHypercertPoolKnown &&
+    Boolean(repairHref);
+  const showPoolReviewHint = Boolean(gardenAddress) && wiringStatus === "missing-pool";
+  const showUnavailableHint = Boolean(gardenAddress) && wiringState?.readStatus === "unavailable";
 
   const splitConfig = DEFAULT_SPLIT_CONFIG;
   const cookieJarPct = (splitConfig.cookieJarBps / 100).toFixed(1);
@@ -64,6 +81,41 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           </div>
         </div>
       </div>
+
+      {showRepairLink && repairHref ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-warning-light bg-warning-lighter px-3 py-2">
+          <RiAlertLine className="h-4 w-4 flex-shrink-0 text-warning-dark" aria-hidden="true" />
+          <p className="text-xs text-warning-dark">
+            {wiringStatus === "mismatch"
+              ? formatMessage({ id: "app.yield.wiring.mismatch" })
+              : formatMessage({ id: "app.yield.wiring.notConnected" })}
+          </p>
+          <Link
+            to={repairHref}
+            className="text-xs font-medium text-primary-base hover:text-primary-darker"
+          >
+            {formatMessage({ id: "app.yield.wiring.repairLink" })}
+          </Link>
+        </div>
+      ) : null}
+
+      {showPoolReviewHint ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-bg-weak px-3 py-2">
+          <RiQuestionLine className="h-4 w-4 flex-shrink-0 text-text-soft" aria-hidden="true" />
+          <p className="text-xs text-text-sub">
+            {formatMessage({ id: "app.yield.wiring.poolNeedsReview" })}
+          </p>
+        </div>
+      ) : null}
+
+      {showUnavailableHint ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-bg-weak px-3 py-2">
+          <RiQuestionLine className="h-4 w-4 flex-shrink-0 text-text-soft" aria-hidden="true" />
+          <p className="text-xs text-text-sub">
+            {formatMessage({ id: "app.yield.wiring.unavailable" })}
+          </p>
+        </div>
+      ) : null}
 
       {allocations.length > 0 && (
         <div className="mt-4 rounded-lg border border-success-light bg-success-lighter p-4">
