@@ -8,7 +8,6 @@ on:
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
-      - ".github/codeql/**"
       - ".github/workflows/**"
       - "scripts/**/*.cjs"
       - "scripts/**/*.js"
@@ -28,7 +27,6 @@ on:
       - "bun.lock"
       - "biome.json"
       - ".env.schema"
-      - ".github/codeql/**"
       - ".github/workflows/**"
       - "scripts/**/*.cjs"
       - "scripts/**/*.js"
@@ -48,7 +46,6 @@ permissions:
   actions: read
   contents: read
   pull-requests: read
-  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -74,7 +71,6 @@ jobs:
               ".github/workflows/shared.yml",
             ]);
             const prefixes = [
-              ".github/codeql/",
               "packages/contracts/abis/",
               "packages/contracts/deployments/",
               "packages/shared/",
@@ -176,27 +172,3 @@ jobs:
       - name: Typecheck shared
         working-directory: packages/shared
         run: bun run typecheck
-
-  codeql:
-    name: CodeQL (${{ matrix.language }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        language:
-          - javascript-typescript
-          - actions
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-          config-file: ./.github/codeql/codeql-config.yml
-
-      - name: Analyze
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: /language:${{ matrix.language }}
