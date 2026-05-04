@@ -185,7 +185,8 @@ export default function GardenDialog() {
                     })}
                     helper={formatMessage({
                       id: "public.gardenDialog.certificates.helper",
-                      defaultMessage: "Bundles of approved Work, evaluator-verified and on-chain.",
+                      defaultMessage:
+                        "Bundles of approved Work, evaluator-verified and anchored to a public blockchain.",
                     })}
                   />
                   <ul className="mt-4 flex flex-col divide-y divide-stroke-soft-200 border-y border-stroke-soft-200">
