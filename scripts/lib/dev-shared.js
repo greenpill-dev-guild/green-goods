@@ -95,9 +95,17 @@ export function majorVersion(version) {
  * `rejectUnauthorized: false` reliably — using the explicit options object
  * guarantees the TLS option is applied.
  */
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
 export function requestUrl(url, timeoutMs = 2500) {
   const parsed = new URL(url);
-  const client = parsed.protocol === "https:" ? https : http;
+  if (parsed.protocol === "https:" && !LOOPBACK_HOSTS.has(parsed.hostname)) {
+    throw new Error(
+      `requestUrl is a dev-only probe and refuses non-loopback HTTPS targets: ${url}`,
+    );
+  }
+  const isHttps = parsed.protocol === "https:";
+  const client = isHttps ? https : http;
 
   return new Promise((resolve) => {
     let settled = false;
@@ -114,18 +122,21 @@ export function requestUrl(url, timeoutMs = 2500) {
       finish({ ok: false, url, error: `Timed out after ${timeoutMs}ms` });
     }, timeoutMs);
 
-    request = client.get(
-      {
-        hostname: parsed.hostname,
-        port: parsed.port,
-        path: parsed.pathname || "/",
-        rejectUnauthorized: false,
-      },
-      (response) => {
-        response.resume();
-        finish({ ok: true, url, statusCode: response.statusCode });
-      },
-    );
+    const requestOptions = {
+      hostname: parsed.hostname,
+      port: parsed.port,
+      path: parsed.pathname || "/",
+    };
+    if (isHttps) {
+      // Loopback-only by the guard above. Dev servers (vite-plugin-mkcert)
+      // ship a per-session self-signed cert, so the smoke probe must accept it.
+      requestOptions.rejectUnauthorized = false;
+    }
+
+    request = client.get(requestOptions, (response) => {
+      response.resume();
+      finish({ ok: true, url, statusCode: response.statusCode });
+    });
     request.setTimeout(timeoutMs, () => {
       finish({ ok: false, url, error: `Timed out after ${timeoutMs}ms` });
     });
