@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-02",
-    "updated_at": "2026-05-04T22:39:09.000Z",
+    "updated_at": "2026-05-04T23:30:00.000Z",
     "target_date": "2026-05-16"
   },
   "links": {
@@ -210,26 +210,26 @@
     },
     "cleanup": {
       "owner": "claude",
-      "status": "ready",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "claude/cleanup/admin-design-revamp",
+      "branch": "release/1.1.0",
       "depends_on": ["ui", "state_api", "contracts", "tier_5_wiring"],
       "handoff": "handoffs/claude-cleanup.md",
-      "handoff_note": "Independent items (A1–A6): tests + FAB wiring + Members chips + stats slot. Blocked items (B1–B3): wait for signal-pool-yield-wiring/ui to land. Separate pass (C1): 21 client-homepage test failures from commit 0b4a67e8.",
+      "handoff_note": "A1–A3 (TDD requirement) landed 2026-05-04 on release/1.1.0; A4–A6 + B1–B3 + C1 still open. signal-pool-yield-wiring completed 2026-05-03 so B1–B3 dependency gate is lifted but those items are not release-blocking.",
       "skill_tags": ["testing", "ui", "react"],
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
           "command": "cd packages/shared && bun run test -- src/__tests__/utils/conviction/",
-          "evidence": ""
+          "evidence": "No test files found, exiting with code 1 (verified 2026-05-04 before A1/A2 landed)."
         },
         "green": {
           "command": "cd packages/shared && bun run test -- src/__tests__/utils/conviction/ src/__tests__/hooks/conviction/useConvictionWeightAllocator.test.tsx",
-          "evidence": ""
+          "evidence": "3 test files, 61 tests passed, 0 failures (verified 2026-05-04 after format/lint clean)."
         },
-        "note": "A1 percent-points + A2 derivation + A3 useConvictionWeightAllocator round-trip = the three test artifacts that make the cleanup lane green."
+        "note": "A1 percent-points + A2 derivation + A3 useConvictionWeightAllocator round-trip = the three test artifacts that make the cleanup lane green. A4–A6 follow-ups remain open but are visual/UX polish, not release-critical math correctness."
       }
     }
   },
@@ -305,6 +305,14 @@
       "status": "metadata_normalized",
       "branch": "release/1.1.0",
       "note": "Added standard ui/state_api/contracts/qa_pass_1/qa_pass_2 lanes with validated taxonomy while preserving Tier 0-5 historical lane records. QA stays blocked on cleanup."
+    },
+    {
+      "timestamp": "2026-05-04T23:30:00.000Z",
+      "actor": "claude",
+      "lane": "cleanup",
+      "status": "tdd_recorded",
+      "branch": "release/1.1.0",
+      "note": "A1 percent-points (30 cases) + A2 derivation (20 cases) + A3 useConvictionWeightAllocator (11 cases) landed with RED→GREEN proof. 3 files / 61 tests / 0 failures. Format clean, lint clean, plan-hub validated. A4–A6 + B1–B3 + C1 remain open but are not release-blocking."
     }
   ],
   "taxonomy": {

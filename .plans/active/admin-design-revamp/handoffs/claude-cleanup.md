@@ -3,13 +3,36 @@
 **Feature**: `admin-design-revamp`
 **Lane**: `cleanup`
 **Owner**: `claude`
-**Status**: `ready`
-**Branch**: `claude/cleanup/admin-design-revamp`
-**Depends on**: `tier_5_wiring` (landed) + selected items wait on `signal-pool-yield-wiring/ui` (pending)
+**Status**: `in_progress` (A1–A3 landed 2026-05-04; A4–A6 + B1–B3 + C1 still open)
+**Branch**: `release/1.1.0` (cleanup A1–A3 committed directly to the release branch per cleanup-lane scope)
+**Depends on**: `tier_5_wiring` (landed) + B1–B3 unblocked by `signal-pool-yield-wiring` completion 2026-05-03
 
 ## Purpose
 
 Resolve the work explicitly deferred during Tiers 1–5. Each item below has paste-able context (file path, commit anchor, audit reference) so the implementer can pick any subset without re-reading the entire delivery.
+
+## Completion Record — 2026-05-04 (release/1.1.0)
+
+**Done**:
+- ✅ A1 — `percent-points.ts` Vitest coverage. New file `packages/shared/src/__tests__/utils/conviction/percent-points.test.ts` (30 cases): pointsToPercent / percentToPoints round-trip, NaN + clamp + budget=0 edge cases, allocationsToPercentMap key correctness, percentMapToSignedDeltas signed-delta correctness across old-only / new-only / both id sets and the combined add+remove+change diff.
+- ✅ A2 — `derivation.ts` Vitest coverage. New file `packages/shared/src/__tests__/utils/conviction/derivation.test.ts` (20 cases): deriveProposalStatus per branch (funded / inactive+0 / inactive+>0 / active+passing / active+accruing), deriveConvictionPercent clamping with pointsPerVoter=0 / memberCount≤0 / weight=0, deriveDailyAccrual zero-cases, deriveThreshold pinning the placeholder constant.
+- ✅ A3 — `useConvictionWeightAllocator` round-trip. New file `packages/shared/src/__tests__/hooks/conviction/useConvictionWeightAllocator.test.tsx` (11 cases): initial mirror, debounce window before/after 400ms, signed-delta correctness end-to-end, custom debounceMs, budget=0 / poolAddress=undefined no-ops, flush() cancels + fires sync, post-mutation server refresh clears isDirty.
+
+**TDD evidence**:
+- RED: `cd packages/shared && bun run test -- src/__tests__/utils/conviction/` → `No test files found, exiting with code 1`.
+- GREEN: `cd packages/shared && bun run test -- src/__tests__/utils/conviction/ src/__tests__/hooks/conviction/useConvictionWeightAllocator.test.tsx` → 3 files / 61 tests / 0 failures.
+
+**Validation**:
+- `bun run format:check` → clean (after `bun format` auto-fix on the two new test files).
+- `bun lint` → 0 errors, 165 pre-existing solhint warnings (none from these tests).
+- `node scripts/harness/plan-hub.mjs validate` → `Validated 21 feature hubs.`
+
+**Still open** (this handoff):
+- A4 — FAB action registration per view (Hub / Garden / Community / Actions). ~2 hrs.
+- A5 — Garden Members tab role chips beyond operator. ~1 hr.
+- A6 — Stats slot for Garden + Community headers. ~30 min ea.
+- B1–B3 — `signal-pool-yield-wiring` is `done` (2026-05-03), so the dependency gate is technically lifted. Still requires deciding which of `useGardenYieldWiringState` / a new pool-config hook to consume; out of scope for this release-cleanup pass since none of the missing data is on a release-blocking surface (the FALLBACK_POOL_CONFIG TODO renders sensible numbers).
+- C1 — 21 client-homepage test failures. Out of scope for the admin-design-revamp branch boundary; should be filed as a separate `/audit-then-ship --lens=review --no-ship` pass on commit `0b4a67e8`.
 
 ## Required Scope
 
