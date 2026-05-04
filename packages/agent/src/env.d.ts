@@ -48,5 +48,12 @@ declare namespace NodeJS {
     // Chain
     VITE_CHAIN_ID?: string;
     VITE_RPC_URL_11155111?: string;
+    ETHEREUM_RPC_URL?: string;
+    SEPOLIA_RPC_URL?: string;
+    ARBITRUM_RPC_URL?: string;
+    CELO_RPC_URL?: string;
+    OPTIMISM_RPC_URL?: string;
+    ALCHEMY_API_KEY?: string;
+    ALCHEMY_KEY?: string;
   }
 }

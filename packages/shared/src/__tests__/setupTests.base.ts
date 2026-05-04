@@ -7,7 +7,6 @@
 
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, vi } from "vitest";
-import { initVarlockEnv } from "varlock/env";
 
 import "@testing-library/jest-dom/vitest";
 import "fake-indexeddb/auto";
@@ -15,10 +14,6 @@ import "fake-indexeddb/auto";
 // Import browser mocks
 import "../__mocks__/browser/crypto";
 import "../__mocks__/browser/navigator";
-
-// Tests don't always run through the app boot path that auto-loads varlock.
-// Initialize once and allow missing values so ENV access in shared config works.
-initVarlockEnv({ allowFail: true });
 
 // Lit queues a one-time dev-mode banner on first import. Pre-mark that code as
 // already issued so focused test runs stay readable without hiding other warnings.

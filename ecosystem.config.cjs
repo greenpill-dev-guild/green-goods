@@ -65,7 +65,7 @@ module.exports = {
       name: "agent",
       script: "sh",
       args:
-        '-c "cd packages/agent && if [ -z ${TELEGRAM_BOT_TOKEN:-} ]; then echo Agent disabled because TELEGRAM_BOT_TOKEN is missing; while true; do sleep 3600; done; else bun run dev; fi"',
+        '-c "cd packages/agent && if grep -qE \'^TELEGRAM_BOT_TOKEN=.+\' ../../.env 2>/dev/null; then bun run dev; else echo \'Agent disabled — set TELEGRAM_BOT_TOKEN in .env to enable\'; while true; do sleep 3600; done; fi"',
       cwd: ".",
       env: {
         NODE_ENV: "development",

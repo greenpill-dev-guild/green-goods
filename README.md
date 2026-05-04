@@ -43,11 +43,15 @@ After setup, use `bun` for repo scripts and package operations. `npm run setup` 
 
 #### Environment defaults
 
-`npm run setup` creates one root `.env` from `.env.schema`. The generated defaults are enough to boot and inspect the browser stack: client, admin, docs, and Storybook. They do not make every product workflow fully operational.
+Green Goods uses a single root `.env`, materialized from `.env.template` via the [1Password CLI](https://developer.1password.com/docs/cli/) (`op inject`). Bun, Vite, and Node read it natively — no per-command secret fetch.
 
-Green Goods uses [Varlock](https://varlock.dev/) as the environment schema and validation layer. Varlock validates and resolves values from `.env.schema`, which is why repo scripts may mention `varlock load` or `varlock run`.
+```bash
+bun run env:template:init   # one-time: scaffold .env.template from .env.schema
+bun run env:sync             # materialize .env from .env.template (runs `op inject`)
+bun run env:check            # validate .env satisfies .env.schema
+```
 
-Green Goods also supports the [1Password CLI](https://developer.1password.com/docs/cli/) for shared team secrets, but new developers do not need 1Password for baseline web dev.
+`.env.schema` defines the contract; `.env.template` is the team-shared file with `op://Vault/Item/field` refs for shared secrets and plain values for non-secrets. Keep personal local-only credentials directly in `.env`.
 
 | Variable | Needed for | Default setup state |
 | --- | --- | --- |
@@ -59,9 +63,7 @@ Green Goods also supports the [1Password CLI](https://developer.1password.com/do
 | `VITE_WALLETCONNECT_PROJECT_ID` | Wallet auth | Add only when testing wallet flows |
 | `TELEGRAM_BOT_TOKEN` | Agent service | Add only when running a useful local agent |
 
-When a workflow needs a shared secret, use the matching `*_OP_REF` field defined in `.env.schema` instead of pasting shared values into `.env`.
-
-For personal local credentials, set the variable directly in the root `.env`. Do not create package-level `.env` files.
+For shared team secrets, edit `.env.template` and set the value to `op://Vault/Item/field`, then run `bun run env:sync`. For personal local credentials, set the variable directly in the root `.env`. Never create package-level `.env` files.
 
 ### Check readiness
 
@@ -92,7 +94,7 @@ Run this after the browser stack is starting.
 - Node.js 22+ provides `npm` for first-clone setup.
 - `npm run setup` installs Bun, installs dependencies, and creates the root `.env`.
 - Bun is the workspace runtime after setup.
-- Varlock validates and resolves environment values from `.env.schema`.
+- `.env.schema` (key contract) + `.env.template` (1Password refs) materialize `.env` via `bun run env:sync` (`op inject`).
 - PM2 manages local dev services.
 - Docker powers full-stack indexer development.
 - Storybook runs from the shared package.

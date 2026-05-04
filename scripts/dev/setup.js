@@ -258,45 +258,29 @@ try {
 }
 
 // Setup environment — skipped in cloud since secrets are injected directly by
-// the platform and the 1Password CLI is unavailable.
+// the platform.
 if (isCloud) {
   log.info("Skipping .env generation in cloud mode (secrets are injected by the platform)\n");
-} else if (!fs.existsSync(".env")) {
-  if (fs.existsSync(".env.schema")) {
-    try {
-      const generatedEnv = execSync("APP_ENV=development bunx varlock load --path .env.schema --format env --compact", {
-        encoding: "utf8",
-      });
-      fs.writeFileSync(".env", `${generatedEnv.trim()}\n`);
-      log.success("Created .env from .env.schema defaults\n");
-
-      console.log(`${c.cyan}Recommended secret setup:${c.reset}
-  • Baseline web dev: no shared secrets or 1Password required; leave \`*_OP_REF\`, OP_ENVIRONMENT, and OP_SERVICE_ACCOUNT_TOKEN blank
-  • Personal local credentials: set direct values in root \`.env\`
-  • Shared team/deploy/upload secrets: use 1Password \`*_OP_REF=op://...\` entries and sign in to \`op\`
-  • CI/service-account setup: set OP_ENVIRONMENT and OP_ENABLE_ENVIRONMENT_LOAD=true for bulk loading
-
-See .env.schema for the full environment contract.\n`);
-    } catch (error) {
-      log.error("Failed to generate .env from .env.schema\n");
-      if (error instanceof Error && error.message) {
-        console.log(`${c.dim}${error.message}${c.reset}\n`);
-      }
-      process.exit(1);
-    }
-  } else {
-    log.warning("No .env.schema found\n");
-  }
-} else {
+} else if (fs.existsSync(".env")) {
   log.success("Environment already configured\n");
+} else if (fs.existsSync(".env.template")) {
+  log.info(".env.template found — run `bun run env:sync` to materialize .env via `op inject`\n");
+} else if (fs.existsSync(".env.schema")) {
+  log.info("No .env yet. Bootstrap:");
+  console.log(`  1. ${c.cyan}bun run env:template:init${c.reset}  -- generate .env.template from .env.schema`);
+  console.log(`  2. Edit .env.template, replacing op://YOUR_VAULT/... with real 1Password refs`);
+  console.log(`  3. ${c.cyan}bun run env:sync${c.reset}            -- materialize .env via \`op inject\``);
+  console.log(`  Or for personal local-only credentials, copy .env.schema to .env and fill values directly.\n`);
+} else {
+  log.warning("No .env.schema found\n");
 }
 
 // Next steps
 console.log(`${c.green}✓ Setup complete!${c.reset}\n`);
 if (!isCloud) {
   console.log(`${c.cyan}Next steps:${c.reset}
-  1. Keep the generated .env defaults for baseline web dev. Add direct personal values only when needed; use 1Password OP refs for shared team/deploy/upload secrets.
-     • WalletConnect shared secret: \`WALLETCONNECT_PROJECT_ID_OP_REF=op://<vault>/<item>/credential\`
+  1. Materialize .env from 1Password: bun run env:sync
+     (First time? Run \`bun run env:template:init\` first to scaffold .env.template.)
   2. Check role readiness: bun run dev:doctor -- --profile web
   3. Start frontend services: bun run dev:web
      • Full stack with Docker/indexer/agent: bun run dev

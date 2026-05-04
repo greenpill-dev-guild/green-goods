@@ -4,30 +4,23 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
 
-const browserIgnoredOpRefKeys = ["PINATA_JWT_OP_REF"];
-
-function disableServerOnlyOpRefsForBrowserBuild() {
-  for (const key of browserIgnoredOpRefKeys) {
-    process.env[key] = "";
-  }
-}
-
-export default defineConfig(async ({ command }) => {
+export default defineConfig(async ({ command, mode }) => {
   const rootDir = resolve(__dirname, "../../");
-  // Resolve env schema from monorepo root even when this package script runs with a package cwd.
+  // Resolve .env from monorepo root even when this package script runs with a package cwd.
   process.chdir(rootDir);
-  // Browser builds never need the server-side Pinata upload credential.
-  // Keeping this OP ref active makes Varlock resolve it before Vite can boot.
-  disableServerOnlyOpRefsForBrowserBuild();
-  const [{ varlockVitePlugin }, { ENV }] = await Promise.all([
-    import("@varlock/vite-integration"),
-    import("varlock/env"),
-  ]);
-  const enableRpcBgSync = String(ENV.VITE_ENABLE_RPC_BG_SYNC) === "true";
+
+  // Load .env from monorepo root (all keys, regardless of VITE_ prefix) into process.env
+  // so vite.config.ts can read VITE_* and SKIP_* values directly.
+  const rootEnv = loadEnv(mode, rootDir, "");
+  for (const [key, value] of Object.entries(rootEnv)) {
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+
+  const enableRpcBgSync = process.env.VITE_ENABLE_RPC_BG_SYNC === "true";
 
   const rpcBgSyncCaching: NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]> =
     enableRpcBgSync
@@ -58,7 +51,7 @@ export default defineConfig(async ({ command }) => {
       : ([] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>);
 
   // Use relative paths for IPFS builds
-  const isIPFSBuild = String(ENV.VITE_USE_HASH_ROUTER) === "true";
+  const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
   const appBasePath = isIPFSBuild ? "./" : "/";
   const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
 
@@ -102,7 +95,6 @@ export default defineConfig(async ({ command }) => {
 
   const plugins = [
     devTunnelPlugin(),
-    varlockVitePlugin(),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -270,7 +262,7 @@ export default defineConfig(async ({ command }) => {
         ],
         categories: [],
       },
-      devOptions: { enabled: String(ENV.VITE_ENABLE_SW_DEV) === "true" },
+      devOptions: { enabled: process.env.VITE_ENABLE_SW_DEV === "true" },
     }),
   ];
 
@@ -343,7 +335,8 @@ export default defineConfig(async ({ command }) => {
           target:
             process.env.NODE_ENV === "development"
               ? "http://localhost:8080/v1/graphql"
-              : (ENV.VITE_ENVIO_INDEXER_URL ?? "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql"),
+              : (process.env.VITE_ENVIO_INDEXER_URL ??
+                "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql"),
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api\/graphql/, ""),

@@ -25,7 +25,7 @@
  */
 
 import { useMemo } from "react";
-import { ENV } from "varlock/env";
+import { ENV } from "../../lib/env";
 import { useConfig, useWriteContract } from "wagmi";
 import {
   createTransactionSender,

@@ -3,42 +3,34 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
-import { defineConfig, type ProxyOptions, type UserConfig } from "vite";
+import { defineConfig, loadEnv, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
-const browserIgnoredOpRefKeys = ["PINATA_JWT_OP_REF"];
 
-function disableServerOnlyOpRefsForBrowserBuild() {
-  for (const key of browserIgnoredOpRefKeys) {
-    process.env[key] = "";
-  }
-}
-
-export default defineConfig(async (): Promise<UserConfig> => {
+export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
-  // Resolve env schema from monorepo root even when this package script runs with a package cwd.
+  // Resolve .env from monorepo root even when this package script runs with a package cwd.
   process.chdir(rootDir);
-  // Browser builds never need the server-side Pinata upload credential.
-  // Keeping this OP ref active makes Varlock resolve it before Vite can boot.
-  disableServerOnlyOpRefsForBrowserBuild();
-  const [{ varlockVitePlugin }, { ENV }] = await Promise.all([
-    import("@varlock/vite-integration"),
-    import("varlock/env"),
-  ]);
+
+  // Load .env from monorepo root (all keys, regardless of VITE_ prefix) into process.env
+  // so vite.config.ts can read VITE_* and SKIP_* values directly.
+  const rootEnv = loadEnv(mode, rootDir, "");
+  for (const [key, value] of Object.entries(rootEnv)) {
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
 
   // Use relative paths for IPFS builds
-  const isIPFSBuild = String(ENV.VITE_USE_HASH_ROUTER) === "true";
+  const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
   const isDevContainer = process.env.DEVCONTAINER === "true";
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
-  const indexerProxyTarget = String(ENV.VITE_ENVIO_INDEXER_URL ?? DEFAULT_INDEXER_URL);
+  const indexerProxyTarget = process.env.VITE_ENVIO_INDEXER_URL ?? DEFAULT_INDEXER_URL;
 
   const plugins = [
-    varlockVitePlugin(),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -88,7 +80,6 @@ export default defineConfig(async (): Promise<UserConfig> => {
         "@green-goods/shared/constants": resolve(__dirname, "../shared/src/constants"),
         "@green-goods/contracts/deployments": resolve(__dirname, "../contracts/deployments"),
         "@green-goods/contracts/abis": resolve(__dirname, "../contracts/abis"),
-        "varlock/env": resolve(__dirname, "./src/lib/varlock-env.ts"),
       },
     },
     // Optimize dependency pre-bundling

@@ -80,6 +80,8 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
+.env.bak
+.env.resolved
 
 # Claude local project memory
 .claude/projects/
@@ -296,7 +298,6 @@ docker-compose.local.yml
 
 # Temp patches
 *.patch
-!patches/@varlock%2F1password-plugin@0.2.2.patch
 
 # ================================
 # OS Generated

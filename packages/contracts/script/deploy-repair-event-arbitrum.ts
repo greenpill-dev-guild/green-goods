@@ -4,7 +4,6 @@ import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { internal as varlockInternal } from "varlock";
 import { loadPinataConfigFromEnv, uploadBufferWithPinata } from "../../../scripts/lib/ipfs-hybrid";
 import { NetworkManager } from "./utils/network";
 
@@ -80,30 +79,28 @@ interface InstructionsDocument {
   tips: string[];
 }
 
-async function ensureVarlockEnvLoaded(): Promise<void> {
-  if (process.env.__VARLOCK_ENV) return;
-
-  const entryFilePath = path.join(REPO_ROOT, ".env.schema");
-  if (!fs.existsSync(entryFilePath)) {
-    throw new Error(`Varlock schema not found: ${entryFilePath}`);
+async function ensureRootEnvLoaded(): Promise<void> {
+  const envPath = path.join(REPO_ROOT, ".env");
+  if (!fs.existsSync(envPath)) {
+    throw new Error(`Root .env not found: ${envPath}. Run \`bun run env:sync\` to materialize from .env.template.`);
   }
 
-  const envGraph = await varlockInternal.loadVarlockEnvGraph({
-    currentEnvFallback: process.env.APP_ENV,
-    entryFilePath,
-  });
-
-  await envGraph.resolveEnvValues();
-  varlockInternal.checkForConfigErrors(envGraph);
-
-  const resolvedEnv = envGraph.getResolvedEnvObject();
-  const serializedGraph = envGraph.getSerializedGraph();
-
-  Object.assign(process.env, resolvedEnv, {
-    __VARLOCK_ENV: JSON.stringify(serializedGraph),
-  });
-
-  varlockInternal.initVarlockEnv();
+  const text = await fs.promises.readFile(envPath, "utf8");
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const normalized = line.startsWith("export ") ? line.slice("export ".length) : line;
+    const equals = normalized.indexOf("=");
+    if (equals === -1) continue;
+    const key = normalized.slice(0, equals).trim();
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) continue;
+    if (process.env[key] !== undefined) continue;
+    let value = normalized.slice(equals + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
 }
 
 function getPinataConfigForUploads() {
@@ -138,7 +135,7 @@ Options:
   --help                      Show this help
 
 Notes:
-  - Preferred entrypoint is the root package.json wrapper so env comes from varlock/1Password
+  - Preferred entrypoint is the root package.json wrapper so env comes from the synced root .env
   - Uploads use Pinata and require PINATA_JWT
   - Uses Foundry keystore account from FOUNDRY_KEYSTORE_ACCOUNT
   - Defaults to keystore "${DEFAULT_KEYSTORE}" if env var is unset
@@ -462,7 +459,7 @@ async function main(): Promise<void> {
   }
 
   if (options.broadcast) {
-    await ensureVarlockEnvLoaded();
+    await ensureRootEnvLoaded();
   }
 
   const actionsData = readActionsData();

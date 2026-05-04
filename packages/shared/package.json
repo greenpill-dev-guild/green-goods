@@ -14,6 +14,7 @@
     "./config": "./src/config/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./i18n": "./src/i18n/index.ts",
+    "./lib/env": "./src/lib/env.ts",
     "./i18n/en": "./src/i18n/en.json",
     "./i18n/es": "./src/i18n/es.json",
     "./i18n/pt": "./src/i18n/pt.json",
@@ -75,8 +76,7 @@
     "react-day-picker": "^9.13.0",
     "react-router-dom": "^7.12.0",
     "tailwind-merge": "3.0.2",
-    "tailwind-variants": "3.2.2",
-    "varlock": "^0.3.0"
+    "tailwind-variants": "3.2.2"
   },
   "peerDependencies": {
     "@ethereum-attestation-service/eas-sdk": "^2.7.0",

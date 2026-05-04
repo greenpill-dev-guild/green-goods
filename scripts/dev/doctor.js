@@ -67,9 +67,6 @@ const marks = {
 const results = [];
 let opReady = null;
 
-const uploadOpRefKeys = new Set(["PINATA_JWT_OP_REF"]);
-const varlockProbeTimeoutMs = 45_000;
-
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(`Usage: node scripts/dev/doctor.js [--profile web|full|contracts|upload] [--json]\n`);
@@ -164,80 +161,20 @@ function hasOpRef(value) {
   return /^op:\/\//.test(value.trim());
 }
 
-function localVarlockCommand() {
-  const executable = process.platform === "win32" ? "varlock.cmd" : "varlock";
-  const localBin = path.join(projectRoot, "node_modules", ".bin", executable);
-  return fs.existsSync(localBin) ? localBin : "varlock";
-}
-
-function schemaOpRefKeys(schema) {
-  return new Set(Object.keys(schema).filter((key) => key.endsWith("_OP_REF")));
-}
-
-function opRefEntries(envFile, allowedKeys = null) {
-  return Object.entries(envFile).filter(
-    ([key, value]) => hasOpRef(value) && (!allowedKeys || allowedKeys.has(key))
-  );
-}
-
-function ignoredOpRefEntries(envFile, allowedKeys) {
-  return Object.entries(envFile).filter(([key, value]) => hasOpRef(value) && !allowedKeys.has(key));
-}
-
-function opRefRequiredForCurrentProfile(key) {
-  if (uploadOpRefKeys.has(key)) return options.profile === "upload";
-  return true;
-}
-
-function profileVarlockEnv(envFile, schema) {
-  const env = { ...process.env };
-  const appEnv = valueFor(envFile, "APP_ENV");
-  if (appEnv) env.APP_ENV = appEnv;
-
-  for (const key of schemaOpRefKeys(schema)) {
-    if (!opRefRequiredForCurrentProfile(key)) {
-      env[key] = "";
-    }
+function templateOpRefs(templatePath) {
+  if (!fs.existsSync(templatePath)) return [];
+  const text = fs.readFileSync(templatePath, "utf8");
+  const refs = [];
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+    const equals = line.indexOf("=");
+    if (equals === -1) continue;
+    const key = line.slice(0, equals).trim();
+    const value = line.slice(equals + 1).trim();
+    if (hasOpRef(value)) refs.push(key);
   }
-
-  return env;
-}
-
-function sanitizeVarlockOutput(value) {
-  return value
-    .replace(/\x1B\[[0-?]*[ -/]*[@-~]/g, "")
-    .replace(/op:\/\/[^\s'"]+/g, "op://...")
-    .replace(/\0/g, " ")
-    .trim();
-}
-
-function summarizeVarlockFailure(result) {
-  if (result.error) return result.error.message;
-
-  const output = sanitizeVarlockOutput(`${result.stderr || ""}\n${result.stdout || ""}`);
-  const interesting = output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) =>
-      /Invalid items|error resolving value|1Password|config directory|authorization|not signed in|not found|does not have a field|environment|Varlock|⛔/.test(
-        line
-      )
-    );
-
-  return (interesting.length > 0 ? interesting : output.split(/\r?\n/).filter(Boolean))
-    .slice(0, 5)
-    .join(" ");
-}
-
-function runVarlockResolutionProbe(envFile, schema) {
-  const command = localVarlockCommand();
-  return spawnSync(command, ["run", "--", process.execPath, "-e", "process.exit(0)"], {
-    cwd: projectRoot,
-    encoding: "utf8",
-    env: profileVarlockEnv(envFile, schema),
-    timeout: varlockProbeTimeoutMs,
-  });
+  return refs;
 }
 
 function checkPortHost(port, host) {
@@ -355,97 +292,19 @@ function checkDocker() {
   }
 }
 
-function checkIgnoredSecretConfig(envFile, schema) {
-  const activeOpRefKeys = schemaOpRefKeys(schema);
-  const ignoredOpRefs = ignoredOpRefEntries(envFile, activeOpRefKeys);
-  if (ignoredOpRefs.length > 0) {
-    add(
-      "warn",
-      "Root .env contains ignored 1Password refs",
-      ignoredOpRefs
-        .map(([key]) => key)
-        .sort()
-        .join(", "),
-      "Remove stale OP refs from root .env, or add them to .env.schema only when they are part of the supported contract.",
-      { check: "env:ignored-op-refs" }
-    );
-  }
+function checkOpReadiness() {
+  const templatePath = path.join(projectRoot, ".env.template");
+  const opRefKeys = templateOpRefs(templatePath);
 
-  const bulkEnabled = valueFor(envFile, "OP_ENABLE_ENVIRONMENT_LOAD").toLowerCase() === "true";
-  const opEnvironment = valueFor(envFile, "OP_ENVIRONMENT");
-  if (!bulkEnabled && hasUsableValue(opEnvironment)) {
+  if (opRefKeys.length === 0) {
     add(
       "info",
-      "1Password bulk environment is configured but disabled",
-      "OP_ENVIRONMENT is ignored while OP_ENABLE_ENVIRONMENT_LOAD=false.",
+      "No 1Password refs in .env.template",
+      ".env values are direct (or .env.template doesn't exist yet). Skipping op signin check.",
       "",
-      { check: "env:op-bulk-disabled" }
+      { check: "op:template-refs" }
     );
-  }
-}
-
-function activeOpDetail(opRefs, usesBulkOp) {
-  const parts = [];
-  if (opRefs.length > 0) parts.push(`${opRefs.length} schema-backed OP ref(s)`);
-  if (usesBulkOp) parts.push("bulk environment loading");
-  return `${parts.join(" and ")} configured.`;
-}
-
-function checkOpReadiness(envFile, schema) {
-  const schemaBackedOpRefs = opRefEntries(envFile, schemaOpRefKeys(schema));
-  const opRefs = schemaBackedOpRefs.filter(([key]) =>
-    opRefRequiredForCurrentProfile(key)
-  );
-  const skippedOpRefs = schemaBackedOpRefs.filter(([key]) => !opRefRequiredForCurrentProfile(key));
-  const usesBulkOp = valueFor(envFile, "OP_ENABLE_ENVIRONMENT_LOAD").toLowerCase() === "true";
-
-  if (skippedOpRefs.length > 0) {
-    add(
-      "info",
-      "Upload-only 1Password refs ignored for this profile",
-      skippedOpRefs
-        .map(([key]) => key)
-        .sort()
-        .join(", "),
-      "",
-      { check: "env:profile-op-refs" }
-    );
-  }
-
-  const opAccount = valueFor(envFile, "OP_ACCOUNT");
-  if (hasUsableValue(opAccount)) {
-    add(
-      "warn",
-      "OP_ACCOUNT is configured but not wired into Varlock",
-      "The current 1Password plugin requires a static account in .env.schema, so root .env OP_ACCOUNT does not select the account.",
-      "Use a single signed-in 1Password account for now, or switch this repo to service-account or environment loading.",
-      { check: "env:op-account" }
-    );
-  }
-
-  if (opRefs.length === 0 && !usesBulkOp) {
-    const probe = runVarlockResolutionProbe(envFile, schema);
-    if (probe.status === 0) {
-      opReady = true;
-      add(
-        "pass",
-        "Varlock profile bootstrap works",
-        skippedOpRefs.length > 0
-          ? "Upload-only OP refs were bypassed for this non-upload profile."
-          : "No profile-required 1Password refs are active.",
-        "",
-        { check: "varlock:profile" }
-      );
-    } else {
-      opReady = false;
-      add(
-        "fail",
-        "Varlock profile bootstrap failed",
-        summarizeVarlockFailure(probe),
-        "Fix the Varlock error, or remove profile-required OP refs from root .env for baseline local work.",
-        { check: "varlock:profile" }
-      );
-    }
+    opReady = true;
     return;
   }
 
@@ -454,37 +313,49 @@ function checkOpReadiness(envFile, schema) {
     add(
       "fail",
       "1Password CLI is not installed",
-      activeOpDetail(opRefs, usesBulkOp),
-      "Install the 1Password CLI, or replace active OP refs with direct root .env values for local-only work.",
-      { check: "op-cli" }
+      `${opRefKeys.length} op:// refs in .env.template require resolution.`,
+      "Install the 1Password CLI from https://1password.com/downloads/command-line/, then run `bun run env:sync`.",
+      { check: "op:cli" }
     );
     return;
   }
 
-  const probe = runVarlockResolutionProbe(envFile, schema);
+  // Don't pre-check `op whoami` — it returns "not signed in" without a session token,
+  // but `op inject` itself triggers Touch ID via the desktop integration at sync time.
+  // The fact that .env exists and `env:check` passes is the real signal that resolution worked.
+  opReady = true;
+  add(
+    "info",
+    "1Password CLI present",
+    `${opRefKeys.length} op:// ref(s) in .env.template will be resolved by \`bun run env:sync\` (Touch ID prompts then).`,
+    "",
+    { check: "op:cli-present" }
+  );
+}
 
-  if (probe.status === 0) {
-    opReady = true;
+function checkEnvSchemaCompleteness() {
+  const envCheck = spawnSync(process.execPath, [path.join(projectRoot, "scripts/dev/env-check.js")], {
+    cwd: projectRoot,
+    encoding: "utf8",
+  });
+
+  if (envCheck.status === 0) {
     add(
       "pass",
-      "Varlock can resolve profile 1Password refs",
-      activeOpDetail(opRefs, usesBulkOp).replace("configured.", "resolved through the real Varlock path."),
+      ".env satisfies .env.schema",
+      (envCheck.stdout || "").trim() || "All required keys present and non-empty.",
       "",
-      {
-        check: "varlock:op-refs",
-      }
+      { check: "env:schema-complete" }
     );
-    return;
+  } else {
+    add(
+      "fail",
+      ".env is incomplete vs .env.schema",
+      (envCheck.stderr || envCheck.stdout || "").trim().split("\n").slice(0, 5).join(" "),
+      "Run `bun run env:sync` to materialize from .env.template, or fill missing keys in .env directly.",
+      { check: "env:schema-complete" }
+    );
   }
-
-  opReady = false;
-  add(
-    "fail",
-    "Varlock cannot resolve profile 1Password refs",
-    `${activeOpDetail(opRefs, usesBulkOp)} ${summarizeVarlockFailure(probe)}`.trim(),
-    "Run op signin and confirm Varlock can resolve this profile, use direct local values for local-only work, or switch to OP service-account/environment loading.",
-    { check: "varlock:op-refs" }
-  );
 }
 
 function checkEnv() {
@@ -518,8 +389,10 @@ function checkEnv() {
     );
   }
 
-  checkIgnoredSecretConfig(envFile, schema);
-  checkOpReadiness(envFile, schema);
+  if (fs.existsSync(envPath)) {
+    checkEnvSchemaCompleteness();
+  }
+  checkOpReadiness();
 
   const vitePinataJwt = valueFor(envFile, "VITE_PINATA_JWT");
   const pinataJwtOpRef = valueFor(envFile, "PINATA_JWT_OP_REF");
@@ -554,7 +427,7 @@ function checkEnv() {
       requiredLevel(["upload"]),
       "Pinata upload signing credential missing",
       "Image reads can use public gateways, but upload-capable QA will fail.",
-      "Set PINATA_JWT in root .env, or PINATA_JWT_OP_REF=op://... to resolve it through Varlock.",
+      "Set PINATA_JWT in root .env, or in .env.template as `PINATA_JWT=op://Vault/Item/credential` and run `bun run env:sync`.",
       { check: "env:pinata" }
     );
   }
@@ -717,12 +590,12 @@ function printText() {
   console.log("- Frontend QA: Node.js, Bun, Git, root .env, ports 3001/3002/3003/6006.");
   console.log("- Full-stack/indexer: frontend QA plus Docker and packages/indexer/generated.");
   console.log("- Contracts: frontend QA plus Foundry.");
-  console.log("- Upload-capable QA: frontend QA plus VITE_API_BASE_URL and PINATA_JWT or a resolvable PINATA_JWT_OP_REF.");
+  console.log("- Upload-capable QA: frontend QA plus VITE_API_BASE_URL and PINATA_JWT.");
 
   console.log("\nSecret policy");
-  console.log("- Baseline web development does not require 1Password.");
-  console.log("- Direct root .env values are okay for personal local-only credentials.");
-  console.log("- Use 1Password OP refs for shared team, deploy, upload, and CI secrets.");
+  console.log("- `.env` is materialized from `.env.template` via `bun run env:sync` (runs `op inject`).");
+  console.log("- Direct root `.env` values are fine for personal local-only credentials.");
+  console.log("- Shared team secrets: edit `.env.template` with `op://Vault/Item/field` refs.");
 
   console.log("\nRecommended entrypoints");
   console.log("- First clone: bun run setup");

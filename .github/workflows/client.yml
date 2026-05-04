@@ -155,7 +155,7 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Run client Playwright project
-        run: PLAYWRIGHT_APP=client APP_ENV=test bunx varlock run -- bunx playwright test --project=client-ci
+        run: PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci
         env:
           CI: true
 

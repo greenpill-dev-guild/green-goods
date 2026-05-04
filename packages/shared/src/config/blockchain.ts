@@ -3,7 +3,7 @@ import deployment42161 from "@green-goods/contracts/deployments/42161-latest.jso
 import deployment42220 from "@green-goods/contracts/deployments/42220-latest.json";
 import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
-import { ENV } from "varlock/env";
+import { ENV } from "../lib/env";
 
 // Export types
 export interface EASConfig {

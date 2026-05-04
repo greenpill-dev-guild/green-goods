@@ -40,12 +40,11 @@ The root `.env` file is automatically loaded by:
 - `VITE_ENVIO_INDEXER_URL`: Envio GraphQL endpoint (optional; defaults to localhost in dev)
 - `VITE_DEBUG_MODE`: Optional toggle to skip the two-media requirement in the Garden submission flow and enable verbose debug logging (use for manual testing only)
 **Setup:**
-1. Generate `.env` from root schema defaults:
-   `APP_ENV=development bunx varlock load --path .env.schema --format env --compact > .env`
+1. Materialize root `.env` from `.env.template`: `bun run env:sync` (first-time: `bun run env:template:init`)
 2. Get your WalletConnect Project ID from [cloud.reown.com](https://cloud.reown.com/)
 3. Get your Pimlico API key from [pimlico.io](https://pimlico.io)
-4. Add the required environment variables to your `.env` file
-5. Variables are automatically loaded when running `bun dev` from root or package directory
+4. Add the required values to root `.env` (or to `.env.template` as `op://Vault/Item/field` for team-shared secrets)
+5. Variables are automatically loaded by Vite when running `bun dev` from root or package directory
 
 **Authentication Setup:**
 Green Goods uses a dual authentication strategy:

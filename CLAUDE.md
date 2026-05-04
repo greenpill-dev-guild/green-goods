@@ -174,7 +174,9 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Depl
 
 ## Environment
 
-Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets target chain at build time. `.env.schema` is the source of truth.
+Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets target chain at build time. `.env.schema` defines the contract.
+
+**Env loading**: `.env` is materialized from `.env.template` via `bun run env:sync` (runs `op inject`). Bun, Vite, and Node read `.env` natively — no per-command 1Password fetch. For shared team secrets, edit `.env.template` and use `op://Vault/Item/field` refs. For personal local credentials, edit `.env` directly. Validate with `bun run env:check`.
 
 ## Scope Discipline
 - When instructions say "output in chat" or "just tell me", do NOT edit files

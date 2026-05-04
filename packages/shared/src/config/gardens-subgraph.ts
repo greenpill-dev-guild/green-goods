@@ -1,5 +1,5 @@
 import type { SupportedChainId } from "./chains";
-import { ENV } from "varlock/env";
+import { ENV } from "../lib/env";
 
 /**
  * Gardens V2 subgraph endpoints.

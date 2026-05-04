@@ -83,7 +83,7 @@ Run the relevant subset against each package; not all checks apply to all packag
 ### `packages/agent/`
 - **Routine boundary** — agent runtime changes should not replace Claude routine prompts or GitHub-native review settings with write-capable Actions.
 - **Shared contracts** — use shared types, logger, config helpers, and error handling; do not duplicate blockchain/runtime contracts from `@green-goods/shared`.
-- **Secrets discipline** — no package-level `.env`; keep the root `.env.schema` and Varlock path authoritative.
+- **Secrets discipline** — no package-level `.env`; keep the root `.env.schema` (key contract) and `.env.template` (1Password refs + plain defaults) authoritative.
 
 ## Output: one rolling issue per package
 

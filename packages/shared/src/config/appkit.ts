@@ -13,7 +13,7 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { ENV } from "varlock/env";
+import { ENV } from "../lib/env";
 import { logger } from "../modules/app/logger";
 import { getResolvedTheme } from "../utils/styles/theme";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
@@ -93,7 +93,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
 
   if (!projectId) {
     logger.warn(
-      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Add WALLETCONNECT_PROJECT_ID_OP_REF to the root .env so varlock can resolve the WalletConnect project ID."
+      "[AppKit] VITE_WALLETCONNECT_PROJECT_ID not set. Set it in .env (or in .env.template + run `bun run env:sync` for team-shared 1Password resolution)."
     );
   }
 

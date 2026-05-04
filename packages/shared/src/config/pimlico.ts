@@ -1,5 +1,5 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import { ENV } from "varlock/env";
+import { ENV } from "../lib/env";
 import { type Chain, createPublicClient, http } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";

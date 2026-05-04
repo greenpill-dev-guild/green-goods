@@ -80,7 +80,6 @@ const storybookBrowserOptimizerIncludes = [
   "react-select",
   "tailwind-merge",
   "tailwind-variants",
-  "varlock/env",
   "viem",
   "viem/account-abstraction",
   "viem/chains",
