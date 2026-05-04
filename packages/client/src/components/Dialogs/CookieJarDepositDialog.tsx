@@ -3,6 +3,7 @@ import {
   Button,
   classifyTxError,
   DialogShell,
+  FormField,
   formatTokenAmount,
   getVaultAssetSymbol,
   isMeaningfulTxErrorMessage,
@@ -94,7 +95,7 @@ export function CookieJarDepositDialog({
       });
 
   const handleSubmit = () => {
-    if (!selectedJar || parsedAmount <= 0n) return;
+    if (!primaryAddress || !selectedJar || parsedAmount <= 0n) return;
     depositMutation.mutate(
       {
         jarAddress: selectedJar.jarAddress,
@@ -131,8 +132,8 @@ export function CookieJarDepositDialog({
       {!primaryAddress ? (
         <p className="py-6 text-center text-sm text-text-sub">
           {formatMessage({
-            id: "public.fund.connectToDeposit",
-            defaultMessage: "Connect your wallet to deposit.",
+            id: "public.fund.walletDisconnected",
+            defaultMessage: "Wallet disconnected. Reconnect to continue your deposit.",
           })}
         </p>
       ) : isLoadingJars ? (
@@ -151,35 +152,47 @@ export function CookieJarDepositDialog({
         </p>
       ) : (
         <div className="space-y-4">
-          <div>
-            <label
+          {jars.length > 1 && (
+            <FormField
+              label={formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
               htmlFor="cookie-jar-select"
-              className="block text-sm font-medium text-text-strong"
             >
-              {formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
-            </label>
-            <select
-              id="cookie-jar-select"
-              value={jarAddress}
-              onChange={(e) => setJarAddress(e.target.value)}
-              className="mt-1.5 w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
-            >
-              {jars.map((jar) => (
-                <option key={jar.jarAddress} value={jar.jarAddress}>
-                  {getVaultAssetSymbol(jar.assetAddress, undefined)} (
-                  {formatTokenAmount(jar.balance, jar.decimals)})
-                </option>
-              ))}
-            </select>
-          </div>
+              <select
+                id="cookie-jar-select"
+                value={jarAddress}
+                onChange={(e) => setJarAddress(e.target.value)}
+                className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
+              >
+                {jars.map((jar) => (
+                  <option key={jar.jarAddress} value={jar.jarAddress}>
+                    {getVaultAssetSymbol(jar.assetAddress, undefined)} (
+                    {formatTokenAmount(jar.balance, jar.decimals)})
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          )}
 
-          <div>
-            <label
-              htmlFor="cookie-jar-amount"
-              className="block text-sm font-medium text-text-strong"
-            >
-              {formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
-            </label>
+          <FormField
+            label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
+            htmlFor="cookie-jar-amount"
+            error={
+              inputError
+                ? formatMessage({ id: inputError })
+                : belowMin && selectedJar
+                  ? formatMessage(
+                      {
+                        id: "app.cookieJar.belowMinDeposit",
+                        defaultMessage: "Minimum deposit is {amount} {asset}",
+                      },
+                      {
+                        amount: formatTokenAmount(selectedJar.minDeposit, selectedJar.decimals),
+                        asset: getVaultAssetSymbol(selectedJar.assetAddress, undefined),
+                      }
+                    )
+                  : undefined
+            }
+          >
             <input
               id="cookie-jar-amount"
               type="text"
@@ -189,32 +202,13 @@ export function CookieJarDepositDialog({
               placeholder="0.00"
               disabled={depositMutation.isPending}
               aria-invalid={Boolean(inputError)}
-              className={`mt-1.5 w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
+              className={`w-full rounded-md border px-3 py-2 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
                 inputError
                   ? "border-error-base focus:border-error-base"
                   : "border-stroke-sub bg-bg-white focus:border-primary-base"
               }`}
             />
-            {inputError && (
-              <p className="mt-1.5 text-xs text-error-dark" role="alert">
-                {formatMessage({ id: inputError })}
-              </p>
-            )}
-            {belowMin && selectedJar && (
-              <p className="mt-1.5 text-xs text-error-dark" role="alert">
-                {formatMessage(
-                  {
-                    id: "app.cookieJar.belowMinDeposit",
-                    defaultMessage: "Minimum deposit is {amount} {asset}",
-                  },
-                  {
-                    amount: formatTokenAmount(selectedJar.minDeposit, selectedJar.decimals),
-                    asset: getVaultAssetSymbol(selectedJar.assetAddress, undefined),
-                  }
-                )}
-              </p>
-            )}
-          </div>
+          </FormField>
 
           <p className="text-xs text-text-soft">
             {formatMessage({

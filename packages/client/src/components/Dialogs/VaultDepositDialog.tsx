@@ -116,8 +116,8 @@ export function VaultDepositDialog({
       {!primaryAddress ? (
         <p className="py-6 text-center text-sm text-text-sub">
           {formatMessage({
-            id: "public.fund.connectToDeposit",
-            defaultMessage: "Connect your wallet to deposit.",
+            id: "public.fund.walletDisconnected",
+            defaultMessage: "Wallet disconnected. Reconnect to continue your deposit.",
           })}
         </p>
       ) : isLoadingVaults ? (

@@ -176,11 +176,19 @@ export default function FundPage() {
   const hasWalletRuntime = Boolean(selectorGarden || walletDialog);
 
   const matchHighlightRef = useRef<HTMLDivElement | null>(null);
+  const matchedGardenId = resolved.status === "match" ? resolved.garden?.id : undefined;
   useEffect(() => {
-    if (resolved.status === "match" && matchHighlightRef.current) {
-      matchHighlightRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (!matchedGardenId) {
+      matchHighlightRef.current = null;
+      return;
     }
-  }, [resolved.status]);
+    // Defer to the next frame so the ref attaches to the freshly-rendered row,
+    // not a stale node from a previous `?garden=` value.
+    const handle = requestAnimationFrame(() => {
+      matchHighlightRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => cancelAnimationFrame(handle);
+  }, [matchedGardenId]);
 
   const closeSelector = useCallback(() => setSelectorGarden(null), []);
   const closeWalletDialog = useCallback(() => setWalletDialog(null), []);

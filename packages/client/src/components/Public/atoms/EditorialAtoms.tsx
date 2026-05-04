@@ -394,8 +394,11 @@ export function EditorialDomainChip({
   count,
   className,
 }: EditorialDomainChipProps) {
+  const isEmpty = count === 0 && !active;
   const inactiveClasses =
     "border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 hover:bg-bg-weak-50";
+  const emptyClasses =
+    "border-stroke-soft-200/60 bg-bg-weak-50 text-text-soft-400 hover:bg-bg-weak-50";
   return (
     <button
       type="button"
@@ -403,7 +406,7 @@ export function EditorialDomainChip({
       aria-pressed={active}
       className={cn(
         "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
-        active ? ACTIVE_DOMAIN_CLASSES[domain] : inactiveClasses,
+        active ? ACTIVE_DOMAIN_CLASSES[domain] : isEmpty ? emptyClasses : inactiveClasses,
         active && domain === "all"
           ? "focus-visible:ring-text-strong-950"
           : `focus-visible:ring-primary-action`,
