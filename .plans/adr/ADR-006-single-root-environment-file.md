@@ -33,7 +33,7 @@ The single-root-`.env` decision is unchanged. The resolution mechanism has been 
 How it now works:
 
 - `.env.schema` remains the key contract — every required variable must be declared here.
-- `.env.template` (committed, no secrets) holds the team-shared overlay: `op-scheme://Vault/Item/field` references for shared secrets, plain values for non-secret defaults (URLs, ports, feature flags).
+- `.env.template` (committed, no secrets) holds the team-shared overlay: `op://Vault/Item/field` references for shared secrets, plain values for non-secret defaults (URLs, ports, feature flags).
 - `bun run env:sync` runs `op inject` against `.env.template` to materialize `.env`. Touch ID prompts once via the 1Password desktop app integration; the resolved `.env` is then read natively by Bun, Vite, and Node.
 - `bun run env:check` validates `.env` against `.env.schema`.
 - All shared package code reads via `import { ENV } from "@green-goods/shared/lib/env"` (a thin Proxy over `import.meta.env` / `process.env`); the Vite/Bun runtimes load `.env` natively, no per-command secret fetch.

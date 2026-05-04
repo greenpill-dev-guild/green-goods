@@ -22,7 +22,7 @@ Green Goods uses three files to manage environment variables, each with a distin
 | File | Purpose | Committed? |
 | --- | --- | --- |
 | `.env.schema` | Full key contract — every supported variable, with sensitivity and default metadata. Source of truth for validation. | Yes |
-| `.env.template` | Team-shared overlay — `op-scheme://Vault/Item/field` references for shared secrets, plain values for non-secret defaults. | Yes (no secrets) |
+| `.env.template` | Team-shared overlay — `op://Vault/Item/field` references for shared secrets, plain values for non-secret defaults. | Yes (no secrets) |
 | `.env` | Materialized output — the actual file Bun, Vite, and Node read at runtime. | No (gitignored) |
 
 The pipeline is one-way: `.env.template` + 1Password → `.env` via `op inject`. Bun, Vite, and Node read `.env` natively, so there is no per-command secret fetch and no Touch ID interruption mid-session.
@@ -50,7 +50,7 @@ If you do not have vault access (external contributor, audit, evaluation):
 
 ```bash
 cp .env.template .env                     # start from the template
-# Replace each `op-scheme://...` line with a real value or leave empty for app fallback
+# Replace each `op://...` line with a real value or leave empty for app fallback
 bun run env:check
 ```
 
@@ -66,14 +66,14 @@ bun run env:template:init --vault GreenGoods --force
 
 The script reads `.env.schema`, queries `op item list --vault GreenGoods`, and writes a fresh `.env.template`:
 
-- Schema keys whose name matches a 1Password item title → `op-scheme://GreenGoods/<KEY>/credential` reference
+- Schema keys whose name matches a 1Password item title → `op://GreenGoods/<KEY>/credential` reference
 - Schema keys with a `$OTHER_KEY` substitution that resolves to a vault item → ref to the resolved item
 - Schema keys with a `if(...)` conditional or other unresolvable expression → empty value with a `# TODO:` comment
-- Schema keys with a sensitive name pattern but no vault item → `op-scheme://YOUR_VAULT/<KEY>/credential` placeholder you must edit
+- Schema keys with a sensitive name pattern but no vault item → `op://YOUR_VAULT/<KEY>/credential` placeholder you must edit
 - Schema keys ending in `_OP_REF` → skipped entirely (legacy varlock plumbing)
 - Other schema keys → carried through with their default value
 
-After regeneration, edit any `YOUR_VAULT` placeholders before running `bun run env:sync`.
+After regeneration, edit any `YOUR_VAULT` placeholders before running `bun run env:sync`. Note: example `op://...` URIs in comment lines are auto-defanged to `op-scheme://...` by the init script, because `op inject` resolves matches even inside `#` comments.
 
 ## Bootstrapping schema defaults into an existing `.env`
 

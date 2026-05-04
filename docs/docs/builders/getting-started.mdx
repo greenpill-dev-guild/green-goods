@@ -131,7 +131,7 @@ For details on regenerating the template (e.g. after a new key lands in `.env.sc
 
 Variables prefixed with `VITE_` are embedded into frontend bundles at build time.
 
-For personal local-only credentials, put direct values in root `.env`. For shared Green Goods credentials (upload-capable QA, deploys, CI), edit `.env.template` to use 1Password URIs in the `op-scheme://Vault/Item/field` form, sign in to the `op` CLI, and run `bun run env:sync`.
+For personal local-only credentials, put direct values in root `.env`. For shared Green Goods credentials (upload-capable QA, deploys, CI), edit `.env.template` to use 1Password URIs in the `op://Vault/Item/field` form, sign in to the `op` CLI, and run `bun run env:sync`.
 
 ## Running services
 
