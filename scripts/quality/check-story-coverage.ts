@@ -194,6 +194,10 @@ const AUDITED_HARNESS_ONLY_STORIES = new Map<string, string>([
     "admin/views/Hub/components/CookieJarWithdrawModal.tsx",
     "real modal reads garden cookie jars and mutates withdraw flows through wagmi hooks",
   ],
+  [
+    "admin/views/Community/components/GovernancePanel.tsx",
+    "tier-5 conviction panel terminates in indexer + wagmi reads (proposals, weight allocations) that are not seedable in Storybook",
+  ],
 ]);
 
 // Files to skip unconditionally — never represent a visual component.
