@@ -1680,16 +1680,19 @@
     }
   }
 
-  /* ── Canvas Grid Layout ── */
+  /* ── Canvas Grid Layout ──
+     Per design_handoff_admin-revamp/screens/review.css: NavigationBar floats
+     via position:fixed (bottom: 20px) and doesn't reserve a grid row. Main
+     content carries its own bottom padding to avoid being covered by the
+     floating pill. */
   .workspace-canvas-grid {
     --canvas-right-sheet-width: clamp(320px, 28vw, 480px);
     --canvas-right-sheet-width-wide: clamp(420px, 36vw, 640px);
     display: grid;
     grid-template-areas:
       "top    top    top"
-      "left   main   right"
-      "bottom bottom bottom";
-    grid-template-rows: auto 1fr auto;
+      "left   main   right";
+    grid-template-rows: auto 1fr;
     /* `minmax(0, 1fr)` lets the main column shrink below intrinsic content
        width — without it, content like /actions can force the column wider
        than the viewport at narrow widths and clip the right edge. */
@@ -1708,16 +1711,14 @@
   .canvas-area-left { grid-area: left; }
   .canvas-area-main { grid-area: main; }
   .canvas-area-right { grid-area: right; }
-  .canvas-area-bottom { grid-area: bottom; position: relative; }
 
   @media (max-width: 599px) {
     .workspace-canvas-grid {
       grid-template-areas:
         "top"
-        "main"
-        "bottom";
+        "main";
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto 1fr auto;
+      grid-template-rows: auto 1fr;
     }
   }
 

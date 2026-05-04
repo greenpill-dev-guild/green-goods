@@ -249,11 +249,11 @@ export function RightSheet({
         data-testid="right-sheet-overlay"
       />
 
-      {/* Sheet content — spring-driven translateX */}
+      {/* Sheet content — spring-driven translateX with handoff 24px overshoot */}
       <animated.div
         ref={contentRef}
         className={cn(
-          "absolute top-0 right-0 flex h-full flex-col rounded-l-xl",
+          "absolute top-0 right-0 flex h-full flex-col",
           "touch-none focus:outline-none will-change-transform",
           "glass-floating"
         )}
@@ -262,7 +262,9 @@ export function RightSheet({
           maxWidth: widthVar,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           touchAction: "none",
-          transform: springs.x.to((x) => `translateX(${x}%)`),
+          // Handoff: closed sits at translateX(calc(100% + 24px)); open at translateX(0)
+          transform: springs.x.to((x) => `translateX(calc(${x}% + ${(x / 100) * 24}px))`),
+          borderRadius: "var(--radius-sheet, 16px) 0 0 var(--radius-sheet, 16px)",
           zIndex: isBounded ? 46 : 51,
         }}
         data-component="RightSheet"
@@ -273,20 +275,35 @@ export function RightSheet({
         data-testid="right-sheet"
         {...bind()}
       >
-        {/* Header */}
+        {/* Header — handoff anatomy: title on left, close on right */}
         {renderedTitle ? (
           <div
-            className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3"
+            className="flex items-center justify-between"
+            style={{
+              padding: "16px 16px 14px",
+              borderBottom: "1px solid var(--hairline, rgb(var(--m3-outline-variant) / 0.6))",
+              flexShrink: 0,
+            }}
             data-slot="header"
           >
-            <h2 className="text-lg font-semibold text-text-strong" data-slot="title">
+            <h2
+              data-slot="title"
+              style={{
+                fontSize: "15px",
+                lineHeight: "1.2",
+                fontWeight: 700,
+                letterSpacing: "-0.01em",
+                color: "var(--ink, rgb(var(--m3-on-surface)))",
+                margin: 0,
+              }}
+            >
               {renderedTitle}
             </h2>
             <button
               type="button"
               onClick={onClose}
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg",
+                "flex h-9 w-9 items-center justify-center rounded-lg",
                 "text-text-soft transition-colors hover:bg-bg-soft",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
               )}
@@ -294,18 +311,18 @@ export function RightSheet({
               data-slot="close-button"
               data-testid="right-sheet-close"
             >
-              <RiCloseLine className="h-5 w-5" />
+              <RiCloseLine className="h-[18px] w-[18px]" />
             </button>
           </div>
         ) : (
           <>
             <h2 className="sr-only">{closeLabel}</h2>
-            <div className="flex px-4 pt-3 justify-end" data-slot="header">
+            <div className="flex justify-end" style={{ padding: "16px 16px 0" }} data-slot="header">
               <button
                 type="button"
                 onClick={onClose}
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-lg",
+                  "flex h-9 w-9 items-center justify-center rounded-lg",
                   "text-text-soft transition-colors hover:bg-bg-soft",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
                 )}
@@ -313,14 +330,18 @@ export function RightSheet({
                 data-slot="close-button"
                 data-testid="right-sheet-close"
               >
-                <RiCloseLine className="h-5 w-5" />
+                <RiCloseLine className="h-[18px] w-[18px]" />
               </button>
             </div>
           </>
         )}
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto" data-slot="body">
+        {/* Body container — flex column lets consumers compose `<SheetBody>`
+            (which carries `flex: 1; overflow-y: auto`) above an optional
+            `<SheetFooter>` (which pins via `flex-shrink: 0`). Consumers without
+            a SheetBody wrap the bare children in this fallback scroll layer
+            so legacy panels still work. */}
+        <div className="flex min-h-0 flex-1 flex-col" data-slot="body">
           <SheetErrorBoundary onClose={onClose}>{renderedChildren}</SheetErrorBoundary>
         </div>
       </animated.div>

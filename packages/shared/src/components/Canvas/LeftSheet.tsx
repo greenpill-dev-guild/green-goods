@@ -226,20 +226,22 @@ export function LeftSheet({
         data-testid="left-sheet-overlay"
       />
 
-      {/* Sheet content — spring-driven translateX from left */}
+      {/* Sheet content — spring-driven translateX with handoff 24px overshoot */}
       <animated.div
         ref={contentRef}
         className={cn(
-          "absolute top-0 left-0 flex h-full flex-col rounded-r-xl",
+          "absolute top-0 left-0 flex h-full flex-col",
           "touch-none focus:outline-none will-change-transform",
           "glass-floating"
         )}
         style={{
           width: "100%",
-          maxWidth: "clamp(260px, 25vw, 360px)",
+          maxWidth: "clamp(320px, 35vw, 480px)",
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           touchAction: "none",
-          transform: springs.x.to((x) => `translateX(${x}%)`),
+          // Handoff: closed sits at translateX(calc(-100% - 24px)); open at translateX(0)
+          transform: springs.x.to((x) => `translateX(calc(${x}% + ${(x / 100) * 24}px))`),
+          borderRadius: "0 var(--radius-sheet, 16px) var(--radius-sheet, 16px) 0",
           zIndex: isBounded ? 46 : 51,
         }}
         data-component="LeftSheet"
@@ -249,20 +251,35 @@ export function LeftSheet({
         data-testid="left-sheet"
         {...bind()}
       >
-        {/* Header — close button on left, title on right (mirrored from RightSheet) */}
+        {/* Header — title on left, close on right (handoff sheet-system anatomy) */}
         {renderedTitle ? (
           <div
-            className="flex items-center justify-between border-b border-stroke-soft/80 px-4 py-3 flex-row-reverse"
+            className="flex items-center justify-between"
+            style={{
+              padding: "16px 16px 14px",
+              borderBottom: "1px solid var(--hairline, rgb(var(--m3-outline-variant) / 0.6))",
+              flexShrink: 0,
+            }}
             data-slot="header"
           >
-            <h2 className="text-lg font-semibold text-text-strong" data-slot="title">
+            <h2
+              data-slot="title"
+              style={{
+                fontSize: "15px",
+                lineHeight: "1.2",
+                fontWeight: 700,
+                letterSpacing: "-0.01em",
+                color: "var(--ink, rgb(var(--m3-on-surface)))",
+                margin: 0,
+              }}
+            >
               {renderedTitle}
             </h2>
             <button
               type="button"
               onClick={onClose}
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg",
+                "flex h-9 w-9 items-center justify-center rounded-lg",
                 "text-text-soft transition-colors hover:bg-bg-soft",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
               )}
@@ -270,18 +287,18 @@ export function LeftSheet({
               data-slot="close-button"
               data-testid="left-sheet-close"
             >
-              <RiCloseLine className="h-5 w-5" />
+              <RiCloseLine className="h-[18px] w-[18px]" />
             </button>
           </div>
         ) : (
           <>
             <h2 className="sr-only">{closeLabel}</h2>
-            <div className="flex px-4 pt-3 justify-start" data-slot="header">
+            <div className="flex justify-end" style={{ padding: "16px 16px 0" }} data-slot="header">
               <button
                 type="button"
                 onClick={onClose}
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-lg",
+                  "flex h-9 w-9 items-center justify-center rounded-lg",
                   "text-text-soft transition-colors hover:bg-bg-soft",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
                 )}
@@ -289,14 +306,15 @@ export function LeftSheet({
                 data-slot="close-button"
                 data-testid="left-sheet-close"
               >
-                <RiCloseLine className="h-5 w-5" />
+                <RiCloseLine className="h-[18px] w-[18px]" />
               </button>
             </div>
           </>
         )}
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto" data-slot="body">
+        {/* Body container — flex column lets consumers compose `<SheetBody>`
+            with optional `<SheetFooter>`. See RightSheet for full anatomy. */}
+        <div className="flex min-h-0 flex-1 flex-col" data-slot="body">
           <SheetErrorBoundary onClose={onClose}>{renderedChildren}</SheetErrorBoundary>
         </div>
       </animated.div>

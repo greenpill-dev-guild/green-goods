@@ -63,11 +63,11 @@ describe("AppBar", () => {
     expect(header).toHaveAttribute("data-state", "default");
   });
 
-  it("has h-14 height class", () => {
+  it("has h-16 height class (handoff: 64px AppBar)", () => {
     render(<AppBar gardenChip={<span>Chip</span>} />);
 
     const header = screen.getByRole("banner");
-    expect(header.className).toContain("h-14");
+    expect(header.className).toContain("h-16");
   });
 
   // --------------------------------------------------------------------------

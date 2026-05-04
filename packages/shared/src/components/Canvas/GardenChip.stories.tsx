@@ -33,8 +33,28 @@ const meta = {
   parameters: {
     docs: {
       description: {
-        component:
-          "Garden context selector used in the canvas AppBar. Stories cover single-garden, multi-garden, all-gardens, and truncation states.",
+        component: [
+          "**GardenChip** — garden context selector in the canvas AppBar. Anatomy aligned",
+          "to handoff `screens/review.css` `.rv-pill`:",
+          "",
+          "- Flat `var(--surface-raised)` background, 1px `var(--outline)/0.10` border",
+          "- No shadow (drops `glass-raised` from earlier rounds — keeps the AppBar quiet)",
+          "- Tone-tinted leaf icon — `var(--tone-action)` resolves per `[data-tone]` ancestor",
+          "- Selected dot mirrors the leaf color so context reads at a glance",
+          "",
+          "**Accessibility**:",
+          "- Leaf icon is decorative (`aria-hidden`) — name is the accessible label",
+          "- Multi-garden trigger uses Radix Popover for menu semantics",
+          "- Focus ring uses `var(--tone-action, var(--green-800))`",
+        ].join("\n"),
+      },
+    },
+    a11y: {
+      config: {
+        rules: [
+          { id: "color-contrast", enabled: true },
+          { id: "button-name", enabled: true },
+        ],
       },
     },
   },
@@ -112,6 +132,35 @@ export const LongName: Story = {
     onSelectGarden: fn(),
     onCreateGarden: fn(),
   },
+};
+
+/**
+ * Tone matrix — the same chip rendered inside each `[data-tone]` scope so the
+ * leaf-icon tinting can be verified at a glance. Hub blue, Garden green,
+ * Community amber, Actions clay.
+ */
+export const ToneMatrix: Story = {
+  args: {
+    gardens: singleGarden,
+    selectedGarden: singleGarden[0],
+    onSelectGarden: fn(),
+  },
+  render: () => (
+    <div className="grid grid-cols-2 gap-4 p-4">
+      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+        <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+            [data-tone="{tone}"]
+          </div>
+          <GardenChip
+            gardens={singleGarden}
+            selectedGarden={singleGarden[0]}
+            onSelectGarden={fn()}
+          />
+        </div>
+      ))}
+    </div>
+  ),
 };
 
 /** Agent state catalog for the selector states agents most often need before tests. */

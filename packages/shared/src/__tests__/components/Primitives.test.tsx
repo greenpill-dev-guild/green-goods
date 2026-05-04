@@ -137,7 +137,7 @@ describe("Canvas Primitives", () => {
     expect(onAction).not.toHaveBeenCalled();
   });
 
-  it("moves the primary action into content on mobile", async () => {
+  it("registers the FAB on mobile AND exposes a primary action for content surfaces", async () => {
     const onAction = vi.fn();
     const config: FabConfig = {
       icon: StubIcon,
@@ -152,7 +152,12 @@ describe("Canvas Primitives", () => {
       </FabProvider>
     );
 
-    expect(screen.getByTestId("fab-config-state")).toHaveTextContent("none");
+    // Per handoff sheet-system + admin-design-revamp Tier 5: FAB is registered
+    // at every breakpoint <1024px so the floating-pill layer in NavigationBar
+    // can render it. The hook ALSO returns a CanvasMobilePrimaryAction for
+    // views that want a content-zone affordance (Hub stage rail) — both
+    // surfaces stay live so phones don't lose creation flows.
+    expect(screen.getByTestId("fab-config-state")).toHaveTextContent("mounted");
     await user.click(screen.getByRole("button", { name: /submit work/i }));
     expect(onAction).toHaveBeenCalledWith("submit");
   });

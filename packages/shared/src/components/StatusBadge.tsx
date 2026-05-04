@@ -368,7 +368,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         role="status"
         aria-live="polite"
         className={cn(
-          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
+          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none",
           config.bgColor,
           config.textColor,
           config.borderColor,
@@ -391,7 +391,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
         role="status"
         aria-live="polite"
         className={cn(
-          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium",
+          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold leading-none",
           config.bgColor,
           config.textColor,
           config.borderColor,

@@ -207,8 +207,8 @@ export function useInstallGuidance(
         manualInstructions: null,
         browserSwitchReason:
           platform === "ios"
-            ? `${browserInfo.displayName} cannot install apps on iPhone. Please open this page in Safari.`
-            : `${browserInfo.displayName} has limited app support. Open in ${recommendedBrowser.displayName} for the best experience.`,
+            ? `${browserInfo.displayName} can't install apps on iPhone. Open this page in Safari to continue.`
+            : `${browserInfo.displayName} can't install Green Goods as an app. Open in ${recommendedBrowser.displayName} for the full experience.`,
         openInBrowserUrl: openUrl,
       };
     }

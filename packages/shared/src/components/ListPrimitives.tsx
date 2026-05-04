@@ -14,7 +14,17 @@ export interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full glass-raised text-text-soft">
+      <div
+        className="mb-4 flex h-16 w-16 items-center justify-center rounded-full text-text-soft"
+        // Flat warm-earth surface with a tone-tinted ring instead of `glass-raised`
+        // — keeps empty-state ornament consistent with the segmented-tab and
+        // pill anatomy (no shadow language). Falls back to a neutral hairline
+        // when no [data-tone] ancestor.
+        style={{
+          background: "rgb(var(--surface-quiet, var(--neutral-100)) / 1)",
+          boxShadow: "inset 0 0 0 1px rgb(var(--tone-action, 0 0 0) / 0.10)",
+        }}
+      >
         {icon}
       </div>
       <h3 className="text-title-md text-text-strong">{title}</h3>

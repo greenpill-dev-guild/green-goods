@@ -38,7 +38,10 @@ export {
   type NotificationPanelProps,
   type NotificationPanelTone,
 } from "./NotificationPanel";
+export { SheetBody, type SheetBodyProps } from "./SheetBody";
+export { SheetDivider, type SheetDividerProps } from "./SheetDivider";
 export { SheetErrorBoundary, type SheetErrorBoundaryProps } from "./SheetErrorBoundary";
+export { SheetFooter, type SheetFooterProps } from "./SheetFooter";
 export {
   SPRING_CONFIGS,
   DISMISS_VELOCITY_THRESHOLD,

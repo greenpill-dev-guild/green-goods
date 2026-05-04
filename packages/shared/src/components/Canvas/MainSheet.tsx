@@ -91,9 +91,19 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
     [portalTarget, setOverlayActive]
   );
 
-  const isMainSheetReceded = isReceded || activeOverlayIds.size > 0;
+  const isSheetOpen = activeOverlayIds.size > 0;
+  const isMainSheetReceded = isReceded || isSheetOpen;
   const mainSheetState = isMainSheetReceded ? "receded" : "resting";
-  const overlayState = activeOverlayIds.size > 0 ? "active" : "idle";
+  const overlayState = isSheetOpen ? "active" : "idle";
+
+  // Handoff sheet-system.css: `.act-mainsheet.is-sheet-open { filter: blur(6px); }`.
+  // `--canvas-blur-receded` is the lighter scroll-recede signal; sheet-open stacks
+  // a stronger scrim on top.
+  const filter = isSheetOpen
+    ? "blur(var(--canvas-blur-sheet-open, 6px))"
+    : isMainSheetReceded
+      ? "blur(var(--canvas-blur-receded, 1.5px))"
+      : "none";
 
   return (
     <CanvasPortalContext.Provider value={canvasPortalValue}>
@@ -107,36 +117,32 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
         data-component="MainSheet"
         data-slot="root"
         data-state={mainSheetState}
+        data-sheet-open={isSheetOpen ? "true" : "false"}
         data-testid="main-sheet"
       >
-        <div
-          className="relative h-full min-h-0 overflow-hidden rounded-[1.25rem]"
-          data-slot="frame"
-        >
+        <div className="relative h-full min-h-0 overflow-hidden" data-slot="frame">
           <div
-            className={cn(
-              "h-full min-h-0 rounded-[inherit] will-change-[transform,opacity]",
-              "glass-surface"
-            )}
+            className={cn("h-full min-h-0 will-change-[transform,opacity,filter]", "glass-surface")}
             style={{
               // Animated paints are limited to opacity + transform — both compositor
-              // friendly. `filter: blur()` is applied as a static value on the
-              // receded state so depth still reads, but the blur is not animated:
-              // animating blur on lower-end Android stacked paints with overlay
-              // sheet `backdrop-filter` and produced visible jank.
+              // friendly. `filter: blur()` switches from receded (1.5px) to sheet-open
+              // (6px per handoff) — animation on the filter is allowed because Web
+              // sheet-open already commits a heavier paint anyway.
               transition: prefersReducedMotion
                 ? "none"
                 : [
                     "opacity var(--spring-spatial-duration) var(--spring-spatial-easing)",
                     "transform var(--spring-spatial-duration) var(--spring-spatial-easing)",
+                    "filter var(--spring-spatial-duration) var(--spring-spatial-easing)",
                   ].join(", "),
               transform: isMainSheetReceded ? "translateY(var(--canvas-recede-y, 8px))" : "none",
               opacity: isMainSheetReceded ? "var(--canvas-opacity-receded, 0.95)" : 1,
-              filter: isMainSheetReceded ? "blur(var(--canvas-blur-receded, 1.5px))" : "none",
+              filter,
             }}
             data-component="MainSheet"
             data-slot="surface"
             data-state={mainSheetState}
+            data-sheet-open={isSheetOpen ? "true" : "false"}
             data-testid="main-sheet-content"
           >
             {children}
@@ -145,7 +151,7 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
 
         <div
           ref={handlePortalTargetRef}
-          className="pointer-events-none absolute inset-0 z-raised overflow-hidden rounded-[1.25rem]"
+          className="pointer-events-none absolute inset-0 z-raised overflow-hidden"
           data-component="MainSheet"
           data-slot="overlay-root"
           data-state={overlayState}

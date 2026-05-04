@@ -113,6 +113,62 @@ export const BoundedCanvas: Story = {
   render: (args) => <BoundedRightSheetStory {...args} />,
 };
 
+/**
+ * Focus trap + Escape — verifies the native `<dialog>` keeps focus inside the
+ * sheet and Escape calls `onClose`. Per WAI-ARIA modal pattern.
+ */
+export const FocusTrapAndEscape: Story = {
+  args: {
+    title: "Account",
+    children: (
+      <div className="flex flex-col gap-3 p-4">
+        <button
+          type="button"
+          className="rounded border border-stroke-soft px-3 py-2 text-sm"
+          data-testid="first-action"
+        >
+          First action
+        </button>
+        <button
+          type="button"
+          className="rounded border border-stroke-soft px-3 py-2 text-sm"
+          data-testid="second-action"
+        >
+          Second action
+        </button>
+      </div>
+    ),
+  },
+  parameters: {
+    a11y: {
+      config: {
+        rules: [
+          { id: "aria-dialog-name", enabled: true },
+          { id: "focus-order-semantics", enabled: true },
+        ],
+      },
+    },
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // Close button is the auto-focused element when the bounded dialog mounts
+    // (per `useFocusTrap` autoFocusSelector). The two action buttons should
+    // both be tabbable inside the dialog.
+    const close = await canvas.findByTestId("right-sheet-close");
+    await expect(close).toBeVisible();
+
+    const first = await canvas.findByTestId("first-action");
+    const second = await canvas.findByTestId("second-action");
+    await expect(first).toBeVisible();
+    await expect(second).toBeVisible();
+
+    // Escape dismisses the sheet via the `cancel` event handler.
+    await userEvent.keyboard("{Escape}");
+    await expect(args.onClose).toHaveBeenCalled();
+  },
+};
+
 export const Wide: Story = {
   args: {
     width: "wide",

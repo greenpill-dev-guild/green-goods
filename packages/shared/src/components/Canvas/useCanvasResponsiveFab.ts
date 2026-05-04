@@ -23,7 +23,12 @@ export function useCanvasResponsiveFab({
   allowMobilePrimaryAction = true,
 }: UseCanvasResponsiveFabOptions): CanvasMobilePrimaryAction | null {
   const { formatMessage } = useIntl();
-  useFabConfig(isDesktop && !blocked ? fab : null);
+  // Register the FAB at every breakpoint <1024px (the floating-pill range).
+  // NavigationBar already gates desktop visibility via its own `isLargeDesktop`
+  // check; this hook only owns the per-view "blocked" condition (e.g., open
+  // sheet inspectors). Previously this was guarded on `isDesktop` (≥600px),
+  // which silently hid the FAB on phones.
+  useFabConfig(blocked ? null : fab);
 
   return useMemo(() => {
     if (isDesktop || blocked || !allowMobilePrimaryAction || !fab) return null;

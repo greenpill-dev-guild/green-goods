@@ -360,11 +360,20 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           data-component="NavigationBar"
           data-slot="desktop"
           data-state="visible"
+          // Inline style for `position: fixed; bottom; left; right; z-index` per
+          // CLAUDE.md "Known Gotchas" — Tailwind v4 doesn't scan packages/shared
+          // from admin/client builds, so positional utilities can silently fail
+          // to compile. The handoff sheet-system contract is `bottom: 20px`.
+          style={{
+            position: "fixed",
+            bottom: "20px",
+            left: 0,
+            right: 0,
+            marginInline: "auto",
+            zIndex: "var(--z-nav)",
+          }}
           className={cn(
-            // Centering without transform: left:0 + right:0 + mx-auto on a w-max
-            // child produces horizontal centering that survives entrance animations
-            // which end with `transform: none`.
-            "canvas-navigation-bar fixed bottom-4 inset-x-0 mx-auto z-nav flex w-max items-center",
+            "canvas-navigation-bar flex w-max items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
             "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-2)]",
             "dark:border-stroke-soft dark:bg-bg-sub dark:shadow-[var(--edge-rest),_var(--elevation-3)]",

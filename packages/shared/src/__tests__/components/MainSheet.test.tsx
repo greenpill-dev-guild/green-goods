@@ -97,7 +97,23 @@ describe("MainSheet", () => {
     expect(content.style.transition).toContain("--spring-spatial-duration");
     expect(content.style.transform).toBe("translateY(var(--canvas-recede-y, 8px))");
     expect(content.style.opacity).toBe("var(--canvas-opacity-receded, 0.95)");
+    // Per handoff sheet-system.css: open sheets stack a stronger 6px blur on
+    // top of the lighter 1.5px scroll-recede. data-sheet-open mirrors the
+    // distinction for downstream styling consumers.
+    expect(content.style.filter).toBe("blur(var(--canvas-blur-sheet-open, 6px))");
+    expect(content).toHaveAttribute("data-sheet-open", "true");
+  });
+
+  it("uses the lighter receded filter when receded without an active sheet", () => {
+    render(
+      <MainSheet isReceded={true}>
+        <div data-testid="main-sheet-children">content</div>
+      </MainSheet>
+    );
+
+    const content = screen.getByTestId("main-sheet-content");
     expect(content.style.filter).toBe("blur(var(--canvas-blur-receded, 1.5px))");
+    expect(content).toHaveAttribute("data-sheet-open", "false");
   });
 
   it("disables recession transitions when reduced motion is requested", () => {

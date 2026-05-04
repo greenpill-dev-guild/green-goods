@@ -43,25 +43,38 @@ export function GardenChip({
 
   const hasMultiple = gardens.length >= 2;
 
-  // Static chip when only 1 garden
+  // Static chip when only 1 garden — handoff `.rv-pill`: flat surface-raised
+  // background + 1px outline, no elevation shadow. The Warm-Earth pill reads as
+  // a discrete affordance without competing with the floating NavBar pill.
   if (!hasMultiple) {
     return (
       <span
         className={cn(
           "inline-flex max-w-sm items-center gap-1.5 rounded-full",
           "px-3 py-1.5",
-          "glass-raised",
-          "shadow-[var(--edge-rest),_var(--elevation-1)]",
           "text-label-lg font-medium text-text-main"
         )}
+        style={{
+          background: "rgb(var(--surface-raised, 255 255 255))",
+          border: "1px solid rgb(var(--outline, 41 37 36) / 0.10)",
+        }}
         data-component="GardenChip"
         data-slot="root"
         data-state={selectedGarden ? "selected" : "empty"}
       >
         {selectedGarden ? (
           <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-            <RiSeedlingLine className="h-4 w-4 text-success-base" />
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-success-base ring-2 ring-bg-white" />
+            <RiSeedlingLine
+              className="h-4 w-4"
+              // Handoff DESIGN_NOTES § Tone system: garden-pill leaf tints to
+              // the active view's tone. Falls back to brand green if the
+              // ancestor doesn't set [data-tone].
+              style={{ color: "rgb(var(--tone-action, var(--green-800)))" }}
+            />
+            <span
+              className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-bg-white"
+              style={{ background: "rgb(var(--tone-action, var(--green-800)))" }}
+            />
           </span>
         ) : (
           <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
@@ -82,22 +95,30 @@ export function GardenChip({
           className={cn(
             "inline-flex max-w-sm cursor-pointer items-center gap-1.5 rounded-full",
             "px-3 py-1.5",
-            "glass-raised",
-            "shadow-[var(--edge-rest),_var(--elevation-1)]",
             "text-label-lg font-medium text-text-main",
-            "transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+            "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             "motion-reduce:transition-none",
-            "hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-3)]",
-            "focus-visible:outline-none focus-visible:shadow-[var(--edge-focus),_var(--elevation-1)]"
+            "hover:bg-bg-weak",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--green-800)))]"
           )}
+          style={{
+            background: "rgb(var(--surface-raised, 255 255 255))",
+            border: "1px solid rgb(var(--outline, 41 37 36) / 0.10)",
+          }}
           data-component="GardenChip"
           data-slot="trigger"
           data-selection-state={selectedGarden ? "selected" : "all-gardens"}
         >
           {selectedGarden ? (
             <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-              <RiSeedlingLine className="h-4 w-4 text-success-base" />
-              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-success-base ring-2 ring-bg-white" />
+              <RiSeedlingLine
+                className="h-4 w-4"
+                style={{ color: "rgb(var(--tone-action, var(--green-800)))" }}
+              />
+              <span
+                className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-bg-white"
+                style={{ background: "rgb(var(--tone-action, var(--green-800)))" }}
+              />
             </span>
           ) : (
             <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />

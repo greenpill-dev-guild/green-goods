@@ -109,9 +109,10 @@ export function AppBar({
   return (
     <header
       className={cn(
-        "sticky top-0 z-sticky flex h-14 w-full items-center justify-between",
-        "bg-transparent px-4"
+        "sticky top-0 z-sticky flex h-16 w-full items-center justify-between",
+        "bg-transparent"
       )}
+      style={{ paddingInline: "20px" }}
       data-component="AppBar"
       data-slot="root"
       data-state={sheetContext ? "sheet-context" : "default"}

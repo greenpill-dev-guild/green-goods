@@ -5,6 +5,7 @@ import {
   RiInformationLine,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { SheetBody } from "./SheetBody";
 
 export type NotificationPanelTone = "info" | "warn" | "critical";
 
@@ -14,6 +15,10 @@ export interface NotificationPanelItem {
   description?: string;
   meta?: string;
   tone?: NotificationPanelTone;
+  /** When true, render a small "unread" dot at the top-right of the icon wrapper. */
+  unread?: boolean;
+  /** Optional explicit label for the action button — e.g. "Review", "View". */
+  actionLabel?: string;
   onSelect?: () => void;
 }
 
@@ -50,87 +55,119 @@ const TONE_CLASSES: Record<
 /**
  * Notification panel — rendered inside the RightSheet.
  *
- * Groups notifications by type: work submissions, assessments, system alerts.
- *
- * Desktop: opens in the registered admin right-sheet notifications panel.
- * Mobile: the AppBar bell icon uses a Popover fallback (max 5 items).
+ * Anatomy aligned to handoff `screens/sheet-system.{jsx,css}` NOTIFICATIONS:
+ * - 36×36 colored icon wrapper per item
+ * - Unread dot at top-right corner when `unread` is true
+ * - Title 13/600, body 12/400, meta 11/500
+ * - When `onSelect` + `actionLabel` are both set the row renders a labeled
+ *   ghost-style action button on the right (handoff "Review" / "View"); if
+ *   only `onSelect` is set we keep a quiet chevron affordance.
  */
 export function NotificationPanel({ items = [], isLoading = false }: NotificationPanelProps) {
   const { formatMessage } = useIntl();
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-6 p-4">
-        <div
-          className="flex min-h-40 items-center justify-center text-sm text-text-sub"
-          role="status"
-          aria-live="polite"
-        >
-          {formatMessage({ id: "app.common.loading", defaultMessage: "Loading..." })}
+      <SheetBody padded={true}>
+        <div className="flex flex-col gap-6">
+          <div
+            className="flex min-h-40 items-center justify-center text-sm text-text-sub"
+            role="status"
+            aria-live="polite"
+          >
+            {formatMessage({ id: "app.common.loading", defaultMessage: "Loading..." })}
+          </div>
         </div>
-      </div>
+      </SheetBody>
     );
   }
 
   if (items.length > 0) {
     return (
-      <div className="flex flex-col gap-3 p-4">
+      <SheetBody padded={true} className="flex flex-col gap-3">
         {items.map((item) => {
           const tone = TONE_CLASSES[item.tone ?? "info"];
           const Icon = tone.icon;
-          const content = (
-            <>
-              <span
-                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${tone.container}`}
-                aria-hidden="true"
-              >
-                <Icon className={`h-4 w-4 ${tone.iconClassName}`} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-medium leading-5 text-text-strong">
-                  {item.title}
-                </span>
-                {item.description ? (
-                  <span className="mt-1 block text-xs leading-5 text-text-sub">
-                    {item.description}
-                  </span>
-                ) : null}
-                {item.meta ? (
-                  <span className="mt-2 block text-[11px] font-medium uppercase text-text-soft">
-                    {item.meta}
-                  </span>
-                ) : null}
-              </span>
-              {item.onSelect ? (
-                <RiArrowRightSLine className="mt-1 h-4 w-4 shrink-0 text-text-soft" />
+          const showActionButton = Boolean(item.onSelect && item.actionLabel);
+
+          const iconBlock = (
+            <span
+              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tone.container}`}
+              aria-hidden="true"
+            >
+              <Icon className={`h-4 w-4 ${tone.iconClassName}`} />
+              {item.unread ? (
+                <span
+                  className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full ring-2 ring-bg-white-0"
+                  style={{ background: "rgb(var(--tone-action, var(--green-800)))" }}
+                  aria-label={formatMessage({
+                    id: "cockpit.notifications.unread",
+                    defaultMessage: "Unread",
+                  })}
+                />
               ) : null}
-            </>
+            </span>
           );
+
+          const textBlock = (
+            <span className="min-w-0 flex-1">
+              <span className="block text-[13px] font-semibold leading-tight text-text-strong">
+                {item.title}
+              </span>
+              {item.description ? (
+                <span className="mt-1 block text-xs font-normal leading-5 text-text-sub">
+                  {item.description}
+                </span>
+              ) : null}
+              {item.meta ? (
+                <span className="mt-1.5 block text-[11px] font-medium tabular-nums text-text-soft">
+                  {item.meta}
+                </span>
+              ) : null}
+            </span>
+          );
+
+          const trailing = showActionButton ? (
+            <span
+              className="ml-auto inline-flex shrink-0 items-center gap-0.5 self-start rounded-full px-2 py-1 text-[11px] font-semibold"
+              style={{ color: "rgb(var(--tone-action, var(--green-800)))" }}
+            >
+              {item.actionLabel}
+              <RiArrowRightSLine className="h-3 w-3" />
+            </span>
+          ) : item.onSelect ? (
+            <RiArrowRightSLine className="ml-auto mt-1 h-4 w-4 shrink-0 text-text-soft" />
+          ) : null;
+
+          const rowClasses =
+            "flex w-full gap-3 rounded-md border border-stroke-soft bg-bg-white-0 p-3 text-left";
 
           return item.onSelect ? (
             <button
               key={item.id}
               type="button"
-              className="flex w-full gap-3 rounded-md border border-stroke-soft bg-bg-white p-3 text-left transition-colors hover:border-primary-base hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+              className={`${rowClasses} transition-colors hover:border-primary-base hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--green-800)))]`}
               onClick={item.onSelect}
+              data-unread={item.unread ? "true" : "false"}
             >
-              {content}
+              {iconBlock}
+              {textBlock}
+              {trailing}
             </button>
           ) : (
-            <div
-              key={item.id}
-              className="flex gap-3 rounded-md border border-stroke-soft bg-bg-white p-3"
-            >
-              {content}
+            <div key={item.id} className={rowClasses} data-unread={item.unread ? "true" : "false"}>
+              {iconBlock}
+              {textBlock}
+              {trailing}
             </div>
           );
         })}
-      </div>
+      </SheetBody>
     );
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4">
+    <SheetBody padded={true}>
       <div className="flex flex-col items-center gap-3 py-12 text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-bg-soft">
           <RiInboxLine className="h-6 w-6 text-text-soft" />
@@ -148,6 +185,6 @@ export function NotificationPanel({ items = [], isLoading = false }: Notificatio
           })}
         </p>
       </div>
-    </div>
+    </SheetBody>
   );
 }
