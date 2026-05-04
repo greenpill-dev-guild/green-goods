@@ -59,27 +59,26 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
           data-selected={selected}
           className="flex flex-1 flex-col gap-2 rounded-b-lg border border-t-0 border-border p-3 transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] @[300px]:p-4 @[400px]:p-5"
         >
-          <div className="flex min-w-0 flex-row gap-2">
-            <div
-              className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 status-transition z-10 pointer-events-none",
-                selected && "opacity-100"
-              )}
-            />
-            <h5
-              className={cn(
-                "min-w-0 truncate text-label-md font-semibold",
-                selected && "text-primary"
-              )}
-              title={action.title}
-            >
-              {action.title}
-            </h5>
-          </div>
+          <h5
+            className={cn(
+              "min-w-0 truncate text-label-md font-semibold",
+              selected && "text-primary"
+            )}
+            title={action.title}
+          >
+            {action.title}
+          </h5>
           <div className="line-clamp-3 h-[3.75rem] text-sm leading-5 text-text-sub-600">
             {action.mediaInfo?.description}
           </div>
         </div>
+        <div
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 rounded-lg border-[3px] border-primary opacity-0 status-transition z-10 pointer-events-none",
+            selected && "opacity-100"
+          )}
+        />
       </Card>
     );
   }

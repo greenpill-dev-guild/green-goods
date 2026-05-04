@@ -286,10 +286,11 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Zoom Controls */}
+                {/* Zoom Controls — hidden on mobile (pinch-to-zoom is native) so close button
+                    stays on-screen at narrow widths. */}
                 <button
                   onClick={zoomOut}
-                  className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
                   aria-label={resolvedLabels.zoomOut}
                   type="button"
                 >
@@ -297,7 +298,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 </button>
                 <button
                   onClick={resetZoom}
-                  className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
                   aria-label={resolvedLabels.resetZoom}
                   type="button"
                 >
@@ -305,7 +306,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 </button>
                 <button
                   onClick={zoomIn}
-                  className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
+                  className="hidden sm:flex btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full"
                   aria-label={resolvedLabels.zoomIn}
                   type="button"
                 >
@@ -315,7 +316,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                 {/* Download Button */}
                 <button
                   onClick={handleDownload}
-                  className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full ml-2"
+                  className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full sm:ml-2"
                   aria-label={resolvedLabels.downloadImage}
                   type="button"
                   data-testid="image-preview-download"
@@ -323,17 +324,19 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
                   <RiDownloadLine className="w-5 h-5" />
                 </button>
 
-                {/* Close Button */}
-                <Dialog.Close asChild>
-                  <button
-                    className="btn-icon bg-bg-white-0/10 tap-feedback text-white rounded-full ml-4"
-                    aria-label={resolvedLabels.closePreview}
-                    data-testid="image-preview-close"
-                    type="button"
-                  >
-                    <RiCloseLine className="w-5 h-5" />
-                  </button>
-                </Dialog.Close>
+                {/* Close Button — separated visually from zoom/download cluster */}
+                <span className="ml-3 pl-3 border-l border-white/20 flex items-center">
+                  <Dialog.Close asChild>
+                    <button
+                      className="btn-icon bg-bg-white-0/20 hover:bg-bg-white-0/30 tap-feedback text-white rounded-full"
+                      aria-label={resolvedLabels.closePreview}
+                      data-testid="image-preview-close"
+                      type="button"
+                    >
+                      <RiCloseLine className="w-6 h-6" />
+                    </button>
+                  </Dialog.Close>
+                </span>
               </div>
             </div>
             {/* Visually hidden title for accessibility */}

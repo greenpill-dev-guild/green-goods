@@ -50,6 +50,9 @@ vi.mock("@green-goods/shared", () => ({
         )
       : null,
   formatAddress: sharedMocks.formatAddress,
+  // Default to "deployed" so existing empty-state tests aren't reroutes to the
+  // wrong-chain branch. Tests that want to assert wrong-chain UI override per case.
+  isGreenWillDeployed: () => true,
   usePrimaryAddress: sharedMocks.usePrimaryAddress,
   useGreenGoodsEnsName: sharedMocks.useGreenGoodsEnsName,
   useEnsName: sharedMocks.useEnsName,

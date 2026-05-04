@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { queueToasts, toastService } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { queryClient } from "../config/react-query";
@@ -74,6 +74,12 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   const [stats, setStats] = useState<QueueStats>(EMPTY_QUEUE_STATS);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
+  // Shared across effect re-runs (deps include sender/authMode/currentUserAddress).
+  // Without this, an auth flip mid-flush would tear down the effect and the
+  // new effect's attemptFlush would see a fresh `false`, racing the in-flight
+  // flush. Module-internal locking still applies, but this layer enforces
+  // serialization at the provider boundary too.
+  const isFlushInProgressRef = useRef(false);
   const setOfflineBannerVisible = useUIStore((state) => state.setOfflineBannerVisible);
 
   const setOfflineBannerVisibleIfChanged = useCallback(
@@ -184,13 +190,17 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
         // Update work status in cache if available
         const workUID = approvalPayload.workUID;
-        queryClient.setQueriesData<Work[]>({ queryKey: queryKeys.works.all }, (oldWorks = []) =>
-          oldWorks.map((work) =>
+        queryClient.setQueriesData<Work[]>({ queryKey: queryKeys.works.all }, (oldWorks) => {
+          // Defensive shape check: cached values can be undefined or
+          // (rarely) a non-array if a hook stuffed something unexpected
+          // into the same query-key namespace. Bail without mutating.
+          if (!Array.isArray(oldWorks)) return oldWorks;
+          return oldWorks.map((work) =>
             work.id === workUID
               ? { ...work, status: approvalPayload.approved ? "approved" : "rejected" }
               : work
-          )
-        );
+          );
+        });
       }
     };
 
@@ -271,16 +281,15 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     }
 
     const abortController = new AbortController();
-    // Track if a flush is currently in progress to prevent concurrent operations
-    let isFlushInProgress = false;
 
     const attemptFlush = async () => {
       // Prevent concurrent flush operations - this avoids race conditions
-      if (isFlushInProgress || abortController.signal.aborted) {
+      // including across effect re-runs (auth flips) thanks to the ref.
+      if (isFlushInProgressRef.current || abortController.signal.aborted) {
         return;
       }
 
-      isFlushInProgress = true;
+      isFlushInProgressRef.current = true;
       try {
         await jobQueue.flush({ transactionSender: sender, userAddress: currentUserAddress });
         if (!abortController.signal.aborted) {
@@ -301,7 +310,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         queueToasts.syncError();
         await refreshStats(abortController.signal);
       } finally {
-        isFlushInProgress = false;
+        isFlushInProgressRef.current = false;
       }
     };
 

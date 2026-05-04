@@ -25,6 +25,10 @@ const mockJoinState = {
   joiningGardenId: null as string | null,
 };
 const mockNavigate = vi.fn();
+// Captures callbacks scheduled via useTimeout so we can assert and trigger
+// them deterministically without real timers.
+const mockTimeoutSet = vi.fn();
+const mockTimeoutClear = vi.fn();
 
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared", () => ({
@@ -66,7 +70,8 @@ vi.mock("@green-goods/shared", () => ({
   toastService: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
   useGardens: () => mockGardensState,
   useJoinGarden: () => mockJoinState,
-  useTimeout: () => ({ set: vi.fn(), clear: vi.fn(), isPending: false }),
+  usePendingJoinsVersion: () => 0,
+  useTimeout: () => ({ set: mockTimeoutSet, clear: mockTimeoutClear, isPending: false }),
 }));
 
 // Mock @tanstack/react-query
@@ -272,20 +277,70 @@ describe("GardensList", () => {
     expect(screen.getByText(/no gardens yet/i)).toBeInTheDocument();
   });
 
-  it("shows refresh button", () => {
+  it("schedules a delayed ENS-discovery toast on first successful join", async () => {
+    const user = userEvent.setup();
+    const { toastService } = await import("@green-goods/shared");
     mockGardensState.data = [
       {
-        id: "0xgarden1",
-        name: "Test Garden",
+        id: "0xfresh",
+        name: "Fresh Garden",
+        location: "",
+        openJoining: true,
+        // User is not in any garden's gardener list, so wasFirstJoin = true
+        gardeners: [],
+        operators: [],
+      },
+    ];
+    mockJoinState.joinGarden.mockResolvedValue(undefined);
+    mockTimeoutSet.mockClear();
+
+    render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
+
+    // Open the join confirm dialog and confirm
+    await user.click(screen.getByTestId("btn-Join"));
+    await user.click(screen.getByTestId("confirm-join"));
+
+    // ensDiscoveryTimeout.set was called with the toast callback at 2000ms
+    expect(mockTimeoutSet).toHaveBeenCalledTimes(1);
+    const [scheduledFn, delay] = mockTimeoutSet.mock.calls[0] as [() => void, number];
+    expect(delay).toBe(2000);
+    expect(typeof scheduledFn).toBe("function");
+
+    // Trigger the captured callback and assert the discovery toast fires.
+    scheduledFn();
+    expect(toastService.info).toHaveBeenCalledWith(
+      expect.objectContaining({ context: "ensDiscovery" })
+    );
+  });
+
+  it("does not schedule the discovery toast when user is already a member of another garden", async () => {
+    const user = userEvent.setup();
+    mockGardensState.data = [
+      {
+        id: "0xexisting",
+        name: "Existing Garden",
         location: "",
         openJoining: true,
         gardeners: [MOCK_ADDRESS],
         operators: [],
       },
+      {
+        id: "0xfresh",
+        name: "Fresh Garden",
+        location: "",
+        openJoining: true,
+        gardeners: [],
+        operators: [],
+      },
     ];
+    mockJoinState.joinGarden.mockResolvedValue(undefined);
+    mockTimeoutSet.mockClear();
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    expect(screen.getByRole("button", { name: /refresh gardens/i })).toBeInTheDocument();
+    await user.click(screen.getByTestId("btn-Join"));
+    await user.click(screen.getByTestId("confirm-join"));
+
+    expect(mockTimeoutSet).not.toHaveBeenCalled();
   });
 });

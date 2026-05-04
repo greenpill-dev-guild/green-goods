@@ -8,7 +8,13 @@ import {
   useEnsName,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import { RiAlertLine, RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
+import {
+  RiAlertLine,
+  RiKeyLine,
+  RiLogoutBoxRLine,
+  RiUserLine,
+  RiWalletLine,
+} from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
@@ -109,7 +115,7 @@ export const AccountInfo: React.FC = () => {
           <div className="flex items-center gap-3 w-full">
             <Avatar>
               <div className="flex items-center justify-center text-center mx-auto text-primary">
-                <RiWalletLine className="w-4" />
+                <RiUserLine className="w-4" />
               </div>
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">

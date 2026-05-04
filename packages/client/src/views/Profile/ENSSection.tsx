@@ -170,6 +170,10 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
     try {
       const release = await ensRelease.mutateAsync();
       setReleasingSlug(release.slug);
+      // Reset the SW-notification one-shot so a reclaim later in the same
+      // session can refire ENS_REGISTRATION_COMPLETE. Without this, the next
+      // claim's "ready" status wouldn't push to the service worker.
+      ensNotifiedRef.current = false;
     } catch {
       // Error handling is in the mutation hook
     } finally {
@@ -524,15 +528,27 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                       {isCheckingSlug ? (
                         <RiLoader4Line
                           className="h-4 w-4 animate-spin text-text-soft-400"
-                          aria-label="Checking availability"
+                          aria-label={intl.formatMessage({
+                            id: "app.profile.slugChecking",
+                            defaultMessage: "Checking availability",
+                          })}
                         />
                       ) : isSlugAvailable ? (
                         <RiCheckLine
                           className={`h-4 w-4 ${pwaStatusStyles.success.icon}`}
-                          aria-label="Name available"
+                          aria-label={intl.formatMessage({
+                            id: "app.profile.slugAvailable",
+                            defaultMessage: "Name available",
+                          })}
                         />
                       ) : isSlugAvailable === false ? (
-                        <RiAlertLine className="h-4 w-4 text-error-base" aria-label="Name taken" />
+                        <RiAlertLine
+                          className="h-4 w-4 text-error-base"
+                          aria-label={intl.formatMessage({
+                            id: "app.profile.slugTakenLabel",
+                            defaultMessage: "Name taken",
+                          })}
+                        />
                       ) : null}
                     </span>
                   )}

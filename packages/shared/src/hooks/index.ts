@@ -255,6 +255,7 @@ export {
   checkGardenOpenJoining,
   isGardenMember,
   useJoinGarden,
+  usePendingJoinsVersion,
 } from "./garden/useJoinGarden";
 export { useOpenMinting, useSetOpenMinting } from "./garden/useOpenMinting";
 export { useSetGardenDomains } from "./garden/useSetGardenDomains";

@@ -16,6 +16,7 @@ import {
   useHasRole,
   useJoinGarden,
   useNavigateToTop,
+  usePendingJoinsVersion,
   useScrollToTop,
   useUIStore,
   useUser,
@@ -24,6 +25,7 @@ import {
 } from "@green-goods/shared";
 import {
   RiCalendarEventFill,
+  RiErrorWarningLine,
   RiFileChartFill,
   RiGroupFill,
   RiHammerFill,
@@ -31,7 +33,7 @@ import {
   RiMapPin2Fill,
   RiUserAddLine,
 } from "@remixicon/react";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import { isAddress } from "viem";
@@ -53,6 +55,25 @@ export const Garden: React.FC = () => {
   const openEndowmentDrawer = useUIStore((s) => s.openEndowmentDrawer);
   const closeEndowmentDrawer = useUIStore((s) => s.closeEndowmentDrawer);
   const [isGovernanceOpen, setIsGovernanceOpen] = useState(false);
+  // Track the actual rendered height of the fixed header so the spacer below
+  // matches whatever the title section rendered as (including 1, 2, or 3+ line
+  // garden names). Avoids overflow when names exceed the previous hardcoded
+  // ~288px estimate.
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [headerHeight, setHeaderHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const element = headerRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setHeaderHeight(entry.contentRect.height);
+      }
+    });
+    observer.observe(element);
+    setHeaderHeight(element.getBoundingClientRect().height);
+    return () => observer.disconnect();
+  }, []);
+
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
@@ -86,9 +107,15 @@ export const Garden: React.FC = () => {
     data: allGardens = [],
     isLoading: gardensInitialLoading,
     isFetching: gardensLoading,
+    isError: gardensError,
+    refetch: refetchGardens,
   } = useGardens(chainId);
   const garden = allGardens.find((g) => g.id === gardenIdParam);
-  const gardenStatus: "error" | "success" | "pending" = garden ? "success" : "pending";
+  const gardenStatus: "error" | "success" | "pending" = gardensError
+    ? "error"
+    : garden
+      ? "success"
+      : "pending";
   const { data: allGardeners = [] } = useGardeners();
   const { data: actions = [] } = useActions(chainId);
   const {
@@ -175,11 +202,16 @@ export const Garden: React.FC = () => {
   const showEndowmentButton = gardenVaults.length > 0 && (canReview || hasOwnEndowmentDeposit);
   const hasGovernance = showGovernanceButton;
 
-  // Check if current user is already a member of this garden
+  // Check if current user is already a member of this garden.
+  // pendingJoinsVersion subscribes to in-tab pending-join changes so the
+  // header re-renders the moment a join confirms or expires (the header
+  // would otherwise stay on the stale `Join` button until an unrelated
+  // dep change forced a re-memo).
+  const pendingJoinsVersion = usePendingJoinsVersion();
   const isMember = useMemo(() => {
     if (!garden) return false;
     return isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id);
-  }, [primaryAddress, garden]);
+  }, [primaryAddress, garden, pendingJoinsVersion]);
 
   // Join garden functionality
   const { joinGarden, isJoining } = useJoinGarden();
@@ -234,6 +266,30 @@ export const Garden: React.FC = () => {
               defaultMessage: "Loading garden...",
             })}
           </p>
+        </div>
+      );
+    }
+    if (gardensError) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center gap-4 p-6">
+          <TopNav onBackClick={() => navigate("/home")} />
+          <RiErrorWarningLine className="w-10 h-10 text-error-base" />
+          <p className="text-sm text-text-sub-600 text-center max-w-xs">
+            {intl.formatMessage({
+              id: "app.garden.loadError",
+              defaultMessage: "Couldn't load this garden. Check your connection and try again.",
+            })}
+          </p>
+          <Button
+            variant="primary"
+            mode="filled"
+            size="small"
+            onClick={() => refetchGardens()}
+            label={intl.formatMessage({
+              id: "app.garden.loadRetry",
+              defaultMessage: "Try again",
+            })}
+          />
         </div>
       );
     }
@@ -314,7 +370,7 @@ export const Garden: React.FC = () => {
         {pathname.includes("work") || pathname.includes("assessments") ? null : (
           <>
             {/* Fixed Header (banner + TopNav + title/metadata) */}
-            <div className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
+            <div ref={headerRef} className="fixed top-0 left-0 right-0 bg-bg-white-0 z-20">
               <div className="relative w-full h-36 md:h-44 overflow-hidden rounded-b-3xl">
                 <ImageWithFallback
                   src={bannerImage || ""}
@@ -388,9 +444,20 @@ export const Garden: React.FC = () => {
               </div>
             </div>
 
-            {/* Spacer for fixed header - matches header height without duplicating content
-                Height breakdown: banner (144px/176px) + title section (~96px for 2-line name) + tabs (~48px) = ~288px/320px */}
-            <div className="h-[288px] md:h-[320px] flex-shrink-0" aria-hidden="true" />
+            {/* Spacer matches the measured fixed-header height so the
+                scrollable content below starts at the right place even when
+                the garden name wraps to 3+ lines. Falls back to a sensible
+                static height for the brief moment before ResizeObserver
+                reports a value. */}
+            <div
+              className="flex-shrink-0"
+              style={{ height: headerHeight !== null ? `${headerHeight}px` : undefined }}
+              aria-hidden="true"
+            >
+              {headerHeight === null && (
+                <div className="h-[288px] md:h-[320px] w-full" aria-hidden="true" />
+              )}
+            </div>
 
             {/* Scrollable content below fixed header */}
             <div

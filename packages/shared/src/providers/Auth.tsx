@@ -225,14 +225,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (currentState?.matches("unauthenticated") && !walletRestoreAttemptedRef.current) {
           const storedAuthMode = getAuthMode();
 
-          // Detect AppKit embedded wallets by connector ID.
-          // AppKit auth connector uses "w3mAuth" for email/social embedded wallets.
-          // TODO: Verify connector.id against actual AppKit version — may also be
-          // "appKitAuth" or contain "embedded" depending on @reown/appkit version.
-          const isEmbeddedConnector =
-            connector?.id === "w3mAuth" ||
-            connector?.type === "w3mAuth" ||
-            connector?.name?.toLowerCase().includes("embedded");
+          // Pinned to @reown/appkit ^1.8.14 (see packages/{client,admin,shared}/
+          // package.json). The auth connector exposes its ID as "ID_AUTH" via
+          // ConstantsUtil.CONNECTOR_ID.AUTH; older AppKit builds used "w3mAuth"
+          // and "AUTH". Use exact equality on a known set instead of substring
+          // matching to avoid false positives if a wallet's name happens to
+          // contain "embedded".
+          const APPKIT_EMBEDDED_CONNECTOR_IDS = ["ID_AUTH", "w3mAuth", "AUTH"] as const;
+          const isEmbeddedConnector = Boolean(
+            connector?.id &&
+              (APPKIT_EMBEDDED_CONNECTOR_IDS as readonly string[]).includes(connector.id)
+          );
 
           if (storedAuthMode === "embedded" && isEmbeddedConnector) {
             walletRestoreAttemptedRef.current = true;
@@ -455,6 +458,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const retry = useCallback(() => {
     if (!actor) return;
+    // Reset the wallet auto-restore guard so a manual retry can attempt
+    // wallet hydration again (the ref otherwise stays "spent" until signOut
+    // or clearPasskey, deadlocking re-attempts in the same session).
+    walletRestoreAttemptedRef.current = false;
     actor.send({ type: "RETRY" });
   }, [actor]);
 

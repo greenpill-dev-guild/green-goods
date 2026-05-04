@@ -1,6 +1,5 @@
 import {
   type Address,
-  cn,
   ConfirmDialog,
   debugError,
   type Garden,
@@ -9,21 +8,19 @@ import {
   isAlreadyGardenerError,
   isGardenMember,
   parseAndFormatError,
-  queryKeys,
   toastService,
   useGardens,
   useJoinGarden,
+  usePendingJoinsVersion,
   useTimeout,
 } from "@green-goods/shared";
-import { RiCheckLine, RiMapPinLine, RiPlantLine, RiRefreshLine } from "@remixicon/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { RiCheckLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
-import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface GardensListProps {
   primaryAddress: Address | undefined;
@@ -32,11 +29,11 @@ interface GardensListProps {
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { data: gardens = [], isLoading: gardensLoading, isFetching, refetch } = useGardens();
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
   const [pendingGarden, setPendingGarden] = useState<Garden | null>(null);
   const ensDiscoveryTimeout = useTimeout();
+  const pendingJoinsVersion = usePendingJoinsVersion();
 
   const allGardens = useMemo(() => {
     if (!primaryAddress || !gardens.length) return [];
@@ -56,7 +53,9 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         ...garden,
         isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id),
       }));
-  }, [gardens, primaryAddress]);
+    // pendingJoinsVersion retriggers when a join confirms or expires in-tab,
+    // so the Member badge updates without waiting for an unrelated re-render.
+  }, [gardens, primaryAddress, pendingJoinsVersion]);
 
   const handleJoinGarden = (garden: Garden) => {
     setPendingGarden(garden);
@@ -140,33 +139,12 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h5 className="text-label-md text-text-strong-950">
-          {intl.formatMessage({
-            id: "app.profile.gardens",
-            defaultMessage: "Gardens",
-          })}
-        </h5>
-        <button
-          type="button"
-          onClick={() => {
-            hapticLight();
-            queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
-            refetch();
-          }}
-          disabled={isFetching}
-          className={cn(
-            "rounded-[var(--radius-lg)] p-1.5 text-text-sub-600 tap-feedback transition-[color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:text-primary active:scale-95 disabled:opacity-50",
-            pwaStatusStyles.primary.focus
-          )}
-          aria-label={intl.formatMessage({
-            id: "app.profile.refreshGardens",
-            defaultMessage: "Refresh gardens",
-          })}
-        >
-          <RiRefreshLine className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-        </button>
-      </div>
+      <h5 className="text-label-md text-text-strong-950">
+        {intl.formatMessage({
+          id: "app.profile.gardens",
+          defaultMessage: "Gardens",
+        })}
+      </h5>
 
       {gardensLoading ? (
         <Card>

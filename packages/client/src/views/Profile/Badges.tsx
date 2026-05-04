@@ -3,6 +3,7 @@ import {
   formatAddress,
   type Address,
   type GreenWillBadgeView,
+  isGreenWillDeployed,
   useClaimFirstSupportBadge,
   useClaimFirstWorkBadge,
   useClaimGenesisBadge,
@@ -291,6 +292,24 @@ export const ProfileBadges: React.FC = () => {
   }
 
   if (!hasDisplayableBadges) {
+    // Distinguish "no badges issued yet on this chain" from "badges feature
+    // not deployed on the active chain" — surfaces the build/env config gap
+    // instead of silently looking like an empty record.
+    if (!isGreenWillDeployed()) {
+      return renderBadgeState(
+        intl.formatMessage({
+          id: "app.profile.badges.unavailableTitle",
+          defaultMessage: "Badges aren't available on this network",
+        }),
+        intl.formatMessage({
+          id: "app.profile.badges.unavailableDescription",
+          defaultMessage:
+            "Green Goods badges are issued on Arbitrum. Switch networks to view and claim them.",
+        }),
+        "neutral"
+      );
+    }
+
     return renderBadgeState(
       intl.formatMessage({
         id: "app.profile.badges.empty",

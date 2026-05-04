@@ -4,6 +4,7 @@ import deployment42220 from "@green-goods/contracts/deployments/42220-latest.jso
 import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
 import { ENV } from "../lib/env";
+import { logger } from "../modules/app/logger";
 
 // Export types
 export interface EASConfig {
@@ -82,7 +83,7 @@ const EAS_GRAPHQL_URLS: Record<string, string> = {
 };
 
 const DEFAULT_EAS_GRAPHQL_URL = "https://sepolia.easscan.org/graphql";
-const FALLBACK_CHAIN_ID = 11155111;
+const FALLBACK_CHAIN_ID = 42161;
 
 function hasNetworkConfig(chainId: number): boolean {
   return Object.values(networksConfig.networks).some(
@@ -252,8 +253,35 @@ export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: b
   return "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 }
 
+// True iff the GreenWill badge contract is deployed (non-zero) on the given chain.
+// Used by UI to differentiate "no badges yet" from "badges not available on this network".
+export function isGreenWillDeployed(chainId?: number | string): boolean {
+  const chain = resolveChainId(chainId);
+  const deployment = getDeploymentConfig(chain) as DeploymentConfig & { greenWill?: string };
+  const address = deployment.greenWill;
+  return Boolean(address) && address !== "0x0000000000000000000000000000000000000000";
+}
+
 // Default chain ID from environment variable
 export const DEFAULT_CHAIN_ID = resolveChainId(ENV.VITE_CHAIN_ID);
+
+// Warn at module init when VITE_CHAIN_ID is missing or didn't resolve to a
+// known deployment, so build pipelines and local dev sessions surface the
+// silent fallback path instead of running on the wrong chain unnoticed.
+{
+  const rawChainId = ENV.VITE_CHAIN_ID;
+  const resolvedFromEnv =
+    rawChainId !== undefined && rawChainId !== null && rawChainId !== ""
+      ? Number(rawChainId)
+      : undefined;
+  if (resolvedFromEnv !== DEFAULT_CHAIN_ID) {
+    logger.warn("[blockchain] VITE_CHAIN_ID missing or unresolved; using fallback", {
+      source: "config/blockchain",
+      rawChainId: rawChainId ?? null,
+      fallbackChainId: DEFAULT_CHAIN_ID,
+    });
+  }
+}
 
 // Get default chain configuration
 export function getDefaultChain() {

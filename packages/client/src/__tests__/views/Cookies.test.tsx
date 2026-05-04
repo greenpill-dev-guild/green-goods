@@ -150,7 +150,10 @@ describe("CookiesPage", () => {
 
     renderPage();
 
-    expect(screen.getByRole("heading", { name: "Campaign cookie jars", level: 1 }));
+    // Heading was renamed in the editorial public refresh.
+    expect(
+      screen.getByRole("heading", { name: /Shared jars for campaign funds/i, level: 1 })
+    ).toBeInTheDocument();
     expect(await screen.findByText("Connect your wallet to check the jar and take a cookie."));
     expect(screen.getByRole("button", { name: "Connect wallet" }));
   });

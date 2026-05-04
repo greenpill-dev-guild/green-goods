@@ -17,7 +17,7 @@ import { RiFilterLine } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useMatch } from "react-router-dom";
 
 import { PullToRefresh } from "@/components/Inputs";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
@@ -80,8 +80,11 @@ const Home: React.FC = () => {
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
 
-  // Selected garden from URL
-  const selectedGardenId = location.pathname.split("/")[2];
+  // Selected garden from the child Outlet's :id route. useMatch is route-shape
+  // aware (won't break if /home/:id is later renamed or nested under another
+  // segment) where pathname.split("/")[2] would silently mis-index.
+  const gardenIdMatch = useMatch("/home/:id/*");
+  const selectedGardenId = gardenIdMatch?.params.id;
 
   // Reset loading state when navigating back to home
   useEffect(() => {

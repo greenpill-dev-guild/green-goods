@@ -111,8 +111,11 @@ describe("SiteHeader", () => {
   });
 
   it("renders Open App when the PWA is already installed", () => {
+    // PublicInstallAction gates the "Open App" label on isMobile + isInstalled
+    // (desktop always shows "Install App" + QR). Force mobile here so the
+    // already-installed scenario actually renders "Open App".
     mockUseApp.mockReturnValue({
-      isMobile: false,
+      isMobile: true,
       isInstalled: true,
       wasInstalled: true,
       platform: "unknown",

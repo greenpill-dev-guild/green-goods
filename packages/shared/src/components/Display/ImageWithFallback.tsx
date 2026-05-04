@@ -150,6 +150,19 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   const [isLoading, setIsLoading] = useState(!!safeSrc);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  // Re-sync state when the `src` prop changes. `useState` only consumes its
+  // initializer on first mount, so without this effect a single component
+  // instance pointed at a sequence of images (e.g. ImagePreviewDialog) keeps
+  // rendering the first URL even though the prop changes.
+  useEffect(() => {
+    setCurrentSrc(initialSrc);
+    setHasError(!safeSrc);
+    setIsLoading(!!safeSrc);
+    setIsLoaded(false);
+    // initialSrc is fully derived from safeSrc/ipfsPath/cachedUrl/needsRace
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [safeSrc, ipfsPath, cachedUrl, needsRace]);
+
   // Stable ref for onErrorCallback to avoid re-triggering the race effect
   const onErrorRef = useRef(onErrorCallback);
   useEffect(() => {

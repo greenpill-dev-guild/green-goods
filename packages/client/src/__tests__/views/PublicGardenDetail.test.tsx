@@ -151,8 +151,11 @@ describe("GardenDetail", () => {
   });
 
   it("renders Open App CTA when already installed", () => {
+    // PublicInstallAction gates "Open App" on isMobile + isInstalled (desktop
+    // always shows Install App + QR). Force mobile so the installed scenario
+    // actually renders "Open App".
     mockUseApp.mockReturnValue({
-      isMobile: false,
+      isMobile: true,
       isInstalled: true,
       platform: "unknown",
       deferredPrompt: null,

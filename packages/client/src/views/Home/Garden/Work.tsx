@@ -7,6 +7,7 @@ import {
   isValidAttestationId,
   jobQueue,
   openEASExplorer,
+  queryKeys,
   isUserAddress as sharedIsUserAddress,
   shareWork,
   toastService,
@@ -14,12 +15,14 @@ import {
   useGardenPermissions,
   useGardens,
   useNavigateToTop,
+  useOffline,
   useUser,
   useWorkApprovalActions,
   useWorkMetadata,
   useWorks,
   type WorkData,
 } from "@green-goods/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -44,6 +47,8 @@ export const GardenWork: React.FC = () => {
   const navigateToTop = useNavigateToTop();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const { isOnline } = useOffline();
   const chainId = DEFAULT_CHAIN_ID;
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
@@ -118,6 +123,10 @@ export const GardenWork: React.FC = () => {
       const result = await jobQueue.processJob(work.id, { smartAccountClient });
 
       if (result.success) {
+        // Invalidate the work caches explicitly so the UI updates without
+        // depending solely on the JobQueue event bus reaching this component.
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
         toastService.success({
           title: intl.formatMessage({
             id: "app.home.work.retrySuccess",
@@ -458,6 +467,16 @@ export const GardenWork: React.FC = () => {
                   {intl.formatMessage({
                     id: "app.home.workApproval.actionExpired",
                     defaultMessage: "This action has ended. Approval may fail on-chain.",
+                  })}
+                </p>
+              )}
+              {/* Offline notice — approval is queued, not committed, until reconnect */}
+              {!isOnline && (
+                <p className="text-xs text-warning-dark mb-2 text-center">
+                  {intl.formatMessage({
+                    id: "app.home.workApproval.offline",
+                    defaultMessage:
+                      "You're offline. Your decision will be sent when you reconnect.",
                   })}
                 </p>
               )}

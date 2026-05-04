@@ -79,6 +79,7 @@ vi.mock("@green-goods/shared", () => ({
     isJoining: false,
   }),
   useNavigateToTop: () => mockNavigate,
+  usePendingJoinsVersion: () => 0,
   useScrollToTop: vi.fn(),
   useUIStore: Object.assign(
     vi.fn((selector: (state: Record<string, unknown>) => unknown) =>

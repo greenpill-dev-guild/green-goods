@@ -28,7 +28,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
 
   if (isSyncing) {
     PrimaryIcon = RiLoader4Line;
-    statusTone = "information";
+    statusTone = "primary";
   } else if (!isOnline) {
     PrimaryIcon = RiCloudOffLine;
     statusTone = "warning";

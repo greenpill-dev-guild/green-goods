@@ -1,5 +1,6 @@
 import {
   capitalize,
+  ConfirmDialog,
   hapticLight,
   type Locale,
   logger,
@@ -8,7 +9,7 @@ import {
   useTheme,
 } from "@green-goods/shared";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
@@ -26,6 +27,8 @@ export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
+  const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const themeOptions = useMemo(
     () => [
@@ -124,7 +127,7 @@ export const AppSettings: React.FC = () => {
     ]
   );
 
-  const handleRefreshApp = async () => {
+  const handleRefreshClick = () => {
     hapticLight();
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       toastService.info({
@@ -140,7 +143,11 @@ export const AppSettings: React.FC = () => {
       });
       return;
     }
+    setRefreshConfirmOpen(true);
+  };
 
+  const handleRefreshApp = async () => {
+    setIsRefreshing(true);
     try {
       toastService.loading({
         title: intl.formatMessage({
@@ -233,7 +240,7 @@ export const AppSettings: React.FC = () => {
             variant="neutral"
             mode="stroke"
             size="small"
-            onClick={handleRefreshApp}
+            onClick={handleRefreshClick}
             label={intl.formatMessage({
               id: "app.update.button",
               defaultMessage: "Refresh",
@@ -242,6 +249,26 @@ export const AppSettings: React.FC = () => {
           />
         </div>
       </Card>
+
+      <ConfirmDialog
+        isOpen={refreshConfirmOpen}
+        onClose={() => setRefreshConfirmOpen(false)}
+        onConfirm={handleRefreshApp}
+        title={intl.formatMessage({
+          id: "app.update.confirmTitle",
+          defaultMessage: "Refresh app?",
+        })}
+        description={intl.formatMessage({
+          id: "app.update.confirmDescription",
+          defaultMessage:
+            "This clears cached data and reloads the app to fetch the latest version. Your saved drafts and pending submissions are kept.",
+        })}
+        confirmLabel={intl.formatMessage({
+          id: "app.update.confirmAction",
+          defaultMessage: "Refresh",
+        })}
+        isLoading={isRefreshing}
+      />
     </>
   );
 };

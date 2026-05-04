@@ -22,6 +22,18 @@ const mockAppState = {
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared", () => ({
   capitalize: (s: string) => s.charAt(0).toUpperCase() + s.slice(1),
+  ConfirmDialog: ({
+    isOpen,
+    title,
+    children,
+  }: {
+    isOpen: boolean;
+    title?: string;
+    children?: React.ReactNode;
+  }) =>
+    isOpen
+      ? createElement("div", { role: "dialog", "data-testid": "confirm-dialog" }, title, children)
+      : null,
   hapticLight: vi.fn(),
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
   toastService: { info: vi.fn(), loading: vi.fn(), success: vi.fn(), error: vi.fn() },

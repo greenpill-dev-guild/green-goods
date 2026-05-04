@@ -29,6 +29,7 @@ export {
   getEasGraphqlUrl,
   getIndexerUrl,
   getNetworkConfig,
+  isGreenWillDeployed,
 } from "./blockchain";
 export type { SupportedChainId } from "./chains";
 // From chains.ts

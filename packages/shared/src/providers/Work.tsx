@@ -16,6 +16,7 @@ import { validationToasts } from "../components/toast";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../config/blockchain";
 import { useUser } from "../hooks/auth/useUser";
 import { useActions, useGardens } from "../hooks/blockchain/useBaseLists";
+import { isGardenMember, usePendingJoinsVersion } from "../hooks/garden/useJoinGarden";
 import { useWorkForm, type WorkFormData } from "../hooks/work/useWorkForm";
 import { useWorkImages } from "../hooks/work/useWorkImages";
 import { useWorkMutation } from "../hooks/work/useWorkMutation";
@@ -181,19 +182,21 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   // Normalize user address for comparisons
   const userAddress = normalizeAddress(primaryAddress);
 
-  // Filter gardens to only show ones user is a member of
-  // Filter to user's gardens
+  // Filter gardens to only show ones user is a member of.
+  // Use isGardenMember (not raw isAddressInList) so a fresh join is reflected
+  // immediately via pending-joins localStorage, before the indexer catches up
+  // — matches the membership view in /profile so the wizard and profile agree.
+  // pendingJoinsVersion subscribes to in-tab pending-join changes so this
+  // memo retriggers when a join confirms or expires.
+  const pendingJoinsVersion = usePendingJoinsVersion();
   const userGardens = useMemo(
     () =>
       userAddress && gardensData
-        ? gardensData.filter((garden: Garden) => {
-            return (
-              isAddressInList(userAddress, garden.gardeners) ||
-              isAddressInList(userAddress, garden.operators)
-            );
-          })
+        ? gardensData.filter((garden: Garden) =>
+            isGardenMember(userAddress, garden.gardeners, garden.operators, garden.id)
+          )
         : [],
-    [userAddress, gardensData]
+    [userAddress, gardensData, pendingJoinsVersion]
   );
 
   const hasJoinedGardens = userGardens.length > 0;

@@ -4,6 +4,7 @@ import {
   cn,
   imageCompressor,
   mediaResourceManager,
+  toastService,
   track,
 } from "@green-goods/shared";
 import {
@@ -255,12 +256,41 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       const maxCount =
         config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
 
-      setImages((prev) => [...prev, ...newFiles].slice(0, maxCount));
+      let droppedCount = 0;
+      setImages((prev) => {
+        const combined = [...prev, ...newFiles];
+        if (combined.length > maxCount) {
+          droppedCount = combined.length - maxCount;
+          return combined.slice(0, maxCount);
+        }
+        return combined;
+      });
+
+      if (droppedCount > 0) {
+        toastService.info({
+          title: intl.formatMessage(
+            {
+              id: "app.garden.upload.truncatedTitle",
+              defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
+            },
+            { dropped: droppedCount }
+          ),
+          message: intl.formatMessage(
+            {
+              id: "app.garden.upload.truncatedMessage",
+              defaultMessage: "You can add up to {max} for this action.",
+            },
+            { max: maxCount }
+          ),
+          context: "mediaUpload",
+        });
+      }
 
       track("media_upload_complete", {
         count: newFiles.length,
         imageCount: processedImages.length,
         videoCount: validVideos.length,
+        droppedCount,
         ...context,
       });
     } catch (error) {
@@ -268,8 +298,21 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         error: error instanceof Error ? error.message : "Unknown",
         ...context,
       });
-      // Fallback: add uncompressed
-      setImages((prev) => [...prev, ...fileArray]);
+      // Don't fall back to uncompressed originals — they can blow IndexedDB
+      // quota and silently exceed submission size limits. Surface the failure
+      // and let the user retry.
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.garden.upload.compressionFailedTitle",
+          defaultMessage: "Couldn't process those images",
+        }),
+        message: intl.formatMessage({
+          id: "app.garden.upload.compressionFailedMessage",
+          defaultMessage: "Try fewer or smaller images, or check your connection.",
+        }),
+        context: "mediaUpload",
+        error,
+      });
     } finally {
       setIsCompressing(false);
       setCompressionProgress(0);

@@ -52,6 +52,7 @@ vi.mock("@green-goods/shared", () => ({
   useGardens: (...args: unknown[]) => mockUseGardens(...args),
   useJobQueueEvents: vi.fn(),
   useNavigateToTop: () => mockNavigate,
+  useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle", refetch: vi.fn() }),
   useTimeout: () => ({
     set: (fn: () => void) => fn,
   }),
