@@ -105,6 +105,10 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Query Keys**: Use `queryKeys.*` helpers from shared. Serialize objects in query keys.
 
+**Feature Availability**: Use `isGreenWillDeployed(chainId?)` from `@green-goods/shared` to detect when a feature contract is undeployed (zero-address) on the active chain. Render a "not available on this network" branch instead of a generic empty state — masking deployment gaps as data gaps wastes debugging cycles.
+
+**Optimistic-UI Memos**: When a memo depends on a value written to localStorage in the same tab (e.g. pending-join membership), include `usePendingJoinsVersion()` from `@green-goods/shared` in its `useMemo` deps. The hook returns an incrementing counter that ticks on every in-tab pending-join change. Standard `storage` events only fire across tabs, so without this same-tab consumers go stale until an unrelated re-render. The pattern is generalizable — propose a sibling `use<Thing>Version()` hook when introducing new localStorage-backed optimistic state.
+
 **Indexer Boundary**: Envio indexes only Green Goods core state (actions, gardens, hats role membership, vault history, yield split history, minimal hypercert linkage/claims). Do not re-index EAS attestations, Gardens V2 community/pools, marketplace, ENS lifecycle, cookie jars, or Hypercert display metadata.
 
 **Investigate Before Answering**: Never speculate about code you have not opened. If referencing a specific file, you MUST read it before answering. Give grounded, hallucination-free answers based on actual file contents, not assumptions about what code might look like.
@@ -177,6 +181,22 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas  # Depl
 Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets target chain at build time. `.env.schema` defines the contract.
 
 **Env loading**: `.env` is materialized from `.env.template` via `bun run env:sync` (runs `op inject`). Bun, Vite, and Node read `.env` natively — no per-command 1Password fetch. For shared team secrets, edit `.env.template` and use `op://Vault/Item/field` refs. For personal local credentials, edit `.env` directly. Validate with `bun run env:check`.
+
+**Chain selection**: `VITE_CHAIN_ID` is required for predictable behavior. Without it, `FALLBACK_CHAIN_ID` in `packages/shared/src/config/blockchain.ts` decides — currently `42161` (Arbitrum mainnet, real funds). The client logs a `[blockchain]` warning at module init when fallback is used; `bun run dev:doctor -- --profile web` flags the same gap. Common values: `42161` Arbitrum, `11155111` Sepolia, `42220` Celo.
+
+## Local services (PM2)
+
+`bun run dev:web` and `bun run dev:full` start services via PM2 (`ecosystem.config.cjs`). Canonical service → port mapping:
+
+- **client** — `https://localhost:3001/` (HTTPS in dev; not HTTP)
+- **admin** — `https://localhost:3002/`
+- **docs** — `http://localhost:3003/`
+- **storybook** — `http://localhost:6006/`
+- **indexer GraphQL** — `http://localhost:8080/v1/graphql` (requires Docker stack up)
+- **indexer postgres** — `localhost:5433`
+- **envio indexer runtime** — `localhost:9898`
+
+Use `npx pm2 list` to see live status, `npx pm2 logs <name> --nostream` to inspect a single service. The full-stack indexer requires Docker — without it, `/api/graphql` proxy returns no data and PWA pages render empty states.
 
 ## Scope Discipline
 - When instructions say "output in chat" or "just tell me", do NOT edit files

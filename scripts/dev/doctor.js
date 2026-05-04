@@ -485,6 +485,44 @@ function checkEnv() {
       });
     }
   }
+
+  // VITE_CHAIN_ID drives chain selection at build time. Without it, the client
+  // falls back to FALLBACK_CHAIN_ID (currently 42161 / Arbitrum mainnet) — a
+  // chain-id semantic change that's easy to miss in CI / local dev.
+  if (options.profile === "web" || options.profile === "full") {
+    const chainId = valueFor(envFile, "VITE_CHAIN_ID") || schema.VITE_CHAIN_ID || "";
+    const knownChains = {
+      "42161": "Arbitrum One (mainnet — real funds)",
+      "11155111": "Sepolia (testnet)",
+      "42220": "Celo (mainnet)",
+      "31337": "Hardhat / Anvil (local)",
+    };
+    if (!chainId.trim()) {
+      add(
+        "warn",
+        "VITE_CHAIN_ID is unset; client will use fallback (42161 / Arbitrum)",
+        "Falling through to FALLBACK_CHAIN_ID means production-chain bytes leak into local dev.",
+        "Set VITE_CHAIN_ID in root .env (42161 for Arbitrum, 11155111 for Sepolia testnet).",
+        { check: "env:chain-id" }
+      );
+    } else if (knownChains[chainId.trim()]) {
+      add(
+        "pass",
+        `VITE_CHAIN_ID configured (${chainId.trim()})`,
+        knownChains[chainId.trim()],
+        "",
+        { check: "env:chain-id" }
+      );
+    } else {
+      add(
+        "warn",
+        `VITE_CHAIN_ID is "${chainId.trim()}" — not a known chain`,
+        "Client will fall back to FALLBACK_CHAIN_ID at runtime.",
+        "Set VITE_CHAIN_ID to one of: 42161 (Arbitrum), 11155111 (Sepolia), 42220 (Celo).",
+        { check: "env:chain-id" }
+      );
+    }
+  }
 }
 
 function checkIndexerGenerated() {
