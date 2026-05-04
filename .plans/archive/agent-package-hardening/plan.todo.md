@@ -1,10 +1,10 @@
 # Agent Package Hardening (Pre-SMS Polish Pass)
 
 **Slug**: `agent-package-hardening`
-**Status**: `ACTIVE`
+**Status**: `IMPLEMENTED`
 **Created**: `2026-04-25`
 **Priority**: `p2`
-**Branch**: `chore/agent-package-hardening`
+**Branch**: `develop` (implemented there per user instruction)
 
 ## Why this exists
 
@@ -95,10 +95,12 @@ Stated non-negotiable: never store plaintext private keys.
 
 ## Checklist
 
-- [ ] A. Coverage inventory + auth-path tests on `approve` / `reject` / `submit` / `join`.
-- [ ] B. Idempotency audit + dedup on side-effecting handlers; forward-compat note for SMS plan.
-- [ ] C. Error sanitization audit + boundary tests.
-- [ ] D. Rate-limit coverage audit + tier alignment with `agent-messaging-channels` Decision #6.
-- [ ] E. Crypto flow spot-check + AGENTS.md documentation.
-- [ ] F. (Optional) Pino structure + request-id propagation.
-- [ ] Validation suite green.
+- [x] A. Coverage inventory + auth-path tests on `approve` / `reject` / `submit` / `join`.
+  - Focused RED/GREEN tests landed; `bun run test:coverage -- --coverage.reporter=text-summary` now produces a V8 coverage summary through the package coverage runner.
+- [x] B. Idempotency audit + dedup on side-effecting handlers; forward-compat note for SMS plan.
+- [x] C. Error sanitization audit + boundary tests.
+- [x] D. Rate-limit coverage audit + tier alignment with `agent-messaging-channels` Decision #6.
+- [x] E. Crypto flow spot-check + AGENTS.md documentation.
+- [x] F. (Optional) Pino structure + request-id propagation.
+  - Production pino structure verified; request-id propagation was not added because it was optional and not needed for the hardening checklist.
+- [x] Validation suite green.

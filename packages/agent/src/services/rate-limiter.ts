@@ -66,8 +66,8 @@ export const RATE_LIMITS = {
 
   /** Work submissions */
   submission: {
-    maxRequests: 5,
-    windowMs: 300_000, // 5 per 5 minutes
+    maxRequests: 10,
+    windowMs: 86_400_000, // 10 per day
     message: "You've submitted too many works recently. Please wait before submitting again.",
   },
 
@@ -80,9 +80,16 @@ export const RATE_LIMITS = {
 
   /** Operator approvals */
   approval: {
-    maxRequests: 30,
-    windowMs: 60_000, // 30 per minute (operators need higher limits)
+    maxRequests: 20,
+    windowMs: 86_400_000, // 20 per day
     message: "Too many approval actions. Please wait.",
+  },
+
+  /** Garden joins */
+  join: {
+    maxRequests: 3,
+    windowMs: 86_400_000, // 3 per day
+    message: "Too many garden join attempts. Please wait before trying again.",
   },
 
   /** Wallet operations */

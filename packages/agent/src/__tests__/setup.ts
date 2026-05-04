@@ -158,7 +158,7 @@ afterAll(() => {
 class InMemoryDatabase {
   private tables: Map<string, Map<string, Record<string, unknown>>> = new Map();
   private createTableRegex = /CREATE TABLE IF NOT EXISTS (\w+)/i;
-  private insertRegex = /INSERT(?: OR REPLACE)? INTO (\w+)/i;
+  private insertRegex = /INSERT(?: OR REPLACE| OR IGNORE)? INTO (\w+)/i;
   private selectRegex = /SELECT \* FROM (\w+) WHERE/i;
   private updateRegex = /UPDATE (\w+) SET/i;
   private deleteRegex = /DELETE FROM (\w+) WHERE/i;
@@ -232,7 +232,7 @@ class InMemoryDatabase {
         return [];
       },
 
-      run(...params: unknown[]): void {
+      run(...params: unknown[]): { changes: number; lastInsertRowid: number } | void {
         // Handle INSERT
         const insertMatch = sql.match(self.insertRegex);
         if (insertMatch) {
@@ -248,6 +248,7 @@ class InMemoryDatabase {
             users: 7,
             sessions: 5,
             pending_works: 7,
+            idempotency_keys: 9,
             feedback: 10,
           };
 
@@ -302,6 +303,30 @@ class InMemoryDatabase {
               data: params[6],
               createdAt: getTestTimestamp(),
             };
+          } else if (tableName === "idempotency_keys") {
+            if (params.length !== EXPECTED_PARAMS.idempotency_keys) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.idempotency_keys} params for idempotency_keys, got ${params.length}`
+              );
+            }
+            key = String(params[0]);
+            if (table.has(key)) {
+              if (/INSERT OR IGNORE/i.test(sql)) {
+                return { changes: 0, lastInsertRowid: 0 };
+              }
+              throw new Error("UNIQUE constraint failed: idempotency_keys.key");
+            }
+            row = {
+              key: params[0],
+              handler: params[1],
+              platform: params[2],
+              platformId: params[3],
+              messageId: params[4],
+              status: params[5],
+              response: params[6],
+              createdAt: params[7],
+              updatedAt: params[8],
+            };
           } else if (tableName === "feedback") {
             if (params.length !== EXPECTED_PARAMS.feedback) {
               throw new Error(
@@ -327,7 +352,7 @@ class InMemoryDatabase {
           }
 
           table.set(key, row);
-          return;
+          return { changes: 1, lastInsertRowid: table.size };
         }
 
         // Handle UPDATE
@@ -337,7 +362,16 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return;
 
-          if (tableName === "feedback") {
+          if (tableName === "idempotency_keys") {
+            const key = String(params[params.length - 1]);
+            const existingRow = table.get(key);
+            if (existingRow) {
+              existingRow.status = params[0];
+              existingRow.response = params[1];
+              existingRow.updatedAt = params[2];
+              table.set(key, existingRow);
+            }
+          } else if (tableName === "feedback") {
             // Feedback UPDATE: SET status = ?, updatedAt = ? WHERE id = ?
             const id = params[params.length - 1];
             const key = String(id);

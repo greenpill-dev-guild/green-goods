@@ -32,6 +32,7 @@ import {
 import { handleApprove } from "./approve";
 import { handleFeedback } from "./feedback";
 import { handleHelp } from "./help";
+import { getExistingIdempotencyResponse } from "./idempotency";
 import { handleJoin } from "./join";
 import { handlePending } from "./pending";
 import { handleReject } from "./reject";
@@ -146,11 +147,11 @@ async function handleCommand(
     return textResponse("Please run /start first to create your wallet.");
   }
 
-  const rateCheck = checkRateLimit(sender.platformId, "command");
-  if (rateCheck) return rateCheck;
-
   switch (command) {
     case "join": {
+      const joinRateCheck = checkRateLimit(sender.platformId, "join");
+      if (joinRateCheck) return joinRateCheck;
+
       const result = await handleJoin(message, user, { isValidAddress });
       return result.response;
     }
@@ -228,10 +229,16 @@ async function handleCallback(
     return textResponse("Session expired. Please start again with /start");
   }
 
-  const session = await db.getSession(platform, sender.platformId);
-
   switch (callbackData) {
     case "confirm_submission": {
+      const idempotencyResponse = await getExistingIdempotencyResponse(
+        "submit-confirm",
+        message,
+        "submission"
+      );
+      if (idempotencyResponse) return idempotencyResponse;
+
+      const session = await db.getSession(platform, sender.platformId);
       if (!session) {
         return textResponse("Session expired. Please submit your work again.");
       }

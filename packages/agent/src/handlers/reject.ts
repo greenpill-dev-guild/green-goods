@@ -4,8 +4,17 @@
 
 import * as blockchain from "../services/blockchain";
 import * as db from "../services/db";
-import { auditLog } from "../services/logger";
+import { classifyError } from "../services/errors";
+import { auditLog, loggers } from "../services/logger";
 import type { CommandContent, HandlerResult, InboundMessage, User } from "../types";
+import {
+  claimMessageIdempotency,
+  completeMessageIdempotency,
+  getExistingIdempotencyResponse,
+  idempotencyInProgressResponse,
+} from "./idempotency";
+
+const log = loggers.handlers;
 
 export interface RejectDeps {
   notifyGardener?: (platform: string, platformId: string, message: string) => Promise<void>;
@@ -32,6 +41,22 @@ export async function handleReject(
         parseMode: "markdown",
       },
     };
+  }
+
+  if (user.role !== "operator") {
+    return {
+      response: {
+        text:
+          `❌ *Permission Denied*\n\n` +
+          `Only registered operators can reject work for this garden.`,
+        parseMode: "markdown",
+      },
+    };
+  }
+
+  const idempotencyResponse = await getExistingIdempotencyResponse("reject", message, "rejection");
+  if (idempotencyResponse) {
+    return { response: idempotencyResponse };
   }
 
   const pendingWork = await db.getPendingWork(workId);
@@ -64,35 +89,61 @@ export async function handleReject(
     };
   }
 
-  await db.removePendingWork(workId);
-
-  // Audit log the rejection
-  auditLog(
-    "operator:reject",
-    { platform: message.platform, platformId: message.sender.platformId, address: user.address },
-    {
-      workId,
-      gardenAddress,
-      gardenerAddress: pendingWork.gardenerAddress,
-      actionUID: pendingWork.actionUID,
-      reason,
+  try {
+    const claimed = await claimMessageIdempotency("reject", message);
+    if (!claimed) {
+      return {
+        response: idempotencyInProgressResponse("rejection"),
+      };
     }
-  );
 
-  if (notifyGardener) {
-    await notifyGardener(
-      pendingWork.gardenerPlatform,
-      pendingWork.gardenerPlatformId,
-      `❌ *Your work has been rejected*\n\n` +
-        `ID: \`${workId}\`\n` +
-        `Reason: ${reason}\n\n` +
-        `Please try again with more details or photos.`
+    await db.removePendingWork(workId);
+
+    // Audit log the rejection
+    auditLog(
+      "operator:reject",
+      { platform: message.platform, platformId: message.sender.platformId, address: user.address },
+      {
+        workId,
+        gardenAddress,
+        gardenerAddress: pendingWork.gardenerAddress,
+        actionUID: pendingWork.actionUID,
+        reason,
+      }
     );
-  }
 
-  return {
-    response: {
-      text: `❌ Work ${workId} rejected.\n\nReason: ${reason}`,
-    },
-  };
+    if (notifyGardener) {
+      await notifyGardener(
+        pendingWork.gardenerPlatform,
+        pendingWork.gardenerPlatformId,
+        `❌ *Your work has been rejected*\n\n` +
+          `ID: \`${workId}\`\n` +
+          `Reason: ${reason}\n\n` +
+          `Please try again with more details or photos.`
+      );
+    }
+
+    const result = {
+      response: {
+        text: `❌ Work ${workId} rejected.\n\nReason: ${reason}`,
+      },
+    };
+
+    await completeMessageIdempotency("reject", message, result.response);
+
+    return result;
+  } catch (error) {
+    const { category, userMessage } = classifyError(error);
+    log.error({ err: error, category, workId }, "Rejection error");
+
+    const result = {
+      response: {
+        text: `❌ ${userMessage}`,
+      },
+    };
+
+    await completeMessageIdempotency("reject", message, result.response);
+
+    return result;
+  }
 }

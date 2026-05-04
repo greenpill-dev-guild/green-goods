@@ -223,14 +223,18 @@ describe("RATE_LIMITS configuration", () => {
     expect(RATE_LIMITS).toHaveProperty("voice");
     expect(RATE_LIMITS).toHaveProperty("approval");
     expect(RATE_LIMITS).toHaveProperty("wallet");
+    expect(RATE_LIMITS).toHaveProperty("join");
   });
 
-  it("has reasonable limits", () => {
-    // Voice should be more restrictive than text
-    expect(RATE_LIMITS.voice.maxRequests).toBeLessThan(RATE_LIMITS.message.maxRequests);
+  it("aligns externally triggered action tiers with agent-messaging-channels", () => {
+    const dayMs = 24 * 60 * 60 * 1000;
 
-    // Operators should have higher approval limits
-    expect(RATE_LIMITS.approval.maxRequests).toBeGreaterThan(RATE_LIMITS.submission.maxRequests);
+    expect(RATE_LIMITS.submission.maxRequests).toBe(10);
+    expect(RATE_LIMITS.submission.windowMs).toBe(dayMs);
+    expect(RATE_LIMITS.approval.maxRequests).toBe(20);
+    expect(RATE_LIMITS.approval.windowMs).toBe(dayMs);
+    expect(RATE_LIMITS.join.maxRequests).toBe(3);
+    expect(RATE_LIMITS.join.windowMs).toBe(dayMs);
   });
 
   it("has all required fields for each limit type", () => {

@@ -12,6 +12,7 @@ import type {
   Feedback,
   FeedbackStatus,
   FeedbackType,
+  OutboundResponse,
   PendingWork,
   Platform,
   Session,
@@ -61,6 +62,26 @@ interface FundingIntentRow {
 }
 
 type SqlValue = string | number | null;
+
+interface IdempotencyRecord {
+  key: string;
+  handler: string;
+  platform: Platform;
+  platformId: string;
+  messageId: string;
+  status: "started" | "completed";
+  response?: OutboundResponse;
+  createdAt: number;
+  updatedAt: number;
+}
+
+interface ClaimIdempotencyInput {
+  key: string;
+  handler: string;
+  platform: Platform;
+  platformId: string;
+  messageId: string;
+}
 
 function serializeFundingIntent(record: FundingIntentRecord): SqlValue[] {
   return [
@@ -196,6 +217,20 @@ class DB {
     `);
 
     this.db.run(`
+      CREATE TABLE IF NOT EXISTS idempotency_keys (
+        key TEXT PRIMARY KEY,
+        handler TEXT NOT NULL,
+        platform TEXT NOT NULL,
+        platformId TEXT NOT NULL,
+        messageId TEXT NOT NULL,
+        status TEXT NOT NULL,
+        response TEXT,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`
       CREATE TABLE IF NOT EXISTS feedback (
         id TEXT PRIMARY KEY,
         type TEXT NOT NULL,
@@ -215,6 +250,10 @@ class DB {
     );
     this.db.run(
       `CREATE INDEX IF NOT EXISTS idx_pending_works_garden ON pending_works(gardenAddress)`
+    );
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_idempotency_platform_message
+       ON idempotency_keys(platform, platformId, messageId, handler)`
     );
     this.db.run(
       `CREATE INDEX IF NOT EXISTS idx_users_role_garden ON users(role, currentGarden) WHERE role = 'operator'`
@@ -587,6 +626,69 @@ class DB {
   }
 
   // ==========================================================================
+  // IDEMPOTENCY
+  // ==========================================================================
+
+  async getIdempotencyRecord(key: string): Promise<IdempotencyRecord | undefined> {
+    const row = this.db.query("SELECT * FROM idempotency_keys WHERE key = ?").get(key) as {
+      key: string;
+      handler: string;
+      platform: string;
+      platformId: string;
+      messageId: string;
+      status: string;
+      response: string | null;
+      createdAt: number;
+      updatedAt: number;
+    } | null;
+
+    if (!row) return undefined;
+
+    return {
+      key: row.key,
+      handler: row.handler,
+      platform: row.platform as Platform,
+      platformId: row.platformId,
+      messageId: row.messageId,
+      status: row.status as IdempotencyRecord["status"],
+      response: row.response ? (JSON.parse(row.response) as OutboundResponse) : undefined,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  async claimIdempotencyKey(input: ClaimIdempotencyInput): Promise<boolean> {
+    const existing = await this.getIdempotencyRecord(input.key);
+    if (existing) return false;
+
+    const now = Date.now();
+    const result = this.db
+      .query(
+        `INSERT OR IGNORE INTO idempotency_keys (key, handler, platform, platformId, messageId, status, response, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        input.key,
+        input.handler,
+        input.platform,
+        input.platformId,
+        input.messageId,
+        "started",
+        null,
+        now,
+        now
+      );
+
+    return result.changes === 1;
+  }
+
+  async completeIdempotencyKey(key: string, response: OutboundResponse): Promise<void> {
+    this.db
+      .query("UPDATE idempotency_keys SET status = ?, response = ?, updatedAt = ? WHERE key = ?")
+      .run("completed", JSON.stringify(response), Date.now(), key);
+  }
+
+  // ==========================================================================
   // FEEDBACK
   // ==========================================================================
 
@@ -829,6 +931,12 @@ export const getPendingWork = (id: string) => getDB().getPendingWork(id);
 export const getPendingWorksForGarden = (gardenAddress: string) =>
   getDB().getPendingWorksForGarden(gardenAddress);
 export const removePendingWork = (id: string) => getDB().removePendingWork(id);
+
+export const getIdempotencyRecord = (key: string) => getDB().getIdempotencyRecord(key);
+export const claimIdempotencyKey = (input: ClaimIdempotencyInput) =>
+  getDB().claimIdempotencyKey(input);
+export const completeIdempotencyKey = (key: string, response: OutboundResponse) =>
+  getDB().completeIdempotencyKey(key, response);
 
 export const addFeedback = (feedback: Omit<Feedback, "createdAt" | "updatedAt">) =>
   getDB().addFeedback(feedback);

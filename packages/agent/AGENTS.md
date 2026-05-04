@@ -30,6 +30,15 @@ routes them through handlers, and coordinates service dependencies.
 - Coverage is currently permissive, so correctness depends more on targeted tests than on the
   threshold number alone.
 
+## Key Material Flow
+
+Bot-managed wallet keys are generated in handlers with `generateSecurePrivateKey()` and passed to
+`db.createUser()`. The database service must be the only persistence boundary for those keys:
+`createUser()` calls `prepareKeyForStorage()` before insert, `getUser()` decrypts through
+`getPrivateKey()`, and legacy plaintext rows are re-encrypted on read through `migrateUserKey()`.
+Logs and audit events may include platform ids, addresses, handler names, work ids, and transaction
+hashes, but never raw `privateKey` values or decrypted key material.
+
 ## Validation
 
 - Package loop: `bun run test && bun run typecheck`

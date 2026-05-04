@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "agent-package-hardening",
+    "title": "Agent Package Hardening",
+    "kind": "feature",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-04-25T00:00:00.000Z",
+    "updated_at": "2026-05-04T07:42:19.435Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "taxonomy": {
+    "initiative": "agent-platform",
+    "tracks": ["agent"],
+    "work_types": ["hardening", "qa"],
+    "surfaces": ["packages/agent"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Formalized from an active loose plan during the validated-taxonomy cleanup.",
+    "Keep SMS, WhatsApp, phone linking, and session-key work in agent-messaging-channels."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/agent-package-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No UI lane is planned for this agent-package hardening pass."
+      },
+      "skill_tags": ["testing", "agent"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/agent-package-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run test -- src/__tests__/handlers.test.ts src/__tests__/rate-limiter.test.ts",
+          "evidence": "handoffs/codex-state-api.md#tdd-proof-red"
+        },
+        "green": {
+          "command": "bun run test -- src/__tests__/handlers.test.ts src/__tests__/rate-limiter.test.ts",
+          "evidence": "handoffs/codex-state-api.md#tdd-proof-green"
+        },
+        "note": "Final review regression added for idempotency in-progress duplicates; focused suite green at 39 tests and coverage green."
+      },
+      "skill_tags": ["testing", "agent"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/agent-package-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract lane is planned for existing agent-package hardening."
+      },
+      "skill_tags": ["agent"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "passed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/agent-package-hardening",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "passed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/agent-package-hardening",
+      "branch_trigger": "claude/qa-pass-1/agent-package-hardening",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-03T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized",
+      "branch": null,
+      "note": "Formalized active loose plan with validated taxonomy and state/API TDD gate."
+    },
+    {
+      "timestamp": "2026-05-03T21:15:51.880Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/agent-package-hardening",
+      "note": "Approve handler error-sanitization slice green on develop per user instruction."
+    },
+    {
+      "timestamp": "2026-05-04T07:15:17.823Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/agent-package-hardening",
+      "note": "Completed agent hardening state_api lane on develop with coverage reporter proof limit recorded."
+    },
+    {
+      "timestamp": "2026-05-04T07:15:22.012Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/agent-package-hardening",
+      "note": "State/API hardening complete on develop; package tests/typecheck/lint green; coverage reporter blocked and recorded."
+    },
+    {
+      "timestamp": "2026-05-04T07:15:26.361Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "passed",
+      "branch": "claude/qa-pass-1/agent-package-hardening",
+      "note": "Single-agent QA pass completed per user request; see handoffs/claude-qa-pass-1.md."
+    },
+    {
+      "timestamp": "2026-05-04T07:15:32.649Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/agent-package-hardening",
+      "note": "Final QA pass completed per user request; see handoffs/codex-qa-pass-2.md."
+    },
+    {
+      "timestamp": "2026-05-04T07:25:24.062Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/agent-package-hardening",
+      "note": "Coverage reporter fixed; package coverage summary now green via bun run test:coverage."
+    },
+    {
+      "timestamp": "2026-05-04T07:25:27.671Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/agent-package-hardening",
+      "note": "Coverage reporter fixed before closeout; bun run test:coverage now emits V8 summary."
+    },
+    {
+      "timestamp": "2026-05-04T07:41:25.559Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/agent-package-hardening",
+      "note": "Final review regression added for idempotency in-progress duplicates; focused suite green at 39 tests and coverage green."
+    },
+    {
+      "timestamp": "2026-05-04T07:41:30.446Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/agent-package-hardening",
+      "note": "Final deep review complete; idempotency in-progress edge fixed and package validation green."
+    },
+    {
+      "timestamp": "2026-05-04T07:42:19.436Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    }
+  ]
+}

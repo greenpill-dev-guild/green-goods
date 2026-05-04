@@ -25,7 +25,8 @@
     "SMS-only fallback is ready to ship from Phase 1.3 if WA verification slips (1–3 week Meta lead time).",
     "No indexer changes — messaging state is off-chain per spec and CLAUDE.md indexer boundary.",
     "Branch strategy: feature/agent-messaging-channels with phase commits for independent rollback.",
-    "Afo deferred this out of active product work on 2026-04-26 because May is not planned for large product implementation after the current closeout set."
+    "Afo deferred this out of active product work on 2026-04-26 because May is not planned for large product implementation after the current closeout set.",
+    "Agent package hardening completed and archived on 2026-05-04; no longer listed as an open feature dependency."
   ],
   "lanes": {
     "ui": {
@@ -110,6 +111,6 @@
     "tracks": ["agent", "client", "contracts", "shared"],
     "work_types": ["implementation", "qa"],
     "surfaces": ["packages/agent", "packages/client", "packages/contracts", "packages/shared"],
-    "depends_on_features": ["agent-package-hardening", "agent-posthog-observability"]
+    "depends_on_features": ["agent-posthog-observability"]
   }
 }
