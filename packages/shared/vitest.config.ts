@@ -52,6 +52,10 @@ export default defineConfig({
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",
+          // zod v4 ships ESM-only exports that Vite's SSR transformer can
+          // mis-resolve when imported as `import { z } from "zod"`. Force it
+          // through the inline pipeline so named imports resolve correctly.
+          "zod",
         ],
         external: [],
       },

@@ -21,6 +21,8 @@ export default defineConfig({
           "@testing-library/jest-dom",
           "react-intl",
           "react-router-dom",
+          // zod v4 ESM-only exports need inline pipeline for SSR named imports.
+          "zod",
         ],
       },
     },

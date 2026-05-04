@@ -152,6 +152,8 @@ export default defineConfig({
           "wagmi",
           "@walletconnect/utils",
           "@walletconnect/types",
+          // zod v4 ESM-only exports need inline pipeline for SSR named imports.
+          "zod",
         ],
       },
     },
