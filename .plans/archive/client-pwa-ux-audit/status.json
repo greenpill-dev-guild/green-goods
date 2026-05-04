@@ -4,13 +4,13 @@
     "slug": "client-pwa-ux-audit",
     "title": "Client PWA UX Audit",
     "kind": "quality",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "completed",
     "priority": "p1",
     "created_at": "2026-05-04T00:00:00.000Z",
-    "updated_at": "2026-05-04T00:00:00.000Z"
+    "updated_at": "2026-05-04T03:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -116,6 +116,14 @@
       "status": "completed",
       "branch": "develop",
       "note": "Tier 4 shipped: F-ASSESS-2 new Assessment.test.tsx with 10 tests (not-found x2, full render, non-operator key/value metrics, operator JSON metrics, role-gated impact attestations, friendly indexed labels, missing-date/location fallbacks); F-DRAFTS-1 (tests) new DraftCard.test.tsx with 10 tests (title/garden/time, untitled fallback, thumbnail/icon fallback, image badge, step progress, resume/delete handlers, 44x44 tap target); F-TOAST-1 added 2 GardensList tests for delayed ENS-discovery toast (capture-based mock for set/clear, asserts 2000ms delay + callback fires info toast with context: 'ensDiscovery'); F-X-1 closed (covered by existing tests/specs Playwright suite). Validation: 38/38 tests pass across 4 files (Assessment 10, DraftCard 10, GardensList 11, DraftsTab 7); format + lint:vocab clean."
+    },
+    {
+      "timestamp": "2026-05-04T03:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "archived",
+      "branch": "develop",
+      "note": "All shipped + committed in d6e0bd69 'feat(client,shared): PWA UX audit — pre-release hardening across 4 tiers' (41 files, +1277/-156). Pre-existing test failures in Public*/SiteHeader/Cookies/HomeGardenWork resolved as part of the same commit (mock + stale-string fixes — agent owning that WIP had finished). Final validation: 388/388 client tests pass, 2900/2901 shared (1 pre-existing skip). Tier 5 (F-X-4 multi-agent uncommitted scope) remains for the agents owning those branches; not lane-internal."
     }
   ]
 }
