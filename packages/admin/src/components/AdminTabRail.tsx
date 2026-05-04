@@ -1,5 +1,5 @@
-import { cn, useMediaQuery } from "@green-goods/shared";
-import { type ComponentType, type ReactNode, useLayoutEffect, useRef, useState } from "react";
+import { cn } from "@green-goods/shared";
+import { type ComponentType, type KeyboardEvent, type ReactNode, useCallback, useRef } from "react";
 
 // ============================================================================
 // Types
@@ -27,17 +27,20 @@ export interface AdminTabRailProps {
 // ============================================================================
 
 /**
- * AdminTabRail — M3 Primary Navigation Tabs
+ * AdminTabRail — segmented-card tabs per handoff `screens/review.css`
+ * (`.rv-tabs` / `.rv-tab` / `.rv-tab-count`).
  *
- * Implements the Material Design 3 primary navigation tab anatomy:
- * - Flat surface container (corner-none) with bottom border
- * - 3dp active indicator underline that slides between tabs via spring animation
- * - State layer on each button (m3-state-layer from admin-m3-tokens.css)
- * - 48dp tab height with M3 label-large typography
- * - M3 notification badge on count prop (16dp, corner-full, error bg)
+ * Anatomy:
+ * - Grid container: `gap: 6px; padding: 6px; background: var(--surface-quiet);
+ *   border-radius: 14px`.
+ * - Tab button: `height: 40px; border-radius: 10px; font: 600 14px/1`.
+ * - Active tab: raised background + `var(--e1)` shadow (no underline).
+ * - Count chip: 22×20 pill, surface-raised on inactive, `var(--g-action)` (green)
+ *   on active.
  *
- * Accepts the same data contract as the shared shared stage tab rail so
- * admin views can swap imports without any other code changes.
+ * Inline styles are used because Tailwind v4 doesn't scan `packages/shared/src/`
+ * from admin builds; sticking to `style={{...}}` for handoff-exact values keeps
+ * geometry stable across surfaces (CLAUDE.md "Known Gotchas").
  */
 export function AdminTabRail({
   tabs,
@@ -47,76 +50,75 @@ export function AdminTabRail({
   idBase,
   className,
 }: AdminTabRailProps) {
-  const hasIcons = tabs.some((tab) => Boolean(tab.icon));
-  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const tabRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const enabledTabs = tabs.filter((tab) => !tab.disabled);
 
-  // Track the active indicator geometry (left offset + width)
-  const [indicator, setIndicator] = useState<{ left: number; width: number }>({
-    left: 0,
-    width: 0,
-  });
+  // Roving tabindex + WAI-ARIA tabs keyboard pattern
+  // (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/). Activation follows focus
+  // so screen-reader users hear the panel content as they cycle, matching the
+  // M3 Tabs behavior the segmented-card rewrite shouldn't have lost.
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>, currentId: string) => {
+      const idx = enabledTabs.findIndex((tab) => tab.id === currentId);
+      if (idx < 0) return;
 
-  // One ref per tab button and one ref per content label — indexed by tab position
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const tabContentRefs = useRef<(HTMLSpanElement | null)[]>([]);
+      let nextIdx: number | null = null;
+      switch (event.key) {
+        case "ArrowRight":
+          nextIdx = (idx + 1) % enabledTabs.length;
+          break;
+        case "ArrowLeft":
+          nextIdx = (idx - 1 + enabledTabs.length) % enabledTabs.length;
+          break;
+        case "Home":
+          nextIdx = 0;
+          break;
+        case "End":
+          nextIdx = enabledTabs.length - 1;
+          break;
+        default:
+          return;
+      }
 
-  // Measure on every activeId change (synchronously before paint to avoid flash)
-  useLayoutEffect(() => {
-    const activeIndex = tabs.findIndex((tab) => tab.id === activeId);
-    if (activeIndex === -1) return;
-
-    const el = tabRefs.current[activeIndex];
-    if (!el) return;
-
-    const content = tabContentRefs.current[activeIndex];
-    const contentLeft = content ? content.offsetLeft : 0;
-    const contentWidth = content ? content.offsetWidth : el.offsetWidth;
-
-    setIndicator({
-      left: el.offsetLeft + contentLeft,
-      width: contentWidth,
-    });
-  }, [activeId, tabs]);
+      event.preventDefault();
+      const nextTab = enabledTabs[nextIdx];
+      if (!nextTab) return;
+      onChange(nextTab.id);
+      // Move focus on the next paint so React can update tabIndex first.
+      requestAnimationFrame(() => {
+        tabRefs.current.get(nextTab.id)?.focus();
+      });
+    },
+    [enabledTabs, onChange]
+  );
 
   return (
     <div
       data-component="AdminTabRail"
       role="tablist"
       aria-label={ariaLabel}
-      className={cn(
-        // Container: flat surface, bottom border only, scrolls when labels need room.
-        "relative flex w-full min-w-0 overflow-x-auto overflow-y-hidden",
-        "bg-[rgb(var(--m3-surface))]",
-        "border-b border-[rgb(var(--m3-outline-variant))]",
-        "scrollbar-thin scrollbar-thumb-[rgb(var(--m3-outline-variant))]",
-        className
-      )}
+      className={cn("w-full min-w-0", className)}
+      style={{
+        display: "grid",
+        gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
+        gap: "6px",
+        padding: "6px",
+        background: "var(--surface-quiet, rgb(var(--m3-surface-container)))",
+        borderRadius: "14px",
+      }}
     >
-      {/* Sliding active indicator — 3dp height, rounded top corners.
-          Color picks up --tone-primary when a [data-tone] ancestor is set
-          (per audit §5.2 + Tier 2c), falling back to --m3-primary otherwise. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 z-10 h-[3px] rounded-t-sm bg-[rgb(var(--tone-primary,var(--m3-primary)))] motion-reduce:transition-none"
-        style={{
-          left: indicator.left,
-          width: indicator.width,
-          transition: prefersReducedMotion
-            ? "none"
-            : `left var(--spring-spatial-duration) var(--spring-spatial-easing),
-               width var(--spring-spatial-duration) var(--spring-spatial-easing)`,
-        }}
-      />
-
-      {tabs.map((tab, index) => {
+      {tabs.map((tab) => {
         const active = tab.id === activeId;
         const Icon = tab.icon;
-
         return (
           <button
             key={tab.id}
             ref={(node) => {
-              tabRefs.current[index] = node;
+              if (node) {
+                tabRefs.current.set(tab.id, node);
+              } else {
+                tabRefs.current.delete(tab.id);
+              }
             }}
             type="button"
             role="tab"
@@ -126,66 +128,93 @@ export function AdminTabRail({
             data-active={active ? "true" : "false"}
             data-disabled={tab.disabled ? "true" : "false"}
             disabled={tab.disabled}
+            // Roving tabindex: only the active tab is in the tab order; the
+            // others receive focus via Arrow/Home/End within the tablist.
+            tabIndex={active ? 0 : -1}
             onClick={() => {
               if (!tab.disabled) onChange(tab.id);
             }}
+            onKeyDown={(event) => handleKeyDown(event, tab.id)}
             className={cn(
-              // Layout: intrinsic tab widths with 48dp height.
-              "m3-state-layer",
-              "relative flex h-12 min-w-max shrink-0 items-center justify-center overflow-hidden",
-              hasIcons ? "px-4 sm:px-5" : "px-4 sm:px-5",
-              // Typography: M3 label-large
-              "text-label-lg font-medium leading-snug",
-              // Color: active vs inactive
-              active
-                ? "text-[rgb(var(--m3-primary))] [--state-layer-color:var(--m3-primary)]"
-                : "text-[rgb(var(--m3-on-surface-variant))] [--state-layer-color:var(--m3-on-surface)]",
-              // Focus ring
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--m3-primary))]",
-              // Disabled
+              "relative inline-flex items-center justify-center",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--m3-primary)))]",
               tab.disabled && "pointer-events-none opacity-[0.38]"
-              // No transition on tab button itself (indicator handles motion)
             )}
+            style={{
+              height: "40px",
+              borderRadius: "10px",
+              border: 0,
+              padding: "0 12px",
+              gap: "6px",
+              fontSize: "14px",
+              lineHeight: 1,
+              fontWeight: 600,
+              letterSpacing: "-0.005em",
+              cursor: tab.disabled ? "not-allowed" : "pointer",
+              transition:
+                "background-color 150ms, background-image 150ms, color 150ms, box-shadow 150ms",
+              backgroundColor: active
+                ? "var(--surface-raised, rgb(var(--m3-surface-container-highest)))"
+                : "transparent",
+              // Handoff DESIGN_NOTES § Tone system: active tab picks up a
+              // barely-perceptible tone wash (~6%) layered on the raised surface.
+              // Fallback uses `--green-800` (raw RGB triplet) because `--g-action`
+              // is already rgb-wrapped and can't be alpha-blended.
+              backgroundImage: active
+                ? "linear-gradient(rgb(var(--tone-action, var(--green-800)) / 0.06), rgb(var(--tone-action, var(--green-800)) / 0.06))"
+                : "none",
+              color: active
+                ? "var(--ink, rgb(var(--m3-on-surface)))"
+                : "var(--on-surface-muted, rgb(var(--m3-on-surface-variant)))",
+              boxShadow: active ? "var(--e1, var(--m3-elevation-1))" : "none",
+            }}
           >
+            {Icon ? <Icon className="shrink-0" aria-hidden /> : null}
+
             <span
-              ref={(node) => {
-                tabContentRefs.current[index] = node;
+              style={{
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
               }}
-              className={cn("flex min-w-0 items-center", hasIcons ? "gap-2" : "gap-1.5")}
             >
-              {/* Icon — 18dp, inherits text color */}
-              {Icon ? (
-                <Icon
-                  className={cn(
-                    "h-[18px] w-[18px] shrink-0",
-                    active
-                      ? "text-[rgb(var(--m3-primary))]"
-                      : "text-[rgb(var(--m3-on-surface-variant))]"
-                  )}
-                  aria-hidden
-                />
-              ) : null}
-
-              {/* Label */}
-              <span className="min-w-0 truncate">{tab.label}</span>
-
-              {/* Inline count badge — M3: zero-count carries no signal, do not render */}
-              {tab.count !== undefined && tab.count > 0 ? (
-                <span
-                  className={cn(
-                    "inline-flex shrink-0 items-center justify-center",
-                    "min-w-[1.125rem] h-[1.125rem] px-1",
-                    "rounded-[var(--m3-shape-full)]",
-                    "bg-[rgb(var(--m3-error))] text-[rgb(var(--m3-on-error))]",
-                    "text-[0.625rem] font-bold leading-none",
-                    "pointer-events-none select-none"
-                  )}
-                  aria-label={`${tab.count} items`}
-                >
-                  {tab.count > 99 ? "99+" : tab.count}
-                </span>
-              ) : null}
+              {tab.label}
             </span>
+
+            {tab.count !== undefined && tab.count > 0 ? (
+              <span
+                aria-label={`${tab.count} items`}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: "22px",
+                  height: "20px",
+                  padding: "0 7px",
+                  borderRadius: "9999px",
+                  fontSize: "11px",
+                  lineHeight: 1,
+                  fontWeight: 600,
+                  fontVariantNumeric: "tabular-nums",
+                  pointerEvents: "none",
+                  userSelect: "none",
+                  flexShrink: 0,
+                  transition: "background-color 150ms, color 150ms, border-color 150ms",
+                  background: active
+                    ? "var(--g-action, rgb(var(--m3-primary)))"
+                    : "var(--surface-raised, rgb(var(--m3-surface-container-highest)))",
+                  color: active
+                    ? "var(--g-on-action, rgb(var(--m3-on-primary)))"
+                    : "var(--on-surface-muted, rgb(var(--m3-on-surface-variant)))",
+                  border: active
+                    ? "1px solid transparent"
+                    : "1px solid var(--outline, rgb(var(--m3-outline-variant)))",
+                }}
+              >
+                {tab.count > 99 ? "99+" : tab.count}
+              </span>
+            ) : null}
           </button>
         );
       })}

@@ -17,6 +17,8 @@ import {
   parseActionUID,
   parseAndFormatError,
   queryKeys,
+  SheetBody,
+  SheetFooter,
   submitWorkDirectly,
   Textarea,
   toastService,
@@ -372,8 +374,13 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
     return renderState("warning", "app.admin.work.submit.noPermission");
   }
 
+  // Stable form id so the sheet-mode SheetFooter submit button can target the
+  // form via the `form="..."` attribute (handoff sheet anatomy: pinned footer
+  // sits OUTSIDE the form element and triggers submit by id).
+  const formId = "submit-work-form";
+
   const formCard = (
-    <form onSubmit={onSubmit}>
+    <form id={formId} onSubmit={onSubmit}>
       <Card>
         <Card.Body className="space-y-5">
           <FormField
@@ -474,7 +481,7 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
           ) : null}
         </Card.Body>
 
-        {selectedAction ? (
+        {selectedAction && layout === "page" ? (
           <Card.Footer className="flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               {progressMessage ? (
@@ -507,12 +514,51 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
     </form>
   );
 
-  return layout === "page" ? (
-    <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
-      {formCard}
-    </CanvasRouteContent>
-  ) : (
-    <div className="p-1">{formCard}</div>
+  if (layout === "page") {
+    return (
+      <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
+        {formCard}
+      </CanvasRouteContent>
+    );
+  }
+
+  // Sheet layout: SheetBody (scrolls) + pinned SheetFooter. The form lives
+  // inside SheetBody so its inputs scroll naturally; the submit button uses
+  // `form={formId}` to trigger submit even though it sits outside the form.
+  return (
+    <>
+      <SheetBody padded={false} className="p-1">
+        {formCard}
+      </SheetBody>
+      {selectedAction ? (
+        <SheetFooter>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => onCancel?.()}
+            disabled={mutation.isPending}
+          >
+            {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
+          </Button>
+          <div className="min-w-0 flex-1">
+            {progressMessage ? (
+              <p className="truncate text-sm text-text-sub">{progressMessage}</p>
+            ) : null}
+          </div>
+          <Button
+            type="submit"
+            form={formId}
+            loading={mutation.isPending}
+            disabled={mutation.isPending || availableActions.length === 0}
+          >
+            <RiUploadCloudLine className="h-4 w-4" />
+            {mutation.isPending
+              ? formatMessage({ id: "app.admin.work.submit.submitting" })
+              : formatMessage({ id: "app.admin.work.submit.submit" })}
+          </Button>
+        </SheetFooter>
+      ) : null}
+    </>
   );
 }
 

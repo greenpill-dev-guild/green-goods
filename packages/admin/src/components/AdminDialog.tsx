@@ -100,7 +100,7 @@ export function AdminDialog({
               "m3-state-layer",
               "[--state-layer-color:var(--m3-on-surface)]",
               "text-[rgb(var(--m3-on-surface-variant))]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]"
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--m3-primary)))]"
             )}
             aria-label={formatMessage({ id: "app.common.close" })}
           >

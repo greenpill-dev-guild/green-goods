@@ -8,8 +8,9 @@ import {
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
 import { RiPulseLine, RiTeamLine } from "@remixicon/react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
 import {
@@ -196,9 +197,54 @@ interface GardenMembersListProps {
  * role chips beyond operator/gardener defer to a later iteration when
  * the data layer surfaces last-active timestamps.
  */
+type GardenMembersFilter = "all" | "operators" | "reviewers" | "gardeners" | "pending";
+
+const GARDEN_MEMBERS_FILTERS: ReadonlyArray<{
+  id: GardenMembersFilter;
+  labelId: string;
+  defaultMessage: string;
+}> = [
+  { id: "all", labelId: "cockpit.garden.members.filter.all", defaultMessage: "All" },
+  {
+    id: "operators",
+    labelId: "cockpit.garden.members.filter.operators",
+    defaultMessage: "Operators",
+  },
+  {
+    id: "reviewers",
+    labelId: "cockpit.garden.members.filter.reviewers",
+    defaultMessage: "Reviewers",
+  },
+  {
+    id: "gardeners",
+    labelId: "cockpit.garden.members.filter.gardeners",
+    defaultMessage: "Gardeners",
+  },
+  { id: "pending", labelId: "cockpit.garden.members.filter.pending", defaultMessage: "Pending" },
+];
+
 function GardenMembersList({ gardeners, operators, gardenName }: GardenMembersListProps) {
   const { formatMessage } = useIntl();
+  const [filter, setFilter] = useState<GardenMembersFilter>("all");
   const operatorSet = new Set(operators.map((address) => address.toLowerCase()));
+
+  const visibleGardeners = useMemo(() => {
+    // Per handoff Garden chips (All / Operators / Reviewers / Gardeners / Pending):
+    // Operators + Gardeners + All are wired against existing role data.
+    // Reviewers + Pending are inert chips — no role data exists yet so they
+    // collapse to an empty set on click, matching the audit's "stub the rest"
+    // direction lock.
+    if (filter === "operators") {
+      return gardeners.filter((address) => operatorSet.has(address.toLowerCase()));
+    }
+    if (filter === "gardeners") {
+      return gardeners.filter((address) => !operatorSet.has(address.toLowerCase()));
+    }
+    if (filter === "reviewers" || filter === "pending") {
+      return [];
+    }
+    return gardeners;
+  }, [filter, gardeners, operatorSet]);
 
   if (gardeners.length === 0) {
     return (
@@ -240,8 +286,28 @@ function GardenMembersList({ gardeners, operators, gardenName }: GardenMembersLi
         </p>
       </header>
 
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Member filters">
+        {GARDEN_MEMBERS_FILTERS.map((chip) => (
+          <AdminFilterChip
+            key={chip.id}
+            selected={filter === chip.id}
+            onClick={() => setFilter(chip.id)}
+          >
+            {formatMessage({ id: chip.labelId, defaultMessage: chip.defaultMessage })}
+          </AdminFilterChip>
+        ))}
+      </div>
+
       <ul className="flex flex-col gap-2" role="list">
-        {gardeners.map((address) => {
+        {visibleGardeners.length === 0 ? (
+          <li className="rounded-[var(--r-md,12px)] border border-dashed border-stroke-soft px-3 py-4 text-center text-label-sm text-text-soft">
+            {formatMessage({
+              id: "cockpit.garden.members.filterEmpty",
+              defaultMessage: "No members in this filter yet.",
+            })}
+          </li>
+        ) : null}
+        {visibleGardeners.map((address) => {
           const isOperator = operatorSet.has(address.toLowerCase());
           return (
             <li

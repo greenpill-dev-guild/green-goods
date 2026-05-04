@@ -10,8 +10,25 @@ const meta: Meta<typeof AdminLinearProgress> = {
   parameters: {
     docs: {
       description: {
-        component:
-          "M3 linear progress. Determinate when value is provided, indeterminate when value is undefined. Uses 4dp track height and M3 surface/primary roles.",
+        component: [
+          "**AdminLinearProgress** — M3 linear progress. Determinate when `value`",
+          "is provided (0–100), indeterminate when `value` is undefined. 4dp",
+          "track height, M3 surface/primary roles.",
+          "",
+          "**Tone-aware** — the active fill consumes `var(--tone-action,",
+          "var(--m3-primary))` so the bar tints to the active workspace.",
+          "",
+          '**Accessibility**: `role="progressbar"` with `aria-valuenow` /',
+          "`aria-valuemin` / `aria-valuemax`. Always pass `ariaLabel`.",
+        ].join("\n"),
+      },
+    },
+    a11y: {
+      config: {
+        rules: [
+          { id: "aria-valid-attr-value", enabled: true },
+          { id: "color-contrast", enabled: true },
+        ],
       },
     },
   },
@@ -54,6 +71,29 @@ export const StateCatalog: Story = {
             {value} percent
           </div>
           <AdminLinearProgress value={value} ariaLabel={`${value} percent complete`} />
+        </div>
+      ))}
+    </div>
+  ),
+};
+
+/**
+ * Tone matrix — same 50% determinate bar rendered inside each `[data-tone]`
+ * scope so the tone-action fill can be verified across all four workspaces.
+ */
+export const ToneMatrix: Story = {
+  render: () => (
+    <div className="grid max-w-3xl gap-4 md:grid-cols-2">
+      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+        <div
+          key={tone}
+          data-tone={tone}
+          className="space-y-2 rounded-2xl border border-stroke-soft bg-bg-white-0 p-4"
+        >
+          <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+            [data-tone="{tone}"]
+          </div>
+          <AdminLinearProgress value={50} ariaLabel={`${tone} progress 50 percent`} />
         </div>
       ))}
     </div>

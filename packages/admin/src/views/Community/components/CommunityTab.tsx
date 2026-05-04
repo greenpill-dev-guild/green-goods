@@ -15,9 +15,11 @@ import {
   type YieldAllocation,
 } from "@green-goods/shared";
 import { RiArrowRightSLine, RiSearchLine, RiUserLine } from "@remixicon/react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
+import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextField } from "@/components/AdminTextField";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
@@ -88,6 +90,17 @@ export function CommunityTab({
   scheduleBackgroundRefetch,
 }: CommunityTabProps) {
   const { formatMessage } = useIntl();
+
+  // Tier-6 alignment with handoff filter-chip pattern. Community People tab
+  // gets a 5-chip rail mirroring Garden Members (All / Operators / Evaluators
+  // / Gardeners / Funders). Roles that aren't represented in the current
+  // directory data still render — they collapse the list to empty per the
+  // "stub the rest as inert" direction lock from the audit.
+  const [peopleFilter, setPeopleFilter] = useState<"all" | GardenRole>("all");
+  const filteredVisibleDirectory = useMemo(() => {
+    if (peopleFilter === "all") return visibleDirectory;
+    return visibleDirectory.filter((entry) => entry.roles.includes(peopleFilter));
+  }, [peopleFilter, visibleDirectory]);
 
   const isLoading = communityLoading || allocationsLoading || vaultsLoading;
 
@@ -245,7 +258,7 @@ export function CommunityTab({
                   ) : null}
                 </Card.Header>
                 <Card.Body>
-                  <div className="mb-3">
+                  <div className="mb-3 space-y-3">
                     <AdminTextField
                       label={formatMessage({
                         id: "app.garden.detail.community.memberSearch",
@@ -259,16 +272,66 @@ export function CommunityTab({
                       })}
                       leadingIcon={RiSearchLine}
                     />
+                    <div
+                      className="flex flex-wrap gap-1.5"
+                      role="group"
+                      aria-label={formatMessage({
+                        id: "cockpit.community.people.filterAria",
+                        defaultMessage: "Filter people by role",
+                      })}
+                    >
+                      {(
+                        [
+                          {
+                            id: "all",
+                            labelId: "cockpit.community.people.filter.all",
+                            fallback: "All",
+                          },
+                          {
+                            id: "operator",
+                            labelId: "cockpit.community.people.filter.operators",
+                            fallback: "Operators",
+                          },
+                          {
+                            id: "evaluator",
+                            labelId: "cockpit.community.people.filter.evaluators",
+                            fallback: "Evaluators",
+                          },
+                          {
+                            id: "gardener",
+                            labelId: "cockpit.community.people.filter.gardeners",
+                            fallback: "Gardeners",
+                          },
+                          {
+                            id: "funder",
+                            labelId: "cockpit.community.people.filter.funders",
+                            fallback: "Funders",
+                          },
+                        ] as ReadonlyArray<{
+                          id: "all" | GardenRole;
+                          labelId: string;
+                          fallback: string;
+                        }>
+                      ).map((chip) => (
+                        <AdminFilterChip
+                          key={chip.id}
+                          selected={peopleFilter === chip.id}
+                          onClick={() => setPeopleFilter(chip.id)}
+                        >
+                          {formatMessage({ id: chip.labelId, defaultMessage: chip.fallback })}
+                        </AdminFilterChip>
+                      ))}
+                    </div>
                   </div>
 
-                  {visibleDirectory.length === 0 ? (
+                  {filteredVisibleDirectory.length === 0 ? (
                     <EmptyState
                       icon={<RiUserLine className="h-6 w-6" />}
                       title={formatMessage({ id: "app.garden.detail.community.membersEmpty" })}
                     />
                   ) : (
                     <div className="space-y-2">
-                      {visibleDirectory.map((entry) => (
+                      {filteredVisibleDirectory.map((entry) => (
                         <AdminCard variant="outlined" key={entry.address} className="px-3 py-2.5">
                           <div className="flex min-w-0 items-center justify-between gap-3">
                             <AddressDisplay address={entry.address} className="min-w-0 flex-1" />

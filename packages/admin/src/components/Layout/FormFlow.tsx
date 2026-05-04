@@ -1,4 +1,4 @@
-import { cn, Surface, type Step } from "@green-goods/shared";
+import { cn, SheetBody, SheetFooter, Surface, type Step } from "@green-goods/shared";
 import type { ReactNode } from "react";
 
 export interface FormFlowSection {
@@ -39,16 +39,8 @@ export function FormFlow({
   className,
   "aria-label": ariaLabel,
 }: FormFlowProps) {
-  return (
-    <div
-      data-component="FormFlow"
-      data-layout={layout}
-      aria-label={ariaLabel}
-      className={cn(
-        layout === "page" ? "mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6" : "space-y-4",
-        className
-      )}
-    >
+  const sectionsBlock = (
+    <>
       {intro ? (
         <div data-region="form-flow-intro" className="text-sm text-text-sub">
           {intro}
@@ -89,6 +81,36 @@ export function FormFlow({
           </Surface>
         ))}
       </div>
+    </>
+  );
+
+  // Sheet layout: SheetBody (scrolls) + pinned SheetFooter so the actions
+  // stay reachable on long forms. Per handoff `sheet-system.css` anatomy.
+  if (layout === "sheet") {
+    return (
+      <>
+        <SheetBody padded={true} className={cn("space-y-4", className)}>
+          <div data-component="FormFlow" data-layout="sheet" aria-label={ariaLabel}>
+            {sectionsBlock}
+          </div>
+        </SheetBody>
+        <SheetFooter>
+          <div className="flex flex-1 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            {actions}
+          </div>
+        </SheetFooter>
+      </>
+    );
+  }
+
+  return (
+    <div
+      data-component="FormFlow"
+      data-layout={layout}
+      aria-label={ariaLabel}
+      className={cn("mx-auto w-full max-w-6xl px-4 py-4 sm:px-6 sm:py-6", className)}
+    >
+      {sectionsBlock}
 
       <Surface
         as="footer"

@@ -58,9 +58,9 @@ export function PageHeader({
       data-surface={variant}
       className={cn(
         isCanvas
-          ? "relative px-0 py-3"
+          ? "relative border-b px-0 py-3"
           : cn(
-              "border-b border-stroke-soft px-4 py-3 sm:px-6 sm:py-4",
+              "border-b px-4 py-3 sm:px-6 sm:py-4",
               sticky ? "bg-bg-white shadow-regular-sm" : "bg-bg-white"
             ),
         sticky &&
@@ -69,6 +69,12 @@ export function PageHeader({
             : "sticky top-14 z-sticky"),
         className
       )}
+      // Handoff DESIGN_NOTES § Tone system: page-header bottom hairline tones
+      // to the active view (~18% saturation). Falls back to neutral hairline
+      // when no [data-tone] ancestor.
+      style={{
+        borderBottomColor: "rgb(var(--tone-action, var(--neutral-800)) / 0.10)",
+      }}
     >
       <div data-region="route-header-title" className="flex min-w-0 items-start gap-3 sm:gap-4">
         {backLink ? (

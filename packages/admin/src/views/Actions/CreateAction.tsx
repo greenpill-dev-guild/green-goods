@@ -41,6 +41,15 @@ export default function CreateAction({ layout = "page" }: CreateActionProps = {}
     <FormFlow
       layout={layout}
       sections={toFormFlowSections(createAction.stepConfigs, stepRegistry)}
+      intro={
+        layout === "sheet"
+          ? formatMessage({
+              id: "cockpit.actions.createDescription",
+              defaultMessage:
+                "Define the registry record, timeline, and submission requirements for a new action.",
+            })
+          : undefined
+      }
       actions={
         <>
           <Button
@@ -67,19 +76,10 @@ export default function CreateAction({ layout = "page" }: CreateActionProps = {}
     />
   );
 
+  // Sheet layout: FormFlow now emits its own SheetBody + pinned SheetFooter.
+  // No outer wrapper needed.
   if (layout === "sheet") {
-    return (
-      <div className="space-y-4 p-4">
-        <p className="text-sm text-text-sub">
-          {formatMessage({
-            id: "cockpit.actions.createDescription",
-            defaultMessage:
-              "Define the registry record, timeline, and submission requirements for a new action.",
-          })}
-        </p>
-        {flow}
-      </div>
-    );
+    return flow;
   }
 
   return (

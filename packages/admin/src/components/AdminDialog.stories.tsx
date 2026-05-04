@@ -13,8 +13,28 @@ const meta: Meta<typeof AdminDialog> = {
   parameters: {
     docs: {
       description: {
-        component:
-          "M3 basic dialog with 28dp shape, surface-container-high, elevation-3, 32 percent scrim, optional icon, headline, supporting text, and action slot.",
+        component: [
+          "**AdminDialog** — M3 basic dialog. 28dp shape, surface-container-high,",
+          "elevation-3, 32 percent scrim, optional icon, headline, supporting",
+          "text, and action slot.",
+          "",
+          "**Tone-aware** — focus ring on the close button consumes",
+          "`var(--tone-action, var(--m3-primary))` so it tints to the active",
+          "workspace.",
+          "",
+          "**Accessibility**: native `<dialog>` via Radix; Escape closes; focus",
+          "trapped while open; focus returns to trigger on close.",
+        ].join("\n"),
+      },
+    },
+    a11y: {
+      config: {
+        rules: [
+          { id: "aria-dialog-name", enabled: true },
+          { id: "color-contrast", enabled: true },
+          { id: "button-name", enabled: true },
+          { id: "focus-order-semantics", enabled: true },
+        ],
       },
     },
   },
@@ -105,6 +125,43 @@ export const StateCatalog: Story = {
         icon={RiErrorWarningLine}
         confirmLabel="Dismiss"
       />
+    </div>
+  ),
+};
+
+/** Long body — verifies dialog scrolls inside its surface when content exceeds viewport. */
+export const LongBody: Story = {
+  render: () => (
+    <DialogPreview
+      title="Read before continuing"
+      description="A long supporting message — dialog body should scroll cleanly."
+      body={Array.from(
+        { length: 12 },
+        (_, i) =>
+          `Paragraph ${i + 1}: lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.`
+      ).join("\n\n")}
+      confirmLabel="I understand"
+    />
+  ),
+};
+
+/** Tone matrix — same dialog inside each `[data-tone]` scope. */
+export const ToneMatrix: Story = {
+  render: () => (
+    <div className="grid gap-4 md:grid-cols-2">
+      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+        <div key={tone} data-tone={tone}>
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+            [data-tone="{tone}"]
+          </div>
+          <DialogPreview
+            title="Confirm deposit"
+            description="Deposit 250 DAI into the cookie jar."
+            body="Funds will be available after confirmation."
+            confirmLabel="Deposit"
+          />
+        </div>
+      ))}
     </div>
   ),
 };

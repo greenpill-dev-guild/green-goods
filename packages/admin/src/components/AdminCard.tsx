@@ -90,12 +90,20 @@ export function AdminCard({
   variant,
   interactive = false,
   children,
+  style,
   ...props
 }: AdminCardProps) {
+  // Handoff DESIGN_NOTES § Tone system: per-view canvas wash extends to cards
+  // as a barely-perceptible tint (~3%) layered on top of the M3 surface. The
+  // tint paint moved to a `::before` layer in `admin-m3-overrides.css` so
+  // pages with hundreds of cards (Hub queues, action templates) don't pay a
+  // per-element `background-image` paint. The `relative` here makes the
+  // pseudo's `inset:0` resolve against the card box.
   return (
     <div
       data-component="AdminCard"
-      className={cn(adminCardVariants({ variant, interactive }), className)}
+      className={cn("relative", adminCardVariants({ variant, interactive }), className)}
+      style={style}
       {...props}
     >
       {children}

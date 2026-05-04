@@ -324,7 +324,9 @@ export function CanvasLayout() {
               tabIndex={-1}
               className="main-scroll-area h-full overflow-y-auto"
               style={{
-                paddingBottom: isDesktop ? "6rem" : "calc(env(safe-area-inset-bottom) + 9.5rem)",
+                // Handoff sheet-system.css: floating NavigationBar at bottom: 20px
+                // with 56px height ⇒ ~100px clearance to keep last content row visible.
+                paddingBottom: isDesktop ? "6.25rem" : "calc(env(safe-area-inset-bottom) + 9.5rem)",
                 overscrollBehaviorY: "contain",
                 WebkitOverflowScrolling: "touch",
               }}

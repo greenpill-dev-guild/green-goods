@@ -1379,6 +1379,10 @@
   --e3: 0 6px 16px rgb(var(--neutral-800) / 0.10), 0 2px 4px rgb(var(--neutral-800) / 0.06);
   --e-float: 0 12px 32px rgb(var(--neutral-800) / 0.14), 0 2px 6px rgb(var(--neutral-800) / 0.08);
 
+  /* Sheet geometry — handoff sheet-system.css contract */
+  --radius-sheet: 24px;
+  --canvas-blur-sheet-open: 6px;
+
   /* Typography alias to existing --font-heading */
   --font-sans: var(--font-heading);
 }

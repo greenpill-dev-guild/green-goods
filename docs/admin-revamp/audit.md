@@ -579,3 +579,42 @@ Before declaring this audit complete, the writer confirmed:
 8. ✅ No code changes elsewhere; this `audit.md` is the only file written
 
 **Next step:** human review, then proceed to Tier 1 (tokens & primitives PR) per [`design_handoff_admin-revamp/CLAUDE_CODE_PROMPT.md`](../../design_handoff_admin-revamp/CLAUDE_CODE_PROMPT.md) workflow.
+
+---
+
+## Tier 6 — Polish + Storybook + Accessibility (2026-05-04 hub)
+
+After Tiers 0–5 landed the structural alignment, an `audit-then-ship` review surfaced a tier of polish work + supporting infrastructure (Storybook, a11y, docs) that the previous tiers deferred. Direction lock recorded here for traceability.
+
+### Locked decisions
+
+| Question | Answer | Anchor |
+|---|---|---|
+| Tab anatomy | **Match handoff (segmented-cards)** — full `AdminTabRail` rewrite, drops the M3 underline. | `AdminTabRail.tsx` rewrite |
+| Tab rosters | **Keep current** — Garden Overview/Activity/Members/Settings (Tier 4 lock) and Community Treasury/Governance/Payouts/People (Tier 5 wiring) stand. Anatomy fix applies to whatever rosters are mounted. | Tier 4 commit `48d09470`, Tier 5 commit `a8586c26` |
+| NavBar architecture | **Convert to absolute (handoff)** — drop the `bottom` grid-row from `workspace-canvas-grid`; `NavigationBar` keeps `position: fixed` at `bottom: 20px`; `MainSheet` carries the bottom clearance via its own `padding-bottom: 6.25rem`. | `theme.css:1684`, `NavigationBar.tsx:367` |
+| FAB targets per view | **Ship only actions with real targets, omit the rest** — Hub stage-aware (Submit Work / Create Assessment / Mint Hypercert per stage); Garden single Edit Garden; Community Add Member + Manage Vault; Actions Create Action. Handoff-named flows that don't exist yet (Quick Log, Draft Proposal, Send Distribution, Start Discussion) are NOT stubbed. | `useFabConfig` callers in each `*Controller.ts` |
+| Tab tone application | **Active tab raised bg picks up barely-perceptible 6% tone tint** via `linear-gradient(rgb(var(--tone-action) / 0.06), …)`. The handoff's "active tab underline tints to tone-primary" doesn't apply because we dropped the underline. | `AdminTabRail.tsx` inline style |
+| Filter chip rosters | **Render chips with existing filter logic; stub the rest as inert** — Garden Members chips (All / Operators / Reviewers / Gardeners / Pending) and Community People chips (All / Operators / Evaluators / Gardeners / Funders) wire what exists; chips for non-represented roles collapse to empty. | `GardenWorkspaceContent.tsx`, `CommunityTab.tsx` |
+| Conviction decay UI | **Defer** — handoff `DESIGN_NOTES.md` left this as "decide based on engineering complexity vs. clarity gain"; deferred until clarity gain is visibly missed in the Tier 5 pilot. | `ConvictionMeter.tsx` (no ghost-fill state) |
+| AdminTabRail keyboard nav | **Add** — segmented-card rewrite removed the indicator DOM but didn't add WAI-ARIA Tabs roving tabindex. Added `onKeyDown` handler for ArrowLeft/ArrowRight/Home/End with focus management via `requestAnimationFrame`. | `AdminTabRail.tsx` |
+| Storybook breadth | **Focused: P0 + touched-this-hub only** — sheet primitives, NotificationPanel expansion, AdminTabRail tone variants + keyboard play() test, GardenChip tone matrix, AdminCard tone wash, Tone Gallery. P1-thin components outside this hub deferred. | `*.stories.tsx` deltas |
+
+### What shipped this hub
+
+- **Sheet primitives** — `SheetBody`, `SheetFooter`, `SheetDivider` (new) + `LeftSheet` / `RightSheet` slot composition + 24px radius + 6px MainSheet blur + 24px transform overshoot
+- **AdminTabRail** — segmented-card anatomy, count chip color flip, 6% tone wash on active, WAI-ARIA roving tabindex
+- **Layout shell** — floating NavBar pill at `bottom: 20px`, AppBar `h-16` + 20px padding, MainSheet 100px clearance, drop bottom grid-row
+- **Tone rollout** — GardenChip flat-pill anatomy + leaf tint, PageHeader bottom hairline, AdminCard `::before` tone wash (pseudo-element for paint perf)
+- **NotificationPanel** — 36×36 icon wrapper, unread dot, `actionLabel`-driven labeled action button
+- **Filter chips** — Garden Members + Community People rosters
+- **Mobile FAB fix** — `useCanvasResponsiveFab` no longer clears the FAB context on `<600px`; phones now see the floating-pill layer alongside Garden/Community/Actions
+- **A11y + Storybook** — addon-a11y parameters on touched stories, tone matrices, sheet focus-trap play() test, AdminTabRail keyboard play() test, Tone Gallery story
+
+### Out of scope (next pass)
+
+- Form sheet-pattern migration (SubmitWork / CreateGarden / CreateAction / CreateAssessment / CreateHypercert / Vault / SignalPool) — pinned-footer composition via `<SheetBody>` + `<SheetFooter>` with `form="…"` attribute
+- Pre-existing design-token drift in `NavigationBar` FAB tile, `ImagePreviewDialog`, `editorial.css` — separate `/clean` pass
+- Barrel-trim audit on `@green-goods/shared`
+- Visual-regression baselines via Chromatic
+- P1-thin Storybook coverage on components not touched this hub (AccountProfile/Settings, CanvasIndexerErrorState, etc.)

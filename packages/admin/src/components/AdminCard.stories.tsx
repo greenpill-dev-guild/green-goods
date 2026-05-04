@@ -11,8 +11,27 @@ const meta: Meta<typeof AdminCard> = {
   parameters: {
     docs: {
       description: {
-        component:
-          "M3 card with filled, elevated, and outlined variants. Interactive cards add an M3 state layer and elevation response.",
+        component: [
+          "**AdminCard** — M3 card with filled / elevated / outlined variants.",
+          "Interactive cards add an M3 state layer and elevation response.",
+          "",
+          "**Tone wash** — admin-scope cards layer a barely-perceptible 3% tone tint",
+          "via a `::before` pseudo-element defined in `admin-m3-overrides.css`. The pseudo",
+          "lets dense lists (Hub queues, action templates) avoid per-element",
+          "`background-image` paint cost. Outside admin scope (here in Storybook), the",
+          "tint falls back to invisible black, so cards read as standard M3 surfaces.",
+          "",
+          'Wrap a story in `[data-tone="hub|garden|community|actions"]` to see the',
+          "tone tint apply.",
+        ].join("\n"),
+      },
+    },
+    a11y: {
+      config: {
+        rules: [
+          { id: "color-contrast", enabled: true },
+          { id: "region", enabled: true },
+        ],
       },
     },
   },
@@ -95,6 +114,28 @@ export const StateCatalog: Story = {
             </div>
           </div>
         </AdminCard>
+      ))}
+    </div>
+  ),
+};
+
+/**
+ * Tone wash matrix — same elevated card rendered inside each `[data-tone]`
+ * scope so the 3% `::before` tint reads against the M3 surface. Hub blue,
+ * Garden green, Community amber, Actions clay.
+ */
+export const WithToneWash: Story = {
+  render: () => (
+    <div className="grid gap-4 md:grid-cols-2">
+      {(["hub", "garden", "community", "actions"] as const).map((tone) => (
+        <div key={tone} data-tone={tone} className="rounded-2xl bg-bg-white-0 p-4">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-soft">
+            [data-tone="{tone}"]
+          </div>
+          <AdminCard variant="elevated">
+            <SampleContent />
+          </AdminCard>
+        </div>
       ))}
     </div>
   ),
