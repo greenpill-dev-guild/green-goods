@@ -51,8 +51,18 @@ let pinataUploadSignUrl: string | null = null;
 let ipfsInitializationStatus: IpfsInitStatus = "not_started";
 let ipfsInitializationError: string | null = null;
 
+const SLASH_CODE = 47;
+
 export function trimTrailingSlashes(value: string): string {
-  return value.replace(/\/+$/, "");
+  let end = value.length;
+  while (end > 0 && value.charCodeAt(end - 1) === SLASH_CODE) end--;
+  return end === value.length ? value : value.slice(0, end);
+}
+
+function trimLeadingSlashes(value: string): string {
+  let start = 0;
+  while (start < value.length && value.charCodeAt(start) === SLASH_CODE) start++;
+  return start === 0 ? value : value.slice(start);
 }
 
 // ============================================================================
@@ -105,11 +115,11 @@ export function setIpfsInitializationError(error: string | null): void {
 
 function normalizeOptionalUrl(value?: string | null): string | null {
   const trimmed = value?.trim();
-  return trimmed ? trimmed.replace(/\/+$/, "") : null;
+  return trimmed ? trimTrailingSlashes(trimmed) : null;
 }
 
 function joinUrl(baseUrl: string, path: string): string {
-  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  return `${trimTrailingSlashes(baseUrl)}/${trimLeadingSlashes(path)}`;
 }
 
 function normalizePinataUploadsApiUrl(value?: string | null): string {

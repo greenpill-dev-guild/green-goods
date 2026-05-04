@@ -95,9 +95,12 @@ export function majorVersion(version) {
  * `rejectUnauthorized: false` reliably — using the explicit options object
  * guarantees the TLS option is applied.
  */
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+
 export function requestUrl(url, timeoutMs = 2500) {
   const parsed = new URL(url);
   const client = parsed.protocol === "https:" ? https : http;
+  const isLoopback = LOOPBACK_HOSTS.has(parsed.hostname);
 
   return new Promise((resolve) => {
     let settled = false;
@@ -119,7 +122,7 @@ export function requestUrl(url, timeoutMs = 2500) {
         hostname: parsed.hostname,
         port: parsed.port,
         path: parsed.pathname || "/",
-        rejectUnauthorized: false,
+        ...(isLoopback ? { rejectUnauthorized: false } : {}),
       },
       (response) => {
         response.resume();
