@@ -25,6 +25,7 @@ const { mockUsePublicGardens } = vi.hoisted(() => ({
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   usePublicGardens: mockUsePublicGardens,
+  useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 
 vi.mock("@/components/Display", () => ({

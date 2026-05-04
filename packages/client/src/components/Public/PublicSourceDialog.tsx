@@ -61,7 +61,7 @@ export function PublicSourceDialog({
         className="absolute inset-0"
         onClick={onClose}
       />
-      <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-t-[var(--radius-lg)] bg-bg-white-0 p-6 shadow-xl sm:max-w-2xl sm:rounded-3xl">
+      <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-2xl">
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2

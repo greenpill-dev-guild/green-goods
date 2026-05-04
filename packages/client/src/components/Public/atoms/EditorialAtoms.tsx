@@ -1,5 +1,12 @@
 import { cn } from "@green-goods/shared";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { Link, type LinkProps } from "react-router-dom";
 
 /**
@@ -330,7 +337,7 @@ export function EditorialLinkArrow({
     "inline-flex items-center gap-2 border-b pb-0.5 text-sm font-medium transition-colors",
     tone === "dark"
       ? "border-editorial-deep-fg/35 text-editorial-deep-fg hover:border-editorial-deep-fg/70"
-      : "border-primary-base/35 text-primary-base hover:border-primary-action hover:text-primary-action",
+      : "border-primary-action/35 text-primary-action hover:border-primary-action-hover hover:text-primary-action-hover",
     className
   );
 
@@ -412,5 +419,82 @@ export function EditorialDomainChip({
         </span>
       ) : null}
     </button>
+  );
+}
+
+// ============================================================================
+// Glossary tooltip — first-mention vocabulary primer
+// ============================================================================
+
+export interface EditorialTermTooltipProps {
+  /** The term itself, displayed inline with a dotted underline. */
+  term: ReactNode;
+  /** One-sentence plain-English definition shown in the popover. */
+  definition: ReactNode;
+  className?: string;
+}
+
+/**
+ * EditorialTermTooltip — wrap a vocabulary term to give first-time readers a
+ * one-sentence plain-English definition on hover (desktop) or click/tap (mobile).
+ *
+ * The trigger reads as a normal word with a soft dotted underline. The popover
+ * is positioned above the term and dismisses on outside click, Escape, or blur.
+ */
+export function EditorialTermTooltip({ term, definition, className }: EditorialTermTooltipProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const popoverId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!containerRef.current) return;
+      if (containerRef.current.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <span
+      ref={containerRef}
+      className={cn("relative inline-block", className)}
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        aria-describedby={open ? popoverId : undefined}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        onFocus={() => setOpen(true)}
+        onBlur={(event) => {
+          if (!containerRef.current?.contains(event.relatedTarget as Node | null)) {
+            setOpen(false);
+          }
+        }}
+        className="cursor-help border-b border-dotted border-current text-current focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-1"
+      >
+        {term}
+      </button>
+      {open ? (
+        <span
+          id={popoverId}
+          role="tooltip"
+          className="pointer-events-none absolute bottom-full left-1/2 z-raised mb-2 w-64 -translate-x-1/2 border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-xs leading-snug text-text-sub-600 shadow-[var(--shadow-editorial-card)]"
+        >
+          {definition}
+        </span>
+      ) : null}
+    </span>
   );
 }

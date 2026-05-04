@@ -34,7 +34,9 @@ export function VaultDepositDialog({
 }: VaultDepositDialogProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const { vaults } = useGardenVaults(gardenAddress, { enabled: isOpen });
+  const { vaults, isLoading: isLoadingVaults } = useGardenVaults(gardenAddress, {
+    enabled: isOpen,
+  });
   const depositMutation = useVaultDeposit({ errorMode: "inline" });
   const [selectedAsset, setSelectedAsset] = useState<string>("");
 
@@ -116,6 +118,13 @@ export function VaultDepositDialog({
           {formatMessage({
             id: "public.fund.connectToDeposit",
             defaultMessage: "Connect your wallet to deposit.",
+          })}
+        </p>
+      ) : isLoadingVaults ? (
+        <p className="py-6 text-center text-sm text-text-sub">
+          {formatMessage({
+            id: "public.fund.loadingVaults",
+            defaultMessage: "Loading this garden's vaults…",
           })}
         </p>
       ) : vaults.length === 0 ? (

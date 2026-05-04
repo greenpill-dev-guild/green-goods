@@ -131,7 +131,7 @@ export function PublicFundingMethodSelector({
         className="absolute inset-0"
         onClick={onClose}
       />
-      <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-t-[var(--radius-lg)] bg-bg-white-0 p-6 shadow-xl sm:max-w-lg sm:rounded-3xl">
+      <div className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-lg">
         <header className="mb-5 flex items-start justify-between gap-3">
           <h2
             id="public-fund-dialog-title"
@@ -154,7 +154,7 @@ export function PublicFundingMethodSelector({
             <button
               type="button"
               onClick={() => handlePickIntent("donate")}
-              className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5 text-left transition-colors hover:border-primary-base hover:bg-bg-weak-50"
+              className="border border-stroke-soft-200 bg-bg-white-0 p-5 text-left transition-colors hover:border-primary-action hover:bg-bg-weak-50"
             >
               <div className="text-base font-semibold text-text-strong-950">
                 {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
@@ -171,7 +171,7 @@ export function PublicFundingMethodSelector({
             <button
               type="button"
               onClick={() => handlePickIntent("endow")}
-              className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5 text-left transition-colors hover:border-primary-base hover:bg-bg-weak-50"
+              className="border border-stroke-soft-200 bg-bg-white-0 p-5 text-left transition-colors hover:border-primary-action hover:bg-bg-weak-50"
             >
               <div className="text-base font-semibold text-text-strong-950">
                 {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
@@ -187,7 +187,7 @@ export function PublicFundingMethodSelector({
                 {formatMessage({
                   id: "public.fund.dialog.endow.risk",
                   defaultMessage:
-                    "Risk: smart contract, token, yield, provider, and wallet recovery risks apply.",
+                    "Heads up: long-term deposits depend on the underlying token and provider, so values and access can vary.",
                 })}
               </p>
             </button>
@@ -196,7 +196,7 @@ export function PublicFundingMethodSelector({
               {formatMessage({
                 id: "public.fund.dialog.taxDisclaimer",
                 defaultMessage:
-                  "Donate and Endow support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured.",
+                  "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured.",
               })}
             </p>
           </div>
@@ -205,7 +205,7 @@ export function PublicFundingMethodSelector({
             <button
               type="button"
               onClick={handleWalletConfirm}
-              className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5 text-left transition-colors hover:border-primary-base hover:bg-bg-weak-50"
+              className="border border-stroke-soft-200 bg-bg-white-0 p-5 text-left transition-colors hover:border-primary-action hover:bg-bg-weak-50"
             >
               <div className="text-base font-semibold text-text-strong-950">
                 {formatMessage({ id: "public.fund.dialog.wallet.title", defaultMessage: "Wallet" })}
@@ -226,7 +226,7 @@ export function PublicFundingMethodSelector({
               <button
                 type="button"
                 onClick={handleCardConfirm}
-                className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5 text-left transition-colors hover:border-primary-base hover:bg-bg-weak-50"
+                className="border border-stroke-soft-200 bg-bg-white-0 p-5 text-left transition-colors hover:border-primary-action hover:bg-bg-weak-50"
               >
                 <div className="text-base font-semibold text-text-strong-950">
                   {formatMessage({ id: "public.fund.dialog.card.title", defaultMessage: "Card" })}
@@ -234,7 +234,8 @@ export function PublicFundingMethodSelector({
                 <p className="mt-1 text-sm text-text-sub-600">
                   {formatMessage({
                     id: "public.fund.dialog.card.description",
-                    defaultMessage: "Pay by credit card; provider settles into the Garden onchain.",
+                    defaultMessage:
+                      "Pay by credit card; the provider settles the contribution to the Garden on a public blockchain.",
                   })}
                 </p>
                 {intent === "endow" ? (

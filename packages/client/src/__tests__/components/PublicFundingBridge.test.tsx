@@ -17,6 +17,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 
 import { PublicFundingBridge } from "../../components/Public/PublicFundingBridge";
@@ -79,7 +80,7 @@ describe("PublicFundingBridge", () => {
     const supportLink = screen.getByRole("link", { name: "Support Gardens" });
     expect(supportLink).toHaveAttribute("href", "/fund");
     expect(supportLink).toHaveClass("border-b");
-    expect(supportLink).toHaveClass("text-primary-base");
+    expect(supportLink).toHaveClass("text-primary-action");
     expect(supportLink).not.toHaveClass("bg-primary-action");
   });
 });

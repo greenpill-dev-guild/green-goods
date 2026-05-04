@@ -1,7 +1,7 @@
 import { useInViewReveal } from "@green-goods/shared";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { EditorialHeading, EditorialKicker, EditorialNumeral } from "./atoms";
+import { EditorialHeading, EditorialKicker, EditorialLinkArrow, EditorialNumeral } from "./atoms";
 
 interface LoopStep {
   numeral: string;
@@ -19,7 +19,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Assess the place.",
     bodyId: "public.home.loop.assessBody",
     defaultBody:
-      "A Garden gathers gardeners, operators, evaluators, and (ideally) funders around a real place — together they read where it is and where it's meant to go.",
+      "A Garden gathers gardeners, operators, evaluators, and (ideally) funders around a real place. Together they read where it is and where it's meant to go.",
     to: "/impact",
   },
   {
@@ -37,7 +37,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Verify impact.",
     bodyId: "public.home.loop.verifyBody",
     defaultBody:
-      "Operators bundle the approved Work into an Impact Certificate. Evaluators — from many backgrounds, not only topical experts — then verify what the certificate claims.",
+      "Operators bundle the approved Work into an Impact Certificate. Evaluators, from many backgrounds and not only topical experts, then verify what the certificate claims.",
     to: "/impact",
   },
   {
@@ -106,8 +106,16 @@ export function PublicRecordLoop() {
                 <span className="pt-2">
                   <EditorialNumeral>{numeral}</EditorialNumeral>
                 </span>
-                <h3 className="min-w-0 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action md:text-4xl">
-                  {formatMessage({ id: titleId, defaultMessage: defaultTitle })}
+                <h3 className="flex min-w-0 items-baseline gap-3 font-serif text-2xl font-normal leading-[1.05] tracking-[-0.018em] text-text-strong-950 group-hover:text-primary-action md:text-4xl">
+                  <span className="min-w-0">
+                    {formatMessage({ id: titleId, defaultMessage: defaultTitle })}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className="shrink-0 text-base text-text-soft-400 transition-transform group-hover:translate-x-0.5 group-hover:text-primary-action md:text-2xl"
+                  >
+                    →
+                  </span>
                 </h3>
                 <p className="col-start-2 min-w-0 text-sm leading-[1.6] text-text-sub-600 md:col-start-auto md:text-base">
                   {formatMessage({ id: bodyId, defaultMessage: defaultBody })}
@@ -116,6 +124,23 @@ export function PublicRecordLoop() {
             </li>
           ))}
         </ol>
+
+        <div className="mt-10 max-w-3xl">
+          <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+            {formatMessage({
+              id: "public.home.loop.fieldGuideKicker",
+              defaultMessage: "Curious how the work gets planned?",
+            })}
+          </p>
+          <div className="mt-3">
+            <EditorialLinkArrow to="/actions">
+              {formatMessage({
+                id: "public.home.loop.fieldGuide",
+                defaultMessage: "Browse the field guide of regenerative Actions",
+              })}
+            </EditorialLinkArrow>
+          </div>
+        </div>
       </div>
     </section>
   );

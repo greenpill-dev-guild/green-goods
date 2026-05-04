@@ -121,7 +121,7 @@ export default function GardenDetail() {
                 {
                   id: "public.gardenDetail.work.summary",
                   defaultMessage:
-                    "{count} {count, plural, one {Work attestation} other {Work attestations}} on-chain.",
+                    "{count} {count, plural, one {Work entry} other {Work entries}} documented in the public record.",
                 },
                 { count: garden.actionCount }
               )}
@@ -139,7 +139,7 @@ export default function GardenDetail() {
               {formatMessage({
                 id: "public.gardenDetail.evidence.summary",
                 defaultMessage:
-                  "Browse the Impact ledger to see Assessments and Attestations across Gardens.",
+                  "Browse the Impact ledger to see Assessments and Work entries across Gardens.",
               })}
             </p>
             <Link
@@ -164,7 +164,7 @@ export default function GardenDetail() {
               {formatMessage({
                 id: "public.gardenDetail.fund.description",
                 defaultMessage:
-                  "Donate directly through the Cookie Jar or Endow the Vault — designed to preserve your deposit while yield supports the Garden.",
+                  "Donate directly to the Garden's Cookie Jar, or Endow the Vault — a long-term deposit designed to keep its principal while yield supports the Garden.",
               })}
             </p>
             <Link

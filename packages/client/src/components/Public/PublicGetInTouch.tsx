@@ -38,7 +38,8 @@ export function PublicGetInTouch() {
   const handleSubmit = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      const formData = new FormData(event.currentTarget);
+      const form = event.currentTarget;
+      const formData = new FormData(form);
       const email = String(formData.get("email") ?? "").trim();
       if (!email) {
         setSubmitState("error");
@@ -63,6 +64,7 @@ export function PublicGetInTouch() {
         const json = (await response.json()) as PublicSubscribeResponse;
         if (response.ok && "ok" in json && json.ok) {
           setSubmitState("ok");
+          form.reset();
           toastService.success({
             title: formatMessage({
               id: "public.home.getInTouch.success.title",
@@ -143,7 +145,7 @@ export function PublicGetInTouch() {
                   defaultMessage: "Your email",
                 })}
               </label>
-              <div className="mt-3 flex items-center gap-3 border-b border-editorial-deep-fg/30 pb-2 focus-within:border-editorial-deep-fg/60">
+              <div className="mt-3 flex flex-col gap-3 border-b border-editorial-deep-fg/30 pb-3 focus-within:border-editorial-deep-fg/60 sm:flex-row sm:items-center sm:gap-3 sm:pb-2">
                 <input
                   id="public-subscribe-email"
                   type="email"
@@ -154,12 +156,12 @@ export function PublicGetInTouch() {
                     id: "public.home.getInTouch.emailPlaceholder",
                     defaultMessage: "you@example.com",
                   })}
-                  className="flex-1 bg-transparent font-serif text-xl font-normal text-editorial-deep-fg placeholder-editorial-deep-fg/40 focus:outline-none md:text-2xl"
+                  className="w-full flex-1 bg-transparent font-serif text-xl font-normal text-editorial-deep-fg placeholder-editorial-deep-fg/40 focus:outline-none sm:w-auto md:text-2xl"
                 />
                 <EditorialPrimaryButton
                   type="submit"
                   disabled={submitState === "loading"}
-                  className="shrink-0 px-5 py-2.5"
+                  className="w-full shrink-0 px-5 py-2.5 sm:w-auto"
                 >
                   {submitState === "loading"
                     ? formatMessage({

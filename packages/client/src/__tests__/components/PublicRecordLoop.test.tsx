@@ -14,6 +14,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 
 import { PublicRecordLoop } from "../../components/Public/PublicRecordLoop";

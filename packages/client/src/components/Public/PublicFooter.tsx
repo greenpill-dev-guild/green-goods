@@ -4,29 +4,24 @@ import { cn } from "@green-goods/shared";
 
 const FOOTER_LINKS = [
   {
-    to: "/gardens",
-    labelId: "public.nav.gardens",
-    defaultLabel: "Gardens",
+    to: "https://x.com/greengoodsapp",
+    labelId: "public.footer.twitter",
+    defaultLabel: "Twitter",
   },
   {
-    to: "/impact",
-    labelId: "public.nav.impact",
-    defaultLabel: "Impact",
+    to: "https://admin.greengoods.app",
+    labelId: "public.footer.admin",
+    defaultLabel: "Admin",
   },
   {
-    to: "/fund",
-    labelId: "public.nav.fund",
-    defaultLabel: "Fund",
+    to: "https://docs.greengoods.app",
+    labelId: "public.footer.docs",
+    defaultLabel: "Docs",
   },
   {
-    to: "/actions",
-    labelId: "public.nav.actions",
-    defaultLabel: "Actions",
-  },
-  {
-    to: "mailto:afo@greenpill.builders",
-    labelId: "public.footer.contact",
-    defaultLabel: "Contact",
+    to: "https://github.com/greenpill-dev-guild/green-goods",
+    labelId: "public.footer.github",
+    defaultLabel: "GitHub",
   },
 ] as const;
 
@@ -58,9 +53,7 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
     <footer
       className={cn(
         "border-t px-6 py-6 sm:px-10 sm:py-5",
-        isSoil
-          ? "border-[rgb(var(--neutral-800))] bg-[rgb(var(--neutral-900))]"
-          : "border-stroke-soft-200 bg-bg-weak-50"
+        isSoil ? "border-static-white/10 bg-editorial-deep" : "border-stroke-soft-200 bg-bg-weak-50"
       )}
     >
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-x-8">
@@ -108,17 +101,13 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
             const linkClass = cn(
               "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
               isSoil
-                ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--neutral-900))]"
-                : "text-text-sub-600 hover:text-primary-action focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
+                ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
+                : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
             );
-            return to.startsWith("mailto:") ? (
-              <a key={to} href={to} className={linkClass}>
+            return (
+              <a key={to} href={to} target="_blank" rel="noreferrer noopener" className={linkClass}>
                 {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
               </a>
-            ) : (
-              <Link key={to} to={to} viewTransition className={linkClass}>
-                {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-              </Link>
             );
           })}
         </nav>

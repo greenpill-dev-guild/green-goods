@@ -28,4 +28,6 @@ export {
   type EditorialPrimaryButtonProps,
   EditorialPrimaryLink,
   type EditorialPrimaryLinkProps,
+  EditorialTermTooltip,
+  type EditorialTermTooltipProps,
 } from "./EditorialAtoms";

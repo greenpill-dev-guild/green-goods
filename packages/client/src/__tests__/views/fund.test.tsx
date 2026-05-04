@@ -166,13 +166,12 @@ describe("FundPage", () => {
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
   });
 
-  it("renders the editorial hero with the Donate/Endow narrative + disclaimer", () => {
+  it("renders the editorial hero with the Donate/Endow narrative", () => {
     renderView();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(
       /a small gesture today, growing over many seasons/i
     );
     expect(screen.getByText(/donate to support a garden/i)).toBeInTheDocument();
-    expect(screen.getByText(/tax disclaimer/i)).toBeInTheDocument();
   });
 
   it("each Garden gets a Support CTA — no Deposit/Cookie Jar/Connect Wallet on the page", () => {

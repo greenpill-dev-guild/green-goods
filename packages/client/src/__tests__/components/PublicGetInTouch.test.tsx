@@ -24,6 +24,7 @@ vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   logger: { warn: mockLoggerWarn },
   toastService: { success: mockToastSuccess },
+  useInViewReveal: () => ({ ref: () => undefined, revealed: true }),
 }));
 
 vi.mock("@/content/publicCuration", () => ({

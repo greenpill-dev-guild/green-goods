@@ -61,7 +61,7 @@ export default function GardensGallery() {
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Each Garden is a real place where a community documents regenerative Work. The public record they build is meant to hold up under reading.",
+            "Each Garden is a real place where a community documents regenerative Work across solar, agroforestry, education, and waste. The public record they build is meant to hold up under reading.",
         })}
       />
 
@@ -103,15 +103,30 @@ export default function GardensGallery() {
             </label>
           </header>
 
-          {!isLoading && filtered.length > 0 ? (
-            <p className="mt-4 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-              {formatMessage(
-                {
-                  id: "public.gardens.archiveCount",
-                  defaultMessage: "{count, plural, one {# Garden} other {# Gardens}}",
-                },
-                { count: filtered.length }
-              )}
+          {!isLoading ? (
+            <p
+              role="status"
+              aria-live="polite"
+              className="mt-4 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
+            >
+              {query.trim().length === 0 && filtered.length > 0
+                ? formatMessage(
+                    {
+                      id: "public.gardens.archiveCount",
+                      defaultMessage: "{count, plural, one {# Garden} other {# Gardens}}",
+                    },
+                    { count: filtered.length }
+                  )
+                : query.trim().length > 0
+                  ? formatMessage(
+                      {
+                        id: "public.gardens.archiveSearchCount",
+                        defaultMessage:
+                          '{count, plural, =0 {No matches for "{query}"} one {# match for "{query}"} other {# matches for "{query}"}}',
+                      },
+                      { count: filtered.length, query: query.trim() }
+                    )
+                  : ""}
             </p>
           ) : null}
 

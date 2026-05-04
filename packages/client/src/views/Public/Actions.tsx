@@ -57,7 +57,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     defaultTitle: "Solar",
     bodyId: "public.actions.domains.solar.body",
     defaultBody:
-      "Distributed energy work — small installations, microgrid maintenance, and the people learning to keep them running.",
+      "Small installations, microgrid maintenance, and battery upkeep, plus the people learning to keep them running smoothly.",
     accentClass: "bg-domain-solar",
     numeralClass: "text-domain-solar",
   },
@@ -68,7 +68,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     defaultTitle: "Agroforestry",
     bodyId: "public.actions.domains.agro.body",
     defaultBody:
-      "Tree planting, harvest records, and soil care — the slow work of rebuilding land while keeping it productive.",
+      "Tree planting, soil stewardship, and harvest records, rebuilding land while keeping it productive over growing seasons.",
     accentClass: "bg-domain-agro",
     numeralClass: "text-domain-agro",
   },
@@ -79,7 +79,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     defaultTitle: "Education",
     bodyId: "public.actions.domains.education.body",
     defaultBody:
-      "Workshops, learning circles, and curriculum that pass regenerative practice from one generation to the next.",
+      "Workshops, learning circles, and shared curriculum that carry regenerative practice from one generation to the next.",
     accentClass: "bg-domain-education",
     numeralClass: "text-domain-education",
   },
@@ -90,7 +90,7 @@ const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
     defaultTitle: "Waste",
     bodyId: "public.actions.domains.waste.body",
     defaultBody:
-      "Recycling streams, composting, and reuse projects that close loops and keep materials out of landfills.",
+      "Recycling streams, composting, and reuse projects that close material loops, keeping things out of local landfills.",
     accentClass: "bg-domain-waste",
     numeralClass: "text-domain-waste",
   },
@@ -148,7 +148,7 @@ export default function ActionsGallery() {
         lede={formatMessage({
           id: "public.actions.heroLede",
           defaultMessage:
-            "Actions are the templates Gardens use to document Work — solar, agroforestry, education, waste. Each one names what to do, what to capture, and what proof comes next.",
+            "Actions are the templates Gardens use to document Work across solar, agroforestry, education, and waste. Each one names what to do, what to capture, and what proof comes next.",
         })}
       />
 

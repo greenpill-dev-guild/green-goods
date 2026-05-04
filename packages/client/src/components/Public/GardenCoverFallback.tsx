@@ -26,33 +26,33 @@ interface Palette {
 const PALETTES: readonly Palette[] = [
   {
     // solar — warm umber → pale amber
-    ink: "rgb(160 90 44)",
-    soft: "rgb(248 237 224)",
-    fg: "rgb(45 33 24)",
+    ink: "var(--color-domain-solar)",
+    soft: "var(--color-domain-solar-soft)",
+    fg: "var(--color-editorial-deep)",
   },
   {
     // agro — deep moss → pale sage
-    ink: "rgb(62 85 50)",
-    soft: "rgb(234 239 226)",
-    fg: "rgb(45 33 24)",
+    ink: "var(--color-domain-agro)",
+    soft: "var(--color-domain-agro-soft)",
+    fg: "var(--color-editorial-deep)",
   },
   {
     // education — slate violet → pale violet
-    ink: "rgb(74 69 100)",
-    soft: "rgb(235 232 240)",
-    fg: "rgb(45 33 24)",
+    ink: "var(--color-domain-education)",
+    soft: "var(--color-domain-education-soft)",
+    fg: "var(--color-editorial-deep)",
   },
   {
     // waste — harbour blue → pale harbour
-    ink: "rgb(46 79 107)",
-    soft: "rgb(226 234 240)",
-    fg: "rgb(45 33 24)",
+    ink: "var(--color-domain-waste)",
+    soft: "var(--color-domain-waste-soft)",
+    fg: "var(--color-editorial-deep)",
   },
   {
     // editorial — walnut → linen
-    ink: "rgb(45 33 24)",
-    soft: "rgb(241 236 226)",
-    fg: "rgb(45 33 24)",
+    ink: "var(--color-editorial-deep)",
+    soft: "var(--color-editorial-warm)",
+    fg: "var(--color-editorial-deep)",
   },
 ] as const;
 

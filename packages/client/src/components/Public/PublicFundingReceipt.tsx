@@ -10,6 +10,7 @@ import {
   RECEIPT_TOKEN_SESSION_KEY,
   scrubReceiptTokenFragmentFromLocation,
 } from "@/routes/receipt-token";
+import { EditorialLinkArrow } from "./atoms";
 import { PublicInstallAction } from "./PublicInstallAction";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -33,6 +34,12 @@ type State =
 export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
   const { formatMessage } = useIntl();
   const [state, setState] = useState<State>({ status: "loading" });
+  const [retryAttempt, setRetryAttempt] = useState(0);
+
+  const retryReceipt = useCallback(() => {
+    setState({ status: "loading" });
+    setRetryAttempt((attempt) => attempt + 1);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,11 +78,11 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
     return () => {
       cancelled = true;
     };
-  }, [intentId]);
+  }, [intentId, retryAttempt]);
 
   if (state.status === "loading") {
     return (
-      <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
+      <section className="mx-auto max-w-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-[var(--shadow-editorial-panel)]">
         <p className="text-sm text-text-sub-600">
           {formatMessage({
             id: "public.fund.receipt.loading",
@@ -88,7 +95,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
 
   if (state.status === "error") {
     return (
-      <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
+      <section className="mx-auto max-w-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-[var(--shadow-editorial-panel)]">
         <h2 className="font-serif text-2xl text-text-strong-950">
           {formatMessage({
             id: "public.fund.receipt.errorTitle",
@@ -101,15 +108,29 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
             defaultMessage: "Please try opening the link from your email again.",
           })}
         </p>
-        <Link
-          to="/fund"
-          className="mt-6 inline-flex rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
-        >
-          {formatMessage({
-            id: "public.fund.receipt.backToFund",
-            defaultMessage: "Back to Fund",
-          })}
-        </Link>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {state.messageId === "public.fund.receipt.error.network" ? (
+            <button
+              type="button"
+              onClick={retryReceipt}
+              className="inline-flex w-fit rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
+            >
+              {formatMessage({
+                id: "public.fund.receipt.tryAgain",
+                defaultMessage: "Try again",
+              })}
+            </button>
+          ) : null}
+          <Link
+            to="/fund"
+            className="inline-flex w-fit rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-2.5 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
+          >
+            {formatMessage({
+              id: "public.fund.receipt.backToFund",
+              defaultMessage: "Back to Fund",
+            })}
+          </Link>
+        </div>
       </section>
     );
   }
@@ -242,6 +263,21 @@ function ReceiptBody({
           </PublicInstallAction>
         </div>
       ) : null}
+
+      <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3 border-t border-stroke-soft-200 pt-5">
+        <EditorialLinkArrow to="/fund">
+          {formatMessage({
+            id: "public.fund.receipt.supportAnother",
+            defaultMessage: "Support another Garden",
+          })}
+        </EditorialLinkArrow>
+        <EditorialLinkArrow to="/impact">
+          {formatMessage({
+            id: "public.fund.receipt.viewImpact",
+            defaultMessage: "View public evidence",
+          })}
+        </EditorialLinkArrow>
+      </div>
     </section>
   );
 }

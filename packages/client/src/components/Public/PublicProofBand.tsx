@@ -59,6 +59,8 @@ export function PublicProofBand({
 }: PublicProofBandProps) {
   const { formatMessage } = useIntl();
   const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
+  const allEmpty =
+    !isLoading && gardens === 0 && contributors === 0 && works === 0 && assessments === 0;
 
   return (
     <section
@@ -100,40 +102,58 @@ export function PublicProofBand({
           </div>
         </div>
 
-        <dl className="grid grid-cols-2 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-x-16 lg:pl-16">
-          <ProofMarker
-            value={gardens}
-            isLoading={isLoading}
-            labelId="public.home.proof.gardens"
-            defaultLabel="Gardens attended"
-            noteId="public.home.proof.gardensNote"
-            defaultNote="Active places under continuous documentation."
-          />
-          <ProofMarker
-            value={contributors}
-            isLoading={isLoading}
-            labelId="public.home.proof.contributors"
-            defaultLabel="Hands at work"
-            noteId="public.home.proof.contributorsNote"
-            defaultNote="Gardeners with a role in at least one Garden. Each address counted once."
-          />
-          <ProofMarker
-            value={works}
-            isLoading={isLoading}
-            labelId="public.home.proof.works"
-            defaultLabel="Entries logged"
-            noteId="public.home.proof.worksNote"
-            defaultNote="Photos, soil cores, plantings, repairs, restorations, each timestamped."
-          />
-          <ProofMarker
-            value={assessments}
-            isLoading={isLoading}
-            labelId="public.home.proof.assessments"
-            defaultLabel="Assessments held"
-            noteId="public.home.proof.assessmentsNote"
-            defaultNote="Independent evaluator confirmations, anchored to a public reference."
-          />
-        </dl>
+        {allEmpty ? (
+          <div className="flex flex-col justify-center border-l border-stroke-soft-200 pl-12 lg:pl-16">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+              {formatMessage({
+                id: "public.home.proof.emptyKicker",
+                defaultMessage: "Reading the record",
+              })}
+            </p>
+            <p className="mt-3 max-w-md font-serif text-xl italic leading-snug text-text-sub-600 md:text-2xl">
+              {formatMessage({
+                id: "public.home.proof.empty",
+                defaultMessage:
+                  "The first records will appear here as Gardens publish their work, season by season.",
+              })}
+            </p>
+          </div>
+        ) : (
+          <dl className="grid grid-cols-2 gap-x-12 gap-y-12 border-l border-stroke-soft-200 pl-12 sm:gap-x-16 lg:pl-16">
+            <ProofMarker
+              value={gardens}
+              isLoading={isLoading}
+              labelId="public.home.proof.gardens"
+              defaultLabel="Gardens attended"
+              noteId="public.home.proof.gardensNote"
+              defaultNote="Active places under continuous documentation."
+            />
+            <ProofMarker
+              value={contributors}
+              isLoading={isLoading}
+              labelId="public.home.proof.contributors"
+              defaultLabel="Hands at work"
+              noteId="public.home.proof.contributorsNote"
+              defaultNote="Gardeners with a role in at least one Garden. Each address counted once."
+            />
+            <ProofMarker
+              value={works}
+              isLoading={isLoading}
+              labelId="public.home.proof.works"
+              defaultLabel="Entries logged"
+              noteId="public.home.proof.worksNote"
+              defaultNote="Panel checks, soil cores, workshop notes, compost batches, each timestamped."
+            />
+            <ProofMarker
+              value={assessments}
+              isLoading={isLoading}
+              labelId="public.home.proof.assessments"
+              defaultLabel="Assessments held"
+              noteId="public.home.proof.assessmentsNote"
+              defaultNote="Independent evaluator confirmations, anchored to a public reference."
+            />
+          </dl>
+        )}
       </div>
     </section>
   );

@@ -1,6 +1,12 @@
 import { cn } from "@green-goods/shared";
 import type { ReactNode } from "react";
-import { type EditorialDomain, EditorialKicker, EditorialNumeral } from "./atoms";
+import { useIntl } from "react-intl";
+import {
+  type EditorialDomain,
+  EditorialKicker,
+  EditorialNumeral,
+  EditorialTermTooltip,
+} from "./atoms";
 
 /**
  * The Impact page's anchor figure. Three nodes — **Assessment → Work →
@@ -34,6 +40,7 @@ interface PipelineNodeProps {
 }
 
 function PipelineNode({ kind, numeral, title, description, closesCycle }: PipelineNodeProps) {
+  const { formatMessage } = useIntl();
   const tones = NODE_TONES[kind];
   return (
     <li className="flex flex-col gap-3">
@@ -61,7 +68,10 @@ function PipelineNode({ kind, numeral, title, description, closesCycle }: Pipeli
       </p>
       {closesCycle ? (
         <p className="font-serif text-xs italic text-text-soft-400">
-          → and a new Assessment begins the next loop.
+          {formatMessage({
+            id: "public.impact.pipeline.closesCycle",
+            defaultMessage: "→ and a new Assessment begins the next loop.",
+          })}
         </p>
       ) : null}
     </li>
@@ -117,19 +127,24 @@ export function PublicEvidencePipeline({
               kind="assessment"
               numeral="1."
               title="Assessment"
-              description="Operators and evaluators document what the place needs and what counts as good. The Assessment names the soil, the species, the work plan, and the standard of proof."
+              description="Operators and evaluators document what the place needs and what counts as good. The Assessment names the conditions on the ground, the work plan, and the standard of proof."
             />
             <PipelineNode
               kind="work"
               numeral="2."
               title="Work"
-              description="Gardeners do the regenerative work and document it as it happens — photos, soil cores, plantings, repairs, restorations — each timestamped and attached to the Garden."
+              description="Gardeners do the regenerative work and document it as it happens, capturing photos, measurements, and notes across the four domains, each timestamped and attached to the Garden."
             />
             <PipelineNode
               kind="certificate"
               numeral="3."
-              title="Impact Certificate"
-              description="When the evidence is strong enough, the work is bundled into an Impact Certificate. This is the highest proof layer — public, verifiable, and on-chain."
+              title={
+                <EditorialTermTooltip
+                  term="Impact Certificate"
+                  definition="A bundle of the season's approved Work, evaluator-verified and anchored to a public blockchain so the record stays readable beyond any one platform."
+                />
+              }
+              description="When the evidence is strong enough, the season's work is bundled into an Impact Certificate. This is the highest proof layer, public, verifiable, and recorded on a blockchain so the record outlasts any one platform."
               closesCycle
             />
           </ol>

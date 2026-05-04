@@ -796,7 +796,7 @@ function CampaignCookieJarDialog({
 
     document.addEventListener("keydown", handleKeyDown);
     document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
+    panelRef.current?.focus();
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
@@ -822,7 +822,8 @@ function CampaignCookieJarDialog({
       />
       <div
         ref={panelRef}
-        className="absolute inset-x-3 top-6 bottom-6 mx-auto flex max-w-6xl flex-col overflow-hidden rounded-lg bg-bg-weak-50 shadow-2xl sm:inset-x-6"
+        tabIndex={-1}
+        className="absolute inset-x-3 top-6 bottom-6 mx-auto flex max-w-6xl flex-col overflow-hidden bg-bg-weak-50 shadow-[var(--shadow-editorial-panel)] focus:outline-none sm:inset-x-6"
       >
         <div className="flex items-center justify-between gap-4 border-b border-stroke-soft-200 bg-bg-white-0 px-4 py-3 sm:px-5">
           <h2 id="cookie-dialog-title" className="font-serif text-xl text-text-strong-950">

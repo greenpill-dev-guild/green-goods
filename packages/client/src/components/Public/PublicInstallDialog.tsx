@@ -46,7 +46,7 @@ export function PublicInstallDialog({
         <Dialog.Content
           className={cn(
             "public-install-sheet fixed z-modal max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-1.5rem)] overflow-hidden border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
-            "bottom-0 left-1/2 -translate-x-1/2 rounded-t-[var(--radius-lg)] sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:rounded-[var(--radius-xl)]",
+            "bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
             isDesktopQr ? "sm:max-w-[44rem]" : "sm:max-w-lg"
           )}
         >
@@ -97,7 +97,7 @@ export function PublicInstallDialog({
 
             {isDesktopQr ? (
               <div className="mt-7 grid gap-6 sm:grid-cols-[13.5rem_1fr] sm:items-start">
-                <figure className="mx-auto w-full max-w-[13.5rem] rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-static-white p-4 text-static-black shadow-[var(--shadow-editorial-card)] sm:mx-0">
+                <figure className="mx-auto w-full max-w-[13.5rem] border border-stroke-soft-200 bg-static-white p-4 text-static-black shadow-[var(--shadow-editorial-card)] sm:mx-0">
                   <QRCodeSVG
                     value={PUBLIC_PWA_LAUNCH_URL}
                     size={192}
@@ -162,24 +162,12 @@ export function PublicInstallDialog({
                       </li>
                     ))}
                   </ol>
-
-                  <a
-                    href={PUBLIC_PWA_LAUNCH_URL}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex w-fit cursor-pointer rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2 text-sm font-medium text-text-strong-950 transition-colors hover:border-primary-base hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-                  >
-                    {formatMessage({
-                      id: "public.installDialog.openWeb",
-                      defaultMessage: "Open web app",
-                    })}
-                  </a>
                 </div>
               </div>
             ) : (
               <div className="mt-6 space-y-5">
                 {guidance.browserSwitchReason ? (
-                  <p className="rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm leading-relaxed text-text-sub-600">
+                  <p className="border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm leading-relaxed text-text-sub-600">
                     {guidance.browserSwitchReason}
                   </p>
                 ) : null}
@@ -189,7 +177,7 @@ export function PublicInstallDialog({
                     {manualSteps.map((step) => (
                       <li
                         key={step.stepNumber}
-                        className="flex gap-3 rounded-[var(--radius-md)] border border-stroke-soft-200 bg-bg-white-0 p-4"
+                        className="flex gap-3 border border-stroke-soft-200 bg-bg-white-0 p-4"
                       >
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-action text-xs font-semibold text-primary-action-foreground">
                           {step.stepNumber}
@@ -230,6 +218,18 @@ export function PublicInstallDialog({
                   >
                     {guidance.primaryAction.label}
                   </button>
+                ) : manualSteps.length === 0 ? (
+                  <a
+                    href={PUBLIC_PWA_LAUNCH_URL}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"
+                  >
+                    {formatMessage({
+                      id: "public.installDialog.openInBrowser",
+                      defaultMessage: "Open Green Goods",
+                    })}
+                  </a>
                 ) : null}
               </div>
             )}

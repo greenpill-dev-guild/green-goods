@@ -12,17 +12,16 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import {
-  EditorialDivider,
   EditorialHeading,
   EditorialKicker,
+  EditorialLinkArrow,
   EditorialNumeral,
-  EditorialPrimaryButton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
-import { PublicGardenCard } from "@/components/Public/PublicGardenCard";
+import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
@@ -290,9 +289,9 @@ export default function FundPage() {
               titleId="public.fund.paths.donateTitle"
               defaultTitle="Donate"
               ledeId="public.fund.paths.donateLede"
-              defaultLede="Direct support that reaches a Garden's Cookie Jar today."
+              defaultLede="Direct support reaching a Garden's Cookie Jar today, funding the work right in front of them."
               routesId="public.fund.paths.donateRoutes"
-              defaultRoutes="The Garden's Cookie Jar."
+              defaultRoutes="Goes to the Garden's Cookie Jar."
               bestForId="public.fund.paths.donateBestFor"
               defaultBestFor="Immediate needs and near-term work."
             />
@@ -301,25 +300,13 @@ export default function FundPage() {
               titleId="public.fund.paths.endowTitle"
               defaultTitle="Endow"
               ledeId="public.fund.paths.endowLede"
-              defaultLede="A Vault designed so the deposit can remain while yield supports the Garden over time."
+              defaultLede="A Vault designed so the deposit can remain while yield supports the Garden over many seasons."
               routesId="public.fund.paths.endowRoutes"
-              defaultRoutes="A Vault held by the Garden."
+              defaultRoutes="Stays in the Garden's Vault."
               bestForId="public.fund.paths.endowBestFor"
-              defaultBestFor="Longer-term support that compounds."
+              defaultBestFor="Long-term support that compounds."
             />
           </div>
-
-          <div className="mt-10">
-            <EditorialDivider />
-          </div>
-          <p className="mt-4 max-w-2xl text-xs leading-relaxed text-text-soft-400">
-            <span className="mr-1 font-mono uppercase tracking-[0.16em]">on endowments —</span>
-            {formatMessage({
-              id: "public.fund.endow.note",
-              defaultMessage:
-                "Vault support depends on token, provider, and wallet mechanics. Values and access can vary; review the details before continuing.",
-            })}
-          </p>
         </div>
       </section>
 
@@ -345,24 +332,46 @@ export default function FundPage() {
           </header>
 
           {isLoading ? (
-            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-8" aria-hidden="true">
               {[0, 1, 2].map((i) => (
-                <div
+                <li
                   key={i}
-                  className="aspect-[3/2] w-full animate-pulse bg-editorial-warm"
-                  aria-hidden="true"
-                />
+                  className="flex items-stretch gap-4 border-b border-stroke-soft-200 py-5 last:border-b-0 sm:gap-6 sm:py-6"
+                >
+                  <div className="h-20 w-20 shrink-0 animate-pulse bg-editorial-warm sm:h-24 sm:w-24" />
+                  <div className="flex flex-1 flex-col justify-center gap-2">
+                    <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
+                    <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
+                    <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
           ) : orderedGardens.length === 0 ? (
-            <p className="mt-12 max-w-md font-serif text-xl italic text-text-soft-400">
-              {formatMessage({
-                id: "public.fund.empty",
-                defaultMessage: "Funding destinations will appear here as Gardens enable them.",
-              })}
-            </p>
+            <div className="mt-12 max-w-md">
+              <p className="font-serif text-xl italic text-text-soft-400">
+                {formatMessage({
+                  id: "public.fund.empty",
+                  defaultMessage: "Funding destinations will appear here as Gardens enable them.",
+                })}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
+                <EditorialLinkArrow to="/gardens">
+                  {formatMessage({
+                    id: "public.fund.empty.browseGardens",
+                    defaultMessage: "Browse all Gardens",
+                  })}
+                </EditorialLinkArrow>
+                <EditorialLinkArrow to="/impact">
+                  {formatMessage({
+                    id: "public.fund.empty.viewImpact",
+                    defaultMessage: "View public evidence",
+                  })}
+                </EditorialLinkArrow>
+              </div>
+            </div>
           ) : (
-            <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-8">
               {orderedGardens.map((garden) => {
                 const isMatchedHighlight =
                   resolved.status === "match" && resolved.garden?.id === garden.id;
@@ -372,34 +381,62 @@ export default function FundPage() {
                     ref={isMatchedHighlight ? matchHighlightRef : undefined}
                     className={
                       isMatchedHighlight
-                        ? "relative ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
+                        ? "ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
                         : undefined
                     }
                   >
-                    <div className="flex flex-col gap-5">
-                      <PublicGardenCard garden={garden} />
-                      <EditorialPrimaryButton
-                        onClick={() => setSelectorGarden(garden)}
-                        className="self-start"
-                      >
-                        {formatMessage({
-                          id: "public.fund.supportShort",
-                          defaultMessage: "Support",
-                        })}
-                      </EditorialPrimaryButton>
-                    </div>
+                    <PublicGardenRow garden={garden} onSupport={setSelectorGarden} />
                   </div>
                 );
               })}
-            </div>
+            </ul>
           )}
+
+          <div className="mt-12 border-t border-stroke-soft-200 pt-6">
+            <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+              {formatMessage({
+                id: "public.fund.cookieJars.kicker",
+                defaultMessage: "Looking for community campaigns?",
+              })}
+            </p>
+            <p className="mt-3 max-w-2xl font-serif text-lg italic leading-snug text-text-sub-600">
+              {formatMessage({
+                id: "public.fund.cookieJars.body",
+                defaultMessage:
+                  "Cookie Jar campaigns pool funds across Gardens for shared seasonal goals.",
+              })}
+            </p>
+            <div className="mt-4">
+              <EditorialLinkArrow to="/cookies">
+                {formatMessage({
+                  id: "public.fund.cookieJars.cta",
+                  defaultMessage: "Browse Cookie Jar campaigns",
+                })}
+              </EditorialLinkArrow>
+            </div>
+          </div>
         </div>
       </section>
 
       <PublicFooter variant="soil" />
 
       {hasWalletRuntime ? (
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={
+            <div
+              role="status"
+              aria-live="polite"
+              className="fixed inset-0 z-modal flex items-end justify-center bg-static-black/40 sm:items-center"
+            >
+              <p className="m-4 max-w-[calc(100vw-2rem)] border border-stroke-soft-200 bg-bg-white-0 px-6 py-4 text-sm text-text-sub-600 shadow-[var(--shadow-editorial-panel)]">
+                {formatMessage({
+                  id: "public.fund.preparingWallet",
+                  defaultMessage: "Preparing wallet…",
+                })}
+              </p>
+            </div>
+          }
+        >
           <WalletRuntimeProviders>
             {selectorGarden ? (
               <PublicFundingMethodSelector

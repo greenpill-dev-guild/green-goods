@@ -109,7 +109,7 @@ export function PublicFundingBridge() {
                 {formatMessage({
                   id: "public.home.funding.note",
                   defaultMessage:
-                    "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Long-term deposits also carry the usual smart-contract, token, yield, provider, and wallet-recovery risks.",
+                    "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Long-term deposits depend on the underlying token and provider, so values and access can vary.",
                 })}
               </p>
             </div>

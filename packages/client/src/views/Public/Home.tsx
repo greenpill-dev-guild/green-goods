@@ -90,7 +90,7 @@ export default function Home() {
         lede={formatMessage({
           id: "public.home.hero.lede",
           defaultMessage:
-            "Green Goods makes regenerative work easier to support, turning accessible contributions into a trusted public record of how land, water, and community grow healthier together.",
+            "Green Goods makes regenerative work easier to support across solar, agroforestry, education, and waste, turning everyday contributions into a trusted public record of how places grow healthier together.",
         })}
         actions={heroActions}
       />

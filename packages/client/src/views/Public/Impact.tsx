@@ -221,7 +221,7 @@ export default function ImpactPage() {
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
-            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, then — when ready — an Impact Certificate.",
+            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that sources every claim.",
         })}
       />
 
@@ -276,7 +276,7 @@ export default function ImpactPage() {
                 value: 0,
                 isLoading: false,
                 noteId: "public.impact.proof.certificatesNote",
-                defaultNote: "Not public yet — first issuance pending.",
+                defaultNote: "Not public yet. First issuance pending.",
               },
             ]}
           />
@@ -296,12 +296,7 @@ export default function ImpactPage() {
         intro={formatMessage({
           id: "public.impact.pipeline.intro",
           defaultMessage:
-            "Each Garden moves through three stages of evidence — and starts again. The cycle is what turns a place's intentions into something the public can verify.",
-        })}
-        footnote={formatMessage({
-          id: "public.impact.pipeline.footnote",
-          defaultMessage:
-            "Most cycles produce an Assessment and Work. The Impact Certificate is the rare end-state, issued only when the source record will hold up to public reading.",
+            "Each Garden moves through three stages of evidence and starts again. The cycle is what turns a place's intentions into something the public can verify.",
         })}
       />
 
@@ -327,7 +322,7 @@ export default function ImpactPage() {
               {formatMessage({
                 id: "public.impact.ledger.intro",
                 defaultMessage:
-                  "Filter by record kind or domain. Each row links to the source — the full assessment, work entry, or certificate behind the line.",
+                  "Filter by record kind or domain. Each row links to the source: the full assessment, work entry, or certificate behind the line.",
               })}
             </p>
           </header>
@@ -396,11 +391,34 @@ export default function ImpactPage() {
                 })}
               </p>
               <p className="mt-2 font-serif text-xl italic text-text-sub-600 md:text-2xl">
-                {formatMessage({
-                  id: "public.impact.evidence.empty",
-                  defaultMessage: "Assessment evidence will appear here as Gardens publish it.",
-                })}
+                {kindFilter !== "all" || domainFilter !== "all"
+                  ? formatMessage({
+                      id: "public.impact.evidence.emptyFiltered",
+                      defaultMessage: "No evidence matches this filter combination yet.",
+                    })
+                  : formatMessage({
+                      id: "public.impact.evidence.empty",
+                      defaultMessage: "Assessment evidence will appear here as Gardens publish it.",
+                    })}
               </p>
+              {kindFilter !== "all" || domainFilter !== "all" ? (
+                <div className="mt-5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setKindFilter("all");
+                      setDomainFilter("all");
+                    }}
+                    className="inline-flex items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover"
+                  >
+                    {formatMessage({
+                      id: "public.impact.evidence.resetFilters",
+                      defaultMessage: "Reset filters",
+                    })}
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : (
             <ul className="mt-8">

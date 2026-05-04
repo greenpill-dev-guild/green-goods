@@ -1,8 +1,8 @@
 /**
  * PublicFooter - compact footer tests.
  *
- * Locks the restored provenance line, public route links, contact link, and
- * neutral-by-default footer link styling.
+ * Locks the restored provenance line, external utility links (Twitter, Admin,
+ * Docs, GitHub), and neutral-by-default footer link styling.
  *
  * @vitest-environment jsdom
  */
@@ -15,15 +15,14 @@ import { describe, expect, it } from "vitest";
 import { PublicFooter } from "../../components/Public/PublicFooter";
 
 const messages: Record<string, string> = {
-  "public.footer.contact": "Contact",
+  "public.footer.admin": "Admin",
+  "public.footer.docs": "Docs",
+  "public.footer.github": "GitHub",
   "public.footer.legal":
     "© {year} Green Goods. A living public record, rooted in regenerative work.",
   "public.footer.navLabel": "Footer links",
+  "public.footer.twitter": "Twitter",
   "public.footer.wordmark": "Green Goods",
-  "public.nav.actions": "Actions",
-  "public.nav.fund": "Fund",
-  "public.nav.gardens": "Gardens",
-  "public.nav.impact": "Impact",
 };
 
 function renderFooter() {
@@ -45,24 +44,34 @@ describe("PublicFooter", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders public route links and contact", () => {
+  it("renders external utility links", () => {
     renderFooter();
 
-    expect(screen.getByRole("link", { name: "Gardens" })).toHaveAttribute("href", "/gardens");
-    expect(screen.getByRole("link", { name: "Impact" })).toHaveAttribute("href", "/impact");
-    expect(screen.getByRole("link", { name: "Fund" })).toHaveAttribute("href", "/fund");
-    expect(screen.getByRole("link", { name: "Actions" })).toHaveAttribute("href", "/actions");
-    expect(screen.getByRole("link", { name: "Contact" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Twitter" })).toHaveAttribute(
       "href",
-      "mailto:afo@greenpill.builders"
+      "https://x.com/greengoodsapp"
+    );
+    expect(screen.getByRole("link", { name: "Admin" })).toHaveAttribute(
+      "href",
+      "https://admin.greengoods.app"
+    );
+    expect(screen.getByRole("link", { name: "Docs" })).toHaveAttribute(
+      "href",
+      "https://docs.greengoods.app"
+    );
+    expect(screen.getByRole("link", { name: "GitHub" })).toHaveAttribute(
+      "href",
+      "https://github.com/greenpill-dev-guild/green-goods"
     );
   });
 
   it("keeps footer links neutral until hover or focus", () => {
     renderFooter();
 
-    const gardens = screen.getByRole("link", { name: "Gardens" });
-    expect(gardens).toHaveClass("text-text-sub-600");
-    expect(gardens).toHaveClass("hover:text-primary-action");
+    const twitter = screen.getByRole("link", { name: "Twitter" });
+    expect(twitter).toHaveClass("text-text-sub-600");
+    expect(twitter).toHaveClass("hover:text-primary-action-hover");
+    expect(twitter).toHaveAttribute("target", "_blank");
+    expect(twitter).toHaveAttribute("rel", "noreferrer noopener");
   });
 });

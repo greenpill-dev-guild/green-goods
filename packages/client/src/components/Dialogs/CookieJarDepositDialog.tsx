@@ -33,7 +33,7 @@ export function CookieJarDepositDialog({
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
 
-  const { jars } = useGardenCookieJars(gardenAddress, {
+  const { jars, isLoading: isLoadingJars } = useGardenCookieJars(gardenAddress, {
     enabled: Boolean(gardenAddress) && isOpen,
   });
 
@@ -133,6 +133,13 @@ export function CookieJarDepositDialog({
           {formatMessage({
             id: "public.fund.connectToDeposit",
             defaultMessage: "Connect your wallet to deposit.",
+          })}
+        </p>
+      ) : isLoadingJars ? (
+        <p className="py-6 text-center text-sm text-text-sub">
+          {formatMessage({
+            id: "public.fund.loadingJars",
+            defaultMessage: "Loading this garden's cookie jars…",
           })}
         </p>
       ) : jars.length === 0 ? (
