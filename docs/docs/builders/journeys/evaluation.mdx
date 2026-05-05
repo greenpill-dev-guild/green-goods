@@ -8,12 +8,13 @@ last_verified: 2026-04-25
 feature_status: Live
 source_of_truth:
   - packages/admin/src/views/Hub/CreateAssessment.tsx
-  - packages/admin/src/views/Hub/useCreateAssessmentController.ts
+  - packages/shared/src/hooks/admin-ui/hub/useCreateAssessmentController.ts
   - packages/admin/src/views/Garden/Assessment.tsx
   - packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts
   - packages/shared/src/hooks/assessment/useCreateAssessmentForm.ts
   - packages/shared/src/hooks/assessment/useGardenAssessments.ts
-  - packages/contracts/src/resolvers (Assessment + WorkApproval resolvers)
+  - packages/contracts/src/resolvers/Assessment.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
   - packages/shared/src/modules/data/eas.ts
   - docs/docs/builders/architecture/sequence-diagrams.mdx
 ---

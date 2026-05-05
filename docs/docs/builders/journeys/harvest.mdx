@@ -9,17 +9,17 @@ feature_status: In progress
 source_of_truth:
   - packages/admin/src/views/Hub/index.tsx
   - packages/admin/src/views/Hub/CreateHypercert.tsx
-  - packages/admin/src/views/Hub/useCreateHypercertController.ts
+  - packages/shared/src/hooks/admin-ui/hub/useCreateHypercertController.ts
   - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
   - packages/shared/src/hooks/hypercerts/useCreateHypercertWorkflow.ts
   - packages/shared/src/hooks/yield/useAllocateYield.ts
   - packages/shared/src/hooks/yield/useGardenYieldSummary.ts
   - packages/shared/src/hooks/yield/useSplitConfig.ts
   - packages/shared/src/hooks/vault/useHarvest.ts
-  - docs/docs/builders/specs/v1-0.mdx (§ 1.5, § 6.3)
+  - docs/docs/builders/specs/v1-0.mdx
   - packages/admin/src/views/Garden/Strategies.tsx
   - packages/admin/src/views/Community/index.tsx
-  - packages/indexer/schema.graphql (Hypercert, HypercertClaim, YieldAllocation)
+  - packages/indexer/schema.graphql
 ---
 
 import {StatusBadge} from "@site/src/components/docs";
