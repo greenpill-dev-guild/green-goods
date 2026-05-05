@@ -3,9 +3,9 @@
 **Feature**: `admin-design-revamp`
 **Lane**: `cleanup`
 **Owner**: `claude`
-**Status**: `mostly_landed` (A1–A6 landed; B1–B3 + C1 deferred)
+**Status**: `mostly_landed` (A1–A6 landed; B1–B3 deferred with concrete blockers; C1 deferred)
 **Branch**: `release/1.1.0` (cleanup committed directly to the release branch per cleanup-lane scope)
-**Depends on**: `tier_5_wiring` (landed) + B1–B3 unblocked by `signal-pool-yield-wiring` completion 2026-05-03
+**Depends on**: `tier_5_wiring` (landed). The signal-pool-yield-wiring completion on 2026-05-03 lifted the *gate* on B1–B3, but the underlying data sources required by those items still don't exist (see "B1–B3 investigation" below).
 
 ## Purpose
 
@@ -35,8 +35,27 @@ Resolve the work explicitly deferred during Tiers 1–5. Each item below has pas
 - `node scripts/harness/plan-hub.mjs validate` → `Validated 21 feature hubs.`
 
 **Deferred** (future passes, not release-blocking):
-- B1–B3 — `signal-pool-yield-wiring` is `done` (2026-05-03), so the dependency gate is technically lifted. Still requires deciding which of `useGardenYieldWiringState` / a new pool-config hook to consume; out of scope for this release-cleanup pass since none of the missing data is on a release-blocking surface (the FALLBACK_POOL_CONFIG TODO renders sensible numbers).
+- B1–B3 — investigation 2026-05-04 (see below).
 - C1 — 21 client-homepage test failures. Out of scope for the admin-design-revamp branch boundary; should be filed as a separate `/audit-then-ship --lens=review --no-ship` pass on commit `0b4a67e8`.
+
+### B1–B3 investigation (2026-05-04, release/1.1.0)
+
+`signal-pool-yield-wiring` shipped wiring-health (`useGardenYieldWiringState`) and contract plumbing, but did **not** ship a pool-config hook, a per-member breakdown hook, or surface a threshold formula. Each B-item was analysed against the live HYPERCERT_SIGNAL_POOL_ABI, IVotingPowerRegistry, and the Envio schema. Findings:
+
+| Item | Field/Signal | Status | Concrete blocker |
+|---|---|---|---|
+| **B1** | `decayRate` | readable | `decay()` view in `HYPERCERT_SIGNAL_POOL_ABI` — already in repo. |
+| **B1** | `pointsPerVoter` | readable | `pointsPerVoter()` view in same ABI. |
+| **B1** | `memberCount` | **missing** | `IVotingPowerRegistry` exposes only `isMember(member)` + per-member power; no enumeration. Envio schema has no `Allocation` / `Voter` entity. Shipping decay+pointsPerVoter alone with `memberCount=1` would scale the conviction-percent denominator wrong in multi-member gardens. |
+| **B2** | per-hypercert supporter count | **missing** | `getConvictionWeights()` returns aggregate weight per hypercert; `getVoterAllocations(voter)` requires enumerating voters (no member list). Envio schema does not index allocations. |
+| **B3** | threshold formula | **missing** | `HYPERCERT_SIGNAL_POOL_ABI` exposes neither `threshold()` nor `minThresholdPoints()`. The vendor CVStrategy mock in `packages/contracts/src/mocks/CVStrategy.sol` carries `minThresholdPoints` + `maxRatio`, but the deployed pool's ABI does not surface them. Until those getters land or the formula is ported in, `deriveThreshold` returns the documented 75% placeholder. |
+
+**Recommendation**: file three follow-up backlog plans:
+1. **`conviction-pool-config-onchain`** — add `useHypercertSignalPoolConfig(poolAddress)` reading `decay()` + `pointsPerVoter()`, plus a parallel decision on member-count enumeration (new contract view OR new Envio entity). Land both halves together so the conviction percent denominator stays correct.
+2. **`conviction-supporter-count-indexer`** — add an `Allocation` entity to `packages/indexer/schema.graphql` keyed by `(chainId, pool, hypercertId, voter)` so `useHypercertSupporters(poolAddress, hypercertId)` can return distinct-voter count without contract changes.
+3. **`conviction-threshold-formula-port`** — extend `HYPERCERT_SIGNAL_POOL_ABI` with `minThresholdPoints()` + `maxRatio()` (or equivalents on the deployed pool) and port the vendor CVStrategy threshold math into `deriveThreshold`.
+
+In-tree TODOs in `useConvictionProposalsForPool.ts` (`FALLBACK_POOL_CONFIG`, `countSupporters`) and `derivation.ts` (`BLOCKS_PER_DAY`, `DEFAULT_THRESHOLD_PERCENT`, `deriveThreshold`) were tightened in this pass to reference the concrete blockers and these follow-up plan IDs so the next attempt does not re-investigate.
 
 ## Required Scope
 

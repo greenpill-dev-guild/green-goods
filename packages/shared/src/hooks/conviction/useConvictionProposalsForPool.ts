@@ -142,9 +142,24 @@ export function useConvictionProposalsForPool(
 // ----------------------------------------------------------------------------
 
 /**
- * TODO: pull from the HypercertSignalPool contract when a pool-config hook
- * lands. Conservative defaults until then so the UI renders sensible numbers
- * instead of zero-everywhere.
+ * Conservative defaults — produces sensible numbers in solo gardens but
+ * inflates conviction percent in multi-member ones (denominator =
+ * pointsPerVoter * memberCount). See cleanup B1 in
+ * .plans/active/admin-design-revamp/handoffs/claude-cleanup.md for the
+ * concrete blocker analysis.
+ *
+ * Status of each field on the live HypercertSignalPool contract:
+ * - decayRate     → readable via HYPERCERT_SIGNAL_POOL_ABI `decay()` view.
+ * - pointsPerVoter → readable via HYPERCERT_SIGNAL_POOL_ABI `pointsPerVoter()` view.
+ * - memberCount   → NOT readable on-chain. IVotingPowerRegistry only exposes
+ *                   `isMember(account)` and per-member power queries; no
+ *                   enumeration. Envio schema (packages/indexer/schema.graphql)
+ *                   does not track conviction-pool membership either.
+ *
+ * Shipping decay + pointsPerVoter alone without a real memberCount would
+ * leave the denominator wrong, so the partial hook is not landed here.
+ * Retire this fallback when an enumeration source (new contract view OR
+ * indexer entity) lands.
  */
 const FALLBACK_POOL_CONFIG: ConvictionPoolConfig = {
   decayRate: 1n,
@@ -159,10 +174,15 @@ function shortHex(value: bigint): string {
 }
 
 /**
- * Approximate count of distinct supporters for a hypercert. The on-chain
- * conviction weight aggregates per-member contributions, so we cannot
- * unambiguously recover the supporter count from weight alone — falling back
- * to "≥1 if any weight" until a per-member breakdown hook exists.
+ * Approximate count of distinct supporters for a hypercert. Cleanup B2 tracked
+ * this as deferred; investigation 2026-05-04 confirmed no source exists yet:
+ * - HYPERCERT_SIGNAL_POOL_ABI's `getConvictionWeights()` returns the *aggregate*
+ *   weight per hypercert (sum across all voters), not a per-voter breakdown.
+ *   `getVoterAllocations(voter)` is per-voter but requires enumeration.
+ * - Envio schema does not index VoterAllocation events.
+ * Returns 1-or-0 until either a new contract view (e.g.,
+ * `getHypercertSupporters(id)`) or an indexer entity (e.g., `Allocation`)
+ * lands. See cleanup B2 in handoffs/claude-cleanup.md.
  */
 function countSupporters(weight: bigint, _poolConfig: ConvictionPoolConfig): number {
   return weight > 0n ? 1 : 0;

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-02",
-    "updated_at": "2026-05-05T03:15:00.000Z",
+    "updated_at": "2026-05-05T03:35:00.000Z",
     "target_date": "2026-05-16"
   },
   "links": {
@@ -216,7 +216,7 @@
       "branch": "release/1.1.0",
       "depends_on": ["ui", "state_api", "contracts", "tier_5_wiring"],
       "handoff": "handoffs/claude-cleanup.md",
-      "handoff_note": "A1–A6 landed on release/1.1.0; B1–B3 + C1 deferred (not release-blocking). signal-pool-yield-wiring completed 2026-05-03 so B1–B3 dependency gate is lifted; consume hooks lands in a follow-up.",
+      "handoff_note": "A1–A6 landed on release/1.1.0; B1–B3 deferred with concrete blockers documented (no on-chain memberCount, no per-member breakdown, no threshold getter); C1 deferred. signal-pool-yield-wiring completed 2026-05-03 lifted the gate but did not ship the underlying data sources.",
       "skill_tags": ["testing", "ui", "react"],
       "tdd": {
         "mode": "required",
@@ -337,6 +337,14 @@
       "status": "a6_landed",
       "branch": "release/1.1.0",
       "note": "A6 stats slot: new buildGardenHeaderStats + buildCommunityHeaderStats helpers shape MetaStripItem[] (gardeners/pending/treasury for Garden; people/pools/treasury for Community). views/Garden/index.tsx + views/Community/index.tsx pass MetaStrip density='inline' into PageHeader.metadata. Returns [] when no garden selected so the slot stays clean. Per audit §5.6 + Frontend Rule 17 the slot does NOT include the garden name. New i18n keys with ICU plurals across en/es/pt. header-stats.test.ts adds 9 unit cases. tsc on packages/admin/tsconfig.json clean. A1–A6 done. B1–B3 + C1 deferred (not release-blocking)."
+    },
+    {
+      "timestamp": "2026-05-05T03:35:00.000Z",
+      "actor": "claude",
+      "lane": "cleanup",
+      "status": "b1_b3_investigation_recorded",
+      "branch": "release/1.1.0",
+      "note": "B1-B3 investigation against live ABI + IVotingPowerRegistry + Envio schema. Confirmed: decay+pointsPerVoter readable, memberCount has no on-chain enumeration, per-member supporter count missing both contract view and indexer entity, threshold/minThresholdPoints not exposed by HYPERCERT_SIGNAL_POOL_ABI. Tightened in-code TODOs in useConvictionProposalsForPool.ts (FALLBACK_POOL_CONFIG + countSupporters) and derivation.ts (BLOCKS_PER_DAY + deriveThreshold) with concrete blockers. Recommended three follow-up backlog plans (conviction-pool-config-onchain, conviction-supporter-count-indexer, conviction-threshold-formula-port). No code-shape changes since shipping partial fixes would silently regress UI numbers."
     }
   ],
   "taxonomy": {
