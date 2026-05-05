@@ -195,16 +195,17 @@ export function setupTestEnvironment() {
       });
     }
 
-    // Mock IntersectionObserver
-    (global as any).IntersectionObserver = vi.fn(() => ({
-      observe: vi.fn(),
-      disconnect: vi.fn(),
-      unobserve: vi.fn(),
-      root: null,
-      rootMargin: "",
-      thresholds: [],
-      takeRecords: vi.fn(() => []),
-    }));
+    // Mock IntersectionObserver (class-based — must be `new`-able since
+    // useInViewReveal and other hooks construct an instance directly).
+    (global as any).IntersectionObserver = class IntersectionObserver {
+      root = null;
+      rootMargin = "";
+      thresholds: number[] = [];
+      observe = vi.fn();
+      disconnect = vi.fn();
+      unobserve = vi.fn();
+      takeRecords = vi.fn(() => []);
+    };
 
     // Mock ResizeObserver (class-based for @floating-ui/dom compatibility)
     (global as any).ResizeObserver = class ResizeObserver {
