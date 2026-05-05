@@ -248,7 +248,11 @@ test.describe("Client PWA", () => {
       expect(url).toMatch(/\/(login|landing|home)?$/);
     });
 
-    test("indexer responds to GraphQL queries", async ({ request }) => {
+    // Skipped in CI because the playwright webServer no longer starts the
+    // live indexer (see ci(playwright): skip live indexer webServer in CI,
+    // 28a74a26). Tests in this stack mock GraphQL via route interception;
+    // the live-indexer health check is exercised by the Indexer workflow.
+    test.skip("indexer responds to GraphQL queries", async ({ request }) => {
       const response = await request.post(TEST_URLS.indexer, {
         data: { query: "query { __typename }" },
         headers: { "Content-Type": "application/json" },
