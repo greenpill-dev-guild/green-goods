@@ -198,6 +198,8 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 
 Use `npx pm2 list` to see live status, `npx pm2 logs <name> --nostream` to inspect a single service. The full-stack indexer requires Docker — without it, `/api/graphql` proxy returns no data and PWA pages render empty states.
 
+**Tunnel for mobile QA**: PM2's `tunnel` app spawns one `cloudflared` tunnel per port — by default both client (3001) and admin (3002) — and writes per-port URL files (`.tunnel-url` for client, `.tunnel-url-admin` for admin). Each Vite dev server exposes its tunnel URL at `/__dev/tunnel` for the in-page QR overlay, so admin reviews work on real devices the same way client PWA reviews do. Standalone single-port use still works: `bun run dev:tunnel -- --port 3001`.
+
 **Client presentation mode (PWA vs website)**: the client renders different chrome depending on whether it's running as an installed PWA or a regular browser tab — bottom `AppBar` + `/home` entry for PWA, hamburger `SiteHeader` + `/` entry for website. On localhost, append `?presentation=pwa`, `?presentation=website`, or `?presentation=auto` to override the auto-detected mode; the choice is cached in **per-tab** sessionStorage so each tab keeps its own mode after redirects. The dev stack opens both modes in adjacent tabs by default. Source: `packages/shared/src/utils/app/pwa.ts:getClientPresentationMode`.
 
 ## Scope Discipline

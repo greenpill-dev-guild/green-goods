@@ -11,6 +11,7 @@ scripts/
 ├── design/         design system enforcement
 ├── contracts/      contract audits + deploy verification
 ├── ops/            chain ops + release artifact uploads
+├── agents/         durable agent query surfaces used by routines / skills
 ├── harness/        skill + planning helpers
 ├── postinstall/    bun/npm postinstall shims
 ├── lib/            shared helpers used by other scripts
@@ -31,7 +32,7 @@ scripts/
 | `node-cli.js` | `packages/client dev`, `packages/admin dev`, `packages/shared storybook`, `docs dev` | Run local JS dev CLIs under real system Node instead of Bun's injected `node` shim |
 | `stack.js` | `bun run dev:web` / `dev` / `dev:stop` | Start/stop PM2 app groups from `ecosystem.config.cjs` |
 | `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs/storybook respond on local ports |
-| `tunnel.js` | `bun run dev:tunnel`, `ecosystem.config.cjs` | Cloudflared tunnel for PWA device testing; writes `.tunnel-url` |
+| `tunnel.js` | `bun run dev:tunnel`, `ecosystem.config.cjs` | Cloudflared tunnel(s) for client + admin device testing. Spawns one tunnel per `--port` arg (defaults to client 3001 + admin 3002); writes `.tunnel-url` (client) and `.tunnel-url-admin` (admin) |
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
 | `test-e2e.js` | `bun run test:e2e[:smoke]` | Boot the web stack (client + admin + docs + storybook) via `bun run dev:web`, wait on health, run Playwright, stop via `bun run dev:stop` |
 | `seed-test-data.ts` | `bun run seed:test` / `seed:anvil` | Seed local/anvil chain with test fixtures |
@@ -72,6 +73,11 @@ scripts/
 | `ipfs-repin.ts` | `bun run ipfs:repin[:audit]` | Re-pin / audit Pinata content |
 | `upload-action-images.ts` | `bun run upload:action-images[:dry-run]` | Upload action images to IPFS |
 | `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `packages/client build:deploy`, `packages/admin build:deploy` | Inject and upload built sourcemaps to PostHog with per-app env IDs |
+
+### `agents/` — agent query surfaces
+| Script | Caller | Purpose |
+|---|---|---|
+| `posthog-query.ts` | `bug-intake` routine / debug skill | Read-only PostHog HogQL query surface for recent errors, error details, user sessions, recurring patterns, and bug-report matching; writes JSON to stdout and keeps replay links/user identifiers out of public issue evidence |
 
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |
