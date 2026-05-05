@@ -1,4 +1,9 @@
-import { useGardenWorkspaceController } from "@green-goods/shared";
+import {
+  buildGardenHeaderStats,
+  MetaStrip,
+  useGardenWorkspaceController,
+} from "@green-goods/shared";
+import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { GardenSheetDescriptor } from "./components/GardenSheetDescriptor";
@@ -10,6 +15,24 @@ import { useIntl } from "react-intl";
 export default function GardenView() {
   const { formatMessage } = useIntl();
   const garden = useGardenWorkspaceController();
+
+  const headerStats = useMemo(
+    () =>
+      buildGardenHeaderStats({
+        hasSelectedGarden: Boolean(garden.selectedGarden),
+        gardenerCount: garden.garden?.gardeners.length ?? 0,
+        pendingWorkCount: garden.derived.pendingWorks.length,
+        treasuryBalance: garden.treasuryBalance,
+        formatMessage,
+      }),
+    [
+      garden.selectedGarden,
+      garden.garden?.gardeners.length,
+      garden.derived.pendingWorks.length,
+      garden.treasuryBalance,
+      formatMessage,
+    ]
+  );
 
   return (
     <CanvasRouteFrame
@@ -30,6 +53,9 @@ export default function GardenView() {
           defaultMessage:
             "What's growing in this garden — overview, activity, gardeners, and settings.",
         })}
+        metadata={
+          headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
+        }
         variant="canvas"
         sticky
       >

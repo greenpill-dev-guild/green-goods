@@ -1,4 +1,9 @@
-import { useCommunityWorkspaceController } from "@green-goods/shared";
+import {
+  buildCommunityHeaderStats,
+  MetaStrip,
+  useCommunityWorkspaceController,
+} from "@green-goods/shared";
+import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { CommunitySheetDescriptor } from "./components/CommunitySheetDescriptor";
@@ -9,6 +14,24 @@ export default function CommunityView() {
   const { formatMessage } = useIntl();
   const community = useCommunityWorkspaceController();
   const totalPeople = community.derived.directoryEntries.length;
+
+  const headerStats = useMemo(
+    () =>
+      buildCommunityHeaderStats({
+        hasSelectedGarden: Boolean(community.selectedGarden),
+        peopleCount: totalPeople,
+        poolCount: community.pools.length,
+        vaultNetDeposited: community.vaultNetDeposited,
+        formatMessage,
+      }),
+    [
+      community.selectedGarden,
+      totalPeople,
+      community.pools.length,
+      community.vaultNetDeposited,
+      formatMessage,
+    ]
+  );
 
   return (
     <CanvasRouteFrame
@@ -35,6 +58,9 @@ export default function CommunityView() {
           id: "cockpit.community.eyebrow",
           defaultMessage: "Engagement",
         })}
+        metadata={
+          headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
+        }
         variant="canvas"
         sticky
       >
