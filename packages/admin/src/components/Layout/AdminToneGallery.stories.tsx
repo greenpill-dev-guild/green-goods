@@ -106,7 +106,7 @@ const ToneCell = ({
   </section>
 );
 
-export const Gallery: Story = {
+export const VariantGallery: Story = {
   render: () => (
     <div
       className="grid gap-4 p-6 md:grid-cols-2"
