@@ -4,13 +4,13 @@
     "slug": "animation-polish-editorial-browser",
     "title": "Animation & Interaction Polish — Editorial Browser + Garden Detail",
     "kind": "feature",
-    "stage": "backlog"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-05-03T00:00:00.000Z",
-    "updated_at": "2026-05-03T00:00:00.000Z"
+    "updated_at": "2026-05-04T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,14 +26,14 @@
     "depends_on_features": []
   },
   "notes": [
-    "Deferred polish plan; do not promote until the public walkthrough stabilizes and Afo explicitly asks to resume motion polish.",
+    "Promoted 2026-05-04 — Afo asked to resume motion polish; reading (a) perceived richness, working on release/1.1.0.",
     "Use browser evidence for animation quality and record proof limits honestly.",
     "status.json is authoritative; Markdown keeps the detailed execution context."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "in_progress",
       "branch": "claude/ui/animation-polish-editorial-browser",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -106,6 +106,14 @@
       "status": "formalized",
       "branch": null,
       "note": "Formalized a loose backlog note so it participates in plan-hub taxonomy and summary grouping without promoting it to active work."
+    },
+    {
+      "timestamp": "2026-05-04T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "promoted",
+      "branch": "release/1.1.0",
+      "note": "Afo confirmed reading (a) perceived richness and to stay on release/1.1.0. Promoted backlog → active. Added image-lifecycle hypothesis to Phase A diagnosis (ImageWithFallback opacity-0 reset on dialog mount captures grey wrapper bg in the new view-transition snapshot)."
     }
   ]
 }
