@@ -200,6 +200,7 @@ FINAL_TEST_REPORT.md
 .ipfs-media-cache.json
 .action-images-cache.json
 data/test/*.db*
+packages/agent/data/*.db*
 reports/*.json
 
 # ================================
