@@ -193,11 +193,24 @@ export type YieldSplitter_YieldToJuicebox_eventArgs = {
 };
 
 // Solidity: event YieldStranded(address indexed garden, address indexed asset, uint256 amount, string destination)
+// NOTE: Declared on the contract but no longer emitted as of release/1.1.0 — kept here for
+// historical event indexing on chains that emitted it before the upgrade.
 export type YieldSplitter_YieldStranded_eventArgs = {
   readonly garden: string;
   readonly asset: string;
   readonly amount: bigint;
   readonly destination: string;
+};
+
+// Solidity: event YieldToTreasury(address indexed garden, address indexed asset, uint256 amount, address indexed treasury, string source)
+// NEW in release/1.1.0: emitted on the fallback path when cookieJar/juicebox is unconfigured;
+// `source` carries the originating split bucket name ("cookieJar" | "juicebox") for routing-attribution.
+export type YieldSplitter_YieldToTreasury_eventArgs = {
+  readonly garden: string;
+  readonly asset: string;
+  readonly amount: bigint;
+  readonly treasury: string;
+  readonly source: string;
 };
 
 export type HatsModule_PartialGrantFailed_eventArgs = {

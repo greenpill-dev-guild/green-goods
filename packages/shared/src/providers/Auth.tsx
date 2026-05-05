@@ -338,8 +338,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const disconnectWallet = useCallback(async () => {
     try {
       await disconnect(wagmiConfig);
-    } catch {
-      // Ignore disconnect errors
+    } catch (error) {
+      logger.debug("[AuthProvider] disconnect failed", { error });
     }
   }, [wagmiConfig]);
 
@@ -453,7 +453,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     queryClient.clear();
 
     // Clear SW caches and IndexedDB to prevent stale data leaking across sessions
-    serviceWorkerManager.clearAllCaches().catch(() => {});
+    serviceWorkerManager.clearAllCaches().catch((error) => {
+      logger.warn("[AuthProvider] clearAllCaches failed during sign-out", { error });
+    });
   }, [actor, disconnectWallet]);
 
   const retry = useCallback(() => {

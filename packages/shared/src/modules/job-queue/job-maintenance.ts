@@ -96,8 +96,12 @@ export class JobMaintenance {
           this.failedDeleteJobIds.delete(jobId);
           cleaned += 1;
         }
-      } catch {
+      } catch (error) {
         failed += 1;
+        logger.debug("[JobQueue] cleanupOrphanedSyncedJobs delete retry failed", {
+          jobId,
+          error,
+        });
       }
     }
 
