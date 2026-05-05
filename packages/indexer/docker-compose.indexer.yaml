@@ -3,7 +3,14 @@
 #
 # Usage:
 #   cd packages/indexer
-#   docker compose -f docker-compose.indexer.yaml up --build
+#   docker compose -f docker-compose.indexer.yaml up --build       # one-shot build + run
+#   docker compose -f docker-compose.indexer.yaml watch            # hot-reload mode
+#   docker compose -f docker-compose.indexer.yaml up --watch       # build + run + watch in one
+#
+# In `watch` mode, edits to ./src and ./config.yaml are synced into the indexer
+# container and the service is restarted automatically. Edits to ./schema.graphql,
+# ./Dockerfile, or ./package.json trigger a full rebuild because the codegen +
+# rescript-build step runs in the image build.
 #
 # This runs:
 #   - PostgreSQL (port 5433)
@@ -81,10 +88,34 @@ services:
       HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080
       HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
     volumes:
-      # Mount source for hot reloading during development
+      # Mount source for read access without rebuild. `develop.watch` below
+      # owns the change-detection + restart loop; the mounts give graceful
+      # degradation when running plain `up` (no --watch).
       - ./src:/app/src:ro
       - ./config.yaml:/app/config.yaml:ro
       - ./schema.graphql:/app/schema.graphql:ro
+    develop:
+      watch:
+        # Handler TS edits: sync to container and restart envio.
+        - action: sync+restart
+          path: ./src
+          target: /app/src
+          ignore:
+            - "**/*.test.ts"
+            - "**/*.spec.ts"
+            - "**/__tests__/**"
+        # Indexer config: envio re-reads on startup.
+        - action: sync+restart
+          path: ./config.yaml
+          target: /app/config.yaml
+        # Schema changes need codegen + rescript build, which run in the image.
+        - action: rebuild
+          path: ./schema.graphql
+        # Image-shape changes always force a rebuild.
+        - action: rebuild
+          path: ./Dockerfile
+        - action: rebuild
+          path: ./package.json
     networks:
       - indexer-network
 

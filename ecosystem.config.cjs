@@ -75,9 +75,13 @@ module.exports = {
     {
       name: "indexer",
       script: "sh",
-      // Use Docker-based indexer to avoid macOS Rust panic in system-configuration crate
-      // The Docker container runs PostgreSQL, Hasura, and the Envio indexer
-      args: '-c "cd packages/indexer && docker compose -f docker-compose.indexer.yaml up --build"',
+      // Use Docker-based indexer to avoid macOS Rust panic in system-configuration crate.
+      // `up --build --watch` builds the image once, starts the stack, and then watches
+      // host paths declared in `develop.watch` (see docker-compose.indexer.yaml).
+      // src + config edits → sync + container restart (~1-2s).
+      // schema/Dockerfile/package.json edits → image rebuild + restart.
+      args:
+        '-c "cd packages/indexer && docker compose -f docker-compose.indexer.yaml up --build --watch"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
