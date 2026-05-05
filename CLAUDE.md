@@ -186,7 +186,7 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 
 ## Local services (PM2)
 
-`bun run dev:web` and `bun run dev:full` start services via PM2 (`ecosystem.config.cjs`). Canonical service → port mapping:
+`bun run dev` (full), `bun run dev:web` (web), `bun run dev:full`, and `bun run dev <app...>` (custom subset, e.g. `bun run dev client admin tunnel`) start services via PM2 (`ecosystem.config.cjs`). When the stack is up, `[stack] all N services ready in Xs` is printed once every port-binding service responds. Canonical service → port mapping:
 
 - **client** — `https://localhost:3001/` (HTTPS in dev; not HTTP)
 - **admin** — `https://localhost:3002/`
@@ -197,6 +197,8 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 - **envio indexer runtime** — `localhost:9898`
 
 Use `npx pm2 list` to see live status, `npx pm2 logs <name> --nostream` to inspect a single service. The full-stack indexer requires Docker — without it, `/api/graphql` proxy returns no data and PWA pages render empty states.
+
+**Client presentation mode (PWA vs website)**: the client renders different chrome depending on whether it's running as an installed PWA or a regular browser tab — bottom `AppBar` + `/home` entry for PWA, hamburger `SiteHeader` + `/` entry for website. On localhost, append `?presentation=pwa`, `?presentation=website`, or `?presentation=auto` to override the auto-detected mode; the choice is cached in **per-tab** sessionStorage so each tab keeps its own mode after redirects. The dev stack opens both modes in adjacent tabs by default. Source: `packages/shared/src/utils/app/pwa.ts:getClientPresentationMode`.
 
 ## Scope Discipline
 - When instructions say "output in chat" or "just tell me", do NOT edit files

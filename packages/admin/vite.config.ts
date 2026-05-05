@@ -97,7 +97,13 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
       host: true,
       open: false,
       hmr: { overlay: true },
-      watch: { usePolling: true, interval: 100 },
+      // Polling is only required on Docker bind mounts and some network filesystems.
+      // On macOS native FSEvents the default watcher is much cheaper than polling
+      // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
+      watch:
+        process.env.VITE_USE_POLLING === "true"
+          ? { usePolling: true, interval: 100 }
+          : undefined,
       proxy: {
         // Proxy indexer requests to avoid CORS issues in development
         "/api/graphql": graphqlProxy,
