@@ -3,8 +3,8 @@
 **Feature**: `admin-design-revamp`
 **Lane**: `cleanup`
 **Owner**: `claude`
-**Status**: `in_progress` (A1–A3 landed 2026-05-04; A4–A6 + B1–B3 + C1 still open)
-**Branch**: `release/1.1.0` (cleanup A1–A3 committed directly to the release branch per cleanup-lane scope)
+**Status**: `in_progress` (A1–A4 landed 2026-05-04; A5–A6 + B1–B3 + C1 still open)
+**Branch**: `release/1.1.0` (cleanup committed directly to the release branch per cleanup-lane scope)
 **Depends on**: `tier_5_wiring` (landed) + B1–B3 unblocked by `signal-pool-yield-wiring` completion 2026-05-03
 
 ## Purpose
@@ -17,18 +17,19 @@ Resolve the work explicitly deferred during Tiers 1–5. Each item below has pas
 - ✅ A1 — `percent-points.ts` Vitest coverage. New file `packages/shared/src/__tests__/utils/conviction/percent-points.test.ts` (30 cases): pointsToPercent / percentToPoints round-trip, NaN + clamp + budget=0 edge cases, allocationsToPercentMap key correctness, percentMapToSignedDeltas signed-delta correctness across old-only / new-only / both id sets and the combined add+remove+change diff.
 - ✅ A2 — `derivation.ts` Vitest coverage. New file `packages/shared/src/__tests__/utils/conviction/derivation.test.ts` (20 cases): deriveProposalStatus per branch (funded / inactive+0 / inactive+>0 / active+passing / active+accruing), deriveConvictionPercent clamping with pointsPerVoter=0 / memberCount≤0 / weight=0, deriveDailyAccrual zero-cases, deriveThreshold pinning the placeholder constant.
 - ✅ A3 — `useConvictionWeightAllocator` round-trip. New file `packages/shared/src/__tests__/hooks/conviction/useConvictionWeightAllocator.test.tsx` (11 cases): initial mirror, debounce window before/after 400ms, signed-delta correctness end-to-end, custom debounceMs, budget=0 / poolAddress=undefined no-ops, flush() cancels + fires sync, post-mutation server refresh clears isDirty.
+- ✅ A4 — FAB action registration per view. Garden FAB (`buildGardenFabConfig`) extended to edit-garden / invite-gardener / send-distribution; Community FAB (`buildCommunityFabConfig`) extended to new-proposal / add-member / manage-vault with new-proposal as the v2 mobile primary. Hub FAB already stage-aware (`buildHubFabConfig`) and Actions FAB already wires Create Action, so no change needed there. New i18n keys added across en/es/pt; pre-existing `cockpit.community.fab.{addMember,manageVault}` ids that were used in code but missing from the locales were also filled in. New unit tests at `packages/shared/src/__tests__/hooks/admin-ui/fab-config.test.ts` (16 cases) pin action ids, labelIds, navigation targets, and gate behavior.
 
 **TDD evidence**:
-- RED: `cd packages/shared && bun run test -- src/__tests__/utils/conviction/` → `No test files found, exiting with code 1`.
-- GREEN: `cd packages/shared && bun run test -- src/__tests__/utils/conviction/ src/__tests__/hooks/conviction/useConvictionWeightAllocator.test.tsx` → 3 files / 61 tests / 0 failures.
+- A1–A3: RED → `cd packages/shared && bun run test -- src/__tests__/utils/conviction/` → `No test files found`. GREEN → 3 files / 61 tests / 0 failures.
+- A4: GREEN → `cd packages/shared && bun run test -- src/__tests__/hooks/admin-ui/fab-config.test.ts` → 16 tests / 0 failures (proof_limit: pure utility builder, no UI render path).
 
 **Validation**:
-- `bun run format:check` → clean (after `bun format` auto-fix on the two new test files).
-- `bun lint` → 0 errors, 165 pre-existing solhint warnings (none from these tests).
+- `bun run format:check` → clean (after `bun format` auto-fix on touched files).
+- `bun lint` → 0 errors, 165 pre-existing solhint warnings (none from these changes).
+- `bun run lint:vocab` → 0 banned-vocabulary hits across i18n.
 - `node scripts/harness/plan-hub.mjs validate` → `Validated 21 feature hubs.`
 
 **Still open** (this handoff):
-- A4 — FAB action registration per view (Hub / Garden / Community / Actions). ~2 hrs.
 - A5 — Garden Members tab role chips beyond operator. ~1 hr.
 - A6 — Stats slot for Garden + Community headers. ~30 min ea.
 - B1–B3 — `signal-pool-yield-wiring` is `done` (2026-05-03), so the dependency gate is technically lifted. Still requires deciding which of `useGardenYieldWiringState` / a new pool-config hook to consume; out of scope for this release-cleanup pass since none of the missing data is on a release-blocking surface (the FALLBACK_POOL_CONFIG TODO renders sensible numbers).

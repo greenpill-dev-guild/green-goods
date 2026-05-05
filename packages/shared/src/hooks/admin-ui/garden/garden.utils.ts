@@ -1,5 +1,5 @@
 import { adminRoutes, type AdminGardenRouteContext, type FabConfig } from "@green-goods/shared";
-import { RiAddLine, RiSettings3Line } from "@remixicon/react";
+import { RiAddLine, RiHandCoinLine, RiSettings3Line, RiUserAddLine } from "@remixicon/react";
 
 /**
  * Per Tier 4 of the admin design handoff (audit IA-Garden decision):
@@ -24,6 +24,8 @@ export function buildGardenFabConfig(
 ): FabConfig | null {
   if (!hasSelectedGarden || !canManage || view === "settings") return null;
 
+  const communityRouteContext = { gardenAddress: routeContext?.gardenAddress };
+
   return {
     icon: RiAddLine,
     label: "Garden Actions",
@@ -31,12 +33,28 @@ export function buildGardenFabConfig(
       {
         id: "edit-garden",
         icon: RiSettings3Line,
-        label: "Edit Garden",
+        label: "Edit garden",
         labelId: "cockpit.garden.fab.editGarden",
+      },
+      {
+        id: "invite-gardener",
+        icon: RiUserAddLine,
+        label: "Invite gardener",
+        labelId: "cockpit.garden.fab.inviteGardener",
+      },
+      {
+        id: "send-distribution",
+        icon: RiHandCoinLine,
+        label: "Send distribution",
+        labelId: "cockpit.garden.fab.sendDistribution",
       },
     ],
     onAction: (actionId: string) => {
       if (actionId === "edit-garden") navigate(adminRoutes.gardenSettings(routeContext));
+      else if (actionId === "invite-gardener")
+        navigate(adminRoutes.communityMembers(communityRouteContext));
+      else if (actionId === "send-distribution")
+        navigate(adminRoutes.communityPayouts(communityRouteContext));
     },
   };
 }

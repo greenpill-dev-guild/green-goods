@@ -1,5 +1,5 @@
 import { adminRoutes, type AdminCommunityRouteContext, type FabConfig } from "@green-goods/shared";
-import { RiAddLine, RiMoneyDollarCircleLine, RiUserLine } from "@remixicon/react";
+import { RiAddLine, RiMoneyDollarCircleLine, RiUserLine, RiUserVoiceLine } from "@remixicon/react";
 
 export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";
 
@@ -29,20 +29,27 @@ export function buildCommunityFabConfig(
     label: "Community Actions",
     actions: [
       {
+        id: "new-proposal",
+        icon: RiUserVoiceLine,
+        label: "New proposal",
+        labelId: "cockpit.community.fab.newProposal",
+      },
+      {
         id: "add-member",
         icon: RiUserLine,
-        label: "Add Member",
+        label: "Add member",
         labelId: "cockpit.community.fab.addMember",
       },
       {
         id: "manage-vault",
         icon: RiMoneyDollarCircleLine,
-        label: "Manage Vault",
+        label: "Manage vault",
         labelId: "cockpit.community.fab.manageVault",
       },
     ],
     onAction: (actionId: string) => {
-      if (actionId === "add-member") navigate(adminRoutes.communityMembers(routeContext));
+      if (actionId === "new-proposal") navigate(adminRoutes.communityGovernance(routeContext));
+      else if (actionId === "add-member") navigate(adminRoutes.communityMembers(routeContext));
       else if (actionId === "manage-vault")
         navigate(adminRoutes.communityTreasuryVault(routeContext));
     },
