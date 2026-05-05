@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-02",
-    "updated_at": "2026-05-05T03:35:00.000Z",
+    "updated_at": "2026-05-05T03:50:00.000Z",
     "target_date": "2026-05-16"
   },
   "links": {
@@ -103,13 +103,13 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/admin-design-revamp",
       "depends_on": ["ui", "state_api", "contracts", "cleanup"],
       "handoff": "handoffs/claude-cleanup.md",
-      "handoff_note": "QA remains blocked until the cleanup lane lands targeted tests and the small UI follow-ups.",
+      "handoff_note": "Cleanup A1-A6 landed on release/1.1.0 (commits 8405bce1, 6b9faa65, 47c4de59, 49d61acf, ec6c89c0); B1-B3 deferred with concrete blockers. QA needs to (1) live-verify the A4/A5/A6 admin UI changes via Chrome MCP since the cleanup pass could not reach the dev server during a concurrent vite.config edit, (2) confirm the deferred B1-B3 items are filed as backlog plans before merge, (3) run the full test + build ladder against this branch.",
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
@@ -345,6 +345,14 @@
       "status": "b1_b3_investigation_recorded",
       "branch": "release/1.1.0",
       "note": "B1-B3 investigation against live ABI + IVotingPowerRegistry + Envio schema. Confirmed: decay+pointsPerVoter readable, memberCount has no on-chain enumeration, per-member supporter count missing both contract view and indexer entity, threshold/minThresholdPoints not exposed by HYPERCERT_SIGNAL_POOL_ABI. Tightened in-code TODOs in useConvictionProposalsForPool.ts (FALLBACK_POOL_CONFIG + countSupporters) and derivation.ts (BLOCKS_PER_DAY + deriveThreshold) with concrete blockers. Recommended three follow-up backlog plans (conviction-pool-config-onchain, conviction-supporter-count-indexer, conviction-threshold-formula-port). No code-shape changes since shipping partial fixes would silently regress UI numbers."
+    },
+    {
+      "timestamp": "2026-05-05T03:50:00.000Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "ready",
+      "branch": "release/1.1.0",
+      "note": "Flipped qa_pass_1 from blocked to ready after cleanup A1-A6 landed and B1-B3 were properly deferred. Updated eval.md checkboxes (A1-A6 ticked with commit anchors; B1-B3 + C1 marked deferred with cross-reference to handoff investigation). Recorded UI verification gap: A4/A5/A6 changed live admin surfaces but Chrome MCP smoke could not reach the dev server during the cleanup window because a concurrent agent had vite.config.ts in flux. QA inherits the visual smoke for those three surfaces."
     }
   ],
   "taxonomy": {

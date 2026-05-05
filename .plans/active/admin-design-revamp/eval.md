@@ -38,14 +38,25 @@
 - [x] Garden Members tab renders real `garden.gardeners` roster with operator badges.
 - [x] Twelve audit findings from /audit-then-ship pass all addressed in commit `a8586c26`.
 
-## Cleanup — open
-- [ ] Vitest coverage for `percent-points.ts` (round-trip identity, signed-delta correctness, budget=0 edge cases).
-- [ ] Vitest coverage for `derivation.ts` (status mapping per branch, percent clamping, near-threshold detection).
-- [ ] Integration test for `useConvictionWeightAllocator` (allocate → debounce → save → refetch round-trip).
-- [ ] FAB action registration wired in each of Hub / Garden / Community / Actions per the v2 spec dial composition.
-- [ ] Pool config hook from `signal-pool-yield-wiring` consumed by `useConvictionProposalsForPool`; `FALLBACK_POOL_CONFIG` retired.
-- [ ] Per-member supporter count surfaced via new hook; `countSupporters` 1-or-0 placeholder retired.
-- [ ] 21 client-homepage test failures resolved (separate `/audit-then-ship --lens=review` pass on commit `0b4a67e8`).
+## Cleanup — landed (2026-05-04 / 2026-05-05 on `release/1.1.0`)
+
+- [x] **A1** Vitest coverage for `percent-points.ts` (round-trip identity, signed-delta correctness, budget=0 edge cases) — commit `8405bce1`, 30 cases.
+- [x] **A2** Vitest coverage for `derivation.ts` (status mapping per branch, percent clamping, near-threshold detection) — commit `8405bce1`, 20 cases.
+- [x] **A3** Integration test for `useConvictionWeightAllocator` (allocate → debounce → save → refetch round-trip) — commit `8405bce1`, 11 cases.
+- [x] **A4** FAB action registration wired in each of Hub / Garden / Community / Actions per the v2 spec dial composition — commit `6b9faa65`. Hub + Actions FAB already wired pre-cleanup; Garden extended with edit/invite/distribution; Community extended with new-proposal/add-member/manage-vault. 16 unit cases pin action ids + navigation targets.
+- [x] **A5** (handoff catalog item beyond eval scope) Garden Members tab role chips beyond operator — commit `47c4de59`, 9 unit cases. Owner / operator / evaluator / gardener / funder chips per row.
+- [x] **A6** (handoff catalog item beyond eval scope) Stats slot for Garden + Community headers — commit `49d61acf`, 9 unit cases. `MetaStrip density="inline"` with three at-a-glance stats per surface; honors Frontend Rule 17.
+
+## Cleanup — deferred (not release-blocking)
+
+- [ ] **B1** Pool config hook consumed by `useConvictionProposalsForPool`; `FALLBACK_POOL_CONFIG` retired. **Deferred** — see B1–B3 investigation in [`handoffs/claude-cleanup.md`](handoffs/claude-cleanup.md). `decay()` + `pointsPerVoter()` are readable but `memberCount` has no on-chain enumeration; partial fix would regress conviction-percent math.
+- [ ] **B2** Per-member supporter count surfaced via new hook; `countSupporters` 1-or-0 placeholder retired. **Deferred** — needs new contract view OR new Envio entity.
+- [ ] **B3** Threshold formula ported into `deriveThreshold`. **Deferred** — `HYPERCERT_SIGNAL_POOL_ABI` exposes neither `threshold()` nor `minThresholdPoints()`.
+- [ ] **C1** 21 client-homepage test failures (commit `0b4a67e8`). **Deferred** — out of scope for `admin-design-revamp` branch boundary; file as separate `/audit-then-ship --lens=review --no-ship` pass.
+
+## UI verification gap
+
+A4 / A5 / A6 changed live UI surfaces (FAB dial composition, Members role chips, header stats slot). `tsc --noEmit -p packages/admin/tsconfig.json` clean and 9 + 16 + 9 unit cases pin the data layer, but **rendered DOM was not verified via Chrome MCP** — the admin dev server was in flux from a concurrent agent's `packages/admin/vite.config.ts` edit during the smoke window. QA inherits the visual smoke for these three surfaces.
 
 ## Validation Commands
 
