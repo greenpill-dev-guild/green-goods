@@ -42,12 +42,14 @@ const webServers = [
           env: { NODE_ENV: "test" },
         },
       ]),
-  // Client (PWA)
+  // Client (PWA) — `url` (not `port`) so Playwright waits for an actual HTTP
+  // 200 before running tests; Vite binds the TCP socket before the HTTP route
+  // handler is ready, which causes flaky page.goto timeouts in CI.
   ...(shouldStartClient
     ? [
         {
           command: "bun dev:client",
-          port: 3001,
+          url: `${protocol}://localhost:3001`,
           reuseExistingServer: !process.env.CI,
           timeout: 120000,
           env: {
@@ -63,7 +65,7 @@ const webServers = [
     ? [
         {
           command: "bun dev:admin",
-          port: 3002,
+          url: `${protocol}://localhost:3002`,
           reuseExistingServer: !process.env.CI,
           timeout: 120000,
           env: {
