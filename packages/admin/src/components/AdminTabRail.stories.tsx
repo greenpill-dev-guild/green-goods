@@ -131,9 +131,12 @@ export const WithIconsAndCounts: Story = {
     await userEvent.keyboard("{End}");
     await expect(historyTab).toHaveAttribute("aria-selected", "true");
 
-    // Home jumps back to Review.
+    // Home jumps back to Review. The handler moves focus via rAF, so
+    // explicitly refocus the just-selected tab before the next keypress
+    // to avoid races in headless test runners.
     await userEvent.keyboard("{Home}");
     await expect(reviewTab).toHaveAttribute("aria-selected", "true");
+    reviewTab.focus();
 
     // ArrowLeft from Review wraps to History.
     await userEvent.keyboard("{ArrowLeft}");
