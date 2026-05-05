@@ -91,10 +91,10 @@ If interactive agent sessions need richer queries (paginated event timelines, co
 
 ## Checklist
 
-- [ ] Verify `POSTHOG_PROJECT_API_KEY` / `POSTHOG_HOST` are documented in `.env.schema` (add if missing).
-- [ ] Implement `scripts/agents/posthog-query.ts` with the 5 listed subcommands; output JSON to stdout.
-- [ ] Add 5-min file cache for identical queries.
-- [ ] Add `scripts/agents/posthog-query.ts` entry to `scripts/README.md`.
+- [x] Verify `POSTHOG_PROJECT_API_KEY` / `POSTHOG_HOST` are documented in `.env.schema` (add if missing).
+- [x] Implement `scripts/agents/posthog-query.ts` with the 5 listed subcommands; output JSON to stdout.
+- [x] Add 5-min file cache for identical queries.
+- [x] Add `scripts/agents/posthog-query.ts` entry to `scripts/README.md`.
 - [ ] Extend bug-intake routine to call `match-bug-report` and inline results into filed issues (counts in body, replay link in private comment per privacy decision).
 - [ ] Extend bug-intake routine to detect recurring patterns ≥50 sessions and roll up into a parent issue.
 - [ ] Extend the existing `/debug` skill to call `posthog-query` when Afo invokes it on a bug report — pulls matching sessions + replay links into the interactive context.

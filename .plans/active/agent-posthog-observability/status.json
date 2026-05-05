@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-25T00:00:00.000Z",
-    "updated_at": "2026-05-03T00:00:00.000Z"
+    "updated_at": "2026-05-04T22:34:43.886Z"
   },
   "links": {
     "brief": "brief.md",
@@ -39,26 +39,39 @@
       "tdd": {
         "mode": "not_applicable",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "No UI lane is planned for the PostHog read-side query surface."
       },
       "skill_tags": ["agent", "ops"]
     },
     "state_api": {
       "owner": "codex",
-      "status": "ready",
+      "status": "in_progress",
       "branch": "codex/state-api/agent-posthog-observability",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "status": "green_recorded",
+        "red": {
+          "command": "bunx vitest run scripts/agents/posthog-query.test.ts",
+          "evidence": ".plans/active/agent-posthog-observability/handoffs/codex-state-api.md#red"
+        },
+        "green": {
+          "command": "bunx vitest run scripts/agents/posthog-query.test.ts",
+          "evidence": ".plans/active/agent-posthog-observability/handoffs/codex-state-api.md#green"
+        },
         "note": ""
       },
-      "skill_tags": ["agent", "ops", "testing"]
+      "skill_tags": ["agent", "ops", "testing"],
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -69,8 +82,14 @@
       "tdd": {
         "mode": "not_applicable",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "No contract lane is planned for observability query access."
       },
       "skill_tags": ["agent"]
@@ -105,6 +124,22 @@
       "status": "formalized",
       "branch": null,
       "note": "Formalized active loose plan with validated taxonomy and state/API TDD gate."
+    },
+    {
+      "timestamp": "2026-05-04T22:34:24.762Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/agent-posthog-observability",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-04T22:34:43.887Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "codex/state-api/agent-posthog-observability",
+      "note": "Durable PostHog query script, cache, env schema, docs entry, and TDD proof recorded; bug-intake/debug consumer wiring remains open."
     }
   ]
 }
