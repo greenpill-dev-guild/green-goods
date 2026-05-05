@@ -26,7 +26,7 @@ export function PublicFundingBridge() {
       aria-labelledby="public-funding-bridge-title"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.45fr] lg:gap-24">
+        <div className="editorial-cascade grid gap-12 lg:grid-cols-[1fr_1.45fr] lg:gap-24">
           <div>
             <EditorialKicker className="mb-5">
               {formatMessage({

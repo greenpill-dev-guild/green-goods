@@ -2,6 +2,7 @@ import {
   type Address,
   type PublicGardenSummary,
   publicGardenHelpers,
+  useInViewReveal,
   usePublicGardens,
 } from "@green-goods/shared";
 import type {
@@ -174,6 +175,8 @@ export default function FundPage() {
   const [selectorGarden, setSelectorGarden] = useState<PublicGardenSummary | null>(null);
   const [walletDialog, setWalletDialog] = useState<ActiveWalletDialog | null>(null);
   const hasWalletRuntime = Boolean(selectorGarden || walletDialog);
+  const { ref: pathsRef, revealed: pathsRevealed } = useInViewReveal<HTMLElement>();
+  const { ref: gardensRef, revealed: gardensRevealed } = useInViewReveal<HTMLElement>();
 
   const matchHighlightRef = useRef<HTMLDivElement | null>(null);
   const matchedGardenId = resolved.status === "match" ? resolved.garden?.id : undefined;
@@ -268,14 +271,16 @@ export default function FundPage() {
 
       {/* § 01 — Donate vs Endow editorial diptych */}
       <section
+        ref={pathsRef}
+        data-revealed={pathsRevealed}
         className={
           intentId || resolved.status === "stale" || resolved.status === "ambiguous"
-            ? "bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
-            : "bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
+            ? "editorial-section-reveal bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
+            : "editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         }
         aria-labelledby="public-fund-paths-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
@@ -320,10 +325,12 @@ export default function FundPage() {
 
       {/* § 02 — Choose a Garden to support */}
       <section
-        className="bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"
+        ref={gardensRef}
+        data-revealed={gardensRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"
         aria-labelledby="public-fund-gardens-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({

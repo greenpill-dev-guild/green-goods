@@ -90,7 +90,7 @@ export function PublicFeaturedGardens() {
       className="editorial-section-reveal bg-bg-weak-50 px-6 py-16 sm:px-10 md:py-20"
       aria-labelledby="public-featured-title"
     >
-      <div className="mx-auto max-w-7xl">
+      <div className="editorial-cascade mx-auto max-w-7xl">
         <header className="flex flex-col gap-4 border-b border-stroke-soft-200 pb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
           <div>
             <EditorialKicker className="mb-3">

@@ -210,6 +210,61 @@
   }
 
   /*
+   * Inner cascade — direct children of `.editorial-cascade` fade up in
+   * sequence once an ancestor `[data-revealed="true"]` is present. Pair with
+   * `.editorial-section-reveal` on the section root: the section block rises
+   * first (300ms), then its `.editorial-cascade` children settle in 80ms
+   * apart so the eye reads top-to-bottom rather than the whole block
+   * appearing at once. Apply `.editorial-cascade` to whatever wrapper holds
+   * the children you want to cascade — typically the section's content grid
+   * or its `<header>`.
+   *
+   * Cadence note — 80ms intra-cascade delay is intentionally slower than
+   * the dialog body stagger's 70ms (`.public-garden-dialog-stagger` below).
+   * The dialog opens in response to a deliberate click and benefits from a
+   * tighter, more responsive unfold. Editorial reveals fire on scroll —
+   * ambient, not user-triggered — so an extra 10ms reads as more cinematic
+   * and less rushed. Don't unify these unless one of the surfaces' contexts
+   * changes.
+   *
+   * Child-count cap — if a cascade wrapper grows past 6 direct children,
+   * the `nth-child(n + 7)` fallback bunches everything 7+ at 480ms delay.
+   * For ≤6 it's a clean 0/80/160/240/320/400 ms cascade. Today no cascade
+   * surface exceeds 3 children, so the cap is comfortable headroom.
+   *
+   * Reduced motion is handled at the bottom of the file.
+   */
+  .editorial-cascade > * {
+    opacity: 0;
+  }
+
+  [data-revealed="true"] .editorial-cascade > * {
+    animation: editorial-fade-up var(--spring-spatial-duration, 300ms)
+      var(--spring-spatial-easing, ease-out) both;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(2) {
+    animation-delay: 80ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(3) {
+    animation-delay: 160ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(4) {
+    animation-delay: 240ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(5) {
+    animation-delay: 320ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(6) {
+    animation-delay: 400ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(n + 7) {
+    animation-delay: 480ms;
+  }
+
+  /*
    * Public Garden dialog — Radix Dialog rendered as a modal route over the
    * Gardens index. The hero image inside carries a per-garden
    * `view-transition-name` matching the clicked card; PublicGardenCard
@@ -274,7 +329,24 @@
    * `both` fill so the children stay invisible during their delay window
    * (otherwise React renders them at full opacity for a frame before the
    * animation kicks in — the stutter Afo flagged).
+   *
+   * Cadence note — 70ms is intentionally tighter than the editorial scroll
+   * cascade's 80ms (`.editorial-cascade` above). The dialog opens in
+   * response to a deliberate click; a snappier unfold reads as responsive
+   * to the user's action. The scroll cascade is ambient, so 80ms reads as
+   * more cinematic. Don't unify unless the trigger context changes.
+   *
+   * Belt-and-braces: also default the children to `opacity: 0` regardless
+   * of whether the `[data-state="open"]` parent selector has matched yet.
+   * Without this, there's a one-frame race where Radix attaches
+   * `data-state="open"` and the matching animation rule applies, but the
+   * browser may have already painted the children at default opacity 1.
+   * The reduced-motion block below restores `opacity: 1 !important`.
    */
+  .public-garden-dialog-stagger > * {
+    opacity: 0;
+  }
+
   .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > * {
     animation: editorial-fade-up var(--spring-spatial-duration, 300ms)
       var(--spring-spatial-easing, ease-out) both;
@@ -346,6 +418,13 @@
       opacity: 1;
       transform: none;
       transition: none;
+    }
+
+    .editorial-cascade > *,
+    [data-revealed="true"] .editorial-cascade > * {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
     }
 
     .public-garden-dialog .public-garden-dialog-stagger > * {

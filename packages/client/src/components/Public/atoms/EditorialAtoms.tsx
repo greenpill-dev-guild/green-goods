@@ -221,14 +221,38 @@ export function EditorialMetaRow({ items, tone = "default", className }: Editori
 // Action atoms — buttons + links
 // ============================================================================
 
+// Editorial action atoms split into two motion vocabularies on purpose:
+//
+//   1. Capsule action atoms — `EditorialPrimaryButton`, `EditorialGhostButton`,
+//      `EditorialPrimaryLink`, `EditorialGhostLink`. These are *primary*
+//      affordances (CTAs, capsule pills). They get `ACTION_MOTION_CLASSES`
+//      below: a unified press/hover scale (1.02 hover, 0.98 press) on
+//      `--spring-spatial-fast` so the eye registers a tactile "settle" and
+//      "depress." Disabled buttons opt out via `disabled:hover:scale-100` +
+//      `disabled:active:scale-100` resets in each consumer's class list.
+//
+//   2. Quiet inline atoms — `EditorialLinkArrow` (text link with trailing →)
+//      and `EditorialDomainChip` (filter chip). These are *secondary*
+//      affordances that should recede inside body copy or filter rows; a
+//      hover scale on every text link would feel hyperactive. They keep
+//      `transition-colors` only — the `EditorialLinkArrow` arrow span gets a
+//      4px translate-x on hover instead, which is the directional cue. Don't
+//      reach for `ACTION_MOTION_CLASSES` here.
+//
+// `motion-safe` gates the transforms behind `prefers-reduced-motion`; color
+// transitions stay unconditional so disabled-state contrast animates
+// predictably even with motion suppressed.
+const ACTION_MOTION_CLASSES =
+  "transition-[background-color,border-color,color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-safe:hover:scale-[1.02] motion-safe:active:scale-[0.98]";
+
 const PRIMARY_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground shadow-sm transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground shadow-sm hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
 
 const GHOST_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-full border border-stroke-soft-200 bg-bg-white-0 px-6 py-3 text-sm font-medium text-text-strong-950 transition-colors hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-full border border-stroke-soft-200 bg-bg-white-0 px-6 py-3 text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
 
 const GHOST_DARK_CLASSES =
-  "inline-flex items-center justify-center gap-2 rounded-full border border-editorial-deep-fg/40 bg-transparent px-6 py-3 text-sm font-medium text-editorial-deep-fg transition-colors hover:bg-editorial-deep-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editorial-deep-fg focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-full border border-editorial-deep-fg/40 bg-transparent px-6 py-3 text-sm font-medium text-editorial-deep-fg hover:bg-editorial-deep-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editorial-deep-fg focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
 
 export interface EditorialPrimaryButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
@@ -242,7 +266,7 @@ export function EditorialPrimaryButton({
   ...rest
 }: EditorialPrimaryButtonProps) {
   return (
-    <button type={type} className={cn(PRIMARY_CLASSES, className)} {...rest}>
+    <button type={type} className={cn(PRIMARY_CLASSES, ACTION_MOTION_CLASSES, className)} {...rest}>
       {children}
     </button>
   );
@@ -264,7 +288,11 @@ export function EditorialGhostButton({
   return (
     <button
       type={type}
-      className={cn(tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES, className)}
+      className={cn(
+        tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES,
+        ACTION_MOTION_CLASSES,
+        className
+      )}
       {...rest}
     >
       {children}
@@ -284,7 +312,11 @@ export function EditorialPrimaryLink({
   ...rest
 }: EditorialPrimaryLinkProps) {
   return (
-    <Link className={cn(PRIMARY_CLASSES, className)} viewTransition={viewTransition} {...rest}>
+    <Link
+      className={cn(PRIMARY_CLASSES, ACTION_MOTION_CLASSES, className)}
+      viewTransition={viewTransition}
+      {...rest}
+    >
       {children}
     </Link>
   );
@@ -305,7 +337,11 @@ export function EditorialGhostLink({
 }: EditorialGhostLinkProps) {
   return (
     <Link
-      className={cn(tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES, className)}
+      className={cn(
+        tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES,
+        ACTION_MOTION_CLASSES,
+        className
+      )}
       viewTransition={viewTransition}
       {...rest}
     >
@@ -334,18 +370,26 @@ export function EditorialLinkArrow({
   className,
 }: EditorialLinkArrowProps) {
   const baseClasses = cn(
-    "inline-flex items-center gap-2 border-b pb-0.5 text-sm font-medium transition-colors",
+    "group inline-flex items-center gap-2 border-b pb-0.5 text-sm font-medium transition-colors",
     tone === "dark"
       ? "border-editorial-deep-fg/35 text-editorial-deep-fg hover:border-editorial-deep-fg/70"
       : "border-primary-action/35 text-primary-action hover:border-primary-action-hover hover:text-primary-action-hover",
     className
   );
 
+  // Arrow translates 4px right on hover via spring-fast — pairs with the
+  // unified action-motion language on Editorial buttons/links. Reduced motion
+  // pins the arrow in place via `motion-safe`.
+  const arrowClasses =
+    "transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-safe:group-hover:translate-x-1 motion-safe:group-focus-visible:translate-x-1";
+
   if (external) {
     return (
       <a href={to} target="_blank" rel="noreferrer noopener" className={baseClasses}>
         {children}
-        <span aria-hidden="true">→</span>
+        <span aria-hidden="true" className={arrowClasses}>
+          →
+        </span>
       </a>
     );
   }
@@ -353,7 +397,9 @@ export function EditorialLinkArrow({
   return (
     <Link to={to} className={baseClasses} viewTransition>
       {children}
-      <span aria-hidden="true">→</span>
+      <span aria-hidden="true" className={arrowClasses}>
+        →
+      </span>
     </Link>
   );
 }

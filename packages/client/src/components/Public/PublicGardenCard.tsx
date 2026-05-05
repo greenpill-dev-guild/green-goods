@@ -82,7 +82,7 @@ export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCa
 
       <h3
         className={cn(
-          "font-serif font-normal leading-[1.1] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action",
+          "font-serif font-normal leading-[1.1] tracking-[-0.012em] text-text-strong-950 transition-[color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] group-hover:text-primary-action motion-safe:group-hover:-translate-y-px",
           isLead ? "text-2xl md:text-3xl" : "text-xl"
         )}
         title={garden.name}

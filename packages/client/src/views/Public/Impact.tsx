@@ -2,6 +2,7 @@ import {
   type PublicGardenSummary,
   type PublicImpactEvidenceKind,
   type PublicImpactEvidenceRecord,
+  useInViewReveal,
   usePublicGardens,
   usePublicImpactEvidence,
   usePublicStats,
@@ -154,6 +155,8 @@ export default function ImpactPage() {
   const [activeRecord, setActiveRecord] = useState<PublicImpactEvidenceRecord | null>(null);
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [domainFilter, setDomainFilter] = useState<EditorialDomain>("all");
+  const { ref: proofRef, revealed: proofRevealed } = useInViewReveal<HTMLElement>();
+  const { ref: ledgerRef, revealed: ledgerRevealed } = useInViewReveal<HTMLElement>();
 
   const gardensById = useMemo(() => {
     const map = new Map<string, PublicGardenSummary>();
@@ -226,10 +229,12 @@ export default function ImpactPage() {
       />
 
       <section
-        className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
+        ref={proofRef}
+        data-revealed={proofRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         aria-labelledby="public-impact-proof-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="mb-10 border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
@@ -301,10 +306,12 @@ export default function ImpactPage() {
       />
 
       <section
-        className="bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
+        ref={ledgerRef}
+        data-revealed={ledgerRevealed}
+        className="editorial-section-reveal bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
         aria-labelledby="public-impact-ledger-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({

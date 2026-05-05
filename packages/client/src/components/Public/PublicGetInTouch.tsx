@@ -104,7 +104,7 @@ export function PublicGetInTouch() {
       className="editorial-section-reveal bg-editorial-deep px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-get-in-touch-title"
     >
-      <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-24">
+      <div className="editorial-cascade mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.1fr] lg:gap-24">
         <div>
           <EditorialKicker tone="dark" className="mb-5">
             {formatMessage({

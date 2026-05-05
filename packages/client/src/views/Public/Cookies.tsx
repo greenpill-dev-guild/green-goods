@@ -11,6 +11,7 @@ import {
   useCampaignCookieJarCampaigns,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
+  useInViewReveal,
   useUser,
   validateDecimalInput,
 } from "@green-goods/shared";
@@ -853,6 +854,7 @@ function CampaignCookieJarDialog({
 function CookiesCampaignSurface() {
   const { formatMessage } = useIntl();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { ref: statsRef, revealed: statsRevealed } = useInViewReveal<HTMLElement>();
   const {
     campaigns,
     isLoading: isCampaignListLoading,
@@ -900,13 +902,15 @@ function CookiesCampaignSurface() {
   return (
     <>
       <section
-        className="mx-auto max-w-7xl px-6 sm:px-10"
+        ref={statsRef}
+        data-revealed={statsRevealed}
+        className="editorial-section-reveal mx-auto max-w-7xl px-6 sm:px-10"
         aria-label={formatMessage({
           id: "public.cookies.statsLabel",
           defaultMessage: "Cookie jar stats",
         })}
       >
-        <div className="grid border-b border-stroke-soft-200 bg-bg-weak-50 sm:grid-cols-3">
+        <div className="editorial-cascade grid border-b border-stroke-soft-200 bg-bg-weak-50 sm:grid-cols-3">
           <CookieIndexStat
             label={formatMessage({
               id: "public.cookies.stats.configured",

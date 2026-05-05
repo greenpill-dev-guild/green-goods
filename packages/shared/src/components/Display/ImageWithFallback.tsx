@@ -145,10 +145,18 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   const needsRace = Boolean(ipfsPath && !cachedUrl);
   const initialSrc = needsRace ? "" : cachedUrl ? optimizeForDisplay(cachedUrl) : safeSrc;
 
+  // When an IPFS gateway has already been resolved in this session, the bytes
+  // are also in the browser HTTP cache — paint the <img> at full opacity from
+  // the first frame instead of cycling through opacity-0 → image-reveal. The
+  // opacity-0 frame would otherwise be captured by View Transitions snapshots
+  // (e.g. Garden card → dialog morph), making the new state's wrapper-bg show
+  // through during the box interpolation instead of the photograph.
+  const hasResolvedCache = Boolean(ipfsPath && cachedUrl);
+
   const [currentSrc, setCurrentSrc] = useState(initialSrc);
   const [hasError, setHasError] = useState(!safeSrc);
-  const [isLoading, setIsLoading] = useState(!!safeSrc);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!safeSrc && !hasResolvedCache);
+  const [isLoaded, setIsLoaded] = useState(hasResolvedCache);
 
   // Re-sync state when the `src` prop changes. `useState` only consumes its
   // initializer on first mount, so without this effect a single component
@@ -157,9 +165,10 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   useEffect(() => {
     setCurrentSrc(initialSrc);
     setHasError(!safeSrc);
-    setIsLoading(!!safeSrc);
-    setIsLoaded(false);
-    // initialSrc is fully derived from safeSrc/ipfsPath/cachedUrl/needsRace
+    setIsLoading(!!safeSrc && !hasResolvedCache);
+    setIsLoaded(hasResolvedCache);
+    // initialSrc / hasResolvedCache are fully derived from
+    // safeSrc/ipfsPath/cachedUrl/needsRace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [safeSrc, ipfsPath, cachedUrl, needsRace]);
 

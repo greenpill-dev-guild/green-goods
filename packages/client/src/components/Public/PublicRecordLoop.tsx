@@ -71,7 +71,7 @@ export function PublicRecordLoop() {
       className="editorial-section-reveal bg-bg-weak-50 px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-loop-title"
     >
-      <div className="mx-auto max-w-7xl">
+      <div className="editorial-cascade mx-auto max-w-7xl">
         <div className="max-w-3xl">
           <EditorialKicker className="mb-5 whitespace-nowrap text-[10px] tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
             {formatMessage({

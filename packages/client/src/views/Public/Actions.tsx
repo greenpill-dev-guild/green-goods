@@ -1,4 +1,4 @@
-import { type Action, cn, useActions } from "@green-goods/shared";
+import { type Action, cn, useActions, useInViewReveal } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -111,6 +111,8 @@ export default function ActionsGallery() {
   const { data: actions = [], isLoading } = useActions();
   const [domain, setDomain] = useState<EditorialDomain>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
+  const { ref: domainsRef, revealed: domainsRevealed } = useInViewReveal<HTMLElement>();
+  const { ref: guideRef, revealed: guideRevealed } = useInViewReveal<HTMLElement>();
 
   const filtered = useMemo(() => {
     if (domain === "all") return actions;
@@ -154,10 +156,12 @@ export default function ActionsGallery() {
 
       {/* § 01 — Four domains explainer */}
       <section
-        className="bg-bg-weak-50 px-6 pt-32 pb-12 sm:px-10 sm:pt-36 md:pt-40 md:pb-16"
+        ref={domainsRef}
+        data-revealed={domainsRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-12 sm:px-10 sm:pt-36 md:pt-40 md:pb-16"
         aria-labelledby="public-actions-domains-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
@@ -210,10 +214,12 @@ export default function ActionsGallery() {
 
       {/* § 02 — Field guide */}
       <section
-        className="bg-bg-weak-50 px-6 pt-12 pb-16 sm:px-10 md:pt-16 md:pb-20"
+        ref={guideRef}
+        data-revealed={guideRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-12 pb-16 sm:px-10 md:pt-16 md:pb-20"
         aria-labelledby="public-actions-grid-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({

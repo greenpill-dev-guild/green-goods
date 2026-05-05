@@ -69,7 +69,7 @@ export function PublicProofBand({
       className="editorial-section-reveal bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
       aria-labelledby="public-proof-title"
     >
-      <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.6fr] lg:gap-24">
+      <div className="editorial-cascade mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_1.6fr] lg:gap-24">
         <div>
           <EditorialKicker className="mb-5">
             {formatMessage({
