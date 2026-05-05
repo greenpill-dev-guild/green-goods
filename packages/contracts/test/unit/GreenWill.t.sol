@@ -483,6 +483,7 @@ contract MaliciousGreenWillLock is IPublicLock {
     uint256 internal _supply;
 
     function setCallback(address target, bytes4 selector) external {
+        // Access control intentionally omitted — this is a test-only mock.
         callbackTarget = target;
         callbackSelector = selector;
     }
@@ -504,9 +505,7 @@ contract MaliciousGreenWillLock is IPublicLock {
         // Trigger re-entry attempt; outcome intentionally discarded in this test mock.
         if (callbackTarget != address(0)) {
             // solhint-disable-next-line avoid-low-level-calls
-            (bool success,) = callbackTarget.call(abi.encodeWithSelector(callbackSelector));
-            // Silences unused-variable warning — re-entry success/failure does not affect this mock.
-            success;
+            callbackTarget.call(abi.encodeWithSelector(callbackSelector));
         }
     }
 

@@ -257,6 +257,8 @@ contract GreenWill is OwnableUpgradeable, UUPSUpgradeable {
         BadgeClass storage badgeClass = _badgeClasses[badgeId];
 
         // Effects: write the record first so any re-entrant call hits the duplicate-claim guard.
+        // unlockTokenId is initialised to 0 and patched below once the external call returns —
+        // this is intentional CEI ordering, not a default value that persists.
         _badgeRecords[badgeId][account] = BadgeRecord({
             issued: true,
             issuedAt: uint64(block.timestamp),
