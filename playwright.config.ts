@@ -24,15 +24,24 @@ const playwrightApp = process.env.PLAYWRIGHT_APP;
 const shouldStartClient = playwrightApp !== "admin";
 const shouldStartAdmin = playwrightApp !== "client";
 
+// CI smoke / production-flows tests mock indexer GraphQL calls via Playwright
+// route interception, so the live envio indexer (which needs Docker) is not
+// required. SKIP_INDEXER=true (default in CI) keeps the webServer list lean.
+const skipIndexer = envFlag("SKIP_INDEXER") || (!!process.env.CI && !envFlag("REQUIRE_INDEXER"));
+
 const webServers = [
   // Indexer (GraphQL)
-  {
-    command: "bun dev:indexer",
-    port: 8080,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60000,
-    env: { NODE_ENV: "test" },
-  },
+  ...(skipIndexer
+    ? []
+    : [
+        {
+          command: "bun dev:indexer",
+          port: 8080,
+          reuseExistingServer: !process.env.CI,
+          timeout: 60000,
+          env: { NODE_ENV: "test" },
+        },
+      ]),
   // Client (PWA)
   ...(shouldStartClient
     ? [
