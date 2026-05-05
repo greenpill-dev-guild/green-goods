@@ -15,10 +15,14 @@ bun run dev                  # Alias for dev:full
 bun run dev:stop             # Stop all services
 bun format && bun lint       # Format and lint workspace
 bun run test                 # Run all tests (CRITICAL: not `bun test`)
+bun run test:fast            # Same scope, but cache-aware via Turborepo (skips packages with unchanged inputs)
+bun run test:fast:force      # Same as test:fast but bypasses cache (use when debugging a stale cache hit)
 bun build                    # Build everything (respects dependency order)
 ```
 
 > **`bun test` vs `bun run test`**: `bun test` uses bun's built-in runner (ignores vitest config). `bun run test` runs the package.json script (vitest with proper environment). Always use `bun run test`.
+
+> **`test` vs `test:fast`**: `bun run test` always runs every package via `bun --filter`. `bun run test:fast` runs the same scope through Turborepo, which caches passing test runs by input hash. Cache invalidates automatically when a package's source, its workspace dependencies' source (shared/contracts), `.env`, `biome.json`, or root tsconfigs change. **Failing tests are never cached** — fix the test, not the cache. To force a fresh run, use `bun run test:fast:force` or `rm -rf .turbo`.
 
 Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json for available scripts).
 
