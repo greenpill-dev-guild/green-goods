@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-04-30T00:00:00.000Z",
-    "updated_at": "2026-05-03T12:00:00.000Z"
+    "updated_at": "2026-05-04T22:48:07.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -100,14 +100,38 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "ready",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/client-pwa-gardener-audit",
       "branch_trigger": "claude/qa-pass-1/client-pwa-gardener-audit",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "skill_tags": ["testing", "review"]
+      "skill_tags": ["testing", "review"],
+      "evidence": {
+        "browser_verified": [
+          "/?presentation=website keeps the public SiteHeader and has no authenticated bottom nav",
+          "/gardens/vida-verde?presentation=website keeps the public shell and opens the Garden not found dialog because local public garden data is empty",
+          "/home?presentation=pwa redirects unauthenticated users to /login; /login shows Create your account as primary and Sign in with a wallet as secondary; clicking primary reveals the display-name input and Create account action"
+        ],
+        "code_verified": [
+          "Login.test.tsx, Assessment.test.tsx, and ProfileAccount.test.tsx passed via the root Vitest entrypoint: 3 files, 30 tests",
+          "Garden header gating remains source-correct: showGovernanceButton requires hasGovernanceConfigured && canReview; showEndowmentButton requires vaults plus canReview or own deposit",
+          "Assessment route remains source/test-correct for non-operator metric rows and operator-only impact attestations"
+        ],
+        "blocked_repros": [
+          "packages/client/src/views/Profile/Account.tsx renders <AccountInfo /> directly at top level, with no <details>/<summary> disclosure",
+          "rg 'app\\.profile\\.accountDetails(Title|Hint)' packages/client/src packages/shared/src/i18n returns no matches, so the Account details disclosure copy contract is absent",
+          "packages/client/src/views/Profile/AccountInfo.tsx renders Account, auth method, address, passkey warning, and logout directly",
+          "packages/client/src/views/Profile/index.tsx still states raw addresses live behind the Account details disclosure, but the disclosure no longer exists"
+        ],
+        "proof_limits": [
+          "No authenticated live PWA Home/Garden/Profile check in this pass because the available browser profile was logged out",
+          "No populated public Garden dialog check because local public garden data was empty",
+          "No fresh mobile runtime screenshot because headless Chromium launch required sandbox escalation and that escalation was rejected",
+          "No runtime Governance positive case because local data/auth did not provide canReview plus configured Conviction strategy"
+        ]
+      }
     }
   },
   "history": [
@@ -126,6 +150,14 @@
       "status": "passed",
       "branch": "claude/qa-pass-1/client-pwa-gardener-audit",
       "note": "Browser walkthrough completed at desktop 1302x629 and mobile 447x629 against running dev:web. Browser-verified: shell boundary, /home/:id non-operator header gating, /profile Account details disclosure collapsed default. Code-only: /login passkey-first (would require destroying auth session) and /home/:id/assessments/:assessmentId (no assessment data in local dataset). Evidence in handoffs/claude-qa-pass-1.md."
+    },
+    {
+      "timestamp": "2026-05-04T22:48:07.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": "release/1.1.0",
+      "note": "Independent QA pass found the Account details disclosure expected by qa_pass_1 is no longer present on release/1.1.0: ProfileAccount renders AccountInfo directly, the accountDetailsTitle/accountDetailsHint keys are absent, and account/address/passkey warning/logout content is visible at top level. Focused Login/Assessment/ProfileAccount tests passed via root Vitest; unauthenticated browser profile and empty public garden data limited live PWA and populated dialog proof. Evidence in handoffs/codex-qa-pass-2.md."
     }
   ]
 }
