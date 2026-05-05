@@ -3,7 +3,7 @@
 **Feature**: `admin-design-revamp`
 **Lane**: `cleanup`
 **Owner**: `claude`
-**Status**: `in_progress` (A1–A4 landed 2026-05-04; A5–A6 + B1–B3 + C1 still open)
+**Status**: `in_progress` (A1–A5 landed; A6 + B1–B3 + C1 still open)
 **Branch**: `release/1.1.0` (cleanup committed directly to the release branch per cleanup-lane scope)
 **Depends on**: `tier_5_wiring` (landed) + B1–B3 unblocked by `signal-pool-yield-wiring` completion 2026-05-03
 
@@ -18,10 +18,12 @@ Resolve the work explicitly deferred during Tiers 1–5. Each item below has pas
 - ✅ A2 — `derivation.ts` Vitest coverage. New file `packages/shared/src/__tests__/utils/conviction/derivation.test.ts` (20 cases): deriveProposalStatus per branch (funded / inactive+0 / inactive+>0 / active+passing / active+accruing), deriveConvictionPercent clamping with pointsPerVoter=0 / memberCount≤0 / weight=0, deriveDailyAccrual zero-cases, deriveThreshold pinning the placeholder constant.
 - ✅ A3 — `useConvictionWeightAllocator` round-trip. New file `packages/shared/src/__tests__/hooks/conviction/useConvictionWeightAllocator.test.tsx` (11 cases): initial mirror, debounce window before/after 400ms, signed-delta correctness end-to-end, custom debounceMs, budget=0 / poolAddress=undefined no-ops, flush() cancels + fires sync, post-mutation server refresh clears isDirty.
 - ✅ A4 — FAB action registration per view. Garden FAB (`buildGardenFabConfig`) extended to edit-garden / invite-gardener / send-distribution; Community FAB (`buildCommunityFabConfig`) extended to new-proposal / add-member / manage-vault with new-proposal as the v2 mobile primary. Hub FAB already stage-aware (`buildHubFabConfig`) and Actions FAB already wires Create Action, so no change needed there. New i18n keys added across en/es/pt; pre-existing `cockpit.community.fab.{addMember,manageVault}` ids that were used in code but missing from the locales were also filled in. New unit tests at `packages/shared/src/__tests__/hooks/admin-ui/fab-config.test.ts` (16 cases) pin action ids, labelIds, navigation targets, and gate behavior.
+- ✅ A5 — Garden Members tab role chips beyond operator. `GardenMembersList` now accepts evaluators / funders / owners alongside the existing gardeners + operators arrays. New `buildMemberRoleSets` + `memberRolesForAddress` helpers (exported for test reach) compute the per-member role list in canonical privilege order (owner → operator → evaluator → gardener → funder; "community" excluded — Members tab focuses on active roster). Each row renders one chip per role using a palette that preserves operator=success from Tier 5c (instead of switching to GARDEN_ROLE_COLORS.operator=info, which would silently change every row's visual identity). Reviewers filter chip is now wired to the evaluator role; Gardeners filter narrows to gardener-only members. New i18n key `cockpit.garden.members.rolesLabel` (en/es/pt) labels the chip group for AT. New unit tests at `packages/admin/src/__tests__/components/Garden/memberRoles.test.ts` (9 cases) pin role-set construction, address case-insensitivity, canonical ordering, multi-role members, and exclusion of "community".
 
 **TDD evidence**:
 - A1–A3: RED → `cd packages/shared && bun run test -- src/__tests__/utils/conviction/` → `No test files found`. GREEN → 3 files / 61 tests / 0 failures.
 - A4: GREEN → `cd packages/shared && bun run test -- src/__tests__/hooks/admin-ui/fab-config.test.ts` → 16 tests / 0 failures (proof_limit: pure utility builder, no UI render path).
+- A5: GREEN → `cd packages/admin && bun run test -- src/__tests__/components/Garden/memberRoles.test.ts` → 9 tests / 0 failures (proof_limit: pure role-set utility; chip rendering covered by existing data-component selectors that operators inspect via Chrome MCP).
 
 **Validation**:
 - `bun run format:check` → clean (after `bun format` auto-fix on touched files).
@@ -30,7 +32,6 @@ Resolve the work explicitly deferred during Tiers 1–5. Each item below has pas
 - `node scripts/harness/plan-hub.mjs validate` → `Validated 21 feature hubs.`
 
 **Still open** (this handoff):
-- A5 — Garden Members tab role chips beyond operator. ~1 hr.
 - A6 — Stats slot for Garden + Community headers. ~30 min ea.
 - B1–B3 — `signal-pool-yield-wiring` is `done` (2026-05-03), so the dependency gate is technically lifted. Still requires deciding which of `useGardenYieldWiringState` / a new pool-config hook to consume; out of scope for this release-cleanup pass since none of the missing data is on a release-blocking surface (the FALLBACK_POOL_CONFIG TODO renders sensible numbers).
 - C1 — 21 client-homepage test failures. Out of scope for the admin-design-revamp branch boundary; should be filed as a separate `/audit-then-ship --lens=review --no-ship` pass on commit `0b4a67e8`.

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-02",
-    "updated_at": "2026-05-05T02:15:00.000Z",
+    "updated_at": "2026-05-05T02:50:00.000Z",
     "target_date": "2026-05-16"
   },
   "links": {
@@ -216,7 +216,7 @@
       "branch": "release/1.1.0",
       "depends_on": ["ui", "state_api", "contracts", "tier_5_wiring"],
       "handoff": "handoffs/claude-cleanup.md",
-      "handoff_note": "A1–A4 landed 2026-05-04 on release/1.1.0; A5–A6 + B1–B3 + C1 still open. signal-pool-yield-wiring completed 2026-05-03 so B1–B3 dependency gate is lifted but those items are not release-blocking.",
+      "handoff_note": "A1–A5 landed on release/1.1.0; A6 + B1–B3 + C1 still open. signal-pool-yield-wiring completed 2026-05-03 so B1–B3 dependency gate is lifted but those items are not release-blocking.",
       "skill_tags": ["testing", "ui", "react"],
       "tdd": {
         "mode": "required",
@@ -321,6 +321,14 @@
       "status": "a4_landed",
       "branch": "release/1.1.0",
       "note": "A4 FAB action registration: Garden FAB extended (edit-garden / invite-gardener / send-distribution); Community FAB extended (new-proposal / add-member / manage-vault). Hub + Actions FAB already wired and unchanged. New i18n keys across en/es/pt + filled two pre-existing missing community fab ids. fab-config.test.ts adds 16 unit cases for action ids, labelIds, navigation targets, and gates. A5–A6 still open."
+    },
+    {
+      "timestamp": "2026-05-05T02:50:00.000Z",
+      "actor": "claude",
+      "lane": "cleanup",
+      "status": "a5_landed",
+      "branch": "release/1.1.0",
+      "note": "A5 Garden Members role chips: GardenMembersList now renders one chip per role (owner / operator / evaluator / gardener / funder) using new buildMemberRoleSets + memberRolesForAddress helpers. Reviewers filter wired to evaluator role. New i18n key cockpit.garden.members.rolesLabel (en/es/pt). New unit test memberRoles.test.ts (9 cases) pins role-set construction + canonical ordering + case-insensitivity. A6 + B1–B3 + C1 remain open."
     }
   ],
   "taxonomy": {

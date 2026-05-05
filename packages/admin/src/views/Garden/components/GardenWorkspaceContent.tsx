@@ -3,6 +3,8 @@ import {
   AddressDisplay,
   Alert,
   EmptyState,
+  GARDEN_ROLE_I18N_KEYS,
+  type GardenRole,
   Surface,
   type AdminWorkspaceSectionTab,
   type useGardenWorkspaceController,
@@ -115,6 +117,9 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
             <GardenMembersList
               gardeners={workspace.garden.gardeners}
               operators={workspace.garden.operators ?? []}
+              evaluators={workspace.garden.evaluators ?? []}
+              funders={workspace.garden.funders ?? []}
+              owners={workspace.garden.owners ?? []}
               gardenName={workspace.garden.name}
             />
           ) : null}
@@ -187,17 +192,81 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
 interface GardenMembersListProps {
   gardeners: Address[];
   operators: Address[];
+  evaluators: Address[];
+  funders: Address[];
+  owners: Address[];
   gardenName: string;
 }
 
 /**
- * Tier 5c: real Members tab roster — replaces the Tier 4 EmptyState
- * placeholder with a list of gardeners + operator chips. Uses
- * AddressDisplay for ENS resolution + truncation. Activity-state /
- * role chips beyond operator/gardener defer to a later iteration when
- * the data layer surfaces last-active timestamps.
+ * Tier 5c shipped real Members tab data; cleanup A5 extends the chip strip
+ * from operator-only to operator / gardener / evaluator / funder / owner per
+ * the audit-then-ship plan handoff. Uses AddressDisplay for ENS resolution +
+ * truncation; the chip palette intentionally preserves operator=success from
+ * Tier 5c instead of switching to GARDEN_ROLE_COLORS.operator=info, which
+ * would silently change the visual identity of every existing row.
  */
 type GardenMembersFilter = "all" | "operators" | "reviewers" | "gardeners" | "pending";
+
+/**
+ * Roles displayed as chips on each member row, in canonical privilege order.
+ * "community" is excluded — Members tab focuses on active roster, not
+ * passive community participants.
+ */
+const MEMBER_ROLE_DISPLAY_ORDER = [
+  "owner",
+  "operator",
+  "evaluator",
+  "gardener",
+  "funder",
+] as const satisfies readonly GardenRole[];
+
+type MemberDisplayRole = (typeof MEMBER_ROLE_DISPLAY_ORDER)[number];
+
+const MEMBER_ROLE_CHIP_CLASSES: Record<MemberDisplayRole, string> = {
+  owner: "bg-warning-lighter text-warning-dark",
+  operator: "bg-success-lighter text-success-dark",
+  evaluator: "bg-feature-lighter text-feature-dark",
+  gardener: "bg-information-lighter text-information-dark",
+  funder: "bg-primary-lighter text-primary-dark",
+};
+
+export interface MemberRoleSets {
+  owner: Set<string>;
+  operator: Set<string>;
+  evaluator: Set<string>;
+  gardener: Set<string>;
+  funder: Set<string>;
+}
+
+/**
+ * Build lowercase role sets from per-role address arrays. Exported for unit
+ * tests so the role-derivation contract is pinned without rendering the row.
+ */
+export function buildMemberRoleSets(input: {
+  owners: Address[];
+  operators: Address[];
+  evaluators: Address[];
+  gardeners: Address[];
+  funders: Address[];
+}): MemberRoleSets {
+  return {
+    owner: new Set(input.owners.map((address) => address.toLowerCase())),
+    operator: new Set(input.operators.map((address) => address.toLowerCase())),
+    evaluator: new Set(input.evaluators.map((address) => address.toLowerCase())),
+    gardener: new Set(input.gardeners.map((address) => address.toLowerCase())),
+    funder: new Set(input.funders.map((address) => address.toLowerCase())),
+  };
+}
+
+/**
+ * Roles a member holds, returned in MEMBER_ROLE_DISPLAY_ORDER so chip rows
+ * are visually stable across members. Address comparison is lowercase-safe.
+ */
+export function memberRolesForAddress(address: Address, sets: MemberRoleSets): MemberDisplayRole[] {
+  const lower = address.toLowerCase();
+  return MEMBER_ROLE_DISPLAY_ORDER.filter((role) => sets[role].has(lower));
+}
 
 const GARDEN_MEMBERS_FILTERS: ReadonlyArray<{
   id: GardenMembersFilter;
@@ -223,28 +292,46 @@ const GARDEN_MEMBERS_FILTERS: ReadonlyArray<{
   { id: "pending", labelId: "cockpit.garden.members.filter.pending", defaultMessage: "Pending" },
 ];
 
-function GardenMembersList({ gardeners, operators, gardenName }: GardenMembersListProps) {
+function GardenMembersList({
+  gardeners,
+  operators,
+  evaluators,
+  funders,
+  owners,
+  gardenName,
+}: GardenMembersListProps) {
   const { formatMessage } = useIntl();
   const [filter, setFilter] = useState<GardenMembersFilter>("all");
-  const operatorSet = new Set(operators.map((address) => address.toLowerCase()));
+
+  const roleSets = useMemo(
+    () => buildMemberRoleSets({ owners, operators, evaluators, gardeners, funders }),
+    [gardeners, operators, evaluators, funders, owners]
+  );
 
   const visibleGardeners = useMemo(() => {
-    // Per handoff Garden chips (All / Operators / Reviewers / Gardeners / Pending):
-    // Operators + Gardeners + All are wired against existing role data.
-    // Reviewers + Pending are inert chips — no role data exists yet so they
-    // collapse to an empty set on click, matching the audit's "stub the rest"
-    // direction lock.
+    // Filter chips: All / Operators / Reviewers / Gardeners / Pending.
+    // Cleanup A5 wires Reviewers to the evaluator role (was an empty stub
+    // before the role-set extension). "Gardeners" narrows to members whose
+    // only display role is "gardener" — operators-and-evaluators-and-funders
+    // surface in their own chip filters. Pending stays inert; no pending-
+    // member data exists yet.
     if (filter === "operators") {
-      return gardeners.filter((address) => operatorSet.has(address.toLowerCase()));
+      return gardeners.filter((address) => roleSets.operator.has(address.toLowerCase()));
+    }
+    if (filter === "reviewers") {
+      return gardeners.filter((address) => roleSets.evaluator.has(address.toLowerCase()));
     }
     if (filter === "gardeners") {
-      return gardeners.filter((address) => !operatorSet.has(address.toLowerCase()));
+      return gardeners.filter((address) => {
+        const roles = memberRolesForAddress(address, roleSets);
+        return roles.length === 1 && roles[0] === "gardener";
+      });
     }
-    if (filter === "reviewers" || filter === "pending") {
+    if (filter === "pending") {
       return [];
     }
     return gardeners;
-  }, [filter, gardeners, operatorSet]);
+  }, [filter, gardeners, roleSets]);
 
   if (gardeners.length === 0) {
     return (
@@ -308,28 +395,37 @@ function GardenMembersList({ gardeners, operators, gardenName }: GardenMembersLi
           </li>
         ) : null}
         {visibleGardeners.map((address) => {
-          const isOperator = operatorSet.has(address.toLowerCase());
+          const memberRoles = memberRolesForAddress(address, roleSets);
+          const primaryRole = memberRoles[0] ?? "gardener";
           return (
             <li
               key={address}
               data-slot="member-row"
-              data-role={isOperator ? "operator" : "gardener"}
+              data-role={primaryRole}
               className="flex items-center justify-between gap-3 rounded-[var(--r-md,12px)] border border-stroke-soft bg-bg-white-0 px-3 py-2.5 shadow-[var(--edge-rest)]"
             >
               <AddressDisplay address={address} className="min-w-0 flex-1" />
-              {isOperator ? (
-                <span
-                  className="inline-flex items-center gap-1 rounded-full bg-success-lighter px-2 py-0.5 text-label-sm font-medium text-success-dark"
+              {memberRoles.length > 0 ? (
+                <div
+                  className="flex flex-wrap items-center justify-end gap-1"
                   aria-label={formatMessage({
-                    id: "cockpit.garden.members.operatorBadge",
-                    defaultMessage: "Operator",
+                    id: "cockpit.garden.members.rolesLabel",
+                    defaultMessage: "Roles",
                   })}
                 >
-                  {formatMessage({
-                    id: "cockpit.garden.members.operatorBadge",
-                    defaultMessage: "Operator",
+                  {memberRoles.map((role) => {
+                    const label = formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular });
+                    return (
+                      <span
+                        key={role}
+                        data-role-chip={role}
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label-sm font-medium ${MEMBER_ROLE_CHIP_CLASSES[role]}`}
+                      >
+                        {label}
+                      </span>
+                    );
                   })}
-                </span>
+                </div>
               ) : null}
             </li>
           );

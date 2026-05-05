@@ -2406,6 +2406,7 @@
   "cockpit.garden.impactPlaceholder": "As métricas de impacto serão exibidas aqui",
   "cockpit.garden.loadFailed": "Não foi possível carregar este jardim",
   "cockpit.garden.loadFailedDescription": "Tente escolher outro jardim ou atualizar a página.",
+  "cockpit.garden.members.rolesLabel": "Funções",
   "cockpit.garden.overview": "Visão geral",
   "cockpit.garden.overviewPlaceholder": "A visão geral do jardim será exibida aqui",
   "cockpit.garden.settings": "Configurações",
