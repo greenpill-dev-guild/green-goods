@@ -53,6 +53,7 @@ export {
   deriveCampaignCookieJarClaimState,
   diffCampaignCookieJarAllowlist,
   normalizeCampaignAddress,
+  normalizeCampaignMetadataUrl,
   parseCampaignAddressList,
   parseCampaignCookieJarFallbacks,
   parseCampaignCookieJarMetadata,

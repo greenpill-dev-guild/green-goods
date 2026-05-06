@@ -338,6 +338,9 @@ export function useCreateCampaignCookieJar(options: CookieJarMutationOptions = {
         buildCampaignCookieJarMetadata({
           title: params.title,
           slug: params.slug,
+          description: params.description,
+          image: params.image,
+          externalUrl: params.externalUrl,
           sourceGardens: params.sourceGardens,
           extraAllowlist: params.extraAllowlist,
           chainId,

@@ -89,6 +89,9 @@ describe("cookie jar campaign utilities", () => {
     const metadata = buildCampaignCookieJarMetadata({
       title: "Earth Week",
       slug: "earth-week",
+      description: "A seasonal campaign for garden operator rewards.",
+      image: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd",
+      externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       sourceGardens: [GARDEN_A, GARDEN_A, GARDEN_B],
       extraAllowlist: [EXTRA],
       chainId: 11155111,
@@ -96,10 +99,33 @@ describe("cookie jar campaign utilities", () => {
     });
 
     expect(metadata.sourceGardens).toEqual([GARDEN_A, GARDEN_B]);
+    expect(metadata.description).toBe("A seasonal campaign for garden operator rewards.");
+    expect(metadata.image).toBe(
+      "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd"
+    );
+    expect(metadata.externalUrl).toBe("https://greengoods.app/cookies?campaign=earth-week");
     expect(parseCampaignCookieJarMetadata(JSON.stringify(metadata))).toEqual(metadata);
     expect(
       parseCampaignCookieJarMetadata(JSON.stringify({ ...metadata, kind: "other" }))
     ).toBeNull();
+  });
+
+  it("drops unsafe optional metadata URLs", () => {
+    const metadata = buildCampaignCookieJarMetadata({
+      title: "Earth Week",
+      slug: "earth-week",
+      description: "Launch<script>alert('x')</script>",
+      image: "javascript:alert(1)",
+      externalUrl: "ftp://example.com/campaign",
+      sourceGardens: [GARDEN_A],
+      extraAllowlist: [],
+      chainId: 11155111,
+      createdAt: 1770000000,
+    });
+
+    expect(metadata.description).toBe("Launch<script>alert('x')</script>");
+    expect(metadata.image).toBeUndefined();
+    expect(metadata.externalUrl).toBeUndefined();
   });
 
   it("lists only jars from trusted creators with valid campaign metadata", () => {

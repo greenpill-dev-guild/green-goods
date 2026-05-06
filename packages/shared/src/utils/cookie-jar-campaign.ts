@@ -11,6 +11,9 @@ import type {
 } from "../types/cookie-jar";
 
 export const CAMPAIGN_COOKIE_JAR_METADATA_KIND = "green-goods.campaign-cookie-jar";
+const MAX_CAMPAIGN_DESCRIPTION_LENGTH = 480;
+const MAX_CAMPAIGN_METADATA_URL_LENGTH = 2048;
+const ALLOWED_CAMPAIGN_METADATA_PROTOCOLS = new Set(["http:", "https:", "ipfs:"]);
 
 export function normalizeCampaignAddress(value: string): Address | null {
   const trimmed = value.trim();
@@ -57,6 +60,30 @@ function dedupeAddresses(addresses: readonly Address[]): Address[] {
     result.push(normalized);
   }
   return result;
+}
+
+function normalizeOptionalMetadataText(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, maxLength);
+}
+
+export function normalizeCampaignMetadataUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > MAX_CAMPAIGN_METADATA_URL_LENGTH) return undefined;
+
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return ALLOWED_CAMPAIGN_METADATA_PROTOCOLS.has(parsed.protocol) ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export interface CampaignGardenOperatorInput {
@@ -107,16 +134,29 @@ export function aggregateCampaignCookieJarOperators({
 export function buildCampaignCookieJarMetadata(params: {
   title: string;
   slug: string;
+  description?: string;
+  image?: string;
+  externalUrl?: string;
   sourceGardens: readonly Address[];
   extraAllowlist: readonly Address[];
   chainId: number;
   createdAt?: number;
 }): CampaignCookieJarMetadata {
+  const description = normalizeOptionalMetadataText(
+    params.description,
+    MAX_CAMPAIGN_DESCRIPTION_LENGTH
+  );
+  const image = normalizeCampaignMetadataUrl(params.image);
+  const externalUrl = normalizeCampaignMetadataUrl(params.externalUrl);
+
   return {
     kind: CAMPAIGN_COOKIE_JAR_METADATA_KIND,
     version: 1,
     title: params.title.trim(),
     slug: params.slug.trim(),
+    ...(description ? { description } : {}),
+    ...(image ? { image } : {}),
+    ...(externalUrl ? { externalUrl } : {}),
     sourceGardens: dedupeAddresses(params.sourceGardens),
     operatorPolicy: "one-operator-per-garden",
     extraAllowlist: dedupeAddresses(params.extraAllowlist),
@@ -169,7 +209,9 @@ export function parseCampaignCookieJarMetadata(
 ): CampaignCookieJarMetadata | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<CampaignCookieJarMetadata>;
+    const parsed = JSON.parse(raw) as Partial<CampaignCookieJarMetadata> & {
+      external_url?: unknown;
+    };
     if (
       parsed.kind !== CAMPAIGN_COOKIE_JAR_METADATA_KIND ||
       parsed.version !== 1 ||
@@ -181,12 +223,23 @@ export function parseCampaignCookieJarMetadata(
     const slug = parsed.slug.trim();
     const title = parsed.title.trim();
     if (!slug || !title) return null;
+    const description = normalizeOptionalMetadataText(
+      parsed.description,
+      MAX_CAMPAIGN_DESCRIPTION_LENGTH
+    );
+    const image = normalizeCampaignMetadataUrl(parsed.image);
+    const externalUrl =
+      normalizeCampaignMetadataUrl(parsed.externalUrl) ??
+      normalizeCampaignMetadataUrl(parsed.external_url);
 
     return {
       kind: CAMPAIGN_COOKIE_JAR_METADATA_KIND,
       version: 1,
       slug,
       title,
+      ...(description ? { description } : {}),
+      ...(image ? { image } : {}),
+      ...(externalUrl ? { externalUrl } : {}),
       sourceGardens: dedupeAddresses((parsed.sourceGardens ?? []) as Address[]),
       operatorPolicy: "one-operator-per-garden",
       extraAllowlist: dedupeAddresses((parsed.extraAllowlist ?? []) as Address[]),

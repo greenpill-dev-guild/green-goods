@@ -267,6 +267,9 @@ type CampaignCookieJar {
   metadataVersion: Int
   slug: String
   title: String
+  description: String
+  image: String
+  externalUrl: String
   sourceGardens: [String!]!
   operatorPolicy: String
   extraAllowlist: [String!]!

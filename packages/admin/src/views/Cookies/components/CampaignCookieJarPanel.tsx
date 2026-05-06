@@ -32,6 +32,7 @@ import {
   canCreateCampaignCookieJar,
   canSyncCampaignCookieJarAllowlist,
   filterCampaignCookieJarGardens,
+  isValidCampaignCookieJarMetadataUrl,
   isUsableCampaignCookieJarTokenDecimals,
   resolveCampaignCookieJarCreateFollowUp,
 } from "../campaignCookieJarPanel.model";
@@ -65,6 +66,10 @@ function haveSameAddressSet(left: readonly Address[], right: readonly Address[])
   if (left.length !== right.length) return false;
   const rightKeys = new Set(right.map((address) => address.toLowerCase()));
   return left.every((address) => rightKeys.has(address.toLowerCase()));
+}
+
+function normalizeMetadataField(value: string | undefined): string {
+  return value?.trim() ?? "";
 }
 
 function gardensForAggregation(gardens: readonly Garden[]) {
@@ -165,6 +170,9 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
   const [dialogOpen, setDialogOpen] = useState(false);
   const [campaignTitle, setCampaignTitle] = useState("");
   const [campaignSlug, setCampaignSlug] = useState("");
+  const [campaignDescription, setCampaignDescription] = useState("");
+  const [campaignImage, setCampaignImage] = useState("");
+  const [campaignExternalUrl, setCampaignExternalUrl] = useState("");
   const [tokenAddress, setTokenAddress] = useState("");
   const [claimAmount, setClaimAmount] = useState("");
   const [variableMode, setVariableMode] = useState(false);
@@ -184,6 +192,9 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
   const [syncGardenIds, setSyncGardenIds] = useState<string[]>([]);
   const [syncGardenSearch, setSyncGardenSearch] = useState("");
   const [syncExtraAddresses, setSyncExtraAddresses] = useState("");
+  const [syncCampaignDescription, setSyncCampaignDescription] = useState("");
+  const [syncCampaignImage, setSyncCampaignImage] = useState("");
+  const [syncCampaignExternalUrl, setSyncCampaignExternalUrl] = useState("");
   const syncJarAddress = normalizeCampaignAddress(syncJarAddressInput) ?? undefined;
   const syncJar = useCampaignCookieJar(syncJarAddress, { enabled: Boolean(syncJarAddress) });
 
@@ -207,6 +218,9 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
     if (!syncJar.jar?.metadata) return;
     setSyncGardenIds(syncJar.jar.metadata.sourceGardens);
     setSyncExtraAddresses(syncJar.jar.metadata.extraAllowlist.join("\n"));
+    setSyncCampaignDescription(syncJar.jar.metadata.description ?? "");
+    setSyncCampaignImage(syncJar.jar.metadata.image ?? "");
+    setSyncCampaignExternalUrl(syncJar.jar.metadata.externalUrl ?? "");
   }, [syncJar.jar?.metadata]);
 
   const normalizedTokenAddress = normalizeCampaignAddress(tokenAddress);
@@ -239,6 +253,12 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
     Boolean(normalizedTokenAddress) && (tokenInfoQuery.isLoading || tokenInfoQuery.isFetching);
   const tokenDecimalsError =
     Boolean(normalizedTokenAddress) && !tokenDecimalsLoading && !tokenDecimalsConfirmed;
+  const createMetadataUrlsValid =
+    isValidCampaignCookieJarMetadataUrl(campaignImage) &&
+    isValidCampaignCookieJarMetadataUrl(campaignExternalUrl);
+  const syncMetadataUrlsValid =
+    isValidCampaignCookieJarMetadataUrl(syncCampaignImage) &&
+    isValidCampaignCookieJarMetadataUrl(syncCampaignExternalUrl);
 
   const aggregation = useMemo(
     () =>
@@ -276,9 +296,22 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
 
     return (
       !haveSameAddressSet(syncJar.jar.metadata.sourceGardens, syncSourceGardens) ||
-      !haveSameAddressSet(syncJar.jar.metadata.extraAllowlist, syncAggregation.extraAllowlist)
+      !haveSameAddressSet(syncJar.jar.metadata.extraAllowlist, syncAggregation.extraAllowlist) ||
+      normalizeMetadataField(syncJar.jar.metadata.description) !==
+        normalizeMetadataField(syncCampaignDescription) ||
+      normalizeMetadataField(syncJar.jar.metadata.image) !==
+        normalizeMetadataField(syncCampaignImage) ||
+      normalizeMetadataField(syncJar.jar.metadata.externalUrl) !==
+        normalizeMetadataField(syncCampaignExternalUrl)
     );
-  }, [syncAggregation.extraAllowlist, syncJar.jar, syncSourceGardens]);
+  }, [
+    syncAggregation.extraAllowlist,
+    syncCampaignDescription,
+    syncCampaignExternalUrl,
+    syncCampaignImage,
+    syncJar.jar,
+    syncSourceGardens,
+  ]);
   const syncMetadataPayload = useMemo(() => {
     if (!syncJar.jar || !factoryAddress || !syncMetadataChanged) return null;
 
@@ -291,6 +324,9 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
             defaultMessage: "Campaign cookie jar",
           }),
         slug: syncJar.jar.metadata?.slug ?? "campaign-cookie-jar",
+        description: syncCampaignDescription,
+        image: syncCampaignImage,
+        externalUrl: syncCampaignExternalUrl,
         sourceGardens: syncSourceGardens,
         extraAllowlist: syncAggregation.extraAllowlist,
         chainId,
@@ -302,6 +338,9 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
     factoryAddress,
     formatMessage,
     syncAggregation.extraAllowlist,
+    syncCampaignDescription,
+    syncCampaignExternalUrl,
+    syncCampaignImage,
     syncJar.jar,
     syncMetadataChanged,
     syncSourceGardens,
@@ -326,6 +365,7 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
     hasValidClaimConfig,
     allowlistCount: aggregation.allowlist.length,
     invalidAddressCount: aggregation.invalidAddresses.length,
+    metadataUrlsValid: createMetadataUrlsValid,
     isDeployer,
   });
 
@@ -362,6 +402,9 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
         factoryAddress,
         title: campaignTitle,
         slug: campaignSlug,
+        description: campaignDescription,
+        image: campaignImage,
+        externalUrl: campaignExternalUrl,
         tokenAddress: normalizedTokenAddress,
         jarOwner: normalizedJarOwner,
         allowlist: aggregation.allowlist,
@@ -401,6 +444,7 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
     revokeCount: syncDiff.revoke.length,
     metadataChanged: syncMetadataChanged,
     canUpdateMetadata: Boolean(factoryAddress),
+    metadataUrlsValid: syncMetadataUrlsValid,
   });
 
   const handleSync = () => {
@@ -605,6 +649,56 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
           }
           variant="outlined"
         />
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="block md:col-span-2">
+            <span className="text-label-md text-[rgb(var(--m3-on-surface))]">
+              {formatMessage({
+                id: "cockpit.community.cookies.campaignDescription",
+                defaultMessage: "Campaign description",
+              })}
+            </span>
+            <textarea
+              value={syncCampaignDescription}
+              onChange={(event) => setSyncCampaignDescription(event.target.value)}
+              className="mt-2 min-h-20 w-full rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline))] bg-[rgb(var(--m3-surface))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] outline-none focus:ring-2 focus:ring-[rgb(var(--m3-primary))]"
+            />
+          </label>
+          <AdminTextField
+            label={formatMessage({
+              id: "cockpit.community.cookies.campaignImage",
+              defaultMessage: "Campaign image URL",
+            })}
+            value={syncCampaignImage}
+            onChange={(event) => setSyncCampaignImage(event.target.value)}
+            error={
+              syncCampaignImage && !isValidCampaignCookieJarMetadataUrl(syncCampaignImage)
+                ? formatMessage({
+                    id: "cockpit.community.cookies.invalidMetadataUrl",
+                    defaultMessage: "Use an http(s), IPFS, Arweave, or site-relative URL.",
+                  })
+                : undefined
+            }
+            variant="outlined"
+          />
+          <AdminTextField
+            label={formatMessage({
+              id: "cockpit.community.cookies.campaignExternalUrl",
+              defaultMessage: "Campaign page URL",
+            })}
+            value={syncCampaignExternalUrl}
+            onChange={(event) => setSyncCampaignExternalUrl(event.target.value)}
+            error={
+              syncCampaignExternalUrl &&
+              !isValidCampaignCookieJarMetadataUrl(syncCampaignExternalUrl)
+                ? formatMessage({
+                    id: "cockpit.community.cookies.invalidMetadataUrl",
+                    defaultMessage: "Use an http(s), IPFS, Arweave, or site-relative URL.",
+                  })
+                : undefined
+            }
+            variant="outlined"
+          />
+        </div>
         <GardenSelector
           gardens={gardens}
           selectedGardenIds={syncGardenIds}
@@ -731,6 +825,53 @@ export function CampaignCookieJarPanel({ initialCreateOpen = false }: CampaignCo
             })}
             value={campaignSlug}
             onChange={(event) => setCampaignSlug(slugifyCampaignTitle(event.target.value))}
+            variant="outlined"
+          />
+          <label className="block md:col-span-2">
+            <span className="text-label-md text-[rgb(var(--m3-on-surface))]">
+              {formatMessage({
+                id: "cockpit.community.cookies.campaignDescription",
+                defaultMessage: "Campaign description",
+              })}
+            </span>
+            <textarea
+              value={campaignDescription}
+              onChange={(event) => setCampaignDescription(event.target.value)}
+              className="mt-2 min-h-20 w-full rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline))] bg-[rgb(var(--m3-surface))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] outline-none focus:ring-2 focus:ring-[rgb(var(--m3-primary))]"
+            />
+          </label>
+          <AdminTextField
+            label={formatMessage({
+              id: "cockpit.community.cookies.campaignImage",
+              defaultMessage: "Campaign image URL",
+            })}
+            value={campaignImage}
+            onChange={(event) => setCampaignImage(event.target.value)}
+            error={
+              campaignImage && !isValidCampaignCookieJarMetadataUrl(campaignImage)
+                ? formatMessage({
+                    id: "cockpit.community.cookies.invalidMetadataUrl",
+                    defaultMessage: "Use an http(s), IPFS, Arweave, or site-relative URL.",
+                  })
+                : undefined
+            }
+            variant="outlined"
+          />
+          <AdminTextField
+            label={formatMessage({
+              id: "cockpit.community.cookies.campaignExternalUrl",
+              defaultMessage: "Campaign page URL",
+            })}
+            value={campaignExternalUrl}
+            onChange={(event) => setCampaignExternalUrl(event.target.value)}
+            error={
+              campaignExternalUrl && !isValidCampaignCookieJarMetadataUrl(campaignExternalUrl)
+                ? formatMessage({
+                    id: "cockpit.community.cookies.invalidMetadataUrl",
+                    defaultMessage: "Use an http(s), IPFS, Arweave, or site-relative URL.",
+                  })
+                : undefined
+            }
             variant="outlined"
           />
           <AdminTextField

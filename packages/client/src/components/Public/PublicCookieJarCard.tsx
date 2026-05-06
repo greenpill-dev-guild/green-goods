@@ -3,7 +3,9 @@ import {
   type CampaignCookieJarCampaign,
   cn,
   formatTokenAmount,
+  ImageWithFallback,
   type PublicGardenSummary,
+  resolveIPFSUrl,
   useCampaignCookieJar,
 } from "@green-goods/shared";
 import { useIntl } from "react-intl";
@@ -135,9 +137,12 @@ export function PublicCookieJarCard({
   const status = classifyCookieJarStatus(jar, { hasError: Boolean(error), isConnected });
 
   const title = jar?.metadata?.title ?? campaign.title ?? campaign.label;
+  const metadata = jar?.metadata ?? campaign.metadata;
+  const description = metadata?.description;
+  const image = metadata?.image ? resolveIPFSUrl(metadata.image) : null;
   const decimals = jar?.decimals ?? 18;
   const symbol = jar?.symbol ?? "TOKEN";
-  const sourceGardens = jar?.metadata?.sourceGardens ?? campaign.metadata?.sourceGardens ?? [];
+  const sourceGardens = metadata?.sourceGardens ?? [];
   const sourceLabel = formatSourceGardens(sourceGardens, gardensByAddress);
 
   const statusLabel = (() => {
@@ -285,12 +290,28 @@ export function PublicCookieJarCard({
         {statusLabel}
       </span>
 
+      {image ? (
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-bg-weak-50">
+          <ImageWithFallback
+            src={image}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-safe:group-hover:scale-[1.02]"
+          />
+        </div>
+      ) : null}
+
       <h3
         className="font-serif text-xl font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 transition-[color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] group-hover:text-primary-action motion-safe:group-hover:-translate-y-px"
         title={title}
       >
         <span className="line-clamp-2">{title}</span>
       </h3>
+
+      {description ? (
+        <p className="text-sm leading-[1.55] text-text-sub-600" title={description}>
+          <span className="line-clamp-3">{description}</span>
+        </p>
+      ) : null}
 
       {sourceLabel ? (
         <p className="text-sm font-medium leading-[1.4] text-text-strong-950" title={sourceLabel}>

@@ -4,6 +4,7 @@ import {
   canCreateCampaignCookieJar,
   canSyncCampaignCookieJarAllowlist,
   filterCampaignCookieJarGardens,
+  isValidCampaignCookieJarMetadataUrl,
   isUsableCampaignCookieJarTokenDecimals,
   resolveCampaignCookieJarCreateFollowUp,
 } from "./campaignCookieJarPanel.model";
@@ -87,6 +88,19 @@ describe("campaign cookie jar admin model", () => {
         canUpdateMetadata: false,
       })
     ).toBe(false);
+
+    expect(
+      canSyncCampaignCookieJarAllowlist({
+        jarAddress: JAR,
+        isJarOwner: true,
+        invalidAddressCount: 0,
+        grantCount: 0,
+        revokeCount: 0,
+        metadataChanged: true,
+        canUpdateMetadata: true,
+        metadataUrlsValid: false,
+      })
+    ).toBe(false);
   });
 
   it("requires confirmed ERC20 decimals before enabling campaign creation", () => {
@@ -101,6 +115,7 @@ describe("campaign cookie jar admin model", () => {
       allowlistCount: 1,
       invalidAddressCount: 0,
       isDeployer: true,
+      metadataUrlsValid: true,
     };
 
     expect(canCreateCampaignCookieJar(baseParams)).toBe(true);
@@ -108,6 +123,12 @@ describe("campaign cookie jar admin model", () => {
       canCreateCampaignCookieJar({
         ...baseParams,
         tokenDecimalsConfirmed: false,
+      })
+    ).toBe(false);
+    expect(
+      canCreateCampaignCookieJar({
+        ...baseParams,
+        metadataUrlsValid: false,
       })
     ).toBe(false);
   });
@@ -118,5 +139,18 @@ describe("campaign cookie jar admin model", () => {
     expect(isUsableCampaignCookieJarTokenDecimals(0)).toBe(false);
     expect(isUsableCampaignCookieJarTokenDecimals("18")).toBe(false);
     expect(isUsableCampaignCookieJarTokenDecimals(undefined)).toBe(false);
+  });
+
+  it("accepts only web, site-relative, and content-addressed metadata URLs", () => {
+    expect(isValidCampaignCookieJarMetadataUrl("")).toBe(true);
+    expect(isValidCampaignCookieJarMetadataUrl("https://cdn.greengoods.app/campaign.webp")).toBe(
+      true
+    );
+    expect(isValidCampaignCookieJarMetadataUrl("/images/hero-cookie.webp")).toBe(true);
+    expect(isValidCampaignCookieJarMetadataUrl("ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26n")).toBe(
+      true
+    );
+    expect(isValidCampaignCookieJarMetadataUrl("ar://example")).toBe(false);
+    expect(isValidCampaignCookieJarMetadataUrl("javascript:alert(1)")).toBe(false);
   });
 });

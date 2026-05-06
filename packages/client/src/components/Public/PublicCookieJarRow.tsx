@@ -54,7 +54,9 @@ export function PublicCookieJarRow({
   const { jar } = useCampaignCookieJar(campaign.address);
 
   const title = jar?.metadata?.title ?? campaign.title ?? campaign.label;
-  const sourceGardens = jar?.metadata?.sourceGardens ?? campaign.metadata?.sourceGardens ?? [];
+  const metadata = jar?.metadata ?? campaign.metadata;
+  const description = metadata?.description;
+  const sourceGardens = metadata?.sourceGardens ?? [];
   const sourceLabel = formatSourceGardens(sourceGardens, gardensByAddress);
 
   const distributedLabel = jar
@@ -81,6 +83,11 @@ export function PublicCookieJarRow({
         >
           <span className="line-clamp-1">{title}</span>
         </h4>
+        {description ? (
+          <p className="line-clamp-1 text-xs leading-[1.45] text-text-sub-600" title={description}>
+            {description}
+          </p>
+        ) : null}
         <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-soft-400">
           {sourceLabel ? <span>{sourceLabel}</span> : null}
           {sourceLabel && campaign.createdAt ? <span aria-hidden="true">·</span> : null}

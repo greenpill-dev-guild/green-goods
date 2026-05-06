@@ -23,6 +23,9 @@ export interface CampaignCookieJarMetadata {
   version: 1;
   slug: string;
   title: string;
+  description?: string;
+  image?: string;
+  externalUrl?: string;
   sourceGardens: Address[];
   operatorPolicy: CampaignCookieJarOperatorPolicy;
   extraAllowlist: Address[];
@@ -59,6 +62,9 @@ export interface IndexedCampaignCookieJar {
   metadataVersion?: number | null;
   slug?: string | null;
   title?: string | null;
+  description?: string | null;
+  image?: string | null;
+  externalUrl?: string | null;
   sourceGardens: Address[];
   operatorPolicy?: string | null;
   extraAllowlist: Address[];
@@ -101,6 +107,9 @@ export interface CreateCampaignCookieJarParams {
   factoryAddress: Address;
   title: string;
   slug: string;
+  description?: string;
+  image?: string;
+  externalUrl?: string;
   tokenAddress: Address;
   jarOwner: Address;
   allowlist: Address[];

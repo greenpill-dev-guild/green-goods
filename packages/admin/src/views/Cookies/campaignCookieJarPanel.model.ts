@@ -1,4 +1,9 @@
-import { derivePublicGardenSlug, type Address, type Garden } from "@green-goods/shared";
+import {
+  derivePublicGardenSlug,
+  normalizeCampaignMetadataUrl,
+  type Address,
+  type Garden,
+} from "@green-goods/shared";
 
 export interface CampaignCookieJarCreateResult {
   hash: string;
@@ -41,6 +46,7 @@ export function canSyncCampaignCookieJarAllowlist(params: {
   revokeCount: number;
   metadataChanged?: boolean;
   canUpdateMetadata?: boolean;
+  metadataUrlsValid?: boolean;
 }): boolean {
   const hasAllowlistDiff = params.grantCount > 0 || params.revokeCount > 0;
   const hasMetadataRefresh = Boolean(params.metadataChanged && params.canUpdateMetadata);
@@ -48,12 +54,17 @@ export function canSyncCampaignCookieJarAllowlist(params: {
   return (
     Boolean(params.jarAddress && params.isJarOwner) &&
     params.invalidAddressCount === 0 &&
+    (params.metadataUrlsValid ?? true) &&
     (hasAllowlistDiff || hasMetadataRefresh)
   );
 }
 
 export function isUsableCampaignCookieJarTokenDecimals(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+export function isValidCampaignCookieJarMetadataUrl(value: string): boolean {
+  return !value.trim() || Boolean(normalizeCampaignMetadataUrl(value));
 }
 
 export function canCreateCampaignCookieJar(params: {
@@ -66,6 +77,7 @@ export function canCreateCampaignCookieJar(params: {
   hasValidClaimConfig: boolean;
   allowlistCount: number;
   invalidAddressCount: number;
+  metadataUrlsValid?: boolean;
   isDeployer: boolean;
 }): boolean {
   return (
@@ -78,6 +90,7 @@ export function canCreateCampaignCookieJar(params: {
         params.campaignSlug.trim() &&
         params.hasValidClaimConfig &&
         params.allowlistCount > 0 &&
+        (params.metadataUrlsValid ?? true) &&
         params.isDeployer
     ) && params.invalidAddressCount === 0
   );

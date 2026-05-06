@@ -1148,6 +1148,7 @@ export {
   normalizeTimeSpentMinutes,
   normalizeActionTranslations,
   normalizeCampaignAddress,
+  normalizeCampaignMetadataUrl,
   normalizeToFile,
   OCTANT_MODULE_ABI,
   OCTANT_VAULT_ABI,

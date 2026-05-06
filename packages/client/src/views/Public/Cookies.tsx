@@ -4,8 +4,10 @@ import {
   type CampaignCookieJarCampaign,
   classifyTxError,
   formatTokenAmount,
+  ImageWithFallback,
   isMeaningfulTxErrorMessage,
   type PublicGardenSummary,
+  resolveIPFSUrl,
   TxInlineFeedback,
   truncateAddress,
   useAppKit,
@@ -101,6 +103,15 @@ function CampaignCookieJarPanel({ jarAddress }: { jarAddress: Address }) {
 
   const decimals = jar?.decimals ?? 18;
   const symbol = jar?.symbol ?? "TOKEN";
+  const campaignTitle =
+    jar?.metadata?.title ??
+    formatMessage({
+      id: "public.cookies.untitled",
+      defaultMessage: "Campaign cookie jar",
+    });
+  const campaignDescription = jar?.metadata?.description;
+  const campaignImage = jar?.metadata?.image ? resolveIPFSUrl(jar.metadata.image) : null;
+  const campaignExternalUrl = jar?.metadata?.externalUrl;
   const fixedClaim = jar?.withdrawalType === "fixed";
   const effectiveClaimAmount = fixedClaim ? (jar?.fixedAmount ?? 0n) : claimAmount;
   const depositError = validateDecimalInput(depositAmount, decimals);
@@ -257,13 +268,12 @@ function CampaignCookieJarPanel({ jarAddress }: { jarAddress: Address }) {
                 defaultMessage: "Shared Cookie Jar",
               })}
             </p>
-            <h2 className="mt-2 font-serif text-2xl text-text-strong-950">
-              {jar.metadata?.title ??
-                formatMessage({
-                  id: "public.cookies.untitled",
-                  defaultMessage: "Campaign cookie jar",
-                })}
-            </h2>
+            <h2 className="mt-2 font-serif text-2xl text-text-strong-950">{campaignTitle}</h2>
+            {campaignDescription ? (
+              <p className="mt-3 max-w-2xl text-sm leading-[1.6] text-text-sub-600">
+                {campaignDescription}
+              </p>
+            ) : null}
           </div>
           <div className="rounded-full border border-stroke-soft-200 p-1">
             {(["claim", "deposit"] as CookieMode[]).map((option) => (
@@ -294,6 +304,22 @@ function CampaignCookieJarPanel({ jarAddress }: { jarAddress: Address }) {
                 "Some cookie jar details could not be confirmed. The available state is shown below.",
             })}
           </p>
+        ) : null}
+
+        {campaignImage ? (
+          <div className="mt-6 overflow-hidden rounded-lg bg-bg-weak-50">
+            <ImageWithFallback
+              src={campaignImage}
+              alt={formatMessage(
+                {
+                  id: "public.cookies.campaignImageAlt",
+                  defaultMessage: "{title} campaign artwork",
+                },
+                { title: campaignTitle }
+              )}
+              className="aspect-[16/9] w-full object-cover"
+            />
+          </div>
         ) : null}
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -535,6 +561,29 @@ function CampaignCookieJarPanel({ jarAddress }: { jarAddress: Address }) {
               {`/cookies?jar=${jar.jarAddress}`}
             </dd>
           </div>
+          {campaignExternalUrl ? (
+            <div>
+              <dt className="text-text-soft-400">
+                {formatMessage({
+                  id: "public.cookies.campaignPageLabel",
+                  defaultMessage: "Campaign page",
+                })}
+              </dt>
+              <dd className="mt-1">
+                <a
+                  href={campaignExternalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="break-all text-text-strong-950 underline decoration-stroke-soft-200 underline-offset-4 transition hover:text-primary-action"
+                >
+                  {formatMessage({
+                    id: "public.cookies.campaignPage",
+                    defaultMessage: "Campaign page",
+                  })}
+                </a>
+              </dd>
+            </div>
+          ) : null}
         </dl>
       </aside>
     </section>

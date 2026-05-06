@@ -23,6 +23,9 @@ interface CampaignCookieJarIndexerRow {
   metadataVersion?: number | null;
   slug?: string | null;
   title?: string | null;
+  description?: string | null;
+  image?: string | null;
+  externalUrl?: string | null;
   sourceGardens?: string[] | null;
   operatorPolicy?: string | null;
   extraAllowlist?: string[] | null;
@@ -58,6 +61,9 @@ const CAMPAIGN_COOKIE_JARS_QUERY = /* GraphQL */ `
       metadataVersion
       slug
       title
+      description
+      image
+      externalUrl
       sourceGardens
       operatorPolicy
       extraAllowlist
@@ -86,6 +92,9 @@ const CAMPAIGN_COOKIE_JARS_BY_CREATORS_QUERY = /* GraphQL */ `
       metadataVersion
       slug
       title
+      description
+      image
+      externalUrl
       sourceGardens
       operatorPolicy
       extraAllowlist
@@ -132,6 +141,9 @@ function normalizeIndexedCampaignCookieJar(
     metadataVersion: row.metadataVersion,
     slug: row.slug,
     title: row.title,
+    description: row.description,
+    image: row.image,
+    externalUrl: row.externalUrl,
     sourceGardens: (row.sourceGardens ?? [])
       .map((address) => normalizeCampaignAddress(address))
       .filter((address): address is Address => Boolean(address)),

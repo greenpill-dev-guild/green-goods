@@ -47,6 +47,9 @@ const eligibleJar = {
   metadata: {
     title: "Earth Week Cookie Jar",
     slug: "earth-week",
+    description: "Garden operator rewards for Earth Week.",
+    image: "https://cdn.greengoods.app/campaigns/earth-week.webp",
+    externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
   },
 };
 
@@ -187,6 +190,21 @@ describe("CookiesPage", () => {
 
     expect((await screen.findAllByText("Earth Week Cookie Jar")).length).toBeGreaterThan(0);
     expect(mockUseCampaignCookieJar).toHaveBeenCalledWith(TEST_JAR);
+  });
+
+  it("renders campaign image and description metadata", async () => {
+    renderPage();
+
+    expect(
+      (await screen.findAllByText("Garden operator rewards for Earth Week.")).length
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("img", { name: "Earth Week Cookie Jar campaign artwork" })
+    ).toHaveAttribute("src", "https://cdn.greengoods.app/campaigns/earth-week.webp");
+    expect(screen.getByRole("link", { name: "Campaign page" })).toHaveAttribute(
+      "href",
+      "https://greengoods.app/cookies?campaign=earth-week"
+    );
   });
 
   it("opens configured campaign jars in an in-page dialog", async () => {
