@@ -43,7 +43,7 @@ export function FunderRow({ funder, maxYield }: FunderRowProps) {
         {barWidth > 0 && (
           <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-bg-soft">
             <div
-              className="h-full rounded-full bg-success-base transition-all duration-300"
+              className="h-full rounded-full bg-success-base transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] motion-reduce:transition-none"
               style={{ width: `${Math.max(barWidth, 2)}%` }}
             />
           </div>

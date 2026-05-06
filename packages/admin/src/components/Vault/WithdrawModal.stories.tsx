@@ -1,6 +1,7 @@
 import type { Address, GardenVault } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
 import { WithdrawModal } from "./WithdrawModal";
 
 const MOCK_GARDEN_ADDRESS = "0x1234567890AbcdEF1234567890aBcdef12345678" as Address;
@@ -37,9 +38,10 @@ const mockVaults: GardenVault[] = [
 ];
 
 const meta: Meta<typeof WithdrawModal> = {
-  title: "Admin/Vault/WithdrawModal",
+  title: "Admin/Workflows/Vault/WithdrawModal",
   component: WithdrawModal,
   tags: ["autodocs"],
+  decorators: [withAdminIdentity],
   argTypes: {
     isOpen: {
       control: "boolean",
@@ -124,26 +126,10 @@ export const Closed: Story = {
   },
 };
 
-export const DarkMode: Story = {
-  args: {
-    isOpen: true,
-    onClose: fn(),
-    gardenAddress: MOCK_GARDEN_ADDRESS,
-    vaults: mockVaults,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4 min-h-[500px]">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
 /**
- * Gallery showing multi-vault and single-vault scenarios.
+ * Consolidated state catalog — use the theme toolbar for dark mode.
  */
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-6">
       <p className="text-sm text-text-sub">

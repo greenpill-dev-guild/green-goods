@@ -258,7 +258,7 @@ export function PullToRefresh({
       <div
         className={cn(
           "absolute left-0 right-0 flex items-center justify-center z-10 pointer-events-none",
-          "transition-all duration-200 ease-out"
+          "transition-[opacity,transform,top] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]"
         )}
         style={{
           top: -40 + pullDistance,
@@ -284,7 +284,7 @@ export function PullToRefresh({
         >
           <RiRefreshLine
             className={cn(
-              "w-5 h-5 text-primary transition-transform",
+              "w-5 h-5 text-primary transition-transform ease-[var(--spring-spatial-fast-easing)]",
               isRefreshing && !prefersReducedMotion.current && "animate-spin"
             )}
             style={{
@@ -293,7 +293,9 @@ export function PullToRefresh({
                   ? undefined
                   : `rotate(${iconRotation}deg)`,
               transitionDuration:
-                pullState === "idle" && !prefersReducedMotion.current ? "300ms" : "0ms",
+                pullState === "idle" && !prefersReducedMotion.current
+                  ? "var(--spring-spatial-fast-duration)"
+                  : "0ms",
             }}
           />
         </div>
@@ -308,7 +310,7 @@ export function PullToRefresh({
               : undefined,
           transition:
             pullState === "idle" && !prefersReducedMotion.current
-              ? "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
+              ? "transform var(--spring-spatial)"
               : "none",
         }}
       >

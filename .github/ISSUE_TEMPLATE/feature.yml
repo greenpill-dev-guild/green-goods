@@ -1,6 +1,5 @@
 name: User Story
 description: High-level feature from PRD - describes user value and done state
-labels: ["enhancement"]
 body:
   - type: markdown
     attributes:

@@ -11,18 +11,20 @@ const docsRoot = path.resolve(repoRoot, "docs/docs");
 const referenceRoot = path.resolve(docsRoot, "reference");
 const introDocPath = path.resolve(docsRoot, "intro.md");
 const glossaryDocPath = path.resolve(docsRoot, "glossary.md");
+const readmePath = path.resolve(repoRoot, "README.md");
+const docusaurusConfigPath = path.resolve(repoRoot, "docs/docusaurus.config.ts");
+const sidebarsPath = path.resolve(repoRoot, "docs/sidebars.ts");
 
 const isCi = process.argv.includes("--ci");
+const isStrictReadme = process.argv.includes("--strict-readme");
 
 const canonicalRoots = [
-  path.resolve(docsRoot, "gardener"),
-  path.resolve(docsRoot, "operator"),
-  path.resolve(docsRoot, "evaluator"),
-  path.resolve(docsRoot, "developers"),
+  path.resolve(docsRoot, "builders"),
+  path.resolve(docsRoot, "community"),
 ];
 
 const approvedEndpointLiteralFiles = new Set([
-  "docs/docs/developers/reference/api-index.mdx",
+  "docs/docs/builders/packages/api-index.mdx",
 ]);
 
 const requiredFrontmatter = [
@@ -30,7 +32,6 @@ const requiredFrontmatter = [
   "owner",
   "last_verified",
   "feature_status",
-  "source_of_truth",
   "goal",
   "difficulty",
   "estimated_time",
@@ -43,11 +44,13 @@ const requiredTrustFrontmatter = [
   "owner",
   "last_verified",
   "feature_status",
-  "source_of_truth",
 ];
 
 const allowedFeatureStatus = new Set([
   "Live",
+  "Live (external source)",
+  "Complete",
+  "In progress",
   "Implemented (activation pending indexing)",
   "Implemented (activation pending deployment)",
   "Planned",
@@ -55,12 +58,84 @@ const allowedFeatureStatus = new Set([
 
 const allowedDifficulty = new Set(["quickstart", "standard", "advanced"]);
 
-const placeholderPattern = /\b(TODO|TBD|PLACEHOLDER)\b/i;
+const placeholderPattern = /\b(TODO|TBD|PLACEHOLDER)\b/;
 const stalePattern = /(coming soon|2024 roadmap|future phase|planned for q\d|to be announced)/i;
 const endpointLiteralPattern =
   /https:\/\/indexer\.hyperindex\.xyz\/\S+|https:\/\/(?:arbitrum|celo|sepolia)\.easscan\.org\S*/gi;
 const emptyMarkdownLinkPattern = /\[\s*]\([^)]+\)/;
 const incompletePhrasePattern = /\bsee the\s+for\b/i;
+const broadSourcePathPattern = /^(?:packages\/[^/]+\/src|\.plans|\.claude\/(?:agents|context|skills))$/;
+const projectSpecificExternalClaimPattern =
+  /\b(?:Green Goods (?:uses|relies on|runs|operates|deploys|integrates|adopts)|we (?:use|run|operate|deploy|integrate|adopt)|standing pipeline|production pipeline)\b/i;
+const negatedProjectClaimPattern = /\b(?:that Green Goods|does not|not currently|intentionally not made)\b/i;
+
+const readmeRequiredHeadings = [
+  "Getting Started",
+  "Tech Stack",
+  "Contributing",
+  "Resources",
+];
+
+const readmeRequiredSnippets = [
+  "npm run setup",
+  "Agent-Assisted Setup",
+  "Read ONBOARDING.md and AGENTS.md",
+  "explain any env blockers before making changes",
+  "Agent References",
+  "root `.env`",
+  ".env.schema",
+  "1Password CLI",
+  "https://developer.1password.com/docs/cli/",
+  "bun run env:template:init",
+  "bun run env:sync",
+  "bun run env:check",
+  "VITE_ENVIO_INDEXER_URL",
+  "VITE_PINATA_JWT",
+  "VITE_PIMLICO_API_KEY",
+  "VITE_WALLETCONNECT_PROJECT_ID",
+  "TELEGRAM_BOT_TOKEN",
+  "Upload-capable media",
+  "Passkey auth",
+  "Wallet auth",
+  "op://Vault/Item/field",
+  "bun run dev:doctor -- --profile web",
+  "bun run dev:doctor -- --profile full",
+  "bun run dev:web",
+  "bun run dev:smoke:web",
+  "bun run dev",
+  "bun run dev:stop",
+  "bun run format:check",
+  "bun run lint",
+  "bun run test",
+  "bun run build",
+  "https://github.com/greenpill-dev-guild/green-goods",
+  "https://docs.greengoods.app/builders/getting-started",
+  "https://docs.greengoods.app/builders/architecture",
+  "https://docs.greengoods.app/builders/operations",
+  "https://docs.greengoods.app/builders/how-to-contribute",
+  "./ONBOARDING.md",
+  "./AGENTS.md",
+  "./CLAUDE.md",
+];
+
+const readmeForbiddenPatterns = [
+  {
+    pattern: /bun run dev:full/i,
+    message: "Contains removed full-stack command: use `bun run dev` instead.",
+  },
+  {
+    pattern: /docs\.greengoods\.app\/welcome\//i,
+    message: "Contains stale docs link pattern: docs.greengoods.app/welcome/...",
+  },
+  {
+    pattern: /docs\.greengoods\.app\/developer\//i,
+    message: "Contains stale docs link pattern: docs.greengoods.app/developer/...",
+  },
+  {
+    pattern: /\.claude\/skills\/dependency-management\/SKILL\.md/i,
+    message: "Contains outdated dependency-management skill path.",
+  },
+];
 
 const warnings = [];
 
@@ -86,8 +161,32 @@ const walk = async (dir) => {
 
 const isExternalHref = (href) =>
   /^https?:\/\//i.test(href) || /^mailto:/i.test(href) || /^tel:/i.test(href);
+const isExternalSourceOfTruth = (sourcePath) => /^https?:\/\//i.test(sourcePath);
 
 const stripHashAndQuery = (href) => href.split("#")[0].split("?")[0];
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const normalizeDocSlug = (slug) => {
+  const cleanSlug = stripHashAndQuery(String(slug).trim());
+  if (!cleanSlug || cleanSlug === "/") {
+    return "/";
+  }
+  const withLeadingSlash = cleanSlug.startsWith("/") ? cleanSlug : `/${cleanSlug}`;
+  return withLeadingSlash.endsWith("/") ? withLeadingSlash.slice(0, -1) : withLeadingSlash;
+};
+const isDocsSiteHref = (href) => {
+  try {
+    const url = new URL(href);
+    return url.hostname === "docs.greengoods.app";
+  } catch {
+    return false;
+  }
+};
+const collectMarkdownHrefs = (markdown) => {
+  const rawWithoutCodeBlocks = markdown.replace(/```[\s\S]*?```/g, "");
+  return [...rawWithoutCodeBlocks.matchAll(/\[[^\]]*]\(([^)]+)\)/g)]
+    .map((match) => (match[1] ?? "").trim())
+    .filter(Boolean);
+};
 
 const resolveDocLink = (sourceFilePath, href, docFileSet) => {
   const cleanHref = stripHashAndQuery(href.trim().replace(/^<|>$/g, ""));
@@ -137,12 +236,129 @@ const fileExists = async (relativePath) => {
   }
 };
 
+const normalizeSourcePathForAudit = (sourcePath) =>
+  sourcePath
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/^\.\//, "")
+    .replace(/\/+$/, "");
+
+const isWeakSourceOfTruth = (sourcePath, relativePath) => {
+  const normalizedSourcePath = normalizeSourcePathForAudit(sourcePath);
+  const normalizedRelativePath = normalizeSourcePathForAudit(relativePath);
+
+  if (normalizedSourcePath === normalizedRelativePath) {
+    return "source_of_truth cannot cite the document itself.";
+  }
+  if (broadSourcePathPattern.test(normalizedSourcePath)) {
+    return `source_of_truth path is too broad: ${sourcePath}`;
+  }
+  return null;
+};
+
+const makesProjectSpecificExternalClaim = (body) =>
+  body
+    .split("\n")
+    .some(
+      (line) =>
+        projectSpecificExternalClaimPattern.test(line) &&
+        !negatedProjectClaimPattern.test(line),
+    );
+
+const auditReadme = async (docSlugSet) => {
+  const relativePath = "README.md";
+  let raw;
+
+  try {
+    raw = await fs.readFile(readmePath, "utf8");
+  } catch {
+    warn(relativePath, "README.md not found.");
+    return;
+  }
+
+  for (const heading of readmeRequiredHeadings) {
+    const headingPattern = new RegExp(`^##\\s+${escapeRegExp(heading)}\\s*$`, "m");
+    if (!headingPattern.test(raw)) {
+      warn(relativePath, `Missing required README heading: ${heading}`);
+    }
+  }
+
+  for (const snippet of readmeRequiredSnippets) {
+    if (!raw.includes(snippet)) {
+      warn(relativePath, `Missing required README snippet or link: ${snippet}`);
+    }
+  }
+
+  for (const {pattern, message} of readmeForbiddenPatterns) {
+    if (pattern.test(raw)) {
+      warn(relativePath, message);
+    }
+  }
+
+  for (const href of collectMarkdownHrefs(raw)) {
+    const cleanHref = stripHashAndQuery(href.trim().replace(/^<|>$/g, ""));
+    if (!cleanHref || cleanHref.startsWith("#")) {
+      continue;
+    }
+
+    if (isDocsSiteHref(cleanHref)) {
+      const url = new URL(cleanHref);
+      const docSlug = normalizeDocSlug(url.pathname);
+      if (!docSlugSet.has(docSlug)) {
+        warn(relativePath, `Docs link target not found in local docs slugs: ${cleanHref}`);
+      }
+      continue;
+    }
+
+    if (isExternalHref(cleanHref) || cleanHref.startsWith("/")) {
+      continue;
+    }
+
+    const resolved = path.resolve(path.dirname(readmePath), cleanHref);
+    try {
+      await fs.access(resolved);
+    } catch {
+      warn(relativePath, `Relative README link target not found: ${href}`);
+    }
+  }
+};
+
 const isCanonicalFile = (filePath) => canonicalRoots.some((root) => filePath.startsWith(root));
 const isMonitoredDoc = (filePath) =>
   isCanonicalFile(filePath) ||
   filePath.startsWith(referenceRoot) ||
   filePath === introDocPath ||
   filePath === glossaryDocPath;
+
+const isGuideLikeDoc = (relativePath) =>
+  relativePath.startsWith("docs/docs/community/gardener-guide/") ||
+  relativePath.startsWith("docs/docs/community/operator-guide/") ||
+  relativePath.startsWith("docs/docs/community/funder-guide/") ||
+  relativePath.startsWith("docs/docs/community/evaluator-guide/") ||
+  relativePath.startsWith("docs/docs/community/community-member-guide/") ||
+  relativePath === "docs/docs/builders/getting-started.mdx";
+
+const requiresSourceOfTruth = (frontmatter, canonical, relativePath) => {
+  if (!canonical || !frontmatter || typeof frontmatter !== "object") {
+    return false;
+  }
+  if (frontmatter.unlisted === true) {
+    return false;
+  }
+  if (relativePath.startsWith("docs/docs/reference/")) {
+    return false;
+  }
+
+  const status = String(frontmatter.feature_status ?? "");
+  return (
+    status === "Live" ||
+    status === "Live (external source)" ||
+    status === "Complete" ||
+    status === "In progress" ||
+    status === "Implemented (activation pending indexing)" ||
+    status === "Implemented (activation pending deployment)"
+  );
+};
 
 const isNonReferenceCanonical = (relativePath) => {
   if (!relativePath.startsWith("docs/docs/")) {
@@ -151,7 +367,7 @@ const isNonReferenceCanonical = (relativePath) => {
   if (!isCanonicalFile(path.resolve(repoRoot, relativePath))) {
     return false;
   }
-  return !relativePath.startsWith("docs/docs/developers/reference/");
+  return !relativePath.startsWith("docs/docs/reference/");
 };
 
 const normalizeBlock = (text) =>
@@ -170,6 +386,7 @@ const collectDuplicateBlocks = (documents) => {
       .map((chunk) => chunk.trim())
       .filter((chunk) => chunk.length >= 180)
       .filter((chunk) => !chunk.startsWith("```"))
+      .filter((chunk) => !chunk.startsWith(":::"))
       .filter((chunk) => !chunk.startsWith("<"))
       .filter((chunk) => !chunk.includes("NextBestAction"))
       .filter((chunk) => !chunk.includes("AtAGlanceCard"));
@@ -200,7 +417,9 @@ const collectDuplicateBlocks = (documents) => {
 
 const allDocs = await walk(docsRoot);
 const docFileSet = new Set(allDocs.map((filePath) => path.normalize(filePath)));
+const docSlugSet = new Set();
 const canonicalDocs = [];
+const unlistedDocTargets = [];
 
 for (const filePath of allDocs) {
   const relativePath = path.relative(repoRoot, filePath).replace(/\\/g, "/");
@@ -208,8 +427,24 @@ for (const filePath of allDocs) {
   const {frontmatter, body} = parseFrontmatter(raw);
   const canonical = isCanonicalFile(filePath);
   const monitored = isMonitoredDoc(filePath);
+  const unlisted = frontmatter && typeof frontmatter === "object" && frontmatter.unlisted === true;
+  const docId = relativePath.replace(/^docs\/docs\//, "").replace(/\.(md|mdx)$/, "");
+  let docSlug = null;
 
-  if (canonical) {
+  if (frontmatter && typeof frontmatter === "object" && typeof frontmatter.slug === "string") {
+    docSlug = normalizeDocSlug(frontmatter.slug);
+    docSlugSet.add(docSlug);
+  }
+
+  if (unlisted) {
+    unlistedDocTargets.push({
+      docId,
+      relativePath,
+      slug: docSlug,
+    });
+  }
+
+  if (canonical && !unlisted) {
     canonicalDocs.push({relativePath, body});
   }
 
@@ -217,11 +452,11 @@ for (const filePath of allDocs) {
     continue;
   }
 
-  if (placeholderPattern.test(raw)) {
+  if (!unlisted && placeholderPattern.test(raw)) {
     warn(relativePath, "Contains placeholder marker (TODO/TBD/PLACEHOLDER).");
   }
 
-  if (stalePattern.test(raw)) {
+  if (!unlisted && stalePattern.test(raw)) {
     warn(relativePath, "Contains stale-language marker (for example 'coming soon' or old roadmap phrasing).");
   }
 
@@ -233,10 +468,7 @@ for (const filePath of allDocs) {
     warn(relativePath, "Contains incomplete phrase pattern (for example 'See the  for').");
   }
 
-  const rawWithoutCodeBlocks = raw.replace(/```[\s\S]*?```/g, "");
-  const markdownLinkMatches = rawWithoutCodeBlocks.matchAll(/\[[^\]]*]\(([^)]+)\)/g);
-  for (const match of markdownLinkMatches) {
-    const href = (match[1] ?? "").trim();
+  for (const href of collectMarkdownHrefs(raw)) {
     if (!href) {
       continue;
     }
@@ -256,7 +488,7 @@ for (const filePath of allDocs) {
 
     const nonReferenceCanonical = isNonReferenceCanonical(relativePath);
 
-    if (nonReferenceCanonical) {
+    if (nonReferenceCanonical && isGuideLikeDoc(relativePath)) {
       for (const key of requiredFrontmatter) {
         if (!(key in frontmatter)) {
           warn(relativePath, `Missing required frontmatter field: ${key}`);
@@ -274,6 +506,10 @@ for (const filePath of allDocs) {
       warn(relativePath, `Invalid difficulty value: ${difficulty}`);
     }
 
+    if (requiresSourceOfTruth(frontmatter, canonical, relativePath) && !("source_of_truth" in frontmatter)) {
+      warn(relativePath, "Missing required frontmatter field: source_of_truth");
+    }
+
     const sourceOfTruth = frontmatter.source_of_truth;
     if (sourceOfTruth) {
       const sourcePaths = Array.isArray(sourceOfTruth) ? sourceOfTruth : [sourceOfTruth];
@@ -282,12 +518,35 @@ for (const filePath of allDocs) {
           warn(relativePath, "source_of_truth contains a non-string entry.");
           continue;
         }
-        if (sourcePath.startsWith("http://") || sourcePath.startsWith("https://")) {
+        if (isExternalSourceOfTruth(sourcePath)) {
+          continue;
+        }
+        const weakSourceMessage = isWeakSourceOfTruth(sourcePath, relativePath);
+        if (weakSourceMessage) {
+          warn(relativePath, weakSourceMessage);
           continue;
         }
         if (!(await fileExists(sourcePath))) {
           warn(relativePath, `source_of_truth path not found: ${sourcePath}`);
         }
+      }
+
+      const hasOnlyExternalSources = sourcePaths.every(
+        (sourcePath) => typeof sourcePath === "string" && isExternalSourceOfTruth(sourcePath),
+      );
+      if (
+        hasOnlyExternalSources &&
+        featureStatus !== "Live (external source)" &&
+        requiresSourceOfTruth(frontmatter, canonical, relativePath)
+      ) {
+        warn(relativePath, "source_of_truth needs at least one local source for repo-backed Live or Implemented claims.");
+      }
+      if (
+        hasOnlyExternalSources &&
+        featureStatus === "Live (external source)" &&
+        makesProjectSpecificExternalClaim(body)
+      ) {
+        warn(relativePath, "Live external page makes project-specific usage claims without a local source_of_truth.");
       }
     }
   }
@@ -298,7 +557,47 @@ for (const filePath of allDocs) {
   }
 }
 
+const auditUnlistedPublicReferences = async () => {
+  const publicSurfaces = [
+    {
+      absPath: sidebarsPath,
+      label: "sidebar",
+      relativePath: "docs/sidebars.ts",
+      targetFor: ({docId}) => [docId],
+    },
+    {
+      absPath: docusaurusConfigPath,
+      label: "redirect/config",
+      relativePath: "docs/docusaurus.config.ts",
+      targetFor: ({slug}) => (slug ? [slug] : []),
+    },
+  ];
+
+  for (const surface of publicSurfaces) {
+    let raw;
+    try {
+      raw = await fs.readFile(surface.absPath, "utf8");
+    } catch {
+      continue;
+    }
+
+    for (const target of unlistedDocTargets) {
+      for (const publicTarget of surface.targetFor(target)) {
+        if (!raw.includes(publicTarget)) {
+          continue;
+        }
+        warn(
+          surface.relativePath,
+          `Public ${surface.label} references unlisted doc ${target.relativePath}: ${publicTarget}`,
+        );
+      }
+    }
+  }
+};
+
 collectDuplicateBlocks(canonicalDocs);
+await auditUnlistedPublicReferences();
+await auditReadme(docSlugSet);
 
 const sortedWarnings = warnings.sort((a, b) => {
   if (a.filePath === b.filePath) {
@@ -315,6 +614,18 @@ if (sortedWarnings.length === 0) {
 console.log(`docs-audit: ${sortedWarnings.length} warning(s).`);
 for (const warning of sortedWarnings) {
   console.log(`- ${warning.filePath}: ${warning.message}`);
+}
+
+const readmeWarnings = sortedWarnings.filter((warning) => warning.filePath === "README.md");
+
+if (isStrictReadme) {
+  if (readmeWarnings.length > 0) {
+    console.log(`docs-audit: strict README mode failed with ${readmeWarnings.length} README warning(s).`);
+    process.exit(1);
+  }
+
+  console.log("docs-audit: strict README mode passed; non-README warnings remain warn-only.");
+  process.exit(0);
 }
 
 if (isCi) {

@@ -5,10 +5,12 @@ import {
   type FormatAddressVariant,
   formatAddress,
   toastService,
+  useTimeout,
 } from "@green-goods/shared";
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
-import React, { useEffect, useId, useState } from "react";
+import React, { useId, useState } from "react";
 import { useIntl } from "react-intl";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface AddressCopyProps {
   address?: Address | null;
@@ -33,12 +35,7 @@ export function AddressCopy({
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const statusId = useId();
-
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
+  const { set: scheduleCopiedReset } = useTimeout();
 
   if (!address) return null;
 
@@ -48,6 +45,7 @@ export function AddressCopy({
     try {
       await copyToClipboard(address);
       setCopied(true);
+      scheduleCopiedReset(() => setCopied(false), 2000);
       toastService.success({
         title: intl.formatMessage({
           id: "app.toast.addressCopied",
@@ -70,9 +68,10 @@ export function AddressCopy({
         onClick={handleCopy}
         aria-labelledby={statusId}
         className={cn(
-          "flex w-full items-center justify-between gap-3 rounded-xl border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm transition-all duration-150 tap-feedback",
+          "flex w-full items-center justify-between gap-3 rounded-[var(--radius-xl)] border border-stroke-soft-200 bg-bg-white-0 text-left shadow-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
           "active:scale-[0.99]",
-          "focus:outline-none focus:ring-2 focus:ring-primary/30",
+          "focus:outline-none",
+          pwaStatusStyles.primary.focus,
           sizeClasses
         )}
       >

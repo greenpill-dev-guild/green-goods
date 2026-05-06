@@ -4,20 +4,36 @@ sidebar_label: Gardens V2
 slug: /builders/integrations/gardens
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Implemented (activation pending indexing)
+source_of_truth:
+  - packages/contracts/src/modules/Gardens.sol
+  - packages/contracts/src/interfaces/IGardensModule.sol
+  - packages/shared/src/config/gardens-subgraph.ts
+  - packages/shared/src/utils/blockchain/abis/conviction.ts
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Gardens Conviction Voting
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+<StatusBadge status="Implemented (activation pending indexing)" />
 
 ## Overview
-Gardens V2 integration for conviction voting and community governance.
+Gardens V2 and conviction-voting support exists in contract interfaces/modules, shared ABI utilities, and configuration helpers. Arbitrum and Sepolia artifacts have non-zero Gardens module addresses; Celo does not. Treat governance event history as indexing-gated until `GardensModule` events are configured.
 
-## What to Expect
-- Conviction voting mechanics
-- Signal pool creation
-- Governance parameter configuration
+## Builder notes
+
+- Keep Gardens V2 reads behind shared config/utilities.
+- Avoid claiming a live governance flow unless the admin/client surface and deployment artifacts prove it for the target chain.
+- Keep signal-pool docs tied to the actual active route or module before publishing end-user guidance.
+
+<NextBestAction
+  title="Next best action"
+  why="Deployment status separates implemented code from active chain surfaces."
+  actionLabel="Deployment status"
+  actionHref="../deployments/status"
+  alternatives={[
+    {label: "Integrations overview", href: "./overview"},
+  ]}
+/>

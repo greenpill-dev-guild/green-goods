@@ -5,7 +5,7 @@ import type { Address } from "../../types/domain";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 interface UpdateGardenStringParam {
   gardenAddress: Address;

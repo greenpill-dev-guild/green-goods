@@ -2,6 +2,8 @@
 
 Loaded when working in `packages/client/`. Extends CLAUDE.md.
 
+**Primary persona**: Maria (Gardener). For tone guidance and UX constraints, see `.claude/context/product.md` § Persona & Tone Quick-Reference.
+
 ## Quick Reference
 
 | Command | Purpose |
@@ -57,11 +59,15 @@ setInterval(() => queryClient.invalidateQueries(), 5000);
 All work submissions go through the job queue for offline support:
 
 ```typescript
-import { submitWorkToQueue, processWorkJobInline } from "@green-goods/shared";
+import {
+  submitWorkToQueue,
+  processWorkJobInline,
+  validateWorkSubmissionContext,
+} from "@green-goods/shared";
 
 const handleSubmit = async () => {
   // 1. Validate
-  const errors = validateWorkDraft(draft, gardenAddress, actionUID, images);
+  const errors = validateWorkSubmissionContext(gardenAddress, actionUID, images);
   if (errors.length > 0) {
     toast.error(errors[0]);
     return;

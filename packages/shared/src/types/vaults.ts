@@ -60,6 +60,13 @@ export interface WithdrawParams {
   amount: bigint;
   receiver?: Address;
   owner?: Address;
+  /**
+   * Slippage protection in basis points. The vault's `withdraw(maxLoss)` arg —
+   * `100n` = 1% max loss, `10000n` = 100% (permissive, the historical default).
+   * Defaults to 100n when omitted so callers don't get silently haircut to zero
+   * under price-oracle distress. Set higher only with explicit user consent.
+   */
+  maxLossBps?: bigint;
 }
 
 export interface HarvestParams {
@@ -68,6 +75,11 @@ export interface HarvestParams {
 }
 
 export interface EmergencyPauseParams {
+  gardenAddress: Address;
+  assetAddress: Address;
+}
+
+export interface EnableAutoAllocateParams {
   gardenAddress: Address;
   assetAddress: Address;
 }
@@ -82,6 +94,14 @@ export interface FunderPosition {
   yieldGenerated: bigint;
 }
 
+export interface FunderAssetTotal {
+  chainId: number;
+  asset: Address;
+  totalYieldGenerated: bigint;
+  totalNetDeposited: bigint;
+  totalCurrentValue: bigint;
+}
+
 export interface FunderLeaderboardEntry {
   address: Address;
   totalYieldGenerated: bigint;
@@ -90,6 +110,7 @@ export interface FunderLeaderboardEntry {
   gardenCount: number;
   gardenAddresses: Address[];
   positions: FunderPosition[];
+  assetTotals: FunderAssetTotal[];
 }
 
 export interface VaultPreview {

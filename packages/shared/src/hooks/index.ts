@@ -25,6 +25,8 @@ export { usePageView } from "./analytics/usePageView";
 // ============================================================================
 export { useBrowserNavigation } from "./app/useBrowserNavigation";
 export { useUrlFilters } from "./app/useUrlFilters";
+export type { AdminAccessState } from "./admin-ui/useAdminAccessState";
+export { useAdminAccessState } from "./admin-ui/useAdminAccessState";
 // ============================================================================
 // UI
 // ============================================================================
@@ -39,6 +41,7 @@ export type {
   ManualInstallStep,
 } from "./app/useInstallGuidance";
 export { useInstallGuidance } from "./app/useInstallGuidance";
+export { usePublicInstallHandler } from "./app/usePublicInstallHandler";
 export type {
   UseLoadingWithMinDurationOptions,
   UseLoadingWithMinDurationResult,
@@ -79,15 +82,20 @@ export {
 // ============================================================================
 // ASSESSMENT
 // ============================================================================
-export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkflow";
 export { useCreateAssessmentWorkflow } from "./assessment/useCreateAssessmentWorkflow";
 export { useAllAssessments } from "./assessment/useAllAssessments";
 export { useGardenAssessments } from "./assessment/useGardenAssessments";
+// Compatibility type aliases
+// Prefer AssessmentWorkflowParams from @green-goods/shared/types in new code.
+export type { CreateAssessmentForm } from "./assessment/useCreateAssessmentWorkflow";
 // ============================================================================
 // AUTH
 // ============================================================================
-export type { AuthContextType, AuthMode } from "./auth/useAuth";
-export { useAuth, useAuthContext } from "./auth/useAuth";
+export type { AuthActionsValue, AuthContextType, AuthMode, AuthStateValue } from "./auth/useAuth";
+export { useAuthActions, useAuthContext, useAuthState } from "./auth/useAuth";
+// Compatibility exports
+// Prefer useAuthState/useAuthActions in new code.
+export { useAuth } from "./auth/useAuth";
 export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";
 export { useUser } from "./auth/useUser";
 // ============================================================================
@@ -120,6 +128,8 @@ export { useEnsAvatar } from "./blockchain/useEnsAvatar";
 export { useEnsName } from "./blockchain/useEnsName";
 export type { UseEnsQueryOptions, UseEnsQueryResult } from "./blockchain/useEnsQuery";
 export { useEnsQuery } from "./blockchain/useEnsQuery";
+export type { EthUsdPriceState } from "./blockchain/useEthUsdPrice";
+export { useEthUsdPrice } from "./blockchain/useEthUsdPrice";
 export { useTransactionSender } from "./blockchain/useTransactionSender";
 // Suspense-enabled hooks (for use with SuspenseBoundary)
 export {
@@ -131,7 +141,9 @@ export { useAllocateHypercertSupport } from "./conviction/useAllocateHypercertSu
 // ============================================================================
 // CONVICTION VOTING
 // ============================================================================
+export { useConvictionProposalsForPool } from "./conviction/useConvictionProposalsForPool";
 export { useConvictionStrategies } from "./conviction/useConvictionStrategies";
+export { useConvictionWeightAllocator } from "./conviction/useConvictionWeightAllocator";
 export { useCreateGardenPools } from "./conviction/useCreateGardenPools";
 export { useDeregisterHypercert } from "./conviction/useDeregisterHypercert";
 export { useGardenCommunity } from "./conviction/useGardenCommunity";
@@ -151,7 +163,18 @@ export {
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
 } from "./cookie-jar/useCookieJarAdmin";
+export { useAccessibleCookieJars } from "./cookie-jar/useAccessibleCookieJars";
+export {
+  useCampaignCookieJar,
+  useCampaignCookieJarDeposit,
+  useCampaignCookieJarWithdraw,
+  useCreateCampaignCookieJar,
+  useSyncCampaignCookieJarAllowlist,
+  useUpdateCampaignCookieJarMetadata,
+} from "./cookie-jar/useCampaignCookieJar";
+export { useCampaignCookieJarCampaigns } from "./cookie-jar/useCampaignCookieJarCampaigns";
 export { useCookieJarDeposit } from "./cookie-jar/useCookieJarDeposit";
+export { useCookieJarFactoryAddress } from "./cookie-jar/useCookieJarFactoryAddress";
 export { useCookieJarWithdraw } from "./cookie-jar/useCookieJarWithdraw";
 // ============================================================================
 // COOKIE JAR
@@ -163,11 +186,25 @@ export { useUserCookieJars } from "./cookie-jar/useUserCookieJars";
 // ============================================================================
 export type { ENSClaimResult } from "./ens/useENSClaim";
 export { useENSClaim } from "./ens/useENSClaim";
+export type { ENSReleaseResult } from "./ens/useENSReleaseName";
+export { useENSReleaseName } from "./ens/useENSReleaseName";
 export { useENSRegistrationStatus } from "./ens/useENSRegistrationStatus";
 export { useProtocolMemberStatus } from "./ens/useProtocolMemberStatus";
 export { useSlugAvailability } from "./ens/useSlugAvailability";
 export type { SlugFormValues } from "./ens/useSlugForm";
 export { slugSchema, useSlugForm } from "./ens/useSlugForm";
+export { useGreenGoodsEnsName } from "./ens/useGreenGoodsEnsName";
+// ============================================================================
+// GREENWILL
+// ============================================================================
+export {
+  useClaimFirstSupportBadge,
+  useClaimFirstWorkBadge,
+  useClaimGenesisBadge,
+} from "./greenwill/useClaimGreenWillBadge";
+export { useGreenWillBadgeDefinitions } from "./greenwill/useGreenWillBadgeDefinitions";
+export { useGreenWillBadges } from "./greenwill/useGreenWillBadges";
+export { useGreenWillRecentGrants } from "./greenwill/useGreenWillRecentGrants";
 // ============================================================================
 // GARDEN
 // ============================================================================
@@ -201,6 +238,13 @@ export { useFilteredGardens } from "./garden/useFilteredGardens";
 export { useGardenDerivedState } from "./garden/useGardenDerivedState";
 export { useGardenDetailData } from "./garden/useGardenDetailData";
 export { useGardenDomains } from "./garden/useGardenDomains";
+export type { EligibleAdminGardensResult } from "./garden/useEligibleAdminGardens";
+export { useEligibleAdminGardens } from "./garden/useEligibleAdminGardens";
+export type {
+  AdminGardenWorkspaceOption,
+  AdminGardenWorkspaceSelection,
+} from "./garden/useAdminGardenWorkspaceSelection";
+export { useAdminGardenWorkspaceSelection } from "./garden/useAdminGardenWorkspaceSelection";
 export type { GardenDraft, UseGardenDraftResult } from "./garden/useGardenDraft";
 export { useGardenDraft } from "./garden/useGardenDraft";
 export type { GardenInvite } from "./garden/useGardenInvites";
@@ -213,6 +257,7 @@ export {
   checkGardenOpenJoining,
   isGardenMember,
   useJoinGarden,
+  usePendingJoinsVersion,
 } from "./garden/useJoinGarden";
 export { useOpenMinting, useSetOpenMinting } from "./garden/useOpenMinting";
 export { useSetGardenDomains } from "./garden/useSetGardenDomains";
@@ -270,43 +315,63 @@ export { useMintHypercert } from "./hypercerts/useMintHypercert";
 export type { UseTradeHistoryResult } from "./hypercerts/useTradeHistory";
 export { useTradeHistory } from "./hypercerts/useTradeHistory";
 // ============================================================================
-// OPS RUNNER (Local deploy/upgrade/script orchestration)
+// PUBLIC READ-SIDE (Living Archive journal)
 // ============================================================================
+export type {
+  PublicFieldNote,
+  PublicGardenContributor,
+  PublicGardenDetail,
+  UsePublicGardenDetailOptions,
+} from "./public/usePublicGardenDetail";
+export { usePublicGardenDetail } from "./public/usePublicGardenDetail";
+export type { PublicGardenSummary } from "./public/usePublicGardens";
+export { publicGardenHelpers, usePublicGardens } from "./public/usePublicGardens";
+export type {
+  PublicFieldNotesPage,
+  UsePublicFieldNotesOptions,
+} from "./public/usePublicFieldNotes";
+export { usePublicFieldNotes } from "./public/usePublicFieldNotes";
+export type { PublicStats } from "./public/usePublicStats";
+export { usePublicStats } from "./public/usePublicStats";
+export type { UsePublicImpactEvidenceOptions } from "./public/usePublicImpactEvidence";
+export { usePublicImpactEvidence } from "./public/usePublicImpactEvidence";
+export type {
+  PublicGardenVaultSummary,
+  PublicVaultSummary,
+  PublicVaultSummaryAsset,
+  PublicVaultSummaryAssetSymbol,
+} from "./public/usePublicVaultSummary";
+export { usePublicVaultSummary } from "./public/usePublicVaultSummary";
+export type { PublicVolume, PublicVolumeActiveGarden } from "./public/usePublicVolume";
 export {
-  getOpsRunnerBaseUrl,
-  useOpsDeployPlan,
-  useOpsFinalizeDeploy,
-  useOpsFinalizeUpgrade,
-  useOpsJobLogs,
-  useOpsRunnerAuth,
-  useOpsRunnerHealth,
-  useOpsRunnerJob,
-  useOpsRunnerJobs,
-  useOpsRunnerScripts,
-  useOpsRunnerSession,
-  useOpsRunScript,
-  useOpsUpgradePlan,
-} from "./ops/useOpsRunner";
+  SEASON_ONE_VOLUME_ID,
+  SEASON_ONE_WINDOW,
+  usePublicVolume,
+} from "./public/usePublicVolume";
 // ============================================================================
 // QUERY KEYS
 // ============================================================================
-export type { QueryKey, QueueQueryKey, WorksQueryKey } from "./query-keys";
+export type { QueryKey, QueueQueryKey, WorksQueryKey } from "../config/query-keys";
 // ============================================================================
 // STORAGE
 // ============================================================================
 export {
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY,
+  INDEXER_LAG_SCHEDULE_MS,
   queryInvalidation,
   queryKeys,
   STALE_TIME_FAST,
   STALE_TIME_MEDIUM,
   STALE_TIME_RARE,
   STALE_TIME_SLOW,
-} from "./query-keys";
+} from "../config/query-keys";
+export { scheduleProgressiveInvalidation } from "../config/query-keys/schedule";
 // ============================================================================
 // ROLES
 // ============================================================================
+export type { ToolbarPermissions } from "./roles/useEffectiveToolbarPermissions";
+export { useEffectiveToolbarPermissions } from "./roles/useEffectiveToolbarPermissions";
 export type { UseGardenRolesResult } from "./roles/useGardenRoles";
 export { useGardenRoles } from "./roles/useGardenRoles";
 export type { UseHasRoleResult } from "./roles/useHasRole";
@@ -334,11 +399,31 @@ export type {
 export { useCopyToClipboard } from "./utils/useCopyToClipboard";
 export { useDebouncedValue } from "./utils/useDebouncedValue";
 // ============================================================================
+// UI (General-purpose UI utilities)
+// ============================================================================
+export { useInViewReveal } from "./ui/useInViewReveal";
+export { useIsDarkMode } from "./ui/useIsDarkMode";
+export { useMediaQuery } from "./ui/useMediaQuery";
+export { useContainerQuery } from "./useContainerQuery";
+export { useSheetWidth } from "./useSheetWidth";
+// ============================================================================
 // UTILS (Low-level hooks for common patterns)
 // ============================================================================
+export { useFocusTrap } from "./utils/useFocusTrap";
 export { useDocumentEvent, useEventListener, useWindowEvent } from "./utils/useEventListener";
 export { useMutationLock } from "./utils/useMutationLock";
-export { useDelayedInvalidation, useTimeout } from "./utils/useTimeout";
+export { useSafeMutation } from "./utils/useSafeMutation";
+export { useDelayedInvalidation, useProgressiveInvalidation, useTimeout } from "./utils/useTimeout";
+export type { TxErrorMessages } from "./utils/useTxErrorMessages";
+export { useTxErrorMessages } from "./utils/useTxErrorMessages";
+export type {
+  FormWizardStepFields,
+  FormWizardTrigger,
+  FormWizardValidationStep,
+  UseFormWizardStepValidationOptions,
+  UseFormWizardStepValidationResult,
+} from "./ui/useFormWizardStepValidation";
+export { useFormWizardStepValidation } from "./ui/useFormWizardStepValidation";
 export type { UseDepositFormResult } from "./vault/useDepositForm";
 export { useDepositForm } from "./vault/useDepositForm";
 // ============================================================================
@@ -361,12 +446,29 @@ export {
 export { useVaultPreview } from "./vault/useVaultPreview";
 export { useHarvestableYield } from "./vault/useHarvestableYield";
 export { useStrategyRate } from "./vault/useStrategyRate";
+export { fetchApprovalsByRecipients } from "./work/useAggregatedApprovals";
 export { useBatchWorkApproval } from "./work/useBatchWorkApproval";
 export { useBatchWorkSync } from "./work/useBatchWorkSync";
 
 // ============================================================================
+// NAVIGATION
+// ============================================================================
+export type { CanvasSearchParamsResult } from "./navigation/useCanvasSearchParams";
+export { useCanvasSearchParams } from "./navigation/useCanvasSearchParams";
+export type { GardenUrlSyncResult } from "./navigation/useGardenUrlSync";
+export { useGardenUrlSync } from "./navigation/useGardenUrlSync";
+export type { UseSheetOrchestratorReturn } from "./navigation/useSheetOrchestrator";
+export { useSheetOrchestrator } from "./navigation/useSheetOrchestrator";
+// ============================================================================
 // WORK
 // ============================================================================
+export type {
+  UseWorkApprovalActionsParams,
+  UseWorkApprovalActionsResult,
+} from "./work/useWorkApprovalActions";
+export { useWorkApprovalActions } from "./work/useWorkApprovalActions";
+export type { UseCrossGardenQueueResult } from "./work/useCrossGardenQueue";
+export { useCrossGardenQueue } from "./work/useCrossGardenQueue";
 export { useDraftAutoSave } from "./work/useDraftAutoSave";
 export type { PlatformStats } from "./work/usePlatformStats";
 export { usePlatformStats } from "./work/usePlatformStats";
@@ -374,6 +476,8 @@ export { useDraftResume } from "./work/useDraftResume";
 export type { DraftWithImages, UseDraftsReturn } from "./work/useDrafts";
 export { useDrafts } from "./work/useDrafts";
 export { useMyOnlineWorks, useMyWorks } from "./work/useMyWorks";
+export { useReviewerGardenIds } from "./work/useReviewerGardenIds";
+export { useReviewerWorks } from "./work/useReviewerWorks";
 export type {
   SubmissionProgressState,
   SubmissionStage,
@@ -386,6 +490,8 @@ export { useWorkApprovals } from "./work/useWorkApprovals";
 export type { WorkFormData } from "./work/useWorkForm";
 export { buildWorkFormSchema, useWorkForm, workFormSchema } from "./work/useWorkForm";
 export { useWorkImages } from "./work/useWorkImages";
+export type { UseWorkMetadataResult, WorkMetadataStatus } from "./work/useWorkMetadata";
+export { useWorkMetadata } from "./work/useWorkMetadata";
 export { useWorkMutation } from "./work/useWorkMutation";
 export type { UseWorkMutationWithProgressReturn } from "./work/useWorkMutationWithProgress";
 export { useWorkMutationWithProgress } from "./work/useWorkMutationWithProgress";
@@ -400,7 +506,12 @@ export {
 // YIELD
 // ============================================================================
 export { useAllocateYield } from "./yield/useAllocateYield";
+export { useGardenYieldWiringState } from "./yield/useGardenYieldWiringState";
 export { usePendingYield } from "./yield/usePendingYield";
+export {
+  useGardenYieldSummary,
+  type GardenYieldSummary,
+} from "./yield/useGardenYieldSummary";
 export {
   useProtocolYieldSummary,
   type ProtocolYieldSummary,

@@ -7,11 +7,7 @@ import { NetworkManager } from "../utils/network";
 import { ConfigValidator, type GardenConfig } from "../utils/validation";
 import { AnvilManager } from "./anvil";
 
-/**
- * GardenDeployer - Handles garden deployment
- *
- * Extracted from deploy.js - handles deployment of individual gardens
- */
+/** Deploys individual gardens via forge script. */
 export class GardenDeployer {
   protected networkManager: NetworkManager;
   protected validator: ConfigValidator;
@@ -25,11 +21,7 @@ export class GardenDeployer {
     this.validator = new ConfigValidator();
   }
 
-  /**
-   * Deploy a garden from config file
-   * @param configPath - Path to garden config JSON
-   * @param options - Deployment options
-   */
+  /** Deploy a garden from a JSON config file. */
   async deployGarden(configPath: string, options: ParsedOptions): Promise<void> {
     console.log(`Deploying garden from ${configPath} to ${options.network}`);
 
@@ -78,12 +70,7 @@ export class GardenDeployer {
     console.log("\n✅ Garden deployed successfully!");
   }
 
-  /**
-   * Execute a forge script
-   * @param scriptPath - Path to Solidity script
-   * @param options - Deployment options
-   * @param env - Environment variables
-   */
+  /** Execute a forge script with the configured network and env. */
   protected async _executeForgeScript(
     scriptPath: string,
     options: ParsedOptions,
@@ -152,20 +139,13 @@ export class GardenDeployer {
     });
   }
 
-  /**
-   * Set environment flags for deployment
-   * @param options - Deployment options
-   */
+  /** Project deploy options into the env vars consumed by the forge script. */
   protected _setEnvironmentFlags(options: ParsedOptions): void {
     process.env.UPDATE_SCHEMAS_ONLY = (options.updateSchemasOnly || false).toString();
     process.env.FORCE_REDEPLOY = (options.force || false).toString();
   }
 
-  /**
-   * Save garden deployment record
-   * @param config - Garden configuration
-   * @param options - Deployment options
-   */
+  /** Persist a garden deployment record under deployments/gardens/. */
   private _saveGardenDeploymentRecord(config: GardenConfig, options: ParsedOptions): void {
     const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
     const deploymentRecord = {

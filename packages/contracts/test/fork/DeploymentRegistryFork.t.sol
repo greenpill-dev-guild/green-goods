@@ -5,6 +5,7 @@ import { ForkTestBase } from "./helpers/ForkTestBase.sol";
 import { Deployment } from "../../src/registries/Deployment.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import { UnauthorizedCaller } from "../../src/CommonErrors.sol";
 
 /// @title DeploymentRegistryForkTest
 /// @notice Fork tests for the Deployment (governance registry) contract.
@@ -151,7 +152,7 @@ contract DeploymentRegistryForkTest is ForkTestBase {
             octantFactory: address(0),
             unlockFactory: address(0),
             hypercerts: address(0),
-            greenWillRegistry: address(0)
+            greenWill: address(0)
         });
 
         vm.prank(forkOperator);
@@ -166,7 +167,7 @@ contract DeploymentRegistryForkTest is ForkTestBase {
 
         // Now unauthorized
         vm.prank(forkOperator);
-        vm.expectRevert(abi.encodeWithSelector(Deployment.UnauthorizedCaller.selector, forkOperator));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, forkOperator));
         deploymentRegistry.setNetworkConfig(12_345, config);
     }
 
@@ -232,7 +233,7 @@ contract DeploymentRegistryForkTest is ForkTestBase {
         assertEq(deploymentRegistry.pendingOwner(), address(0), "pending should be cleared");
 
         // Old owner can no longer initiate
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", address(this)));
+        vm.expectRevert("Ownable: caller is not the owner");
         deploymentRegistry.initiateGovernanceTransfer(address(this));
     }
 
@@ -317,16 +318,16 @@ contract DeploymentRegistryForkTest is ForkTestBase {
         // forkNonMember is not owner or allowlisted
         vm.startPrank(forkNonMember);
 
-        vm.expectRevert(abi.encodeWithSelector(Deployment.UnauthorizedCaller.selector, forkNonMember));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, forkNonMember));
         deploymentRegistry.setNetworkConfig(block.chainid, config);
 
-        vm.expectRevert(abi.encodeWithSelector(Deployment.UnauthorizedCaller.selector, forkNonMember));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, forkNonMember));
         deploymentRegistry.updateActionRegistry(address(0x123));
 
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", forkNonMember));
+        vm.expectRevert("Ownable: caller is not the owner");
         deploymentRegistry.addToAllowlist(forkNonMember);
 
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", forkNonMember));
+        vm.expectRevert("Ownable: caller is not the owner");
         deploymentRegistry.emergencyPause();
 
         vm.stopPrank();
@@ -382,7 +383,7 @@ contract DeploymentRegistryForkTest is ForkTestBase {
 
         // Deploy new implementation and upgrade
         Deployment newImpl = new Deployment();
-        deploymentRegistry.upgradeToAndCall(address(newImpl), "");
+        deploymentRegistry.upgradeTo(address(newImpl));
 
         // Verify state preserved
         assertEq(deploymentRegistry.owner(), preOwner, "owner should be preserved");
@@ -409,8 +410,8 @@ contract DeploymentRegistryForkTest is ForkTestBase {
         Deployment newImpl = new Deployment();
 
         vm.prank(forkNonMember);
-        vm.expectRevert(abi.encodeWithSignature("OwnableUnauthorizedAccount(address)", forkNonMember));
-        deploymentRegistry.upgradeToAndCall(address(newImpl), "");
+        vm.expectRevert("Ownable: caller is not the owner");
+        deploymentRegistry.upgradeTo(address(newImpl));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

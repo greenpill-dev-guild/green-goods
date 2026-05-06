@@ -35,7 +35,7 @@ function WithStoreState({
 }
 
 const meta: Meta<typeof TeamStep> = {
-  title: "Admin/Garden/TeamStep",
+  title: "Admin/Workflows/Garden/TeamStep",
   component: TeamStep,
   tags: ["autodocs"],
   argTypes: {
@@ -108,27 +108,10 @@ export const GardenersOnly: Story = {
   ],
 };
 
-export const DarkMode: Story = {
-  args: {
-    showValidation: false,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <WithStoreState gardeners={[MOCK_ADDRESSES[0]]} operators={[MOCK_ADDRESSES[1]]}>
-          <div className="max-w-2xl mx-auto">
-            <Story />
-          </div>
-        </WithStoreState>
-      </div>
-    ),
-  ],
-};
-
 /**
- * Gallery showing empty, partially filled, and fully loaded states.
+ * Consolidated state catalog — use the theme toolbar for dark mode.
  */
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-8">
       <div>

@@ -13,10 +13,10 @@ prereqs: "Active garden with approved work and minted hypercerts."
 next_steps: "/community/operator-guide/earning-recognition"
 persona_context: "Operators managing the hypercert lifecycle from minting through listing and trade monitoring."
 source_of_truth:
-  - packages/admin/src/views/Gardens/Garden/Hypercerts.tsx
-  - packages/admin/src/views/Gardens/Garden/HypercertDetail.tsx
-  - packages/admin/src/components/hypercerts/ActiveListingsTable.tsx
-  - packages/admin/src/components/hypercerts/TradeHistoryTable.tsx
+  - packages/admin/src/components/Garden/GardenHypercertsPanel.tsx
+  - packages/admin/src/views/Garden/HypercertDetail.tsx
+  - packages/admin/src/components/Hypercerts/ActiveListingsTable.tsx
+  - packages/admin/src/components/Hypercerts/TradeHistoryTable.tsx
   - packages/shared/src/hooks/hypercerts/useHypercerts.ts
 keywords:
   - hypercerts
@@ -99,7 +99,7 @@ graph TB
 - Keep contributor allowlists accurate — they represent the gardeners who did the verified work
 - Document the relationship between assessments and minted hypercerts for transparency
 - Monitor trade volume and pricing trends to understand how the market values your garden's impact
-- If you need to cancel a listing, use the cancel flow in the admin dashboard rather than letting it expire
+- If you need to cancel a listing, use the cancel flow in the admin Hypercert detail surface rather than letting it expire
 
 ## What's Next
 

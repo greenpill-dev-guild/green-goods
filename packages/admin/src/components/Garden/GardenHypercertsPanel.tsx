@@ -1,10 +1,15 @@
-import { type Address, formatDate, type HypercertRecord } from "@green-goods/shared";
+import {
+  type Address,
+  Card,
+  EmptyState,
+  adminRoutes,
+  formatDate,
+  type HypercertRecord,
+} from "@green-goods/shared";
 import { RiAwardLine, RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { ActiveListingsTable } from "@/components/hypercerts/ActiveListingsTable";
-import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { ActiveListingsTable } from "@/components/Hypercerts/ActiveListingsTable";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -24,6 +29,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
   canManage,
 }) => {
   const { formatMessage } = useIntl();
+  const gardenRouteContext = { gardenAddress: gardenAddress ?? gardenId };
 
   return (
     <Card>
@@ -32,7 +38,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
           {formatMessage({ id: "app.hypercerts.list.title" })}
         </h3>
         <Link
-          to={`/gardens/${gardenId}/hypercerts`}
+          to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })}
           className="inline-flex items-center rounded-md border border-stroke-sub px-3 py-1.5 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
         >
           {formatMessage({ id: "app.garden.admin.viewAll" })}
@@ -98,7 +104,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
                     </div>
                     <div className="flex items-center gap-2">
                       <Link
-                        to={`/gardens/${gardenId}/hypercerts/${record.id}`}
+                        to={adminRoutes.gardenHypercertDetail(record.id, gardenRouteContext)}
                         className="inline-flex items-center rounded text-sm text-primary-dark transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
                       >
                         {formatMessage({ id: "app.hypercerts.list.viewDetails" })}

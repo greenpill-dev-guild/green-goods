@@ -29,7 +29,7 @@ function WithStoreState({
 }
 
 const meta: Meta<typeof DetailsStep> = {
-  title: "Admin/Garden/DetailsStep",
+  title: "Admin/Workflows/Garden/DetailsStep",
   component: DetailsStep,
   tags: ["autodocs"],
   argTypes: {
@@ -131,34 +131,10 @@ export const PartialWithValidation: Story = {
   ],
 };
 
-export const DarkMode: Story = {
-  args: {
-    showValidation: false,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <WithStoreState
-          overrides={{
-            name: "Moonlit Garden",
-            slug: "moonlit-garden",
-            description: "Nighttime biodiversity documentation project.",
-            location: "Kyoto, Japan",
-          }}
-        >
-          <div className="max-w-2xl mx-auto">
-            <Story />
-          </div>
-        </WithStoreState>
-      </div>
-    ),
-  ],
-};
-
 /**
- * Gallery showing empty, partial, and fully filled states side by side.
+ * Consolidated state catalog — use the theme toolbar for dark mode.
  */
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-8">
       <div>

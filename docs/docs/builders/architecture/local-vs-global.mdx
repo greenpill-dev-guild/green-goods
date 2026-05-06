@@ -6,6 +6,11 @@ audience: developer
 owner: docs
 last_verified: 2026-03-07
 feature_status: Live
+source_of_truth:
+  - packages/shared/src/modules/job-queue
+  - packages/shared/src/providers/JobQueue.tsx
+  - packages/shared/src/modules/app/service-worker.ts
+  - packages/shared/src/hooks/work/useCrossGardenQueue.ts
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -39,7 +44,7 @@ sequenceDiagram
     participant UI as React UI
     participant JQ as Job Queue (IndexedDB)
     participant SW as Service Worker
-    participant IPFS as IPFS (Storacha)
+    participant IPFS as IPFS (Pinata-backed)
     participant Chain as EAS Contract
 
     User->>UI: Submit work (photos + details)
@@ -85,7 +90,7 @@ graph LR
     end
 
     subgraph Network["Network Layer"]
-        IPFS["IPFS / Storacha<br/><small>Media storage</small>"]
+        IPFS["IPFS / Pinata-backed path<br/><small>Media storage</small>"]
         Bundler["Bundler<br/><small>UserOperation relay</small>"]
     end
 

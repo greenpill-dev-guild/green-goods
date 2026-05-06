@@ -1,4 +1,12 @@
-import type { ActionInstructionConfig, WorkInput } from "@green-goods/shared";
+import {
+  type ActionInstructionConfig,
+  Button,
+  FormField,
+  NativeSelect,
+  Textarea,
+  TextInput,
+  type WorkInput,
+} from "@green-goods/shared";
 import {
   RiAddLine,
   RiArrowDownLine,
@@ -8,7 +16,7 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
-import { FormField } from "@/components/ui/FormField";
+import { AdminCheckbox } from "../AdminCheckbox";
 
 interface DetailsConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["details"];
@@ -66,8 +74,9 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
         })}
         htmlFor="section-title"
       >
-        <input
+        <TextInput
           id="section-title"
+          surface="admin"
           type="text"
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
@@ -86,8 +95,9 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
         })}
         htmlFor="section-description"
       >
-        <textarea
+        <Textarea
           id="section-description"
+          surface="admin"
           value={config.description}
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"
@@ -106,8 +116,9 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
         })}
         htmlFor="feedback-placeholder"
       >
-        <input
+        <TextInput
           id="feedback-placeholder"
+          surface="admin"
           type="text"
           value={config.feedbackPlaceholder}
           onChange={(e) => onChange({ ...config, feedbackPlaceholder: e.target.value })}
@@ -128,17 +139,18 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
               defaultMessage: "Form Inputs",
             })}
           </h3>
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={addInput}
-            className="px-3 py-1.5 bg-primary-base text-primary-foreground rounded-md hover:bg-primary-darker text-sm flex items-center gap-1"
+            className="px-3 py-1.5 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
           >
             <RiAddLine className="h-4 w-4" />
             {formatMessage({
               id: "app.admin.actions.detailsConfig.addInput",
               defaultMessage: "Add Input",
             })}
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-4">
@@ -162,16 +174,18 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
                   defaultMessage: "No form inputs yet",
                 })}
               </p>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={addInput}
-                className="text-primary-base hover:text-primary-darker text-sm"
+                className="h-auto min-w-0 text-primary-base hover:text-primary-darker text-sm"
               >
                 {formatMessage({
                   id: "app.admin.actions.detailsConfig.addFirstInput",
                   defaultMessage: "Add your first input field",
                 })}
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -225,41 +239,47 @@ function InputFieldEditor({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => onMove("up")}
             disabled={index === 0}
-            className="p-1 text-text-soft hover:text-text-strong disabled:opacity-30"
+            className="h-auto min-w-0 p-1 text-text-soft hover:text-text-strong disabled:opacity-30"
             title={formatMessage({
               id: "app.admin.actions.detailsConfig.moveUp",
               defaultMessage: "Move up",
             })}
           >
             <RiArrowUpLine className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => onMove("down")}
             disabled={index === totalInputs - 1}
-            className="p-1 text-text-soft hover:text-text-strong disabled:opacity-30"
+            className="h-auto min-w-0 p-1 text-text-soft hover:text-text-strong disabled:opacity-30"
             title={formatMessage({
               id: "app.admin.actions.detailsConfig.moveDown",
               defaultMessage: "Move down",
             })}
           >
             <RiArrowDownLine className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onRemove}
-            className="p-1 text-error-base hover:bg-error-lighter rounded ml-2"
+            className="ml-2 h-auto min-w-0 rounded p-1 text-error-base hover:bg-error-lighter"
             title={formatMessage({
               id: "app.admin.actions.detailsConfig.delete",
               defaultMessage: "Delete",
             })}
           >
             <RiDeleteBinLine className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -271,8 +291,9 @@ function InputFieldEditor({
           })}
           htmlFor={`field-key-${input.key}`}
         >
-          <input
+          <TextInput
             id={`field-key-${input.key}`}
+            surface="admin"
             type="text"
             value={input.key}
             onChange={(e) => onUpdate({ key: e.target.value })}
@@ -291,8 +312,9 @@ function InputFieldEditor({
           })}
           htmlFor={`field-type-${input.key}`}
         >
-          <select
+          <NativeSelect
             id={`field-type-${input.key}`}
+            surface="admin"
             value={input.type}
             onChange={(e) => onUpdate({ type: e.target.value as WorkInput["type"], options: [] })}
             className="w-full rounded-md border border-stroke-soft px-2 py-1.5 text-sm"
@@ -321,7 +343,13 @@ function InputFieldEditor({
                 defaultMessage: "Select Dropdown",
               })}
             </option>
-          </select>
+            <option value="multi-select">
+              {formatMessage({
+                id: "app.admin.actions.detailsConfig.typeMultiSelect",
+                defaultMessage: "Multi-select",
+              })}
+            </option>
+          </NativeSelect>
         </FormField>
 
         <FormField
@@ -331,8 +359,9 @@ function InputFieldEditor({
           })}
           htmlFor={`field-label-${input.key}`}
         >
-          <input
+          <TextInput
             id={`field-label-${input.key}`}
+            surface="admin"
             type="text"
             value={input.title}
             onChange={(e) => onUpdate({ title: e.target.value })}
@@ -351,8 +380,9 @@ function InputFieldEditor({
           })}
           htmlFor={`field-placeholder-${input.key}`}
         >
-          <input
+          <TextInput
             id={`field-placeholder-${input.key}`}
+            surface="admin"
             type="text"
             value={input.placeholder}
             onChange={(e) => onUpdate({ placeholder: e.target.value })}
@@ -365,24 +395,20 @@ function InputFieldEditor({
         </FormField>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
-        <input
-          type="checkbox"
+      <div className="mt-3">
+        <AdminCheckbox
           id={`required-${input.key}`}
           checked={input.required}
           onChange={(e) => onUpdate({ required: e.target.checked })}
-          className="rounded border-stroke-soft"
-        />
-        <label htmlFor={`required-${input.key}`} className="text-xs text-text-strong">
-          {formatMessage({
+          label={formatMessage({
             id: "app.admin.actions.detailsConfig.requiredField",
             defaultMessage: "Required field",
           })}
-        </label>
+        />
       </div>
 
       {/* Options for Select type */}
-      {input.type === "select" && (
+      {(input.type === "select" || input.type === "multi-select") && (
         <div className="mt-3 pt-3 border-t border-stroke-soft">
           <FormField
             label={formatMessage({
@@ -393,7 +419,8 @@ function InputFieldEditor({
             <div id={`field-options-${input.key}`} className="space-y-1.5">
               {input.options.map((option, optIndex) => (
                 <div key={optIndex} className="flex items-center gap-2">
-                  <input
+                  <TextInput
+                    surface="admin"
                     type="text"
                     value={option}
                     onChange={(e) => {
@@ -403,17 +430,20 @@ function InputFieldEditor({
                     }}
                     className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => removeOption(optIndex)}
-                    className="p-1 text-error-base hover:bg-error-lighter rounded"
+                    className="h-auto min-w-0 rounded p-1 text-error-base hover:bg-error-lighter"
                   >
                     <RiCloseLine className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
               ))}
               <div className="flex gap-2">
-                <input
+                <TextInput
+                  surface="admin"
                   type="text"
                   value={newOption}
                   onChange={(e) => setNewOption(e.target.value)}
@@ -429,13 +459,14 @@ function InputFieldEditor({
                   })}
                   className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
                 />
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   onClick={addOption}
-                  className="px-2 py-1 bg-primary-base text-primary-foreground rounded-md hover:bg-primary-darker text-xs"
+                  className="px-2 py-1 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-xs"
                 >
                   <RiAddLine className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </div>
             </div>
           </FormField>

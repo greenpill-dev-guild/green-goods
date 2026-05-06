@@ -4,38 +4,141 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Live
+source_of_truth:
+  - AGENTS.md
+  - packages/admin/AGENTS.md
+  - packages/admin/src/App.tsx
+  - packages/admin/src/router.tsx
+  - packages/shared/.storybook/main.ts
 ---
+
+import {StatusBadge} from "@site/src/components/docs";
 
 # Admin Dashboard
 
-```mermaid
-graph TB
-    subgraph Admin["Admin Dashboard"]
-        Views["Views\nDashboard, Gardens,\nActions, Work Queue"]
-        Components["Components\nUI primitives, forms"]
-        RBA["Role-Based Access\nHats Protocol"]
-    end
+<StatusBadge status="Live" />
 
-    Shared["@green-goods/shared\nhooks, types, modules"] --> Admin
-    Admin -->|read/write| GQL["Envio GraphQL"]
-    Admin -->|transactions| Chain["Blockchain"]
-    Admin -->|auth| WC["WalletConnect"]
-```
+The admin package is the Green Goods operator canvas. This page is the single UI contract for `packages/admin`.
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+## Purpose
 
-## Overview
-React admin dashboard for operators and evaluators to manage gardens.
+- `packages/admin` owns canvas shell composition and admin-only workflows.
+- `@green-goods/shared` owns reusable UI primitives, shared config helpers, hooks, providers, stores, and Storybook-backed foundations.
+- If a pattern is reusable across admin surfaces, move it to shared instead of creating a package-local copy.
 
-<img src="/img/screenshots/admin-dashboard.png" alt="Admin dashboard — garden stats, recent gardens, and activity feed" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)', marginBottom: '1rem'}} />
+## Canonical Routes
 
-<img src="/img/screenshots/admin-actions.png" alt="Actions registry — browse and manage regenerative work categories" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+- Primary canvas surfaces: `/hub`, `/garden`, `/community`, `/actions`
+- Hub canonical deep links: `/hub/work/:workId`, `/hub/work/submit`, `/hub/assess/create`, `/hub/certify/:assessmentId`, `/hub/certify/create`, `/hub/history/:historyEventId`
+- Secondary garden flows: `/garden/create`, `/garden/impact/hypercerts/:hypercertId`, `/community/treasury/vault`, `/community/governance/strategies`, `/community/governance/signal-pool/:poolType`
+- Team campaign flows: `/cookies`, `/cookies/deploy`
+- Removed admin top-level routes intentionally fall through to the admin 404 unless they are listed in the redirect policy below.
 
-## What to Expect
-- Dashboard architecture
-- Component library and patterns
-- State management with TanStack Query
+## Redirect Policy
+
+- Canonical admin bookmarks stay inside the admin app: `/hub`, `/garden`, `/community`, `/actions`, and their documented nested routes.
+- Public garden URLs redirect to the client app: `/gardens`, `/gardens/:gardenId`, and `/gardens/:gardenId/*` map to the same path on `greengoods.app`.
+- The admin SPA keeps a client-side fallback for public garden URLs so local and static preview environments match production redirects.
+- Removed admin route families are not blanket-redirected. Add a specific destination here before preserving any legacy admin bookmark.
+
+## Shell Contract
+
+- `CanvasLayout` is the canonical shell.
+- The shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`.
+- `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, settings, notifications, and profile controls on the right.
+- `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions`.
+- `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
+- Admin owns `CanvasLayout`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, and `PageHeader`.
+- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, and `SheetErrorBoundary`.
+
+## Preferred Primitives
+
+- `AppBar`
+- `NavigationBar`
+- `MainSheet`
+- `GardenChip`
+- `CommandPalette`
+- `AccountSettingsPanel`
+- `UserAvatar`
+- `ConnectShell`
+- `LeftSheet`
+- `RightSheet`
+- `BottomSheet`
+- `PageHeader`
+- `ListToolbar`
+- `SortSelect`
+- `Card`
+- `Alert`
+- `StatusBadge`
+- `FormField`
+- `DialogShell`
+
+## Surface Primitives
+
+- `.workspace-canvas` is the default canvas workspace treatment.
+- `.surface-section` creates a rounded full-width section wrapper.
+- `.surface-inset` creates nested panels inside a section.
+- `.surface-card` creates interactive tiles.
+
+## Canvas UI Heuristics
+
+- Admin is an operator canvas. Use utility copy and operational hierarchy over marketing language.
+- Default page sequence is `PageHeader`, then the primary workspace, then any secondary inspector or side sheet.
+- Start with layout and flow before introducing cards or elevated panels.
+- Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
+- Prefer one dominant workspace surface per route and plain layout within it. Avoid nested stacks of rounded bordered panels.
+- Avoid hero sections, decorative promo callouts, and decorative gradients behind routine product UI.
+- Use route-tint atmosphere, dock depth, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
+- Use `/hub` as the reference implementation for canvas composition and interaction density.
+
+## Unified Canvas Route Contract
+
+- Every primary route must answer one operator question, not three.
+- The first viewport must show: route title, one short scope sentence, current garden context when applicable, one control row, and the first actionable content.
+- Default page anatomy is `PageHeader` -> one dominant workspace canvas -> optional secondary inspector (`LeftSheet`, `RightSheet`, `BottomSheet`, or a single rail).
+- Use one control grammar per route. Choose one of: stage tabs, view tabs, or a list toolbar. Do not stack multiple competing switchers and banners above the workspace.
+- Use at most one strong CTA in the header. If a FAB exists for the route, the header should not duplicate the same creation action.
+- Summary metrics are optional and should appear only when they improve decisions. Cap summary strips at three items for operational routes.
+- Prefer layout, rows, and sections over card mosaics. Use cards only for discrete records, bounded workflows, or detail modules that need separation.
+- Default detail behavior is an inspector or secondary pane, not a new pile of inline cards.
+- Use utility copy. Titles identify the workspace. Descriptions explain scope, freshness, or what the operator can do next.
+- Keep imagery subordinate to status, title, and actions unless the operator is explicitly reviewing media itself.
+- Reduced-motion support is mandatory. Stage changes, row selection, and sheet open/close must retain state clarity without relying on travel or spring lift.
+
+## Route Roles
+
+- `/hub` is the primary canvas workspace. Its primary object is the Hub workbench with Work, Assess, Certify, and History modes.
+- `/hub` is the gold-standard canvas route for composition, depth, responsive adaptation, and tactile state behavior.
+- `/hub` defaults to one dominant workbench surface under the stage rail. Detail, review, submit, and read-only handoff flows belong in bounded `LeftSheet`, `RightSheet`, or `BottomSheet` inspectors.
+- `/hub/work/:workId`, `/hub/work/submit`, `/hub/assess/create`, `/hub/certify/:assessmentId`, `/hub/certify/create`, and `/hub/history/:historyEventId` are canonical Hub deep links, not separate full-page detours. They must render through the same Hub controller and preserve shareable `gardenAddress` and `sort` query state. Hub mode belongs to the path, not a `view` query parameter.
+- `Certify` stays visible for evaluator-only users as a read-only handoff state. Owner or operator authority unlocks mint actions.
+- `/garden` is the situational overview of a single garden. Its primary object is health, activity, and impact state.
+- `/community` is the operations workspace for membership, treasury, pools, and yield. Only one of those modes should dominate the canvas at a time.
+- `/actions` is the action registry and lifecycle workspace. It should feel like a managed catalog, not a marketing gallery.
+
+## Route Smells To Reject
+
+- `/hub`: stage navigation should reflect real operating modes rather than placeholder pipelines.
+- `/hub`: header chrome should keep the first actionable queue content within immediate reach.
+- `/garden`: large summary card grids before the operator reaches the actual overview or impact workspace.
+- `/garden`: mixing overview, impact, and settings as visually equivalent tabs without clearly changing page mode.
+- `/community`: a stat strip plus tab switcher plus contextual CTA banner plus card stack before the user reaches the active mode.
+- `/community`: treating treasury, members, pools, and yield as one blended page instead of four focused operational modes.
+- `/actions`: image-led card galleries that make the route read like a promotional browse surface instead of an admin registry.
+- `/actions`: filters that change presentation but never establish a clear “default management view” for scanning and editing records.
+
+## Page Families
+
+- List pages: `PageHeader + ListToolbar + filters/sort + loading/empty/error + results`
+- Detail and workbench pages: `PageHeader` or garden hero plus main/rail composition
+- Operational pages: `PageHeader + stage/tabs + primary workspace + optional inspector`
+
+## Migration Rules
+
+- `DashboardLayout`, `Sidebar`, and `Header` are legacy references, not starting points for new work.
+- Do not add admin-local primitive shims such as `components/ui`.
+- Do not add admin-local config helpers when the behavior belongs beside shared React Query or other shared config.
+- Do not introduce package-local `utils/` for logic that should live in shared.
+- Keep reusable components consumed through the `@green-goods/shared` barrel.

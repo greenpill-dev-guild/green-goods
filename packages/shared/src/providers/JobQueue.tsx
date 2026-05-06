@@ -1,12 +1,13 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { queueToasts, toastService } from "../components/toast";
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { queryClient } from "../config/react-query";
 import { useAuth } from "../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
-import { queryInvalidation, queryKeys } from "../hooks/query-keys";
+import { queryInvalidation, queryKeys } from "../config/query-keys";
 import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
+import { logger } from "../modules/app/logger";
 import { useUIStore } from "../stores/useUIStore";
 import type {
   ApprovalJobPayload,
@@ -49,6 +50,14 @@ interface JobQueueProviderProps {
   children: React.ReactNode;
 }
 
+const EMPTY_QUEUE_STATS: QueueStats = { total: 0, pending: 0, failed: 0, synced: 0 };
+
+const areQueueStatsEqual = (left: QueueStats, right: QueueStats) =>
+  left.total === right.total &&
+  left.pending === right.pending &&
+  left.failed === right.failed &&
+  left.synced === right.synced;
+
 // Work type for cache updates
 interface Work {
   id: string;
@@ -63,31 +72,52 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
   // Use single source of truth for primary address
   const currentUserAddress = usePrimaryAddress();
 
-  const [stats, setStats] = useState<QueueStats>({ total: 0, pending: 0, failed: 0, synced: 0 });
+  const [stats, setStats] = useState<QueueStats>(EMPTY_QUEUE_STATS);
   const [isProcessing, setIsProcessing] = useState(false);
   const [lastEvent, setLastEvent] = useState<QueueEvent | null>(null);
+  // Shared across effect re-runs (deps include sender/authMode/currentUserAddress).
+  // Without this, an auth flip mid-flush would tear down the effect and the
+  // new effect's attemptFlush would see a fresh `false`, racing the in-flight
+  // flush. Module-internal locking still applies, but this layer enforces
+  // serialization at the provider boundary too.
+  const isFlushInProgressRef = useRef(false);
   const setOfflineBannerVisible = useUIStore((state) => state.setOfflineBannerVisible);
+
+  const setOfflineBannerVisibleIfChanged = useCallback(
+    (visible: boolean) => {
+      if (useUIStore.getState().isOfflineBannerVisible === visible) {
+        return;
+      }
+      setOfflineBannerVisible(visible);
+    },
+    [setOfflineBannerVisible]
+  );
 
   // useCallback needed here as refreshStats is used in multiple effects
   const refreshStats = useCallback(
     async (signal?: AbortSignal) => {
       // Only fetch stats if we have a user address to scope by
       if (!currentUserAddress) {
-        setStats({ total: 0, pending: 0, failed: 0, synced: 0 });
-        setOfflineBannerVisible(false);
+        setStats((previousStats) =>
+          areQueueStatsEqual(previousStats, EMPTY_QUEUE_STATS) ? previousStats : EMPTY_QUEUE_STATS
+        );
+        setOfflineBannerVisibleIfChanged(false);
         return;
       }
 
       try {
         const newStats = await jobQueue.getStats(currentUserAddress);
         if (signal?.aborted) return;
-        setStats(newStats);
-        setOfflineBannerVisible(newStats.pending > 0 || newStats.failed > 0);
-      } catch {
+        setStats((previousStats) =>
+          areQueueStatsEqual(previousStats, newStats) ? previousStats : newStats
+        );
+        setOfflineBannerVisibleIfChanged(newStats.pending > 0 || newStats.failed > 0);
+      } catch (error) {
         if (signal?.aborted) return;
+        logger.warn("[JobQueueProvider] refreshStats failed", { error });
       }
     },
-    [currentUserAddress, setOfflineBannerVisible]
+    [currentUserAddress, setOfflineBannerVisibleIfChanged]
   );
 
   // Helper to invalidate multiple query keys
@@ -121,7 +151,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     // Event handlers using DRY query invalidation helpers
     const handleJobProcessing = () => {
       setIsProcessing(true);
-      setOfflineBannerVisible(true);
+      setOfflineBannerVisibleIfChanged(true);
       // Suppress toasts for background processing/retries to reduce noise
     };
 
@@ -162,13 +192,17 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
 
         // Update work status in cache if available
         const workUID = approvalPayload.workUID;
-        queryClient.setQueriesData<Work[]>({ queryKey: queryKeys.works.all }, (oldWorks = []) =>
-          oldWorks.map((work) =>
+        queryClient.setQueriesData<Work[]>({ queryKey: queryKeys.works.all }, (oldWorks) => {
+          // Defensive shape check: cached values can be undefined or
+          // (rarely) a non-array if a hook stuffed something unexpected
+          // into the same query-key namespace. Bail without mutating.
+          if (!Array.isArray(oldWorks)) return oldWorks;
+          return oldWorks.map((work) =>
             work.id === workUID
               ? { ...work, status: approvalPayload.approved ? "approved" : "rejected" }
               : work
-          )
-        );
+          );
+        });
       }
     };
 
@@ -199,7 +233,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
         const chainId = (event.job.chainId as number) || DEFAULT_CHAIN_ID;
 
         // Use DRY helper instead of inline invalidation
-        invalidateKeys(queryInvalidation.onJobAdded(gardenId, chainId));
+        invalidateKeys(
+          queryInvalidation.onJobAdded(gardenId, chainId, currentUserAddress ?? undefined)
+        );
       }
 
       // Update global counts
@@ -236,7 +272,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
       unsubscribe();
       unsubscribeSyncCompleted();
     };
-  }, [currentUserAddress, refreshStats, setOfflineBannerVisible]);
+  }, [currentUserAddress, refreshStats, setOfflineBannerVisibleIfChanged]);
 
   useEffect(() => {
     if (!sender || !currentUserAddress) {
@@ -247,25 +283,36 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
     }
 
     const abortController = new AbortController();
-    // Track if a flush is currently in progress to prevent concurrent operations
-    let isFlushInProgress = false;
 
     const attemptFlush = async () => {
       // Prevent concurrent flush operations - this avoids race conditions
-      if (isFlushInProgress || abortController.signal.aborted) {
+      // including across effect re-runs (auth flips) thanks to the ref.
+      if (isFlushInProgressRef.current || abortController.signal.aborted) {
         return;
       }
 
-      isFlushInProgress = true;
+      isFlushInProgressRef.current = true;
       try {
         await jobQueue.flush({ transactionSender: sender, userAddress: currentUserAddress });
         if (!abortController.signal.aborted) {
           await refreshStats(abortController.signal);
         }
-      } catch {
-        // Silently handle errors - they're logged in jobQueue.flush
+      } catch (error) {
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        setIsProcessing(false);
+        setLastEvent({
+          type: "job_failed",
+          jobId: "queue-flush",
+          error: errorMessage,
+        });
+        queueToasts.syncError();
+        await refreshStats(abortController.signal);
       } finally {
-        isFlushInProgress = false;
+        isFlushInProgressRef.current = false;
       }
     };
 

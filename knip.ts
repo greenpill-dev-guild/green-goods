@@ -38,9 +38,6 @@ const config: KnipConfig = {
     "packages/agent": {
       entry: ["src/index.ts"],
     },
-    "packages/ops": {
-      entry: ["src/index.ts"],
-    },
     "packages/indexer": {
       entry: [
         "src/EventHandlers.ts",
@@ -69,6 +66,7 @@ const config: KnipConfig = {
     "packages/contracts/lib/**",
     // Build outputs
     "packages/*/dist/**",
+    "packages/contracts/.generated/**",
     "packages/contracts/out/**",
     // Envio generated code
     "packages/indexer/generated/**",

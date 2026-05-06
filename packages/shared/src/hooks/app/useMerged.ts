@@ -12,6 +12,9 @@ type UseMergedOptions<TOnline, TOffline, TMerged> = {
   events?: Array<{
     subscribe: (listener: () => void) => () => void;
   }>;
+  /** When false, all internal queries are disabled. Useful when the hook is
+   *  always mounted (Rules of Hooks) but only needed conditionally. */
+  enabled?: boolean;
   staleTimeOnline?: number;
   staleTimeOffline?: number;
   staleTimeMerged?: number;
@@ -31,9 +34,12 @@ export function useMerged<TOnline, TOffline, TMerged>(
   const prevOnlineUpdatedAt = useRef<number | undefined>(undefined);
   const prevOfflineUpdatedAt = useRef<number | undefined>(undefined);
 
+  const isEnabled = options.enabled !== false;
+
   const onlineQuery = useQuery({
     queryKey: options.onlineKey,
     queryFn: options.fetchOnline,
+    enabled: isEnabled,
     staleTime: options.staleTimeOnline ?? 30_000,
     gcTime: options.gcTimeOnline ?? 300_000,
   });
@@ -41,6 +47,7 @@ export function useMerged<TOnline, TOffline, TMerged>(
   const offlineQuery = useQuery({
     queryKey: options.offlineKey,
     queryFn: options.fetchOffline,
+    enabled: isEnabled,
     staleTime: options.staleTimeOffline ?? 5_000,
     gcTime: options.gcTimeOffline ?? 30_000,
   });
@@ -53,7 +60,7 @@ export function useMerged<TOnline, TOffline, TMerged>(
     },
     // Enable only when BOTH sources are done loading to prevent race conditions
     // where merge runs before online data arrives (offline is much faster)
-    enabled: !onlineQuery.isLoading && !offlineQuery.isLoading,
+    enabled: isEnabled && !onlineQuery.isLoading && !offlineQuery.isLoading,
     staleTime: options.staleTimeMerged ?? 5_000,
     gcTime: options.gcTimeMerged ?? 30_000,
     // Use placeholder data for smoother transitions

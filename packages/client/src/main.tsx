@@ -1,13 +1,11 @@
 import {
-  AppKitProvider,
   AppProvider,
-  AuthProvider,
-  DEFAULT_CHAIN_ID,
   initGlobalErrorHandlers,
   initTheme,
   updateToasts,
   useServiceWorkerUpdate,
 } from "@green-goods/shared";
+import { registerServiceWorkerFromEnv } from "@green-goods/shared/service-worker";
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
@@ -23,28 +21,11 @@ initTheme();
 // Initialize global error handlers for PostHog exception tracking
 // This catches unhandled errors and promise rejections that escape Error Boundaries
 initGlobalErrorHandlers();
-
-// In development, ensure no stale service worker or caches make the app appear to run offline
-if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV !== "true") {
-  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
-    navigator.serviceWorker
-      .getRegistrations()
-      .then((registrations) =>
-        Promise.all(registrations.map((registration) => registration.unregister()))
-      )
-      .catch(() => {
-        // ignore
-      });
-  }
-  if (typeof caches !== "undefined" && caches?.keys) {
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
-      .catch(() => {
-        // ignore
-      });
-  }
-}
+void registerServiceWorkerFromEnv({
+  DEV: import.meta.env.MODE !== "production",
+  PROD: import.meta.env.MODE === "production",
+  VITE_ENABLE_SW_DEV: import.meta.env.VITE_ENABLE_SW_DEV,
+});
 
 /**
  * PWA Update Notifier Component
@@ -73,24 +54,10 @@ function UpdateNotifier() {
 export const Root = () => (
   <HelmetProvider>
     <AppErrorBoundary>
-      <AppKitProvider
-        projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
-        metadata={{
-          name: "Green Goods",
-          description: "Start Bringing Your Impact Onchain",
-          url: import.meta.env.VITE_APP_URL || window.location.origin,
-          icons: ["https://greengoods.app/icon.png"],
-        }}
-        defaultChainId={DEFAULT_CHAIN_ID}
-      >
-        {/* AuthProvider uses XState + Pimlico passkey server */}
-        <AuthProvider>
-          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
-            <UpdateNotifier />
-            <App />
-          </AppProvider>
-        </AuthProvider>
-      </AppKitProvider>
+      <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
+        <UpdateNotifier />
+        <App />
+      </AppProvider>
     </AppErrorBoundary>
   </HelmetProvider>
 );

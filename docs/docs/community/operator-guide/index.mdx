@@ -1,0 +1,110 @@
+---
+title: Operator Guide
+sidebar_label: Operator Guide
+slug: /community/operator-guide/
+description: "Core path for operators: create gardens, make assessments, review work, and mint impact certificates."
+audience: operator
+owner: docs
+last_verified: 2026-05-01
+feature_status: Live
+image: /img/social/operator-overview.webp
+goal: "Give operators the live path: create a garden, make an assessment, approve work, and mint an impact certificate."
+difficulty: "standard"
+estimated_time: "Varies by flow."
+prereqs: "An operator or deployer account, depending on the task."
+next_steps: "./creating-a-garden"
+persona_context: "Operators setting up gardens, making assessments, keeping the work queue clean, and packaging verified work into impact certificates."
+source_of_truth:
+  - docs/sidebars.ts
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/contracts/src/resolvers/Assessment.sol
+  - docs/docs/community/operator-guide/creating-a-garden.mdx
+  - docs/docs/community/operator-guide/making-an-assessment.mdx
+  - docs/docs/community/operator-guide/reviewing-work.mdx
+  - docs/docs/community/operator-guide/creating-impact-certificates.mdx
+keywords:
+  - operator
+  - create garden
+  - approve work
+  - assessment
+  - impact certificate
+  - hypercert
+  - user guide
+---
+
+import {
+  RiAddLine,
+  RiMedalLine,
+  RiCheckboxCircleLine,
+  RiFileList3Line,
+} from "@remixicon/react";
+import {RolePathCard, StatusBadge} from "@site/src/components/docs";
+import styles from "@site/src/components/docs/styles.module.css";
+
+# Operator Guide
+
+<StatusBadge status="Live" />
+
+## What this helps you do
+
+This is the core operator path. Use it to create a garden, make an assessment, review incoming work, and mint an impact certificate when the evidence is ready.
+
+The key permission boundary is simple: owners, operators, and evaluators can make assessments; only owners and operators approve or reject work.
+
+<div className={[styles.roleGrid, styles.roleGridTwo].join(" ")}>
+  <RolePathCard
+    title="Create a Garden"
+    href="/community/operator-guide/creating-a-garden"
+    image="/img/social/creating-a-garden.webp"
+    imageAlt="Illustrated operator preparing a new garden"
+    icon={<RiAddLine />}
+    roleAccent="operator"
+    audience="Deployers"
+    time="10-25 min"
+    description="Deploy a new garden, set its core details and domains, and prepare the first team and actions before inviting gardeners."
+    ctaLabel="Create"
+  />
+  <RolePathCard
+    title="Make an Assessment"
+    href="/community/operator-guide/making-an-assessment"
+    image="/img/social/making-an-assessment.webp"
+    imageAlt="Illustrated operators organizing assessment evidence"
+    icon={<RiFileList3Line />}
+    roleAccent="assessment"
+    audience="Operators and evaluators"
+    time="15-30 min"
+    description="Record the domain, reporting window, outcomes, and evidence context that later approvals and certificates should line up against."
+    ctaLabel="Assess"
+  />
+  <RolePathCard
+    title="Review and Approve Work"
+    href="/community/operator-guide/reviewing-work"
+    image="/img/social/approving-work.webp"
+    imageAlt="Illustrated operator reviewing submitted garden work"
+    icon={<RiCheckboxCircleLine />}
+    roleAccent="operator"
+    audience="Operators"
+    time="2-10 min"
+    description="Review a gardener submission from the app or admin, approve good evidence, or reject with feedback the gardener can act on."
+    ctaLabel="Review"
+  />
+  <RolePathCard
+    title="Mint Impact Certificate"
+    href="/community/operator-guide/creating-impact-certificates"
+    image="/img/social/mint-impact-certificate.webp"
+    imageAlt="Illustrated operator minting an impact certificate from verified work"
+    icon={<RiMedalLine />}
+    roleAccent="assessment"
+    audience="Operators"
+    time="20-40 min"
+    description="Bundle approved work and assessment context into the Hypercert-backed certificate flow, then review and mint."
+    ctaLabel="Mint"
+  />
+</div>
+
+## Good operating rhythm
+
+1. Create the garden and confirm its domains and eligible actions before inviting a wider group.
+2. Make an assessment early so operators have clear context for later reviews.
+3. Approve or reject submissions with feedback that maps back to the action and assessment.
+4. Mint an impact certificate only after the evidence chain is strong enough to defend.

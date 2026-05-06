@@ -13,7 +13,7 @@ const mockGarden: GardenCardData = {
 };
 
 const meta: Meta<typeof GardenCard> = {
-  title: "Cards/GardenCard",
+  title: "Shared/Cards/GardenCard",
   component: GardenCard,
   tags: ["autodocs"],
   argTypes: {
@@ -38,6 +38,10 @@ const meta: Meta<typeof GardenCard> = {
     showOperators: {
       control: "boolean",
       description: "Show operators section",
+    },
+    showStats: {
+      control: "boolean",
+      description: "Show garden stats badges",
     },
     showDescription: {
       control: "boolean",
@@ -93,6 +97,16 @@ export const SelectionHeight: Story = {
   args: {
     garden: mockGarden,
     height: "selection",
+  },
+};
+
+export const MinimalSelection: Story = {
+  args: {
+    garden: mockGarden,
+    media: "small",
+    height: "selection",
+    showStats: false,
+    showOperators: false,
   },
 };
 

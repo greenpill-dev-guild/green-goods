@@ -9,6 +9,7 @@ import { IHypercertMinter } from "../interfaces/IHypercertExchange.sol";
 import { OrderStructs } from "../interfaces/IHypercertExchange.sol";
 import { IGardensModule } from "../interfaces/IGardensModule.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { ArrayLengthMismatch } from "../CommonErrors.sol";
 
 /// @notice Minimal interface for HypercertMarketplaceAdapter (avoids circular import)
 interface IMarketplaceAdapter {
@@ -53,7 +54,7 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
     error Unauthorized(address caller);
     error NotActive();
     error InvalidHypercert(uint256 hypercertId);
-    error ArrayLengthMismatch();
+    error InvalidMerkleRoot();
     error ZeroAddress(string paramName);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -109,14 +110,35 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
     // Core Operations
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Mint a hypercert and register it for the garden
+    /// @notice Register an already minted hypercert for the garden
     /// @param garden The garden account address
-    /// @param totalUnits Total units for the hypercert
-    /// @param merkleRoot Merkle root for the allowlist (0 for open)
-    /// @param metadataUri IPFS URI for hypercert metadata
-    /// @return hypercertId The newly minted hypercert ID
-    function mintAndRegister(
+    /// @param hypercertId The hypercert type ID to track
+    /// @return registeredHypercertId The registered hypercert type ID
+    function registerHypercert(
         address garden,
+        uint256 hypercertId
+    )
+        external
+        nonReentrant
+        returns (uint256 registeredHypercertId)
+    {
+        _requireOperator(garden);
+        if (paused) revert NotActive();
+
+        _requireMintedHypercert(hypercertId);
+        registeredHypercertId = _trackHypercert(garden, hypercertId);
+    }
+
+    /// @notice Create a hypercert allowlist and register it for the garden
+    /// @param garden The garden account address
+    /// @param expectedHypercertId Expected hypercert type ID created by the minter
+    /// @param totalUnits Total units for the hypercert
+    /// @param merkleRoot Non-zero Merkle root for the allowlist
+    /// @param metadataUri IPFS URI for hypercert metadata
+    /// @return hypercertId The registered hypercert type ID
+    function createAllowlistAndRegister(
+        address garden,
+        uint256 expectedHypercertId,
         uint256 totalUnits,
         bytes32 merkleRoot,
         string calldata metadataUri
@@ -127,28 +149,20 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
     {
         _requireOperator(garden);
         if (paused) revert NotActive();
-
-        // Mint the hypercert via the minter contract
-        hypercertId = IHypercertMinter(hypercertMinter).createAllowlist(garden, totalUnits, merkleRoot, metadataUri, 0);
-
-        // Look up hypercert signal pool for this garden (graceful — pool may not exist)
-        address pool;
-        if (address(gardensModule) != address(0)) {
-            // solhint-disable-next-line no-empty-blocks
-            try gardensModule.getGardenSignalPools(garden) returns (address[] memory pools) {
-                // Canonical ordering is [action, hypercert]. On chains where only the
-                // action pool is live, length can be 1 and hypercert registration is skipped.
-                if (pools.length > 1) {
-                    pool = pools[1];
-                }
-            } catch { }
+        if (merkleRoot == bytes32(0)) revert InvalidMerkleRoot();
+        if (expectedHypercertId == 0 || _isFractionToken(expectedHypercertId)) revert InvalidHypercert(expectedHypercertId);
+        if (IHypercertMinter(hypercertMinter).unitsOf(expectedHypercertId) != 0) {
+            revert InvalidHypercert(expectedHypercertId);
         }
 
-        // Track the hypercert for this garden
-        _gardenHypercerts[garden].push(hypercertId);
-        hypercertGarden[hypercertId] = garden;
+        // The live Hypercert minter does not return the created type ID, so the
+        // caller must provide the expected ID and we verify it after minting.
+        IHypercertMinter(hypercertMinter).createAllowlist(garden, totalUnits, merkleRoot, metadataUri, 0);
+        if (IHypercertMinter(hypercertMinter).unitsOf(expectedHypercertId) != totalUnits) {
+            revert InvalidHypercert(expectedHypercertId);
+        }
 
-        emit HypercertMintedAndRegistered(garden, hypercertId, pool);
+        hypercertId = _trackHypercert(garden, expectedHypercertId);
     }
 
     /// @notice List a garden's hypercert for yield on the marketplace
@@ -270,6 +284,38 @@ contract HypercertsModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUP
         if (!hatsModule.isOperatorOf(garden, msg.sender) && !hatsModule.isOwnerOf(garden, msg.sender)) {
             if (msg.sender != owner()) revert Unauthorized(msg.sender);
         }
+    }
+
+    function _trackHypercert(address garden, uint256 hypercertId) internal returns (uint256 registeredHypercertId) {
+        if (hypercertGarden[hypercertId] != address(0)) revert InvalidHypercert(hypercertId);
+
+        // Look up hypercert signal pool for this garden (graceful — pool may not exist)
+        address pool;
+        if (address(gardensModule) != address(0)) {
+            // solhint-disable-next-line no-empty-blocks
+            try gardensModule.getGardenSignalPools(garden) returns (address[] memory pools) {
+                // Canonical ordering is [action, hypercert]. On chains where only the
+                // action pool is live, length can be 1 and hypercert registration is skipped.
+                if (pools.length > 1) {
+                    pool = pools[1];
+                }
+            } catch { }
+        }
+
+        _gardenHypercerts[garden].push(hypercertId);
+        hypercertGarden[hypercertId] = garden;
+
+        emit HypercertMintedAndRegistered(garden, hypercertId, pool);
+        return hypercertId;
+    }
+
+    function _requireMintedHypercert(uint256 hypercertId) internal view {
+        if (hypercertId == 0 || _isFractionToken(hypercertId)) revert InvalidHypercert(hypercertId);
+        if (IHypercertMinter(hypercertMinter).unitsOf(hypercertId) == 0) revert InvalidHypercert(hypercertId);
+    }
+
+    function _isFractionToken(uint256 hypercertId) internal pure returns (bool) {
+        return hypercertId & type(uint128).max != 0;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

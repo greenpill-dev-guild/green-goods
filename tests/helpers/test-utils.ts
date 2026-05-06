@@ -11,6 +11,8 @@ export interface ServiceStatus {
   admin: boolean;
 }
 
+export type AdminMockRole = "deployer" | "operator" | "user" | "disconnected";
+
 // ============================================================================
 // CONSTANTS
 // ============================================================================
@@ -31,6 +33,7 @@ const AUTH_STORAGE_KEYS = {
   username: "greengoods_username",
   rpId: "greengoods_rp_id",
 };
+const DEV_MOCK_AUTH_STORAGE_KEY = "greengoods_dev_mock_auth";
 
 // ============================================================================
 // VIRTUAL WEBAUTHN AUTHENTICATOR (for passkey testing)
@@ -482,10 +485,10 @@ export class ClientTestHelper {
 // ============================================================================
 
 /**
- * Helper for admin app testing with wallet authentication.
+ * Helper for admin app testing with deterministic dev auth.
  *
- * Uses storage injection to simulate authenticated state
- * (light auth path - doesn't require actual wallet extension).
+ * Prefer `mockAuth` URL/session overrides for cockpit verification.
+ * Legacy wallet storage injection remains for older auth-path tests.
  *
  * NOTE: For multi-tab tests, use the context parameter to ensure
  * the init script applies to all pages in the context.
@@ -498,6 +501,32 @@ export class AdminTestHelper {
     context?: BrowserContext
   ) {
     this.context = context;
+  }
+
+  buildMockAuthPath(path: string, role: AdminMockRole = "operator") {
+    const url = new URL(path, TEST_URLS.admin);
+    url.searchParams.set("mockAuth", role);
+    return `${url.pathname}${url.search}`;
+  }
+
+  /**
+   * Persist dev mock auth before the app boots.
+   *
+   * This mirrors the app's `AuthGate` / `DevAuthProvider` path and survives
+   * route changes and reloads during a browser session.
+   */
+  async enableMockAuth(role: AdminMockRole = "operator") {
+    const initScript = ({ role, storageKey }: { role: AdminMockRole; storageKey: string }) => {
+      window.sessionStorage.setItem(storageKey, role);
+    };
+
+    const scriptArgs = { role, storageKey: DEV_MOCK_AUTH_STORAGE_KEY };
+
+    if (this.context) {
+      await this.context.addInitScript(initScript, scriptArgs);
+    } else {
+      await this.page.addInitScript(initScript, scriptArgs);
+    }
   }
 
   /**
@@ -613,6 +642,11 @@ export class AdminTestHelper {
    */
   async goToDashboard() {
     await this.page.goto("/dashboard");
+    await this.page.waitForLoadState("domcontentloaded");
+  }
+
+  async goToCockpit(path: string = "/hub", role: AdminMockRole = "operator") {
+    await this.page.goto(this.buildMockAuthPath(path, role));
     await this.page.waitForLoadState("domcontentloaded");
   }
 
@@ -749,58 +783,3 @@ export async function hasGardens(page: Page, chainId?: number): Promise<boolean>
     return false;
   }
 }
-
-// ============================================================================
-// LEGACY EXPORTS (for backwards compatibility during migration)
-// ============================================================================
-
-/** @deprecated Use ClientTestHelper instead */
-export class TestHelper extends ClientTestHelper {
-  constructor(page: Page) {
-    super(page);
-  }
-
-  /** @deprecated Use setupPasskeyAuth and createPasskeyAccount instead */
-  async login() {
-    await this.setupPasskeyAuth();
-    await this.createPasskeyAccount();
-  }
-
-  /** @deprecated No longer needed - auth is passkey-based */
-  async submitWork(_workData: { feedback: string; plantCount?: number }) {
-    console.warn("TestHelper.submitWork is deprecated and not implemented");
-  }
-
-  /** @deprecated */
-  async checkResult() {
-    return { success: false, error: false, errorMessage: "" };
-  }
-
-  /** @deprecated Use page.context().setOffline(true) */
-  async goOffline() {
-    await this.page.context().setOffline(true);
-  }
-
-  /** @deprecated Use page.context().setOffline(false) */
-  async goOnline() {
-    await this.page.context().setOffline(false);
-  }
-
-  /** @deprecated Use checkServices instead */
-  async checkServices() {
-    const status = await checkServices(this.page);
-    return status.client;
-  }
-}
-
-/** @deprecated */
-export interface TestAccount {
-  email: string;
-  otp: string;
-}
-
-/** @deprecated Privy is no longer used */
-export const getTestAccount = (): TestAccount => ({
-  email: "deprecated@test.com",
-  otp: "000000",
-});

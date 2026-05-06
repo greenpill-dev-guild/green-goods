@@ -11,10 +11,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../test-utils";
 
 // Mock AddressDisplay component
-vi.mock("../../components/AddressDisplay", () => ({
-  AddressDisplay: ({ address, className }: { address: string; className?: string }) =>
-    createElement("span", { className, "data-testid": "address-display" }, address.slice(0, 10)),
-}));
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    AddressDisplay: ({ address, className }: { address: string; className?: string }) =>
+      createElement("span", { className, "data-testid": "address-display" }, address.slice(0, 10)),
+  };
+});
 
 import { MembersModal } from "../../components/Garden/MembersModal";
 

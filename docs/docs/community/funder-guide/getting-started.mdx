@@ -2,16 +2,22 @@
 title: "Getting Started as a Funder"
 sidebar_label: "Getting Started"
 slug: /community/funder-guide/getting-started
-audience: all
+audience: funder
 owner: docs
-last_verified: 2026-03-11
+last_verified: 2026-04-07
 feature_status: Live
+image: /img/social/funder-getting-started.webp
 goal: "Help funders understand how to support verified regenerative impact."
-difficulty: "beginner"
+difficulty: "quickstart"
 estimated_time: "10 minutes."
-prereqs: "Wallet with supported assets (ETH, stablecoins)."
+prereqs: "An account you are comfortable funding from and supported assets on the target chain."
 next_steps: "/community/funder-guide/vaults-and-hypercerts"
 persona_context: "Funders looking to support verified regenerative impact through vaults and Hypercerts."
+source_of_truth:
+  - packages/client/src/views/Home/Garden/index.tsx
+  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
+  - packages/shared/src/hooks/vault/useVaultDeposit.ts
+  - packages/shared/src/hooks/vault/useVaultWithdraw.ts
 keywords:
   - funder
   - funding
@@ -33,7 +39,7 @@ import {
 
 ## Overview
 
-Funders play a critical role in the Green Goods ecosystem — they provide the capital that makes regenerative work sustainable. Unlike traditional grant funding where impact is self-reported and hard to verify, Green Goods gives funders **attestation-backed proof** that their capital supports real, community-verified work.
+Funders play a critical role in the Green Goods ecosystem: they supply the capital that keeps garden operations alive between harvests, approvals, and funding cycles. The cleanest current funder flow is simple: **open a garden, use its treasury drawer, deposit into the vault, and monitor the garden's verified work over time**.
 
 ```mermaid
 graph TB
@@ -51,7 +57,7 @@ graph TB
 As a funder, you can:
 
 - **Deposit into impact vaults** — Your principal supports garden operations, and harvested yield is routed to impact while claim value stays flat by design
-- **Purchase Hypercerts** — Buy tokenized impact certificates representing verified regenerative work
+- **Inspect Hypercert-backed impact** — See how gardens package verified work into impact certificates and where certificate flows may fit your strategy
 - **Track real impact** — Every claim is backed by EAS attestations verified by community operators
 - **Choose your gardens** — Support specific communities and bioregions that align with your values
 
@@ -59,10 +65,10 @@ As a funder, you can:
 
 <StepFlow
   steps={[
-    {title: "Connect your wallet", detail: "Use MetaMask, Rainbow, or any WalletConnect-compatible wallet on Arbitrum, Celo, or Sepolia."},
-    {title: "Browse gardens", detail: "Explore active garden communities, their verified work history, and available impact certificates."},
-    {title: "Fund impact", detail: "Deposit into a garden's impact vault for ongoing support, or purchase Hypercerts for direct impact ownership."},
-    {title: "Track outcomes", detail: "Monitor your portfolio's impact through attestation-backed dashboards and reporting."},
+    {title: "Sign in and choose a garden", detail: "Open the app, pick the garden you want to support, and review its recent work, assessments, and treasury health."},
+    {title: "Open Treasury", detail: "From the garden view, open the Treasury drawer to see supported vault assets, your balance, and any existing deposit position."},
+    {title: "Deposit support", detail: "Choose the asset and amount, approve if needed, and submit the deposit. Your principal stays in the vault while routed yield funds garden activity later."},
+    {title: "Track outcomes", detail: "Monitor the garden's approved work, assessment cadence, and treasury activity so your funding decision stays grounded in visible evidence."},
   ]}
 />
 

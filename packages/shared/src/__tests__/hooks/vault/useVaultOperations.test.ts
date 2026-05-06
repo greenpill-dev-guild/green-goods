@@ -296,6 +296,87 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
+  it("withdraws with a 1% default maxLoss when caller omits maxLossBps", async () => {
+    // Default slippage protection: 100 bps (1%) keeps users from being silently
+    // haircut to zero under price-oracle distress. Audit finding #2.
+    mockReadContract.mockResolvedValueOnce(100n); // maxWithdraw
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultWithdraw(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: TEST_GARDEN as `0x${string}`,
+        assetAddress: TEST_ASSET as `0x${string}`,
+        vaultAddress: TEST_VAULT as `0x${string}`,
+        amount: 5n,
+      });
+    });
+
+    // maxWithdraw precheck and the withdraw call must both use the safe default,
+    // not VAULT_MAX_BPS (10000 = permissive 100% loss).
+    expect(mockReadContract).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        functionName: "maxWithdraw",
+        args: [TEST_PRIMARY_ADDRESS, 100n, []],
+      })
+    );
+    expect(mockSendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        functionName: "withdraw",
+        args: [5n, TEST_PRIMARY_ADDRESS, TEST_PRIMARY_ADDRESS, 100n, []],
+      })
+    );
+  });
+
+  it("threads caller-provided maxLossBps through both maxWithdraw precheck and withdraw call", async () => {
+    mockReadContract.mockResolvedValueOnce(100n); // maxWithdraw
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useVaultWithdraw(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        gardenAddress: TEST_GARDEN as `0x${string}`,
+        assetAddress: TEST_ASSET as `0x${string}`,
+        vaultAddress: TEST_VAULT as `0x${string}`,
+        amount: 5n,
+        maxLossBps: 50n,
+      });
+    });
+
+    expect(mockReadContract).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        functionName: "maxWithdraw",
+        args: [TEST_PRIMARY_ADDRESS, 50n, []],
+      })
+    );
+    expect(mockSendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        functionName: "withdraw",
+        args: [5n, TEST_PRIMARY_ADDRESS, TEST_PRIMARY_ADDRESS, 50n, []],
+      })
+    );
+  });
+
   it("clamps withdraw amount to maxWithdraw when within tolerance", async () => {
     const maxWithdraw = 1_000_000_000_000_000_000n;
 

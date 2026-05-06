@@ -1,97 +1,121 @@
 ---
-title: Creating Impact Certificates
-sidebar_label: Creating Impact Certificates
+title: Mint Impact Certificate
+sidebar_label: Mint Impact Certificate
 slug: /community/operator-guide/creating-impact-certificates
+description: "Mint a Hypercert-backed impact certificate from an assessment and approved garden work."
 audience: operator
 owner: docs
-last_verified: 2026-03-01
-feature_status: Implemented (activation pending deployment)
-goal: "Complete Mint Hypercerts and List on Marketplace with clear, role-specific next actions."
+last_verified: 2026-05-01
+feature_status: Live
+image: /img/social/mint-impact-certificate.webp
+goal: "Help operators open the certification flow, select approved work, review certificate metadata, allocate units, and mint."
 difficulty: "standard"
-estimated_time: "20-40 minutes once activation is complete."
-prereqs: "Assessment/work history prepared; deployment status reviewed."
-next_steps: "./managing-endowments"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+estimated_time: "20-40 minutes for a prepared claim."
+prereqs: "An assessment, approved work, operator permission, contributor addresses, and an available certification flow."
+next_steps: "/community/operator-guide/"
+persona_context: "Operators turning a defensible assessment and approval trail into an impact certificate."
 source_of_truth:
-  - packages/admin/src/views/Gardens/Garden/Hypercerts.tsx
-  - packages/admin/src/views/Gardens/Garden/CreateHypercert.tsx
+  - packages/admin/src/views/Hub/CreateHypercert.tsx
+  - packages/admin/src/components/Hypercerts/HypercertWizard/index.tsx
+  - packages/admin/src/components/Hypercerts/Steps/AttestationSelector.tsx
+  - packages/admin/src/components/Hypercerts/Steps/MetadataEditor.tsx
+  - packages/admin/src/components/Hypercerts/Steps/DistributionConfig.tsx
+  - packages/admin/src/components/Hypercerts/Steps/HypercertPreview.tsx
   - packages/shared/src/hooks/hypercerts/useMintHypercert.ts
-  - packages/shared/src/hooks/hypercerts/useMarketplaceApprovals.ts
-  - packages/contracts/deployments/42161-latest.json
 keywords:
-  - hypercerts
+  - impact certificate
+  - hypercert
   - mint hypercert
-  - list hypercert
-  - hypercert marketplace
-  - mint
-  - marketplace
+  - operator
+  - certificate
 ---
 
-import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {GuideOpener, OperatorPathNav, StatusBadge, StepFlow} from "@site/src/components/docs";
 
-# Creating Impact Certificates
+# Mint Impact Certificate
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Live" />
 
-## Overview
+<OperatorPathNav />
 
-Hypercerts are semi-fungible tokens representing claims of verified impact work. Minting a hypercert bundles your garden's approved work and assessments into a tradeable on-chain certificate. Once minted, you can list hypercerts on the marketplace for retroactive funding.
+<GuideOpener
+  image="/img/social/mint-impact-certificate.webp"
+  alt="An operator minting an impact certificate from verified garden work"
+  label="Operator chapter"
+  roleAccent="assessment"
+>
+  Bundle an assessment and approved work into a Hypercert-backed certificate.
+</GuideOpener>
 
-```mermaid
-graph LR
-    Aggregate["Aggregate Work\napproved submissions"] --> Meta["Configure Metadata\nimpact scope + period"]
-    Meta --> Allow["Set Contributors\nallowlist"]
-    Allow --> Mint["Mint Hypercert\non-chain"]
-    Mint --> List["List on\nMarketplace"]
-```
+## What this helps you do
 
-<img src="/img/screenshots/admin-garden-impact.png" alt="Impact tab — hypercert highlights and recent assessments" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+Mint an impact certificate after the garden has an assessment and approved work that support a clear claim. The current admin UI may call this **Create Hypercert** or **Mint Hypercert**; it is the same Hypercert-backed certificate flow.
 
-<FeatureState
-  title="UI and hooks"
-  status="Implemented (activation pending deployment)"
-  summary="Admin routes and shared hooks for mint/list/approvals are implemented."
-/>
+Use this page when the evidence is ready, not just when the queue is large. A good certificate groups work by a coherent impact claim, reporting period, or initiative.
 
-<FeatureState
-  title="Marketplace activation"
-  status="Implemented (activation pending deployment)"
-  summary="marketplaceAdapter remains zero-address in latest deployment artifacts, so public listing is not fully active."
-/>
+Owners and operators can mint. Evaluators and funders can inspect the evidence, but they cannot finalize the certificate unless they also have owner/operator authority.
 
-## How It Works
+## Before you start
+
+- The garden has an assessment with the right domain and reporting window.
+- The work you want to include is **approved**, not pending.
+- The selected work belongs together as one defensible claim.
+- Contributor wallet addresses are ready.
+- You know how certificate units should be shared among contributors. This is the certificate allocation, not a separate splits contract.
+- The Certify flow is available in admin for this garden.
+
+:::tip
+Do not include weak or unrelated work just to make the certificate look more impressive. It is better to mint a smaller certificate with a cleaner evidence trail.
+:::
+
+## Step-by-step flow
+
+Start from the admin **Hub** workspace. The certification surface is labelled **Certify**, and the mint action opens the **Create Hypercert** form for the selected garden.
+
+<img src="/img/screenshots/admin-garden-impact.png" alt="Current admin impact surface with assessments and certificate context" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
 
 <StepFlow
   steps={[
-    {title: "Prepare claim", detail: "Aggregate verified work and assessment scope for the hypercert claim. Select which approved work to include and define the impact scope."},
-    {title: "Mint hypercert", detail: "Use the create/mint flow in your garden's Hypercerts tab. Configure metadata, allowlist of contributor addresses, and transfer restrictions. Confirm and sign the minting transaction."},
-    {title: "Approve marketplace", detail: "Grant the marketplace adapter permissions to manage your hypercert for listing."},
-    {title: "Create listing", detail: "Set pricing, number of units, and expiration strategy. Publish the listing."},
+    {
+      title: "Open the Certify workspace",
+      detail: "Open Hub, switch to Certify, select the garden, and start the Create Hypercert or Mint Hypercert flow.",
+    },
+    {
+      title: "Select approved work",
+      detail: "Choose the approved work records that belong to this certificate. Use the assessment domain and reporting window to keep the claim focused.",
+    },
+    {
+      title: "Review certificate metadata",
+      detail: "Check the title, description, work scope, impact scope, timeframes, and tags. Assessment-backed defaults are a starting point, not a substitute for review.",
+    },
+    {
+      title: "Allocate certificate units",
+      detail: "Assign units to the contributor addresses. Keep the allocation aligned with who did the verified work and make sure the total is valid.",
+    },
+    {
+      title: "Preview and mint",
+      detail: "Review the final certificate, selected evidence, contributor allocation, and chain. Submit only when the claim is accurate, then sign the mint transaction.",
+    },
   ]}
 />
 
-## Best Practices
+## How to know it worked
 
-- Verify all included work is approved and attestation chains are intact before minting
-- Set clear contributor allowlists so that fractions go to the gardeners who did the work
-- Review transfer restriction settings carefully — they cannot be changed after minting
-- Confirm non-zero module/adapter addresses in `deployments/*-latest.json` before attempting marketplace operations
-- Run an end-to-end mint/list test on a testnet before going live on production chains
+- The minting flow completes and shows a transaction hash or success state.
+- Admin opens the certificate detail page.
+- The detail page shows the expected title, description, work scope, evidence count, minted date, and total units.
+- If indexing is still catching up, the page shows a syncing state instead of a missing certificate.
 
-**Activation checklist:**
+## If something goes wrong
 
-1. Non-zero module/adapter addresses in `deployments/*-latest.json`
-2. Indexer config updated with those addresses
-3. End-to-end mint/list test passes on target chain
+- **No garden selected.** Pick the garden in admin, then reopen the Certify workspace.
+- **No permission.** Ask the garden owner to add you as an owner or operator.
+- **No approved work.** Return to [Review and Approve Work](./reviewing-work) and clear the relevant submissions first.
+- **Assessment filter hides expected work.** Check the assessment domain and reporting window. The work may belong in a different assessment or certificate.
+- **Distribution validation fails.** Recheck contributor addresses and unit totals before trying to mint.
+- **Certify flow is unavailable.** Contact the platform team or use the Telegram support link in the docs footer.
+- **Mint transaction fails.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
 
-## What's Next
+## After minting
 
-<NextBestAction
-  title="Next best action"
-  why="With impact certificates minted, manage your garden's financial infrastructure."
-  actionLabel="Managing Endowments"
-  actionHref="./managing-endowments"
-  alternatives={[
-    {label: "Managing Governance", href: "./managing-governance"},
-  ]}
-/>
+After minting, use the certificate detail page to inspect the evidence trail, monitor indexing, and continue with any listing or reporting steps your garden has planned.

@@ -60,11 +60,12 @@ vi.mock("../../utils/debug", () => ({
   debugError: vi.fn(),
 }));
 
-vi.mock("../../hooks/query-keys", () => ({
+vi.mock("../../config/query-keys", () => ({
   queryKeys: {
     works: {
       all: ["greengoods", "works"],
       mine: (userAddress?: string) => ["greengoods", "works", "mine", userAddress],
+      mineByUser: (userAddress: string) => ["greengoods", "works", "mine", userAddress],
       online: (gardenId: string, chainId: number) => [
         "greengoods",
         "works",

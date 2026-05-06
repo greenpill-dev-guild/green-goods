@@ -42,7 +42,7 @@ export function useGardenPermissions(): GardenPermissions {
     };
 
     const canReviewGarden = (garden: Garden): boolean => {
-      // Evaluators can review work and create assessments
+      // Evaluators can create assessments; work approval uses canManageGarden.
       return canManageGarden(garden) || isEvaluatorOfGarden(garden);
     };
 

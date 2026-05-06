@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "software-fundamentals-hardening",
+    "title": "Software Fundamentals Hardening",
+    "kind": "maintenance",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p1",
+    "created_at": "2026-05-01T03:38:33Z",
+    "updated_at": "2026-05-03T19:17:16.238Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Backlog hub created from the 2026-05-01 software-fundamentals audit.",
+    "Do not treat this as a general cleanup hub; activate one hardening slice at a time.",
+    "status.json is authoritative; branch names are automation signals.",
+    "Contracts are n/a unless a child hub explicitly scopes Solidity, deployment, or upgrade work.",
+    "Transcript-audit follow-up widened repo-truth scope to contracts guidance drift, shared API policy, and env-safe dead-code audit reliability.",
+    "Knip vs Fallow must be compared on the same Green Goods baseline before adding a recurring static-analysis gate or new dependency."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/software-fundamentals-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/software-fundamentals-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["ops", "testing", "architecture", "react"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/software-fundamentals-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/software-fundamentals-hardening",
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/software-fundamentals-hardening",
+      "branch_trigger": "claude/qa-pass-1/software-fundamentals-hardening",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-01T03:38:33Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded backlog hub from the software-fundamentals audit."
+    },
+    {
+      "timestamp": "2026-05-01T03:38:33Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "audit_captured",
+      "branch": null,
+      "note": "Captured guidance drift, plan command drift, source-structure ratchet, Campaign Cookie Jar boundaries, agent API internals, and stale admin surfaces as planned hardening slices."
+    },
+    {
+      "timestamp": "2026-05-01T03:51:05Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_expanded",
+      "branch": null,
+      "note": "Expanded the backlog hub with contracts guidance repair, ADR-008/shared API policy refresh, Knip dead-code audit reliability, and more concrete Campaign Cookie Jar boundary targets from the transcript audit."
+    },
+    {
+      "timestamp": "2026-05-01T05:09:04Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "evaluation_added",
+      "branch": null,
+      "note": "Added a same-baseline Knip vs Fallow evaluation and report requirement before choosing the recurring static-analysis surface."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops", "shared", "client", "admin", "agent", "contracts"],
+    "work_types": ["hardening", "cleanup", "maintenance"],
+    "surfaces": [],
+    "depends_on_features": []
+  }
+}

@@ -20,12 +20,17 @@ export function AppKitProvider({
   metadata,
   defaultChainId = DEFAULT_CHAIN_ID,
 }: AppKitProviderProps) {
-  // Ensure the shared singleton is configured before rendering WagmiProvider
+  // Ensure the shared singleton is configured before rendering WagmiProvider.
+  // wagmiConfig is non-null here — AppKitProvider only renders in the browser.
   const { wagmiConfig } = ensureAppKit({
     projectId,
     metadata,
     defaultChainId,
   });
+
+  if (!wagmiConfig) {
+    throw new Error("AppKitProvider requires a browser environment (wagmiConfig is null in SSR)");
+  }
 
   return <WagmiProvider config={wagmiConfig}>{children}</WagmiProvider>;
 }

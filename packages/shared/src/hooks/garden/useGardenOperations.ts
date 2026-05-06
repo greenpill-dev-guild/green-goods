@@ -14,7 +14,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import type { Garden } from "../../types/domain";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { useToastAction } from "../app/useToastAction";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 import {
   createGardenOperation,
   GARDEN_OPERATIONS,

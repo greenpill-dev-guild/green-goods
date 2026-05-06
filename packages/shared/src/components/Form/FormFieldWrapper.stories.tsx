@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { expect, userEvent, within } from "storybook/test";
-import { FormFieldWrapper } from "./FormFieldWrapper";
+import { FormField, FormFieldWrapper } from "./FormFieldWrapper";
 
 const meta: Meta<typeof FormFieldWrapper> = {
-  title: "Form Controls/FormFieldWrapper",
+  title: "Shared/Form/FormFieldWrapper",
   component: FormFieldWrapper,
   tags: ["autodocs"],
   parameters: {
@@ -94,6 +94,7 @@ export const Required: Story = {
   args: {
     id: "required-field",
     label: "Garden Name",
+    required: true,
     helperText: "This field is required",
     children: (
       <input
@@ -105,14 +106,6 @@ export const Required: Story = {
         className="w-full rounded-lg border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-lighter"
       />
     ),
-  },
-  parameters: {
-    docs: {
-      description: {
-        story:
-          "Note: FormFieldWrapper does not render a required indicator. Required styling must be handled by the child input or by wrapping components like FormInput.",
-      },
-    },
   },
 };
 
@@ -191,6 +184,19 @@ export const Gallery: Story = {
           className="w-full rounded-lg border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 resize-none"
         />
       </FormFieldWrapper>
+
+      <FormField
+        label="Compact Admin Field"
+        htmlFor="gallery-admin"
+        hint="Shared wrapper for admin forms"
+      >
+        <input
+          id="gallery-admin"
+          type="text"
+          placeholder="Admin-style field"
+          className="w-full rounded-lg border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400"
+        />
+      </FormField>
     </div>
   ),
 };

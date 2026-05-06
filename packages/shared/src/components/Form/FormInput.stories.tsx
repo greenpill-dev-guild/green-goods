@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { FormInput } from "./FormInput";
 
 const meta: Meta<typeof FormInput> = {
-  title: "Form Controls/FormInput",
+  title: "Shared/Form/FormInput",
   component: FormInput,
   tags: ["autodocs"],
   argTypes: {

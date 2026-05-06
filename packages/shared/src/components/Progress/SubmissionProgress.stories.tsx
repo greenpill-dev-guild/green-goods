@@ -58,7 +58,7 @@ const errorProgress: SubmissionProgressState = {
 };
 
 const meta: Meta<typeof SubmissionProgress> = {
-  title: "Progress/SubmissionProgress",
+  title: "Shared/Progress/SubmissionProgress",
   component: SubmissionProgress,
   tags: ["autodocs"],
   parameters: {

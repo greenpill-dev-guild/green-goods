@@ -79,7 +79,7 @@ const meta: Meta<typeof DraftCard> = {
     },
     className: {
       control: "text",
-      description: "Additional CSS classes for the root button element",
+      description: "Additional CSS classes for the root card element",
     },
     onResume: {
       description: "Callback when the card body is clicked to resume editing the draft",

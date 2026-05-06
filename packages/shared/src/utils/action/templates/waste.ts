@@ -375,3 +375,104 @@ export const wasteMaintenanceCheck: ActionInstructionConfig = {
     },
   },
 };
+
+export const wasteRepairEvent: ActionInstructionConfig = {
+  description:
+    "Document a community repair event. Track items brought vs. successfully repaired to demonstrate waste diversion, volunteer effort, and skills shared.",
+  uiConfig: {
+    media: {
+      title: "Capture Repair Event Photos",
+      description: "Upload before, during, and after photos from the repair event.",
+      maxImageCount: 20,
+      minImageCount: 2,
+      required: true,
+      needed: ["Before repair", "During repair", "After repair"],
+      optional: [],
+    },
+    details: {
+      title: "Repair Event Details",
+      description: "Provide details about what was brought to the event, repaired, and learned.",
+      feedbackPlaceholder:
+        "Notes or feedback about repair challenges, skills shared, or follow-up needs",
+      inputs: [
+        {
+          key: "itemsBrought",
+          title: "Items Brought for Repair",
+          placeholder: "Enter number of items brought for repair",
+          type: "number",
+          required: true,
+          options: [],
+        },
+        {
+          key: "itemsSuccessfullyRepaired",
+          title: "Items Successfully Repaired",
+          placeholder: "Enter number of items fully repaired",
+          type: "number",
+          required: true,
+          options: [],
+        },
+        {
+          key: "itemsPartiallyRepaired",
+          title: "Items Partially Repaired",
+          placeholder: "Enter number of items partially repaired",
+          type: "number",
+          required: false,
+          options: [],
+        },
+        {
+          key: "itemsNotRepairable",
+          title: "Items Assessed but Not Repairable",
+          placeholder: "Enter number of items assessed but not repairable",
+          type: "number",
+          required: false,
+          options: [],
+        },
+        {
+          key: "repairVolunteers",
+          title: "Repair Volunteers",
+          placeholder: "Enter number of repair volunteers",
+          type: "number",
+          required: true,
+          options: [],
+        },
+        {
+          key: "communityMembersAttended",
+          title: "Community Members Attended",
+          placeholder: "Enter number of community members who attended",
+          type: "number",
+          required: false,
+          options: [],
+        },
+        {
+          key: "durationMin",
+          title: "Duration in Minutes",
+          placeholder: "Enter repair event duration in minutes",
+          type: "number",
+          required: false,
+          options: [],
+          unit: "min",
+        },
+        {
+          key: "itemCategoriesRepaired",
+          title: "Item Categories Repaired",
+          placeholder: "Select all categories repaired during the event",
+          type: "multi-select",
+          required: false,
+          options: [
+            "Electronics",
+            "Clothing/Textiles",
+            "Furniture",
+            "Appliances",
+            "Bikes/Vehicles",
+            "Toys/Games",
+            "Other",
+          ],
+        },
+      ],
+    },
+    review: {
+      title: "Review Repair Event",
+      description: "Review the repair event details before submitting.",
+    },
+  },
+};

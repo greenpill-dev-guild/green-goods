@@ -1,17 +1,19 @@
 import {
   type Address,
+  AddressDisplay,
+  Button,
+  Card,
   logger,
   PoolType,
   toastService,
+  useGardenYieldWiringState,
   WEIGHT_SCHEME_VALUES,
   WeightScheme,
+  adminRoutes,
 } from "@green-goods/shared";
-import { RiAddLine, RiGroupLine } from "@remixicon/react";
+import { RiAddLine, RiAlertLine, RiCheckLine, RiGroupLine, RiQuestionLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
-import { AddressDisplay } from "@/components/AddressDisplay";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 
 interface GardenPool {
   poolType: PoolType;
@@ -37,7 +39,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   community,
   communityLoading,
   pools,
-  gardenId,
+  gardenId: _gardenId,
   canManage,
   isCreatingPools,
   onCreatePools,
@@ -48,6 +50,14 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   const hypercertPool = pools.find((p) => p.poolType === PoolType.Hypercert);
   const actionPool = pools.find((p) => p.poolType === PoolType.Action);
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
+
+  const { wiringState, wiringStatus, repairHref } = useGardenYieldWiringState(_gardenId as Address);
+  const showWiringSection = Boolean(community) && pools.length > 0;
+  const expectedHypercertPoolKnown = Boolean(wiringState?.expectedHypercertPoolAddress);
+  const canShowReconnectLink =
+    (wiringStatus === "missing-resolver-wiring" || wiringStatus === "mismatch") &&
+    expectedHypercertPoolKnown &&
+    Boolean(repairHref);
 
   return (
     <section
@@ -122,6 +132,59 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
           )}
         </div>
 
+        {showWiringSection && wiringStatus === "connected" ? (
+          <div className="mt-3 rounded-lg bg-bg-weak p-3">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-text-strong">
+              <RiCheckLine className="h-4 w-4 flex-shrink-0 text-success-base" aria-hidden="true" />
+              {formatMessage({ id: "app.community.yield.connected" })}
+            </p>
+            <p className="mt-0.5 text-xs text-text-sub">
+              {formatMessage({ id: "app.community.yield.connectedDescription" })}
+            </p>
+          </div>
+        ) : null}
+
+        {showWiringSection &&
+        (wiringStatus === "missing-resolver-wiring" || wiringStatus === "mismatch") ? (
+          <div className="mt-3 rounded-lg border border-warning-light bg-warning-lighter p-3">
+            <p className="flex items-center gap-1.5 text-sm font-medium text-warning-dark">
+              <RiAlertLine className="h-4 w-4 flex-shrink-0 text-warning-dark" aria-hidden="true" />
+              {wiringStatus === "mismatch"
+                ? formatMessage({ id: "app.community.yield.mismatch" })
+                : formatMessage({ id: "app.community.yield.notConnected" })}
+            </p>
+            {canShowReconnectLink && repairHref ? (
+              <Link
+                to={repairHref}
+                className="mt-2 inline-flex text-xs font-medium text-primary-base hover:text-primary-darker"
+              >
+                {formatMessage({ id: "app.community.yield.connectAction" })}
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+
+        {showWiringSection && wiringStatus === "missing-pool" ? (
+          <div className="mt-3 rounded-lg border border-information-light bg-information-lighter p-3">
+            <p className="flex items-center gap-1.5 text-sm text-information-dark">
+              <RiQuestionLine
+                className="h-4 w-4 flex-shrink-0 text-information-dark"
+                aria-hidden="true"
+              />
+              {formatMessage({ id: "app.community.yield.poolNeedsReview" })}
+            </p>
+          </div>
+        ) : null}
+
+        {showWiringSection && wiringState?.readStatus === "unavailable" ? (
+          <div className="mt-3 rounded-lg bg-bg-weak p-3">
+            <p className="flex items-center gap-1.5 text-sm text-text-soft">
+              <RiQuestionLine className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              {formatMessage({ id: "app.community.yield.unavailable" })}
+            </p>
+          </div>
+        ) : null}
+
         {pools.length > 0 ? (
           <>
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -129,31 +192,31 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                 <p className="label-xs text-text-soft">
                   {formatMessage({ id: "app.community.poolType.hypercert" })}
                 </p>
-                <p className="mt-1 text-sm text-text-sub">
+                <div className="mt-1 text-sm text-text-sub">
                   {hypercertPool ? (
                     <AddressDisplay address={hypercertPool.poolAddress} className="text-sm" />
                   ) : (
                     <>&mdash;</>
                   )}
-                </p>
+                </div>
               </div>
               <div className="rounded-lg bg-bg-weak p-3">
                 <p className="label-xs text-text-soft">
                   {formatMessage({ id: "app.community.poolType.action" })}
                 </p>
-                <p className="mt-1 text-sm text-text-sub">
+                <div className="mt-1 text-sm text-text-sub">
                   {actionPool ? (
                     <AddressDisplay address={actionPool.poolAddress} className="text-sm" />
                   ) : (
                     <>&mdash;</>
                   )}
-                </p>
+                </div>
               </div>
             </div>
             {canManage && (
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Link
-                  to={`/gardens/${gardenId}/signal-pool/hypercert`}
+                  to={adminRoutes.communityGovernanceSignalPool("hypercert")}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewHypercertPool" })}
@@ -162,7 +225,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={`/gardens/${gardenId}/signal-pool/action`}
+                  to={adminRoutes.communityGovernanceSignalPool("action")}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewActionPool" })}
@@ -171,7 +234,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={`/gardens/${gardenId}/strategies`}
+                  to={adminRoutes.communityGovernanceStrategies()}
                   className="text-xs font-medium text-primary-base hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.conviction.manageStrategies" })}

@@ -55,10 +55,7 @@ describe("useProtocolYieldSummary", () => {
     });
   });
 
-  // Pre-existing failure inherited from commit a2f7117 (loading contract).
-  // SKIP: #504 — re-enable once the hook is wired to the unlimited-summary contract.
-  // Owner: green-goods-team / Expiry: 2026-07-01
-  it.skip("stays loading until the first summary fetch resolves", async () => {
+  it("stays loading until the first summary fetch resolves", async () => {
     const deferred =
       createDeferredPromise<
         Array<{
@@ -81,7 +78,10 @@ describe("useProtocolYieldSummary", () => {
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.summary).toEqual({
-      assets: [],
+      totalYield: 0n,
+      totalCookieJar: 0n,
+      totalFractions: 0n,
+      totalJuicebox: 0n,
       allocationCount: 0,
     });
 
@@ -103,15 +103,12 @@ describe("useProtocolYieldSummary", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.summary.assets).toEqual([
-      {
-        assetAddress: "0x4444444444444444444444444444444444444444",
-        totalYield: 600n,
-        totalCookieJar: 100n,
-        totalFractions: 200n,
-        totalJuicebox: 300n,
-        allocationCount: 1,
-      },
-    ]);
+    expect(result.current.summary).toEqual({
+      totalYield: 600n,
+      totalCookieJar: 100n,
+      totalFractions: 200n,
+      totalJuicebox: 300n,
+      allocationCount: 1,
+    });
   });
 });

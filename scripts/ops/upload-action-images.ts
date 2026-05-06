@@ -1,0 +1,385 @@
+#!/usr/bin/env bun
+
+/**
+ * Action Image Uploader
+ *
+ * Uploads action card images to Pinata and updates actions.json with the resulting CIDs.
+ *
+ * Pipeline: WebP/PNG source → Pinata → actions.json
+ *
+ * Usage:
+ *   bun scripts/upload-action-images.ts              # Full run
+ *   bun scripts/upload-action-images.ts --dry-run    # Compress only, no upload
+ *   bun scripts/upload-action-images.ts --force      # Skip cache, re-upload all
+ *
+ * Required env vars (unless --dry-run):
+ *   PINATA_JWT - Pinata JWT for uploads
+ *
+ * Optional env vars:
+ *   PINATA_GATEWAY_URL            - Pinata dedicated gateway URL
+ */
+
+import { createHash } from "node:crypto";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+	ACTION_IMAGES_CACHE_PATH,
+	CONFIG_ROOT,
+	CONTRACTS_ROOT,
+	ensureParentDir,
+} from "../packages/contracts/script/utils/paths";
+import {
+	loadPinataConfigFromEnv,
+	uploadBufferWithPinata,
+	verifyGatewayAvailability,
+} from "../lib/ipfs-hybrid";
+
+// --- Paths ---
+
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const ROOT_DIR = path.join(SCRIPT_DIR, "../..");
+const IMAGES_DIR = path.join(CONFIG_ROOT, "action-images");
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
+const CACHE_FILE = ACTION_IMAGES_CACHE_PATH;
+// --- Filename overrides for mismatches between slug and actual filename ---
+// The canonical slug is in actions.json; the filename on disk may differ.
+
+const FILENAME_OVERRIDES: Record<string, string> = {
+	// Add slug → filename overrides here when filenames don't match the slug pattern.
+	// Example: "agro.planting_event": "agro-planting-event-v2"
+};
+
+// --- Types ---
+
+interface ActionEntry {
+	slug: string;
+	domain: string;
+	title: string;
+	description: string;
+	capitals: string[];
+	startTime: string;
+	endTime: string;
+	media: string[];
+	uiConfig: Record<string, unknown>;
+	[key: string]: unknown;
+}
+
+interface ActionsData {
+	domainConfig: Record<string, unknown>;
+	templates: Record<string, unknown>;
+	actions: ActionEntry[];
+}
+
+interface CacheEntry {
+	contentHash: string;
+	cid: string;
+	slug: string;
+	uploadedAt: string;
+}
+
+type Cache = Record<string, CacheEntry>;
+
+interface CompressedImage {
+	slug: string;
+	title: string;
+	webpPath: string;
+	contentHash: string;
+	originalSize: number;
+	compressedSize: number;
+}
+
+// --- Environment loading (same pattern as ipfs-uploader.ts) ---
+
+function loadEnvFile(envPath: string): void {
+	try {
+		if (!fs.existsSync(envPath)) return;
+		const content = fs.readFileSync(envPath, "utf8");
+		for (const line of content.split("\n")) {
+			const trimmed = line.trim();
+			if (!trimmed || trimmed.startsWith("#")) continue;
+			const eqIndex = trimmed.indexOf("=");
+			if (eqIndex === -1) continue;
+			const key = trimmed.slice(0, eqIndex).trim();
+			let value = trimmed.slice(eqIndex + 1).trim();
+			if (value.startsWith('"')) {
+				const close = value.indexOf('"', 1);
+				if (close !== -1) value = value.slice(1, close);
+			} else if (value.startsWith("'")) {
+				const close = value.indexOf("'", 1);
+				if (close !== -1) value = value.slice(1, close);
+			} else {
+				const commentIdx = value.indexOf("#");
+				if (commentIdx !== -1) value = value.slice(0, commentIdx).trim();
+			}
+			if (process.env[key] === undefined) {
+				process.env[key] = value;
+			}
+		}
+	} catch {
+		// Silently fail — env vars may already be set via CI
+	}
+}
+
+// --- Helpers ---
+
+function slugToFilename(slug: string): string {
+	if (FILENAME_OVERRIDES[slug]) return FILENAME_OVERRIDES[slug];
+	return slug.replace(/\./g, "-").replace(/_/g, "-");
+}
+
+function hashFile(filePath: string): string {
+	const content = fs.readFileSync(filePath);
+	return createHash("sha256").update(content).digest("hex");
+}
+
+function loadCache(): Cache {
+	try {
+		if (fs.existsSync(CACHE_FILE)) {
+			return JSON.parse(fs.readFileSync(CACHE_FILE, "utf8"));
+		}
+	} catch {
+		console.error("Warning: Unable to load cache, starting fresh.");
+	}
+	return {};
+}
+
+function saveCache(cache: Cache): void {
+	try {
+		fs.writeFileSync(ensureParentDir(CACHE_FILE), JSON.stringify(cache, null, 2) + "\n");
+	} catch (error) {
+		console.error("Warning: Unable to save cache.", error);
+	}
+}
+
+function formatSize(bytes: number): string {
+	if (bytes < 1024) return `${bytes}B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
+	return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+// --- Pipeline stages ---
+
+async function collectImages(
+	actions: ActionEntry[],
+): Promise<CompressedImage[]> {
+	console.error("--- Stage 1: Collect images ---\n");
+
+	const results: CompressedImage[] = [];
+	let totalSize = 0;
+	let missing = 0;
+
+	for (const action of actions) {
+		const baseName = slugToFilename(action.slug);
+		const webpPath = path.join(IMAGES_DIR, `${baseName}.webp`);
+		const pngPath = path.join(IMAGES_DIR, `${baseName}.png`);
+		const sourcePath = fs.existsSync(webpPath)
+			? webpPath
+			: fs.existsSync(pngPath)
+				? pngPath
+				: null;
+
+		if (!sourcePath) {
+			console.error(
+				`  SKIP: ${baseName}.{webp,png} not found (slug: ${action.slug})`,
+			);
+			missing++;
+			continue;
+		}
+
+		const size = fs.statSync(sourcePath).size;
+		const contentHash = hashFile(sourcePath);
+		totalSize += size;
+
+		results.push({
+			slug: action.slug,
+			title: action.title,
+			webpPath: sourcePath,
+			contentHash,
+			originalSize: size,
+			compressedSize: size,
+		});
+
+		console.error(
+			`  ${path.basename(sourcePath)} — ${formatSize(size)}`,
+		);
+	}
+
+	console.error(
+		`\n  Total: ${formatSize(totalSize)} (${results.length} images, ${missing} missing)\n`,
+	);
+
+	return results;
+}
+
+async function uploadImages(
+	compressed: CompressedImage[],
+	cache: Cache,
+): Promise<Record<string, string>> {
+	console.error("--- Stage 2: Sync to Pinata ---\n");
+
+	const pinataConfig = loadPinataConfigFromEnv();
+	if (!pinataConfig?.jwt) {
+		throw new Error("PINATA_JWT is required for action image uploads");
+	}
+	const cidMap: Record<string, string> = {};
+	let uploads = 0;
+	let cacheHits = 0;
+	let pinataUploads = 0;
+
+	for (const item of compressed) {
+		const cached = cache[item.slug];
+		const fileName = path.basename(item.webpPath);
+
+		if (cached && cached.contentHash === item.contentHash) {
+			try {
+				await verifyGatewayAvailability(`ipfs://${cached.cid}`, pinataConfig.gatewayBaseUrl, {
+					label: "Pinata gateway",
+					attempts: 2,
+					timeoutMs: 5_000,
+				});
+				cacheHits++;
+				cidMap[item.slug] = cached.cid;
+				console.error(`  CACHED: ${item.slug} -> ${cached.cid.slice(0, 24)}...`);
+				continue;
+			} catch {
+				console.error(`  REFRESH: ${item.slug} cache exists but is not verified on Pinata`);
+			}
+		}
+
+		try {
+			const cid = await uploadBufferWithPinata(pinataConfig, fs.readFileSync(item.webpPath), {
+				filename: fileName,
+				mimeType: "image/webp",
+				name: fileName,
+				metadata: { source: "action-image", slug: item.slug },
+			});
+			pinataUploads++;
+			uploads++;
+			cidMap[item.slug] = cid;
+
+			cache[item.slug] = {
+				contentHash: item.contentHash,
+				cid,
+				slug: item.slug,
+				uploadedAt: new Date().toISOString(),
+			};
+
+			console.error(`  UPLOAD: ${item.slug} -> ${cid.slice(0, 24)}...`);
+		} catch (error) {
+			const msg = error instanceof Error ? error.message : String(error);
+			console.error(`  FAIL:  ${item.slug} — ${msg}`);
+
+			if (cached?.cid) {
+				console.error("         Using cached CID as fallback");
+				cidMap[item.slug] = cached.cid;
+			} else {
+				console.error("         No cache fallback — aborting");
+				process.exit(1);
+			}
+		}
+	}
+
+	console.error(
+		`\n  ${uploads} uploaded, ${cacheHits} cached, ${pinataUploads} uploaded to Pinata\n`,
+	);
+	return cidMap;
+}
+
+function updateActionsJson(
+	actionsData: ActionsData,
+	cidMap: Record<string, string>,
+): number {
+	console.error("--- Stage 3: Update actions.json ---\n");
+
+	let updated = 0;
+
+	for (const action of actionsData.actions) {
+		const cid = cidMap[action.slug];
+		if (!cid) continue;
+
+		const ipfsUri = `ipfs://${cid}`;
+		if (action.media.length === 0 || !action.media.includes(ipfsUri)) {
+			action.media = [ipfsUri];
+			updated++;
+		}
+	}
+
+	fs.writeFileSync(ACTIONS_FILE, JSON.stringify(actionsData, null, 2) + "\n");
+	console.error(`  ${updated} actions updated with IPFS URIs\n`);
+	return updated;
+}
+
+// --- Main ---
+
+async function main(): Promise<void> {
+	const args = process.argv.slice(2);
+	const dryRun = args.includes("--dry-run");
+	const force = args.includes("--force");
+
+	loadEnvFile(path.join(ROOT_DIR, ".env"));
+
+	console.error("=== Action Image Upload Pipeline ===\n");
+	if (dryRun) console.error("Mode: DRY RUN (compress only, no upload)\n");
+	if (force) console.error("Mode: FORCE (ignoring cache)\n");
+
+	// Load actions
+	if (!fs.existsSync(ACTIONS_FILE)) {
+		console.error(`Error: Actions file not found: ${ACTIONS_FILE}`);
+		process.exit(1);
+	}
+
+	const actionsData = JSON.parse(
+		fs.readFileSync(ACTIONS_FILE, "utf8"),
+	) as ActionsData;
+	console.error(`Found ${actionsData.actions.length} actions in actions.json\n`);
+
+	// Stage 1: Collect images
+	const compressed = await collectImages(actionsData.actions);
+
+	if (compressed.length === 0) {
+		console.error("No images found to process. Check config/action-images/");
+		process.exit(1);
+	}
+
+	// Dry run: show summary and exit
+	if (dryRun) {
+		console.error("--- Dry run complete ---\n");
+
+		const summary = compressed.map((c) => ({
+			slug: c.slug,
+			title: c.title,
+			file: path.basename(c.webpPath),
+			sizeKB: Math.round(c.originalSize / 1024),
+		}));
+		console.log(JSON.stringify(summary, null, 2));
+		return;
+	}
+
+	// Stage 2: Upload
+	const cache = force ? {} : loadCache();
+	const cidMap = await uploadImages(compressed, cache);
+
+	// Stage 3: Update actions.json
+	updateActionsJson(actionsData, cidMap);
+
+	// Save cache
+	saveCache(cache);
+	console.error(
+		`Cache saved to ${path.relative(CONTRACTS_ROOT, CACHE_FILE)}\n`,
+	);
+
+	// Summary output
+	const cidEntries = Object.entries(cidMap).map(([slug, cid]) => ({
+		slug,
+		cid,
+	}));
+	console.log(JSON.stringify(cidEntries, null, 2));
+
+	console.error("=== Done ===\n");
+}
+
+main().catch((error) => {
+	console.error("Fatal error:", error.message || error);
+	process.exit(1);
+});

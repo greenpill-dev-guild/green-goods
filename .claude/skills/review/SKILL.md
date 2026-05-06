@@ -1,348 +1,393 @@
 ---
 name: review
-description: Code Review & PR Creation - 6-pass systematic review covering correctness, security, performance, patterns, testing, and documentation. Use when reviewing a PR, auditing code changes, or the user asks for systematic code quality analysis.
-argument-hint: "[file-or-PR]"
-version: "1.0.0"
+description: Diff-scoped code review for Green Goods. Use when reviewing a PR, branch diff, working-copy change, or cross-package change. Focus on correctness, boundary violations, missing tests, and judgment-heavy callouts such as dependencies, permissions, migrations, and destructive operations. Avoid broad style commentary and keep findings high-confidence.
+argument-hint: "[package|PR|file ...] [--mode report_only|verify_only|apply_fixes] [--scope cross-package]"
+version: "2.1.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-03-18"
-last_verified: "2026-02-19"
+last_updated: "2026-04-24"
+last_verified: "2026-04-24"
 ---
 
 # Review Skill
 
-Code review workflow: request reviews, perform 6-pass analysis, process feedback.
+Read-only review for Green Goods unless the user explicitly asks for a fix pass.
 
-**References**: See `CLAUDE.md` for codebase patterns and conventions. Use `code-reviewer` agent for PRs.
-Canonical output contract: `.claude/standards/output-contracts.md`.
+This skill exists to answer:
 
----
+- what changed?
+- what is broken or risky?
+- what can the agent fix automatically?
+- what must a human judge deliberately?
 
 ## Activation
 
-| Trigger | Action |
-|---------|--------|
-| `/review` | Perform 6-pass code review |
-| `/review --mode verify_only --scope cross-package` | Cross-package verification pass |
-| `/review --mode apply_fixes` | Explicit review-and-fix pass |
-| `/review --iterate` | Review, fix, re-review loop until clean |
-| After implementation | Request review |
-| PR feedback received | Process and respond |
+Use when:
 
-## Progress Tracking (REQUIRED)
+- the user asks for a review
+- a PR, diff, or working-copy change needs structured findings
+- a cross-package change needs a scoped verification pass
 
-Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
+Invocation forms (all equivalent — pick whichever is easiest):
 
-## Modes
+| Form | Example |
+|------|---------|
+| Slash + positional | `/review admin`, `/review shared admin`, `/review #123`, `/review packages/shared/src/hooks/garden/useGardens.ts` |
+| Slash + flags | `/review --scope cross-package --mode verify_only`, `/review admin --mode apply_fixes` |
+| Slash + domain scope | `/review design-system`, `/review --mode verify_only --scope design-system` |
+| Natural language | "review the shared package", "review the admin changes in this diff", "review PR 42", "review design-system alignment" |
 
-- **Default mode**: `report_only`
-- **Fix mode**: switch to `apply_fixes` only when explicitly requested (for example: `"apply fixes"`)
+## Scoping
 
----
+Always resolve scope **before** inspecting code, and state the resolved scope in the Summary so the user can redirect.
 
-## Part 1: Perform Code Review (6-Pass Protocol)
+### Resolution order
 
-> YOU DO NOT LET THINGS SLIP. YOU DESIRE ONLY PERFECTION.
+1. **Explicit positional arg(s)** — a package name, PR ref, or file path. Multiple allowed; they combine (union, not intersection).
+2. **Natural-language scope** — "review the shared package", "review admin changes", "review PR 42". Resolve the same way as positional.
+3. **Working-copy auto-inference** — when no scope given, run `git diff --name-only` against the merge-base and infer packages touched. Print the inferred scope. If nothing is staged/modified, ask the user what to review instead of guessing.
 
-### Pass 0: Change Explanation
-- Document what changed and why in plain language
-- Create Mermaid diagram showing component/data flow impact
-- Identify the blast radius: which packages, hooks, types are affected
+### Valid package scopes
 
-**What to look for:**
-- Can you explain the change in one sentence? If not, the PR may be too large
-- Does the PR description match what the code actually does?
-- Are there unrelated changes mixed in?
+| Scope | Paths |
+|-------|-------|
+| `contracts` | `packages/contracts/**` |
+| `indexer` | `packages/indexer/**` |
+| `shared` | `packages/shared/**` |
+| `client` | `packages/client/**` |
+| `admin` | `packages/admin/**` |
+| `agent` | `packages/agent/**` |
+| `docs` | `docs/**` |
 
+### Scope combinators
 
-### Pass 0.5: Issue Coverage (MANDATORY)
+- `/review shared admin` — files touching either package (union)
+- `/review --scope cross-package` — special lens: only findings that cross package boundaries
+- `/review --scope design-system` (or `/review design-system`) — domain lens: full-repo design-system alignment. Delegates to [`design/system-alignment-review.md`](../design/system-alignment-review.md). Read-only by default; does not turn ordinary diff reviews into design audits. Activation rules live in the Lens Activation Matrix § design-system below.
+- `/review #123` — restrict to files in the PR's diff
+- `/review packages/shared/src/hooks/garden/useGardens.ts` — single-file review (narrowest)
 
-- Map every requirement from the issue/task to implementation
-- **If coverage < 100%: STOP. Request changes.**
+### When to ask vs infer
 
-**What to look for:**
-- Each acceptance criterion has a corresponding code change
-- Edge cases mentioned in the issue are handled
-- No scope creep — changes beyond the issue are flagged
+- Multiple packages touched and user gave no scope → print inferred scope, proceed with all of them unless the user redirects
+- Zero files touched in working tree and no scope given → ask what to review
+- Scope resolves to >800 LOC → warn and offer to narrow before continuing
 
-**Example comment:**
+## Scope Lock
 
-```markdown
-> **Issue Coverage: 2/3 (67%) — BLOCKING**
-> - ✅ Requirement 1: "Users can submit work offline" → `useJobQueue.addJob()` in `SubmitWork.tsx:45`
-> - ✅ Requirement 2: "Show sync status" → `SyncIndicator` component added
-> - ❌ Requirement 3: "Retry failed submissions" → No retry UI found. Job queue retries automatically but user has no manual retry button.
+Default mode is read-only. Only switch into a fix flow when the user explicitly asks for one.
+
+## What This Skill Owns
+
+- diff-scoped correctness review
+- repo-invariant checks against `CLAUDE.md` and `AGENTS.md`
+- judgment routing: automatic fix candidates vs human call-outs
+- verification recommendations proportional to blast radius
+
+## What This Skill Does Not Own
+
+- dead-code or dependency audits across the full repo (`audit`)
+- abstract design judgment detached from a concrete change (`principles`)
+- full architecture mapping (`architecture`)
+
+### Internal Lenses
+
+Review folds in the `architecture`, `principles`, `testing`, and `audit` lenses *when the diff exposes their signals* — not on every review. See the Lens Activation Matrix below for concrete trigger rules. Do not make the user switch commands unless they explicitly ask for a dedicated pass.
+
+## Lens Activation Matrix
+
+Predictable lens activation. Scan the diff against these signals *before* producing findings, and declare which lenses fired (and what triggered each) in the Summary.
+
+Each lens has **hard signals** (any match → lens MUST run) and **soft signals** (≥2 matches → lens SHOULD run). If no signals match, review runs core-only.
+
+### architecture
+
+**Hard signals** (any → fire):
+
+- Hook added/modified outside `packages/shared/src/hooks/` (violates repo invariant)
+- File created outside a valid package directory
+- Cross-package import path added for the first time (e.g., admin first import from client)
+- Barrel export moved between packages
+
+**Soft signals** (≥2 → fire):
+
+- Diff touches ≥3 packages
+- File size grows ≥30% AND public exports expand
+- New module has no clear owning package
+- Placement decision visible in the diff (new top-level file, first usage of a capability)
+- New import path that may close a cycle (verify with `madge --circular` if suspected)
+
+### principles
+
+**Hard signals:**
+
+- Silent `catch (_)` or `catch (err) {}` block with no error-handling path
+- User-affecting fallback added with no visible decision trail
+- Permission check wrapped, moved, or removed without adjacent test update
+- Deprecated pattern added (see CLAUDE.md invariants)
+
+**Soft signals:**
+
+- Diff adds code near existing code doing ~80% similar work (duplication scent)
+- Function exceeds 40 lines OR carries ≥3 distinct concerns
+- Nested conditional depth ≥3 OR ternary chain ≥3 levels
+- Abstraction (wrapper/adapter/util) added with only one call site
+- Public interface grows by ≥2 new methods/properties
+
+### testing
+
+**Hard signals:**
+
+- Critical surface (CLAUDE.md Criticality Matrix) modified without corresponding test change
+- Public hook/module API changed without test update
+- Bugfix with no regression test reproducing the bug
+- Contract function signature changes without test update
+
+**Soft signals:**
+
+- New mutation or state transition without coverage
+- Rewrite of a function with existing tests, no test changes
+- Assertion removed without replacement
+
+### audit
+
+**Hard signals:**
+
+- `package.json` dependency version change
+- Env var added or removed in `.env.schema`
+- Public export removed (breaking change to API surface)
+
+**Soft signals:**
+
+- Symbol usage removed but symbol remains exported (dead-code scent)
+- Deprecated API usage adjacent to the diff left untouched
+- Circular dependency created
+- Large deletion block without corresponding cleanup of callers
+
+### design-system
+
+Narrow by design. Do not let ordinary UI diffs trigger a full-repo design-system audit.
+
+**Hard signals** (any → fire, delegate to [`design/system-alignment-review.md`](../design/system-alignment-review.md)):
+
+- Explicit invocation: `/review design-system`, `/review --scope design-system`, or natural-language phrasing "design-system alignment", "design system alignment", "UI drift review", "Storybook alignment", "admin client docs alignment"
+- Diff touches root `DESIGN.md` front matter or any surface DESIGN.md dialect (`packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`) AND at least one of: `packages/shared/src/styles/theme.css`, `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`
+- Diff touches ≥2 surfaces out of {admin visual layer, client PWA shell, client browser surface, docs UI, Storybook Tokens surface} in a single change
+
+**Soft signals** (do **not** fire this lens; they belong in `review-checklist.md` instead):
+
+- A single component's padding / copy / token swap
+- One-file theme.css edit with no surface DESIGN.md change
+- A single-story addition or update
+
+**Scope when fired:** read-only protocol from `design/system-alignment-review.md`. Do not mix its output into the diff-review must-fix / should-fix buckets — return its Sections 1-5 directly to the user. If the user then asks for fixes, route through the normal `apply_fixes` gate.
+
+### How to apply
+
+1. Scan the diff against **hard signals** first. Any match → fire that lens.
+2. Count **soft signals** per lens. ≥2 matches → fire that lens.
+3. If no signals fire, review runs core-only.
+4. The Summary MUST declare which lenses fired and cite the triggering signal(s). Example:
+
+   ```
+   Lenses applied: architecture (hard: cross-package import admin→client at packages/admin/src/views/Hub.tsx:12),
+                   testing (hard: useGardens public API change with no test update)
+   Lenses skipped: principles, audit (no signals matched)
+   ```
+
+5. When only one lens fires with one soft signal, mention it but keep the finding count proportional — do not turn a narrow review into a deep audit.
+
+## Review Model
+
+This review uses two buckets.
+
+### Agent-Fix-Now
+
+These are mechanical or localized issues:
+
+- broken imports
+- obvious lint or type violations
+- missing barrel usage
+- missing nearby tests for narrow behavior
+- clear invariant breaks with an obvious fix
+
+### Human-Judge
+
+These require deliberate ownership:
+
+- new dependencies
+- auth or permission changes
+- migrations, backfills, or destructive operations
+- contract upgrade or deployment behavior
+- retry, fallback, or trust-boundary changes
+- shared public API changes with cross-package impact
+
+Do not blur these categories.
+
+## Workflow
+
+### 1. Confirm the Scope
+
+Start by stating the resolved scope explicitly before inspecting anything:
+
+```text
+Review scope: [package(s) | PR #N | file set | full working tree]
+Files in scope: [count] (packages touched: ...)
+Review mode: report_only | verify_only | apply_fixes
 ```
 
+If the resolved scope doesn't match the user's intent, ask before diving in. If the change is too large to review honestly (>800 LOC without a tight focus), say so and ask for a narrower scope.
 
-### Pass 1: Technical Issues
+### 2. Check Requirement Coverage
 
-- Type errors, null handling, missing error handling
-- API contract violations, race conditions
-- Stale closures, memory leaks, async cleanup
+For requested work, map stated requirements to code changes.
 
-**What to look for:**
+If a requirement is clearly missing, lead with that. Do not bury requirement misses under style commentary.
 
-| Issue | Severity | Example |
-|-------|----------|---------|
-| Unhandled promise rejection | Critical | `await foo()` without try/catch in mutation |
-| Missing null check | High | `garden.actions.map()` when garden could be undefined |
-| Race condition | Critical | Async effect without isMounted guard (Rule #3) |
-| Type assertion bypass | High | `as any` without documented reason |
-| Missing error boundary | Medium | New route without ErrorBoundary wrapper |
+### 3. Inspect High-Signal Risk Areas
 
-**Example comment:**
+Prioritize:
 
-```markdown
-> **Critical: Race condition in useGardenData (line 34)**
-> `useEffect` fetches async data without an isMounted guard. If the component unmounts before the fetch completes, this will attempt to set state on an unmounted component.
-> **Fix:** Use `useAsyncEffect` from `@green-goods/shared` (Architectural Rule #3).
-```
+- correctness and runtime behavior
+- shared boundary violations
+- missing or misleading permission checks
+- missing tests on changed behavior
+- hidden fallback or error-swallowing behavior
+- dependency or destructive-operation call-outs
 
+### 4. Apply Green Goods Invariants
 
-### Pass 2: Code Consistency
+Check the diff against actual repo rules:
 
-- Follows codebase style and existing patterns
-- Dead code, duplicate logic, naming conventions
-- Import patterns (barrel imports only — Rule #11)
+- hooks live in `@green-goods/shared`
+- shared imports should prefer the barrel
+- addresses come from deployment artifacts
+- no package-level `.env` files
+- use `bun run test`, not `bun test`
+- user-facing strings need localization
+- frontend work should use the established shared/admin primitives
 
-**What to look for:**
+### 5. Produce Findings Only if They Clear the Bar
 
-| Issue | Severity | Example |
-|-------|----------|---------|
-| Deep import path | Medium | `from "@green-goods/shared/hooks/auth/useAuth"` |
-| Inconsistent naming | Low | `handleClick` vs `onClick` vs `onPress` |
-| Dead code | Medium | Commented-out code, unused variables |
-| Duplicate logic | Medium | Re-implementing a pattern that exists in shared |
-| Console.log in production | Medium | `console.log("debug")` left in (Rule #12) |
+A finding must have:
 
-**Example comment:**
+- a concrete file reference
+- a clear explanation of why it matters
+- a credible next step
 
-```markdown
-> **Medium: Deep import bypasses barrel export (line 12)**
-> `import { useAuth } from "@green-goods/shared/hooks/auth/useAuth"` should be `import { useAuth } from "@green-goods/shared"` (Architectural Rule #11).
-```
+Drop anything that is speculative, preference-based, or low-confidence.
 
-### Pass 3: Architecture
+## False-Positive Guardrails
 
-- Hooks in shared package only (see CLAUDE.md)
-- No hardcoded addresses — use deployment artifacts
-- Proper abstractions, single responsibility
-- Provider nesting order (Rule #13)
-- Zustand selector granularity (Rule #6)
+- do not review the whole codebase when the request is a diff review
+- do not report style preferences as findings
+- do not elevate architectural taste into a blocker unless it violates a repo rule or creates concrete risk
+- do not report "missing abstraction" unless the current diff creates repeated cost or confusion
+- do not call out missing tests when the changed behavior is purely mechanical or non-behavioral
+- do not report missing deployment addresses as a finding for undeployed new contract work by itself; classify as pending broadcast unless the deploy/persist/indexer-update path is missing, or unless broadcast was claimed and artifacts/config are still zero
 
-**What to look for:**
+## Output Contract
 
-| Issue | Severity | Example |
-|-------|----------|---------|
-| Hook defined outside shared | Critical | `useLocalHook()` in client package |
-| Hardcoded address | Critical | `const TOKEN = "0x1234..."` |
-| Wrong provider order | Critical | `AuthProvider` outside `AppKitProvider` |
-| Entire store selected | High | `useStore(state => state)` (Rule #6) |
-| Chained useMemo | Medium | `useMemo` depending on another useMemo output (Rule #9) |
+Lead with findings. Keep the list short enough to act on.
 
-**Example comment:**
+### Bucket Rules
 
-```markdown
-> **Critical: Hook defined in client package (line 8)**
-> `useGardenFilter()` is defined in `packages/client/src/hooks/`. ALL hooks MUST live in `@green-goods/shared` (CLAUDE.md Hook Boundary). Move to `packages/shared/src/hooks/garden/`.
-```
+- `Critical|High -> must-fix`
+- `Medium -> should-fix`
+- `Low -> nice-to-have`
 
-### Pass 4: Environment Compatibility
+Use this mapping in the final review output even when you keep the total number of findings small.
 
-- No package-specific .env files
-- Platform compatibility (mobile Safari, offline)
-- Offline behavior for any write operations
-- Service worker impact
+### Required Sections
 
-**What to look for:**
+1. **Summary** — what changed and blast radius
+2. **Findings** — ordered by severity
+3. **Human Call-Outs** — optional, only when needed
+4. **What Looks Good** — positive anchors
+5. **Verification** — what was run or what should run next
+6. **Verdict** — `approve`, `request_changes`, or `comment_only`
 
-| Issue | Severity | Example |
-|-------|----------|---------|
-| Package-specific .env | Critical | `.env` file in `packages/client/` |
-| Direct contract call from UI | High | `writeContract()` without job queue |
-| Missing offline fallback | High | Feature breaks when offline |
-| Browser API without feature detection | Medium | Using API without checking availability |
-
-### Pass 5: Verification Strategy
-
-```bash
-# Full workspace verification
-bun format && bun lint && bun run test && bun build
-
-# For contract-touching PRs, also run production readiness
-bun run verify:contracts       # Full: build → lint → tests → E2E → dry runs
-bun run verify:contracts:fast  # Quick: skip E2E and dry runs
-```
-
-**What to verify:**
-- All existing tests still pass
-- New behavior has test coverage
-- No TypeScript errors introduced
-- Build succeeds for affected packages
-- Bundle size within budget (< 150KB main, < 50KB per route)
-
-### Pass 6: Synthesis
-
-- **APPROVE** or **REQUEST CHANGES**
-- Summarize all findings by severity
-- Provide actionable next steps
-
----
-
-## Part 2: Review Output
-
-```markdown
-## Code Review: [PR Title]
+Use this exact ordered output shape:
 
 ### Summary
-[Scope + change explanation + requirement coverage]
+
+What changed, blast radius, whether the review scope is trustworthy enough to judge, and which internal lenses fired (per the Lens Activation Matrix) with the triggering signals cited.
 
 ### Severity Mapping
+
 - `Critical|High -> must-fix`
 - `Medium -> should-fix`
 - `Low -> nice-to-have`
 
 ### Must-Fix
-- [Issue] - `file.ts:123` — [Critical/High finding]
+
+High-confidence correctness, invariant, permission, migration, or reliability issues only.
 
 ### Should-Fix
-- [Issue] - `file.ts:456` — [Medium finding]
+
+Meaningful issues worth fixing in this change when they are not hard blockers.
 
 ### Nice-to-Have
-- [Suggestion] - `file.ts:789` — [Low finding]
+
+Only low-risk suggestions with clear value. Keep this section short or omit its contents.
 
 ### Verification
-`bun run test`  
-`bun lint`  
-`bun build`
+
+State what was run, what was inspected, and what still needs confirmation.
 
 ### Recommendation
-**[APPROVE / REQUEST_CHANGES]**
-[Brief rationale]
+
+End with `APPROVE`, `REQUEST_CHANGES`, or `COMMENT_ONLY`.
+
+### Finding Format
+
+```text
+[Title]
+- Severity: critical | high | medium
+- Type: correctness | invariant | testing | dependency | permissions | migration | reliability
+- Evidence: file:line
+- Why it matters: ...
+- Next step: ...
 ```
 
-### Severity Guide
+### Severity Rules
 
-| Severity | Meaning | Action |
-|----------|---------|--------|
-| **Critical** | Breaks functionality, security issue, architectural violation | Must fix before merge |
-| **High** | Performance issue, missing error handling, type safety gap | Should fix before merge |
-| **Medium** | Style inconsistency, minor optimization, missing test | Fix in this PR or create follow-up issue |
-| **Low** | Suggestion, nitpick, alternative approach | Author's discretion |
+- `critical` — broken behavior, security risk, or hard invariant violation
+- `high` — likely regression, missing guard, or missing high-value test
+- `medium` — meaningful cleanup or consistency issue worth fixing in this change
 
-### Severity Mapping
+Use `comment_only` when the change mainly needs human judgment, not a hard block.
 
-| Review Severity | Action Bucket |
-|----------------|---------------|
-| Critical | must-fix |
-| High | must-fix |
-| Medium | should-fix |
-| Low | nice-to-have |
+## GitHub Posting
 
-### Post to GitHub
+Only post when PR context exists. For working-copy reviews or local diffs, return findings in chat instead of assuming GitHub output.
 
-```bash
-gh pr comment [PR_NUMBER] --body "[review content]"
-```
+## Mode Notes
 
-Only post when PR context exists. For working-copy reviews, return findings in chat.
+### `report_only`
 
----
+Default. Produce findings and stop.
 
-## Part 3: Request Review
+### `verify_only`
 
-```bash
-# Prepare
-git log main..HEAD --oneline
-bun build && bun run test && bun lint
+Use for cross-package verification when the main implementation is already done. Focus on blast radius, dependency order, and shared-surface impact.
 
-# Create PR
-gh pr create --title "feat(scope): description" --body "..."
-```
+### `apply_fixes`
 
----
-
-## Part 4: Process Feedback
-
-### Evaluation
-
-1. Read completely — don't react to individual points
-2. Verify against codebase
-3. Respond appropriately
-
-### Response Types
-
-| Situation | Response |
-|-----------|----------|
-| Valid | "Implementing as suggested" |
-| Unclear | "Which specific line should be addressed?" |
-| Incorrect | "This conflicts with X because..." |
-
-### When to Push Back
-
-- Breaks existing functionality
-- Lacks codebase context
-- Violates YAGNI
-- Violates Green Goods conventions (see CLAUDE.md)
-
----
-
-## Part 5: Iterate Mode
-
-When `--iterate` is passed, the review runs in a continuous improvement loop:
-
-1. Run full 6-pass review (Parts 1-4)
-2. Present findings grouped by severity
-3. Apply all must-fix and should-fix changes
-4. Re-review ONLY the modified files (scoped 6-pass)
-5. Repeat until:
-   - No must-fix findings remain, OR
-   - 3 iterations completed (safety limit), OR
-   - User interrupts
-
-### Iterate Mode Output
-
-Each iteration produces a delta report:
-- **Iteration N**: files changed, findings resolved, new findings introduced
-- **Final**: cumulative summary with APPROVE or REQUEST_CHANGES
-
-### When to Use Iterate vs Apply-Fixes
-
-| Mode | Use When |
-|------|----------|
-| `--iterate` | You want hands-off fix-and-verify cycling |
-| `--mode apply_fixes` | You want a single fix pass with manual re-review |
-| Default (report only) | You want findings without any file changes |
-
----
-
-## Reference Files
-
-- **[apply-fixes.md](./apply-fixes.md)** -- Apply fixes mode: review-then-fix workflow with safety rules
-- **[cross-package-verify.md](./cross-package-verify.md)** -- Cross-package verification: dependency-order checks across all packages
+Only when explicitly requested. Fix the `Agent-Fix-Now` bucket first. Re-review after changes. Do not auto-resolve human-judge call-outs.
 
 ## Anti-Patterns
 
-- **Rubber-stamp approvals** — Every PR gets the full 6-pass treatment; never approve without reading every changed line
-- **Reviewing only the diff** — Context matters; read surrounding code to understand if the change fits
-- **Severity inflation** — Not everything is critical; reserve "Critical" for actual blockers
-- **Ignoring test coverage** — New behavior without tests is incomplete, even if the code is correct
-- **Reviewing > 800 LOC at once** — Ask the author to split; large PRs hide bugs
-- **Commenting without suggestions** — "This is wrong" is not actionable; "Use X instead because Y" is
-
-## Final Gates
-
-- **ANY COVERAGE < 100%** → DO NOT APPROVE
-- **ANY UNRESOLVED CRITICAL/HIGH** → DO NOT APPROVE
-- **POST TO GITHUB ONLY IN PR CONTEXT**
+- reviewing >800 LOC as if it were trustworthy and complete
+- mixing broad codebase audits into a diff review
+- giving long lists of low-confidence nits
+- treating every review comment as equally urgent
+- auto-fixing dependencies, permissions, or migrations without explicit approval
 
 ## Related Skills
 
-- `architecture` — Architectural review in Pass 3
-- `testing` — Test coverage verification in Pass 5
-- `ui` (mermaid sub-file) — Change impact diagrams in Pass 0
-- `ui` (compliance sub-file) — Accessibility review (add as Pass 4.5 for UI changes)
-- `contracts` (security sub-file) — Security review for contract-touching PRs
-- `ops` (git-workflow sub-file) — PR size guidelines and commit format validation
+- `architecture` — structural context when a finding is really a boundary issue
+- `principles` — design judgment when a diff exposes deeper coherence problems
+- `testing` — test strategy and focused verification
+- `audit` — repo-health follow-up when a review reveals broader drift

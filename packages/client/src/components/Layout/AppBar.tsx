@@ -1,4 +1,4 @@
-import { cn, SyncStatusBar, usePendingWorksCount, useUIStore } from "@green-goods/shared";
+import { cn, SyncStatusBar, useApp, usePendingWorksCount, useUIStore } from "@green-goods/shared";
 import {
   type RemixiconComponentType,
   RiHomeFill,
@@ -17,13 +17,15 @@ export const AppBar = () => {
   const isWorkDetail = pathname.includes("/work/");
   const intl = useIntl();
   const { data: pendingCount = 0 } = usePendingWorksCount();
+  const { isPwaPresentation } = useApp();
 
   // Check if any drawer is open to hide AppBar beneath them
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
   const isAnyDrawerOpen = isWorkDashboardOpen || isGardenFilterOpen || isEndowmentDrawerOpen;
-  const shouldHideBar = isGarden || isWorkDetail || isAnyDrawerOpen;
+  // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
+  const shouldHideBar = !isPwaPresentation || isGarden || isWorkDetail || isAnyDrawerOpen;
 
   const tabs: {
     path: string;
@@ -55,16 +57,16 @@ export const AppBar = () => {
     <>
       <SyncStatusBar
         className={cn(
-          "bottom-[calc(69px+env(safe-area-inset-bottom))] transition-transform duration-300",
+          "bottom-[calc(69px+env(safe-area-inset-bottom))] rounded-t-[var(--radius-lg)] overflow-hidden transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
           shouldHideBar ? "translate-y-full" : "translate-y-0"
         )}
       />
       <nav
         data-testid="authenticated-nav"
         className={cn(
-          // Keep AppBar above page content (z-40), but below modal/drawer overlays (z-[20000]).
+          // Keep AppBar above page content (z-nav), but below modal/drawer overlays (z-overlay/z-modal).
           // Hide AppBar when on garden submission routes, work detail pages, or when any drawer is open.
-          "fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 transition-transform duration-300",
+          "fixed bottom-0 bg-bg-white-0 border-t border-t-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden flex flex-row justify-evenly items-center w-full py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-nav transition-transform duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]",
           shouldHideBar ? "translate-y-full" : "translate-y-0"
         )}
       >
@@ -90,7 +92,7 @@ export const AppBar = () => {
                   <InactiveIcon className="w-6 h-6" />
                 )}
                 {showBadge && (
-                  <span className="absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-bg-white-0 text-[10px] font-bold leading-none px-1">
+                  <span className="absolute -top-1 -right-1.5 min-w-4 h-4 flex items-center justify-center rounded-full bg-primary text-primary-accent-foreground text-[10px] font-bold leading-none px-1">
                     {pendingCount > 9 ? "9+" : pendingCount}
                   </span>
                 )}

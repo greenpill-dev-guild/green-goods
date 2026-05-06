@@ -1,8 +1,10 @@
-import { APP_NAME } from "@green-goods/shared";
+import { APP_NAME, cn } from "@green-goods/shared";
 import type React from "react";
+import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { Button } from "../Actions";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export type LoadingState = "welcome" | "joining-garden" | "default";
 
@@ -58,6 +60,7 @@ export const Splash: React.FC<SplashProps> = ({
   notice,
   infoCallout,
 }) => {
+  const intl = useIntl();
   const stateMessages = {
     welcome: "Welcome",
     "joining-garden": "Joining garden...",
@@ -66,6 +69,10 @@ export const Splash: React.FC<SplashProps> = ({
 
   const displayMessage = loadingState ? message || stateMessages[loadingState] : APP_NAME;
   const showUsernameInput = usernameInput && !loadingState;
+  const effectsTransition =
+    "transition-[opacity,color,border-color,background-color,box-shadow] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
+  const revealTransition =
+    "transition-[max-height,opacity,margin] duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-bg-white-0 px-4 pb-12 pt-[12vh]">
@@ -80,7 +87,10 @@ export const Splash: React.FC<SplashProps> = ({
             alt={APP_NAME}
             width={240}
             height={240}
-            className={`transition-opacity duration-300 ${loadingState ? "animate-pulse" : ""}`}
+            className={cn(
+              "transition-opacity duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
+              loadingState && "animate-pulse"
+            )}
           />
         </div>
 
@@ -88,7 +98,7 @@ export const Splash: React.FC<SplashProps> = ({
             TITLE/MESSAGE - Fixed height container
         ───────────────────────────────────────────────────────────────────── */}
         <div className="h-8 flex items-center justify-center mb-6">
-          <h3 className="text-center font-bold text-primary transition-all duration-200">
+          <h3 className={cn("text-center font-bold text-primary", effectsTransition)}>
             {displayMessage}
           </h3>
         </div>
@@ -98,9 +108,11 @@ export const Splash: React.FC<SplashProps> = ({
             Uses max-height + opacity for smooth show/hide without layout shift
         ───────────────────────────────────────────────────────────────────── */}
         <div
-          className={`w-full overflow-hidden transition-all duration-300 ease-in-out ${
+          className={cn(
+            "w-full overflow-hidden",
+            revealTransition,
             showUsernameInput ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
-          }`}
+          )}
         >
           <input
             type="text"
@@ -109,7 +121,7 @@ export const Splash: React.FC<SplashProps> = ({
             placeholder={usernameInput?.placeholder || "Choose a username"}
             minLength={usernameInput?.minLength}
             data-testid="username-input"
-            className="w-full px-4 py-3 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 text-center text-text-strong-950 placeholder:text-text-soft-400"
+            className="w-full px-4 py-3 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24 text-center text-text-strong-950 placeholder:text-text-soft-400"
             disabled={isLoggingIn || !showUsernameInput}
             tabIndex={showUsernameInput ? 0 : -1}
             aria-hidden={!showUsernameInput}
@@ -124,9 +136,10 @@ export const Splash: React.FC<SplashProps> = ({
             }}
           />
           <p
-            className={`mt-2 text-center text-xs text-text-sub-600 transition-opacity duration-200 ${
+            className={cn(
+              "mt-2 text-center text-xs text-text-sub-600 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               showUsernameInput ? "opacity-100" : "opacity-0"
-            }`}
+            )}
           >
             {usernameInput?.hint || "This username identifies your passkey on our server"}
           </p>
@@ -136,13 +149,19 @@ export const Splash: React.FC<SplashProps> = ({
             INFO CALLOUT - Expandable educational text (e.g. passkey explainer)
         ───────────────────────────────────────────────────────────────────── */}
         <div
-          className={`w-full overflow-hidden transition-all duration-300 ease-in-out ${
+          className={cn(
+            "w-full overflow-hidden",
+            revealTransition,
             infoCallout && !loadingState ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
-          }`}
+          )}
         >
           <p
             data-testid="info-callout"
-            className="w-full rounded-lg bg-primary/5 border border-primary/10 px-4 py-3 text-xs text-text-sub-600 text-center"
+            className={cn(
+              "w-full rounded-lg border px-4 py-3 text-xs text-text-sub-600 text-center",
+              pwaStatusStyles.primary.surface,
+              pwaStatusStyles.primary.border
+            )}
           >
             {infoCallout}
           </p>
@@ -155,13 +174,18 @@ export const Splash: React.FC<SplashProps> = ({
           {/* Primary button / Loader */}
           <div className="w-full h-10 flex items-center justify-center">
             {loadingState ? (
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <div
+                className={cn(
+                  "h-10 w-10 animate-spin rounded-full border-4 border-primary-alpha-24",
+                  pwaStatusStyles.primary.spinnerBorder
+                )}
+              />
             ) : (
               login && (
                 <Button
                   onClick={login}
                   disabled={isLoggingIn || isLoginDisabled}
-                  className="w-full transition-all duration-200"
+                  className={cn("w-full", effectsTransition)}
                   shape="pilled"
                   data-testid="login-button"
                   label={buttonLabel}
@@ -183,11 +207,13 @@ export const Splash: React.FC<SplashProps> = ({
               }
               label={secondaryAction?.label || "Login with wallet"}
               data-testid="secondary-action-button"
-              className={`w-full transition-all duration-200 ${
+              className={cn(
+                "w-full",
+                effectsTransition,
                 !loadingState && secondaryAction && !secondaryAction.isDisabled && !isLoggingIn
                   ? "opacity-100"
                   : "opacity-0 pointer-events-none"
-              }`}
+              )}
               aria-hidden={!!loadingState || !secondaryAction}
               tabIndex={!loadingState && secondaryAction ? 0 : -1}
             />
@@ -199,11 +225,15 @@ export const Splash: React.FC<SplashProps> = ({
         ───────────────────────────────────────────────────────────────────── */}
         <div className="h-6 flex items-center justify-center mt-2">
           <p
-            className={`max-w-sm text-center text-sm text-text-sub-600 transition-opacity duration-200 ${
+            className={cn(
+              "max-w-sm text-center text-sm text-text-sub-600 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               loadingState === "joining-garden" ? "opacity-100" : "opacity-0"
-            }`}
+            )}
           >
-            Please approve the passkey prompt
+            {intl.formatMessage({
+              id: "app.login.splash.joiningGardenHint",
+              defaultMessage: "Confirm on your device when prompted",
+            })}
           </p>
         </div>
 
@@ -214,14 +244,20 @@ export const Splash: React.FC<SplashProps> = ({
           <div
             role="alert"
             aria-live="polite"
-            className={`absolute left-0 right-0 top-0 w-full transition-all duration-200 ${
+            className={cn(
+              "absolute left-0 right-0 top-0 w-full transition-[opacity,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               errorMessage && !loadingState
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 -translate-y-2 pointer-events-none"
-            }`}
+            )}
           >
             <div className="flex w-full items-start gap-2 rounded-lg border border-error-light bg-error-lighter p-3 text-sm text-error-dark">
-              <span className="font-semibold shrink-0">Error:</span>
+              <span className="font-semibold shrink-0">
+                {intl.formatMessage({
+                  id: "app.login.splash.errorPrefix",
+                  defaultMessage: "Error:",
+                })}
+              </span>
               <span>{errorMessage || "\u00A0"}</span>
             </div>
           </div>
@@ -243,11 +279,12 @@ export const Splash: React.FC<SplashProps> = ({
               <button
                 type="button"
                 onClick={tertiaryAction.onClick}
-                className={`text-xs underline transition-all duration-200 ${
+                className={cn(
+                  "text-xs underline transition-[color,opacity] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                   !loadingState && !isLoggingIn
                     ? "text-foreground hover:text-primary opacity-100"
                     : "text-text-soft-400 opacity-0 pointer-events-none"
-                }`}
+                )}
                 tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
                 aria-hidden={!!loadingState || isLoggingIn}
                 disabled={!!loadingState || isLoggingIn}
@@ -258,11 +295,12 @@ export const Splash: React.FC<SplashProps> = ({
               <Link
                 to={tertiaryAction.href || "#"}
                 viewTransition
-                className={`text-xs underline transition-all duration-200 ${
+                className={cn(
+                  "text-xs underline transition-[color,opacity] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                   !loadingState && !isLoggingIn
                     ? "text-foreground hover:text-primary opacity-100"
                     : "text-text-soft-400 opacity-0 pointer-events-none"
-                }`}
+                )}
                 tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
                 aria-hidden={!!loadingState || isLoggingIn}
               >

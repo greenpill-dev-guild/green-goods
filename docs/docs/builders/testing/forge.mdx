@@ -4,8 +4,12 @@ sidebar_label: Forge
 slug: /builders/testing/forge
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-07
 feature_status: Live
+source_of_truth:
+  - packages/contracts/package.json
+  - packages/contracts/foundry.toml
+  - packages/contracts/test
 keywords:
   - forge
   - foundry
@@ -51,7 +55,7 @@ The `foundry.toml` in `packages/contracts/` defines multiple profiles, each targ
 | Profile | `via_ir` | Purpose |
 |---------|----------|---------|
 | `default` | `false` (selective) | Local iteration; fastest builds via `sparse_mode = true` |
-| `test` | `true` | Unit tests; separate `out-test` artifacts avoid stale cache |
+| `test` | `true` | Unit tests; separate `.generated/foundry/out/test` artifacts avoid stale cache |
 | `ci` | `true` | GitHub Actions; 10,000 fuzz runs for thorough coverage |
 | `fork` | `true` | Fork tests against live chains; 32 fuzz runs, 30M gas limit |
 | `production` | `true` | Deploy builds; `optimizer_runs = 1` for smallest bytecode |
@@ -135,7 +139,7 @@ bun build:target -- src/registries/Action.sol  # Single target
 
 ### CI Integration
 
-The `contracts-tests.yml` workflow runs on pushes and PRs touching `packages/contracts/`. It installs Foundry via `foundry-rs/foundry-toolchain@v1`, runs `bun run test` for unit tests, and has a separate `fork` job with a 90-minute timeout for chain-specific E2E tests.
+The `contracts.yml` workflow runs on pushes and PRs touching `packages/contracts/`, root dependency/config files, and contract audit scripts. It installs Foundry via `foundry-rs/foundry-toolchain@v1`, runs `bun run test`, lint, build, and the realism audit for PR CI. The fork-readiness job is limited to trusted pushes or manual dispatch because it requires private RPC secrets.
 
 ## Resources
 
@@ -144,7 +148,7 @@ The `contracts-tests.yml` workflow runs on pushes and PRs touching `packages/con
 - Contract source: `packages/contracts/src/`
 - Test source: `packages/contracts/test/`
 - Build config: `packages/contracts/foundry.toml`
-- CI workflow: `.github/workflows/contracts-tests.yml`
+- CI workflow: `.github/workflows/contracts.yml`
 
 <NextBestAction
   title="Next: Playwright E2E Testing"

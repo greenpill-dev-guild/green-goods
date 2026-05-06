@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDepositLimitLabel } from "@/components/Vault/depositLimit";
+import { getDepositLimitLabel } from "@green-goods/shared";
 
 describe("getDepositLimitLabel", () => {
   it("renders uint256 max deposit limits as Unlimited", () => {

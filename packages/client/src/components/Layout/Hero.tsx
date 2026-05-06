@@ -5,7 +5,13 @@ import { DeviceFrameset } from "react-device-frameset";
 import { useNavigate } from "react-router-dom";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
-import { copyToClipboard, useApp, useInstallGuidance } from "@green-goods/shared";
+import {
+  copyToClipboard,
+  useApp,
+  useInstallGuidance,
+  useIsDarkMode,
+  useTimeout,
+} from "@green-goods/shared";
 import {
   RiAddBoxLine,
   RiAlertLine,
@@ -20,7 +26,7 @@ import {
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-/** In dev mode, poll /__dev/tunnel for the cloudflared tunnel URL */
+// Exception to hook boundary: dev-only, non-exported, single-use infrastructure
 function useTunnelUrl(): string | null {
   const [url, setUrl] = useState<string | null>(null);
 
@@ -46,23 +52,6 @@ function useTunnelUrl(): string | null {
   }, []);
 
   return url;
-}
-
-function useIsDarkMode() {
-  const [isDark, setIsDark] = useState(() => document.documentElement.dataset.theme === "dark");
-
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      setIsDark(document.documentElement.dataset.theme === "dark");
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    return () => observer.disconnect();
-  }, []);
-
-  return isDark;
 }
 
 interface HeroProps {
@@ -92,24 +81,16 @@ export const Hero: FC<HeroProps> = () => {
     isMobile
   );
 
-  // Auto-reset copy states after 2 seconds (with proper cleanup)
-  useEffect(() => {
-    if (!copySuccess) return;
-    const timer = setTimeout(() => {
-      setCopySuccess(false);
-      setCopyError(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [copySuccess]);
+  // Auto-reset copy states after 2 seconds (auto-cleared on unmount)
+  const { set: scheduleCopyReset } = useTimeout();
 
   useEffect(() => {
-    if (!copyError) return;
-    const timer = setTimeout(() => {
+    if (!copySuccess && !copyError) return;
+    scheduleCopyReset(() => {
       setCopySuccess(false);
       setCopyError(false);
     }, 2000);
-    return () => clearTimeout(timer);
-  }, [copyError]);
+  }, [copySuccess, copyError, scheduleCopyReset]);
 
   const handleCopyUrl = useCallback(async () => {
     try {
@@ -207,7 +188,7 @@ export const Hero: FC<HeroProps> = () => {
             /* Already installed - show open app button */
             <a
               href="/home"
-              className="px-6 py-4 bg-primary text-primary-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline"
+              className="px-6 py-4 bg-primary-action text-primary-action-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 no-underline"
             >
               <RiExternalLinkLine className="w-5 h-5" />
               {intl.formatMessage({
@@ -246,7 +227,7 @@ export const Hero: FC<HeroProps> = () => {
               <button
                 type="button"
                 onClick={handlePrimaryAction}
-                className="px-6 py-4 bg-primary text-primary-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+                className="px-6 py-4 bg-primary-action text-primary-action-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
               >
                 {guidance.primaryAction.type === "native-install" && (
                   <RiDownloadLine className="w-5 h-5" />
@@ -293,9 +274,9 @@ export const Hero: FC<HeroProps> = () => {
               {/* Manual Installation Modal */}
               <Dialog.Root open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <Dialog.Portal>
-                  <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-50" />
+                  <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm animate-fade-in z-overlay" />
                   <Dialog.Content
-                    className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in z-50 focus:outline-none"
+                    className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 px-4 max-w-md w-full animate-scale-in z-modal focus:outline-none"
                     aria-labelledby="hero-modal-title"
                     aria-describedby="hero-modal-desc"
                   >

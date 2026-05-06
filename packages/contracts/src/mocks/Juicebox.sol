@@ -88,9 +88,15 @@ contract MockJBController is IJBController {
         bool useReservedPercent;
     }
 
+    struct StoredMetadata {
+        uint16 reservedPercent;
+        uint16 cashOutTaxRate;
+        bool allowOwnerMinting;
+    }
+
     LaunchCall[] public launchCalls;
     MintCall[] public mintCalls;
-    mapping(uint256 projectId => JBRulesetMetadata metadata) public projectMetadata;
+    mapping(uint256 projectId => StoredMetadata metadata) private _projectMetadata;
     mapping(uint256 projectId => JBSplitGroup[] splitGroups) internal _projectSplitGroups;
     mapping(uint256 projectId => address owner) public projectOwners;
 
@@ -126,7 +132,12 @@ contract MockJBController is IJBController {
 
         // Store metadata and splits from first ruleset
         if (rulesetConfigurations.length > 0) {
-            projectMetadata[_projectId] = rulesetConfigurations[0].metadata;
+            JBRulesetMetadata calldata metadata = rulesetConfigurations[0].metadata;
+            _projectMetadata[_projectId] = StoredMetadata({
+                reservedPercent: metadata.reservedPercent,
+                cashOutTaxRate: metadata.cashOutTaxRate,
+                allowOwnerMinting: metadata.allowOwnerMinting
+            });
             for (uint256 i = 0; i < rulesetConfigurations[0].splitGroups.length; i++) {
                 _projectSplitGroups[_projectId].push(rulesetConfigurations[0].splitGroups[i]);
             }
@@ -157,7 +168,7 @@ contract MockJBController is IJBController {
         );
 
         if (useReservedPercent) {
-            JBRulesetMetadata storage meta = projectMetadata[_projectId];
+            StoredMetadata storage meta = _projectMetadata[_projectId];
             uint256 reserved = (tokenCount * meta.reservedPercent) / 10_000;
             beneficiaryTokenCount = tokenCount - reserved;
         } else {
@@ -205,6 +216,18 @@ contract MockJBController is IJBController {
 
     function getProjectSplitGroups(uint256 _projectId) external view returns (uint256 count) {
         return _projectSplitGroups[_projectId].length;
+    }
+
+    function getProjectReservedPercent(uint256 _projectId) external view returns (uint16) {
+        return _projectMetadata[_projectId].reservedPercent;
+    }
+
+    function getProjectCashOutTaxRate(uint256 _projectId) external view returns (uint16) {
+        return _projectMetadata[_projectId].cashOutTaxRate;
+    }
+
+    function getProjectAllowOwnerMinting(uint256 _projectId) external view returns (bool) {
+        return _projectMetadata[_projectId].allowOwnerMinting;
     }
 
     function getProjectSplitGroup(

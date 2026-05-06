@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "embedded-wallet-sponsorship-followups",
+    "title": "Embedded Wallet Sponsorship Follow-Ups",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-04-12T02:12:20.845Z",
+    "updated_at": "2026-05-03T19:17:16.238Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Replaces the old broad web2 auth and gas sponsorship scope with a code-grounded follow-up.",
+    "Focus on sender sponsorship, deferred-signing semantics, and address continuity UX only.",
+    "Contracts are intentionally n/a."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/embedded-wallet-sponsorship-followups",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/embedded-wallet-sponsorship-followups",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/embedded-wallet-sponsorship-followups",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": []
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/embedded-wallet-sponsorship-followups",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/embedded-wallet-sponsorship-followups",
+      "branch_trigger": "claude/qa-pass-1/embedded-wallet-sponsorship-followups",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-12T02:12:20.852Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-04-12T02:12:11Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "rescoped_from_old_scope",
+      "branch": null,
+      "note": "Created as the focused replacement for the old broad web2 auth and gas sponsorship scope."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "identity-wallet",
+    "tracks": ["client", "shared", "agent"],
+    "work_types": ["implementation", "review"],
+    "surfaces": ["packages/client", "packages/shared", "packages/agent"],
+    "depends_on_features": []
+  }
+}

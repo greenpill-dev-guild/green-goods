@@ -5,6 +5,7 @@ import * as path from "node:path";
 import type { ParsedOptions } from "../utils/cli-parser";
 import type { DeploymentAddresses } from "../utils/deployment-addresses";
 import type { NetworkManager } from "../utils/network";
+import { CONTRACTS_ROOT, IPFS_CACHE_PATH } from "../utils/paths";
 import type { ActionConfig, ActionsConfig } from "../utils/validation";
 import type { AnvilManager } from "./anvil";
 import { GardenDeployer } from "./gardens";
@@ -15,11 +16,7 @@ interface IpfsCacheEntry {
   uploadedAt: string;
 }
 
-/**
- * ActionDeployer - Handles action deployment
- *
- * Extracted from deploy.js - handles deployment of actions from config
- */
+/** Deploys actions defined in a JSON config. */
 export class ActionDeployer extends GardenDeployer {
   constructor(networkManager?: NetworkManager, anvilManager?: AnvilManager, deploymentAddresses?: DeploymentAddresses) {
     super(networkManager, anvilManager, deploymentAddresses);
@@ -162,17 +159,17 @@ contract DeployActionsGenerated is Script {
 
   /**
    * Upload action instructions to IPFS via ipfs-uploader.ts.
-   * Uses npx tsx (NOT bun) — @storacha/client has Bun compat issues.
-   * Falls back to .ipfs-cache.json if uploader was run separately.
+   * Uses npx tsx (NOT bun) to match the deployment FFI environment.
+   * Falls back to the runtime IPFS cache if uploader was run separately.
    */
   private _uploadActionsToIPFS(actions: ActionConfig[]): string[] {
-    const cacheFile = path.join(process.cwd(), ".ipfs-cache.json");
+    const cacheFile = IPFS_CACHE_PATH;
 
     // Try running the uploader script
     try {
       console.log("\n📤 Uploading instructions to IPFS...");
       const result = execFileSync("npx", ["tsx", "script/utils/ipfs-uploader.ts"], {
-        cwd: process.cwd(),
+        cwd: CONTRACTS_ROOT,
         stdio: ["pipe", "pipe", "inherit"], // stderr shown to user
         timeout: 120_000,
       });
@@ -190,7 +187,8 @@ contract DeployActionsGenerated is Script {
     // Fallback: read from cache
     console.log("📋 Falling back to IPFS cache...");
     if (!fs.existsSync(cacheFile)) {
-      console.error("❌ No IPFS cache found. Run: npx tsx script/utils/ipfs-uploader.ts");
+      console.error(`❌ No IPFS cache found at ${path.relative(CONTRACTS_ROOT, cacheFile)}.`);
+      console.error("Run: cd packages/contracts && npx tsx script/utils/ipfs-uploader.ts");
       process.exit(1);
     }
 
@@ -205,7 +203,7 @@ contract DeployActionsGenerated is Script {
 
       if (!entry?.hash) {
         console.error(`❌ Missing IPFS cache for action ${i} (${actions[i].title})`);
-        console.error("Run: npx tsx script/utils/ipfs-uploader.ts");
+        console.error("Run: cd packages/contracts && npx tsx script/utils/ipfs-uploader.ts");
         process.exit(1);
       }
       hashes.push(entry.hash);

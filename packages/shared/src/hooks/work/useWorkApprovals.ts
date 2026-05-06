@@ -5,7 +5,7 @@ import { parseWorkApprovalAttestation } from "../../modules/data/eas";
 import { easGraphQL } from "../../modules/data/graphql";
 import { createEasClient } from "../../modules/data/graphql-client";
 import { type WorkApproval } from "../../types/domain";
-import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM, STALE_TIME_RARE } from "../../config/query-keys";
 
 // Enhanced work approval interface for UI
 export interface EnhancedWorkApproval extends WorkApproval {

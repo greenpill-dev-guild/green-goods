@@ -1,7 +1,7 @@
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import { formatAddress } from "../app/text";
-import { isZeroAddress, ZERO_ADDRESS } from "./address";
+import { ZERO_ADDRESS } from "./address";
 
 // Re-export for backward compatibility (canonical source is address.ts)
 export { ZERO_ADDRESS };
@@ -46,9 +46,6 @@ const ASSET_DECIMALS_BY_CHAIN: Record<number, Record<string, number>> = {
     "0xe4fe50cdd716ef9e15b9ddd5e5e946b23fc4f9e4": 18,
   },
 };
-
-/** @deprecated Use `isZeroAddress` from `./address` instead. */
-export const isZeroAddressValue = isZeroAddress;
 
 /**
  * Checks if a bytes32 value is zero or falsy.
@@ -114,6 +111,24 @@ export function getNetDeposited(totalDeposited: bigint, totalWithdrawn: bigint):
 
 export function isUnlimitedVaultLimit(value: bigint): boolean {
   return value === MAX_UINT256;
+}
+
+interface DepositLimitLabelOptions {
+  assetSymbol: string;
+  decimals: number;
+  locale?: string;
+  unlimitedLabel: string;
+}
+
+export function getDepositLimitLabel(
+  value: bigint,
+  { assetSymbol, decimals, locale, unlimitedLabel }: DepositLimitLabelOptions
+): string {
+  if (isUnlimitedVaultLimit(value)) {
+    return unlimitedLabel;
+  }
+
+  return `${formatTokenAmount(value, decimals, 4, locale)} ${assetSymbol}`;
 }
 
 export function formatTokenAmount(

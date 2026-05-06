@@ -11,7 +11,7 @@ const JAN_1_2025 = 1735689600;
 const DEC_31_2025 = 1767225599;
 
 const meta: Meta<typeof DatePicker> = {
-  title: "Form Controls/DatePicker",
+  title: "Shared/Form/DatePicker",
   component: DatePicker,
   tags: ["autodocs"],
   parameters: {

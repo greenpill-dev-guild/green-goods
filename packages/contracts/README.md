@@ -815,7 +815,7 @@ cast block latest --field gasLimit --rpc-url $CELO_RPC_URL
 cast wallet list
 
 # Check keystore address
-cast wallet address green-goods-deployer
+cast wallet address --account green-goods-deployer
 
 # Verify RPC URLs
 echo $FOUNDRY_KEYSTORE_ACCOUNT

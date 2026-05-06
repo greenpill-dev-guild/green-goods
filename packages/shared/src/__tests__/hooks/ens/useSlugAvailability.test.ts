@@ -1,7 +1,7 @@
 /**
  * useSlugAvailability Hook Tests
  *
- * Tests the debounced RPC availability check for ENS slugs.
+ * Tests the debounced RPC availability check for ENS slugs across L2 and L1.
  * This is tier 2 of the three-tier validation pipeline:
  *   1. Sync Zod (instant) — useSlugForm
  *   2. Debounced RPC (300ms) — this hook
@@ -19,11 +19,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockReadContract = vi.fn();
 const ENS_ADDRESS = "0xENSContract000000000000000000000000000001";
+const L1_RECEIVER_ADDRESS = "0xReceiver0000000000000000000000000000000001";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
   GreenGoodsENSABI: [
     { name: "available", type: "function", inputs: [{ name: "slug", type: "string" }] },
+    { name: "l1Receiver", type: "function", inputs: [] },
   ],
   getNetworkContracts: vi.fn(() => ({
     greenGoodsENS: ENS_ADDRESS,
@@ -71,6 +73,11 @@ function createTestWrapper() {
 describe("useSlugAvailability", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockReadContract.mockImplementation(({ functionName }) => {
+      if (functionName === "available") return Promise.resolve(true);
+      if (functionName === "l1Receiver") return Promise.resolve(L1_RECEIVER_ADDRESS);
+      return Promise.resolve(undefined);
+    });
   });
 
   afterEach(() => {
@@ -117,17 +124,18 @@ describe("useSlugAvailability", () => {
   });
 
   describe("availability results", () => {
-    it("returns true when slug is available", async () => {
-      mockReadContract.mockResolvedValue(true);
-
+    it("returns true when slug is available on L2 and L1", async () => {
       const { wrapper } = createTestWrapper();
       const { result } = renderHook(() => useSlugAvailability("alice"), { wrapper });
 
       await waitFor(() => expect(result.current.data).toBe(true));
     });
 
-    it("returns false when slug is taken", async () => {
-      mockReadContract.mockResolvedValue(false);
+    it("returns false when slug is taken on L2", async () => {
+      mockReadContract.mockImplementation(({ functionName }) => {
+        if (functionName === "available") return Promise.resolve(false);
+        return Promise.resolve(undefined);
+      });
 
       const { wrapper } = createTestWrapper();
       const { result } = renderHook(() => useSlugAvailability("bob"), { wrapper });
@@ -135,9 +143,36 @@ describe("useSlugAvailability", () => {
       await waitFor(() => expect(result.current.data).toBe(false));
     });
 
-    it("calls readContract with correct function and slug", async () => {
-      mockReadContract.mockResolvedValue(true);
+    it("returns false when slug is available on L2 but taken on L1", async () => {
+      const availabilityResponses = [true, false];
+      mockReadContract.mockImplementation(({ functionName }) => {
+        if (functionName === "available") {
+          return Promise.resolve(availabilityResponses.shift());
+        }
+        if (functionName === "l1Receiver") return Promise.resolve(L1_RECEIVER_ADDRESS);
+        return Promise.resolve(undefined);
+      });
 
+      const { wrapper } = createTestWrapper();
+      const { result } = renderHook(() => useSlugAvailability("carol"), { wrapper });
+
+      await waitFor(() => expect(result.current.data).toBe(false));
+    });
+
+    it("returns false when the L1 receiver is not configured", async () => {
+      mockReadContract.mockImplementation(({ functionName }) => {
+        if (functionName === "available") return Promise.resolve(true);
+        if (functionName === "l1Receiver") return Promise.resolve(ZERO_ADDRESS);
+        return Promise.resolve(undefined);
+      });
+
+      const { wrapper } = createTestWrapper();
+      const { result } = renderHook(() => useSlugAvailability("dave"), { wrapper });
+
+      await waitFor(() => expect(result.current.data).toBe(false));
+    });
+
+    it("calls both availability checks with the slug", async () => {
       const { wrapper } = createTestWrapper();
       renderHook(() => useSlugAvailability("my-garden"), { wrapper });
 
@@ -149,6 +184,12 @@ describe("useSlugAvailability", () => {
           })
         )
       );
+      await waitFor(() => {
+        const availabilityCalls = mockReadContract.mock.calls.filter(
+          ([call]) => call.functionName === "available"
+        );
+        expect(availabilityCalls).toHaveLength(2);
+      });
     });
   });
 });

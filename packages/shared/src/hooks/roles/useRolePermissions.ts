@@ -17,7 +17,7 @@ function computePermissions(roles: GardenRole[]): RolePermissions {
   const hasRole = (role: GardenRole) => roles.includes(role);
 
   const canSubmitWork = hasRole("gardener") || hasRole("operator") || hasRole("owner");
-  const canApproveWork = hasRole("evaluator") || hasRole("operator") || hasRole("owner");
+  const canApproveWork = hasRole("operator") || hasRole("owner");
   const canCreateAssessment = hasRole("evaluator") || hasRole("operator") || hasRole("owner");
   const canManageRoles = hasRole("operator") || hasRole("owner");
   const canManageGarden = hasRole("owner");

@@ -72,7 +72,7 @@ contract FullProtocolE2EForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false, // Work schema is non-revocable per schemas.json
                 refUID: bytes32(0),
-                data: abi.encode(workData),
+                data: abi.encode(workData.actionUID, workData.title, workData.feedback, workData.metadata, workData.media),
                 value: 0
             })
         });
@@ -99,7 +99,15 @@ contract FullProtocolE2EForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false, // Work approval schema is non-revocable per schemas.json
                 refUID: workAttestUID,
-                data: abi.encode(approvalData),
+                data: abi.encode(
+                    approvalData.actionUID,
+                    approvalData.workUID,
+                    approvalData.approved,
+                    approvalData.feedback,
+                    approvalData.confidence,
+                    approvalData.verificationMethod,
+                    approvalData.reviewNotesCID
+                ),
                 value: 0
             })
         });
@@ -126,7 +134,15 @@ contract FullProtocolE2EForkTest is ForkTestBase {
                 expirationTime: 0,
                 revocable: false, // Assessment schema is non-revocable per schemas.json
                 refUID: bytes32(0),
-                data: abi.encode(assessmentData),
+                data: abi.encode(
+                    assessmentData.title,
+                    assessmentData.description,
+                    assessmentData.assessmentConfigCID,
+                    assessmentData.domain,
+                    assessmentData.startDate,
+                    assessmentData.endDate,
+                    assessmentData.location
+                ),
                 value: 0
             })
         });

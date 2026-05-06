@@ -21,7 +21,8 @@ export interface DeploymentDefaults {
   safe4337Module: string;
   greenGoodsSafe: string;
   multisig: string;
-  [key: string]: string;
+  badgeLockManagers?: string[];
+  [key: string]: string | string[] | undefined;
 }
 
 export interface NetworksFile {
@@ -58,11 +59,18 @@ const RPC_ENV_ALIASES: Record<string, string[]> = {
   MAINNET_RPC_URL: ["ETHEREUM_RPC_URL"],
 };
 
+const RPC_ENV_DEFAULTS: Record<string, string> = {
+  ETHEREUM_RPC_URL: "https://ethereum-rpc.publicnode.com",
+  MAINNET_RPC_URL: "https://ethereum-rpc.publicnode.com",
+  ARBITRUM_RPC_URL: "https://arb1.arbitrum.io/rpc",
+  SEPOLIA_RPC_URL: "https://ethereum-sepolia.publicnode.com",
+  CELO_RPC_URL: "https://forno.celo.org",
+  OPTIMISM_RPC_URL: "https://mainnet.optimism.io",
+};
+
 /**
- * NetworkManager - Single source of truth for network configuration
- *
- * Consolidates network configuration handling that was previously
- * duplicated across deploy.js, garden-manager.js, and action-manager.js
+ * Single source of truth for RPC URL resolution and chain-id normalization
+ * across all deploy subcommands.
  */
 export class NetworkManager {
   private networksConfig: NetworksFile;
@@ -136,6 +144,10 @@ export class NetworkManager {
             break;
           }
         }
+      }
+
+      if (!rpcUrl) {
+        rpcUrl = RPC_ENV_DEFAULTS[envVar] || "";
       }
 
       // Prefer Alchemy on supported networks when the configured RPC is a
@@ -277,6 +289,17 @@ export class NetworkManager {
    * @returns The address string, or undefined if not set
    */
   getDeploymentDefault(key: string): string | undefined {
-    return this.networksConfig.deploymentDefaults?.[key];
+    const value = this.networksConfig.deploymentDefaults?.[key];
+    return typeof value === "string" ? value : undefined;
+  }
+
+  /**
+   * Get deployment default address arrays (returns [] when missing or scalar)
+   * @param key - Default key name
+   * @returns Address array
+   */
+  getDeploymentDefaultAddresses(key: string): string[] {
+    const value = this.networksConfig.deploymentDefaults?.[key];
+    return Array.isArray(value) ? value : [];
   }
 }

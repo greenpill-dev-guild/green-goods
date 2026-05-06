@@ -1,28 +1,33 @@
 ---
-title: Uploading Your Work
-sidebar_label: Uploading Your Work
+title: Submit Work
+sidebar_label: Submit Work
 slug: /community/gardener-guide/uploading-your-work
+description: "Document regenerative work with media, details, review, and offline-safe upload guidance."
 audience: gardener
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-05-01
 feature_status: Live
-goal: "Complete Submit Work with MDR with clear, role-specific next actions."
+image: /img/social/uploading-your-work.webp
+goal: "Complete one work submission successfully on the first try, including in low-connectivity field conditions."
 difficulty: "standard"
 estimated_time: "3-8 minutes per submission."
-prereqs: "Joined garden, active action, camera or media files."
-next_steps: "/community/gardener-guide/garden-payouts"
-persona_context: "Gardeners documenting and syncing impact work in field conditions."
+prereqs: "Signed in, joined a garden, an active action available, photos or notes ready."
+next_steps: "/community/gardener-guide/"
+persona_context: "Gardeners documenting regenerative work from the field, often with spotty connectivity."
 source_of_truth:
-  - packages/client/src/views/Home/Garden/Work.tsx
+  - packages/client/src/views/Garden/index.tsx
+  - packages/client/src/views/Garden/Intro.tsx
+  - packages/client/src/views/Garden/Media.tsx
+  - packages/client/src/views/Garden/Details.tsx
+  - packages/client/src/views/Garden/Review.tsx
   - packages/shared/src/hooks/work/useWorkForm.ts
   - packages/shared/src/hooks/work/useWorkMutation.ts
   - packages/shared/src/modules/job-queue
-  - packages/shared/src/hooks/work/useDrafts.ts
 keywords:
   - submit work
+  - upload work
   - work submission
   - submit work offline
-  - mdr
   - media details review
   - offline
   - drafts
@@ -31,108 +36,135 @@ keywords:
 ---
 
 import {
-  DecisionGuide,
-  FeatureState,
-  JourneyMap,
-  NextBestAction,
+  GuideOpener,
   StatusBadge,
-  StepFlow,
 } from "@site/src/components/docs";
 
-# Submit Work with MDR
+# Submit Work
 
 <StatusBadge status="Live" />
 
-<JourneyMap
-  role="Gardener"
-  steps={[
-    {title: "Get started", href: "./joining-a-garden", state: "complete"},
-    {title: "Submit work (MDR)", href: "./uploading-your-work", state: "current", note: "Capture media, details, and submit — online or offline."},
-    {title: "Garden payouts", href: "/community/gardener-guide/garden-payouts", state: "upcoming"},
-    {title: "Voting & governance", href: "/community/gardener-guide/voting-governance", state: "upcoming"},
-    {title: "Earning badges", href: "/community/gardener-guide/earning-badges", state: "upcoming"},
-  ]}
-/>
+<GuideOpener
+  image="/img/social/uploading-your-work.webp"
+  alt="A gardener photographing completed field work in warm natural light"
+  label="Gardener chapter"
+  roleAccent="gardener"
+>
+  Choose the action, add evidence, then review before upload.
+</GuideOpener>
 
-## When to use this page
+## What this helps you do
 
-Use this guide when you need to submit work from mobile or field conditions, including offline-first submission flows. This page also covers how drafts persist, how the submission queue works, and what to do when connectivity is limited.
+Submit a clear record of work you completed in a garden so an operator can review it. You will pick the right garden and action, attach evidence, fill in the details, and send it in.
 
-## MDR steps
+## Before you start
 
-<StepFlow
-  steps={[
-    {title: "Media", detail: "Capture or attach media evidence for the task."},
-    {title: "Details", detail: "Enter title, notes, and action-specific fields."},
-    {title: "Review", detail: "Confirm data and submit online or queue offline."},
-  ]}
-/>
+- Sign in with the same account that joined the garden.
+- Confirm you are in the right garden. Many gardeners belong to more than one.
+- Check that the garden has an active action matching the work you completed. If you are not sure which action to use, ask the operator before submitting.
+- Keep your photos, short video, audio note, measurements, or field notes ready.
+- Weak signal is okay. Drafts and queued submissions stay on your device and sync when the network comes back.
 
-<DecisionGuide
-  title="Choose your submit mode"
-  items={[
-    {
-      when: "You have stable connectivity",
-      do: "Submit immediately after Review and wait for confirmation.",
-      next: "Check your work dashboard to verify pending/approved state.",
-    },
-    {
-      when: "You are in low-connectivity field conditions",
-      do: "Save draft and submit; the queue retry system will handle sync later.",
-      next: "Reopen the app when back online to confirm queued submissions completed.",
-    },
-  ]}
-/>
+:::tip
+If you do not see any actions, check that you joined the right garden and ask the operator whether the action is active.
+:::
 
-## What good submissions include
+## Step-by-step flow
 
-- Clear before/after evidence where relevant.
-- Direct alignment with action instructions.
-- Accurate metrics and notes (no placeholders).
-- Consistent location/timing details.
+### Step 1: Choose the action and garden
 
-## Offline Sync and Drafts
+Every submission starts with what you did and where you did it.
 
-Green Goods is built for field conditions where connectivity is unreliable. Your work is never lost.
+1. From your home screen, open the work flow and tap **Start Gardening**.
+2. If your garden covers more than one domain, use the tabs along the top, such as **Solar**, **Agroforestry**, **Education**, or **Waste**, to narrow the action list.
+3. Tap the action that matches the work you actually completed. Ask the operator if two actions seem close.
+4. Tap the garden you are submitting for.
+5. Continue only after both the action and garden are selected.
 
-<FeatureState
-  title="Draft persistence"
-  status="Live"
-  summary="Draft data and media references are stored locally so you can resume later."
-/>
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-intro.png" alt="Work flow intro showing one domain tab active, one action selected, and one garden selected" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
 
-<FeatureState
-  title="Queued submissions"
-  status="Live"
-  summary="When submit cannot complete online, work is queued and retried after reconnection."
-/>
+> Choose the action and garden before you add evidence. A correct submission is much easier to approve.
 
-<FeatureState
-  title="Automatic sync"
-  status="Live"
-  summary="Queued jobs flush when connectivity and signing conditions are available."
-/>
+### Step 2: Add evidence
 
-### Submission outcomes
+Evidence should make the completed work easy to verify.
 
-- **Online + ready:** Submission is sent immediately.
-- **Offline or network issue:** Submission is safely queued for retry.
-- **Validation failure:** You get actionable error feedback before submit.
+1. Use the photo or camera controls to attach images.
+2. Add a short video or audio note when the action supports it and it helps explain the work.
+3. Read the action's media requirements. They tell you how many files are needed and what they should show.
+4. Retake blurry, dark, or incomplete evidence before you move on.
+5. When the action requirements are met, tap **Add Details**.
 
-### Field tips
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-media.png" alt="Work media step showing required image count and camera controls" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
 
-1. Save progress before leaving field conditions — drafts persist in your browser's local storage.
-2. Reopen drafts and verify media is still attached before submitting.
-3. Check queue/upload states before repeating submissions — duplicate submissions waste operator review time.
-4. If a job fails repeatedly, retry from your work dashboard with corrected data.
+> Add evidence that matches the action requirements. A clear photo usually beats a long explanation.
 
-<NextBestAction
-  title="Next best action"
-  why="Keep momentum by moving to the next high-value step in this journey."
-  actionLabel="Garden Payouts"
-  actionHref="/community/gardener-guide/garden-payouts"
-  alternatives={[
-    {label: "Voting & Governance", href: "/community/gardener-guide/voting-governance"},
-    {label: "Earning Badges", href: "/community/gardener-guide/earning-badges"},
-  ]}
-/>
+### Step 3: Add details
+
+Details are different for each action and follow the template the operator set up.
+
+1. Fill in each field shown for this action.
+2. Use real values. Do not enter placeholder text or "N/A" where a number is expected.
+3. Add short notes when they help the operator understand what happened in the field.
+4. If a required field is missing, the app blocks the next step until it is complete.
+5. When the form is valid, tap **Review Work**.
+
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-details.png" alt="Work details step showing action-specific fields filled in with real values" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
+
+> Make the details concrete enough for an operator to verify without guessing.
+
+### Step 4: Review and upload
+
+One last look prevents most rework.
+
+1. Check the action, garden, evidence, and details.
+2. If anything is wrong, go back and fix it before you submit.
+3. Tap **Upload Work** when the record is complete.
+
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-review.png" alt="Work review step showing a submission summary and Upload Work button" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
+
+> This is your last chance to catch the wrong garden, wrong action, or missing evidence.
+
+### If you are offline
+
+Green Goods is built for field conditions.
+
+- If the app says you are offline, your work is queued on your device.
+- When the app is open and the network returns, sync can resume.
+- Give the queue a moment to clear before you submit the same kind of work again.
+- Do not create a duplicate submission just because the first one has not synced yet.
+
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-offline.png" alt="Review step showing the offline banner that work will sync later" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
+
+> Offline does not mean lost. Leave the draft or queued item in place and let it sync.
+
+## How to know it worked
+
+After you tap **Upload Work**, open the **Work Dashboard** from your home screen.
+
+1. A new submission may first show as syncing or queued.
+2. Once synced, it stays in **Pending** while an operator reviews it.
+3. After review, it moves to **Approved** or **Rejected** with any operator feedback.
+4. If it is rejected, read the feedback, fix the issue, and submit a corrected record for the right garden and action.
+
+<div style={{maxWidth: '320px', margin: '1rem auto'}}>
+  <img src="/img/screenshots/client-work-dashboard.png" alt="Work Dashboard showing a recent submission on the Pending tab" style={{width: '100%', borderRadius: '12px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+</div>
+
+## If something goes wrong
+
+- **The next button is disabled.** A required field or media item is missing. Scroll back and look for an empty field or unmet media count.
+- **Media disappeared from a draft.** Reopen the draft from the Work Dashboard and reattach the files before submitting.
+- **Upload keeps failing.** Wait for connectivity to return, then retry from the dashboard. Do not create a duplicate draft for the same work.
+- **Your submission was rejected.** Use the operator's feedback as the checklist for your corrected submission.
+- **You need help.** Open Profile help in the app or use the Green Goods Telegram support link in the docs footer.

@@ -43,8 +43,8 @@ contract EthereumENSReceiverForkTest is Test {
         try vm.envString("ETHEREUM_RPC_URL") returns (string memory value) {
             rpc = value;
         } catch {
-            try vm.envString("ETHEREUM_RPC") returns (string memory fallback_) {
-                rpc = fallback_;
+            try vm.envString("ETHEREUM_RPC") returns (string memory legacyRpc) {
+                rpc = legacyRpc;
             } catch {
                 return false;
             }

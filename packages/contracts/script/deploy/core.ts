@@ -8,11 +8,7 @@ import { NetworkManager } from "../utils/network";
 import { assertSepoliaGate } from "../utils/release-gate";
 import { AnvilManager } from "./anvil";
 
-/**
- * CoreDeployer - Handles core contract deployment
- *
- * Extracted from deploy.js - handles deployment of core protocol contracts
- */
+/** Deploys the core protocol contracts. */
 export class CoreDeployer {
   private networkManager: NetworkManager;
   private anvilManager: AnvilManager;
@@ -22,10 +18,7 @@ export class CoreDeployer {
     this.anvilManager = anvilManager ?? new AnvilManager(this.networkManager);
   }
 
-  /**
-   * Deploy core contracts to a network
-   * @param options - Deployment options
-   */
+  /** Deploy core contracts to a network. */
   async deployCoreContracts(options: ParsedOptions): Promise<void> {
     console.log(`Deploying core contracts to ${options.network}`);
 

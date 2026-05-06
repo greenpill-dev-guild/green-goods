@@ -1,11 +1,13 @@
 {
   "name": "@green-goods/docs",
-  "version": "0.4.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
-    "dev": "docusaurus start --port 3003 --no-open",
-    "start": "docusaurus start --port 3003 --no-open",
+    "predev": "lsof -t -iTCP:3003 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
+    "dev": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
+    "start": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
+    "test": "bun test",
     "build": "docusaurus build",
     "protocol-status:generate": "node scripts/generate-protocol-status.mjs",
     "audit": "node scripts/docs-audit.mjs",
@@ -25,10 +27,12 @@
     "@docusaurus/theme-mermaid": "^3.9.2",
     "@easyops-cn/docusaurus-search-local": "^0.52.2",
     "@mdx-js/react": "^3.0.0",
+    "@remixicon/react": "^4.6.0",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "recharts": "^3.7.0"
   },
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.9.2",

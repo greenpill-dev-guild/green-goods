@@ -65,7 +65,7 @@ const ERROR_PATTERNS: Array<{ pattern: RegExp; category: ErrorCategory }> = [
 
   // Storage errors
   { pattern: /\b(quota|storage|indexeddb|localStorage)\b/i, category: "storage" },
-  { pattern: /ipfs|storacha|upload failed|\bcid\b/i, category: "storage" },
+  { pattern: /ipfs|\b(media upload|upload failed)\b|\bcid\b/i, category: "storage" },
   { pattern: /not initialized.*initializeIpfs/i, category: "storage" },
 
   // Validation errors - more specific patterns to reduce false positives

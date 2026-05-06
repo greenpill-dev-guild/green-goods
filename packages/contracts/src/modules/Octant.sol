@@ -10,6 +10,7 @@ import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IAaveV3ERC4626 } from "../interfaces/IAaveV3ERC4626.sol";
 import { IOctantFactory, IOctantStrategy, IOctantVault } from "../interfaces/IOctantFactory.sol";
 import { AaveV3ERC4626 } from "../strategies/AaveV3ERC4626.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../CommonErrors.sol";
 
 /// @notice Minimal YieldResolver interface for share registration
 interface IYieldResolver {
@@ -64,8 +65,6 @@ contract OctantModule is OwnableUpgradeable, ReentrancyGuardUpgradeable, UUPSUpg
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
 
-    error UnauthorizedCaller(address caller);
-    error ZeroAddress();
     error FactoryNotConfigured();
     error UnsupportedAsset(address asset);
     error AssetDeactivated(address asset);

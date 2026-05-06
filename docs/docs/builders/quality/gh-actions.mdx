@@ -4,8 +4,12 @@ sidebar_label: GitHub Actions
 slug: /builders/quality/gh-actions
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-27
 feature_status: Live
+source_of_truth:
+  - .github/workflows
+  - package.json
+  - docs/docs/builders/testing/storybook.mdx
 keywords: [GitHub Actions, CI/CD, workflows, concurrency, path triggers, Playwright, Storybook]
 ---
 
@@ -15,23 +19,27 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
-The CI/CD pipeline uses GitHub Actions with per-package workflows, path-based triggering, and concurrency controls to keep builds fast and focused.
+The CI/CD pipeline uses eight GitHub Actions lanes with path-based triggering and concurrency controls. Actions own deterministic execution: package tests/builds, CodeQL, focused Playwright projects, design/Storybook checks, docs deploy, trusted contract fork readiness, and advisory Lighthouse jobs. Source-map processing runs inside the Vercel deploy build so PostHog metadata is injected into the artifact that is actually published. Standalone Storybook publication is owned by Vercel, not a ninth Actions workflow.
 
 ```mermaid
 flowchart LR
     PR[Pull Request] --> PT{Path Triggers}
-    PT --> |contracts/**| CT[Contract Tests]
-    PT --> |shared/**| ST[Shared Tests]
-    PT --> |admin/**| AT[Admin Tests]
-    PT --> |client/**| CLT[Client Tests]
-    PT --> |components/**| SB[Storybook CI]
-    PT --> |push to main| E2E[E2E Tests]
+    PT --> |contracts/**| CT[contracts.yml]
+    PT --> |indexer/**| IT[indexer.yml]
+    PT --> |shared/**| ST[shared.yml]
+    PT --> |admin/**| AT[admin.yml]
+    PT --> |client/**| CLT[client.yml]
+    PT --> |agent/**| AG[agent.yml]
+    PT --> |design/story paths| DG[design.yml]
+    PT --> |docs paths| DOC[docs.yml]
     CT --> Gate{All Green?}
+    IT --> Gate
     ST --> Gate
     AT --> Gate
     CLT --> Gate
-    SB --> Gate
-    E2E --> Gate
+    AG --> Gate
+    DG --> Gate
+    DOC --> Gate
     Gate --> |Yes| Merge[Merge]
     Gate --> |No| Fix[Fix Required]
 ```
@@ -40,20 +48,18 @@ flowchart LR
 
 ### Workflow Architecture
 
-Each package has a dedicated test workflow, plus cross-cutting workflows for E2E, Storybook, and deployment:
+Each package has a dedicated lane, with design and docs as cross-cutting lanes:
 
 | Workflow | Trigger Paths | Key Steps |
 |----------|---------------|-----------|
-| `contracts-tests.yml` | `packages/contracts/**` | Foundry install, `bun run test`, fork tests |
-| `shared-tests.yml` | `packages/shared/**` | `bun run coverage`, lint |
-| `admin-tests.yml` | `packages/admin/**` | Vitest, lint |
-| `client-tests.yml` | `packages/client/**` | Vitest, lint |
-| `agent-tests.yml` | `packages/agent/**` | Vitest, lint |
-| `indexer-tests.yml` | `packages/indexer/**` | Mocha, lint |
-| `e2e-tests.yml` | Push/PR to main/develop | Playwright with Envio + Docker |
-| `storybook.yml` | Component file changes | Story coverage check, build |
-| `claude-guidance.yml` | `.claude/**`, `CLAUDE.md` | Guidance consistency check |
-| `test-quality.yml` | Test file changes | Test quality metrics |
+| `contracts.yml` | `packages/contracts/**`, root deps/config, contract audit scripts | Foundry install, unit tests, lint, build, realism audit; fork readiness on trusted push/manual only |
+| `indexer.yml` | `packages/indexer/**`, contract ABI/deployment/runtime paths | Boundary check, local Envio codegen, generated setup, Mocha tests, lint, build |
+| `shared.yml` | `packages/shared/**`, root deps/config, CodeQL config, JS/TS/Actions security paths | Shared coverage, lint, and typecheck for shared-impacting changes; CodeQL for `javascript-typescript` and `actions` |
+| `client.yml` | `packages/client/**`, `packages/shared/**`, focused Playwright paths, contract artifacts | Vitest coverage, lint/build, `client-ci` Playwright, manual Lighthouse advisory |
+| `admin.yml` | `packages/admin/**`, `packages/shared/**`, focused Playwright paths, contract artifacts | Vitest coverage, lint/build, `admin-ci` Playwright, manual Lighthouse advisory |
+| `agent.yml` | `packages/agent/**`, `packages/shared/**`, root deps/config | Vitest coverage, lint, typecheck, build |
+| `design.yml` | DesignMD, Storybook, shared/admin/client UI surfaces | DesignMD checks, generated-token checks, vocabulary lint, story coverage/quality, Storybook smoke/build, optional Chromatic |
+| `docs.yml` | `docs/**`, root dependency/config paths | Docusaurus build and trusted Pages deploy |
 
 ## How It's Configured
 
@@ -83,7 +89,7 @@ This ensures only the latest push for a given branch runs, canceling stale build
   run: bun install --frozen-lockfile
 ```
 
-`--frozen-lockfile` ensures CI uses the exact dependency versions from the lockfile. The bun setup is shared across all workflows.
+`--frozen-lockfile` ensures CI uses the exact dependency versions from the lockfile. Bun setup is inline in every lane; there is no local composite Bun action.
 
 #### Permissions
 
@@ -91,36 +97,26 @@ Workflows use minimal permissions (`contents: read` by default). Write permissio
 
 ### Contract Tests
 
-The contracts workflow has two jobs:
+The contracts lane has four jobs:
 
-1. **`test`** -- Unit tests with `bun run test` using `FOUNDRY_PROFILE=test`
-2. **`fork`** -- Fork tests with a 90-minute timeout, requiring RPC URL secrets
+1. **`unit`** -- Unit tests with `bun run test` using the package script
+2. **`lint-build`** -- Contract lint and build through package scripts
+3. **`realism-audit`** -- Test-realism guardrail artifacts
+4. **`fork-readiness`** -- Fork tests with a 90-minute timeout, requiring RPC URL secrets
 
-Fork tests run against real chain state (Sepolia, Arbitrum, Celo) and use `foundry-rs/foundry-toolchain@v1` for Foundry installation.
+Fork tests run against real chain state and use `foundry-rs/foundry-toolchain@v1` for Foundry installation. They do not run on pull requests, so fork PR CI does not depend on private RPC secrets.
 
 ### E2E Tests
 
-The E2E workflow is the most complex, requiring:
+The old standalone E2E workflow is retired. Browser CI is package-scoped:
 
-1. Bun + Node.js + pnpm (for Envio CLI)
-2. Docker (for the Envio indexer database)
-3. Envio codegen and setup
-4. Playwright browser installation
-5. Client build with test environment variables
-
-```yaml
-- name: Build client for E2E
-  run: bun run build:client
-  env:
-    VITE_CHAIN_ID: "11155111"
-    VITE_USE_HASH_ROUTER: "true"
-```
-
-The workflow supports manual dispatch with a project selector for targeted E2E runs.
+- `client.yml` runs `playwright test --project=client-ci`
+- `admin.yml` runs `playwright test --project=admin-ci`
+- broader projects such as mobile, fork, passkey, and testnet stay manual through Playwright scripts
 
 ### Storybook CI
 
-Triggered by changes to component files in any of the three UI packages:
+`design.yml` is triggered by changes to design files, Storybook config, story quality scripts, and component/view files in the UI packages:
 
 ```yaml
 paths:
@@ -130,24 +126,27 @@ paths:
   - "packages/client/src/components/**"
 ```
 
-Two gates must pass:
-- `check:stories` -- Verifies all exported components have story files
-- `build-storybook` -- Confirms the static Storybook compiles
+The Storybook/design gate runs `check:design-md`, `check:design-generated`, `check:design-tokens`, `lint:vocab`, `check:stories`, `check:story-quality`, `test:stories:ci`, and `build-storybook`. Chromatic publishes only when `CHROMATIC_PROJECT_TOKEN` is configured.
 
 ### Deployment Workflows
 
 | Workflow | Purpose |
 |----------|---------|
-| `deploy-docs.yml` | Deploy Docusaurus docs site |
-| `deploy-ipfs.yml` | Upload contract metadata to IPFS via Storacha |
-| `upload-sourcemaps.yml` | Upload source maps for error tracking |
-| `lighthouse-ci.yml` | Performance audits on deployed sites |
+| `docs.yml` | Build Docusaurus and deploy Pages on trusted push/manual refs only |
+| `client.yml` | Manual client Lighthouse advisory |
+| `admin.yml` | Manual admin Lighthouse advisory |
+
+Storybook publication is deliberately outside GitHub Actions. `design.yml` validates and uploads the Storybook artifact for PR review; the standalone public site is deployed by the Vercel project rooted at `packages/shared`, using `packages/shared/vercel.json` to build `@green-goods/shared` and serve `packages/shared/storybook-static`.
+
+Client and admin source maps are deliberately outside GitHub Actions as well. The Vercel projects run each package's `build:deploy` script, process `dist/` with `scripts/ops/upload-sourcemaps.js --deploy`, upload maps to the app-specific PostHog environment, and remove `.js.map` files before Vercel publishes the deployment.
 
 ## Running & Troubleshooting
 
 ### Adding a New Workflow
 
-When creating a workflow for a new package:
+Do not add a new workflow file by default. First decide whether the work belongs in one of the eight lanes, a Claude routine, Copilot automatic review, or GitHub native review. A ninth workflow should require an explicit human-approved exception.
+
+When changing a lane:
 
 1. Use path-based triggers scoped to the package directory
 2. Add concurrency control with `cancel-in-progress: true`
@@ -159,11 +158,11 @@ When creating a workflow for a new package:
 
 - [Husky Git Hooks](./husky) -- Local quality gates that run before CI
 - [Regression Testing](./regression) -- Regression strategy that CI enforces
-- [Agentic Evaluation](./agentic-eval) -- Agent-powered code review running in CI
+- [Agentic Evaluation](./agentic-eval) -- Agent-powered review and guidance checks through routines/native review
 - [Test Cases](./test-cases) -- Test case strategy behind the CI test suites
-- [Playwright](../testing/playwright) -- E2E testing framework used in `e2e-tests.yml`
-- [Storybook](../testing/storybook) -- Component stories validated by `storybook.yml`
-- [Forge](../testing/forge) -- Foundry testing used in `contracts-tests.yml`
+- [Playwright](../testing/playwright) -- E2E testing framework used by `client.yml` and `admin.yml`
+- [Storybook](../testing/storybook) -- Component stories validated by `design.yml`
+- [Forge](../testing/forge) -- Foundry testing used in `contracts.yml`
 
 <NextBestAction
   title="Next best action"

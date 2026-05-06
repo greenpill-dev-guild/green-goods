@@ -4,20 +4,43 @@ sidebar_label: Tokenbound
 slug: /builders/integrations/tokenbound
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Live
+source_of_truth:
+  - packages/contracts/src/accounts/Garden.sol
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/contracts/src/lib/TBA.sol
+  - packages/shared/src/utils/blockchain/contracts.ts
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Tokenbound Accounts (ERC-6551)
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+<StatusBadge status="Live" />
 
 ## Overview
-ERC-6551 tokenbound accounts powering garden smart accounts.
+Tokenbound accounts are part of the live garden account model. Each garden token can map to a smart account that owns assets, stores metadata, and acts as the garden's protocol identity.
 
-## What to Expect
-- GardenAccount implementation
-- Token-gated treasury access
-- Cross-chain account management
+## Current surfaces
+
+- Garden account contracts under `packages/contracts/src/accounts`.
+- Garden token contracts under `packages/contracts/src/tokens`.
+- TBA helper library in `packages/contracts/src/lib/TBA.sol`.
+- Shared contract utilities and deployment artifacts for consumers.
+
+## Builder notes
+
+- Keep garden-account assumptions chain-scoped; each frontend build targets one chain.
+- Use shared contract utilities and deployment artifacts rather than hardcoding addresses.
+- Separate gardener auth/smart accounts from garden tokenbound accounts in docs and UI copy.
+
+<NextBestAction
+  title="Next best action"
+  why="Contracts documentation explains how garden accounts fit into the broader protocol deployment."
+  actionLabel="Contracts package"
+  actionHref="../packages/contracts"
+  alternatives={[
+    {label: "Architecture", href: "../architecture"},
+  ]}
+/>

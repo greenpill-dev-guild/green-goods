@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "ens-l2-sender-admin-recovery",
+    "title": "ENS L2 Sender Admin Recovery",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p1",
+    "created_at": "2026-04-26T01:43:40Z",
+    "updated_at": "2026-05-03T19:17:16.238Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "First-time sponsored passkey claims remain deployable on the current sender.",
+    "This plan addresses the L2 sender admin recovery gap that blocks clean username changes and lost-passkey exact-name recovery.",
+    "Do not remove the legacy sponsored-release UI gate until sender v2 or equivalent L2 recovery is deployed and verified."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/ens-l2-sender-admin-recovery",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "support-flow", "i18n"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/ens-l2-sender-admin-recovery",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "tanstack-query", "ens"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/contracts/ens-l2-sender-admin-recovery",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["solidity", "deploy", "migration"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/ens-l2-sender-admin-recovery",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/ens-l2-sender-admin-recovery",
+      "branch_trigger": "claude/qa-pass-1/ens-l2-sender-admin-recovery",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-26T01:43:40Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Captured focused follow-up for L2 sender admin recovery after identifying the legacy passkey release/change limitation."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "identity-ens",
+    "tracks": ["contracts", "shared", "client"],
+    "work_types": ["implementation", "ops"],
+    "surfaces": ["packages/contracts", "packages/shared", "packages/client"],
+    "depends_on_features": []
+  }
+}

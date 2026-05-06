@@ -4,7 +4,15 @@ sidebar_label: Spec Engineering
 slug: /builders/agentic/spec-engineering
 audience: developer
 owner: docs
-last_verified: 2026-04-03
+last_verified: 2026-04-23
+feature_status: Live
+source_of_truth:
+  - .plans/README.md
+  - .plans/_templates/feature/spec.md
+  - .plans/_templates/feature/plan.todo.md
+  - .plans/_templates/feature/status.json
+  - AGENTS.md
+  - CLAUDE.md
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -30,45 +38,42 @@ maxTurns: 50
 ---
 ```
 
-The project maintains six agent specs:
+The committed repo surface currently keeps two agent specs and routes most specialization through skills instead of extra checked-in agent files:
 
 | Agent | Purpose | Model |
 |-------|---------|-------|
 | `cracked-coder` | Feature implementation with TDD | Opus |
-| `code-reviewer` | PR review and pattern enforcement | Opus |
 | `oracle` | Architecture guidance and analysis | Opus |
-| `migration` | Cross-package migrations | Opus |
-| `storybook-author` | Story creation and design system | Opus |
-| `triage` | Issue classification | Haiku |
 
-### Feature Specifications (`.claude/specs/`)
+Retired agent roles such as `code-reviewer`, `triage`, `migration`, and `storybook-author` now live as skill or workflow patterns rather than committed `.claude/agents/*.md` surfaces.
 
-Detailed requirements for complex features. Structure:
+### Feature Specifications (`.plans/active/<feature-slug>/spec.md`)
+
+Detailed requirements for complex features live inside the feature hub described under [Plan Files](#plan-files-plans). Structure:
 
 1. **Problem statement** -- What problem does this solve?
 2. **User stories** -- Who benefits and how?
 3. **Technical design** -- Architecture, data flow, dependencies
-4. **Acceptance criteria** -- Testable conditions for completion
-5. **Edge cases** -- Known failure modes and how to handle them
+4. **Research evidence** -- Source, tests, docs, and existing patterns reviewed before planning
+5. **Human judgment points** -- Decisions, protected surfaces, and tradeoffs that should stay visible
+6. **Acceptance criteria** -- Testable conditions for completion
+7. **Edge cases** -- Known failure modes and how to handle them
 
 ### Plan Files (`.plans/`)
 
-Intermediate artifacts from agent PLAN phases. Saved when a user asks for "just a plan" without execution:
+Plan files are the durable feature hub for complex work, not just an intermediate PLAN-phase artifact. A user asking for "just a plan" may stop after writing the hub without executing, but the same `.plans/` entry remains the repo truth during implementation, handoffs, and verification.
 
-```markdown
-## Plan: Cookie Jar Payout Integration
-
-### Phase 1: Hook Layer
-- [ ] Create `useCookieJarPayout` in shared
-- [ ] Test: query key correctness, enabled guard, error path
-
-### Phase 2: UI Layer
-- [ ] Add PayoutPanel component in admin
-- [ ] Wire to existing GardenDetail view
-
-### Phase 3: I18n
-- [ ] Add strings to en.json, es.json, pt.json
+```text
+.plans/active/<feature-slug>/
+  brief.md       # Problem framing and key decisions
+  spec.md        # Structured requirements, research evidence, judgment points, acceptance criteria
+  plan.todo.md   # Research/plan gate plus ordered implementation checklist
+  status.json    # Machine-readable lane and progress state
+  eval.md        # Optional verification or acceptance notes
+  handoffs/      # Optional human or agent handoff context
 ```
+
+Update the active feature hub as work moves forward, especially `plan.todo.md` and `status.json`. This keeps resumed sessions and parallel agents aligned on the same source of truth.
 
 ## Writing Effective Specs
 
@@ -94,10 +99,37 @@ Specs must define what is NOT in scope to prevent agents from over-engineering:
 
 ```markdown
 ## Out of Scope
-- Visual design changes (handled by storybook-author agent)
+- Visual design changes (handled by the `ui` or design workflow, not a separate committed agent spec)
 - Contract modifications (requires separate spec + security review)
 - i18n for languages other than en/es/pt
 ```
+
+### Research Evidence
+
+Before planning implementation, record what the agent or human actually checked:
+
+```markdown
+## Research Evidence
+- Existing pattern references: `packages/shared/src/hooks/useExample.ts`
+- Source files, tests, or docs reviewed: ...
+- Evidence confirmed: ...
+- Open inferences or assumptions: ...
+```
+
+This makes it clear when a recommendation is source-backed versus inferred from context.
+
+### Human Judgment Points
+
+Specs should also preserve the decisions that should not be delegated silently:
+
+```markdown
+## Human Judgment Points
+- Decisions that need maintainer judgment:
+- Protected or high-risk surfaces:
+- Tradeoffs to keep visible during review:
+```
+
+These points are not blockers by default. They are review handles so humans keep the right ownership.
 
 ### Dependency Mapping
 
@@ -127,14 +159,16 @@ Before handing a spec to an agent:
 
 1. Are all acceptance criteria mechanically testable?
 2. Is the scope bounded (explicit out-of-scope section)?
-3. Are package dependencies listed with build order?
-4. Does the spec reference existing patterns (Cathedral Check)?
-5. Are edge cases listed with expected behavior?
-6. Is the model requirement appropriate for the complexity?
+3. Is research evidence recorded with file, test, or doc references?
+4. Are human judgment points explicit?
+5. Are package dependencies listed with build order?
+6. Does the spec reference existing patterns (Cathedral Check)?
+7. Are edge cases listed with expected behavior?
+8. Is the model requirement appropriate for the complexity?
 
 ## Governance
 
-Specs are version-controlled alongside the code they describe. The guidance consistency check (`node .claude/scripts/check-guidance-consistency.js`) validates that specs do not contradict the rules and constraints defined in `CLAUDE.md` and `.claude/rules/`.
+Specs are version-controlled alongside the code they describe. The Claude guidance check (`node .claude/scripts/check-skill-frontmatter.js`) validates skill frontmatter, the skills registry, command routes, bundles, and retired guidance surfaces. It does not prove that specs semantically agree with every rule, so specs still need source-backed evidence and explicit acceptance criteria.
 
 <NextBestAction
   title="Next best action"

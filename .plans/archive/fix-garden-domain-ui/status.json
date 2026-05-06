@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "fix-garden-domain-ui",
+    "title": "Fix Garden Domain UI & Data Issues",
+    "kind": "polish",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "completed",
+    "priority": "p1",
+    "created_at": "2026-03-24",
+    "updated_at": "2026-05-03T06:26:30.391Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Smallest execution-ready backlog item in the live plan surface.",
+    "Shared data normalization and admin recovery UI only; no contract work.",
+    "Promote when a narrow polish slot is available.",
+    "Scope updated 2026-04-27: main already has the legacy fix; do not cherry-pick. Verify/adapt the same behavior in the new admin UI."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "claude/ui/fix-garden-domain-ui",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/fix-garden-domain-ui",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/fix-garden-domain-ui",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": []
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "completed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/fix-garden-domain-ui",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "skipped",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/fix-garden-domain-ui",
+      "branch_trigger": "claude/qa-pass-1/fix-garden-domain-ui",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-03-26T23:09:03.369Z",
+      "actor": "migration-script",
+      "lane": "system",
+      "status": "imported_legacy_plan",
+      "branch": null,
+      "note": "Imported from legacy flat .plans layout."
+    },
+    {
+      "timestamp": "2026-04-12T01:44:29.047Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_backlog",
+      "branch": null,
+      "note": "Moved feature hub from active to backlog"
+    },
+    {
+      "timestamp": "2026-04-12T02:12:11Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "backlog_normalized",
+      "branch": null,
+      "note": "Reclassified as a focused backlog polish item with ui/state_api lanes and contracts marked n/a."
+    },
+    {
+      "timestamp": "2026-04-27T06:18:28.029Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-04-27T06:20:43.926Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_scope_updated",
+      "branch": null,
+      "note": "Scope updated 2026-04-27: main already has the legacy fix; do not cherry-pick. Verify/adapt the same behavior in the new admin UI."
+    },
+    {
+      "timestamp": "2026-04-28T19:44:27.115Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Implemented case-insensitive GardenDomains join, zero-domain derived-state alert, focused shared tests, and state handoff."
+    },
+    {
+      "timestamp": "2026-04-28T19:44:32.551Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Implemented current-admin domain summary affordance, edit CTA, Submit Work recovery CTA, i18n, focused admin tests, and UI handoff."
+    },
+    {
+      "timestamp": "2026-04-28T19:44:43.309Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/fix-garden-domain-ui",
+      "note": "Completed on develop dispatch; canonical lane branch metadata preserved. Shared data/derived-state fixes and tests are in the working tree."
+    },
+    {
+      "timestamp": "2026-04-28T19:44:46.863Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "claude/ui/fix-garden-domain-ui",
+      "note": "Completed on develop dispatch by Codex; canonical lane branch metadata preserved. Current-admin UI recovery fixes and tests are in the working tree."
+    },
+    {
+      "timestamp": "2026-04-29T04:22:00.000Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "develop",
+      "note": "QA pass 1 verified all six acceptance checks against committed HEAD (2fa33819 fix(shared,admin): recover gardens without domains). Targeted shared+admin tests, lint:vocab, and plan-hub validate all green. See handoffs/claude-qa-pass-1.md."
+    },
+    {
+      "timestamp": "2026-04-29T04:30:00.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Plan archived after QA pass 1 confirmed all in-scope acceptance checks. qa_pass_2 broader gate skipped by user direction; targeted tests covered every touched surface."
+    },
+    {
+      "timestamp": "2026-05-03T06:26:30.391Z",
+      "branch": "codex/qa-pass-2/fix-garden-domain-ui",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "skipped",
+      "note": "Closeout normalized QA pass 2 as skipped; QA pass 1 verified all in-scope acceptance checks and the existing archive note records user acceptance of targeted proof."
+    }
+  ]
+}

@@ -17,6 +17,7 @@ import ActionRegistryABIJson from "@green-goods/contracts/abis/ActionRegistry.js
 import GardenAccountABIJson from "@green-goods/contracts/abis/GardenAccount.json";
 import GardenTokenABIJson from "@green-goods/contracts/abis/GardenToken.json";
 import GreenGoodsENSABIJson from "@green-goods/contracts/abis/GreenGoodsENS.json";
+import GreenWillABIJson from "@green-goods/contracts/abis/GreenWill.json";
 import IHatsABIJson from "@green-goods/contracts/abis/IHats.json";
 import EASABIJson from "@green-goods/contracts/abis/MockEAS.json";
 // Import deployment configurations
@@ -32,17 +33,39 @@ export const ActionRegistryABI = ActionRegistryABIJson as Abi;
 export const EASABI = EASABIJson as Abi;
 export const GreenGoodsENSABI = GreenGoodsENSABIJson as Abi;
 export const HatsABI = IHatsABIJson as Abi;
+export const GreenWillABI = GreenWillABIJson as Abi;
+
+// Re-export ERC20_ALLOWANCE_ABI from abis barrel for backward compatibility
+export { ERC20_ALLOWANCE_ABI } from "./abis";
+
+type DeploymentJsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | DeploymentJsonValue[]
+  | { [key: string]: DeploymentJsonValue };
+
+/** Shape of deployment JSON files ({chainId}-latest.json) */
+interface DeploymentConfig {
+  [key: string]: DeploymentJsonValue | undefined;
+}
+
+/** Shape of networks.json — each network has contracts, rpc config, etc. */
+interface NetworksConfig {
+  networks: Record<string, { contracts?: Record<string, string>; [k: string]: unknown }>;
+}
 
 function getNetworkConfigFromNetworksJson(chainId: number) {
-  const networksData = networksConfig as { networks: Record<string, any> };
+  const networksData = networksConfig as NetworksConfig;
   const networkName = getNetworkName(chainId);
   return networksData.networks[networkName] || networksData.networks.sepolia;
 }
 
-const DEPLOYMENT_CONFIGS: Record<string, Record<string, any>> = {
-  "42161": deployment42161 as Record<string, any>,
-  "42220": deployment42220 as Record<string, any>,
-  "11155111": deployment11155111 as Record<string, any>,
+const DEPLOYMENT_CONFIGS: Record<string, DeploymentConfig> = {
+  "42161": deployment42161 as DeploymentConfig,
+  "42220": deployment42220 as DeploymentConfig,
+  "11155111": deployment11155111 as DeploymentConfig,
 };
 
 import { ZERO_ADDRESS } from "./address";
@@ -51,7 +74,7 @@ function asAddress(value: unknown): Address {
   return typeof value === "string" ? (value as Address) : ZERO_ADDRESS;
 }
 
-function getDeploymentConfig(chainId: number | string): Record<string, any> {
+function getDeploymentConfig(chainId: number | string): DeploymentConfig {
   const chain = String(chainId);
   return DEPLOYMENT_CONFIGS[chain] ?? {};
 }
@@ -74,6 +97,7 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     communityToken: asAddress(networkConfig.contracts?.communityToken),
     erc4337EntryPoint: asAddress(networkConfig.contracts?.erc4337EntryPoint),
     multicallForwarder: asAddress(networkConfig.contracts?.multicallForwarder),
+    cookieJarFactory: asAddress(deployment.cookieJarFactory),
     cookieJarModule: asAddress(deployment.cookieJarModule),
     yieldSplitter: asAddress(deployment.yieldSplitter),
     gardensModule: asAddress(deployment.gardensModule),
@@ -85,6 +109,8 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     marketplaceAdapter: asAddress(deployment.marketplaceAdapter),
     hypercertsModule: asAddress(deployment.hypercertsModule),
     strategyHypercertFractionOffer: asAddress(deployment.strategyHypercertFractionOffer),
+    // GreenWill
+    greenWill: asAddress(deployment.greenWill),
   };
 }
 

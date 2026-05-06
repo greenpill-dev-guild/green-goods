@@ -41,7 +41,7 @@ function FormSelectWrapper(props: {
 }
 
 const meta: Meta<typeof FormSelectWrapper> = {
-  title: "Form Controls/FormSelect",
+  title: "Shared/Form/FormSelect",
   component: FormSelectWrapper,
   tags: ["autodocs"],
   argTypes: {

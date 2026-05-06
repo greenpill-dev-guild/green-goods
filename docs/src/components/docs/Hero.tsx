@@ -1,11 +1,18 @@
+import {
+  RiHammerLine,
+  RiSeedlingLine,
+  RiShieldCheckLine,
+  RiWallet3Line,
+} from "@remixicon/react";
 import {RolePathCard} from "./RolePathCard";
 import styles from "./styles.module.css";
 
 const ROLE_PATHS = [
   {
     title: "Gardener",
-    href: "/community/gardener-guide/joining-a-garden",
-    icon: "\uD83C\uDF31",
+    href: "/community/gardener-guide/",
+    icon: RiSeedlingLine,
+    roleAccent: "gardener",
     audience: "Field workers",
     time: "5 min quickstart",
     description:
@@ -13,44 +20,29 @@ const ROLE_PATHS = [
   },
   {
     title: "Operator",
-    href: "/community/operator-guide/creating-a-garden",
-    icon: "\u2699\uFE0F",
+    href: "/community/operator-guide/",
+    icon: RiShieldCheckLine,
+    roleAccent: "operator",
     audience: "Garden managers",
-    time: "15 min setup",
+    time: "15 min operator setup",
     description:
       "Create and manage your garden community, approve work, and configure actions.",
   },
   {
-    title: "Evaluator",
-    href: "/community/evaluator-guide/joining-a-garden",
-    icon: "\uD83D\uDCCA",
-    audience: "Impact assessors",
-    time: "10 min overview",
-    description:
-      "Verify impact claims, create assessments, and certify work into Hypercerts.",
-  },
-  {
     title: "Funder",
-    href: "/community/funder-guide/getting-started",
-    icon: "\uD83D\uDCB0",
+    href: "/community/funder-guide/",
+    icon: RiWallet3Line,
+    roleAccent: "funder",
     audience: "Capital allocators",
-    time: "10 min overview",
+    time: "10 min first deposit",
     description:
-      "Deposit into impact vaults that route harvested yield to garden funding flows, and purchase Hypercerts to fund verified impact.",
-  },
-  {
-    title: "Community",
-    href: "/community/community-member-guide/getting-involved",
-    icon: "\uD83E\uDD1D",
-    audience: "Community members",
-    time: "5 min overview",
-    description:
-      "Participate in garden governance through conviction voting and signal support for regenerative work.",
+      "Support garden operations through vault deposits and keep withdrawal controls close at hand.",
   },
   {
     title: "Builder",
     href: "/builders/getting-started",
-    icon: "\uD83D\uDEE0\uFE0F",
+    icon: RiHammerLine,
+    roleAccent: "builder",
     audience: "Developers",
     time: "30 min setup",
     description:
@@ -67,23 +59,28 @@ export function Hero() {
       </p>
 
       <div className={styles.heroRoleGrid} role="list">
-        {ROLE_PATHS.map((role, i) => (
-          <div
-            key={role.title}
-            className={styles.heroRoleItem}
-            style={{"--card-delay": `${i * 80}ms`} as React.CSSProperties}
-            role="listitem"
-          >
-            <RolePathCard
-              title={role.title}
-              href={role.href}
-              icon={role.icon}
-              audience={role.audience}
-              time={role.time}
-              description={role.description}
-            />
-          </div>
-        ))}
+        {ROLE_PATHS.map((role, i) => {
+          const Icon = role.icon;
+
+          return (
+            <div
+              key={role.title}
+              className={styles.heroRoleItem}
+              style={{"--card-delay": `${i * 80}ms`} as React.CSSProperties}
+              role="listitem"
+            >
+              <RolePathCard
+                title={role.title}
+                href={role.href}
+                icon={<Icon />}
+                roleAccent={role.roleAccent}
+                audience={role.audience}
+                time={role.time}
+                description={role.description}
+              />
+            </div>
+          );
+        })}
       </div>
     </section>
   );

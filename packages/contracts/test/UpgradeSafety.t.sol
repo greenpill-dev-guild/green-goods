@@ -422,7 +422,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             octantFactory: address(0),
             unlockFactory: address(0),
             hypercerts: address(0),
-            greenWillRegistry: address(0)
+            greenWill: address(0)
         });
 
         uint256 chainId = 11_155_111; // Sepolia
@@ -445,7 +445,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             , // octantFactory
             , // unlockFactory
             , // hypercerts
-                // greenWillRegistry
+                // greenWill
         ) = deploymentRegistry.networks(chainId);
 
         assertEq(eas, config.eas);
@@ -472,7 +472,7 @@ contract UpgradeSafetyTest is Test, ERC6551Helper {
             , // octantFactoryAfter
             , // unlockFactoryAfter
             , // hypercertsAfter
-                // greenWillRegistryAfter
+                // greenWillAfter
         ) = deploymentRegistry.networks(chainId);
 
         assertEq(easAfter, config.eas);

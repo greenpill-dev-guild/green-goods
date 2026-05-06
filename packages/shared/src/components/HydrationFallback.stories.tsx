@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { HydrationFallback } from "./HydrationFallback";
 
 const meta: Meta<typeof HydrationFallback> = {
-  title: "Primitives/HydrationFallback",
+  title: "Shared/Primitives/HydrationFallback",
   component: HydrationFallback,
   tags: ["autodocs"],
   argTypes: {

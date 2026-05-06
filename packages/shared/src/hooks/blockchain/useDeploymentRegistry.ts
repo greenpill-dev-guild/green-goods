@@ -9,53 +9,10 @@ import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { compareAddresses, isZeroAddress } from "../../utils/blockchain/address";
 import { getChain, getNetworkContracts } from "../../utils/blockchain/contracts";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
+import { DEPLOYMENT_REGISTRY_ABI } from "../../utils/blockchain/abis";
 
-// DeploymentRegistry ABI - read + write functions needed by hooks and views
-export const DEPLOYMENT_REGISTRY_ABI = [
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "isInAllowlist",
-    outputs: [{ name: "", type: "bool" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "owner",
-    outputs: [{ name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getAllowlist",
-    outputs: [{ name: "", type: "address[]" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "allowlistLength",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "addToAllowlist",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "removeFromAllowlist",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-] as const;
+export { DEPLOYMENT_REGISTRY_ABI };
 
 interface DeploymentRegistryData {
   isOwner: boolean;
@@ -90,14 +47,14 @@ async function fetchDeploymentPermissions(
 
   // Check if user is owner
   const owner = await publicClient.readContract({
-    address: contracts.deploymentRegistry as `0x${string}`,
+    address: contracts.deploymentRegistry,
     abi: DEPLOYMENT_REGISTRY_ABI,
     functionName: "owner",
   });
 
   // Check if user is in allowlist
   const isInAllowlist = await publicClient.readContract({
-    address: contracts.deploymentRegistry as `0x${string}`,
+    address: contracts.deploymentRegistry,
     abi: DEPLOYMENT_REGISTRY_ABI,
     functionName: "isInAllowlist",
     args: [address as `0x${string}`],
@@ -166,7 +123,7 @@ async function fetchDeploymentAllowlist(chainId: number): Promise<Address[]> {
   });
 
   const allowlist = await publicClient.readContract({
-    address: contracts.deploymentRegistry as `0x${string}`,
+    address: contracts.deploymentRegistry,
     abi: DEPLOYMENT_REGISTRY_ABI,
     functionName: "getAllowlist",
   });

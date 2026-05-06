@@ -1,0 +1,249 @@
+name: Contracts
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - ".env.schema"
+      - "packages/contracts/**"
+      - "scripts/contracts/**"
+      - ".github/workflows/contracts.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - ".env.schema"
+      - "packages/contracts/**"
+      - "scripts/contracts/**"
+      - ".github/workflows/contracts.yml"
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Contracts operation to run"
+        required: true
+        type: choice
+        options:
+          - fork-readiness
+          - ci
+          - all
+        default: fork-readiness
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit Tests
+    if: github.event_name != 'workflow_dispatch' || inputs.operation == 'ci' || inputs.operation == 'all'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run contract unit tests
+        working-directory: packages/contracts
+        run: bun run test
+        env:
+          CI: true
+
+  lint-build:
+    name: Lint And Build
+    if: github.event_name != 'workflow_dispatch' || inputs.operation == 'ci' || inputs.operation == 'all'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run contract lint
+        working-directory: packages/contracts
+        run: bun run lint
+
+      - name: Build contracts
+        working-directory: packages/contracts
+        run: bun run build
+
+  realism-audit:
+    name: Test Realism Audit
+    if: github.event_name != 'workflow_dispatch' || inputs.operation == 'ci' || inputs.operation == 'all'
+    runs-on: ubuntu-latest
+    # Static source/test audit; run beside unit tests so Contracts CI is not
+    # gated by unit duration plus a second setup/install pass.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve realism gate phase
+        id: realism-phase
+        run: |
+          TODAY="$(date -u +%F)"
+          if [[ "$TODAY" < "2026-02-26" ]]; then
+            MODE="advisory"
+            THRESHOLD="0.70"
+            PHASE="phase-0"
+          elif [[ "$TODAY" < "2026-03-05" ]]; then
+            MODE="enforce-must-fix"
+            THRESHOLD="0.70"
+            PHASE="phase-1"
+          elif [[ "$TODAY" < "2026-03-19" ]]; then
+            MODE="enforce-should-fix"
+            THRESHOLD="0.80"
+            PHASE="phase-2"
+          else
+            MODE="enforce-should-fix"
+            THRESHOLD="0.90"
+            PHASE="phase-3"
+          fi
+          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
+          echo "revert_threshold=$THRESHOLD" >> "$GITHUB_OUTPUT"
+          echo "phase=$PHASE" >> "$GITHUB_OUTPUT"
+          echo "today=$TODAY" >> "$GITHUB_OUTPUT"
+
+      - name: Validate realism audit tooling
+        working-directory: packages/contracts
+        run: bun run test:audit:realism:tooling
+
+      - name: Run contracts realism audit
+        working-directory: packages/contracts
+        run: bun run test:audit:realism
+        env:
+          CI: true
+          CONTRACT_REALISM_MODE: ${{ steps.realism-phase.outputs.mode }}
+          REALISM_REVERT_THRESHOLD: ${{ steps.realism-phase.outputs.revert_threshold }}
+          CONTRACT_REALISM_REPORT_MD: ../../output/contracts-test-audit/realism-report-ci.md
+          CONTRACT_REALISM_REPORT_JSON: ../../output/contracts-test-audit/realism-report-ci.json
+
+      - name: Upload realism audit artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contracts-test-realism-audit
+          path: output/contracts-test-audit/
+          retention-days: 14
+
+  fork-readiness:
+    name: Fork Readiness
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'fork-readiness' || inputs.operation == 'all')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Require private Arbitrum RPC
+        env:
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+        run: |
+          if [[ -z "$ARBITRUM_RPC_URL" ]]; then
+            echo "::error::ARBITRUM_RPC_URL is required for trusted fork readiness gates."
+            exit 1
+          fi
+
+      - name: Run fork protocol suite
+        working-directory: packages/contracts
+        run: bun run test:fork:protocol
+        env:
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com' }}
+          ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL || 'https://ethereum-rpc.publicnode.com' }}
+          COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
+          CI: true
+
+      - name: Run Octant readiness fork gates
+        working-directory: packages/contracts
+        run: |
+          FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumOctantVault.t.sol'
+          FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumYieldSplitterCore.t.sol'
+          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_octantVaultCreatedOnGardenMint'
+          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_fullYieldPipelineWithRealAaveAndSplit'
+          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_hypercertPoolReadiness_requiresYieldReadablePool'
+        env:
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+          COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
+          CI: true

@@ -13,8 +13,8 @@ import {
 } from "../../src/registries/ENS.sol";
 import { GreenGoodsENSReceiver } from "../../src/registries/ENSReceiver.sol";
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
-import { IRouterClient } from "@chainlink/contracts-ccip/contracts/interfaces/IRouterClient.sol";
 import { IENS, IENSResolver } from "../../src/interfaces/IENS.sol";
+import { ForkTestEligibilityToggle } from "./helpers/ForkTestBase.sol";
 
 /// @title CrossChainENSForkTest
 /// @notice Dual-fork tests simulating L2 (Arbitrum) → L1 (Ethereum) ENS registration via CCIP.
@@ -71,8 +71,8 @@ contract CrossChainENSForkTest is Test {
         try vm.envString("ARBITRUM_RPC_URL") returns (string memory value) {
             arbRpc = value;
         } catch {
-            try vm.envString("ARBITRUM_RPC") returns (string memory fallback_) {
-                arbRpc = fallback_;
+            try vm.envString("ARBITRUM_RPC") returns (string memory legacyRpc) {
+                arbRpc = legacyRpc;
             } catch {
                 return false;
             }
@@ -84,8 +84,8 @@ contract CrossChainENSForkTest is Test {
         try vm.envString("ETHEREUM_RPC_URL") returns (string memory value) {
             ethRpc = value;
         } catch {
-            try vm.envString("ETHEREUM_RPC") returns (string memory fallback_) {
-                ethRpc = fallback_;
+            try vm.envString("ETHEREUM_RPC") returns (string memory legacyRpc) {
+                ethRpc = legacyRpc;
             } catch {
                 return false;
             }
@@ -116,20 +116,26 @@ contract CrossChainENSForkTest is Test {
         require(ok, "mintTopHat failed");
         uint256 topHat = abi.decode(data, (uint256));
 
+        ForkTestEligibilityToggle eligibility = new ForkTestEligibilityToggle(address(this));
+        address module = address(eligibility);
+
         (ok, data) = HATS_PROTOCOL.call(
             abi.encodeWithSignature(
                 "createHat(uint256,string,uint32,address,address,bool,string)",
                 topHat,
                 "Protocol Members",
                 uint32(100),
-                address(0xdead),
-                address(0xdead),
+                module,
+                module,
                 true,
                 ""
             )
         );
         require(ok, "createHat failed");
         protocolHatId = abi.decode(data, (uint256));
+
+        eligibility.setHatActive(protocolHatId, true);
+        eligibility.setWearerStatus(protocolHatId, l2Member, true, true);
 
         // Mint hat to member
         (ok,) = HATS_PROTOCOL.call(abi.encodeWithSignature("mintHat(uint256,address)", protocolHatId, l2Member));
@@ -142,11 +148,6 @@ contract CrossChainENSForkTest is Test {
 
         // Authorize gardenToken as caller
         l2Ens.setAuthorizedCaller(l2GardenToken, true);
-
-        // Mock ccipSend on the real router (test contract not allowlisted)
-        vm.mockCall(
-            ARB_CCIP_ROUTER, abi.encodeWithSelector(IRouterClient.ccipSend.selector), abi.encode(bytes32("mock-msg"))
-        );
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -175,6 +176,11 @@ contract CrossChainENSForkTest is Test {
         // ENS Registry stores node owners in mapping(bytes32 => Record) at slot 0
         bytes32 nodeSlot = keccak256(abi.encode(BASE_NODE, uint256(0)));
         vm.store(ENS_REGISTRY, nodeSlot, bytes32(uint256(uint160(address(l1Receiver)))));
+    }
+
+    function _connectL2ToL1Receiver() internal {
+        vm.selectFork(arbForkId);
+        l2Ens.setL1Receiver(address(l1Receiver));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -217,13 +223,16 @@ contract CrossChainENSForkTest is Test {
             return;
         }
 
-        // Phase 1: L2 — Register garden slug on Arbitrum
+        // Phase 1: L2/L1 setup
         _setupL2();
+        _setupL1();
+        _connectL2ToL1Receiver();
+        vm.selectFork(arbForkId);
 
         string memory slug = "miyawaki-park";
         address gardenAccount = makeAddr("gardenAccount");
 
-        // Get fee from real router, register garden (mock ccipSend)
+        // Get fee from real router, then register garden through the live router on the fork.
         uint256 fee = l2Ens.getRegistrationFee(slug, gardenAccount, GreenGoodsENS.NameType.Garden);
         vm.deal(l2GardenToken, fee);
         vm.prank(l2GardenToken);
@@ -234,9 +243,8 @@ contract CrossChainENSForkTest is Test {
         bytes32 slugHash = keccak256(bytes(slug));
         assertEq(l2Ens.slugOwner(slugHash), gardenAccount, "L2 slug owner should be garden account");
 
-        // Phase 2: L1 — Deploy receiver and deliver CCIP message
-        _setupL1();
-
+        // Phase 2: L1 — deliver the message payload to the receiver and verify ENS.
+        vm.selectFork(ethForkId);
         Client.Any2EVMMessage memory message =
             _buildL1Message(0, slug, gardenAccount, GreenGoodsENSReceiver.NameType.Garden);
         _deliverToL1(message);
@@ -266,8 +274,11 @@ contract CrossChainENSForkTest is Test {
             return;
         }
 
-        // Phase 1: L2 — Member claims name on Arbitrum
+        // Phase 1: L2/L1 setup
         _setupL2();
+        _setupL1();
+        _connectL2ToL1Receiver();
+        vm.selectFork(arbForkId);
 
         string memory slug = "alice-gardener";
 
@@ -286,8 +297,7 @@ contract CrossChainENSForkTest is Test {
         );
 
         // Phase 2: L1 — Deliver and verify
-        _setupL1();
-
+        vm.selectFork(ethForkId);
         Client.Any2EVMMessage memory message = _buildL1Message(0, slug, l2Member, GreenGoodsENSReceiver.NameType.Gardener);
         _deliverToL1(message);
 

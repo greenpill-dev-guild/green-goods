@@ -4,7 +4,12 @@ sidebar_label: Codex
 slug: /builders/agentic/codex
 audience: developer
 owner: docs
-last_verified: 2026-04-03
+last_verified: 2026-04-23
+feature_status: Live
+source_of_truth:
+  - AGENTS.md
+  - .codex/config.toml
+  - .codex/environments/environment.toml
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -16,7 +21,7 @@ graph TB
     subgraph Config["Codex Config"]
         TOML["config.toml\nfallback, model, sandbox"]
         ENV["environment.toml\nversioned env metadata"]
-        SYM[".agents/skills\nrepo symlink"]
+        Hooks["hooks disabled\nno prompt rewrite"]
     end
 
     subgraph Sandbox["Workspace Sandbox"]
@@ -27,12 +32,11 @@ graph TB
     Config --> Sandbox
 
     AGENTS["AGENTS.md"] -->|context| Sandbox
-    SYM -->|shared skills| Sandbox
 
     Sandbox -->|output| PR["Draft PR\nmax 20 files"]
 ```
 
-OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. The repo-scoped configuration is intentionally small: `AGENTS.md` is the primary context, `CLAUDE.md` is the fallback, the default model is GPT-5.4, and the workspace-write sandbox disables network access.
+OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. The repo-scoped configuration is intentionally small: `AGENTS.md` is the primary context, `CLAUDE.md` is the fallback, the default model is GPT-5.5, Codex hooks are disabled by default, and the workspace-write sandbox disables network access.
 
 ## Configuration
 
@@ -46,7 +50,11 @@ project_doc_fallback_filenames = ["CLAUDE.md"]
 project_doc_max_bytes = 40960
 
 # Default model for automated tasks
-model = "gpt-5.4"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
+
+[features]
+codex_hooks = false
 
 # Sandbox: no network access during agent execution
 [sandbox_workspace_write]
@@ -56,7 +64,8 @@ network_access = false
 Key settings:
 - **`project_doc_fallback_filenames`** -- Codex reads `AGENTS.md` by default; falls back to `CLAUDE.md` for directories without an `AGENTS.md`
 - **`project_doc_max_bytes`** -- Up to 40 KB of project guidance is loaded when fallback docs are needed
-- **`model`** -- `gpt-5.4` is the current project default for automation runs
+- **`model`** -- `gpt-5.5` is the current project default for automation runs
+- **`codex_hooks = false`** -- prompt-submit rewriting is intentionally disabled; prompts are interpreted directly against `AGENTS.md`, package guides, and `.plans/`
 - **`network_access = false`** -- The workspace-write sandbox has no internet access during execution
 
 ### Environment Metadata (`environment.toml`)
@@ -72,6 +81,10 @@ script = ""
 ```
 
 There is no project-scoped bootstrap script defined in `.codex/environments/environment.toml` at the moment. Any additional setup is handled outside this file.
+
+### Hooks
+
+No project Codex hooks are currently registered. The previous prompt-submit normalization hook was removed because it could infer task contracts from pasted source material instead of the user's actual request. The shared rules live in `AGENTS.md`, package-local `AGENTS.md`, `.plans/`, and the builder docs.
 
 ## Use Cases
 
@@ -94,13 +107,9 @@ When running automated maintenance tasks via Codex (or any automated agent), con
 
 ## Skills Discovery
 
-Codex can discover the shared skill library through the repo symlink:
+Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, and admin paths). The repo no longer mirrors `.claude/skills` into a repo-scoped `.agents/skills` — Claude Code's project skills under `.claude/skills/` are intentionally not surfaced to Codex.
 
-```bash
-.agents/skills -> ../.claude/skills
-```
-
-This keeps the Codex-visible skill path aligned with the same `.claude/skills/` tree used by Claude Code.
+For design-system work, Codex should still follow the repo design source path explicitly: start with `AGENTS.md`, then read the root `DESIGN.md`, the affected surface `DESIGN.md`, `.claude/skills/design/ARCHITECTURE.md`, and the relevant Storybook or package builder doc before editing UI. Treat those files as repository documentation, not as auto-loaded Codex skills.
 
 ## Relationship to Claude Code
 
@@ -111,17 +120,17 @@ Codex and Claude Code serve complementary roles:
 | Context source | `CLAUDE.md` + `.claude/` | `AGENTS.md` + `.codex/` |
 | Execution | Local machine | Automated workspace task |
 | Network | Full access | None (agent phase) |
-| Model | Claude Opus/Sonnet/Haiku | GPT-5.4 |
+| Model | Claude Opus/Sonnet/Haiku | GPT-5.5 |
 | Best for | Interactive development | Automated maintenance |
 | Memory | Session artifacts + tool-local conventions | Thread/automation memory |
 
 <NextBestAction
   title="Next best action"
-  why="Learn about the custom agentic pipeline for meeting-to-action workflows."
-  actionLabel="OpenClaw"
-  actionHref="./openclaw"
+  why="Review the external AI reference page without treating it as project-local automation."
+  actionLabel="Gemini"
+  actionHref="./gemini"
   alternatives={[
     {label: "Claude Code", href: "./claude-code"},
-    {label: "Gemini", href: "./gemini"},
+    {label: "MCP Guide", href: "./mcp-guide"},
   ]}
 />

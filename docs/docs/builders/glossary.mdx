@@ -82,8 +82,8 @@ The default testnet for Green Goods development. Sepolia is an Ethereum testnet 
 ### Service Worker
 A background script that enables Progressive Web Apps (PWAs) to work offline and receive push notifications. The Green Goods client uses a service worker to cache assets and handle background sync of work submissions.
 
-### Storacha
-An IPFS/Filecoin storage service for decentralized file hosting. Green Goods uses Storacha (formerly web3.storage) to store work photos, metadata, and action instructions, with content identifiers (CIDs) referenced in on-chain attestations.
+### Pinata
+A hosted IPFS service used for Green Goods media and metadata uploads. The current runtime path uses Pinata-backed uploads so work photos, metadata, and action instructions resolve to stable CIDs that can be referenced in on-chain attestations.
 
 ### TBA (Tokenbound Account)
 A smart contract account bound to an NFT, following the ERC-6551 standard. Each Green Goods garden is a Tokenbound Account, allowing gardens to own assets, sign transactions, and interact with other contracts as autonomous entities. Learn more at [tokenbound.org](https://tokenbound.org).

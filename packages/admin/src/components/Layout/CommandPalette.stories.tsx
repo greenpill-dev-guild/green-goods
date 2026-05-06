@@ -1,4 +1,4 @@
-import { cn } from "@green-goods/shared";
+import { adminRoutes, cn } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   RiArrowDownLine,
@@ -10,6 +10,14 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { expect, userEvent, waitFor, within } from "storybook/test";
+import { STORYBOOK_ADMIN_DEPLOYER_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import {
+  withAdminIdentityRole,
+  withCanvasFrame,
+  withRouter,
+  withSeededQueryClient,
+} from "../../../../shared/.storybook/decorators";
+import { CommandPalette } from "./CommandPalette";
 
 // ─── Mock CommandPalette ─────────────────────────────────────────────
 // The real component uses useNavigate, useGardens, and useActions which
@@ -34,12 +42,10 @@ interface MockCommandPaletteProps {
 }
 
 const STATIC_ROUTES: Omit<SearchResult, "category">[] = [
-  { id: "page-dashboard", label: "Dashboard", href: "/dashboard" },
-  { id: "page-gardens", label: "Gardens", href: "/gardens" },
-  { id: "page-endowments", label: "Endowments", href: "/endowments" },
+  { id: "page-hub", label: "Hub", href: "/hub" },
+  { id: "page-garden", label: "Garden", href: "/garden" },
+  { id: "page-community", label: "Community", href: "/community" },
   { id: "page-actions", label: "Actions", href: "/actions" },
-  { id: "page-contracts", label: "Contracts", href: "/contracts" },
-  { id: "page-deployment", label: "Deployment", href: "/deployment" },
 ];
 
 function MockCommandPalette({
@@ -82,7 +88,7 @@ function MockCommandPalette({
         items.push({
           id: `garden-${name}`,
           label: name,
-          href: `/gardens/${name}`,
+          href: adminRoutes.garden(),
           category: "gardens",
         });
       }
@@ -293,10 +299,20 @@ function MockCommandPalette({
 
 // ─── Meta ────────────────────────────────────────────────────────────
 
-const meta: Meta<typeof MockCommandPalette> = {
-  title: "Admin/Layout/CommandPalette",
-  component: MockCommandPalette,
+type CommandPaletteStoryArgs = MockCommandPaletteProps;
+
+const meta: Meta<CommandPaletteStoryArgs> = {
+  title: "Admin/Shell/CommandPalette",
+  component: CommandPalette,
   tags: ["autodocs"],
+  parameters: {
+    docs: {
+      description: {
+        component:
+          "Admin command palette coverage. The CI story renders the real CommandPalette with router, auth, wagmi, and seeded React Query providers; harness stories keep isolated state catalogs explicit.",
+      },
+    },
+  },
   args: {
     defaultOpen: false,
     gardens: ["Community Forest", "Urban Rooftop", "Riverside Restoration"],
@@ -323,17 +339,64 @@ const meta: Meta<typeof MockCommandPalette> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof MockCommandPalette>;
+type Story = StoryObj<CommandPaletteStoryArgs>;
 
-export const Default: Story = {};
+function RealCommandPaletteStory() {
+  const [open, setOpen] = useState(true);
+  return <CommandPalette open={open} onOpenChange={setOpen} />;
+}
+
+export const RealProviderOpen: Story = {
+  tags: ["storybook-ci"],
+  render: () => <RealCommandPaletteStory />,
+  decorators: [
+    withAdminIdentityRole("deployer"),
+    withSeededQueryClient(STORYBOOK_ADMIN_DEPLOYER_SEEDS),
+    withRouter(["/hub/work"]),
+    withCanvasFrame({
+      workspace: "hub",
+      className: "p-6",
+      heightClassName: "min-h-[360px]",
+    }),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "CI-covered real CommandPalette. It uses deterministic garden, action, assessment, and role seeds so search categories render without live indexer calls.",
+      },
+    },
+  },
+  play: async () => {
+    const body = within(document.body);
+    const palette = await body.findByRole("dialog", { name: "Command palette" });
+    const paletteCanvas = within(palette);
+    const input = await paletteCanvas.findByPlaceholderText(/search pages, gardens, actions/i);
+    await expect(input).toBeInTheDocument();
+    await expect(await paletteCanvas.findByText("Quick Actions")).toBeInTheDocument();
+    await expect(await paletteCanvas.findByText("Gardens")).toBeInTheDocument();
+
+    await userEvent.type(input, "water");
+    await expect(await paletteCanvas.findByText("Water quality check")).toBeInTheDocument();
+  },
+};
+
+export const Default: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <MockCommandPalette {...args} />,
+};
 
 export const Open: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <MockCommandPalette {...args} />,
   args: {
     defaultOpen: true,
   },
 };
 
 export const NoResults: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <MockCommandPalette {...args} />,
   args: {
     defaultOpen: true,
     gardens: [],
@@ -341,43 +404,17 @@ export const NoResults: Story = {
   },
 };
 
-export const Gallery: Story = {
-  render: () => (
-    <div className="flex flex-col gap-6">
-      <div>
-        <p className="text-xs text-text-sub-600 mb-2">Closed state (search icon button)</p>
-        <MockCommandPalette />
-      </div>
-      <div>
-        <p className="text-xs text-text-sub-600 mb-2">
-          Open with results (click the icon above to see the palette)
-        </p>
-        <MockCommandPalette
-          defaultOpen={true}
-          gardens={["Community Forest", "Urban Rooftop"]}
-          actions={["Plant Trees"]}
-        />
-      </div>
-    </div>
-  ),
-};
-
-export const DarkMode: Story = {
-  args: {
-    defaultOpen: true,
-    gardens: ["Community Forest", "Urban Rooftop"],
-    actions: ["Plant Trees"],
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4 min-h-[400px]">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
 export const Interactive: Story = {
+  tags: ["visual-harness"],
+  render: (args) => <MockCommandPalette {...args} />,
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Local-only interaction aid: opens the palette, verifies grouped results, then filters by typing.",
+      },
+    },
+  },
   args: {
     gardens: ["Community Forest", "Urban Rooftop"],
     actions: ["Plant Trees"],

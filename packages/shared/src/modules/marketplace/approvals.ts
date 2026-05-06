@@ -15,7 +15,7 @@
 import { type Address, encodeFunctionData, type Hex } from "viem";
 
 import { createPublicClientForChain } from "../../config";
-import { TRANSFER_MANAGER_ABI } from "../../hooks/hypercerts/hypercert-abis";
+import { TRANSFER_MANAGER_ABI } from "../../utils/blockchain/hypercert-abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";
 
@@ -78,9 +78,9 @@ export async function checkMarketplaceApprovals(
   const contracts = getNetworkContracts(chainId);
   const publicClient = createPublicClientForChain(chainId);
 
-  const exchangeAddress = contracts.hypercertExchange as Address;
-  const transferManagerAddress = contracts.transferManager as Address;
-  const minterAddress = contracts.hypercertMinter as Address;
+  const exchangeAddress = contracts.hypercertExchange;
+  const transferManagerAddress = contracts.transferManager;
+  const minterAddress = contracts.hypercertMinter;
 
   log.debug("Checking marketplace approvals", {
     operator,
@@ -140,9 +140,9 @@ export async function buildApprovalTransactions(
   const { exchangeApproved, minterApproved } = await checkMarketplaceApprovals(operator, chainId);
 
   const contracts = getNetworkContracts(chainId);
-  const exchangeAddress = contracts.hypercertExchange as Address;
-  const transferManagerAddress = contracts.transferManager as Address;
-  const minterAddress = contracts.hypercertMinter as Address;
+  const exchangeAddress = contracts.hypercertExchange;
+  const transferManagerAddress = contracts.transferManager;
+  const minterAddress = contracts.hypercertMinter;
 
   const result: {
     grantExchange?: EncodedApprovalCall;

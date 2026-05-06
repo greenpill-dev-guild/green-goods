@@ -5,11 +5,13 @@
 
 /* Import unified theme from shared package (CSS variables + @theme block) */
 @import "@green-goods/shared/styles/theme.css";
+@import "@green-goods/shared/styles/utilities.css";
 
 @import "./styles/typography.css";
 @import "./styles/utilities.css";
 @import "./styles/animation.css";
 @import "./styles/view-transitions.css";
+@import "./styles/editorial.css";
 
 :root {
   color-scheme: light dark;

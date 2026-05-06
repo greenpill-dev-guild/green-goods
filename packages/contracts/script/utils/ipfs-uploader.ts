@@ -3,12 +3,11 @@
 /**
  * IPFS Action Uploader
  *
- * Purpose: Upload action instruction documents to IPFS via Storacha.
- * Hybrid mode: verifies Storacha availability and syncs the CID to Pinata when configured.
+ * Purpose: Upload action instruction documents to IPFS via Pinata.
  * Called by Deploy.s.sol via FFI during deployment.
  *
  * Inputs: Reads config/actions.json
- * Side-effects: Uploads to IPFS, creates .ipfs-cache.json
+ * Side-effects: Uploads to IPFS, creates .generated/runtime/ipfs-cache.json
  * Outputs: JSON array of IPFS hashes to stdout
  *
  * IMPORTANT: This script must output ONLY valid JSON to stdout.
@@ -19,7 +18,12 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ensureHybridCidAvailability, loadPinataConfigFromEnv } from "../../../../scripts/lib/ipfs-hybrid";
+import { CONFIG_ROOT, IPFS_CACHE_PATH, ensureParentDir } from "./paths";
+import {
+  loadPinataConfigFromEnv,
+  uploadBufferWithPinata,
+  verifyGatewayAvailability,
+} from "../../../../scripts/lib/ipfs-hybrid";
 
 /**
  * Silently load .env file without any stdout output.
@@ -77,8 +81,8 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 // Load environment variables silently
 loadEnvFile(path.join(SCRIPT_DIR, "../../../../", ".env"));
 
-const CACHE_FILE = path.join(process.cwd(), ".ipfs-cache.json");
-const ACTIONS_FILE = path.join(process.cwd(), "config", "actions.json");
+const CACHE_FILE = IPFS_CACHE_PATH;
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
 
 // Types
 interface ActionTemplate {
@@ -209,7 +213,7 @@ function loadCache(): Cache {
  */
 function saveCache(cache: Cache): void {
   try {
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2));
+    fs.writeFileSync(ensureParentDir(CACHE_FILE), JSON.stringify(cache, null, 2));
   } catch (error) {
     console.error("IPFS uploader: unable to persist cache to disk.", error);
   }
@@ -224,63 +228,29 @@ function buildCacheKey(action: ActionConfig, index: number): string {
   return `${index}-${hash}`;
 }
 
-interface StorachaClient {
-  uploadFile: (file: File) => Promise<{ toString(): string }>;
-  setCurrentSpace: (did: string) => Promise<void>;
-  addSpace: (proof: unknown) => Promise<{ did(): string }>;
-}
-
-/**
- * Initialize Storacha client with proper principal identity.
- *
- * IMPORTANT: Must pass the ed25519 principal derived from VITE_STORACHA_KEY.
- * Without it, Client.create() generates a random DID and UCAN delegation fails,
- * causing uploads to go to the wrong space (content becomes inaccessible).
- */
-async function initStoracha(): Promise<StorachaClient> {
-  const storachaKey = process.env.VITE_STORACHA_KEY;
-  const storachaProof = process.env.VITE_STORACHA_PROOF;
-
-  if (!storachaKey || !storachaProof) {
-    throw new Error("VITE_STORACHA_KEY and VITE_STORACHA_PROOF environment variables required");
-  }
-
-  // Dynamic imports for ES modules
-  const Client = await import("@storacha/client");
-  const Proof = await import("@storacha/client/proof");
-  const { Signer } = await import("@storacha/client/principal/ed25519");
-  const { StoreMemory } = await import("@storacha/client/stores/memory");
-
-  // Parse principal from the ed25519 key — this ensures uploads go to the correct space
-  const principal = Signer.parse(storachaKey);
-  const client = await Client.create({ principal, store: new StoreMemory() });
-
-  // Parse the proof and add space to the client
-  const proof = await Proof.parse(storachaProof);
-  const space = await client.addSpace(proof);
-  await client.setCurrentSpace(space.did());
-
-  return client as unknown as StorachaClient;
-}
-
-/**
- * Upload action to IPFS via Storacha with retry logic
- */
 async function uploadToIPFS(
-  client: StorachaClient,
   name: string,
   data: InstructionsDocument,
+  pinataConfig: ReturnType<typeof loadPinataConfigFromEnv>,
   retries = 3,
 ): Promise<string> {
+  if (!pinataConfig?.jwt) {
+    throw new Error("PINATA_JWT environment variable required for uploads");
+  }
+
+  const payload = Buffer.from(JSON.stringify(data));
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      // Convert JSON to Blob/File for upload
-      const jsonString = JSON.stringify(data);
-      const blob = new Blob([jsonString], { type: "application/json" });
-      const file = new File([blob], `${name}.json`, { type: "application/json" });
-
-      const cid = await client.uploadFile(file);
-      return cid.toString();
+      return await uploadBufferWithPinata(pinataConfig, payload, {
+        filename: `${name}.json`,
+        mimeType: "application/json",
+        name: `${name}.json`,
+        metadata: {
+          source: "action-instructions",
+          title: name,
+        },
+      });
     } catch (error) {
       if (attempt === retries) {
         throw error;
@@ -331,32 +301,14 @@ async function main(): Promise<void> {
       return cache[cacheKey]?.hash;
     });
 
-    // Get Storacha credentials
-    const storachaKey = process.env.VITE_STORACHA_KEY;
-    const storachaProof = process.env.VITE_STORACHA_PROOF;
-
-    // If credentials not set and we have cache, use cache
-    if (!storachaKey || !storachaProof) {
-      if (allCached) {
-        for (let i = 0; i < actions.length; i++) {
-          const action = actions[i];
-          const cacheKey = buildCacheKey(action, i);
-          ipfsHashes.push(cache[cacheKey].hash);
-        }
-        console.log(JSON.stringify(ipfsHashes));
-        process.exit(0);
-      } else {
-        console.error(
-          "Error: VITE_STORACHA_KEY and VITE_STORACHA_PROOF environment variables required and no valid cache found",
-        );
-        process.exit(1);
-      }
-    }
-
-    // Initialize Storacha
-    const client = await initStoracha();
     const pinataConfig = loadPinataConfigFromEnv();
-    const storachaGatewayBaseUrl = (process.env.VITE_STORACHA_GATEWAY || "https://storacha.link").trim();
+
+    const hasPinataWrite = Boolean(pinataConfig?.jwt);
+
+    if (!hasPinataWrite && !allCached) {
+      console.error("Error: PINATA_JWT environment variable required and no valid cache found");
+      process.exit(1);
+    }
 
     // Process each action
     for (let i = 0; i < actions.length; i++) {
@@ -366,15 +318,13 @@ async function main(): Promise<void> {
       // Check cache first
       if (cache[cacheKey]?.hash) {
         try {
-          await ensureHybridCidAvailability(cache[cacheKey].hash, {
-            storachaGatewayBaseUrl,
-            pinataConfig,
-            name: `${action.title.replace(/\s+/g, "-").toLowerCase()}.json`,
-            metadata: {
-              source: "action-instructions",
-              title: action.title,
-            },
-          });
+          if (pinataConfig?.gatewayBaseUrl) {
+            await verifyGatewayAvailability(`ipfs://${cache[cacheKey].hash}`, pinataConfig.gatewayBaseUrl, {
+              label: "Pinata gateway",
+              attempts: 2,
+              timeoutMs: 5_000,
+            });
+          }
           cacheHits += 1;
           console.error(`Cache hit for action ${i}: ${action.title} -> ${cache[cacheKey].hash}`);
           ipfsHashes.push(cache[cacheKey].hash);
@@ -391,16 +341,7 @@ async function main(): Promise<void> {
 
       // Upload to IPFS
       try {
-        const hash = await uploadToIPFS(client, action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc);
-        await ensureHybridCidAvailability(hash, {
-          storachaGatewayBaseUrl,
-          pinataConfig,
-          name: `${action.title.replace(/\s+/g, "-").toLowerCase()}.json`,
-          metadata: {
-            source: "action-instructions",
-            title: action.title,
-          },
-        });
+        const hash = await uploadToIPFS(action.title.replace(/\s+/g, "-").toLowerCase(), instructionsDoc, pinataConfig);
         uploads += 1;
 
         // Upload successful

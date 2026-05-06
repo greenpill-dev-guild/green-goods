@@ -1,0 +1,121 @@
+---
+title: Environment Management
+sidebar_label: Environment Management
+sidebar_position: 2
+slug: /builders/env-management
+audience: developer
+owner: docs
+last_verified: 2026-05-04
+feature_status: Live
+goal: "Resolve, validate, and rotate Green Goods environment variables via the .env.template + 1Password pipeline."
+difficulty: "standard"
+estimated_time: "5-10 minutes."
+prereqs: "1Password desktop app with CLI integration enabled, plus access to the GreenGoods vault for shared secrets."
+next_steps: "./getting-started"
+persona_context: "Developers setting up local env, rotating secrets, or onboarding teammates."
+---
+
+# Environment Management
+
+Green Goods uses three files to manage environment variables, each with a distinct role:
+
+| File | Purpose | Committed? |
+| --- | --- | --- |
+| `.env.schema` | Full key contract — every supported variable, with sensitivity and default metadata. Source of truth for validation. | Yes |
+| `.env.template` | Team-shared overlay — `op://Vault/Item/field` references for shared secrets, plain values for non-secret defaults. | Yes (no secrets) |
+| `.env` | Materialized output — the actual file Bun, Vite, and Node read at runtime. | No (gitignored) |
+
+The pipeline is one-way: `.env.template` + 1Password → `.env` via `op inject`. Bun, Vite, and Node read `.env` natively, so there is no per-command secret fetch and no Touch ID interruption mid-session.
+
+## Daily commands
+
+```bash
+bun run env:sync         # materialize .env from .env.template via op inject (Touch ID once)
+bun run env:check        # validate .env satisfies .env.schema
+```
+
+`env:sync` automatically backs up your existing `.env` to `.env.bak` before writing, and restores it if `op inject` fails for any reason.
+
+## First-time setup
+
+If you have access to the team's `GreenGoods` 1Password vault:
+
+```bash
+op whoami                                 # confirm CLI is signed in via desktop app integration
+bun run env:sync                          # Touch ID prompts, secrets resolve, .env is written
+bun run env:check                         # confirm .env satisfies .env.schema
+```
+
+If you do not have vault access (external contributor, audit, evaluation):
+
+```bash
+cp .env.template .env                     # start from the template
+# Replace each `op://...` line with a real value or leave empty for app fallback
+bun run env:check
+```
+
+The app gracefully degrades when optional values are missing (analytics off, fallback gateways used, etc.) — only a small set of keys are strictly required to boot the dev stack: `APP_ENV`, `VITE_CHAIN_ID`, `VITE_API_BASE_URL`, `VITE_ENVIO_INDEXER_URL`.
+
+## Regenerating `.env.template`
+
+Run this when `.env.schema` adds or removes keys, or when the team's 1Password vault structure changes:
+
+```bash
+bun run env:template:init --vault GreenGoods --force
+```
+
+The script reads `.env.schema`, queries `op item list --vault GreenGoods`, and writes a fresh `.env.template`:
+
+- Schema keys whose name matches a 1Password item title → `op://GreenGoods/<KEY>/credential` reference
+- Schema keys with a `$OTHER_KEY` substitution that resolves to a vault item → ref to the resolved item
+- Schema keys with a `if(...)` conditional or other unresolvable expression → empty value with a `# TODO:` comment
+- Schema keys with a sensitive name pattern but no vault item → `op://YOUR_VAULT/<KEY>/credential` placeholder you must edit
+- Schema keys ending in `_OP_REF` → skipped entirely (legacy varlock plumbing)
+- Other schema keys → carried through with their default value
+
+After regeneration, edit any `YOUR_VAULT` placeholders before running `bun run env:sync`. Note: example `op://...` URIs in comment lines are auto-defanged to `op-scheme://...` by the init script, because `op inject` resolves matches even inside `#` comments.
+
+## Bootstrapping schema defaults into an existing `.env`
+
+If you have an `.env` that predates this pipeline and is missing schema-default values that the runtime expects:
+
+```bash
+bun run env:bootstrap
+```
+
+This appends every `.env.schema` default that is not already in `.env`. It never overwrites existing keys and backs up `.env` to `.env.bak` first. Useful as a one-shot migration after upgrading.
+
+## Personal overrides
+
+The standard split is: shared values come from `.env.template` (committed). Personal values live in `.env` directly (never committed).
+
+To override a value for your local machine without changing what teammates see:
+
+1. Run `bun run env:sync` to refresh from the template
+2. Edit `.env` directly and change the value
+3. Restart any running dev servers so they pick up the change
+
+Your edits to `.env` survive until the next `env:sync`, which will overwrite them. If the override needs to persist across syncs, change the value in `.env.template` instead (and rerun `env:sync`).
+
+## 1Password CLI setup
+
+The pipeline relies on the 1Password CLI's desktop app integration. To enable it:
+
+1. Install [1Password 8 for Mac/Windows](https://1password.com/downloads/) or [for Linux](https://1password.com/downloads/linux/)
+2. Install the [`op` CLI](https://developer.1password.com/docs/cli/get-started/)
+3. In the 1Password app: **Settings → Developer → Integrate with 1Password CLI** (also enable Touch ID/system auth in **Settings → Security**)
+4. Run `op whoami` once in your terminal to confirm the integration
+
+After that, `bun run env:sync` will trigger Touch ID per shell session as needed.
+
+For CI or service-account use, see the [1Password service accounts docs](https://developer.1password.com/docs/service-accounts/) — set `OP_SERVICE_ACCOUNT_TOKEN` directly in the CI environment.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| `op inject failed: "<vault>" isn't a vault in this account` | Template references a vault you can't access | Edit `.env.template` to point at a vault you do own, or remove the ref and set the value directly in `.env` |
+| `bun run env:sync` says `op` is not signed in | Desktop app integration not enabled | Toggle the Settings → Developer integration in the 1Password app |
+| `env:check` reports missing keys | `.env` does not contain a required key | Add the key to `.env.template` (or edit `.env` directly for personal overrides), then re-sync |
+| Apps boot but features behave wrong | Stale `.env` from before a schema change | Run `bun run env:sync` to refresh |
+| `op inject` errors on a comment line | A comment contains a literal `op://` URI | The init script automatically defangs these; rerun `bun run env:template:init --force` if you see this |

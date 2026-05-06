@@ -5,7 +5,7 @@ import { Confidence } from "../../types/domain";
 import { ConfidenceSelector } from "./ConfidenceSelector";
 
 const meta: Meta<typeof ConfidenceSelector> = {
-  title: "Form Controls/ConfidenceSelector",
+  title: "Shared/Form/ConfidenceSelector",
   component: ConfidenceSelector,
   tags: ["autodocs"],
   parameters: {

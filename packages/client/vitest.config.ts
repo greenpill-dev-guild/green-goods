@@ -12,7 +12,6 @@ export default defineConfig({
     server: {
       deps: {
         inline: [
-          "@storacha/client",
           "@ethereum-attestation-service/eas-sdk",
           "uint8arrays",
           "react",
@@ -97,6 +96,18 @@ export default defineConfig({
         replacement: path.resolve(__dirname, "../shared/src/components"),
       },
       {
+        find: "@green-goods/shared/i18n",
+        replacement: path.resolve(__dirname, "../shared/src/i18n"),
+      },
+      {
+        find: "@green-goods/shared/workflows",
+        replacement: path.resolve(__dirname, "../shared/src/workflows"),
+      },
+      {
+        find: "@green-goods/shared/constants",
+        replacement: path.resolve(__dirname, "../shared/src/constants"),
+      },
+      {
         find: "@green-goods/shared/testing",
         replacement: path.resolve(__dirname, "../shared/src/__tests__/test-utils"),
       },
@@ -116,6 +127,11 @@ export default defineConfig({
       {
         find: "diagnostics_channel",
         replacement: path.resolve(__dirname, "../shared/src/__mocks__/node/diagnostics-channel.ts"),
+      },
+      // Mock EAS SDK to avoid multiformats dependency chain in tests
+      {
+        find: "@ethereum-attestation-service/eas-sdk",
+        replacement: path.resolve(__dirname, "../shared/src/__mocks__/eas-sdk.ts"),
       },
       // Mock WalletConnect utils to avoid uint8arrays dependency chain in tests
       {

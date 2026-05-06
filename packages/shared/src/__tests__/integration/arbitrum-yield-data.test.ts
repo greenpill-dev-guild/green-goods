@@ -2,10 +2,13 @@
  * Arbitrum On-Chain Yield Data Verification
  *
  * Integration test that makes real RPC calls to Arbitrum to verify
- * all queryable yield/APY data points. Skips gracefully when
- * ARBITRUM_RPC_URL is not set.
+ * all queryable yield/APY data points. This file is excluded from the
+ * default shared test run and only executes when RUN_LIVE_RPC_TESTS=true
+ * and ARBITRUM_RPC_URL (or ARBITRUM_RPC) is provided.
  *
- * Run: ARBITRUM_RPC_URL=https://... npx vitest run packages/shared/src/__tests__/integration/arbitrum-yield-data.test.ts
+ * Run:
+ * RUN_LIVE_RPC_TESTS=true ARBITRUM_RPC_URL=https://... \
+ *   bun run test:live
  *
  * @vitest-environment node
  */
@@ -65,8 +68,9 @@ const ERC20_ABI = parseAbi([
 // ── Test setup ──────────────────────────────────────────────────────────
 
 const rpcUrl = process.env.ARBITRUM_RPC_URL || process.env.ARBITRUM_RPC;
+const runLiveRpcTests = process.env.RUN_LIVE_RPC_TESTS === "true" && Boolean(rpcUrl);
 
-const describeIf = rpcUrl ? describe : describe.skip;
+const describeIf = runLiveRpcTests ? describe : describe.skip;
 
 describeIf("Arbitrum on-chain yield data (live RPC)", () => {
   const client = createPublicClient({

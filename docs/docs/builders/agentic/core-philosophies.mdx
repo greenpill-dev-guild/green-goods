@@ -6,6 +6,11 @@ audience: developer
 owner: docs
 last_verified: 2026-03-01
 feature_status: Live
+source_of_truth:
+  - CLAUDE.md
+  - AGENTS.md
+  - .claude/agents/cracked-coder.md
+  - .claude/agents/oracle.md
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -20,6 +25,7 @@ graph TB
         NJ["Nate B. Jones\nAgent-First Dev"]
         DA["Dario Amodei\nResponsible Scaling"]
         AK["Andrej Karpathy\nVibe Coding"]
+        AR["Armin Ronacher + Earendil\nFriction + Legibility"]
         SX["Syntax Pod\nPractical AI"]
     end
 
@@ -62,6 +68,12 @@ Andrej Karpathy, former Tesla AI director and OpenAI researcher, popularized the
 
 Green Goods embraces this philosophy in day-to-day feature work while adding structure around it: TDD requirements ensure that vibes get validated by tests, and cathedral checks ensure that new code matches existing patterns rather than inventing new ones.
 
+### Armin Ronacher + Earendil -- Friction, Legibility, Judgment
+
+Armin Ronacher's writing and Earendil's public material add an important counterweight to "go faster" agent discourse: some friction is not process waste, it is where engineering judgment lives. Their guidance emphasizes agent-legible codebases, simple and stable patterns, explicit review call-outs for high-cost decisions, and resisting the temptation to let output volume masquerade as architectural progress.
+
+Green Goods applies that thinking by separating deterministic checks from judgment-heavy review, keeping criticality explicit, and treating high-risk surfaces like contracts, permissions, migrations, and shared public APIs as places where humans should slow down on purpose.
+
 ### Syntax Podcast -- Practical AI Tooling
 
 The Syntax podcast, hosted by Wes Bos and Scott Tolinski, covers the intersection of modern web development and AI tooling. Their episodes on integrating AI into real development workflows -- from code generation to debugging to documentation -- provide grounded, practitioner-level guidance.
@@ -78,7 +90,7 @@ Rather than crafting perfect one-shot prompts, we invest in structuring the repo
 
 - **`CLAUDE.md`** at the root defines commands, architecture, patterns, and constraints in a format agents can parse.
 - **`.claude/context/*.md`** files provide package-specific context (shared hooks, contract patterns, indexer boundaries).
-- **Agent specs** in `.claude/agents/` define role-specific behavior for code review, implementation, and documentation tasks.
+- **Agent specs** in `.claude/agents/` define the two committed specialist roles: read-only research (`oracle`) and TDD implementation (`cracked-coder`). Review, migration, triage, and documentation work route through skills and workflow prompts.
 
 The goal is that context does the heavy lifting, not the prompt.
 
@@ -105,15 +117,16 @@ Before implementing any new module, the agent (or human) finds the most similar 
 - **Andrej Karpathy** -- Talks and posts on practical AI for software development and the vibe coding philosophy
 - **Syntax Podcast** -- Episodes on web development meets AI tooling, practical integration patterns
 - **Anthropic documentation** -- Claude Code CLI and agent SDK guides for building with structured context
+- **Armin Ronacher + Earendil** -- talks, RFCs, and posts on friction, review, durable systems, and agent-legible codebases
 - **Green Goods `CLAUDE.md`** -- The living reference for how this project structures agent context (see root of this repository)
 
 <NextBestAction
   title="Next best action"
-  why="Learn how to write effective prompts for AI agents."
-  actionLabel="Prompt Engineering"
-  actionHref="./prompt-engineering"
+  why="See how Green Goods decides which friction to automate and which friction to keep human-owned."
+  actionLabel="Friction Engineering"
+  actionHref="./friction-engineering"
   alternatives={[
+    {label: "Prompt Engineering", href: "./prompt-engineering"},
     {label: "Context Engineering", href: "./context-engineering"},
-    {label: "Spec Engineering", href: "./spec-engineering"},
   ]}
 />

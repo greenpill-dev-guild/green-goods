@@ -17,9 +17,7 @@ skills:
   - testing
   - react
   - contracts
-  - error-handling-patterns
-mcpServers:
-  - foundry
+isolation: worktree
 maxTurns: 50
 ---
 
@@ -41,15 +39,15 @@ Use when:
 
 ### SCOPE (Step 0)
 
-Before ANY work, check for a `bundle_id` in the task brief. If present, load the matching bundle from `.claude/registry/skill-bundles.json` to determine which skills to activate and in what mode.
+Before ANY work, check for a `bundle_id` in the task brief. If present, load the matching bundle from `.claude/registry/skills.json` (under the `bundles` key) to determine which skills to activate and in what mode.
 
 1. Confirm target scope — which package(s)? If unclear, ASK.
 2. Confirm intent:
-   - "plan"/"generate a prompt" -> Save to `.plans/`. Do NOT execute.
-   - "review"/"audit" -> Use code-reviewer agent. Do NOT implement.
+   - "plan"/"generate a prompt" -> Save to `.plans/active/<feature-slug>/plan.todo.md`. Do NOT execute.
+   - "review"/"audit" -> Activate `/review` (the audit lens fires automatically per its Lens Activation Matrix). Do NOT implement.
    - "implement"/"build"/"fix" -> Proceed with workflow.
 3. Check prior work: `git diff` and `git log --oneline -20`. Don't redo completed work.
-4. Estimate task complexity: if the task involves creating BOTH new files AND wiring them into existing code across 3+ concerns (e.g., hook + component + i18n + barrel exports), use `/plan` to decompose into independently verifiable steps before starting TDD.
+4. Estimate task complexity: if the task involves creating BOTH new files AND wiring them into existing code across 3+ concerns (e.g., hook + component + i18n + barrel exports), engage the plan skill (describe planning intent so it fires) to decompose into independently verifiable steps before starting TDD.
 
 ### GATHER
 1. Understand the problem completely
@@ -61,8 +59,10 @@ Before ANY work, check for a `bundle_id` in the task brief. If present, load the
 ### PLAN
 1. Design solution architecture
 2. Cathedral Check: find most similar existing file as reference
-3. Identify edge cases and failure modes
-4. Plan test strategy
+3. Record research evidence: source files, tests, docs, and any open assumptions
+4. Surface human judgment points before touching protected or high-risk surfaces
+5. Identify edge cases and failure modes
+6. Plan test strategy
 
 **PHASE GATE**: If user only asked for a plan, STOP HERE. Save to `.plans/`.
 
@@ -141,7 +141,7 @@ Do not bulk-remove without per-item grep confirmation.
 
 ### ESCALATE
 - After 3 consecutive failed fix attempts (Three-Strike Protocol)
-- When the task requires changes across 4+ packages (use migration agent instead)
+- When the task requires changes across 4+ packages — describe orchestration intent so the plan skill fires (routes to `plan/teams.md` + `ops/migration.md`); independently testable lanes can dispatch via `.claude/scripts/dispatch-codex-lane.sh`
 - When touching contract deployment, migration, or UUPS upgrade logic
 - When test failures suggest a deeper architectural issue beyond the task scope
 - When approaching 40/50 turns without task completion — save state and report
@@ -221,27 +221,33 @@ After receiving tool results, reflect on quality and determine next steps before
 
 ## Few-Shot Example: TDD Cycle for a Query Hook
 
-Below is a condensed but complete TDD cycle for adding `useGardenActions` to `@green-goods/shared`. Use this as a reference for the GATHER through VERIFY workflow.
+Below is a condensed but complete TDD cycle modeled on the actual `useGardenAssessments` hook in `packages/shared/src/hooks/assessment/`. Use it as the reference shape for any new query hook — paths, mock targets, and symbols are all real and verifiable in the codebase.
 
 ### GATHER: Cathedral Check
 
-Most similar existing file: `packages/shared/src/hooks/assessment/useGardenAssessments.ts` — a query hook that takes a `gardenAddress`, reads `chainId` from a store, uses `queryKeys`, and guards with `enabled`.
+Most similar existing file: `packages/shared/src/hooks/assessment/useAllAssessments.ts` — a query hook that resolves `chainId` via `DEFAULT_CHAIN_ID`, uses `queryKeys.assessments.*`, imports its data fn from `../../modules/data/eas`, and applies `STALE_TIME_MEDIUM`. Existing test pattern: `packages/shared/src/__tests__/hooks/assessment/useGardenAssessments.test.ts`.
 
 ### TEST: Write Failing Test First
 
 ```typescript
-// packages/shared/src/__tests__/hooks/action/useGardenActions.test.ts
+// packages/shared/src/__tests__/hooks/assessment/useGardenAssessments.test.ts
 
 /**
- * useGardenActions Tests
+ * useGardenAssessments Tests
  * @vitest-environment jsdom
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockGetGardenActions = vi.fn();
-vi.mock("../../../modules/data/greengoods", () => ({
-  getGardenActions: (...args: unknown[]) => mockGetGardenActions(...args),
+// Mocks must be declared before the SUT import (vitest hoists them).
+
+const mockGetGardenAssessments = vi.fn();
+vi.mock("../../../modules/data/eas", () => ({
+  getGardenAssessments: (...args: unknown[]) => mockGetGardenAssessments(...args),
+}));
+
+vi.mock("../../../config/blockchain", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
 }));
 
 const mockUseQuery = vi.fn();
@@ -249,61 +255,60 @@ vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: any) => mockUseQuery(options),
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryKeys: {
-    actions: {
-      byGarden: (addr: string, chainId: number) => [
-        "greengoods", "actions", "byGarden", addr, chainId,
+    assessments: {
+      byGardenBase: (addr: string, chainId: number) => [
+        "greengoods", "assessments", "byGarden", addr, chainId,
       ],
     },
   },
-  STALE_TIME_SLOW: 60_000,
+  STALE_TIME_MEDIUM: 300_000,
 }));
 
-import { useGardenActions } from "../../../hooks/action/useGardenActions";
+import { useGardenAssessments } from "../../../hooks/assessment/useGardenAssessments";
 
-describe("useGardenActions", () => {
+describe("useGardenAssessments", () => {
   const GARDEN = "0x1234567890123456789012345678901234567890";
-  const CHAIN_ID = 11155111;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseQuery.mockReturnValue({ data: [], isLoading: false, error: null });
   });
 
-  it("passes correct query key", () => {
-    useGardenActions(GARDEN, CHAIN_ID);
+  it("passes correct query key with default chainId", () => {
+    useGardenAssessments(GARDEN);
 
     expect(mockUseQuery).toHaveBeenCalledWith(
       expect.objectContaining({
-        queryKey: ["greengoods", "actions", "byGarden", GARDEN, CHAIN_ID],
+        queryKey: ["greengoods", "assessments", "byGarden", GARDEN, 11155111],
       })
     );
   });
 
   it("is disabled when gardenAddress is undefined", () => {
-    useGardenActions(undefined, CHAIN_ID);
+    useGardenAssessments(undefined);
 
     const options = mockUseQuery.mock.calls[0][0];
     expect(options.enabled).toBe(false);
   });
 
   it("queryFn returns empty array when gardenAddress is undefined", async () => {
-    useGardenActions(undefined, CHAIN_ID);
+    useGardenAssessments(undefined);
 
     const options = mockUseQuery.mock.calls[0][0];
     const result = await options.queryFn();
     expect(result).toEqual([]);
   });
 
-  it("queryFn delegates to getGardenActions", async () => {
-    mockGetGardenActions.mockResolvedValue([{ id: "action-1" }]);
-    useGardenActions(GARDEN, CHAIN_ID);
+  it("queryFn delegates to getGardenAssessments with resolved chainId", async () => {
+    mockGetGardenAssessments.mockResolvedValue([{ id: "att-1" }]);
+    useGardenAssessments(GARDEN);
 
     const options = mockUseQuery.mock.calls[0][0];
     await options.queryFn();
 
-    expect(mockGetGardenActions).toHaveBeenCalledWith(GARDEN, CHAIN_ID);
+    expect(mockGetGardenAssessments).toHaveBeenCalledWith(GARDEN, 11155111);
   });
 });
 ```
@@ -311,55 +316,59 @@ describe("useGardenActions", () => {
 ### TEST: Verify RED
 
 ```
-$ bun run test -- packages/shared/src/__tests__/hooks/action/useGardenActions.test.ts
+$ bun run test -- packages/shared/src/__tests__/hooks/assessment/useGardenAssessments.test.ts
 
- FAIL  packages/shared/src/__tests__/hooks/action/useGardenActions.test.ts
-  Error: Failed to resolve import "../../../hooks/action/useGardenActions"
+ FAIL  packages/shared/src/__tests__/hooks/assessment/useGardenAssessments.test.ts
+  Error: Failed to resolve import "../../../hooks/assessment/useGardenAssessments"
 ```
 
-Test fails because the module does not exist yet. This is the expected RED state.
+Test fails because the module does not exist yet. Expected RED state.
 
 ### IMPLEMENT: Minimal Code
 
 ```typescript
-// packages/shared/src/hooks/action/useGardenActions.ts
+// packages/shared/src/hooks/assessment/useGardenAssessments.ts
 
 import { useQuery } from "@tanstack/react-query";
 
-import { getGardenActions } from "../../modules/data/greengoods";
-import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { getGardenAssessments } from "../../modules/data/eas";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
-export function useGardenActions(gardenAddress?: string, chainId?: number) {
+export function useGardenAssessments(gardenAddress?: string, chainId?: number) {
+  const resolvedChainId = chainId ?? DEFAULT_CHAIN_ID;
+
   return useQuery({
-    queryKey: queryKeys.actions.byGarden(gardenAddress ?? "", chainId ?? 0),
+    queryKey: queryKeys.assessments.byGardenBase(gardenAddress ?? "", resolvedChainId),
     queryFn: () => {
-      if (!gardenAddress || !chainId) return Promise.resolve([]);
-      return getGardenActions(gardenAddress, chainId);
+      if (!gardenAddress) return Promise.resolve([]);
+      return getGardenAssessments(gardenAddress, resolvedChainId);
     },
-    enabled: Boolean(gardenAddress && chainId),
-    staleTime: STALE_TIME_SLOW,
+    enabled: Boolean(gardenAddress),
+    staleTime: STALE_TIME_MEDIUM,
+    refetchInterval: 60_000,
   });
 }
 ```
 
-Then add to the barrel export:
+Then surface via the shared barrel so consumers import from `@green-goods/shared`:
 
 ```typescript
-// packages/shared/src/hooks/index.ts
-export { useGardenActions } from "./action/useGardenActions";
+// packages/shared/src/hooks/index.ts (or the assessment sub-barrel)
+export { useGardenAssessments } from "./assessment/useGardenAssessments";
 ```
 
 ### TEST: Verify GREEN
 
 ```
-$ bun run test -- packages/shared/src/__tests__/hooks/action/useGardenActions.test.ts
+$ bun run test -- packages/shared/src/__tests__/hooks/assessment/useGardenAssessments.test.ts
 
- PASS  packages/shared/src/__tests__/hooks/action/useGardenActions.test.ts (4 tests)
-  useGardenActions
-    ✓ passes correct query key
+ PASS  packages/shared/src/__tests__/hooks/assessment/useGardenAssessments.test.ts (4 tests)
+  useGardenAssessments
+    ✓ passes correct query key with default chainId
     ✓ is disabled when gardenAddress is undefined
     ✓ queryFn returns empty array when gardenAddress is undefined
-    ✓ queryFn delegates to getGardenActions
+    ✓ queryFn delegates to getGardenAssessments with resolved chainId
 ```
 
 ### VERIFY
@@ -370,8 +379,9 @@ $ bun run test && bun lint && bun build
 ```
 
 Key points demonstrated:
-- **Cathedral Check** found `useGardenAssessments` as the pattern to follow
-- **Test written first** and confirmed to fail (module not found)
-- **Minimal implementation** -- just enough to pass the 4 tests
-- **Barrel export** added so consumers use `import { useGardenActions } from "@green-goods/shared"`
-- **Full verify** run before reporting completion
+- **Cathedral Check** uses `useAllAssessments` as the live in-tree pattern; queryKeys live in `config/query-keys`, not `hooks/`.
+- **Mock targets are real**: `../../../modules/data/eas`, `../../../config/blockchain`, `../../../config/query-keys` — each path resolves in the actual repo.
+- **Test written first** and confirmed to fail (module not found) before implementation.
+- **Minimal implementation** — only enough to pass the four assertions.
+- **Barrel export** added so consumers `import { useGardenAssessments } from "@green-goods/shared"`.
+- **Full verify** (`bun run test && bun lint && bun build`) run before reporting completion.

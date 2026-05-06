@@ -20,12 +20,34 @@ export interface ParsedOptions {
   overrideSepoliaGate: boolean;
   sender?: string;
   deploymentSalt?: string;
+  greenWillOwner?: string;
+  genesisHatId?: string;
+  genesisLock?: string;
+  firstWorkLock?: string;
+  firstSupportLock?: string;
+  genesisMetadataUri?: string;
+  firstWorkMetadataUri?: string;
+  firstSupportMetadataUri?: string;
   help?: boolean;
   error?: string;
 }
 
 /** Flags that consume the next argument as their value */
-const VALUE_FLAGS = new Set(["--network", "-n", "--chain", "--salt", "--sender"]);
+const VALUE_FLAGS = new Set([
+  "--network",
+  "-n",
+  "--chain",
+  "--salt",
+  "--sender",
+  "--owner",
+  "--genesis-hat-id",
+  "--genesis-lock",
+  "--first-work-lock",
+  "--first-support-lock",
+  "--genesis-metadata-uri",
+  "--first-work-metadata-uri",
+  "--first-support-metadata-uri",
+]);
 
 /** Flags whose values contain secrets and must be redacted in logs */
 const SENSITIVE_FLAGS = new Set(["--private-key", "--etherscan-api-key", "--account", "--sender"]);
@@ -132,6 +154,54 @@ export class CliParser {
             return { ...options, error: `${arg} requires an address value` };
           }
           options.sender = args[++i];
+          break;
+        case "--owner":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires an address value` };
+          }
+          options.greenWillOwner = args[++i];
+          break;
+        case "--genesis-hat-id":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a uint256 value` };
+          }
+          options.genesisHatId = args[++i];
+          break;
+        case "--genesis-lock":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires an address value` };
+          }
+          options.genesisLock = args[++i];
+          break;
+        case "--first-work-lock":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires an address value` };
+          }
+          options.firstWorkLock = args[++i];
+          break;
+        case "--first-support-lock":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires an address value` };
+          }
+          options.firstSupportLock = args[++i];
+          break;
+        case "--genesis-metadata-uri":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a metadata URI value` };
+          }
+          options.genesisMetadataUri = args[++i];
+          break;
+        case "--first-work-metadata-uri":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a metadata URI value` };
+          }
+          options.firstWorkMetadataUri = args[++i];
+          break;
+        case "--first-support-metadata-uri":
+          if (i + 1 >= args.length || args[i + 1].startsWith("-")) {
+            return { ...options, error: `${arg} requires a metadata URI value` };
+          }
+          options.firstSupportMetadataUri = args[++i];
           break;
         case "--help":
         case "-h":

@@ -25,8 +25,8 @@ import type { CreateListingParams } from "../../types/hypercerts";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { useAuth } from "../auth/useAuth";
-import { queryInvalidation } from "../query-keys";
-import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
+import { queryInvalidation } from "../../config/query-keys";
+import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
 export interface BatchProgress {
   total: number;
@@ -61,7 +61,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
       if (!walletClient) throw new Error("Wallet client not available for signing");
 
       const contracts = getNetworkContracts(chainId);
-      const moduleAddress = contracts.hypercertsModule as Address;
+      const moduleAddress = contracts.hypercertsModule;
       if (isZeroAddress(moduleAddress)) {
         throw new Error("HypercertsModule not deployed on this chain");
       }

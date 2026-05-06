@@ -22,6 +22,24 @@ Green Goods is the verified impact operations layer for community-led regenerati
 
 **Decision rule:** When two archetypes conflict, resolve in priority order. Gardener experience wins unless doing so blocks Operator onboarding (Operators are the distribution channel).
 
+### Persona & Tone Quick-Reference
+
+| Archetype | Persona | Perceives Green Goods As | Tone | Avoid |
+|-----------|---------|--------------------------|------|-------|
+| Gardener | Maria | "A helpful WhatsApp contact that pays me for work" | Warm, direct, action-oriented. Short sentences. No jargon. | Technical terms, passive voice, options overload |
+| Operator | David | "My garden's command center" | Professional, efficient, task-focused. Data-aware. | Condescending simplicity, unstructured prose |
+| Evaluator | Dr. Chen | "A data-rich platform for certifying truth" | Precise, evidence-based, structured. Respect domain expertise. | Oversimplification, vague impact language |
+| Funder | Amara | "A high-yield savings account that heals the planet" | Confident, transparent, audit-friendly. Lead with verified data. | Hype, unsubstantiated claims, blockchain jargon |
+| Community | Kwame | "My neighborhood's way to have a say" | Inclusive, plain-language, encouraging. | Protocol jargon, assumed web3 literacy |
+
+**Tone rules:**
+- Gardener/Community copy: zero blockchain vocabulary, reading level ~6th grade
+- Operator copy: may reference on-chain verification as a trust mechanism, but not Solidity internals
+- Evaluator copy: may use research/assessment terminology freely
+- Funder copy: may reference attestation integrity; never use "guaranteed returns"
+- For full persona profiles with behavioral scenarios: `docs/docs/reference/design-research.md#user-personas`
+- For vocabulary constraints (Use/Avoid lists): see Messaging Constraints below
+
 ## UX Quality Bars
 
 ### Gardener (Client PWA)
@@ -119,23 +137,32 @@ Resolve conflicts in this order (highest priority first):
 
 ## Feature Priority Framework
 
-### Ship Now (Q1 2026)
+### Current Baseline (April 2026)
 
-- Impact reporting connected to capital formation
-- User testing infrastructure
-- Client UX stability (minimal degradation)
+These are already part of the core product baseline and should be treated as live, not future roadmap items:
 
-### Ship Next
+- Offline-first work submission with photo evidence
+- Operator review and approval workflows
+- EAS attestation chains (Work → Approval → Assessment)
+- Hats Protocol role management
+- Indexer-backed state queries
+- Admin dashboard for garden operations
 
-- Agent-based impact reporting (WhatsApp/Telegram bots)
-- IoT + AI integrations for evidence capture
-- Unlock token badging for gardener credentials
+### Ship Next (Q2 2026)
 
-### Ship Later
+- Garden Season One adoption across partner gardens
+- Hypercerts + Octant vault integration connecting verified work to capital formation
+- Recognition badges for gardener contributions and milestones
+- Agent-based reporting via WhatsApp/SMS
+- Karma GAP integration for evaluator and funder reporting
 
-- RevNet tokenization
-- Community stable coins
-- Bio-regional quadratic funding streams
+### Ship Later (Q3/Q4 2026)
+
+- Expand beyond Season One partner gardens
+- Operator subscriptions and funder-facing dashboards
+- Deeper Hypercert marketplace participation
+- Community-owned infrastructure exploration (RevNets, public goods staking)
+- Meeting-to-action automation and broader agent coordination
 
 ### Do Not Build
 

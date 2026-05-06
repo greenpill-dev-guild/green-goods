@@ -1,17 +1,17 @@
 import { RiCloseLine, RiImageLine } from "@remixicon/react";
 import * as React from "react";
 import { tv, type VariantProps } from "tailwind-variants";
-import type { WorkDisplayStatus } from "../../../types/domain";
+import type { Address, WorkDisplayStatus } from "../../../types/domain";
 import { cn } from "../../../utils/styles/cn";
 import { formatRelativeTime } from "../../../utils/time";
 import { ImageWithFallback } from "../../Display/ImageWithFallback";
 import { getStatusColors } from "../../StatusBadge";
 
 const workCardVariants = tv({
-  base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-300 @[480px]:flex-row",
+  base: "@container flex w-full flex-col overflow-hidden rounded-lg border border-stroke-soft-200 bg-bg-white text-left transition-all duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)] @[480px]:flex-row",
   variants: {
     variant: {
-      compact: "",
+      compact: "min-h-[88px] flex-row",
       detailed: "",
       auto: "",
     },
@@ -28,19 +28,16 @@ const workCardVariants = tv({
 
 export type WorkCardVariantProps = VariantProps<typeof workCardVariants>;
 
-/** @deprecated Use `WorkDisplayStatus` from `@green-goods/shared` instead. */
-export type WorkStatus = WorkDisplayStatus;
-
 export interface WorkCardData {
   id: string;
   title: string;
-  status: WorkStatus;
+  status: WorkDisplayStatus;
   createdAt: number;
   mediaPreview?: string[];
-  gardenerAddress?: string;
+  gardenerAddress?: Address;
   gardenerDisplayName?: string;
   gardenName?: string;
-  gardenAddress?: string;
+  gardenAddress?: Address;
   description?: string;
   imageCount?: number;
   feedback?: string;
@@ -103,6 +100,25 @@ export interface WorkCardProps extends WorkCardVariantProps {
   labels?: WorkCardLabels;
 }
 
+/** Maps work status to a left-border accent color class. */
+export function getStatusBorderClass(status: WorkDisplayStatus | string): string {
+  switch (status) {
+    case "approved":
+      return "border-l-2 border-l-success-base";
+    case "pending":
+      return "border-l-2 border-l-warning-base";
+    case "rejected":
+    case "sync_failed":
+      return "border-l-2 border-l-error-base";
+    case "syncing":
+    case "uploading":
+      return "border-l-2 border-l-information-base";
+    case "offline":
+    default:
+      return "border-l-2 border-l-stroke-soft";
+  }
+}
+
 export const WorkCard: React.FC<WorkCardProps> = ({
   work,
   variant = "auto",
@@ -134,6 +150,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   const hasError = Boolean(work.error);
   const mediaCount = work.imageCount ?? work.mediaPreview?.length ?? 0;
   const canOpenPreview = Boolean(thumbUrl) && !interactive;
+  const isCompact = variant === "compact";
 
   React.useEffect(() => {
     if (!isPreviewOpen) return;
@@ -156,10 +173,21 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   return (
     <>
       <Wrapper
-        className={cn(workCardVariants({ variant, interactive }), className)}
+        className={cn(
+          workCardVariants({ variant, interactive }),
+          getStatusBorderClass(work.status),
+          className
+        )}
         {...wrapperProps}
       >
-        <div className="relative w-full overflow-hidden bg-bg-weak-50 aspect-video @[480px]:w-56 @[480px]:flex-shrink-0">
+        <div
+          className={cn(
+            "relative overflow-hidden bg-bg-weak-50",
+            isCompact
+              ? "w-20 shrink-0 self-stretch"
+              : "w-full aspect-video @[480px]:w-56 @[480px]:flex-shrink-0"
+          )}
+        >
           {thumbUrl ? (
             canOpenPreview ? (
               <button
@@ -193,9 +221,12 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 flex-col px-3 py-3">
+        <div className={cn("flex min-w-0 flex-1 flex-col", isCompact ? "px-3 py-2" : "px-3 py-3")}>
           <div className="flex items-start justify-between gap-2">
-            <h4 className="truncate pr-2 text-sm font-medium text-text-strong-950">
+            <h4
+              className="truncate pr-2 text-label-md font-medium text-text-strong-950"
+              title={work.title || labels.untitledWork}
+            >
               {work.title || labels.untitledWork}
             </h4>
             <span
@@ -208,7 +239,12 @@ export const WorkCard: React.FC<WorkCardProps> = ({
             </span>
           </div>
 
-          <div className="mt-0.5 truncate text-xs text-text-sub-600">
+          <div
+            className="mt-0.5 truncate text-xs text-text-sub-600"
+            title={[showGardener && work.gardenerDisplayName, timeAgo, work.gardenName]
+              .filter(Boolean)
+              .join(" • ")}
+          >
             {showGardener && work.gardenerDisplayName && (
               <>
                 {work.gardenerDisplayName}
@@ -255,11 +291,20 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
       {isPreviewOpen && thumbUrl ? (
         <div
-          className="fixed inset-0 z-[70] flex items-center justify-center bg-static-black/80 p-4"
+          className="fixed inset-0 z-modal flex items-center justify-center bg-static-black/80 p-4"
           role="dialog"
           aria-modal="true"
           onClick={(event) => {
             if (event.target === event.currentTarget) setIsPreviewOpen(false);
+          }}
+          onKeyDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              (event.key === "Enter" || event.key === " ")
+            ) {
+              event.preventDefault();
+              setIsPreviewOpen(false);
+            }
           }}
         >
           <button

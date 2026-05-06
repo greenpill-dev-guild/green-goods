@@ -84,10 +84,9 @@ interface IHypercertMinter {
     /// @notice Create a new hypercert with an allowlist for claiming fractions
     /// @param account The owner/creator of the hypercert
     /// @param units The total number of units for this hypercert
-    /// @param merkleRoot The merkle root for the allowlist (0 for open)
+    /// @param merkleRoot The non-zero merkle root for the allowlist
     /// @param uri The metadata URI for the hypercert
     /// @param restrictions Transfer restriction type (0 = none)
-    /// @return claimID The new hypercert's claim/token ID
     function createAllowlist(
         address account,
         uint256 units,
@@ -95,8 +94,13 @@ interface IHypercertMinter {
         string calldata uri,
         uint8 restrictions
     )
-        external
-        returns (uint256 claimID);
+        external;
+
+    /// @notice Read units for a hypercert type or fraction token ID.
+    function unitsOf(uint256 tokenID) external view returns (uint256 units);
+
+    /// @notice Read units owned by an account for a fraction token ID.
+    function unitsOf(address account, uint256 tokenID) external view returns (uint256 units);
 
     /// @notice Set approval for all tokens for an operator
     function setApprovalForAll(address operator, bool approved) external;

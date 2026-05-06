@@ -1,12 +1,18 @@
 ---
 name: ui
-description: UI development - design system, TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Use for frontend design, theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
-version: "1.0.0"
+user-invocable: false
+description: UI implementation — TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Implements the direction set by the `design` skill. Use for theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
+version: "1.4.1"
+design_token_version: "2.3.0"
 status: active
 packages: ["shared", "client", "admin"]
-dependencies: []
-last_updated: "2026-03-18"
-last_verified: "2026-03-18"
+dependencies: ["design"]
+last_updated: "2026-04-17"
+last_verified: "2026-04-17"
+changelog:
+  - "1.4.1 — Added 10-step New Component Runbook (single golden path replacing scattered steps). Part 3 Dialogs now names DialogShell (shared, default) and AdminDialog (admin, strict M3) with file paths. Admin Cockpit Mode trimmed to ui-implementation specifics, pointing back to design/SKILL.md § Admin Cockpit Carve-Out as canonical. Registry design_token_version synced to 2.3.0 (was drifted at 2.2.0). Spring motion tokens now real in theme.css."
+  - "1.4.0 — Added view-transitions.md (inherited from former design/implementation.md — execution details belong here, not in design). design_token_version pinned to design skill 2.3.0. Material tokens (--color-material-*, --blur-material-*) now implemented in theme.css; compliance guidance should reference them over hardcoded glass values."
+  - "1.3.0 — Part 1 replaced with pointer to design skill. Design Thinking and Green Goods Aesthetic Tokens moved wholly to design/language.md and root DESIGN.md to eliminate duplication."
 ---
 
 # UI Skill
@@ -21,10 +27,11 @@ Unified UI development guide: design thinking, component development, TailwindCS
 | **TailwindCSS** | theme, tokens, dark mode, CSS config, `@theme`, responsive utilities | [tailwindcss.md](./tailwindcss.md) |
 | **Radix UI** | dialog, select, popover, accordion, accessible primitive, `asChild` | [radix-ui.md](./radix-ui.md) |
 | **Accessibility & Compliance** | WCAG, a11y, form validation, responsive, reduced motion, safe areas | [compliance.md](./compliance.md) |
-| **Storybook** | story, stories, CSF3, play function, visual regression | [storybook.md](./storybook.md) |
+| **Storybook** | story, stories, CSF3, play function, visual regression, story authoring | [storybook.md](./storybook.md) |
 | **Storybook Addons** | a11y addon, theme switching, design system docs, MDX | [storybook-addons.md](./storybook-addons.md) |
 | **Storybook Testing** | visual regression, Chromatic, interaction testing, responsive stories | [storybook-testing.md](./storybook-testing.md) |
 | **i18n** | translation, react-intl, locale, RTL, Browser Translation API | [i18n.md](./i18n.md) |
+| **View Transitions** | view transition API, entity morphing, route navigation | [view-transitions.md](./view-transitions.md) |
 | **Diagrams** | mermaid, flowchart, sequence diagram, state diagram, ERD | [mermaid.md](./mermaid.md) |
 
 When invoked:
@@ -32,228 +39,82 @@ When invoked:
 - Preserve existing Green Goods design tokens when working in existing views/components.
 - Pair design work with compliance checks (accessibility + responsive).
 - All shared components need Storybook stories.
+- Dedicated Storybook authoring now routes through this skill. Do not use a separate storybook agent.
 
 ---
 
-## Part 1: Design Thinking
+## Part 1: Design Direction Pointer
 
-Before coding, understand the context and commit to a **BOLD** aesthetic direction:
+**Design direction, paradigm selection, spatial patterns, material language, and aesthetic tokens are owned by the `design` skill.**
 
-- **Purpose**: What problem does this interface solve? Who uses it?
-- **Tone**: Pick an extreme -- brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian. Use these for inspiration but design one that is true to the aesthetic direction.
-- **Constraints**: Technical requirements (framework, performance, accessibility).
-- **Differentiation**: What makes this UNFORGETTABLE? What is the one thing someone will remember?
+- **Warm Earth language** (shape, motion, color, material behavior, hero moments) — [`.claude/skills/design/language.md`](../design/language.md)
+- **Role hierarchy** (canvas / ink / stone / green-as-tertiary-accent) — root `DESIGN.md` + [`design/language.md` § Color Direction](../design/language.md#color-direction)
+- **Paradigm selection** (Command / Ambient / Data Landscape / Conversational / Ritual) — [`design/SKILL.md`](../design/SKILL.md)
+- **AI prompt vocabulary** for admin cockpit — [`design/prompt-contract.md`](../design/prompt-contract.md)
 
-**CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work -- the key is intentionality, not intensity.
+Execution-level tokens live in `packages/shared/src/styles/theme.css`, `packages/client/src/styles/typography.css`, and `packages/client/src/styles/animation.css`. This skill focuses on *how* to express the direction in code — Tailwind, Radix, Storybook, compliance, i18n.
 
-Then implement working code that is:
-- Production-grade and functional
-- Visually striking and memorable
-- Cohesive with a clear aesthetic point-of-view
-- Meticulously refined in every detail
+### Admin Cockpit Mode
 
-### Frontend Aesthetics Guidelines
+The design identity (**restrained operator cockpit**, why-it's-different-from-client, vocabulary, never-use list) is canonical in [`design/SKILL.md § Admin Cockpit Carve-Out`](../design/SKILL.md#admin-cockpit-carve-out) and [`design/prompt-contract.md`](../design/prompt-contract.md). Read those first.
 
-- **Typography**: Choose fonts that are beautiful, unique, and interesting. Avoid generic fonts like Arial and Inter. Pair a distinctive display font with a refined body font.
-- **Color & Theme**: Commit to a coherent aesthetic. Use CSS variables for consistency. Dominant colors with sharp accents outperform timid, evenly-distributed palettes.
-- **Motion**: Use animations for effects and micro-interactions. CSS-only for HTML; Motion library for React. One well-orchestrated page load with staggered reveals creates more delight than scattered micro-interactions. Use scroll-triggering and hover states that surprise.
-- **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density.
-- **Backgrounds & Visual Details**: Create atmosphere and depth. Gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, grain overlays.
+UI-level implementation rules that follow from that identity:
 
-NEVER use generic AI-generated aesthetics: overused fonts (Inter, Roboto, Arial, system fonts), purple gradients on white, predictable layouts, cookie-cutter design without context-specific character. No two designs should be the same.
-
-### Green Goods Aesthetic Tokens
-
-- **Color**: Primary green (#1FC16B) with earth-toned accents
-- **Feel**: Organic, trustworthy, action-oriented (regenerative/nature)
-- **Tokens**: Semantic tokens from `packages/shared/src/styles/theme.css`
-- **Typography**: `packages/client/src/styles/typography.css` for existing hierarchy
-- **Animation**: `packages/client/src/styles/animation.css` for existing motions
-- **Consistency**: Same design language whether gardener (client) or operator (admin)
+- **Layout default**: `PageHeader` → one primary workspace → optional secondary context in a sheet or rail. Start from layout and flow before reaching for `Card`.
+- **Card usage**: cards and elevated surfaces are for records or bounded interactions, not the default page structure. Prefer one dominant workspace surface per route. Avoid nested stacks of rounded bordered panels.
+- **Tokens**: shared semantic tokens + one workspace accent. No decorative gradients behind routine product UI.
+- **Reference composition**: admin `/hub` route is the canonical cockpit layout — model new admin surfaces on it.
+- **Dialogs**: use `DialogShell` from `@green-goods/shared` by default; reserve `AdminDialog` for strict M3 flows (see Part 3).
 
 ---
 
 ## Part 2: Component Development Workflow
 
-1. **Check existing patterns** (GardenCard, WorkCard, StatusBadge, Button, Card, Alert, FormField)
-2. **Develop in Storybook first** (`bun run storybook` in packages/shared)
+1. **Check existing patterns** (`CanvasLayout`, `AccountSurface`, `RightSheet`, `PageHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
+2. **Develop reusable components in Storybook first** (`bun run storybook` in packages/shared)
 3. **Follow Radix UI + tailwind-variants patterns** (see [radix-ui.md](./radix-ui.md))
 4. **Run compliance checklist** before integration (see [compliance.md](./compliance.md))
 5. **Test light/dark mode** via Storybook toolbar
-6. **Add i18n** for all user-facing strings (see [i18n.md](./i18n.md))
+6. **Verify admin routes in a real browser** for desktop and mobile when changing page-level composition
+7. **Add i18n** for all user-facing strings (see [i18n.md](./i18n.md))
+
+---
+
+## New Component Runbook
+
+Linear golden path from blank file to merge-ready. Collapses the rules otherwise scattered across the design + ui skills into one pass.
+
+| # | Step | Decide / Do | Source |
+|---|------|-------------|--------|
+| 1 | **Paradigm** | Command / Ambient / Data Landscape / Conversational / Ritual. Declare in a one-line comment at top of file. | [design/SKILL.md § Paradigm Selection](../design/SKILL.md#paradigm-selection) |
+| 2 | **Material** | Pick thickness by content density: ultrathin/thin = glanceable, regular = default, thick/solid = text-dense. Admin dense surfaces stay solid. | [design/materials.md](../design/materials.md) |
+| 3 | **Shape** | Fixed (badges/avatars), Capsule (primary CTA, icon button), Concentric (nested: `child_radius = parent_radius − padding`). Shape alone creates hierarchy. | [design/language.md § Shape System](../design/language.md#shape-system) |
+| 4 | **Motion** | Use `var(--spring-*)` tokens only. Never hardcode `cubic-bezier` or `duration`. Standard scheme for admin; Expressive only for client hero moments. | [design/language.md § Motion System](../design/language.md#motion-system) |
+| 5 | **Primitive** | Compose from Radix + `tv()`. Dialogs → `DialogShell` (default) or `AdminDialog` (strict M3). | [radix-ui.md](./radix-ui.md), Part 3 below |
+| 6 | **Responsive** | Container queries (`@container`, `@[480px]:`) for component-internal layout; `sm:` / `md:` for page-level. | [compliance.md](./compliance.md), [tailwindcss.md](./tailwindcss.md) |
+| 7 | **A11y** | Label every input, associate errors via `aria-describedby`, color is never the sole indicator, hit targets ≥ 44px, focus management via Radix. | [compliance.md](./compliance.md) |
+| 8 | **i18n** | Every user-facing string via `intl.formatMessage` / `FormattedMessage`. Update `en.json`, `es.json`, `pt.json`. No banned vocabulary. | [i18n.md](./i18n.md), `bun run lint:vocab` |
+| 9 | **Storybook** | CSF3 story, `tags: ["autodocs"]`, include default + loading + error + empty variants + dark mode. | [storybook.md](./storybook.md) |
+| 10 | **Review** | Run the four-lens review on self: Regenerative → Spatial → Ecosystem → Compliance. `bun run check:design-tokens` before merge. | [design/review-checklist.md](../design/review-checklist.md) |
+
+**Admin-specific shortcut**: steps 1-4 are usually pre-answered — admin = Command Surface + solid material + M3 shapes + Standard motion. Start at step 5.
+
+**Client-specific shortcut**: hero-moment components (garden creation, hypercert mint, …) override step 4 to Expressive motion and step 2 to dramatic material. See [design/language.md § Hero Moments](../design/language.md#hero-moments).
 
 ---
 
 ## Part 3: Implementation Patterns
 
-### Component Composition with Radix UI + Tailwind
+All UI patterns use **Radix UI primitives** + **tailwind-variants** (`tv()`). See [radix-ui.md](./radix-ui.md) for Dialog, Select, Popover composition examples.
 
-```typescript
-// Compound component pattern with Radix primitives
-import * as Dialog from "@radix-ui/react-dialog";
-import { tv, type VariantProps } from "tailwind-variants";
-
-const overlay = tv({
-  base: "fixed inset-0 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-});
-
-const content = tv({
-  base: "fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl bg-background p-6 shadow-2xl border border-border/50",
-  variants: {
-    size: {
-      sm: "w-[90vw] max-w-sm",
-      md: "w-[90vw] max-w-lg",
-      lg: "w-[90vw] max-w-2xl",
-    },
-  },
-  defaultVariants: { size: "md" },
-});
-
-export function ConfirmDialog({ children, size, ...props }: DialogProps) {
-  return (
-    <Dialog.Root {...props}>
-      <Dialog.Portal>
-        <Dialog.Overlay className={overlay()} />
-        <Dialog.Content className={content({ size })}>
-          {children}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-```
-
-### Tailwind Variants for Consistent Component APIs
-
-```typescript
-import { tv } from "tailwind-variants";
-
-const badge = tv({
-  base: "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset transition-colors",
-  variants: {
-    status: {
-      active: "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400",
-      pending: "bg-amber-50 text-amber-700 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-400",
-      failed: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-400",
-      offline: "bg-zinc-100 text-zinc-600 ring-zinc-500/20 dark:bg-zinc-500/10 dark:text-zinc-400",
-    },
-  },
-});
-
-export function StatusBadge({ status, label }: StatusBadgeProps) {
-  return <span className={badge({ status })}>{label}</span>;
-}
-```
-
-### Animation Recipes
-
-```typescript
-// Staggered list reveal -- organic feel for garden/work lists
-function StaggeredList({ items, renderItem }: StaggeredListProps) {
-  return (
-    <ul className="space-y-3">
-      {items.map((item, i) => (
-        <li
-          key={item.id}
-          className="animate-in fade-in-0 slide-in-from-bottom-2"
-          style={{ animationDelay: `${i * 60}ms`, animationFillMode: "backwards" }}
-        >
-          {renderItem(item)}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-// Skeleton pulse -- loading states that feel alive
-function CardSkeleton() {
-  return (
-    <div className="rounded-xl border border-border/50 p-4 space-y-3">
-      <div className="h-4 w-2/3 rounded-md bg-muted animate-pulse" />
-      <div className="h-3 w-full rounded-md bg-muted/70 animate-pulse [animation-delay:150ms]" />
-      <div className="h-3 w-4/5 rounded-md bg-muted/50 animate-pulse [animation-delay:300ms]" />
-    </div>
-  );
-}
-
-// Page transition -- smooth view changes
-function PageTransition({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300 ease-out">
-      {children}
-    </div>
-  );
-}
-```
-
-### Card Composition Pattern (Green Goods)
-
-```typescript
-// Compound card -- used for GardenCard, WorkCard, ActionCard
-const card = tv({
-  base: "group relative overflow-hidden rounded-xl border bg-card transition-all",
-  variants: {
-    interactive: {
-      true: "cursor-pointer hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 active:scale-[0.98]",
-      false: "",
-    },
-    elevated: {
-      true: "shadow-sm",
-      false: "",
-    },
-  },
-  defaultVariants: { interactive: true, elevated: false },
-});
-
-function Card({ children, className, interactive, elevated, ...props }) {
-  return (
-    <div className={card({ interactive, elevated, className })} {...props}>
-      {children}
-    </div>
-  );
-}
-
-Card.Header = ({ children, className }) => (
-  <div className={cn("flex items-start justify-between p-4 pb-2", className)}>
-    {children}
-  </div>
-);
-
-Card.Body = ({ children, className }) => (
-  <div className={cn("px-4 pb-4", className)}>{children}</div>
-);
-
-Card.Footer = ({ children, className }) => (
-  <div className={cn("flex items-center gap-2 border-t px-4 py-3 bg-muted/30", className)}>
-    {children}
-  </div>
-);
-```
-
-### Responsive Layout Patterns
-
-```typescript
-// Responsive grid that adapts to content
-function ResponsiveGrid({ children, minWidth = "280px" }: GridProps) {
-  return (
-    <div
-      className="grid gap-4"
-      style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${minWidth}, 1fr))` }}
-    >
-      {children}
-    </div>
-  );
-}
-
-// Mobile-first stack to row layout
-function AdaptiveRow({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      {children}
-    </div>
-  );
-}
-```
+- **Dialogs**: two project wrappers sit on top of Radix `Dialog.*`:
+  - **`DialogShell`** — default. `packages/shared/src/components/Dialog/ConfirmDialog.tsx`, exported from `@green-goods/shared`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `size` (`md|lg|xl|2xl`), `children`, `preventClose?`. Mobile bottom-sheet + desktop centered, `glass-floating`, handles `z-overlay`/`z-modal`. Use for all new dialogs in client and admin unless strict M3 anatomy is required.
+  - **`AdminDialog`** — admin-only, strict M3. `packages/admin/src/components/AdminDialog.tsx`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `children`, `actions?`. Uses `--m3-shape-xl`, `--m3-surface-container-high`, `--m3-elevation-3`, 32% scrim. Reserve for flows that need the M3 `actions` slot and elevation-3 centered layout (CookieJar modals remain on this wrapper).
+  - Raw Radix `Dialog.*` namespace only when neither wrapper fits — see [radix-ui.md](./radix-ui.md) for composition rules.
+- **StatusBadge**: `tv()` with `status` variants (active, pending, failed, offline) mapping to semantic colors with dark mode
+- **Cards**: Compound pattern (`Card`, `Card.Header`, `Card.Body`, `Card.Footer`) with `tv()` variants for `interactive` and `elevated` -- used for GardenCard, WorkCard, ActionCard
+- **Animations**: CSS animations (transform, opacity) via `animate-in`/`fade-in`/`slide-in` utilities. Staggered reveals with `animationDelay` for list items. Skeletons with `animate-pulse`.
+- **Responsive layouts**: Mobile-first (`flex-col` -> `sm:flex-row`), `auto-fill` grids with `minmax()`
 
 ---
 
@@ -317,8 +178,8 @@ function AdaptiveRow({ children }: { children: React.ReactNode }) {
 What kind of UI work?
 |
 +--> Design direction / visual identity?
-|    --> This file, Part 1 (Design Thinking)
-|    --> Green Goods Aesthetic Tokens
+|    --> design skill (language.md, SKILL.md, prompt-contract.md)
+|    --> root DESIGN.md for role hierarchy and atmosphere
 |
 +--> New component?
 |    --> Part 2 (Component Development Workflow)
@@ -350,7 +211,7 @@ What kind of UI work?
 |    --> mermaid.md (diagram type selection)
 |
 +--> Animation / motion?
-|    --> This file, Part 3 (Animation Recipes)
+|    --> This file, Part 3 (Implementation Patterns)
 |    --> compliance.md Part 4 (reduced motion)
 ```
 

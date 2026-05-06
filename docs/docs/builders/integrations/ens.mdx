@@ -4,20 +4,36 @@ sidebar_label: ENS
 slug: /builders/integrations/ens
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Implemented (activation pending indexing)
+source_of_truth:
+  - packages/contracts/src/registries/ENS.sol
+  - packages/contracts/src/interfaces/IENS.sol
+  - packages/shared/src/hooks/ens
+  - packages/shared/src/utils/blockchain/ens.ts
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # ENS (Name Service)
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+<StatusBadge status="Implemented (activation pending indexing)" />
 
 ## Overview
-ENS integration for human-readable garden and action identifiers.
+ENS support exists in contract registry code and shared ENS hooks/utilities. Arbitrum and Sepolia artifacts include Green Goods ENS registry addresses, while Celo keeps the module address at zero. Green Goods ENS events are not currently configured in the indexer, so chain claims should stay resolver/indexing-aware.
 
-## What to Expect
-- Garden name resolution
-- Cross-chain ENS wiring
-- Resolver architecture
+## Builder notes
+
+- Use shared ENS hooks for address, avatar, name, registration status, and Green Goods ENS reads.
+- Keep docs clear about whether a chain has deployed ENS wiring or only implementation support.
+- Do not hardcode ENS names or resolver addresses outside deployment/config sources.
+
+<NextBestAction
+  title="Next best action"
+  why="Deployment artifacts decide which ENS surfaces are active for a chain."
+  actionLabel="Deployment status"
+  actionHref="../deployments/status"
+  alternatives={[
+    {label: "Contracts package", href: "../packages/contracts"},
+  ]}
+/>

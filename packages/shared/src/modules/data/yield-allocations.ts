@@ -26,19 +26,11 @@ const ALL_YIELD_ALLOCATIONS_QUERY = /* GraphQL */ `
   }
 `;
 
-/**
- * Cap returned allocation events per garden. The UI aggregates client-side
- * for the Community tab summary; 1000 events is far above any realistic
- * garden's lifetime activity and keeps payloads bounded.
- */
-const GARDEN_YIELD_ALLOCATIONS_LIMIT = 1000;
-
 const GARDEN_YIELD_ALLOCATIONS_QUERY = /* GraphQL */ `
-  query GardenYieldAllocations($chainId: Int!, $garden: String!, $limit: Int!) {
+  query GardenYieldAllocations($garden: String!, $chainId: Int!) {
     YieldAllocation(
-      where: { chainId: { _eq: $chainId }, garden: { _eq: $garden } }
+      where: { garden: { _eq: $garden }, chainId: { _eq: $chainId } }
       order_by: { timestamp: desc }
-      limit: $limit
     ) {
       ${YIELD_ALLOCATION_FIELDS}
     }
@@ -57,6 +49,10 @@ interface YieldAllocationRow {
 }
 
 interface AllYieldAllocationsResponse {
+  YieldAllocation?: YieldAllocationRow[];
+}
+
+interface GardenYieldAllocationsResponse {
   YieldAllocation?: YieldAllocationRow[];
 }
 
@@ -98,47 +94,28 @@ export async function getAllYieldAllocations(
 }
 
 /**
- * Fetch yield allocation records for a single garden on a chain (capped to
- * GARDEN_YIELD_ALLOCATIONS_LIMIT). Used by the garden-scoped yield summary so
- * the Community tab can aggregate events client-side without the 20-record
- * pagination cap of the legacy hook.
+ * Fetch all yield allocation records for a single garden on a chain.
+ * Used for garden-scoped yield aggregation.
  */
 export async function getGardenYieldAllocations(
   gardenAddress: Address,
-  chainId: number = DEFAULT_CHAIN_ID,
-  limit: number = GARDEN_YIELD_ALLOCATIONS_LIMIT
+  chainId: number = DEFAULT_CHAIN_ID
 ): Promise<YieldAllocation[]> {
-  // Coerce to a safe integer in [1, GARDEN_YIELD_ALLOCATIONS_LIMIT] so callers
-  // can't accidentally hit a GraphQL Int! coercion error or trigger an
-  // unbounded payload.
-  const safeLimit = Number.isFinite(limit)
-    ? Math.min(GARDEN_YIELD_ALLOCATIONS_LIMIT, Math.max(1, Math.trunc(limit)))
-    : GARDEN_YIELD_ALLOCATIONS_LIMIT;
-  const garden = gardenAddress.toLowerCase();
-  const { data, error } = await greenGoodsIndexer.query<AllYieldAllocationsResponse>(
+  const normalizedGarden = gardenAddress.toLowerCase() as Address;
+  const { data, error } = await greenGoodsIndexer.query<GardenYieldAllocationsResponse>(
     GARDEN_YIELD_ALLOCATIONS_QUERY,
-    { chainId, garden, limit: safeLimit },
+    { garden: normalizedGarden, chainId },
     "GardenYieldAllocations"
   );
 
   if (error) {
     logger.error("[getGardenYieldAllocations] Indexer query failed", {
+      gardenAddress: normalizedGarden,
       chainId,
-      garden,
       error: error.message,
     });
     throw new Error(`Failed to load garden yield allocations: ${error.message}`);
   }
 
-  const rows = data?.YieldAllocation ?? [];
-  // Surface truncation in observability before it shows up as a user-facing
-  // discrepancy in Community-tab totals.
-  if (rows.length === safeLimit) {
-    logger.warn("[getGardenYieldAllocations] Result hit limit cap; aggregation may be partial", {
-      chainId,
-      garden,
-      limit: safeLimit,
-    });
-  }
-  return rows.map(mapYieldAllocation);
+  return (data?.YieldAllocation ?? []).map(mapYieldAllocation);
 }

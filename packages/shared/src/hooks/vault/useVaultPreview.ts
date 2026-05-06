@@ -17,10 +17,10 @@ interface UseVaultPreviewOptions {
 export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
   const enabled = options.enabled ?? true;
   const vaultAddress = options.vaultAddress;
-  const chainId = options.chainId;
   const amount = options.amount ?? 0n;
   const shares = options.shares ?? 0n;
   const userAddress = options.userAddress ?? (ZERO_ADDRESS as Address);
+  const chainId = options.chainId;
 
   const contracts = useMemo(() => {
     if (!vaultAddress) return [];
@@ -34,7 +34,7 @@ export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
       { ...base, functionName: "maxWithdraw", args: [userAddress, VAULT_MAX_BPS, []] },
       { ...base, functionName: "previewWithdraw", args: [amount] },
     ] as const;
-  }, [vaultAddress, chainId, amount, shares, userAddress]);
+  }, [vaultAddress, amount, shares, userAddress, chainId]);
 
   const query = useReadContracts({
     contracts: contracts as any,

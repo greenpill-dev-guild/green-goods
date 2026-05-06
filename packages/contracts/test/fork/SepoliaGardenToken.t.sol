@@ -6,24 +6,9 @@ import { GardenToken } from "../../src/tokens/Garden.sol";
 import { GardenAccount } from "../../src/accounts/Garden.sol";
 import { IGardensModule } from "../../src/interfaces/IGardensModule.sol";
 
-/// @title MockRevertingModuleSepolia
-/// @notice A module that always reverts, used to test graceful degradation during mintGarden
-contract MockRevertingModuleSepolia {
-    error AlwaysReverts();
-
-    fallback() external payable {
-        revert AlwaysReverts();
-    }
-
-    receive() external payable {
-        revert AlwaysReverts();
-    }
-}
-
 /// @title SepoliaGardenTokenForkTest
 /// @notice Fork tests for GardenToken against Sepolia testnet.
-/// @dev Subset of Arbitrum tests (4 of 7). Skips transfer restriction tests (chain-independent logic).
-///      Verifies the same production deployment path works against Sepolia EAS and Hats Protocol.
+/// @dev Verifies the production deployment path against Sepolia EAS and Hats Protocol.
 contract SepoliaGardenTokenForkTest is ForkTestBase {
     // ═══════════════════════════════════════════════════════════════════════════
     // Test 1: Mint Garden — Module Callback Ordering
@@ -74,42 +59,7 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Test 2: Mint Garden — Single Callback Reverts, Graceful Degradation
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice When KarmaGAP module reverts, mintGarden still succeeds on Sepolia.
-    function test_fork_mintGarden_singleCallbackReverts_gracefulDegradation() public {
-        if (!_tryChainFork("sepolia")) {
-            return;
-        }
-
-        _deployFullStackOnFork();
-
-        // Replace KarmaGAP with a reverting mock
-        MockRevertingModuleSepolia revertingModule = new MockRevertingModuleSepolia();
-        gardenToken.setKarmaGAPModule(address(revertingModule));
-
-        // Mint should succeed despite KarmaGAP reverting
-        address garden = _mintTestGarden("Sepolia Degraded Garden", 0x0F);
-        assertTrue(garden != address(0), "mint should succeed with reverting KarmaGAP");
-
-        // Verify the non-reverting modules still fired
-        (,,,,,,, bool configured) = hatsModule.getGardenHatIds(garden);
-        assertTrue(configured, "hat tree should still be configured");
-
-        GardenAccount gardenAcct = GardenAccount(payable(garden));
-        assertEq(
-            keccak256(bytes(gardenAcct.name())),
-            keccak256(bytes("Sepolia Degraded Garden")),
-            "account should still be initialized"
-        );
-
-        // Restore original module
-        gardenToken.setKarmaGAPModule(address(karmaGAPModule));
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Test 3: Mint Garden Increments Token ID — Sequential Mints, Unique TBAs
+    // Test 2: Mint Garden Increments Token ID — Sequential Mints, Unique TBAs
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Sequential mints on Sepolia produce incrementing token IDs and unique TBAs.
@@ -154,29 +104,22 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Test 4: Failed ENS Refund Accounting
+    // Test 3: ENS Slug Registration Uses Real Sepolia Relay
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice When ENS registration fails on Sepolia, ETH is queued for refund and claimable.
-    function test_fork_failedENSRefund_accounting() public {
+    /// @notice Minting with a slug uses the Sepolia local relay path without stubbing ccipSend.
+    function test_fork_mintGarden_withSlugCachesEnsOwnership() public {
         if (!_tryChainFork("sepolia")) {
             return;
         }
 
         _deployFullStackOnFork();
 
-        // Replace ENS module with a reverting mock
-        MockRevertingModuleSepolia revertingENS = new MockRevertingModuleSepolia();
-        gardenToken.setENSModule(address(revertingENS));
-
-        // Mint with ETH and a slug (triggers ENS registration path)
-        uint256 mintValue = 0.01 ether;
-        vm.deal(address(this), mintValue);
-
+        string memory slug = "sepolia-garden-token";
         GardenToken.GardenConfig memory config = GardenToken.GardenConfig({
-            name: "Sepolia ENS Refund Garden",
-            slug: "sepolia-refund-test",
-            description: "Tests ENS refund flow on Sepolia",
+            name: "Sepolia ENS Garden",
+            slug: slug,
+            description: "Tests ENS sender cache on Sepolia",
             location: "Sepolia Fork",
             bannerImage: "",
             metadata: "",
@@ -187,31 +130,11 @@ contract SepoliaGardenTokenForkTest is ForkTestBase {
             operators: new address[](0)
         });
 
-        address garden = gardenToken.mintGarden{ value: mintValue }(config);
-        assertTrue(garden != address(0), "mint should succeed despite ENS failure");
+        address garden = gardenToken.mintGarden(config);
+        bytes32 slugHash = keccak256(bytes(slug));
 
-        // Verify refund was queued
-        uint256 refundAmount = gardenToken.failedENSRefunds(address(this));
-        assertEq(refundAmount, mintValue, "refund should equal sent ETH");
-        assertEq(gardenToken.totalPendingENSRefunds(), mintValue, "total pending should match");
-
-        // Claim the refund
-        uint256 balanceBefore = address(this).balance;
-        gardenToken.claimENSRefund();
-        uint256 balanceAfter = address(this).balance;
-
-        assertEq(balanceAfter - balanceBefore, mintValue, "should receive refund");
-        assertEq(gardenToken.failedENSRefunds(address(this)), 0, "refund should be cleared");
-        assertEq(gardenToken.totalPendingENSRefunds(), 0, "total pending should be zero");
-
-        // Double-claim should revert
-        vm.expectRevert(GardenToken.NoENSRefundAvailable.selector);
-        gardenToken.claimENSRefund();
+        assertTrue(garden != address(0), "garden should be created");
+        assertEq(greenGoodsENS.slugOwner(slugHash), garden, "slug should be cached to garden");
+        assertFalse(greenGoodsENS.available(slug), "slug should no longer be available");
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Receive ETH (for ENS refund claim)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    receive() external payable { }
 }

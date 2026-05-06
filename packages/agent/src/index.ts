@@ -9,6 +9,7 @@
  */
 
 import { createServer, startServer } from "./api/server";
+import { parseAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
 import { handleMessage, setHandlerContext } from "./handlers";
 import {
@@ -20,8 +21,10 @@ import {
 import { initAI, isAIModelLoaded } from "./services/ai";
 import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
+import { resolveAgentRpcUrl } from "./services/agent-rpc";
+import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import { logger } from "./services/logger";
-import { initMedia, isMediaConfigured } from "./services/media";
+import { createLumaClient } from "./services/luma";
 import { rateLimiter } from "./services/rate-limiter";
 
 // ============================================================================
@@ -44,83 +47,100 @@ async function main(): Promise<void> {
 
   // Initialize services
   initDB(config.dbPath);
-  initBlockchain(config.chain);
+  initBlockchain(config.chain, resolveAgentRpcUrl(config.chainId));
   const ai = initAI();
+  const lumaClient = createLumaClient({
+    apiKey: config.lumaApiKey,
+    calendarId: config.lumaCalendarId,
+    tagId: config.lumaGreenGoodsTagId,
+    tagName: config.lumaGreenGoodsTagName,
+  });
 
-  // Initialize media service if Storacha credentials are available
-  const storachaKey = process.env.STORACHA_KEY;
-  const storachaProof = process.env.STORACHA_PROOF;
-  if (storachaKey && storachaProof) {
-    await initMedia(storachaKey, storachaProof, process.env.STORACHA_GATEWAY);
-    logger.info("Media service (Storacha) initialized");
-  } else {
-    logger.warn("STORACHA_KEY and STORACHA_PROOF not configured - photo uploads will be disabled");
-  }
-
-  // Create Telegram bot
   const bot = createTelegramBot({ token: config.telegramToken }, handleMessage);
 
-  // Create platform-specific adapters
   const voiceProcessor = createVoiceProcessor(bot, (audioPath) => ai.transcribe(audioPath));
-  const photoProcessor = isMediaConfigured() ? createPhotoProcessor(bot) : undefined;
+  const photoProcessor = createPhotoProcessor(bot);
   const notifier = createNotifier(bot);
-
-  // Set handler context with platform adapters
   setHandlerContext({ voiceProcessor, photoProcessor, notifier });
 
   // ============================================================================
   // LAUNCH
   // ============================================================================
 
-  if (config.mode === "webhook") {
-    // Webhook mode: Start HTTP server
-    const server = createServer({
-      isAIReady: isAIModelLoaded,
-    });
+  // Start HTTP server in both modes (health + API endpoints always available)
+  const server = createServer({
+    isAIReady: isAIModelLoaded,
+    botApiToken: config.botApiToken,
+    notifier,
+    lumaClient,
+    fundingIntents: createSqliteFundingIntentStore(),
+    allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),
+    trustedProxy: {
+      hops: config.trustedProxyHops,
+      cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
+    },
+    uploadSigning: {
+      pinataJwt: config.pinataJwt,
+      pinataUploadsApiBaseUrl: config.pinataUploadsApiBaseUrl,
+      ttlSeconds: config.uploadSignerTtlSeconds,
+      maxFileSize: config.uploadSignerMaxFileSize,
+      allowedMimeTypes: config.uploadSignerAllowedMimeTypes,
+      rateLimit: config.uploadSignerRateLimit,
+      rateLimitWindowMs: config.uploadSignerRateLimitWindowMs,
+    },
+    thirdwebWebhookSecret: config.thirdwebWebhookSecret,
+    thirdwebClientId: config.thirdwebClientId,
+  });
 
-    // Set up Telegram webhook
+  if (config.mode === "webhook") {
     const webhookPath = `/webhook/telegram`;
     await bot.telegram.setWebhook(`${process.env.WEBHOOK_URL}${webhookPath}`, {
       secret_token: config.telegramWebhookSecret,
     });
 
-    // Add Telegram webhook handler to server
     // SECURITY: Always verify webhook secret when configured
-    server.post(webhookPath, async (request, reply) => {
-      const secretToken = request.headers["x-telegram-bot-api-secret-token"];
+    server.post(webhookPath, async (c) => {
+      const secretToken = c.req.header("x-telegram-bot-api-secret-token");
 
       // In production, webhook secret is required (validated in config.ts)
       // In development, it's optional but if configured, we verify it
       if (config.telegramWebhookSecret) {
         if (secretToken !== config.telegramWebhookSecret) {
           logger.warn({ hasToken: !!secretToken }, "Webhook request rejected: invalid secret");
-          return reply.status(401).send({ error: "Unauthorized" });
+          return c.json({ error: "Unauthorized" }, 401);
         }
       } else if (config.isProduction) {
         // This shouldn't happen due to config validation, but belt-and-suspenders
         logger.error("Webhook secret not configured in production - rejecting request");
-        return reply.status(500).send({ error: "Server misconfigured" });
+        return c.json({ error: "Server misconfigured" }, 500);
       }
 
-      await bot.handleUpdate(request.body as Parameters<typeof bot.handleUpdate>[0]);
-      return { ok: true };
+      const body = (await c.req.json().catch(() => undefined)) as
+        | Parameters<typeof bot.handleUpdate>[0]
+        | undefined;
+      await bot.handleUpdate(body as Parameters<typeof bot.handleUpdate>[0]);
+      return c.json({ ok: true });
     });
-
-    await startServer(server, { port: config.port, host: config.host });
-
-    logger.info(
-      {
-        webhook: `${process.env.WEBHOOK_URL}${webhookPath}`,
-        health: `http://${config.host}:${config.port}/health`,
-      },
-      "✅ Agent running in webhook mode"
-    );
   } else {
-    // Polling mode
+    // Polling mode for Telegram
     await bot.launch(() => {
-      logger.info("✅ Agent running in polling mode");
+      logger.info("✅ Agent Telegram bot running in polling mode");
     });
   }
+
+  await startServer(server, { port: config.port, host: config.host });
+
+  logger.info(
+    {
+      mode: config.mode,
+      health: `http://${config.host}:${config.port}/health`,
+      api: config.botApiToken ? "enabled" : "disabled (no BOT_API_TOKEN)",
+      ...(config.mode === "webhook"
+        ? { webhook: `${process.env.WEBHOOK_URL}/webhook/telegram` }
+        : {}),
+    },
+    "✅ Agent running"
+  );
 
   // ============================================================================
   // GRACEFUL SHUTDOWN
@@ -130,6 +150,7 @@ async function main(): Promise<void> {
     logger.info({ signal }, "📴 Shutting down gracefully");
 
     bot.stop(signal);
+    await server.close();
     rateLimiter.destroy();
     clearBlockchainCache();
     await closeDB();

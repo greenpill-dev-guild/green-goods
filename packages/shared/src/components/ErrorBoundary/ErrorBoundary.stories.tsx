@@ -22,7 +22,7 @@ const SafeChild = () => (
 );
 
 const meta: Meta<typeof ErrorBoundary> = {
-  title: "Feedback/ErrorBoundary",
+  title: "Shared/Feedback/ErrorBoundary",
   component: ErrorBoundary,
   tags: ["autodocs"],
   parameters: {

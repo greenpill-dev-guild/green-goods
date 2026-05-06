@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import messages from "../../../../shared/src/i18n/en.json";
 
 const mockNavigate = vi.fn();
 const mockUseGardenTabs = vi.fn(() => ({
@@ -78,6 +79,7 @@ vi.mock("@green-goods/shared", () => ({
     isJoining: false,
   }),
   useNavigateToTop: () => mockNavigate,
+  usePendingJoinsVersion: () => 0,
   useScrollToTop: vi.fn(),
   useUIStore: Object.assign(
     vi.fn((selector: (state: Record<string, unknown>) => unknown) =>
@@ -145,11 +147,6 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 import { Garden } from "../../views/Home/Garden";
-
-const messages = {
-  "app.garden.loading": "Loading garden...",
-  "app.garden.notFound": "Garden not found",
-};
 
 describe("Home garden route", () => {
   beforeEach(() => {

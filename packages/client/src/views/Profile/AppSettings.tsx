@@ -1,5 +1,6 @@
 import {
   capitalize,
+  ConfirmDialog,
   hapticLight,
   type Locale,
   logger,
@@ -7,14 +8,8 @@ import {
   useApp,
   useTheme,
 } from "@green-goods/shared";
-import {
-  RiComputerLine,
-  RiEarthFill,
-  RiMoonLine,
-  RiRefreshLine,
-  RiSunLine,
-} from "@remixicon/react";
-import { type ReactNode, useMemo } from "react";
+import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
+import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
@@ -32,23 +27,22 @@ export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
   const intl = useIntl();
+  const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const themeOptions = useMemo(
     () => [
       {
         value: "light" as const,
         label: intl.formatMessage({ id: "app.settings.themeLight", defaultMessage: "Light" }),
-        icon: <RiSunLine className="w-4" />,
       },
       {
         value: "dark" as const,
         label: intl.formatMessage({ id: "app.settings.themeDark", defaultMessage: "Dark" }),
-        icon: <RiMoonLine className="w-4" />,
       },
       {
         value: "system" as const,
         label: intl.formatMessage({ id: "app.settings.themeSystem", defaultMessage: "System" }),
-        icon: <RiComputerLine className="w-4" />,
       },
     ],
     [intl]
@@ -67,22 +61,19 @@ export const AppSettings: React.FC = () => {
           id: "app.settings.selectTheme",
           defaultMessage: "Choose how the app looks",
         }),
-        Icon: currentThemeOption.icon,
+        Icon: <RiSettings2Line className="w-4" />,
         Option: () => (
           <Select
             value={theme}
             onValueChange={(val) => setTheme(val as "light" | "dark" | "system")}
           >
-            <SelectTrigger className="w-[110px] sm:w-[140px]">
+            <SelectTrigger size="sm" className="w-[110px] sm:w-[140px]">
               <SelectValue placeholder={currentThemeOption.label} />
             </SelectTrigger>
             <SelectContent>
               {themeOptions.map((opt) => (
                 <SelectItem value={opt.value} key={opt.value}>
-                  <span className="flex items-center gap-2">
-                    {opt.icon}
-                    {opt.label}
-                  </span>
+                  {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -107,7 +98,7 @@ export const AppSettings: React.FC = () => {
         Icon: <RiEarthFill className="w-4" />,
         Option: () => (
           <Select onValueChange={(val) => switchLanguage(val as Locale)}>
-            <SelectTrigger className="w-[110px] sm:w-[140px]">
+            <SelectTrigger size="sm" className="w-[110px] sm:w-[140px]">
               <SelectValue
                 className="capitalize"
                 placeholder={capitalize(intl.formatDisplayName(locale, { type: "language" }) || "")}
@@ -136,7 +127,7 @@ export const AppSettings: React.FC = () => {
     ]
   );
 
-  const handleRefreshApp = async () => {
+  const handleRefreshClick = () => {
     hapticLight();
     if (typeof navigator !== "undefined" && navigator.onLine === false) {
       toastService.info({
@@ -152,7 +143,11 @@ export const AppSettings: React.FC = () => {
       });
       return;
     }
+    setRefreshConfirmOpen(true);
+  };
 
+  const handleRefreshApp = async () => {
+    setIsRefreshing(true);
     try {
       toastService.loading({
         title: intl.formatMessage({
@@ -179,12 +174,12 @@ export const AppSettings: React.FC = () => {
       try {
         localStorage.removeItem("__rq_pc__");
       } catch (e) {
-        if (import.meta.env.DEV) console.debug("[AppRefresh] localStorage clear failed:", e);
+        logger.debug("[AppRefresh] localStorage clear failed:", { error: e });
       }
       try {
         indexedDB.deleteDatabase("gg-react-query");
       } catch (e) {
-        if (import.meta.env.DEV) console.debug("[AppRefresh] IndexedDB clear failed:", e);
+        logger.debug("[AppRefresh] IndexedDB clear failed:", { error: e });
       }
     } catch (err) {
       logger.debug("[AppRefresh] Best-effort cache clear failed:", { error: err });
@@ -245,16 +240,35 @@ export const AppSettings: React.FC = () => {
             variant="neutral"
             mode="stroke"
             size="small"
-            onClick={handleRefreshApp}
-            leadingIcon={<RiRefreshLine className="w-4" />}
+            onClick={handleRefreshClick}
             label={intl.formatMessage({
               id: "app.update.button",
               defaultMessage: "Refresh",
             })}
-            className="shrink-0"
+            className="w-[110px] shrink-0 sm:w-[140px]"
           />
         </div>
       </Card>
+
+      <ConfirmDialog
+        isOpen={refreshConfirmOpen}
+        onClose={() => setRefreshConfirmOpen(false)}
+        onConfirm={handleRefreshApp}
+        title={intl.formatMessage({
+          id: "app.update.confirmTitle",
+          defaultMessage: "Refresh app?",
+        })}
+        description={intl.formatMessage({
+          id: "app.update.confirmDescription",
+          defaultMessage:
+            "This clears cached data and reloads the app to fetch the latest version. Your saved drafts and pending submissions are kept.",
+        })}
+        confirmLabel={intl.formatMessage({
+          id: "app.update.confirmAction",
+          defaultMessage: "Refresh",
+        })}
+        isLoading={isRefreshing}
+      />
     </>
   );
 };

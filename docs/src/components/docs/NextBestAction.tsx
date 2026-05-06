@@ -1,4 +1,5 @@
 import Link from "@docusaurus/Link";
+import {RiArrowRightLine} from "@remixicon/react";
 import styles from "./styles.module.css";
 
 type NextBestActionProps = {
@@ -7,6 +8,7 @@ type NextBestActionProps = {
   actionLabel: string;
   actionHref: string;
   alternatives?: Array<{label: string; href: string}>;
+  markerLabel?: string;
 };
 
 export function NextBestAction({
@@ -15,13 +17,16 @@ export function NextBestAction({
   actionLabel,
   actionHref,
   alternatives = [],
+  markerLabel = "Next page",
 }: NextBestActionProps) {
   return (
-    <section className={styles.nextAction}>
+    <section className={styles.nextAction} aria-label={markerLabel}>
+      <p className={styles.nextActionMarker}>{markerLabel}</p>
       <h2 className={styles.nextActionTitle}>{title}</h2>
       <p className={styles.nextActionWhy}>{why}</p>
       <Link to={actionHref} className={styles.nextActionPrimary}>
-        {actionLabel}
+        <span>{actionLabel}</span>
+        <RiArrowRightLine aria-hidden="true" />
       </Link>
       {alternatives.length ? (
         <ul className={styles.nextActionAlternatives}>

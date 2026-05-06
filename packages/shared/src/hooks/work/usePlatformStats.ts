@@ -5,7 +5,7 @@ import { STALE_TIMES } from "../../config/react-query";
 import { logger } from "../../modules/app/logger";
 import { getGardenAssessments, getWorkApprovals, getWorks } from "../../modules/data/eas";
 import type { EASGardenAssessment, EASWork, EASWorkApproval } from "../../types/eas-responses";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 
 export interface PlatformStats {
   totalWorks: number;

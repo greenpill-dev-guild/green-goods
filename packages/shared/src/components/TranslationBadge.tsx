@@ -1,3 +1,4 @@
+import { RiGlobalLine } from "@remixicon/react";
 import { useContext } from "react";
 import { browserTranslator } from "../modules/translation/browser-translator";
 import { AppContext } from "../providers/App";
@@ -11,7 +12,7 @@ export function TranslationBadge() {
 
   return (
     <div className="inline-flex items-center gap-1 rounded-md bg-bg-soft px-2 py-1 text-xs text-text-soft">
-      <span>🌐</span>
+      <RiGlobalLine className="h-3.5 w-3.5" aria-hidden="true" />
       <span>Auto-translated</span>
     </div>
   );

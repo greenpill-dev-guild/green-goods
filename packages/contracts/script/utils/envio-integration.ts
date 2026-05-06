@@ -2,6 +2,7 @@ import { type ChildProcess, execSync, spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as yaml from "js-yaml";
+import { getFoundryBroadcastPath } from "./paths";
 
 interface EnvioContract {
   name: string;
@@ -35,6 +36,7 @@ interface DeploymentData {
   marketplaceAdapter?: string;
   unifiedPowerRegistry?: string;
   greenGoodsENS?: string;
+  greenWill?: string;
   [key: string]: string | undefined;
 }
 
@@ -65,6 +67,7 @@ const INDEXER_MANAGED_CONTRACT_ORDER = [
   "HypercertMarketplaceAdapter",
   "UnifiedPowerRegistry",
   "GreenGoodsENS",
+  "GreenWill",
 ] as const;
 
 const INDEXER_MANAGED_CONTRACTS = new Set<string>(INDEXER_MANAGED_CONTRACT_ORDER);
@@ -271,6 +274,7 @@ export class EnvioIntegration {
       upsertContract("HypercertMarketplaceAdapter", deployment.marketplaceAdapter);
       upsertContract("UnifiedPowerRegistry", deployment.unifiedPowerRegistry);
       upsertContract("GreenGoodsENS", deployment.greenGoodsENS);
+      upsertContract("GreenWill", deployment.greenWill);
       // Some contracts may be absent in deployment JSON for specific networks.
       // In that case, we preserve existing config entries (including placeholders).
       upsertContract("YieldSplitter", deployment.yieldSplitter);
@@ -345,6 +349,9 @@ export class EnvioIntegration {
       if (deployment.yieldSplitter && deployment.yieldSplitter !== ZERO_ADDRESS) {
         console.log(`   YieldSplitter: ${deployment.yieldSplitter}`);
       }
+      if (deployment.greenWill && deployment.greenWill !== ZERO_ADDRESS) {
+        console.log(`   GreenWill: ${deployment.greenWill}`);
+      }
       console.log(`   start_block: ${startBlock}`);
 
       return deployment;
@@ -359,7 +366,6 @@ export class EnvioIntegration {
    * Disable local chain config (cleanup method for localhost deployments)
    */
   async disableLocalChainConfig(): Promise<void> {
-    // This is a placeholder for cleanup logic
     console.log("🧹 Disabling local chain config...");
   }
 
@@ -384,7 +390,7 @@ export class EnvioIntegration {
    */
   getStartBlockFromBroadcast(chainId: string): number | null {
     try {
-      const broadcastPath = path.join(__dirname, "../../broadcast/Deploy.s.sol", chainId, "run-latest.json");
+      const broadcastPath = getFoundryBroadcastPath("Deploy.s.sol", chainId, "run-latest.json");
       if (!fs.existsSync(broadcastPath)) {
         return null;
       }

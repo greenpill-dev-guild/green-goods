@@ -1,67 +1,126 @@
 ---
-title: Funding A Garden
-sidebar_label: Funding A Garden
+title: Endow a Garden
+sidebar_label: Endow a Garden
 slug: /community/funder-guide/funding-a-garden
-sidebar_position: 1
+description: "Endow a garden by depositing supported assets into its vault from the app or public Fund page."
 audience: funder
 owner: docs
-last_verified: 2026-03-11
-feature_status: Planned
+last_verified: 2026-05-01
+feature_status: Live
+image: /img/social/funding-a-garden.webp
+goal: "Walk a funder through endowing a garden's vault, either from the authenticated app or the public /fund page."
+difficulty: "quickstart"
+estimated_time: "5-10 minutes for a first endowment."
+prereqs: "Connected wallet, a supported asset on Arbitrum, and a garden with an active vault."
+next_steps: "./withdraw-from-a-vault"
+persona_context: "Funders making their first or recurring endowment into a garden vault."
+source_of_truth:
+  - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
+  - packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx
+  - packages/client/src/views/Public/Fund.tsx
+  - packages/client/src/components/Public/PublicFundingMethodSelector.tsx
+  - packages/client/src/components/Dialogs/VaultDepositDialog.tsx
+  - packages/shared/src/hooks/vault/useVaultDeposit.ts
 keywords:
-  - funding
-  - vault
+  - funder
+  - endow
   - deposit
-  - octant
-  - hypercert
+  - vault
+  - treasury drawer
+  - fund page
 ---
 
-import {NextBestAction} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/docs";
 
-# Funding A Garden
+# Endow a Garden
 
-Green Goods makes it simple to fund regenerative communities through **vault deposits** and **Hypercert purchases**. Your capital directly supports verified impact work.
+<StatusBadge status="Live" />
 
-## How Funding Works
+<GuideOpener
+  image="/img/social/funding-a-garden.webp"
+  alt="A funder placing a gold token into a transparent garden vault"
+  label="Funder chapter"
+  roleAccent="funder"
+>
+  Choose a garden, enter an amount, then deposit into its vault.
+</GuideOpener>
 
-Funding in Green Goods flows through two primary mechanisms:
+## What this helps you do
 
-### Vault Deposits
+Endow a garden by depositing supported assets into its vault. The vault is designed to preserve your principal while yield supports the garden. You receive a withdrawable position that you can remove later.
 
-**Octant Vaults** are impact-vault deposit contracts attached to each garden. When you deposit ERC-20 tokens:
+The UI still uses the word **Deposit** inside the vault dialog and Treasury drawer. In these docs, **Endow** means making that vault deposit.
 
-1. Your deposit adds principal to the garden endowment
-2. Strategies may generate yield in the background while depositor claim value stays flat by design
-3. When harvested, yield is split three ways:
-   - **Cookie Jar** — Petty cash for gardeners' daily operations
-   - **Hypercert Fractions** — Purchasing impact certificate fractions
-   - **Community Endowment** — Long-term community treasury
+There are two entry points:
 
-Your principal stays in the vault, and harvested yield funds garden operations through protocol routing rather than depositor share appreciation. You can withdraw your deposit at any time.
+- **Public `/fund` page.** Good for shared links and first-time support. It lets you choose **Endow** and deposit by wallet.
+- **Authenticated app Treasury drawer.** Best when you are already signed in and want to see your active position in the same place.
 
-### Hypercert Purchases
+## Before you start
 
-**Hypercerts** are tokenized impact certificates that represent verified regenerative work. When you purchase a Hypercert fraction:
+- A connected wallet or passkey account.
+- A supported token balance on Arbitrum.
+- A little Arbitrum gas if you use an external wallet. Passkey or smart-account actions may be sponsored when that support is configured.
+- The garden you want to endow.
+- A live internet connection.
 
-- You directly fund the community that created the verified impact
-- You receive an ERC-1155 token representing your share of the impact claim
-- The purchase is transparent and verifiable on-chain
+:::tip
+Endowments carry smart contract, token, yield, provider, and wallet recovery risk. Only endow what you are comfortable managing through this flow.
+:::
 
-## Getting Started
+## Step-by-step flow
 
-1. **Browse active gardens** on the [Green Goods Dashboard](https://admin.greengoods.app)
-2. **Review verified impact** — Each garden shows its attestation history, work volume, and approval rates
-3. **Deposit into a vault** or **purchase Hypercert fractions** to fund the work you believe in
-4. **Track your impact** — Monitor routed yield, garden health, and funded outcomes over time
+### Option A: Endow from the public `/fund` page
 
----
+Use this when you are coming from a public garden link.
+
+1. Open `/fund`.
+2. Pick the garden you want to support.
+3. Click **Support this Garden**.
+4. Choose **Endow**.
+5. Choose **Wallet**. If you are not connected yet, connect when prompted.
+6. In the vault dialog, pick the asset if more than one is available.
+7. Enter the amount and click **Deposit**.
+8. Sign the transaction and wait for confirmation.
+
+### Option B: Endow from the authenticated app
+
+Use this when you want to see the full Treasury drawer.
+
+1. Sign in to the Green Goods app.
+2. Open **Home**, then open the garden.
+3. Tap **Treasury** in the top bar.
+4. Stay on the **Endowments** tab.
+5. Review the overview, including asset, net deposited, and depositor count.
+6. Pick the asset if more than one vault is available.
+7. Enter the amount. Use **Max** only if you want to use the whole wallet balance for that asset.
+8. Check the estimated shares preview.
+9. Tap **Deposit** and sign the transaction.
+10. Wait for confirmation before closing the drawer.
+
+## How to know it worked
+
+- The amount input clears or the dialog closes after success.
+- Your wallet history shows the vault deposit transaction on Arbitrum.
+- In the Treasury drawer, **Active deposits** shows your asset, available balance, and shares after the app refreshes.
+- The Treasury overview updates after indexing catches up.
+
+## If something goes wrong
+
+- **No vault or Treasury button.** The garden has not enabled a vault yet.
+- **Connect wallet prompt appears.** Connect the wallet or passkey account that should hold the endowment position.
+- **Offline warning.** Reconnect and retry.
+- **Amount exceeds wallet balance.** Enter a smaller amount or use **Max**.
+- **Invalid decimal input.** Match the token's decimal precision.
+- **Transaction cancelled.** Nothing was deposited. Try again when ready.
+- **Transaction failed.** Check the wallet error, token balance, chain, and Arbitrum gas.
+- **Still stuck.** Use the Green Goods Telegram support link in the docs footer.
+
+## Next step
 
 <NextBestAction
-  title="Next: Earning Recognition"
-  why="Learn how funders earn recognition for supporting regenerative work."
-  actionLabel="Earning Recognition"
-  actionHref="/community/funder-guide/earning-recognition"
-  alternatives={[
-    { label: "Vaults & Hypercerts", href: "/community/funder-guide/vaults-and-hypercerts" },
-    { label: "How It Works", href: "/community/how-it-works" }
-  ]}
+  title="Remove an endowment"
+  why="Endowing does not lock you in forever. Learn where the withdraw controls live before you need them."
+  actionLabel="Remove an Endowment"
+  actionHref="./withdraw-from-a-vault"
 />

@@ -217,11 +217,22 @@ contract UpgradeENSReceiver is Script {
     /// @param nameTypes Array of name types: 0 = Gardener, 1 = Garden (parallel to slugs)
     function migrateRegistrations(
         address newReceiver,
-        string[] calldata slugs,
-        address[] calldata owners,
-        uint8[] calldata nameTypes
+        string[] memory slugs,
+        address[] memory owners,
+        uint8[] memory nameTypes
     )
         public
+    {
+        _migrateRegistrations(newReceiver, slugs, owners, nameTypes);
+    }
+
+    function _migrateRegistrations(
+        address newReceiver,
+        string[] memory slugs,
+        address[] memory owners,
+        uint8[] memory nameTypes
+    )
+        internal
     {
         require(slugs.length == owners.length && slugs.length == nameTypes.length, "Array length mismatch");
 
@@ -269,7 +280,7 @@ contract UpgradeENSReceiver is Script {
             nameTypes[i] = uint8(rawNameTypes[i]);
         }
 
-        this.migrateRegistrations(newReceiver, slugs, owners, nameTypes);
+        _migrateRegistrations(newReceiver, slugs, owners, nameTypes);
     }
 
     // ═══════════════════════════════════════════════════════

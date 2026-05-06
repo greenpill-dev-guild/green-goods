@@ -17,7 +17,7 @@ import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { useAuth } from "../auth/useAuth";
-import { queryInvalidation, queryKeys, STALE_TIME_RARE } from "../query-keys";
+import { queryInvalidation, queryKeys, STALE_TIME_RARE } from "../../config/query-keys";
 
 export interface UseMarketplaceApprovalsResult {
   approvals: MarketplaceApprovals | null;

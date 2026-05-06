@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "ens-operations-optimizations",
+    "title": "ENS Operations Optimizations",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-04-25T23:55:33Z",
+    "updated_at": "2026-05-03T19:17:16.238Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Captures future ENS reliability work after the core claim, release, migration, and sponsor-funding paths are deployable.",
+    "Do not block the immediate ENS deploy on this backlog hub.",
+    "Onchain receiver state remains the final source of truth; indexer/admin surfaces are operational projections."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/ens-operations-optimizations",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "admin", "ops"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/ens-operations-optimizations",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["react", "tanstack-query", "contracts"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/contracts/ens-operations-optimizations",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["solidity", "deploy", "ops"]
+    },
+    "indexer": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/indexer/ens-operations-optimizations",
+      "depends_on": [],
+      "handoff": "handoffs/codex-indexer.md",
+      "skill_tags": ["envio", "events"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/ens-operations-optimizations",
+      "depends_on": ["ui", "state_api", "contracts", "indexer"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/ens-operations-optimizations",
+      "branch_trigger": "claude/qa-pass-1/ens-operations-optimizations",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-25T23:55:33Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Captured future ENS operations and reliability optimizations after core deploy readiness work."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "identity-ens",
+    "tracks": ["contracts", "indexer", "shared", "client"],
+    "work_types": ["implementation", "ops", "qa"],
+    "surfaces": ["packages/contracts", "packages/indexer", "packages/shared", "packages/client"],
+    "depends_on_features": ["ens-l2-sender-admin-recovery"]
+  }
+}

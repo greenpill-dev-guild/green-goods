@@ -4,19 +4,28 @@ sidebar_label: Agent
 slug: /builders/packages/agent
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-19
+feature_status: Live
+source_of_truth:
+  - packages/agent/AGENTS.md
+  - packages/agent/package.json
+  - packages/agent/src/index.ts
+  - packages/agent/README.md
 ---
 
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
+
 # Agent Package
+
+<StatusBadge status="Live" />
 
 ```mermaid
 sequenceDiagram
     participant G as Gardener
     participant TG as Telegram
-    participant Bot as Agent Bot<br/>(Fastify + Telegraf)
+    participant Bot as Agent Bot<br/>(Hono + Telegraf)
     participant Chain as Blockchain
-    participant IPFS as Storacha IPFS
+    participant IPFS as Pinata-backed IPFS
 
     G->>TG: /submit work
     TG->>Bot: Webhook
@@ -28,14 +37,39 @@ sequenceDiagram
     TG->>G: Work submitted
 ```
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
-
 ## Overview
-AI agent service for automated workflows and community interaction.
 
-## What to Expect
-- Agent architecture
-- Integration with Claude and other LLMs
-- Automation workflows
+Bot, webhook, and limited public API service for Green Goods. The current package centers on Telegram, Hono, AI-assisted media/text handling, rate limiting, upload signing, persistence, analytics, and blockchain initialization paths.
+
+### Current capabilities
+
+- Telegram bot startup and webhook handling through the package entrypoint.
+- Hono HTTP server support around the bot runtime, public browser APIs, and upload signing.
+- AI-assisted transcription/photo/text processing paths.
+- Rate limiting, database integration, analytics, and structured logging.
+- Blockchain service initialization for Green Goods transaction flows.
+
+## What to expect
+
+- Keep platform claims tied to implemented handlers in this package.
+- Keep analytics privacy boundaries aligned with the package README.
+- Validate agent changes through package tests before claiming bot behavior is live.
+
+## Commands
+
+```bash
+cd packages/agent
+bun run test
+bun run build
+```
+
+<NextBestAction
+  title="Next best action"
+  why="The agent package depends on deployment artifacts and shared data paths for on-chain work."
+  actionLabel="Open API index"
+  actionHref="./api-index"
+  alternatives={[
+    {label: "Agent deploy", href: "../deployments/agent-deploy"},
+    {label: "MCP guide", href: "../agentic/mcp-guide"},
+  ]}
+/>

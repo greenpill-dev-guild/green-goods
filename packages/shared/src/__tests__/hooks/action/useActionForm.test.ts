@@ -17,6 +17,8 @@ function createValidFormData(
 ): Record<string, unknown> {
   return {
     title: "Plant Trees",
+    slug: "agro.plant_trees",
+    domain: 1,
     startTime: new Date("2025-01-01"),
     endTime: new Date("2025-12-31"),
     capitals: [1, 2],
@@ -39,9 +41,12 @@ function createValidFormData(
           feedbackPlaceholder: "How did it go?",
           inputs: [
             {
-              id: "species",
+              key: "species",
+              title: "Tree species",
+              placeholder: "e.g., Oak",
               type: "text",
-              label: "Tree species",
+              required: true,
+              options: [],
             },
           ],
         },
@@ -91,6 +96,50 @@ describe("createActionSchema", () => {
       delete (data as Record<string, unknown>).title;
       const result = createActionSchema.safeParse(data);
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe("slug validation", () => {
+    it("rejects empty slug", () => {
+      const data = createValidFormData({ slug: "" });
+      const result = createActionSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const slugIssue = result.error.issues.find((i) => i.path.includes("slug"));
+        expect(slugIssue?.message).toBe("Slug is required");
+      }
+    });
+
+    it("rejects invalid slug format", () => {
+      const data = createValidFormData({ slug: "waste-repair-event" });
+      const result = createActionSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const slugIssue = result.error.issues.find((i) => i.path.includes("slug"));
+        expect(slugIssue?.message).toBe('Slug must use format "domain.action_name"');
+      }
+    });
+
+    it("rejects slug that does not match selected domain", () => {
+      const data = createValidFormData({ slug: "waste.repair_event", domain: 1 });
+      const result = createActionSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const slugIssue = result.error.issues.find((i) => i.path.includes("slug"));
+        expect(slugIssue?.message).toBe('Slug must start with "agro." for the selected domain');
+      }
+    });
+  });
+
+  describe("domain validation", () => {
+    it("rejects invalid domain", () => {
+      const data = createValidFormData({ domain: 99 as unknown as 0 });
+      const result = createActionSchema.safeParse(data);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        const domainIssue = result.error.issues.find((i) => i.path.includes("domain"));
+        expect(domainIssue?.message).toBe("Select a valid domain");
+      }
     });
   });
 
@@ -159,14 +208,45 @@ describe("createActionSchema", () => {
       >;
       config.uiConfig.details.inputs = [
         {
-          id: "species",
-          type: "text",
-          label: "Tree species",
+          key: "species",
+          title: "Tree species",
           placeholder: "e.g., Oak",
+          type: "text",
           required: true,
+          options: [],
         },
       ];
       const result = createActionSchema.safeParse(data);
+      expect(result.success).toBe(true);
+    });
+
+    it("accepts shared WorkInput field definitions", () => {
+      const data = createValidFormData();
+      const config = data.instructionConfig as Record<
+        string,
+        Record<string, Record<string, unknown>>
+      >;
+      config.uiConfig.details.inputs = [
+        {
+          key: "itemCategoriesRepaired",
+          title: "Item categories repaired",
+          placeholder: "Select all categories repaired",
+          type: "multi-select",
+          required: false,
+          options: ["Electronics", "Clothing/Textiles", "Other"],
+        },
+        {
+          key: "notes",
+          title: "Notes/feedback",
+          placeholder: "Share any notes from the event",
+          type: "textarea",
+          required: false,
+          options: [],
+        },
+      ];
+
+      const result = createActionSchema.safeParse(data);
+
       expect(result.success).toBe(true);
     });
   });
@@ -178,6 +258,8 @@ describe("createActionSchema", () => {
       if (result.success) {
         const formData: CreateActionFormData = result.data;
         expect(formData.title).toBe("Plant Trees");
+        expect(formData.slug).toBe("agro.plant_trees");
+        expect(formData.domain).toBe(1);
         expect(formData.capitals).toEqual([1, 2]);
         expect(formData.instructionConfig.description).toBe(
           "Plant native trees in the garden area"

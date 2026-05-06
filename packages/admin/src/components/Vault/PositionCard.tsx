@@ -1,27 +1,27 @@
 import {
   type Address,
+  Card,
+  ConfirmDialog,
   formatAddress,
   formatTokenAmount,
-  getBlockExplorerAddressUrl,
   type GardenVault,
+  getBlockExplorerAddressUrl,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   OCTANT_VAULT_ABI,
   useCurrentChain,
-  useEnableAutoAllocate,
   useEmergencyPause,
+  useEnableAutoAllocate,
   useHarvest,
   useUser,
   useVaultPreview,
   ZERO_ADDRESS,
 } from "@green-goods/shared";
-import * as Dialog from "@radix-ui/react-dialog";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { AdminButton } from "@/components/AdminButton";
 
 interface PositionCardProps {
   gardenAddress: Address;
@@ -186,8 +186,8 @@ export function PositionCard({
       </p>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <Button
-          variant="secondary"
+        <AdminButton
+          variant="tonal"
           size="sm"
           onClick={() => onDeposit(vault.asset)}
           disabled={!vaultAcceptingDeposits}
@@ -198,18 +198,18 @@ export function PositionCard({
           }
         >
           {formatMessage({ id: "app.treasury.deposit" })}
-        </Button>
-        <Button variant="secondary" size="sm" onClick={() => onWithdraw(vault.asset)}>
+        </AdminButton>
+        <AdminButton variant="tonal" size="sm" onClick={() => onWithdraw(vault.asset)}>
           {formatMessage({ id: "app.treasury.withdraw" })}
-        </Button>
+        </AdminButton>
       </div>
 
       {/* Auto-allocation repair — only shown for the specific legacy misconfiguration
            (deposit limit zero + not shutdown), not for paused/full/generic states */}
       {isLegacyMisconfiguration && isModuleOwner && (
         <div className="mt-2">
-          <Button
-            variant="secondary"
+          <AdminButton
+            variant="outlined"
             size="sm"
             className="w-full border-warning-base bg-warning-lighter text-warning-dark hover:bg-warning-light"
             onClick={onEnableAutoAllocate}
@@ -217,22 +217,23 @@ export function PositionCard({
             loading={enableAutoAllocate.isPending}
           >
             {formatMessage({ id: "app.treasury.enableAutoAllocate" })}
-          </Button>
+          </AdminButton>
         </div>
       )}
 
       {canManage && (
         <div className="mt-2">
           <div className="grid grid-cols-2 gap-2">
-            <Button
+            <AdminButton
+              variant="filled"
               size="sm"
               onClick={onHarvest}
               disabled={harvest.isPending}
               loading={harvest.isPending}
             >
               {formatMessage({ id: "app.treasury.harvest" })}
-            </Button>
-            <Button
+            </AdminButton>
+            <AdminButton
               variant="danger"
               size="sm"
               onClick={() => setConfirmPauseOpen(true)}
@@ -240,38 +241,22 @@ export function PositionCard({
               loading={emergencyPause.isPending}
             >
               {formatMessage({ id: "app.treasury.emergencyPause" })}
-            </Button>
+            </AdminButton>
           </div>
         </div>
       )}
 
-      {/* Emergency pause confirmation dialog */}
-      <Dialog.Root open={confirmPauseOpen} onOpenChange={setConfirmPauseOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[9999] bg-overlay backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-[10000] w-full max-w-[calc(100vw-2rem)] sm:max-w-md -translate-x-1/2 -translate-y-1/2 rounded-lg bg-bg-white p-6 shadow-2xl focus:outline-none">
-            <Dialog.Title className="text-lg font-semibold text-text-strong">
-              {formatMessage({ id: "app.treasury.emergencyPauseTitle" })}
-            </Dialog.Title>
-            <Dialog.Description className="mt-2 text-sm text-text-sub">
-              {formatMessage({ id: "app.treasury.emergencyPauseDescription" })}
-            </Dialog.Description>
-            <div className="mt-6 flex items-center justify-end gap-3">
-              <Dialog.Close asChild>
-                <Button variant="secondary">{formatMessage({ id: "app.wizard.cancel" })}</Button>
-              </Dialog.Close>
-              <Button
-                variant="danger"
-                onClick={onConfirmPause}
-                disabled={emergencyPause.isPending}
-                loading={emergencyPause.isPending}
-              >
-                {formatMessage({ id: "app.treasury.emergencyPause" })}
-              </Button>
-            </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      <ConfirmDialog
+        isOpen={confirmPauseOpen}
+        onClose={() => setConfirmPauseOpen(false)}
+        onConfirm={onConfirmPause}
+        title={formatMessage({ id: "app.treasury.emergencyPauseTitle" })}
+        description={formatMessage({ id: "app.treasury.emergencyPauseDescription" })}
+        confirmLabel={formatMessage({ id: "app.treasury.emergencyPause" })}
+        cancelLabel={formatMessage({ id: "app.wizard.cancel" })}
+        variant="danger"
+        isLoading={emergencyPause.isPending}
+      />
     </Card>
   );
 }

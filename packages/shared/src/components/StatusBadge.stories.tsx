@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { StatusBadge } from "./StatusBadge";
 
 const meta: Meta<typeof StatusBadge> = {
-  title: "Primitives/StatusBadge",
+  title: "Shared/Primitives/StatusBadge",
   component: StatusBadge,
   tags: ["autodocs"],
   argTypes: {
@@ -119,6 +119,36 @@ export const SemanticVariant: Story = {
       <StatusBadge status="pending" variant="semantic" />
     </div>
   ),
+};
+
+export const AdminTones: Story = {
+  render: () => (
+    <div className="flex flex-wrap gap-2">
+      <StatusBadge variant="success" size="sm">
+        Deployed
+      </StatusBadge>
+      <StatusBadge variant="warning" size="sm">
+        Pending review
+      </StatusBadge>
+      <StatusBadge variant="error" size="sm">
+        Not deployed
+      </StatusBadge>
+      <StatusBadge variant="info" size="sm">
+        Syncing
+      </StatusBadge>
+      <StatusBadge variant="neutral" size="sm">
+        Draft
+      </StatusBadge>
+    </div>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Generic icon + text + color badges for admin operational states. Use these for contract, deployment, and workspace status instead of color-only pills.",
+      },
+    },
+  },
 };
 
 export const DarkMode: Story = {

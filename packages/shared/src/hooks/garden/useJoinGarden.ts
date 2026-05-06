@@ -10,7 +10,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { readContract } from "@wagmi/core";
 import type { SmartAccountClient } from "permissionless";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { type Address, encodeFunctionData, type Hex } from "viem";
 import { useWriteContract } from "wagmi";
@@ -44,7 +44,7 @@ import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { simulateJoinGarden } from "../../utils/blockchain/simulation";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
-import { queryKeys } from "../query-keys";
+import { queryKeys } from "../../config/query-keys";
 import { useDelayedInvalidation } from "../utils/useTimeout";
 
 /**
@@ -82,6 +82,16 @@ export async function checkGardenOpenJoining(gardenAddress: Address): Promise<bo
 const PENDING_JOINS_KEY = "greengoods:pending-joins";
 const PENDING_JOIN_TTL = 15 * 60 * 1000; // 15 minutes — generous to avoid UI flash during indexer lag
 
+// In-tab subscriber pattern. localStorage's `storage` event only fires across
+// tabs; this lets same-tab consumers (useMemo on garden filters) retrigger
+// when a join confirms or expires inside the current tab.
+const pendingJoinsSubscribers = new Set<() => void>();
+function notifyPendingJoinsChanged() {
+  for (const listener of pendingJoinsSubscribers) {
+    listener();
+  }
+}
+
 function getPendingJoins(): Record<string, { address: string; timestamp: number }> {
   if (typeof window === "undefined") return {};
   try {
@@ -96,6 +106,7 @@ function addPendingJoin(gardenId: string, userAddress: string) {
   const pending = getPendingJoins();
   pending[gardenId] = { address: userAddress, timestamp: Date.now() };
   localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  notifyPendingJoinsChanged();
 }
 
 function removePendingJoin(gardenId: string) {
@@ -103,6 +114,26 @@ function removePendingJoin(gardenId: string) {
   const pending = getPendingJoins();
   delete pending[gardenId];
   localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
+  notifyPendingJoinsChanged();
+}
+
+/**
+ * Subscribe to pending-join changes inside this tab. Used by garden-membership
+ * filter memos so optimistic UI updates immediately on join/release without
+ * waiting for an unrelated render trigger.
+ *
+ * @returns an incrementing counter; use it as a `useMemo`/`useEffect` dep.
+ */
+export function usePendingJoinsVersion(): number {
+  const [version, setVersion] = useState(0);
+  useEffect(() => {
+    const listener = () => setVersion((prev) => prev + 1);
+    pendingJoinsSubscribers.add(listener);
+    return () => {
+      pendingJoinsSubscribers.delete(listener);
+    };
+  }, []);
+  return version;
 }
 
 /**

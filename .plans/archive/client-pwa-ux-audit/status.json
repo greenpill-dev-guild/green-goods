@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "client-pwa-ux-audit",
+    "title": "Client PWA UX Audit",
+    "kind": "quality",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "completed",
+    "priority": "p1",
+    "created_at": "2026-05-04T00:00:00.000Z",
+    "updated_at": "2026-05-04T03:00:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "audit.md",
+    "plan": "plan.todo.md"
+  },
+  "taxonomy": {
+    "initiative": "release-readiness",
+    "tracks": ["client-pwa", "client", "shared"],
+    "work_types": ["review", "qa", "implementation"],
+    "surfaces": ["packages/client", "packages/shared"],
+    "depends_on_features": ["client-pwa-gardener-audit"]
+  },
+  "notes": [
+    "Audit compiled by three parallel oracle agents on 2026-05-04 across auth+entry, work+sync, and profile+personal flow groups.",
+    "Three highest-confidence fixes shipped same session: AppSettings refresh confirm dialog, AccountInfo address icon swap, ENSSection aria-label i18n.",
+    "Remaining work is grouped into 5 tiers in plan.todo.md. Tier 1 is release-blocking; Tier 5 is coordination work outside this lane."
+  ],
+  "lanes": {
+    "tier_1": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": [],
+      "handoff": "",
+      "skill_tags": ["react", "review", "testing"],
+      "scope": "F-X-2, F-GARDEN-3, F-WIZ-1, F-SYNC-2 — release-blocking risk"
+    },
+    "tier_2": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": ["tier_1"],
+      "handoff": "",
+      "skill_tags": ["react", "ui"],
+      "scope": "F-GARDEN-2, F-WIZ-2, F-WORK-1, F-WORK-2, F-BADGES-1, F-DRAFTS-1 — UX gaps"
+    },
+    "tier_3": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": ["tier_1"],
+      "handoff": "",
+      "skill_tags": ["react", "principles", "audit"],
+      "scope": "F-ASSESS-1 (reframed), F-HOME-1, F-LOGIN-1, F-LOGIN-2, F-ENS-1, F-ENS-2 (deferred), F-SYNC-1, F-GARDEN-1"
+    },
+    "tier_4": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": ["tier_1"],
+      "handoff": "",
+      "skill_tags": ["testing"],
+      "scope": "F-ASSESS-2, F-DRAFTS-1 (tests), F-TOAST-1, F-X-1 (closed — covered by tests/specs)"
+    },
+    "tier_5": {
+      "owner": "unassigned",
+      "status": "n/a",
+      "branch": "",
+      "depends_on": [],
+      "handoff": "",
+      "skill_tags": ["ops"],
+      "scope": "F-X-3, F-X-4 — coordination work, not lane-internal"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-04T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "created",
+      "branch": null,
+      "note": "Plan created from 3-agent audit. Three highest-confidence fixes shipped on develop in the same session: AppSettings confirm dialog, AccountInfo icon, ENSSection aria-labels."
+    },
+    {
+      "timestamp": "2026-05-04T02:10:00.000Z",
+      "actor": "claude",
+      "lane": "tier_1",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Tier 1 shipped: F-X-2 chain-id boot warn (blockchain.ts), F-GARDEN-3 isError branching with retry CTA (Home/Garden/index.tsx + 2 i18n keys), F-WIZ-1 compression-failure toast replacing uncompressed fallback (Garden/Media.tsx + 2 i18n keys), F-SYNC-2 Array.isArray shape guard on approval setQueriesData (JobQueue.tsx). Validation: 2900/2901 shared tests pass; 16 JobQueueProvider, 5 Garden, 8 Media, 2 HomeGarden client tests pass; format + lint:vocab clean."
+    },
+    {
+      "timestamp": "2026-05-04T02:25:00.000Z",
+      "actor": "claude",
+      "lane": "tier_2",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Tier 2 shipped: F-WIZ-2 truncation info-toast with ICU plural (Media.tsx + 2 i18n keys); F-WORK-1 explicit queryClient.invalidateQueries on retry success (Home/Garden/Work.tsx); F-WORK-2 offline notice in approval footer gated by useOffline (Work.tsx + 1 i18n key); F-BADGES-1 isGreenWillDeployed helper (blockchain.ts + index.ts + config/index.ts) and wrong-chain branch in Badges.tsx (+ 2 i18n keys, test mock updated); F-DRAFTS-1 44x44 tap target with vertical centering (DraftCard.tsx); F-GARDEN-2 ResizeObserver-driven spacer height (Home/Garden/index.tsx). Validation: 30/30 client tests pass on impacted surfaces (HomeGarden, Garden, Media, ProfileBadges, DraftsTab); 16/16 JobQueueProvider; 6/6 useGreenWillHooks; format + lint:vocab clean."
+    },
+    {
+      "timestamp": "2026-05-04T02:38:00.000Z",
+      "actor": "claude",
+      "lane": "tier_3",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Tier 3 shipped: F-HOME-1 useMatch route-shape lookup (Home/index.tsx); F-LOGIN-1 reset walletRestoreAttemptedRef on RETRY (Auth.tsx); F-LOGIN-2 exact match on canonical AUTH connector IDs (Auth.tsx); F-ENS-1 reset ensNotifiedRef on release success (ENSSection.tsx); F-SYNC-1 hoisted isFlushInProgress to useRef across effect re-runs (JobQueue.tsx); F-GARDEN-1 in-tab subscriber + usePendingJoinsVersion hook (useJoinGarden.ts), wired into 3 consumers (WorkProvider, Home/Garden, Profile/GardensList). F-ASSESS-1 reframed (PageHeader admin-only; chrome hidden on /assessments/* makes Rule 17 inapplicable); F-ENS-2 deferred (FormField doesn't support suffix-preview + mid-input icon needs). Validation: 201/201 shared tests pass (JobQueueProvider + WorkProvider + garden hooks + blockchain config); 52/52 client tests pass (Home, HomeGarden, Login, ENSSection, AppSettings, AccountInfo, GardensList); format + lint:vocab clean. Test mocks updated for usePendingJoinsVersion."
+    },
+    {
+      "timestamp": "2026-05-04T02:47:00.000Z",
+      "actor": "claude",
+      "lane": "tier_4",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Tier 4 shipped: F-ASSESS-2 new Assessment.test.tsx with 10 tests (not-found x2, full render, non-operator key/value metrics, operator JSON metrics, role-gated impact attestations, friendly indexed labels, missing-date/location fallbacks); F-DRAFTS-1 (tests) new DraftCard.test.tsx with 10 tests (title/garden/time, untitled fallback, thumbnail/icon fallback, image badge, step progress, resume/delete handlers, 44x44 tap target); F-TOAST-1 added 2 GardensList tests for delayed ENS-discovery toast (capture-based mock for set/clear, asserts 2000ms delay + callback fires info toast with context: 'ensDiscovery'); F-X-1 closed (covered by existing tests/specs Playwright suite). Validation: 38/38 tests pass across 4 files (Assessment 10, DraftCard 10, GardensList 11, DraftsTab 7); format + lint:vocab clean."
+    },
+    {
+      "timestamp": "2026-05-04T03:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "archived",
+      "branch": "develop",
+      "note": "All shipped + committed in d6e0bd69 'feat(client,shared): PWA UX audit — pre-release hardening across 4 tiers' (41 files, +1277/-156). Pre-existing test failures in Public*/SiteHeader/Cookies/HomeGardenWork resolved as part of the same commit (mock + stale-string fixes — agent owning that WIP had finished). Final validation: 388/388 client tests pass, 2900/2901 shared (1 pre-existing skip). Tier 5 (F-X-4 multi-agent uncommitted scope) remains for the agents owning those branches; not lane-internal."
+    }
+  ]
+}

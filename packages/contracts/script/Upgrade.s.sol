@@ -336,6 +336,38 @@ contract Upgrade is Script {
         vm.stopBroadcast();
     }
 
+    /// @notice Cross-wire YieldResolver and GardensModule after both implementations are upgraded.
+    /// @dev Required before GardensModule can auto-wire HypercertSignal pools into yield routing.
+    function wireYieldResolverGardensModule() public {
+        address resolver = loadProxyAddress("yieldSplitter");
+        address gardens = loadProxyAddress("gardensModule");
+        console.log("Cross-wiring YieldResolver and GardensModule");
+        console.log("YieldResolver:", resolver);
+        console.log("GardensModule:", gardens);
+
+        validateAddress(resolver, "YieldResolver");
+        validateAddress(gardens, "GardensModule");
+
+        vm.startBroadcast();
+
+        if (YieldResolver(resolver).gardensModule() != gardens) {
+            YieldResolver(resolver).setGardensModule(gardens);
+        }
+        if (GardensModule(gardens).yieldResolver() != resolver) {
+            GardensModule(gardens).setYieldResolver(resolver);
+        }
+
+        vm.stopBroadcast();
+
+        require(YieldResolver(resolver).gardensModule() == gardens, "yieldResolver.gardensModule mismatch");
+        require(GardensModule(gardens).yieldResolver() == resolver, "gardensModule.yieldResolver mismatch");
+
+        (bool wired, string memory missing) = GardensModule(gardens).isWiringComplete();
+        require(wired, string.concat("GardensModule wiring incomplete: ", missing));
+
+        console.log("YieldResolver and GardensModule cross-wired successfully");
+    }
+
     /// @notice Upgrade KarmaGAPModule
     function upgradeKarmaGAPModule() public {
         address proxy = loadProxyAddress("karmaGAPModule");
@@ -391,6 +423,13 @@ contract Upgrade is Script {
         vm.stopBroadcast();
     }
 
+    /// @notice Upgrade YieldResolver, GardensModule, then wire them together
+    function upgradeYieldGardensWiring() public {
+        upgradeYieldResolver();
+        upgradeGardensModule();
+        wireYieldResolverGardensModule();
+    }
+
     /// @notice Upgrade all contracts
     function upgradeAll() public {
         upgradeActionRegistry();
@@ -401,6 +440,7 @@ contract Upgrade is Script {
         upgradeDeployment();
         upgradeYieldResolver();
         upgradeGardensModule();
+        wireYieldResolverGardensModule();
         upgradeOctantModule();
         upgradeKarmaGAPModule();
         // NOTE: upgradeGardenerAccount() removed - Gardener.sol has been removed

@@ -5,8 +5,8 @@
 Green Goods exists to make verified regenerative work fundable at scale. Every engineering decision serves this core loop:
 
 ```
-Evidence Capture → Community Verification → Impact Certification → Capital Formation
-(Gardener)         (Operator)               (Evaluator)           (Funder)
+Evidence Capture → Community Verification → Impact Certification → Community Thriving → Capital Formation
+(Gardener)         (Operator)               (Evaluator)           (Community)          (Funder)
 ```
 
 **What we optimize for:**
@@ -65,12 +65,43 @@ When agent values conflict, resolve in this order (highest priority first):
    - **This means**: don't introduce a new state management pattern when Zustand/TanStack Query already covers it
    - **This means**: if an existing pattern is bad, fix the pattern everywhere — don't create a parallel approach
 
-6. **When genuinely uncertain, escalate**
+6. **Community capability over platform dependency**
+   - Build toward community self-sufficiency, not captive usage
+   - **This means**: prefer portable records, exports, and clear reporting over trapped-in-platform workflows
+   - **This means**: recognition should reflect capability and trust transitions, not addictive activity volume
+   - **This means**: if a workflow makes operators or funders faster but weakens community agency, revisit the tradeoff
+
+7. **When genuinely uncertain, escalate**
    - Never guess on ambiguous tradeoffs
    - Document the conflict and escalate to human
    - **This means**: "I'm not sure" is a valid and valuable response — it's better than a wrong guess
    - **This means**: if two CLAUDE.md rules conflict for your specific case, ask rather than pick one
    - **This means**: if test failures are confusing after 3 attempts, stop and report what you've tried
+
+## Criticality Matrix
+
+Choose review depth from the surface, not from how small the diff feels.
+
+- **`critical`**
+  - `packages/contracts/src/**`
+  - `packages/shared/src/providers/{Auth,JobQueue,Work}.tsx`
+  - `packages/shared/src/modules/job-queue/**`
+  - `packages/shared/src/hooks/{auth,work,vault,blockchain}/**`
+  - Required behavior: read every touched line, run the matching reviewer flow, and reject log-only failure handling.
+
+- **`sensitive`**
+  - `packages/agent/src/**`
+  - admin workflow state surfaces
+  - client journey views
+  - Required behavior: verify failure and recovery states explicitly, keep the blast radius tight, and run targeted validation before claiming the change is safe.
+
+- **`routine`**
+  - docs
+  - automation prompts
+  - stories
+  - cleanup-only changes
+  - test-only refactors that do not alter runtime behavior
+  - Required behavior: use the lightest honest validation loop and keep attention on correctness, not ceremony.
 
 ## Tradeoff Escalation Triggers
 
@@ -104,4 +135,4 @@ When evaluating whether a work submission constitutes "meaningful impact":
 - Optimizing for a metric not in this hierarchy (e.g., code elegance over safety)
 - Ignoring the hierarchy because "the user said so" -- discuss the conflict with the user instead
 
-For organizational values that inform these engineering priorities, see `docs/docs/concepts/mission-and-values.mdx`.
+For organizational values that inform these engineering priorities, see `docs/docs/community/why-we-build.mdx` and `docs/docs/community/how-it-works.mdx`.

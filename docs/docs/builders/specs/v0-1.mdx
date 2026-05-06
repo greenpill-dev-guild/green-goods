@@ -4,15 +4,27 @@ sidebar_label: v0.1
 slug: /builders/specs/v0-1
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Live
+last_verified: 2026-04-25
+feature_status: Complete
+source_of_truth:
+  - packages/client/src/views/Garden/index.tsx
+  - packages/client/src/views/Home/Garden/Work.tsx
+  - packages/shared/src/modules/auth
+  - packages/shared/src/modules/data
+  - packages/shared/src/hooks/hypercerts
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # v0.1 — Privy, EAS, Pimlico, TBA
 
-<StatusBadge status="Live" />
+<StatusBadge status="Complete" />
+
+:::info Complete historical spec
+v0.1 is complete and kept for historical context. v1 is the current active specification.
+:::
 
 ## Overview
 
@@ -25,9 +37,10 @@ flowchart LR
     Privy --> Pimlico[Pimlico Bundler]
     Pimlico --> SA[Smart Account]
     SA --> EAS[EAS Attestations]
-    SA --> Unlock[Unlock Protocol]
-    EAS --> IPFS[Infura IPFS]
-    Unlock --> Badges[Badge NFTs]
+    SA --> TBA[Tokenbound Account]
+    EAS --> Work[Work Schema]
+    EAS --> Approval[Approval Schema]
+    TBA --> Badges[Badge and recognition surface]
 ```
 
 ## Problems
@@ -196,9 +209,9 @@ Social login with Privy and account abstraction user operations with Pimlico to 
 
 Interface for both operators and gardeners, fully mobile-built and accessible via the web as a PWA.
 
-### Infura API
+### Media and Metadata
 
-Metadata stored for attestations on IPFS with the Infura API. Also used for contract RPC calls to Optimism for querying data and performing transactions.
+Work submissions include media references and action metadata. This spec does not name a storage provider; provider-specific storage belongs in the current package and integration docs.
 
 ### EAS (Ethereum Attestation Service)
 
@@ -214,7 +227,7 @@ Action and work stored as attestations on-chain, allowing easy verification whil
 | `action_id` | string | Associated action |
 | `title` | string | Work title |
 | `description` | string | Work description |
-| `media` | string[] | IPFS media hashes |
+| `media` | string[] | Media references |
 
 **Work Approval Attestation Schema:**
 
@@ -240,11 +253,7 @@ Contract mapping actions to an attestation and storing certain action properties
 - `registerAction(action_id, frequency, category, metadata)` -- requires sender whitelisted as operator
 - `updateAction(action_id, frequency, metadata)` -- requires sender is owner
 
-**Action Struct:** id, createdAt, frequency, category (enum), metadata (IPFS JSON with title, description, instruction, media)
-
-### Unlock Protocol
-
-Using Unlock to create smart accounts for users using their email.
+**Action Struct:** id, createdAt, frequency, category (enum), metadata with title, description, instruction, and media.
 
 ## Milestones
 
@@ -291,7 +300,7 @@ Green Goods has the potential to redefine the biodiversity ecosystem by bringing
 
 - [Miro Board](https://miro.com/app/board/uXjVLjVA-xQ=/) -- Ideas, diagrams, and documentation
 - [Figma Designs](https://www.figma.com/design/nSZR8RzIJCHwmrfq5oU4zZ/Designs) -- Screen designs with user flows
-- [GitHub Repo (community-host)](https://github.com/greenpill-dev-guild/community-host) -- React PWA with Privy, Viem, Pinata, and EAS
+- [GitHub Repo (community-host)](https://github.com/greenpill-dev-guild/community-host) -- Historical React PWA codebase
 - [GitHub Project Board](https://github.com/orgs/greenpill-dev-guild/projects/7/views/3) -- User stories and tasks
 - [GitHub Impact Discussion](https://github.com/orgs/greenpill-dev-guild/discussions) -- Discussion on ideas for impact tooling and approaches
 - [Agroforestry Carbon](https://agroforestrycarbon.com/) -- Startup collecting landscape data and paying small farmers with carbon debit income

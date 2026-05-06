@@ -290,7 +290,7 @@ function MetadataTable({ tokens }: { tokens: TypographyToken[] }) {
 /* -------------------------------------------------------------------------- */
 
 const meta: Meta = {
-  title: "Design Tokens/Typography",
+  title: "Shared/Tokens/Typography",
   tags: ["autodocs"],
   parameters: {
     docs: {

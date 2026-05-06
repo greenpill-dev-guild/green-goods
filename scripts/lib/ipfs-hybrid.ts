@@ -1,11 +1,29 @@
-const DEFAULT_STORACHA_GATEWAY = "https://storacha.link";
 const DEFAULT_PINATA_GATEWAY = "https://greengoods.mypinata.cloud";
 const DEFAULT_PINATA_API_BASE_URL = "https://api.pinata.cloud";
+const DEFAULT_PINATA_UPLOADS_API_BASE_URL = "https://uploads.pinata.cloud/v3";
 
 export interface PinataScriptConfig {
   jwt: string | null;
   gatewayBaseUrl: string;
   apiBaseUrl: string;
+}
+
+interface PinataMetadataPayload {
+  name?: string;
+  keyvalues?: Record<string, string>;
+}
+
+interface PinataCidImportJob {
+  id: string;
+  cid: string;
+  status: string;
+  name?: string;
+}
+
+interface PinataUploadResponse {
+  data?: { cid?: string };
+  message?: string;
+  error?: { reason?: string };
 }
 
 function trimLeadingSlashes(value: string): string {
@@ -81,15 +99,13 @@ function normalizeUrl(value?: string | null): string | null {
 export function loadPinataConfigFromEnv(
   env: NodeJS.ProcessEnv = process.env
 ): PinataScriptConfig | null {
-  const jwt = env.PINATA_JWT?.trim() || env.VITE_PINATA_JWT?.trim() || null;
+  const jwt = env.PINATA_JWT?.trim() || null;
   const gatewayBaseUrl =
     normalizeUrl(env.PINATA_GATEWAY_URL) ??
     normalizeUrl(env.VITE_PINATA_GATEWAY_URL) ??
     (jwt ? DEFAULT_PINATA_GATEWAY : null);
   const apiBaseUrl =
-    normalizeUrl(env.PINATA_API_URL) ??
-    normalizeUrl(env.VITE_PINATA_API_URL) ??
-    DEFAULT_PINATA_API_BASE_URL;
+    normalizeUrl(env.PINATA_API_URL) ?? DEFAULT_PINATA_API_BASE_URL;
 
   if (!jwt && !gatewayBaseUrl) {
     return null;
@@ -108,7 +124,40 @@ export function buildGatewayUrl(reference: string, gatewayBaseUrl: string): stri
   return `${trimTrailingSlashes(gatewayBaseUrl)}/ipfs/${parsed.canonicalId}`;
 }
 
-export async function pinCidWithPinata(
+async function queryPinataCidImportJob(
+  config: PinataScriptConfig,
+  cid: string
+): Promise<PinataCidImportJob | null> {
+  if (!config.jwt) return null;
+
+  const endpoint = new URL("/v3/files/public/pin_by_cid", config.apiBaseUrl);
+  endpoint.searchParams.set("cid", cid);
+  endpoint.searchParams.set("order", "DESC");
+  endpoint.searchParams.set("limit", "1");
+
+  const response = await fetch(endpoint, {
+    headers: {
+      Authorization: `Bearer ${config.jwt}`,
+    },
+  });
+
+  if (!response.ok) {
+    let message = `${response.status} ${response.statusText}`;
+    try {
+      const payload = (await response.json()) as { message?: string; error?: { reason?: string } };
+      message = payload.error?.reason?.trim() || payload.message?.trim() || message;
+    } catch {
+      // Ignore non-JSON error payloads.
+    }
+
+    throw new Error(`Pinata CID import status query failed for ${cid}: ${message}`);
+  }
+
+  const payload = (await response.json()) as { data?: { jobs?: PinataCidImportJob[] } };
+  return payload.data?.jobs?.find((job) => job.cid === cid) ?? null;
+}
+
+async function importCidWithPinata(
   config: PinataScriptConfig | null | undefined,
   cid: string,
   options: {
@@ -118,20 +167,23 @@ export async function pinCidWithPinata(
 ): Promise<void> {
   if (!config?.jwt) return;
 
-  const response = await fetch(`${config.apiBaseUrl}/pinning/pinByHash`, {
+  const pinataMetadata: PinataMetadataPayload = {
+    ...(options.name ? { name: options.name } : {}),
+    ...(options.metadata && Object.keys(options.metadata).length > 0
+      ? { keyvalues: options.metadata }
+      : {}),
+  };
+
+  const response = await fetch(new URL("/v3/files/public/pin_by_cid", config.apiBaseUrl), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.jwt}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      hashToPin: cid,
-      pinataMetadata: {
-        ...(options.name ? { name: options.name } : {}),
-        ...(options.metadata && Object.keys(options.metadata).length > 0
-          ? { keyvalues: options.metadata }
-          : {}),
-      },
+      cid,
+      ...(pinataMetadata.name ? { name: pinataMetadata.name } : {}),
+      ...(pinataMetadata.keyvalues ? { keyvalues: pinataMetadata.keyvalues } : {}),
     }),
   });
 
@@ -152,7 +204,76 @@ export async function pinCidWithPinata(
     return;
   }
 
-  throw new Error(`Pinata pinByHash failed for ${cid}: ${message}`);
+  throw new Error(`Pinata CID import failed for ${cid}: ${message}`);
+}
+
+export async function uploadBufferWithPinata(
+  config: PinataScriptConfig | null | undefined,
+  buffer: Buffer,
+  options: {
+    filename: string;
+    mimeType: string;
+    name?: string;
+    metadata?: Record<string, string>;
+  }
+): Promise<string> {
+  if (!config?.jwt) {
+    throw new Error("Pinata JWT is required for direct uploads");
+  }
+
+  const formData = new FormData();
+  const uploadBuffer = new ArrayBuffer(buffer.byteLength);
+  new Uint8Array(uploadBuffer).set(buffer);
+  const blob = new Blob([uploadBuffer], { type: options.mimeType });
+  formData.append("network", "public");
+  formData.append("file", blob, options.filename);
+  if (options.name) {
+    formData.append("name", options.name);
+  }
+
+  const pinataMetadata: PinataMetadataPayload = {
+    ...(options.metadata && Object.keys(options.metadata).length > 0
+      ? { keyvalues: options.metadata }
+      : {}),
+  };
+
+  if (Object.keys(pinataMetadata).length > 0) {
+    formData.append("keyvalues", JSON.stringify(pinataMetadata.keyvalues ?? {}));
+  }
+
+  const response = await fetch(`${DEFAULT_PINATA_UPLOADS_API_BASE_URL}/files`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.jwt}`,
+    },
+    body: formData,
+  });
+
+  let payload: PinataUploadResponse | null = null;
+  try {
+    payload = (await response.json()) as PinataUploadResponse;
+  } catch {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      payload?.error?.reason?.trim() ||
+      payload?.message?.trim() ||
+      `${response.status} ${response.statusText}`;
+    throw new Error(`Pinata file upload failed for ${options.filename}: ${message}`);
+  }
+
+  const cid = payload?.data?.cid?.trim();
+  if (!cid) {
+    throw new Error(`Pinata upload for ${options.filename} did not return a CID`);
+  }
+
+  await verifyGatewayAvailability(`ipfs://${cid}`, config.gatewayBaseUrl, {
+    label: "Pinata gateway",
+  });
+
+  return cid;
 }
 
 export async function verifyGatewayAvailability(
@@ -207,46 +328,53 @@ export async function verifyGatewayAvailability(
   );
 }
 
-export async function ensureHybridCidAvailability(
+export async function ensurePinataCidAvailability(
   cid: string,
   options: {
-    storachaGatewayBaseUrl?: string;
     pinataConfig?: PinataScriptConfig | null;
     name?: string;
     metadata?: Record<string, string>;
     attempts?: number;
     timeoutMs?: number;
   } = {}
-): Promise<{ storachaUrl: string; pinataUrl?: string }> {
-  const canonicalUri = `ipfs://${cid}`;
-  const storachaUrl = await verifyGatewayAvailability(
-    canonicalUri,
-    options.storachaGatewayBaseUrl ?? DEFAULT_STORACHA_GATEWAY,
-    {
-      attempts: options.attempts,
-      timeoutMs: options.timeoutMs,
-      label: "Storacha gateway",
-    }
-  );
-
+): Promise<{ pinataUrl: string }> {
   if (!options.pinataConfig?.jwt) {
-    return { storachaUrl };
+    throw new Error("Pinata JWT is required to import and verify an existing CID");
   }
 
-  await pinCidWithPinata(options.pinataConfig, cid, {
+  const canonicalUri = `ipfs://${cid}`;
+  await importCidWithPinata(options.pinataConfig, cid, {
     name: options.name,
     metadata: options.metadata,
   });
 
-  const pinataUrl = await verifyGatewayAvailability(
-    canonicalUri,
-    options.pinataConfig.gatewayBaseUrl,
-    {
-      attempts: options.attempts,
-      timeoutMs: options.timeoutMs,
-      label: "Pinata gateway",
+  let pinataUrl: string;
+  try {
+    pinataUrl = await verifyGatewayAvailability(
+      canonicalUri,
+      options.pinataConfig.gatewayBaseUrl,
+      {
+        attempts: options.attempts,
+        timeoutMs: options.timeoutMs,
+        label: "Pinata gateway",
+      }
+    );
+  } catch (error) {
+    try {
+      const importJob = await queryPinataCidImportJob(options.pinataConfig, cid);
+      if (importJob?.status && importJob.status !== "backfilled") {
+        throw new Error(
+          `Failed to verify Pinata gateway availability for ${cid}: import job status is ${importJob.status}`
+        );
+      }
+    } catch (statusError) {
+      if (statusError instanceof Error) {
+        throw statusError;
+      }
     }
-  );
 
-  return { storachaUrl, pinataUrl };
+    throw error;
+  }
+
+  return { pinataUrl };
 }

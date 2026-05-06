@@ -30,7 +30,9 @@ import {
   type VoiceContent,
 } from "../types";
 import { handleApprove } from "./approve";
+import { handleFeedback } from "./feedback";
 import { handleHelp } from "./help";
+import { getExistingIdempotencyResponse } from "./idempotency";
 import { handleJoin } from "./join";
 import { handlePending } from "./pending";
 import { handleReject } from "./reject";
@@ -79,10 +81,7 @@ export function setHandlerContext(ctx: HandlerContext): void {
 export async function handleMessage(message: InboundMessage): Promise<OutboundResponse> {
   const { platform, sender, content } = message;
 
-  // Get user (may be undefined for /start and /help)
   const user = await db.getUser(platform, sender.platformId);
-
-  // Route based on content type
   let response: OutboundResponse;
 
   if (isCommandContent(content)) {
@@ -99,7 +98,6 @@ export async function handleMessage(message: InboundMessage): Promise<OutboundRe
     response = textResponse("❌ Unsupported message type.");
   }
 
-  // Validate outbound content against messaging constraints (advisory)
   validateOutboundContent(response);
 
   return response;
@@ -149,11 +147,11 @@ async function handleCommand(
     return textResponse("Please run /start first to create your wallet.");
   }
 
-  const rateCheck = checkRateLimit(sender.platformId, "command");
-  if (rateCheck) return rateCheck;
-
   switch (command) {
     case "join": {
+      const joinRateCheck = checkRateLimit(sender.platformId, "join");
+      if (joinRateCheck) return joinRateCheck;
+
       const result = await handleJoin(message, user, { isValidAddress });
       return result.response;
     }
@@ -191,6 +189,26 @@ async function handleCommand(
       return result.response;
     }
 
+    case "bug": {
+      const feedbackRateCheck = checkRateLimit(sender.platformId, "feedback");
+      if (feedbackRateCheck) return feedbackRateCheck;
+
+      const result = await handleFeedback(message, user, "bug", {
+        generateId: generateSecureId,
+      });
+      return result.response;
+    }
+
+    case "idea": {
+      const feedbackRateCheck = checkRateLimit(sender.platformId, "feedback");
+      if (feedbackRateCheck) return feedbackRateCheck;
+
+      const result = await handleFeedback(message, user, "idea", {
+        generateId: generateSecureId,
+      });
+      return result.response;
+    }
+
     default:
       return textResponse(`Unknown command: /${command}`);
   }
@@ -211,10 +229,16 @@ async function handleCallback(
     return textResponse("Session expired. Please start again with /start");
   }
 
-  const session = await db.getSession(platform, sender.platformId);
-
   switch (callbackData) {
     case "confirm_submission": {
+      const idempotencyResponse = await getExistingIdempotencyResponse(
+        "submit-confirm",
+        message,
+        "submission"
+      );
+      if (idempotencyResponse) return idempotencyResponse;
+
+      const session = await db.getSession(platform, sender.platformId);
       if (!session) {
         return textResponse("Session expired. Please submit your work again.");
       }
@@ -361,7 +385,6 @@ async function handlePhoto(
     const imageContent = content as ImageContent;
     const photoBuffer = await _context.photoProcessor.downloadPhoto(imageContent.imageUrl);
 
-    // Get the current session to see if we have a pending draft
     const session = await db.getSession(platform, sender.platformId);
 
     if (session?.step === "awaiting_photo") {
@@ -465,6 +488,7 @@ async function applySessionUpdates(
 // ============================================================================
 
 export { handleApprove } from "./approve";
+export { handleFeedback } from "./feedback";
 export { handleHelp } from "./help";
 export { handleJoin } from "./join";
 export { handlePending } from "./pending";

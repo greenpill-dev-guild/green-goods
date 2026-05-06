@@ -1,6 +1,7 @@
 import { cn, useApp, useOffline } from "@green-goods/shared";
 import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixicon/react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 
 interface OfflineIndicatorProps {
@@ -17,6 +18,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
   testState,
 }) => {
   const navigate = useNavigate();
+  const { formatMessage } = useIntl();
   const { isOnline } = useOffline();
   const { isMobile, isInstalled } = useApp();
 
@@ -54,32 +56,34 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
 
   const renderIndicator = useCallback(() => {
     const baseBarClasses =
-      "w-full flex items-center justify-center gap-2 px-3 py-0.5 text-[8px] font-medium transition-all duration-300 ease-in-out backdrop-blur-md shadow-sm";
+      "w-full flex items-center justify-center gap-2 px-3 py-0.5 text-[8px] font-medium transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] backdrop-blur-md shadow-sm";
 
     switch (displayPriority) {
       case "offline":
         return (
           <div
-            className={`${baseBarClasses} bg-gray-500/95 text-white pointer-events-auto`}
+            className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
             role="status"
             aria-live="polite"
             aria-label="App is in offline mode"
           >
             <RiCloudOffLine size={8} aria-hidden="true" />
-            <span>Offline Mode</span>
+            <span>{formatMessage({ id: "app.offline.mode", defaultMessage: "Offline Mode" })}</span>
           </div>
         );
 
       case "back-online":
         return (
           <div
-            className={`${baseBarClasses} bg-green-500/95 text-white pointer-events-auto pulse-success`}
+            className={`${baseBarClasses} bg-primary/95 text-primary-accent-foreground pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
             aria-label="App is back online"
           >
             <RiCheckLine size={10} aria-hidden="true" />
-            <span>Back Online</span>
+            <span>
+              {formatMessage({ id: "app.offline.backOnline", defaultMessage: "Back Online" })}
+            </span>
           </div>
         );
 
@@ -90,20 +94,31 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             role="status"
           >
             <RiDownloadLine size={10} className="text-primary" aria-hidden="true" />
-            <span className="text-[10px]">Install for full experience.</span>
+            <span className="text-[10px]">
+              {formatMessage({
+                id: "app.offline.installPrompt",
+                defaultMessage: "Install for full experience.",
+              })}
+            </span>
             <button
               type="button"
               onClick={() => navigate("/profile", { viewTransition: true })}
-              className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform"
+              className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]"
             >
               <RiUserLine className="h-3 w-3" />
-              Profile
+              {formatMessage({
+                id: "app.offline.installPromptProfile",
+                defaultMessage: "Profile",
+              })}
             </button>
             <button
               type="button"
               onClick={() => setInstallDismissed(true)}
               className="ml-1 text-[10px] text-text-sub-600 hover:text-text-strong-950"
-              aria-label="Dismiss"
+              aria-label={formatMessage({
+                id: "app.offline.installPromptDismiss",
+                defaultMessage: "Dismiss",
+              })}
             >
               ✕
             </button>
@@ -113,10 +128,10 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
       default:
         return null;
     }
-  }, [displayPriority, navigate]);
+  }, [displayPriority, navigate, formatMessage]);
 
   const containerClasses = cn(
-    "fixed top-0 left-0 right-0 z-30 transition-all duration-500 ease-out pointer-events-none",
+    "fixed top-0 left-0 right-0 z-nav transition-all duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] pointer-events-none",
     displayPriority ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-full",
     className
   );

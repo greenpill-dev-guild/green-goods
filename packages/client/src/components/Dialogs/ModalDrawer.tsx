@@ -1,12 +1,13 @@
-import { cn, useTimeout } from "@green-goods/shared";
+import { cn, useFocusTrap, useTimeout } from "@green-goods/shared";
 import { RiCloseLine } from "@remixicon/react";
 import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
 
 export interface ModalDrawerTab {
   id: string;
   label: string;
-  icon?: string;
+  icon?: React.ReactNode;
   count?: number;
   badge?: React.ReactNode;
 }
@@ -47,6 +48,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   footer,
   className,
   contentClassName,
+  maxHeight,
 }) => {
   const { formatMessage } = useIntl();
   const [isClosing, setIsClosing] = useState(false);
@@ -63,44 +65,14 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
   }, [isOpen]);
 
   // Focus trap: keep Tab/Shift+Tab cycling within the dialog
-  useEffect(() => {
-    if (!isOpen) return;
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key !== "Tab") return;
-
-      const focusable = dialog.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea, input:not([disabled]), select, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    dialog.addEventListener("keydown", handleKeyDown);
-    const closeBtn = dialog.querySelector<HTMLElement>('[data-testid="modal-drawer-close"]');
-    closeBtn?.focus();
-
-    return () => dialog.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen]);
+  useFocusTrap(dialogRef, { enabled: isOpen });
 
   const handleClose = () => {
     setIsClosing(true);
     scheduleTimeout(() => {
       setIsClosing(false);
       onClose();
-    }, 300);
+    }, getPwaDrawerCloseDelayMs());
   };
 
   if (!isOpen && !isClosing) return null;
@@ -109,7 +81,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
     <div
       role="presentation"
       className={cn(
-        "fixed inset-0 bg-black/30 backdrop-blur-sm z-[20000] flex items-end justify-center",
+        pwaDrawerStyles.overlay,
         isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
       )}
       data-testid="modal-drawer-overlay"
@@ -124,10 +96,11 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
       <div
         ref={dialogRef}
         className={cn(
-          "bg-bg-white-0 rounded-t-3xl shadow-2xl w-full overflow-hidden flex flex-col h-modal",
+          pwaDrawerStyles.panel,
           isClosing ? "modal-slide-exit" : "modal-slide-enter",
           className
         )}
+        style={maxHeight ? { maxHeight } : undefined}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
@@ -138,29 +111,32 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
         data-testid="modal-drawer"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
+        <div className={pwaDrawerStyles.header}>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold truncate">{header.title}</h2>
+            <h2 className="title-section truncate">{header.title}</h2>
             {header.description && (
-              <p className="text-sm text-text-sub-600 truncate">{header.description}</p>
+              <p className="body-sm-regular truncate text-text-sub-600">{header.description}</p>
             )}
           </div>
           <div className="flex items-center gap-2 ml-4">
             {header.actions}
             <button
               onClick={handleClose}
-              className="btn-icon"
+              className={cn(
+                "min-h-11 min-w-11 flex items-center justify-center",
+                pwaDrawerStyles.closeButtonBase
+              )}
               data-testid="modal-drawer-close"
               aria-label={formatMessage({ id: "app.common.close" })}
             >
-              <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-primary active:text-primary" />
+              <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
             </button>
           </div>
         </div>
 
         {/* Tabs */}
         {tabs.length > 0 && (
-          <div className="flex border-b border-border flex-shrink-0" role="tablist">
+          <div className={pwaDrawerStyles.tabs} role="tablist">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -169,23 +145,36 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
                 role="tab"
                 aria-selected={activeTab === tab.id}
                 className={cn(
-                  "flex items-center justify-center gap-1.5 py-3 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0 tap-feedback",
-                  "focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:text-emerald-700",
-                  "active:text-emerald-700",
-                  activeTab === tab.id
-                    ? "text-primary border-b-2 border-primary bg-bg-weak-50"
-                    : "text-text-sub-600"
+                  pwaDrawerStyles.tabTrigger,
+                  activeTab === tab.id ? pwaDrawerStyles.tabActive : pwaDrawerStyles.tabInactive
                 )}
                 data-testid={`tab-${tab.id}`}
               >
-                {tab.icon && <span className="text-base flex-shrink-0">{tab.icon}</span>}
-                <span className="truncate">{tab.label}</span>
+                {tab.icon && (
+                  <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
+                    {tab.icon}
+                  </span>
+                )}
+                <span className="min-w-0 truncate whitespace-nowrap">{tab.label}</span>
                 {tab.count !== undefined && tab.count > 0 && (
-                  <span className="inline-flex items-center justify-center text-xs font-medium text-white bg-primary rounded-full min-w-[16px] h-4 px-1 flex-shrink-0">
+                  <span
+                    className={cn(
+                      "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
+                      pwaDrawerStyles.tabBadge
+                    )}
+                  >
                     {tab.count > 99 ? "99+" : tab.count}
                   </span>
                 )}
                 {tab.badge}
+                {activeTab === tab.id && (
+                  <div
+                    className={cn(
+                      "absolute bottom-0 left-0 right-0 h-0.5",
+                      pwaDrawerStyles.tabIndicator
+                    )}
+                  />
+                )}
               </button>
             ))}
           </div>
@@ -201,7 +190,7 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
         </div>
 
         {/* Footer — fixed at bottom, above content scroll */}
-        {footer && <div className="flex-shrink-0 border-t border-border p-4">{footer}</div>}
+        {footer && <div className={pwaDrawerStyles.footer}>{footer}</div>}
       </div>
     </div>
   );

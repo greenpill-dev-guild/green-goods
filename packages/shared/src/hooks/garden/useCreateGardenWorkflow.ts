@@ -34,10 +34,10 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
 import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
 import { useMutationLock } from "../utils/useMutationLock";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 import { useGardenDraft } from "./useGardenDraft";
 
 export type { GardenDraft } from "./useGardenDraft";
@@ -127,14 +127,14 @@ export function useCreateGardenWorkflow() {
     scheduleGardenRefresh: () => {},
   });
 
-  const { start: scheduleGardenRefresh } = useDelayedInvalidation(
+  const { start: scheduleGardenRefresh } = useProgressiveInvalidation(
     useCallback(() => {
       const { chainId, queryClient: latestQueryClient } = dependenciesRef.current;
       queryInvalidation
         .invalidateGardens(chainId)
         .forEach((queryKey) => latestQueryClient.invalidateQueries({ queryKey }));
     }, []),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   useEffect(() => {
@@ -220,7 +220,7 @@ export function useCreateGardenWorkflow() {
 
               // Simulate first to catch contract reverts without spending gas
               const simulation = await simulateTransaction(
-                contracts.gardenToken as `0x${string}`,
+                contracts.gardenToken,
                 GardenTokenABI,
                 "mintGarden",
                 [config],
@@ -234,7 +234,7 @@ export function useCreateGardenWorkflow() {
 
               // Execute the transaction (payable -- includes CCIP fee for ENS)
               const txHash = await currentWalletClient.writeContract({
-                address: contracts.gardenToken as `0x${string}`,
+                address: contracts.gardenToken,
                 abi: GardenTokenABI,
                 functionName: "mintGarden",
                 account: accountAddress,
@@ -414,7 +414,7 @@ export function useCreateGardenWorkflow() {
     );
 
     const gasEstimate = await publicClient.estimateContractGas({
-      address: contracts.gardenToken as `0x${string}`,
+      address: contracts.gardenToken,
       abi: GardenTokenABI,
       functionName: "mintGarden",
       account: accountAddress,

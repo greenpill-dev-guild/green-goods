@@ -5,8 +5,15 @@
 import type { Hex } from "viem";
 import * as blockchain from "../services/blockchain";
 import * as db from "../services/db";
+import { classifyError } from "../services/errors";
 import { auditLog, loggers } from "../services/logger";
 import type { CommandContent, HandlerResult, InboundMessage, User } from "../types";
+import {
+  claimMessageIdempotency,
+  completeMessageIdempotency,
+  getExistingIdempotencyResponse,
+  idempotencyInProgressResponse,
+} from "./idempotency";
 
 const log = loggers.handlers;
 
@@ -32,6 +39,22 @@ export async function handleApprove(
         parseMode: "markdown",
       },
     };
+  }
+
+  if (user.role !== "operator") {
+    return {
+      response: {
+        text:
+          `❌ *Permission Denied*\n\n` +
+          `Only registered operators can approve work for this garden.`,
+        parseMode: "markdown",
+      },
+    };
+  }
+
+  const idempotencyResponse = await getExistingIdempotencyResponse("approve", message, "approval");
+  if (idempotencyResponse) {
+    return { response: idempotencyResponse };
   }
 
   const pendingWork = await db.getPendingWork(workId);
@@ -80,6 +103,13 @@ export async function handleApprove(
   }
 
   try {
+    const claimed = await claimMessageIdempotency("approve", message);
+    if (!claimed) {
+      return {
+        response: idempotencyInProgressResponse("approval"),
+      };
+    }
+
     // Step 1: Submit work using GARDENER's key (they are the work attester)
     // This prevents self-attestation: work.attester != approval.attester
     const workTx = await blockchain.submitWork({
@@ -129,23 +159,31 @@ export async function handleApprove(
       );
     }
 
-    return {
+    const result = {
       response: {
         text:
           `✅ *Work approved and attested!*\n\n` +
           `Work Tx: \`${workTx}\`\n` +
           `Approval Tx: \`${approvalTx}\``,
-        parseMode: "markdown",
+        parseMode: "markdown" as const,
       },
     };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    log.error({ err: error, workId }, "Approval error");
 
-    return {
+    await completeMessageIdempotency("approve", message, result.response);
+
+    return result;
+  } catch (error) {
+    const { category, userMessage } = classifyError(error);
+    log.error({ err: error, category, workId }, "Approval error");
+
+    const result = {
       response: {
-        text: `❌ Error approving: ${errorMessage}`,
+        text: `❌ ${userMessage}`,
       },
     };
+
+    await completeMessageIdempotency("approve", message, result.response);
+
+    return result;
   }
 }

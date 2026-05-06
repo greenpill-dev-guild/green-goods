@@ -3,6 +3,8 @@
  * Uses [data-theme] attribute for theme switching
  */
 
+@import "./design-md.generated.css";
+
 /* ============================================================================
  * CSS @property Definitions (Baseline July 2024)
  * Type-safe custom properties with syntax validation and animation support
@@ -35,7 +37,13 @@
   initial-value: rgb(245, 245, 245);
 }
 
-/* Primary brand color - enables animated hover/focus states */
+/* Primary brand color - enables animated hover/focus states.
+ * NOTE: the name `--color-primary` is an internal token label. In the Warm Earth
+ * role hierarchy (canvas / ink / stone / green-as-tertiary) this resolves to the
+ * **tertiary role** — garden green accent, used for 1–3% of screen volume
+ * (active states, icons, badges, progress, and value-flow moments). The "primary" name is historical;
+ * see root DESIGN.md for the role model.
+ */
 @property --color-primary {
   syntax: "<color>";
   inherits: true;
@@ -122,20 +130,23 @@
   --slate-alpha-16: 153 160 174 / 16%;
   --slate-alpha-10: 153 160 174 / 10%;
 
-  /* Neutral (alias to gray with added 850 for card elevation) */
-  --neutral-950: var(--gray-950);
-  --neutral-900: var(--gray-900);
-  --neutral-850: 35 35 35;  /* Custom intermediate for card elevation */
-  --neutral-800: var(--gray-800);
-  --neutral-700: var(--gray-700);
-  --neutral-600: var(--gray-600);
-  --neutral-500: var(--gray-500);
-  --neutral-400: var(--gray-400);
-  --neutral-300: var(--gray-300);
-  --neutral-200: var(--gray-200);
-  --neutral-100: var(--gray-100);
-  --neutral-50: var(--gray-50);
-  --neutral-0: var(--gray-0);
+  /* Neutral — Stone (warm gray with earthy undertone) */
+  --neutral-975: 8 7 6;
+  --neutral-950: 12 10 9;
+  --neutral-925: 22 20 18;
+  --neutral-900: 28 25 23;
+  --neutral-850: 35 32 30;
+  --neutral-800: 41 37 36;
+  --neutral-775: 50 46 43;
+  --neutral-700: 68 64 60;
+  --neutral-600: 87 83 78;
+  --neutral-500: 120 113 108;
+  --neutral-400: 168 162 158;
+  --neutral-300: 214 211 209;
+  --neutral-200: 231 229 228;
+  --neutral-100: 245 245 244;
+  --neutral-50: 250 250 249;
+  --neutral-0: 255 255 255;
 
   --neutral-alpha-24: var(--gray-alpha-24);
   --neutral-alpha-16: var(--gray-alpha-16);
@@ -318,10 +329,14 @@
   --social-zendesk: 22 20 13;
 
   /* Primary (brand) colors */
-  --primary-dark: var(--green-800);
-  --primary-darker: var(--green-700);
-  --primary-base: var(--green-500);
+  --primary-dark: var(--gg-design-tertiary-action, var(--green-800));
+  --primary-darker: var(--gg-design-tertiary-action-hover, var(--green-700));
+  --primary-base: var(--gg-design-tertiary, var(--green-500));
   --primary-foreground: var(--neutral-0);  /* White text on dark green bg */
+  --primary-accent-foreground: var(--gg-design-on-tertiary, var(--green-950));
+  --primary-action: var(--gg-design-tertiary-action, var(--green-800));
+  --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
+  --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
   --primary-alpha-24: var(--green-alpha-24);
   --primary-alpha-16: var(--green-alpha-16);
   --primary-alpha-10: var(--green-alpha-10);
@@ -379,6 +394,22 @@
   --success-light: var(--green-200);
   --success-lighter: var(--green-50);
 
+  /* Action domain palette (RGB triplets).
+   * Per-domain ink + soft surface backgrounds for chips, plates, and accent
+   * rules across public editorial, client PWA, and admin work filters. Mode-
+   * agnostic on purpose — the soft pastels read fine on either light or dark
+   * mode and we don't want a parallel dark ladder. The @theme block below
+   * exposes these as Tailwind utilities (bg-domain-solar, text-domain-waste,
+   * border-domain-education, bg-domain-agro-soft, etc.). */
+  --domain-solar-rgb: 200 148 31; /* golden amber */
+  --domain-solar-soft-rgb: 248 237 224; /* pale amber */
+  --domain-agro-rgb: 62 85 50; /* deep moss */
+  --domain-agro-soft-rgb: 234 239 226; /* pale sage */
+  --domain-education-rgb: 46 79 107; /* harbour blue */
+  --domain-education-soft-rgb: 226 234 240; /* pale harbour */
+  --domain-waste-rgb: 155 60 45; /* terracotta */
+  --domain-waste-soft-rgb: 244 232 226; /* pale terracotta */
+
   --away-dark: var(--yellow-950);
   --away-base: var(--yellow-500);
   --away-light: var(--yellow-200);
@@ -403,17 +434,164 @@
   --stable-base: var(--teal-500);
   --stable-light: var(--teal-200);
   --stable-lighter: var(--teal-50);
+
+  /* ── Z-Index Scale ── Semantic stacking order for layout layers
+   * Use Tailwind classes: z-base, z-raised, z-sticky, z-nav, z-overlay, z-modal, z-toast
+   */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 20;
+  --z-nav: 30;
+	  --z-overlay: 40;
+	  --z-modal: 50;
+	  --z-toast: 60;
+
+  /* ── Radius Aliases ── Public runtime aliases for DesignMD-generated radii. */
+  --radius-md: var(--gg-radius-md);
+  --radius-lg: var(--gg-radius-lg);
+  --radius-xl: var(--gg-radius-xl);
+  --radius-2xl: var(--gg-radius-2xl);
+  --radius-full: var(--gg-radius-full);
+
+  /* ── Glass Material ── Blur + transparency tokens for navigation-tier surfaces
+   * Applied via .glass-surface utility or per-component backdrop-filter.
+   * @media (prefers-contrast: more) forces solid fallback — see utilities.
+   */
+  --glass-blur: 16px;
+  --glass-bg: 255 255 255 / 80%;
+  --glass-ring: 0 0 0 / 4%;
+  --glass-overlay-bg: 0 0 0 / 40%;
+
+  /* ── Material System ── 5-thickness semantic surface material (Warm Earth spec).
+   * Match thickness to content density — see .claude/skills/design/materials.md.
+   * Opacity uses OKLCH per language.md § Color Direction (destination token format).
+   * Usage: `background: var(--color-material-regular); backdrop-filter: blur(var(--blur-material-regular));`
+   * Degrades to solid via @media (prefers-contrast: more) at end of theme layer.
+   */
+  --color-material-ultrathin: oklch(0.99 0 0 / 0.2);
+  --color-material-thin: oklch(0.98 0 0 / 0.4);
+  --color-material-regular: oklch(0.97 0 0 / 0.65);
+  --color-material-thick: oklch(0.96 0 0 / 0.85);
+  --color-material-solid: rgb(var(--bg-white-0));
+
+  --blur-material-ultrathin: 30px;
+  --blur-material-thin: 20px;
+  --blur-material-regular: 12px;
+  --blur-material-thick: 8px;
+
+  --border-material: 1px solid oklch(1 0 0 / 0.08);
+
+  /* ── Spring Motion ── Named motion tokens (Warm Earth spec).
+   * Each token is `cubic-bezier(...) duration` — usable directly as a transition shorthand:
+   *   `transition: transform var(--spring-spatial-fast);`
+   * Reduced motion is handled globally (see @media prefers-reduced-motion at end of utilities).
+   * Canonical spec: .claude/skills/design/language.md § Motion System.
+   * Two families: spatial (layout/physics) and effects (opacity/color/blur).
+   */
+	  --spring-spatial-easing: cubic-bezier(0.16, 1, 0.3, 1);
+	  --spring-spatial-duration: 300ms;
+	  --spring-spatial-fast-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
+	  --spring-spatial-fast-duration: 200ms;
+	  --spring-spatial-slow-easing: cubic-bezier(0.16, 1, 0.3, 1);
+	  --spring-spatial-slow-duration: 400ms;
+	  --spring-effects-easing: cubic-bezier(0.2, 0, 0, 1);
+	  --spring-effects-duration: 250ms;
+	  --spring-effects-fast-easing: cubic-bezier(0.2, 0, 0, 1);
+	  --spring-effects-fast-duration: 150ms;
+	  --spring-effects-slow-easing: cubic-bezier(0.2, 0, 0, 1);
+	  --spring-effects-slow-duration: 500ms;
+
+	  --spring-spatial: var(--spring-spatial-easing) var(--spring-spatial-duration);
+	  --spring-spatial-fast: var(--spring-spatial-fast-easing) var(--spring-spatial-fast-duration);
+	  --spring-spatial-slow: var(--spring-spatial-slow-easing) var(--spring-spatial-slow-duration);
+	  --spring-effects: var(--spring-effects-easing) var(--spring-effects-duration);
+	  --spring-effects-fast: var(--spring-effects-fast-easing) var(--spring-effects-fast-duration);
+	  --spring-effects-slow: var(--spring-effects-slow-easing) var(--spring-effects-slow-duration);
+
+  /* Material 3 role aliases - documentation layer only
+   * Green Goods semantic tokens remain canonical for component authors.
+   * These aliases make the Material relationship explicit for admin governance.
+   */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-dim: var(--neutral-200);
+  --m3-surface-bright: var(--bg-white-0);
+  --m3-surface-container-lowest: var(--bg-white-0);
+  --m3-surface-container-low: var(--bg-weak-50);
+  --m3-surface-container: var(--bg-soft-200);
+  --m3-surface-container-high: var(--bg-sub-300);
+  --m3-surface-container-highest: var(--bg-surface-800);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
+  --m3-primary: var(--primary-base);
+  --m3-on-primary: var(--primary-foreground);
+  --m3-primary-container: var(--green-100);
+  --m3-on-primary-container: var(--green-950);
+  --m3-error: var(--error-base);
+  --m3-on-error: var(--neutral-0);
+  --m3-state-hover: var(--primary-alpha-10);
+  --m3-state-focus: var(--primary-alpha-16);
+  --m3-state-pressed: var(--primary-alpha-24);
+
+  /* ── M3 Type Scale ── */
+  --type-display-lg: 57px;
+  --type-display-lg-lh: 64px;
+  --type-display-lg-ls: -0.25px;
+  --type-display-md: 45px;
+  --type-display-md-lh: 52px;
+  --type-display-md-ls: 0px;
+  --type-display-sm: 36px;
+  --type-display-sm-lh: 44px;
+  --type-display-sm-ls: 0px;
+  --type-headline-lg: 32px;
+  --type-headline-lg-lh: 40px;
+  --type-headline-lg-ls: 0px;
+  --type-headline-md: 28px;
+  --type-headline-md-lh: 36px;
+  --type-headline-md-ls: 0px;
+  --type-headline-sm: 24px;
+  --type-headline-sm-lh: 32px;
+  --type-headline-sm-ls: 0px;
+  --type-title-lg: 22px;
+  --type-title-lg-lh: 28px;
+  --type-title-lg-ls: 0px;
+  --type-title-md: 16px;
+  --type-title-md-lh: 24px;
+  --type-title-md-ls: 0.15px;
+  --type-title-sm: 14px;
+  --type-title-sm-lh: 20px;
+  --type-title-sm-ls: 0.1px;
+  --type-body-lg: 16px;
+  --type-body-lg-lh: 24px;
+  --type-body-lg-ls: 0.5px;
+  --type-body-md: 14px;
+  --type-body-md-lh: 20px;
+  --type-body-md-ls: 0.25px;
+  --type-body-sm: 12px;
+  --type-body-sm-lh: 16px;
+  --type-body-sm-ls: 0.4px;
+  --type-label-lg: 14px;
+  --type-label-lg-lh: 20px;
+  --type-label-lg-ls: 0.1px;
+  --type-label-md: 12px;
+  --type-label-md-lh: 16px;
+  --type-label-md-ls: 0.5px;
+  --type-label-sm: 11px;
+  --type-label-sm-lh: 16px;
+  --type-label-sm-ls: 0.5px;
 }
 
 /* Dark theme overrides using data-theme attribute */
-:root[data-theme="dark"] {
-  /* Backgrounds - proper dark mode hierarchy with clear card elevation */
-  --bg-white-0: var(--neutral-950);      /* 23 23 23 - page background (darkest) */
-  --bg-weak-50: var(--neutral-850);      /* 35 35 35 - card surfaces (visibly lighter) */
-  --bg-soft-200: var(--neutral-800);     /* 41 41 41 - elevated cards/surfaces */
-  --bg-sub-300: var(--neutral-700);      /* 51 51 51 - more elevated elements */
-  --bg-surface-800: var(--neutral-600);  /* 92 92 92 - prominent surfaces */
-  --bg-strong-950: var(--neutral-100);   /* 245 245 245 - highlights/hovers */
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  /* Backgrounds — M3-aligned dark surface ladder (tones 6→22, ceiling at 24) */
+  --bg-white-0: var(--neutral-950);      /* 12 10 9  — surface / surfaceDim (tone 6) */
+  --bg-weak-50: var(--neutral-925);      /* 22 20 18 — surfaceContainerLow (tone 10) */
+  --bg-soft-200: var(--neutral-900);     /* 28 25 23 — surfaceContainer (tone 12) */
+  --bg-sub-300: var(--neutral-850);      /* 35 32 30 — surfaceContainerHigh (tone 17) */
+  --bg-surface-800: var(--neutral-800);  /* 41 37 36 — surfaceContainerHighest (tone 22) */
+  --bg-strong-950: var(--neutral-100);   /* 245 245 244 — inverse surface (unchanged) */
 
   /* Text - light on dark */
   --text-strong-950: var(--neutral-50);      /* 245 247 250 - primary text (lightest) */
@@ -436,11 +614,15 @@
   --faded-light: var(--neutral-alpha-24);
   --faded-lighter: var(--neutral-alpha-16);
 
-  /* Primary (brand) colors - very light for dark mode accessibility */
-  --primary-dark: var(--green-400);
-  --primary-darker: var(--green-300);
-  --primary-base: var(--green-200);  /* 194 245 218 - pale mint for maximum contrast */
+  /* Primary aliases stay tied to generated DesignMD PWA accent/action roles. */
+  --primary-dark: var(--gg-design-tertiary-action, var(--green-800));
+  --primary-darker: var(--gg-design-tertiary-action-hover, var(--green-900));
+  --primary-base: var(--gg-design-tertiary, var(--green-500));
   --primary-foreground: var(--green-950);  /* Dark green text on light green bg */
+  --primary-accent-foreground: var(--gg-design-on-tertiary, var(--green-950));
+  --primary-action: var(--gg-design-tertiary-action, var(--green-800));
+  --primary-action-hover: var(--gg-design-tertiary-action-hover, var(--green-900));
+  --primary-action-foreground: var(--gg-design-on-tertiary-action, var(--neutral-0));
 
   /* Focus rings - Dark theme */
   --focus-ring: var(--blue-400);
@@ -492,10 +674,45 @@
   --stable-light: var(--teal-alpha-24);
   --stable-lighter: var(--teal-alpha-16);
 
+  /* Material 3 role aliases — dark mode overrides */
+  --m3-surface: var(--bg-white-0);
+  --m3-surface-dim: var(--bg-white-0);
+  --m3-surface-bright: var(--neutral-775);
+  --m3-surface-container-lowest: var(--neutral-975);
+  --m3-surface-container-low: var(--bg-weak-50);
+  --m3-surface-container: var(--bg-soft-200);
+  --m3-surface-container-high: var(--bg-sub-300);
+  --m3-surface-container-highest: var(--bg-surface-800);
+  --m3-on-surface: var(--text-strong-950);
+  --m3-on-surface-variant: var(--text-sub-600);
+  --m3-outline: var(--stroke-sub-300);
+  --m3-outline-variant: var(--stroke-soft-200);
+  --m3-primary: var(--primary-base);
+  --m3-on-primary: var(--primary-foreground);
+  --m3-primary-container: var(--green-900);
+  --m3-on-primary-container: var(--green-100);
+  --m3-error: var(--error-base);
+  --m3-on-error: var(--neutral-950);
+  --m3-state-hover: var(--primary-alpha-10);
+  --m3-state-focus: var(--primary-alpha-16);
+  --m3-state-pressed: var(--primary-alpha-24);
+
   /* Overlays - darker in dark mode */
   --overlay-gray: 51 51 51 / 56%;
   --overlay-slate: 43 48 59 / 56%;
   --overlay: var(--overlay-gray);
+
+  /* Glass material - dark mode overrides */
+  --glass-bg: 23 23 23 / 80%;
+  --glass-ring: 255 255 255 / 6%;
+
+  /* Material system — dark mode shifts tones darker; opacity higher for readability */
+  --color-material-ultrathin: oklch(0.1 0 0 / 0.2);
+  --color-material-thin: oklch(0.15 0 0 / 0.4);
+  --color-material-regular: oklch(0.18 0 0 / 0.65);
+  --color-material-thick: oklch(0.12 0 0 / 0.85);
+  --color-material-solid: rgb(var(--bg-white-0));
+  --border-material: 1px solid oklch(1 0 0 / 0.06);
 
   /* Social colors - invert for dark mode */
   --social-apple: 255 255 255;
@@ -507,6 +724,378 @@
   --social-zendesk: 255 255 255;
 }
 } /* End @layer theme */
+
+/* Material system — accessibility fallback.
+ * Users who enable max-contrast lose translucent glass and get solid surfaces.
+ * Matches the fallback rule in .claude/skills/design/materials.md § Accessibility.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --color-material-ultrathin: rgb(var(--bg-white-0));
+    --color-material-thin: rgb(var(--bg-white-0));
+    --color-material-regular: rgb(var(--bg-white-0));
+    --color-material-thick: rgb(var(--bg-white-0));
+    --blur-material-ultrathin: 0px;
+    --blur-material-thin: 0px;
+    --blur-material-regular: 0px;
+    --blur-material-thick: 0px;
+    --border-material: 1px solid rgb(var(--stroke-strong-950));
+  }
+}
+
+/* ============================================================================
+ * Components layer: shared primitive classes.
+ * These classes are consumed by admin/client builds without relying on the
+ * consumer package's Tailwind content scan seeing shared JSX utilities.
+ * ============================================================================ */
+@layer components {
+  .gg-control {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    border: 1px solid rgb(var(--stroke-sub-300));
+    border-radius: var(--radius-xl);
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--text-strong-950));
+    font-size: var(--text-paragraph-md);
+    line-height: var(--text-paragraph-md--line-height);
+    padding: 0.625rem 0.75rem;
+    transition:
+      border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      box-shadow var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      transform var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out);
+  }
+
+  .gg-control::placeholder {
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-control:focus-visible {
+    border-color: rgb(var(--focus-ring, var(--primary-base)));
+    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.12);
+    outline: none;
+  }
+
+  .gg-control:disabled {
+    background: rgb(var(--bg-soft-200));
+    color: rgb(var(--text-sub-600));
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+
+  .gg-control[data-invalid="true"] {
+    border-color: rgb(var(--error-base));
+  }
+
+  .gg-control[data-invalid="true"]:focus-visible {
+    border-color: rgb(var(--error-base));
+    box-shadow: 0 0 0 3px rgb(var(--error-base) / 0.12);
+  }
+
+  .gg-control[data-size="sm"] {
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: var(--text-label-sm);
+    line-height: var(--text-label-sm--line-height);
+  }
+
+  .gg-control[data-size="lg"] {
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .gg-control[data-surface="admin"] {
+    border-color: rgb(var(--stroke-sub-300));
+    border-radius: var(--m3-shape-md, var(--radius-lg));
+    background: rgb(var(--m3-surface, var(--bg-white-0)));
+    color: rgb(var(--m3-on-surface, var(--text-strong-950)));
+  }
+
+  .gg-control[data-surface="admin"]:focus-visible {
+    border-color: rgb(var(--m3-primary, var(--focus-ring, var(--primary-base))));
+    box-shadow: 0 0 0 3px rgb(var(--m3-primary, var(--focus-ring, var(--primary-base))) / 0.16);
+  }
+
+  .gg-control-textarea {
+    min-height: 5rem;
+    resize: vertical;
+  }
+
+  .gg-control-select {
+    appearance: auto;
+  }
+
+  .gg-control-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .gg-control-trigger > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .gg-control-trigger[data-placeholder] {
+    color: rgb(var(--text-soft-400));
+  }
+
+  .gg-button {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-full);
+    padding: 0.5rem 1rem;
+    color: rgb(var(--text-strong-950));
+    font-size: var(--text-label-sm);
+    font-weight: var(--text-label-sm--font-weight);
+    line-height: var(--text-label-sm--line-height);
+    text-align: center;
+    white-space: nowrap;
+    transition:
+      border-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      box-shadow var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      transform var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out),
+      border-radius var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out);
+  }
+
+  .gg-button:hover {
+    text-decoration: none;
+  }
+
+  .gg-button:focus-visible {
+    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.16);
+    outline: none;
+  }
+
+  .gg-button:active {
+    transform: scale(0.985);
+  }
+
+  .gg-button:disabled,
+  .gg-button[aria-disabled="true"] {
+    pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .gg-button-primary,
+  .gg-button-primary.gg-button-filled {
+    background: rgb(var(--tone-action, var(--primary-action)));
+    color: rgb(var(--tone-on-action, var(--primary-action-foreground)));
+  }
+
+  .gg-button-primary:hover,
+  .gg-button-primary.gg-button-filled:hover {
+    background: rgb(var(--tone-action-hover, var(--primary-action-hover)));
+  }
+
+  .gg-button-primary.gg-button-stroke {
+    border-color: rgb(var(--primary-base));
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--primary-base));
+  }
+
+  .gg-button-primary.gg-button-lighter {
+    background: rgb(var(--primary-base) / 0.1);
+    color: rgb(var(--primary-base));
+  }
+
+  .gg-button-primary.gg-button-ghost {
+    background: transparent;
+    color: rgb(var(--primary-base));
+  }
+
+  .gg-button-secondary,
+  .gg-button-neutral.gg-button-stroke {
+    border-color: rgb(var(--stroke-sub-300));
+    border-radius: var(--radius-xl);
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-button-secondary:hover,
+  .gg-button-neutral.gg-button-stroke:hover {
+    border-color: rgb(var(--stroke-sub-300));
+    background: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-button-neutral.gg-button-filled {
+    background: rgb(var(--bg-strong-950));
+    color: rgb(var(--text-white-0));
+  }
+
+  .gg-button-neutral.gg-button-lighter {
+    border-radius: var(--radius-xl);
+    background: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-button-ghost,
+  .gg-button-neutral.gg-button-ghost {
+    border-color: transparent;
+    border-radius: var(--radius-xl);
+    background: transparent;
+    color: rgb(var(--text-sub-600));
+  }
+
+  .gg-button-ghost:hover,
+  .gg-button-neutral.gg-button-ghost:hover {
+    background: rgb(var(--bg-weak-50));
+    color: rgb(var(--text-strong-950));
+  }
+
+  .gg-button-danger,
+  .gg-button-error.gg-button-filled {
+    background: rgb(var(--error-base));
+    color: rgb(var(--static-white, var(--neutral-0)));
+  }
+
+  .gg-button-danger:hover,
+  .gg-button-error.gg-button-filled:hover {
+    background: rgb(var(--error-dark, var(--red-700)));
+  }
+
+  .gg-button-error.gg-button-stroke {
+    border-color: rgb(var(--error-base));
+    border-radius: var(--radius-xl);
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--error-base));
+  }
+
+  .gg-button-error.gg-button-lighter {
+    border-radius: var(--radius-xl);
+    background: rgb(var(--error-base) / 0.1);
+    color: rgb(var(--error-base));
+  }
+
+  .gg-button-error.gg-button-ghost {
+    border-color: transparent;
+    border-radius: var(--radius-xl);
+    background: transparent;
+    color: rgb(var(--error-base));
+  }
+
+  .gg-button-size-2xs {
+    min-height: 1.75rem;
+    gap: 0.375rem;
+    padding: 0.25rem 0.5rem;
+    font-size: var(--text-label-xs);
+    line-height: var(--text-label-xs--line-height);
+  }
+
+  .gg-button-size-xs {
+    min-height: 2rem;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    font-size: var(--text-label-xs);
+    line-height: var(--text-label-xs--line-height);
+  }
+
+  .gg-button-size-sm {
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .gg-button-size-md {
+    min-height: 2.75rem;
+    padding: 0.625rem 1rem;
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+  }
+
+  .gg-button-size-lg {
+    min-height: 3rem;
+    padding: 0.75rem 1.5rem;
+    font-size: var(--text-label-md);
+    line-height: var(--text-label-md--line-height);
+  }
+
+  .gg-button-shape-regular {
+    border-radius: var(--radius-xl);
+  }
+
+  .gg-button-shape-pilled {
+    border-radius: var(--radius-full);
+  }
+
+  .gg-button-icon {
+    display: inline-flex;
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .gg-switch {
+    position: relative;
+    display: inline-flex;
+    width: 2.75rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgb(var(--bg-strong, var(--text-sub-600)));
+    transition:
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out),
+      box-shadow var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out);
+  }
+
+  .gg-switch:focus-visible {
+    box-shadow: 0 0 0 3px rgb(var(--focus-ring, var(--primary-base)) / 0.16);
+    outline: none;
+  }
+
+  .gg-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .gg-switch[data-state="checked"] {
+    background: rgb(var(--m3-primary, var(--primary-base)));
+  }
+
+  .gg-switch-thumb {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 999px;
+    background: rgb(var(--m3-surface, var(--bg-white-0)));
+    box-shadow: var(--shadow-switch-thumb, 0 2px 4px rgb(0 0 0 / 0.16));
+    transform: translateX(0);
+    transition:
+      transform var(--spring-spatial-fast-duration, 180ms) var(--spring-spatial-fast-easing, ease-out),
+      background-color var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, ease-out);
+  }
+
+  .gg-switch[data-state="checked"] .gg-switch-thumb {
+    transform: translateX(1.25rem);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .gg-control,
+    .gg-button,
+    .gg-switch,
+    .gg-switch-thumb {
+      transition: none;
+    }
+  }
+}
 
 /* Base layer: Element resets and defaults */
 @layer base {
@@ -527,7 +1116,18 @@
  * Exposes CSS variables to Tailwind for utility class generation
  * ============================================================================ */
 @theme {
-  /* Theme base colors - use semantic tokens for dark mode support */
+  /* Editorial serif for the public-browser dialect.
+   * Loaded via packages/client/index.html. Tailwind's `font-serif` utility
+   * resolves to this stack. Body / nav / UI continues to use --font-sans
+   * (Inter via :root font-family). To trial an alternative serif, see the
+   * options table in packages/client/DESIGN.browser.md → Typography. */
+  --font-serif: "Fraunces", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+  /* Theme base colors - use semantic tokens for dark mode support.
+   * `--color-primary` is an internal token name that maps to the **tertiary role**
+   * in the Warm Earth role hierarchy (accent green, 1-3% screen volume). See
+   * root DESIGN.md for the role model.
+   */
   --color-primary: rgb(var(--primary-base));
   --color-primary-foreground: rgb(var(--primary-foreground));
 
@@ -786,6 +1386,10 @@
   --color-primary-dark: rgb(var(--primary-dark));
   --color-primary-darker: rgb(var(--primary-darker));
   --color-primary-base: rgb(var(--primary-base));
+  --color-primary-accent-foreground: rgb(var(--primary-accent-foreground));
+  --color-primary-action: rgb(var(--primary-action));
+  --color-primary-action-hover: rgb(var(--primary-action-hover));
+  --color-primary-action-foreground: rgb(var(--primary-action-foreground));
   /* Alpha variants using relative color syntax */
   --color-primary-alpha-24: rgb(from rgb(var(--primary-base)) r g b / 24%);
   --color-primary-alpha-16: rgb(from rgb(var(--primary-base)) r g b / 16%);
@@ -802,7 +1406,12 @@
   --color-bg-soft-200: rgb(var(--bg-soft-200));
   --color-bg-weak-50: rgb(var(--bg-weak-50));
   --color-bg-white-0: rgb(var(--bg-white-0));
-  /* Semantic aliases (unsuffixed) */
+  /* Semantic aliases (unsuffixed). DEPRECATED for new code — prefer the
+   * suffixed forms above (e.g. `bg-bg-white-0`). Kept for back-compat with
+   * admin consumers; will be removed in the next theme rev. Audit
+   * 2026-05-05 found that mixing dialects in the same file made review
+   * noise high without changing pixels — see
+   * `.plans/active/client-pwa-audit/lanes/03-color-palette.md` C1. */
   --color-bg-strong: var(--color-bg-strong-950);
   --color-bg-surface: var(--color-bg-surface-800);
   --color-bg-sub: var(--color-bg-sub-300);
@@ -816,7 +1425,7 @@
   --color-text-soft-400: rgb(var(--text-soft-400));
   --color-text-disabled-300: rgb(var(--text-disabled-300));
   --color-text-white-0: rgb(var(--text-white-0));
-  /* Semantic aliases (unsuffixed) */
+  /* Semantic aliases (unsuffixed) — DEPRECATED, see note above. */
   --color-text-strong: var(--color-text-strong-950);
   --color-text-sub: var(--color-text-sub-600);
   --color-text-soft: var(--color-text-soft-400);
@@ -828,7 +1437,7 @@
   --color-stroke-sub-300: rgb(var(--stroke-sub-300));
   --color-stroke-soft-200: rgb(var(--stroke-soft-200));
   --color-stroke-white-0: rgb(var(--stroke-white-0));
-  /* Semantic aliases (unsuffixed) */
+  /* Semantic aliases (unsuffixed) — DEPRECATED, see note above. */
   --color-stroke-strong: var(--color-stroke-strong-950);
   --color-stroke-sub: var(--color-stroke-sub-300);
   --color-stroke-soft: var(--color-stroke-soft-200);
@@ -863,6 +1472,19 @@
   --color-success-base: rgb(var(--success-base));
   --color-success-light: rgb(var(--success-light));
   --color-success-lighter: rgb(var(--success-lighter));
+
+  /* Action domain palette — Tailwind utilities for solar / agro / education /
+   * waste. Backed by --domain-*-rgb / --domain-*-soft-rgb tokens above.
+   * Generates: bg-domain-solar, text-domain-solar, border-domain-solar,
+   * bg-domain-solar-soft, etc., for each of the four domains. */
+  --color-domain-solar: rgb(var(--domain-solar-rgb));
+  --color-domain-solar-soft: rgb(var(--domain-solar-soft-rgb));
+  --color-domain-agro: rgb(var(--domain-agro-rgb));
+  --color-domain-agro-soft: rgb(var(--domain-agro-soft-rgb));
+  --color-domain-education: rgb(var(--domain-education-rgb));
+  --color-domain-education-soft: rgb(var(--domain-education-soft-rgb));
+  --color-domain-waste: rgb(var(--domain-waste-rgb));
+  --color-domain-waste-soft: rgb(var(--domain-waste-soft-rgb));
 
   /* Away */
   --color-away-dark: rgb(var(--away-dark));
@@ -1025,6 +1647,14 @@
 
   /* ── Shadows ── */
 
+  /* Elevation scale — progressive depth for surface hierarchy */
+  --shadow-elevation-1: 0 1px 3px 0 rgba(14, 18, 27, 0.04), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
+  --shadow-elevation-2: 0 4px 12px 0 rgba(14, 18, 27, 0.06), 0 1px 3px 0 rgba(14, 18, 27, 0.04);
+  --shadow-elevation-3: 0 8px 24px 0 rgba(14, 18, 27, 0.08), 0 2px 4px 0 rgba(14, 18, 27, 0.04);
+  --shadow-float: 0 12px 40px 0 rgba(14, 18, 27, 0.12), 0 4px 8px 0 rgba(14, 18, 27, 0.06);
+  --shadow-primary-glow: 0 4px 16px 0 rgba(31, 193, 107, 0.12), 0 1px 3px 0 rgba(14, 18, 27, 0.04);
+
+  /* Legacy aliases */
   --shadow-regular-xs: 0 1px 2px 0 rgba(10, 13, 20, 0.03);
   --shadow-regular-sm: 0 2px 4px rgba(27, 28, 29, 0.04);
   --shadow-regular-md: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
@@ -1051,11 +1681,21 @@
   --shadow-switch-thumb: 0 4px 8px 0 rgba(27, 28, 29, 0.06), 0 2px 4px 0 rgba(14, 18, 27, 0.08);
   --shadow-tooltip: 0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
 
+  /* ── Z-Index Scale ── Generates: z-base, z-raised, z-sticky, z-nav, z-overlay, z-modal, z-toast */
+  --z-index-base: var(--z-base);
+  --z-index-raised: var(--z-raised);
+  --z-index-sticky: var(--z-sticky);
+  --z-index-nav: var(--z-nav);
+  --z-index-overlay: var(--z-overlay);
+  --z-index-modal: var(--z-modal);
+  --z-index-toast: var(--z-toast);
+
   /* ── Animations ── */
 
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-spring-bump: spring-bump 0.56s ease-in-out;
+  --animate-stagger-fade-in: stagger-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 /* ============================================================================
@@ -1064,6 +1704,58 @@
  * @see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries
  * ============================================================================ */
 @layer utilities {
+  .canvas-main-sheet-frame {
+    margin: 0.5rem 1.5rem;
+  }
+
+  @media (max-width: 599px) {
+    .canvas-main-sheet-frame {
+      margin-inline: 0.75rem;
+    }
+  }
+
+  /* ── Canvas Grid Layout ──
+     Per design_handoff_admin-revamp/screens/review.css: NavigationBar floats
+     via position:fixed (bottom: 20px) and doesn't reserve a grid row. Main
+     content carries its own bottom padding to avoid being covered by the
+     floating pill. */
+  .workspace-canvas-grid {
+    --canvas-right-sheet-width: clamp(320px, 28vw, 480px);
+    --canvas-right-sheet-width-wide: clamp(420px, 36vw, 640px);
+    display: grid;
+    grid-template-areas:
+      "top    top    top"
+      "left   main   right";
+    grid-template-rows: auto 1fr;
+    /* `minmax(0, 1fr)` lets the main column shrink below intrinsic content
+       width — without it, content like /actions can force the column wider
+       than the viewport at narrow widths and clip the right edge. */
+    grid-template-columns:
+      var(--left-sheet-width, 0)
+      minmax(0, 1fr)
+      var(--right-sheet-width, 0);
+    background: var(--canvas-gradient,
+      linear-gradient(180deg, rgb(var(--bg-white-0)) 0%, rgb(var(--bg-weak-50) / 0.6) 40%, rgb(var(--bg-sub-300) / 0.3) 100%)
+    );
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .canvas-area-top { grid-area: top; }
+  .canvas-area-left { grid-area: left; }
+  .canvas-area-main { grid-area: main; }
+  .canvas-area-right { grid-area: right; }
+
+  @media (max-width: 599px) {
+    .workspace-canvas-grid {
+      grid-template-areas:
+        "top"
+        "main";
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+    }
+  }
+
   /* Container query contexts - apply to parent elements to enable @[width] queries on children */
   .container-inline {
     container-type: inline-size;

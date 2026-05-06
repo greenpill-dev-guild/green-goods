@@ -2,10 +2,11 @@
 title: "GreenWill Evaluation Plan (March 2026)"
 sidebar_label: GreenWill Evaluation
 slug: /builders/specs/greenwill-gif-evaluation-plan-2026-03
+unlisted: true
 audience: developer
 owner: docs
 last_verified: 2026-03-25
-feature_status: Proposed
+feature_status: Planned
 ---
 
 # GreenWill Evaluation Plan

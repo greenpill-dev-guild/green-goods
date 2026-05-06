@@ -158,7 +158,7 @@ afterAll(() => {
 class InMemoryDatabase {
   private tables: Map<string, Map<string, Record<string, unknown>>> = new Map();
   private createTableRegex = /CREATE TABLE IF NOT EXISTS (\w+)/i;
-  private insertRegex = /INSERT(?: OR REPLACE)? INTO (\w+)/i;
+  private insertRegex = /INSERT(?: OR REPLACE| OR IGNORE)? INTO (\w+)/i;
   private selectRegex = /SELECT \* FROM (\w+) WHERE/i;
   private updateRegex = /UPDATE (\w+) SET/i;
   private deleteRegex = /DELETE FROM (\w+) WHERE/i;
@@ -208,6 +208,20 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return [];
 
+          if (tableName === "feedback") {
+            // Feedback queries: WHERE status = 'new' AND createdAt >= ? [AND type = ?]
+            let rows = Array.from(table.values());
+            rows = rows.filter((row) => row.status === "new");
+            if (params.length >= 1) {
+              const since = params[0] as number;
+              rows = rows.filter((row) => (row.createdAt as number) >= since);
+            }
+            if (params.length >= 2) {
+              rows = rows.filter((row) => row.type === params[1]);
+            }
+            return rows;
+          }
+
           // Filter by gardenAddress if present
           if (params.length === 1) {
             const gardenAddress = String(params[0]);
@@ -218,7 +232,7 @@ class InMemoryDatabase {
         return [];
       },
 
-      run(...params: unknown[]): void {
+      run(...params: unknown[]): { changes: number; lastInsertRowid: number } | void {
         // Handle INSERT
         const insertMatch = sql.match(self.insertRegex);
         if (insertMatch) {
@@ -234,6 +248,8 @@ class InMemoryDatabase {
             users: 7,
             sessions: 5,
             pending_works: 7,
+            idempotency_keys: 9,
+            feedback: 10,
           };
 
           // Determine key based on table
@@ -287,13 +303,56 @@ class InMemoryDatabase {
               data: params[6],
               createdAt: getTestTimestamp(),
             };
+          } else if (tableName === "idempotency_keys") {
+            if (params.length !== EXPECTED_PARAMS.idempotency_keys) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.idempotency_keys} params for idempotency_keys, got ${params.length}`
+              );
+            }
+            key = String(params[0]);
+            if (table.has(key)) {
+              if (/INSERT OR IGNORE/i.test(sql)) {
+                return { changes: 0, lastInsertRowid: 0 };
+              }
+              throw new Error("UNIQUE constraint failed: idempotency_keys.key");
+            }
+            row = {
+              key: params[0],
+              handler: params[1],
+              platform: params[2],
+              platformId: params[3],
+              messageId: params[4],
+              status: params[5],
+              response: params[6],
+              createdAt: params[7],
+              updatedAt: params[8],
+            };
+          } else if (tableName === "feedback") {
+            if (params.length !== EXPECTED_PARAMS.feedback) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.feedback} params for feedback, got ${params.length}`
+              );
+            }
+            key = String(params[0]);
+            row = {
+              id: params[0],
+              type: params[1],
+              status: params[2],
+              text: params[3],
+              platform: params[4],
+              platformId: params[5],
+              displayName: params[6],
+              gardenAddress: params[7],
+              createdAt: params[8],
+              updatedAt: params[9],
+            };
           } else {
             key = String(params[0]);
             row = { id: params[0] };
           }
 
           table.set(key, row);
-          return;
+          return { changes: 1, lastInsertRowid: table.size };
         }
 
         // Handle UPDATE
@@ -303,26 +362,47 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return;
 
-          // Last two params are always platform, platformId for WHERE clause
-          const platform = params[params.length - 2];
-          const platformId = params[params.length - 1];
-          const key = `${platform}:${platformId}`;
-
-          const existingRow = table.get(key);
-          if (existingRow) {
-            // Update fields based on SET clause
-            const setFields = params.slice(0, -2);
-            if (sql.includes("currentGarden = ?") && sql.includes("role = ?")) {
-              existingRow.currentGarden = setFields[0];
-              existingRow.role = setFields[1];
-            } else if (sql.includes("currentGarden = ?")) {
-              existingRow.currentGarden = setFields[0];
-            } else if (sql.includes("role = ?")) {
-              existingRow.role = setFields[0];
-            } else if (sql.includes("privateKey = ?")) {
-              existingRow.privateKey = setFields[0];
+          if (tableName === "idempotency_keys") {
+            const key = String(params[params.length - 1]);
+            const existingRow = table.get(key);
+            if (existingRow) {
+              existingRow.status = params[0];
+              existingRow.response = params[1];
+              existingRow.updatedAt = params[2];
+              table.set(key, existingRow);
             }
-            table.set(key, existingRow);
+          } else if (tableName === "feedback") {
+            // Feedback UPDATE: SET status = ?, updatedAt = ? WHERE id = ?
+            const id = params[params.length - 1];
+            const key = String(id);
+            const existingRow = table.get(key);
+            if (existingRow) {
+              existingRow.status = params[0];
+              existingRow.updatedAt = params[1];
+              table.set(key, existingRow);
+            }
+          } else {
+            // Other tables: last two params are platform, platformId for WHERE clause
+            const platform = params[params.length - 2];
+            const platformId = params[params.length - 1];
+            const key = `${platform}:${platformId}`;
+
+            const existingRow = table.get(key);
+            if (existingRow) {
+              // Update fields based on SET clause
+              const setFields = params.slice(0, -2);
+              if (sql.includes("currentGarden = ?") && sql.includes("role = ?")) {
+                existingRow.currentGarden = setFields[0];
+                existingRow.role = setFields[1];
+              } else if (sql.includes("currentGarden = ?")) {
+                existingRow.currentGarden = setFields[0];
+              } else if (sql.includes("role = ?")) {
+                existingRow.role = setFields[0];
+              } else if (sql.includes("privateKey = ?")) {
+                existingRow.privateKey = setFields[0];
+              }
+              table.set(key, existingRow);
+            }
           }
           return;
         }
@@ -356,6 +436,10 @@ vi.mock("bun:sqlite", () => ({
 vi.mock("@green-goods/shared", () => ({
   // Blockchain functions used by agent
   getDefaultChain: () => ({ id: 11155111, name: "Sepolia" }),
+  getNetworkConfig: (chainId: number, alchemyKey: string) => ({
+    chainId,
+    rpcUrl: `https://example.invalid/${chainId}/${alchemyKey}`,
+  }),
   submitApprovalBot: vi.fn().mockResolvedValue({ hash: "0x" + "0".repeat(64) }),
   submitWorkBot: vi.fn().mockResolvedValue({ hash: "0x" + "0".repeat(64) }),
 
@@ -422,12 +506,5 @@ vi.mock("telegraf", () => ({
       sendMessage: mockTelegram.sendMessage,
       sendPhoto: mockTelegram.sendPhoto,
     },
-  })),
-}));
-
-// Mock Storacha storage client
-vi.mock("@storacha/client", () => ({
-  Client: vi.fn().mockImplementation(() => ({
-    uploadFile: vi.fn().mockResolvedValue({ cid: "test-cid" }),
   })),
 }));

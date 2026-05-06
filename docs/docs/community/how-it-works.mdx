@@ -5,8 +5,17 @@ slug: /community/how-it-works
 sidebar_position: 2
 audience: all
 owner: docs
-last_verified: 2026-03-07
+last_verified: 2026-04-07
 feature_status: Live
+source_of_truth:
+  - packages/client/src/views/Landing/index.tsx
+  - packages/client/src/views/Home/index.tsx
+  - packages/client/src/views/Garden/index.tsx
+  - packages/shared/src/modules/auth
+  - packages/shared/src/modules/work
+  - packages/shared/src/modules/data
+  - packages/shared/src/i18n
+  - packages/indexer/config.yaml
 keywords:
   - MDR workflow
   - passkey
@@ -35,38 +44,37 @@ Green Goods is built for the reality of field work – **intermittent connectivi
 
 ### Privacy & Security
 
-Your data stays on your device until you choose to submit. Green Goods uses **passkey authentication** tied to your device's secure enclave – your biometric data never leaves your phone. Behind the scenes, a **smart account** is created for you using account abstraction, giving you a secure on-chain identity without exposing private keys.
+Your data stays on your device until you choose to submit. Green Goods is **passkey-first**: if you use a passkey, authentication is tied to your device's secure enclave and your biometric data never leaves your phone. That flow creates a [smart account](/glossary#smart-account-account-abstraction) for you without exposing private keys. If you connect a wallet instead, Green Goods uses the wallet address you already control.
 
-### Multiple Ways to Sign In
+### Passkey First, Wallet Available
 
-Green Goods eliminates the biggest barrier to web3 adoption – wallet setup. Choose the method that works best for you:
+Green Goods is designed so new users can get started without seed phrases, but it still supports direct wallet access for experienced users:
 
-- **Email or social login** – Sign in with your email, Google, Apple, Discord, or other social accounts. No crypto knowledge required. A managed wallet is created for you behind the scenes.
-- **Passkey authentication** – Sign in with your fingerprint, face, or device PIN. No seed phrases, no browser extensions. A [smart account](/glossary#smart-account-account-abstraction) is created using account abstraction.
-- **Wallet connection** – Experienced users can connect an existing wallet (MetaMask, Rainbow, etc.) for direct on-chain interaction.
+- **Passkey authentication** – Sign in with your fingerprint, face, or device PIN. This is the smoothest onboarding path and creates a smart account for you automatically.
+- **Wallet connection** – Connect an existing wallet (MetaMask, Rainbow, WalletConnect-compatible wallets) if you want to sign directly with your own address.
 
-All methods provide:
-- **Automatic smart account** – A secure on-chain identity is created for you, regardless of how you sign in.
-- **Gasless transactions** – Work submissions are bundled and sponsored, so you never need to buy tokens or pay gas fees.
-- **Under a minute** – From first visit to first submission, the onboarding flow takes less than 60 seconds.
+What changes depending on sign-in method:
+- **Passkey users** usually get the simplest flow, including sponsored transactions where that path is supported.
+- **Wallet users** keep direct signer control, but some actions require normal on-chain gas fees.
+- **Address continuity matters** either way: your roles, work history, and reputation follow the address you keep using.
 
 ```mermaid
 sequenceDiagram
     actor User as Field Worker
     participant App as Green Goods PWA
-    participant Auth as Email / Passkey / Wallet
-    participant SA as Smart Account
+    participant Auth as Passkey / Wallet
+    participant Account as Smart Account or Wallet
 
     User->>App: Open app / choose sign-in method
-    App->>Auth: Authenticate (email OTP, biometric, or wallet)
+    App->>Auth: Authenticate (biometric/PIN or wallet)
     Auth-->>App: Identity verified
-    App->>SA: Create or recover smart account
-    SA-->>App: Account ready
+    App->>Account: Create/recover smart account or use connected wallet
+    Account-->>App: Account ready
     App-->>User: Logged in – ready to submit work
 ```
 
 :::note Address Continuity
-Each sign-in method creates an independent on-chain account with its own address. Your contribution history, roles, and reputation are tied to the address from your chosen sign-in method. Pick one method and stick with it – switching methods means starting with a new identity.
+Your contribution history, roles, and reputation are tied to the address you keep using. If you switch from one sign-in path to a different address later, that new address will not automatically inherit the old one’s history.
 :::
 
 ### Works In All Conditions
@@ -179,11 +187,11 @@ Each cycle strengthens the next: more verified impact attracts more funding, whi
 
 ## Hub To Manage Gardens
 
-The **admin dashboard** gives operators full visibility and control over their garden community.
+The **admin canvas** gives operators full visibility and control over their garden community.
 
 ### Manage Gardeners & Operations
 
-Operators spend **2-4 hours per week** on garden management. The dashboard streamlines their core workflows:
+Operators spend **2-4 hours per week** on garden management. The canvas streamlines their core workflows:
 
 - **Work review queue** – See all pending submissions, approve or request changes with one tap
 - **Action management** – Configure which actions are available, set media requirements, define form fields
@@ -192,7 +200,7 @@ Operators spend **2-4 hours per week** on garden management. The dashboard strea
 
 ### Build Relationships With Evaluators & Funders
 
-The dashboard is the bridge between field operations and impact certification:
+The admin canvas is the bridge between field operations and impact certification:
 
 - **Assessment creation** – Operators initiate assessments that evaluators complete
 - **Hypercert minting** – Package verified work into tokenized impact certificates

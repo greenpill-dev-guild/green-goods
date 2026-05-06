@@ -18,7 +18,10 @@ export async function handleHelp(
     `/status - Check your current status\n\n` +
     `*Submitting Work:*\n` +
     `Simply send a text or voice message describing your work!\n` +
-    `Example: "I planted 5 trees today"\n\n`;
+    `Example: "I planted 5 trees today"\n\n` +
+    `*Feedback:*\n` +
+    `/bug <description> - Report a bug or problem\n` +
+    `/idea <description> - Share a feature idea\n\n`;
 
   if (isOperator) {
     helpText +=

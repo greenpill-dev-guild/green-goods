@@ -3,6 +3,7 @@ description: Green Goods Indexer
 field_selection:
   transaction_fields:
     - hash
+    - input
 contracts:
   - name: ActionRegistry
     handler: src/EventHandlers.ts
@@ -53,6 +54,16 @@ contracts:
     events:
       - event: TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value)
       - event: ClaimStored(uint256 indexed claimID, string uri, uint256 totalUnits)
+  - name: GreenWill
+    handler: src/EventHandlers.ts
+    events:
+      - event: BadgeClassConfigured(bytes32 indexed badgeId, string slug, address indexed validator, address indexed authorizedIssuer, address unlockLock, bool claimable, bool active, string metadataURI)
+      - event: BadgeIssued(bytes32 indexed badgeId, address indexed account, bytes32 indexed sourceRef, address issuer, uint256 unlockTokenId)
+  - name: CookieJarFactory
+    handler: src/EventHandlers.ts
+    events:
+      - event: JarCreated(address indexed jarAddress, address indexed creator)
+      - event: MetadataUpdated(address indexed jarAddress, string metadata)
 networks:
   - id: 42161
     start_block: 433713812
@@ -73,8 +84,12 @@ networks:
         address: "0x90896C86108528abB600Da3C48a1aa054958bDeb"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: GreenWill
+        address: "0x6e6895580b386eB3aB9efe228f79cdBe5B61F5e7"
+      - name: CookieJarFactory
+        address: "0x294d222eDE6DF6625B43544F1C634322467528Da"
   - id: 11155111
-    start_block: 10291992
+    start_block: 10243363
     contracts:
       - name: ActionRegistry
         address: "0xB768203B1A3e3d6FaE0e788d0f9b99381ecB3Bae"
@@ -92,3 +107,7 @@ networks:
         address: "0x7b97F5Fce2C28483d76144DA63dDA2Eb51DB07F1"
       - name: HypercertMinter
         address: "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07"
+      - name: GreenWill
+        address: "0x0000000000000000000000000000000000000000"
+      - name: CookieJarFactory
+        address: "0x021368bf9958f4D535d39d571Bc45f74d20e4666"

@@ -148,3 +148,35 @@ Use `Alert` component from `@/components/ui/Alert` for all error/warning/info bo
   Something went wrong
 </Alert>
 ```
+
+## Rule 17: Don't redeclare context the chrome already declares
+
+Persistent chrome (`AppBar` GardenChip, workspace title bar, breadcrumb) is the canonical declaration of which entity the operator is in. Views, page headers, toolbars, list rows, and cards must not restate that same entity. Re-declaration steals vertical space, dilutes the chrome's authority, and trains the eye to ignore the very element that should be ground truth.
+
+```tsx
+// Bad — AppBar GardenChip already shows "Aiyeloja Family Garden"
+<PageHeader
+  title="Work"
+  description="Review work flowing through Aiyeloja Family Garden."
+  metadata={<MetaStrip items={[{ label: garden.name }]} />}
+/>
+<WorkbenchRow eyebrow={garden.name} title={...} />
+<Card>
+  <p>{gardenName}</p>  {/* visible-body duplication */}
+</Card>
+
+// Good — header speaks to the stage; rows speak to their own status; chrome owns the garden context
+<PageHeader title="Work" description="Review and triage pending submissions." />
+<WorkbenchRow eyebrow="Review" title={...} />
+<Card>
+  {/* Garden context inherited from chrome; no body line needed. Keep it in
+      hover-title for accessibility if the card may be detached from chrome. */}
+</Card>
+```
+
+When to redeclare:
+- A list **mixes entities** (cross-garden feed, multi-workspace dashboard) — then the row must name its garden because chrome can't.
+- A card may be **detached** from chrome (PDF export, email digest, screenshot share) — keep an accessible `title=""` attribute even if the visible line is removed for in-app contexts.
+- The body **disambiguates** (e.g., "the garden's vault is X, the parent DAO's vault is Y") — declaring the qualifier is the whole point of the line.
+
+Otherwise: trust the chrome. Anti-pattern guard for review: search the rendered DOM for the active garden / workspace / entity name; if it appears more than once outside chrome, justify it or remove it.

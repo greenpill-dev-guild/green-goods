@@ -46,7 +46,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 });
 
 // Mock the DistributionChart component
-vi.mock("../../../components/hypercerts/DistributionChart", () => ({
+vi.mock("../../../components/Hypercerts/DistributionChart", () => ({
   DistributionChart: ({
     allowlist,
     totalUnits,
@@ -61,7 +61,7 @@ vi.mock("../../../components/hypercerts/DistributionChart", () => ({
     ),
 }));
 
-import { DistributionConfig } from "../../../components/hypercerts/steps/DistributionConfig";
+import { DistributionConfig } from "../../../components/Hypercerts/Steps/DistributionConfig";
 
 // ============================================
 // Test Fixtures
@@ -88,7 +88,7 @@ function createMockAllowlist(count: number = 3): AllowlistEntry[] {
   }));
 }
 
-describe("components/hypercerts/DistributionConfig", () => {
+describe("components/Hypercerts/DistributionConfig", () => {
   const defaultProps = {
     mode: "equal" as DistributionMode,
     allowlist: createMockAllowlist(3),

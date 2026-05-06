@@ -58,6 +58,19 @@
   },
   {
     "type": "function",
+    "name": "MAX_NAME_LENGTH",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "WORK_APPROVAL_RESOLVER",
     "inputs": [],
     "outputs": [
@@ -68,6 +81,13 @@
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "attemptCommunityMembership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -236,6 +256,29 @@
       }
     ],
     "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "executeGardenSelfStake",
+    "inputs": [
+      {
+        "name": "goodsToken_",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "community",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "stakeAmount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -1636,6 +1679,11 @@
   },
   {
     "type": "error",
+    "name": "NameTooLong",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotAuthorized",
     "inputs": []
   },
@@ -1647,6 +1695,11 @@
   {
     "type": "error",
     "name": "NotGardenOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotGardensModule",
     "inputs": []
   },
   {

@@ -1,9 +1,6 @@
-import { type CreateAssessmentFormData, CynefinPhase, cn, Domain } from "@green-goods/shared";
+import { CynefinPhase, cn, Domain } from "@green-goods/shared";
 import { type ReactNode } from "react";
 import { type IntlShape, useIntl } from "react-intl";
-
-// Re-export the form data type from shared for backwards compatibility
-export type CreateAssessmentForm = CreateAssessmentFormData;
 
 // ─── Domain Display Constants ────────────────────────────
 
@@ -192,20 +189,6 @@ export function LabeledField({ label, required, error, helpText, children }: Lab
   );
 }
 
-/** Input class name utility — accepts a boolean error flag instead of RHF FieldError */
-export const inputClassName = (hasError?: boolean) =>
-  cn(
-    "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-16",
-    hasError && "border-error-light focus:border-error-base focus:ring-error-lighter"
-  );
-
-/** Textarea class name utility — accepts a boolean error flag instead of RHF FieldError */
-export const textareaClassName = (hasError?: boolean) =>
-  cn(
-    "mt-1 w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong shadow-sm transition focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-alpha-16",
-    hasError && "border-error-light focus:border-error-base focus:ring-error-lighter"
-  );
-
 export function Section({
   title,
   description,
@@ -254,29 +237,4 @@ export function ReviewRow({
       </p>
     </div>
   );
-}
-
-export function formatDateRange(start?: string | number | null, end?: string | number | null) {
-  if (!start && !end) return "Not provided";
-
-  const formatValue = (value?: string | number | null) => {
-    if (!value) return undefined;
-    if (typeof value === "string" && value.includes("-")) {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-    }
-    const numeric = typeof value === "string" ? Number(value) : value;
-    if (!numeric) return undefined;
-    const timestamp = numeric > 10_000_000_000 ? numeric : numeric * 1000;
-    const date = new Date(timestamp);
-    return Number.isNaN(date.getTime()) ? undefined : date.toLocaleDateString();
-  };
-
-  const startLabel = formatValue(start);
-  const endLabel = formatValue(end);
-
-  if (startLabel && endLabel) {
-    return `${startLabel} – ${endLabel}`;
-  }
-  return startLabel ?? endLabel ?? "Not provided";
 }

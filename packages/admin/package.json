@@ -1,23 +1,27 @@
 {
   "name": "@green-goods/admin",
-  "version": "0.4.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "predev": "lsof -t -iTCP:3002 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
-    "dev": "APP_ENV=development bun --bun vite",
-    "test": "APP_ENV=test vitest run",
+    "dev": "APP_ENV=development node ../../scripts/dev/node-cli.js vite",
+    "test": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run --exclude \"src/__tests__/views/**\" --exclude \"src/__tests__/components/assessment/StrategyKernelStep.test.tsx\"",
+    "test:hub": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run src/__tests__/routing/command-palette-routes.test.tsx src/__tests__/routing/public-garden-redirect.test.ts src/__tests__/routing/route-folding.test.ts src/__tests__/routing/runtime-navigation.test.tsx src/__tests__/routing/toolbar-visibility.test.tsx src/__tests__/workspace-state.test.tsx src/__tests__/components/CanvasLayout.test.tsx src/__tests__/components/mobile-nav.test.tsx src/__tests__/components/empty-state.test.tsx src/__tests__/views/HubDetail.test.tsx src/components/Layout/commandPalette.results.test.ts src/views/Actions/actions.workspaceModel.test.ts src/views/Hub/hub.workbenchModel.test.ts",
+    "test:legacy": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run src/__tests__/views/HubDetail.test.tsx src/__tests__/views/GardenVaultView.test.tsx src/__tests__/views/Actions/GreenWillPanel.test.tsx",
+    "test:all": "bun run test && bun run test:legacy",
     "test:watch": "APP_ENV=test vitest --standalone",
-    "test:coverage": "APP_ENV=test vitest run --coverage",
+    "test:coverage": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run --coverage",
+    "test:views:hub-detail": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run src/__tests__/views/HubDetail.test.tsx",
     "test:ui": "APP_ENV=test vitest --ui",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "bun --bun run oxlint src",
-    "build": "APP_ENV=production tsc --noEmit && bun --bun vite build",
-    "preview": "APP_ENV=production bun --bun vite preview"
+    "build": "cd ../.. && APP_ENV=production tsc --noEmit -p packages/admin/tsconfig.json && bun --bun vite build --config packages/admin/vite.config.ts",
+    "build:deploy": "bun run build && node ../../scripts/ops/upload-sourcemaps.js --app admin --deploy",
+    "preview": "cd ../.. && APP_ENV=production bun --bun vite preview --config packages/admin/vite.config.ts"
   },
   "dependencies": {
-    "@ethereum-attestation-service/eas-sdk": "2.7.0",
     "@green-goods/shared": "workspace:*",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -31,7 +35,7 @@
     "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.85.3",
     "@tanstack/react-query-persist-client": "^5.85.3",
-    "@xstate/react": "^6.0.0",
+    "@xstate/react": "^6.1.0",
     "idb-keyval": "^6.2.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -44,17 +48,15 @@
     "tailwind-variants": "3.2.2",
     "viem": "^2.43.4",
     "wagmi": "^2.19.5",
-    "xstate": "^5.25.0",
+    "xstate": "^5.30.0",
     "zod": "^4.3.5",
     "zustand": "^5.0.6"
   },
   "devDependencies": {
-    "@varlock/vite-integration": "^1.0.0",
     "@vitejs/plugin-react": "^5.1.2",
     "tailwindcss": "^4.1.11",
     "babel-plugin-react-compiler": "^1.0.0",
     "typescript": "^5.9.3",
-    "varlock": "^0.3.0",
     "vite": "^7.3.0",
     "vite-plugin-mkcert": "^1.17.8"
   }

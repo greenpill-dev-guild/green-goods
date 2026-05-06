@@ -15,7 +15,7 @@ export interface DeploymentData {
   ensReceiver?: string;
   hatsModule?: string;
   karmaGAPModule?: string;
-  [key: string]: string | undefined;
+  [key: string]: string | number | boolean | Record<string, unknown> | unknown[] | undefined;
 }
 
 export interface NetworkContracts {

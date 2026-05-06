@@ -18,7 +18,7 @@ graph TD
     end
 
     subgraph Apps["Target Applications"]
-      AD[Admin Dashboard<br/>Auth: Wallet Storage]
+      AD[Admin Dashboard<br/>Auth: Dev mockAuth]
       CP1[Client PWA<br/>Auth: Passkey Virtual WebAuthn]
       CP2[Client PWA<br/>Auth: Wallet Storage]
     end
@@ -136,24 +136,26 @@ Test continues with authenticated context
 - Storage may not persist in some Safari configurations
 - No transaction signing (use mocked viem client if needed)
 
-### Admin Desktop - Storage Injection
+### Admin Desktop - Dev Mock Auth
 
-Same pattern as iOS Safari, but for desktop browser:
+Admin cockpit tests should use the app's dev-only auth seam instead of wallet storage injection:
 
 ```typescript
 const helper = new AdminTestHelper(page);
-await helper.injectWalletAuth();
-await page.goto("/dashboard");
+await helper.enableMockAuth("operator");
+await page.route("**/api/graphql", mockIndexerRoute);
+await page.route("**/v1/graphql", mockIndexerRoute);
+await page.goto("/hub");
 
-// RequireAuth checks: isAuthenticated && eoaAddress
-// Both satisfied via localStorage
+// AuthGate switches to DevAuthProvider when mock auth is present.
+// Cockpit data is then supplied by deterministic GraphQL fixtures.
 ```
 
-**Why not test real wallet connect?**
-- MetaMask extension automation is brittle
-- Storage injection validates auth state management
-- Faster test execution (no wallet popup delays)
-- Real wallet testing done in manual QA
+**Why this is better than wallet storage injection**
+- Uses the real admin auth seam (`AuthGate` + `DevAuthProvider`) instead of wagmi-localStorage internals
+- Survives reloads because mock role is persisted in `sessionStorage`
+- Verifies the actual cockpit routes (`/hub`, `/garden`, `/community`, `/actions`)
+- Avoids false negatives from wallet connector bootstrapping
 
 ## Test Execution Flow
 
@@ -176,7 +178,7 @@ flowchart TD
     CS --> CH1[Chromium: passkey]
     CS --> MC[mobile-chrome: passkey]
     CS --> MS[mobile-safari: wallet]
-    AS --> CH2[Chromium: wallet]
+    AS --> CH2[Chromium: mockAuth]
   end
 
   subgraph Teardown["4. Teardown"]
@@ -229,8 +231,11 @@ class ClientTestHelper {
 
 ```typescript
 class AdminTestHelper {
-  async injectWalletAuth(address?: string): Promise<void>
-    → Same as ClientTestHelper.injectWalletAuth()
+  async enableMockAuth(role?: "deployer" | "operator" | "user" | "disconnected"): Promise<void>
+    → Seeds sessionStorage with dev mock auth before page load
+
+  async goToCockpit(path?: string, role?: "deployer" | "operator" | "user"): Promise<void>
+    → Navigates to current cockpit routes with mock auth enabled
 
   async goToLogin(): Promise<void>
   async goToDashboard(): Promise<void>

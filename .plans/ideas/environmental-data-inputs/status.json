@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "environmental-data-inputs",
+    "title": "Environmental Data Inputs",
+    "kind": "feature",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p3",
+    "created_at": "2026-05-03T00:00:00.000Z",
+    "updated_at": "2026-05-03T00:00:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "taxonomy": {
+    "initiative": "environmental-data",
+    "tracks": ["admin", "shared"],
+    "work_types": ["research"],
+    "surfaces": ["packages/admin", "packages/shared"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Consolidates locale-energy-iot-data-inputs and sylvie-environmental-data-inputs.",
+    "Provider-specific source plans are preserved under artifacts/provider-sources/."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/environmental-data-inputs",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["ui", "research"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/environmental-data-inputs",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["research", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/environmental-data-inputs",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No contract implementation is planned while this remains discovery-only."
+      },
+      "skill_tags": ["research"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/environmental-data-inputs",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/environmental-data-inputs",
+      "branch_trigger": "claude/qa-pass-1/environmental-data-inputs",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-03T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "consolidated",
+      "branch": null,
+      "note": "Merged locale.network and Sylvie environmental input ideas into one formal environmental-data hub."
+    }
+  ]
+}

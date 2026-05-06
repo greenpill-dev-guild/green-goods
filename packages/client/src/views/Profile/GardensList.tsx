@@ -1,25 +1,20 @@
 import {
   type Address,
   ConfirmDialog,
-  createPublicClientForChain,
-  DEFAULT_CHAIN_ID,
   debugError,
   type Garden,
-  GardenAccountABI,
-  getDefaultChain,
   hapticLight,
   hapticSuccess,
   isAlreadyGardenerError,
   isGardenMember,
   parseAndFormatError,
-  queryKeys,
   toastService,
   useGardens,
   useJoinGarden,
+  usePendingJoinsVersion,
   useTimeout,
 } from "@green-goods/shared";
-import { RiCheckLine, RiMapPinLine, RiPlantLine, RiRefreshLine } from "@remixicon/react";
-import { useQueryClient } from "@tanstack/react-query";
+import { RiCheckLine, RiMapPinLine, RiPlantLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
@@ -34,13 +29,11 @@ interface GardensListProps {
 export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { data: gardens = [], isLoading: gardensLoading, isFetching, refetch } = useGardens();
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const { joinGarden, isJoining, joiningGardenId } = useJoinGarden();
   const [pendingGarden, setPendingGarden] = useState<Garden | null>(null);
-  const [estimatedGas, setEstimatedGas] = useState<bigint | null>(null);
-  const [isEstimatingGas, setIsEstimatingGas] = useState(false);
   const ensDiscoveryTimeout = useTimeout();
+  const pendingJoinsVersion = usePendingJoinsVersion();
 
   const allGardens = useMemo(() => {
     if (!primaryAddress || !gardens.length) return [];
@@ -60,30 +53,12 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         ...garden,
         isMember: isGardenMember(primaryAddress, garden.gardeners, garden.operators, garden.id),
       }));
-  }, [gardens, primaryAddress]);
+    // pendingJoinsVersion retriggers when a join confirms or expires in-tab,
+    // so the Member badge updates without waiting for an unrelated re-render.
+  }, [gardens, primaryAddress, pendingJoinsVersion]);
 
-  const handleJoinGarden = async (garden: Garden) => {
+  const handleJoinGarden = (garden: Garden) => {
     setPendingGarden(garden);
-    setEstimatedGas(null);
-    if (!primaryAddress) return;
-
-    setIsEstimatingGas(true);
-    try {
-      const chainId = Number(getDefaultChain().chainId ?? DEFAULT_CHAIN_ID);
-      const publicClient = createPublicClientForChain(chainId);
-      const gas = await publicClient.estimateContractGas({
-        abi: GardenAccountABI,
-        address: garden.id as Address,
-        functionName: "joinGarden",
-        args: [],
-        account: primaryAddress as Address,
-      });
-      setEstimatedGas(gas);
-    } catch {
-      setEstimatedGas(null);
-    } finally {
-      setIsEstimatingGas(false);
-    }
   };
 
   const handleConfirmJoinGarden = async () => {
@@ -115,11 +90,11 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
           toastService.info({
             title: intl.formatMessage({
               id: "app.account.ensDiscovery",
-              defaultMessage: "Claim your .greengoods.eth name",
+              defaultMessage: "Claim your Green Goods name",
             }),
             message: intl.formatMessage({
               id: "app.account.ensDiscoveryMessage",
-              defaultMessage: "As a protocol member, you can claim a personal ENS subdomain.",
+              defaultMessage: "Pick a personal name so other gardeners can find you.",
             }),
             context: "ensDiscovery",
           });
@@ -164,30 +139,12 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
 
   return (
     <>
-      <div className="flex items-center justify-between">
-        <h5 className="text-label-md text-text-strong-950">
-          {intl.formatMessage({
-            id: "app.profile.gardens",
-            defaultMessage: "Gardens",
-          })}
-        </h5>
-        <button
-          type="button"
-          onClick={() => {
-            hapticLight();
-            queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
-            refetch();
-          }}
-          disabled={isFetching}
-          className="p-1.5 rounded-lg text-text-sub-600 hover:text-primary active:scale-95 transition-all duration-200 disabled:opacity-50"
-          aria-label={intl.formatMessage({
-            id: "app.profile.refreshGardens",
-            defaultMessage: "Refresh gardens",
-          })}
-        >
-          <RiRefreshLine className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-        </button>
-      </div>
+      <h5 className="text-label-md text-text-strong-950">
+        {intl.formatMessage({
+          id: "app.profile.gardens",
+          defaultMessage: "Gardens",
+        })}
+      </h5>
 
       {gardensLoading ? (
         <Card>
@@ -214,11 +171,18 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                     </div>
                   </Avatar>
                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{garden.name}</div>
+                    <div
+                      className="line-clamp-2 text-sm font-medium leading-snug"
+                      title={garden.name}
+                    >
+                      {garden.name}
+                    </div>
                     {garden.location && (
                       <div className="flex items-center gap-1 text-xs text-text-sub-600">
                         <RiMapPinLine className="w-3 h-3 shrink-0" />
-                        <span className="truncate">{garden.location}</span>
+                        <span className="truncate" title={garden.location}>
+                          {garden.location}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -247,14 +211,6 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                     />
                   )}
                 </div>
-                {!garden.isMember && (
-                  <p className="mt-2 text-xs text-text-sub-600">
-                    {intl.formatMessage({
-                      id: "app.profile.gardenerRoleDescription",
-                      defaultMessage: "Join as a Gardener to submit work in this garden.",
-                    })}
-                  </p>
-                )}
               </Card>
             );
           })}
@@ -306,7 +262,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                 {
                   id: "app.profile.joinGardenConfirmDescription",
                   defaultMessage:
-                    "Garden: {gardenName}. {gardenDescription} You'll join as a Gardener, able to submit work. Estimated gas: {gasEstimate}.",
+                    "Garden: {gardenName}. {gardenDescription} You'll join as a Gardener and be able to submit work.",
                 },
                 {
                   gardenName: pendingGarden.name,
@@ -316,17 +272,6 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
                         id: "app.profile.joinGardenNoDescription",
                         defaultMessage: "No garden description provided.",
                       }),
-                  gasEstimate: isEstimatingGas
-                    ? intl.formatMessage({
-                        id: "app.profile.joinGardenGasLoading",
-                        defaultMessage: "calculating",
-                      })
-                    : estimatedGas
-                      ? intl.formatNumber(estimatedGas)
-                      : intl.formatMessage({
-                          id: "app.profile.joinGardenGasUnavailable",
-                          defaultMessage: "unavailable",
-                        }),
                 }
               )
             : undefined

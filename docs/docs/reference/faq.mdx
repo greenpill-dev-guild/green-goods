@@ -3,10 +3,10 @@ title: Frequently Asked Questions
 slug: /reference/faq
 audience: all
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-04-23
 feature_status: Live
 source_of_truth:
-  - docs/docs/intro.md
+  - docs/docs/community/welcome.mdx
   - docs/docs/builders/packages/api-index.mdx
   - docs/docs/builders/deployments/status.mdx
 ---
@@ -70,7 +70,7 @@ No. Gardener submission flows are designed to work without wallet management.
 
 Use operator feedback to update evidence and resubmit. See:
 
-- [Submit Work with MDR](../community/gardener-guide/uploading-your-work)
+- [Submit Work](../community/gardener-guide/uploading-your-work)
 - [Common Errors](../community/gardener-guide/common-errors)
 
 </QuickAnswer>
@@ -129,7 +129,7 @@ Use [API Index](../builders/packages/api-index).
 
 <QuickAnswer question="How do I verify attestation chains?">
 
-Use [Verify Attestation Chains](../community/evaluator-guide/making-assessments).
+Use [API Index](../builders/packages/api-index) for canonical endpoints and inspect attestation UIDs on the matching EAS explorer for the chain you are working on.
 
 </QuickAnswer>
 
@@ -137,9 +137,9 @@ Use [Verify Attestation Chains](../community/evaluator-guide/making-assessments)
 
 Yes. Start with:
 
-- [Query Indexer](../community/evaluator-guide/query-indexer)
-- [Query EAS](../community/evaluator-guide/query-eas)
-- [Export and Analysis](../community/evaluator-guide/export-and-analysis)
+- [API Index](../builders/packages/api-index)
+- [EAS Integration](../builders/integrations/eas)
+- [Overview](../builders/integrations/overview)
 
 </QuickAnswer>
 
@@ -156,8 +156,10 @@ Yes. Repository: [greenpill-dev-guild/green-goods](https://github.com/greenpill-
 ```bash
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
-bun setup
-bun dev
+npm run setup
+bun run dev:doctor -- --profile web
+bun run dev:web
+bun run dev:smoke:web
 ```
 
 See [Developer Getting Started](../builders/getting-started).
@@ -201,4 +203,3 @@ Open an issue or PR in GitHub and follow the developer docs in [Developer Hub](.
 - Telegram: [Join chat](https://t.me/+N3o3_43iRec1Y2Jh)
 - Bug reports: [GitHub Issues](https://github.com/greenpill-dev-guild/green-goods/issues)
 - Feature requests: [GitHub Discussions](https://github.com/greenpill-dev-guild/green-goods/discussions)
-

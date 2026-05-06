@@ -3,7 +3,7 @@ import { Domain } from "../../types/domain";
 import { ActionBannerFallback } from "./ActionBannerFallback";
 
 const meta: Meta<typeof ActionBannerFallback> = {
-  title: "Media/ActionBannerFallback",
+  title: "Shared/Display/ActionBannerFallback",
   component: ActionBannerFallback,
   tags: ["autodocs"],
   decorators: [

@@ -5,7 +5,7 @@ import type { EASWorkApproval } from "../../../types/eas-responses";
 import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { queryClient } from "../../../config/react-query";
-import { queryKeys } from "../../../hooks/query-keys";
+import { queryKeys } from "../../../config/query-keys";
 import { ANALYTICS_EVENTS } from "../../../modules/app/analytics-events";
 import { track } from "../../../modules/app/posthog";
 import { logger } from "../../app/logger";

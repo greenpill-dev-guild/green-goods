@@ -23,6 +23,9 @@ Object.defineProperty(window, "matchMedia", {
   })),
 });
 
+// Polyfill scrollIntoView for jsdom (not implemented in jsdom)
+Element.prototype.scrollIntoView = vi.fn();
+
 // Import base setup from shared (includes common mocks)
 import "@green-goods/shared/__tests__/setupTests.base";
 

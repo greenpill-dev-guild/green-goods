@@ -3,7 +3,8 @@ import deployment42161 from "@green-goods/contracts/deployments/42161-latest.jso
 import deployment42220 from "@green-goods/contracts/deployments/42220-latest.json";
 import deployment11155111 from "@green-goods/contracts/deployments/11155111-latest.json";
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
-import { ENV } from "varlock/env";
+import { ENV } from "../lib/env";
+import { logger } from "../modules/app/logger";
 
 // Export types
 export interface EASConfig {
@@ -47,6 +48,7 @@ interface DeploymentConfig {
   octantFactory?: string;
   hatsModule?: string;
   karmaGAPModule?: string;
+  cookieJarFactory?: string;
   cookieJarModule?: string;
   goodsToken?: string;
   juiceboxProjectId?: number;
@@ -81,7 +83,7 @@ const EAS_GRAPHQL_URLS: Record<string, string> = {
 };
 
 const DEFAULT_EAS_GRAPHQL_URL = "https://sepolia.easscan.org/graphql";
-const FALLBACK_CHAIN_ID = 11155111;
+const FALLBACK_CHAIN_ID = 42161;
 
 function hasNetworkConfig(chainId: number): boolean {
   return Object.values(networksConfig.networks).some(
@@ -209,6 +211,8 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
       octantFactory: deployment.octantFactory || "0x0000000000000000000000000000000000000000",
       hatsModule: deployment.hatsModule || "0x0000000000000000000000000000000000000000",
       karmaGAPModule: deployment.karmaGAPModule || "0x0000000000000000000000000000000000000000",
+      cookieJarFactory: deployment.cookieJarFactory || "0x0000000000000000000000000000000000000000",
+      cookieJarModule: deployment.cookieJarModule || "0x0000000000000000000000000000000000000000",
       // Add contracts from networks.json
       eas: networkConfig.contracts?.eas || "0x0000000000000000000000000000000000000000",
       easSchemaRegistry:
@@ -237,6 +241,11 @@ export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: b
   }
 
   if (isDev) {
+    // In HTTPS browser contexts, use the Vite proxy to avoid mixed content
+    // (both admin and client configure /api/graphql → localhost:8080)
+    if (typeof window !== "undefined" && window.location.protocol === "https:") {
+      return new URL("/api/graphql", window.location.origin).toString();
+    }
     return "http://localhost:8080/v1/graphql";
   }
 
@@ -244,8 +253,35 @@ export function getIndexerUrl(env: { VITE_ENVIO_INDEXER_URL?: string }, isDev: b
   return "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 }
 
+// True iff the GreenWill badge contract is deployed (non-zero) on the given chain.
+// Used by UI to differentiate "no badges yet" from "badges not available on this network".
+export function isGreenWillDeployed(chainId?: number | string): boolean {
+  const chain = resolveChainId(chainId);
+  const deployment = getDeploymentConfig(chain) as DeploymentConfig & { greenWill?: string };
+  const address = deployment.greenWill;
+  return Boolean(address) && address !== "0x0000000000000000000000000000000000000000";
+}
+
 // Default chain ID from environment variable
 export const DEFAULT_CHAIN_ID = resolveChainId(ENV.VITE_CHAIN_ID);
+
+// Warn at module init when VITE_CHAIN_ID is missing or didn't resolve to a
+// known deployment, so build pipelines and local dev sessions surface the
+// silent fallback path instead of running on the wrong chain unnoticed.
+{
+  const rawChainId = ENV.VITE_CHAIN_ID;
+  const resolvedFromEnv =
+    rawChainId !== undefined && rawChainId !== null && rawChainId !== ""
+      ? Number(rawChainId)
+      : undefined;
+  if (resolvedFromEnv !== DEFAULT_CHAIN_ID) {
+    logger.warn("[blockchain] VITE_CHAIN_ID missing or unresolved; using fallback", {
+      source: "config/blockchain",
+      rawChainId: rawChainId ?? null,
+      fallbackChainId: DEFAULT_CHAIN_ID,
+    });
+  }
+}
 
 // Get default chain configuration
 export function getDefaultChain() {

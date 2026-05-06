@@ -13,7 +13,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import {
@@ -31,10 +31,9 @@ import { DEBUG_ENABLED, debugLog, debugWarn } from "../../utils/debug";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
-import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
-import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
-import { useMutationLock } from "../utils/useMutationLock";
-import { useTimeout } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { useSafeMutation } from "../utils/useSafeMutation";
+import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
 
 interface UseWorkApprovalParams {
   draft: WorkApprovalDraft;
@@ -86,12 +85,23 @@ export function useWorkApproval() {
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
-  const { runWithLock, isPending: isLockPending } = useMutationLock("approval");
-
-  // Separate timeouts: one for auto-clearing stale pending flags, another for indexer lag follow-up.
+  // Separate timeouts: one for auto-clearing stale pending flags, another for progressive indexer invalidation.
   // Using a single useTimeout caused the indexer lag timer to cancel the auto-clear timer.
   const { set: scheduleAutoClear } = useTimeout();
-  const { set: scheduleInvalidation } = useTimeout();
+  const lastGardenRef = useRef<string>("");
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
+    useCallback(() => {
+      if (lastGardenRef.current) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.online(lastGardenRef.current, chainId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.works.merged(lastGardenRef.current, chainId),
+        });
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_SCHEDULE_MS
+  );
 
   const mutation = useMutation({
     mutationFn: async ({ draft, work }: UseWorkApprovalParams): Promise<ApprovalMutationResult> => {
@@ -444,15 +454,9 @@ export function useWorkApproval() {
           queryKey: queryKeys.workApprovals.all,
         });
 
-        // Schedule a follow-up invalidation for indexer lag (non-blocking)
-        scheduleInvalidation(() => {
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.works.online(variables.work.gardenAddress, chainId),
-          });
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.works.merged(variables.work.gardenAddress, chainId),
-          });
-        }, INDEXER_LAG_FOLLOWUP_MS);
+        // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
+        lastGardenRef.current = variables.work.gardenAddress;
+        scheduleFollowUp();
       }
 
       if (DEBUG_ENABLED) {
@@ -527,21 +531,5 @@ export function useWorkApproval() {
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
+  return useSafeMutation(mutation, "approval");
 }

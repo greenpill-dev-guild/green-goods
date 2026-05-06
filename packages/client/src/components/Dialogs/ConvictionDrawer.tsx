@@ -1,9 +1,11 @@
 import {
   type Address,
+  cn,
   type ConvictionWeight,
   DEFAULT_SPLIT_CONFIG,
   formatAddress,
   formatTokenAmount,
+  truncateAddress,
   useAllocateHypercertSupport,
   useConvictionStrategies,
   useGardenCommunity,
@@ -17,6 +19,7 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { ModalDrawer } from "./ModalDrawer";
 
 function SectionSkeleton({ rows = 3 }: { rows?: number }) {
@@ -24,8 +27,8 @@ function SectionSkeleton({ rows = 3 }: { rows?: number }) {
     <div className="mt-2 space-y-2.5 animate-pulse">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex items-center gap-3">
-          <div className="h-3 flex-1 rounded bg-bg-weak" />
-          <div className="h-3 w-16 rounded bg-bg-weak" />
+          <div className="h-3 flex-1 rounded bg-bg-weak-50" />
+          <div className="h-3 w-16 rounded bg-bg-weak-50" />
         </div>
       ))}
     </div>
@@ -45,17 +48,17 @@ function ConvictionBar({ weight, totalWeight }: { weight: ConvictionWeight; tota
   const clampedPct = Math.min(percentage, 100);
 
   return (
-    <div className="rounded-lg border border-stroke-soft bg-bg-white p-3">
+    <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="font-mono text-sm font-medium text-text-strong">
+        <p className="font-mono text-sm font-medium text-text-strong-950">
           #{weight.hypercertId.toString()}
         </p>
-        <p className="text-xs text-text-sub">
+        <p className="text-xs text-text-sub-600">
           {formatMessage({ id: "app.signal.weight" }, { percentage: clampedPct })}
         </p>
       </div>
       <div
-        className="h-2 w-full overflow-hidden rounded-full bg-bg-weak"
+        className="h-2 w-full overflow-hidden rounded-full bg-bg-weak-50"
         role="progressbar"
         aria-valuenow={clampedPct}
         aria-valuemin={0}
@@ -66,7 +69,10 @@ function ConvictionBar({ weight, totalWeight }: { weight: ConvictionWeight; tota
         )}
       >
         <div
-          className="h-full rounded-full bg-primary-base transition-all duration-500"
+          className={cn(
+            "h-full rounded-full transition-[width] duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
+            pwaStatusStyles.primary.progress
+          )}
           style={{ width: `${clampedPct}%` }}
         />
       </div>
@@ -127,7 +133,7 @@ function SupportInput({
     <div className="flex items-center gap-2">
       <div className="flex-1">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-text-soft">
+          <span className="text-xs text-text-soft-400">
             {formatMessage({ id: "app.signal.support" })}: {formatTokenAmount(currentStake, 18)}
           </span>
         </div>
@@ -145,13 +151,13 @@ function SupportInput({
             aria-label={formatMessage({ id: "app.signal.allocatePoints" })}
             aria-describedby={inputError ? `support-error-${hypercertId}` : undefined}
             aria-invalid={inputError ? true : undefined}
-            className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 disabled:opacity-60"
+            className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 disabled:opacity-60"
           />
           <button
             type="button"
             onClick={handleAllocate}
             disabled={disabled || isPending || !input.trim()}
-            className="min-h-11 min-w-11 rounded-md bg-primary-base px-4 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary-darker active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 min-w-11 rounded-md bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending
               ? formatMessage({ id: "app.signal.allocating" })
@@ -294,7 +300,7 @@ export function ConvictionDrawer({
                 refetchWeights?.();
                 refetchPower?.();
               }}
-              className="mt-2 rounded-lg bg-primary-base px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-hover active:scale-95"
+              className="mt-2 rounded-lg bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover active:scale-95"
             >
               {formatMessage({ id: "app.common.tryAgain" })}
             </button>
@@ -303,17 +309,20 @@ export function ConvictionDrawer({
 
         {/* Community status + weight scheme indicator */}
         <section>
-          <h3 className="text-sm font-semibold text-text-strong">
+          <h3 className="text-sm font-semibold text-text-strong-950">
             {formatMessage({ id: "app.community.title" })}
           </h3>
-          <div className="mt-2 rounded-lg border border-stroke-soft bg-bg-white p-3">
+          <div className="mt-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium text-text-strong">
+              <p className="text-sm font-medium text-text-strong-950">
                 {formatMessage({ id: "app.community.status" })}
               </p>
-              <p className="flex items-center gap-1.5 text-xs text-text-sub">
+              <p className="flex items-center gap-1.5 text-xs text-text-sub-600">
                 <span
-                  className={`inline-flex h-2 w-2 flex-shrink-0 rounded-full ${community ? "bg-emerald-500" : "bg-text-soft"}`}
+                  className={cn(
+                    "inline-flex h-2 w-2 flex-shrink-0 rounded-full",
+                    community ? pwaStatusStyles.success.dot : pwaStatusStyles.neutral.dot
+                  )}
                   aria-hidden="true"
                 />
                 {community
@@ -321,18 +330,18 @@ export function ConvictionDrawer({
                   : formatMessage({ id: "app.community.statusNotConnected" })}
               </p>
             </div>
-            <div className="mt-2 rounded-md bg-bg-weak px-2.5 py-2">
-              <p className="text-xs font-medium text-text-soft">
+            <div className="mt-2 rounded-md bg-bg-weak-50 px-2.5 py-2">
+              <p className="text-xs font-medium text-text-soft-400">
                 {formatMessage({ id: "app.community.weightScheme" })}
               </p>
               {community ? (
                 <div className="mt-0.5">
-                  <p className="text-xs font-medium text-text-strong">
+                  <p className="text-xs font-medium text-text-strong-950">
                     {formatMessage({
                       id: `app.community.weightScheme.${weightSchemeLabel?.toLowerCase()}`,
                     })}
                   </p>
-                  <div className="mt-1 flex gap-2 text-xs text-text-sub">
+                  <div className="mt-1 flex gap-2 text-xs text-text-sub-600">
                     <span>
                       {formatMessage({ id: "app.roles.community" })}:{" "}
                       {WEIGHT_SCHEME_VALUES[community.weightScheme].community / 10_000}x
@@ -348,7 +357,7 @@ export function ConvictionDrawer({
                   </div>
                 </div>
               ) : (
-                <p className="mt-0.5 text-xs text-text-sub">
+                <p className="mt-0.5 text-xs text-text-sub-600">
                   {formatMessage({ id: "app.community.noCommunity" })}
                 </p>
               )}
@@ -357,7 +366,7 @@ export function ConvictionDrawer({
         </section>
 
         {!poolAddress && (
-          <p className="py-4 text-center text-sm text-text-soft">
+          <p className="py-4 text-center text-sm text-text-soft-400">
             {formatMessage({ id: "app.signal.noHypercerts" })}
           </p>
         )}
@@ -366,21 +375,24 @@ export function ConvictionDrawer({
           <>
             {/* Voter status */}
             <section>
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h3 className="text-sm font-semibold text-text-strong-950">
                 {formatMessage({ id: "app.signal.governance" })}
               </h3>
               {isLoading ? (
                 <SectionSkeleton rows={4} />
               ) : (
-                <div className="mt-2 rounded-lg border border-stroke-soft bg-bg-white p-3">
+                <div className="mt-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-text-strong">
+                    <p className="text-sm font-medium text-text-strong-950">
                       {power.isEligible
                         ? formatMessage({ id: "app.signal.eligible" })
                         : formatMessage({ id: "app.signal.notEligible" })}
                     </p>
                     <span
-                      className={`inline-flex h-2 w-2 rounded-full ${power.isEligible ? "bg-emerald-500" : "bg-text-soft"}`}
+                      className={cn(
+                        "inline-flex h-2 w-2 rounded-full",
+                        power.isEligible ? pwaStatusStyles.success.dot : pwaStatusStyles.neutral.dot
+                      )}
                       role="img"
                       aria-label={
                         power.isEligible
@@ -390,11 +402,11 @@ export function ConvictionDrawer({
                     />
                   </div>
                   {!power.isEligible && (
-                    <p className="mt-1 text-xs text-text-sub">
+                    <p className="mt-1 text-xs text-text-sub-600">
                       {formatMessage({ id: "app.signal.notEligibleExplanation" })}
                     </p>
                   )}
-                  <p className="mt-1 text-xs text-text-sub">
+                  <p className="mt-1 text-xs text-text-sub-600">
                     {formatMessage(
                       { id: "app.signal.pointsBudget" },
                       {
@@ -403,12 +415,12 @@ export function ConvictionDrawer({
                       }
                     )}
                   </p>
-                  <p className="mt-0.5 text-xs text-text-sub">
+                  <p className="mt-0.5 text-xs text-text-sub-600">
                     {formatMessage({ id: "app.signal.totalStake" })}:{" "}
                     {formatTokenAmount(power.totalStake, 18)}
                   </p>
                   {poolAddress && (
-                    <p className="mt-1 font-mono text-xs text-text-soft">
+                    <p className="mt-1 font-mono text-xs text-text-soft-400">
                       {formatAddress(poolAddress, { variant: "card" })}
                     </p>
                   )}
@@ -418,12 +430,12 @@ export function ConvictionDrawer({
 
             {/* Conviction weights */}
             <section>
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h3 className="text-sm font-semibold text-text-strong-950">
                 {formatMessage({ id: "app.signal.conviction" })}
               </h3>
               {isLoading && <SectionSkeleton rows={3} />}
               {!isLoading && weights.length === 0 && (
-                <p className="mt-2 text-sm text-text-soft">
+                <p className="mt-2 text-sm text-text-soft-400">
                   {formatMessage({ id: "app.signal.noHypercerts" })}
                 </p>
               )}
@@ -451,50 +463,68 @@ export function ConvictionDrawer({
 
             {/* Yield allocation visibility */}
             <section>
-              <h3 className="text-sm font-semibold text-text-strong">
+              <h3 className="text-sm font-semibold text-text-strong-950">
                 {formatMessage({ id: "app.yield.title" })}
               </h3>
-              <div className="mt-2 rounded-lg border border-stroke-soft bg-bg-white p-3">
+              <div className="mt-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
                 {/* Three-way split summary bar */}
                 <div className="flex items-center gap-2">
                   <div
-                    className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-bg-weak"
+                    className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-bg-weak-50"
                     role="img"
                     aria-label={formatMessage(
                       { id: "app.yield.splitSummary" },
                       { cookieJar: cookieJarPct, fractions: fractionsPct, juicebox: juiceboxPct }
                     )}
                   >
-                    <div className="h-full bg-emerald-500" style={{ width: `${cookieJarPct}%` }} />
-                    <div className="h-full bg-primary-base" style={{ width: `${fractionsPct}%` }} />
-                    <div className="h-full bg-amber-500" style={{ width: `${juiceboxPct}%` }} />
+                    <div
+                      className={cn("h-full", pwaStatusStyles.success.progress)}
+                      style={{ width: `${cookieJarPct}%` }}
+                    />
+                    <div
+                      className={cn("h-full", pwaStatusStyles.primary.progress)}
+                      style={{ width: `${fractionsPct}%` }}
+                    />
+                    <div
+                      className={cn("h-full", pwaStatusStyles.warning.progress)}
+                      style={{ width: `${juiceboxPct}%` }}
+                    />
                   </div>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-text-sub">
+                <div className="mt-2 flex items-center justify-between text-xs text-text-sub-600">
                   <span className="flex items-center gap-1">
                     <span
-                      className="inline-block h-2 w-2 rounded-full bg-emerald-500"
+                      className={cn(
+                        "inline-block h-2 w-2 rounded-full",
+                        pwaStatusStyles.success.dot
+                      )}
                       aria-hidden="true"
                     />
                     {formatMessage({ id: "app.yield.cookieJar" })} {cookieJarPct}%
                   </span>
                   <span className="flex items-center gap-1">
                     <span
-                      className="inline-block h-2 w-2 rounded-full bg-primary-base"
+                      className={cn(
+                        "inline-block h-2 w-2 rounded-full",
+                        pwaStatusStyles.primary.dot
+                      )}
                       aria-hidden="true"
                     />
                     {formatMessage({ id: "app.yield.fractions" })} {fractionsPct}%
                   </span>
                   <span className="flex items-center gap-1">
                     <span
-                      className="inline-block h-2 w-2 rounded-full bg-amber-500"
+                      className={cn(
+                        "inline-block h-2 w-2 rounded-full",
+                        pwaStatusStyles.warning.dot
+                      )}
                       aria-hidden="true"
                     />
                     {formatMessage({ id: "app.yield.juicebox" })} {juiceboxPct}%
                   </span>
                 </div>
                 {allocations.length === 0 ? (
-                  <p className="mt-2 text-center text-xs text-text-soft">
+                  <p className="mt-2 text-center text-xs text-text-soft-400">
                     {formatMessage({ id: "app.yield.noAllocations" })}
                   </p>
                 ) : (
@@ -502,10 +532,10 @@ export function ConvictionDrawer({
                     {(showAllAllocations ? allocations : allocations.slice(0, 3)).map((a) => (
                       <div
                         key={a.txHash}
-                        className="flex items-center justify-between text-xs text-text-sub"
+                        className="flex items-center justify-between text-xs text-text-sub-600"
                       >
-                        <span className="font-mono text-text-soft">
-                          {a.txHash.slice(0, 6)}...{a.txHash.slice(-4)}
+                        <span className="font-mono text-text-soft-400">
+                          {truncateAddress(a.txHash)}
                         </span>
                         <span>
                           {formatTokenAmount(
@@ -519,7 +549,7 @@ export function ConvictionDrawer({
                         type="button"
                         onClick={() => setShowAllAllocations((prev) => !prev)}
                         aria-expanded={showAllAllocations}
-                        className="mt-1 min-h-11 w-full rounded px-4 text-center text-xs font-medium text-primary-base transition hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
+                        className="mt-1 min-h-11 w-full rounded px-4 text-center text-xs font-medium text-primary-base transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:text-primary-darker focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/40"
                       >
                         {showAllAllocations
                           ? formatMessage({ id: "app.signal.collapse" })

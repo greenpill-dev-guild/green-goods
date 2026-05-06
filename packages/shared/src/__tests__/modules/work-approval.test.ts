@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock IPFS (Storacha)
+// Mock IPFS
 vi.mock("../../modules/data/ipfs", () => ({
   getFileByHash: vi.fn().mockResolvedValue({
     data: new Blob(["test"], { type: "image/png" }),

@@ -2,10 +2,11 @@
 title: "GreenWill Implementation Spec (March 2026)"
 sidebar_label: GreenWill Implementation
 slug: /builders/specs/greenwill-gif-implementation-spec-2026-03
+unlisted: true
 audience: developer
 owner: docs
 last_verified: 2026-03-25
-feature_status: Proposed
+feature_status: Planned
 ---
 
 # GreenWill Implementation Spec
@@ -51,7 +52,7 @@ This implementation spec covers GreenWill v1 and the immediate follow-on phase.
 - badge-weighted governance power
 - a full generalized onchain rule engine
 - marketplace parity on every chain
-- leaderboards
+- ranked comparison views
 - streak systems
 - broad garden competition mechanics
 
@@ -96,7 +97,7 @@ The system should be delivered as a thin, traceable layer rather than an all-at-
 |---|---|---|
 | `GreenWillRegistry` | canonical class registry, season model, lock mapping, status rules | `packages/contracts` |
 | badge metadata catalog | class definitions, names, descriptions, CIDs, role variants | `docs` + `shared` + publishing scripts |
-| badge engine | evaluates source events and determines awards | likely `packages/ops` or a dedicated service script |
+| badge engine | evaluates source events and determines awards | dedicated service script |
 | Unlock issuer | grants keys on Celo based on engine decisions | ops / service layer |
 | source adapters | reads EAS, Envio, and support-source data | `packages/shared` |
 | proof pages / UI | badge display, detail pages, earned moments | `packages/client`, possibly `packages/admin` |

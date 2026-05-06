@@ -10,32 +10,72 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock shared barrel — use importActual to keep Domain enum and util functions real
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+// Mock only the runtime helpers WorkIntro needs.
+vi.mock("@green-goods/shared", () => {
+  const Domain = {
+    SOLAR: 0,
+    AGRO: 1,
+    EDU: 2,
+    WASTE: 3,
+  } as const;
+
   return {
-    ...actual,
+    Domain,
+    expandDomainMask: (mask: number) => {
+      const domains: Domain[] = [];
+      if (mask & 1) domains.push(Domain.SOLAR);
+      if (mask & 2) domains.push(Domain.AGRO);
+      if (mask & 4) domains.push(Domain.EDU);
+      if (mask & 8) domains.push(Domain.WASTE);
+      return domains;
+    },
+    hasDomain: (mask: number, domain: Domain) => (mask & (1 << domain)) !== 0,
     hapticSelection: vi.fn(),
+    localizeAction: (action: Action) => action,
   };
 });
 
 // Mock child components used by WorkIntro
-vi.mock("@/components/Cards", () => ({
+vi.mock("@/components/Actions", () => ({
+  Button: ({
+    label,
+    onClick,
+    disabled,
+  }: {
+    label: string;
+    onClick?: () => void;
+    disabled?: boolean;
+  }) => createElement("button", { onClick, disabled, type: "button" }, label),
+}));
+
+vi.mock("@/components/Cards/Action/ActionCard", () => ({
   ActionCard: ({ action, selected }: { action: { title: string }; selected: boolean }) =>
     createElement(
       "div",
       { "data-testid": `action-card-${action.title}`, "data-selected": String(selected) },
       action.title
     ),
+}));
+
+vi.mock("@/components/Cards/Action/ActionCardSkeleton", () => ({
   ActionCardSkeleton: () => createElement("div", { "data-testid": "action-skeleton" }),
+}));
+
+vi.mock("@/components/Cards/Form/FormInfo", () => ({
   FormInfo: ({ title }: { title: string }) =>
     createElement("div", { "data-testid": "form-info" }, title),
+}));
+
+vi.mock("@/components/Cards/Garden/GardenCard", () => ({
   GardenCard: ({ garden, selected }: { garden: { name: string }; selected: boolean }) =>
     createElement(
       "div",
       { "data-testid": `garden-card-${garden.name}`, "data-selected": String(selected) },
       garden.name
     ),
+}));
+
+vi.mock("@/components/Cards/Garden/GardenCardSkeleton", () => ({
   GardenCardSkeleton: () => createElement("div", { "data-testid": "garden-skeleton" }),
 }));
 
@@ -77,8 +117,7 @@ vi.mock("@/components/Navigation", () => ({
 }));
 
 // Import after mocks
-import { Domain } from "@green-goods/shared";
-import type { Action, Address, Garden } from "@green-goods/shared";
+import { type Action, type Address, Domain, type Garden } from "@green-goods/shared";
 import { WorkIntro } from "../../views/Garden/Intro";
 
 const messages: Record<string, string> = {
@@ -89,6 +128,11 @@ const messages: Record<string, string> = {
   "app.garden.noActiveActions": "No active actions at this time.",
   "app.garden.noActionsConfigured": "No actions have been configured for this garden yet.",
   "app.garden.noGardensAvailable": "No gardens available. You may need to join a garden first.",
+  "app.garden.communityOnramp.action": "Join Community Garden",
+  "app.garden.communityOnramp.description":
+    "The Community Garden is open to everyone and gives you a place to submit your first work.",
+  "app.garden.communityOnramp.joining": "Joining...",
+  "app.garden.communityOnramp.title": "Join the Community Garden",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agro",
 };
@@ -215,6 +259,56 @@ describe("WorkIntro", () => {
     fireEvent.click(gardenCard.closest("[data-testid='carousel-item']")!);
 
     expect(setGardenAddress).toHaveBeenCalledWith("0xABC");
+  });
+
+  it("keeps actions visible and shows an inline community join CTA with no joined gardens", () => {
+    const actions = [makeAction({ id: "action-1", title: "Plant Trees" })];
+    const communityGarden = makeGarden({
+      id: "0xCommunityGarden" as Address,
+      name: "Community Garden",
+      openJoining: true,
+    });
+
+    renderIntro({
+      actions,
+      gardens: [],
+      hasJoinedGardens: false,
+      joinableCommunityGarden: communityGarden,
+      onJoinCommunityGarden: vi.fn(),
+    });
+
+    expect(screen.getByTestId("action-card-Plant Trees")).toBeInTheDocument();
+    expect(screen.getByText("Join the Community Garden")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Join Community Garden" })).toBeInTheDocument();
+  });
+
+  it("fires onJoinCommunityGarden from the inline community CTA", () => {
+    const onJoinCommunityGarden = vi.fn();
+    const communityGarden = makeGarden({
+      id: "0xCommunityGarden" as Address,
+      name: "Community Garden",
+      openJoining: true,
+    });
+
+    renderIntro({
+      gardens: [],
+      hasJoinedGardens: false,
+      joinableCommunityGarden: communityGarden,
+      onJoinCommunityGarden,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Join Community Garden" }));
+
+    expect(onJoinCommunityGarden).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the passive empty state when no joinable community garden is available", () => {
+    renderIntro({ gardens: [], hasJoinedGardens: false, joinableCommunityGarden: null });
+
+    expect(
+      screen.getByText("No gardens available. You may need to join a garden first.")
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Join Community Garden" })).not.toBeInTheDocument();
   });
 
   it("shows domain tabs when multiple domains exist", () => {

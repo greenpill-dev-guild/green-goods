@@ -4,20 +4,36 @@ sidebar_label: Karma
 slug: /builders/integrations/karma
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Implemented (activation pending indexing)
+source_of_truth:
+  - packages/contracts/src/modules/Karma.sol
+  - packages/contracts/src/lib/Karma.sol
+  - packages/contracts/src/interfaces/IKarma.sol
+  - packages/shared/src/utils/errors/contract-errors.ts
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Karma GAP
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+<StatusBadge status="Implemented (activation pending indexing)" />
 
 ## Overview
-Karma GAP integration for standardized impact reporting.
+Karma GAP support exists in deployed Arbitrum/Sepolia contract modules, libraries, interfaces, and shared error handling. Celo artifacts keep the module at the zero address. Dedicated Karma GAP module events are not currently configured in the indexer, so reporting claims should remain indexing- and UI-gated.
 
-## What to Expect
-- Automatic milestone reporting
-- Grant progress tracking
-- Report generation workflow
+## Builder notes
+
+- Treat Karma GAP as non-blocking around core garden/work flows.
+- Keep GAP errors mapped through shared contract-error utilities.
+- Do not claim automatic reporting is live unless a deployed chain and UI path are verified.
+
+<NextBestAction
+  title="Next best action"
+  why="Use deployment status before treating external reporting surfaces as live."
+  actionLabel="Deployment status"
+  actionHref="../deployments/status"
+  alternatives={[
+    {label: "Integrations overview", href: "./overview"},
+  ]}
+/>

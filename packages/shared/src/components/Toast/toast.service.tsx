@@ -38,7 +38,7 @@ export interface ToastDescriptor {
   action?: ToastAction;
   /** Optional flag to silence diagnostics for known, handled errors. */
   suppressLogging?: boolean;
-  /** Optional icon override (emoji or React component). */
+  /** Optional icon override. */
   icon?: ReactNode;
   /** Whether the toast can be dismissed by tapping on it. Defaults to true for success/info/error, false for loading. */
   dismissible?: boolean;

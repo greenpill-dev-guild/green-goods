@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const isStaticBuild = process.env.STORYBOOK_STATIC_BUILD === "true";
 
 /**
  * Custom Vite plugin to resolve `@/` imports based on the importing file's package.
@@ -53,12 +54,26 @@ const config: StorybookConfig = {
   ],
   addons: [
     "@storybook/addon-a11y",
+    "@storybook/addon-docs",
+    "@storybook/addon-vitest",
+    "@storybook/addon-mcp",
+    "@chromatic-com/storybook",
   ],
+  docs: {
+    autodocs: "tag",
+  },
   framework: {
     name: "@storybook/react-vite",
     options: {},
   },
-  staticDirs: ["../../../docs/static/img"],
+  staticDirs: isStaticBuild
+    ? []
+    : [
+        { from: "../../../tmp/storybook-design-assets", to: "/" },
+      ],
+  typescript: {
+    reactDocgen: "react-docgen-typescript",
+  },
   viteFinal: async (config) => {
     const adminSrc = resolve(__dirname, "../../admin/src");
     const clientSrc = resolve(__dirname, "../../client/src");

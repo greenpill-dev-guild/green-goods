@@ -6,6 +6,14 @@ audience: developer
 owner: docs
 last_verified: 2026-03-07
 feature_status: Live
+source_of_truth:
+  - packages/contracts/src/tokens/Garden.sol
+  - packages/contracts/src/registries/Action.sol
+  - packages/contracts/src/resolvers/Work.sol
+  - packages/contracts/src/resolvers/WorkApproval.sol
+  - packages/shared/src/modules/job-queue
+  - packages/shared/src/modules/data/eas.ts
+  - packages/indexer/config.yaml
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -308,7 +316,7 @@ Evaluators create garden-level assessments that provide a holistic view of a gar
 sequenceDiagram
     actor E as Evaluator
     participant UI as Admin Dashboard
-    participant IPFS as IPFS (Storacha)
+    participant IPFS as IPFS (Pinata-backed)
     participant EAS as EAS Contract
     participant AR as AssessmentResolver
     participant HM as HatsModule

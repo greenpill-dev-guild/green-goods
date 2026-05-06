@@ -29,7 +29,7 @@ export const AUTH_MODE_STORAGE_KEY = "greengoods_auth_mode";
 export const USERNAME_STORAGE_KEY = "greengoods_username";
 
 /** Passkey credential (id + publicKey as JSON) */
-export const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
+const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
 
 /** RP ID used during passkey registration (for cross-device consistency) */
 export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
@@ -82,26 +82,6 @@ export function hasStoredUsername(): boolean {
 // ============================================================================
 // RP ID (for Android passkey compatibility)
 // ============================================================================
-
-/**
- * Get stored RP ID from localStorage.
- *
- * NOTE: The primary RP ID source is now `getPasskeyRpId()` from passkeyServer.ts
- * which uses a hardcoded production domain (greengoods.app).
- * This function is kept for backward compatibility and debugging.
- *
- * @deprecated Use `getPasskeyRpId()` from passkeyServer.ts instead
- */
-export function getStoredRpId(): string {
-  // Check stored value from previous registration
-  const storedRpId = localStorage.getItem(RP_ID_STORAGE_KEY);
-  if (storedRpId) {
-    return storedRpId;
-  }
-
-  // Fall back to current hostname
-  return window.location.hostname;
-}
 
 /** Store RP ID used during registration */
 export function setStoredRpId(rpId: string): void {
@@ -167,7 +147,7 @@ function isPasskeyDebugEnabled(): boolean {
  * Call this from browser console to diagnose Android passkey issues:
  *   window.__debugPasskey() (in dev mode)
  */
-export function debugPasskeyConfig(): void {
+function debugPasskeyConfig(): void {
   if (!isPasskeyDebugEnabled()) return;
 
   const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;

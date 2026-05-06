@@ -8,8 +8,8 @@ import { normalizeAddress } from "../../utils/blockchain/address";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 export function useSetPointsPerVoter() {
   const { formatMessage } = useIntl();
@@ -22,7 +22,7 @@ export function useSetPointsPerVoter() {
   });
 
   const lastPoolRef = useRef<string>("");
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastPoolRef.current) {
         queryInvalidation
@@ -30,7 +30,7 @@ export function useSetPointsPerVoter() {
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({

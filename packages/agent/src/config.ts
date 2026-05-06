@@ -40,9 +40,30 @@ export interface Config {
   // Security
   encryptionSecret?: string;
 
+  // API
+  botApiToken?: string;
+  publicAllowedOrigins?: string;
+  trustedProxyHops?: number;
+  trustedProxyCidrs?: string;
+  uploadSignerTtlSeconds?: number;
+  uploadSignerMaxFileSize?: number;
+  uploadSignerAllowedMimeTypes?: string[];
+  uploadSignerRateLimit?: number;
+  uploadSignerRateLimitWindowMs?: number;
+
+  // Public provider integrations
+  pinataJwt?: string;
+  pinataUploadsApiBaseUrl?: string;
+  lumaApiKey?: string;
+  lumaCalendarId?: string;
+  lumaGreenGoodsTagId?: string;
+  lumaGreenGoodsTagName?: string;
+  thirdwebWebhookSecret?: string;
+  thirdwebClientId?: string;
+  thirdwebSecretKey?: string;
+
   // Analytics
   posthogApiKey?: string;
-  posthogHost: string;
   analyticsEnabled: boolean;
 
   // Environment
@@ -94,12 +115,38 @@ export function loadConfig(): Config {
     // Database
     dbPath: process.env.DB_PATH || "data/agent.db",
 
+    // API
+    botApiToken: process.env.BOT_API_TOKEN,
+    publicAllowedOrigins:
+      process.env.AGENT_ALLOWED_ORIGINS ?? process.env.AGENT_PUBLIC_ALLOWED_ORIGINS,
+    trustedProxyHops: process.env.AGENT_TRUSTED_PROXY_HOPS
+      ? parseInt(process.env.AGENT_TRUSTED_PROXY_HOPS, 10)
+      : undefined,
+    trustedProxyCidrs: process.env.AGENT_TRUSTED_PROXY_CIDRS,
+    uploadSignerTtlSeconds: parsePositiveInteger(process.env.AGENT_UPLOAD_SIGN_TTL_SECONDS),
+    uploadSignerMaxFileSize: parsePositiveInteger(process.env.AGENT_UPLOAD_MAX_FILE_SIZE_BYTES),
+    uploadSignerAllowedMimeTypes: parseCsv(process.env.AGENT_UPLOAD_ALLOWED_MIME_TYPES),
+    uploadSignerRateLimit: parsePositiveInteger(process.env.AGENT_UPLOAD_SIGN_RATE_LIMIT),
+    uploadSignerRateLimitWindowMs: parsePositiveInteger(
+      process.env.AGENT_UPLOAD_SIGN_RATE_LIMIT_WINDOW_MS
+    ),
+
+    // Public provider integrations
+    pinataJwt: process.env.PINATA_JWT,
+    pinataUploadsApiBaseUrl: process.env.PINATA_UPLOADS_API_URL,
+    lumaApiKey: process.env.LUMA_API_KEY,
+    lumaCalendarId: process.env.LUMA_CALENDAR_ID,
+    lumaGreenGoodsTagId: process.env.LUMA_GREEN_GOODS_TAG_ID,
+    lumaGreenGoodsTagName: process.env.LUMA_GREEN_GOODS_TAG_NAME,
+    thirdwebWebhookSecret: process.env.THIRDWEB_WEBHOOK_SECRET,
+    thirdwebClientId: process.env.VITE_THIRDWEB_CLIENT_ID,
+    thirdwebSecretKey: process.env.THIRDWEB_SECRET_KEY,
+
     // Security
     encryptionSecret: process.env.ENCRYPTION_SECRET,
 
     // Analytics
     posthogApiKey,
-    posthogHost: process.env.POSTHOG_HOST || "https://us.i.posthog.com",
     analyticsEnabled,
 
     // Environment
@@ -107,6 +154,20 @@ export function loadConfig(): Config {
     isDevelopment: nodeEnv === "development",
     isProduction: nodeEnv === "production",
   };
+}
+
+function parsePositiveInteger(value: string | undefined): number | undefined {
+  if (!value?.trim()) return undefined;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parseCsv(value: string | undefined): string[] | undefined {
+  const entries = value
+    ?.split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return entries && entries.length > 0 ? entries : undefined;
 }
 
 /**
@@ -120,7 +181,6 @@ export function validateConfig(config: Config): void {
   const warnings: string[] = [];
   const errors: string[] = [];
 
-  // Check encryption secret - REQUIRED in production
   if (!config.encryptionSecret) {
     if (config.isProduction) {
       errors.push(
@@ -138,7 +198,6 @@ export function validateConfig(config: Config): void {
     }
   }
 
-  // Check webhook mode requirements - REQUIRED in production
   if (config.mode === "webhook") {
     if (!config.telegramWebhookSecret) {
       if (config.isProduction) {
@@ -152,7 +211,12 @@ export function validateConfig(config: Config): void {
     }
   }
 
-  // Check analytics configuration
+  if (config.isProduction && !config.publicAllowedOrigins?.trim()) {
+    errors.push(
+      "AGENT_ALLOWED_ORIGINS is required in production so public browser APIs fail closed."
+    );
+  }
+
   if (config.isProduction && !config.posthogApiKey) {
     warnings.push("POSTHOG_AGENT_KEY not set. Analytics will be disabled.");
   }

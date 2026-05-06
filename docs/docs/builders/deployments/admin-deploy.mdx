@@ -4,8 +4,14 @@ sidebar_label: Admin
 slug: /builders/deployments/admin-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-08
 feature_status: Live
+source_of_truth:
+  - packages/admin/package.json
+  - packages/admin/vite.config.ts
+  - packages/admin/vercel.json
+  - scripts/ops/upload-sourcemaps.js
+  - packages/admin/src/App.tsx
 keywords: [admin, dashboard, SPA, Vite, roles, Hats Protocol]
 ---
 
@@ -68,13 +74,13 @@ Additional admin-specific variables may include API keys for services like Hyper
 
 ### Testing
 
-The admin test workflow (`admin-tests.yml`) runs on changes to `packages/admin/**` and validates:
+The admin workflow lane (`admin.yml`) runs on changes to `packages/admin/**`, shared dependencies, relevant contract artifacts, root dependency/config files, and validates:
 
 - Vitest unit and component tests
 - Lint checks via oxlint
 - Type checking via TypeScript
 
-E2E tests for admin run in the `chromium` Playwright project, matching `admin*.spec.ts` specs.
+E2E tests for the admin lane run in the focused `admin-ci` Playwright project, covering admin smoke and production-flow specs.
 
 ## Making A Deployment
 
@@ -109,9 +115,9 @@ Access checks happen client-side by querying the Hats contracts. The admin does 
 
 ### Query Persistence
 
-The admin uses `@tanstack/react-query` with a persister that caches query data to `localStorage`. This provides faster page loads on return visits without full offline support.
+The admin uses `@tanstack/react-query` persistence via the shared `createQueryPersister()` helper. This provides faster page loads on return visits without claiming full offline support.
 
-The persister configuration lives in `packages/admin/src/config/persister.ts` and uses a configurable TTL for cache invalidation.
+The admin wires persistence in `packages/admin/src/main.tsx`, and the shared persistence helpers live under `packages/shared/src/config/query-persistence.ts`.
 
 ### Storybook Integration
 
@@ -124,6 +130,19 @@ cd packages/shared && bun run storybook
 ```
 
 This starts the unified Storybook that includes stories from all three UI packages.
+
+### Source Maps
+
+Vercel runs `bun run build:deploy`, which builds `packages/admin/dist/` and then runs `scripts/ops/upload-sourcemaps.js --app admin --deploy` before Vercel publishes the artifact. This keeps PostHog source-map metadata tied to the actual deployed admin bundle.
+
+Set these variables in the admin Vercel project:
+
+| Variable | Purpose |
+|----------|---------|
+| `POSTHOG_ADMIN_ENV_ID` | PostHog environment ID for the admin app |
+| `POSTHOG_CLI_TOKEN` | PostHog token with source-map upload permissions |
+
+Production deploys fail closed if the PostHog source-map variables are missing. Preview and staging deploys skip source-map upload when those variables are not configured.
 
 ## Resources
 

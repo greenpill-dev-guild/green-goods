@@ -6,15 +6,31 @@ export interface FormatAddressOptions {
   fallbackLabel?: string;
 }
 
+const GREEN_GOODS_ENS_SUFFIX = ".greengoods.eth";
+
+/** Formats ENS names for UI display while keeping non-protocol ENS names intact. */
+export const formatEnsNameForDisplay = (ensName?: string | null): string | null => {
+  const normalized = ensName?.trim();
+  if (!normalized) return null;
+
+  return normalized.toLowerCase().endsWith(GREEN_GOODS_ENS_SUFFIX)
+    ? normalized.slice(0, -GREEN_GOODS_ENS_SUFFIX.length)
+    : normalized;
+};
+
 /** Shortens an Ethereum address or ENS name for display in the UI. */
 export const formatAddress = (
   address?: string | null,
   options: FormatAddressOptions = {}
 ): string => {
   const { variant = "default", ensName, fallbackLabel } = options;
-  if (ensName) return ensName;
+  const displayEnsName = formatEnsNameForDisplay(ensName);
+  if (displayEnsName) return displayEnsName;
   if (!address) return fallbackLabel ?? "no address provided";
-  if (address.includes(".eth")) return address;
+  const normalizedAddress = address.trim();
+  const displayAddressName = formatEnsNameForDisplay(normalizedAddress);
+  if (displayAddressName && displayAddressName !== normalizedAddress) return displayAddressName;
+  if (normalizedAddress.includes(".eth")) return normalizedAddress;
 
   const slices = {
     default: { start: 6, end: 4 },
@@ -23,10 +39,10 @@ export const formatAddress = (
   } as const satisfies Record<FormatAddressVariant, { start: number; end: number }>;
 
   const { start, end } = slices[variant] ?? slices.default;
-  if (address.length <= start + end) return address;
+  if (normalizedAddress.length <= start + end) return normalizedAddress;
 
-  const startSlice = address.slice(0, start);
-  const endSlice = address.slice(address.length - end);
+  const startSlice = normalizedAddress.slice(0, start);
+  const endSlice = normalizedAddress.slice(normalizedAddress.length - end);
   return `${startSlice}...${endSlice}`;
 };
 

@@ -7,7 +7,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { queryKeys } from "../../../hooks/query-keys";
+import { queryKeys } from "../../../config/query-keys";
 
 // ============================================
 // Query Key Safety Tests

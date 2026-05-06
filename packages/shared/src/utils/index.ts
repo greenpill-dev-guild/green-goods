@@ -10,6 +10,21 @@ export {
   parseActionUID,
 } from "./action/parsers";
 export { defaultTemplate, instructionTemplates } from "./action/templates";
+export {
+  ACTION_INSTRUCTIONS_SCHEMA_VERSION,
+  ACTION_TRANSLATION_LOCALES,
+  buildActionInstructionsV2,
+  createActionTranslationDraft,
+  DEFAULT_ACTION_CONTENT_LOCALE,
+  getActionSourceHash,
+  getReviewedActionTranslation,
+  hasActionTranslationContent,
+  hasCompleteActionTranslationContent,
+  isActionTranslationLocale,
+  localizeAction,
+  markStaleActionTranslations,
+  normalizeActionTranslations,
+} from "./action/translations";
 // ============================================================================
 // BROWSER
 // ============================================================================
@@ -30,6 +45,35 @@ export {
   gardenHasMember,
   resolveGardenMemberKey,
 } from "./app/garden";
+export {
+  aggregateCampaignCookieJarOperators,
+  buildCampaignCookieJarCampaigns,
+  buildCampaignCookieJarMetadata,
+  CAMPAIGN_COOKIE_JAR_METADATA_KIND,
+  deriveCampaignCookieJarClaimState,
+  diffCampaignCookieJarAllowlist,
+  normalizeCampaignAddress,
+  normalizeCampaignMetadataUrl,
+  parseCampaignAddressList,
+  parseCampaignCookieJarFallbacks,
+  parseCampaignCookieJarMetadata,
+} from "./cookie-jar-campaign";
+export type {
+  AdminCommunityRouteContext,
+  AdminGardenRouteContext,
+  AdminHubRouteContext,
+  AdminSearchValue,
+  AdminSignalPoolType,
+  AdminWorkspaceId,
+} from "./navigation/admin-routes";
+export {
+  ADMIN_GARDEN_SHARE_PARAM,
+  ADMIN_WORKSPACE_ROOTS,
+  adminRoutes,
+  buildAdminHref,
+  getAdminWorkspaceForPath,
+  getAdminWorkspaceRoot,
+} from "./navigation/admin-routes";
 // ============================================================================
 // HAPTIC FEEDBACK (Vibration API)
 // ============================================================================
@@ -54,17 +98,21 @@ export { normalizeToFile } from "./app/normalizeToFile";
 // ============================================================================
 // PWA
 // ============================================================================
-export type { Platform } from "./app/pwa";
+export type { ClientPresentationMode, Platform } from "./app/pwa";
 export {
+  getClientPresentationMode,
   getMobileOperatingSystem,
   isAppInstalled,
+  isLocalDevicePreviewMode,
   isMobilePlatform,
   isStandaloneMode,
 } from "./app/pwa";
+export type { InstallActionContext } from "./app/installAction";
+export { dispatchInstallAction } from "./app/installAction";
 export { recursiveCloneChildren } from "./app/recursive-clone-children";
 export { getTag } from "./app/tags";
 export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";
-export { capitalize, formatAddress, truncate } from "./app/text";
+export { capitalize, formatAddress, formatEnsNameForDisplay, truncate } from "./app/text";
 // ============================================================================
 // WAKE LOCK (Screen Wake Lock API)
 // ============================================================================
@@ -76,7 +124,20 @@ export {
   withWakeLock,
 } from "./app/wake-lock";
 export { AAVE_V3_POOL_ABI, formatApy, RAY, rayToApy } from "./blockchain/aave";
-export { GARDEN_ACCOUNT_ROLE_ABI, OCTANT_MODULE_ABI, OCTANT_VAULT_ABI } from "./blockchain/abis";
+export {
+  COOKIE_JAR_ABI,
+  COOKIE_JAR_FACTORY_ABI,
+  COOKIE_JAR_MODULE_ABI,
+  DEPLOYMENT_REGISTRY_ABI,
+  ERC20_ALLOWANCE_ABI,
+  ERC20_DECIMALS_ABI,
+  ERC20_SYMBOL_ABI,
+  GARDEN_ACCOUNT_ROLE_ABI,
+  GARDENS_MODULE_ABI,
+  YIELD_RESOLVER_ABI,
+  OCTANT_MODULE_ABI,
+  OCTANT_VAULT_ABI,
+} from "./blockchain/abis";
 // ============================================================================
 // ADDRESS
 // ============================================================================
@@ -124,6 +185,17 @@ export type {
 export { resolveEnsAddress, resolveEnsName, suggestSlug, validateSlug } from "./blockchain/ens";
 export type { GardenRole, RoleColorScheme } from "./blockchain/garden-roles";
 export {
+  annotateGardenSignalPools,
+  deriveGardenYieldWiringState,
+} from "./blockchain/garden-yield-wiring";
+export type {
+  GardenYieldWiringIssue,
+  GardenYieldWiringReadStatus,
+  GardenYieldWiringSnapshot,
+  GardenYieldWiringState,
+  GardenYieldWiringStatus,
+} from "./blockchain/garden-yield-wiring";
+export {
   GARDEN_ROLE_COLORS,
   GARDEN_ROLE_FUNCTIONS,
   GARDEN_ROLE_I18N_KEYS,
@@ -145,16 +217,25 @@ export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation
 export {
   formatTokenAmount,
   AAVE_V3_POOL,
+  getDepositLimitLabel,
   getNetDeposited,
   getVaultAssetDecimals,
   getVaultAssetSymbol,
   hasVaultAssetDecimals,
   isUnlimitedVaultLimit,
-  isZeroAddressValue,
   isZeroBytes32,
   MAX_UINT256,
   validateDecimalInput,
 } from "./blockchain/vaults";
+export {
+  formatUsdCents,
+  formatUsdPrice,
+  getEthUsdFeedAddress,
+  parseUsdToCents,
+  PRICE_FEED_DECIMALS,
+  PRICE_FEED_STALE_THRESHOLD_S,
+  usdCentsToWei,
+} from "./blockchain/price-feeds";
 // ============================================================================
 // COMPRESSION (Native Compression Streams API)
 // ============================================================================
@@ -268,13 +349,16 @@ export {
 // ============================================================================
 // QUERY INVALIDATION
 // ============================================================================
-export type { InvalidationDelay, ProgressiveInvalidationOptions } from "./query-invalidation";
+export type {
+  InvalidationDelay,
+  ProgressiveInvalidationOptions,
+} from "../config/query-keys/schedule";
 export {
   INVALIDATION_DELAYS,
   scheduleInvalidation,
   scheduleInvalidationForKey,
   scheduleProgressiveInvalidation,
-} from "./query-invalidation";
+} from "../config/query-keys/schedule";
 // ============================================================================
 // SCHEDULER (Native Scheduler API for cooperative multitasking)
 // ============================================================================

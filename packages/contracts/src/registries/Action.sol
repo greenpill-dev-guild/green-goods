@@ -4,14 +4,13 @@ pragma solidity ^0.8.25;
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IHatsModule } from "../interfaces/IHatsModule.sol";
+import { ArrayLengthMismatch, ZeroAddress, NotGardenOperator } from "../CommonErrors.sol";
 
 error NotActionOwner();
 error EndTimeBeforeStartTime();
 error StartTimeAfterEndTime();
-error NotGardenOperator();
 error InvalidDomainMask();
 error NotGardenToken();
-error ZeroAddress();
 
 // ENUMS
 enum Capital {
@@ -232,6 +231,23 @@ contract ActionRegistry is UUPSUpgradeable, OwnableUpgradeable {
         external
         onlyActionOwner(actionUID)
     {
+        _updateActionInstructions(actionUID, _instructions);
+    }
+
+    /// @notice Updates instructions for multiple existing actions in one transaction.
+    /// @param actionUIDs The unique identifiers of the actions to update.
+    /// @param _instructions The new instructions for each action.
+    function batchUpdateActionInstructions(uint256[] calldata actionUIDs, string[] calldata _instructions) external {
+        if (actionUIDs.length != _instructions.length) revert ArrayLengthMismatch();
+
+        for (uint256 i = 0; i < actionUIDs.length; i++) {
+            uint256 actionUID = actionUIDs[i];
+            if (_msgSender() != actionToOwner[actionUID]) revert NotActionOwner();
+            _updateActionInstructions(actionUID, _instructions[i]);
+        }
+    }
+
+    function _updateActionInstructions(uint256 actionUID, string calldata _instructions) internal {
         idToAction[actionUID].instructions = _instructions;
 
         emit ActionInstructionsUpdated(actionToOwner[actionUID], actionUID, _instructions);

@@ -1,4 +1,5 @@
 import {
+  cn,
   formatAddress,
   type Garden,
   useEnsName,
@@ -9,6 +10,8 @@ import { RiAlertFill, RiSeedlingFill } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { EmptyState } from "@/components/Communication";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface GardenNotificationsProps {
   garden: Garden;
@@ -26,10 +29,17 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
       to={`/home/${garden.id}/work/${work.id}`}
       state={{ from: "garden", returnTo: `/home/${garden.id}` }}
       viewTransition
-      className="cv-notification w-full flex flex-col gap-2 p-4 bg-warning-lighter rounded-xl transition-all duration-200 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border border-warning-light cursor-pointer group"
+      className={cn(
+        "cv-notification w-full flex flex-col gap-2 p-4 rounded-xl transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:shadow-md hover:scale-[1.02] active:scale-[0.98] border cursor-pointer group",
+        pwaStatusStyles.warning.surface,
+        pwaStatusStyles.warning.border
+      )}
     >
       <div className="inline-flex gap-2 items-center">
-        <RiAlertFill size={20} className="text-warning-base group-hover:animate-pulse" />
+        <RiAlertFill
+          size={20}
+          className={cn(pwaStatusStyles.warning.icon, "group-hover:animate-pulse")}
+        />
         <span className="text-sm font-semibold text-text-strong-950">
           {intl.formatMessage({
             id: "app.home.notifications.pendingWorkApproval",
@@ -37,15 +47,20 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
           })}
         </span>
       </div>
-      <p className="text-sm text-text-strong-950">
-        <span className="font-medium">
+      <p className="text-sm text-text-strong-950 break-words">
+        <span
+          className="font-medium"
+          title={formatAddress(work.gardenerAddress, { ensName: gardenerEnsName, variant: "card" })}
+        >
           {formatAddress(work.gardenerAddress, { ensName: gardenerEnsName, variant: "card" })}
         </span>{" "}
         {intl.formatMessage({
           id: "app.home.notifications.completedWorkApproval",
           defaultMessage: "completed work on",
         })}{" "}
-        <span className="font-medium">{garden.name}</span>
+        <span className="font-medium" title={garden.name}>
+          {garden.name}
+        </span>
       </p>
     </Link>
   );
@@ -63,35 +78,33 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
   return (
     <div className="flex flex-col gap-3 overflow-y-auto">
       {pendingNotifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-center py-8 px-4">
-          <div className="text-5xl mb-3">🌱</div>
-          <h3 className="text-base font-semibold text-text-strong-950 mb-1.5">
-            {intl.formatMessage({
-              id: "app.home.notifications.noWork",
-              defaultMessage: "Your garden is waiting!",
-            })}
-          </h3>
-          <p className="text-sm text-text-sub-600 leading-relaxed mb-5">
-            {intl.formatMessage({
-              id: "app.home.notifications.encourageWork",
-              defaultMessage:
-                "No new work to review yet. Why not explore your garden and see what's growing?",
-            })}
-          </p>
-          <button
-            onClick={() => {
-              onClose?.();
-              navigate("/garden", { state: { gardenId: garden.id } });
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground font-medium text-sm rounded-lg transition-all duration-200 active:scale-95 focus:outline-none focus:ring-2 focus:ring-primary/20"
-          >
-            <RiSeedlingFill className="w-4 h-4" />
-            {intl.formatMessage({
-              id: "app.home.notifications.visitGarden",
-              defaultMessage: "Visit Garden",
-            })}
-          </button>
-        </div>
+        <EmptyState
+          icon={<RiSeedlingFill />}
+          title={intl.formatMessage({
+            id: "app.home.notifications.noWork",
+            defaultMessage: "Your garden is waiting!",
+          })}
+          description={intl.formatMessage({
+            id: "app.home.notifications.encourageWork",
+            defaultMessage:
+              "No new work to review yet. Why not explore your garden and see what's growing?",
+          })}
+          action={
+            <button
+              onClick={() => {
+                onClose?.();
+                navigate("/garden", { state: { gardenId: garden.id } });
+              }}
+              className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-[background-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-95 focus:outline-none focus-visible:shadow-button-primary-focus"
+            >
+              <RiSeedlingFill className="w-4 h-4" />
+              {intl.formatMessage({
+                id: "app.home.notifications.visitGarden",
+                defaultMessage: "Visit Garden",
+              })}
+            </button>
+          }
+        />
       ) : (
         pendingNotifications.map((work) => (
           <GardenNotificationItem key={work.id} garden={garden} work={work} />

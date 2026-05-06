@@ -145,10 +145,15 @@ export async function waitForCondition(
 }
 
 /**
- * Flushes all pending promises
+ * Flushes the microtask queue.
+ *
+ * This is useful for XState/fromPromise transitions and other async work that
+ * resolves on promise turns rather than wall-clock timers.
  */
-export function flushPromises(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, 0));
+export async function flushPromises(turns = 2): Promise<void> {
+  for (let index = 0; index < turns; index += 1) {
+    await Promise.resolve();
+  }
 }
 
 // ============================================
@@ -249,6 +254,12 @@ export function renderWithQuery(
   const { render } = require("@testing-library/react");
   return render(ui, { wrapper: QueryTestWrapper, ...options });
 }
+
+/**
+ * Backward-compatible alias used across admin/shared tests for the standard
+ * query + intl render wrapper.
+ */
+export const renderWithProviders = renderWithQuery;
 
 import type React from "react";
 // Import vi for mock utilities

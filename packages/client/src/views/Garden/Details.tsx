@@ -47,7 +47,6 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
       defaultMessage: "Provide feedback or any observations",
     });
 
-  // Handle location toggle
   const handleLocationToggle = useCallback(() => {
     if (locationEnabled) {
       setLocationEnabled(false);
@@ -140,7 +139,9 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
         const {
           placeholder = "",
           options = [],
+          optionLabels,
           bands,
+          bandLabels,
           required = false,
           title = "",
           key,
@@ -190,7 +191,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               label={title}
               placeholder={placeholder}
               options={selectOptions.map((option) => ({
-                label: option,
+                label: optionLabels?.[option] ?? option,
                 value: option,
               }))}
               control={control}
@@ -213,7 +214,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                 })
               }
               options={bandOptions.map((band) => ({
-                label: band,
+                label: bandLabels?.[band] ?? band,
                 value: band,
               }))}
               control={control}
@@ -232,18 +233,19 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
               <div className="flex flex-wrap gap-1.5">
                 {selectOptions.map((option) => {
                   const isSelected = selected.includes(option);
+                  const label = optionLabels?.[option] ?? option;
                   return (
                     <button
                       key={option}
                       type="button"
                       onClick={() => toggleMultiSelectOption(key, option)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                      className={`min-h-11 px-3 py-2.5 rounded-full text-sm font-medium transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border ${
                         isSelected
-                          ? "bg-primary-base text-white border-primary-base"
+                          ? "bg-primary-base text-primary-accent-foreground border-primary-base"
                           : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
                       }`}
                     >
-                      {option}
+                      {label}
                     </button>
                   );
                 })}
@@ -331,12 +333,12 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
           aria-checked={locationEnabled}
           onClick={handleLocationToggle}
           disabled={locationStatus === "loading"}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${
             locationEnabled ? "bg-primary-base" : "bg-bg-soft-200"
           }`}
         >
           <span
-            className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+            className={`inline-block h-4 w-4 rounded-full bg-static-white transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] ${
               locationEnabled ? "translate-x-6" : "translate-x-1"
             }`}
           />

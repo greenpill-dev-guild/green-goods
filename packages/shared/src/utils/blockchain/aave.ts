@@ -49,18 +49,20 @@ const SECONDS_PER_YEAR = 31_536_000;
 /**
  * Converts an AAVE V3 liquidity rate (ray, 1e27) to an annual percentage yield.
  *
- * Aave returns the annualized liquidity APR in ray precision. To derive an
- * effective APY we convert that APR into a per-second rate before compounding.
- *
- * Formula: APY = (1 + (APR / secondsPerYear)) ^ secondsPerYear - 1
+ * Aave exposes the annualized liquidity rate in ray precision. Convert that APR
+ * into a per-second rate before compounding over one year.
  * Returns as a percentage (e.g., 2.1 for 2.1%).
  */
 export function rayToApy(liquidityRate: bigint): number {
-  if (liquidityRate === 0n) return 0;
-
   const apr = Number(liquidityRate) / Number(RAY);
-  const apy = Math.pow(1 + apr / SECONDS_PER_YEAR, SECONDS_PER_YEAR) - 1;
+  const ratePerSecond = apr / SECONDS_PER_YEAR;
+  const apy = Math.pow(1 + ratePerSecond, SECONDS_PER_YEAR) - 1;
   return apy * 100;
+}
+
+/** Converts an AAVE V3 liquidity rate (ray, 1e27) to a non-compounded APR percentage. */
+export function rayToApr(liquidityRate: bigint): number {
+  return (Number(liquidityRate) / Number(RAY)) * 100;
 }
 
 /** Formats an APY value to 2 decimal places with "%" suffix. */

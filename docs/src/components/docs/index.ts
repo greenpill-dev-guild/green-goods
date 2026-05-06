@@ -1,4 +1,6 @@
 export {Hero} from "./Hero";
+export {GuideOpener} from "./GuideOpener";
+export {OperatorPathNav} from "./OperatorPathNav";
 export {RolePathCard} from "./RolePathCard";
 export {StepFlow} from "./StepFlow";
 export {StatusBadge, type FeatureStatus} from "./StatusBadge";
@@ -10,3 +12,4 @@ export {JourneyMap} from "./JourneyMap";
 export {DecisionGuide} from "./DecisionGuide";
 export {QuickAnswer} from "./QuickAnswer";
 export {NextBestAction} from "./NextBestAction";
+export {ProtocolRevenueExplorer} from "./ProtocolRevenueExplorer";

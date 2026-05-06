@@ -17,7 +17,8 @@ FROM oven/bun:1-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy built workspace
+# Copy built workspace. Env vars are injected by the runtime platform (Railway, etc.);
+# bun's --env-file=../../.env in the start script is a no-op when the file is absent.
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/packages ./packages
 

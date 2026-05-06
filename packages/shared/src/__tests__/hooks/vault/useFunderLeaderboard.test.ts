@@ -30,6 +30,16 @@ vi.mock("../../../hooks/vault/useAllVaultDeposits", () => ({
 
 vi.mock("../../../hooks/vault/useBatchConvertToAssets", () => ({
   useBatchConvertToAssets: (...args: unknown[]) => mockUseBatchConvertToAssets(...args),
+  getBatchConvertToAssetsKey: ({
+    chainId,
+    vaultAddress,
+    shares,
+  }: {
+    chainId?: number;
+    vaultAddress: string;
+    shares: bigint;
+  }) =>
+    chainId === undefined ? `${vaultAddress}:${shares}` : `${chainId}:${vaultAddress}:${shares}`,
 }));
 
 const { useFunderLeaderboard } = await import("../../../hooks/vault/useFunderLeaderboard");
@@ -95,26 +105,23 @@ describe("useFunderLeaderboard", () => {
     });
   });
 
-  // Pre-existing failure inherited from commit a2f7117 (protocolAssetTotals undefined).
-  // SKIP: #504 — re-enable once per-asset aggregation lands.
-  // Owner: green-goods-team / Expiry: 2026-07-01
-  it.skip("preserves per-asset yield totals instead of summing mixed assets together", () => {
+  it("preserves per-asset yield totals instead of summing mixed assets together", () => {
     const { result } = renderHook(() => useFunderLeaderboard({ gardenAddress: TEST_GARDEN }));
 
     expect(result.current.protocolAssetTotals).toEqual([
-      {
-        chainId: 11155111,
-        asset: TEST_WETH,
-        totalYieldGenerated: 25n,
-        totalNetDeposited: 190n,
-        totalCurrentValue: 215n,
-      },
       {
         chainId: 11155111,
         asset: TEST_DAI,
         totalYieldGenerated: 30n,
         totalNetDeposited: 200n,
         totalCurrentValue: 230n,
+      },
+      {
+        chainId: 11155111,
+        asset: TEST_WETH,
+        totalYieldGenerated: 25n,
+        totalNetDeposited: 190n,
+        totalCurrentValue: 215n,
       },
     ]);
 
@@ -125,17 +132,17 @@ describe("useFunderLeaderboard", () => {
     expect(multiAssetFunder?.assetTotals).toEqual([
       {
         chainId: 11155111,
-        asset: TEST_WETH,
-        totalYieldGenerated: 10n,
-        totalNetDeposited: 100n,
-        totalCurrentValue: 110n,
-      },
-      {
-        chainId: 11155111,
         asset: TEST_DAI,
         totalYieldGenerated: 30n,
         totalNetDeposited: 200n,
         totalCurrentValue: 230n,
+      },
+      {
+        chainId: 11155111,
+        asset: TEST_WETH,
+        totalYieldGenerated: 10n,
+        totalNetDeposited: 100n,
+        totalCurrentValue: 110n,
       },
     ]);
 

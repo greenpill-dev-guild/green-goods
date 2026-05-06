@@ -1,4 +1,11 @@
-import { cn, Domain, expandDomainMask, useCreateAssessmentStore } from "@green-goods/shared";
+import {
+  cn,
+  Domain,
+  expandDomainMask,
+  Textarea,
+  TextInput,
+  useCreateAssessmentStore,
+} from "@green-goods/shared";
 import { useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -6,11 +13,9 @@ import {
   DOMAIN_GUIDANCE,
   DOMAIN_ICON_CONFIG,
   domainKey,
-  inputClassName,
   LabeledField,
   resolveDomainLabel,
   Section,
-  textareaClassName,
 } from "./shared";
 
 interface DomainContextStepProps {
@@ -150,7 +155,8 @@ export function DomainContextStep({
               defaultMessage: "Summarise this assessment in a few words.",
             })}
           >
-            <input
+            <TextInput
+              surface="admin"
               type="text"
               disabled={isSubmitting}
               value={form.title}
@@ -162,7 +168,9 @@ export function DomainContextStep({
                 ),
                 defaultMessage: guidance.titlePlaceholder,
               })}
-              className={inputClassName(showValidation && !!fieldErrors.title)}
+              aria-invalid={showValidation && !!fieldErrors.title}
+              invalid={showValidation && !!fieldErrors.title}
+              className="mt-1"
             />
           </LabeledField>
           <LabeledField
@@ -177,7 +185,8 @@ export function DomainContextStep({
               defaultMessage: "Where this assessment applies.",
             })}
           >
-            <input
+            <TextInput
+              surface="admin"
               type="text"
               disabled={isSubmitting}
               value={form.location}
@@ -189,7 +198,9 @@ export function DomainContextStep({
                 ),
                 defaultMessage: guidance.locationPlaceholder,
               })}
-              className={inputClassName(showValidation && !!fieldErrors.location)}
+              aria-invalid={showValidation && !!fieldErrors.location}
+              invalid={showValidation && !!fieldErrors.location}
+              className="mt-1"
             />
           </LabeledField>
         </div>
@@ -206,7 +217,8 @@ export function DomainContextStep({
             defaultMessage: guidance.descriptionHelp,
           })}
         >
-          <textarea
+          <Textarea
+            surface="admin"
             rows={2}
             disabled={isSubmitting}
             value={form.description}
@@ -218,7 +230,9 @@ export function DomainContextStep({
               ),
               defaultMessage: guidance.descriptionPlaceholder,
             })}
-            className={textareaClassName(showValidation && !!fieldErrors.description)}
+            aria-invalid={showValidation && !!fieldErrors.description}
+            invalid={showValidation && !!fieldErrors.description}
+            className="mt-1"
           />
         </LabeledField>
       </Section>

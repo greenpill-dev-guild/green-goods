@@ -4,8 +4,12 @@ sidebar_label: Regression
 slug: /builders/quality/regression
 audience: developer
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-04-07
 feature_status: Live
+source_of_truth:
+  - .github/workflows
+  - package.json
+  - scripts/dev/ci-local.js
 keywords: [regression testing, CI, build order, ABI compatibility, hook testing, E2E]
 ---
 
@@ -85,7 +89,7 @@ The realism audit checks that tests use realistic parameters, proper mock implem
 
 #### ABI Compatibility
 
-When a contract interface changes, the `build:abis` script regenerates ABI JSON files consumed by the shared package. Forgetting this step causes type errors in downstream hook tests -- a common regression vector.
+When a contract interface changes, the `build:abis` script regenerates the committed ABI JSON files in `packages/contracts/abis/` that the shared package consumes. Forgetting this step causes type errors in downstream hook tests -- a common regression vector.
 
 ### Hook Regression
 

@@ -1,10 +1,15 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import {
+  FIXTURE_IMAGE_AGROFORESTRY,
+  FIXTURE_IMAGE_EDU,
+  FIXTURE_IMAGE_SOLAR,
+} from "../../../.storybook/fixtures";
 import { ImagePreviewDialog } from "./ImagePreviewDialog";
 
 const meta: Meta<typeof ImagePreviewDialog> = {
-  title: "Feedback/ImagePreviewDialog",
+  title: "Shared/Feedback/ImagePreviewDialog",
   component: ImagePreviewDialog,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   argTypes: {
     isOpen: {
       control: "boolean",
@@ -31,11 +36,7 @@ const meta: Meta<typeof ImagePreviewDialog> = {
 export default meta;
 type Story = StoryObj<typeof ImagePreviewDialog>;
 
-const sampleImages = [
-  "https://picsum.photos/800/600?random=1",
-  "https://picsum.photos/800/600?random=2",
-  "https://picsum.photos/800/600?random=3",
-];
+const sampleImages = [FIXTURE_IMAGE_AGROFORESTRY, FIXTURE_IMAGE_SOLAR, FIXTURE_IMAGE_EDU];
 
 export const Default: Story = {
   args: {
@@ -50,7 +51,7 @@ export const SingleImage: Story = {
   args: {
     isOpen: true,
     onClose: () => {},
-    images: ["https://picsum.photos/800/600?random=4"],
+    images: [FIXTURE_IMAGE_AGROFORESTRY],
     initialIndex: 0,
   },
 };
@@ -64,23 +65,7 @@ export const StartAtSecondImage: Story = {
   },
 };
 
-export const DarkMode: Story = {
-  args: {
-    isOpen: true,
-    onClose: () => {},
-    images: sampleImages,
-    initialIndex: 0,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
-};
-
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-text-secondary">

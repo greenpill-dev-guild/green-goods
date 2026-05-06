@@ -48,7 +48,7 @@ export function GardenList({
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white font-medium hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-action text-primary-action-foreground font-medium hover:bg-primary-action-hover transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
         >
           <RiRefreshLine className="w-4 h-4" />
           {intl.formatMessage({

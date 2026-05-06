@@ -1,4 +1,5 @@
 import {
+  useAccessibleCookieJars,
   ConfirmDialog,
   type CookieJar,
   formatTokenAmount,
@@ -6,12 +7,13 @@ import {
   useCookieJarWithdraw,
   useGardens,
   useOffline,
-  useUserCookieJars,
   validateDecimalInput,
 } from "@green-goods/shared";
+import { RiErrorWarningLine, RiInboxLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
+import { EmptyState } from "@/components/Communication";
 
 interface JarCardProps {
   jar: CookieJar;
@@ -57,26 +59,28 @@ function JarCard({ jar, gardenName }: JarCardProps) {
   };
 
   return (
-    <div className="rounded-lg border border-stroke-soft bg-bg-white p-3">
+    <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center justify-between gap-2"
       >
-        <div>
-          <p className="text-sm font-medium text-text-strong">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-text-strong-950">
             {assetSymbol} - {formatTokenAmount(jar.balance, decimals)}
           </p>
-          <p className="text-xs text-text-soft">{gardenName}</p>
+          <p className="truncate text-xs text-text-soft-400" title={gardenName}>
+            {gardenName}
+          </p>
         </div>
-        <p className="text-xs text-text-sub">
+        <p className="text-xs text-text-sub-600">
           {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}:{" "}
           {formatTokenAmount(jar.maxWithdrawal, decimals)}
         </p>
       </button>
 
       {expanded && !jar.isPaused && (
-        <div className="mt-3 space-y-2 border-t border-stroke-soft pt-3">
+        <div className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -86,10 +90,10 @@ function JarCard({ jar, gardenName }: JarCardProps) {
               placeholder={formatMessage({ id: "app.cookieJar.amount" })}
               aria-label={formatMessage({ id: "app.cookieJar.amount" })}
               aria-invalid={Boolean(inputError)}
-              className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+              className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
                 inputError
                   ? "border-error-base focus:border-error-base"
-                  : "border-stroke-sub bg-bg-white focus:border-primary-base"
+                  : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
               }`}
             />
             <button
@@ -98,7 +102,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                 const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
                 setAmountInput(formatUnits(max, decimals));
               }}
-              className="min-h-11 min-w-11 rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-xs font-medium text-text-sub hover:bg-bg-weak"
+              className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
             >
               {formatMessage({ id: "app.treasury.max" })}
             </button>
@@ -114,7 +118,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
             onChange={(e) => setPurpose(e.target.value)}
             placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
             aria-label={formatMessage({ id: "app.cookieJar.purpose" })}
-            className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
+            className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
             rows={2}
           />
 
@@ -129,7 +133,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
               !purpose.trim() ||
               withdrawMutation.isPending
             }
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 transition hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {withdrawMutation.isPending
               ? formatMessage({ id: "app.cookieJar.withdrawing" })
@@ -160,7 +164,14 @@ function JarCard({ jar, gardenName }: JarCardProps) {
 
 export const CookieJarTab: React.FC = () => {
   const { formatMessage } = useIntl();
-  const { jars, isLoading } = useUserCookieJars();
+  const {
+    jars,
+    isLoading,
+    moduleConfigured,
+    unconfirmedGardenCount,
+    eligibilityErrorCount,
+    hasEligibilityReadFailure,
+  } = useAccessibleCookieJars();
   const { data: gardens = [] } = useGardens();
 
   // Group jars by garden
@@ -187,25 +198,59 @@ export const CookieJarTab: React.FC = () => {
       <div className="space-y-2.5 animate-pulse p-4">
         {Array.from({ length: 2 }, (_, i) => (
           <div key={i} className="flex items-center gap-3">
-            <div className="h-3 flex-1 rounded bg-bg-weak" />
-            <div className="h-3 w-16 rounded bg-bg-weak" />
+            <div className="h-3 flex-1 rounded bg-bg-weak-50" />
+            <div className="h-3 w-16 rounded bg-bg-weak-50" />
           </div>
         ))}
       </div>
     );
   }
 
+  if (!moduleConfigured) {
+    return (
+      <EmptyState
+        tone="warning"
+        icon={<RiErrorWarningLine />}
+        title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+      />
+    );
+  }
+
+  const accessDiagnostic =
+    hasEligibilityReadFailure && unconfirmedGardenCount > 0
+      ? formatMessage(
+          {
+            id: "app.cookieJar.walletEligibilityUnconfirmed",
+            defaultMessage:
+              "{count, plural, one {Could not confirm Cookie Jar access for # garden.} other {Could not confirm Cookie Jar access for # gardens.}}",
+          },
+          { count: eligibilityErrorCount || unconfirmedGardenCount }
+        )
+      : null;
+
   if (jars.length === 0) {
     return (
-      <p className="p-4 text-sm text-text-soft">{formatMessage({ id: "app.cookieJar.noJars" })}</p>
+      <EmptyState
+        icon={<RiInboxLine />}
+        title={formatMessage({ id: "app.cookieJar.walletEmpty" })}
+        description={formatMessage({ id: "app.cookieJar.walletEmptyDescription" })}
+      />
     );
   }
 
   return (
     <div className="space-y-4 p-4">
+      {accessDiagnostic && (
+        <p className="rounded-md border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2 text-sm text-text-soft-400">
+          {accessDiagnostic}
+        </p>
+      )}
       {groupedJars.map((group) => (
         <div key={group.gardenName}>
-          <h4 className="mb-2 text-xs font-medium text-text-soft uppercase tracking-wide">
+          <h4
+            className="mb-2 truncate text-xs font-medium text-text-soft-400 uppercase tracking-wide"
+            title={group.gardenName}
+          >
             {group.gardenName}
           </h4>
           <div className="space-y-2">

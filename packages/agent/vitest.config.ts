@@ -45,6 +45,14 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@green-goods/shared": path.resolve(__dirname, "../shared/src"),
+      "node:diagnostics_channel": path.resolve(
+        __dirname,
+        "../shared/src/__mocks__/node/diagnostics-channel.ts"
+      ),
+      diagnostics_channel: path.resolve(
+        __dirname,
+        "../shared/src/__mocks__/node/diagnostics-channel.ts"
+      ),
     },
   },
 });

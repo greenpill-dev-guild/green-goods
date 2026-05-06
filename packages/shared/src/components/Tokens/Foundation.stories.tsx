@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { iconButtonIconVariants, iconButtonVariants } from "./foundation";
 
 const meta = {
-  title: "Tokens/Foundation",
+  title: "Shared/Tokens/Foundation",
   tags: ["autodocs"],
 } satisfies Meta;
 

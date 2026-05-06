@@ -1,8 +1,9 @@
 import { createPimlicoClient } from "permissionless/clients/pimlico";
-import { ENV } from "varlock/env";
+import { ENV } from "../lib/env";
 import { type Chain, createPublicClient, http } from "viem";
 import { entryPoint07Address } from "viem/account-abstraction";
 import { mainnet, sepolia } from "viem/chains";
+import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getChain, isChainSupported } from "./chains";
 
 // Pimlico API endpoints by chain
@@ -69,37 +70,9 @@ export function createPimlicoClientForChain(chainId: number) {
   });
 }
 
-/**
- * Build Alchemy RPC URL for a given chain
- * Used by Pimlico public clients for optimal performance
- */
-function buildAlchemyRpcUrl(chainId: number, chain: Chain): string {
-  const alchemyKey = ENV.VITE_ALCHEMY_API_KEY;
-
-  if (!alchemyKey) {
-    // No Alchemy key, use chain's default RPC
-    return chain.rpcUrls.default.http[0];
-  }
-
-  // Build Alchemy RPC URL based on chain
-  switch (chainId) {
-    case 1: // Mainnet
-      return `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-    case 11155111: // Sepolia
-      return `https://eth-sepolia.g.alchemy.com/v2/${alchemyKey}`;
-    case 42161: // Arbitrum
-      return `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-    case 42220: // Celo
-      return `https://celo-mainnet.g.alchemy.com/v2/${alchemyKey}`;
-    default:
-      // Fallback to chain's default RPC
-      return chain.rpcUrls.default.http[0];
-  }
-}
-
 export function createPublicClientForChain(chainId: number) {
   const chain = getPimlicoChain(chainId);
-  const rpcUrl = buildAlchemyRpcUrl(chainId, chain);
+  const rpcUrl = getRpcUrl(chainId, ENV.VITE_ALCHEMY_API_KEY);
 
   return createPublicClient({
     transport: http(rpcUrl),

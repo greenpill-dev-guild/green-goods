@@ -1,14 +1,73 @@
 /**
  * HTTP API Server
  *
- * Fastify server for webhooks and health endpoints.
+ * Hono server for webhooks, health endpoints, and routine-facing API.
  * Designed for multi-platform webhook support.
  *
  * SECURITY: Platform parameters are validated against an allowlist.
+ * SECURITY: Routine-facing /api/* routes require Bearer token authentication.
+ * SECURITY: Browser upload signing is a limited-public /api exception with
+ * origin checks, short TTLs, MIME/size constraints, and rate limiting.
  */
 
-import Fastify, { type FastifyInstance } from "fastify";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import {
+  buildPublicFundingAvailabilityKey,
+  type ClientCheckoutSession,
+  type CreateFundingIntentRequest,
+  createProviderProofRegistry,
+  PUBLIC_AGENT_ROUTES,
+  type PublicApiError,
+  type PublicSubscribeRequest,
+  type PublicUploadSignCategory,
+  type PublicUploadSignRequest,
+  publicProviderProofRegistry,
+  type ThirdwebNormalizedFundingEvent,
+} from "@green-goods/shared/public-contracts";
+import { type Context, Hono, type MiddlewareHandler } from "hono";
+import {
+  confirmFundingTransaction,
+  type FundingConfirmationResult,
+  type FundingTupleExpectation,
+  getTransactionConfirmation,
+  type TransactionConfirmation,
+} from "../services/blockchain";
+import * as db from "../services/db";
+import {
+  createFundingIntentId,
+  createIdempotencyFingerprint,
+  createReceiptToken,
+  expireIfAbandoned,
+  type FundingIntentRecord,
+  type FundingIntentStore,
+  hashSecret,
+  MemoryFundingIntentStore,
+  normalizeDecimalString,
+  normalizeEmailHash,
+  redactFundingReceipt,
+  sweepFundingIntents,
+  transitionFundingStatus,
+} from "../services/funding-intents";
 import { loggers } from "../services/logger";
+import type { LumaClient } from "../services/luma";
+import {
+  createPinataSignedUploadUrl,
+  DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
+  DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
+  DEFAULT_UPLOAD_SIGN_TTL_SECONDS,
+  normalizeUploadSignerConfig,
+  PinataUploadSignerConfigError,
+  type PinataUploadSignerConfig,
+} from "../services/pinata-upload-signer";
+import type { FeedbackStatus, FeedbackType, Platform } from "../types";
+import {
+  InMemoryPublicRateLimiter,
+  isOriginAllowed,
+  PUBLIC_RATE_LIMIT_POLICIES,
+  parseAllowedOrigins,
+  publicRateLimitKey,
+  type TrustedProxyConfig,
+} from "./public-protection";
 
 const log = loggers.api;
 
@@ -27,6 +86,10 @@ function isAllowedPlatform(platform: string): platform is AllowedPlatform {
   return ALLOWED_PLATFORMS.includes(platform as AllowedPlatform);
 }
 
+// ============================================================================
+// TYPES
+// ============================================================================
+
 export interface ServerConfig {
   port: number;
   host?: string;
@@ -35,85 +98,1317 @@ export interface ServerConfig {
 
 export interface ServerDeps {
   isAIReady: () => boolean;
+  botApiToken?: string;
+  notifier?: {
+    notify: (platform: string, platformId: string, message: string) => Promise<void>;
+  };
+  lumaClient?: LumaClient;
+  fundingIntents?: FundingIntentStore;
+  /**
+   * How often the abandoned-intent sweep runs in ms (defaults to 5 minutes).
+   * Set to `0` to disable scheduling — useful in tests where we exercise
+   * `sweepFundingIntents` directly.
+   */
+  fundingSweepIntervalMs?: number;
+  publicRateLimiter?: InMemoryPublicRateLimiter;
+  providerProofRegistry?: ReturnType<typeof createProviderProofRegistry>;
+  allowedOrigins?: Set<string>;
+  trustedProxy?: TrustedProxyConfig;
+  thirdwebWebhookSecret?: string;
+  thirdwebClientId?: string;
+  thirdwebCheckout?: ThirdwebCheckoutClient;
+  uploadSigning?: UploadSigningConfig;
+  signPinataUploadUrl?: (
+    request: PublicUploadSignRequest,
+    config: PinataUploadSignerConfig
+  ) => Promise<string>;
+  confirmFundingTransaction?: (txHash: string) => Promise<TransactionConfirmation>;
+  /**
+   * Strict tuple-matching funding confirmation. When provided, the webhook
+   * handler uses this in preference to `confirmFundingTransaction` so success
+   * requires that the onchain transfer landed on the locked Garden / token /
+   * destination / minimum amount tuple — not just provider success.
+   */
+  confirmFundingTuple?: (
+    txHash: string,
+    expected: FundingTupleExpectation
+  ) => Promise<FundingConfirmationResult>;
+  now?: () => number;
+}
+
+export type AgentServer = Hono & {
+  close: () => Promise<void>;
+};
+
+// ============================================================================
+// AUTH MIDDLEWARE
+// ============================================================================
+
+const VALID_FEEDBACK_TYPES = new Set<string>(["bug", "idea"]);
+const VALID_FEEDBACK_STATUSES = new Set<string>(["triaged", "responded"]);
+const VALID_NOTIFY_PLATFORMS = new Set<string>(["telegram", "discord", "whatsapp", "sms"]);
+
+const runningServers = new WeakMap<AgentServer, ReturnType<typeof Bun.serve>>();
+const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
+const HEX_RE = /^0x[a-fA-F0-9]+$/;
+const PUBLIC_JSON_BODY_LIMIT_BYTES = 16 * 1024;
+const WEBHOOK_BODY_LIMIT_BYTES = 256 * 1024;
+const UPLOAD_SIGN_BODY_LIMIT_BYTES = 8 * 1024;
+const MAX_UPLOAD_SIGN_TTL_SECONDS = 10 * 60;
+const MAX_UPLOAD_SIGN_SIZE_BYTES = 100 * 1024 * 1024;
+const UPLOAD_SIGN_ALLOWED_CATEGORIES = new Set<PublicUploadSignCategory>([
+  "file_upload",
+  "json_upload",
+]);
+
+type BodyReadResult<T> =
+  | { ok: true; value: T | undefined }
+  | { ok: false; error: PublicApiError; status: 413 };
+
+export interface ThirdwebCheckoutResult {
+  providerSessionId: string;
+  providerPaymentId?: string;
+  checkoutSession: ClientCheckoutSession;
+  checkoutExpiresAt?: string;
+  receiverAddress?: CreateFundingIntentRequest["destinationAddress"];
+  quotedAssetAmount: string;
+  minAssetAmount: string;
+}
+
+export interface ThirdwebCheckoutClient {
+  createSession(input: {
+    fundingIntentId: string;
+    request: CreateFundingIntentRequest;
+    availabilityProofReference?: string;
+    quoteExpiresAt: string;
+  }): Promise<ThirdwebCheckoutResult>;
+}
+
+export interface UploadSigningConfig {
+  pinataJwt?: string;
+  pinataUploadsApiBaseUrl?: string;
+  ttlSeconds?: number;
+  maxFileSize?: number;
+  allowedMimeTypes?: string[];
+  rateLimit?: number;
+  rateLimitWindowMs?: number;
+  fetch?: typeof fetch;
+}
+
+function requireApiAuth(deps: ServerDeps): MiddlewareHandler {
+  return async (c, next) => {
+    if (!deps.botApiToken) {
+      return c.json({ error: "API authentication not configured" }, 503);
+    }
+    const auth = c.req.header("authorization");
+    if (!auth || auth !== `Bearer ${deps.botApiToken}`) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+    await next();
+  };
+}
+
+async function readJsonBody<T>(request: Request): Promise<T | undefined> {
+  try {
+    return (await request.json()) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+function payloadTooLargeError(maxBytes: number): PublicApiError {
+  return safeError("invalid_request", "Request body is too large.", {
+    params: { maxBytes },
+  });
+}
+
+function declaredBodyTooLarge(request: Request, maxBytes: number): boolean {
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength) return false;
+  const parsed = Number(contentLength);
+  return Number.isFinite(parsed) && parsed > maxBytes;
+}
+
+async function readLimitedTextBody(
+  request: Request,
+  maxBytes: number
+): Promise<{ ok: true; text: string } | { ok: false; error: PublicApiError; status: 413 }> {
+  if (declaredBodyTooLarge(request, maxBytes)) {
+    return { ok: false, error: payloadTooLargeError(maxBytes), status: 413 };
+  }
+
+  const text = await request.text();
+  if (Buffer.byteLength(text, "utf8") > maxBytes) {
+    return { ok: false, error: payloadTooLargeError(maxBytes), status: 413 };
+  }
+
+  return { ok: true, text };
+}
+
+async function readLimitedJsonBody<T>(
+  request: Request,
+  maxBytes = PUBLIC_JSON_BODY_LIMIT_BYTES
+): Promise<BodyReadResult<T>> {
+  const body = await readLimitedTextBody(request, maxBytes);
+  if (!body.ok) return body;
+
+  try {
+    return { ok: true, value: JSON.parse(body.text) as T };
+  } catch {
+    return { ok: true, value: undefined };
+  }
+}
+
+function safeError(
+  errorCode: PublicApiError["errorCode"],
+  message: string,
+  extra: Omit<PublicApiError, "ok" | "errorCode" | "message"> = {}
+): PublicApiError {
+  return { ok: false, errorCode, message, ...extra };
+}
+
+function isPublicApiError(value: PublicApiError | unknown): value is PublicApiError {
+  return typeof value === "object" && value !== null && "ok" in value && value.ok === false;
+}
+
+function jsonNoStore(c: Context, body: unknown, status = 200) {
+  return c.json(body, status as never, {
+    "Cache-Control": "no-store",
+    Pragma: "no-cache",
+  });
+}
+
+function isEmail(value: string | undefined): value is string {
+  return !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function isAddress(value: unknown): value is `0x${string}` {
+  return typeof value === "string" && ADDRESS_RE.test(value);
+}
+
+function hasReceiptTokenQuery(request: Request): boolean {
+  const url = new URL(request.url);
+  return url.searchParams.has("receiptToken");
+}
+
+export async function hasReceiptTokenBody(request: Request): Promise<boolean> {
+  const contentType = request.headers.get("content-type") ?? "";
+  const contentLength = request.headers.get("content-length");
+  if (!contentLength && !contentType.toLowerCase().includes("application/json")) return false;
+
+  try {
+    const body = (await request.clone().json()) as unknown;
+    return Boolean(body && typeof body === "object" && "receiptToken" in body);
+  } catch {
+    return false;
+  }
+}
+
+function getAllowedOrigins(deps: ServerDeps): Set<string> {
+  return (
+    deps.allowedOrigins ??
+    parseAllowedOrigins(
+      process.env.AGENT_ALLOWED_ORIGINS ?? process.env.AGENT_PUBLIC_ALLOWED_ORIGINS
+    )
+  );
+}
+
+function checkOrigin(c: Context, deps: ServerDeps): PublicApiError | undefined {
+  if (isOriginAllowed(c.req.raw, getAllowedOrigins(deps))) return undefined;
+  return safeError("origin_not_allowed", "This origin is not allowed.");
+}
+
+function checkRateLimit(
+  c: Context,
+  deps: ServerDeps,
+  route: Parameters<typeof publicRateLimitKey>[0]["route"],
+  material: string
+): PublicApiError | undefined {
+  return checkRateLimitWithPolicy(c, deps, route, material, PUBLIC_RATE_LIMIT_POLICIES[route]);
+}
+
+function checkRateLimitWithPolicy(
+  c: Context,
+  deps: ServerDeps,
+  route: Parameters<typeof publicRateLimitKey>[0]["route"],
+  material: string,
+  policy: { limit: number; windowMs: number }
+): PublicApiError | undefined {
+  const limiter = deps.publicRateLimiter ?? defaultPublicRateLimiter;
+  const key = publicRateLimitKey({
+    route,
+    request: c.req.raw,
+    material,
+    trustedProxy: deps.trustedProxy,
+  });
+  const result = limiter.check(key, policy, deps.now?.() ?? Date.now());
+  if (result.allowed) return undefined;
+  return safeError("rate_limited", "Too many requests. Please try again later.", {
+    params: { retryAfterSeconds: result.retryAfterSeconds ?? 60 },
+  });
+}
+
+function getUploadSigningConfig(deps: ServerDeps) {
+  const normalized = normalizeUploadSignerConfig({
+    jwt: deps.uploadSigning?.pinataJwt ?? process.env.PINATA_JWT,
+    uploadsApiBaseUrl:
+      deps.uploadSigning?.pinataUploadsApiBaseUrl ?? process.env.PINATA_UPLOADS_API_URL,
+    ttlSeconds: clampPositiveInteger(
+      deps.uploadSigning?.ttlSeconds,
+      DEFAULT_UPLOAD_SIGN_TTL_SECONDS,
+      MAX_UPLOAD_SIGN_TTL_SECONDS
+    ),
+    maxFileSize: clampPositiveInteger(
+      deps.uploadSigning?.maxFileSize,
+      DEFAULT_UPLOAD_SIGN_MAX_FILE_SIZE,
+      MAX_UPLOAD_SIGN_SIZE_BYTES
+    ),
+    allowedMimeTypes:
+      deps.uploadSigning?.allowedMimeTypes ?? DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
+    fetch: deps.uploadSigning?.fetch,
+    now: deps.now,
+  });
+
+  return normalized;
+}
+
+function getUploadSignRateLimitPolicy(deps: ServerDeps) {
+  return {
+    limit:
+      positiveInteger(deps.uploadSigning?.rateLimit) ??
+      PUBLIC_RATE_LIMIT_POLICIES.upload_sign.limit,
+    windowMs:
+      positiveInteger(deps.uploadSigning?.rateLimitWindowMs) ??
+      PUBLIC_RATE_LIMIT_POLICIES.upload_sign.windowMs,
+  };
+}
+
+function clampPositiveInteger(value: number | undefined, fallback: number, max: number): number {
+  const parsed = positiveInteger(value) ?? fallback;
+  return Math.min(parsed, max);
+}
+
+function positiveInteger(value: number | undefined): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+function isMimeAllowed(mimeType: string, allowedMimeTypes: string[]): boolean {
+  return allowedMimeTypes.some((allowed) => {
+    const normalized = allowed.trim().toLowerCase();
+    if (!normalized) return false;
+    if (normalized.endsWith("/*")) {
+      return mimeType.startsWith(normalized.slice(0, -1));
+    }
+    return mimeType === normalized;
+  });
+}
+
+function isValidUploadFilename(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const filename = value.trim();
+  return (
+    filename.length > 0 &&
+    filename.length <= 255 &&
+    filename !== "." &&
+    filename !== ".." &&
+    !hasUnsafeFilenameCharacter(filename)
+  );
+}
+
+function hasUnsafeFilenameCharacter(value: string): boolean {
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (character === "/" || character === "\\" || code <= 31 || code === 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function normalizeOptionalUploadString(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > maxLength) return undefined;
+  return trimmed;
+}
+
+function validateUploadSignRequest(
+  body: unknown,
+  config: ReturnType<typeof getUploadSigningConfig>
+): PublicUploadSignRequest | PublicApiError {
+  const candidate = body as Partial<PublicUploadSignRequest> | undefined;
+  if (!candidate || typeof candidate !== "object") {
+    return safeError("invalid_request", "Invalid request body.");
+  }
+
+  const filename = candidate.filename;
+  if (!isValidUploadFilename(filename)) {
+    return safeError("invalid_request", "Invalid upload filename.", {
+      fieldErrors: { filename: "Invalid filename" },
+    });
+  }
+
+  const mimeType =
+    typeof candidate.mimeType === "string" ? candidate.mimeType.trim().toLowerCase() : "";
+  if (!mimeType || !isMimeAllowed(mimeType, config.allowedMimeTypes)) {
+    return safeError("invalid_request", "This file type is not supported.", {
+      fieldErrors: { mimeType: "Unsupported MIME type" },
+    });
+  }
+
+  const size = candidate.size;
+  if (typeof size !== "number" || !Number.isInteger(size) || size <= 0) {
+    return safeError("invalid_request", "Invalid upload size.", {
+      fieldErrors: { size: "Size must be a positive integer" },
+    });
+  }
+
+  if (size > config.maxFileSize) {
+    return safeError("invalid_request", "This file is too large.", {
+      fieldErrors: { size: "File exceeds the upload limit" },
+      params: { maxFileSize: config.maxFileSize },
+    });
+  }
+
+  if (candidate.category && !UPLOAD_SIGN_ALLOWED_CATEGORIES.has(candidate.category)) {
+    return safeError("invalid_request", "Invalid upload category.", {
+      fieldErrors: { category: "Invalid upload category" },
+    });
+  }
+
+  if (candidate.gardenAddress !== undefined && !isAddress(candidate.gardenAddress)) {
+    return safeError("invalid_request", "Invalid garden address.", {
+      fieldErrors: { gardenAddress: "Invalid address" },
+    });
+  }
+
+  return {
+    filename: filename.trim(),
+    mimeType,
+    size,
+    source: normalizeOptionalUploadString(candidate.source, 80),
+    category: candidate.category,
+    gardenAddress: candidate.gardenAddress,
+  };
+}
+
+function setUploadCorsHeaders(c: Context, deps: ServerDeps): void {
+  const origin = c.req.header("origin");
+  if (!origin || !isOriginAllowed(c.req.raw, getAllowedOrigins(deps))) return;
+
+  c.header("Access-Control-Allow-Origin", origin);
+  c.header("Access-Control-Allow-Methods", "POST, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type");
+  c.header("Access-Control-Max-Age", "600");
+  c.header("Vary", "Origin");
+}
+
+function uploadCorsResponse(c: Context, deps: ServerDeps, body: unknown, status = 200) {
+  setUploadCorsHeaders(c, deps);
+  return jsonNoStore(c, body, status);
+}
+
+function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest | PublicApiError {
+  const candidate = body as Partial<CreateFundingIntentRequest> | undefined;
+  if (!candidate || typeof candidate !== "object") {
+    return safeError("invalid_request", "Invalid request body.");
+  }
+
+  if (
+    typeof candidate.gardenId !== "string" ||
+    typeof candidate.destinationType !== "string" ||
+    typeof candidate.destinationAddress !== "string" ||
+    typeof candidate.fundingIntent !== "string" ||
+    typeof candidate.paymentMethod !== "string" ||
+    typeof candidate.amountUsd !== "string" ||
+    typeof candidate.token !== "string" ||
+    typeof candidate.availabilityKey !== "string" ||
+    typeof candidate.clientRequestId !== "string" ||
+    typeof candidate.chainId !== "number"
+  ) {
+    return safeError("invalid_request", "Required funding fields are missing.", {
+      fieldErrors: { request: "Required funding fields are missing" },
+    });
+  }
+
+  if (candidate.paymentMethod !== "card") {
+    return safeError("unsupported_payment_method", "Only card funding intents are supported here.");
+  }
+  if (candidate.destinationType !== "cookieJar" && candidate.destinationType !== "vault") {
+    return safeError("invalid_request", "Invalid destination type.");
+  }
+  if (candidate.fundingIntent !== "donate" && candidate.fundingIntent !== "endow") {
+    return safeError("invalid_request", "Invalid funding intent.");
+  }
+  if (!isAddress(candidate.destinationAddress)) {
+    return safeError("invalid_request", "Invalid destination address.", {
+      fieldErrors: { destinationAddress: "Invalid address" },
+    });
+  }
+  if (!isAddress(candidate.token)) {
+    return safeError("invalid_request", "Invalid token address.", {
+      fieldErrors: { token: "Invalid address" },
+    });
+  }
+
+  const amountUsd = normalizeDecimalString(candidate.amountUsd);
+  if (!amountUsd) {
+    return safeError("invalid_request", "Invalid amount.", {
+      fieldErrors: { amountUsd: "Use a positive decimal amount" },
+    });
+  }
+  if (Number(amountUsd) <= 0) {
+    return safeError("amount_below_min", "Amount is below the minimum.", {
+      fieldErrors: { amountUsd: "Amount must be greater than zero" },
+      params: { minAmount: "0.01" },
+    });
+  }
+
+  return {
+    gardenId: candidate.gardenId,
+    destinationType: candidate.destinationType,
+    destinationAddress: candidate.destinationAddress,
+    fundingIntent: candidate.fundingIntent,
+    paymentMethod: "card",
+    amountUsd,
+    chainId: candidate.chainId,
+    token: candidate.token,
+    availabilityKey: candidate.availabilityKey,
+    clientRequestId: candidate.clientRequestId,
+    payerEmail: candidate.payerEmail,
+    locale: candidate.locale,
+  };
+}
+
+function createFundingIntentRecord(input: {
+  id: string;
+  request: CreateFundingIntentRequest;
+  idempotencyFingerprint: string;
+  receiptTokenHash: string;
+  checkout: ThirdwebCheckoutResult;
+  now: number;
+}): FundingIntentRecord {
+  const nowIso = new Date(input.now).toISOString();
+  const quoteExpiresAt = new Date(input.now + 10 * 60 * 1000).toISOString();
+
+  return {
+    id: input.id,
+    gardenId: input.request.gardenId.trim(),
+    gardenName: input.request.gardenId.trim(),
+    destinationType: input.request.destinationType,
+    destinationAddress: input.request.destinationAddress,
+    fundingIntent: input.request.fundingIntent,
+    paymentMethod: input.request.paymentMethod,
+    availabilityKey: input.request.availabilityKey,
+    clientRequestId: input.request.clientRequestId.trim(),
+    idempotencyFingerprint: input.idempotencyFingerprint,
+    amountUsd: input.request.amountUsd,
+    chainId: input.request.chainId,
+    token: input.request.token,
+    provider: "thirdweb",
+    providerSessionId: input.checkout.providerSessionId,
+    providerPaymentId: input.checkout.providerPaymentId,
+    status: "pending_provider",
+    payerEmailHash: normalizeEmailHash(input.request.payerEmail),
+    receiptTokenHash: input.receiptTokenHash,
+    quoteExpiresAt,
+    checkoutExpiresAt: input.checkout.checkoutExpiresAt ?? input.checkout.checkoutSession.expiresAt,
+    receiverAddress: input.checkout.receiverAddress,
+    quotedAssetAmount: input.checkout.quotedAssetAmount,
+    minAssetAmount: input.checkout.minAssetAmount,
+    checkoutSession: input.checkout.checkoutSession,
+    transactionAttempts: [],
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+}
+
+function parseBaseUnitAmount(value: string | undefined): bigint | undefined {
+  if (!value || !/^\d+$/.test(value)) return undefined;
+  return BigInt(value);
+}
+
+function normalizeAddress(value: string | undefined): string | undefined {
+  return value?.trim().toLowerCase();
+}
+
+function getStrictFundingEventMismatch(
+  event: ThirdwebNormalizedFundingEvent,
+  intent: FundingIntentRecord
+): string | undefined {
+  if (!event.txHash) return "missing_tx_hash";
+  if (!event.providerSessionId || event.providerSessionId !== intent.providerSessionId) {
+    return "provider_session_mismatch";
+  }
+  if (event.chainId !== intent.chainId) return "chain_mismatch";
+  if (normalizeAddress(event.token) !== normalizeAddress(intent.token)) return "token_mismatch";
+  if (normalizeAddress(event.destinationAddress) !== normalizeAddress(intent.destinationAddress)) {
+    return "destination_mismatch";
+  }
+  if (
+    intent.receiverAddress &&
+    normalizeAddress(event.receiverAddress) !== normalizeAddress(intent.receiverAddress)
+  ) {
+    return "receiver_mismatch";
+  }
+
+  const eventAmount = parseBaseUnitAmount(event.destinationAmount);
+  const minAmount = parseBaseUnitAmount(intent.minAssetAmount);
+  if (event.destinationAmount && eventAmount === undefined) return "invalid_destination_amount";
+  if (eventAmount !== undefined && minAmount !== undefined && eventAmount < minAmount) {
+    return "amount_below_min";
+  }
+
+  return undefined;
+}
+
+function verifyWebhookSignature(
+  body: string,
+  signature: string | null | undefined,
+  secret?: string
+): boolean {
+  if (!secret || !signature) return false;
+  const digest = createHmac("sha256", secret).update(body).digest("hex");
+  const normalized = signature.startsWith("sha256=")
+    ? signature.slice("sha256=".length)
+    : signature;
+  if (!HEX_RE.test(`0x${normalized}`)) return false;
+  const left = Buffer.from(digest, "hex");
+  const right = Buffer.from(normalized, "hex");
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+function normalizeThirdwebEvent(payload: unknown): ThirdwebNormalizedFundingEvent | undefined {
+  const data = payload as Record<string, unknown>;
+  const providerEventId = data.id ?? data.eventId ?? data.providerEventId;
+  const eventType = data.eventType ?? data.type;
+  const occurredAt = data.occurredAt ?? data.createdAt ?? new Date().toISOString();
+  if (typeof providerEventId !== "string" || typeof eventType !== "string") return undefined;
+
+  const allowedEvents = new Set<ThirdwebNormalizedFundingEvent["eventType"]>([
+    "session_created",
+    "payment_submitted",
+    "transaction_submitted",
+    "failed",
+    "refunded",
+  ]);
+  if (!allowedEvents.has(eventType as ThirdwebNormalizedFundingEvent["eventType"])) {
+    return undefined;
+  }
+
+  return {
+    provider: "thirdweb",
+    providerEventId,
+    providerSessionId:
+      typeof data.providerSessionId === "string" ? data.providerSessionId : undefined,
+    providerPaymentId:
+      typeof data.providerPaymentId === "string" ? data.providerPaymentId : undefined,
+    fundingIntentId: typeof data.fundingIntentId === "string" ? data.fundingIntentId : undefined,
+    eventType: eventType as ThirdwebNormalizedFundingEvent["eventType"],
+    txRole:
+      typeof data.txRole === "string"
+        ? (data.txRole as ThirdwebNormalizedFundingEvent["txRole"])
+        : undefined,
+    txHash: typeof data.txHash === "string" ? data.txHash : undefined,
+    chainId: typeof data.chainId === "number" ? data.chainId : undefined,
+    destinationAddress:
+      typeof data.destinationAddress === "string" && isAddress(data.destinationAddress)
+        ? data.destinationAddress
+        : undefined,
+    receiverAddress:
+      typeof data.receiverAddress === "string" && isAddress(data.receiverAddress)
+        ? data.receiverAddress
+        : undefined,
+    token: typeof data.token === "string" && isAddress(data.token) ? data.token : undefined,
+    destinationAmount:
+      typeof data.destinationAmount === "string" ? data.destinationAmount : undefined,
+    occurredAt: String(occurredAt),
+  };
+}
+
+async function confirmSubmittedTransaction(
+  deps: ServerDeps,
+  txHash: string | undefined
+): Promise<TransactionConfirmation | undefined> {
+  if (!txHash) return undefined;
+  if (deps.confirmFundingTransaction) return deps.confirmFundingTransaction(txHash);
+
+  try {
+    return await getTransactionConfirmation(txHash as `0x${string}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log.warn({ txHash, error: message }, "Funding transaction confirmation unavailable");
+    return { status: "pending", txHash: txHash as `0x${string}` };
+  }
 }
 
 /**
- * Create and configure the Fastify server
+ * Verify a provider-submitted transaction lands on the locked Garden /
+ * destination / token / minAssetAmount tuple before declaring `funded`.
+ *
+ * Returns:
+ *   - `confirmed`: receipt success AND ERC-20 Transfer to destination with
+ *     value >= minAssetAmount on the expected token + chain.
+ *   - `failed`: receipt failure (gas/exec revert).
+ *   - `tuple_mismatch`: receipt success but the locked tuple did not match.
+ *     Callers map this to `failed` with `failureReason:
+ *     "reconciliation_failed"`.
+ *   - `pending`: receipt not found yet.
  */
-export function createServer(deps: ServerDeps, config?: Partial<ServerConfig>): FastifyInstance {
-  const app = Fastify({
-    logger: config?.logger ?? true,
-  });
+async function confirmFundingTupleSafe(
+  deps: ServerDeps,
+  txHash: string | undefined,
+  expected: FundingTupleExpectation
+): Promise<FundingConfirmationResult | undefined> {
+  if (!txHash) return undefined;
+  if (deps.confirmFundingTuple) return deps.confirmFundingTuple(txHash, expected);
+
+  try {
+    return await confirmFundingTransaction(txHash as `0x${string}`, expected);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    log.warn({ txHash, error: message }, "Funding tuple confirmation unavailable");
+    return { status: "pending", txHash: txHash as `0x${string}` };
+  }
+}
+
+const defaultPublicRateLimiter = new InMemoryPublicRateLimiter();
+
+// ============================================================================
+// SERVER
+// ============================================================================
+
+/**
+ * Create and configure the Hono server.
+ */
+export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>): AgentServer {
+  const app = new Hono() as AgentServer;
+  const fundingIntents = deps.fundingIntents ?? new MemoryFundingIntentStore();
+  const providerProofRegistry = deps.providerProofRegistry ?? publicProviderProofRegistry;
+
+  // Scheduled abandoned-intent sweep. Read-time reconciliation in
+  // `expireIfAbandoned` handles visitors who return; the sweep is the safety
+  // net for visitors who never come back. Default 5 minutes; set to 0 to
+  // disable (tests that exercise the sweep directly).
+  const sweepIntervalMs =
+    deps.fundingSweepIntervalMs === undefined ? 5 * 60 * 1000 : deps.fundingSweepIntervalMs;
+  let sweepTimer: ReturnType<typeof setInterval> | null = null;
+  if (sweepIntervalMs > 0) {
+    sweepTimer = setInterval(() => {
+      void sweepFundingIntents(fundingIntents, deps.now ?? Date.now).catch((err) => {
+        log.warn({ err }, "Scheduled funding intent sweep failed");
+      });
+    }, sweepIntervalMs);
+    if (typeof sweepTimer === "object" && sweepTimer && "unref" in sweepTimer) {
+      (sweepTimer as { unref?: () => void }).unref?.();
+    }
+  }
+
+  app.close = async () => {
+    if (sweepTimer) {
+      clearInterval(sweepTimer);
+      sweepTimer = null;
+    }
+    const server = runningServers.get(app);
+    if (server) {
+      server.stop(true);
+      runningServers.delete(app);
+    }
+  };
 
   // Health endpoints
-  app.get("/health", async () => ({
-    status: "ok",
-    timestamp: Date.now(),
-    uptime: process.uptime(),
-    services: {
-      ai: deps.isAIReady() ? "ready" : "loading",
-    },
-  }));
+  app.get("/health", (c) =>
+    c.json({
+      status: "ok",
+      timestamp: Date.now(),
+      uptime: process.uptime(),
+      services: {
+        ai: deps.isAIReady() ? "ready" : "loading",
+      },
+    })
+  );
 
-  app.get("/ready", async (request, reply) => {
+  app.get("/ready", (c) => {
     if (!deps.isAIReady()) {
-      return reply.status(503).send({
-        status: "not_ready",
-        message: "AI model is still loading",
-      });
+      return c.json(
+        {
+          status: "not_ready",
+          message: "AI model is still loading",
+        },
+        503
+      );
     }
-    return { status: "ready", timestamp: Date.now() };
+    return c.json({ status: "ready", timestamp: Date.now() });
   });
 
-  // Generic webhook endpoint for future platforms
-  // SECURITY: Platform parameter is validated against allowlist
-  app.post<{ Params: { platform: string }; Body: unknown }>(
-    "/webhook/:platform",
-    async (request, reply) => {
-      const { platform } = request.params;
+  // Generic webhook endpoint for future platforms.
+  // SECURITY: Platform parameter is validated against allowlist.
+  app.post("/webhook/:platform", (c) => {
+    const platform = c.req.param("platform");
 
-      // SECURITY: Validate platform against allowlist before processing
-      if (!isAllowedPlatform(platform)) {
-        log.warn({ platform }, "Rejected webhook request for unknown platform");
-        return reply.status(400).send({ error: "Invalid platform" });
+    if (!isAllowedPlatform(platform)) {
+      log.warn({ platform }, "Rejected webhook request for unknown platform");
+      return c.json({ error: "Invalid platform" }, 400);
+    }
+
+    switch (platform) {
+      case "telegram":
+        // Handled by bot.handleUpdate in main index.ts when webhook mode is active.
+        return c.json({ ok: true });
+
+      case "whatsapp":
+        return c.json({ error: "WhatsApp webhooks not yet implemented" }, 501);
+
+      case "sms":
+        return c.json({ error: "SMS webhooks not yet implemented" }, 501);
+
+      case "discord":
+        return c.json({ error: "Discord webhooks not yet implemented" }, 501);
+    }
+  });
+
+  app.options(PUBLIC_AGENT_ROUTES.uploadSign, (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return uploadCorsResponse(c, deps, originError, 403);
+    setUploadCorsHeaders(c, deps);
+    return c.body(null, 204);
+  });
+
+  app.post(PUBLIC_AGENT_ROUTES.uploadSign, async (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return uploadCorsResponse(c, deps, originError, 403);
+
+    const config = getUploadSigningConfig(deps);
+    if (!config.jwt) {
+      return uploadCorsResponse(
+        c,
+        deps,
+        safeError("provider_unavailable", "Upload signing is unavailable right now."),
+        503
+      );
+    }
+
+    const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw, UPLOAD_SIGN_BODY_LIMIT_BYTES);
+    if (!bodyResult.ok) return uploadCorsResponse(c, deps, bodyResult.error, bodyResult.status);
+
+    const request = validateUploadSignRequest(bodyResult.value, config);
+    if (isPublicApiError(request)) return uploadCorsResponse(c, deps, request, 400);
+
+    const rateError = checkRateLimitWithPolicy(
+      c,
+      deps,
+      "upload_sign",
+      [request.category ?? "file_upload", request.mimeType].join(":"),
+      getUploadSignRateLimitPolicy(deps)
+    );
+    if (rateError) return uploadCorsResponse(c, deps, rateError, 429);
+
+    try {
+      const signUpload = deps.signPinataUploadUrl ?? createPinataSignedUploadUrl;
+      const url = await signUpload(request, {
+        jwt: config.jwt,
+        uploadsApiBaseUrl: config.uploadsApiBaseUrl,
+        ttlSeconds: config.ttlSeconds,
+        maxFileSize: config.maxFileSize,
+        allowedMimeTypes: config.allowedMimeTypes,
+        fetch: config.fetch,
+        now: config.now,
+      });
+
+      return uploadCorsResponse(c, deps, {
+        ok: true,
+        url,
+        expiresAt: Math.floor(config.now() / 1000) + config.ttlSeconds,
+        maxFileSize: config.maxFileSize,
+        allowedMimeTypes: config.allowedMimeTypes,
+      });
+    } catch (error) {
+      if (!(error instanceof PinataUploadSignerConfigError)) {
+        log.warn({ err: error }, "Pinata upload signing failed");
       }
+      return uploadCorsResponse(
+        c,
+        deps,
+        safeError("provider_unavailable", "Upload signing is unavailable right now."),
+        503
+      );
+    }
+  });
 
-      switch (platform) {
-        case "telegram":
-          // Handled by bot.handleUpdate in main index.ts
-          return { ok: true };
+  // ==========================================================================
+  // ROUTINE-FACING API (/api/*)
+  // ==========================================================================
 
-        case "whatsapp":
-          // Future: WhatsApp Cloud API webhook integration
-          // See: https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks
-          return reply.status(501).send({ error: "WhatsApp webhooks not yet implemented" });
+  const authHook = requireApiAuth(deps);
 
-        case "sms":
-          // Future: Twilio SMS webhook integration
-          // See: https://www.twilio.com/docs/messaging/guides/webhook-request
-          return reply.status(501).send({ error: "SMS webhooks not yet implemented" });
+  // GET /api/feedback - Read new feedback for routine consumption
+  app.get("/api/feedback", authHook, async (c) => {
+    const since = c.req.query("since");
+    const type = c.req.query("type");
 
-        case "discord":
-          // Future: Discord webhook/bot integration
-          // See: https://discord.com/developers/docs/interactions/receiving-and-responding
-          return reply.status(501).send({ error: "Discord webhooks not yet implemented" });
+    const parsed = since ? parseInt(since, 10) : undefined;
+    const sinceMs = parsed !== undefined && !Number.isNaN(parsed) ? parsed : undefined;
+    const feedbackType =
+      type && VALID_FEEDBACK_TYPES.has(type) ? (type as FeedbackType) : undefined;
+
+    const feedback = await db.getNewFeedback(sinceMs, feedbackType);
+
+    return c.json({
+      feedback,
+      count: feedback.length,
+    });
+  });
+
+  // PATCH /api/feedback/:id - Update feedback status
+  app.patch("/api/feedback/:id", authHook, async (c) => {
+    const id = c.req.param("id");
+    const body = await readJsonBody<{ status?: string }>(c.req.raw);
+    const status = body?.status;
+
+    if (!status || !VALID_FEEDBACK_STATUSES.has(status)) {
+      return c.json(
+        {
+          error: "Invalid status. Must be one of: triaged, responded",
+        },
+        400
+      );
+    }
+
+    const existing = await db.getFeedback(id);
+    if (!existing) {
+      return c.json({ error: "Feedback not found" }, 404);
+    }
+
+    await db.updateFeedbackStatus(id, status as FeedbackStatus);
+    return c.json({ ok: true });
+  });
+
+  // POST /api/notify - Send a message to a user via the bot
+  app.post("/api/notify", authHook, async (c) => {
+    if (!deps.notifier) {
+      return c.json({ error: "Notifier not available" }, 503);
+    }
+
+    const body = await readJsonBody<{
+      platform?: string;
+      platformId?: string;
+      message?: string;
+      feedbackId?: string;
+    }>(c.req.raw);
+
+    const { platform, platformId, message, feedbackId } = body ?? {};
+
+    if (!platform || !platformId || !message) {
+      return c.json({ error: "Required fields: platform, platformId, message" }, 400);
+    }
+
+    if (!VALID_NOTIFY_PLATFORMS.has(platform)) {
+      return c.json(
+        {
+          error: `Invalid platform. Must be one of: ${[...VALID_NOTIFY_PLATFORMS].join(", ")}`,
+        },
+        400
+      );
+    }
+
+    await deps.notifier.notify(platform as Platform, platformId, message);
+
+    if (feedbackId) {
+      const existing = await db.getFeedback(feedbackId);
+      if (existing) {
+        await db.updateFeedbackStatus(feedbackId, "responded");
       }
     }
-  );
+
+    return c.json({ ok: true });
+  });
+
+  // ==========================================================================
+  // PUBLIC BROWSER API (/public/*)
+  // ==========================================================================
+
+  app.post(PUBLIC_AGENT_ROUTES.subscribe, async (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return c.json(originError, 403);
+
+    const bodyResult = await readLimitedJsonBody<Partial<PublicSubscribeRequest>>(c.req.raw);
+    if (!bodyResult.ok) return c.json(bodyResult.error, bodyResult.status);
+
+    const body = bodyResult.value;
+    const email = body?.email?.trim().toLowerCase();
+    const rateError = checkRateLimit(c, deps, "subscribe", email ?? "invalid");
+    if (rateError) return c.json(rateError, 429);
+
+    if (!isEmail(email)) {
+      return c.json(safeError("invalid_email", "Enter a valid email address."), 400);
+    }
+    if (body?.consent !== true) {
+      return c.json(safeError("consent_required", "Consent is required."), 400);
+    }
+    if (!deps.lumaClient) {
+      return c.json(safeError("luma_import_failed", "Subscription is unavailable right now."), 503);
+    }
+
+    try {
+      const status = await deps.lumaClient.importSubscriber({
+        email,
+        locale: body.locale,
+        source: body.source ?? "unknown",
+        consentedAt: new Date(deps.now?.() ?? Date.now()).toISOString(),
+      });
+      return c.json({ ok: true, status });
+    } catch {
+      return c.json(safeError("luma_import_failed", "Subscription is unavailable right now."), 503);
+    }
+  });
+
+  app.post(PUBLIC_AGENT_ROUTES.fundingIntents, async (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return c.json(originError, 403);
+
+    const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw);
+    if (!bodyResult.ok) return c.json(bodyResult.error, bodyResult.status);
+
+    const body = bodyResult.value;
+    const request = validateFundingIntentRequest(body);
+    if (isPublicApiError(request)) return c.json(request, 400);
+
+    const rateError = checkRateLimit(
+      c,
+      deps,
+      "funding_create",
+      [request.gardenId, request.destinationAddress, request.fundingIntent].join(":")
+    );
+    if (rateError) return c.json(rateError, 429);
+
+    const expectedAvailabilityKey = buildPublicFundingAvailabilityKey({
+      gardenKey: request.gardenId,
+      destinationType: request.destinationType,
+      destinationAddress: request.destinationAddress,
+      fundingIntent: request.fundingIntent,
+      paymentMethod: request.paymentMethod,
+      chainId: request.chainId,
+      token: request.token,
+      provider: "thirdweb",
+    });
+    const availability = providerProofRegistry.resolve({
+      gardenKey: request.gardenId,
+      destinationType: request.destinationType,
+      destinationAddress: request.destinationAddress,
+      fundingIntent: request.fundingIntent,
+      paymentMethod: request.paymentMethod,
+      chainId: request.chainId,
+      token: request.token,
+      provider: "thirdweb",
+    });
+    if (request.availabilityKey !== expectedAvailabilityKey || availability.state !== "live") {
+      return c.json(
+        safeError("funding_unavailable", "This funding method is not available yet."),
+        409
+      );
+    }
+    if (!deps.thirdwebCheckout) {
+      return c.json(
+        safeError("provider_unavailable", "This funding provider is unavailable right now."),
+        503
+      );
+    }
+
+    const idempotencyFingerprint = createIdempotencyFingerprint(request, "thirdweb");
+    if (!idempotencyFingerprint) {
+      return c.json(safeError("invalid_request", "Invalid amount."), 400);
+    }
+
+    const existing = await fundingIntents.getByClientRequestId(request.clientRequestId);
+    const receiptToken = createReceiptToken();
+    const receiptTokenHash = hashSecret(receiptToken);
+
+    if (existing) {
+      if (existing.idempotencyFingerprint !== idempotencyFingerprint) {
+        return c.json(
+          safeError("idempotency_conflict", "This client request id was already used."),
+          409
+        );
+      }
+      const updated = await fundingIntents.update({
+        ...existing,
+        receiptTokenHash,
+        updatedAt: new Date(deps.now?.() ?? Date.now()).toISOString(),
+      });
+      return jsonNoStore(c, {
+        ok: true,
+        id: updated.id,
+        status: updated.status,
+        provider: "thirdweb",
+        checkoutSession: updated.checkoutSession,
+        quoteExpiresAt: updated.quoteExpiresAt,
+        receiptToken,
+        receiptUrl: `/fund?intent=${updated.id}#receiptToken=${receiptToken}`,
+        publicReceipt: redactFundingReceipt(updated),
+      });
+    }
+
+    const now = deps.now?.() ?? Date.now();
+    const fundingIntentId = createFundingIntentId();
+    const quoteExpiresAt = new Date(now + 10 * 60 * 1000).toISOString();
+    let checkout: ThirdwebCheckoutResult;
+    try {
+      checkout = await deps.thirdwebCheckout.createSession({
+        fundingIntentId,
+        request,
+        availabilityProofReference: availability.proofReference,
+        quoteExpiresAt,
+      });
+    } catch {
+      return c.json(
+        safeError("provider_unavailable", "This funding provider is unavailable right now."),
+        503
+      );
+    }
+    if (
+      !checkout.providerSessionId ||
+      parseBaseUnitAmount(checkout.quotedAssetAmount) === undefined ||
+      parseBaseUnitAmount(checkout.minAssetAmount) === undefined
+    ) {
+      return c.json(
+        safeError("provider_unavailable", "This funding provider is unavailable right now."),
+        503
+      );
+    }
+
+    const record = createFundingIntentRecord({
+      id: fundingIntentId,
+      request,
+      idempotencyFingerprint,
+      receiptTokenHash,
+      checkout,
+      now,
+    });
+    await fundingIntents.create(record);
+    await fundingIntents.appendEvent(
+      record.id,
+      record.status,
+      "funding intent checkout session created"
+    );
+
+    return jsonNoStore(c, {
+      ok: true,
+      id: record.id,
+      status: record.status,
+      provider: "thirdweb",
+      checkoutSession: record.checkoutSession,
+      quoteExpiresAt: record.quoteExpiresAt,
+      receiptToken,
+      receiptUrl: `/fund?intent=${record.id}#receiptToken=${receiptToken}`,
+      publicReceipt: redactFundingReceipt(record),
+    });
+  });
+
+  app.get("/public/funding-intents/:id", async (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return c.json(originError, 403);
+    if (hasReceiptTokenQuery(c.req.raw) || (await hasReceiptTokenBody(c.req.raw))) {
+      return jsonNoStore(
+        c,
+        safeError("invalid_request", "Receipt tokens must use the header."),
+        400
+      );
+    }
+
+    const id = c.req.param("id");
+    const rateError = checkRateLimit(c, deps, "receipt_read", id);
+    if (rateError) return jsonNoStore(c, rateError, 429);
+
+    const receiptToken = c.req.header("x-gg-receipt-token");
+    if (!receiptToken) {
+      return jsonNoStore(c, safeError("receipt_token_required", "Receipt token is required."), 401);
+    }
+
+    const record = await fundingIntents.getById(id);
+    if (!record || record.receiptTokenHash !== hashSecret(receiptToken)) {
+      return jsonNoStore(c, safeError("receipt_token_invalid", "Receipt token is invalid."), 401);
+    }
+
+    const reconciled = expireIfAbandoned(record, deps.now?.() ?? Date.now());
+    if (reconciled !== record) {
+      await fundingIntents.update(reconciled);
+      await fundingIntents.appendEvent(reconciled.id, reconciled.status, "expired on receipt read");
+    }
+
+    return jsonNoStore(c, { ok: true, publicReceipt: redactFundingReceipt(reconciled) });
+  });
+
+  app.post(PUBLIC_AGENT_ROUTES.thirdwebWebhook, async (c) => {
+    const preRateError = checkRateLimit(c, deps, "webhook_pre", "thirdweb");
+    if (preRateError) return c.json(preRateError, 429);
+
+    const rawBodyResult = await readLimitedTextBody(c.req.raw, WEBHOOK_BODY_LIMIT_BYTES);
+    if (!rawBodyResult.ok) return c.json(rawBodyResult.error, rawBodyResult.status);
+
+    const rawBody = rawBodyResult.text;
+    const signature = c.req.header("x-thirdweb-signature");
+    const secret = deps.thirdwebWebhookSecret ?? process.env.THIRDWEB_WEBHOOK_SECRET;
+    if (!verifyWebhookSignature(rawBody, signature, secret)) {
+      return c.json(safeError("provider_unavailable", "Webhook verification failed."), 401);
+    }
+
+    const postRateError = checkRateLimit(
+      c,
+      deps,
+      "webhook_post",
+      c.req.header("x-thirdweb-account") ?? signature ?? "thirdweb"
+    );
+    if (postRateError) return c.json(postRateError, 429);
+
+    let payload: unknown;
+    try {
+      payload = JSON.parse(rawBody) as unknown;
+    } catch {
+      return c.json(safeError("invalid_request", "Invalid webhook event."), 400);
+    }
+    const event = normalizeThirdwebEvent(payload);
+    if (!event) {
+      return c.json(safeError("invalid_request", "Invalid webhook event."), 400);
+    }
+
+    if (event.fundingIntentId) {
+      const intent = await fundingIntents.getById(event.fundingIntentId);
+      if (intent) {
+        const isFundingTransaction =
+          event.eventType === "transaction_submitted" && event.txRole === "funding";
+        const strictEventMismatch = isFundingTransaction
+          ? getStrictFundingEventMismatch(event, intent)
+          : undefined;
+
+        // Strict tuple match: provider success alone never marks `funded`.
+        // The webhook can only flip to `funded` when the onchain receipt
+        // contains an ERC-20 Transfer to the locked destination on the locked
+        // token + chain with value >= minAssetAmount. Any other case
+        // (`tuple_mismatch`) is treated as a reconciliation failure.
+        const confirmation =
+          event.eventType === "transaction_submitted"
+            ? isFundingTransaction
+              ? strictEventMismatch
+                ? undefined
+                : await confirmFundingTupleSafe(deps, event.txHash, {
+                    token: intent.token,
+                    destinationAddress: intent.destinationAddress,
+                    minAssetAmount: intent.minAssetAmount,
+                    chainId: intent.chainId,
+                  })
+              : await confirmSubmittedTransaction(deps, event.txHash)
+            : undefined;
+
+        const isStrictConfirmed =
+          !strictEventMismatch && confirmation?.status === "confirmed" && isFundingTransaction;
+
+        const nextStatus = isStrictConfirmed
+          ? "funded"
+          : strictEventMismatch ||
+              confirmation?.status === "failed" ||
+              confirmation?.status === "tuple_mismatch"
+            ? "failed"
+            : event.eventType === "transaction_submitted"
+              ? "pending_onchain"
+              : event.eventType === "failed"
+                ? "failed"
+                : event.eventType === "refunded"
+                  ? "refunded"
+                  : "pending_provider";
+
+        const failureCode: FundingIntentRecord["failureCode"] = strictEventMismatch
+          ? "reconciliation_failed"
+          : confirmation?.status === "tuple_mismatch"
+            ? "reconciliation_failed"
+            : confirmation?.status === "failed"
+              ? "onchain_failed"
+              : event.eventType === "failed"
+                ? "provider_failed"
+                : intent.failureCode;
+
+        const matchedAssetAmount =
+          confirmation?.status === "confirmed" && "matchedAssetAmount" in confirmation
+            ? confirmation.matchedAssetAmount
+            : undefined;
+
+        const updated: FundingIntentRecord = {
+          ...intent,
+          providerSessionId: strictEventMismatch
+            ? intent.providerSessionId
+            : (event.providerSessionId ?? intent.providerSessionId),
+          providerPaymentId: strictEventMismatch
+            ? intent.providerPaymentId
+            : (event.providerPaymentId ?? intent.providerPaymentId),
+          status: transitionFundingStatus(intent.status, nextStatus),
+          failureCode,
+          fundedAssetAmount: isStrictConfirmed
+            ? (matchedAssetAmount ?? event.destinationAmount ?? intent.fundedAssetAmount)
+            : intent.fundedAssetAmount,
+          fundingTxHash: isStrictConfirmed && event.txHash ? event.txHash : intent.fundingTxHash,
+          transactionAttempts:
+            event.txHash && event.eventType === "transaction_submitted"
+              ? [
+                  ...intent.transactionAttempts,
+                  {
+                    role: event.txRole ?? "funding",
+                    status:
+                      confirmation?.status === "confirmed" && !strictEventMismatch
+                        ? "confirmed"
+                        : strictEventMismatch ||
+                            confirmation?.status === "failed" ||
+                            confirmation?.status === "tuple_mismatch"
+                          ? "failed"
+                          : "submitted",
+                    txHash: event.txHash,
+                    chainId: event.chainId ?? intent.chainId,
+                    token: event.token ?? intent.token,
+                    destinationAddress: event.destinationAddress ?? intent.destinationAddress,
+                    receiverAddress: event.receiverAddress ?? intent.receiverAddress,
+                    amount: matchedAssetAmount ?? event.destinationAmount,
+                    providerEventId: event.providerEventId,
+                    submittedAt: event.occurredAt,
+                    confirmedAt:
+                      confirmation?.status === "confirmed" ? confirmation.confirmedAt : undefined,
+                    failureCode:
+                      strictEventMismatch ??
+                      (confirmation?.status === "tuple_mismatch"
+                        ? confirmation.mismatchReason
+                        : confirmation?.status === "failed"
+                          ? "onchain_failed"
+                          : undefined),
+                  },
+                ]
+              : intent.transactionAttempts,
+          updatedAt: confirmation?.confirmedAt ?? event.occurredAt,
+        };
+        await fundingIntents.update(updated);
+        await fundingIntents.appendEvent(
+          updated.id,
+          updated.status,
+          event.providerEventId,
+          event.providerEventId
+        );
+      }
+    }
+
+    return c.json({ ok: true });
+  });
 
   return app;
 }
 
 /**
- * Start the server
+ * Start the server with Bun's HTTP runtime.
  */
-export async function startServer(app: FastifyInstance, config: ServerConfig): Promise<void> {
+export async function startServer(app: AgentServer, config: ServerConfig): Promise<void> {
   try {
-    await app.listen({
+    const server = Bun.serve({
       port: config.port,
-      host: config.host || "0.0.0.0",
+      hostname: config.host || "0.0.0.0",
+      fetch: app.fetch,
     });
-    log.info({ port: config.port, host: config.host }, "🚀 Server listening");
+    runningServers.set(app, server);
+    log.info({ port: config.port, host: config.host }, "Server listening");
   } catch (err) {
     log.error({ err }, "Server failed to start");
     throw err;

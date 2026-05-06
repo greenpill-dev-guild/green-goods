@@ -34,9 +34,18 @@ vi.mock("@green-goods/shared", () => ({
     rawMessage: String(error),
   }),
   isMeaningfulTxErrorMessage: (msg: string | null | undefined) => Boolean(msg?.trim()),
+  useTxErrorMessages: (error: unknown) => ({
+    view: {
+      kind: "unknown" as const,
+      severity: "error" as const,
+      rawMessage: String(error),
+    },
+    title: "Transaction failed",
+    message: String(error || "Something went wrong. Please try again."),
+  }),
 }));
 
-import { MintProgress } from "../../../components/hypercerts/steps/MintProgress";
+import { MintProgress } from "../../../components/Hypercerts/Steps/MintProgress";
 
 // ============================================
 // Test Fixtures
@@ -58,7 +67,7 @@ function createMockMintingState(overrides: Partial<MintingState> = {}): MintingS
   };
 }
 
-describe("components/hypercerts/MintProgress", () => {
+describe("components/Hypercerts/MintProgress", () => {
   const defaultProps = {
     state: createMockMintingState(),
     chainId: 11155111,

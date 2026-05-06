@@ -7,6 +7,8 @@ import {
   initializeIpfsFromEnv,
   parseIPFSReference,
   resolveIPFSUrl,
+  uploadFileToIPFS,
+  uploadJSONToIPFS,
 } from "../../modules/data/ipfs";
 
 describe("modules/data/ipfs", () => {
@@ -72,10 +74,7 @@ describe("modules/data/ipfs", () => {
     expect(fetchMock.mock.calls[1]?.[0]).toContain(`/ipfs/${validCid}/config.json`);
   });
 
-  // Pre-existing failure inherited from commit a2f7117 (getFileByHash returns Blob).
-  // SKIP: #504 — reconcile helper or assertion before un-skipping.
-  // Owner: green-goods-team / Expiry: 2026-07-01
-  it.skip("returns text for JSON/text responses from getFileByHash", async () => {
+  it("returns text for JSON/text responses from getFileByHash", async () => {
     globalThis.fetch = vi
       .fn<typeof fetch>()
       .mockResolvedValue(new Response('{"hello":"world"}', { status: 200 }));
@@ -105,5 +104,140 @@ describe("modules/data/ipfs", () => {
     expect(resolveIPFSUrl(`ipfs://${validCid}/config.json`)).toBe(
       `https://pinata.example/ipfs/${validCid}/config.json`
     );
+  });
+
+  it("initializes successfully with agent-signed browser upload config", async () => {
+    const initialized = await initializeIpfsFromEnv({
+      VITE_API_BASE_URL: "https://agent.greengoods.test",
+      PINATA_GATEWAY_URL: "https://pinata.example",
+    });
+
+    expect(initialized).toBe(true);
+  });
+
+  it("initializes read config without relying on a browser Pinata JWT", async () => {
+    const initialized = await initializeIpfsFromEnv({
+      VITE_PINATA_JWT: "pinata-browser-token-value",
+      VITE_PINATA_GATEWAY_URL: "https://pinata-vite.example",
+    });
+
+    expect(initialized).toBe(false);
+    expect(resolveIPFSUrl(`ipfs://${validCid}/config.json`)).toBe(
+      `https://pinata-vite.example/ipfs/${validCid}/config.json`
+    );
+  });
+
+  it("ignores unknown legacy gateway env keys", async () => {
+    const initialized = await initializeIpfsFromEnv({
+      VITE_LEGACY_IPFS_GATEWAY_URL: "https://legacy.example",
+    });
+
+    expect(initialized).toBe(false);
+    expect(resolveIPFSUrl(`ipfs://${validCid}/config.json`)).toBe(
+      `https://greengoods.mypinata.cloud/ipfs/${validCid}/config.json`
+    );
+  });
+
+  it("uploads files through an agent-signed Pinata URL and preserves CID parsing", async () => {
+    await initializeIpfsFromEnv({
+      MODE: "test",
+      VITE_API_BASE_URL: "https://agent.greengoods.test",
+      VITE_PINATA_GATEWAY_URL: "https://pinata.example",
+    });
+    const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url === "https://agent.greengoods.test/api/uploads/sign") {
+        const body = JSON.parse(String(init?.body));
+        expect(body).toMatchObject({
+          filename: "proof.png",
+          mimeType: "image/png",
+          size: 7,
+          category: "file_upload",
+          source: "ipfs-test",
+        });
+        return new Response(
+          JSON.stringify({ ok: true, url: "https://uploads.pinata.test/v3/files/signed" }),
+          { status: 200 }
+        );
+      }
+      if (url === "https://uploads.pinata.test/v3/files/signed") {
+        expect(
+          (init?.headers as Record<string, string> | undefined)?.Authorization
+        ).toBeUndefined();
+        return new Response(JSON.stringify({ data: { cid: validCid } }), { status: 200 });
+      }
+      if (url.includes(`/ipfs/${validCid}`)) {
+        return new Response("ok", { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const result = await uploadFileToIPFS(
+      new File(["content"], "proof.png", { type: "image/png" }),
+      { source: "ipfs-test" }
+    );
+
+    expect(result).toEqual({ cid: validCid });
+  });
+
+  it("uploads JSON through the signer and reports missing CIDs from Pinata responses", async () => {
+    await initializeIpfsFromEnv({
+      MODE: "test",
+      VITE_API_BASE_URL: "https://agent.greengoods.test",
+    });
+    const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url === "https://agent.greengoods.test/api/uploads/sign") {
+        const body = JSON.parse(String(init?.body));
+        expect(body).toMatchObject({
+          filename: "metadata.json",
+          mimeType: "application/json",
+          category: "json_upload",
+        });
+        return new Response(
+          JSON.stringify({ ok: true, url: "https://uploads.pinata.test/v3/files/signed" }),
+          { status: 200 }
+        );
+      }
+      if (url === "https://uploads.pinata.test/v3/files/signed") {
+        return new Response(JSON.stringify({ data: {} }), { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    await expect(uploadJSONToIPFS({ ok: true }, { source: "metadata-test" })).rejects.toThrow(
+      "did not return a CID"
+    );
+  });
+
+  it("preserves direct PINATA_JWT upload fallback for server callers", async () => {
+    await initializeIpfsFromEnv({
+      MODE: "test",
+      PINATA_JWT: "pinata-server-token",
+      PINATA_GATEWAY_URL: "https://pinata.example",
+      PINATA_API_URL: "https://uploads.pinata.test/v3",
+    });
+    const fetchMock = vi.fn<typeof fetch>(async (input, init) => {
+      const url = String(input);
+      if (url === "https://uploads.pinata.test/v3/files") {
+        expect((init?.headers as Record<string, string>).Authorization).toBe(
+          "Bearer pinata-server-token"
+        );
+        return new Response(JSON.stringify({ data: { cid: validCid } }), { status: 200 });
+      }
+      if (url.includes(`/ipfs/${validCid}`)) {
+        return new Response("ok", { status: 200 });
+      }
+      return new Response("not found", { status: 404 });
+    });
+    globalThis.fetch = fetchMock;
+
+    const result = await uploadFileToIPFS(
+      new File(["content"], "proof.txt", { type: "text/plain" })
+    );
+
+    expect(result).toEqual({ cid: validCid });
   });
 });

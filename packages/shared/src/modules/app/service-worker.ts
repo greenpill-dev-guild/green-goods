@@ -22,49 +22,33 @@ class ServiceWorkerManager {
       hasWindow &&
       "serviceWorker" in navigator &&
       "ServiceWorkerRegistration" in window &&
-      // @ts-ignore - prototype check for Background Sync support in browsers that implement it
-      "sync" in (window.ServiceWorkerRegistration.prototype as any);
+      // Background Sync support check — not in standard types yet
+      "sync" in ServiceWorkerRegistration.prototype;
 
     this.hasController =
       hasNavigator && "serviceWorker" in navigator && navigator.serviceWorker.controller !== null;
   }
 
   /**
-   * Register the service worker and set up sync capabilities
+   * Whether the current browser can register the Green Goods service worker.
    */
-  async register(): Promise<boolean> {
-    if (!this.isSupported) {
-      logger.warn("[ServiceWorker] Service Worker or Background Sync not supported");
-      return false;
-    }
+  canRegister(): boolean {
+    return this.isSupported;
+  }
 
-    try {
-      this.registration = await navigator.serviceWorker.register("/sw.js", {
-        scope: "/",
-      });
+  /**
+   * Attach an already-registered service worker to the background-sync manager.
+   * Registration itself lives in `service-worker-registration.ts` so Storybook
+   * can bundle the manager without bundling a `/sw.js` registration call.
+   */
+  attachRegistration(registration: ServiceWorkerRegistration): void {
+    this.registration = registration;
 
-      // Set up message handler for background sync notifications
-      navigator.serviceWorker.removeEventListener("message", this.boundMessageHandler);
-      navigator.serviceWorker.removeEventListener("controllerchange", this.handleControllerChange);
-      navigator.serviceWorker.addEventListener("message", this.boundMessageHandler);
-      navigator.serviceWorker.addEventListener("controllerchange", this.handleControllerChange);
-
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.ready;
-
-      track("service_worker_registered", {
-        scope: this.registration.scope,
-        has_background_sync: this.isBackgroundSyncSupported(),
-      });
-
-      return true;
-    } catch (error) {
-      logger.error("[ServiceWorker] Service Worker registration failed", { error });
-      track("service_worker_registration_failed", {
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-      return false;
-    }
+    // Set up message handler for background sync notifications
+    navigator.serviceWorker.removeEventListener("message", this.boundMessageHandler);
+    navigator.serviceWorker.removeEventListener("controllerchange", this.handleControllerChange);
+    navigator.serviceWorker.addEventListener("message", this.boundMessageHandler);
+    navigator.serviceWorker.addEventListener("controllerchange", this.handleControllerChange);
   }
 
   /**
@@ -199,36 +183,4 @@ class ServiceWorkerManager {
   }
 }
 
-// Export singleton instance
 export const serviceWorkerManager = new ServiceWorkerManager();
-
-// Auto-register service worker only in production, or when explicitly enabled for tests
-if (typeof window !== "undefined") {
-  const enableDevServiceWorker = (import.meta as any).env?.VITE_ENABLE_SW_DEV === "true";
-
-  if ((import.meta as any).env?.PROD || enableDevServiceWorker) {
-    serviceWorkerManager.register();
-  }
-
-  // In development (and when not explicitly enabled), ensure no SW interferes with HMR
-  if ((import.meta as any).env?.DEV && !enableDevServiceWorker && "serviceWorker" in navigator) {
-    // Best-effort cleanup: unregister existing SWs and clear caches
-    navigator.serviceWorker
-      .getRegistrations()
-      .then((registrations) => Promise.all(registrations.map((r) => r.unregister())))
-      .catch((error) => {
-        // Log but don't block - this is best-effort cleanup
-        logger.warn("[ServiceWorker] Failed to unregister existing workers", { error });
-      });
-    // Clear caches that could serve stale assets
-    if ("caches" in window) {
-      caches
-        .keys()
-        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
-        .catch((error) => {
-          // Log but don't block - this is best-effort cleanup
-          logger.warn("[ServiceWorker] Failed to clear caches", { error });
-        });
-    }
-  }
-}

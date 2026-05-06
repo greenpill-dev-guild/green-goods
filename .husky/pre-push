@@ -28,13 +28,28 @@ else
   exit 1
 fi
 
-# 1. Auto-fix formatting
-echo "📐 Auto-fixing formatting..."
-$RUNNER format:contracts
-$RUNNER format
+# Print the recovery commands when any check fails, so users don't have to
+# remember the auto-fix path.
+on_failure() {
+  status=$?
+  echo ""
+  echo "❌ Pre-push checks failed."
+  echo "   To fix locally, run:"
+  echo "     bun run format && bun run format:contracts"
+  echo "     bun run lint"
+  echo "   Then commit (or amend) and push again."
+  exit $status
+}
+trap on_failure EXIT
 
-# 2. Lint
+# 1. Format check (non-mutating)
+echo "📐 Checking formatting..."
+$RUNNER format:check
+$RUNNER format:contracts:check
+
+# 2. Lint check (non-mutating)
 echo "🔎 Running linter..."
-$RUNNER lint
+$RUNNER lint:check
 
+trap - EXIT
 echo "✅ Pre-push checks passed!"

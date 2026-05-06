@@ -5,6 +5,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as dotenv from "dotenv";
 import { NetworkManager } from "./utils/network";
+import { CONTRACTS_ROOT, getFoundryBroadcastPath } from "./utils/paths";
 import { assertSepoliaGate } from "./utils/release-gate";
 
 // Load environment variables from root .env
@@ -15,6 +16,8 @@ type ContractName =
   | "garden-token"
   | "yield-resolver"
   | "gardens-module"
+  | "signal-pool-yield-wiring"
+  | "yield-gardens-wiring"
   | "octant-module"
   | "karma-gap-module"
   | "work-resolver"
@@ -28,6 +31,8 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "garden-token": "upgradeGardenToken()",
   "yield-resolver": "upgradeYieldResolver()",
   "gardens-module": "upgradeGardensModule()",
+  "signal-pool-yield-wiring": "upgradeYieldGardensWiring()",
+  "yield-gardens-wiring": "wireYieldResolverGardensModule()",
   "octant-module": "upgradeOctantModule()",
   "karma-gap-module": "upgradeKarmaGAPModule()",
   "work-resolver": "upgradeWorkResolver()",
@@ -46,11 +51,12 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   "deployment-registry",
   "yield-resolver",
   "gardens-module",
+  "yield-gardens-wiring",
   "octant-module",
   "karma-gap-module",
 ];
 
-const DEPLOYMENT_KEYS: Record<Exclude<ContractName, "all">, string> = {
+const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "action-registry": "actionRegistry",
   "garden-token": "gardenToken",
   "yield-resolver": "yieldSplitter",
@@ -62,8 +68,6 @@ const DEPLOYMENT_KEYS: Record<Exclude<ContractName, "all">, string> = {
   "assessment-resolver": "assessmentResolver",
   "deployment-registry": "deploymentRegistry",
 };
-
-const CONTRACTS_ROOT = path.join(__dirname, "..");
 
 interface UpgradeOptions {
   contract: ContractName;
@@ -115,7 +119,27 @@ function resolveUpgradeTargets(contract: ContractName, deployment: Record<string
   const missing: Array<{ contractName: ContractName; deploymentKey: string }> = [];
 
   contractsToResolve.forEach((contractName) => {
+    if (contractName === "signal-pool-yield-wiring" || contractName === "yield-gardens-wiring") {
+      const pairs = [
+        { deploymentKey: "yieldSplitter", address: deployment.yieldSplitter },
+        { deploymentKey: "gardensModule", address: deployment.gardensModule },
+      ];
+
+      pairs.forEach((pair) => {
+        if (!isAddress(pair.address)) {
+          missing.push({ contractName, deploymentKey: pair.deploymentKey });
+          return;
+        }
+        resolved.push({ contractName, deploymentKey: pair.deploymentKey, address: pair.address });
+      });
+      return;
+    }
+
     const deploymentKey = DEPLOYMENT_KEYS[contractName as Exclude<ContractName, "all">];
+    if (!deploymentKey) {
+      missing.push({ contractName, deploymentKey: "<unknown>" });
+      return;
+    }
     const address = deployment[deploymentKey];
     if (!isAddress(address)) {
       missing.push({ contractName, deploymentKey });
@@ -204,6 +228,8 @@ Contracts:
   garden-token            Upgrade GardenToken
   yield-resolver          Upgrade YieldResolver
   gardens-module          Upgrade GardensModule (community + signal pool module)
+  signal-pool-yield-wiring  Upgrade YieldResolver, GardensModule, then cross-wire them
+  yield-gardens-wiring    Cross-wire YieldResolver ↔ GardensModule after upgrades
   octant-module           Upgrade OctantModule (vault treasury module)
   karma-gap-module        Upgrade KarmaGAPModule (Karma GAP integration)
   work-resolver           Upgrade WorkResolver
@@ -246,6 +272,12 @@ Examples:
 
   # Upgrade all contracts
   bun script/upgrade.ts all --network sepolia --broadcast
+
+  # Cross-wire YieldResolver and GardensModule only
+  bun script/upgrade.ts yield-gardens-wiring --network sepolia --tx-plan --sender 0x1234...
+
+  # Upgrade and wire the signal-pool/yield lane
+  bun script/upgrade.ts signal-pool-yield-wiring --network arbitrum --broadcast --sender 0xFBAf...
   `);
 }
 
@@ -317,7 +349,7 @@ function parseOptions(args: string[]): UpgradeOptions {
 }
 
 function findLatestUpgradeArtifact(chainId: number): string {
-  const baseDir = path.join(CONTRACTS_ROOT, "broadcast", "Upgrade.s.sol", chainId.toString());
+  const baseDir = getFoundryBroadcastPath("Upgrade.s.sol", chainId.toString());
   const candidates = [path.join(baseDir, "dry-run", "run-latest.json"), path.join(baseDir, "run-latest.json")];
 
   for (const candidate of candidates) {

@@ -5,11 +5,21 @@
 
 @import "tailwindcss";
 
+/* Storybook renders admin package stories through the shared preview, so the
+ * Tailwind source graph must include admin files or admin-only M3 utilities
+ * like 56dp search bars and arbitrary M3 token colors can be dropped. */
+@source "../../admin/src";
+@source "../../client/src";
+
 /* Configure dark mode to use data-theme attribute (matching shared theme system) */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* Import unified theme from shared package (CSS variables + @theme block) */
 @import "../src/styles/theme.css";
+
+/* Import admin-only M3 utilities used by Admin/* stories. */
+@import "../../admin/src/styles/admin-m3-tokens.css";
+@import "../../admin/src/styles/admin-m3-overrides.css";
 
 /* ============================================================================
  * ROOT STYLES
@@ -36,15 +46,32 @@
 
 /* Header color with dark mode support */
 :root {
-  --color-header-text: #254d31; /* Dark forest green for light mode */
+  --color-header-text: rgb(var(--gg-design-primary));
 }
 
 :root[data-theme="dark"] {
-  --color-header-text: rgb(var(--green-200)); /* Pale mint for dark mode - matches primary */
+  --color-header-text: rgb(var(--gg-design-primary-inverse));
 }
 
 /* Typography, shadow, and animation @theme tokens are inherited from
    the shared theme.css import above -- no need to re-declare them here. */
+
+.storybook-browser-preview {
+  min-height: 100vh;
+  padding: var(--gg-space-md);
+  background: rgb(var(--gg-design-neutral));
+  color: rgb(var(--gg-design-primary));
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+}
+
+[data-theme="dark"] .storybook-browser-preview {
+  background: rgb(var(--gg-design-neutral-dark));
+  color: rgb(var(--gg-design-primary-inverse));
+}
+
+.storybook-browser-preview a {
+  color: rgb(var(--gg-design-tertiary-action));
+}
 
 @keyframes accordion-down {
   from {
@@ -89,11 +116,242 @@
   }
 }
 
+/* Animatable workspace tint used by isolated admin canvas/shell stories. */
+@property --ws-surface-tint-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
 /* ============================================================================
  * TYPOGRAPHY UTILITIES
  * ============================================================================ */
 
 @layer utilities {
+  /* Storybook-owned canvas frame for isolated canvas/shell primitives.
+     Intentional runtime duplication: compare workspace role values here
+     against `packages/admin/src/index.css` and the M3 aliases in
+     `packages/admin/src/styles/admin-m3-tokens.css`. Storybook imports
+     admin M3 token/override CSS, but not the admin app entrypoint because
+     that would leak runtime document resets into every package story.
+
+     Design notes:
+     - NO base `--ws-*` defaults here. The per-workspace rules below are
+       the sole source for workspace roles — this matches admin runtime
+       (`packages/admin/src/index.css`), where `.workspace-canvas`
+       doesn't seed blue/hub defaults either. Without this, a
+       `workspace="profile"` frame would inherit hub blue by accident.
+     - M3 aliases are RE-DECLARED here so `rgb(var(--m3-primary))` (and
+       friends) resolve against this frame's `--ws-*` instead of the
+       root-level aliases. The expressions intentionally duplicate
+       `admin-m3-tokens.css` so the fallback track (undefined `--ws-*`)
+       lands on the production green default — exactly what profile and
+       any unset workspace should see. */
+  .storybook-canvas-frame {
+    --m3-primary: var(--ws-primary, var(--green-500));
+    --m3-on-primary: var(--ws-on-primary, 255 255 255);
+    --m3-primary-container: var(--ws-primary-container, var(--green-100));
+    --m3-on-primary-container: var(--ws-on-primary-container, var(--green-900));
+
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background:
+      radial-gradient(
+        ellipse 100% 60% at 50% 0%,
+        var(--ws-surface-tint-color, transparent) 0%,
+        transparent 70%
+      ),
+      rgb(var(--m3-surface-container-lowest));
+    transition: background-color var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing);
+  }
+
+  .storybook-canvas-frame[data-workspace="home"] {
+    --workspace-tint: 120 113 108;
+    --workspace-tint-2: 168 162 158;
+    --workspace-accent: 87 83 78;
+    --ws-primary: 120 113 108;
+    --ws-on-primary: 255 255 255;
+    --ws-primary-container: 231 229 228;
+    --ws-on-primary-container: 41 37 36;
+    --ws-secondary: 168 162 158;
+    --ws-surface-tint: 120 113 108 / 8%;
+    --ws-outline: 214 211 209;
+    --ws-surface-variant: 245 245 244;
+    --ws-surface-tint-color: rgb(120 113 108 / 8%);
+  }
+
+  .storybook-canvas-frame[data-workspace="hub"] {
+    --workspace-tint: 59 130 246;
+    --workspace-tint-2: 147 197 253;
+    --workspace-accent: 37 99 235;
+    --ws-primary: var(--blue-500);
+    --ws-on-primary: 255 255 255;
+    --ws-primary-container: var(--blue-100);
+    --ws-on-primary-container: var(--blue-900);
+    --ws-secondary: var(--blue-300);
+    --ws-surface-tint: var(--blue-500) / 8%;
+    --ws-outline: var(--blue-200);
+    --ws-surface-variant: var(--blue-50);
+    --ws-surface-tint-color: rgb(var(--blue-500) / 8%);
+  }
+
+  .storybook-canvas-frame[data-workspace="garden"] {
+    --workspace-tint: 34 197 94;
+    --workspace-tint-2: 110 231 183;
+    --workspace-accent: 22 163 74;
+    --ws-primary: var(--green-500);
+    --ws-on-primary: 255 255 255;
+    --ws-primary-container: var(--green-100);
+    --ws-on-primary-container: var(--green-900);
+    --ws-secondary: var(--green-300);
+    --ws-surface-tint: var(--green-500) / 8%;
+    --ws-outline: var(--green-200);
+    --ws-surface-variant: var(--green-50);
+    --ws-surface-tint-color: rgb(var(--green-500) / 8%);
+  }
+
+  .storybook-canvas-frame[data-workspace="community"] {
+    --workspace-tint: 245 158 11;
+    --workspace-tint-2: 250 204 21;
+    --workspace-accent: 217 119 6;
+    --ws-primary: var(--orange-500);
+    --ws-on-primary: 255 255 255;
+    --ws-primary-container: var(--orange-100);
+    --ws-on-primary-container: var(--orange-900);
+    --ws-secondary: var(--orange-300);
+    --ws-surface-tint: var(--orange-500) / 8%;
+    --ws-outline: var(--orange-200);
+    --ws-surface-variant: var(--orange-50);
+    --ws-surface-tint-color: rgb(var(--orange-500) / 8%);
+  }
+
+  .storybook-canvas-frame[data-workspace="actions"] {
+    --workspace-tint: 239 68 68;
+    --workspace-tint-2: 248 113 113;
+    --workspace-accent: 220 38 38;
+    --ws-primary: var(--red-500);
+    --ws-on-primary: 255 255 255;
+    --ws-primary-container: var(--red-100);
+    --ws-on-primary-container: var(--red-900);
+    --ws-secondary: var(--red-300);
+    --ws-surface-tint: var(--red-500) / 8%;
+    --ws-outline: var(--red-200);
+    --ws-surface-variant: var(--red-50);
+    --ws-surface-tint-color: rgb(var(--red-500) / 8%);
+  }
+
+  /*
+   * Profile workspace intentionally mirrors admin runtime
+   * (`packages/admin/src/index.css` — `.workspace-canvas[data-workspace="profile"]`):
+   * only `--workspace-tint*` roles are set here. `--ws-primary*` and the
+   * rest fall back to root defaults, same as production. Do NOT add the
+   * per-role purple overrides unless admin runtime adopts them.
+   */
+  .storybook-canvas-frame[data-workspace="profile"] {
+    --workspace-tint: 168 85 247;
+    --workspace-tint-2: 196 181 253;
+    --workspace-accent: 147 51 234;
+  }
+
+  .storybook-installed-pwa-frame {
+    position: relative;
+    isolation: isolate;
+    width: min(100%, 430px);
+    min-height: 720px;
+    margin-inline: auto;
+    overflow: hidden;
+    background: rgb(var(--bg-white-0));
+    color: rgb(var(--text-strong-950));
+    box-shadow:
+      0 0 0 1px rgb(var(--stroke-soft-200)),
+      0 24px 56px rgb(15 23 42 / 14%);
+  }
+
+  [data-theme="dark"] .storybook-installed-pwa-frame {
+    background: rgb(var(--bg-white-0));
+    box-shadow:
+      0 0 0 1px rgb(var(--stroke-soft-200)),
+      0 24px 56px rgb(0 0 0 / 32%);
+  }
+
+  [data-theme="dark"] .storybook-canvas-frame {
+    /* Dark-mode M3 aliases shift to *-200 / *-900 per runtime. Keep the
+       same indirection so workspace overrides still win. */
+    --m3-primary: var(--ws-primary, var(--green-200));
+    --m3-on-primary: var(--ws-on-primary, var(--green-900));
+    --m3-primary-container: var(--ws-primary-container, var(--green-900));
+    --m3-on-primary-container: var(--ws-on-primary-container, var(--green-100));
+    background: rgb(var(--m3-surface-dim));
+  }
+
+  [data-theme="dark"] .storybook-canvas-frame[data-workspace="home"] {
+    --ws-primary: 214 211 209;
+    --ws-on-primary: 41 37 36;
+    --ws-primary-container: 68 64 60;
+    --ws-on-primary-container: 231 229 228;
+    --ws-secondary: 168 162 158;
+    --ws-surface-tint: 214 211 209 / 10%;
+    --ws-outline: 87 83 78;
+    --ws-surface-variant: 68 64 60;
+    --ws-surface-tint-color: rgb(214 211 209 / 10%);
+  }
+
+  [data-theme="dark"] .storybook-canvas-frame[data-workspace="hub"] {
+    --ws-primary: var(--blue-200);
+    --ws-on-primary: var(--blue-900);
+    --ws-primary-container: var(--blue-900);
+    --ws-on-primary-container: var(--blue-100);
+    --ws-secondary: var(--blue-400);
+    --ws-surface-tint: var(--blue-200) / 10%;
+    --ws-outline: var(--blue-700);
+    --ws-surface-variant: var(--blue-900);
+    --ws-surface-tint-color: rgb(var(--blue-200) / 10%);
+  }
+
+  [data-theme="dark"] .storybook-canvas-frame[data-workspace="garden"] {
+    --ws-primary: var(--green-200);
+    --ws-on-primary: var(--green-900);
+    --ws-primary-container: var(--green-900);
+    --ws-on-primary-container: var(--green-100);
+    --ws-secondary: var(--green-400);
+    --ws-surface-tint: var(--green-200) / 10%;
+    --ws-outline: var(--green-700);
+    --ws-surface-variant: var(--green-900);
+    --ws-surface-tint-color: rgb(var(--green-200) / 10%);
+  }
+
+  [data-theme="dark"] .storybook-canvas-frame[data-workspace="community"] {
+    --ws-primary: var(--orange-200);
+    --ws-on-primary: var(--orange-900);
+    --ws-primary-container: var(--orange-900);
+    --ws-on-primary-container: var(--orange-100);
+    --ws-secondary: var(--orange-400);
+    --ws-surface-tint: var(--orange-200) / 10%;
+    --ws-outline: var(--orange-700);
+    --ws-surface-variant: var(--orange-900);
+    --ws-surface-tint-color: rgb(var(--orange-200) / 10%);
+  }
+
+  [data-theme="dark"] .storybook-canvas-frame[data-workspace="actions"] {
+    --ws-primary: var(--red-200);
+    --ws-on-primary: var(--red-900);
+    --ws-primary-container: var(--red-900);
+    --ws-on-primary-container: var(--red-100);
+    --ws-secondary: var(--red-400);
+    --ws-surface-tint: var(--red-200) / 10%;
+    --ws-outline: var(--red-700);
+    --ws-surface-variant: var(--red-900);
+    --ws-surface-tint-color: rgb(var(--red-200) / 10%);
+  }
+
+  /*
+   * Profile workspace in dark mode: same alignment rationale as the
+   * light rule above — admin runtime does not define per-role profile
+   * overrides, so neither should Storybook.
+   */
+
   h1,
   h2,
   h3,
@@ -220,8 +478,9 @@
   .btn-icon {
     @apply relative flex items-center justify-center w-8 h-8 p-1 rounded-lg border;
     @apply bg-bg-white-0 border-stroke-soft-200 text-text-soft-400;
-    @apply transition-all duration-200 active:scale-95;
+    @apply active:scale-95;
     @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary active:border-primary;
+    transition: all var(--spring-spatial-fast);
   }
 
   .btn-icon svg {
@@ -307,16 +566,18 @@
 }
 
 .animate-fade-in-up {
-  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in-up var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing)
+    forwards;
 }
 
 .animate-fade-in-scale {
-  animation: fade-in-scale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in-scale var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
 }
 
 .stagger-item {
   opacity: 0;
-  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fade-in-up var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing)
+    forwards;
 }
 
 /* Shimmer skeleton - Dark mode friendly */
@@ -351,7 +612,7 @@
 
 /* Micro-interactions */
 .tap-feedback {
-  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--spring-spatial-fast);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
@@ -386,11 +647,12 @@
 }
 
 .toast-enter {
-  animation: toastSlideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toastSlideInRight var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
 }
 
 .toast-exit {
-  animation: toastSlideOutRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: toastSlideOutRight var(--spring-effects-fast-duration) var(--spring-effects-fast-easing)
+    forwards;
 }
 
 /* Modal animations */
@@ -421,11 +683,13 @@
 }
 
 .modal-backdrop-enter {
-  animation: modalBackdropFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalBackdropFadeIn var(--spring-effects-duration) var(--spring-effects-easing)
+    forwards;
 }
 
 .modal-slide-enter {
-  animation: modalSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: modalSlideIn var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing)
+    forwards;
   transform: translate3d(0, 0, 0);
   will-change: transform;
 }

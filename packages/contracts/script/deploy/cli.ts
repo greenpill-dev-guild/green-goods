@@ -1,23 +1,28 @@
 #!/usr/bin/env bun
 
+import { execFileSync } from "node:child_process";
+import path from "node:path";
 import { CliParser } from "../utils/cli-parser";
 import { DeploymentAddresses } from "../utils/deployment-addresses";
+import { formatENSSponsorStatus, getENSSponsorStatus, isGreenGoodsENSConfigured } from "../utils/ens-sponsor";
 import { NetworkManager } from "../utils/network";
 import { ActionDeployer } from "./actions";
 import { AnvilManager } from "./anvil";
+import { BadgeLocksDeployer } from "./badge-locks";
+import { BadgeSchemasDeployer } from "./badge-schemas";
 import { CoreDeployer } from "./core";
 import { GardenDeployer } from "./gardens";
 import { GoodsDeployer } from "./goods";
+import { GreenWillDeployer } from "./greenwill";
 import { HatsTreeDeployer } from "./hats";
 import { OctantFactoryDeployer } from "./octant-factory";
 
+const CONTRACTS_ROOT = path.join(__dirname, "../..");
+
 /**
- * DeploymentCLI - Main command-line interface for deployments
- *
- * Refactored from monolithic deploy.js into modular structure.
- * Shared dependencies (NetworkManager, AnvilManager, DeploymentAddresses) are
- * constructed once and injected into all deployers to avoid redundant file reads
- * and ensure consistent configuration.
+ * Main CLI entry. Shared NetworkManager, AnvilManager, and
+ * DeploymentAddresses are constructed once and injected into every deployer
+ * so file reads aren't repeated and configuration stays consistent.
  */
 export class DeploymentCLI {
   private parser: CliParser;
@@ -30,6 +35,9 @@ export class DeploymentCLI {
   private hatsTreeDeployer: HatsTreeDeployer;
   private goodsDeployer: GoodsDeployer;
   private octantFactoryDeployer: OctantFactoryDeployer;
+  private badgeLocksDeployer: BadgeLocksDeployer;
+  private badgeSchemasDeployer: BadgeSchemasDeployer;
+  private greenWillDeployer: GreenWillDeployer;
 
   constructor() {
     this.parser = new CliParser();
@@ -46,6 +54,9 @@ export class DeploymentCLI {
     this.hatsTreeDeployer = new HatsTreeDeployer(this.networkManager, this.deploymentAddresses);
     this.goodsDeployer = new GoodsDeployer(this.networkManager, this.anvilManager);
     this.octantFactoryDeployer = new OctantFactoryDeployer(this.networkManager, this.anvilManager);
+    this.badgeLocksDeployer = new BadgeLocksDeployer(this.networkManager, this.deploymentAddresses);
+    this.badgeSchemasDeployer = new BadgeSchemasDeployer(this.networkManager, this.deploymentAddresses);
+    this.greenWillDeployer = new GreenWillDeployer(this.networkManager, this.deploymentAddresses);
   }
 
   /**
@@ -65,6 +76,10 @@ Commands:
   garden <config.json>     Deploy garden from config file
   actions <config.json>    Deploy actions from config file
   hats-tree                Create and configure the Hats protocol tree
+  badge-locks              Deploy or dry-run GreenWill reputation badge Unlock locks
+  greenwill                Deploy or dry-run initial GreenWill proxy and three-badge config
+  badge-schemas            Future/backlog: deploy GreenWill portable EAS badge schema
+  ens-migrate              Reconcile Arbitrum ENS sends and migrate missing mainnet receiver records
   status [network]         Check deployment status
   fork <network>           Start Anvil fork for network
 
@@ -72,25 +87,30 @@ Common Options:
   --network, -n <network>  Network to deploy to (default: localhost)
   --broadcast, -b          Broadcast transactions
   --save-artifacts         Save forge broadcast artifacts without broadcasting
-  --sender <address>       Override tx sender address for simulation/broadcast
+  --sender <address>       Override tx sender address
   --update-schemas         Only update schemas, skip existing contracts
   --force                  Force fresh deployment
   --dry-run                Run full deployment simulation against RPC (no broadcast)
   --pure-simulation        Run compile-only preflight (no RPC calls)
   --salt <value>           Override deployment salt string for CREATE2
+  --owner <address>        Optional GreenWill owner override; defaults to deployment greenWillConfig.owner
+  --genesis-hat-id <id>    Optional Genesis Hats override; defaults to deployment greenWillConfig.genesisHatId
+  --genesis-lock <addr>    Optional GreenWill Genesis lock override
+  --first-work-lock <addr> Optional GreenWill First Work lock override
+  --first-support-lock <addr> Optional GreenWill First Support lock override
   --override-sepolia-gate  Bypass Sepolia gate for Arbitrum/Celo broadcast
   --help, -h               Show this help
 
 Examples:
   # Fresh deployment
   bun deploy.ts core --network sepolia --broadcast
-  
+
   # Update schemas only
   bun deploy.ts core --network sepolia --broadcast --update-schemas
-  
+
   # Deploy garden
   bun deploy.ts garden config/my-garden.json --network arbitrum --broadcast
-  
+
   # Deploy actions
   bun deploy.ts actions config/my-actions.json --network arbitrum --broadcast
 
@@ -99,6 +119,20 @@ Examples:
 
   # Create Hats tree
   bun deploy.ts hats-tree --network sepolia --broadcast
+
+  # Plan initial GreenWill badge locks and proxy configuration
+  bun run greenwill:locks:dry:arbitrum
+  bun run greenwill:dry:arbitrum
+
+  # Broadcast initial GreenWill badge locks and proxy configuration
+  bun run greenwill:locks:arbitrum
+  bun run greenwill:arbitrum
+
+  # Future/backlog portable badge attestation schema, not required for initial three-badge launch
+  bun deploy.ts badge-schemas --network arbitrum --dry-run
+
+  # Migrate stuck greengoods.eth registrations into the current mainnet receiver
+  bun deploy.ts ens-migrate --network mainnet --broadcast
 
 Available networks: ${this.networkManager.getAvailableNetworks().join(", ")}
 
@@ -131,6 +165,17 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
         console.log(`   Assessment Resolver: ${addresses.assessmentResolver}`);
         console.log(`   Octant Module: ${addresses.octantModule || "not deployed"}`);
         console.log(`   Octant Factory: ${addresses.octantFactory || "not deployed"}`);
+        console.log(`   GreenGoodsENS: ${addresses.greenGoodsENS || "not deployed"}`);
+
+        if (isGreenGoodsENSConfigured(addresses.greenGoodsENS)) {
+          try {
+            const sponsorStatus = await getENSSponsorStatus({ network });
+            console.log(formatENSSponsorStatus(sponsorStatus, "   "));
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.log(`   ENS Sponsor: status unavailable (${message})`);
+          }
+        }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         console.log(`❌ ${network}: ${errorMsg}`);
@@ -149,6 +194,27 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
         }
       }
     }
+  }
+
+  /**
+   * Reconcile Arbitrum GreenGoodsENS registration sends against the current
+   * Ethereum receiver and migrate missing records via one Foundry script run.
+   */
+  async migrateEnsRegistrations(options: ReturnType<CliParser["parseOptions"]>): Promise<void> {
+    if (options.network !== "mainnet") {
+      throw new Error("ens-migrate must be run with --network mainnet");
+    }
+
+    const args = ["script/upgrade-ens-receiver.ts", "migrate", "--network", "mainnet"];
+    if (options.broadcast) args.push("--broadcast");
+    if (options.pureSimulation) args.push("--pure-simulation");
+    if (options.sender) args.push("--sender", options.sender);
+
+    execFileSync("bun", args, {
+      cwd: CONTRACTS_ROOT,
+      stdio: "inherit",
+      env: process.env,
+    });
   }
 
   /**
@@ -211,6 +277,26 @@ For UUPS upgrades, use: bun upgrade.ts <contract> --network <network> --broadcas
 
         case "hats-tree": {
           await this.hatsTreeDeployer.setupHatsTree(options);
+          break;
+        }
+
+        case "badge-locks": {
+          await this.badgeLocksDeployer.deployBadgeLocks(options);
+          break;
+        }
+
+        case "greenwill": {
+          await this.greenWillDeployer.deployGreenWill(options);
+          break;
+        }
+
+        case "badge-schemas": {
+          await this.badgeSchemasDeployer.deployBadgeSchemas(options);
+          break;
+        }
+
+        case "ens-migrate": {
+          await this.migrateEnsRegistrations(options);
           break;
         }
 

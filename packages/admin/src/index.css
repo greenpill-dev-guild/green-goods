@@ -1,6 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&display=swap");
 @import "tailwindcss";
 @import "@green-goods/shared/styles/theme.css";
+@import "./styles/admin-m3-tokens.css";
+@import "./styles/admin-m3-overrides.css";
+@import "@green-goods/shared/styles/utilities.css";
 
 /* Configure dark mode to use data-theme attribute */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -84,29 +87,83 @@
   --color-green-200: rgb(var(--green-200));
   --color-green-100: rgb(var(--green-100));
   --color-green-50: rgb(var(--green-50));
+
+  /* M3 Type Scale — Tailwind aliases */
+  --text-display-lg: var(--type-display-lg);
+  --text-display-md: var(--type-display-md);
+  --text-display-sm: var(--type-display-sm);
+  --text-headline-lg: var(--type-headline-lg);
+  --text-headline-md: var(--type-headline-md);
+  --text-headline-sm: var(--type-headline-sm);
+  --text-title-lg: var(--type-title-lg);
+  --text-title-md: var(--type-title-md);
+  --text-title-sm: var(--type-title-sm);
+  --text-body-lg: var(--type-body-lg);
+  --text-body-md: var(--type-body-md);
+  --text-body-sm: var(--type-body-sm);
+  --text-label-lg: var(--type-label-lg);
+  --text-label-md: var(--type-label-md);
+  --text-label-sm: var(--type-label-sm);
+
+  /* M3 Shape Scale — admin-prefixed values keep M3 geometry explicit.
+     Shared radius aliases stay aligned with DesignMD-generated --gg-radius-* tokens. */
+  --admin-radius-xs: 4px;
+  --admin-radius-sm: 8px;
+  --admin-radius-md: 12px;
+  --admin-radius-lg: 16px;
+  --admin-radius-xl: 28px;
+  --admin-radius-full: 9999px;
+  --radius-xs: var(--admin-radius-xs);
+  --radius-sm: var(--admin-radius-sm);
+  --radius-md: var(--gg-radius-md);
+  --radius-lg: var(--gg-radius-lg);
+  --radius-xl: var(--gg-radius-xl);
+  --radius-2xl: var(--gg-radius-2xl);
+  --radius-full: var(--gg-radius-full);
 }
 
 /* Base layer: Admin-specific element resets */
 @layer base {
   body {
     margin: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Open Sans', 'Helvetica Neue', sans-serif;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 200ms ease, color 200ms ease;
+    transition:
+      background-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing),
+      color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
+  }
+
+  /* Pointer cursor for interactive elements — Tailwind v4 no longer sets this
+     by default, so icon-only <button> and ARIA-roled triggers across admin
+     need an explicit reset. Guarded so disabled controls keep their default
+     (or disabled:cursor-not-allowed utilities). */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  [role="menuitem"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
 
   /* Smooth theme transitions for sidebar and card surfaces */
   [data-testid="sidebar"],
   .rounded-xl {
-    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+    transition:
+      background-color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing),
+      color var(--spring-effects-fast-duration) var(--spring-effects-fast-easing),
+      box-shadow var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
   }
 
-  /* Thin styled scrollbars - visible for accessibility */
+  /* Hide scrollbar chrome and keep scroll responsibility in explicit containers */
   * {
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--bg-sub-300)) transparent;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
 
   /* Lock the root document to prevent double scrollbars; delegate scroll to app shell */
@@ -122,13 +179,331 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+    overflow: clip;
   }
+}
+
+/* ============================================================================
+ * VIEW TRANSITIONS API - Cross-fade + scale morph (Three-Body System)
+ * Old view fades out + scales down, new view fades in + scales up.
+ * Duration: 400ms with spatial-slow spring. No directional slide.
+ * ============================================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing) both view-fade-out;
+  }
+  ::view-transition-new(root) {
+    animation: var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing) both view-fade-in;
+  }
+}
+
+@keyframes view-fade-out {
+  to { opacity: 0; transform: scale(var(--canvas-scale-receded)); }
+}
+@keyframes view-fade-in {
+  from { opacity: 0; transform: scale(var(--canvas-scale-receded)); }
+}
+
+/* Hub pipeline tab crossfade */
+@keyframes hub-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Speed dial items — stagger upward from FAB position */
+@keyframes speed-dial-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable view transition animations */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  /* Disable workspace color dissolve */
+  [data-tone] {
+    transition: none;
+  }
+
+  /* Disable speed dial stagger */
+  @keyframes speed-dial-in {
+    from { opacity: 1; transform: none; }
+  }
+
+  /* Disable hub tab crossfade */
+  @keyframes hub-fade-in {
+    from { opacity: 1; }
+  }
+}
+
+/* ============================================================================
+ * SPATIAL DESIGN TOKENS — Warm Earth design language
+ * Spring tokens, canvas recession, shadow-border edges
+ * Spec: .plans/active/admin-ui-revamp/artifacts/spatial-architecture.md
+ * ============================================================================ */
+:root {
+  /* Canvas recession — material focus variation */
+  --canvas-scale-receded: 0.992;
+  --canvas-opacity-receded: 0.95;
+  --canvas-blur-receded: 1.5px;
+  --canvas-recede-y: 8px;
+
+  /* Shadow-as-border edge tokens (replace CSS border/ring) */
+  --edge-rest: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  --edge-hover: 0 0 0 1px rgba(31, 193, 107, 0.20);
+  --edge-active: 0 0 0 1px rgba(31, 193, 107, 0.30);
+  --edge-disabled: 0 0 0 1px rgba(0, 0, 0, 0.03);
+  --edge-focus: 0 0 0 3px rgba(31, 193, 107, 0.20);
+
+  /* Warm Earth surface tokens — encode warm-stone (light) / cool-slate (dark) intent.
+   * Use instead of hardcoded rgb(255 255 255) or raw --neutral-0 in glass surfaces. */
+  --admin-surface-0: 255 255 255;
+  --admin-surface-50: 251 249 244;
+  --warm-shadow: 133 109 70;
+  --warm-shadow-deep: 38 28 18;
+}
+
+[data-theme="dark"] {
+  --edge-rest: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --edge-hover: 0 0 0 1px rgba(31, 193, 107, 0.30);
+  --edge-active: 0 0 0 1px rgba(31, 193, 107, 0.40);
+  --edge-disabled: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --edge-focus: 0 0 0 3px rgba(31, 193, 107, 0.30);
+
+  --admin-surface-0: 22 25 33;
+  --admin-surface-50: 17 19 27;
+  --warm-shadow: 0 0 0;
+  --warm-shadow-deep: 0 0 0;
+}
+
+/* Animatable workspace tint — enables color cross-dissolve between views */
+@property --tone-surface-tint-color {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: transparent;
+}
+
+/* ============================================================================
+ * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
+ * hub=blue, garden=green, community=orange, actions=red
+ * Each defines 8 tonal roles consumed by --tone-* utilities across the admin UI
+ * ============================================================================ */
+
+/* Hub — Blue. `--tone-action` shifted from blue-500 (vivid, "bad blue") to
+ * blue-700 (deeper, more grounded) so the primary button feels like a
+ * confident operator action rather than a default web-app blue. */
+[data-tone="hub"] {
+  --tone-primary: var(--blue-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--blue-100);
+  --tone-on-primary-container: var(--blue-900);
+  --tone-secondary: var(--blue-300);
+  --tone-surface-tint: var(--blue-600) / 8%;
+  --tone-outline: var(--blue-200);
+  --tone-surface-variant: var(--blue-50);
+  --tone-surface-tint-color: rgb(var(--blue-600) / 8%);
+}
+
+/* Garden — Green. Shifted action from green-800 (almost black) to green-700
+ * (forest green) so white text reads with stronger contrast and the button
+ * feels like a living accent instead of an abyss. */
+[data-tone="garden"] {
+  --tone-primary: var(--green-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--green-700);
+  --tone-action-hover: var(--green-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--green-100);
+  --tone-on-primary-container: var(--green-900);
+  --tone-secondary: var(--green-300);
+  --tone-surface-tint: var(--green-600) / 8%;
+  --tone-outline: var(--green-200);
+  --tone-surface-variant: var(--green-50);
+  --tone-surface-tint-color: rgb(var(--green-600) / 8%);
+}
+
+/* Community — Orange. Shifted from orange-800 (harsh near-burnt) to
+ * orange-700 (warm copper) so it reads as inviting community accent rather
+ * than warning. */
+[data-tone="community"] {
+  --tone-primary: var(--orange-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--orange-700);
+  --tone-action-hover: var(--orange-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--orange-100);
+  --tone-on-primary-container: var(--orange-900);
+  --tone-secondary: var(--orange-300);
+  --tone-surface-tint: var(--orange-600) / 8%;
+  --tone-outline: var(--orange-200);
+  --tone-surface-variant: var(--orange-50);
+  --tone-surface-tint-color: rgb(var(--orange-600) / 8%);
+}
+
+/* Actions — Red */
+[data-tone="actions"] {
+  --tone-primary: var(--red-500);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--red-100);
+  --tone-on-primary-container: var(--red-900);
+  --tone-secondary: var(--red-300);
+  --tone-surface-tint: var(--red-500) / 8%;
+  --tone-outline: var(--red-200);
+  --tone-surface-variant: var(--red-50);
+  --tone-surface-tint-color: rgb(var(--red-500) / 8%);
+}
+
+/* Home — Stone/Neutral (unauthenticated) */
+[data-tone="home"] {
+  --tone-primary: 120 113 108;
+  --tone-on-primary: 255 255 255;
+  --tone-action: 68 64 60;
+  --tone-action-hover: 41 37 36;
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: 231 229 228;
+  --tone-on-primary-container: 41 37 36;
+  --tone-secondary: 168 162 158;
+  --tone-surface-tint: 120 113 108 / 8%;
+  --tone-outline: 214 211 209;
+  --tone-surface-variant: 245 245 244;
+  --tone-surface-tint-color: rgb(120 113 108 / 8%);
+}
+
+/* Dark mode workspace overrides */
+[data-theme="dark"] [data-tone="hub"] {
+  --tone-primary: var(--blue-200);
+  --tone-on-primary: var(--blue-900);
+  --tone-action: var(--blue-200);
+  --tone-action-hover: var(--blue-100);
+  --tone-on-action: var(--blue-900);
+  --tone-primary-container: var(--blue-900);
+  --tone-on-primary-container: var(--blue-100);
+  --tone-secondary: var(--blue-400);
+  --tone-surface-tint: var(--blue-200) / 10%;
+  --tone-outline: var(--blue-700);
+  --tone-surface-variant: var(--blue-900);
+  --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="garden"] {
+  --tone-primary: var(--green-200);
+  --tone-on-primary: var(--green-900);
+  --tone-action: var(--green-200);
+  --tone-action-hover: var(--green-100);
+  --tone-on-action: var(--green-900);
+  --tone-primary-container: var(--green-900);
+  --tone-on-primary-container: var(--green-100);
+  --tone-secondary: var(--green-400);
+  --tone-surface-tint: var(--green-200) / 10%;
+  --tone-outline: var(--green-700);
+  --tone-surface-variant: var(--green-900);
+  --tone-surface-tint-color: rgb(var(--green-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="community"] {
+  --tone-primary: var(--orange-200);
+  --tone-on-primary: var(--orange-900);
+  --tone-action: var(--orange-200);
+  --tone-action-hover: var(--orange-100);
+  --tone-on-action: var(--orange-900);
+  --tone-primary-container: var(--orange-900);
+  --tone-on-primary-container: var(--orange-100);
+  --tone-secondary: var(--orange-400);
+  --tone-surface-tint: var(--orange-200) / 10%;
+  --tone-outline: var(--orange-700);
+  --tone-surface-variant: var(--orange-900);
+  --tone-surface-tint-color: rgb(var(--orange-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="actions"] {
+  --tone-primary: var(--red-200);
+  --tone-on-primary: var(--red-900);
+  --tone-action: var(--red-200);
+  --tone-action-hover: var(--red-100);
+  --tone-on-action: var(--red-900);
+  --tone-primary-container: var(--red-900);
+  --tone-on-primary-container: var(--red-100);
+  --tone-secondary: var(--red-400);
+  --tone-surface-tint: var(--red-200) / 10%;
+  --tone-outline: var(--red-700);
+  --tone-surface-variant: var(--red-900);
+  --tone-surface-tint-color: rgb(var(--red-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="home"] {
+  --tone-primary: 214 211 209;
+  --tone-on-primary: 41 37 36;
+  --tone-action: 214 211 209;
+  --tone-action-hover: 231 229 228;
+  --tone-on-action: 41 37 36;
+  --tone-primary-container: 68 64 60;
+  --tone-on-primary-container: 231 229 228;
+  --tone-secondary: 168 162 158;
+  --tone-surface-tint: 214 211 209 / 10%;
+  --tone-outline: 87 83 78;
+  --tone-surface-variant: 68 64 60;
+  --tone-surface-tint-color: rgb(214 211 209 / 10%);
+}
+
+/* Workspace-aware tab rail tint */
+[data-tone="hub"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+}
+[data-tone="garden"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+}
+[data-tone="community"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+}
+[data-tone="actions"] .canvas-stage-tab-rail-tint {
+  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+}
+
+/* Workspace color cross-dissolve when switching views */
+[data-tone] {
+  transition: --tone-surface-tint-color var(--spring-effects-slow-duration) var(--spring-effects-slow-easing);
+}
+
+/* ============================================================================
+ * TONAL ELEVATION - 6-level elevation system with dark-mode green tinting
+ * ============================================================================ */
+:root {
+  --elevation-0: 0px 0px 0px 0px transparent;
+  --elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --elevation-2: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --elevation-3: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --elevation-4: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --elevation-5: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] {
+  --elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 0px 0px 1px rgb(var(--green-500) / 0.03);
+  --elevation-2: 0px 1px 3px 0px rgba(0, 0, 0, 0.4), 0px 0px 0px 1px rgb(var(--green-500) / 0.05);
+  --elevation-3: 0px 4px 6px -1px rgba(0, 0, 0, 0.4), 0px 0px 0px 1px rgb(var(--green-500) / 0.07);
+  --elevation-4: 0px 10px 15px -3px rgba(0, 0, 0, 0.5), 0px 0px 0px 1px rgb(var(--green-500) / 0.09);
+  --elevation-5: 0px 20px 25px -5px rgba(0, 0, 0, 0.5), 0px 0px 0px 1px rgb(var(--green-500) / 0.12);
 }
 
 /* ============================================================================
  * DESIGN SYSTEM - Shadows & Elevation (utilities layer)
  * ============================================================================ */
 @layer utilities {
+  .shadow-elevation-0 { box-shadow: var(--elevation-0); }
+  .shadow-elevation-1 { box-shadow: var(--elevation-1); }
+  .shadow-elevation-2 { box-shadow: var(--elevation-2); }
+  .shadow-elevation-3 { box-shadow: var(--elevation-3); }
+  .shadow-elevation-4 { box-shadow: var(--elevation-4); }
+  .shadow-elevation-5 { box-shadow: var(--elevation-5); }
+
   .shadow-xs {
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
@@ -185,7 +560,7 @@
     background: inherit;
     border: 1px solid rgb(var(--stroke-sub-300));
     color: rgb(var(--text-strong-950));
-    transition: all 200ms ease;
+    transition: all var(--spring-effects-fast-duration) var(--spring-effects-fast-easing);
   }
 
   input:not([type="checkbox"]):not([type="radio"]):focus,
@@ -211,16 +586,254 @@
 }
 
 /* ============================================================================
- * SKELETON LOADING - Shimmer Animation
+ * GARDEN DETAIL LAYOUT
  * ============================================================================ */
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
+.garden-detail-container {
+  min-height: 100%;
+  position: relative;
+}
+
+.garden-hero-banner {
+  position: relative;
+  height: 12rem;
+  overflow: hidden;
+}
+
+.garden-hero-banner-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.garden-hero-banner-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.4) 50%, transparent);
+}
+
+.garden-hero-banner-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.garden-hero-banner-content {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem 1rem 0.75rem;
+}
+
+.garden-tab-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--color-stroke-soft);
+  background: var(--color-bg-white);
+  padding: 0 1rem;
+}
+
+@media (max-width: 639px) {
+  .garden-tab-bar::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 2rem;
+    background: linear-gradient(to right, transparent, var(--color-bg-white));
+    pointer-events: none;
+    z-index: 1;
   }
 }
+
+.garden-tab-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding: 0.25rem 0;
+}
+
+.garden-tabs-list {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+@media (max-width: 639px) {
+  .garden-tabs-list {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .garden-tabs-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .garden-tabs-list::after {
+    content: "";
+    flex-shrink: 0;
+    width: 1.5rem;
+  }
+
+  .garden-tab-trigger {
+    scroll-snap-align: start;
+  }
+}
+
+.garden-tab-trigger {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.garden-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.garden-tab-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.garden-tab-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.garden-tab-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  order: 1;
+}
+
+.garden-tab-rail {
+  order: 2;
+}
+
+.garden-tab-rail-sticky {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.garden-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-stroke-soft);
+  background: var(--color-bg-weak);
+  font-size: 0.875rem;
+  transition: background-color var(--spring-effects-fast);
+}
+
+.garden-stat-row:hover {
+  background: var(--color-bg-soft);
+}
+
+.garden-stat-row-label {
+  color: var(--color-text-sub);
+}
+
+.garden-stat-row-value {
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+@media (min-width: 640px) {
+  .garden-hero-banner {
+    height: 14rem;
+  }
+
+  .garden-hero-banner-content {
+    padding: 1.5rem 1.5rem 1rem;
+  }
+
+  .garden-tab-bar {
+    padding: 0 1.5rem;
+  }
+
+  .garden-tab-content,
+  .garden-tab-shell,
+  .garden-tab-layout,
+  .garden-tab-main,
+  .garden-tab-rail-sticky {
+    gap: 1.25rem;
+  }
+}
+
+/* Tablet (768px-1023px): Rail becomes horizontal summary strip ABOVE main content */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .garden-tab-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .garden-tab-rail {
+    order: -1;
+  }
+
+  .garden-tab-rail-sticky {
+    flex-direction: row;
+    gap: 1rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 0.25rem;
+  }
+
+  .garden-tab-rail-sticky::-webkit-scrollbar {
+    display: none;
+  }
+
+  .garden-tab-rail-sticky > * {
+    min-width: 240px;
+    flex: 1 0 auto;
+  }
+}
+
+/* Desktop (1024px+): Two-column grid — main (9fr) + rail sidebar (3fr) */
+@media (min-width: 1024px) {
+  .garden-tab-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 9fr) minmax(260px, 3fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .garden-tab-main {
+    order: 0;
+    gap: 1.5rem;
+  }
+
+  .garden-tab-rail {
+    order: 0;
+  }
+}
+
+/* ============================================================================
+ * SKELETON LOADING - Uses shared shimmer keyframe from utilities.css
+ * ============================================================================ */
 
 @keyframes fade-in-up {
   from {
@@ -256,6 +869,22 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* Nav bar entrance animation — pure vertical slide + fade.
+   Centering is handled in the component via `inset-x-0 mx-auto`, not a transform,
+   so the animation ends at `transform: none` without clobbering horizontal position.
+   The shared animation is safe for both the centered desktop nav and the
+   corner-docked FAB (which uses fixed right/bottom positioning, also transform-free). */
+@keyframes nav-bar-enter {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -339,25 +968,29 @@
   .skeleton-shimmer {
     background: linear-gradient(90deg, rgb(var(--bg-soft-200)) 25%, rgb(var(--bg-weak-50)) 50%, rgb(var(--bg-soft-200)) 75%);
     background-size: 200% 100%;
-    animation: shimmer 1.5s ease-in-out infinite;
+    animation: shimmer var(--spring-effects-slow-duration) var(--spring-effects-easing) infinite;
   }
 
   .animate-fade-in-up {
-    animation: fade-in-up 0.3s ease-out forwards;
+    animation: fade-in-up var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
   }
 
   .animate-spring-bump {
-    animation: spring-bump 0.56s ease-in-out;
+    animation: spring-bump var(--spring-effects-slow-duration) var(--spring-effects-easing);
   }
 
   .animate-page-slide-in {
-    animation: pageSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: pageSlideIn var(--spring-spatial-duration) var(--spring-spatial-easing) forwards;
   }
 
   .animate-confirmed-shimmer {
     background-image: linear-gradient(90deg, transparent 0%, rgb(var(--success-base) / 0.08) 45%, transparent 100%);
     background-size: 200% 100%;
-    animation: confirmedShimmer 0.6s ease-out;
+    animation: confirmedShimmer var(--spring-effects-slow-duration) var(--spring-effects-easing);
+  }
+
+  .speed-dial-item {
+    animation: speed-dial-in var(--spring-spatial-fast) both;
   }
 
   /* ── CSS-only Tooltip ── */
@@ -380,7 +1013,7 @@
     pointer-events: none;
     z-index: 50;
     opacity: 0;
-    transition: opacity 0.15s ease;
+    transition: opacity var(--spring-effects-fast);
   }
   [data-tooltip]:hover::after,
   [data-tooltip]:focus-visible::after {
@@ -411,16 +1044,389 @@
   /* Staggered entrance animation for lists/grids of children */
   .stagger-children > * {
     opacity: 0;
-    animation: fade-in-up 0.3s ease-out both;
+    animation: fade-in-up var(--spring-spatial-duration) var(--spring-spatial-easing) both;
   }
-  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
-  .stagger-children > *:nth-child(2) { animation-delay: 50ms; }
-  .stagger-children > *:nth-child(3) { animation-delay: 100ms; }
-  .stagger-children > *:nth-child(4) { animation-delay: 150ms; }
-  .stagger-children > *:nth-child(5) { animation-delay: 200ms; }
-  .stagger-children > *:nth-child(6) { animation-delay: 250ms; }
-  .stagger-children > *:nth-child(7) { animation-delay: 300ms; }
-  .stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+  /* ── Surface Primitives ── */
+
+  /**
+   * M3 shape scale — tokenized radii so routes stop inlining ad-hoc `rounded-[1.6rem]` values.
+   * Values kept large-biased to preserve the warm-earth aesthetic already shipped.
+   */
+  :root {
+    --shape-xs: 0.5rem;   /* 8px — inline tags, chips */
+    --shape-sm: 0.75rem;  /* 12px — inputs, small buttons */
+    --shape-md: 1rem;     /* 16px — compact cards */
+    --shape-lg: 1.25rem;  /* 20px — panels, inspectors */
+    --shape-xl: 1.6rem;   /* 25.6px — route shells */
+    --shape-2xl: 1.9rem;  /* 30.4px — navigation dock */
+  }
+
+  /**
+   * Canvas route card — the single outer surface that wraps a workspace view
+   * (Hub, Garden, Community, Actions, Cookies, etc.). Mirrors the reference
+   * design `.mainsheet` from `design_handoff_admin-revamp/screens/hub.css`:
+   *   mobile  ~16px sides
+   *   tablet  ~28px sides
+   *   desktop ~40px sides
+   * Page header, tabs, search, and content all live inside it with breathing
+   * room from the card edge — no card-on-card stacking.
+   */
+  .canvas-route-card {
+    /* Slightly translucent + backdrop-blur so the workspace tone gradient
+     * bleeds subtly through the card edges. Keeps the M3 "card" feel while
+     * picking up the per-view atmosphere (blue / green / orange / red / stone).
+     * Falls back to opaque white when backdrop-filter isn't supported. */
+    background: rgb(var(--admin-surface-0) / 0.92);
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    border-radius: var(--shape-xl);
+    /* Horizontal padding mirrors the AppBar paddingInline (20px) so eyebrow,
+       title, tabs, and search align with AppBar text at any viewport. */
+    padding: 0.875rem 1rem 1.25rem;
+    box-shadow: var(--edge-rest), var(--elevation-2);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .canvas-route-card {
+      background: rgb(var(--admin-surface-0));
+    }
+  }
+
+  @media (min-width: 600px) {
+    .canvas-route-card {
+      padding: 1.125rem 1.25rem 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .canvas-route-card {
+      padding: 1.25rem 1.25rem 1.75rem;
+    }
+  }
+
+  /** Full-width section: page-level grouping */
+  .surface-section {
+    @apply rounded-xl;
+    background: linear-gradient(180deg, rgb(var(--admin-surface-0)) 0%, rgb(var(--admin-surface-50) / 0.6) 100%);
+    @apply p-4 sm:p-5;
+    box-shadow: var(--edge-rest), var(--elevation-2);
+  }
+
+  /** Inset panel: nested inside a section or grid cell */
+  .surface-inset {
+    @apply rounded-lg bg-bg-white;
+    @apply p-4;
+    box-shadow: var(--edge-rest), var(--elevation-2);
+  }
+
+  /** Compact card: metric tile, stat block */
+  .surface-card {
+    @apply rounded-lg bg-bg-white p-4;
+    @apply transition-all hover:-translate-y-0.5;
+    transition-duration: var(--spring-spatial-fast-duration);
+    transition-timing-function: var(--spring-spatial-fast-easing);
+    box-shadow: var(--edge-rest), var(--elevation-2);
+  }
+  .surface-card:hover {
+    box-shadow: var(--edge-hover), var(--elevation-3);
+  }
+
+  /* ── Glass Surface ── Shared frosted treatment
+   * In admin, only AppBar keeps glass; M3 overrides neutralize other chrome/content.
+   * Solid fallback for prefers-contrast: more.
+   */
+  .glass-surface {
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    background: rgb(var(--glass-bg));
+    box-shadow: var(--edge-rest);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .glass-surface {
+      background: var(--color-bg-soft);
+    }
+  }
+
+  @media (prefers-contrast: more) {
+    .glass-surface {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: var(--color-bg-white);
+      box-shadow: var(--edge-rest);
+    }
+  }
+
+  /* ── Spacing Rhythm ── Responsive section/content gap scale
+   * section: between top-level sections (cards, panels)
+   * content: between items within a section (rows, fields)
+   */
+  .gap-section {
+    gap: 1rem;
+  }
+  .gap-content {
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .gap-section { gap: 1.25rem; }
+    .gap-content { gap: 1rem; }
+  }
+
+  @media (min-width: 1024px) {
+    .gap-section { gap: 1.5rem; }
+    .gap-content { gap: 1.25rem; }
+  }
+
+  .hub-shell-panel {
+    background:
+      linear-gradient(180deg, rgb(var(--admin-surface-0) / 0.94) 0%, rgb(var(--admin-surface-50) / 0.98) 100%);
+    box-shadow: var(--edge-rest);
+  }
+
+  [data-theme="dark"] .hub-shell-panel {
+    background:
+      linear-gradient(180deg, rgb(var(--admin-surface-0) / 0.88) 0%, rgb(var(--admin-surface-50) / 0.78) 100%);
+    box-shadow: var(--edge-rest);
+  }
+
+  .hub-route-shell {
+    /* Padding is owned by `.canvas-route-card` (applied by CanvasRouteFrame). */
+  }
+
+  .hub-route-stack {
+    width: 100%;
+  }
+
+  .hub-route-content {
+    width: 100%;
+  }
+
+  .hub-list-toolbar {
+    gap: 0.75rem;
+  }
+
+  .hub-list-toolbar > :first-child {
+    flex: 1 1 16rem;
+    min-width: min(100%, 16rem);
+  }
+
+  .hub-list-toolbar input {
+    height: 2.75rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(var(--tone-surface-variant, var(--neutral-100)) / 0.65);
+    box-shadow: inset 0 0 0 1px rgb(var(--tone-outline, var(--neutral-200)) / 0.4);
+    padding-right: 2.5rem;
+  }
+
+  .hub-list-toolbar input:focus {
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--tone-primary, var(--primary-base)) / 0.4),
+      0 0 0 3px rgb(var(--tone-primary, var(--primary-base)) / 0.12);
+  }
+
+  .hub-sort-select select,
+  .hub-refresh-button {
+    height: 2.75rem;
+    border-radius: 999px;
+    border: 0;
+    background: rgb(var(--admin-surface-0) / 0.86);
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--tone-outline, var(--neutral-200)) / 0.3),
+      0 4px 12px rgb(var(--warm-shadow-deep) / 0.04);
+  }
+
+  .hub-sort-select select {
+    min-width: 7.5rem;
+  }
+
+  .hub-refresh-button {
+    min-width: 2.75rem;
+  }
+
+  /* Layout-only shell. The visual treatment (radius, gradient, padding,
+   * elevation) is provided by `surface-section` on the same element so the
+   * Sheet → Section → Card chain only carries one padding tier. Adding
+   * padding/background here on top of `surface-section` produced visible
+   * compounding (~2rem effective horizontal inset) at desktop and clipped
+   * Hub queue rows on mobile. The mobile gutter (margin-inline) stays here
+   * so the results section keeps its inset without forcing the same shift
+   * onto PageHeader. */
+  .hub-results-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .hub-results-pane {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: hub-fade-in var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+    transition:
+      opacity var(--spring-effects-fast),
+      transform var(--spring-spatial-fast-duration) var(--spring-spatial-fast-easing);
+  }
+
+  /* `.hub-route-shell` mobile padding: now owned by `.canvas-route-card`. */
+}
+
+/* ============================================================================
+ * WORKSPACE CANVAS - M3 solid ground behind the main sheet
+ *
+ * Workspace identity travels via --tone-tint / --tone-tint-2 /
+ * --tone-accent CSS vars, consumed by NavigationBar, UserAvatar,
+ * PageHeader, AccountProfilePanel, AccountSettingsPanel, WorkbenchRow.
+ * Atmospheric radial-gradient backdrop + noise texture retired 2026-04-17
+ * per D1 (strict M3 over hybrid visual system).
+ * ============================================================================ */
+/* ============================================================================
+ * VIEW TRANSITIONS — scope cross-fade to content only
+ *
+ * `PageTransition` uses the View Transitions API on every route change. By
+ * default the API snapshots the entire viewport, so the AppBar and floating
+ * NavigationBar cross-fade along with the content — it looks like the chrome
+ * is "moving" when only a tab switched. Naming each chrome region as its own
+ * transition group with no animation keeps them visually stationary while the
+ * content area still gets the default cross-fade.
+ * ============================================================================ */
+.canvas-area-top {
+  view-transition-name: gg-canvas-top;
+}
+.canvas-area-bottom {
+  view-transition-name: gg-canvas-bottom;
+}
+::view-transition-group(gg-canvas-top),
+::view-transition-old(gg-canvas-top),
+::view-transition-new(gg-canvas-top),
+::view-transition-group(gg-canvas-bottom),
+::view-transition-old(gg-canvas-bottom),
+::view-transition-new(gg-canvas-bottom) {
+  animation: none !important;
+}
+
+/* Slow + soften the root transition so the workspace tone (canvas gradient)
+ * cross-fades gracefully on workspace switches instead of snapping. Default
+ * duration is 250ms; 380ms feels deliberate without dragging. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 1ms;
+  }
+}
+
+.workspace-canvas {
+  --tone-tint: 59 130 246;
+  --tone-tint-2: 125 211 252;
+  --tone-accent: 37 99 235;
+  position: relative;
+  isolation: isolate;
+  /* Extends the workspace tone wash through the entire canvas: a top-anchored
+   * radial highlight stays bright, then a vertical fade keeps the tint visible
+   * all the way down (subtle, ~3-6% opacity). Previously the radial faded to
+   * transparent at 70% so anything past the AppBar reverted to plain
+   * `m3-surface-container-lowest`, breaking the gradient as you scrolled. */
+  background:
+    radial-gradient(
+      ellipse 100% 70% at 50% 0%,
+      var(--tone-surface-tint-color, transparent) 0%,
+      transparent 80%
+    ),
+    linear-gradient(
+      180deg,
+      var(--tone-surface-tint-color, transparent) 0%,
+      rgb(var(--tone-tint, 59 130 246) / 0.025) 60%,
+      rgb(var(--tone-tint, 59 130 246) / 0.045) 100%
+    ),
+    rgb(var(--m3-surface-container-lowest));
+  transition: background-color var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
+}
+
+.workspace-canvas[data-tone="home"] {
+  --tone-tint: 120 113 108;
+  --tone-tint-2: 168 162 158;
+  --tone-accent: 87 83 78;
+}
+
+.workspace-canvas[data-tone="hub"] {
+  --tone-tint: 59 130 246;
+  --tone-tint-2: 147 197 253;
+  --tone-accent: 37 99 235;
+}
+
+.workspace-canvas[data-tone="garden"] {
+  --tone-tint: 34 197 94;
+  --tone-tint-2: 110 231 183;
+  --tone-accent: 22 163 74;
+}
+
+.workspace-canvas[data-tone="community"] {
+  --tone-tint: 245 158 11;
+  --tone-tint-2: 250 204 21;
+  --tone-accent: 217 119 6;
+}
+
+.workspace-canvas[data-tone="actions"] {
+  --tone-tint: 239 68 68;
+  --tone-tint-2: 248 113 113;
+  --tone-accent: 220 38 38;
+}
+
+.workspace-canvas[data-tone="profile"] {
+  --tone-tint: 168 85 247;
+  --tone-tint-2: 196 181 253;
+  --tone-accent: 147 51 234;
+}
+
+.main-scroll-area {
+  overflow-x: hidden;
+}
+
+/* Dark-mode workspace canvas. Reuses the same gradient stack with a darker
+ * base. `--tone-tint` lightens per-workspace below so the tone is still
+ * legible against the darker substrate (lifting ~25% of the way up the scale
+ * matches the on-action / on-primary inversions defined elsewhere). */
+[data-theme="dark"] .workspace-canvas {
+  background:
+    radial-gradient(
+      ellipse 100% 70% at 50% 0%,
+      var(--tone-surface-tint-color, transparent) 0%,
+      transparent 80%
+    ),
+    linear-gradient(
+      180deg,
+      var(--tone-surface-tint-color, transparent) 0%,
+      rgb(var(--tone-tint, 147 197 253) / 0.045) 60%,
+      rgb(var(--tone-tint, 147 197 253) / 0.075) 100%
+    ),
+    rgb(var(--m3-surface-dim));
+}
+
+[data-theme="dark"] .workspace-canvas[data-tone="home"] {
+  --tone-tint: 168 162 158;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="hub"] {
+  --tone-tint: 147 197 253;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="garden"] {
+  --tone-tint: 110 231 183;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="community"] {
+  --tone-tint: 250 204 21;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="actions"] {
+  --tone-tint: 248 113 113;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="profile"] {
+  --tone-tint: 196 181 253;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -431,6 +1437,7 @@
   .animate-spring-bump,
   .animate-page-slide-in,
   .animate-confirmed-shimmer,
+  .speed-dial-item,
   .stagger-children > * {
     animation: none !important;
     opacity: 1 !important;
@@ -441,71 +1448,200 @@
   .rounded-xl {
     transition: none !important;
   }
+
+  .hub-results-pane {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* ============================================================================
- * NATIVE POPOVER STYLES
- * Per web.dev/learn/css/popover-and-dialog
- * Styles for hint, auto, and manual popovers
+ * WARM-EARTH ADMIN ALIASES (Tier 1a — additive, non-breaking)
+ * Source-of-truth values: design_handoff_admin-revamp/screens/tokens.css
+ * Decision log: docs/admin-revamp/audit.md §5.1
+ *
+ * These aliases give admin code a stable Warm-Earth vocabulary
+ * (--canvas / --ink / --stone / --g-* / --r-* / --e*) that points at our
+ * existing scales (--neutral-*, --green-*, --admin-radius-*). No existing
+ * runtime value changes — consumers can opt into the new names without a
+ * forced migration.
  * ============================================================================ */
-@layer utilities {
-  /* Base popover styles - hidden by default */
-  [popover] {
-    border: none;
-    padding: 0;
-    box-shadow: 0 12px 24px 0 rgba(14, 18, 27, 0.06), 0 1px 2px 0 rgba(14, 18, 27, 0.03);
-  }
+:root {
+  /* Surface aliases — DesignMD colors.neutral = #FAF8F5 */
+  --canvas: rgb(var(--neutral-100) / 1);
+  --ink: rgb(var(--neutral-800));
+  --stone: rgb(var(--neutral-500));
+  --on-surface-muted: rgb(var(--neutral-600));
+  --on-surface-soft: rgb(var(--neutral-500));
+  --surface: var(--canvas);
+  --surface-raised: rgb(var(--neutral-0));
+  --surface-sunken: #f2efea;
+  --surface-quiet: #efebe5;
+  --hairline: rgb(var(--neutral-800) / 0.08);
+  --hairline-strong: rgb(var(--neutral-800) / 0.14);
+  --outline: rgb(var(--neutral-800) / 0.10);
+  --outline-strong: rgb(var(--neutral-800) / 0.18);
 
-  /* Popover open state with animation */
-  [popover]:popover-open {
-    opacity: 1;
-    transform: scale(1);
-    
-    /* Enable discrete animation for display property */
-    transition: 
-      opacity 0.2s ease-out,
-      transform 0.2s ease-out,
-      overlay 0.2s allow-discrete,
-      display 0.2s allow-discrete;
-  }
+  /* Hub green role chain — alias to existing --primary-action / --green-* */
+  --g-action: rgb(var(--green-800));
+  --g-action-hover: rgb(var(--green-900));
+  --g-action-ring: rgb(var(--green-800) / 0.16);
+  --g-soft-bg: rgb(var(--green-800) / 0.10);
+  --g-soft-fg: rgb(var(--green-800));
+  --g-on-action: rgb(var(--neutral-0));
 
-  /* Starting styles for popover animation */
-  @starting-style {
-    [popover]:popover-open {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-  }
+  /* Radius aliases — exact match to admin M3 shape scale */
+  --r-xs: var(--admin-radius-xs);
+  --r-sm: var(--admin-radius-sm);
+  --r-md: var(--admin-radius-md);
+  --r-lg: var(--admin-radius-lg);
+  --r-xl: var(--admin-radius-xl);
+  --r-full: var(--admin-radius-full);
 
-  /* Closing animation */
-  [popover] {
-    opacity: 0;
-    transform: scale(0.95);
-    
-    transition: 
-      opacity 0.2s ease-in,
-      transform 0.2s ease-in,
-      overlay 0.2s allow-discrete,
-      display 0.2s allow-discrete;
-  }
+  /* Warm-shadow elevation — parallel to --m3-elevation-*, do NOT remap */
+  --e1: 0 1px 2px rgb(var(--neutral-800) / 0.06), 0 1px 1px rgb(var(--neutral-800) / 0.04);
+  --e2: 0 2px 6px rgb(var(--neutral-800) / 0.08), 0 1px 2px rgb(var(--neutral-800) / 0.06);
+  --e3: 0 6px 16px rgb(var(--neutral-800) / 0.10), 0 2px 4px rgb(var(--neutral-800) / 0.06);
+  --e-float: 0 12px 32px rgb(var(--neutral-800) / 0.14), 0 2px 6px rgb(var(--neutral-800) / 0.08);
 
-  /* Backdrop styles for auto popovers */
-  [popover]::backdrop {
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(4px);
-  }
+  /* Sheet geometry — handoff sheet-system.css contract */
+  --radius-sheet: 24px;
+  --canvas-blur-sheet-open: 6px;
 
-  [popover]:popover-open::backdrop {
-    opacity: 1;
-    transition: 
-      opacity 0.2s ease-out,
-      overlay 0.2s allow-discrete,
-      display 0.2s allow-discrete;
-  }
+  /* Typography alias to existing --font-heading */
+  --font-sans: var(--font-heading);
+}
 
-  @starting-style {
-    [popover]:popover-open::backdrop {
-      opacity: 0;
-    }
-  }
+[data-theme="dark"] {
+  /* Dark-mode warm canvas — neutral-950 (matches our existing dark surface ladder) */
+  --canvas: rgb(var(--neutral-950));
+  --ink: rgb(var(--neutral-50));
+  --stone: rgb(var(--neutral-400));
+  --on-surface-muted: rgb(var(--neutral-300));
+  --on-surface-soft: rgb(var(--neutral-400));
+  --surface: var(--canvas);
+  --surface-raised: rgb(var(--neutral-900));
+  --surface-sunken: rgb(var(--neutral-975));
+  --surface-quiet: rgb(var(--neutral-925));
+  --hairline: rgb(var(--neutral-50) / 0.08);
+  --hairline-strong: rgb(var(--neutral-50) / 0.14);
+  --outline: rgb(var(--neutral-50) / 0.10);
+  --outline-strong: rgb(var(--neutral-50) / 0.18);
+
+  /* Greens lighten in dark mode — match existing --green-* dark behavior in theme.css */
+  --g-action: rgb(var(--green-500));
+  --g-action-hover: rgb(var(--green-400));
+  --g-action-ring: rgb(var(--green-400) / 0.20);
+  --g-soft-bg: rgb(var(--green-400) / 0.16);
+  --g-soft-fg: rgb(var(--green-300));
+  --g-on-action: rgb(var(--neutral-950));
+
+  --e1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --e2: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --e3: 0 8px 20px rgba(0, 0, 0, 0.55);
+  --e-float: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+/* ============================================================================
+ * TONE SYSTEM (Tier 1a — additive)
+ * Per-view canvas wash. Tone is a peripheral signal that touches:
+ *   - canvas background (this --tone-canvas variable)
+ *   - active tab underline (consumer-driven, Tier 2)
+ *   - page-header bottom hairline (consumer-driven, Tier 2)
+ *   - garden-pill leaf in AppBar (consumer-driven, Tier 2)
+ * Tone does NOT touch: header background, title text, cards, status chips,
+ * buttons, FAB. Action color (green) stays a single source.
+ *
+ * Strength axis: off | subtle | default. Default for dark mode is subtle
+ * per audit §5.4.3.
+ * ============================================================================ */
+:root {
+  --tone-strength: 1;
+}
+[data-tone-strength="off"]     { --tone-strength: 0; }
+[data-tone-strength="subtle"]  { --tone-strength: 0.5; }
+[data-tone-strength="default"] { --tone-strength: 1; }
+
+/* Dark mode default = subtle (per audit §5.4.3) */
+[data-theme="dark"]                                  { --tone-strength: 0.5; }
+[data-theme="dark"][data-tone-strength="off"]        { --tone-strength: 0; }
+[data-theme="dark"][data-tone-strength="default"]    { --tone-strength: 1; }
+
+[data-tone="hub"]       { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 240); }
+[data-tone="garden"]    { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 145); }
+[data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 50);  }
+[data-tone="actions"]   { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);  }
+
+[data-theme="dark"][data-tone="hub"]       { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240); }
+[data-theme="dark"][data-tone="garden"]    { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145); }
+[data-theme="dark"][data-tone="community"] { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 50);  }
+[data-theme="dark"][data-tone="actions"]   { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);  }
+
+/* ============================================================================
+ * STATUS PALETTE REMAP (Tier 1b — admin-scoped global remap)
+ * Decision log: docs/admin-revamp/audit.md §5.5 (Global remap to handoff palette)
+ * Source-of-truth: design_handoff_admin-revamp/screens/tokens.css
+ *
+ * Scope: .admin-m3 only — client PWA's --orange/--red/--sky scales unchanged.
+ * Mechanism: redefine the base color RGB triplets inside admin scope; the
+ * --warning-* / --error-* aliases in shared theme.css resolve their var()
+ * references in this scope and pick up the new values automatically.
+ * --information-* historically uses --blue-*, so we additionally remap it
+ * to --sky-* so info badges in admin also shift to the handoff azure.
+ * ============================================================================ */
+.admin-m3 {
+  /* Amber (warning) — handoff #D97706 anchor, full scale extrapolated from Tailwind amber */
+  --orange-50: 255 251 235;
+  --orange-100: 254 243 199;
+  --orange-200: 253 230 138;
+  --orange-300: 252 211 77;
+  --orange-400: 251 191 36;
+  --orange-500: 217 119 6;     /* #D97706 — handoff --amber-500 */
+  --orange-600: 180 83 9;
+  --orange-700: 180 83 9;      /* #B45309 — handoff --amber-700 */
+  --orange-800: 146 64 14;
+  --orange-900: 120 53 15;
+  --orange-950: 69 26 3;
+
+  /* Red — less-vivid handoff red */
+  --red-50: 254 242 242;
+  --red-100: 254 226 226;
+  --red-200: 254 202 202;
+  --red-300: 252 165 165;
+  --red-400: 248 113 113;
+  --red-500: 224 56 53;        /* #E03835 — handoff --red-500 */
+  --red-600: 220 38 38;
+  --red-700: 185 28 28;        /* #B91C1C — handoff --red-700 */
+  --red-800: 153 27 27;
+  --red-900: 127 29 29;
+  --red-950: 69 10 10;
+
+  /* Sky — handoff azure replaces our cyan-ish */
+  --sky-50: 239 246 255;
+  --sky-100: 219 234 254;
+  --sky-200: 191 219 254;
+  --sky-300: 147 197 253;
+  --sky-400: 96 165 250;
+  --sky-500: 59 130 246;       /* #3B82F6 — handoff --sky-500 */
+  --sky-600: 37 99 235;
+  --sky-700: 29 78 216;
+  --sky-800: 30 64 175;
+  --sky-900: 30 58 138;
+  --sky-950: 23 37 84;
+
+  /* Information state — remap from --blue-* to --sky-* so info badges in admin
+   * also pick up the handoff azure. Without this, --information-* would
+   * continue to resolve through --blue-* (unchanged in this scope). */
+  --information-dark: var(--sky-950);
+  --information-base: var(--sky-500);
+  --information-light: var(--sky-200);
+  --information-lighter: var(--sky-50);
+}
+
+[data-theme="dark"] .admin-m3 {
+  /* Dark-mode handoff palette — slightly lighter shades for AA on dark surfaces */
+  --orange-500: 245 158 11;    /* #F59E0B */
+  --red-500: 248 113 113;      /* #F87171 */
+  --sky-500: 96 165 250;       /* #60A5FA */
 }

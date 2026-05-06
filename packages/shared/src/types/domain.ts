@@ -46,16 +46,20 @@ export enum Domain {
 }
 
 /**
- * CSS color values for each action domain, referencing theme CSS variables.
- * Matches the domainConfig in actions.json (solar=amber, agro=green, edu=blue, waste=orange).
+ * CSS color values for each action domain, referencing the shared domain
+ * palette in `packages/shared/src/styles/theme.css`. Single source of truth
+ * for solar=amber, agro=moss, edu=harbour blue, waste=terracotta across
+ * public editorial, client PWA, and admin work filters.
  *
- * Use with inline styles: `style={{ borderLeftColor: DOMAIN_COLORS[domain] }}`
+ * Use with inline styles: `style={{ borderLeftColor: DOMAIN_COLORS[domain] }}`.
+ * For Tailwind utilities, prefer the matching `bg-domain-*`, `text-domain-*`,
+ * and `border-domain-*` classes generated from the same tokens.
  */
 export const DOMAIN_COLORS: Record<Domain, string> = {
-  [Domain.SOLAR]: "rgb(var(--yellow-500))",
-  [Domain.AGRO]: "rgb(var(--green-500))",
-  [Domain.EDU]: "rgb(var(--blue-500))",
-  [Domain.WASTE]: "rgb(var(--orange-500))",
+  [Domain.SOLAR]: "rgb(var(--domain-solar-rgb))",
+  [Domain.AGRO]: "rgb(var(--domain-agro-rgb))",
+  [Domain.EDU]: "rgb(var(--domain-education-rgb))",
+  [Domain.WASTE]: "rgb(var(--domain-waste-rgb))",
 };
 
 /**
@@ -108,7 +112,7 @@ export enum VerificationMethod {
 
 /** User profile information for display in cards and lists */
 export interface GardenerCard {
-  id: string; // Privy ID
+  id: string; // Indexer gardener ID
   /**
    * Smart Account Ethereum address.
    */
@@ -308,7 +312,13 @@ export interface Action extends ActionCard {
     title: string;
     description: string;
   };
+  defaultLocale?: ActionContentLocale;
+  translations?: ActionTranslationMap;
 }
+
+export type ActionContentLocale = "en" | "es" | "pt";
+export type ActionTranslationLocale = Exclude<ActionContentLocale, "en">;
+export type ActionTranslationStatus = "draft" | "reviewed" | "stale";
 
 export interface WorkInput {
   key: string;
@@ -318,6 +328,8 @@ export interface WorkInput {
   required: boolean;
   options: string[];
   bands?: string[];
+  optionLabels?: Record<string, string>;
+  bandLabels?: Record<string, string>;
   unit?: string;
   repeaterFields?: WorkInput[];
 }
@@ -495,6 +507,55 @@ export interface ActionInstructionConfig {
       description: string;
     };
   };
+}
+
+export interface ActionInstructionInputTranslation {
+  key: string;
+  title?: string;
+  placeholder?: string;
+  options?: Record<string, string>;
+  bands?: Record<string, string>;
+  repeaterFields?: ActionInstructionInputTranslation[];
+}
+
+export interface ActionInstructionTranslationData {
+  title?: string;
+  description?: string;
+  uiConfig?: {
+    media?: {
+      title?: string;
+      description?: string;
+      needed?: string[];
+      optional?: string[];
+    };
+    details?: {
+      title?: string;
+      description?: string;
+      feedbackPlaceholder?: string;
+      inputs?: ActionInstructionInputTranslation[];
+    };
+    review?: {
+      title?: string;
+      description?: string;
+    };
+  };
+}
+
+export interface ActionTranslationRecord {
+  status: ActionTranslationStatus;
+  sourceHash?: string;
+  updatedAt?: string;
+  data: ActionInstructionTranslationData;
+}
+
+export type ActionTranslationMap = Partial<
+  Record<ActionTranslationLocale, ActionTranslationRecord>
+>;
+
+export interface ActionInstructionConfigV2 extends ActionInstructionConfig {
+  schemaVersion: "action_instructions_v2";
+  defaultLocale: ActionContentLocale;
+  translations?: ActionTranslationMap;
 }
 
 // ============================================

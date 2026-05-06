@@ -4,16 +4,18 @@ sidebar_position: 1
 slug: /builders/integrations/overview
 audience: developer
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-04-19
 feature_status: Live
 goal: "Complete Integrations with clear, role-specific next actions."
 difficulty: "standard"
 estimated_time: "20-45 minutes."
 prereqs: "Chain and deployment context."
-next_steps: "./entity-matrix"
+next_steps: "./eas"
 persona_context: "Developers and maintainers building, operating, and validating Green Goods systems."
 source_of_truth:
   - packages/shared/src/modules/data/eas.ts
+  - packages/shared/src/modules/data/ipfs/upload.ts
+  - packages/contracts/script/utils/update-action-metadata.ts
   - packages/indexer/config.yaml
   - .mcp.json
 keywords:
@@ -41,7 +43,7 @@ graph TB
     GG --> CJ["CookieJar\nPayouts"]
     GG --> ENS["ENS\nGarden Names"]
     GG --> Envio["Envio\nIndexer"]
-    GG --> Storacha["Storacha\nIPFS"]
+    GG --> Pinata["Pinata-backed\nIPFS"]
     GG --> Pimlico["Pimlico\nAccount Abstraction"]
 ```
 
@@ -60,15 +62,15 @@ graph TB
 />
 
 <FeatureState
-  title="Storacha + Railway MCP"
+  title="Pinata-backed IPFS uploads"
   status="Live"
-  summary="Configured in `.mcp.json` for storage and deployment workflows."
+  summary="Shared IPFS upload utilities and contract metadata utilities use the Pinata-backed upload path for media and metadata."
 />
 
 <FeatureState
   title="v1 module integrations"
-  status="Implemented (activation pending deployment)"
-  summary="Some integrations require non-zero module addresses + indexer updates before production use."
+  status="Implemented (activation pending indexing)"
+  summary="Several modules are deployed on Arbitrum/Sepolia, but indexer coverage and UI readiness vary by surface."
 />
 
 ## Reference
@@ -76,10 +78,6 @@ graph TB
 - [API Index](../packages/api-index)
 - [Agent/MCP Guide](../agentic/mcp-guide)
 - [Deployment Status](../deployments/status)
-
-## Entity Matrix
-
-A cross-protocol mapping of Green Goods domain entities to their equivalents across 12 partner protocols. See the [full Entity Matrix](./entity-matrix) for the complete table, protocol notes, and usage guidance.
 
 <NextBestAction
   title="Next best action"

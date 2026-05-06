@@ -195,4 +195,28 @@ describe("ImageWithFallback — parallel gateway race", () => {
       expect(screen.getByLabelText("xss")).toBeInTheDocument();
     });
   });
+
+  describe("src prop changes", () => {
+    it("updates rendered image when non-IPFS src prop changes", () => {
+      const { rerender } = render(
+        createElement(ImageWithFallback, {
+          src: "https://example.com/first.jpg",
+          alt: "swap",
+        })
+      );
+
+      expect(screen.getByAltText("swap").getAttribute("src")).toBe("https://example.com/first.jpg");
+
+      rerender(
+        createElement(ImageWithFallback, {
+          src: "https://example.com/second.jpg",
+          alt: "swap",
+        })
+      );
+
+      expect(screen.getByAltText("swap").getAttribute("src")).toBe(
+        "https://example.com/second.jpg"
+      );
+    });
+  });
 });

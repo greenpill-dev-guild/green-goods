@@ -14,6 +14,7 @@ import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { queryKeys } from "../../config/query-keys";
 import { logger } from "../../modules/app/logger";
 import {
   createClients,
@@ -23,7 +24,7 @@ import {
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { parseContractError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
-import { queryKeys } from "../query-keys";
+import { isSlugAvailableAcrossChains } from "./availability";
 
 // Contract error -> user-friendly message mapping
 const ENS_ERROR_MESSAGES: Record<string, string> = {
@@ -33,8 +34,22 @@ const ENS_ERROR_MESSAGES: Record<string, string> = {
   AlreadyHasName: "You already have a greengoods.eth name. Release it first.",
   CannotReleaseGardenName: "Garden names are permanent and cannot be released.",
   InsufficientFee: "Not enough ETH to cover the registration fee.",
+  InsufficientSponsoredBalance:
+    "The sponsored username fund needs more ETH before passkey users can claim names.",
   NameInCooldown: "This name was recently released and is in a 30-day cooldown.",
 };
+
+function createENSError(name: keyof typeof ENS_ERROR_MESSAGES) {
+  const error = new Error(name);
+  error.name = name;
+  return error;
+}
+
+function getENSErrorMessage(error: Error, parsedName: string) {
+  const directName = error.name in ENS_ERROR_MESSAGES ? error.name : null;
+  const directMessage = error.message in ENS_ERROR_MESSAGES ? error.message : null;
+  return ENS_ERROR_MESSAGES[directName ?? directMessage ?? parsedName] ?? null;
+}
 
 export interface ENSClaimResult {
   slug: string;
@@ -53,7 +68,7 @@ export function useENSClaim() {
   return useMutation<ENSClaimResult, Error, { slug: string }>({
     mutationFn: async ({ slug }) => {
       const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
-      const ensAddress = contracts.greenGoodsENS as Address;
+      const ensAddress = contracts.greenGoodsENS;
       if (!ensAddress || ensAddress === zeroAddress) {
         throw new Error("ENS module not configured for this network");
       }
@@ -61,7 +76,47 @@ export function useENSClaim() {
       const { publicClient } = createClients(DEFAULT_CHAIN_ID);
       let txHash: Hex;
 
-      if (isPasskeyUser && smartAccountClient) {
+      const isAvailable = await isSlugAvailableAcrossChains({
+        slug,
+        ensAddress,
+        publicClient,
+        chainId: DEFAULT_CHAIN_ID,
+      });
+      if (!isAvailable) {
+        throw createENSError("NameTaken");
+      }
+
+      if (isPasskeyUser) {
+        if (!smartAccountClient?.account) {
+          throw new Error("Passkey smart account not ready");
+        }
+
+        const sponsoredOwner = smartAccountClient.account.address as Address | undefined;
+        if (!sponsoredOwner) {
+          throw new Error("Passkey smart account not ready");
+        }
+
+        const [fee, balance, totalPendingRefunds] = await Promise.all([
+          publicClient.readContract({
+            address: ensAddress,
+            abi: GreenGoodsENSABI,
+            functionName: "getRegistrationFee",
+            args: [slug, sponsoredOwner, 0], // 0 = Gardener NameType
+          }) as Promise<bigint>,
+          publicClient.getBalance({ address: ensAddress }),
+          publicClient
+            .readContract({
+              address: ensAddress,
+              abi: GreenGoodsENSABI,
+              functionName: "totalPendingRefunds",
+            })
+            .catch(() => 0n) as Promise<bigint>,
+        ]);
+
+        if (balance < fee + totalPendingRefunds) {
+          throw createENSError("InsufficientSponsoredBalance");
+        }
+
         // Passkey user: sponsored registration (CCIP fee from contract balance)
         const data = encodeFunctionData({
           abi: GreenGoodsENSABI,
@@ -69,8 +124,8 @@ export function useENSClaim() {
           args: [slug],
         });
         txHash = await smartAccountClient.sendTransaction({
-          account: smartAccountClient.account!,
-          chain: null,
+          account: smartAccountClient.account,
+          chain: smartAccountClient.chain,
           to: ensAddress,
           data,
         });
@@ -125,6 +180,7 @@ export function useENSClaim() {
         ccipMessageId: data.ccipMessageId,
         submittedAt: data.submittedAt,
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ens.all });
 
       toastService.success({
         title: "Name registration started",
@@ -133,7 +189,8 @@ export function useENSClaim() {
     },
     onError: (error) => {
       const parsed = parseContractError(error);
-      const message = ENS_ERROR_MESSAGES[parsed.name] || "Registration failed. Please try again.";
+      const message =
+        getENSErrorMessage(error, parsed.name) || "Registration failed. Please try again.";
       logger.error("ENS claim failed", { error, parsed });
       toastService.error({ title: "Registration failed", description: message });
     },

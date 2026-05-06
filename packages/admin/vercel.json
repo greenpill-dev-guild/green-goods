@@ -1,8 +1,25 @@
 {
-  "installCommand": "bun install",
-  "buildCommand": "bun run build",
+  "installCommand": "bun install --frozen-lockfile",
+  "buildCommand": "bun run build:deploy",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    {
+      "source": "/gardens",
+      "destination": "https://greengoods.app/gardens",
+      "permanent": true
+    },
+    {
+      "source": "/gardens/:gardenId",
+      "destination": "https://greengoods.app/gardens/:gardenId",
+      "permanent": true
+    },
+    {
+      "source": "/gardens/:gardenId/:path*",
+      "destination": "https://greengoods.app/gardens/:gardenId/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

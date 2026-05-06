@@ -6,7 +6,7 @@ import { logger } from "../../modules/app/logger";
 import { getWorkApprovals, getWorks } from "../../modules/data/eas";
 import { applyAttestationFilters, extractWorkMetadata } from "../../modules/data/hypercerts";
 import type { AttestationFilters, HypercertAttestation } from "../../types/hypercerts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 export interface UseAttestationsResult {
   attestations: HypercertAttestation[];

@@ -2,6 +2,8 @@
 
 Loaded when working in `docs/`. Extends CLAUDE.md.
 
+**All personas apply**: Match voice register to the target audience. See `.claude/context/product.md` § Persona & Tone Quick-Reference.
+
 ## Quick Reference
 
 | Command | Purpose |
@@ -68,7 +70,7 @@ docs/
 - Adding code implementation guides to community docs (those belong in builders/)
 - Creating pages without sidebar_position (they won't appear in navigation)
 - Hardcoding URLs instead of using relative links
-- Putting meeting notes or transcripts in docs/ (those go through `/meeting-notes` skill to GitHub issues)
+- Putting meeting notes or transcripts in docs/ (those are surfaced as GitHub issues by the routines that read Drive)
 
 ## Documentation References (on-demand)
 

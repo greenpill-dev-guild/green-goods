@@ -12,7 +12,7 @@ import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { useGardens } from "../blockchain/useBaseLists";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useRole } from "../gardener/useRole";
-import { STALE_TIME_MEDIUM } from "../query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 /**
  * Aggregates cookie jars across all gardens where the current user is an operator.

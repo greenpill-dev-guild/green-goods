@@ -8,6 +8,7 @@ import { IERC1155 } from "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
 import { IVotingPowerRegistry } from "../vendor/gardens/IVotingPowerRegistry.sol";
 import { NFTPowerSource, NFTType } from "../interfaces/IGardensV2.sol";
+import { ZeroAddress } from "../CommonErrors.sol";
 
 /// @notice Minimal Hats Protocol interface for hat wearer checks
 interface IHatsMinimal {
@@ -24,7 +25,6 @@ contract UnifiedPowerRegistry is IVotingPowerRegistry, OwnableUpgradeable, UUPSU
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
 
-    error ZeroAddress();
     error NoPowerSources();
     error GardenAlreadyRegistered(address garden);
     error PoolAlreadyRegistered(address pool);

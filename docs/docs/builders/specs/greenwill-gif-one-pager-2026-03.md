@@ -2,10 +2,11 @@
 title: "GreenWill One-Pager (March 2026)"
 sidebar_label: GreenWill One-Pager
 slug: /builders/specs/greenwill-gif-one-pager-2026-03
+unlisted: true
 audience: developer
 owner: docs
 last_verified: 2026-03-25
-feature_status: Proposed
+feature_status: Planned
 ---
 
 # GreenWill One-Pager
@@ -208,7 +209,7 @@ GreenWill should use black-hat mechanics lightly:
 It should avoid:
 
 - streak addiction
-- pure leaderboard pressure
+- pure ranking pressure
 - quest farming
 - rewarding low-quality volume
 

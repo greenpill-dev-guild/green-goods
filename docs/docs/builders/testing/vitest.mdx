@@ -6,6 +6,11 @@ audience: developer
 owner: docs
 last_verified: 2026-03-08
 feature_status: Live
+source_of_truth:
+  - packages/shared/package.json
+  - packages/client/package.json
+  - packages/admin/package.json
+  - packages/agent/package.json
 keywords:
   - vitest
   - unit testing
@@ -67,8 +72,10 @@ Each package has its own `vitest.config.ts`:
 
 All packages use:
 - **Thread pool** (`pool: "threads"`) for parallel test execution
-- **V8 coverage** provider with 70% thresholds (branches, functions, lines, statements)
+- **V8 coverage** provider with package-specific thresholds
 - **10-second timeout** per test
+
+The `agent` package is the exception: it runs in the `node` environment with `fileParallelism: false`, and its coverage thresholds are intentionally lower than the frontend/shared packages.
 
 ### React Deduplication
 
@@ -157,27 +164,46 @@ Node environment tests for:
 
 ```bash
 # All packages
-bun run test                        # Run all tests across workspace
+bun run test                        # Run the root test script across the workspace
 
 # Per package
 cd packages/shared && bun run test  # Shared package only
+cd packages/shared && bun run test:live  # Shared live RPC checks (explicit opt-in)
 cd packages/admin && bun run test   # Admin package only
 cd packages/client && bun run test  # Client package only
 cd packages/agent && bun run test   # Agent package only
 
 # Watch mode
-bun run test -- --watch             # Re-run on file changes
+cd packages/shared && bun run test:watch
+cd packages/admin && bun run test:watch
+cd packages/agent && bun run test:watch
 
 # Specific test file
-bun run test -- packages/shared/src/__tests__/hooks/work/useWorkMutation.test.ts
+cd packages/shared && bun run test src/__tests__/hooks/work/useWorkMutation.test.ts
 
 # Coverage report
-bun run test -- --coverage          # Generates text + HTML + JSON reports
+cd packages/shared && bun run coverage
+cd packages/admin && bun run test:coverage
+cd packages/client && bun run coverage
+cd packages/agent && bun run test:coverage
 
 # Contracts (Forge, not vitest)
 cd packages/contracts && bun run test       # Unit tests
 cd packages/contracts && bun run test:fork  # Fork tests (needs RPC URLs)
 ```
+
+The default shared test command is intentionally hermetic. Live RPC coverage is excluded from `bun run test` and only runs through `bun run test:live`.
+
+## Coverage thresholds
+
+Coverage is enforced per package, not with one monorepo-wide threshold:
+
+| Package | Branches | Functions | Lines | Statements |
+|---------|----------|-----------|-------|------------|
+| **shared** | 70 | 70 | 70 | 70 |
+| **admin** | 70 | 70 | 70 | 70 |
+| **client** | 75 | 80 | 80 | 80 |
+| **agent** | 10 | 20 | 20 | 20 |
 
 ## Resources
 

@@ -1,0 +1,138 @@
+---
+title: Prompting Green Goods
+sidebar_label: Prompting Green Goods
+slug: /builders/agentic/prompting-green-goods
+audience: developer
+owner: docs
+last_verified: 2026-04-23
+feature_status: Live
+source_of_truth:
+  - AGENTS.md
+  - CLAUDE.md
+  - .github/copilot-instructions.md
+---
+
+import {NextBestAction} from "@site/src/components/docs";
+
+# Prompting Green Goods
+
+Prompt by work stage, not by internal tool names.
+
+## Portable Contract vs Tool Adapters
+
+Use the same work contract across Claude Code, Codex, Cursor, Copilot, Gemini, or another coding agent:
+
+- `AGENTS.md` and package-local `AGENTS.md` are the portable runtime rules.
+- `.plans/active/<feature>/` is the durable place for specs, plans, task state, and handoffs.
+- `.github/copilot-instructions.md` and `.github/instructions/*.instructions.md` mirror the same repo rules for GitHub-native tools.
+- `.claude/**` and `.codex/**` are adapters for their native tools. They can add prompts, skills, or hooks, but they are not required for Cursor or another IDE to work in the repo.
+
+Do not depend on prompt-rewriting hooks to clean up intent. If a prompt includes a transcript, source material, logs, or another large reference block, state the actual request before the pasted material and let the agent ground itself from repo context.
+
+Start with one of four entry points:
+
+- describe planning intent ("plan this", "break down X") to shape work
+- describe the bug or paste the error to find root cause
+- `/review` to judge a diff
+- `/status --resume` to pick work back up
+
+## Default Shape
+
+```text
+[verb]
+Goal:
+Scope:
+Constraints:
+Watch for:
+Done when:
+```
+
+What each line does:
+
+- **Goal** — the outcome you want
+- **Scope** — the boundary the agent should stay inside
+- **Constraints** — the repo rules or tradeoffs that matter here
+- **Watch for** — the judgment-heavy areas where you want extra care
+- **Done when** — what a good result looks like
+
+If you keep only three lines, keep these:
+
+- `Goal`
+- `Scope`
+- `Done when`
+
+## Good Defaults
+
+Ask for:
+
+- the smallest sensible package boundary
+- existing repo patterns over new abstractions
+- human judgment points surfaced early
+- narrow validation, not a broad scan
+- clear separation between what is proven and what is inferred
+
+## Research, Plan, Implement
+
+For ambiguous, multi-package, or high-risk work, split the prompt into stages:
+
+1. **Research** -- ask the agent to read source, tests, docs, and package guidance before proposing changes.
+2. **Plan** -- require research evidence, open assumptions, out-of-scope items, human judgment points, and validation commands.
+3. **Implement** -- start from the accepted plan with only the context needed for the next step.
+
+If the session goes down the wrong path, ask for a short handoff summary and restart with clean context instead of trying to steer through stale assumptions.
+
+## Examples
+
+```text
+plan this:
+Goal: Add gardener invite flow
+Scope: Keep it inside shared + client if possible
+Constraints: avoid new abstractions unless they remove real complexity
+Watch for: shared API changes, permissions
+Done when: small implementation plan with clear judgment points
+```
+
+```text
+debug this:
+Goal: Find why wallet reconnect fails
+Scope: reproduce first, then isolate root cause
+Constraints: no speculative fixes
+Watch for: auth state, retries, swallowed errors
+Done when: root cause is proven and fix options are ranked by confidence
+```
+
+```text
+/review
+Goal: Review this branch
+Scope: changed files only
+Constraints: high-confidence findings only
+Watch for: hooks boundary, migrations, brittle fallback logic
+Done when: must-fix items and human call-outs are clearly separated
+```
+
+```text
+/status --resume
+Goal: Reorient me on this branch
+Done when: blockers and next 3 moves are clear
+```
+
+## Avoid This
+
+Avoid prompts like:
+
+- "run architecture, then principles, then audit"
+- "review the whole repo"
+- "fix everything"
+
+Those push the agent toward broad scans and weaker judgment. Start with the stage of work, define the scope, and say what done looks like.
+
+<NextBestAction
+  title="Next best action"
+  why="See how the repo's context layers help concise prompts stay accurate."
+  actionLabel="Context Engineering"
+  actionHref="./context-engineering"
+  alternatives={[
+    {label: "Prompt Engineering", href: "./prompt-engineering"},
+    {label: "Friction Engineering", href: "./friction-engineering"},
+  ]}
+/>

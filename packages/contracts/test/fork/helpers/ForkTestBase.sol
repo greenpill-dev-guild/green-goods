@@ -10,9 +10,9 @@ import { ActionRegistry, Capital, Domain } from "../../../src/registries/Action.
 import { IHats } from "../../../src/interfaces/IHats.sol";
 import { IHatsModule } from "../../../src/interfaces/IHatsModule.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
-import { MockERC20 } from "../../../src/mocks/ERC20.sol";
 import { WorkSchema, WorkApprovalSchema, AssessmentSchema } from "../../../src/Schemas.sol";
 import { AttestationRequest, AttestationRequestData } from "@eas/IEAS.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @notice Minimal EAS interface for ForkTestBase helpers (avoids IEAS naming conflict with DeploymentBase)
 interface IEASBase {
@@ -20,7 +20,7 @@ interface IEASBase {
 }
 
 /// @notice Fork-test Hats eligibility/toggle module with explicit allowlisting.
-/// @dev Avoids relying on Hats Protocol fallback behavior for no-code module addresses.
+/// @dev Avoids relying on implicit Hats behavior for no-code module addresses.
 contract ForkTestEligibilityToggle {
     error NotOwner();
 
@@ -89,6 +89,9 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     /// @notice Hats Protocol canonical address (same on all EVM chains)
     address internal constant HATS_PROTOCOL = 0x3bc1A0Ad72417f2d411118085256fC53CBdDd137;
 
+    /// @notice Deployed mainnet GreenGoodsENSReceiver from deployments/1-latest.json.
+    address internal constant MAINNET_ENS_RECEIVER = 0x742c8935d314363e8c16df5b0791525109Fb9387;
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Test Actors
     // ═══════════════════════════════════════════════════════════════════════════
@@ -100,14 +103,14 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     address internal forkNonMember;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Community Token
+    // Chain Assets
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Mock ERC20 used as community token for garden minting
-    MockERC20 internal communityToken;
+    /// @notice Live fork ERC20 used as the community token for garden minting.
+    IERC20 internal communityToken;
 
-    /// @notice Mock ERC20 used as GOODS token for Gardens V2 community staking
-    MockERC20 internal goodsToken;
+    /// @notice ERC20 configured as GOODS/staking token for Gardens V2 tests.
+    IERC20 internal goodsToken;
 
     /// @notice Hats eligibility/toggle module used for fork test hat trees
     ForkTestEligibilityToggle internal hatsEligibilityToggle;
@@ -143,22 +146,34 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     }
 
     /// @notice Resolve RPC URL for a chain name from environment variables
-    /// @dev Tries {CHAIN}_RPC_URL first, then {CHAIN}_RPC as fallback
+    /// @dev Prefers dedicated fork endpoints when available, then checks shared chain RPC variables.
     /// @param chainName The chain identifier (e.g., "sepolia", "arbitrum")
     /// @return rpc The resolved RPC URL, or empty string if not found
     function _resolveRpcUrl(string memory chainName) internal view returns (string memory rpc) {
         // Convert chain name to uppercase env var prefix
         string memory envPrefix = _toUpperSnakeCase(chainName);
 
-        // Try {CHAIN}_RPC_URL first
+        // Try {CHAIN}_FORK_RPC_URL first
+        string memory forkPrimaryVar = string.concat(envPrefix, "_FORK_RPC_URL");
+        try vm.envString(forkPrimaryVar) returns (string memory value) {
+            if (bytes(value).length > 0) return value;
+        } catch { }
+
+        // Then try {CHAIN}_FORK_RPC
+        string memory forkRpcVar = string.concat(envPrefix, "_FORK_RPC");
+        try vm.envString(forkRpcVar) returns (string memory value) {
+            if (bytes(value).length > 0) return value;
+        } catch { }
+
+        // Then try {CHAIN}_RPC_URL
         string memory primaryVar = string.concat(envPrefix, "_RPC_URL");
         try vm.envString(primaryVar) returns (string memory value) {
             if (bytes(value).length > 0) return value;
         } catch { }
 
-        // Fallback: try {CHAIN}_RPC
-        string memory fallbackVar = string.concat(envPrefix, "_RPC");
-        try vm.envString(fallbackVar) returns (string memory value) {
+        // Then try {CHAIN}_RPC
+        string memory legacyRpcVar = string.concat(envPrefix, "_RPC");
+        try vm.envString(legacyRpcVar) returns (string memory value) {
             if (bytes(value).length > 0) return value;
         } catch { }
 
@@ -175,12 +190,18 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
             if (value > 0) return value;
         } catch { }
 
-        string memory fallbackVar = string.concat(envPrefix, "_BLOCK_NUMBER");
-        try vm.envUint(fallbackVar) returns (uint256 value) {
+        string memory legacyBlockVar = string.concat(envPrefix, "_BLOCK_NUMBER");
+        try vm.envUint(legacyBlockVar) returns (uint256 value) {
             if (value > 0) return value;
         } catch { }
 
         return 0;
+    }
+
+    /// @notice Arbitrum fork tests exercise live CCIP router fee/send paths, so wire the live L1 receiver.
+    function _getENSL1Receiver() internal view override returns (address) {
+        if (block.chainid == 42_161) return MAINNET_ENS_RECEIVER;
+        return super._getENSL1Receiver();
     }
 
     /// @notice Convert a chain name to uppercase snake case for env var lookup
@@ -205,7 +226,7 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
 
     /// @notice Deploy the full protocol stack on the current fork
     /// @dev Must be called after _tryChainFork() succeeds. Deploys ERC6551 registry,
-    /// community token, and the entire protocol stack using production deployment logic.
+    /// live chain community token and the entire protocol stack using production deployment logic.
     /// After deployment, creates a fresh Hats tree so the test contract has admin rights.
     function _deployFullStackOnFork() internal {
         // 1. Set up test actors
@@ -218,8 +239,12 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         // 2. Deploy ERC6551 registry at canonical address (needed BEFORE GardenToken)
         _deployERC6551Registry();
 
-        // 3. Deploy community token
-        communityToken = new MockERC20();
+        // 3. Resolve a live chain community token.
+        address communityTokenAddress = _getCommunityTokenForFork(block.chainid);
+        if (communityTokenAddress == address(0) || communityTokenAddress.code.length == 0) {
+            revert ForkUnavailable("community token missing");
+        }
+        communityToken = IERC20(communityTokenAddress);
 
         // 4. Deploy full stack using production deployment logic
         // DeploymentBase.deployFullStack() handles everything:
@@ -227,14 +252,55 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
         // - All CREATE2 deployments
         // - Schema registration
         // - Module wiring
-        deployFullStack(address(communityToken), address(this));
+        deployFullStack(communityTokenAddress, address(this));
 
         // 4b. Set community token on GardenToken (now a state variable, not per-config)
-        gardenToken.setCommunityToken(address(communityToken));
+        gardenToken.setCommunityToken(communityTokenAddress);
+
+        goodsToken = IERC20(address(goodsTokenContract));
 
         // 5. Set up a fresh Hats tree for the test environment
         // The on-chain Hats tree has admins we don't control. Creating our own
         // tree lets the HatsModule create garden sub-trees during mintGarden().
+        _setupHatsTreeOnFork();
+    }
+
+    /// @notice Deploy the fork stack with live chain assets supplied by the caller.
+    /// @dev Use this for Arbitrum confidence tests that must pass through live ERC20 contracts.
+    function _deployFullStackOnForkWithAssets(address communityToken_, address goodsToken_) internal {
+        if (communityToken_ == address(0) || communityToken_.code.length == 0) {
+            revert ForkUnavailable("community token missing");
+        }
+        if (goodsToken_ != address(0) && goodsToken_.code.length == 0) {
+            revert ForkUnavailable("goods token missing");
+        }
+
+        forkOwner = address(this);
+        forkOperator = makeAddr("forkOperator");
+        forkGardener = makeAddr("forkGardener");
+        forkEvaluator = makeAddr("forkEvaluator");
+        forkNonMember = makeAddr("forkNonMember");
+
+        _deployERC6551Registry();
+
+        communityToken = IERC20(communityToken_);
+        deployFullStack(communityToken_, address(this));
+        gardenToken.setCommunityToken(communityToken_);
+
+        if (goodsToken_ != address(0)) {
+            gardensModule.setGoodsToken(goodsToken_);
+            goodsToken = IERC20(goodsToken_);
+        } else {
+            goodsToken = IERC20(address(goodsTokenContract));
+        }
+
+        if (block.chainid == 42_161) {
+            address expectedFactory = _getCookieJarFactoryForChain(block.chainid);
+            address configuredFactory = address(cookieJarModule.cookieJarFactory());
+            assertEq(configuredFactory, expectedFactory, "Arbitrum fork must use the real CookieJar factory");
+            assertGt(configuredFactory.code.length, 0, "Arbitrum CookieJar factory must have deployed code");
+        }
+
         _setupHatsTreeOnFork();
     }
 
@@ -299,18 +365,34 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     /// @dev Must be called AFTER _deployFullStackOnFork() and BEFORE _mintTestGarden().
     ///      1. Resolves the RegistryFactory for block.chainid from GardensV2Addresses
     ///      2. Calls gardensModule.setRegistryFactory() if non-zero
-    ///      3. Deploys a new MockERC20 as goodsToken
-    ///      4. Calls gardensModule.setGoodsToken() with the deployed token
+    ///      3. Wires the live Allo proxy required by RegistryCommunity.initialize()
+    ///      4. Uses the protocol GOODS token already deployed by the stack
+    ///      5. Calls gardensModule.setGoodsToken() when the module has no token configured
     function _configureRealGardensV2() internal {
         // 1. Set real RegistryFactory if available for this chain
         address factory = GardensV2Addresses.getRegistryFactory(block.chainid);
-        if (factory != address(0)) {
+        if (factory != address(0) && factory.code.length > 0) {
             gardensModule.setRegistryFactory(factory);
         }
 
-        // 2. Deploy GOODS token and configure on GardensModule
-        goodsToken = new MockERC20();
-        gardensModule.setGoodsToken(address(goodsToken));
+        // 2. Wire the real Allo proxy used by Gardens V2 communities.
+        gardensModule.setAlloAddress(GardensV2Addresses.ALLO_PROXY);
+
+        // 3. Reuse the deployed protocol GOODS token; no fork-local token scaffolding.
+        address configuredGoodsToken = address(gardensModule.goodsToken());
+        if (configuredGoodsToken == address(0)) {
+            configuredGoodsToken = address(goodsTokenContract);
+            gardensModule.setGoodsToken(configuredGoodsToken);
+        }
+        goodsToken = IERC20(configuredGoodsToken);
+    }
+
+    /// @notice Resolve the live ERC20 used as the community token for each fork chain.
+    function _getCommunityTokenForFork(uint256 chainId) internal pure returns (address token) {
+        if (chainId == 42_161) return 0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1; // Arbitrum DAI
+        if (chainId == 11_155_111) return 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // Sepolia USDC
+        if (chainId == 42_220) return 0xcebA9300f2b948710d2653dD7B07f33A8B32118C; // Celo cUSD
+        return address(0);
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

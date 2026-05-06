@@ -5,7 +5,7 @@ import { VerificationMethod } from "../../types/domain";
 import { MethodSelector } from "./MethodSelector";
 
 const meta: Meta<typeof MethodSelector> = {
-  title: "Form Controls/MethodSelector",
+  title: "Shared/Form/MethodSelector",
   component: MethodSelector,
   tags: ["autodocs"],
   parameters: {

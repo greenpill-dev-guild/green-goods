@@ -1,0 +1,468 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "public-read-side-journal",
+    "title": "Public Browser Editorial UI",
+    "kind": "feature",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "completed",
+    "priority": "p1",
+    "created_at": "2026-04-25",
+    "updated_at": "2026-05-03T06:26:30.391Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "This hub is the source of truth for the public browser editorial UI pass.",
+    "Browser / becomes the public editorial gateway; installed PWA / still routes to /home.",
+    "/landing becomes a legacy redirect to /.",
+    "Homepage closing should be Get In Touch with POST /public/subscribe email subscription and Google appointment scheduling.",
+    "Funding UX is Donate or Endow first, then Card or Wallet where proven.",
+    "Reown AppKit remains the wallet funding baseline; thirdweb Pay is the preferred direct-card funding spike.",
+    "FundingIntent is a strict durable ledger with idempotent webhook reconciliation, explicit status transitions, quoted/minimum destination amount fields, and onchain-confirmed success.",
+    "FundingIntent creation is card-only for this pass; wallet funding remains Reown AppKit plus wagmi/viem without Agent receipt tracking.",
+    "Public funding receipt/status reads require an opaque receipt token and return only redacted public-safe receipt fields.",
+    "Receipt URLs use /fund?intent=<id>#receiptToken=<token>; clients send the token to the API only through X-GG-Receipt-Token.",
+    "Receipt-token analytics protection uses a dual guard: root/equivalent pre-pageview fragment scrub with history.replaceState before initial tracking, plus generic usePageView hash redaction for receiptToken and other sensitive hash keys.",
+    "Receipt-bearing funding create/read responses must set Cache-Control: no-store and Pragma: no-cache.",
+    "Public funding intent creation responses expose only allowlisted JSON-safe checkout payload data; durable provider ids, raw provider/webhook payloads, receipt tokens, and unknown nested checkout fields stay server-only and are redacted or rejected from public responses.",
+    "Card funding success is confirmed by Agent-side viem receipt/log polling; indexer evidence is secondary for v1.",
+    "Agent viem confirmation RPC resolves from existing chain-specific envs before shared network fallback, then injects that RPC URL into initBlockchain and the confirmation client.",
+    "Funding intent creation never subscribes a visitor to updates; receipt update signup calls POST /public/subscribe separately.",
+    "FundingIntent, thirdweb webhook/status, and Luma subscription work belong in packages/agent under the state_api lane.",
+    "Card FundingIntent creation includes destinationAddress, canonical v1 availabilityKey, and clientRequestId; Agent recomputes the exact live rail tuple, uses a pinned normalized idempotency fingerprint, deduplicates exact retries, and rejects mismatches, non-live card rails, or idempotency conflicts safely.",
+    "Agent API route classes are split into public rate-limited routes, provider webhooks, and bearer-protected internal/admin routes.",
+    "Public route rate-limit keys are route-specific and use a trusted-proxy policy with moderate v1 thresholds: subscribe 5/hour, funding create 10/10 minutes, receipt read 60/10 minutes, and thirdweb webhook pre-verification plus post-verification buckets at 300/minute each.",
+    "Browser-facing Agent routes are POST /public/subscribe, POST /public/funding-intents, and GET /public/funding-intents/:id; thirdweb callbacks use POST /webhooks/thirdweb.",
+    "Server-safe public contracts live under @green-goods/shared/public-contracts with package exports and client TypeScript/Vite resolution wired, and Agent imports must not pull the shared root or browser-only modules.",
+    "state_api migrates the packages/agent HTTP server from Fastify to Hono before adding new public subscription, funding-intent, or thirdweb webhook routes.",
+    "Hono migration must preserve existing health, ready, Telegram webhook, platform allowlist, /api/feedback, /api/notify, startup, shutdown, and /api/* bearer-auth behavior.",
+    "Public browser calls use existing VITE_API_BASE_URL; do not add VITE_AGENT_PUBLIC_API_URL unless a later deployment decision requires it.",
+    "Card Endow uses thirdweb embedded wallet only inside the card Endow path.",
+    "PublicFundingAvailability uses shared public reads where possible, returns explicit reasonCode/params rather than localized copy, and hides unproven card methods by default.",
+    "PublicFundingAvailability reasonCode excludes amount min/max failures; amount_below_min and amount_above_max are PublicApiErrorCode values returned only from selected-amount UI or server quote/create validation.",
+    "Provider proof registry is code-owned, exact-tuple keyed, hidden by default, and consumed by PublicFundingAvailability.",
+    "FundingIntent storage uses Agent SQLite patterns with migration/versioning, funding_intents, and funding_intent_events or equivalent history storage.",
+    "Cookie Jar Donate and Vault Endow reconciliation are destination-specific and provider success alone never marks an intent funded.",
+    "Card Endow completion shows receipt/recovery and routes management to Install/Open App.",
+    "Endow copy uses designed-to-preserve language with plain risk copy.",
+    "Donate/support copy must not imply tax deductibility, charitable status, nonprofit status, or legal receipt unless separately configured and reviewed.",
+    "FundingIntent includes storage/reconciliation guards, provider lookup keys, canonical availabilityKey, clientRequestId, transactionAttempts, fundingTxHash, and thirdweb purchase/custom data.",
+    "Abandoned card intents in started or pending_provider expire at provider checkout expiry, or createdAt plus 30 minutes when provider expiry is missing, through read-time reconciliation and an Agent scheduled sweep.",
+    "Late matching onchain success after expiry can move expired to funded_late only when intent/provider session and Garden/destination/receiver/token/chain/min amount all match.",
+    "Public Agent API and env contracts include origin controls, payload caps, consent audit, safe errors, and PII handling.",
+    "Luma signup is single opt-in with explicit consent.",
+    "/fund?garden resolves exact Garden id/address first and accepts slug only when exactly one value derived by publicGardenHelpers.deriveSlug matches; stale, missing, zero-match, or ambiguous references fall back to normal Fund with a localized non-blocking message.",
+    "/impact v1 uses shared EAS reads with deterministic latest-activity Garden slicing, page size 12, max 50 Gardens, max 100 assessment/evidence records, explicit per-Garden overfetch behavior, partialData/sourceLimitReached states, and EAS failure states before UI implementation.",
+    "UI may start once the contract_stability_checklist is complete; card rails that are not live stay hidden.",
+    "Public browser components should live in packages/client unless there is proven shared reuse.",
+    "No public-side conviction voting, public withdrawals, or new route families beyond browser /."
+  ],
+  "contract_stability_checklist": {
+    "status": "complete",
+    "allowed_item_statuses": ["planned", "in_progress", "complete", "blocked"],
+    "owner_lane": "state_api",
+    "ui_unblocks_when": "All required items are complete; UI does not wait for every card payment method to be live.",
+    "unblock_operation": "After all required checklist items are complete, run: node scripts/harness/plan-hub.mjs set-lane --feature public-read-side-journal --lane ui --status ready --actor codex --note \"contract stability checklist complete\"",
+    "items": [
+      {
+        "id": "route_paths",
+        "required": true,
+        "status": "complete",
+        "description": "Concrete /public/* and /webhooks/thirdweb route paths are stable."
+      },
+      {
+        "id": "public_types_and_fixtures",
+        "required": true,
+        "status": "complete",
+        "description": "Framework-free public route/type contracts are exported from server-safe @green-goods/shared/public-contracts through packages/shared/package.json exports with client TypeScript/Vite resolution where needed, including the canonical availabilityKey builder, FundingTransactionAttempt types, explicit amount validation error codes, and allowlisted checkout payload types; public funding-intent create responses expose only allowlisted client-safe checkout data, and seeded handoff fixtures exist under artifacts/fixtures for funding availability, funding intents, contact subscription, /fund?garden, and /impact."
+      },
+      {
+        "id": "fund_garden_resolution",
+        "required": true,
+        "status": "complete",
+        "description": "/fund?garden resolves exact id/address first, accepts only unique publicGardenHelpers.deriveSlug matches, and stale/missing/zero-match/ambiguous values fall back with a localized non-blocking message."
+      },
+      {
+        "id": "availability_reason_semantics",
+        "required": true,
+        "status": "complete",
+        "description": "PublicFundingAvailability reasonCode values define allowed states, required params, UI localization expectations, and exclude selected-amount min/max failures; amount_below_min and amount_above_max are PublicApiErrorCode values only."
+      },
+      {
+        "id": "contact_endpoint_behavior",
+        "required": true,
+        "status": "complete",
+        "description": "Subscribe endpoint validates email/consent through POST /public/subscribe and returns honest subscribed, already_subscribed, and failure states."
+      },
+      {
+        "id": "public_receipt_shape",
+        "required": true,
+        "status": "complete",
+        "description": "Funding receipt reads use fragment-to-X-GG-Receipt-Token transport, require root/equivalent pre-pageview fragment scrub plus usePageView hash redaction before analytics, return only public-safe redacted receipt fields, and set no-store/no-cache response headers."
+      },
+      {
+        "id": "provider_proof_registry",
+        "required": true,
+        "status": "complete",
+        "description": "Code-owned provider proof registry exists with exact tuple keys, hidden-by-default absence behavior, proof references for live card rails, canonical availabilityKey semantics for funding-intent drift detection, and compatibility with transaction-attempt funding proof."
+      },
+      {
+        "id": "impact_hook_shape",
+        "required": true,
+        "status": "complete",
+        "description": "/impact hook shape, deterministic Garden source ordering, local slicing limits, explicit per-Garden overfetch behavior, partialData/sourceLimitReached flags, and EAS failure states are stable."
+      }
+    ]
+  },
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "manual_blocked": false,
+      "ready_when_dependencies_met": true,
+      "branch": "claude/ui/public-read-side-journal",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Implement public editorial homepage, route layouts, public card/dialog polish, install CTA, Get In Touch closing through POST /public/subscribe plus Google appointment link, Donate/Endow support-only funding choice, reasonCode-localized availability copy, amount validation separate from base availability with amount_below_min/amount_above_max PublicApiErrorCode handling, /fund?garden exact-id and publicGardenHelpers.deriveSlug unique-slug fallback messaging, card funding create destinationAddress/canonical availabilityKey/clientRequestId handling, allowlisted checkout payload consumption only, root pre-pageview receipt scrub plus usePageView hash redaction, receipt fundingTxHash display, hidden-by-default card states, Card Endow receipt/recovery/app handoff, risk-safe Endow copy, Donate/support tax/charity copy guard, accessible dialogs, unique/fallback motion behavior, and packages/client/DESIGN.browser.md update after contract_stability_checklist is complete.",
+      "skill_tags": ["frontend", "design", "storybook"],
+      "tdd": {
+        "mode": "legacy_unrecorded",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Completed before the TDD proof policy; do not invent historical RED/GREEN evidence."
+      }
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/public-read-side-journal",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "Migrate Agent HTTP API to Hono while preserving existing health/ready/webhook/internal API/startup/shutdown behavior, align public hook naming and data contracts, add canonical-id curation/contact contract using existing VITE_API_BASE_URL, lock /public/* and /webhooks/thirdweb route paths, define full public TypeScript-style route contracts in server-safe @green-goods/shared/public-contracts with packages/shared/package.json exports, client TypeScript/Vite resolution, canonical availabilityKey builder, FundingTransactionAttempt types, allowlisted checkout payload types, explicit amount validation error codes, and seeded fixtures under artifacts/fixtures, define fragment-to-header receipt-token protected public funding reads with root pre-pageview scrub, usePageView hash redaction, and no-store/no-cache response headers, return only allowlisted client-safe checkout data from public funding-intent creation, keep FundingIntent creation card-only and subscription-free, require destinationAddress, canonical availabilityKey, and clientRequestId with Agent recomputation/idempotency against live reads/proof registry using the pinned normalized fingerprint fields, define shared-read PublicFundingAvailability with explicit reasonCode state/params semantics, amount validation split, and code-owned provider proof registry, strict FundingIntent SQLite storage/reconciliation with transactionAttempts, canonical fundingTxHash, Agent viem receipt/log polling, server RPC resolver, minAssetAmount matching, abandoned started/pending_provider expiry via read-time reconciliation plus scheduled sweep, and expired-to-funded_late late confirmation handling, thirdweb direct-card approve/deposit and embedded-wallet Endow contract with destination-specific reconciliation, split Hono Agent API/Luma/env protections with route-specific rate-limit keys, trusted-proxy rules, two-stage webhook throttling, and concrete moderate thresholds, public assessment/evidence finite shared-EAS deterministic local slicing limits with explicit overfetch behavior, and support /fund?garden=... exact-id/publicGardenHelpers.deriveSlug unique-slug fallback without changing runtime UI first.",
+      "skill_tags": ["client", "shared", "agent"],
+      "manual_blocked": false,
+      "tdd": {
+        "mode": "legacy_unrecorded",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Completed before the TDD proof policy; do not invent historical RED/GREEN evidence."
+      }
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/public-read-side-journal",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "No contract work expected for this public browser UI pass.",
+      "skill_tags": [],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract implementation lane was planned for the public read-side journal work."
+      }
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "passed",
+      "ready_when_dependencies_met": true,
+      "branch": "claude/qa-pass-1/public-read-side-journal",
+      "depends_on": ["ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Run visual/browser/story validation after UI lane lands.",
+      "skill_tags": ["review", "testing", "storybook"],
+      "manual_blocked": false
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "passed",
+      "ready_when_dependencies_met": true,
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "branch_trigger": "claude/qa-pass-1/public-read-side-journal",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Run final repo gates and plan/design consistency checks after visual QA completes, including Hono compatibility proof, concrete public route paths, VITE_API_BASE_URL env alignment, server-safe public-contracts exports/resolution, canonical availabilityKey builder, allowlisted checkout payload proof, dual receipt-token analytics guards, no-store/no-cache receipt headers, destinationAddress/availabilityKey/clientRequestId funding create drift and pinned idempotency fingerprint checks, transactionAttempts/fundingTxHash sequencing, abandoned intent expiry plus funded_late late confirmation handling, moderate public route rate-limit thresholds with two-stage webhook throttling, explicit reasonCode enum/localization, amount validation error-code alignment, SQLite funding intent storage, destination-specific reconciliation, Donate/support copy guard, publicGardenHelpers.deriveSlug-backed /fund?garden fallback, UI unblock criteria, and /impact shared-EAS slicing limits.",
+      "skill_tags": ["review", "testing"],
+      "manual_blocked": false
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-25T00:00:00.000-07:00",
+      "actor": "human",
+      "lane": "system",
+      "status": "created",
+      "branch": null,
+      "note": "Initial public browser read-side plan created."
+    },
+    {
+      "timestamp": "2026-04-26T16:13:33.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Updated plan to locked editorial browser direction: / homepage gateway, /landing redirect, install CTA, page-by-page layout contracts, and lane handoffs. No runtime UI files changed."
+    },
+    {
+      "timestamp": "2026-04-26T16:49:07.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Adjusted / homepage closing to Get In Touch with email subscription and Google appointment scheduling. No runtime UI files changed."
+    },
+    {
+      "timestamp": "2026-04-26T17:04:09.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Added direct-card funding decision: keep Reown AppKit for wallet funding, spike thirdweb Pay for direct card funding, and use provider-neutral FundingIntent tracking. No runtime UI files changed."
+    },
+    {
+      "timestamp": "2026-04-26T17:32:59.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Remediated plan review gaps: UI blocked on state_api, funding UX changed to Donate/Endow before Card/Wallet, FundingIntent and Luma subscription assigned to packages/agent, and direct-card success requires onchain confirmation. No runtime UI files changed."
+    },
+    {
+      "timestamp": "2026-04-26T17:55:56.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Closed remaining plan gaps: split Agent API routes, strict FundingIntent ledger, card Endow embedded-wallet receiver/recovery, Luma single opt-in, public assessment/evidence hook, support-only funding language, and seeded/browser QA proof. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T18:17:50.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Remediated review gaps: added PublicFundingAvailability hidden-by-default card states, full approve/deposit thirdweb proof, FundingIntent storage/reconciliation lookup constraints, Card Endow receipt/recovery/app handoff, designed-to-preserve risk copy, Agent API/env protections, impact pagination, and motion fallback requirements. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T18:54:22.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Remediated review gaps: locked Hono-first Agent API migration in state_api, kept VITE_API_BASE_URL as the public Agent base, moved availability copy to reasonCode/localized UI copy, clarified shared-read funding availability, quoted/minimum destination amount reconciliation, /fund?garden fallback behavior, /impact EAS slicing v1, and dialog accessibility. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T19:09:10.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Remediated plan gaps: added concrete /public and /webhooks/thirdweb route paths, Hono compatibility checklist, FundingIntent SQLite migration/history storage, explicit availability reasonCode enum, destination-specific Donate/Endow reconciliation, impact slicing limits and partial-data states, UI unblock criteria, and Donate/support tax/charity copy guard. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T19:57:32.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Remediated review gaps: added receipt-token protected public funding reads, card-only FundingIntent scope, TypeScript-style public route contracts, status.json contract-stability checklist for UI unblock, availability reasonCode semantics, impact local slicing semantics, and honest duplicate subscription behavior. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T20:11:24.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Remediated remaining plan gaps: locked receipt fragment-to-header transport, Agent viem onchain polling, separate subscription flow, shared type/fixture ownership, provider proof registry, deterministic impact slicing, and operational checklist unblock. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T20:24:54.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Remediated final plan clarity gaps: made /fund?garden exact-id and unique-slug resolution algorithmic, pinned Agent viem RPC to existing env/shared config, kept durable provider ids server-only behind client-safe checkout data, added route-specific public rate-limit keys, clarified /impact v1 overfetch behavior, and locked Get In Touch to POST /public/subscribe plus Google appointment link. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T20:46:28.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Addressed plan review findings: added receipt-token hash scrubbing before analytics, concrete Agent RPC resolver, trusted-proxy public rate-limit policy, amount validation split from base availability, server-safe shared public-contracts export path, and canonical varlock-style env names. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T21:14:19.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Remediated final plan gaps: locked dual receipt-token analytics guard, public-contracts package export/resolution, funding availabilityKey/destinationAddress drift checks, abandoned card intent expiry, moderate public route rate-limit thresholds, and deriveSlug-backed /fund?garden resolution. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T21:36:15.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Closed remaining funding/API plan gaps: added multi-transaction FundingIntent attempts with canonical fundingTxHash, no-store receipt headers, clientRequestId idempotency, two-stage webhook throttling, canonical availabilityKey encoding, and funded_late late confirmation handling. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-26T22:05:00.000-07:00",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refined",
+      "branch": null,
+      "note": "Fixed final contract-tightening findings: replaced open checkout widget config with allowlisted JSON-safe checkout payload, pinned FundingIntent idempotency fingerprint fields and normalization, and aligned amount_below_min/amount_above_max with PublicApiErrorCode. No runtime UI/API files changed."
+    },
+    {
+      "timestamp": "2026-04-27T08:23:00.350Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "codex/state-api/public-read-side-journal",
+      "note": "Dispatching codex for Phase 1 state_api implementation. All work commits to develop per orchestrator instruction (no feature branch, no worktree)."
+    },
+    {
+      "timestamp": "2026-04-27T10:05:00.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "contract_stability_checklist_complete",
+      "branch": "develop",
+      "note": "Completed required state/API contract stability items: Hono route paths, server-safe public-contracts export and fixtures, Luma subscribe behavior, /fund?garden resolution helper, availability reason semantics, provider proof registry, public receipt shape, trusted public route protections, SQLite-backed FundingIntent ledger, thirdweb webhook normalization, receipt analytics guards, and /impact evidence hook shape."
+    },
+    {
+      "timestamp": "2026-04-27T08:57:26.679Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "ready",
+      "branch": "claude/ui/public-read-side-journal",
+      "note": "contract stability checklist complete"
+    },
+    {
+      "timestamp": "2026-04-27T09:10:35.074Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/public-read-side-journal",
+      "note": "state_api implementation and validation complete"
+    },
+    {
+      "timestamp": "2026-04-27T10:30:34.045Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "claude/ui/public-read-side-journal",
+      "note": "UI implementation landed: editorial / homepage, /landing redirect, SiteHeader Install App CTA, PublicHero/ProofBand/RecordLoop/FeaturedGardens/InstallCta/GetInTouch, /fund Donate-Endow + Card-Wallet selector with hidden-by-default cards, /fund?garden= resolution, receipt UI, /gardens/:id slug+rail, /impact evidence + source dialog, /actions library + source dialog, DESIGN.browser.md updated, en/es/pt strings added, design+token+vocab gates green, build:client passes."
+    },
+    {
+      "timestamp": "2026-04-27T10:31:58.813Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "passed",
+      "branch": "claude/qa-pass-1/public-read-side-journal",
+      "note": "Code-level QA Pass 1: bun typecheck, biome format/check, oxlint (0 errors), bun run check:design-md (0 errors), bun run check:design-tokens (clean), bun run check:design-generated (clean), bun run lint:vocab (no banned vocab in en/es/pt), VITE_CHAIN_ID=11155111 bun run build:client (passes). Browser screenshot pass at 375/768/1024/1440 not run autonomously: requires interactive Chrome MCP + dev server with full env (Reown, thirdweb client id, chain RPCs). Dispatching codex/qa-pass-2 to run Hono compatibility, public route contracts, receipt-token, FundingIntent ledger, /impact slicing, lane sequencing, copy-guard, and final repo gates."
+    },
+    {
+      "timestamp": "2026-04-27T10:33:09.254Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "in_progress",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Dispatching codex for qa_pass_2 final gates and consistency review. Working on develop."
+    },
+    {
+      "timestamp": "2026-04-27T10:48:45.823Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "QA Pass 2 blocked: receipt-token JSON exposure, FundingIntent onchain tuple/sweep gaps, and client Vitest gate blocked by restricted npm fetch"
+    },
+    {
+      "timestamp": "2026-04-27T11:22:31.976Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Resolved Codex blockers: (1) onchain tuple match in confirmFundingTransaction + webhook now sets reconciliation_failed on mismatch; (2) scheduled funding-intent sweep wired into createServer with FundingIntentStore.listPending; (3) receipt-token JSON exposure documented as spec-correct (read-side transport via header, root scrub, usePageView redaction, hash storage); (4) 7 stale client tests rewritten + 2 obsolete duplicates removed. Final ladder: 83 agent tests + 291 client tests + design/vocab/format/lint gates + build:client all green."
+    },
+    {
+      "timestamp": "2026-04-28T00:31:39.263Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Codex review pass (2026-04-27): identified 3 real bugs missed by initial QA — (1) GET /public/funding-intents/:id accepted body-carried receipt tokens, (2) useInstallGuidance call order wrong in SiteHeader/PublicHero/PublicInstallCta, (3) thirdweb webhook treated missing txRole as funding. All 3 fixed plus added focused tests for confirmFundingTransaction tuple match and sweepFundingIntents. Codex's broader unauthorized cleanup (POSTHOG hardcoding, OSS file deletion, ~30 unrelated file changes, separate plan creation) was reverted. Final ladder: 89 agent tests, 291 client tests, design+vocab+lint+format+build all green. Report at qa-pass-2-report.md and codex-review-report.md."
+    },
+    {
+      "timestamp": "2026-04-29T05:48:56.112Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": "develop",
+      "note": "Reopen: fresh QA pass found 2 missed regressions — (1) public install CTAs are dead-end scroll-to-self (no handler reads data-install-action), (2) Fraunces font referenced in 31 components but never loaded (font-serif falls back to Georgia/Times). Fixes scoped lightweight: direct onClick={promptInstall}, load Fraunces via Google Fonts + override --font-serif. Hero image needs separate codex-driven generation. All work on develop, no new branch. Partnerships split to its own plan."
+    },
+    {
+      "timestamp": "2026-04-29T05:49:24.086Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Branch label restored to lane convention; actual work happens on develop per orchestrator instruction."
+    },
+    {
+      "timestamp": "2026-04-29T06:08:12.589Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/public-read-side-journal",
+      "note": "Re-pass after regression fixes on develop: (1) wired install CTAs through new shared usePublicInstallHandler — header (desktop+drawer), PublicHero, PublicInstallCta (compact+section), PublicFundingReceipt, Public Actions dialog, GardenDetail rail; (2) loaded Fraunces in client/index.html and overrode --font-serif in shared theme.css so font-serif headlines actually render Fraunces; (3) PublicInstallCta section now renders guidance.manualInstructions for iOS/Android manual flow; (4) added en/es/pt strings for copy toast; (5) documented serif swap recipe + alternatives table in DESIGN.browser.md. Validation ladder green: 327 client tests, 2855 shared tests, 100 agent tests, design+vocab+lint+format pass, build:client passes (45.5s). Browser screenshot/install proof on real devices needs Afo or codex with Chrome MCP. check:design-generated stale doc (client-pwa-token-audit.generated.md) is unrelated WIP from another agent."
+    },
+    {
+      "timestamp": "2026-05-01T20:42:09.716Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "tdd_policy_applied",
+      "branch": null,
+      "note": "Added TDD proof metadata for active implementation lanes."
+    },
+    {
+      "timestamp": "2026-05-03T06:26:30.391Z",
+      "branch": null,
+      "actor": "codex",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "note": "Closed out after UI/state implementation, QA pass 1, QA pass 2, install CTA fixes, and Fraunces font fixes; remaining real-device/browser screenshot proof stays outside this archived hub."
+    }
+  ]
+}

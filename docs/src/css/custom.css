@@ -34,6 +34,13 @@
   /* Section color accents — Community (warm green) vs Builders (cool teal) */
   --docs-accent-community: #1a7544;
   --docs-accent-builders: #0f766e;
+
+  /* Role accents mirror shared Warm Earth semantic colors at docs volume only. */
+  --docs-role-gardener: #1a7544;
+  --docs-role-operator: #335cff;
+  --docs-role-assessment: #7d52f4;
+  --docs-role-funder: #e6a819;
+  --docs-role-builder: #0f766e;
 }
 
 [data-theme="dark"] {
@@ -58,6 +65,11 @@
 
   --docs-accent-community: #2ebb6b;
   --docs-accent-builders: #2dd4bf;
+  --docs-role-gardener: #2ebb6b;
+  --docs-role-operator: #6895ff;
+  --docs-role-assessment: #8c71f6;
+  --docs-role-funder: #ffd268;
+  --docs-role-builder: #2dd4bf;
 }
 
 html,
@@ -86,6 +98,11 @@ body {
 
 main article {
   max-width: 860px;
+  min-width: 0;
+}
+
+.theme-doc-markdown {
+  overflow-wrap: break-word;
 }
 
 h1,
@@ -184,6 +201,12 @@ a svg[class*="iconExternalLink"] {
   :root {
     --ifm-h1-font-size: 2rem;
     --ifm-h2-font-size: 1.6rem;
+  }
+}
+
+@media (max-width: 1180px) {
+  .theme-doc-toc-desktop {
+    display: none;
   }
 }
 

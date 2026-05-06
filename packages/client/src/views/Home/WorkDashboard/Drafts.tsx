@@ -1,5 +1,6 @@
 import {
   type Address,
+  cn,
   ConfirmDialog,
   DEFAULT_CHAIN_ID,
   type DraftWithImages,
@@ -15,6 +16,8 @@ import React, { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
+import { EmptyState } from "@/components/Communication";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export interface DraftsTabProps {
   className?: string;
@@ -42,19 +45,16 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     return action?.title;
   };
 
-  // Helper to get garden name
   const getGardenName = (gardenAddress: Address | null): string | undefined => {
     if (!gardenAddress) return undefined;
     const garden = gardens.find((g) => g.id === gardenAddress);
     return garden?.name;
   };
 
-  // Handle resume draft
   const handleResume = (draft: DraftWithImages) => {
     navigate(`/garden?draftId=${draft.id}`, { viewTransition: true });
   };
 
-  // Handle delete draft
   const handleDeleteClick = (draft: DraftWithImages) => {
     setDraftToDelete(draft);
   };
@@ -85,12 +85,11 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     setDraftToDelete(null);
   };
 
-  // Render loading state
   if (isLoading) {
     return (
       <div className="flex flex-col h-full">
         {headerContent && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
             {headerContent}
           </div>
         )}
@@ -109,16 +108,15 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
     );
   }
 
-  // Render empty state
   if (drafts.length === 0) {
     return (
       <div className="flex flex-col h-full">
         {headerContent && (
-          <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
             {headerContent}
             <button
               onClick={() => refetchDrafts()}
-              className="p-2 hover:bg-bg-weak-50 rounded-lg transition-colors"
+              className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
               aria-label={intl.formatMessage({
                 id: "app.drafts.refresh",
                 defaultMessage: "Refresh drafts",
@@ -128,34 +126,26 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
             </button>
           </div>
         )}
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6 text-center">
-          <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
-            <RiDraftLine className="w-8 h-8 text-amber-600" />
-          </div>
-          <div>
-            <h3 className="font-medium text-text-strong-950">
-              {intl.formatMessage({
-                id: "app.drafts.empty.title",
-                defaultMessage: "No drafts yet",
-              })}
-            </h3>
-            <p className="text-sm text-text-sub-600 mt-1">
-              {intl.formatMessage({
-                id: "app.drafts.empty.description",
-                defaultMessage: "Drafts are automatically saved when you start adding photos",
-              })}
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          className="flex-1"
+          icon={<RiDraftLine />}
+          title={intl.formatMessage({
+            id: "app.drafts.empty.title",
+            defaultMessage: "No drafts yet",
+          })}
+          description={intl.formatMessage({
+            id: "app.drafts.empty.description",
+            defaultMessage: "Drafts are automatically saved when you start adding photos",
+          })}
+        />
       </div>
     );
   }
 
-  // Render drafts list
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-stroke-soft-200">
         <div className="flex items-center gap-2">
           {headerContent}
           <span className="text-xs text-text-sub-600">
@@ -167,7 +157,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
         </div>
         <button
           onClick={() => refetchDrafts()}
-          className="p-2 hover:bg-bg-weak-50 rounded-lg transition-colors"
+          className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
           aria-label={intl.formatMessage({
             id: "app.drafts.refresh",
             defaultMessage: "Refresh drafts",
@@ -218,7 +208,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
         })}
         variant="danger"
         isLoading={isDeleting}
-        icon={<RiAlertLine className="w-6 h-6 text-red-500" />}
+        icon={<RiAlertLine className={cn("w-6 h-6", pwaStatusStyles.error.icon)} />}
       />
     </div>
   );

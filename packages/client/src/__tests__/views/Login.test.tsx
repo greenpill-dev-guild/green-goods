@@ -2,8 +2,8 @@
  * Login View Tests
  *
  * Tests simplified login UI:
- * - New users: wallet/AppKit primary, passkey create secondary
- * - Existing users: passkey primary, wallet/AppKit secondary
+ * - New users: passkey-first primary (gardener-default path), wallet secondary
+ * - Existing users: passkey primary, wallet secondary
  * - Passkey creation mode toggle
  * - Address continuity notice
  */
@@ -189,14 +189,14 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
-  it("shows Connect Wallet as primary action for new users", () => {
+  it("shows Create your account as primary action for new users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Connect Wallet");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
   });
 
-  it("shows Create Passkey Account as secondary action", () => {
+  it("shows Sign in with a wallet as secondary action", () => {
     renderWithRouter();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create Passkey Account");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
   it("does not show a tertiary action by default", () => {
@@ -204,11 +204,20 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
   });
 
-  it("calls loginWithWallet when primary button clicked", async () => {
+  it("toggles to passkey creation mode when primary button clicked", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
     await user.click(screen.getByTestId("primary-button"));
+    expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+  });
+
+  it("calls loginWithWallet when secondary button clicked from default new-user mode", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("secondary-button"));
     expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
@@ -225,35 +234,23 @@ describe("Login View - New User (progressive disclosure)", () => {
   it("shows address continuity notice", () => {
     renderWithRouter();
     expect(screen.getByTestId("notice")).toHaveTextContent(
-      "Each sign-in method creates an independent account"
+      "Each sign-in method creates a separate account."
     );
-  });
-
-  it("toggles to passkey creation mode when secondary clicked", async () => {
-    const user = userEvent.setup();
-    renderWithRouter();
-
-    // Click "Create Passkey Account" secondary
-    await user.click(screen.getByTestId("secondary-button"));
-
-    // Now should show username input and Create Account as primary
-    expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create Account");
   });
 
   it("returns from passkey creation mode via cancel", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
-    // Enter passkey creation mode
-    await user.click(screen.getByTestId("secondary-button"));
+    // Enter passkey creation mode via primary
+    await user.click(screen.getByTestId("primary-button"));
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
 
     // Click cancel to go back
     await user.click(screen.getByTestId("cancel-passkey-create"));
 
-    // Should return to wallet-primary mode
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Connect Wallet");
+    // Should return to default mode (passkey-first)
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
   });
 
@@ -266,8 +263,8 @@ describe("Login View - New User (progressive disclosure)", () => {
     const user = userEvent.setup();
     renderWithRouter();
 
-    // Toggle to passkey creation mode
-    await user.click(screen.getByTestId("secondary-button"));
+    // Toggle to passkey creation mode via primary
+    await user.click(screen.getByTestId("primary-button"));
 
     expect(screen.getByTestId("info-callout")).toBeInTheDocument();
     expect(screen.getByTestId("info-callout")).toHaveTextContent(/passkey|sign in securely/i);
@@ -278,7 +275,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     renderWithRouter();
 
     // Enter passkey creation mode
-    await user.click(screen.getByTestId("secondary-button"));
+    await user.click(screen.getByTestId("primary-button"));
     expect(screen.getByTestId("info-callout")).toBeInTheDocument();
 
     // Cancel back to default mode
@@ -300,14 +297,14 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     cleanup();
   });
 
-  it("shows Login with Passkey as primary for returning users", () => {
+  it("shows Sign in with passkey as primary for returning users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Login with Passkey");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
   });
 
-  it("shows Connect Wallet as secondary for returning users", () => {
+  it("shows Sign in with a wallet as secondary for returning users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Connect Wallet");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
   it("does not show a tertiary action by default", () => {
@@ -334,7 +331,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
   it("shows address continuity notice", () => {
     renderWithRouter();
     expect(screen.getByTestId("notice")).toHaveTextContent(
-      "Each sign-in method creates an independent account"
+      "Each sign-in method creates a separate account."
     );
   });
 

@@ -1,18 +1,15 @@
 import {
-  cn,
   formatAddress,
+  formatEnsNameForDisplay,
   formatFileSize,
-  formatRelativeTime,
-  getStatusColors,
-  logger,
   truncateAddress,
   useEnsName,
+  useGreenGoodsEnsName,
   type Work,
+  WorkCardComponent as SharedWorkCard,
 } from "@green-goods/shared";
-import { RiFileTextLine, RiImageLine, RiRefreshLine } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
-import { ImageWithFallback } from "@/components/Display";
 
 export interface WorkCardItem {
   id: string;
@@ -54,24 +51,71 @@ export interface MinimalWorkCardProps {
   variant?: "compact" | "detailed";
 }
 
-// Type for media items which can be strings, objects with url, or File objects
 type MediaItem = string | { url: string } | { file: File } | File;
 
-/** Map status values to human-readable labels */
-const STATUS_LABELS: Record<string, string> = {
-  approved: "Approved",
-  rejected: "Rejected",
-  pending: "Pending",
-  syncing: "Syncing",
-  uploading: "Uploading",
-  sync_failed: "Sync Failed",
-  offline: "Offline",
-};
+function getWorkCardLabels(formatMessage: ReturnType<typeof useIntl>["formatMessage"]) {
+  return {
+    error: formatMessage({ id: "app.workCard.error", defaultMessage: "Error" }),
+    feedback: formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" }),
+    status: {
+      approved: formatMessage({ id: "app.status.approved", defaultMessage: "Approved" }),
+      rejected: formatMessage({ id: "app.status.rejected", defaultMessage: "Rejected" }),
+      pending: formatMessage({ id: "app.status.pending", defaultMessage: "Pending" }),
+      syncing: formatMessage({ id: "app.status.syncing", defaultMessage: "Syncing" }),
+      uploading: formatMessage({ id: "app.status.uploading", defaultMessage: "Uploading" }),
+      sync_failed: formatMessage({
+        id: "app.status.syncFailed",
+        defaultMessage: "Sync Failed",
+      }),
+      offline: formatMessage({ id: "app.status.offline", defaultMessage: "Offline" }),
+    },
+  };
+}
 
-// Use shared getStatusColors utility for inline status styling
-const getStatusColor = (status: string) => {
-  return getStatusColors(status).combined;
-};
+function useMediaPreview(media: Work["media"] | undefined): string[] | undefined {
+  const [preview, setPreview] = React.useState<string[] | undefined>(undefined);
+
+  React.useEffect(() => {
+    const createdUrls: string[] = [];
+    const urls = Array.isArray(media)
+      ? media.flatMap((item) => {
+          if (typeof item === "string") {
+            return [item];
+          }
+
+          if (item && typeof item === "object") {
+            if ("url" in item && typeof item.url === "string") {
+              return [item.url];
+            }
+
+            if ("file" in item && item.file instanceof File) {
+              const objectUrl = URL.createObjectURL(item.file);
+              createdUrls.push(objectUrl);
+              return [objectUrl];
+            }
+
+            if (item instanceof File) {
+              const objectUrl = URL.createObjectURL(item);
+              createdUrls.push(objectUrl);
+              return [objectUrl];
+            }
+          }
+
+          return [];
+        })
+      : [];
+
+    setPreview(urls.length > 0 ? urls : undefined);
+
+    return () => {
+      for (const url of createdUrls) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [media]);
+
+  return preview;
+}
 
 export const WorkCard: React.FC<WorkCardProps> = ({
   work,
@@ -79,82 +123,39 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   variant = "full",
   onClick,
 }) => {
-  const intl = useIntl();
-  const displayStatus = STATUS_LABELS[work.status] ?? work.status;
-  const timeAgo = formatRelativeTime(work.createdAt);
-  const thumbUrl = work.mediaPreview?.[0];
+  const { formatMessage } = useIntl();
+  const labels = getWorkCardLabels(formatMessage);
+  const badges =
+    variant === "full" && work.size > 0
+      ? [
+          <span key="size" className="text-text-sub-600">
+            {formatFileSize(work.size)}
+          </span>,
+        ]
+      : undefined;
 
   return (
-    <button
+    <SharedWorkCard
+      className={className}
       onClick={onClick}
-      type="button"
-      className={cn(
-        // Container query: enables responsive layout based on card width
-        "@container flex items-stretch gap-0 border border-stroke-soft-200 rounded-lg overflow-hidden transition-all duration-300 cursor-pointer bg-bg-white-0 w-full text-left tap-feedback",
-        className
-      )}
-    >
-      {/* Media thumbnail - adapts size based on container */}
-      <div className="w-18 @[280px]:w-22 @[400px]:w-26 flex-shrink-0 bg-bg-weak-50 overflow-hidden relative aspect-square">
-        {thumbUrl ? (
-          <ImageWithFallback
-            src={thumbUrl}
-            alt=""
-            className="w-full h-full object-cover"
-            fallbackClassName="w-22 aspect-square"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-text-soft-400">
-            <RiImageLine className="w-6 h-6" />
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 pl-2 pr-3 py-3">
-        {/* Title row */}
-        <div className="flex items-start justify-between">
-          <h4 className="font-medium text-sm text-text-strong-950 truncate pr-2">{work.title}</h4>
-          <span
-            className={cn(
-              "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 status-transition",
-              getStatusColor(work.status)
-            )}
-          >
-            {displayStatus}
-          </span>
-        </div>
-
-        {/* Subtitle */}
-        <div className="mt-0.5 text-xs text-text-sub-600 truncate">
-          {timeAgo}
-          <span className="mx-1">•</span>
-          {work.gardenName || truncateAddress(work.gardenId)}
-        </div>
-
-        {/* Meta / Tags */}
-        <div className="mt-2 flex items-center gap-2 text-xs">
-          {work.images && work.images.count > 0 && (
-            <span className="badge-pill-blue">
-              <RiImageLine className="w-3 h-3" /> {work.images.count}
-            </span>
-          )}
-          {work.error && (
-            <span className="badge-pill-red">
-              {intl.formatMessage({ id: "app.workCard.error", defaultMessage: "Error" })}
-            </span>
-          )}
-          {work.retryCount > 0 && (
-            <span className="badge-pill-amber">
-              <RiRefreshLine className="w-3 h-3" /> {work.retryCount}
-            </span>
-          )}
-          {variant === "full" && work.size > 0 && (
-            <span className="text-text-sub-600">{formatFileSize(work.size)}</span>
-          )}
-        </div>
-      </div>
-    </button>
+      variant={variant === "full" ? "auto" : "compact"}
+      work={{
+        id: work.id,
+        title: work.title,
+        status: work.status,
+        createdAt: work.createdAt,
+        mediaPreview: work.mediaPreview,
+        gardenName: work.gardenName || truncateAddress(work.gardenId),
+        error: work.error,
+        retryCount: work.retryCount,
+        imageCount: work.images?.count,
+      }}
+      showMediaCount={Boolean(work.images?.count)}
+      showErrorBadge={Boolean(work.error)}
+      showRetryBadge={work.retryCount > 0}
+      badges={badges}
+      labels={labels}
+    />
   );
 };
 
@@ -169,154 +170,52 @@ export const MinimalWorkCard: React.FC<MinimalWorkCardProps> = ({
   confirmed = false,
   variant = "compact",
 }) => {
-  const intl = useIntl();
-  // ENS name resolution for gardener and garden addresses
+  const { formatMessage } = useIntl();
+  const labels = getWorkCardLabels(formatMessage);
   const { data: gardenerEnsName } = useEnsName(
     variant === "detailed" ? work.gardenerAddress : null,
     { enabled: variant === "detailed" }
   );
+  const { data: gardenerGreenGoodsEnsName } = useGreenGoodsEnsName(
+    variant === "detailed" ? work.gardenerAddress : null
+  );
   const { data: gardenEnsName } = useEnsName(showGardenInfo ? work.gardenAddress : null, {
     enabled: Boolean(showGardenInfo && work.gardenAddress),
   });
-  // Detect offline/optimistic entries by ID prefix and show "Uploading" instead of "Pending"
   const isOfflineWork = work.id.startsWith("0xoffline_");
   const effectiveStatus = isOfflineWork ? "uploading" : work.status;
-  const displayStatus = STATUS_LABELS[effectiveStatus] ?? effectiveStatus ?? "Pending";
-
-  // Resolve thumbnail from media entry (supports string URL, {url}, or File)
-  const initialCandidate =
-    Array.isArray(work.media) && work.media.length > 0 ? work.media[0] : undefined;
-  const [thumbUrl, setThumbUrl] = React.useState<string | undefined>(
-    typeof initialCandidate === "string" ? initialCandidate : undefined
-  );
-
-  React.useEffect(() => {
-    let createdUrl: string | undefined;
-    try {
-      const mediaArray = work.media as MediaItem[] | undefined;
-      const m0: MediaItem | undefined =
-        Array.isArray(mediaArray) && mediaArray.length > 0 ? mediaArray[0] : undefined;
-
-      let url: string | undefined;
-      if (typeof m0 === "string") {
-        url = m0;
-      } else if (m0 && typeof m0 === "object") {
-        if ("url" in m0 && typeof m0.url === "string") {
-          url = m0.url;
-        } else if ("file" in m0 && m0.file instanceof File) {
-          createdUrl = URL.createObjectURL(m0.file);
-          url = createdUrl;
-        } else if (m0 instanceof File) {
-          createdUrl = URL.createObjectURL(m0);
-          url = createdUrl;
-        }
-      }
-
-      setThumbUrl(url);
-    } catch (error) {
-      logger.error("[MinimalWorkCard] Error processing media:", { error });
-      setThumbUrl(undefined);
-    }
-    return () => {
-      if (createdUrl) {
-        try {
-          URL.revokeObjectURL(createdUrl);
-        } catch (error) {
-          // Non-critical: URL will be garbage collected eventually
-          logger.warn("[MinimalWorkCard] Failed to revoke object URL:", { error });
-        }
-      }
-    };
-  }, [work.media, work.id]);
+  const mediaPreview = useMediaPreview(work.media as MediaItem[] | undefined);
   const hasFeedback = Boolean(work.feedback && work.feedback.trim().length > 0);
   const mediaCount = Array.isArray(work.media) ? work.media.length : 0;
   const action = actionTitle || work.title;
-  const timeAgo = formatRelativeTime(work.createdAt);
-  const gardenerName = formatAddress(work.gardenerAddress, { ensName: gardenerEnsName });
+  const gardenerName = formatAddress(work.gardenerAddress, {
+    ensName: gardenerGreenGoodsEnsName || gardenerEnsName,
+  });
+  const gardenName = formatEnsNameForDisplay(gardenEnsName) ?? undefined;
+  const extraBadges = [...(badges ?? [])];
 
   return (
-    <button
+    <SharedWorkCard
+      className={`${confirmed ? "work-confirmed-shimmer " : ""}${className ?? ""}`.trim()}
       onClick={onClick}
-      type="button"
-      data-confirmed={confirmed ? "true" : "false"}
-      className={cn(
-        // Container query: enables responsive layout based on card width
-        "@container flex items-stretch gap-0 border border-stroke-soft-200 rounded-lg overflow-hidden transition-all duration-300 cursor-pointer bg-bg-white-0 w-full text-left tap-feedback",
-        confirmed && "work-confirmed-shimmer",
-        className
-      )}
-    >
-      {/* Media thumbnail - adapts size based on container */}
-      <div className="w-18 @[280px]:w-22 @[400px]:w-26 flex-shrink-0 bg-bg-weak-50 overflow-hidden relative aspect-square">
-        {thumbUrl ? (
-          <ImageWithFallback
-            src={thumbUrl}
-            alt=""
-            className="w-full h-full object-cover"
-            fallbackClassName="w-22 aspect-square"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-text-soft-400">
-            <RiImageLine className="w-6 h-6" />
-          </div>
-        )}
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 pl-2 pr-3 py-3">
-        {/* Title row */}
-        <div className="flex items-start justify-between">
-          <h4 className="font-medium text-sm text-text-strong-950 truncate pr-2">{action}</h4>
-          <span
-            className={cn(
-              "text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 status-transition",
-              getStatusColor(effectiveStatus)
-            )}
-          >
-            {displayStatus}
-          </span>
-        </div>
-
-        {/* Subtitle */}
-        <div className="mt-0.5 text-xs text-text-sub-600 truncate">
-          {variant === "detailed" ? (
-            <>
-              {gardenerName}
-              <span className="mx-1">•</span>
-              {timeAgo}
-            </>
-          ) : (
-            <>
-              {timeAgo}
-              {showGardenInfo && gardenEnsName && (
-                <>
-                  <span className="mx-1">•</span>
-                  {gardenEnsName}
-                </>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Meta / Tags */}
-        <div className="mt-2 flex items-center gap-2 text-xs">
-          {mediaCount > 0 && (
-            <span className="badge-pill-blue">
-              <RiImageLine className="w-3 h-3" /> {mediaCount}
-            </span>
-          )}
-          {hasFeedback && (
-            <span className="badge-pill-purple">
-              <RiFileTextLine className="w-3 h-3" />
-              {intl.formatMessage({ id: "app.workCard.feedback", defaultMessage: "Feedback" })}
-            </span>
-          )}
-          {badges?.map((badge, i) => (
-            <React.Fragment key={i}>{badge}</React.Fragment>
-          ))}
-        </div>
-      </div>
-    </button>
+      variant="compact"
+      work={{
+        id: work.id,
+        title: action,
+        status: effectiveStatus,
+        createdAt: work.createdAt,
+        mediaPreview,
+        gardenerDisplayName: variant === "detailed" ? gardenerName : undefined,
+        gardenName: variant === "compact" && showGardenInfo ? gardenName : undefined,
+        feedback: work.feedback,
+        imageCount: mediaCount,
+      }}
+      showGardener={variant === "detailed"}
+      showMediaCount={mediaCount > 0}
+      showFeedbackBadge={hasFeedback}
+      badges={extraBadges}
+      labels={labels}
+    />
   );
 };
 

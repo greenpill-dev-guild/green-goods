@@ -24,17 +24,36 @@ declare namespace NodeJS {
 
     // Database
     DB_PATH?: string;
-    STORACHA_KEY?: string;
-    STORACHA_PROOF?: string;
-    STORACHA_GATEWAY?: string;
+
+    // API
+    BOT_API_TOKEN?: string;
+    AGENT_ALLOWED_ORIGINS?: string;
+    AGENT_PUBLIC_ALLOWED_ORIGINS?: string;
+    AGENT_TRUSTED_PROXY_HOPS?: string;
+    AGENT_TRUSTED_PROXY_CIDRS?: string;
+    AGENT_UPLOAD_SIGN_TTL_SECONDS?: string;
+    AGENT_UPLOAD_MAX_FILE_SIZE_BYTES?: string;
+    AGENT_UPLOAD_ALLOWED_MIME_TYPES?: string;
+    AGENT_UPLOAD_SIGN_RATE_LIMIT?: string;
+    AGENT_UPLOAD_SIGN_RATE_LIMIT_WINDOW_MS?: string;
+
+    // Upload signing
+    PINATA_JWT?: string;
+    PINATA_UPLOADS_API_URL?: string;
 
     // Analytics
     POSTHOG_AGENT_KEY?: string;
-    POSTHOG_HOST?: string;
     ANALYTICS_ENABLED?: string;
 
     // Chain
     VITE_CHAIN_ID?: string;
     VITE_RPC_URL_11155111?: string;
+    ETHEREUM_RPC_URL?: string;
+    SEPOLIA_RPC_URL?: string;
+    ARBITRUM_RPC_URL?: string;
+    CELO_RPC_URL?: string;
+    OPTIMISM_RPC_URL?: string;
+    ALCHEMY_API_KEY?: string;
+    ALCHEMY_KEY?: string;
   }
 }

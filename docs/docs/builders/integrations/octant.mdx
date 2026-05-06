@@ -4,20 +4,43 @@ sidebar_label: Octant Vaults
 slug: /builders/integrations/octant
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Live
+source_of_truth:
+  - packages/contracts/src/modules/Octant.sol
+  - packages/contracts/src/strategies/AaveV3ERC4626.sol
+  - packages/shared/src/hooks/vault
+  - packages/admin/src/views/Garden/Vault.tsx
 ---
+
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Octant Vaults
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+<StatusBadge status="Live" />
 
 ## Overview
-Octant vault integration for yield-generating garden endowments.
+Octant-style vault support is deployed on Arbitrum and Sepolia and implemented in contracts, shared vault hooks, admin vault views, and indexer handlers. Celo artifacts keep the module/factory addresses at zero. Per-garden availability still depends on vault creation, strategy configuration, and chain readiness.
 
-## What to Expect
-- Vault deposit and withdrawal flows
-- Yield splitting mechanics
-- Treasury management
+## Current surfaces
+
+- `Octant.sol`, `OctantVault`, and strategy code define the contract-side vault model.
+- Shared vault hooks cover deposits, withdrawals, previews, strategy rates, harvests, and vault events.
+- Admin surfaces include garden vault views, event history, and vault tests/stories.
+- The indexer handles `OctantModule`, `OctantVault`, and yield-split events for configured chains.
+
+## Builder notes
+
+- Gate live docs and UI states on non-zero vault/module addresses plus a created garden vault for the target chain.
+- Keep yield and deposit displays sourced from shared vault hooks.
+- Update deployment status when a chain becomes vault-active.
+
+<NextBestAction
+  title="Next best action"
+  why="Deployment status is the source for which vault surfaces are active per chain."
+  actionLabel="Deployment status"
+  actionHref="../deployments/status"
+  alternatives={[
+    {label: "Funder vault guide", href: "../../community/funder-guide/vaults-and-hypercerts"},
+  ]}
+/>

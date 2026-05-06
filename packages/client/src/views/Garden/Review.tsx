@@ -4,6 +4,7 @@ import {
   formatTimeSpent,
   type Garden,
   mediaResourceManager,
+  type WorkInput,
 } from "@green-goods/shared";
 import { RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
 import { useMemo } from "react";
@@ -13,6 +14,23 @@ import { WorkView } from "@/components/Features/Work";
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const VIDEO_TRACKING_ID = "work-draft-video";
+
+function getDisplayLabel(input: WorkInput, value: string) {
+  return input.optionLabels?.[value] ?? input.bandLabels?.[value] ?? value;
+}
+
+function formatInputValue(input: WorkInput, raw: unknown) {
+  if (Array.isArray(raw)) {
+    return raw.map((item) => getDisplayLabel(input, String(item))).join(", ");
+  }
+  if (typeof raw === "number") {
+    return String(raw);
+  }
+  if (typeof raw === "string") {
+    return getDisplayLabel(input, raw);
+  }
+  return JSON.stringify(raw);
+}
 
 interface WorkReviewProps {
   reviewConfig?: Action["review"];
@@ -53,16 +71,7 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
       if (raw === undefined || raw === null || (Array.isArray(raw) && raw.length === 0)) {
         return null;
       }
-      let display: string = "";
-      if (Array.isArray(raw)) {
-        display = raw.join(", ");
-      } else if (typeof raw === "number") {
-        display = String(raw);
-      } else if (typeof raw === "string") {
-        display = raw;
-      } else {
-        display = JSON.stringify(raw);
-      }
+      const display = formatInputValue(input, raw);
       return { label: input.title, value: display, icon: RiFileFill };
     })
     .filter(Boolean) as Array<{

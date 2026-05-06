@@ -1,6 +1,10 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "permissions": {
+    "allow": ["mcp__claude-in-chrome__tabs_context_mcp", "Bash(bunx knip *)"]
   },
   "hooks": {
     "PreToolUse": [
@@ -9,7 +13,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if cat | jq -r '.tool_input.file_path // empty' | grep -qE 'packages/(client|admin)/src/hooks/'; then echo 'BLOCKED: All hooks must be in packages/shared/src/hooks/' >&2; exit 2; fi",
+            "command": "echo 'BLOCKED: All hooks must be in packages/shared/src/hooks/' >&2; exit 2",
+            "if": "Write|Edit(**/packages/client/src/hooks/**)",
+            "statusMessage": "Checking hook location..."
+          },
+          {
+            "type": "command",
+            "command": "echo 'BLOCKED: All hooks must be in packages/shared/src/hooks/' >&2; exit 2",
+            "if": "Write|Edit(**/packages/admin/src/hooks/**)",
             "statusMessage": "Checking hook location..."
           }
         ]
@@ -19,7 +30,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if cat | jq -r '.tool_input.file_path // empty' | grep -qE 'packages/[^/]+/\\.env'; then echo 'BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2; fi",
+            "command": "echo 'BLOCKED: Package-level .env files not allowed. Use root .env only.' >&2; exit 2",
+            "if": "Write(**/packages/*/.env*)",
             "statusMessage": "Checking env file location..."
           }
         ]
@@ -59,8 +71,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)git commit'; then cd /Users/afo/Code/greenpill/green-goods && bun lint --quiet 2>&1 | tail -5; fi; exit 0",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(^|[;&|] *)git commit'; then cd \"$CLAUDE_PROJECT_DIR\" && bun lint --quiet 2>&1 | tail -5; fi; exit 0",
             "statusMessage": "Pre-commit lint check..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CMD=$(cat | jq -r '.tool_input.command // empty'); if printf '%s' \"$CMD\" | grep -qE '(cat|head|tail|less|more|source|bat)\\s+(\\./)?\\.(env|env\\.[a-z]+)' || printf '%s' \"$CMD\" | grep -qE 'grep\\s+.*\\s+(\\./)?\\.(env|env\\.[a-z]+)'; then echo 'BLOCKED: Direct .env file access via Bash is not allowed. Secrets must not be read in Claude sessions.' >&2; exit 2; fi",
+            "statusMessage": "Checking .env access..."
           }
         ]
       },
@@ -69,8 +91,13 @@
         "hooks": [
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/(resolvers/|Schemas\\.sol|interfaces/IGardenAccessControl\\.sol|accounts/Garden\\.sol)'; then echo 'DOMAIN REVIEW: Editing attestation/access-control code.'; echo '  Verify: no self-attestation paths, schema encoding matches tuple format,'; echo '  access control checks intact, storage gaps correct.'; fi; exit 0",
-            "statusMessage": "Domain review check..."
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/'; then printf '%s\\n' 'CRITICAL SURFACE: packages/contracts/src/**' '  Read every touched line before you finish this change.' '  Run the contracts-security reviewer flow on this diff before merge.' '  Verify access control, storage layout, external calls, and invariant preservation.' '  Log-only failure handling is not acceptable here; add an explicit remediation path instead.'; fi; exit 0",
+            "statusMessage": "Criticality depth check..."
+          },
+          {
+            "type": "command",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/shared/src/providers/(Auth|JobQueue|Work)\\.tsx|packages/shared/src/modules/job-queue/|packages/shared/src/hooks/(auth|work|vault|blockchain)/'; then printf '%s\\n' 'CRITICAL SURFACE: shared auth, queue, or mutation path.' '  Read every touched line before you finish this change.' '  Run the mutation-reliability reviewer flow when async or mutation behavior changes.' '  Verify failure states are explicit to the caller or UI and that retries or replays stay coherent.' '  Log-only catch blocks are not acceptable here; add a concrete recovery or user-visible error path instead.'; fi; exit 0",
+            "statusMessage": "Criticality depth check..."
           }
         ]
       }
@@ -80,7 +107,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /plan /debug /review /audit /teams /meeting-notes' '  Agents: oracle | cracked-coder | code-reviewer | migration | triage'",
+            "command": "printf '%s\\n' 'Green Goods Claude Code' '  /review /status /clean /doc-feedback' '  planning, debugging: describe the intent (no slash)' '  resume: /status --resume'",
             "once": true
           }
         ]
@@ -90,7 +117,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '## Post-Compaction Reminders\\n- Use `bun run test` (NEVER `bun test`) — bun test ignores vitest config\\n- Never use `forge build`/`forge test` directly — always use bun wrappers\\n- ALL hooks MUST live in packages/shared/src/hooks/ (not client or admin)\\n- Single .env at root only — never create package-specific .env files\\n- Import from `@green-goods/shared` barrel only — never deep paths\\n- Use `Address` type (not string) for Ethereum addresses\\n- Use `logger` from shared (not console.log)\\n- Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors'"
+            "command": "echo '## Post-Compaction Reminders\\n- Use `bun run test` (NEVER `bun test`) — bun test ignores vitest config\\n- Never use `forge build`/`forge test` directly — always use bun wrappers\\n- ALL hooks MUST live in packages/shared/src/hooks/ (not client or admin)\\n- Single .env at root only — never create package-specific .env files\\n- Import from `@green-goods/shared` barrel only — never deep paths\\n- Use `Address` type (not string) for Ethereum addresses\\n- Use `logger` from shared (not console.log)\\n- Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors\\n- Critical surfaces require line-by-line review; log-only failure handling is never enough on auth, queue, or contract paths'"
           }
         ]
       }
@@ -127,18 +154,41 @@
           },
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -q 'packages/shared/src/'; then cd /Users/afo/Code/greenpill/green-goods/packages/shared && bunx tsc --noEmit 2>&1 | head -10; fi; exit 0",
+            "command": "cd \"$CLAUDE_PROJECT_DIR/packages/shared\" && bunx tsc --noEmit 2>&1 | head -10; exit 0",
+            "if": "Edit|Write(**/packages/shared/src/**)",
             "statusMessage": "Type-checking shared..."
           },
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/resolvers/.*\\.sol$' && [ -f \"$FILE\" ]; then GAP=$(grep -oE 'uint256\\[[0-9]+\\].*__gap' \"$FILE\" 2>/dev/null | grep -oE '\\[[0-9]+\\]' | tr -d '[]'); if [ -n \"$GAP\" ]; then VARS=$(grep -E '^\\s+(uint|int|bool|address|bytes32|bytes|string|mapping|I[A-Z])\\S*\\s+(public|private|internal)\\s' \"$FILE\" 2>/dev/null | grep -cv '__gap\\|immutable' || echo 0); TOTAL=$((GAP + VARS)); if [ \"$TOTAL\" -ne 50 ]; then echo \"STORAGE GAP WARNING: $FILE has $VARS state vars + $GAP gap slots = $TOTAL (expected 50)\"; fi; fi; fi; exit 0",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -f \"$FILE\" ]; then GAP=$(grep -oE 'uint256\\[[0-9]+\\].*__gap' \"$FILE\" 2>/dev/null | grep -oE '\\[[0-9]+\\]' | tr -d '[]'); if [ -n \"$GAP\" ]; then VARS=$(grep -E '^\\s+(uint|int|bool|address|bytes32|bytes|string|mapping|I[A-Z])\\S*\\s+(public|private|internal)\\s' \"$FILE\" 2>/dev/null | grep -cv '__gap\\|immutable' || echo 0); TOTAL=$((GAP + VARS)); if [ \"$TOTAL\" -ne 50 ]; then echo \"STORAGE GAP WARNING: $FILE has $VARS state vars + $GAP gap slots = $TOTAL (expected 50)\"; fi; fi; fi; exit 0",
+            "if": "Edit|Write(**/packages/contracts/src/resolvers/*.sol)",
             "statusMessage": "Checking storage gaps..."
           },
           {
             "type": "command",
-            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); if [ -n \"$FILE\" ] && echo \"$FILE\" | grep -qE 'packages/contracts/src/resolvers/.*\\.sol$'; then RESOLVER=$(basename \"$FILE\" .sol); CHANGED_TESTS=$(cd /Users/afo/Code/greenpill/green-goods && git diff --name-only 2>/dev/null | grep -c \"test/.*${RESOLVER}Resolver\\.t\\.sol\" || true); if [ \"$CHANGED_TESTS\" -eq 0 ]; then echo \"RESOLVER WITHOUT TESTS: Modified $RESOLVER but no corresponding test file changed yet.\"; echo \"  Resolver changes should include test updates.\"; fi; fi; exit 0",
+            "command": "FILE=$(cat | jq -r '.tool_input.file_path // empty'); RESOLVER=$(basename \"$FILE\" .sol); CHANGED_TESTS=$(cd \"$CLAUDE_PROJECT_DIR\" && git diff --name-only 2>/dev/null | grep -c \"test/.*${RESOLVER}Resolver\\.t\\.sol\" || true); if [ \"$CHANGED_TESTS\" -eq 0 ]; then echo \"RESOLVER WITHOUT TESTS: Modified $RESOLVER but no corresponding test file changed yet.\"; echo \"  Resolver changes should include test updates.\"; fi; exit 0",
+            "if": "Edit|Write(**/packages/contracts/src/resolvers/*.sol)",
             "statusMessage": "Checking resolver test coverage..."
+          }
+        ]
+      },
+      {
+        "matcher": "SendMessage",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/scripts/agent-output-gate.sh",
+            "statusMessage": "Validating agent output contract..."
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && for f in session-state.md tests.json stories-state.json; do [ -f \"$f\" ] && rm \"$f\" && echo \"Cleaned up $f\"; done; find tmp/ -maxdepth 1 -name '*.png' -o -name '*.json' 2>/dev/null | head -20 | xargs rm -f 2>/dev/null; exit 0"
           }
         ]
       }
@@ -155,10 +205,10 @@
       }
     ]
   },
+  "worktree": {},
   "enabledPlugins": {
-    "frontend-design@claude-plugins-official": true,
-    "code-simplifier@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
+    "code-simplifier@claude-plugins-official": true
   },
+  "autoUpdatesChannel": "latest",
   "teammateMode": "in-process"
 }

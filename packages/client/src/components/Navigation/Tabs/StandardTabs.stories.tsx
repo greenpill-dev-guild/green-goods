@@ -32,12 +32,6 @@ const tabsWithIcons = [
   { id: "profile", label: "Profile", icon: <RiUserLine className="w-4 h-4" /> },
 ];
 
-const tabsWithEmoji = [
-  { id: "trees", label: "Trees", icon: "🌳", count: 24 },
-  { id: "soil", label: "Soil", icon: "🪨", count: 8 },
-  { id: "water", label: "Water", icon: "💧", count: 3 },
-];
-
 const tabsWithDisabled = [
   { id: "active", label: "Active" },
   { id: "draft", label: "Drafts", count: 2 },
@@ -102,10 +96,6 @@ export const WithIcons: Story = {
   render: () => <TabsDemo tabs={tabsWithIcons} />,
 };
 
-export const WithEmoji: Story = {
-  render: () => <TabsDemo tabs={tabsWithEmoji} />,
-};
-
 export const WithDisabled: Story = {
   render: () => <TabsDemo tabs={tabsWithDisabled} />,
 };
@@ -153,11 +143,6 @@ export const Gallery: Story = {
       <div>
         <p className="text-xs text-text-sub-600 font-medium mb-2">With React icons</p>
         <TabsDemo tabs={tabsWithIcons} />
-      </div>
-
-      <div>
-        <p className="text-xs text-text-sub-600 font-medium mb-2">With emoji icons</p>
-        <TabsDemo tabs={tabsWithEmoji} />
       </div>
 
       <div>

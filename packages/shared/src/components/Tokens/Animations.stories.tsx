@@ -1,234 +1,156 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 
 /**
- * Visual documentation and interactive playground for the Green Goods
- * animation system.
+ * Living documentation for the Warm Earth motion contract.
  *
- * Animations are defined as `@keyframes` in `storybook.css` and consumed
- * via CSS utility classes (`.animate-fade-in-up`, `.toast-enter`, etc.)
- * or Tailwind `animate-*` shorthand tokens.
- *
- * All animations respect `prefers-reduced-motion: reduce` via the global
- * media query rule.
+ * Root DESIGN.md is the canonical DesignMD source. theme.css is the runtime
+ * projection that exposes the spring aliases component authors should consume.
+ * New UI should use the six named --spring-* families below instead of raw
+ * duration or easing literals.
  */
 
-/* -------------------------------------------------------------------------- */
-/*  Data                                                                       */
-/* -------------------------------------------------------------------------- */
+type SpringFamily = "spatial" | "effects";
 
-type AnimationToken = {
+type SpringToken = {
   name: string;
-  className: string;
-  duration: string;
-  easing: string;
+  variable: string;
+  durationVariable: string;
+  easingVariable: string;
+  family: SpringFamily;
+  use: string;
   description: string;
-  /** keyframes name for reference */
-  keyframes: string;
 };
 
-const animations: AnimationToken[] = [
+const springTokens: SpringToken[] = [
   {
-    name: "Accordion Down",
-    className: "animate-accordion-down",
-    duration: "0.2s",
-    easing: "ease-out",
-    keyframes: "accordion-down",
-    description: "Expands from height:0 with a blur+contrast effect for smooth reveal.",
+    name: "Spatial",
+    variable: "--spring-spatial",
+    durationVariable: "--spring-spatial-duration",
+    easingVariable: "--spring-spatial-easing",
+    family: "spatial",
+    use: "Default layout movement",
+    description: "Route content, sheets, cards, and layout pieces moving through space.",
   },
   {
-    name: "Accordion Up",
-    className: "animate-accordion-up",
-    duration: "0.2s",
-    easing: "ease-out",
-    keyframes: "accordion-up",
-    description: "Collapses to height:0 with a blur+contrast exit effect.",
+    name: "Spatial Fast",
+    variable: "--spring-spatial-fast",
+    durationVariable: "--spring-spatial-fast-duration",
+    easingVariable: "--spring-spatial-fast-easing",
+    family: "spatial",
+    use: "Immediate spatial response",
+    description:
+      "Pressed, tapped, selected, or small hover movement where feedback must feel crisp.",
   },
   {
-    name: "Spring Bump",
-    className: "animate-spring-bump",
-    duration: "0.56s",
-    easing: "ease-in-out",
-    keyframes: "spring-bump",
-    description: "Scale 0.8 -> 1.1 -> 0.95 -> 1.0 spring overshoot micro-interaction.",
+    name: "Spatial Slow",
+    variable: "--spring-spatial-slow",
+    durationVariable: "--spring-spatial-slow-duration",
+    easingVariable: "--spring-spatial-slow-easing",
+    family: "spatial",
+    use: "Larger spatial movement",
+    description:
+      "Panel entrances, sheet changes, and larger transitions that need extra settle time.",
   },
   {
-    name: "Fade In Up",
-    className: "animate-fade-in-up",
-    duration: "0.4s",
-    easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-    keyframes: "fade-in-up",
-    description: "Fade in while translating up 20px. Used for staggered list items.",
+    name: "Effects",
+    variable: "--spring-effects",
+    durationVariable: "--spring-effects-duration",
+    easingVariable: "--spring-effects-easing",
+    family: "effects",
+    use: "Default visual effects",
+    description: "Opacity, background color, border color, shadow, and blur changes.",
   },
   {
-    name: "Fade In Scale",
-    className: "animate-fade-in-scale",
-    duration: "0.3s",
-    easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-    keyframes: "fade-in-scale",
-    description: "Fade in with a subtle scale(0.95 -> 1) for card/element entrances.",
+    name: "Effects Fast",
+    variable: "--spring-effects-fast",
+    durationVariable: "--spring-effects-fast-duration",
+    easingVariable: "--spring-effects-fast-easing",
+    family: "effects",
+    use: "Small visual effects",
+    description: "Subtle color, icon, badge, and affordance changes.",
   },
   {
-    name: "Toast Enter",
-    className: "toast-enter",
-    duration: "0.35s",
-    easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-    keyframes: "toastSlideInRight",
-    description: "Slides in from right with opacity transition for toast notifications.",
-  },
-  {
-    name: "Toast Exit",
-    className: "toast-exit",
-    duration: "0.3s",
-    easing: "cubic-bezier(0.4, 0, 1, 1)",
-    keyframes: "toastSlideOutRight",
-    description: "Slides out to the right with opacity fade for toast dismissal.",
-  },
-  {
-    name: "Modal Backdrop",
-    className: "modal-backdrop-enter",
-    duration: "0.3s",
-    easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-    keyframes: "modalBackdropFadeIn",
-    description: "Fades in backdrop overlay with a blur(0 -> 4px) transition.",
-  },
-  {
-    name: "Modal Slide In",
-    className: "modal-slide-enter",
-    duration: "0.4s",
-    easing: "cubic-bezier(0.16, 1, 0.3, 1)",
-    keyframes: "modalSlideIn",
-    description: "Slides up from bottom with a slight overshoot at 60% for modals.",
+    name: "Effects Slow",
+    variable: "--spring-effects-slow",
+    durationVariable: "--spring-effects-slow-duration",
+    easingVariable: "--spring-effects-slow-easing",
+    family: "effects",
+    use: "Sustained visual effects",
+    description: "Ambient shimmer, loading, and longer opacity or material changes.",
   },
 ];
 
-/* -------------------------------------------------------------------------- */
-/*  Rendering helpers                                                          */
-/* -------------------------------------------------------------------------- */
+type LegacyUtility = {
+  className: string;
+  preferredToken: string;
+  note: string;
+};
 
-function AnimationCard({ animation }: { animation: AnimationToken }) {
+const legacyUtilities: LegacyUtility[] = [
+  {
+    className: ".animate-fade-in-up",
+    preferredToken: "--spring-spatial-slow",
+    note: "Legacy entrance helper. New component CSS should use spring tokens directly.",
+  },
+  {
+    className: ".animate-fade-in-scale",
+    preferredToken: "--spring-spatial",
+    note: "Legacy card entrance helper. Prefer a transition or animation wired to a named spring.",
+  },
+  {
+    className: ".toast-enter",
+    preferredToken: "--spring-spatial",
+    note: "Legacy toast entrance helper retained for existing surfaces.",
+  },
+  {
+    className: ".toast-exit",
+    preferredToken: "--spring-effects-fast",
+    note: "Legacy toast exit helper retained for existing surfaces.",
+  },
+  {
+    className: ".modal-slide-enter",
+    preferredToken: "--spring-spatial-slow",
+    note: "Legacy modal helper retained while modal components move to direct token usage.",
+  },
+];
+
+function SpringTokenCard({ token }: { token: SpringToken }) {
+  const isSpatial = token.family === "spatial";
+  const transitionTarget = isSpatial ? "transform" : "opacity, background-color, box-shadow";
+
   return (
-    <div className="flex items-start gap-4 py-4 border-b border-stroke-soft-200">
-      <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-        <div className="w-6 h-6 rounded bg-primary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-label-sm text-text-strong-950 font-medium">{animation.name}</div>
-        <div className="text-paragraph-xs text-text-sub-600 mt-0.5">{animation.description}</div>
-        <div className="flex gap-4 mt-2">
-          <span className="text-[10px] text-text-soft-400 font-mono">.{animation.className}</span>
-          <span className="text-[10px] text-text-soft-400">{animation.duration}</span>
-          <span className="text-[10px] text-text-soft-400">{animation.easing}</span>
+    <div className="flex flex-col gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="text-label-sm font-medium text-text-strong-950">{token.name}</div>
+          <div className="mt-1 text-paragraph-xs text-text-sub-600">{token.description}</div>
         </div>
+        <span className="shrink-0 rounded-full border border-stroke-soft-200 bg-bg-soft-200 px-2 py-1 text-[10px] font-medium uppercase text-text-soft-400">
+          {token.family}
+        </span>
       </div>
+
+      <div className="grid gap-2 text-[11px] text-text-soft-400 sm:grid-cols-3">
+        <code className="rounded bg-bg-weak-50 px-2 py-1">{token.variable}</code>
+        <code className="rounded bg-bg-weak-50 px-2 py-1">{token.durationVariable}</code>
+        <code className="rounded bg-bg-weak-50 px-2 py-1">{token.easingVariable}</code>
+      </div>
+
+      <div className="rounded-md border border-stroke-soft-200 bg-bg-weak-50 p-3">
+        <code className="block overflow-x-auto text-[11px] text-text-sub-600">
+          {`transition: ${transitionTarget} var(${token.variable});`}
+        </code>
+      </div>
+
+      <div className="text-paragraph-xs text-text-sub-600">{token.use}</div>
     </div>
   );
 }
 
-/** Trigger button that replays an animation on click by toggling the class. */
-function TriggerButton({ animation }: { animation: AnimationToken }) {
-  const [playing, setPlaying] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const play = useCallback(() => {
-    setPlaying(false);
-    // Force reflow to reset animation
-    requestAnimationFrame(() => {
-      setPlaying(true);
-    });
-  }, []);
-
-  // Reset after animation completes
-  useEffect(() => {
-    if (!playing || !ref.current) return;
-
-    const el = ref.current;
-    const handler = () => setPlaying(false);
-    el.addEventListener("animationend", handler);
-    return () => el.removeEventListener("animationend", handler);
-  }, [playing]);
-
-  // Determine preview styling based on animation type
-  const isToastExit = animation.className === "toast-exit";
-  const isModal = animation.className.startsWith("modal");
-  const isAccordion = animation.className.includes("accordion");
-
-  return (
-    <div className="flex flex-col items-center gap-3 w-52">
-      <div className="w-full h-28 rounded-xl border border-stroke-soft-200 bg-bg-weak-50 flex items-center justify-center overflow-hidden relative">
-        {isModal && animation.className.includes("backdrop") ? (
-          <div
-            ref={ref}
-            className={`absolute inset-0 bg-black/20 ${playing ? animation.className : "opacity-0"}`}
-            style={{ backdropFilter: playing ? undefined : "blur(0px)" }}
-          />
-        ) : isModal ? (
-          <div
-            ref={ref}
-            className={`w-32 h-16 bg-bg-white-0 rounded-lg shadow-regular-md border border-stroke-soft-200 flex items-center justify-center ${playing ? animation.className : ""}`}
-            style={playing ? undefined : { transform: "translate3d(0, 100%, 0)", opacity: 0 }}
-          >
-            <span className="text-[10px] text-text-soft-400">Modal</span>
-          </div>
-        ) : isAccordion ? (
-          <div className="w-36 overflow-hidden">
-            <div
-              ref={ref}
-              className={playing ? animation.className : ""}
-              style={{
-                height:
-                  playing && animation.className.includes("up")
-                    ? 0
-                    : playing
-                      ? 64
-                      : animation.className.includes("up")
-                        ? 64
-                        : 0,
-                overflow: "hidden",
-              }}
-            >
-              <div className="h-16 bg-primary/20 rounded-lg flex items-center justify-center">
-                <span className="text-[10px] text-text-soft-400">Content</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div
-            ref={ref}
-            className={`w-12 h-12 rounded-lg bg-primary flex items-center justify-center ${playing ? animation.className : ""}`}
-            style={
-              !playing
-                ? {
-                    opacity: isToastExit ? 1 : undefined,
-                    transform: isToastExit ? "translateX(0)" : undefined,
-                  }
-                : undefined
-            }
-          >
-            <span className="text-[10px] text-white font-medium">Go</span>
-          </div>
-        )}
-      </div>
-      <button
-        type="button"
-        onClick={play}
-        className="px-3 py-1.5 rounded-lg text-label-xs bg-bg-soft-200 text-text-strong-950 border border-stroke-soft-200 hover:bg-bg-sub-300 active:scale-95 transition-all"
-      >
-        Play {animation.name}
-      </button>
-      <div className="text-center space-y-0.5">
-        <div className="text-[10px] text-text-soft-400 font-mono">.{animation.className}</div>
-        <div className="text-[10px] text-text-soft-400">
-          {animation.duration} {animation.easing}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Stagger demo showing multiple items entering in sequence. */
-function StaggerDemo() {
+function MotionPreview({ token }: { token: SpringToken }) {
   const [active, setActive] = useState(false);
+  const isSpatial = token.family === "spatial";
 
   const replay = useCallback(() => {
     setActive(false);
@@ -236,112 +158,108 @@ function StaggerDemo() {
   }, []);
 
   return (
-    <div>
+    <div className="flex w-56 flex-col items-center gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-4">
+      <div className="flex h-28 w-full items-center justify-center rounded-lg bg-bg-weak-50">
+        <div
+          className="flex h-14 w-14 items-center justify-center rounded-lg border border-stroke-soft-200 bg-primary text-[10px] font-medium text-primary-foreground shadow-regular-sm"
+          style={{
+            opacity: isSpatial || active ? 1 : 0.45,
+            transform:
+              active && isSpatial ? "translateY(-0.5rem) scale(1.04)" : "translateY(0) scale(1)",
+            transition: isSpatial
+              ? `transform var(${token.variable})`
+              : `opacity var(${token.variable}), box-shadow var(${token.variable})`,
+          }}
+        >
+          Go
+        </div>
+      </div>
       <button
         type="button"
         onClick={replay}
-        className="mb-4 px-4 py-2 rounded-lg text-label-sm bg-primary text-primary-foreground active:scale-95 transition-transform"
+        className="rounded-lg border border-stroke-soft-200 bg-bg-soft-200 px-3 py-1.5 text-label-xs text-text-strong-950 active:scale-95"
       >
-        Replay Stagger
+        Play {token.name}
       </button>
-      <div className="space-y-2">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className={`h-12 rounded-lg bg-bg-soft-200 border border-stroke-soft-200 flex items-center px-4 ${active ? "stagger-item" : ""}`}
-            style={{
-              animationDelay: active ? `${i * 0.08}s` : undefined,
-              opacity: active ? undefined : 0,
-            }}
-          >
-            <span className="text-label-sm text-text-strong-950">Item {i + 1}</span>
-          </div>
-        ))}
-      </div>
+      <code className="text-center text-[10px] text-text-soft-400">{token.variable}</code>
     </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Meta                                                                       */
-/* -------------------------------------------------------------------------- */
+function LegacyUtilityList() {
+  return (
+    <div className="space-y-3">
+      {legacyUtilities.map((utility) => (
+        <div
+          key={utility.className}
+          className="grid gap-2 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3 sm:grid-cols-[12rem_12rem_1fr]"
+        >
+          <code className="text-[11px] text-text-strong-950">{utility.className}</code>
+          <code className="text-[11px] text-text-sub-600">{utility.preferredToken}</code>
+          <span className="text-paragraph-xs text-text-sub-600">{utility.note}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const meta: Meta = {
-  title: "Design Tokens/Animation",
+  title: "Shared/Tokens/Animations",
   tags: ["autodocs"],
   parameters: {
     docs: {
       description: {
         component:
-          "The animation system covers accordions, spring micro-interactions, staggered list entrances, toast notifications, and modal transitions. All animations respect `prefers-reduced-motion: reduce`.",
+          "Warm Earth motion is documented through named spring tokens. Component authors should consume the runtime aliases from theme.css instead of hardcoding durations or easing curves.",
       },
     },
   },
 };
+
 export default meta;
 type Story = StoryObj;
 
-/* -------------------------------------------------------------------------- */
-/*  Stories                                                                     */
-/* -------------------------------------------------------------------------- */
-
-/** Gallery of all animation tokens with descriptions. */
 export const Default: Story = {
   render: () => (
-    <div>
-      <p className="text-paragraph-sm text-text-sub-600 mb-6">
-        Animations are defined as <code>@keyframes</code> in <code>storybook.css</code> and consumed
-        via CSS classes. The global <code>prefers-reduced-motion</code> rule collapses all durations
-        to near-zero for accessibility.
+    <div className="space-y-6">
+      <p className="text-paragraph-sm text-text-sub-600">
+        Root <code>DESIGN.md</code> is the canonical DesignMD source.{" "}
+        <code>packages/shared/src/styles/theme.css</code> projects that source into runtime aliases,
+        including the six spring families component CSS should use.
       </p>
-      {animations.map((a) => (
-        <AnimationCard key={a.name} animation={a} />
-      ))}
-
-      <div className="mt-8">
-        <h3 className="text-label-lg text-text-strong-950 mb-4 pb-2 border-b border-stroke-soft-200">
-          Stagger Items
-        </h3>
-        <p className="text-paragraph-xs text-text-sub-600 mb-4">
-          The <code>.stagger-item</code> class uses <code>fade-in-up</code> with per-item{" "}
-          <code>animation-delay</code> for sequential list entrance.
-        </p>
-        <StaggerDemo />
+      <div className="grid gap-4 lg:grid-cols-2">
+        {springTokens.map((token) => (
+          <SpringTokenCard key={token.variable} token={token} />
+        ))}
       </div>
     </div>
   ),
 };
 
-/** Interactive playground: click buttons to trigger each animation. */
 export const Interactive: Story = {
   render: () => (
-    <div>
-      <p className="text-paragraph-sm text-text-sub-600 mb-6">
-        Click any button below to replay its animation. The preview box shows the animation in
-        isolation so you can observe timing and easing.
+    <div className="space-y-6">
+      <p className="text-paragraph-sm text-text-sub-600">
+        The previews use each token through <code>var(--spring-*)</code>. Spatial tokens move the
+        square; effects tokens fade it.
       </p>
-      <div className="flex flex-wrap gap-6">
-        {animations.map((a) => (
-          <TriggerButton key={a.name} animation={a} />
+      <div className="flex flex-wrap gap-4">
+        {springTokens.map((token) => (
+          <MotionPreview key={token.variable} token={token} />
         ))}
       </div>
     </div>
   ),
 };
 
-/** Animations rendered with dark theme for contrast verification. */
-export const DarkMode: Story = {
+export const LegacyUtilities: Story = {
   render: () => (
-    <div>
-      <p className="text-paragraph-sm text-text-sub-600 mb-6">
-        Animations are theme-agnostic -- timing and easing stay constant. Colors come from semantic
-        tokens that adapt automatically. Use the toolbar theme toggle to verify contrast.
+    <div className="space-y-4">
+      <p className="text-paragraph-sm text-text-sub-600">
+        Existing utility classes can stay for compatibility, but they are not the source of truth
+        for new motion work. New CSS should use the named spring families directly.
       </p>
-      <div className="flex flex-wrap gap-6">
-        {animations.map((a) => (
-          <TriggerButton key={a.name} animation={a} />
-        ))}
-      </div>
+      <LegacyUtilityList />
     </div>
   ),
 };

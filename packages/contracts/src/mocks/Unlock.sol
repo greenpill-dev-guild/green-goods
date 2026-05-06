@@ -11,7 +11,7 @@ contract MockUnlockFactory is IUnlockFactory {
     uint256 public lockCount;
 
     /// @notice Creates a mock lock
-    function createLock(bytes calldata, uint16) external override returns (address lock) {
+    function createUpgradeableLockAtVersion(bytes calldata, uint16) external override returns (address lock) {
         lockCount++;
         lock = address(new MockPublicLock());
         return lock;
@@ -26,10 +26,15 @@ contract MockUnlockFactory is IUnlockFactory {
 /// @title MockPublicLock
 /// @notice Mock implementation of Unlock PublicLock for testing
 contract MockPublicLock is IPublicLock {
+    bytes32 public constant LOCK_MANAGER_ROLE = keccak256("LOCK_MANAGER");
+    bytes32 public constant KEY_GRANTER_ROLE = keccak256("KEY_GRANTER");
+
     mapping(address => uint256) public keyExpiration;
     mapping(address => bool) public lockManagers;
+    mapping(bytes32 => mapping(address => bool)) private _roles;
     uint256 public nextTokenId = 1;
     uint256 public _totalSupply;
+    uint256 public transferFeeBasisPoints;
 
     string private _name = "Test Badge";
     string private _symbol = "TBADGE";
@@ -38,6 +43,27 @@ contract MockPublicLock is IPublicLock {
 
     constructor() {
         lockManagers[msg.sender] = true;
+        _roles[LOCK_MANAGER_ROLE][msg.sender] = true;
+        _roles[KEY_GRANTER_ROLE][msg.sender] = true;
+    }
+
+    function initialize(
+        address lockCreator,
+        uint256 expirationDuration_,
+        address,
+        uint256,
+        uint256 maxNumberOfKeys_,
+        string calldata lockName
+    )
+        external
+        override
+    {
+        lockManagers[lockCreator] = true;
+        _roles[LOCK_MANAGER_ROLE][lockCreator] = true;
+        _roles[KEY_GRANTER_ROLE][lockCreator] = true;
+        _expirationDuration = expirationDuration_;
+        _maxKeys = maxNumberOfKeys_;
+        _name = lockName;
     }
 
     /// @notice Grants keys to recipients
@@ -74,6 +100,22 @@ contract MockPublicLock is IPublicLock {
     /// @notice Adds lock manager
     function addLockManager(address account) external override {
         lockManagers[account] = true;
+        _roles[LOCK_MANAGER_ROLE][account] = true;
+    }
+
+    function grantRole(bytes32 role, address account) external override {
+        _roles[role][account] = true;
+        if (role == LOCK_MANAGER_ROLE) {
+            lockManagers[account] = true;
+        }
+    }
+
+    function hasRole(bytes32 role, address account) external view override returns (bool) {
+        return _roles[role][account];
+    }
+
+    function updateTransferFee(uint256 transferFeeBasisPoints_) external override {
+        transferFeeBasisPoints = transferFeeBasisPoints_;
     }
 
     /// @notice Checks if account is lock manager

@@ -166,7 +166,7 @@ export function ReviewStep() {
           {formatMessage({
             id: "app.garden.create.teamAssignmentNotice",
             defaultMessage:
-              "Planned members are not assigned during deployment. Add them from Garden Members after creation.",
+              "Planned members are included in deployment. Verify role grants from Garden Members after creation.",
           })}
         </p>
       </div>

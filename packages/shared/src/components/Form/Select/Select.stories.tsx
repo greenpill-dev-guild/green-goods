@@ -11,7 +11,7 @@ import {
 } from "./Select";
 
 const meta: Meta<typeof Select> = {
-  title: "Form Controls/Select",
+  title: "Shared/Form/Select",
   component: Select,
   tags: ["autodocs"],
 };
@@ -118,6 +118,40 @@ export const FullWidth: Story = {
           <SelectItem value="option1">Option 1</SelectItem>
           <SelectItem value="option2">Option 2</SelectItem>
           <SelectItem value="option3">Option 3</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  ),
+};
+
+export const Sizes: Story = {
+  render: () => (
+    <div className="flex flex-wrap items-center gap-3">
+      <Select defaultValue="small">
+        <SelectTrigger size="sm" className="w-[180px]">
+          <SelectValue placeholder="Small" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="small">Small</SelectItem>
+          <SelectItem value="medium">Medium</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select defaultValue="medium">
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Medium" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="small">Small</SelectItem>
+          <SelectItem value="medium">Medium</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select defaultValue="large">
+        <SelectTrigger size="lg" className="w-[180px]">
+          <SelectValue placeholder="Large" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="medium">Medium</SelectItem>
+          <SelectItem value="large">Large</SelectItem>
         </SelectContent>
       </Select>
     </div>

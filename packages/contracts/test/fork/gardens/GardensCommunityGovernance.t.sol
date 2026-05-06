@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { ForkTestBase } from "../helpers/ForkTestBase.sol";
-import { GardensModule } from "../../../src/modules/Gardens.sol";
+import { GardensModule, IGoodsToken } from "../../../src/modules/Gardens.sol";
 import { GardenToken } from "../../../src/tokens/Garden.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
 import {
@@ -20,9 +20,10 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title GardensCommunityGovernanceForkTest
 /// @notice Fork tests for Gardens V2 community governance integration (Phases 1-3).
-/// @dev Phase 1: Community creation with real RegistryFactory on Sepolia, Arbitrum, Celo
-///      Phase 2: Pool creation (Sepolia only) — graceful failure and direct Unlimited pools
-///      Phase 3: Member staking (Sepolia only) — single and multi-member staking
+/// @dev Arbitrum is the positive live-chain confidence path for community creation,
+///      pool creation, member staking, and per-garden weight schemes.
+///      Sepolia is diagnostic only: its RegistryFactory is deployed, but the live
+///      factory does not currently have community facets configured.
 ///
 ///      All tests gracefully skip if the required RPC URL is not configured.
 ///      Order matters: _configureRealGardensV2() MUST be called AFTER _deployFullStackOnFork()
@@ -39,7 +40,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
         if (!_tryChainFork(chainName)) return false;
         _deployFullStackOnFork();
         _configureRealGardensV2();
-        return true;
+        return address(gardensModule.registryFactory()) != address(0);
     }
 
     /// @notice Shared assertion logic for community creation tests
@@ -50,16 +51,16 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
         // Verify garden initialization
         assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
 
-        // Verify community was created
+        // Verify community was created by the live RegistryFactory.
         address community = gardensModule.getGardenCommunity(garden);
         assertTrue(community != address(0), "community should be non-zero with real factory");
 
         // Verify community properties
         IRegistryCommunity communityContract = IRegistryCommunity(community);
 
-        // councilSafe should be the garden TBA
+        // councilSafe should match the protocol-level council safe configured on GardensModule.
         address councilSafe = communityContract.councilSafe();
-        assertEq(councilSafe, garden, "councilSafe should be the garden account (TBA)");
+        assertEq(councilSafe, gardensModule.communityCouncilSafe(), "councilSafe should match configured council safe");
 
         // gardenToken on the community should be our GOODS token
         address communityGardenToken = communityContract.gardenToken();
@@ -78,13 +79,25 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     // Phase 1: Community Creation (All Chains)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Community creation on Sepolia with real RegistryFactory
-    function test_fork_sepolia_communityCreatedWithRealFactory() public {
+    /// @notice Sepolia has a deployed RegistryFactory, but it is not configured like Arbitrum.
+    /// @dev This is an explicit live-state diagnostic, not a fabricated success path.
+    function test_fork_sepolia_registryFactoryWithoutFacetsLeavesGardenPartiallyInitialized() public {
         if (!_setupWithRealGardensV2("sepolia")) {
             return;
         }
 
-        _assertCommunityCreated("Sepolia Community Garden");
+        address factory = address(gardensModule.registryFactory());
+        assertTrue(factory != address(0), "Sepolia factory should be configured");
+        assertGt(factory.code.length, 0, "Sepolia factory should have deployed code");
+
+        address garden = _mintTestGarden("Sepolia Factory Diagnostic Garden", 0x0F);
+        assertTrue(gardensModule.isGardenInitialized(garden), "garden should remain initialized");
+        assertEq(gardensModule.getGardenCommunity(garden), address(0), "Sepolia factory has no community facets");
+        assertEq(
+            uint256(gardensModule.getGardenWeightScheme(garden)),
+            uint256(IGardensModule.WeightScheme.Linear),
+            "weight scheme should still persist"
+        );
     }
 
     /// @notice Community creation on Arbitrum with real RegistryFactory
@@ -106,248 +119,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 1b: Multiple Gardens With Different Weight Schemes (Sepolia)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Tests multiple gardens with Linear, Exponential, and Power weight schemes
-    function test_fork_sepolia_multipleGardensWithDifferentSchemes() public {
-        if (!_setupWithRealGardensV2("sepolia")) {
-            return;
-        }
-
-        // Garden 1: Linear (default via _mintTestGarden)
-        address garden1 = _mintTestGarden("Linear Garden", 0x01);
-        assertTrue(gardensModule.isGardenInitialized(garden1), "garden1 should be initialized");
-        assertEq(
-            uint256(gardensModule.getGardenWeightScheme(garden1)),
-            uint256(IGardensModule.WeightScheme.Linear),
-            "garden1 should have Linear scheme"
-        );
-        address community1 = gardensModule.getGardenCommunity(garden1);
-        assertTrue(community1 != address(0), "garden1 community should exist");
-
-        // Garden 2: Exponential
-        GardenToken.GardenConfig memory config2 = GardenToken.GardenConfig({
-            name: "Exponential Garden",
-            slug: "",
-            description: "Uses exponential weighting",
-            location: "Test Location",
-            bannerImage: "ipfs://QmTest",
-            metadata: "",
-            openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Exponential,
-            domainMask: 0x02,
-            gardeners: new address[](0),
-            operators: new address[](0)
-        });
-        address garden2 = gardenToken.mintGarden(config2);
-        assertTrue(gardensModule.isGardenInitialized(garden2), "garden2 should be initialized");
-        assertEq(
-            uint256(gardensModule.getGardenWeightScheme(garden2)),
-            uint256(IGardensModule.WeightScheme.Exponential),
-            "garden2 should have Exponential scheme"
-        );
-        address community2 = gardensModule.getGardenCommunity(garden2);
-        assertTrue(community2 != address(0), "garden2 community should exist");
-
-        // Garden 3: Power
-        GardenToken.GardenConfig memory config3 = GardenToken.GardenConfig({
-            name: "Power Garden",
-            slug: "",
-            description: "Uses power weighting",
-            location: "Test Location",
-            bannerImage: "ipfs://QmTest",
-            metadata: "",
-            openJoining: false,
-            weightScheme: IGardensModule.WeightScheme.Power,
-            domainMask: 0x04,
-            gardeners: new address[](0),
-            operators: new address[](0)
-        });
-        address garden3 = gardenToken.mintGarden(config3);
-        assertTrue(gardensModule.isGardenInitialized(garden3), "garden3 should be initialized");
-        assertEq(
-            uint256(gardensModule.getGardenWeightScheme(garden3)),
-            uint256(IGardensModule.WeightScheme.Power),
-            "garden3 should have Power scheme"
-        );
-        address community3 = gardensModule.getGardenCommunity(garden3);
-        assertTrue(community3 != address(0), "garden3 community should exist");
-
-        // All communities should be different addresses
-        assertTrue(community1 != community2, "community1 and community2 should differ");
-        assertTrue(community2 != community3, "community2 and community3 should differ");
-        assertTrue(community1 != community3, "community1 and community3 should differ");
-
-        emit log_named_address("Linear community", community1);
-        emit log_named_address("Exponential community", community2);
-        emit log_named_address("Power community", community3);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 2: Pool Creation (Sepolia Only)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Tests that createGardenPools with PointSystem.Custom gracefully fails
-    ///         when no PowerRegistry is available (try/catch in _createPool).
-    function test_fork_sepolia_poolCreationGracefulWithoutPowerRegistry() public {
-        if (!_setupWithRealGardensV2("sepolia")) {
-            return;
-        }
-
-        // Mint garden — community should be created, but no power registry
-        address garden = _mintTestGarden("Pool Test Garden", 0x0F);
-        assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
-
-        address community = gardensModule.getGardenCommunity(garden);
-        if (community == address(0)) {
-            return;
-        }
-
-        // createGardenPools attempts Custom point system with no PowerRegistry.
-        // This should NOT revert — the try/catch in _createPool handles it gracefully.
-        address[] memory pools = gardensModule.createGardenPools(garden);
-
-        // Pools may be empty (creation failed gracefully) or populated (unlikely without registry)
-        emit log_named_uint("pools created", pools.length);
-
-        // The important assertion: call did not revert, and garden is still initialized
-        assertTrue(gardensModule.isGardenInitialized(garden), "garden should still be initialized after pool attempt");
-    }
-
-    /// @notice Tests direct pool creation on the community with PointSystem.Unlimited
-    ///         (no PowerRegistry needed). Pranked as the garden TBA (council Safe).
-    function test_fork_sepolia_directPoolCreationWithUnlimited() public {
-        if (!_setupWithRealGardensV2("sepolia")) {
-            return;
-        }
-
-        address garden = _mintTestGarden("Direct Pool Garden", 0x0F);
-        address community = gardensModule.getGardenCommunity(garden);
-        if (community == address(0)) {
-            return;
-        }
-
-        // Build pool params with Unlimited point system (no registry needed)
-        CVStrategyInitializeParamsV0_3 memory strategyParams = CVStrategyInitializeParamsV0_3({
-            cvParams: CVParams({
-                maxRatio: GardensModule(address(gardensModule)).DEFAULT_MAX_RATIO(),
-                weight: GardensModule(address(gardensModule)).DEFAULT_WEIGHT(),
-                decay: GardensModule(address(gardensModule)).DEFAULT_DECAY(),
-                minThresholdPoints: GardensModule(address(gardensModule)).DEFAULT_MIN_THRESHOLD_POINTS()
-            }),
-            proposalType: ProposalType.Signaling,
-            pointSystem: PointSystem.Unlimited,
-            pointConfig: PointSystemConfig({ maxAmount: 0 }),
-            arbitrableConfig: ArbitrableConfig({
-                arbitrator: address(0),
-                tribunalSafe: address(0),
-                submitterCollateralAmount: 0,
-                challengerCollateralAmount: 0,
-                defaultRuling: 0,
-                defaultRulingTimeout: 0
-            }),
-            registryCommunity: community,
-            votingPowerRegistry: address(0), // Not needed for Unlimited
-            sybilScorer: address(0),
-            sybilScorerThreshold: 0,
-            initialAllowlist: new address[](0),
-            superfluidToken: address(0),
-            streamingRatePerSecond: 0
-        });
-
-        Metadata memory poolMetadata = Metadata({ protocol: 1, pointer: "Direct Unlimited Pool" });
-
-        // Prank as the garden TBA (council Safe) to create pool directly on the community
-        vm.prank(garden);
-        (uint256 poolId, address strategy) =
-            IRegistryCommunity(community).createPool(address(0), strategyParams, poolMetadata);
-
-        assertTrue(strategy != address(0), "strategy should be deployed");
-        emit log_named_uint("poolId", poolId);
-        emit log_named_address("strategy", strategy);
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 3: Member Staking (Sepolia Only)
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Tests single member staking in a real Gardens V2 community
-    function test_fork_sepolia_memberStaking() public {
-        if (!_setupWithRealGardensV2("sepolia")) {
-            return;
-        }
-
-        address garden = _mintTestGarden("Staking Garden", 0x0F);
-        address community = gardensModule.getGardenCommunity(garden);
-        if (community == address(0)) {
-            return;
-        }
-
-        // Get the stake amount required by the community
-        uint256 stakeAmount = gardensModule.stakeAmountPerMember();
-
-        // Fund forkGardener with GOODS tokens for staking
-        goodsToken.mint(forkGardener, stakeAmount);
-        assertEq(goodsToken.balanceOf(forkGardener), stakeAmount, "gardener should have GOODS");
-
-        // Approve community to spend GOODS
-        vm.prank(forkGardener);
-        IERC20(address(goodsToken)).approve(community, stakeAmount);
-
-        // Stake and register member
-        vm.prank(forkGardener);
-        IRegistryCommunity(community).stakeAndRegisterMember(forkGardener);
-
-        emit log("Member staked successfully");
-        emit log_named_address("member", forkGardener);
-        emit log_named_uint("stakeAmount", stakeAmount);
-    }
-
-    /// @notice Tests multi-member staking with different roles
-    function test_fork_sepolia_multiMemberStaking() public {
-        if (!_setupWithRealGardensV2("sepolia")) {
-            return;
-        }
-
-        address garden = _mintTestGarden("Multi-Stake Garden", 0x0F);
-        address community = gardensModule.getGardenCommunity(garden);
-        if (community == address(0)) {
-            return;
-        }
-
-        uint256 stakeAmount = gardensModule.stakeAmountPerMember();
-
-        // Grant roles to test actors
-        _grantGardenRole(garden, forkOperator, IHatsModule.GardenRole.Operator);
-        _grantGardenRole(garden, forkGardener, IHatsModule.GardenRole.Gardener);
-        _grantGardenRole(garden, forkEvaluator, IHatsModule.GardenRole.Evaluator);
-
-        // Stake each member
-        address[3] memory members = [forkOperator, forkGardener, forkEvaluator];
-        string[3] memory labels = ["operator", "gardener", "evaluator"];
-
-        for (uint256 i = 0; i < members.length; i++) {
-            // Fund with GOODS
-            goodsToken.mint(members[i], stakeAmount);
-            assertEq(goodsToken.balanceOf(members[i]), stakeAmount, "member should have GOODS");
-
-            // Approve and stake
-            vm.prank(members[i]);
-            IERC20(address(goodsToken)).approve(community, stakeAmount);
-
-            vm.prank(members[i]);
-            IRegistryCommunity(community).stakeAndRegisterMember(members[i]);
-
-            emit log_named_string("staked member role", labels[i]);
-            emit log_named_address("staked member address", members[i]);
-        }
-
-        emit log("All 3 members staked successfully");
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Phase 4: Arbitrum Fork Tests
+    // Arbitrum Fork Tests
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// @notice Direct pool creation on Arbitrum with PointSystem.Unlimited
@@ -358,9 +130,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
 
         address garden = _mintTestGarden("Arb Pool Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
-        if (community == address(0)) {
-            return;
-        }
+        assertTrue(community != address(0), "community should exist before Arbitrum pool creation");
 
         // Build pool params with Unlimited point system (no registry needed)
         CVStrategyInitializeParamsV0_3 memory strategyParams = CVStrategyInitializeParamsV0_3({
@@ -410,23 +180,14 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
 
         address garden = _mintTestGarden("Arb Staking Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
-        if (community == address(0)) {
-            return;
-        }
+        assertTrue(community != address(0), "community should exist before Arbitrum staking");
 
         uint256 stakeAmount = gardensModule.stakeAmountPerMember();
 
-        // Fund forkGardener with GOODS tokens for staking
-        goodsToken.mint(forkGardener, stakeAmount);
+        _mintGoodsForStake(forkGardener, stakeAmount);
         assertEq(goodsToken.balanceOf(forkGardener), stakeAmount, "gardener should have GOODS");
 
-        // Approve community to spend GOODS
-        vm.prank(forkGardener);
-        IERC20(address(goodsToken)).approve(community, stakeAmount);
-
-        // Stake and register member
-        vm.prank(forkGardener);
-        IRegistryCommunity(community).stakeAndRegisterMember(forkGardener);
+        _stakeAndRegisterLiveMember(community, forkGardener, stakeAmount);
 
         emit log("Member staked successfully on Arbitrum");
         emit log_named_address("member", forkGardener);
@@ -441,9 +202,7 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
 
         address garden = _mintTestGarden("Arb Multi-Stake Garden", 0x0F);
         address community = gardensModule.getGardenCommunity(garden);
-        if (community == address(0)) {
-            return;
-        }
+        assertTrue(community != address(0), "community should exist before Arbitrum multi-member staking");
 
         uint256 stakeAmount = gardensModule.stakeAmountPerMember();
 
@@ -457,20 +216,38 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
         string[3] memory labels = ["operator", "gardener", "evaluator"];
 
         for (uint256 i = 0; i < members.length; i++) {
-            goodsToken.mint(members[i], stakeAmount);
+            _mintGoodsForStake(members[i], stakeAmount);
             assertEq(goodsToken.balanceOf(members[i]), stakeAmount, "member should have GOODS");
 
-            vm.prank(members[i]);
-            IERC20(address(goodsToken)).approve(community, stakeAmount);
-
-            vm.prank(members[i]);
-            IRegistryCommunity(community).stakeAndRegisterMember(members[i]);
+            _stakeAndRegisterLiveMember(community, members[i], stakeAmount);
 
             emit log_named_string("staked member role", labels[i]);
             emit log_named_address("staked member address", members[i]);
         }
 
         emit log("All 3 members staked successfully on Arbitrum");
+    }
+
+    function _mintGoodsForStake(address member, uint256 amount) internal {
+        vm.prank(address(gardensModule));
+        IGoodsToken(address(goodsToken)).mint(member, amount);
+    }
+
+    function _stakeAndRegisterLiveMember(address community, address member, uint256 stakeAmount) internal {
+        uint256 communityBalanceBefore = goodsToken.balanceOf(community);
+
+        vm.prank(member);
+        IERC20(address(goodsToken)).approve(community, stakeAmount);
+
+        vm.prank(member);
+        IRegistryCommunity(community).stakeAndRegisterMember("");
+
+        assertEq(goodsToken.balanceOf(member), 0, "member stake should be transferred");
+        assertEq(
+            goodsToken.balanceOf(community),
+            communityBalanceBefore + stakeAmount,
+            "community should receive the member stake"
+        );
     }
 
     /// @notice Tests multiple gardens with different weight schemes on Arbitrum
@@ -488,7 +265,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
             "garden1 should have Linear scheme"
         );
         address community1 = gardensModule.getGardenCommunity(garden1);
-        assertTrue(community1 != address(0), "garden1 community should exist");
 
         // Garden 2: Exponential
         GardenToken.GardenConfig memory config2 = GardenToken.GardenConfig({
@@ -512,7 +288,6 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
             "garden2 should have Exponential scheme"
         );
         address community2 = gardensModule.getGardenCommunity(garden2);
-        assertTrue(community2 != address(0), "garden2 community should exist");
 
         // Garden 3: Power
         GardenToken.GardenConfig memory config3 = GardenToken.GardenConfig({
@@ -536,6 +311,8 @@ contract GardensCommunityGovernanceForkTest is ForkTestBase {
             "garden3 should have Power scheme"
         );
         address community3 = gardensModule.getGardenCommunity(garden3);
+        assertTrue(community1 != address(0), "garden1 community should exist");
+        assertTrue(community2 != address(0), "garden2 community should exist");
         assertTrue(community3 != address(0), "garden3 community should exist");
 
         // All communities should be different addresses

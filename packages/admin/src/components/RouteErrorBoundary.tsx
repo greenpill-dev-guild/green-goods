@@ -1,8 +1,9 @@
 import { logger, trackErrorBoundary } from "@green-goods/shared";
+import { AdminButton } from "@/components/AdminButton";
 import { RiAlertLine, RiArrowLeftLine, RiRefreshLine, RiWifiOffLine } from "@remixicon/react";
 import { type ReactNode, useEffect } from "react";
+import { useIntl } from "react-intl";
 import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-dom";
-import { Button } from "@/components/ui/Button";
 
 /**
  * Route-level error boundary for React Router.
@@ -12,13 +13,14 @@ import { Button } from "@/components/ui/Button";
  * - Thrown responses from loaders/actions
  * - Any unhandled error during route resolution
  *
- * Placed on a pathless wrapper inside DashboardShell's children so the
+ * Placed on a pathless wrapper inside CanvasShell's children so the
  * sidebar/header stay visible when a child route errors.
  * Also placed on the root route as a full-page fallback.
  */
 export default function RouteErrorBoundary() {
   const error = useRouteError();
   const navigate = useNavigate();
+  const { formatMessage } = useIntl();
 
   const isChunkError = isChunkLoadError(error);
   const isNetwork = isNetworkError(error);
@@ -46,13 +48,17 @@ export default function RouteErrorBoundary() {
       <ErrorCard
         icon={<RiRefreshLine className="h-6 w-6 text-information-dark" />}
         iconBg="bg-information-lighter"
-        title="App Updated"
-        description="A new version has been deployed. Refreshing will load the latest version."
+        title={formatMessage({ id: "app.error.route.chunk.title" })}
+        description={formatMessage({ id: "app.error.route.chunk.description" })}
+        technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
         actions={
-          <Button onClick={() => window.location.reload()}>
-            <RiRefreshLine className="h-4 w-4" />
-            Refresh Page
-          </Button>
+          <AdminButton
+            variant="filled"
+            leadingIcon={<RiRefreshLine />}
+            onClick={() => window.location.reload()}
+          >
+            {formatMessage({ id: "app.error.route.chunk.action" })}
+          </AdminButton>
         }
       />
     );
@@ -63,13 +69,17 @@ export default function RouteErrorBoundary() {
       <ErrorCard
         icon={<RiWifiOffLine className="h-6 w-6 text-warning-dark" />}
         iconBg="bg-warning-lighter"
-        title="Connection Issue"
-        description="This page couldn't load. Check your connection and try again."
+        title={formatMessage({ id: "app.error.route.network.title" })}
+        description={formatMessage({ id: "app.error.route.network.description" })}
+        technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
         actions={
-          <Button onClick={() => window.location.reload()}>
-            <RiRefreshLine className="h-4 w-4" />
-            Retry
-          </Button>
+          <AdminButton
+            variant="filled"
+            leadingIcon={<RiRefreshLine />}
+            onClick={() => window.location.reload()}
+          >
+            {formatMessage({ id: "app.error.route.network.action" })}
+          </AdminButton>
         }
       />
     );
@@ -80,19 +90,26 @@ export default function RouteErrorBoundary() {
     <ErrorCard
       icon={<RiAlertLine className="h-6 w-6 text-error-dark" />}
       iconBg="bg-error-lighter"
-      title="Something went wrong"
-      description="An unexpected error occurred while loading this page."
+      title={formatMessage({ id: "app.error.route.generic.title" })}
+      description={formatMessage({ id: "app.error.route.generic.description" })}
+      technicalDetailsLabel={formatMessage({ id: "app.error.route.technicalDetails" })}
       details={import.meta.env.DEV ? extractMessage(error) : undefined}
       actions={
         <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => navigate(-1)}>
-            <RiArrowLeftLine className="h-4 w-4" />
-            Go Back
-          </Button>
-          <Button onClick={() => window.location.reload()}>
-            <RiRefreshLine className="h-4 w-4" />
-            Reload
-          </Button>
+          <AdminButton
+            variant="tonal"
+            leadingIcon={<RiArrowLeftLine />}
+            onClick={() => navigate(-1)}
+          >
+            {formatMessage({ id: "app.error.route.generic.actionBack" })}
+          </AdminButton>
+          <AdminButton
+            variant="filled"
+            leadingIcon={<RiRefreshLine />}
+            onClick={() => window.location.reload()}
+          >
+            {formatMessage({ id: "app.error.route.generic.actionReload" })}
+          </AdminButton>
         </div>
       }
     />
@@ -107,6 +124,7 @@ function ErrorCard({
   title,
   description,
   details,
+  technicalDetailsLabel,
   actions,
 }: {
   icon: ReactNode;
@@ -114,6 +132,7 @@ function ErrorCard({
   title: string;
   description: string;
   details?: string;
+  technicalDetailsLabel: string;
   actions: ReactNode;
 }) {
   return (
@@ -130,7 +149,7 @@ function ErrorCard({
           {details && (
             <details className="mt-4 text-left">
               <summary className="cursor-pointer text-xs font-medium text-text-soft hover:text-text-sub">
-                Technical Details
+                {technicalDetailsLabel}
               </summary>
               <pre className="mt-2 max-h-32 overflow-auto rounded-lg bg-bg-soft p-3 text-xs text-text-sub">
                 {details}

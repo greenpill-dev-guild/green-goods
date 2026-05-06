@@ -84,6 +84,18 @@ export default defineConfig({
         replacement: resolve(__dirname, "../shared/src/components"),
       },
       {
+        find: "@green-goods/shared/i18n",
+        replacement: resolve(__dirname, "../shared/src/i18n"),
+      },
+      {
+        find: "@green-goods/shared/workflows",
+        replacement: resolve(__dirname, "../shared/src/workflows"),
+      },
+      {
+        find: "@green-goods/shared/constants",
+        replacement: resolve(__dirname, "../shared/src/constants"),
+      },
+      {
         find: "@green-goods/shared/testing",
         replacement: resolve(__dirname, "../shared/src/__tests__/test-utils"),
       },
@@ -97,13 +109,8 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     setupFiles: ["./src/__tests__/setup.ts"],
-    // Tests that import real view/heavy components trigger full dependency tree
-    // resolution (viem, wagmi, etc.) and hang indefinitely. Run them separately
-    // with `bun run test:views` once module mocking is fixed.
     exclude: [
       "**/node_modules/**",
-      "src/__tests__/views/**",
-      "src/__tests__/workflows/unauthorized-actions.test.tsx",
       "src/__tests__/components/WithdrawModal.test.tsx",
     ],
     coverage: {
@@ -131,7 +138,6 @@ export default defineConfig({
       deps: {
         inline: [
           "multiformats",
-          "@storacha/client",
           "@ethereum-attestation-service/eas-sdk",
           "uint8arrays",
           "react",

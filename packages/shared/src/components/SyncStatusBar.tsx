@@ -66,7 +66,7 @@ export const SyncStatusBar: React.FC<SyncStatusBarProps> = ({ className }) => {
   return (
     <div
       className={cn(
-        "fixed left-0 right-0 z-50 h-8 border-t border-stroke-soft-200 bg-bg-white-0/95 backdrop-blur supports-[backdrop-filter]:bg-bg-white-0/80",
+        "fixed left-0 right-0 z-sticky h-8 border-t border-stroke-soft-200 bg-bg-white-0/95 backdrop-blur supports-[backdrop-filter]:bg-bg-white-0/80",
         className
       )}
       role="status"

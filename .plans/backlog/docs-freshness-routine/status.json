@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "docs-freshness-routine",
+    "title": "Docs Freshness Routine",
+    "kind": "quality",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-04-25T08:53:00.019Z",
+    "updated_at": "2026-05-03T19:17:16.238Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Promoted from ideas on 2026-04-25.",
+    "Routine covers screenshots, social cards, MDX compatibility checks, and stale docs metadata.",
+    "Pick one docs freshness family per run; do not bundle broad docs redesign or translation work.",
+    "Generated visual assets must come from real docs/client/admin surfaces.",
+    "2026-05-01 update: community docs copy remediation is complete; next concrete work is a targeted media refresh after active UI updates stabilize.",
+    "Known refresh candidates: admin-create-garden.png, admin-work-queue.png, admin-work-detail.png, admin-garden-impact.png, client-work-dashboard.png, and a distinct Donate social image.",
+    "Do not touch app UI/i18n/contracts/shared/indexer surfaces from this hub unless the user explicitly starts a separate UI alignment pass."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/docs-freshness-routine",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Docs component UI is out of scope unless a rendered docs layout regression appears.",
+      "skill_tags": ["docs", "review"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/docs-freshness-routine",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "Concrete next lane: after UI stabilization, replace scoped docs screenshots/social assets, update MDX references/alt text, and run docs audit/build/vocab plus rendered desktop/mobile checks.",
+      "skill_tags": ["docs", "tooling", "testing", "visual-qa"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/docs-freshness-routine",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "No contract work. Keep this lane n/a.",
+      "skill_tags": ["review"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/docs-freshness-routine",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Visual QA after media replacement: check screenshot relevance, legibility, Donate/Endow distinction, and desktop/mobile docs render.",
+      "skill_tags": ["testing", "review", "visual-qa"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/docs-freshness-routine",
+      "branch_trigger": "claude/qa-pass-1/docs-freshness-routine",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Regression QA after visual review: re-run docs gates, generated-page scans, and status/handoff consistency checks.",
+      "skill_tags": ["testing", "review", "docs"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-25T08:53:00.042Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-04-25T08:55:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "promoted_from_idea",
+      "branch": null,
+      "note": "Converted docs freshness idea note into this backlog hub and deleted the old idea note to avoid duplicate truth."
+    },
+    {
+      "timestamp": "2026-05-01T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "community_docs_media_plan_added",
+      "branch": null,
+      "note": "Expanded hub with the post-Matt-review community docs media refresh plan: preserve completed copy pass, wait for UI stabilization, then refresh stale admin screenshots, Work Dashboard screenshot, and Donate social image."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["docs", "admin", "client"],
+    "work_types": ["maintenance", "review"],
+    "surfaces": ["docs", "packages/admin", "packages/client"],
+    "depends_on_features": ["client-pwa-gardener-audit"]
+  }
+}

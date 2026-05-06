@@ -12,6 +12,7 @@ import { IHats } from "../interfaces/IHats.sol";
 import { IHatsModuleFactory } from "../interfaces/IHatsModuleFactory.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { HatsLib } from "../lib/Hats.sol";
+import { ZeroAddress, ArrayLengthMismatch } from "../CommonErrors.sol";
 
 /// @title HatsModule
 /// @notice Adapts Hats Protocol for Green Goods access control
@@ -87,14 +88,12 @@ contract HatsModule is
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
 
-    error ZeroAddress();
     error GardenNotConfigured(address garden);
     error InvalidHatId();
     error NotGardenAdmin(address caller, address garden);
     error NotGardenToken(address caller);
     error HatsNotConfigured();
     error NotHatAdmin(address caller, uint256 hatId);
-    error ArrayLengthMismatch();
     error GardenAlreadyConfigured(address garden);
     error TooManyStrategies(uint256 count, uint256 max);
     error InvalidStrategyAddress(address strategy);

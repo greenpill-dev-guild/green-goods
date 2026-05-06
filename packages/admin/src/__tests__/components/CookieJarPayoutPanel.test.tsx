@@ -28,17 +28,17 @@ vi.mock(import("@green-goods/shared"), async (importOriginal) => {
 });
 
 // Mock modal components to avoid deep hook dependencies (AuthProvider, wagmi, etc.)
-vi.mock("@/components/Work/CookieJarWithdrawModal", () => ({
+vi.mock("@/views/Hub/components/CookieJarWithdrawModal", () => ({
   CookieJarWithdrawModal: () => null,
 }));
-vi.mock("@/components/Work/CookieJarDepositModal", () => ({
+vi.mock("@/views/Hub/components/CookieJarDepositModal", () => ({
   CookieJarDepositModal: () => null,
 }));
-vi.mock("@/components/Work/CookieJarManageModal", () => ({
+vi.mock("@/views/Hub/components/CookieJarManageModal", () => ({
   CookieJarManageModal: () => null,
 }));
 
-import { CookieJarPayoutPanel } from "@/components/Work/CookieJarPayoutPanel";
+import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
 
 describe("CookieJarPayoutPanel", () => {
   beforeEach(() => {
@@ -55,7 +55,7 @@ describe("CookieJarPayoutPanel", () => {
     expect(screen.getByText(/0xasset/)).toBeInTheDocument();
 
     // Action buttons are rendered
-    expect(screen.getByRole("button", { name: /Withdraw/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Claim/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fund Jars/ })).toBeInTheDocument();
     // Manage Jars is shown when canManage is true
     expect(screen.getByRole("button", { name: /Manage Jars/ })).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe("CookieJarPayoutPanel", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: /Withdraw/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Claim/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fund Jars/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Manage Jars/ })).not.toBeInTheDocument();
   });

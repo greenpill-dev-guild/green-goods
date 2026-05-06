@@ -62,10 +62,6 @@ export type AuditEventType =
   | "user:create"
   | "wallet:create";
 
-/**
- * Audit logger for operator actions
- * Creates structured audit trail with timestamp and context
- */
 export function auditLog(
   event: AuditEventType,
   actor: { platform: string; platformId: string; address: string },

@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "cleanup-loop-v1",
+    "title": "Cleanup Loop V1",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p1",
+    "created_at": "2026-04-20T00:00:00.000Z",
+    "updated_at": "2026-05-03T19:17:16.238Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "This hub stays in backlog until the shared tests + Storybook hardening stream is no longer the active blocker.",
+    "Cleanup Loop V1 is human-triggered only; do not schedule it until the first successful keep run proves the contract.",
+    "Renamed from closed-loop-cleanup-v1 to cleanup-loop-v1 on 2026-04-25 to avoid implying a broader autonomy system.",
+    "The only loop family in v1 is cleanup-first. Do not widen this hub into bug triage, trace capture, or design verification.",
+    "Run exactly one cleanup surface per run and emit one JSONL record via scripts/log-automation-run.mjs."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/cleanup-loop-v1",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/cleanup-loop-v1",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["ops", "audit", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/cleanup-loop-v1",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/cleanup-loop-v1",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/cleanup-loop-v1",
+      "branch_trigger": "claude/qa-pass-1/cleanup-loop-v1",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-20T00:00:00.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded backlog hub for the first real cleanup-first autonomy loop."
+    },
+    {
+      "timestamp": "2026-04-20T00:00:00.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "cleanup_scope_locked",
+      "branch": null,
+      "note": "Locked v1 to one cleanup loop family and excluded shared tests/storybook, hooks/providers, admin views/routes, and non-cleanup packages."
+    },
+    {
+      "timestamp": "2026-04-20T00:10:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "validated",
+      "branch": null,
+      "note": "Ran node scripts/plan-hub.mjs validate and dry-read the Claude orchestrator prompt against the hub contract."
+    },
+    {
+      "timestamp": "2026-04-25T05:15:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "renamed",
+      "branch": null,
+      "note": "Renamed hub from closed-loop-cleanup-v1 to cleanup-loop-v1; kept it in backlog with the same cleanup-only scope."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops"],
+    "work_types": ["cleanup", "maintenance"],
+    "surfaces": [],
+    "depends_on_features": []
+  }
+}

@@ -10,20 +10,10 @@
 
 export type CompressionFormat = "gzip" | "deflate" | "deflate-raw";
 
-/**
- * Check if native compression streams are supported
- */
 export function isCompressionSupported(): boolean {
   return typeof CompressionStream !== "undefined" && typeof DecompressionStream !== "undefined";
 }
 
-/**
- * Combine multiple Uint8Array chunks into a single Uint8Array
- * Used internally by compress and decompress functions.
- *
- * @param chunks - Array of Uint8Array chunks to combine
- * @returns Single combined Uint8Array
- */
 function combineChunks(chunks: Uint8Array[]): Uint8Array {
   const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
   const result = new Uint8Array(totalLength);

@@ -2,12 +2,14 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import {
+  en as enMessages,
+  resetCreateGardenStore,
+  useCreateGardenStore,
+} from "@green-goods/shared";
 import { render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
-import enMessages from "@green-goods/shared/i18n/en";
-
-import { resetCreateGardenStore, useCreateGardenStore } from "@green-goods/shared";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ReviewStep } from "../../../components/Garden/CreateGardenSteps/ReviewStep";
 
 const OPERATOR_AND_GARDENER = "0x1234567890123456789012345678901234567890";
@@ -41,7 +43,7 @@ describe("components/Garden/CreateGardenSteps/ReviewStep", () => {
     expect(screen.getByText("Planned operators")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Planned members are not assigned during deployment. Add them from Garden Members after creation."
+        "Planned members are included in deployment. Verify role grants from Garden Members after creation."
       )
     ).toBeInTheDocument();
   });

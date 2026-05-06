@@ -1,21 +1,22 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { FIXTURE_WORK_MEDIA, hoursAgo } from "../../../../.storybook/fixtures";
 import { WorkCard, type WorkCardData } from "./WorkCard";
 
 const mockWork: WorkCardData = {
   id: "work-1",
   title: "Planted 50 native trees",
   status: "approved",
-  createdAt: Date.now() - 1000 * 60 * 60 * 2, // 2 hours ago
-  mediaPreview: ["https://picsum.photos/200/200?random=1"],
+  createdAt: hoursAgo(2),
+  mediaPreview: [FIXTURE_WORK_MEDIA[0]],
   gardenerDisplayName: "Alice.eth",
   gardenName: "Community Garden",
   imageCount: 3,
 };
 
 const meta: Meta<typeof WorkCard> = {
-  title: "Cards/WorkCard",
+  title: "Shared/Cards/WorkCard",
   component: WorkCard,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   argTypes: {
     variant: {
       control: "select",
@@ -54,18 +55,6 @@ export const Default: Story = {
   },
 };
 
-export const Approved: Story = {
-  args: {
-    work: { ...mockWork, status: "approved" },
-  },
-};
-
-export const Pending: Story = {
-  args: {
-    work: { ...mockWork, status: "pending" },
-  },
-};
-
 export const Rejected: Story = {
   args: {
     work: {
@@ -74,12 +63,6 @@ export const Rejected: Story = {
       feedback: "Please include more documentation of the work completed.",
     },
     showFeedbackBadge: true,
-  },
-};
-
-export const Syncing: Story = {
-  args: {
-    work: { ...mockWork, status: "syncing" },
   },
 };
 
@@ -113,7 +96,7 @@ export const NoMedia: Story = {
   },
 };
 
-export const AllStatuses: Story = {
+export const StatusCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-3 max-w-md">
       <WorkCard work={{ ...mockWork, status: "approved", title: "Approved Work" }} />
@@ -130,17 +113,4 @@ export const NonInteractive: Story = {
     work: mockWork,
     interactive: false,
   },
-};
-
-export const DarkMode: Story = {
-  args: {
-    work: mockWork,
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

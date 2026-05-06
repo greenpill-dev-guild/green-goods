@@ -2,6 +2,29 @@
 
 The contracts package contains Solidity smart contracts for the Green Goods protocol, built with Foundry.
 
+## Commands
+
+- `bun run build`
+- `bun run test`
+- `bun run lint`
+- `bun run test:audit:full`
+
+## Deployment Script Defaults
+
+- Use package scripts for deploys, upgrades, migrations, and verification. Do not hand operators raw
+  `forge` commands or ad hoc shell sequences.
+- Root `contracts:*:arbitrum` wrappers set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`.
+- Contract wrappers clear `PINATA_JWT_OP_REF`; media upload credentials must not block contract
+  upgrades.
+- Arbitrum upgrade/broadcast scripts that need the proxy owner use sender
+  `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
+- Signal-pool/yield lane commands, in order:
+  - `bun run contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum`
+  - `bun run contracts:upgrade:signal-pool-yield-wiring:arbitrum`
+  - `bun run contracts:migrate:vaults:dry:arbitrum`
+  - `bun run contracts:migrate:vaults:arbitrum`
+  - `bun run contracts:verify:post-deploy:arbitrum`
+
 ## Architecture Overview
 
 ```
@@ -395,6 +418,65 @@ deployments/
   }
 }
 ```
+
+## Deployment Readiness
+
+### Pre-Flight Checks
+
+```bash
+bun run test                                              # >= 80% pass (testnet), 100% (mainnet)
+bun build                                                 # Clean compilation, no errors
+bun script/deploy.ts core --network sepolia               # Dry run (omit --broadcast)
+```
+
+### Phase-Aware Artifact Review
+
+For new contract work, deployment artifacts move through phases:
+
+- **Pending broadcast**: missing or zero addresses can be expected before transactions are sent.
+  Do not turn this into a P0 by itself.
+- **Deployment path blocker**: block before broadcast only if the repo lacks a safe command or
+  script to deploy, initialize, persist artifacts, and update dependent config such as indexer
+  addresses.
+- **Post-broadcast blocker**: after a claimed or authorized broadcast, required zero/missing
+  addresses, schema UIDs, or generated config are blockers until the artifact/config is fixed
+  and re-verified.
+
+### Gas Benchmarks
+
+| Operation | Target |
+|---|---|
+| mintGarden | < 500,000 gas |
+| registerAction | < 200,000 gas |
+| Work submission | < 150,000 gas |
+| Work approval | < 100,000 gas |
+
+### Pre-Broadcast Red Flags (Block Broadcast)
+
+- Test pass rate < 80% (testnet) or < 100% (mainnet)
+- Compiler errors or warnings
+- Missing deploy command or unsafe dry-run for the target module
+- Bad required network config, manager defaults, or deployer wallet inputs
+- No artifact persistence path for newly deployed addresses/schema UIDs
+- No dependent config update path when shared, client, admin, or indexer reads need the address
+- Deployer wallet unfunded
+
+### Post-Broadcast Red Flags (Block Go-Live)
+
+- Required deployed address remains zero or missing in `deployments/{chainId}-latest.json`
+- Required schema UID remains zero or missing in deployment artifacts
+- Indexer config still points at a zero or stale address for newly deployed indexed contracts
+- Generated ABI/config artifacts were not refreshed after deployment metadata changed
+
+### Mainnet Additional Requirements (All Blocking)
+
+- External security audit completed — no unresolved critical/high findings
+- Multisig ownership configured (Gnosis Safe, 3-of-5 minimum)
+- Timelock delay: 48h mainnet, 24h testnet
+- Minimum 2 weeks testnet operation before mainnet
+- Rollback procedures documented and tested
+
+---
 
 ## Testing
 

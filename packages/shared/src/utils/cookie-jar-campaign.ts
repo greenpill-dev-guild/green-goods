@@ -1,0 +1,364 @@
+import { getAddress, isAddress } from "viem";
+import { derivePublicGardenSlug } from "../public-contracts";
+import type { Address } from "../types/domain";
+import type {
+  CampaignCookieJarCampaign,
+  IndexedCampaignCookieJar,
+  CampaignCookieJarMetadata,
+  CampaignCookieJarOperatorAggregation,
+  CampaignCookieJarOperatorSource,
+  CookieJarWithdrawalType,
+} from "../types/cookie-jar";
+
+export const CAMPAIGN_COOKIE_JAR_METADATA_KIND = "green-goods.campaign-cookie-jar";
+const MAX_CAMPAIGN_DESCRIPTION_LENGTH = 480;
+const MAX_CAMPAIGN_METADATA_URL_LENGTH = 2048;
+const ALLOWED_CAMPAIGN_METADATA_PROTOCOLS = new Set(["http:", "https:", "ipfs:"]);
+
+export function normalizeCampaignAddress(value: string): Address | null {
+  const trimmed = value.trim();
+  if (!isAddress(trimmed)) return null;
+  return getAddress(trimmed) as Address;
+}
+
+export function parseCampaignAddressList(input: string): {
+  addresses: Address[];
+  invalidAddresses: string[];
+} {
+  const tokens = input
+    .split(/[\s,;]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+  const addresses: Address[] = [];
+  const invalidAddresses: string[] = [];
+  const seen = new Set<string>();
+
+  for (const token of tokens) {
+    const normalized = normalizeCampaignAddress(token);
+    if (!normalized) {
+      invalidAddresses.push(token);
+      continue;
+    }
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    addresses.push(normalized);
+  }
+
+  return { addresses, invalidAddresses };
+}
+
+function dedupeAddresses(addresses: readonly Address[]): Address[] {
+  const seen = new Set<string>();
+  const result: Address[] = [];
+  for (const address of addresses) {
+    const normalized = normalizeCampaignAddress(address);
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(normalized);
+  }
+  return result;
+}
+
+function normalizeOptionalMetadataText(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, maxLength);
+}
+
+export function normalizeCampaignMetadataUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > MAX_CAMPAIGN_METADATA_URL_LENGTH) return undefined;
+
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return ALLOWED_CAMPAIGN_METADATA_PROTOCOLS.has(parsed.protocol) ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export interface CampaignGardenOperatorInput {
+  id: string;
+  name: string;
+  operators?: readonly Address[];
+}
+
+export function aggregateCampaignCookieJarOperators({
+  gardens,
+  selectedGardenIds,
+  extraAddressesInput = "",
+}: {
+  gardens: readonly CampaignGardenOperatorInput[];
+  selectedGardenIds: readonly string[];
+  extraAddressesInput?: string;
+}): CampaignCookieJarOperatorAggregation {
+  const selectedKeys = new Set(selectedGardenIds.map((id) => id.toLowerCase()));
+  const { addresses: extraAllowlist, invalidAddresses } =
+    parseCampaignAddressList(extraAddressesInput);
+  const sources: CampaignCookieJarOperatorSource[] = gardens
+    .filter((garden) => selectedKeys.has(garden.id.toLowerCase()))
+    .map((garden) => {
+      const operators = dedupeAddresses(garden.operators ?? []);
+      return {
+        gardenAddress: normalizeCampaignAddress(garden.id) ?? (garden.id as Address),
+        gardenName: garden.name,
+        gardenSlug: derivePublicGardenSlug(garden.name, garden.id),
+        operators,
+        selectedOperator: operators[0] ?? null,
+      };
+    });
+
+  const operatorAllowlist = sources
+    .map((source) => source.selectedOperator)
+    .filter((address): address is Address => Boolean(address));
+  const allowlist = dedupeAddresses([...operatorAllowlist, ...extraAllowlist]);
+
+  return {
+    allowlist,
+    invalidAddresses,
+    sources,
+    missingOperatorGardens: sources.filter((source) => source.selectedOperator === null),
+    extraAllowlist,
+  };
+}
+
+export function buildCampaignCookieJarMetadata(params: {
+  title: string;
+  slug: string;
+  description?: string;
+  image?: string;
+  externalUrl?: string;
+  sourceGardens: readonly Address[];
+  extraAllowlist: readonly Address[];
+  chainId: number;
+  createdAt?: number;
+}): CampaignCookieJarMetadata {
+  const description = normalizeOptionalMetadataText(
+    params.description,
+    MAX_CAMPAIGN_DESCRIPTION_LENGTH
+  );
+  const image = normalizeCampaignMetadataUrl(params.image);
+  const externalUrl = normalizeCampaignMetadataUrl(params.externalUrl);
+
+  return {
+    kind: CAMPAIGN_COOKIE_JAR_METADATA_KIND,
+    version: 1,
+    title: params.title.trim(),
+    slug: params.slug.trim(),
+    ...(description ? { description } : {}),
+    ...(image ? { image } : {}),
+    ...(externalUrl ? { externalUrl } : {}),
+    sourceGardens: dedupeAddresses(params.sourceGardens),
+    operatorPolicy: "one-operator-per-garden",
+    extraAllowlist: dedupeAddresses(params.extraAllowlist),
+    chainId: params.chainId,
+    createdAt: params.createdAt ?? Math.floor(Date.now() / 1000),
+  };
+}
+
+export function deriveCampaignCookieJarClaimState(params: {
+  hasConnectedUser: boolean;
+  isEligible: boolean;
+  isPaused: boolean;
+  withdrawalType: CookieJarWithdrawalType;
+  fixedAmount: bigint;
+  maxWithdrawal: bigint;
+  balance: bigint;
+  oneTimeWithdrawal: boolean;
+  totalWithdrawn: bigint;
+  withdrawalInterval: bigint;
+  lastWithdrawalTime: bigint;
+  now?: number;
+}): { canClaimNow: boolean; nextClaimAt: number | null } {
+  const now = params.now ?? Math.floor(Date.now() / 1000);
+  const nextClaimAt =
+    params.withdrawalInterval > 0n && params.lastWithdrawalTime > 0n
+      ? Number(params.lastWithdrawalTime + params.withdrawalInterval)
+      : null;
+  const cooldownReady = !nextClaimAt || nextClaimAt <= now;
+  const configuredAmountReady =
+    params.withdrawalType === "fixed"
+      ? params.fixedAmount > 0n && params.balance >= params.fixedAmount
+      : params.withdrawalType === "variable"
+        ? params.maxWithdrawal > 0n && params.balance > 0n
+        : false;
+
+  return {
+    canClaimNow:
+      params.hasConnectedUser &&
+      params.isEligible &&
+      !params.isPaused &&
+      configuredAmountReady &&
+      (!params.oneTimeWithdrawal || params.totalWithdrawn === 0n) &&
+      cooldownReady,
+    nextClaimAt: cooldownReady ? null : nextClaimAt,
+  };
+}
+
+export function parseCampaignCookieJarMetadata(
+  raw: string | undefined
+): CampaignCookieJarMetadata | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<CampaignCookieJarMetadata> & {
+      external_url?: unknown;
+    };
+    if (
+      parsed.kind !== CAMPAIGN_COOKIE_JAR_METADATA_KIND ||
+      parsed.version !== 1 ||
+      typeof parsed.slug !== "string" ||
+      typeof parsed.title !== "string"
+    ) {
+      return null;
+    }
+    const slug = parsed.slug.trim();
+    const title = parsed.title.trim();
+    if (!slug || !title) return null;
+    const description = normalizeOptionalMetadataText(
+      parsed.description,
+      MAX_CAMPAIGN_DESCRIPTION_LENGTH
+    );
+    const image = normalizeCampaignMetadataUrl(parsed.image);
+    const externalUrl =
+      normalizeCampaignMetadataUrl(parsed.externalUrl) ??
+      normalizeCampaignMetadataUrl(parsed.external_url);
+
+    return {
+      kind: CAMPAIGN_COOKIE_JAR_METADATA_KIND,
+      version: 1,
+      slug,
+      title,
+      ...(description ? { description } : {}),
+      ...(image ? { image } : {}),
+      ...(externalUrl ? { externalUrl } : {}),
+      sourceGardens: dedupeAddresses((parsed.sourceGardens ?? []) as Address[]),
+      operatorPolicy: "one-operator-per-garden",
+      extraAllowlist: dedupeAddresses((parsed.extraAllowlist ?? []) as Address[]),
+      chainId: Number(parsed.chainId ?? 0),
+      createdAt: Number(parsed.createdAt ?? 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function buildCampaignCookieJarCampaigns(params: {
+  indexedJars: readonly IndexedCampaignCookieJar[];
+  trustedCreators: readonly Address[];
+  metadataByJarAddress?: Readonly<Record<string, string | undefined>>;
+}): CampaignCookieJarCampaign[] {
+  const trusted = new Set(params.trustedCreators.map((address) => address.toLowerCase()));
+  const seen = new Set<string>();
+  const campaigns: CampaignCookieJarCampaign[] = [];
+
+  for (const indexedJar of params.indexedJars) {
+    const jarAddress = normalizeCampaignAddress(indexedJar.jarAddress);
+    const creator = normalizeCampaignAddress(indexedJar.creator);
+    if (!jarAddress || !creator || !trusted.has(creator.toLowerCase())) continue;
+
+    const jarKey = jarAddress.toLowerCase();
+    if (seen.has(jarKey)) continue;
+
+    const rawMetadata =
+      params.metadataByJarAddress?.[jarKey] ??
+      params.metadataByJarAddress?.[jarAddress] ??
+      indexedJar.rawMetadata;
+    const metadata = parseCampaignCookieJarMetadata(rawMetadata);
+    if (!metadata) continue;
+    if (metadata.chainId && metadata.chainId !== indexedJar.chainId) continue;
+
+    seen.add(jarKey);
+    campaigns.push({
+      address: jarAddress,
+      jarAddress,
+      slug: metadata.slug,
+      label: metadata.title,
+      title: metadata.title,
+      metadata,
+      rawMetadata,
+      creator,
+      createdAt: indexedJar.createdAt,
+      source: "indexed",
+    });
+  }
+
+  return campaigns;
+}
+
+function parseFallbackCampaignEntry(
+  slug: string,
+  value: unknown
+): CampaignCookieJarCampaign | null {
+  if (typeof value !== "string") return null;
+  const segments = value.split(":");
+  const address = normalizeCampaignAddress(segments[0] ?? "");
+  if (!address) return null;
+  const label = segments.slice(1).join(":").trim() || slug.replace(/[-_]/g, " ");
+
+  return {
+    address,
+    jarAddress: address,
+    slug,
+    label,
+    title: label,
+    metadata: null,
+    rawMetadata: "",
+    source: "fallback",
+  };
+}
+
+export function parseCampaignCookieJarFallbacks(
+  raw: string | undefined
+): CampaignCookieJarCampaign[] {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((entry, index) => parseFallbackCampaignEntry(`jar-${index + 1}`, entry))
+        .filter((entry): entry is CampaignCookieJarCampaign => Boolean(entry));
+    }
+    if (parsed && typeof parsed === "object") {
+      return Object.entries(parsed as Record<string, unknown>)
+        .map(([slug, value]) => parseFallbackCampaignEntry(slug, value))
+        .filter((entry): entry is CampaignCookieJarCampaign => Boolean(entry));
+    }
+  } catch {
+    return raw
+      .split(",")
+      .map((entry, index) => parseFallbackCampaignEntry(`jar-${index + 1}`, entry.trim()))
+      .filter((entry): entry is CampaignCookieJarCampaign => Boolean(entry));
+  }
+
+  return [];
+}
+
+export function diffCampaignCookieJarAllowlist({
+  current,
+  desired,
+}: {
+  current: readonly Address[];
+  desired: readonly Address[];
+}) {
+  const currentMap = new Map(current.map((address) => [address.toLowerCase(), address]));
+  const desiredMap = new Map(desired.map((address) => [address.toLowerCase(), address]));
+
+  return {
+    grant: Array.from(desiredMap.entries())
+      .filter(([key]) => !currentMap.has(key))
+      .map(([, address]) => address),
+    revoke: Array.from(currentMap.entries())
+      .filter(([key]) => !desiredMap.has(key))
+      .map(([, address]) => address),
+  };
+}

@@ -1,0 +1,66 @@
+---
+title: Protocol Economics Explorer
+sidebar_label: Economics Explorer
+slug: /builders/specs/revenue-explorer
+audience: developer
+owner: docs
+last_verified: 2026-04-03
+feature_status: Live
+source_of_truth:
+  - docs/src/components/docs/ProtocolRevenueExplorer.tsx
+  - docs/src/components/docs/protocolRevenueModel.ts
+  - docs/src/components/docs/protocolRevenueModel.test.ts
+  - docs/docs/builders/specs/v1-0.mdx
+keywords:
+  - revenue
+  - pricing
+  - sustainability
+  - protocol fees
+  - endowment
+  - revnet
+  - business model
+  - expenses
+  - runway
+  - token upside
+  - compensation
+---
+
+import BrowserOnly from "@docusaurus/BrowserOnly";
+import {FeatureState, NextBestAction, QuickAnswer, StatusBadge, ProtocolRevenueExplorer} from "@site/src/components/docs";
+
+# Protocol Economics Explorer
+
+<StatusBadge status="Live" />
+
+Model revenue, expenses, treasury runway, retro compensation, and token upside in one sandbox. See how operator fees, marketplace activity, yield capture, grants, and expenses interact — and what early contributors, operators, and gardeners stand to gain as the protocol scales.
+
+<QuickAnswer question="What is this tool for?">
+Test protocol sustainability: where revenue comes from, what it costs to operate, how long the treasury lasts, and what token allocations are worth at each growth stage. Scenario URLs are shareable.
+</QuickAnswer>
+
+<BrowserOnly>
+  {() => <ProtocolRevenueExplorer />}
+</BrowserOnly>
+
+## How to read the outputs
+
+- **Coverage** shows how much of total expenses is covered by the full revenue mix.
+- **Net margin** is revenue minus expenses — green when positive, red when burning.
+- **Runway** shows how many months the treasury can sustain a negative margin after retro cash obligations.
+- **Required TVL / principal** isolate the capital needed if vault yield or treasury yield alone had to cover all expenses.
+- **Token upside** shows the implied value of contributor, operator, and gardener allocations at each stage, based on your revenue multiple and token supply.
+- **Stage** labels whether the scenario is still bootstrap-heavy, meaningfully hybrid, or approaching protocol scale.
+
+## Notes on defaults
+
+The presets are anchored to the project's existing sustainability framing in the v1.0 specification: 4-8% APY assumptions, an early grant-led launch, and a transition toward capital formation through Hypercerts, Octant Vaults, and Revnets rather than a pure SaaS-only model.
+
+<NextBestAction
+  title="Next: v1.0 specification"
+  why="Review the broader product and sustainability context that informed the preset assumptions in this explorer."
+  actionLabel="Read v1.0"
+  actionHref="/builders/specs/v1-0"
+  alternatives={[
+    {label: "Where We're Headed", href: "/community/where-were-headed"},
+  ]}
+/>

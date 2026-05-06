@@ -5,12 +5,12 @@ import { CCIPReceiver } from "@chainlink/contracts-ccip/contracts/applications/C
 import { Client } from "@chainlink/contracts-ccip/contracts/libraries/Client.sol";
 import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { IENS, IENSResolver, INameWrapper } from "../interfaces/IENS.sol";
+import { ZeroAddress } from "../CommonErrors.sol";
 
 error UnauthorizedSender();
 error UnauthorizedSourceChain();
 error NameTaken();
 error InvalidSlug();
-error ZeroAddress();
 error InvalidAction();
 error OwnerAlreadyHasName(); // Kept for ABI compat — no longer reverted in _ccipReceive path
 error OnlySelf();

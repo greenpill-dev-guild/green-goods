@@ -10,7 +10,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { GARDEN_ROLE_FUNCTIONS, type GardenRole } from "../../utils/blockchain/garden-roles";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 export interface UseHasRoleResult {
   hasRole: boolean;

@@ -67,7 +67,7 @@ vi.mock("../../../hooks/blockchain/useBaseLists", () => ({
   useGardens: () => ({ data: mockGardens.length > 0 ? mockGardens : undefined }),
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   STALE_TIME_MEDIUM: 60_000,
 }));
 

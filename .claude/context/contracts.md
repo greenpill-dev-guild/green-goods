@@ -19,6 +19,16 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 | `bun upgrade:testnet` | Upgrade existing contracts |
 
 > **Build modes:** Use `build`/`build:changed`/`build:target` for local iteration. Use `build:full` for deployment and CI.
+> **Operator defaults:** Use root/package scripts for deploys and upgrades. Arbitrum `contracts:*`
+> wrappers set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, and upgrade scripts that need the
+> current proxy owner use sender `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`.
+> Contract wrappers clear `PINATA_JWT_OP_REF` so media upload credentials do not block contract
+> upgrades. For signal-pool/yield wiring, run the named scripts in order:
+> `bun run contracts:upgrade:signal-pool-yield-wiring:simulate:arbitrum`,
+> `bun run contracts:upgrade:signal-pool-yield-wiring:arbitrum`,
+> `bun run contracts:migrate:vaults:dry:arbitrum`,
+> `bun run contracts:migrate:vaults:arbitrum`,
+> `bun run contracts:verify:post-deploy:arbitrum`.
 
 ## Contents
 - [Architecture](#architecture)
@@ -280,6 +290,11 @@ Before upgrading:
 - [ ] No breaking changes to public API
 
 ## Deployment Pre-Flight
+
+Use phase-aware artifact checks. Before broadcast, zero or missing addresses for a new module are
+**pending broadcast** unless the deploy, initialization, artifact persistence, or dependent config
+update path is missing. After broadcast, required zero/missing deployment addresses, schema UIDs, or
+indexer addresses are blockers until fixed and re-verified.
 
 ```bash
 # Tests passing

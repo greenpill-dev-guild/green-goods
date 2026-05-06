@@ -8,7 +8,7 @@ import { logger } from "../../modules/app/logger";
 import { getTradeHistory } from "../../modules/data/marketplace";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { FractionTrade } from "../../types/hypercerts";
-import { queryKeys, STALE_TIME_MEDIUM } from "../query-keys";
+import { queryKeys, STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 export interface UseTradeHistoryResult {
   trades: FractionTrade[];

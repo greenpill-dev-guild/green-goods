@@ -60,8 +60,8 @@ self.addEventListener("message", (event) => {
     event.waitUntil(
       self.registration.showNotification("ENS Name Active", {
         body: `Your name ${slug}.greengoods.eth is now active!`,
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-72x72.png",
+        icon: "/icon-192.png",
+        badge: "/images/android-icon-72x72.png",
         tag: `ens-complete-${slug}`,
         data: { url: "/profile", slug },
       })

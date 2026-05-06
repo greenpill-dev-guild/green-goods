@@ -4,9 +4,18 @@ sidebar_label: Agent
 slug: /builders/deployments/agent-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-25
 feature_status: Live
-keywords: [agent, Telegram, bot, Fastify, PM2, deployment]
+source_of_truth:
+  - packages/agent/package.json
+  - packages/agent/src/index.ts
+  - packages/agent/src/config.ts
+  - packages/agent/src/api/server.ts
+  - packages/agent/Dockerfile
+  - .env.schema
+  - ecosystem.config.cjs
+  - packages/agent/README.md
+keywords: [agent, Telegram, bot, Hono, deployment]
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -17,53 +26,58 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 ```mermaid
 graph TB
-    Build["bun build\ntsc → dist/"] --> Start["bun start"]
+    Build["bun run build\ntsc → dist/"] --> Start["bun run start"]
 
     subgraph Runtime["Agent Runtime"]
-        Fastify["Fastify\nHTTP + health"]
+        Hono["Hono\nHTTP + health + APIs"]
         Telegraf["Telegraf\nTelegram API"]
         Pino["Pino\nstructured logs"]
     end
 
-    Start -->|PM2| Runtime
+    Start --> Runtime
 
     subgraph Integrations
         TG["Telegram\nwebhooks"]
         Chain["Blockchain\nviem"]
-        IPFS["Storacha\nIPFS uploads"]
+        IPFS["Pinata-backed\nIPFS uploads"]
     end
 
     Runtime --> Integrations
 ```
 
-The agent package (`packages/agent/`) is a Fastify-based bot service that provides Telegram integration for the Green Goods protocol. It handles work submission via chat, blockchain interactions, and IPFS uploads.
+The agent package (`packages/agent/`) is a Hono-based bot and API service that provides Telegram integration for the Green Goods protocol. It handles work submission via chat, blockchain interactions, public browser APIs, and Pinata signed upload URLs.
 
 ## Deployment Checklist
 
 1. Ensure all required environment variables are set in the root `.env` (see [Build Environments](#build-environments))
-2. Build the agent: `cd packages/agent && bun build`
+2. Build the agent: `cd packages/agent && bun run build`
 3. Run tests: `cd packages/agent && bun run test`
-4. Start the compiled output: `cd packages/agent && bun start`
+4. Start the compiled output: `cd packages/agent && bun run start`
 5. Verify Telegram webhook delivery status
-6. Check Fastify health endpoint responds
-7. Monitor process uptime and memory usage via PM2
+6. Check Hono health endpoint responds
+7. Monitor process uptime and memory usage through the selected host or process manager
 8. Confirm blockchain RPC connectivity and error rates in Pino structured logs
 
 ## Build Environments
 
 ### Environment Variables
 
-Key variables required for the agent service:
+Key variables used by the current agent runtime:
 
-| Variable | Purpose |
-|----------|---------|
-| `TELEGRAM_BOT_TOKEN` | Telegram Bot API token |
-| `DEPLOYER_PRIVATE_KEY` | Wallet key for on-chain transactions |
-| `VITE_CHAIN_ID` | Target chain for contract interactions |
-| `VITE_STORACHA_KEY` | Ed25519 principal for IPFS uploads |
-| `VITE_PIMLICO_API_KEY` | Account abstraction bundler/paymaster |
+| Variable | Required when | Purpose |
+|----------|---------------|---------|
+| `TELEGRAM_BOT_TOKEN` | Always | Telegram Bot API token; the agent fails startup if missing. |
+| `ENCRYPTION_SECRET` | Production | Encrypts bot-managed secrets and wallet material; development can derive a fallback with a warning. |
+| `VITE_CHAIN_ID` | Chain selection | Selects the target chain through shared `getDefaultChain()`. |
+| `BOT_MODE` | Optional | `polling` or `webhook`; defaults to `webhook` in production and `polling` in development. |
+| `WEBHOOK_URL` | Webhook mode | Base URL used when registering the Telegram webhook. |
+| `TELEGRAM_WEBHOOK_SECRET` | Production webhook mode | Secret token used to verify Telegram webhook requests. |
+| `BOT_API_TOKEN` | Routine-facing API enabled | Bearer token for protected `/api/*` routes. |
+| `DB_PATH` | Optional | SQLite database path; defaults to `data/agent.db`. |
+| `POSTHOG_AGENT_KEY` | Optional production analytics | Enables agent analytics when production analytics are enabled. |
 
 The agent loads environment variables from the root `.env` file.
+Browser upload flows call the agent for short-lived Pinata signed upload URLs. Set `PINATA_JWT` on the agent host so the signer can create those URLs; keep `VITE_API_BASE_URL` pointed at the deployed agent from browser apps. Script and server uploads can still use `PINATA_JWT` directly. The current agent config does not load `DEPLOYER_PRIVATE_KEY` or `VITE_PIMLICO_API_KEY` as required service variables.
 
 ### API Key Management
 
@@ -71,18 +85,18 @@ Sensitive keys should be managed through environment variables or a secrets mana
 
 - Never commit API keys to the repository
 - Rotate `TELEGRAM_BOT_TOKEN` if compromised
-- `DEPLOYER_PRIVATE_KEY` controls on-chain funds -- use a dedicated bot wallet with limited balance
-- `VITE_STORACHA_KEY` is an ed25519 principal -- generate with Storacha client tooling
+- Use a strong `ENCRYPTION_SECRET`; rotate it if exposed and plan for stored secret recovery before changing it in production
+- Treat `BOT_API_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and media-upload `PINATA_JWT` as production secrets
 
 ### Architecture
 
 The agent runs as a long-lived Node.js/Bun process:
 
-- **Fastify** HTTP server for webhooks and health checks
+- **Hono** HTTP server for webhooks, health checks, public browser APIs, and upload signing
 - **Telegraf** for Telegram bot API interaction
 - **Pino** for structured logging (with `pino-pretty` for development)
 - **viem** for blockchain interactions
-- **@storacha/client** for IPFS uploads
+- **`@green-goods/shared`** for the shared Pinata-backed IPFS upload path
 - **@xenova/transformers** for local ML inference (classification tasks)
 
 ### Testing
@@ -109,8 +123,8 @@ Test utilities in `packages/agent/src/__tests__/utils/` include mock factories a
 
 ```bash
 cd packages/agent
-bun build       # TypeScript compilation
-bun start       # Run compiled output from dist/
+bun run build   # TypeScript compilation
+bun run start   # Run compiled output from dist/
 ```
 
 The build step uses `tsc` to compile TypeScript to the `dist/` directory.
@@ -124,24 +138,27 @@ bun run dev     # Start with --watch for hot reload
 
 ### Process Management
 
-In production, the agent runs under PM2 (configured in the monorepo root):
+The monorepo PM2 config is a local full-stack development convenience. It starts the
+agent in watch mode when `TELEGRAM_BOT_TOKEN` is present and idles the service when the
+token is missing:
 
 ```bash
-bun dev        # Starts all services including agent via PM2
-bun dev:stop   # Stops all PM2 processes
+bun run dev       # Starts all services including agent via PM2
+bun run dev:stop  # Stops all PM2 processes
 ```
 
-For standalone deployment, run the compiled output:
+Do not treat local PM2 as the production deployment contract. For a standalone server or
+container host, build the package and run the compiled output with production env vars:
 
 ```bash
-cd packages/agent && bun start
+cd packages/agent && bun run start
 ```
 
 ### Health Monitoring
 
-The Fastify server exposes health check endpoints. Monitor:
+The Hono server exposes health check endpoints. Monitor:
 
-- Process uptime and memory usage via PM2
+- Process uptime and memory usage through the selected host or process manager
 - Telegram webhook delivery status
 - Blockchain RPC connectivity
 - Error rates in Pino structured logs
@@ -157,7 +174,7 @@ The agent uses `@green-goods/shared` for blockchain interactions, following the 
 
 ## Resources
 
-- **CI Integration**: The `agent-tests.yml` workflow triggers on changes to `packages/agent/**` and runs Vitest tests with lint checks.
+- **CI Integration**: The `agent.yml` workflow triggers on changes to `packages/agent/**`, shared dependencies, and root dependency/config files. It runs Vitest coverage, lint, typecheck, and build.
 
 <NextBestAction
   title="Next: Testing with Foundry"

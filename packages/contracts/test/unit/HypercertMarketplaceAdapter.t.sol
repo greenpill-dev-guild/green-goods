@@ -8,6 +8,7 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
 import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
 import { MockHypercertExchange, MockHypercertMinter } from "../../src/mocks/HypercertExchange.sol";
+import { ArrayLengthMismatch } from "../../src/CommonErrors.sol";
 
 /// @title MockWETH for adapter testing
 contract MockWETH is ERC20 {
@@ -249,7 +250,7 @@ contract HypercertMarketplaceAdapterTest is Test {
         bytes[] memory sigs = new bytes[](1); // Mismatch
         uint256[] memory ids = new uint256[](2);
 
-        vm.expectRevert(HypercertMarketplaceAdapter.ArrayLengthMismatch.selector);
+        vm.expectRevert(ArrayLengthMismatch.selector);
         adapter.batchRegisterOrders(asks, sigs, ids);
     }
 

@@ -324,8 +324,9 @@ contract StorageLayoutTest is Test {
     //         hatsProtocol + hatsModule + gardenCommunities(mapping) +
     //         gardenSignalPools(mapping) + gardenWeightSchemes(mapping) +
     //         gardenInitialized(mapping) + stakeAmountPerMember + requireFullSetup
-    //         + __gap[38]
-    // Total: 12 named + 38 gap = 50
+    //         + alloAddress + communityCouncilSafe + yieldResolver +
+    //         gardenHypercertSignalPools(mapping) + __gap[34]
+    // Total: 16 named + 34 gap = 50
     // =========================================================================
 
     function testGardensModuleStorageSlots() public {
@@ -346,19 +347,23 @@ contract StorageLayoutTest is Test {
 
         // Set and verify additional slots
         module.setGardenToken(address(0xAA));
+        module.setYieldResolver(address(0xBB));
         assertEq(module.gardenToken(), address(0xAA), "gardenToken should match");
+        assertEq(module.yieldResolver(), address(0xBB), "yieldResolver should match");
     }
 
-    /// @notice Verify GardensModule gap is exactly 38 slots
+    /// @notice Verify GardensModule gap is exactly 34 slots
     function testGardensModuleGapSize() public {
         // Named storage: gardenToken + registryFactory + powerRegistry + goodsToken +
         //   hatsProtocol + hatsModule + gardenCommunities(mapping) +
         //   gardenSignalPools(mapping) + gardenWeightSchemes(mapping) +
-        //   gardenInitialized(mapping) + stakeAmountPerMember + requireFullSetup = 12 slots
-        // Gap = 38
-        // Total = 12 + 38 = 50
-        uint256 expectedNamedSlots = 12;
-        uint256 expectedGapSize = 38;
+        //   gardenInitialized(mapping) + stakeAmountPerMember + requireFullSetup +
+        //   alloAddress + communityCouncilSafe + yieldResolver +
+        //   gardenHypercertSignalPools(mapping) = 16 slots
+        // Gap = 34
+        // Total = 16 + 34 = 50
+        uint256 expectedNamedSlots = 16;
+        uint256 expectedGapSize = 34;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "GardensModule should use exactly 50 custom slots");
     }
@@ -379,6 +384,7 @@ contract StorageLayoutTest is Test {
 
         // Set state
         module.setGardenToken(address(0xAA));
+        module.setYieldResolver(address(0xBB));
 
         // Upgrade to new implementation
         GardensModule newImpl = new GardensModule();
@@ -386,6 +392,7 @@ contract StorageLayoutTest is Test {
 
         // Verify state preserved
         assertEq(module.gardenToken(), address(0xAA), "gardenToken should survive upgrade");
+        assertEq(module.yieldResolver(), address(0xBB), "yieldResolver should survive upgrade");
         assertEq(module.owner(), address(this), "owner should survive upgrade");
     }
 
@@ -452,8 +459,10 @@ contract StorageLayoutTest is Test {
     //         juiceboxProjectId + minYieldThreshold + minAllocationAmount +
     //         hatsModule + gardenSplitConfig(mapping) + gardenCookieJars(mapping) +
     //         gardenTreasuries(mapping) + pendingYield(mapping) + gardenVaults(mapping)
-    //         + __gap[38]
-    // Total: 12 named + 38 gap = 50
+    //         + gardenShares(mapping) + cookieJarModule + escrowedFractions(mapping) +
+    //         totalRegisteredShares(mapping) + gardenHypercertPools(mapping) +
+    //         assetYieldThresholds(mapping) + gardensModule + __gap[31]
+    // Total: 19 named + 31 gap = 50
     // =========================================================================
 
     function testYieldResolverStorageSlots() public {
@@ -474,17 +483,19 @@ contract StorageLayoutTest is Test {
         assertEq(splitter.minYieldThreshold(), 7e18, "minYieldThreshold should match");
     }
 
-    /// @notice Verify YieldResolver gap is exactly 37 slots
+    /// @notice Verify YieldResolver gap is exactly 31 slots
     function testYieldResolverGapSize() public {
         // Named storage: octantModule + hypercertMarketplace + jbMultiTerminal +
         //   juiceboxProjectId + minYieldThreshold + minAllocationAmount +
         //   hatsModule + gardenSplitConfig(mapping) + gardenCookieJars(mapping) +
         //   gardenTreasuries(mapping) + pendingYield(mapping) + gardenVaults(mapping) +
-        //   gardenShares(mapping) = 13 slots
-        // Gap = 37
-        // Total = 13 + 37 = 50
-        uint256 expectedNamedSlots = 13;
-        uint256 expectedGapSize = 37;
+        //   gardenShares(mapping) + cookieJarModule + escrowedFractions(mapping) +
+        //   totalRegisteredShares(mapping) + gardenHypercertPools(mapping) +
+        //   assetYieldThresholds(mapping) + gardensModule = 19 slots
+        // Gap = 31
+        // Total = 19 + 31 = 50
+        uint256 expectedNamedSlots = 19;
+        uint256 expectedGapSize = 31;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "YieldResolver should use exactly 50 custom slots");
     }
@@ -503,6 +514,7 @@ contract StorageLayoutTest is Test {
 
         // Verify initial state
         assertEq(splitter.octantModule(), address(0x11), "octantModule should match");
+        splitter.setGardensModule(address(0x33));
 
         // Upgrade to new implementation
         YieldResolver newImpl = new YieldResolver();
@@ -511,6 +523,7 @@ contract StorageLayoutTest is Test {
         // Verify state preserved
         assertEq(splitter.octantModule(), address(0x11), "octantModule should survive upgrade");
         assertEq(address(splitter.hatsModule()), address(0x22), "hatsModule should survive upgrade");
+        assertEq(splitter.gardensModule(), address(0x33), "gardensModule should survive upgrade");
         assertEq(splitter.minYieldThreshold(), 7e18, "minYieldThreshold should survive upgrade");
         assertEq(splitter.owner(), address(this), "owner should survive upgrade");
     }

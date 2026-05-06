@@ -38,7 +38,7 @@ vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
-// Mock IPFS (Storacha)
+// Mock IPFS
 vi.mock("../../modules/data/ipfs", () => ({
   resolveIPFSUrl: mockResolveIPFSUrl,
   getFileByHash: mockGetFileByHash,
@@ -195,9 +195,6 @@ describe("modules/data/greengoods", () => {
     });
 
     it("joins GardenDomains to gardens regardless of address casing", async () => {
-      // Garden.id is the checksummed account address from the indexer's
-      // GardenMinted handler, while GardenDomains.garden is normalized to
-      // lowercase. The lookup must be case-insensitive or domainMask reads as 0.
       const checksummed = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
 
       mockQuery.mockResolvedValue({

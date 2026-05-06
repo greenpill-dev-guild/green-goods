@@ -208,11 +208,6 @@ export interface WorkDraftRecord {
   updatedAt: number;
 }
 
-/**
- * @deprecated Use WorkDraftRecord instead. Kept for backward compatibility.
- */
-export type WorkDraft = WorkDraftRecord;
-
 export interface DraftImage {
   id: string;
   draftId: string;

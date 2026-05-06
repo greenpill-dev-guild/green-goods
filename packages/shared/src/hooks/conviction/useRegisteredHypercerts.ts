@@ -3,7 +3,7 @@ import { getRegisteredHypercertsFromSubgraph } from "../../modules/data/gardens"
 import type { Address } from "../../types/domain";
 import { normalizeAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { queryKeys, STALE_TIME_SLOW } from "../query-keys";
+import { queryKeys, STALE_TIME_SLOW } from "../../config/query-keys";
 
 interface UseRegisteredHypercertsOptions {
   enabled?: boolean;

@@ -33,7 +33,7 @@ vi.mock("../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
 }));
 
-// Mock IPFS (Storacha)
+// Mock IPFS
 vi.mock("../../modules/data/ipfs", () => ({
   resolveIPFSUrl: vi.fn((cid) => `https://ipfs.io/ipfs/${cid}`),
   getFileByHash: vi.fn(async () => ({ data: new Blob(["x"]) })),

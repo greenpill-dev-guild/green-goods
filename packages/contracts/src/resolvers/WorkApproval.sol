@@ -12,14 +12,12 @@ import { IERC6551Account } from "../interfaces/IERC6551Account.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
 import { ActionRegistry } from "../registries/Action.sol";
 import { NotInActionRegistry } from "./Work.sol";
+import { NotGardenOperator, InvalidSchema } from "../CommonErrors.sol";
 
 error NotInWorkRegistry();
-error NotGardenOperator();
 error InvalidConfidence();
 error InvalidVerificationMethod();
 error ActionMismatch();
-/// @notice Thrown when attestation uses wrong schema UID
-error InvalidSchema();
 /// @notice Thrown when the action has expired (endTime < block.timestamp)
 error ActionExpired();
 /// @notice Thrown when approver is the same address as work submitter (no self-attestation)

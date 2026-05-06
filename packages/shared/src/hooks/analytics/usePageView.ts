@@ -68,7 +68,7 @@ export function usePageView(options: UsePageViewOptions) {
       path: pathname,
       // Sanitize search params (remove sensitive data)
       search: sanitizeSearch(search),
-      hash: hash || undefined,
+      hash: sanitizeHash(hash),
       // Include referrer for initial pageview
       referrer: isInitialRef.current ? document.referrer || undefined : undefined,
       is_initial: isInitialRef.current,
@@ -80,6 +80,32 @@ export function usePageView(options: UsePageViewOptions) {
   }, [location, app, trackInitial, excludePaths]);
 }
 
+function sanitizeHash(hash: string): string | undefined {
+  if (!hash) return undefined;
+  const raw = hash.startsWith("#") ? hash.slice(1) : hash;
+  if (!raw.includes("=")) return hash;
+
+  const sensitiveParams = getSensitiveParams();
+
+  try {
+    const params = new URLSearchParams(raw);
+    const sanitized = new URLSearchParams();
+
+    params.forEach((value, key) => {
+      if (sensitiveParams.has(key.toLowerCase())) {
+        sanitized.set(key, "[REDACTED]");
+      } else {
+        sanitized.set(key, value);
+      }
+    });
+
+    const result = sanitized.toString();
+    return result ? `#${result}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Sanitize search params to remove potentially sensitive data.
  * Keeps param names but redacts values for known sensitive params.
@@ -87,17 +113,7 @@ export function usePageView(options: UsePageViewOptions) {
 function sanitizeSearch(search: string): string | undefined {
   if (!search) return undefined;
 
-  const SENSITIVE_PARAMS = new Set([
-    "token",
-    "key",
-    "secret",
-    "password",
-    "code",
-    "state",
-    "nonce",
-    "signature",
-    "sig",
-  ]);
+  const SENSITIVE_PARAMS = getSensitiveParams();
 
   try {
     const params = new URLSearchParams(search);
@@ -118,4 +134,19 @@ function sanitizeSearch(search: string): string | undefined {
     // If parsing fails, don't include search
     return undefined;
   }
+}
+
+function getSensitiveParams(): Set<string> {
+  return new Set([
+    "token",
+    "receipttoken",
+    "key",
+    "secret",
+    "password",
+    "code",
+    "state",
+    "nonce",
+    "signature",
+    "sig",
+  ]);
 }

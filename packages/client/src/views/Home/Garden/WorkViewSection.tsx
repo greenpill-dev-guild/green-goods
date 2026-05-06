@@ -199,12 +199,12 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailed",
-          defaultMessage: "Upload Failed",
+          defaultMessage: "Sending didn't work",
         });
       }
       return intl.formatMessage({
         id: "app.home.work.pendingUploadTitle",
-        defaultMessage: "Pending Upload",
+        defaultMessage: "Saved on your device",
       });
     }
 
@@ -252,18 +252,19 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       if (effectiveStatus === "sync_failed") {
         return intl.formatMessage({
           id: "app.home.work.syncFailedInfo",
-          defaultMessage: "This work could not be uploaded. Please retry when connected.",
+          defaultMessage: "We couldn't send this just now. We'll keep trying when you're online.",
         });
       }
       if (effectiveStatus === "syncing" || effectiveStatus === "uploading") {
         return intl.formatMessage({
           id: "app.home.work.syncingInfo",
-          defaultMessage: "This work is being uploaded to the blockchain.",
+          defaultMessage: "Sending to the garden record...",
         });
       }
       return intl.formatMessage({
         id: "app.home.work.offlineInfo",
-        defaultMessage: "This work is saved locally and will be uploaded when connected.",
+        defaultMessage:
+          "Saved on your device — we'll send it to the garden record when you're online.",
       });
     }
 
@@ -322,7 +323,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       onClick: onDownloadData,
       icon: <RiDownloadLine className="w-6 h-6" />,
       className:
-        "!bg-bg-white-0 !border-2 !border-[#3E8E4E] !text-[#3E8E4E] hover:!bg-[#3E8E4E]/5 !outline-none",
+        "!bg-bg-white-0 !border-2 !border-primary-base !text-primary-base hover:!bg-primary-alpha-10 !outline-none",
     },
     ...(media && media.length > 0 && onDownloadMedia
       ? [
@@ -335,7 +336,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             onClick: onDownloadMedia,
             icon: <RiDownloadLine className="w-6 h-6" />,
             className:
-              "!bg-bg-white-0 !border-2 !border-[#FF7533] !text-[#FF7533] hover:!bg-[#FF7533]/5 !outline-none",
+              "!bg-bg-white-0 !border-2 !border-warning-base !text-warning-dark hover:!bg-warning-lighter !outline-none",
           },
         ]
       : []),
@@ -345,7 +346,7 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
       onClick: onShare,
       icon: <RiShareLine className="w-6 h-6" />,
       className:
-        "!bg-bg-white-0 !border-2 !border-[#D28560] !text-[#D28560] hover:!bg-[#D28560]/5 !outline-none",
+        "!bg-bg-white-0 !border-2 !border-warning-dark !text-warning-dark hover:!bg-warning-lighter !outline-none",
     },
     ...(onViewAttestation
       ? [
@@ -353,12 +354,12 @@ export const WorkViewSection: React.FC<WorkViewSectionProps> = ({
             id: "view-attestation",
             label: intl.formatMessage({
               id: "app.home.work.viewAttestation",
-              defaultMessage: "View Attestation",
+              defaultMessage: "View certificate",
             }),
             onClick: onViewAttestation,
             icon: <RiExternalLinkLine className="w-6 h-6" />,
             className:
-              "!bg-bg-white-0 !border-2 !border-[#6EE0F7] !text-[#6EE0F7] hover:!bg-[#6EE0F7]/5 !outline-none",
+              "!bg-bg-white-0 !border-2 !border-verified-base !text-verified-dark hover:!bg-verified-lighter !outline-none",
           },
         ]
       : []),

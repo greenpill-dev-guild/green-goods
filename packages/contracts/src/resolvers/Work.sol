@@ -9,6 +9,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { WorkSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { ActionRegistry } from "../registries/Action.sol";
+import { InvalidSchema } from "../CommonErrors.sol";
 
 error NotActiveAction();
 /// @notice Thrown when the action's domain is not enabled for the target garden
@@ -20,8 +21,6 @@ error NotGardenMember();
 error NotInActionRegistry();
 /// @notice Thrown when work title is empty
 error TitleRequired();
-/// @notice Thrown when attestation uses wrong schema UID
-error InvalidSchema();
 
 /// @title WorkResolver
 /// @notice A schema resolver for the Actions event schema

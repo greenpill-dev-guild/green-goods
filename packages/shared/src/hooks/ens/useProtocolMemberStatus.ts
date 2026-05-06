@@ -18,11 +18,11 @@ import {
   getNetworkContracts,
   HatsABI,
 } from "../../utils/blockchain/contracts";
-import { queryKeys, STALE_TIME_RARE } from "../query-keys";
+import { queryKeys, STALE_TIME_RARE } from "../../config/query-keys";
 
 export function useProtocolMemberStatus(address: Address | undefined) {
   const contracts = getNetworkContracts(DEFAULT_CHAIN_ID);
-  const ensAddress = contracts.greenGoodsENS as Address;
+  const ensAddress = contracts.greenGoodsENS;
 
   return useQuery<boolean>({
     queryKey: queryKeys.ens.protocolMembership(address ?? ""),

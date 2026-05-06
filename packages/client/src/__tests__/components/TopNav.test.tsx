@@ -17,6 +17,7 @@ vi.mock("@green-goods/shared", () => ({
     isOnline: true,
   })),
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  useFocusTrap: vi.fn(),
   useTimeout: vi.fn(() => ({
     set: vi.fn(),
     clear: vi.fn(),

@@ -215,6 +215,70 @@ type HypercertClaim {
   txHash: String!
 }
 
+type GreenWillBadgeDefinition {
+  id: ID! # chainId-badgeId
+  chainId: Int!
+  badgeId: String!
+  slug: String!
+  metadataURI: String!
+  validator: String # Legacy field name; stores the onchain source contract for eligibility checks.
+  authorizedIssuer: String
+  unlockLock: String
+  claimable: Boolean!
+  active: Boolean!
+  holderCount: Int!
+  grantCount: Int!
+  updatedAt: Int!
+}
+
+type GreenWillBadgeGrant {
+  id: ID! # chainId-txHash-logIndex
+  chainId: Int!
+  badgeId: String!
+  owner: String!
+  sourceRef: String!
+  issuer: String!
+  unlockTokenId: BigInt!
+  txHash: String!
+  timestamp: Int!
+}
+
+type GreenWillBadgeOwnership {
+  id: ID! # chainId-badgeId-owner
+  chainId: Int!
+  badgeId: String!
+  owner: String!
+  sourceRef: String!
+  issuer: String!
+  unlockTokenId: BigInt!
+  issuedAt: Int!
+  definitionId: String!
+  lastGrantId: String!
+}
+
+type CampaignCookieJar {
+  id: ID! # chainId-jarAddress
+  chainId: Int!
+  factoryAddress: String! # CookieJarFactory address
+  jarAddress: String! # CookieJar address
+  creator: String! # Factory caller
+  rawMetadata: String!
+  metadataKind: String
+  metadataVersion: Int
+  slug: String
+  title: String
+  description: String
+  image: String
+  externalUrl: String
+  sourceGardens: [String!]!
+  operatorPolicy: String
+  extraAllowlist: [String!]!
+  isValidCampaign: Boolean!
+  createdAt: Int!
+  metadataUpdatedAt: Int!
+  txHash: String!
+}
+
 # =============================================================================
 # EAS Attestation Data (NOT indexed here)
 # =============================================================================

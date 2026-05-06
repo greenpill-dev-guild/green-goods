@@ -1,0 +1,365 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "admin-design-revamp",
+    "title": "Admin Design Revamp",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-05-02",
+    "updated_at": "2026-05-05T03:50:00.000Z",
+    "target_date": "2026-05-16"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "audit": "../../../docs/admin-revamp/audit.md",
+    "handoff_bundle": "../../../design_handoff_admin-revamp/",
+    "upstream_brief_set": "../../backlog/admin-claude-design-export/"
+  },
+  "linear": {
+    "syncDirection": "plans_only",
+    "lastSyncedAt": null
+  },
+  "notes": [
+    "Six-tier execution of the admin design handoff bundle (design_handoff_admin-revamp/).",
+    "Tiers 0–5 landed in a single delivery window (2026-05-02 / 2026-05-03); cleanup tier collects deferreds.",
+    "Audit at docs/admin-revamp/audit.md is the canonical decisions log — every tier commit references its findings.",
+    "Cross-agent coordination contract for signal-pool-yield-wiring landed 2026-05-03 inside their plan.todo.md.",
+    "Promoted to formal .plans/active/ tracking 2026-05-03 after the audit-then-ship Tier 5 pass surfaced multi-agent coordination needs that informal tracking couldn't carry.",
+    "Standard lanes were normalized 2026-05-04 without erasing the Tier 0-5 history; cleanup remains the next actionable lane before QA."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "claude/ui/admin-design-revamp",
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "Standard lane summary for completed Tier 1-5 admin/shared UI work. Historical tier detail remains in tier_1_tokens through tier_5_wiring.",
+      "skill_tags": ["ui", "react", "review"],
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "bun run build",
+          "evidence": "plan.todo.md records Tier 5 build PASS; no RED/GREEN UI TDD was recorded for the historical tier delivery."
+        },
+        "note": "Tiers 1-5 were completed as visual and structural admin/shared work with lint, Storybook, and build evidence. Do not invent historical RED/GREEN evidence; cleanup owns the deferred test coverage."
+      }
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/admin-design-revamp",
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "Standard lane summary for completed Tier 5 conviction adapter hooks and pure utility wiring. Cleanup A1-A3 owns the missing math/hook test proof.",
+      "skill_tags": ["react", "data-layer", "testing"],
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "bun run build",
+          "evidence": "plan.todo.md records Tier 5 build PASS and test suite PARTIAL due to 21 pre-existing client-homepage failures; A1-A3 remain open for targeted conviction utility/hook tests."
+        },
+        "note": "Tier 5 adapter code was completed without recorded RED/GREEN proof. The cleanup lane must add the targeted conviction tests before QA can pass."
+      }
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/admin-design-revamp",
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "No contract lane was part of the admin design revamp.",
+      "skill_tags": ["contracts"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contracts were changed for this plan."
+      }
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "ready",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/admin-design-revamp",
+      "depends_on": ["ui", "state_api", "contracts", "cleanup"],
+      "handoff": "handoffs/claude-cleanup.md",
+      "handoff_note": "Cleanup A1-A6 landed on release/1.1.0 (commits 8405bce1, 6b9faa65, 47c4de59, 49d61acf, ec6c89c0); B1-B3 deferred with concrete blockers. QA needs to (1) live-verify the A4/A5/A6 admin UI changes via Chrome MCP since the cleanup pass could not reach the dev server during a concurrent vite.config edit, (2) confirm the deferred B1-B3 items are filed as backlog plans before merge, (3) run the full test + build ladder against this branch.",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/admin-design-revamp",
+      "branch_trigger": "claude/qa-pass-1/admin-design-revamp",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/claude-cleanup.md",
+      "handoff_note": "Second QA pass waits for qa_pass_1 to land and signal via branch trigger.",
+      "skill_tags": ["testing", "review"]
+    },
+    "tier_0_audit": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": [],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "Read-only audit + decisions log. 581-line doc at docs/admin-revamp/audit.md.",
+      "skill_tags": ["audit", "review"],
+      "tdd": {
+        "mode": "not_required",
+        "status": "n/a",
+        "note": "Read-only investigation lane."
+      }
+    },
+    "tier_1_tokens": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": ["tier_0_audit"],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "Three sub-PRs in one commit: additive Warm-Earth tokens, status palette admin-scoped remap, workspace→tone unification across 18 files.",
+      "skill_tags": ["design", "ui", "tokens"],
+      "tdd": {
+        "mode": "deferred",
+        "status": "n/a",
+        "note": "Visual + structural changes — verified via lint + Storybook reference page (AdminRevampTokens.stories.tsx). Vitest coverage for the conviction utilities deferred to cleanup A1/A2."
+      }
+    },
+    "tier_2_atoms": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": ["tier_1_tokens"],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "Five atom/molecule additions: PageHeader.eyebrow, MetaStrip.density, AdminTabRail tone underline, StatusBadge convictionStatus, NavigationBar FAB responsive.",
+      "skill_tags": ["ui", "react"],
+      "tdd": {
+        "mode": "deferred",
+        "status": "n/a",
+        "note": "Backward-compatible additive changes — verified via existing Storybook stories + lint."
+      }
+    },
+    "tier_3_organisms": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": ["tier_2_atoms"],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "Three net-new conviction-voting components + view-model types in packages/shared/src/components/Conviction/. Storybook coverage across 16 stories.",
+      "skill_tags": ["ui", "react"],
+      "tdd": {
+        "mode": "deferred",
+        "status": "n/a",
+        "note": "Visual components — verified via Storybook isolation. Pure utility tests deferred to cleanup A1/A2."
+      }
+    },
+    "tier_4_screens": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": ["tier_3_organisms"],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "Hub eyebrow + Actions eyebrow + Garden tabs restructure (drop Impact, add Activity/Members) + Community Members→People rename + MetaStrip Rule-17 demote. Legacy /garden/impact/* routes retained.",
+      "skill_tags": ["ui", "react", "ia"],
+      "tdd": {
+        "mode": "deferred",
+        "status": "n/a",
+        "note": "Structural recompose — verified via lint + manual smoke. Garden.stories.tsx Impact→Activity/Members renamed."
+      }
+    },
+    "tier_5_wiring": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "develop",
+      "depends_on": ["tier_3_organisms", "tier_4_screens"],
+      "handoff": "handoffs/README.md",
+      "handoff_note": "Garden Members roster (real data) + conviction adapter hooks (useConvictionProposalsForPool, useConvictionWeightAllocator) + GovernancePanel mount in Community → Governance. 12-finding audit-then-ship pass × architecture lens, all addressed.",
+      "skill_tags": ["ui", "react", "data-layer"],
+      "tdd": {
+        "mode": "required",
+        "status": "deferred_to_cleanup",
+        "note": "Adapter math is silently-wrong-vote territory. Vitest + integration coverage deferred to cleanup A1/A2/A3 (reasoning recorded in commit a8586c26)."
+      }
+    },
+    "cleanup": {
+      "owner": "claude",
+      "status": "in_progress",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "release/1.1.0",
+      "depends_on": ["ui", "state_api", "contracts", "tier_5_wiring"],
+      "handoff": "handoffs/claude-cleanup.md",
+      "handoff_note": "A1–A6 landed on release/1.1.0; B1–B3 deferred with concrete blockers documented (no on-chain memberCount, no per-member breakdown, no threshold getter); C1 deferred. signal-pool-yield-wiring completed 2026-05-03 lifted the gate but did not ship the underlying data sources.",
+      "skill_tags": ["testing", "ui", "react"],
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "cd packages/shared && bun run test -- src/__tests__/utils/conviction/",
+          "evidence": "No test files found, exiting with code 1 (verified 2026-05-04 before A1/A2 landed)."
+        },
+        "green": {
+          "command": "cd packages/shared && bun run test -- src/__tests__/utils/conviction/ src/__tests__/hooks/conviction/useConvictionWeightAllocator.test.tsx",
+          "evidence": "3 test files, 61 tests passed, 0 failures (verified 2026-05-04 after format/lint clean)."
+        },
+        "note": "A1 percent-points + A2 derivation + A3 useConvictionWeightAllocator round-trip = the three test artifacts that make the cleanup lane green. A4–A6 follow-ups remain open but are visual/UX polish, not release-critical math correctness."
+      }
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-02T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "tier_0_audit",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Tier 0 audit landed. 581-line decisions log at docs/admin-revamp/audit.md. Anchored in commit c228fa12."
+    },
+    {
+      "timestamp": "2026-05-02T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "tier_1_tokens",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Three sub-PRs landed in commit c228fa12 feat(admin,shared): admin design tokens + tone unification (Tier 1). 28 files, 1228+ insertions."
+    },
+    {
+      "timestamp": "2026-05-02T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "tier_2_atoms",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Five atom/molecule additions in commit bfa0d28b feat(admin,shared): atoms + molecules for design handoff (Tier 2). 5 files, 192 insertions."
+    },
+    {
+      "timestamp": "2026-05-02T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "tier_3_organisms",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Conviction-voting organisms + types in commit 822499d1 feat(shared): conviction-voting organisms (Tier 3). 11 files, 815 insertions."
+    },
+    {
+      "timestamp": "2026-05-02T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "tier_4_screens",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Screen recompose + IA changes in commit 48d09470 feat(admin,shared): screen recompose with locked IA (Tier 4). 9 files, 123/70."
+    },
+    {
+      "timestamp": "2026-05-03T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "tier_5_wiring",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Garden Members roster in commit 1b054239 + audit-then-ship conviction wiring (12 findings × architecture lens, all 12 addressed) in commit a8586c26."
+    },
+    {
+      "timestamp": "2026-05-03T20:30:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "coordination_published",
+      "branch": null,
+      "note": "Coordination contract for signal-pool-yield-wiring/ui lane published into their plan.todo.md (\"Coordination — Tier 5 Conviction Wiring\" section) + handoffs/claude-ui.md \"Read first\" callout."
+    },
+    {
+      "timestamp": "2026-05-03T21:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "promoted_to_formal_tracking",
+      "branch": null,
+      "note": "Promoted from informal tracking (audit doc + commit messages + local plan file) to formal .plans/active/admin-design-revamp/ skeleton (brief, spec, plan.todo, status, eval, handoffs/README, handoffs/claude-cleanup). Tiers 0–5 marked completed with commit anchors; cleanup lane ready."
+    },
+    {
+      "timestamp": "2026-05-04T22:39:09.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "metadata_normalized",
+      "branch": "release/1.1.0",
+      "note": "Added standard ui/state_api/contracts/qa_pass_1/qa_pass_2 lanes with validated taxonomy while preserving Tier 0-5 historical lane records. QA stays blocked on cleanup."
+    },
+    {
+      "timestamp": "2026-05-04T23:30:00.000Z",
+      "actor": "claude",
+      "lane": "cleanup",
+      "status": "tdd_recorded",
+      "branch": "release/1.1.0",
+      "note": "A1 percent-points (30 cases) + A2 derivation (20 cases) + A3 useConvictionWeightAllocator (11 cases) landed with RED→GREEN proof. 3 files / 61 tests / 0 failures. Format clean, lint clean, plan-hub validated. A4–A6 + B1–B3 + C1 remain open but are not release-blocking."
+    },
+    {
+      "timestamp": "2026-05-05T02:15:00.000Z",
+      "actor": "claude",
+      "lane": "cleanup",
+      "status": "a4_landed",
+      "branch": "release/1.1.0",
+      "note": "A4 FAB action registration: Garden FAB extended (edit-garden / invite-gardener / send-distribution); Community FAB extended (new-proposal / add-member / manage-vault). Hub + Actions FAB already wired and unchanged. New i18n keys across en/es/pt + filled two pre-existing missing community fab ids. fab-config.test.ts adds 16 unit cases for action ids, labelIds, navigation targets, and gates. A5–A6 still open."
+    },
+    {
+      "timestamp": "2026-05-05T02:50:00.000Z",
+      "actor": "claude",
+      "lane": "cleanup",
+      "status": "a5_landed",
+      "branch": "release/1.1.0",
+      "note": "A5 Garden Members role chips: GardenMembersList now renders one chip per role (owner / operator / evaluator / gardener / funder) using new buildMemberRoleSets + memberRolesForAddress helpers. Reviewers filter wired to evaluator role. New i18n key cockpit.garden.members.rolesLabel (en/es/pt). New unit test memberRoles.test.ts (9 cases) pins role-set construction + canonical ordering + case-insensitivity. A6 + B1–B3 + C1 remain open."
+    },
+    {
+      "timestamp": "2026-05-05T03:15:00.000Z",
+      "actor": "claude",
+      "lane": "cleanup",
+      "status": "a6_landed",
+      "branch": "release/1.1.0",
+      "note": "A6 stats slot: new buildGardenHeaderStats + buildCommunityHeaderStats helpers shape MetaStripItem[] (gardeners/pending/treasury for Garden; people/pools/treasury for Community). views/Garden/index.tsx + views/Community/index.tsx pass MetaStrip density='inline' into PageHeader.metadata. Returns [] when no garden selected so the slot stays clean. Per audit §5.6 + Frontend Rule 17 the slot does NOT include the garden name. New i18n keys with ICU plurals across en/es/pt. header-stats.test.ts adds 9 unit cases. tsc on packages/admin/tsconfig.json clean. A1–A6 done. B1–B3 + C1 deferred (not release-blocking)."
+    },
+    {
+      "timestamp": "2026-05-05T03:35:00.000Z",
+      "actor": "claude",
+      "lane": "cleanup",
+      "status": "b1_b3_investigation_recorded",
+      "branch": "release/1.1.0",
+      "note": "B1-B3 investigation against live ABI + IVotingPowerRegistry + Envio schema. Confirmed: decay+pointsPerVoter readable, memberCount has no on-chain enumeration, per-member supporter count missing both contract view and indexer entity, threshold/minThresholdPoints not exposed by HYPERCERT_SIGNAL_POOL_ABI. Tightened in-code TODOs in useConvictionProposalsForPool.ts (FALLBACK_POOL_CONFIG + countSupporters) and derivation.ts (BLOCKS_PER_DAY + deriveThreshold) with concrete blockers. Recommended three follow-up backlog plans (conviction-pool-config-onchain, conviction-supporter-count-indexer, conviction-threshold-formula-port). No code-shape changes since shipping partial fixes would silently regress UI numbers."
+    },
+    {
+      "timestamp": "2026-05-05T03:50:00.000Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "ready",
+      "branch": "release/1.1.0",
+      "note": "Flipped qa_pass_1 from blocked to ready after cleanup A1-A6 landed and B1-B3 were properly deferred. Updated eval.md checkboxes (A1-A6 ticked with commit anchors; B1-B3 + C1 marked deferred with cross-reference to handoff investigation). Recorded UI verification gap: A4/A5/A6 changed live admin surfaces but Chrome MCP smoke could not reach the dev server during the cleanup window because a concurrent agent had vite.config.ts in flux. QA inherits the visual smoke for those three surfaces."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["admin", "shared", "docs"],
+    "work_types": ["implementation", "review", "qa"],
+    "surfaces": ["packages/admin", "packages/shared", "docs/admin-revamp"],
+    "depends_on_features": []
+  }
+}

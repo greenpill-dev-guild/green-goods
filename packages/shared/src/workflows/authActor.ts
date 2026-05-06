@@ -33,7 +33,7 @@
  */
 
 import { createActor } from "xstate";
-import { ENV } from "varlock/env";
+import { ENV } from "../lib/env";
 
 import { DEFAULT_CHAIN_ID } from "../config/blockchain";
 import { logger } from "../modules/app/logger";

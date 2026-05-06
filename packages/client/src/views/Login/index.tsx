@@ -50,39 +50,39 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
   if (!(err instanceof Error))
     return intl.formatMessage({
       id: "app.login.error.generic",
-      defaultMessage: "Something went wrong. Please try again or use 'Login with wallet'.",
+      defaultMessage: "Something went wrong. Please try again.",
     });
 
   const msg = err.message.toLowerCase();
   if (msg.includes("cancel") || msg.includes("abort") || msg.includes("user deny")) {
     return intl.formatMessage({
       id: "app.login.error.cancelled",
-      defaultMessage: "Login cancelled. Please try again when ready.",
+      defaultMessage: "Sign in was cancelled. Try again when you're ready.",
     });
   }
   if (msg.includes("not support") || msg.includes("unavailable")) {
     return intl.formatMessage({
       id: "app.login.error.passkeyUnavailable",
       defaultMessage:
-        "Passkey authentication is not available on this device. Try using 'Login with wallet' instead.",
+        "Passkeys aren't available on this device. Try signing in with a wallet instead.",
     });
   }
   if (msg.includes("network") || msg.includes("timeout") || msg.includes("fetch")) {
     return intl.formatMessage({
       id: "app.login.error.network",
-      defaultMessage: "Connection issue. Please check your internet and try again.",
+      defaultMessage: "Connection issue. Check your internet and try again.",
     });
   }
   if (msg.includes("no passkey found") || msg.includes("no credentials")) {
     return intl.formatMessage({
       id: "app.login.error.noPasskey",
-      defaultMessage: "No passkey found on this device. Please create a new account.",
+      defaultMessage: "No passkey was found on this device. You can create a new account instead.",
     });
   }
   if (msg.includes("credential") || msg.includes("passkey")) {
     return intl.formatMessage({
       id: "app.login.error.passkeyVerification",
-      defaultMessage: "Couldn't verify your passkey. Please try again or use 'Login with wallet'.",
+      defaultMessage: "We couldn't verify your passkey. Try again or sign in with a wallet.",
     });
   }
   if (msg.includes("at least 3 characters")) {
@@ -93,7 +93,7 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
   }
   return intl.formatMessage({
     id: "app.login.error.generic",
-    defaultMessage: "Something went wrong. Please try again or use 'Login with wallet'.",
+    defaultMessage: "Something went wrong. Please try again.",
   });
 };
 
@@ -178,7 +178,6 @@ export function Login() {
   // The credential is preserved during signOut() to allow re-login with same address
   const hasExistingAccount = hasStoredCredential;
 
-  // Handle auth errors
   useEffect(() => {
     if (authError && !isAuthenticating) {
       setLoadingState(null);
@@ -218,7 +217,12 @@ export function Login() {
   // Login with existing passkey
   const handlePasskeyLogin = async () => {
     setLoginError(null);
-    setLoadingMessage("Authenticating...");
+    setLoadingMessage(
+      intl.formatMessage({
+        id: "app.login.loading.authenticating",
+        defaultMessage: "Signing you in...",
+      })
+    );
     setLoadingState("welcome");
     try {
       await loginWithPasskey?.();
@@ -240,7 +244,12 @@ export function Login() {
       return;
     }
     setLoginError(null);
-    setLoadingMessage("Creating your wallet...");
+    setLoadingMessage(
+      intl.formatMessage({
+        id: "app.login.loading.creatingWallet",
+        defaultMessage: "Setting up your account...",
+      })
+    );
     setLoadingState("welcome");
     try {
       await createAccount?.(trimmedUsername);
@@ -258,7 +267,6 @@ export function Login() {
     loginWithWallet?.();
   };
 
-  // Render logic
   if (isNestedRoute) return <Outlet />;
   if (!isReady) return <LoadingSplash loadingState="welcome" />;
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
@@ -278,7 +286,7 @@ export function Login() {
   const walletAction = {
     label: intl.formatMessage({
       id: "app.login.button.connectWallet",
-      defaultMessage: "Connect Wallet",
+      defaultMessage: "Sign in with a wallet",
     }),
     onSelect: handleWalletLogin,
   };
@@ -286,7 +294,7 @@ export function Login() {
   // Address continuity notice shown across all login modes
   const addressContinuityNotice = intl.formatMessage({
     id: "app.login.notice.addressContinuity",
-    defaultMessage: "Each sign-in method creates an independent account",
+    defaultMessage: "Each sign-in method creates a separate account.",
   });
 
   // ─── Progressive disclosure: action hierarchy depends on user state ─────────
@@ -296,19 +304,28 @@ export function Login() {
   //   Secondary: Connect Wallet
   //
   // New user (no credential), default mode:
-  //   Primary: Connect Wallet (AppKit includes email/social)
-  //   Secondary: Create Passkey Account (toggles to passkey create mode)
+  //   Primary: Create your account (passkey-first; gardener-clear default)
+  //   Secondary: Sign in with a wallet
   //
   // New user, passkey create mode (showPasskeyCreate=true):
   //   Primary: Create Account (with username input)
-  //   Secondary: Connect Wallet
+  //   Secondary: Sign in with a wallet
 
   const helmet = (
     <Helmet>
-      <title>Login | Green Goods</title>
+      <title>
+        {intl.formatMessage({
+          id: "app.login.title",
+          defaultMessage: "Sign in | Green Goods",
+        })}
+      </title>
       <meta
         name="description"
-        content="Sign in to Green Goods to start bringing your community impact onchain."
+        content={intl.formatMessage({
+          id: "app.login.metaDescription",
+          defaultMessage:
+            "Sign in to Green Goods to start documenting regenerative work in your community.",
+        })}
       />
     </Helmet>
   );
@@ -323,7 +340,7 @@ export function Login() {
           isLoggingIn={isAuthenticating}
           buttonLabel={intl.formatMessage({
             id: "app.login.button.loginPasskey",
-            defaultMessage: "Login with Passkey",
+            defaultMessage: "Sign in with passkey",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
           secondaryAction={walletAction}
@@ -344,7 +361,7 @@ export function Login() {
           isLoggingIn={isAuthenticating}
           buttonLabel={intl.formatMessage({
             id: "app.login.button.createAccount",
-            defaultMessage: "Create Account",
+            defaultMessage: "Create account",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
           secondaryAction={walletAction}
@@ -358,7 +375,7 @@ export function Login() {
             }),
             hint: intl.formatMessage({
               id: "app.login.username.hint",
-              defaultMessage: "Required - at least 3 characters",
+              defaultMessage: "Required — at least 3 characters",
             }),
             minLength: 3,
             onCancel: () => setShowPasskeyCreate(false),
@@ -368,32 +385,26 @@ export function Login() {
           infoCallout={intl.formatMessage({
             id: "app.login.passkey.explainer",
             defaultMessage:
-              "Passkeys let you sign in securely without a crypto wallet. Your device (phone, laptop) stores the key — no passwords or seed phrases needed.",
+              "Passkeys let you sign in securely from this device — no passwords to remember.",
           })}
         />
       </>
     );
   }
 
-  // ─── New user, default mode: wallet/AppKit primary ──────────────────────────
+  // ─── New user, default mode: passkey-first (gardener-clear) ─────────────────
   return (
     <>
       {helmet}
       <Splash
-        login={handleWalletLogin}
+        login={() => setShowPasskeyCreate(true)}
         isLoggingIn={isAuthenticating}
         buttonLabel={intl.formatMessage({
-          id: "app.login.button.connectWallet",
-          defaultMessage: "Connect Wallet",
+          id: "app.login.button.createPasskeyAccount",
+          defaultMessage: "Create your account",
         })}
         errorMessage={!isAuthenticating ? loginError : null}
-        secondaryAction={{
-          label: intl.formatMessage({
-            id: "app.login.button.createPasskeyAccount",
-            defaultMessage: "Create Passkey Account",
-          }),
-          onSelect: () => setShowPasskeyCreate(true),
-        }}
+        secondaryAction={walletAction}
         tertiaryAction={browserGuidanceTertiaryAction}
         notice={addressContinuityNotice}
       />

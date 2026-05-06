@@ -5,6 +5,7 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { UUPSUpgradeable } from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 import { IUnlockFactory, IPublicLock } from "../interfaces/IUnlock.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../CommonErrors.sol";
 
 /// @title UnlockModule
 /// @notice Integration module for granting work badges via Unlock Protocol
@@ -58,8 +59,6 @@ contract UnlockModule is OwnableUpgradeable, UUPSUpgradeable {
     // Errors
     // ═══════════════════════════════════════════════════════════════════════════
 
-    error UnauthorizedCaller(address caller);
-    error ZeroAddress();
     error FactoryNotConfigured();
     error LockNotConfigured(address garden);
     error LockAlreadyConfigured(address garden);
@@ -254,7 +253,7 @@ contract UnlockModule is OwnableUpgradeable, UUPSUpgradeable {
         uint16 lockVersion = unlockFactory.publicLockLatestVersion();
 
         // Create lock
-        try unlockFactory.createLock(lockData, lockVersion) returns (address newLock) {
+        try unlockFactory.createUpgradeableLockAtVersion(lockData, lockVersion) returns (address newLock) {
             gardenLocks[garden] = newLock;
             emit LockCreated(garden, newLock);
             emit GardenLockConfigured(garden, newLock);

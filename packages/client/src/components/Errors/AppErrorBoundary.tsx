@@ -130,13 +130,13 @@ export class AppErrorBoundary extends Component<Props, State> {
                   </div>
                 </div>
 
-                {/* Title with emoji */}
+                {/* Title */}
                 <h1 className="text-3xl font-bold text-text-strong-950 mb-3">
                   {isNetworkError
-                    ? `🌱 ${this.t("app.error.boundary.title.garden")}`
+                    ? this.t("app.error.boundary.title.garden")
                     : isOfflineError
-                      ? `🔧 ${this.t("app.error.boundary.title.maintenance")}`
-                      : `🚧 ${this.t("app.error.boundary.title.error")}`}
+                      ? this.t("app.error.boundary.title.maintenance")
+                      : this.t("app.error.boundary.title.error")}
                 </h1>
 
                 {/* Subtitle */}
@@ -152,16 +152,16 @@ export class AppErrorBoundary extends Component<Props, State> {
                 <div className="space-y-3 mb-8">
                   <p className="text-text-sub-600 leading-relaxed">
                     {isNetworkError
-                      ? `🌐 ${this.t("app.error.boundary.description.network")}`
+                      ? this.t("app.error.boundary.description.network")
                       : isOfflineError
-                        ? `🔧 ${this.t("app.error.boundary.description.offline")}`
-                        : `🛠️ ${this.t("app.error.boundary.description.error")}`}
+                        ? this.t("app.error.boundary.description.offline")
+                        : this.t("app.error.boundary.description.error")}
                   </p>
 
                   {(isNetworkError || isOfflineError) && (
                     <div className="bg-success-lighter border border-success-light rounded-lg p-3">
                       <p className="text-sm text-success-dark font-medium">
-                        ✅ {this.t("app.error.boundary.protection.message")}
+                        {this.t("app.error.boundary.protection.message")}
                       </p>
                     </div>
                   )}
@@ -170,9 +170,9 @@ export class AppErrorBoundary extends Component<Props, State> {
                 {/* Development details */}
                 {this.state.error && (
                   <details className="mb-8 text-left w-full group">
-                    <summary className="cursor-pointer font-medium text-sm text-text-strong-950 hover:text-text-strong-950 transition-colors p-3 bg-bg-soft-200 rounded-lg border border-stroke-soft-200 group-open:rounded-b-none">
+                    <summary className="cursor-pointer font-medium text-sm text-text-strong-950 hover:text-text-strong-950 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] p-3 bg-bg-soft-200 rounded-lg border border-stroke-soft-200 group-open:rounded-b-none">
                       <span className="flex items-center justify-between">
-                        🔍 {this.t("app.error.boundary.devMode.title")}
+                        {this.t("app.error.boundary.devMode.title")}
                         <span className="text-xs text-text-sub-600 group-open:hidden">
                           Click to expand
                         </span>
@@ -202,7 +202,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                     onClick={this.handleRetry}
                     label={this.t("app.error.boundary.action.tryAgain")}
                     leadingIcon={<RiRefreshLine className="h-5 w-5" />}
-                    className="w-full shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+                    className="w-full shadow-lg"
                   />
 
                   <Button
@@ -211,14 +211,14 @@ export class AppErrorBoundary extends Component<Props, State> {
                     onClick={() => (window.location.href = "/")}
                     label={this.t("app.error.boundary.action.returnHome")}
                     leadingIcon={<RiHomeLine className="h-5 w-5" />}
-                    className="w-full border-2 hover:bg-bg-weak-50 transform hover:scale-[1.02] transition-all duration-200"
+                    className="w-full border-2 hover:bg-bg-weak-50"
                   />
                 </div>
 
                 {/* Help text with animation */}
                 <div className="mt-8 p-4 bg-information-lighter rounded-xl border border-information-light">
                   <p className="text-xs text-information-dark leading-relaxed">
-                    💡 <strong>{this.t("app.error.boundary.help.title")}</strong>{" "}
+                    <strong>{this.t("app.error.boundary.help.title")}</strong>{" "}
                     {this.t("app.error.boundary.help.description")}
                   </p>
                 </div>

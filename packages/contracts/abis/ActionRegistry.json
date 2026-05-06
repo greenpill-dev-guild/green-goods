@@ -25,6 +25,24 @@
   },
   {
     "type": "function",
+    "name": "batchUpdateActionInstructions",
+    "inputs": [
+      {
+        "name": "actionUIDs",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      },
+      {
+        "name": "_instructions",
+        "type": "string[]",
+        "internalType": "string[]"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "gardenDomains",
     "inputs": [
       {
@@ -531,7 +549,7 @@
       {
         "name": "instructions",
         "type": "string",
-        "indexed": true,
+        "indexed": false,
         "internalType": "string"
       }
     ],
@@ -556,7 +574,7 @@
       {
         "name": "media",
         "type": "string[]",
-        "indexed": true,
+        "indexed": false,
         "internalType": "string[]"
       }
     ],
@@ -673,7 +691,7 @@
       {
         "name": "title",
         "type": "string",
-        "indexed": true,
+        "indexed": false,
         "internalType": "string"
       }
     ],
@@ -812,6 +830,11 @@
       }
     ],
     "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "ArrayLengthMismatch",
+    "inputs": []
   },
   {
     "type": "error",

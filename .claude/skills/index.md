@@ -1,6 +1,6 @@
 # Skills Quick Reference
 
-> **For humans**: Find your task, use the skill. **For Claude**: Match keywords to invoke.
+> Start with one of five verbs, or just describe planning / orchestration intent and `plan` will fire passively.
 
 ---
 
@@ -8,79 +8,52 @@
 
 | Skill | Invoke With | Use For |
 |-------|-------------|---------|
-| **audit** | `/audit`, `/audit --loop`, `/audit --team` | Codebase health check, dead code, anti-patterns, iterative fix loop |
-| **review** | `/review`, `/review --iterate`, `/review --mode apply_fixes` | 6-pass code review, iterative fix-and-verify, cross-package verification |
-| **debug** | `/debug`, `/debug --mode tdd_bugfix` | Root cause investigation, production monitoring, test-first bugfix |
-| **meeting-notes** | `/meeting-notes` | Extract GitHub issues from meeting transcripts |
+| **review** | `/review [package|PR|file]` | Before merge: inspect the diff, separate must-fix items from human call-outs. Positional arg scopes the review (`/review admin`, `/review #123`, `/review packages/shared/...`) |
+| **audit-then-ship** | `/audit-then-ship [scope]` | The user's default rhythm: investigate (read-only) → explicit scope-lock gate → fix only locked items → ship pipeline. Use when scope is ambiguous or multi-issue. |
+| **status** | `/status` | Resume and orient: branch state, blockers, continuity, and the next 1-3 moves |
+| **clean** | `/clean` | After findings are accepted: dispatch 8 parallel cleanup agents (use `--dry-run`, `--scope`, `--agents`) |
+| **doc-feedback** | `/doc-feedback [<docx-path>] [--mode in-repo\|out-of-repo]` | Process Google Doc review feedback for any GG doc (`docs/` drafts, research, grant proposals, product feedback) — parses comments + tracked-changes from a `.docx` export, triage gate locks scope, addresses items in-repo (edit repo files) or out-of-repo (write paste-ready `responses.md`); mode auto-inferred from title/filename |
 
 ---
 
-## Domain Skills (Auto-Loaded by Context)
+## Passive Skills (Intent-Triggered, No Slash)
 
-| Skill | Keywords | Covers |
-|-------|----------|--------|
-| **ui** | design, TailwindCSS, Radix, dialog, accessibility, Storybook, i18n, diagram | Design system, theming, primitives, compliance, stories, translation, Mermaid |
-| **react** | component, hooks, state, Zustand, TanStack Query, mutation, error boundary, XState, performance | State management, data fetching, error handling, state machines, profiling |
-| **web3** | wallet, transaction, Wagmi, passkey, contract call | Wallet/passkey auth, contract reads/writes, chain ops, tx lifecycle |
-| **contracts** | Solidity, Foundry, deploy, UUPS, security audit | Contract dev, testing, gas optimization, upgrades, security checklist |
-| **indexer** | indexer, event handler, schema.graphql, Docker | Envio handlers, entity design, Docker Compose stack, GraphQL |
-| **data-layer** | offline, PWA, job queue, IndexedDB, sync, storage | Job queue, service workers, schema design, background sync, drafts |
-| **ops** | deploy, CI, GitHub Actions, git, branch, commit, dependency, format, Biome | Deployment pipeline, CI/CD, git workflow, deps, formatting |
-| **agent** | bot, Telegram, handler, platform adapter | Bot handlers, platform adapters, crypto services |
-| **testing** | test, TDD, Vitest, Playwright, E2E, coverage | Unit tests, E2E tests, mock strategies, TDD workflow |
+These fire automatically when the prompt matches. No slash command exposed.
 
-### Also Available (Standalone)
-
-| Skill | Use For |
-|-------|---------|
-| **architecture** | Clean Architecture, DDD, entropy reduction, module boundaries |
-| **migration** | Cross-package breaking changes, UUPS upgrades, re-indexing |
-| **plan** | Structured implementation plans, task decomposition |
-| **agent-teams** | Coordinate multiple Claude Code sessions |
+| Skill | Fires On | Use For |
+|-------|----------|---------|
+| **plan** | "plan this", "break down X", "orchestrate", "coordinate a team", "parallel lanes", "spawn teammates", "mixed codex and claude", cross-package work | Shape work, constrain scope, surface judgment points. Routes to teams mode on orchestration signals, brainstorm on fuzzy intent. |
+| **debug** | "debug this", pasted stack traces or errors, reported unexpected behavior, failing tests, "production is down", "hotfix" | Systematic root cause investigation. Routes to incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports. |
 
 ---
 
-## Agents (Multi-Step Automation)
+## Domain Skills
 
-| Agent | Use For |
-|-------|---------|
-| **oracle** | Deep research requiring 3+ sources |
-| **cracked-coder** | Complex implementation with TDD |
-| **code-reviewer** | Systematic 6-pass PR review |
-| **migration** | Cross-package migration orchestration |
-| **triage** | Issue classification and routing |
+These are still available, but they are not the default starting points anymore.
 
----
-
-## Decision Tree
-
-```
-What do you need?
-│
-├─► Health check / audit? ──────► /audit (or /audit --loop for fix cycle)
-├─► Review code? ───────────────► /review (or /review --iterate)
-├─► Debug something? ───────────► /debug
-├─► Extract meeting actions? ───► /meeting-notes
-│
-├─► Working on UI? ─────────────► ui skill (sub-files: tailwind, radix, compliance, storybook, i18n)
-├─► React / state / queries? ──► react skill (sub-files: tanstack-query, error-handling, xstate, performance)
-├─► Wallet / transactions? ────► web3 skill
-├─► Smart contracts? ──────────► contracts skill (sub-file: security)
-├─► Indexer / Docker? ──────────► indexer skill (sub-file: docker)
-├─► Offline / storage? ────────► data-layer skill
-├─► Deploy / CI / git / deps? ─► ops skill (sub-files: deployment, ci-cd, git, deps, biome)
-├─► Bot development? ──────────► agent skill
-├─► Write tests? ──────────────► testing skill
-│
-├─► Architecture decision? ────► architecture skill
-├─► Breaking change? ──────────► migration skill (or migration agent)
-├─► Plan a feature? ───────────► /plan
-│
-└─► Simple change? ────────────► Direct Claude (no skill needed)
-```
+| Surface | Role | Notes |
+|---------|------|-------|
+| architecture | Internal lens inside `plan` or `review` | Use when placement, boundaries, or structural refactors are the real question |
+| principles | Internal lens inside `review` | Use when simplicity, coupling, duplication, or reliability clarity need pressure-testing |
+| audit | Broader repo-health sweep | Follow-up when `status` or `review` reveals drift beyond a single change |
+| specialty package skills | React, UI, contracts, indexer, data-layer, ops, testing, design, web3 | These load by context; you usually do not choose them manually |
 
 ---
 
-## Package Context Files
+## Defaults
 
-When working deeply in a specific package, load `.claude/context/{package}.md` for detailed patterns.
+If you are unsure where to start:
+
+- planning a change -> just describe the intent ("plan this", "break down X")
+- orchestrating a multi-lane build -> describe orchestration intent ("coordinate a team across contracts + shared + admin")
+- investigating a bug -> describe the bug or paste the error (no slash)
+- judging a change -> `/review [package|PR|file]` (or describe it in words)
+- picking up work -> `/status --resume`
+
+Shortcuts that remain useful:
+
+- `/review admin` -> scope review to the admin package
+- `/review --mode verify_only --scope cross-package` -> cross-package impact pass
+- `/review design-system` (or `/review --mode verify_only --scope design-system`) -> full-repo design-system alignment review (DesignMD + tokens + Storybook + admin/client/docs). Read-only; delegates to `.claude/skills/design/system-alignment-review.md`
+- "this test is failing:" -> routes debug to tdd_bugfix mode
+- "production is down" / "incident" / "hotfix" -> routes debug to incident_hotfix mode

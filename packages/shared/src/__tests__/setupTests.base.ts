@@ -7,7 +7,6 @@
 
 import { cleanup } from "@testing-library/react";
 import { afterEach, beforeAll, vi } from "vitest";
-import { initVarlockEnv } from "varlock/env";
 
 import "@testing-library/jest-dom/vitest";
 import "fake-indexeddb/auto";
@@ -16,9 +15,27 @@ import "fake-indexeddb/auto";
 import "../__mocks__/browser/crypto";
 import "../__mocks__/browser/navigator";
 
-// Tests don't always run through the app boot path that auto-loads varlock.
-// Initialize once and allow missing values so ENV access in shared config works.
-initVarlockEnv({ allowFail: true });
+// Lit queues a one-time dev-mode banner on first import. Pre-mark that code as
+// already issued so focused test runs stay readable without hiding other warnings.
+const litGlobal = globalThis as typeof globalThis & { litIssuedWarnings?: Set<string> };
+litGlobal.litIssuedWarnings ??= new Set<string>();
+litGlobal.litIssuedWarnings.add("dev-mode");
+
+// Polyfill HTMLDialogElement.showModal/close for jsdom.
+// jsdom doesn't implement the <dialog> top-layer API; our Canvas sheets
+// (BottomSheet, LeftSheet, RightSheet) use native <dialog> for focus trap
+// and Escape handling.
+if (typeof window !== "undefined") {
+  const dialogProto = (window as any).HTMLDialogElement?.prototype;
+  if (dialogProto) {
+    dialogProto.showModal = function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    };
+    dialogProto.close = function (this: HTMLDialogElement) {
+      this.removeAttribute("open");
+    };
+  }
+}
 
 // Mock matchMedia immediately (before any module imports that might use it)
 // This needs to be at the top level, not in beforeAll, because it's called during module import
@@ -178,23 +195,24 @@ export function setupTestEnvironment() {
       });
     }
 
-    // Mock IntersectionObserver
-    (global as any).IntersectionObserver = vi.fn(() => ({
-      observe: vi.fn(),
-      disconnect: vi.fn(),
-      unobserve: vi.fn(),
-      root: null,
-      rootMargin: "",
-      thresholds: [],
-      takeRecords: vi.fn(() => []),
-    }));
+    // Mock IntersectionObserver (class-based — must be `new`-able since
+    // useInViewReveal and other hooks construct an instance directly).
+    (global as any).IntersectionObserver = class IntersectionObserver {
+      root = null;
+      rootMargin = "";
+      thresholds: number[] = [];
+      observe = vi.fn();
+      disconnect = vi.fn();
+      unobserve = vi.fn();
+      takeRecords = vi.fn(() => []);
+    };
 
-    // Mock ResizeObserver
-    (global as any).ResizeObserver = vi.fn(() => ({
-      observe: vi.fn(),
-      disconnect: vi.fn(),
-      unobserve: vi.fn(),
-    }));
+    // Mock ResizeObserver (class-based for @floating-ui/dom compatibility)
+    (global as any).ResizeObserver = class ResizeObserver {
+      observe = vi.fn();
+      disconnect = vi.fn();
+      unobserve = vi.fn();
+    };
   });
 
   // Cleanup after each test

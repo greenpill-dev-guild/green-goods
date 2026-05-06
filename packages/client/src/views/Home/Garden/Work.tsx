@@ -1,15 +1,9 @@
 import {
-  type Address,
-  type ApprovalJobPayload,
-  Confidence,
   ConfidenceSelector,
   cn,
   DEFAULT_CHAIN_ID,
-  debugWarn,
   downloadWorkData,
   downloadWorkMedia,
-  getFileByHash,
-  isAddressInList,
   isValidAttestationId,
   jobQueue,
   openEASExplorer,
@@ -18,20 +12,17 @@ import {
   shareWork,
   toastService,
   useActions,
-  useAsyncEffect,
+  useGardenPermissions,
   useGardens,
-  useHasRole,
-  useJobQueueEvents,
   useNavigateToTop,
-  useTimeout,
+  useOffline,
   useUser,
-  useWorkApproval,
+  useWorkApprovalActions,
+  useWorkMetadata,
   useWorks,
-  VerificationMethod,
-  type WorkApprovalDraft,
   type WorkData,
-  type WorkMetadata,
 } from "@green-goods/shared";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   RiCheckLine,
   RiCloseLine,
@@ -39,33 +30,25 @@ import {
   RiLoader4Line,
   RiUploadCloudLine,
 } from "@remixicon/react";
-import { useQueryClient } from "@tanstack/react-query";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useOutletContext, useParams } from "react-router-dom";
 
 import { Button } from "@/components/Actions";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
+import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
 import { WorkViewSection } from "./WorkViewSection";
 
 export const GardenWork: React.FC = () => {
   const intl = useIntl();
   const { id: gardenIdParam, workId } = useParams<{ id: string; workId: string }>();
   const { gardenId: gardenIdFromContext } = (useOutletContext() as { gardenId?: string }) || {};
-  const [workMetadata, setWorkMetadata] = useState<WorkMetadata | null>(null);
-  const [metadataStatus, setMetadataStatus] = useState<"idle" | "loading" | "success" | "error">(
-    "loading"
-  );
-  const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [metadataRetryKey, setMetadataRetryKey] = useState(0);
-  const [feedbackMode, setFeedbackMode] = useState<"approve" | "reject" | null>(null);
-  const [inlineFeedback, setInlineFeedback] = useState<string>("");
-  const [confidence, setConfidence] = useState<Confidence>(Confidence.NONE);
-  const [optimisticStatus, setOptimisticStatus] = useState<"approved" | "rejected" | null>(null);
   const navigateToTop = useNavigateToTop();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
+  const { isOnline } = useOffline();
   const chainId = DEFAULT_CHAIN_ID;
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const gardenId = (gardenIdFromContext || gardenIdParam) as string;
@@ -74,10 +57,14 @@ export const GardenWork: React.FC = () => {
   const { works: mergedWorks } = useWorks(gardenId || "", { offline: true });
   const work = mergedWorks.find((w) => w.id === (workId || ""));
 
-  // Derive effective status (optimistic takes precedence over fetched data)
-  const effectiveStatus = optimisticStatus ?? work?.status ?? "pending";
+  // Metadata loading (with retry support)
+  const {
+    metadata: workMetadata,
+    status: metadataStatus,
+    error: metadataError,
+    retryFetch: handleRetryMetadataFetch,
+  } = useWorkMetadata(work?.metadata);
 
-  const queryClient = useQueryClient();
   const matchedAction = useMemo(() => {
     if (!work) return null;
     const compositeId = `${chainId}-${work.actionUID}`;
@@ -88,52 +75,66 @@ export const GardenWork: React.FC = () => {
 
   const { user, smartAccountClient } = useUser();
   const activeAddress = user?.id;
+  const gardenPermissions = useGardenPermissions();
   const [isRetrying, setIsRetrying] = useState(false);
-  const { set: scheduleTimeout } = useTimeout();
-  const { hasRole: canReviewOnChain } = useHasRole(
-    garden?.id as Address | undefined,
-    activeAddress as Address | undefined,
-    "evaluator"
-  );
 
   // Determine user role and viewing mode
   const viewingMode = useMemo<"operator" | "gardener" | "viewer">(() => {
     if (!garden || !work) return "viewer";
 
-    // Check if user is garden operator
-    const isOperator = isAddressInList(activeAddress, garden.operators);
-    const canReview = isOperator || canReviewOnChain;
-
-    // Check if user is the gardener who submitted the work
+    const canApproveWork = gardenPermissions.canManageGarden(garden);
     const isGardener = sharedIsUserAddress(work.gardenerAddress, activeAddress);
 
-    if (canReview) return "operator";
+    if (canApproveWork) return "operator";
     if (isGardener) return "gardener";
     return "viewer";
-  }, [garden, work, activeAddress, canReviewOnChain]);
+  }, [garden, work, activeAddress, gardenPermissions]);
+
+  // Approval interaction state (extracted to shared hook)
+  const {
+    feedbackMode,
+    inlineFeedback,
+    setInlineFeedback,
+    confidence,
+    setConfidence,
+    effectiveStatus,
+    handleApprovePress,
+    handleRejectPress,
+    handleCancelFeedback,
+    handleSubmitApproval,
+    workApprovalMutation,
+  } = useWorkApprovalActions({
+    work,
+    gardenId: garden?.id,
+    chainId,
+    viewingMode,
+    onApprovalComplete: (gId) => navigateToTop(`/home/${gId || gardenIdParam || ""}`),
+  });
 
   // Detect if this is offline work
   const isOfflineWork =
     work?.id.startsWith("0xoffline_") || (work?.id && !work.id.startsWith("0x"));
 
-  // Handle individual work retry
   const handleRetry = async () => {
     if (!smartAccountClient || !work) return;
 
     setIsRetrying(true);
     try {
-      // Process just this job
       const result = await jobQueue.processJob(work.id, { smartAccountClient });
 
       if (result.success) {
+        // Invalidate the work caches explicitly so the UI updates without
+        // depending solely on the JobQueue event bus reaching this component.
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(gardenId, chainId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.offline(gardenId) });
         toastService.success({
           title: intl.formatMessage({
             id: "app.home.work.retrySuccess",
-            defaultMessage: "Work uploaded successfully",
+            defaultMessage: "Your work was sent",
           }),
           message: intl.formatMessage({
             id: "app.home.work.retrySuccessMessage",
-            defaultMessage: "Your work is now on-chain",
+            defaultMessage: "Saved to the garden record.",
           }),
           context: "work upload",
         });
@@ -141,13 +142,13 @@ export const GardenWork: React.FC = () => {
         toastService.error({
           title: intl.formatMessage({
             id: "app.home.work.retryFailed",
-            defaultMessage: "Upload failed",
+            defaultMessage: "Sending failed",
           }),
           message:
             result.error ||
             intl.formatMessage({
               id: "app.home.work.retryFailedMessage",
-              defaultMessage: "Please try again",
+              defaultMessage: "Please try again.",
             }),
           context: "work upload",
         });
@@ -156,14 +157,14 @@ export const GardenWork: React.FC = () => {
       toastService.error({
         title: intl.formatMessage({
           id: "app.home.work.retryError",
-          defaultMessage: "Failed to retry upload",
+          defaultMessage: "Couldn't send your work",
         }),
         message:
           error instanceof Error
             ? error.message
             : intl.formatMessage({
                 id: "app.home.work.unknownError",
-                defaultMessage: "Unknown error",
+                defaultMessage: "Something went wrong",
               }),
         context: "work upload",
       });
@@ -247,229 +248,6 @@ export const GardenWork: React.FC = () => {
     openEASExplorer(chainId, work.id);
   };
 
-  // Approval feedback handlers
-  const handleApprovePress = () => {
-    if (navigator.vibrate) navigator.vibrate([50]);
-    setFeedbackMode("approve");
-    // Default confidence to MEDIUM for approvals
-    setConfidence(Confidence.MEDIUM);
-    // Focus feedback input after animation (auto-cleared on unmount)
-    scheduleTimeout(() => {
-      document.getElementById("approval-feedback-input")?.focus();
-    }, 300);
-  };
-
-  const handleRejectPress = () => {
-    if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
-    setFeedbackMode("reject");
-    // Confidence defaults to NONE for rejections (per decision #31)
-    setConfidence(Confidence.NONE);
-    scheduleTimeout(() => {
-      document.getElementById("approval-feedback-input")?.focus();
-    }, 300);
-  };
-
-  const handleCancelFeedback = () => {
-    setFeedbackMode(null);
-    setInlineFeedback("");
-    setConfidence(Confidence.NONE);
-  };
-
-  const handleSubmitApproval = () => {
-    if (!work) return;
-
-    if (feedbackMode === "reject" && !inlineFeedback) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.workApproval.feedbackRequired",
-          defaultMessage: "Feedback required",
-        }),
-        message: intl.formatMessage({
-          id: "app.home.workApproval.feedbackRequiredMessage",
-          defaultMessage: "Please provide feedback when rejecting work.",
-        }),
-        context: "work approval",
-      });
-      return;
-    }
-
-    // Confidence validation: must be LOW or higher for approvals (decision #21)
-    if (feedbackMode === "approve" && confidence < Confidence.LOW) {
-      toastService.error({
-        title: intl.formatMessage({
-          id: "app.home.workApproval.confidenceRequired",
-          defaultMessage: "Confidence required",
-        }),
-        message: intl.formatMessage({
-          id: "app.home.workApproval.confidenceRequiredMessage",
-          defaultMessage: "Please select a confidence level (Low or higher) when approving.",
-        }),
-        context: "work approval",
-      });
-      return;
-    }
-
-    const draft: WorkApprovalDraft = {
-      actionUID: work.actionUID,
-      workUID: work.id,
-      approved: feedbackMode === "approve",
-      feedback: inlineFeedback,
-      confidence: feedbackMode === "approve" ? confidence : Confidence.NONE,
-      // Client PWA hardcodes HUMAN verification method (decision #33)
-      verificationMethod: VerificationMethod.HUMAN,
-    };
-
-    // Optimistic status is set AFTER transaction confirms (in job:completed handler)
-    workApprovalMutation.mutate({ draft, work });
-    setFeedbackMode(null);
-    setInlineFeedback("");
-    setConfidence(Confidence.NONE);
-  };
-
-  const workApprovalMutation = useWorkApproval();
-
-  // Toasts + cache invalidation from queue events
-  useJobQueueEvents(
-    ["job:completed", "job:failed"],
-    (type, data) => {
-      if (!work) return;
-      if (data.job.kind !== "approval") return;
-      const payload = data.job.payload as ApprovalJobPayload;
-      if (payload.workUID !== work.id) return;
-
-      if (type === "job:completed") {
-        // Set optimistic status AFTER transaction confirms (bridges indexer lag)
-        setOptimisticStatus(payload.approved ? "approved" : "rejected");
-
-        const message = payload.approved
-          ? intl.formatMessage({ id: "app.toast.workApproved", defaultMessage: "Work approved" })
-          : intl.formatMessage({ id: "app.toast.workRejected", defaultMessage: "Work rejected" });
-        toastService.success({
-          id: "approval-submit",
-          title: message,
-          message,
-          context: "approval submission",
-          suppressLogging: true,
-        });
-
-        // Delay navigation to show success state (auto-cleared on unmount)
-        scheduleTimeout(() => {
-          setOptimisticStatus(null); // Clear before navigating
-          navigateToTop(`/home/${garden?.id || gardenIdParam || ""}`);
-        }, 2500);
-      }
-      if (type === "job:failed") {
-        // Clear optimistic status on failure
-        setOptimisticStatus(null);
-
-        const failureMessage = intl.formatMessage({
-          id: "app.toast.actionFailed",
-          defaultMessage: "Action failed",
-        });
-        toastService.error({
-          id: "approval-submit",
-          title: failureMessage,
-          message: failureMessage,
-          context: "approval submission",
-          error: "error" in data ? data.error : undefined,
-        });
-      }
-
-      // Invalidate queries - real data will replace optimistic when ready
-      queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
-      if (garden?.id) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(garden.id, chainId) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(garden.id, chainId) });
-      }
-    },
-    [work?.id, garden?.id]
-  );
-
-  // Clear optimistic status when real data arrives
-  useEffect(() => {
-    if (optimisticStatus && work?.status && work.status === optimisticStatus) {
-      // Real data caught up with optimistic state, clear it
-      setOptimisticStatus(null);
-    }
-  }, [work?.status, optimisticStatus]);
-
-  // Load work metadata with proper async cleanup (Rule 3: Async Cleanup)
-  useAsyncEffect(
-    async ({ signal, isMounted }) => {
-      setMetadataStatus("loading");
-      setMetadataError(null);
-      setWorkMetadata(null);
-
-      if (!work) {
-        if (isMounted()) {
-          setMetadataStatus("idle");
-        }
-        return;
-      }
-
-      const raw = work.metadata;
-      if (!raw || typeof raw !== "string") {
-        if (isMounted()) {
-          setWorkMetadata(null);
-          setMetadataStatus("success");
-        }
-        return;
-      }
-
-      const trimmed = raw.trim();
-
-      // Try parsing as inline JSON first
-      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-        try {
-          let parsed = JSON.parse(trimmed) as unknown;
-          // Handle double-encoded JSON (string inside string)
-          if (typeof parsed === "string") {
-            parsed = JSON.parse(parsed) as unknown;
-          }
-          if (isMounted()) {
-            setWorkMetadata(parsed as WorkMetadata);
-            setMetadataStatus("success");
-          }
-          return;
-        } catch (error) {
-          debugWarn(
-            `[GardenWork] Failed to parse inline metadata for work ${work.id}: ${
-              error instanceof Error ? error.message : String(error)
-            }`
-          );
-          // Continue to gateway fetch fallback
-        }
-      }
-
-      // Fetch from IPFS gateway
-      try {
-        const file = await getFileByHash(trimmed, { signal, timeoutMs: 30_000 });
-        const data = file.data as unknown as WorkMetadata | null | undefined;
-        if (!isMounted()) return;
-
-        if (data) {
-          setWorkMetadata(data);
-          setMetadataStatus("success");
-        } else {
-          setWorkMetadata(null);
-          setMetadataStatus("error");
-          setMetadataError("Empty metadata response");
-          debugWarn(
-            `[GardenWork] Received empty metadata response from gateway for work ${work.id}`
-          );
-        }
-      } catch (error) {
-        if (!isMounted()) return;
-        const message = error instanceof Error ? error.message : String(error);
-        setWorkMetadata(null);
-        setMetadataStatus("error");
-        setMetadataError(message);
-        debugWarn(`[GardenWork] Failed to fetch metadata for work ${work.id}: ${message}`);
-      }
-    },
-    [work?.id, work?.metadata, metadataRetryKey]
-  );
-
   const handleBack = () => {
     const state = (location.state as { from?: string; returnTo?: string } | null | undefined) ?? {};
     const from = state.from;
@@ -527,13 +305,14 @@ export const GardenWork: React.FC = () => {
   // Retry footer for offline work
   const retryFooter =
     isOfflineWork && viewingMode === "gardener" ? (
-      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light p-4 pb-6 z-[100]">
+      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light rounded-t-[var(--radius-lg)] overflow-hidden p-4 pb-6 z-sticky">
         <div className="max-w-screen-sm mx-auto">
           <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
             <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
             {intl.formatMessage({
               id: "app.home.work.pendingUpload",
-              defaultMessage: "This work is pending upload to the blockchain.",
+              defaultMessage:
+                "Saved on your device — we'll send it to the garden record when you're online.",
             })}
           </p>
           <Button
@@ -543,17 +322,17 @@ export const GardenWork: React.FC = () => {
               isRetrying
                 ? intl.formatMessage({
                     id: "app.home.work.uploading",
-                    defaultMessage: "Uploading...",
+                    defaultMessage: "Sending...",
                   })
                 : intl.formatMessage({
                     id: "app.home.work.uploadNow",
-                    defaultMessage: "Upload Now",
+                    defaultMessage: "Send now",
                   })
             }
             className="w-full"
             variant="primary"
             mode="filled"
-            shape="pilled"
+            shape="regular"
             leadingIcon={
               isRetrying ? (
                 <RiLoader4Line className="w-5 h-5 animate-spin" />
@@ -566,7 +345,7 @@ export const GardenWork: React.FC = () => {
             <p className="text-xs text-warning-base mt-2 text-center">
               {intl.formatMessage({
                 id: "app.home.work.offlineNotice",
-                defaultMessage: "You're offline. Connect to upload.",
+                defaultMessage: "You're offline. We'll send this when you reconnect.",
               })}
             </p>
           )}
@@ -580,7 +359,8 @@ export const GardenWork: React.FC = () => {
         {/* Backdrop - Fades in over content */}
         <div
           className={cn(
-            "fixed inset-0 bg-black/30 backdrop-blur-sm z-[190] transition-opacity duration-300",
+            pwaDrawerStyles.dialogOverlay,
+            pwaDrawerStyles.overlayTransition,
             feedbackMode ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
           )}
           onClick={handleCancelFeedback}
@@ -588,11 +368,11 @@ export const GardenWork: React.FC = () => {
         />
 
         {/* Footer Container */}
-        <div className="fixed left-0 right-0 bottom-0 z-[200]">
+        <div className="fixed left-0 right-0 bottom-0 z-modal">
           {/* Feedback Drawer - Slides up from behind the footer bar */}
           <div
             className={cn(
-              "absolute bottom-full left-0 right-0 bg-bg-white-0 rounded-t-2xl shadow-xl overflow-hidden transition-transform duration-300 ease-out origin-bottom",
+              pwaDrawerStyles.workFeedbackDrawer,
               feedbackMode ? "translate-y-0" : "translate-y-full"
             )}
             onClick={(e) => e.stopPropagation()}
@@ -621,7 +401,7 @@ export const GardenWork: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleCancelFeedback}
-                  className="p-1 rounded-md text-text-soft-400 hover:text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className={cn("p-1", pwaDrawerStyles.workCloseButton)}
                   aria-label={intl.formatMessage({
                     id: "app.home.workApproval.closeFeedback",
                     defaultMessage: "Close feedback",
@@ -674,7 +454,12 @@ export const GardenWork: React.FC = () => {
           </div>
 
           {/* Action Bar - Always visible */}
-          <div className="bg-bg-white-0 border-t border-stroke-soft-200 shadow-[0_-4px_16px_rgba(0,0,0,0.12)] p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative">
+          <div
+            className={cn(
+              pwaDrawerStyles.workActionBar,
+              "p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] relative"
+            )}
+          >
             <div className="max-w-screen-sm mx-auto">
               {/* Action expiry notice */}
               {isActionExpired && (
@@ -682,6 +467,16 @@ export const GardenWork: React.FC = () => {
                   {intl.formatMessage({
                     id: "app.home.workApproval.actionExpired",
                     defaultMessage: "This action has ended. Approval may fail on-chain.",
+                  })}
+                </p>
+              )}
+              {/* Offline notice — approval is queued, not committed, until reconnect */}
+              {!isOnline && (
+                <p className="text-xs text-warning-dark mb-2 text-center">
+                  {intl.formatMessage({
+                    id: "app.home.workApproval.offline",
+                    defaultMessage:
+                      "You're offline. Your decision will be sent when you reconnect.",
                   })}
                 </p>
               )}
@@ -699,7 +494,7 @@ export const GardenWork: React.FC = () => {
                       className="flex-1 touch-manipulation"
                       variant="error"
                       type="button"
-                      shape="pilled"
+                      shape="regular"
                       mode="stroke"
                       size="medium"
                       leadingIcon={<RiCloseLine className="w-5 h-5" />}
@@ -716,7 +511,7 @@ export const GardenWork: React.FC = () => {
                       variant="primary"
                       mode="filled"
                       size="medium"
-                      shape="pilled"
+                      shape="regular"
                       leadingIcon={<RiCheckLine className="w-5 h-5" />}
                       disabled={workApprovalMutation.isPending || isActionExpired}
                     />
@@ -733,7 +528,7 @@ export const GardenWork: React.FC = () => {
                       className="flex-1 touch-manipulation"
                       variant="neutral"
                       type="button"
-                      shape="pilled"
+                      shape="regular"
                       mode="stroke"
                       size="medium"
                       disabled={workApprovalMutation.isPending}
@@ -749,7 +544,7 @@ export const GardenWork: React.FC = () => {
                       variant={feedbackMode === "reject" ? "error" : "primary"}
                       mode="filled"
                       size="medium"
-                      shape="pilled"
+                      shape="regular"
                       leadingIcon={
                         feedbackMode === "approve" ? (
                           <RiCheckLine className="w-5 h-5" />
@@ -775,8 +570,8 @@ export const GardenWork: React.FC = () => {
   const isResolved = effectiveStatus === "approved" || effectiveStatus === "rejected";
   const successFooter =
     viewingMode === "operator" && isResolved ? (
-      <div className="fixed left-0 right-0 bottom-0 z-[200]">
-        <div className="bg-bg-white-0 border-t border-stroke-soft-200 p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+      <div className="fixed left-0 right-0 bottom-0 z-sticky">
+        <div className="bg-bg-white-0 border-t border-stroke-soft-200 rounded-t-[var(--radius-lg)] overflow-hidden p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
           <div className="max-w-screen-sm mx-auto flex items-center justify-center gap-2">
             {effectiveStatus === "approved" ? (
               <RiCheckLine className="w-5 h-5 text-success-base" />
@@ -814,10 +609,6 @@ export const GardenWork: React.FC = () => {
           { message: metadataError }
         )
       : null;
-
-  const handleRetryMetadataFetch = () => {
-    setMetadataRetryKey((prev) => prev + 1);
-  };
 
   return (
     <article>

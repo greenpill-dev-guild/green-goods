@@ -6,23 +6,23 @@ import {
   RiSettings3Line,
 } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { MemoryRouter } from "react-router-dom";
+import { AdminTabRail } from "@/components/AdminTabRail";
+import { withCanvasFrame, withRouter } from "../../../../shared/.storybook/decorators";
 import { PageHeader } from "./PageHeader";
 
 const meta: Meta<typeof PageHeader> = {
-  title: "Admin/Layout/PageHeader",
+  title: "Admin/Shell/PageHeader",
   component: PageHeader,
   tags: ["autodocs"],
-  decorators: [
-    (Story) => (
-      <MemoryRouter initialEntries={["/"]}>
-        <Story />
-      </MemoryRouter>
-    ),
-  ],
+  decorators: [withRouter()],
   argTypes: {
     title: { control: "text", description: "Main heading text" },
     description: { control: "text", description: "Subtitle below the title" },
+    variant: {
+      control: "select",
+      options: ["default", "canvas"],
+      description: "Header visual treatment",
+    },
     metadata: { control: false, description: "Additional metadata below the description" },
     actions: {
       control: false,
@@ -44,14 +44,14 @@ type Story = StoryObj<typeof PageHeader>;
 
 export const Default: Story = {
   args: {
-    title: "Dashboard",
+    title: "Work",
   },
 };
 
 export const WithDescription: Story = {
   args: {
-    title: "Gardens",
-    description: "Manage your community gardens and track regenerative impact.",
+    title: "Garden",
+    description: "Manage your selected garden and track regenerative impact.",
   },
 };
 
@@ -115,7 +115,7 @@ export const WithBackLink: Story = {
   args: {
     title: "Garden Detail",
     description: "View and manage this garden's configuration and members.",
-    backLink: { to: "/gardens", label: "Back to gardens" },
+    backLink: { to: "/garden", label: "Back to garden workspace" },
   },
 };
 
@@ -123,7 +123,7 @@ export const WithTabs: Story = {
   args: {
     title: "Comunidad Verde",
     description: "A regenerative garden in Costa Rica.",
-    backLink: { to: "/gardens", label: "Back to gardens" },
+    backLink: { to: "/garden", label: "Back to garden workspace" },
     children: (
       <div className="flex gap-4 border-b border-stroke-soft -mb-px">
         <button
@@ -157,8 +157,9 @@ export const WithTabs: Story = {
 
 export const Sticky: Story = {
   args: {
-    title: "Contracts",
-    description: "View and manage deployed contracts.",
+    title: "Community",
+    description: "View treasury, members, and signal pools.",
+    variant: "canvas",
     sticky: true,
   },
   decorators: [
@@ -175,6 +176,35 @@ export const Sticky: Story = {
   ],
 };
 
+export const CanvasRoute: Story = {
+  decorators: [
+    withCanvasFrame({
+      className: "p-6",
+      heightClassName: "min-h-[360px]",
+      workspace: "garden",
+    }),
+  ],
+  args: {
+    title: "Garden",
+    description: "Manage your garden overview, impact metrics, and settings.",
+    variant: "canvas",
+    metadata: <span>Selected garden</span>,
+    sticky: true,
+    children: (
+      <AdminTabRail
+        ariaLabel="Garden views"
+        activeId="overview"
+        onChange={() => {}}
+        tabs={[
+          { id: "overview", label: "Overview", count: 2 },
+          { id: "impact", label: "Impact", count: 6 },
+          { id: "settings", label: "Settings" },
+        ]}
+      />
+    ),
+  },
+};
+
 export const FullFeatured: Story = {
   args: {
     title: "Comunidad Verde",
@@ -189,7 +219,7 @@ export const FullFeatured: Story = {
         <span>3 active actions</span>
       </div>
     ),
-    backLink: { to: "/gardens", label: "Back to gardens" },
+    backLink: { to: "/garden", label: "Back to garden workspace" },
     toolbar: (
       <div className="flex items-center gap-2 rounded-lg border border-stroke-soft bg-bg-white px-3 py-1.5 text-sm text-text-sub">
         <RiSearchLine className="h-4 w-4" />
@@ -240,7 +270,7 @@ export const FullFeatured: Story = {
   },
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="space-y-8">
       <PageHeader title="Title Only" />

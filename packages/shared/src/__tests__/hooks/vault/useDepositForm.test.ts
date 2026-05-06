@@ -34,15 +34,17 @@ describe("hooks/vault/useDepositForm", () => {
     });
   });
 
-  it("returns 0n for empty input", () => {
+  it("returns 0n for empty input", async () => {
     const { result } = renderHook(() => useDepositForm({ decimals: 18 }));
 
-    act(() => {
+    await act(async () => {
       result.current.form.setValue("amount", "", { shouldValidate: true });
     });
 
-    expect(result.current.amountBigInt).toBe(0n);
-    expect(result.current.hasBlockingError).toBe(false);
+    await waitFor(() => {
+      expect(result.current.amountBigInt).toBe(0n);
+      expect(result.current.hasBlockingError).toBe(false);
+    });
   });
 
   it("validates amount exceeding balance -> hasBlockingError true", async () => {

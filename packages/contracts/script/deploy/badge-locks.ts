@@ -1,0 +1,406 @@
+import { execFileSync } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { getAddress, id, Interface, isAddress, ZeroAddress } from "ethers";
+import { type ParsedOptions, redactSensitiveArgs } from "../utils/cli-parser";
+import { DeploymentAddresses } from "../utils/deployment-addresses";
+import { NetworkManager } from "../utils/network";
+import { assertSepoliaGate } from "../utils/release-gate";
+
+interface BadgeDeployDependencies {
+  networkManager: NetworkManager;
+  deploymentAddresses: DeploymentAddresses;
+}
+
+interface BadgeLockPlan {
+  id: string;
+  key: string;
+  name: string;
+  expirationDuration: bigint;
+  expirationLabel: string;
+  transferrable: false;
+}
+
+interface BadgeLockArtifact {
+  factory: string;
+  publicLockVersion: number;
+  lockCreator: string;
+  managerCount: number;
+  genesis: string;
+  firstWork: string;
+  firstSupport: string;
+}
+
+interface PersistedBadgeLock {
+  badgeId: string;
+  address: string;
+  name: string;
+  expirationDuration: string;
+  transferrable: false;
+}
+
+const MAX_KEYS = (1n << 256n) - 1n;
+const DRY_RUN_PUBLIC_LOCK_VERSION = 15;
+const DISABLED_TRANSFER_FEE_BASIS_POINTS = 10_000n;
+const LOCK_MANAGER_ROLE = id("LOCK_MANAGER");
+
+const BADGE_LOCKS: BadgeLockPlan[] = [
+  {
+    id: "genesis",
+    key: "genesis",
+    name: "Green Goods Genesis",
+    expirationDuration: 0n,
+    expirationLabel: "0 (lifetime)",
+    transferrable: false,
+  },
+  {
+    id: "first-work",
+    key: "firstWork",
+    name: "Green Goods First Work",
+    expirationDuration: 0n,
+    expirationLabel: "0 (lifetime)",
+    transferrable: false,
+  },
+  {
+    id: "first-support",
+    key: "firstSupport",
+    name: "Green Goods First Support",
+    expirationDuration: 0n,
+    expirationLabel: "0 (lifetime)",
+    transferrable: false,
+  },
+];
+
+const unlockFactoryInterface = new Interface([
+  "function createUpgradeableLockAtVersion(bytes data,uint16 lockVersion) returns (address lock)",
+]);
+
+const publicLockInterface = new Interface([
+  "function initialize(address lockCreator,uint256 expirationDuration,address tokenAddress,uint256 keyPrice,uint256 maxNumberOfKeys,string lockName)",
+  "function updateTransferFee(uint256 transferFeeBasisPoints)",
+  "function grantRole(bytes32 role,address account)",
+]);
+
+export class BadgeLocksDeployer {
+  private networkManager: NetworkManager;
+  private deploymentAddresses: DeploymentAddresses;
+
+  constructor(networkManager?: NetworkManager, deploymentAddresses?: DeploymentAddresses) {
+    this.networkManager = networkManager ?? new NetworkManager();
+    this.deploymentAddresses = deploymentAddresses ?? new DeploymentAddresses();
+  }
+
+  async deployBadgeLocks(options: ParsedOptions): Promise<void> {
+    const networkConfig = this.networkManager.getNetwork(options.network);
+    const networkUnlockFactory = networkConfig.contracts?.unlockFactory;
+    const deploymentUnlockFactory = this.resolveDeploymentUnlockFactory(options.network);
+    const unlockFactory = networkUnlockFactory ?? deploymentUnlockFactory;
+    const lockManagers = this.resolveLockManagers();
+
+    console.log(`${options.broadcast ? "Deploying" : "Planning"} GreenWill badge locks for ${options.network}`);
+
+    if (!unlockFactory) {
+      throw new Error(
+        `badge-locks requires a resolvable Unlock factory address. Add networks.${options.network}.contracts.unlockFactory to networks.json, ` +
+          "or record an unlock.factory entry in deployments/<chainId>-latest.json before retrying.",
+      );
+    }
+
+    if (options.broadcast) {
+      this.broadcastBadgeLocks(options, networkConfig.chainId.toString(), unlockFactory, lockManagers);
+      return;
+    }
+
+    const lockCreator = this.resolveLockCreator(options, lockManagers);
+    const plans = BADGE_LOCKS.map((badge) => this.buildPlan(badge, lockCreator, lockManagers));
+
+    console.log("\nDRY RUN - no transactions will be sent");
+    console.log(`Network: ${networkConfig.name} (chainId: ${networkConfig.chainId})`);
+    console.log(`Unlock factory: ${unlockFactory}`);
+    console.log(`Unlock factory source: ${networkUnlockFactory ? "contracts.unlockFactory" : "deployment fallback"}`);
+    console.log(`Lock creator: ${lockCreator}`);
+    console.log(`Lock version: ${DRY_RUN_PUBLIC_LOCK_VERSION} (dry-run encoding value)`);
+    console.log("Token address: native ETH (0x0000000000000000000000000000000000000000)");
+    console.log("Key price: 0");
+    console.log("Max keys: uint256 max");
+    console.log("Transferrable: false");
+    console.log(`Default lock managers: ${lockManagers.length > 0 ? lockManagers.join(", ") : "<none configured>"}`);
+
+    console.log("\nPlanned Unlock createUpgradeableLockAtVersion calldata packets:");
+    for (const [index, plan] of plans.entries()) {
+      console.log(`\n${index + 1}. ${plan.id}`);
+      console.log(`   name: ${plan.name}`);
+      console.log(`   expirationDuration: ${plan.expirationLabel}`);
+      console.log(`   to: ${unlockFactory}`);
+      console.log("   method: createUpgradeableLockAtVersion(bytes,uint16)");
+      console.log(`   lockInitializerCalldata: ${plan.lockInitializerCalldata}`);
+      console.log(`   createLockCalldata: ${plan.createLockCalldata}`);
+      console.log("   postCreate.transferPolicy: transferrable=false");
+      console.log(`   postCreate.updateTransferFeeCalldata: ${plan.updateTransferFeeCalldata}`);
+
+      if (plan.grantLockManagerCalldata.length === 0) {
+        console.log("   postCreate.lockManagers: <none configured>");
+      } else {
+        for (const [managerIndex, managerCalldata] of plan.grantLockManagerCalldata.entries()) {
+          console.log(`   postCreate.grantRole(LOCK_MANAGER)[${managerIndex}]: ${managerCalldata}`);
+        }
+      }
+    }
+
+    console.log("\nBadge lock dry-run plan complete.");
+    this.runForgeSimulation(options, networkConfig.chainId.toString());
+  }
+
+  private runForgeSimulation(options: ParsedOptions, chainId: string): void {
+    const rpcUrl = this.networkManager.getRpcUrl(options.network);
+    const args = [
+      "script",
+      "script/DeployBadgeLocks.s.sol:DeployBadgeLocks",
+      "--chain-id",
+      chainId,
+      "--rpc-url",
+      rpcUrl,
+    ];
+
+    const senderAddress =
+      options.sender ?? this.resolveConfiguredDeployer(options.network) ?? process.env.SENDER_ADDRESS;
+    if (senderAddress) {
+      args.push("--sender", senderAddress);
+    }
+
+    console.log("\nExecuting no-broadcast Foundry simulation...");
+    console.log("forge", redactSensitiveArgs(args).join(" "));
+
+    execFileSync("forge", args, {
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        FOUNDRY_PROFILE: "production",
+        BADGE_LOCKS_WRITE_ARTIFACT: "false",
+      },
+      cwd: path.join(__dirname, "../.."),
+    });
+  }
+
+  private broadcastBadgeLocks(
+    options: ParsedOptions,
+    chainId: string,
+    unlockFactory: string,
+    lockManagers: string[],
+  ): void {
+    assertSepoliaGate({
+      network: options.network,
+      broadcast: options.broadcast,
+      overrideSepoliaGate: options.overrideSepoliaGate,
+    });
+
+    const rpcUrl = this.networkManager.getRpcUrl(options.network);
+    const args = [
+      "script",
+      "script/DeployBadgeLocks.s.sol:DeployBadgeLocks",
+      "--chain-id",
+      chainId,
+      "--rpc-url",
+      rpcUrl,
+    ];
+    args.push("--broadcast");
+
+    const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
+    args.push("--account", keystoreName);
+
+    const senderAddress =
+      options.sender ?? this.resolveConfiguredDeployer(options.network) ?? process.env.SENDER_ADDRESS;
+    if (senderAddress) {
+      args.push("--sender", senderAddress);
+    }
+
+    console.log(`\nUsing Foundry keystore: ${keystoreName === "green-goods-deployer" ? keystoreName : "[custom]"}`);
+    console.log("Password will be prompted interactively");
+    console.log(`Unlock factory: ${unlockFactory}`);
+    console.log(`Manager defaults: ${lockManagers.length > 0 ? lockManagers.join(", ") : "<none configured>"}`);
+    console.log("\nExecuting badge lock deployment...");
+    console.log("forge", redactSensitiveArgs(args).join(" "));
+
+    try {
+      execFileSync("forge", args, {
+        stdio: "inherit",
+        env: {
+          ...process.env,
+          FOUNDRY_PROFILE: "production",
+          FORGE_BROADCAST: "true",
+          BADGE_LOCKS_WRITE_ARTIFACT: "true",
+        },
+        cwd: path.join(__dirname, "../.."),
+      });
+
+      this.mergeIntoDeployment(chainId, unlockFactory, lockManagers);
+      console.log("\nBadge locks deployed successfully!");
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error("\nBadge lock deployment failed:", errorMsg);
+      process.exit(1);
+    }
+  }
+
+  private mergeIntoDeployment(chainId: string, unlockFactory: string, lockManagers: string[]): void {
+    const deploymentsDir = path.join(__dirname, "../../deployments");
+    const badgeLockResultPath = path.join(deploymentsDir, `${chainId}-badge-locks.json`);
+    const mainDeploymentPath = path.join(deploymentsDir, `${chainId}-latest.json`);
+
+    if (!fs.existsSync(badgeLockResultPath)) {
+      throw new Error(`Badge lock result file not found: ${badgeLockResultPath}`);
+    }
+    if (!fs.existsSync(mainDeploymentPath)) {
+      throw new Error(`Main deployment file not found: ${mainDeploymentPath}`);
+    }
+
+    const artifact = JSON.parse(fs.readFileSync(badgeLockResultPath, "utf8")) as Partial<BadgeLockArtifact>;
+    const deployment = JSON.parse(fs.readFileSync(mainDeploymentPath, "utf8")) as Record<string, unknown>;
+    const existingUnlock =
+      typeof deployment.unlock === "object" && deployment.unlock !== null
+        ? (deployment.unlock as Record<string, unknown>)
+        : {};
+
+    const locks = Object.fromEntries(
+      BADGE_LOCKS.map((plan) => {
+        const lockAddress = artifact[plan.key as keyof BadgeLockArtifact];
+        if (typeof lockAddress !== "string" || !isAddress(lockAddress)) {
+          throw new Error(`Badge lock artifact missing a valid ${plan.key} address`);
+        }
+
+        const record: PersistedBadgeLock = {
+          badgeId: plan.id,
+          address: getAddress(lockAddress),
+          name: plan.name,
+          expirationDuration: plan.expirationDuration.toString(),
+          transferrable: false,
+        };
+
+        return [plan.key, record];
+      }),
+    );
+
+    deployment.unlock = {
+      ...existingUnlock,
+      factory: getAddress(unlockFactory),
+      publicLockVersion:
+        typeof artifact.publicLockVersion === "number" ? artifact.publicLockVersion : DRY_RUN_PUBLIC_LOCK_VERSION,
+      managerDefaults: lockManagers,
+      locks,
+    };
+
+    fs.writeFileSync(mainDeploymentPath, JSON.stringify(deployment, null, 2) + "\n");
+    fs.unlinkSync(badgeLockResultPath);
+
+    console.log(`\nMerged badge locks into ${path.basename(mainDeploymentPath)}`);
+    console.log(`  Factory: ${getAddress(unlockFactory)}`);
+    console.log(`  Locks:   ${BADGE_LOCKS.map((plan) => plan.key).join(", ")}`);
+  }
+
+  private resolveLockCreator(options: ParsedOptions, lockManagers: string[]): string {
+    const rawLockCreator =
+      options.sender ??
+      process.env.SENDER_ADDRESS ??
+      this.resolveConfiguredDeployer(options.network) ??
+      lockManagers[0] ??
+      this.networkManager.getDeploymentDefault("multisig") ??
+      ZeroAddress;
+
+    return isAddress(rawLockCreator) ? getAddress(rawLockCreator) : ZeroAddress;
+  }
+
+  private resolveLockManagers(): string[] {
+    const configuredManagers = this.networkManager.getDeploymentDefaultAddresses("badgeLockManagers");
+    const fallbackManagers = [
+      this.networkManager.getDeploymentDefault("multisig"),
+      this.networkManager.getDeploymentDefault("greenGoodsSafe"),
+    ].filter((value): value is string => Boolean(value));
+
+    const rawManagers = configuredManagers.length > 0 ? configuredManagers : fallbackManagers;
+
+    return [...new Set(rawManagers)].map((manager) => {
+      if (!isAddress(manager)) {
+        throw new Error(`Invalid badge lock manager address in networks.json: ${manager}`);
+      }
+      return getAddress(manager);
+    });
+  }
+
+  private resolveConfiguredDeployer(network: string): string | undefined {
+    try {
+      const deployment = this.deploymentAddresses.loadForChain(network) as Record<string, unknown>;
+      const config = deployment.greenWillConfig;
+      if (
+        typeof config === "object" &&
+        config !== null &&
+        typeof (config as { deployer?: unknown }).deployer === "string" &&
+        isAddress((config as { deployer: string }).deployer)
+      ) {
+        return getAddress((config as { deployer: string }).deployer);
+      }
+    } catch {
+      return undefined;
+    }
+
+    return undefined;
+  }
+
+  private resolveDeploymentUnlockFactory(network: string): string | undefined {
+    try {
+      const deployment = this.deploymentAddresses.loadForChain(network) as Record<string, unknown>;
+
+      if (typeof deployment.unlockFactory === "string") {
+        return deployment.unlockFactory;
+      }
+
+      const unlockDeployment = deployment.unlock;
+      if (
+        typeof unlockDeployment === "object" &&
+        unlockDeployment !== null &&
+        typeof (unlockDeployment as { factory?: unknown }).factory === "string"
+      ) {
+        return (unlockDeployment as { factory: string }).factory;
+      }
+    } catch {
+      return undefined;
+    }
+
+    return undefined;
+  }
+
+  private buildPlan(badge: BadgeLockPlan, lockCreator: string, lockManagers: string[]) {
+    const lockInitializerCalldata = publicLockInterface.encodeFunctionData("initialize", [
+      lockCreator,
+      badge.expirationDuration,
+      ZeroAddress,
+      0n,
+      MAX_KEYS,
+      badge.name,
+    ]);
+    const createLockCalldata = unlockFactoryInterface.encodeFunctionData("createUpgradeableLockAtVersion", [
+      lockInitializerCalldata,
+      DRY_RUN_PUBLIC_LOCK_VERSION,
+    ]);
+    const updateTransferFeeCalldata = publicLockInterface.encodeFunctionData("updateTransferFee", [
+      DISABLED_TRANSFER_FEE_BASIS_POINTS,
+    ]);
+    const grantLockManagerCalldata = lockManagers
+      .filter((manager) => manager !== lockCreator)
+      .map((manager) => publicLockInterface.encodeFunctionData("grantRole", [LOCK_MANAGER_ROLE, manager]));
+
+    return {
+      ...badge,
+      lockInitializerCalldata,
+      createLockCalldata,
+      updateTransferFeeCalldata,
+      grantLockManagerCalldata,
+    };
+  }
+}
+
+export async function deployBadgeLocks(options: ParsedOptions, dependencies: BadgeDeployDependencies): Promise<void> {
+  const deployer = new BadgeLocksDeployer(dependencies.networkManager, dependencies.deploymentAddresses);
+  await deployer.deployBadgeLocks(options);
+}
+
+export default deployBadgeLocks;

@@ -1,96 +1,128 @@
 ---
-title: Making An Assessment
-sidebar_label: Making An Assessment
+title: Make an Assessment
+sidebar_label: Make an Assessment
 slug: /community/operator-guide/making-an-assessment
+description: "Define the garden assessment context, reporting window, outcomes, and selected actions."
 audience: operator
 owner: docs
-last_verified: 2026-03-01
+last_verified: 2026-05-01
 feature_status: Live
-goal: "Complete Create Assessments with clear, role-specific next actions."
+image: /img/social/making-an-assessment.webp
+goal: "Walk an operator or evaluator through the three-step assessment form."
 difficulty: "standard"
 estimated_time: "15-30 minutes."
-prereqs: "Garden with active members and clear evaluation goals."
-next_steps: "./creating-impact-certificates"
-persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
+prereqs: "Assessment permission, a clear reporting window, and enough context to define the garden's current state."
+next_steps: "./reviewing-work"
+persona_context: "Operators and evaluators recording the context that later approvals and impact certificates should support."
 source_of_truth:
-  - packages/admin/src/views/Gardens/Garden/Assessment.tsx
-  - packages/admin/src/views/Gardens/Garden/CreateAssessment.tsx
-  - packages/shared/src/hooks/assessment/useCreateAssessmentWorkflow.ts
+  - packages/admin/src/views/Garden/Assessment.tsx
+  - packages/admin/src/views/Hub/CreateAssessment.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.tsx
+  - packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.tsx
+  - packages/shared/src/workflows/createAssessment.ts
 keywords:
-  - assessments
-  - strategy
+  - assessment
+  - smart outcomes
+  - strategy kernel
   - operator
+  - garden impact
 ---
 
-import {DecisionGuide, NextBestAction, StatusBadge, StepFlow} from "@site/src/components/docs";
+import {GuideOpener, NextBestAction, OperatorPathNav, StatusBadge} from "@site/src/components/docs";
 
-# Making An Assessment
+# Make an Assessment
 
 <StatusBadge status="Live" />
 
-## Overview
+<OperatorPathNav />
 
-Assessments are garden-level evaluations that document impact across the Eight Forms of Capital (Living, Material, Financial, Social, Intellectual, Experiential, Spiritual, Cultural). They aggregate individual work into a broader picture of your garden's regenerative contribution and create on-chain attestation records via EAS.
+<GuideOpener
+  image="/img/social/making-an-assessment.webp"
+  alt="Operators organizing approved work evidence into an assessment packet"
+  label="Assessment chapter"
+  roleAccent="assessment"
+>
+  Set the domain, reporting window, outcomes, and evidence context.
+</GuideOpener>
 
-```mermaid
-graph LR
-    Define["Define Assessment\ntitle, timeline"] --> Capital["Select Capital Forms\nEight Forms evaluation"]
-    Capital --> Strategy["Configure Strategy\nconviction parameters"]
-    Strategy --> Submit["Submit Assessment\non-chain attestation"]
-```
+## What this helps you do
 
-Use assessments when you need to formally evaluate your garden's progress, prepare for funding rounds, or create a baseline for comparing impact over time.
+Create an assessment for a garden. An assessment records the domain, title, location, reporting window, outcomes, selected actions, metrics, and context that operators will use when they review work and later mint impact certificates.
 
-<img src="/img/screenshots/admin-garden-impact.png" alt="Garden impact tab — hypercert highlights and assessment summary" style={{maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--ifm-color-emphasis-300)'}} />
+Assessments are operator-first, but the permission is broader: garden owners, operators, and evaluators can create them. Approving or rejecting work is still owner/operator only.
 
-## How It Works
+Each assessment is single-domain. If a garden is reporting Agroforestry and Education work, make one assessment for Agroforestry and a separate assessment for Education.
 
-<StepFlow
-  steps={[
-    {title: "Open assessments", detail: "Navigate to your garden's Assessments tab in the admin dashboard."},
-    {title: "Create new assessment", detail: "Set the title, description, timeline, and evaluation domain. Choose which forms of capital you are evaluating."},
-    {title: "Attach strategy config", detail: "Include diagnosis, target outcomes, and supporting references. Document your assumptions and methodology."},
-    {title: "Publish", detail: "Submit the assessment on-chain. Confirm it is visible in the garden's assessment list."},
-  ]}
-/>
+## Before you start
 
-<DecisionGuide
-  title="When to create assessments"
-  items={[
-    {
-      when: "You have accumulated a body of approved work and want to measure overall impact",
-      do: "Create a comprehensive assessment covering the relevant forms of capital.",
-      next: "Use the assessment as a basis for hypercert minting or funding reports.",
-    },
-    {
-      when: "You are entering a funding round or grant cycle",
-      do: "Create a time-bounded assessment matching the grant period.",
-      next: "Export the assessment data for inclusion in grant applications.",
-    },
-    {
-      when: "You need to adjust strategy mid-cycle",
-      do: "Create a follow-on assessment rather than editing the existing one.",
-      next: "Document how the new assessment builds on or diverges from the previous one.",
-    },
-  ]}
-/>
+- You are signed in as a garden **owner**, **operator**, or **evaluator**.
+- You know which **domain** this assessment covers.
+- You have a short diagnosis of the situation the garden is working on.
+- You have one or more SMART outcomes. SMART means specific, measurable, achievable, relevant, and time-bound; in plain terms, each outcome should say what will change, how you will measure it, and by when.
+- You know the reporting window and the actions that belong in this assessment.
 
-## Best Practices
+:::tip
+An assessment can be an early baseline or a later evidence-backed report. It is useful before approvals, but it is not required before every work approval.
+:::
 
-- Keep assessment names stable and date ranges explicit so they can be referenced consistently
-- Document assumptions in attached config references — future evaluators need to understand your methodology
-- Use follow-on assessments for major scope changes rather than editing existing assessments
-- Align assessment timelines with your garden's natural work cycles (seasonal, quarterly, etc.)
-- Review approved work in the garden before creating an assessment to ensure the data is complete
+## Step-by-step flow
 
-## What's Next
+The assessment form has three steps: **Domain & Context**, **Strategy Kernel**, and **Actions & Harvest**. Your progress is saved as a local draft when browser storage is available.
+
+### Step 1: Open the assessment form
+
+1. Open the **Hub** workspace.
+2. Switch to the **Assess** tab.
+3. Click **New assessment**.
+4. Pick the garden if the form asks for one.
+
+### Step 2: Fill Domain & Context
+
+1. Pick the **Domain** this assessment reports against. Only domains enabled on the garden are selectable.
+2. Enter a stable **title** that will still make sense later.
+3. Enter a short **description** of what the assessment covers.
+4. Enter the **location**.
+5. Click **Continue**.
+
+### Step 3: Build the Strategy Kernel
+
+1. Enter the **diagnosis**: what was happening before or during the work.
+2. Choose the situation type: clear, complicated, complex, chaotic, or confusion. The app labels this as the **Cynefin phase**.
+3. Add one or more **SMART outcomes** with a description, metric, and target.
+4. Select the metrics that match the domain and outcomes. Use multiple metrics when they add useful evidence, but do not add metrics just to make the assessment look bigger.
+5. Click **Continue**.
+
+### Step 4: Pick Actions & Harvest
+
+1. Select the **actions** this assessment covers. The form filters actions to the domain you picked in step 2.
+2. Set the **reporting period** start and end dates.
+3. Review the summary.
+4. Click **Submit assessment** and sign in your wallet.
+5. Wait for confirmation before closing the tab.
+
+## How to know it worked
+
+- A success toast confirms the assessment was submitted.
+- The form closes and returns you to the assessment list.
+- After indexing catches up, the assessment appears with its title, domain badge, and reporting date range.
+- If an explorer link is available, you can open it to verify the record.
+
+## If something goes wrong
+
+- **No permission.** Ask the garden owner to add you as an owner, operator, or evaluator.
+- **Domain is missing.** The garden does not have that domain enabled. Pick an enabled domain or update the garden settings first.
+- **Action is missing.** Actions are filtered by the selected domain. Check whether the action belongs to a different domain.
+- **Incomplete form.** The form highlights the missing field. Scroll back, fill it in, and retry.
+- **Draft backup unavailable.** Submission can still work, but do not close the tab until you finish.
+- **Transaction cancelled.** Nothing was submitted. Retry when ready.
+- **Transaction failed.** Check the wallet message, make sure you are on Arbitrum, confirm the same signer is connected, and retry when the wallet has enough gas.
+
+## Next step
 
 <NextBestAction
-  title="Next best action"
-  why="Turn your assessed impact into tradeable impact certificates."
-  actionLabel="Creating Impact Certificates"
-  actionHref="./creating-impact-certificates"
-  alternatives={[
-    {label: "Reporting and GAP", href: "./reporting-and-gap"},
-  ]}
+  title="Review and approve work"
+  why="With assessment context in place, use it to make consistent approval decisions in the work queue."
+  actionLabel="Review and Approve Work"
+  actionHref="./reviewing-work"
 />

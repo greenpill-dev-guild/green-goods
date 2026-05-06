@@ -1,10 +1,11 @@
 import { cn } from "@green-goods/shared";
 import React from "react";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export interface StandardTab {
   id: string;
   label: string;
-  icon?: string | React.ReactNode;
+  icon?: React.ReactNode;
   count?: number;
   disabled?: boolean;
 }
@@ -70,7 +71,7 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
   }
 
   return (
-    <div className={cn("flex border-b border-border flex-shrink-0", className)}>
+    <div className={cn("flex border-b border-border flex-shrink-0 bg-bg-white-0", className)}>
       {tabs.map((tab) => (
         <button
           type="button"
@@ -82,27 +83,34 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           }}
           disabled={tab.disabled}
           className={cn(
-            "flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-200 relative flex-1 min-w-0 tap-feedback",
-            variant === "compact" ? "py-2.5" : "py-3",
-            activeTab === tab.id ? "text-primary bg-bg-weak-50" : "text-text-sub-600",
+            "flex min-h-11 items-center justify-center gap-1 px-1.5 text-xs font-medium transition-[color,background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] relative flex-1 min-w-0 tap-feedback sm:min-h-12 sm:gap-2 sm:px-3 sm:text-label-sm",
+            "focus:outline-none focus-visible:shadow-button-primary-focus",
+            variant === "compact" ? "py-2.5 sm:py-3" : "py-3 sm:py-3.5",
+            activeTab === tab.id
+              ? cn(pwaStatusStyles.primary.text, pwaStatusStyles.primary.surface)
+              : pwaStatusStyles.neutral.text,
             tab.disabled && "opacity-50 cursor-not-allowed",
             triggerClassName
           )}
           data-testid={`tab-${tab.id}`}
         >
-          {/* Icon - handle both emoji strings and React components */}
           {tab.icon && (
-            <span className="text-base flex-shrink-0">
-              {typeof tab.icon === "string" ? tab.icon : tab.icon}
+            <span className="flex h-4 w-4 flex-shrink-0 items-center justify-center text-sm [&>i]:text-base [&>svg]:h-4 [&>svg]:w-4">
+              {tab.icon}
             </span>
           )}
 
           {/* Label */}
-          <span className="truncate">{tab.label}</span>
+          <span className="min-w-0 truncate whitespace-nowrap">{tab.label}</span>
 
           {/* Count badge */}
           {tab.count !== undefined && tab.count > 0 && (
-            <span className="inline-flex items-center justify-center text-xs font-medium text-white bg-primary rounded-full min-w-[16px] h-4 px-1 flex-shrink-0">
+            <span
+              className={cn(
+                "inline-flex items-center justify-center text-xs font-medium rounded-full min-w-[16px] h-4 px-1 flex-shrink-0",
+                pwaStatusStyles.primary.badge
+              )}
+            >
               {tab.count > 99 ? "99+" : tab.count}
             </span>
           )}
@@ -113,35 +121,22 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
               {isLoading ? (
                 <div className="w-full h-full bg-bg-soft-200">
                   <div
-                    className="h-full bg-primary animate-[standardTabLoading_2s_ease-in-out_infinite]"
+                    className={cn("h-full", pwaStatusStyles.information.progress)}
                     style={{
-                      animation: "standardTabLoading 2s ease-in-out infinite",
+                      animationName: "standardTabLoading",
+                      animationDuration: "var(--spring-effects-slow-duration)",
+                      animationTimingFunction: "var(--spring-effects-slow-easing)",
+                      animationIterationCount: "infinite",
                     }}
                   />
                 </div>
               ) : (
-                <div className="w-full h-full bg-primary" />
+                <div className={cn("w-full h-full", pwaStatusStyles.primary.progress)} />
               )}
             </div>
           )}
         </button>
       ))}
-
-      {/* CSS for loading animation */}
-      <style>{`
-        @keyframes standardTabLoading {
-          0% {
-            width: 0%;
-          }
-          50% {
-            width: 100%;
-          }
-          100% {
-            width: 0%;
-            margin-left: 100%;
-          }
-        }
-      `}</style>
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { expect, fn, within } from "storybook/test";
 import { AudioRecorder } from "./AudioRecorder";
 
 const meta: Meta<typeof AudioRecorder> = {
-  title: "Media/AudioRecorder",
+  title: "Shared/Display/AudioRecorder",
   component: AudioRecorder,
   tags: ["autodocs"],
   parameters: {

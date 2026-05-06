@@ -3,7 +3,7 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { getAllGardenVaults, getGardenVaults } from "../../modules/data/vaults";
 import type { Address } from "../../types/domain";
 import type { GardenVault } from "../../types/vaults";
-import { queryKeys, STALE_TIME_FAST } from "../query-keys";
+import { queryKeys, STALE_TIME_FAST } from "../../config/query-keys";
 
 interface UseGardenVaultsOptions {
   chainId?: number;

@@ -1,6 +1,5 @@
-import type { ActionInstructionConfig } from "@green-goods/shared";
+import { type ActionInstructionConfig, FormField, Textarea, TextInput } from "@green-goods/shared";
 import { useIntl } from "react-intl";
-import { FormField } from "@/components/ui/FormField";
 
 interface ReviewConfigSectionProps {
   config: ActionInstructionConfig["uiConfig"]["review"];
@@ -19,8 +18,9 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
         })}
         htmlFor="review-title"
       >
-        <input
+        <TextInput
           id="review-title"
+          surface="admin"
           type="text"
           value={config.title}
           onChange={(e) => onChange({ ...config, title: e.target.value })}
@@ -39,8 +39,9 @@ export function ReviewConfigSection({ config, onChange }: ReviewConfigSectionPro
         })}
         htmlFor="review-description"
       >
-        <textarea
+        <Textarea
           id="review-description"
+          surface="admin"
           value={config.description}
           onChange={(e) => onChange({ ...config, description: e.target.value })}
           className="w-full rounded-md border border-stroke-soft px-3 py-2"

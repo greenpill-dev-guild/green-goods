@@ -5,6 +5,13 @@ slug: /builders/agentic/prompt-engineering
 audience: developer
 owner: docs
 last_verified: 2026-04-03
+feature_status: Live
+source_of_truth:
+  - .claude/agents/cracked-coder.md
+  - .claude/agents/oracle.md
+  - .claude/skills/plan/SKILL.md
+  - .claude/skills/review/SKILL.md
+  - CLAUDE.md
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -88,11 +95,22 @@ Before implementing anything, agents find the most similar existing file in the 
 
 Agent workflows have explicit phases (SCOPE, GATHER, PLAN, TEST, IMPLEMENT, VERIFY) with gates between them. A user asking for "just a plan" stops at PLAN and saves to `.plans/`. This prevents agents from executing prematurely.
 
+### Research, Plan, Implement
+
+Use the research-plan-implement loop for ambiguous, multi-package, or high-risk work:
+
+1. Research the existing system and record the source evidence.
+2. Plan the smallest credible path, including out-of-scope items, human judgment points, and validation.
+3. Implement from the accepted plan in a focused session.
+
+If the context has accumulated wrong assumptions, stop and summarize only the useful findings for a fresh session.
+
 ### Thinking Checkpoints
 
 Between phases, agents reflect on tool results before proceeding:
 
 - After GATHER: "Do I have sufficient context? If I cannot explain the existing pattern in one sentence, I need to read more."
+- After PLAN: "Did I record evidence, assumptions, and the human judgment points before editing?"
 - After TEST failure: "Is this failing for the RIGHT reason?"
 - After IMPLEMENT pass: "Am I testing the behavior or just the happy path?"
 
@@ -123,14 +141,15 @@ Patterns that produce poor agent outputs in this codebase:
 - Reference specific files and line numbers when describing issues
 - Use imperative voice for actions ("implement", "fix", "add test for")
 - Include acceptance criteria that can be mechanically verified
+- For plans, include research evidence and human judgment points before implementation steps
 
 <NextBestAction
   title="Next best action"
-  why="Discover how to provide the right context for agent tasks."
-  actionLabel="Context Engineering"
-  actionHref="./context-engineering"
+  why="See the short, repo-specific prompt shape that maps cleanly to Green Goods workflows."
+  actionLabel="Prompting Green Goods"
+  actionHref="./prompting-green-goods"
   alternatives={[
+    {label: "Context Engineering", href: "./context-engineering"},
     {label: "Core Philosophies", href: "./core-philosophies"},
-    {label: "Intent Engineering", href: "./intent-engineering"},
   ]}
 />

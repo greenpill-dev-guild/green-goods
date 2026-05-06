@@ -20,6 +20,8 @@ export interface UseWorkMetadataResult {
   metadata: WorkMetadata | null;
   status: WorkMetadataStatus;
   error: string | null;
+  /** Increment internal retry key to re-trigger the IPFS fetch */
+  retryFetch: () => void;
 }
 
 /**
@@ -34,6 +36,7 @@ export function useWorkMetadata(metadataRaw: string | undefined): UseWorkMetadat
   const [metadata, setMetadata] = useState<WorkMetadata | null>(null);
   const [status, setStatus] = useState<WorkMetadataStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
 
   useAsyncEffect(
     async ({ signal, isMounted }) => {
@@ -93,8 +96,10 @@ export function useWorkMetadata(metadataRaw: string | undefined): UseWorkMetadat
         });
       }
     },
-    [metadataRaw]
+    [metadataRaw, retryKey]
   );
 
-  return { metadata, status, error };
+  const retryFetch = () => setRetryKey((prev) => prev + 1);
+
+  return { metadata, status, error, retryFetch };
 }

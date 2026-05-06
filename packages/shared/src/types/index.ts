@@ -49,6 +49,9 @@ export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./c
 // ============================================
 export type {
   AllocateHypercertSupportParams,
+  ConvictionAllocations,
+  ConvictionProposal,
+  ConvictionProposalStatus,
   ConvictionWeight,
   DeregisterHypercertParams,
   HypercertEntry,
@@ -65,6 +68,14 @@ export type {
 // Cookie Jar Types
 // ============================================
 export type {
+  CampaignCookieJar,
+  CampaignCookieJarCampaign,
+  CampaignCookieJarMetadata,
+  CampaignCookieJarOperatorAggregation,
+  CampaignCookieJarOperatorPolicy,
+  CampaignCookieJarOperatorSource,
+  CookieJarAccessType,
+  CookieJarWithdrawalType,
   CookieJar,
   CookieJarAdminParams,
   CookieJarDepositParams,
@@ -72,6 +83,9 @@ export type {
   CookieJarUpdateIntervalParams,
   CookieJarUpdateMaxWithdrawalParams,
   CookieJarWithdrawParams,
+  CreateCampaignCookieJarParams,
+  IndexedCampaignCookieJar,
+  SyncCampaignCookieJarAllowlistParams,
 } from "./cookie-jar";
 // ============================================
 // Garden Detail Types
@@ -92,12 +106,19 @@ export type {
 export type {
   Action,
   ActionCard,
+  ActionContentLocale,
   ActionInstructionConfig,
+  ActionInstructionConfigV2,
+  ActionInstructionInputTranslation,
+  ActionInstructionTranslationData,
+  ActionTranslationLocale,
+  ActionTranslationMap,
+  ActionTranslationRecord,
+  ActionTranslationStatus,
   Address,
   AssessmentAttachment,
   AssessmentDraft,
   AssessmentWorkflowParams,
-  CreateAssessmentForm, // @deprecated - use AssessmentWorkflowParams
   ENSRegistrationData,
   Garden,
   GardenAssessment,
@@ -110,12 +131,13 @@ export type {
   WorkApprovalDraft,
   WorkCard,
   WorkDisplayStatus,
-  WorkDraft, // @deprecated - use WorkSubmission
   WorkInput,
   WorkMetadata,
-  WorkMetadataV1,
   WorkSubmission,
 } from "./domain";
+// Compatibility type aliases
+// Prefer AssessmentWorkflowParams / WorkSubmission / WorkMetadata in new code.
+export type { CreateAssessmentForm, WorkDraft, WorkMetadataV1 } from "./domain";
 // Re-export enums (value exports, not type)
 export {
   Capital,
@@ -216,7 +238,6 @@ export type {
   QueueStats,
   QueueSubscriber,
   SerializedFileData,
-  WorkDraft as WorkDraftDB, // @deprecated - use WorkDraftRecord
   WorkDraftRecord,
   WorkJobPayload,
 } from "./job-queue";
@@ -234,32 +255,12 @@ export type {
   WorkConflict,
 } from "./offline";
 // ============================================
-// Ops Runner Types
-// ============================================
-export type {
-  OpsDeployRequest,
-  OpsJob,
-  OpsJobLogEntry,
-  OpsJobLogsState,
-  OpsJobStatus,
-  OpsJobType,
-  OpsRunnerChallengeResponse,
-  OpsRunnerHealth,
-  OpsRunnerJobResponse,
-  OpsRunnerJobsResponse,
-  OpsRunnerScriptDefinition,
-  OpsRunnerScriptsResponse,
-  OpsRunnerSession,
-  OpsRunnerVerifyResponse,
-  OpsRunScriptRequest,
-  OpsUpgradeRequest,
-} from "./ops";
-// ============================================
 // Vault Types
 // ============================================
 export type {
   DepositParams,
   EmergencyPauseParams,
+  FunderAssetTotal,
   FunderLeaderboardEntry,
   FunderPosition,
   GardenVault,

@@ -324,11 +324,31 @@ describe("providers/JobQueueProvider", () => {
 
       renderHook(() => useJobQueue(), { wrapper: createWrapper() });
 
-      // Wait a bit to ensure flush wasn't called
-      await new Promise((r) => setTimeout(r, 100));
+      await waitFor(() => {
+        expect(mockJobQueue.getStats).toHaveBeenCalled();
+      });
 
       // Flush should not be called for wallet mode
       expect(mockJobQueue.flush).not.toHaveBeenCalled();
+    });
+
+    it("surfaces auto-flush failures through lastEvent and queue sync error toast", async () => {
+      Object.defineProperty(navigator, "onLine", { value: true, configurable: true });
+      mockUseAuth.mockReturnValue({ authMode: "passkey" });
+      mockJobQueue.flush.mockRejectedValueOnce(new Error("Queue flush exploded"));
+
+      const { result } = renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+      await waitFor(() => {
+        expect(queueToasts.syncError).toHaveBeenCalled();
+      });
+
+      expect(result.current.lastEvent).toEqual({
+        type: "job_failed",
+        jobId: "queue-flush",
+        error: "Queue flush exploded",
+      });
+      expect(result.current.isProcessing).toBe(false);
     });
   });
 });

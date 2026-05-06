@@ -1,7 +1,9 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { Button } from "../../components/Button";
 import { FormInput } from "../../components/Form/FormInput";
+import { Select, SelectTrigger, SelectValue } from "../../components/Form/Select";
 import { FormTextarea } from "../../components/Form/FormTextarea";
 import {
   cardShellVariants,
@@ -16,10 +18,7 @@ describe("design system foundation", () => {
 
     const input = screen.getByLabelText("Name");
 
-    expect(input).toHaveClass("w-full");
-    expect(input).toHaveClass("text-base");
-    expect(input).toHaveClass("rounded-lg");
-    expect(input).toHaveClass("px-4");
+    expect(input).toHaveClass("gg-control");
   });
 
   it("supports the shared textarea styling", () => {
@@ -27,10 +26,38 @@ describe("design system foundation", () => {
 
     const textarea = screen.getByLabelText("Notes");
 
-    expect(textarea).toHaveClass("w-full");
-    expect(textarea).toHaveClass("text-base");
-    expect(textarea).toHaveClass("px-4");
-    expect(textarea).toHaveClass("rounded-lg");
+    expect(textarea).toHaveClass("gg-control");
+    expect(textarea).toHaveClass("gg-control-textarea");
+  });
+
+  it("uses the shared control class for custom selects", () => {
+    render(
+      <Select>
+        <SelectTrigger size="sm">
+          <SelectValue placeholder="Pick one" />
+        </SelectTrigger>
+      </Select>
+    );
+
+    const trigger = screen.getByRole("combobox");
+
+    expect(trigger).toHaveClass("gg-control");
+    expect(trigger).toHaveClass("gg-control-trigger");
+    expect(trigger).toHaveAttribute("data-size", "sm");
+  });
+
+  it("uses the shared button class contract", () => {
+    render(
+      <Button variant="secondary" size="sm">
+        Refresh
+      </Button>
+    );
+
+    const button = screen.getByRole("button", { name: "Refresh" });
+
+    expect(button).toHaveClass("gg-button");
+    expect(button).toHaveClass("gg-button-secondary");
+    expect(button).toHaveClass("gg-button-size-sm");
   });
 
   it("exposes one shared control sizing contract for native inputs and selects", () => {

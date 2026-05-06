@@ -89,7 +89,7 @@ This is the first official release of Green Goods — an offline-first platform 
 - Debug mode functionality (`?debug=true`)
 
 **Changed:**
-- `WorkDashboard` — new tabbed interface (Drafts, Pending, Completed, Uploading)
+- `WorkDashboard` — new tabbed interface (Draft, Pending, Completed)
 - `Login` view — redesigned with passkey-first flow
 - `TopNav` — operator-specific functionality and media upload improvements
 - `ImagePreviewDialog` — enhanced gallery with swipe gestures
@@ -184,7 +184,7 @@ This is the first official release of Green Goods — an offline-first platform 
 
 **Added:**
 - `bunfig.toml` — test preload configuration
-- Enhanced media service with Storacha/IPFS
+- Enhanced media service with IPFS uploads
 
 **Changed:**
 - Test setup improvements
@@ -243,14 +243,12 @@ This is the first official release of Green Goods — an offline-first platform 
 **Scripts:**
 - `scripts/ci-local.js` — local CI simulation
 - `scripts/fix-multiformats.js` — dependency patching
-- `scripts/storacha-upload.js` — IPFS deployment helper
 - `scripts/test-e2e.js` — E2E test runner with filtering
 
 **CI/CD:**
-- `.github/workflows/e2e-tests.yml` — comprehensive E2E pipeline
-- `.github/workflows/deploy-docs.yml` — Docusaurus deployment
-- `.github/workflows/deploy-ipfs.yml` — Storacha integration
-- Shared Bun setup action
+- `.github/workflows/client.yml` / `.github/workflows/admin.yml` — package CI with focused Playwright projects
+- `.github/workflows/docs.yml` — trusted Docusaurus deployment
+- Inline Bun setup per lane
 
 **Tooling:**
 - `CLAUDE.md` — AI assistant context
@@ -273,7 +271,7 @@ This is the first official release of Green Goods — an offline-first platform 
 | wagmi | 2.19.5 |
 
 **New Dependencies:**
-- `@storacha/client` — IPFS storage
+- IPFS upload client — storage integration
 - `browser-image-compression` — client-side image optimization
 - `posthog-js` / `posthog-node` — analytics
 - `xstate` / `@xstate/react` — state machines
@@ -290,7 +288,7 @@ This is the first official release of Green Goods — an offline-first platform 
 
 **For Developers:**
 1. Run `bun install` to update dependencies
-2. Regenerate `.env` from `.env.schema` and add any new Storacha keys
+2. Regenerate `.env` from `.env.schema` and add any new IPFS upload keys
 3. Update any URQL imports to use `graphql-client`
 4. Test passkey flows on Android devices
 

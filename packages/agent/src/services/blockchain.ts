@@ -47,9 +47,11 @@ import {
   type Chain,
   createPublicClient,
   createWalletClient,
+  decodeEventLog,
   getContract,
   type Hex,
   http,
+  parseAbiItem,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type {
@@ -68,6 +70,44 @@ interface CacheEntry<T> {
   data: T;
   timestamp: number;
 }
+
+export interface TransactionConfirmation {
+  status: "confirmed" | "failed" | "pending";
+  txHash: Hex;
+  blockNumber?: string;
+  confirmedAt?: string;
+}
+
+export interface FundingTupleExpectation {
+  /** Lowercased token contract address. */
+  token: string;
+  /** Lowercased destination (Cookie Jar or Vault) address. */
+  destinationAddress: string;
+  /** Minimum asset amount that must be transferred to the destination, as a base-units decimal string. */
+  minAssetAmount?: string;
+  /** Chain id the funding must land on. */
+  chainId: number;
+}
+
+export interface FundingConfirmationResult {
+  status: "confirmed" | "failed" | "pending" | "tuple_mismatch";
+  txHash: Hex;
+  blockNumber?: string;
+  confirmedAt?: string;
+  /** Sum of matched ERC-20 Transfer values to `destinationAddress`, as a base-units decimal string. */
+  matchedAssetAmount?: string;
+  /** Failure detail when status is `tuple_mismatch`. */
+  mismatchReason?:
+    | "chain_mismatch"
+    | "no_matching_transfer"
+    | "amount_below_min"
+    | "destination_mismatch"
+    | "token_mismatch";
+}
+
+const ERC20_TRANSFER_EVENT = parseAbiItem(
+  "event Transfer(address indexed from, address indexed to, uint256 value)"
+);
 
 // ============================================================================
 // BLOCKCHAIN CLASS
@@ -260,6 +300,151 @@ class Blockchain {
   // UTILITIES
   // ==========================================================================
 
+  async getTransactionConfirmation(txHash: Hex): Promise<TransactionConfirmation> {
+    try {
+      const receipt = await this.publicClient.getTransactionReceipt({ hash: txHash });
+      return {
+        status: receipt.status === "success" ? "confirmed" : "failed",
+        txHash,
+        blockNumber: receipt.blockNumber?.toString(),
+        confirmedAt: new Date().toISOString(),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/not found|not be found|could not find/i.test(message)) {
+        return { status: "pending", txHash };
+      }
+      log.warn({ txHash, error: message }, "Funding transaction receipt lookup failed");
+      return { status: "pending", txHash };
+    }
+  }
+
+  /**
+   * Confirm a funding transaction matches the locked Garden/destination/token
+   * tuple before declaring it `funded`.
+   *
+   * Provider success alone is never enough — per the public-read-side-journal
+   * plan, `funded` and `funded_late` require a confirmed onchain transaction
+   * that:
+   *   - lands on the expected chain,
+   *   - includes an ERC-20 Transfer (or compound-Transfer) on the expected
+   *     token,
+   *   - lands `to == destinationAddress` (Cookie Jar for Donate; Vault for
+   *     Endow), and
+   *   - moves at least `minAssetAmount` to that destination.
+   *
+   * The helper rejects mismatches with a public-safe `tuple_mismatch` status
+   * and a structured `mismatchReason` so callers can surface
+   * `failureCode: "reconciliation_failed"` in the public receipt without
+   * leaking provider internals.
+   */
+  async confirmFundingTransaction(
+    txHash: Hex,
+    expected: FundingTupleExpectation
+  ): Promise<FundingConfirmationResult> {
+    if (expected.chainId !== this.chainId) {
+      return {
+        status: "tuple_mismatch",
+        txHash,
+        mismatchReason: "chain_mismatch",
+      };
+    }
+
+    let receipt: Awaited<ReturnType<typeof this.publicClient.getTransactionReceipt>>;
+    try {
+      receipt = await this.publicClient.getTransactionReceipt({ hash: txHash });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/not found|not be found|could not find/i.test(message)) {
+        return { status: "pending", txHash };
+      }
+      log.warn({ txHash, error: message }, "Funding tuple confirmation receipt lookup failed");
+      return { status: "pending", txHash };
+    }
+
+    if (receipt.status !== "success") {
+      return {
+        status: "failed",
+        txHash,
+        blockNumber: receipt.blockNumber?.toString(),
+        confirmedAt: new Date().toISOString(),
+      };
+    }
+
+    const expectedToken = expected.token.toLowerCase();
+    const expectedDestination = expected.destinationAddress.toLowerCase();
+    const minAmount = expected.minAssetAmount ? safeParseBigInt(expected.minAssetAmount) : 0n;
+
+    let totalMatched = 0n;
+    let sawTokenLog = false;
+    let sawDestinationLog = false;
+
+    for (const rawLog of receipt.logs ?? []) {
+      if (rawLog.address.toLowerCase() !== expectedToken) continue;
+      sawTokenLog = true;
+      try {
+        const decoded = decodeEventLog({
+          abi: [ERC20_TRANSFER_EVENT],
+          data: rawLog.data,
+          topics: rawLog.topics,
+        });
+        if (decoded.eventName !== "Transfer") continue;
+        const args = decoded.args as { from: string; to: string; value: bigint };
+        if (args.to.toLowerCase() !== expectedDestination) continue;
+        sawDestinationLog = true;
+        totalMatched += args.value;
+      } catch {
+        // Ignore non-Transfer logs that happen to share the token address.
+      }
+    }
+
+    if (!sawTokenLog) {
+      return {
+        status: "tuple_mismatch",
+        txHash,
+        blockNumber: receipt.blockNumber?.toString(),
+        confirmedAt: new Date().toISOString(),
+        mismatchReason: "token_mismatch",
+      };
+    }
+    if (!sawDestinationLog) {
+      return {
+        status: "tuple_mismatch",
+        txHash,
+        blockNumber: receipt.blockNumber?.toString(),
+        confirmedAt: new Date().toISOString(),
+        mismatchReason: "destination_mismatch",
+      };
+    }
+    if (totalMatched === 0n) {
+      return {
+        status: "tuple_mismatch",
+        txHash,
+        blockNumber: receipt.blockNumber?.toString(),
+        confirmedAt: new Date().toISOString(),
+        mismatchReason: "no_matching_transfer",
+      };
+    }
+    if (minAmount > 0n && totalMatched < minAmount) {
+      return {
+        status: "tuple_mismatch",
+        txHash,
+        blockNumber: receipt.blockNumber?.toString(),
+        confirmedAt: new Date().toISOString(),
+        matchedAssetAmount: totalMatched.toString(),
+        mismatchReason: "amount_below_min",
+      };
+    }
+
+    return {
+      status: "confirmed",
+      txHash,
+      blockNumber: receipt.blockNumber?.toString(),
+      confirmedAt: new Date().toISOString(),
+      matchedAssetAmount: totalMatched.toString(),
+    };
+  }
+
   getChainId(): number {
     return this.chainId;
   }
@@ -320,5 +505,18 @@ export const isGardener = (gardenAddress: string, userAddress: string) =>
   getBlockchain().isGardener(gardenAddress, userAddress);
 export const getGardenInfo = (gardenAddress: string) =>
   getBlockchain().getGardenInfo(gardenAddress);
+export const getTransactionConfirmation = (txHash: Hex) =>
+  getBlockchain().getTransactionConfirmation(txHash);
+
+export const confirmFundingTransaction = (txHash: Hex, expected: FundingTupleExpectation) =>
+  getBlockchain().confirmFundingTransaction(txHash, expected);
+
+function safeParseBigInt(value: string): bigint {
+  try {
+    return BigInt(value);
+  } catch {
+    return 0n;
+  }
+}
 export const getChainId = () => getBlockchain().getChainId();
 export const clearBlockchainCache = () => _blockchain?.clearCache();

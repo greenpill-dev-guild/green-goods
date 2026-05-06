@@ -1,8 +1,9 @@
-import { useAuth } from "@green-goods/shared";
+import { useAuthState } from "@green-goods/shared";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export default function RequireAuth() {
-  const { isReady, isAuthenticated } = useAuth();
+  const { isReady, isAuthenticated } = useAuthState();
   const location = useLocation();
 
   // Wait for auth provider to finish initialization
@@ -10,7 +11,9 @@ export default function RequireAuth() {
   if (!isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-bg-white-0">
-        <div className="h-10 w-10 animate-spin rounded-full border-3 border-green-200 border-t-green-600" />
+        <div
+          className={`h-10 w-10 animate-spin rounded-full border-3 border-stroke-soft-200 ${pwaStatusStyles.primary.spinnerBorder}`}
+        />
       </div>
     );
   }

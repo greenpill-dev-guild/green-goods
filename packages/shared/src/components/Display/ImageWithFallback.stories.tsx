@@ -1,11 +1,16 @@
 import { RiUserLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import {
+  FIXTURE_IMAGE_AGROFORESTRY,
+  FIXTURE_IMAGE_EDU,
+  FIXTURE_IMAGE_SOLAR,
+} from "../../../.storybook/fixtures";
 import { ImageWithFallback } from "./ImageWithFallback";
 
 const meta: Meta<typeof ImageWithFallback> = {
-  title: "Media/ImageWithFallback",
+  title: "Shared/Display/ImageWithFallback",
   component: ImageWithFallback,
-  tags: ["autodocs"],
+  tags: ["autodocs", "storybook-ci"],
   argTypes: {
     src: {
       control: "text",
@@ -23,7 +28,7 @@ type Story = StoryObj<typeof ImageWithFallback>;
 
 export const Default: Story = {
   args: {
-    src: "https://picsum.photos/200/200",
+    src: FIXTURE_IMAGE_AGROFORESTRY,
     alt: "Sample image",
     className: "w-32 h-32 rounded-lg object-cover",
   },
@@ -31,7 +36,7 @@ export const Default: Story = {
 
 export const WithError: Story = {
   args: {
-    src: "https://invalid-url.com/nonexistent.jpg",
+    src: "",
     alt: "Image that will fail",
     className: "w-32 h-32 rounded-lg",
   },
@@ -39,28 +44,24 @@ export const WithError: Story = {
 
 export const CustomFallbackIcon: Story = {
   args: {
-    src: "https://invalid-url.com/nonexistent.jpg",
+    src: "",
     alt: "User avatar",
     className: "w-32 h-32 rounded-full",
     fallbackIcon: RiUserLine,
   },
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="grid grid-cols-3 gap-4">
       <ImageWithFallback
-        src="https://picsum.photos/200/200?random=1"
+        src={FIXTURE_IMAGE_AGROFORESTRY}
         alt="Image 1"
         className="w-24 h-24 rounded-lg object-cover"
       />
+      <ImageWithFallback src="" alt="Image 2 (will fail)" className="w-24 h-24 rounded-lg" />
       <ImageWithFallback
-        src="https://invalid-url.com/fail.jpg"
-        alt="Image 2 (will fail)"
-        className="w-24 h-24 rounded-lg"
-      />
-      <ImageWithFallback
-        src="https://picsum.photos/200/200?random=2"
+        src={FIXTURE_IMAGE_SOLAR}
         alt="Image 3"
         className="w-24 h-24 rounded-lg object-cover"
       />
@@ -72,38 +73,23 @@ export const AvatarStyle: Story = {
   render: () => (
     <div className="flex gap-4">
       <ImageWithFallback
-        src="https://picsum.photos/100/100?random=1"
+        src={FIXTURE_IMAGE_AGROFORESTRY}
         alt="User 1"
         className="w-12 h-12 rounded-full object-cover"
         fallbackIcon={RiUserLine}
       />
       <ImageWithFallback
-        src="https://invalid-url.com/fail.jpg"
+        src=""
         alt="User 2"
         className="w-12 h-12 rounded-full"
         fallbackIcon={RiUserLine}
       />
       <ImageWithFallback
-        src="https://picsum.photos/100/100?random=2"
+        src={FIXTURE_IMAGE_EDU}
         alt="User 3"
         className="w-12 h-12 rounded-full object-cover"
         fallbackIcon={RiUserLine}
       />
     </div>
   ),
-};
-
-export const DarkMode: Story = {
-  args: {
-    src: "https://picsum.photos/200/200",
-    alt: "Sample image",
-    className: "w-32 h-32 rounded-lg object-cover",
-  },
-  decorators: [
-    (Story) => (
-      <div data-theme="dark" className="bg-bg-white-0 p-4">
-        <Story />
-      </div>
-    ),
-  ],
 };

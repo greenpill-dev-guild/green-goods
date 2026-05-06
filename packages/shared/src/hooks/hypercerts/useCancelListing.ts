@@ -16,8 +16,8 @@ import { isZeroAddress } from "../../utils/blockchain/address";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { useAuth } from "../auth/useAuth";
-import { queryInvalidation } from "../query-keys";
-import { HYPERCERTS_MODULE_ABI } from "./hypercert-abis";
+import { queryInvalidation } from "../../config/query-keys";
+import { HYPERCERTS_MODULE_ABI } from "../../utils/blockchain/hypercert-abis";
 
 export interface UseCancelListingResult {
   cancelListing: (orderId: number) => Promise<void>;
@@ -38,7 +38,7 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
       if (!signer) throw new Error("Connect a wallet first");
 
       const contracts = getNetworkContracts(chainId);
-      const moduleAddress = contracts.hypercertsModule as Address;
+      const moduleAddress = contracts.hypercertsModule;
       if (isZeroAddress(moduleAddress)) {
         throw new Error("HypercertsModule not deployed on this chain");
       }

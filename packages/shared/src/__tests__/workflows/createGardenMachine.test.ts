@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise } from "xstate";
 
 import { type CreateGardenFormStatus, createGardenMachine } from "../../workflows/createGarden";
+import { flushPromises } from "../test-utils";
 
 // ============================================
 // Test Helpers
@@ -17,9 +18,9 @@ import { type CreateGardenFormStatus, createGardenMachine } from "../../workflow
 /** Custom waitFor without DOM dependency */
 async function waitFor(
   callback: () => void | Promise<void>,
-  options: { timeout?: number; interval?: number } = {}
+  options: { timeout?: number } = {}
 ): Promise<void> {
-  const { timeout = 5000, interval = 50 } = options;
+  const { timeout = 5000 } = options;
   const start = Date.now();
 
   while (true) {
@@ -30,7 +31,7 @@ async function waitFor(
       if (Date.now() - start >= timeout) {
         throw new Error(`waitFor timed out after ${timeout}ms`);
       }
-      await new Promise((resolve) => setTimeout(resolve, interval));
+      await flushPromises();
     }
   }
 }

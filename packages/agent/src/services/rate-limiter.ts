@@ -33,6 +33,8 @@ export interface RateLimitResult {
   resetIn: number;
   /** Total limit for this window */
   limit: number;
+  /** Optional human-readable message (e.g. when rate limited) */
+  message?: string;
 }
 
 interface RateLimitEntry {
@@ -64,8 +66,8 @@ export const RATE_LIMITS = {
 
   /** Work submissions */
   submission: {
-    maxRequests: 5,
-    windowMs: 300_000, // 5 per 5 minutes
+    maxRequests: 10,
+    windowMs: 86_400_000, // 10 per day
     message: "You've submitted too many works recently. Please wait before submitting again.",
   },
 
@@ -78,9 +80,16 @@ export const RATE_LIMITS = {
 
   /** Operator approvals */
   approval: {
-    maxRequests: 30,
-    windowMs: 60_000, // 30 per minute (operators need higher limits)
+    maxRequests: 20,
+    windowMs: 86_400_000, // 20 per day
     message: "Too many approval actions. Please wait.",
+  },
+
+  /** Garden joins */
+  join: {
+    maxRequests: 3,
+    windowMs: 86_400_000, // 3 per day
+    message: "Too many garden join attempts. Please wait before trying again.",
   },
 
   /** Wallet operations */
@@ -88,6 +97,13 @@ export const RATE_LIMITS = {
     maxRequests: 5,
     windowMs: 300_000, // 5 per 5 minutes
     message: "Too many wallet operations. Please wait.",
+  },
+
+  /** Feedback submissions (/bug, /idea) */
+  feedback: {
+    maxRequests: 5,
+    windowMs: 300_000, // 5 per 5 minutes
+    message: "Too many feedback submissions. Please wait a few minutes.",
   },
 } as const satisfies Record<string, RateLimitConfig>;
 
@@ -130,7 +146,7 @@ export class RateLimiter {
     userId: number | string,
     type: RateLimitType,
     config?: Partial<RateLimitConfig>
-  ): RateLimitResult & { message?: string } {
+  ): RateLimitResult {
     const baseConfig = RATE_LIMITS[type];
     const { maxRequests, windowMs, message } = { ...baseConfig, ...config };
 
@@ -138,19 +154,15 @@ export class RateLimiter {
     const now = Date.now();
     const windowStart = now - windowMs;
 
-    // Get or create entry
     let entry = this.limits.get(key);
     if (!entry) {
       entry = { timestamps: [], lastCleanup: now };
       this.limits.set(key, entry);
     }
 
-    // Remove timestamps outside the window
     entry.timestamps = entry.timestamps.filter((t) => t > windowStart);
 
-    // Check if allowed
     if (entry.timestamps.length >= maxRequests) {
-      // Find when the oldest timestamp will expire
       const oldestInWindow = Math.min(...entry.timestamps);
       const resetIn = oldestInWindow + windowMs - now;
 
@@ -163,7 +175,6 @@ export class RateLimiter {
       };
     }
 
-    // Add current timestamp and allow
     entry.timestamps.push(now);
 
     return {

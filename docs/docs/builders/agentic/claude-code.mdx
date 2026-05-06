@@ -4,8 +4,14 @@ sidebar_label: Claude Code
 slug: /builders/agentic/claude-code
 audience: developer
 owner: docs
-last_verified: 2026-04-03
+last_verified: 2026-04-23
 feature_status: Live
+source_of_truth:
+  - CLAUDE.md
+  - .claude/agents/cracked-coder.md
+  - .claude/context/shared.md
+  - .claude/context/contracts.md
+  - .claude/skills/index.md
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -15,7 +21,7 @@ import {NextBestAction} from "@site/src/components/docs";
 ```mermaid
 graph TB
     subgraph Config[".claude/ Directory"]
-        Agents["agents/\n6 custom agents"]
+        Agents["agents/\n2 custom agents"]
         Skills["skills/\n19 active top-level dirs"]
         Rules["rules/\npath-scoped"]
         Context["context/\nper-package"]
@@ -27,8 +33,6 @@ graph TB
     subgraph AgentTypes["Custom Agents"]
         Oracle["oracle\nresearch"]
         Cracked["cracked-coder\nTDD impl"]
-        Reviewer["code-reviewer\nPR review"]
-        Migrate["migration\ncross-pkg"]
     end
 
     Session -->|spawn| AgentTypes
@@ -46,16 +50,14 @@ Primary agentic development tool for Green Goods. Claude Code operates as a CLI-
 
 ### Custom Agents
 
-Six specialized agents are defined in `.claude/agents/`:
+Two specialized agents are defined in `.claude/agents/`:
 
 | Agent | Purpose |
 |-------|---------|
 | **oracle** | Architecture questions, codebase investigation, documentation |
 | **cracked-coder** | Complex implementation with mandatory TDD, three-strike protocol |
-| **code-reviewer** | PR review, audit, security analysis (always uses Opus model) |
-| **migration** | Cross-package migrations affecting 4+ packages |
-| **triage** | Issue triage, bug categorization, priority assignment |
-| **storybook-author** | Story creation following design system conventions |
+
+Retired roles such as `code-reviewer`, `migration`, `triage`, and `storybook-author` now live as skill or workflow patterns rather than committed agent files.
 
 **Model selection matters**: Opus is required for any task requiring judgment (reviews, audits, architecture analysis). Haiku is only appropriate for simple lookups and factual queries -- it produces unacceptable false-positive rates on code review tasks.
 
@@ -65,7 +67,7 @@ The `.claude/` directory contains all agentic configuration:
 
 ```
 .claude/
-  agents/           # 6 custom agent definitions (.md files)
+  agents/           # 2 custom agent definitions (.md files)
   skills/           # 19 active top-level skill dirs plus archived references
     index.md        # Master skill index
     plan/           # Planning workflows
@@ -86,9 +88,8 @@ The `.claude/` directory contains all agentic configuration:
     indexer.md      # Envio handlers, event mapping
     agent.md        # Bot automation, Telegram integration
   registry/         # Skill bundles and activation maps
-  specs/            # Agent evaluation specs
-  hooks.json        # Git hook integrations
-  settings.json     # Claude Code project settings
+  specs/            # Detailed feature specifications
+  settings.json     # Claude Code project settings and tool hooks
 ```
 
 **`CLAUDE.md`** (project root) is the primary context file, always loaded into every conversation. It defines:
@@ -120,6 +121,10 @@ For TDD workflows, also write `tests.json` with structured test state (total/pas
 
 Never speculate about code you haven't read. If referencing a specific file, read it first. This prevents hallucinated API suggestions and incorrect pattern assumptions.
 
+### Research-plan-implement loop
+
+For ambiguous, multi-package, or high-risk work, use `oracle` or an explicit research phase first, then record evidence and human judgment points in the relevant `.plans/` hub before implementation.
+
 ### Three-strike protocol (cracked-coder agent)
 
 1. **Strike 1**: Reassess approach, check assumptions
@@ -141,7 +146,7 @@ Multi-agent teams use the `agent-teams` skill and `/teams` command to spin up pa
   actionLabel="Codex"
   actionHref="./codex"
   alternatives={[
-    {label: "OpenClaw", href: "./openclaw"},
+    {label: "Gemini", href: "./gemini"},
     {label: "MCP Guide", href: "./mcp-guide"},
   ]}
 />

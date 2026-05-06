@@ -167,6 +167,21 @@ describe("usePageView", () => {
     );
   });
 
+  it("should redact receiptToken hash params", () => {
+    renderHook(() => usePageView({ app: "client" }), {
+      wrapper: createWrapper(["/fund?intent=fi_123#receiptToken=secret123&section=receipt"]),
+    });
+
+    expect(mockTrack).toHaveBeenCalledWith(
+      "page_view",
+      expect.objectContaining({
+        path: "/fund",
+        search: "?intent=fi_123",
+        hash: "#receiptToken=%5BREDACTED%5D&section=receipt",
+      })
+    );
+  });
+
   it("should use correct app identifier for admin", () => {
     renderHook(() => usePageView({ app: "admin" }), {
       wrapper: createWrapper(["/dashboard"]),

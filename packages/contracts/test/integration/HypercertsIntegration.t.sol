@@ -97,6 +97,7 @@ contract HypercertsIntegrationTest is Test {
     address internal constant GARDEN_A = address(0xA3);
     address internal constant GARDEN_B = address(0xA4);
     address internal constant GARDEN_TOKEN = address(0xA5);
+    bytes32 internal constant MERKLE_ROOT = bytes32(uint256(1));
 
     function setUp() public {
         hatsModule = new MockHatsModule();
@@ -156,8 +157,7 @@ contract HypercertsIntegrationTest is Test {
 
     /// @notice mintAndRegister mints via HypercertMinter and tracks in garden
     function test_mintAndRegisterCallsAdapter() public {
-        vm.prank(OPERATOR);
-        uint256 hypercertId = module.mintAndRegister(GARDEN_A, 1000, bytes32(0), "ipfs://QmTest");
+        uint256 hypercertId = _createAllowlistAs(OPERATOR, GARDEN_A, 1000, "ipfs://QmTest");
 
         // Verify minter was called
         assertEq(minter.getMintCount(), 1, "Minter should have 1 create call");
@@ -179,8 +179,7 @@ contract HypercertsIntegrationTest is Test {
     /// @notice listForYield calls adapter.registerOrder and emits event
     function test_listForYieldRegistersOrder() public {
         // First mint a hypercert
-        vm.prank(OPERATOR);
-        uint256 hypercertId = module.mintAndRegister(GARDEN_A, 1000, bytes32(0), "ipfs://QmList");
+        uint256 hypercertId = _createAllowlistAs(OPERATOR, GARDEN_A, 1000, "ipfs://QmList");
 
         // List for yield
         OrderStructs.Maker memory makerAsk = _buildMakerAsk();
@@ -205,8 +204,7 @@ contract HypercertsIntegrationTest is Test {
     /// @notice delistFromYield calls adapter.deactivateOrder
     function test_delistCancelsOrder() public {
         // Mint + list
-        vm.prank(OPERATOR);
-        uint256 hypercertId = module.mintAndRegister(GARDEN_A, 1000, bytes32(0), "ipfs://QmDelist");
+        uint256 hypercertId = _createAllowlistAs(OPERATOR, GARDEN_A, 1000, "ipfs://QmDelist");
 
         OrderStructs.Maker memory makerAsk = _buildMakerAsk();
         vm.prank(OPERATOR);
@@ -230,9 +228,9 @@ contract HypercertsIntegrationTest is Test {
     /// @notice Multiple mintAndRegister calls track all hypercerts per garden
     function test_batchMintAndRegister() public {
         vm.startPrank(OPERATOR);
-        uint256 id1 = module.mintAndRegister(GARDEN_A, 500, bytes32(0), "ipfs://QmBatch1");
-        uint256 id2 = module.mintAndRegister(GARDEN_A, 1000, bytes32(0), "ipfs://QmBatch2");
-        uint256 id3 = module.mintAndRegister(GARDEN_A, 2000, bytes32(0), "ipfs://QmBatch3");
+        uint256 id1 = _createAllowlist(GARDEN_A, 500, "ipfs://QmBatch1");
+        uint256 id2 = _createAllowlist(GARDEN_A, 1000, "ipfs://QmBatch2");
+        uint256 id3 = _createAllowlist(GARDEN_A, 2000, "ipfs://QmBatch3");
         vm.stopPrank();
 
         // Verify all tracked
@@ -259,7 +257,7 @@ contract HypercertsIntegrationTest is Test {
         // Operator tries to mint — should revert with NotActive
         vm.prank(OPERATOR);
         vm.expectRevert(HypercertsModule.NotActive.selector);
-        module.mintAndRegister(GARDEN_A, 1000, bytes32(0), "ipfs://QmPaused");
+        module.createAllowlistAndRegister(GARDEN_A, 1 << 128, 1000, MERKLE_ROOT, "ipfs://QmPaused");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -269,12 +267,10 @@ contract HypercertsIntegrationTest is Test {
     /// @notice Hypercerts in garden A are not visible in garden B tracking
     function test_gardenTrackingAcrossGardens() public {
         // Mint for garden A
-        vm.prank(OPERATOR);
-        uint256 idA = module.mintAndRegister(GARDEN_A, 500, bytes32(0), "ipfs://QmGardenA");
+        uint256 idA = _createAllowlistAs(OPERATOR, GARDEN_A, 500, "ipfs://QmGardenA");
 
         // Mint for garden B
-        vm.prank(OPERATOR);
-        uint256 idB = module.mintAndRegister(GARDEN_B, 1000, bytes32(0), "ipfs://QmGardenB");
+        uint256 idB = _createAllowlistAs(OPERATOR, GARDEN_B, 1000, "ipfs://QmGardenB");
 
         // Verify isolation
         uint256[] memory gardenAHypercerts = module.getGardenHypercerts(GARDEN_A);
@@ -294,5 +290,28 @@ contract HypercertsIntegrationTest is Test {
         vm.prank(OPERATOR);
         vm.expectRevert(abi.encodeWithSelector(HypercertsModule.InvalidHypercert.selector, idA));
         module.listForYield(GARDEN_B, idA, makerAsk, hex"deadbeef");
+    }
+
+    function _nextHypercertId() internal view returns (uint256) {
+        return (minter.getMintCount() + 1) << 128;
+    }
+
+    function _createAllowlist(address garden, uint256 units, string memory uri) internal returns (uint256) {
+        uint256 hypercertId = _nextHypercertId();
+        return module.createAllowlistAndRegister(garden, hypercertId, units, MERKLE_ROOT, uri);
+    }
+
+    function _createAllowlistAs(
+        address caller,
+        address garden,
+        uint256 units,
+        string memory uri
+    )
+        internal
+        returns (uint256)
+    {
+        uint256 hypercertId = _nextHypercertId();
+        vm.prank(caller);
+        return module.createAllowlistAndRegister(garden, hypercertId, units, MERKLE_ROOT, uri);
     }
 }

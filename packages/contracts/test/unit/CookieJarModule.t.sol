@@ -117,8 +117,8 @@ contract CapturingCookieJarFactory {
     uint256 private _jarCount;
 
     // Captured data from the last createCookieJar call
-    ICookieJarFactory.JarConfig public lastJarConfig;
-    ICookieJarFactory.AccessConfig public lastAccessConfig;
+    ICookieJarFactory.JarConfig private _lastJarConfig;
+    ICookieJarFactory.AccessConfig private _lastAccessConfig;
     bool public wasCalled;
 
     // Track per-call data
@@ -138,12 +138,12 @@ contract CapturingCookieJarFactory {
         wasCalled = true;
 
         // Store config for assertions
-        lastJarConfig = params;
+        _lastJarConfig = params;
         // Manual copy of AccessConfig (nested struct with dynamic array)
-        delete lastAccessConfig;
-        lastAccessConfig.nftRequirement = accessConfig.nftRequirement;
+        delete _lastAccessConfig;
+        _lastAccessConfig.nftRequirement = accessConfig.nftRequirement;
         for (uint256 i = 0; i < accessConfig.allowlist.length; i++) {
-            lastAccessConfig.allowlist.push(accessConfig.allowlist[i]);
+            _lastAccessConfig.allowlist.push(accessConfig.allowlist[i]);
         }
 
         // Generate deterministic address
@@ -158,31 +158,31 @@ contract CapturingCookieJarFactory {
     }
 
     function getLastNftRequirement() external view returns (ICookieJarFactory.NftRequirement memory) {
-        return lastAccessConfig.nftRequirement;
+        return _lastAccessConfig.nftRequirement;
     }
 
     function getLastJarOwner() external view returns (address) {
-        return lastJarConfig.jarOwner;
+        return _lastJarConfig.jarOwner;
     }
 
     function getLastCurrency() external view returns (address) {
-        return lastJarConfig.supportedCurrency;
+        return _lastJarConfig.supportedCurrency;
     }
 
     function getLastAccessType() external view returns (ICookieJarFactory.AccessType) {
-        return lastJarConfig.accessType;
+        return _lastJarConfig.accessType;
     }
 
     function getLastMaxWithdrawal() external view returns (uint256) {
-        return lastJarConfig.maxWithdrawal;
+        return _lastJarConfig.maxWithdrawal;
     }
 
     function getLastWithdrawalInterval() external view returns (uint256) {
-        return lastJarConfig.withdrawalInterval;
+        return _lastJarConfig.withdrawalInterval;
     }
 
     function getLastStrictPurpose() external view returns (bool) {
-        return lastJarConfig.strictPurpose;
+        return _lastJarConfig.strictPurpose;
     }
 }
 

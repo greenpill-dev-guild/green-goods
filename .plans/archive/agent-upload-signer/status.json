@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "agent-upload-signer",
+    "title": "Agent Upload Signer",
+    "kind": "feature",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p1",
+    "created_at": "2026-04-25T18:43:29.436Z",
+    "updated_at": "2026-05-03T19:17:16.238Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Backlog hub for moving browser uploads to agent-signed Pinata URLs.",
+    "Keep packages/agent named as-is; package rename is explicitly out of scope.",
+    "No Vercel migration, Envio hosting, contract, or UI work is included in this hub.",
+    "status.json is authoritative; branch names are automation signals.",
+    "Promoted to active on 2026-04-27 as non-product security/ops hardening to remove browser upload dependence on long-lived Pinata authority."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/agent-upload-signer",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "skill_tags": [],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No UI implementation lane is planned for the upload signer work."
+      }
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/agent-upload-signer",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "skill_tags": ["hono", "ipfs", "pinata", "data-layer"],
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "packages/agent: bun run test src/__tests__/upload-signer.test.ts; bun run test; bun run lint; bun run typecheck. packages/shared: bun run test -- src/__tests__/modules/ipfs.module.test.ts; bun run test -- src/__tests__/modules/wallet-submission.test.ts. root: VITE_PINATA_JWT=stale-token node scripts/dev/doctor.js --profile upload --json; node scripts/harness/plan-hub.mjs validate.",
+          "evidence": "Agent signer route/config/rate-limit validation passed: upload-signer.test.ts 5 tests, full agent suite 100 tests, lint 0 warnings/errors, typecheck passed. Shared signed upload regression tests passed after sandbox DNS blocked Bun managed Node resolution and the approved rerun completed: ipfs.module.test.ts 11 tests, wallet-submission.test.ts 10 tests. Doctor intentionally exited 1 and emitted env:pinata-browser-secret for stale VITE_PINATA_JWT while confirming VITE_API_BASE_URL. Plan hub validated 19 feature hubs."
+        },
+        "note": "Implementation predates the 2026-05-01 TDD proof policy, so no honest RED can be produced without inventing history. AC-1 through AC-5 were reverified from source, tests, docs, fallback validation, and a follow-up live signer-route upload proof; no behavior gap was found."
+      },
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/agent-upload-signer",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "skill_tags": [],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract implementation lane is planned for the upload signer work."
+      }
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "passed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/agent-upload-signer",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "passed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/agent-upload-signer",
+      "branch_trigger": "claude/qa-pass-1/agent-upload-signer",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-25T18:43:29.450Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-04-25T18:43:42Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "backlog_normalized",
+      "branch": null,
+      "note": "Created backlog hub for moving browser uploads to agent-signed Pinata URLs."
+    },
+    {
+      "timestamp": "2026-04-27T06:18:31.841Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-04-27T06:20:43.926Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planning_scope_updated",
+      "branch": null,
+      "note": "Promoted to active on 2026-04-27 as non-product security/ops hardening to remove browser upload dependence on long-lived Pinata authority."
+    },
+    {
+      "timestamp": "2026-04-29T04:32:50Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "develop",
+      "note": "Implemented the Hono upload signer and shared signed Pinata browser upload flow; targeted tests and agent lint passed, with broader follow-up validation recorded in the next history entry."
+    },
+    {
+      "timestamp": "2026-04-29T05:33:38Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "review_fixes_completed",
+      "branch": "develop",
+      "note": "Closed review findings and remaining proof gaps: signer origins fail closed, production config requires allowed origins, doctor flags stale VITE_PINATA_JWT, stale router wording and legacy public Pinata JWT references were removed, browser signing stays on VITE_API_BASE_URL, and the escalated quick gate now passes."
+    },
+    {
+      "timestamp": "2026-05-01T20:42:09.716Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "codex/state-api/agent-upload-signer",
+      "note": "Reopened under the TDD proof gate until RED/GREEN evidence is recorded."
+    },
+    {
+      "timestamp": "2026-05-01T20:42:09.716Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "tdd_policy_applied",
+      "branch": null,
+      "note": "Added TDD proof metadata for active implementation lanes."
+    },
+    {
+      "timestamp": "2026-05-03T06:31:58Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "proof_limit_recorded",
+      "branch": "develop",
+      "note": "Recorded proof-limit validation for pre-policy state/API implementation without inventing historical RED evidence."
+    },
+    {
+      "timestamp": "2026-05-03T06:32:31.155Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/agent-upload-signer",
+      "note": "Closed state/API signer lane with recorded TDD proof or proof-limit validation."
+    },
+    {
+      "timestamp": "2026-05-03T06:38:58.255Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "skipped",
+      "branch": "claude/qa-pass-1/agent-upload-signer",
+      "note": "Plan closeout requested after state/API acceptance checks passed; no separate live upload QA pass was run in this hub."
+    },
+    {
+      "timestamp": "2026-05-03T06:39:01.011Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "skipped",
+      "branch": "codex/qa-pass-2/agent-upload-signer",
+      "note": "Plan closeout requested after state/API proof-limit validation; QA pass 2 was not run because QA pass 1 was skipped."
+    },
+    {
+      "timestamp": "2026-05-03T06:45:09.895Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "in_progress",
+      "branch": "claude/qa-pass-1/agent-upload-signer",
+      "note": "Running requested QA pass 1 after prior skipped closeout."
+    },
+    {
+      "timestamp": "2026-05-03T06:47:52.719Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "passed",
+      "branch": "claude/qa-pass-1/agent-upload-signer",
+      "note": "Ran requested QA pass 1: source flow review passed; live upload proof remains limited by local Pinata credential readiness."
+    },
+    {
+      "timestamp": "2026-05-03T06:47:58.182Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "in_progress",
+      "branch": "codex/qa-pass-2/agent-upload-signer",
+      "note": "Running requested QA pass 2 after QA pass 1 review; original branch trigger is absent locally."
+    },
+    {
+      "timestamp": "2026-05-03T06:48:03.069Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/agent-upload-signer",
+      "note": "Ran requested QA pass 2: targeted validation and browser-secret/source-doc checks passed with recorded proof limits."
+    },
+    {
+      "timestamp": "2026-05-03T07:10:02.175Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/agent-upload-signer",
+      "note": "Added live Pinata signer-route upload proof with 1Password-backed PINATA_JWT: route/upload/gateway all returned 200."
+    },
+    {
+      "timestamp": "2026-05-03T19:17:16.238Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "archived",
+      "branch": null,
+      "note": "Archived after state/API completion, proof-limit closeout, and QA pass 1/2 passed."
+    }
+  ]
+}

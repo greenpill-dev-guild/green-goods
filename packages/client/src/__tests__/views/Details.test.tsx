@@ -10,11 +10,6 @@ import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
-  return { ...actual };
-});
-
 // Mock form input components to expose label and key props
 vi.mock("@/components/Cards", () => ({
   FormInfo: ({ title }: { title: string }) =>
@@ -22,7 +17,7 @@ vi.mock("@/components/Cards", () => ({
 }));
 
 vi.mock("@/components/Inputs", () => ({
-  FormInput: ({ label, type, name, ...rest }: any) =>
+  FormInput: ({ label, type, name, helperText, ...rest }: any) =>
     createElement("div", { "data-testid": `form-input-${name || label}` }, [
       createElement("label", { key: "label" }, label),
       createElement("input", {
@@ -32,6 +27,7 @@ vi.mock("@/components/Inputs", () => ({
         "data-testid": `input-${name || label}`,
         ...rest,
       }),
+      helperText ? createElement("div", { key: "helper-text" }, helperText) : null,
     ]),
   FormSelect: ({ label, name, options }: any) =>
     createElement("div", { "data-testid": `form-select-${name}` }, [
@@ -150,6 +146,28 @@ describe("WorkDetails", () => {
     expect(select).toBeInTheDocument();
   });
 
+  it("renders localized option labels while preserving canonical option values", () => {
+    const inputs: WorkInput[] = [
+      {
+        key: "soilType",
+        title: "Tipo de suelo",
+        placeholder: "Selecciona suelo",
+        type: "select",
+        required: false,
+        options: ["clay", "loam"],
+        optionLabels: {
+          clay: "Arcilla",
+          loam: "Franco",
+        },
+      },
+    ];
+
+    renderDetails({ inputs });
+
+    const clayOption = screen.getByRole("option", { name: "Arcilla" });
+    expect(clayOption).toHaveAttribute("value", "clay");
+  });
+
   it("renders multi-select chip buttons from action config", () => {
     const inputs: WorkInput[] = [
       {
@@ -192,6 +210,30 @@ describe("WorkDetails", () => {
     // Click "Basil" to add it
     fireEvent.click(screen.getByText("Basil"));
     expect(setValue).toHaveBeenCalledWith("plants", ["Tomato", "Basil"]);
+  });
+
+  it("submits canonical multi-select values when localized labels are displayed", () => {
+    const setValue = vi.fn();
+    const inputs: WorkInput[] = [
+      {
+        key: "plants",
+        title: "Plantas usadas",
+        placeholder: "",
+        type: "multi-select",
+        required: false,
+        options: ["Tomato", "Basil"],
+        optionLabels: {
+          Tomato: "Tomate",
+          Basil: "Albahaca",
+        },
+      },
+    ];
+
+    renderDetails({ inputs, setValue });
+
+    fireEvent.click(screen.getByText("Tomate"));
+
+    expect(setValue).toHaveBeenCalledWith("plants", ["Tomato"]);
   });
 
   it("renders location toggle switch in idle state", () => {

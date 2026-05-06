@@ -4,8 +4,13 @@ sidebar_label: Contracts
 slug: /builders/deployments/contracts-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-04-19
 feature_status: Live
+source_of_truth:
+  - packages/contracts/package.json
+  - packages/contracts/script/deploy.ts
+  - packages/contracts/script/upgrade.ts
+  - packages/contracts/deployments
 keywords: [contracts, deployment, CREATE2, Foundry, Solidity, EAS, IPFS]
 ---
 
@@ -30,7 +35,7 @@ graph TB
     SOL --> Steps
     Steps --> Artifacts["deployments/\n{chainId}-latest.json"]
 
-    IPFS["Storacha IPFS\naction metadata"] --> SOL
+    IPFS["Pinata-backed IPFS\naction metadata"] --> SOL
 ```
 
 Smart contract deployment uses a two-layer system: a TypeScript CLI (`deploy.ts`) that orchestrates the process and shells out to a Solidity deploy script (`Deploy.s.sol`) via `forge script`.
@@ -38,7 +43,7 @@ Smart contract deployment uses a two-layer system: a TypeScript CLI (`deploy.ts`
 ## Deployment Checklist
 
 1. Ensure all environment variables are set in the root `.env` (see [Build Environments](#build-environments))
-2. Run `bun run test` and `bun build:full` in `packages/contracts` to verify tests pass and contracts compile
+2. Run `bun run test` and `bun run build:full` in `packages/contracts` to verify tests pass and contracts compile
 3. Run a dry-run simulation against the target chain: `bun script/deploy.ts core --network sepolia`
 4. Broadcast the deployment: `bun run deploy:sepolia` (or the appropriate chain target)
 5. If schema definitions changed, deploy with `--update-schemas` to register EAS schemas on-chain
@@ -56,7 +61,7 @@ Deployment requires these environment variables in the root `.env`:
 - `DEPLOYER_PRIVATE_KEY` -- Wallet private key for deployment transactions
 - `{CHAIN}_RPC_URL` -- RPC endpoint for the target chain (e.g., `SEPOLIA_RPC_URL`)
 - `ETHERSCAN_API_KEY` -- For contract verification
-- `VITE_STORACHA_KEY` -- Ed25519 principal key for IPFS uploads
+- `PINATA_JWT` -- Pinata JWT for IPFS uploads
 
 ### Release Gate
 
@@ -64,7 +69,7 @@ A Sepolia gate prevents accidental mainnet deployments. To deploy to chains othe
 
 ### IPFS Metadata
 
-Action metadata is uploaded to IPFS via Storacha during deployment:
+Action metadata is uploaded to IPFS via the Pinata-backed upload path during deployment:
 
 ```bash
 # Manual IPFS upload
@@ -74,13 +79,13 @@ cd packages/contracts && bun run ipfs:upload
 SKIP_IPFS_UPLOAD=true bun run deploy:sepolia
 ```
 
-The IPFS cache at `packages/contracts/.ipfs-cache.json` prevents re-uploading unchanged metadata.
+The IPFS cache at `packages/contracts/.generated/runtime/ipfs-cache.json` prevents re-uploading unchanged metadata.
 
 ## Making A Deployment
 
 ### Deployment Architecture
 
-#### CLI Layer (`deploy/cli.ts`)
+#### CLI Layer (`script/deploy.ts` -> `script/deploy/cli.ts`)
 
 The `DeploymentCLI` class parses arguments and delegates to specialized deployers:
 
@@ -96,7 +101,7 @@ The Solidity script uses CREATE2 for deterministic addresses. Contracts that alr
 Key behaviors:
 - `_ensureHatsTree()` mints the communityHat to the HatsModule from an existing tree
 - Resolver proxies are deployed via CREATE2; implementation upgrades run unconditionally after the proxy exists
-- IPFS metadata upload uses `npx tsx` (not `bun run`) due to `@storacha/client` Bun compatibility issues
+- IPFS metadata upload runs through the Bun-native Pinata uploader used by the deployment scripts
 
 ### Deployment Commands
 
@@ -107,7 +112,7 @@ Key behaviors:
 cd packages/contracts
 bun script/deploy.ts core --network sepolia
 
-# Pure simulation (no RPC state mutation)
+# Pure simulation (compile + validation, no RPC calls)
 bun run deploy:preflight:sepolia
 ```
 
@@ -134,7 +139,7 @@ This registers EAS schemas on-chain after contract deployment. Required when sch
 
 ### CREATE2 Determinism
 
-All core contracts use CREATE2 for deterministic addresses across chains. This means:
+Core deployments use CREATE2 for deterministic addresses on the supported deployment targets. This means:
 
 - The same contract gets the same address on every chain (given the same salt and bytecode)
 - Re-running deployment skips already-deployed contracts

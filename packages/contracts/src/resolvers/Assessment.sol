@@ -9,14 +9,13 @@ import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/O
 import { AssessmentSchema } from "../Schemas.sol";
 import { IGardenAccessControl } from "../interfaces/IGardenAccessControl.sol";
 import { IKarmaGAPModule } from "../interfaces/IKarmaGAPModule.sol";
+import { InvalidSchema } from "../CommonErrors.sol";
 
 /// @notice Thrown when attester is neither an evaluator nor an operator of the garden
 error NotAuthorizedAttester();
 error TitleRequired();
 error ConfigCIDRequired();
 error InvalidDomain(uint8 domain);
-/// @notice Thrown when attestation uses wrong schema UID
-error InvalidSchema();
 
 /// @title AssessmentResolver
 /// @notice A schema resolver for Garden Assessment attestations

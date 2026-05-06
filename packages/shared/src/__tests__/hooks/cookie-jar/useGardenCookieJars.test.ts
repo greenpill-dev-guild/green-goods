@@ -90,7 +90,7 @@ vi.mock("../../../utils/blockchain/vaults", () => ({
   ZERO_ADDRESS,
 }));
 
-vi.mock("../../../hooks/query-keys", () => ({
+vi.mock("../../../config/query-keys", () => ({
   queryKeys: {
     cookieJar: {
       garden: (garden: string) => ["cookie-jar", "garden", garden],
@@ -193,6 +193,8 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     expect(jar.isPaused).toBe(false);
     expect(jar.emergencyWithdrawalEnabled).toBe(true);
     expect(jar.decimals).toBe(6);
+    expect(result.current.detailErrorCount).toBe(0);
+    expect(result.current.hasDetailReadFailure).toBe(false);
   });
 
   it("handles multiple jars correctly", () => {
@@ -252,6 +254,8 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     });
 
     expect(result.current.jars).toHaveLength(0);
+    expect(result.current.detailErrorCount).toBe(1);
+    expect(result.current.hasDetailReadFailure).toBe(true);
   });
 
   it("skips jars where balance is undefined", () => {
@@ -272,6 +276,33 @@ describe("hooks/cookie-jar/useGardenCookieJars", () => {
     });
 
     expect(result.current.jars).toHaveLength(0);
+    expect(result.current.detailErrorCount).toBe(1);
+    expect(result.current.hasDetailReadFailure).toBe(true);
+  });
+
+  it("keeps jar data when an optional detail call fails", () => {
+    mockReadContractReturn.data = [TEST_JAR_1];
+
+    mockReadContractsReturn.data = [
+      { result: TEST_CURRENCY, status: "success" },
+      { result: 1000n, status: "success" },
+      { result: 500n, status: "success" },
+      { result: 3600n, status: "success" },
+      { result: false, status: "success" },
+      { result: false, status: "success" },
+      { result: undefined, status: "failure" }, // MIN_DEPOSIT is non-critical
+    ];
+
+    mockDecimalsReturn.data = [{ result: 18, status: "success" }];
+
+    const { result } = renderHook(() => useGardenCookieJars(TEST_GARDEN), {
+      wrapper: createTestWrapper(),
+    });
+
+    expect(result.current.jars).toHaveLength(1);
+    expect(result.current.jars[0].minDeposit).toBe(0n);
+    expect(result.current.detailErrorCount).toBe(1);
+    expect(result.current.hasDetailReadFailure).toBe(true);
   });
 
   it("falls back to 18 decimals when decimals call fails", () => {

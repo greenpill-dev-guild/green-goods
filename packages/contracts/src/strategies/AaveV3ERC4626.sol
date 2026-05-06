@@ -9,6 +9,7 @@ import { IERC20Metadata } from "@openzeppelin/contracts@5.0.2/token/ERC20/extens
 import { SafeERC20 } from "@openzeppelin/contracts@5.0.2/token/ERC20/utils/SafeERC20.sol";
 
 import { IOctantStrategy } from "../interfaces/IOctantFactory.sol";
+import { ZeroAddress } from "../CommonErrors.sol";
 
 error InsufficientLiquidity(uint256 available, uint256 requested);
 
@@ -48,7 +49,6 @@ interface IPoolDataProvider {
 contract AaveV3ERC4626 is ERC4626, Ownable, IOctantStrategy {
     using SafeERC20 for IERC20;
 
-    error ZeroAddress();
     error OnlyVault();
     error VaultAlreadySet();
 

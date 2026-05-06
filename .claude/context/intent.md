@@ -1,15 +1,15 @@
 # Organizational Intent
 
-<!-- last_synced: 2026-02-28 | source: CharmVerse > Regen Stack > Green Goods -->
+<!-- last_synced: 2026-04-12 | source: docs/community + docs/reference -->
 <!-- Maintenance: review quarterly. Sync grant context and decision heuristics with CharmVerse. -->
 
 Loaded for decisions requiring organizational context: feature prioritization, impact trade-offs, community-aware UX, strategic alignment.
 
 For full context, read the docs:
-- Mission & Values: `docs/docs/concepts/mission-and-values.mdx`
-- Impact Model: `docs/docs/concepts/impact-model.mdx`
-- Strategy & Goals: `docs/docs/concepts/strategy-and-goals.mdx`
-- Communities: `docs/docs/concepts/communities.mdx`
+- Mission & Values: `docs/docs/community/why-we-build.mdx`
+- Impact Model: `docs/docs/community/how-it-works.mdx`
+- Strategy & Goals: `docs/docs/community/where-were-headed.mdx`
+- Communities: `docs/docs/reference/design-research.md`
 
 ## Agent Decision Heuristics
 
@@ -28,9 +28,9 @@ For full context, read the docs:
 
 ### When evaluating impact on real communities
 - 20 active garden communities, primarily LATAM
-- University of Nigeria Nsukka: solar infrastructure (power outages common)
-- AgroforestryDAO Brasil: scientific data partnerships (Portuguese required)
-- Uganda: school-tree assignments (mobile-first, low bandwidth)
+- TAS HUB (Awka, Nigeria): solar infrastructure and education (power outages common)
+- AgroforestDAO (Minas Gerais, Brazil): scientific data partnerships (Portuguese required)
+- Greenpill Kenya: education and waste programming (mobile-first, low bandwidth)
 - Offline-first is not abstract — it means field workers during power outages
 
 ### When touching action schemas or work submissions

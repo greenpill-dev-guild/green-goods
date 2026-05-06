@@ -1,8 +1,10 @@
 import {
   type Action,
   AudioPlayer,
+  cn,
   imageCompressor,
   mediaResourceManager,
+  toastService,
   track,
 } from "@green-goods/shared";
 import {
@@ -18,6 +20,7 @@ import { FormInfo } from "@/components/Cards";
 import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Features";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const AUDIO_TRACKING_ID = "work-draft-audio";
@@ -253,12 +256,41 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       const maxCount =
         config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : Infinity;
 
-      setImages((prev) => [...prev, ...newFiles].slice(0, maxCount));
+      let droppedCount = 0;
+      setImages((prev) => {
+        const combined = [...prev, ...newFiles];
+        if (combined.length > maxCount) {
+          droppedCount = combined.length - maxCount;
+          return combined.slice(0, maxCount);
+        }
+        return combined;
+      });
+
+      if (droppedCount > 0) {
+        toastService.info({
+          title: intl.formatMessage(
+            {
+              id: "app.garden.upload.truncatedTitle",
+              defaultMessage: "{dropped, plural, one {# file not added} other {# files not added}}",
+            },
+            { dropped: droppedCount }
+          ),
+          message: intl.formatMessage(
+            {
+              id: "app.garden.upload.truncatedMessage",
+              defaultMessage: "You can add up to {max} for this action.",
+            },
+            { max: maxCount }
+          ),
+          context: "mediaUpload",
+        });
+      }
 
       track("media_upload_complete", {
         count: newFiles.length,
         imageCount: processedImages.length,
         videoCount: validVideos.length,
+        droppedCount,
         ...context,
       });
     } catch (error) {
@@ -266,8 +298,21 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         error: error instanceof Error ? error.message : "Unknown",
         ...context,
       });
-      // Fallback: add uncompressed
-      setImages((prev) => [...prev, ...fileArray]);
+      // Don't fall back to uncompressed originals — they can blow IndexedDB
+      // quota and silently exceed submission size limits. Surface the failure
+      // and let the user retry.
+      toastService.error({
+        title: intl.formatMessage({
+          id: "app.garden.upload.compressionFailedTitle",
+          defaultMessage: "Couldn't process those images",
+        }),
+        message: intl.formatMessage({
+          id: "app.garden.upload.compressionFailedMessage",
+          defaultMessage: "Try fewer or smaller images, or check your connection.",
+        }),
+        context: "mediaUpload",
+        error,
+      });
     } finally {
       setIsCompressing(false);
       setCompressionProgress(0);
@@ -292,6 +337,8 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   const optionalItems = useMemo(() => config?.optional?.filter(Boolean) ?? [], [config?.optional]);
   const maxImageCount =
     config?.maxImageCount && config.maxImageCount > 0 ? config.maxImageCount : 0;
+  const requirementBadgeTone =
+    images.length >= minRequired ? pwaStatusStyles.success : pwaStatusStyles.warning;
 
   return (
     <div className="flex flex-col gap-4">
@@ -300,7 +347,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
       {/* Progress badge (shortened) */}
       {minRequired > 0 && (
         <Badge
-          className={`self-start ${images.length >= minRequired ? "bg-success-base/15 text-success-base" : "bg-warning-base/15 text-warning-base"}`}
+          className={`self-start ${requirementBadgeTone.surface} ${requirementBadgeTone.text}`}
           variant="pill"
           tint="none"
         >
@@ -372,8 +419,14 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       {/* Compression progress */}
       {isCompressing && (
-        <div className="flex items-center gap-3 p-4 bg-primary-base/10 border border-primary-base/30 rounded-lg">
-          <RiLoader4Line className="w-5 h-5 text-primary-base animate-spin" />
+        <div
+          className={cn(
+            "flex items-center gap-3 rounded-[var(--radius-lg)] border p-4",
+            pwaStatusStyles.information.surface,
+            pwaStatusStyles.information.border
+          )}
+        >
+          <RiLoader4Line className={cn("w-5 h-5 animate-spin", pwaStatusStyles.information.icon)} />
           <div className="flex-1">
             <p className="text-sm font-medium text-text-strong-950">
               {intl.formatMessage({
@@ -383,12 +436,15 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             </p>
             <div className="mt-2 bg-bg-soft-200 rounded-full h-2">
               <div
-                className="bg-primary-base h-2 rounded-full transition-all duration-300"
+                className={cn(
+                  "h-2 rounded-full transition-[width] duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
+                  pwaStatusStyles.information.progress
+                )}
                 style={{ width: `${compressionProgress}%` }}
               />
             </div>
           </div>
-          <span className="text-sm text-primary-base font-medium">
+          <span className={cn("text-sm font-medium", pwaStatusStyles.information.text)}>
             {Math.round(compressionProgress)}%
           </span>
         </div>
@@ -396,17 +452,33 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
       {/* Video duration error */}
       {videoError && (
-        <div className="p-3 bg-error-base/10 border border-error-base/30 rounded-lg">
-          <p className="text-sm text-error-base">{videoError}</p>
+        <div
+          className={cn(
+            "rounded-[var(--radius-lg)] border p-3",
+            pwaStatusStyles.error.surface,
+            pwaStatusStyles.error.border
+          )}
+        >
+          <p className={cn("text-sm", pwaStatusStyles.error.text)}>{videoError}</p>
         </div>
       )}
 
       {/* Recording indicator (from action bar audio toggle) */}
       {isRecording && (
-        <div className="flex items-center gap-2 p-3 bg-error-base/10 border border-error-base/30 rounded-lg">
-          <div className="w-3 h-3 rounded-full bg-error-base animate-pulse" />
-          <span className="text-sm font-medium text-error-base">
-            Recording {formatTime(recordingElapsed)}
+        <div
+          className={cn(
+            "flex items-center gap-2 rounded-[var(--radius-lg)] border p-3",
+            pwaStatusStyles.error.surface,
+            pwaStatusStyles.error.border
+          )}
+        >
+          <div className={cn("w-3 h-3 rounded-full animate-pulse", pwaStatusStyles.error.dot)} />
+          <span className={cn("text-sm font-medium", pwaStatusStyles.error.text)}>
+            {intl.formatMessage({
+              id: "app.garden.upload.recordingPrefix",
+              defaultMessage: "Recording",
+            })}{" "}
+            {formatTime(recordingElapsed)}
           </span>
         </div>
       )}
@@ -439,10 +511,10 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                   {!isPlaying && (
                     <button
                       type="button"
-                      className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg"
+                      className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)]"
                       onClick={() => setPlayingVideoIndex(index)}
                     >
-                      <RiPlayFill className="w-12 h-12 text-white" />
+                      <RiPlayFill className="w-12 h-12 text-static-white" />
                     </button>
                   )}
                   {/* Remove button */}
@@ -455,13 +527,13 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                       },
                       { index: index + 1 }
                     )}
-                    className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                    className="flex items-center justify-center min-h-11 min-w-11 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                     onClick={() => {
                       if (playingVideoIndex === index) setPlayingVideoIndex(null);
                       removeMedia(index);
                     }}
                   >
-                    <RiCloseLine className="w-8 h-8" />
+                    <RiCloseLine className="w-4 h-4" />
                   </button>
                 </div>
               );
@@ -483,8 +555,8 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     alt={`${intl.formatMessage({ id: "app.garden.upload.uploaded", defaultMessage: "Uploaded" })} ${index + 1}`}
                     className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg flex items-center justify-center">
-                    <RiZoomInLine className="w-12 h-12 text-white" />
+                  <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)] opacity-0 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] group-hover:opacity-100">
+                    <RiZoomInLine className="w-12 h-12 text-static-white" />
                   </div>
                 </button>
                 <button
@@ -493,13 +565,13 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     { id: "app.garden.upload.removeMedia", defaultMessage: "Remove media {index}" },
                     { index: index + 1 }
                   )}
-                  className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                  className="flex items-center justify-center min-h-11 min-w-11 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeMedia(index);
                   }}
                 >
-                  <RiCloseLine className="w-8 h-8" />
+                  <RiCloseLine className="w-4 h-4" />
                 </button>
               </div>
             );

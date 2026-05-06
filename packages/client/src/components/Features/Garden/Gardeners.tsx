@@ -1,4 +1,6 @@
 import {
+  type Address,
+  cn,
   copyToClipboard,
   formatAddress,
   type Garden,
@@ -6,6 +8,7 @@ import {
   toastService,
   useEnsAvatar,
   useEnsName,
+  useGreenGoodsEnsName,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -21,12 +24,14 @@ import React, { forwardRef, memo, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { FixedSizeList as List } from "react-window";
 import { Button } from "@/components/Actions";
-import { Badge } from "@/components/Communication";
+import { Badge, EmptyState } from "@/components/Communication";
 import { Avatar, AvatarFallback, AvatarImage, AvatarSkeleton } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
+import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export type GardenMember = GardenerCard & {
-  account: string;
+  account: Address;
   isOperator: boolean;
   isGardener: boolean;
 };
@@ -46,19 +51,21 @@ const GardenMemberItem = memo(function GardenMemberItem({
   onClick?: () => void;
 }) {
   const intl = useIntl();
+  const { data: greenGoodsEnsName } = useGreenGoodsEnsName(member.account);
   const { data: ensName } = useEnsName(member.account);
   const { data: ensAvatar, isLoading: isLoadingAvatar } = useEnsAvatar(member.account);
+  const preferredEnsName = greenGoodsEnsName || ensName;
   const displayName =
     member.username ||
     member.email ||
     member.phone ||
-    (member.account ? formatAddress(member.account, { ensName }) : null) ||
+    (member.account ? formatAddress(member.account, { ensName: preferredEnsName }) : null) ||
     intl.formatMessage({
       id: "app.garden.gardeners.unknownUser",
       description: "Unknown User",
     });
   const subline = member.account
-    ? formatAddress(member.account, { variant: "card", ensName })
+    ? formatAddress(member.account, { variant: "card", ensName: preferredEnsName })
     : member.email || member.phone || "";
 
   // Priority: uploaded avatar > ENS avatar > fallback
@@ -67,7 +74,10 @@ const GardenMemberItem = memo(function GardenMemberItem({
 
   return (
     <button
-      className="cv-member relative flex items-center gap-3 border-stroke-soft-200 border rounded-lg p-2 bg-bg-white-0 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm w-full text-left tap-feedback"
+      className={cn(
+        "cv-member relative flex w-full cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-white-0 p-2 text-left shadow-sm tap-feedback transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus:outline-none",
+        pwaStatusStyles.primary.focus
+      )}
       onClick={onClick}
       type="button"
     >
@@ -97,9 +107,15 @@ const GardenMemberItem = memo(function GardenMemberItem({
           </>
         )}
       </Avatar>
-      <div className="flex flex-col pr-14">
-        <span className="font-semibold">{displayName}</span>
-        {subline ? <span className="text-xs text-text-sub-600">{subline}</span> : null}
+      <div className="flex flex-col pr-14 min-w-0">
+        <span className="truncate font-semibold" title={displayName}>
+          {displayName}
+        </span>
+        {subline ? (
+          <span className="truncate text-xs text-text-sub-600" title={subline}>
+            {subline}
+          </span>
+        ) : null}
         <span className="text-xs text-text-sub-600 flex items-center gap-1">
           <RiCalendarEventFill className="w-3.5 h-3.5 text-primary" />
           {intl.formatMessage({ id: "app.garden.gardeners.registered", description: "Registered" })}
@@ -115,7 +131,9 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
     const intl = useIntl();
     const shouldVirtualize = members.length > 40;
     const [selected, setSelected] = useState<GardenMember | null>(null);
+    const { data: selectedGreenGoodsEnsName } = useGreenGoodsEnsName(selected?.account);
     const { data: selectedEnsName } = useEnsName(selected?.account);
+    const selectedPreferredEnsName = selectedGreenGoodsEnsName || selectedEnsName;
     const title = useMemo(() => {
       if (!selected) return "";
       return (
@@ -123,10 +141,10 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
         selected.email ||
         selected.phone ||
         (selected.account
-          ? formatAddress(selected.account, { ensName: selectedEnsName })
+          ? formatAddress(selected.account, { ensName: selectedPreferredEnsName })
           : selected.id)
       );
-    }, [selected, selectedEnsName]);
+    }, [selected, selectedPreferredEnsName]);
 
     const copy = async (val?: string) => {
       if (!val) return;
@@ -173,12 +191,13 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
             </div>
           )
         ) : (
-          <p className="grid place-items-center p-8 text-center text-sm italic">
-            {intl.formatMessage({
+          <EmptyState
+            icon={<RiUserLine />}
+            title={intl.formatMessage({
               id: "app.garden.gardeners.noGardeners",
               description: "No gardeners yet",
             })}
-          </p>
+          />
         )}
 
         {/* Member detail dialog */}
@@ -189,29 +208,47 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
           }}
         >
           <Dialog.Portal>
-            <Dialog.Overlay className="fixed inset-0 z-[10002] bg-black/30 backdrop-blur-sm" />
-            <Dialog.Content className="fixed z-[10003] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bg-white-0 rounded-2xl shadow-2xl w-[min(520px,92vw)] p-5 focus:outline-none">
+            <Dialog.Overlay
+              className={cn(
+                pwaDrawerStyles.dialogOverlay,
+                "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]"
+              )}
+            />
+            <Dialog.Content
+              className={cn(
+                "fixed z-modal top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(520px,92vw)] p-5 focus:outline-none",
+                pwaDrawerStyles.dialogSurface,
+                "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]"
+              )}
+            >
               <div className="flex items-center justify-between mb-3">
-                <Dialog.Title className="text-base font-semibold truncate">{title}</Dialog.Title>
+                <Dialog.Title className="text-base font-semibold truncate" title={title}>
+                  {title}
+                </Dialog.Title>
                 <Dialog.Close asChild>
                   <button
-                    className="p-1 rounded-full border border-stroke-soft-200 transition-all duration-200 flex-shrink-0 tap-feedback focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-600 active:border-emerald-600 active:scale-95"
+                    className={cn("p-1", pwaDrawerStyles.closeButtonBase)}
                     aria-label="Close modal"
                     type="button"
                   >
-                    <RiCloseLine className="w-5 h-5 text-text-soft-400 focus:text-emerald-700 active:text-emerald-700" />
+                    <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
                   </button>
                 </Dialog.Close>
               </div>
               {selected && (
                 <div className="flex flex-col gap-8">
                   {selected.account &&
-                    (selectedEnsName ? (
+                    (selectedPreferredEnsName ? (
                       <>
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-sm">
+                          <div className="flex min-w-0 items-center gap-2 text-sm">
                             <RiUserLine className="w-4 h-4 text-primary" />
-                            <span className="font-semibold">{selectedEnsName}</span>
+                            <span
+                              className="truncate font-semibold"
+                              title={selectedPreferredEnsName}
+                            >
+                              {selectedPreferredEnsName}
+                            </span>
                           </div>
                           <Button
                             variant="neutral"
@@ -222,7 +259,7 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                               defaultMessage: "Copy",
                             })}
                             leadingIcon={<RiFileCopyLine className="w-4 h-4" />}
-                            onClick={() => copy(selectedEnsName)}
+                            onClick={() => copy(selectedPreferredEnsName)}
                           />
                         </div>
                         <div className="flex items-center justify-between gap-2">
@@ -248,15 +285,17 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     ) : (
                       <AddressCopy
                         address={selected.account}
-                        ensName={selectedEnsName}
+                        ensName={selectedPreferredEnsName}
                         icon={<RiWallet3Fill className="h-4 w-4" />}
                       />
                     ))}
                   {selected.email && (
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex min-w-0 items-center gap-2 text-sm">
                         <RiMailFill className="w-4 h-4 text-primary" />
-                        <span>{selected.email}</span>
+                        <span className="truncate" title={selected.email}>
+                          {selected.email}
+                        </span>
                       </div>
                       <Button
                         variant="neutral"
@@ -273,9 +312,11 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                   )}
                   {selected.phone && (
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex min-w-0 items-center gap-2 text-sm">
                         <RiPhoneLine className="w-4 h-4 text-primary" />
-                        <span>{selected.phone}</span>
+                        <span className="truncate" title={selected.phone}>
+                          {selected.phone}
+                        </span>
                       </div>
                       <Button
                         variant="neutral"

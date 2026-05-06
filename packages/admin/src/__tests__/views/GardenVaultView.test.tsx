@@ -8,6 +8,20 @@ const mockUseGardenPermissions = vi.fn();
 const mockUseLocation = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+  adminRoutes: {
+    communityTreasury: (search?: Record<string, string>) => {
+      const query = search ? new URLSearchParams(search).toString() : "";
+      return query ? `/community/treasury?${query}` : "/community/treasury";
+    },
+  },
+  useAdminStore: (selector: (state: any) => any) =>
+    selector({
+      selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+    }),
+  useAdminGardenWorkspaceSelection: () => ({
+    selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+  }),
   useGardens: () => mockUseGardens(),
   useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
   useGardenPermissions: () => mockUseGardenPermissions(),
@@ -47,7 +61,7 @@ vi.mock("@/components/Vault", () => ({
   VaultEventHistory: () => null,
 }));
 
-import GardenVaultView from "@/views/Gardens/Garden/Vault";
+import GardenVaultView from "@/views/Garden/Vault";
 
 describe("GardenVaultView", () => {
   beforeEach(() => {
@@ -69,22 +83,25 @@ describe("GardenVaultView", () => {
     });
   });
 
-  it("links back to endowments when opened from the endowments overview", () => {
-    mockUseLocation.mockReturnValue({ state: { from: "endowments" } });
+  it("links back to community treasury when opened from the treasury card", () => {
+    mockUseLocation.mockReturnValue({ state: { returnTo: "/community/treasury" } });
 
     renderWithProviders(<GardenVaultView />);
 
-    expect(screen.getByTestId("page-header")).toHaveAttribute("data-back-link", "/endowments");
+    expect(screen.getByTestId("page-header")).toHaveAttribute(
+      "data-back-link",
+      "/community/treasury"
+    );
   });
 
-  it("defaults back to the garden detail page without endowments context", () => {
+  it("defaults back to the selected garden treasury card without explicit return state", () => {
     mockUseLocation.mockReturnValue({ state: null });
 
     renderWithProviders(<GardenVaultView />);
 
     expect(screen.getByTestId("page-header")).toHaveAttribute(
       "data-back-link",
-      "/gardens/garden-1"
+      "/community/treasury?gardenAddress=garden-1"
     );
   });
 });

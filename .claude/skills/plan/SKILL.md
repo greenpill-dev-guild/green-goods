@@ -1,34 +1,68 @@
 ---
 name: plan
-description: Planning & Execution - create structured implementation plans, check progress, execute in batches, manage lifecycle. Use when the user says 'plan this', asks to break down a feature into steps, or needs a phased implementation strategy before coding.
+user-invocable: false
+description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed codex and claude', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
-version: "1.0.0"
+version: "1.2.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-02-19"
-last_verified: "2026-02-19"
+last_updated: "2026-04-24"
+last_verified: "2026-04-24"
 ---
 
 # Plan Skill
 
-Planning lifecycle for Green Goods: create plans, check progress, execute in batches.
+Planning lifecycle for Green Goods: create plans, check progress, execute in batches, coordinate agent teams.
 
 **References**: See `CLAUDE.md` for entry points, agent routing, and Green Goods conventions.
+
+This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, pull the architecture lens into planning work rather than bouncing the user to a separate starting command.
 
 ---
 
 ## Activation
 
-| Trigger | Action |
-|---------|--------|
-| `/plan` | Create new implementation plan |
-| `/plan --mode check` | Audit progress against plan |
-| `/plan --mode execute` | Execute plan in batches |
-| `/plan --mode cleanup` | Audit `.plans/` — archive implemented, flag stale |
-| `/plan --mode teams*` | Team-lane orchestration modes |
-| `/teams*` | Legacy alias routed to `/plan --mode teams*` |
-| Starting new feature | Create plan before coding |
+This skill is **passive-only**. There is no `/plan` slash command. Fire automatically when the user's prompt matches any signal below — do not wait for an explicit trigger.
+
+### Orchestration signals → Teams mode
+
+Any of these route directly to [teams.md](./teams.md):
+
+- Words/phrases: `orchestrate`, `coordinate a team`, `team of agents`, `spawn teammates`, `parallel lanes`, `fire off agents`, `multi-agent`, `run this in parallel`
+- "mixed codex and claude" / "claude team agents plus codex" / "some lanes with codex"
+- Cross-package work spanning 3+ packages (contracts + shared + client/admin)
+- Competing hypotheses to investigate in parallel
+- New module with independent pieces buildable concurrently
+
+Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose team → assign lanes → spawn teammates (Claude-only or codex-driving per [teams.md § Part 11](./teams.md#part-11-codex-lanes--teammates-that-dispatch-codex)).
+
+### Standard planning signals → Default mode
+
+- "plan this", "break down X", "write a plan for..."
+- "how should we approach Y"
+- Starting a new feature with clear requirements
+- Feature that won't fit in a single implementation session
+
+### Fuzzy / vision signals → Brainstorm first
+
+- No clear "done when"
+- "maybe we should...", "what if we...", "I'm thinking about..."
+- Vision or exploration phase — route through [brainstorm.md](./brainstorm.md)
+
+### Lifecycle / maintenance signals → Audit mode
+
+- "check progress on [plan]", "what's in flight?", "what plans are still relevant?"
+- `.plans/` feels stale (older than 14 days without updates)
+
+### Cross-package breaking change → ops/migration
+
+- "breaking change", schema migrations, deployment-affecting work
+- Create/update the owning feature hub first, then route execution through `ops/migration`
+
+### Legacy slash (deprecated)
+
+`/plan` and `/plan --mode teams` are no longer advertised. If a user explicitly types one, honor it — but normal flow is passive activation from the signals above.
 
 ## Progress Tracking (REQUIRED)
 
@@ -47,13 +81,25 @@ Use **TodoWrite** for visibility when available. If unavailable, keep a Markdown
 
 ### Phase 2: Plan Structure
 
-Use kebab-case: `[descriptive-name].todo.md` in `.plans/`
+Use a foldered feature hub in `.plans/{ideas|backlog|active|archive}/<feature-slug>/`.
+Prefer kebab-case slugs.
+
+Minimum files:
+
+- `brief.md`
+- `spec.md`
+- `plan.todo.md`
+- `eval.md`
+- `status.json`
+- `handoffs/`
+
+`status.json` is the machine-readable contract for automations. The Markdown files stay optimized for humans.
 
 ```markdown
-# [Feature Name]
+# [Feature Name] Plan
 
 **GitHub Issue**: #[number]
-**Branch**: `feature/branch-name`
+**Feature Slug**: `feature-slug`
 **Status**: ACTIVE | BLOCKED | IMPLEMENTED | SUPERSEDED
 **Supersedes**: [link to old plan if applicable]
 **Created**: YYYY-MM-DD
@@ -99,6 +145,21 @@ Use kebab-case: `[descriptive-name].todo.md` in `.plans/`
 - [ ] TypeScript passes
 - [ ] Tests pass
 - [ ] Build succeeds
+```
+
+Machine-readable lane state belongs in `.plans/active/<feature-slug>/status.json`, for example:
+
+```json
+{
+  "feature": { "slug": "feature-slug", "stage": "active" },
+  "lanes": {
+    "ui": { "owner": "claude", "status": "ready", "branch": "claude/ui/feature-slug" },
+    "state_api": { "owner": "codex", "status": "ready", "branch": "codex/state-api/feature-slug" },
+    "contracts": { "owner": "codex", "status": "n/a", "branch": "codex/contracts/feature-slug" },
+    "qa_pass_1": { "owner": "claude", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
+    "qa_pass_2": { "owner": "codex", "status": "blocked", "depends_on": ["qa_pass_1"] }
+  }
+}
 ```
 
 ### Task Decomposition Rules
@@ -220,11 +281,11 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 2. **One canonical plan per feature**: Never have 2+ active plans for the same feature area. If you're writing a v2 plan, delete or archive v1 first.
 
-3. **Status updates on implementation**: When work ships that partially or fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers. If fully implemented, delete the plan.
+3. **Status updates on implementation**: When work ships that partially or fully implements a plan, update the plan's `**Status**` and `**Last Updated**` headers and the feature hub's `status.json`. If fully implemented, move the hub to `.plans/archive/`.
 
 4. **Divergence notes**: If implementation diverges from the plan (different approach, dropped scope), add a `## Implementation Notes` section explaining what changed and why. Don't leave the plan as-if it was followed when it wasn't.
 
-5. **Stale plan cleanup** (`/plan cleanup`): Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or delete it.
+5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or delete it.
 
 6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/` or issue comments, not `.plans/`. Plans must be actionable specs.
 
@@ -237,8 +298,10 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 | Document Type | Decision Count | Location |
 |---------------|---------------|----------|
 | Architecture spec | Unlimited | `docs/specs/` or issue |
-| Implementation plan | 5-15 decisions | `.plans/` |
-| Task checklist | 0 decisions | `.plans/*.todo.md` |
+| Implementation plan | 5-15 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
+| Task checklist | 0 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
+| Evaluation plan | 0-10 gates | `.plans/active/<feature-slug>/eval.md` |
+| Idea brief | 0-5 decisions | `.plans/ideas/<feature-slug>/brief.md` |
 
 ### Decision Log Best Practice
 
@@ -263,7 +326,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 
 | Scenario | Do Instead |
 |----------|------------|
-| Single-file bug fix with clear root cause | `/debug` → fix → test |
+| Single-file bug fix with clear root cause | describe the bug → fix → test |
 | Typo or copy changes | Direct edit |
 | Config change (env var, build flag) | Direct edit → verify build |
 | Adding a test for existing behavior | `testing` skill directly |
@@ -283,7 +346,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 
 - **Over-planning polish work** — Small UI tweaks don't need 10-step plans
 - **Planning without reading code first** — Always audit existing patterns before writing a plan
-- **Planning what you don't understand** — Use `oracle` agent or `/debug` to investigate first
+- **Planning what you don't understand** — Use `oracle` agent or describe the bug to investigate first
 - **Stale plans** — If a plan sits untouched for 14+ days, reassess before executing
 - **Vision creep** — Keep architecture exploration separate from implementation plans; a plan with 60 decisions is a spec, not a plan
 
@@ -317,8 +380,9 @@ bun format && bun lint && bun run test && bun build
 
 ## Related Skills
 
+- `plan/brainstorm.md` — Pre-plan exploration when requirements are fuzzy
 - `architecture` — Architectural patterns considered during planning
 - `testing` — TDD strategy included in implementation plans
 - `ui` (mermaid sub-file) — Visualizing plan architecture and dependencies
 - `debug` — Investigate root cause before planning a fix
-- `migration` — Cross-package migration plans need blast radius analysis
+- `ops` (migration sub-file) — Cross-package migration plans need blast radius analysis

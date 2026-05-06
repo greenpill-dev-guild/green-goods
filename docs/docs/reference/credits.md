@@ -105,7 +105,7 @@ Thank you to everyone who has contributed to Green Goods!
 
 ### Infrastructure & Services
 
-- **[IPFS](https://ipfs.tech)** via **[Storacha](https://storacha.network)** & **[Pinata](https://pinata.cloud)** - Decentralized storage
+- **[IPFS](https://ipfs.tech)** via **[Pinata](https://pinata.cloud)** - Decentralized storage
 - **[Vercel](https://vercel.com)** - Hosting & CDN
 - **[Docker](https://docker.com)** - Containerization
 - **[PostgreSQL](https://postgresql.org)** - Database

@@ -1,0 +1,39 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#FAF8F5"/>
+  <rect x="64" y="54" width="1072" height="522" rx="28" fill="#FFFFFF" stroke="#D7D3CC" stroke-width="2"/>
+  <rect x="94" y="84" width="1012" height="462" rx="20" fill="#F5F2EC"/>
+  <rect x="124" y="114" width="952" height="76" rx="16" fill="#FFFFFF" stroke="#D7D3CC"/>
+  <circle cx="162" cy="152" r="22" fill="#1A7544"/>
+  <circle cx="187" cy="152" r="22" fill="#1FC16B" fill-opacity="0.72"/>
+  <text x="232" y="146" fill="#292524" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="700">Green Goods</text>
+  <text x="232" y="173" fill="#78716C" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="500">design.greengoods.app</text>
+  <rect x="826" y="132" width="220" height="36" rx="18" fill="#E7F8EE"/>
+  <text x="850" y="155" fill="#1A7544" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">Storybook design site</text>
+
+  <text x="124" y="268" fill="#292524" font-family="Inter, Arial, sans-serif" font-size="54" font-weight="800">Component Library</text>
+  <text x="124" y="316" fill="#57534E" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="500">Warm Earth tokens, shared UI primitives, and browser design dialects.</text>
+  <text x="124" y="348" fill="#57534E" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="500">Built for builders, agents, and design tools.</text>
+
+  <rect x="124" y="382" width="272" height="112" rx="16" fill="#FFFFFF" stroke="#D7D3CC"/>
+  <rect x="150" y="410" width="42" height="42" rx="12" fill="#1A7544"/>
+  <text x="214" y="431" fill="#292524" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="750">Tokens</text>
+  <text x="214" y="461" fill="#78716C" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="500">CSS and DesignMD</text>
+
+  <rect x="436" y="382" width="272" height="112" rx="16" fill="#FFFFFF" stroke="#D7D3CC"/>
+  <rect x="462" y="410" width="42" height="42" rx="12" fill="#E7F8EE"/>
+  <path d="M473 431H493M483 421V441" stroke="#1A7544" stroke-width="4" stroke-linecap="round"/>
+  <text x="526" y="431" fill="#292524" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="750">Primitives</text>
+  <text x="526" y="461" fill="#78716C" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="500">States and stories</text>
+
+  <rect x="748" y="382" width="328" height="112" rx="16" fill="#FFFFFF" stroke="#D7D3CC"/>
+  <rect x="774" y="410" width="42" height="42" rx="12" fill="#EAE6DF"/>
+  <path d="M785 428H805M785 438H799" stroke="#57534E" stroke-width="4" stroke-linecap="round"/>
+  <text x="838" y="431" fill="#292524" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="750">Surfaces</text>
+  <text x="838" y="461" fill="#78716C" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="500">Cataloged states</text>
+
+  <rect x="866" y="220" width="210" height="122" rx="18" fill="#FFFFFF" stroke="#D7D3CC"/>
+  <rect x="892" y="246" width="158" height="16" rx="8" fill="#D7D3CC"/>
+  <rect x="892" y="278" width="118" height="14" rx="7" fill="#1FC16B"/>
+  <rect x="892" y="308" width="140" height="12" rx="6" fill="#A8A29E"/>
+  <rect x="946" y="276" width="104" height="66" rx="14" fill="#E7F8EE"/>
+</svg>

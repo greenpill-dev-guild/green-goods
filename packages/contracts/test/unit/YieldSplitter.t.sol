@@ -6,6 +6,7 @@ import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import { YieldResolver } from "../../src/resolvers/Yield.sol";
+import { ZeroAddress, UnauthorizedCaller } from "../../src/CommonErrors.sol";
 import { HypercertMarketplaceAdapter } from "../../src/markets/HypercertMarketplaceAdapter.sol";
 import { OrderStructs } from "../../src/interfaces/IHypercertExchange.sol";
 import { MockHypercertExchange } from "../../src/mocks/HypercertExchange.sol";
@@ -27,6 +28,29 @@ contract MockWETH is ERC20 {
     }
 }
 
+interface IExpectedYieldResolverWiring {
+    function gardensModule() external view returns (address);
+    function setGardensModule(address gardensModule) external;
+}
+
+contract MockGardensModuleForYieldResolver {
+    mapping(address garden => address pool) private _gardenHypercertSignalPools;
+    bool public shouldRevertTypedPoolRead;
+
+    function setGardenHypercertSignalPool(address garden, address pool) external {
+        _gardenHypercertSignalPools[garden] = pool;
+    }
+
+    function setShouldRevertTypedPoolRead(bool shouldRevert) external {
+        shouldRevertTypedPoolRead = shouldRevert;
+    }
+
+    function gardenHypercertSignalPools(address garden) external view returns (address pool) {
+        if (shouldRevertTypedPoolRead) revert("MockGardensModuleForYieldResolver: forced revert");
+        return _gardenHypercertSignalPools[garden];
+    }
+}
+
 /// @title YieldResolverTest
 /// @notice Unit tests for YieldResolver contract
 contract YieldResolverTest is Test {
@@ -37,6 +61,9 @@ contract YieldResolverTest is Test {
     MockHypercertMarketplace public marketplace;
     MockJBMultiTerminalForYield public jbTerminal;
     MockHatsModule public hatsModule;
+    MockCVStrategy public cvStrategy;
+    MockCVStrategy public otherCvStrategy;
+    MockGardensModuleForYieldResolver public gardensModule;
 
     address public owner = address(0x1);
     address public octantModule = address(0x2);
@@ -54,6 +81,9 @@ contract YieldResolverTest is Test {
         marketplace = new MockHypercertMarketplace();
         jbTerminal = new MockJBMultiTerminalForYield();
         hatsModule = new MockHatsModule();
+        cvStrategy = new MockCVStrategy();
+        otherCvStrategy = new MockCVStrategy();
+        gardensModule = new MockGardensModuleForYieldResolver();
 
         // Deploy YieldResolver behind proxy
         YieldResolver impl = new YieldResolver();
@@ -106,7 +136,7 @@ contract YieldResolverTest is Test {
         YieldResolver impl = new YieldResolver();
         bytes memory initData =
             abi.encodeWithSelector(YieldResolver.initialize.selector, address(0), octantModule, address(hatsModule), 0);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         new ERC1967Proxy(address(impl), initData);
     }
 
@@ -166,7 +196,7 @@ contract YieldResolverTest is Test {
 
     function test_setSplitRatio_revertsForUnauthorized() public {
         vm.prank(address(0x999));
-        vm.expectRevert(abi.encodeWithSelector(YieldResolver.UnauthorizedCaller.selector, address(0x999)));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, address(0x999)));
         yieldSplitter.setSplitRatio(garden, 4865, 4865, 270);
     }
 
@@ -375,6 +405,30 @@ contract YieldResolverTest is Test {
         assertEq(weth.balanceOf(treasury), amount, "Treasury should receive as fallback");
     }
 
+    function test_yieldResolverWiring_splitYieldNoJBTerminalFallsBackToGardenTBAWhenTreasuryUnset() public {
+        address gardenWithoutTreasury = address(0x101);
+        MockOctantVaultForYield localVault = new MockOctantVaultForYield(address(weth));
+        uint256 amount = 10_000;
+
+        weth.mint(address(localVault), amount);
+        localVault.mintShares(address(yieldSplitter), amount);
+
+        vm.startPrank(owner);
+        yieldSplitter.setGardenVault(gardenWithoutTreasury, address(weth), address(localVault));
+        yieldSplitter.setMinYieldThreshold(0);
+        yieldSplitter.setSplitRatio(gardenWithoutTreasury, 0, 0, 10_000);
+        yieldSplitter.setJBMultiTerminal(address(0));
+        vm.stopPrank();
+
+        vm.prank(octantModule);
+        yieldSplitter.registerShares(gardenWithoutTreasury, address(localVault), amount);
+
+        yieldSplitter.splitYield(gardenWithoutTreasury, address(weth), address(localVault));
+
+        assertEq(weth.balanceOf(gardenWithoutTreasury), amount, "garden TBA should receive Juicebox fallback");
+        assertEq(weth.balanceOf(address(yieldSplitter)), 0, "resolver should not strand Juicebox fallback funds");
+    }
+
     // ═══════════════════════════════════════════════════════════════════════════
     // Split Yield — Fractions Routing (Recompound)
     // ═══════════════════════════════════════════════════════════════════════════
@@ -405,7 +459,7 @@ contract YieldResolverTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function test_splitYield_revertsWithZeroGarden() public {
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.splitYield(address(0), address(weth), address(vault));
     }
 
@@ -456,8 +510,81 @@ contract YieldResolverTest is Test {
 
     function test_setGardenTreasury_onlyOwner() public {
         vm.prank(address(0x999));
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, address(0x999)));
         yieldSplitter.setGardenTreasury(garden, address(0x42));
+    }
+
+    function test_setGardenTreasury_operatorCanSetTreasury() public {
+        address newTreasury = address(0x42);
+
+        vm.prank(operator);
+        yieldSplitter.setGardenTreasury(garden, newTreasury);
+
+        assertEq(yieldSplitter.gardenTreasuries(garden), newTreasury, "operator should update garden treasury");
+    }
+
+    function test_setGardenTreasury_revertsWithZero() public {
+        vm.prank(owner);
+        vm.expectRevert(ZeroAddress.selector);
+        yieldSplitter.setGardenTreasury(garden, address(0));
+    }
+
+    function test_yieldResolverWiring_setGardensModule_ownerCanWireTrustedModule() public {
+        vm.prank(owner);
+        IExpectedYieldResolverWiring(address(yieldSplitter)).setGardensModule(address(gardensModule));
+
+        assertEq(
+            IExpectedYieldResolverWiring(address(yieldSplitter)).gardensModule(),
+            address(gardensModule),
+            "trusted GardensModule should be stored"
+        );
+    }
+
+    function test_yieldResolverWiring_trustedGardensModuleCanSetHypercertPoolWithoutCvValidation() public {
+        address poolWithoutCode = address(0xCAFE);
+
+        vm.prank(owner);
+        IExpectedYieldResolverWiring(address(yieldSplitter)).setGardensModule(address(gardensModule));
+
+        vm.prank(address(gardensModule));
+        yieldSplitter.setGardenHypercertPool(garden, poolWithoutCode);
+
+        assertEq(yieldSplitter.gardenHypercertPools(garden), poolWithoutCode, "trusted GardensModule should wire pool");
+    }
+
+    function test_yieldResolverWiring_operatorCanRepairWhenPoolMatchesTypedHypercertSignalPool() public {
+        gardensModule.setGardenHypercertSignalPool(garden, address(cvStrategy));
+
+        vm.prank(owner);
+        IExpectedYieldResolverWiring(address(yieldSplitter)).setGardensModule(address(gardensModule));
+
+        vm.prank(operator);
+        yieldSplitter.setGardenHypercertPool(garden, address(cvStrategy));
+
+        assertEq(yieldSplitter.gardenHypercertPools(garden), address(cvStrategy), "operator repair should wire pool");
+    }
+
+    function test_yieldResolverWiring_manualRepairRejectsNonCvStrategy() public {
+        address invalidPool = address(0xCAFE);
+
+        vm.prank(operator);
+        vm.expectRevert(abi.encodeWithSignature("InvalidPool(address)", invalidPool));
+        yieldSplitter.setGardenHypercertPool(garden, invalidPool);
+    }
+
+    function test_yieldResolverWiring_manualRepairRejectsTypedPoolMismatch() public {
+        gardensModule.setGardenHypercertSignalPool(garden, address(cvStrategy));
+
+        vm.prank(owner);
+        IExpectedYieldResolverWiring(address(yieldSplitter)).setGardensModule(address(gardensModule));
+
+        vm.prank(operator);
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "InvalidGardenPool(address,address,address)", garden, address(otherCvStrategy), address(cvStrategy)
+            )
+        );
+        yieldSplitter.setGardenHypercertPool(garden, address(otherCvStrategy));
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -508,13 +635,13 @@ contract YieldResolverTest is Test {
 
     function test_rescueTokens_revertsWithZeroTokenAddress() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.rescueTokens(address(0), address(0x400), 1000);
     }
 
     function test_rescueTokens_revertsWithZeroRecipient() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.rescueTokens(address(weth), address(0), 1000);
     }
 
@@ -592,7 +719,7 @@ contract YieldResolverTest is Test {
     function test_setGardenVault_onlyOwnerOrOctantModule() public {
         // Unauthorized caller should be rejected
         vm.prank(address(0x999));
-        vm.expectRevert(abi.encodeWithSelector(YieldResolver.UnauthorizedCaller.selector, address(0x999)));
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, address(0x999)));
         yieldSplitter.setGardenVault(garden, address(weth), address(0x42));
 
         // OctantModule should be allowed
@@ -1158,21 +1285,21 @@ contract YieldResolverTest is Test {
     /// @notice Revert on zero garden address
     function test_withdrawEscrowedFractions_zeroGarden_reverts() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.withdrawEscrowedFractions(address(0), address(weth), 1000, treasury);
     }
 
     /// @notice Revert on zero asset address
     function test_withdrawEscrowedFractions_zeroAsset_reverts() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.withdrawEscrowedFractions(garden, address(0), 1000, treasury);
     }
 
     /// @notice Revert on zero recipient address
     function test_withdrawEscrowedFractions_zeroTo_reverts() public {
         vm.prank(owner);
-        vm.expectRevert(YieldResolver.ZeroAddress.selector);
+        vm.expectRevert(ZeroAddress.selector);
         yieldSplitter.withdrawEscrowedFractions(garden, address(weth), 1000, address(0));
     }
 
@@ -1226,6 +1353,9 @@ contract YieldResolverTest is Test {
         assertEq(yieldSplitter.assetYieldThresholds(address(weth)), 1e18, "Per-asset threshold should be set");
     }
 }
+
+/// @notice Backward-compatible suite name for plan validation commands.
+contract YieldSplitterTest is YieldResolverTest { }
 
 /// @title YieldResolverHarness
 /// @notice Test harness exposing internal functions for unit testing
@@ -1320,17 +1450,14 @@ contract YieldResolverFailureTest is Test {
     }
 
     function test_purchaseFraction_usesFallbackToGardenWhenNoTreasury() public {
+        address gardenWithoutTreasury = address(0x101);
         uint256 amount = 1000;
         _fundHarness(amount);
 
-        // Remove treasury
-        vm.prank(owner);
-        harness.setGardenTreasury(garden, address(0));
-
-        harness.exposed_purchaseFraction(garden, address(weth), 42, amount);
+        harness.exposed_purchaseFraction(gardenWithoutTreasury, address(weth), 42, amount);
 
         (,,, address recipient) = marketplace.purchases(0);
-        assertEq(recipient, garden, "Should use garden as fallback recipient");
+        assertEq(recipient, gardenWithoutTreasury, "Should use garden as fallback recipient");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1378,20 +1505,26 @@ contract YieldResolverFailureTest is Test {
     // _routeToCookieJar — No Jar AND No Treasury
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_routeToCookieJar_fundsStayInContractWhenNoJarAndNoTreasury() public {
+    function test_routeToCookieJar_fallsBackToGardenWhenNoJarAndNoTreasury() public {
+        address gardenWithoutTreasury = address(0x101);
         uint256 amount = 1000;
         _fundHarness(amount);
 
-        // Remove both jar and treasury
-        vm.startPrank(owner);
-        harness.setCookieJar(garden, address(0));
-        harness.setGardenTreasury(garden, address(0));
-        vm.stopPrank();
+        harness.exposed_routeToCookieJar(gardenWithoutTreasury, address(weth), amount);
 
-        harness.exposed_routeToCookieJar(garden, address(weth), amount);
+        assertEq(weth.balanceOf(gardenWithoutTreasury), amount, "garden TBA should receive fallback funds");
+        assertEq(weth.balanceOf(address(harness)), 0, "Funds should not stay in contract");
+    }
 
-        // Funds should remain in harness
-        assertEq(weth.balanceOf(address(harness)), amount, "Funds should stay in contract");
+    function test_yieldResolverWiring_routeToCookieJarNoTreasuryFallsBackToGardenTBA() public {
+        address gardenWithoutTreasury = address(0x101);
+        uint256 amount = 1000;
+        _fundHarness(amount);
+
+        harness.exposed_routeToCookieJar(gardenWithoutTreasury, address(weth), amount);
+
+        assertEq(weth.balanceOf(gardenWithoutTreasury), amount, "garden TBA should receive Cookie Jar fallback");
+        assertEq(weth.balanceOf(address(harness)), 0, "resolver should not strand Cookie Jar fallback funds");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1449,26 +1582,32 @@ contract YieldResolverFailureTest is Test {
         assertEq(weth.balanceOf(address(harness)), 0, "Contract should have 0 balance after treasury fallback");
     }
 
-    /// @notice FAULT INJECTION: JB pay reverts AND no treasury → YieldStranded event
-    /// @dev Tests the deepest fallback at Yield.sol:733. When both Juicebox and treasury
-    ///      are unavailable, tokens remain stranded in the contract and YieldStranded is emitted.
-    function test_routeToJuicebox_failure_noTreasury_emitsYieldStranded() public {
+    /// @notice FAULT INJECTION: JB pay reverts AND no treasury → garden TBA fallback
+    /// @dev When both Juicebox and treasury are unavailable, the garden account receives the fallback.
+    function test_routeToJuicebox_failure_noTreasury_fallsBackToGarden() public {
+        address gardenWithoutTreasury = address(0x101);
         uint256 amount = 2000;
         _fundHarness(amount);
 
         jbTerminal.setShouldRevert(true);
 
-        // Remove treasury — forces the stranded path
-        vm.prank(owner);
-        harness.setGardenTreasury(garden, address(0));
+        harness.exposed_routeToJuicebox(gardenWithoutTreasury, address(weth), amount);
 
-        vm.expectEmit(true, true, false, true);
-        emit YieldResolver.YieldStranded(garden, address(weth), amount, "juicebox");
+        assertEq(weth.balanceOf(gardenWithoutTreasury), amount, "garden TBA should receive fallback funds");
+        assertEq(weth.balanceOf(address(harness)), 0, "Funds should not stay in contract");
+    }
 
-        harness.exposed_routeToJuicebox(garden, address(weth), amount);
+    function test_yieldResolverWiring_routeToJuiceboxFailureNoTreasuryFallsBackToGardenTBA() public {
+        address gardenWithoutTreasury = address(0x101);
+        uint256 amount = 2000;
+        _fundHarness(amount);
 
-        // Funds stranded in contract (Yield.sol:733 — no transfer, only event)
-        assertEq(weth.balanceOf(address(harness)), amount, "Funds should remain stranded in contract");
+        jbTerminal.setShouldRevert(true);
+
+        harness.exposed_routeToJuicebox(gardenWithoutTreasury, address(weth), amount);
+
+        assertEq(weth.balanceOf(gardenWithoutTreasury), amount, "garden TBA should receive failed Juicebox fallback");
+        assertEq(weth.balanceOf(address(harness)), 0, "resolver should not strand failed Juicebox fallback funds");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -1730,17 +1869,19 @@ contract YieldResolverConvictionTest is Test {
     // setGardenHypercertPool — Access Control
     // ═══════════════════════════════════════════════════════════════════════════
 
-    function test_setGardenHypercertPool_onlyOwner() public {
+    function test_setGardenHypercertPool_revertsForNonOwnerOrOperator() public {
         vm.prank(address(0x999));
-        vm.expectRevert("Ownable: caller is not the owner");
+        vm.expectRevert(abi.encodeWithSelector(UnauthorizedCaller.selector, address(0x999)));
         yieldSplitter.setGardenHypercertPool(garden, address(0x42));
     }
 
-    function test_setGardenHypercertPool_setsPool() public {
-        address newPool = address(0x42);
+    function test_setGardenHypercertPool_ownerSetsCvStrategyPool() public {
+        MockCVStrategy newPool = new MockCVStrategy();
+
         vm.prank(owner);
-        yieldSplitter.setGardenHypercertPool(garden, newPool);
-        assertEq(yieldSplitter.gardenHypercertPools(garden), newPool, "Pool should be set");
+        yieldSplitter.setGardenHypercertPool(garden, address(newPool));
+
+        assertEq(yieldSplitter.gardenHypercertPools(garden), address(newPool), "Pool should be set");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════

@@ -1,23 +1,47 @@
 ---
-title: GreenWill (Coming Soon)
+title: GreenWill
 sidebar_label: GreenWill
 slug: /builders/integrations/greenwill
 audience: developer
 owner: docs
-last_verified: 2026-03-01
-feature_status: Planned
+last_verified: 2026-04-25
+feature_status: Implemented (activation pending deployment)
+source_of_truth:
+  - packages/contracts/src/registries/GreenWill.sol
+  - packages/shared/src/hooks/greenwill
+  - packages/shared/src/modules/data/greenwill.ts
+  - packages/admin/src/views/Actions/GreenWillPanel.tsx
 ---
 
-# GreenWill (Coming Soon)
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
-:::info Coming Soon
-This page is under development. Check back soon for full content.
-:::
+# GreenWill
+
+<StatusBadge status="Implemented (activation pending deployment)" />
 
 ## Overview
-Planned integration with GreenWill for environmental compliance tracking.
+GreenWill badge support is present in registry contracts, shared data/hooks, admin action views, tests, and indexer event definitions. Current chain configs still use zero GreenWill addresses, so public availability should be described as deployment-gated. The separate `GreenGoodsBadge` EAS schema is a later portability layer, not a requirement for the initial three-badge GreenWill launch.
 
-## What to Expect
-- Integration scope
-- Expected timeline
-- Architecture considerations
+## Current surfaces
+
+- `GreenWill.sol` models badge definitions and grants.
+- Shared hooks read badge definitions, account badges, recent grants, and claim flows.
+- The admin Actions surface includes a GreenWill panel.
+- The indexer config includes GreenWill events, but configured network addresses are currently zero.
+
+## Builder notes
+
+- Do not present GreenWill badges as live on a chain until deployment artifacts and indexer config have non-zero addresses.
+- For the initial launch, deploy only Genesis, First Work, and First Support through GreenWill + Unlock; keep the `GreenGoodsBadge` EAS schema in backlog/future portability work.
+- Keep proposal/spec pages unlisted unless they are promoted into source-backed implementation docs.
+- Make badge claims chain-aware in docs and UI.
+
+<NextBestAction
+  title="Next best action"
+  why="Review deployment status before claiming GreenWill is active on a chain."
+  actionLabel="Deployment status"
+  actionHref="../deployments/status"
+  alternatives={[
+    {label: "Integration overview", href: "./overview"},
+  ]}
+/>

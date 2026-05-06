@@ -2,112 +2,79 @@
 pragma solidity ^0.8.25;
 
 import { ForkTestBase } from "../helpers/ForkTestBase.sol";
-import { GardensModule } from "../../../src/modules/Gardens.sol";
 import { GardenToken } from "../../../src/tokens/Garden.sol";
 import { IGardensModule } from "../../../src/interfaces/IGardensModule.sol";
 
 /// @title GardensV2CommunityForkTest
 /// @notice Fork tests for Gardens V2 community creation via GardensModule.
-/// @dev Tests cover community lifecycle: creation with/without factories, retry logic,
-/// weight scheme storage, and wiring diagnostics. Gracefully skips factory-dependent
-/// tests when no RegistryFactory is deployed on the fork chain.
+/// @dev Tests cover community lifecycle, retry logic, weight scheme storage, and
+/// wiring diagnostics against real fork contracts. No fork-local registry factory
+/// fabricated factories are used for Arbitrum confidence paths.
 contract GardensV2CommunityForkTest is ForkTestBase {
     // ═══════════════════════════════════════════════════════════════════════════
     // Test 1: Create Community With Real Factory
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Tests community creation when a real RegistryFactory is available.
-    /// Gracefully skips if registryFactory is address(0) (expected on most chains).
-    function test_fork_gardens_createCommunityWithRealFactory() public {
+    /// @notice Sepolia RegistryFactory is deployed but currently lacks configured community facets.
+    function test_fork_gardens_sepoliaFactoryWithoutFacetsIsDiagnostic() public {
         if (!_tryChainFork("sepolia")) {
             return;
         }
 
         _deployFullStackOnFork();
+        _configureRealGardensV2();
 
-        // Check if registryFactory is set on the deployed gardensModule
         address factoryAddr = address(gardensModule.registryFactory());
-        if (factoryAddr == address(0)) {
-            return;
-        }
+        assertTrue(factoryAddr != address(0), "Sepolia factory should be configured");
+        assertGt(factoryAddr.code.length, 0, "Sepolia factory should have deployed code");
 
-        // If we have a real factory, mint a garden and verify community creation
-        address garden = _mintTestGarden("Factory Garden", 0x0F);
+        address garden = _mintTestGarden("Sepolia Factory Diagnostic Garden", 0x0F);
 
-        // Community should have been created during mint (via onGardenMinted)
-        address community = gardensModule.getGardenCommunity(garden);
-        assertTrue(community != address(0), "community should be created with real factory");
         assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
+        assertEq(gardensModule.getGardenCommunity(garden), address(0), "Sepolia factory has no community facets");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Test 2: Community Without Pools (Factory Available, Pool Creation Fails)
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Tests partial initialization when community is created but pools fail.
-    /// Skips if no factory is available.
-    function test_fork_gardens_communityWithoutPools() public {
+    /// @notice Sepolia remains initialized even though the live factory cannot create a community.
+    function test_fork_gardens_sepoliaPartialInitializationWithoutPools() public {
         if (!_tryChainFork("sepolia")) {
             return;
         }
 
         _deployFullStackOnFork();
+        _configureRealGardensV2();
 
-        address factoryAddr = address(gardensModule.registryFactory());
-        if (factoryAddr == address(0)) {
-            return;
-        }
+        address garden = _mintTestGarden("Sepolia Partial Pool Garden", 0x0F);
 
-        // Mint garden -- if pool creation fails but community succeeds, that's partial init
-        address garden = _mintTestGarden("Partial Pool Garden", 0x0F);
-
-        // Garden should be initialized regardless of pool outcome
         assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
-
-        // Community may exist even if pools don't
-        address community = gardensModule.getGardenCommunity(garden);
-        address[] memory pools = gardensModule.getGardenSignalPools(garden);
-
-        // Log state for debugging -- both outcomes are valid
-        emit log_named_address("community", community);
-        emit log_named_uint("pools count", pools.length);
+        assertEq(gardensModule.getGardenCommunity(garden), address(0), "community should be absent on current Sepolia");
+        assertEq(gardensModule.getGardenSignalPools(garden).length, 0, "pools require a community");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Test 3: Retry Community After Factory Update
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// @notice Tests retry flow: deploy without factory, set factory later, retry community creation.
-    /// The retryCreateCommunity path works independent of external factory existence.
-    function test_fork_gardens_retryAfterFactoryUpdate() public {
+    /// @notice Retry against Sepolia's live factory fails closed without inventing a local factory.
+    function test_fork_gardens_sepoliaRetryUsesLiveFactoryState() public {
         if (!_tryChainFork("sepolia")) {
             return;
         }
 
         _deployFullStackOnFork();
 
-        // gardensModule was deployed with factories = address(0) (standard testnet behavior)
-        // Mint a garden -- community should be zero due to missing factory
-        address garden = _mintTestGarden("Retry Garden", 0x0F);
+        address garden = _mintTestGarden("Sepolia Retry Garden", 0x0F);
         assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
         assertEq(gardensModule.getGardenCommunity(garden), address(0), "community should be zero without factory");
 
-        // Now simulate a factory becoming available by setting a test address.
-        // retryCreateCommunity will call _createCommunity internally which calls registryFactory.
-        // Since we don't have a real factory, the try/catch in _createCommunity will catch
-        // and return address(0). But we verify the retry path doesn't revert.
-        address mockFactory = address(0xFACE);
+        _configureRealGardensV2();
+        assertGt(address(gardensModule.registryFactory()).code.length, 0, "retry should target live Sepolia factory");
 
-        // Setting factory requires owner privileges (address(this) is owner)
-        gardensModule.setRegistryFactory(mockFactory);
-        assertEq(address(gardensModule.registryFactory()), mockFactory, "factory should be updated");
-
-        // retryCreateCommunity should not revert (graceful try/catch in _createCommunity)
         address retryResult = gardensModule.retryCreateCommunity(garden);
-
-        // Result will be address(0) since mockFactory isn't a real contract with createRegistry
-        // The important thing is the call didn't revert -- the retry path is functional
-        assertEq(retryResult, address(0), "retry with mock factory should gracefully return zero");
+        assertEq(retryResult, address(0), "retry should reflect live Sepolia factory facet state");
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -205,14 +172,7 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         assertFalse(wired, "wiring should be incomplete with zero factories");
         assertTrue(bytes(missing).length > 0, "missing message should be non-empty");
 
-        // Set all missing dependencies to make wiring complete
-        gardensModule.setRegistryFactory(address(0xF1));
-        gardensModule.setPowerRegistry(address(0xF2));
-
-        // goodsToken was set to address(0) during deploy -- need to set it
-        if (address(gardensModule.goodsToken()) == address(0)) {
-            gardensModule.setGoodsToken(address(communityToken));
-        }
+        _configureRealGardensV2();
 
         // Now check again
         (bool wired2, string memory missing2) = gardensModule.isWiringComplete();
@@ -231,12 +191,12 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         }
 
         _deployFullStackOnFork();
+        _configureRealGardensV2();
 
         // Check if registryFactory is set on the deployed gardensModule
         address factoryAddr = address(gardensModule.registryFactory());
-        if (factoryAddr == address(0)) {
-            return;
-        }
+        assertTrue(factoryAddr != address(0), "Arbitrum factory should be configured");
+        assertGt(factoryAddr.code.length, 0, "Arbitrum factory should have deployed code");
 
         // If we have a real factory, mint a garden and verify community creation
         address garden = _mintTestGarden("Arb Factory Garden", 0x0F);
@@ -260,16 +220,13 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         assertTrue(gardensModule.isGardenInitialized(garden), "garden should be initialized");
         assertEq(gardensModule.getGardenCommunity(garden), address(0), "community should be zero without factory");
 
-        // Set a mock factory and retry
-        address mockFactory = address(0xFACE);
-        gardensModule.setRegistryFactory(mockFactory);
-        assertEq(address(gardensModule.registryFactory()), mockFactory, "factory should be updated");
+        _configureRealGardensV2();
+        assertGt(address(gardensModule.registryFactory()).code.length, 0, "retry should target live Arbitrum factory");
 
-        // retryCreateCommunity should not revert (graceful try/catch in _createCommunity)
         address retryResult = gardensModule.retryCreateCommunity(garden);
 
-        // Result will be address(0) since mockFactory isn't a real contract with createRegistry
-        assertEq(retryResult, address(0), "retry with mock factory should gracefully return zero");
+        assertTrue(retryResult != address(0), "retry with live Arbitrum factory should create community");
+        assertEq(gardensModule.getGardenCommunity(garden), retryResult, "community should be persisted");
     }
 
     /// @notice Tests isWiringComplete diagnostics on Arbitrum fork
@@ -286,13 +243,7 @@ contract GardensV2CommunityForkTest is ForkTestBase {
         assertFalse(wired, "wiring should be incomplete with zero factories");
         assertTrue(bytes(missing).length > 0, "missing message should be non-empty");
 
-        // Set all missing dependencies to make wiring complete
-        gardensModule.setRegistryFactory(address(0xF1));
-        gardensModule.setPowerRegistry(address(0xF2));
-
-        if (address(gardensModule.goodsToken()) == address(0)) {
-            gardensModule.setGoodsToken(address(communityToken));
-        }
+        _configureRealGardensV2();
 
         // Now check again
         (bool wired2, string memory missing2) = gardensModule.isWiringComplete();

@@ -15,13 +15,14 @@ let mockEmbeddedAddress: string | null = null;
 const mockSignOut = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
-  useAuth: () => ({
+  useAuthState: () => ({
     authMode: mockAuthMode,
-    signOut: mockSignOut,
-    smartAccountAddress: mockSmartAccountAddress,
+    credential: { id: "test-cred" },
     walletAddress: mockWalletAddress,
     embeddedAddress: mockEmbeddedAddress,
-    credential: { id: "test-cred" },
+  }),
+  useAuthActions: () => ({
+    signOut: mockSignOut,
   }),
   usePrimaryAddress: () => mockSmartAccountAddress || mockWalletAddress || mockEmbeddedAddress,
   useEnsName: () => ({ data: null }),
@@ -78,16 +79,16 @@ describe("AccountInfo passkey warning", () => {
   it("shows passkey persistence warning when authMode is passkey", () => {
     renderAccountInfo();
 
-    expect(screen.getByText("Passkey stored locally")).toBeInTheDocument();
-    expect(screen.getByText(/Your passkey is stored on this device/)).toBeInTheDocument();
-    expect(screen.getByText(/For persistent access across devices/)).toBeInTheDocument();
+    expect(screen.getByText("Save a backup before changing browsers")).toBeInTheDocument();
+    expect(screen.getByText(/This sign-in lives on this device only/)).toBeInTheDocument();
+    expect(screen.getByText(/Sign in with a wallet instead/)).toBeInTheDocument();
   });
 
   it("does not show passkey warning when authMode is wallet", () => {
     mockAuthMode = "wallet";
     renderAccountInfo();
 
-    expect(screen.queryByText("Passkey stored locally")).not.toBeInTheDocument();
+    expect(screen.queryByText("Save a backup before changing browsers")).not.toBeInTheDocument();
   });
 
   it("does not show passkey warning when authMode is null", () => {
@@ -95,7 +96,7 @@ describe("AccountInfo passkey warning", () => {
     mockSmartAccountAddress = null;
     renderAccountInfo();
 
-    expect(screen.queryByText("Passkey stored locally")).not.toBeInTheDocument();
+    expect(screen.queryByText("Save a backup before changing browsers")).not.toBeInTheDocument();
   });
 
   it("shows connected wallet state for embedded auth", () => {
@@ -107,13 +108,13 @@ describe("AccountInfo passkey warning", () => {
     expect(screen.getByText("Wallet")).toBeInTheDocument();
     expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(screen.getByText("address-copy")).toBeInTheDocument();
-    expect(screen.queryByText("Passkey stored locally")).not.toBeInTheDocument();
+    expect(screen.queryByText("Save a backup before changing browsers")).not.toBeInTheDocument();
   });
 
   it("places the warning before the logout button", () => {
     renderAccountInfo();
 
-    const warning = screen.getByText("Passkey stored locally");
+    const warning = screen.getByText("Save a backup before changing browsers");
     const logoutButton = screen.getByText("Logout");
 
     // Warning should appear before logout in DOM order

@@ -6,9 +6,9 @@
  * offline statuses (syncing, uploading, sync_failed, offline) hit unhandled code paths.
  */
 
+import type { WorkDisplayStatus } from "@green-goods/shared";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
-import type { WorkDisplayStatus } from "@green-goods/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("react-intl", () => ({
@@ -85,49 +85,47 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
     expect(screen.getByTestId("work-view")).toBeInTheDocument();
   });
 
-  it("shows 'Upload Failed' title for sync_failed status", () => {
+  it("shows the warm sync_failed title for sync_failed status", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
         effectiveStatus: "sync_failed" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Upload Failed");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Sending didn't work");
   });
 
-  it("shows 'Pending Upload' title for syncing status", () => {
+  it("shows 'Saved on your device' title for syncing status", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
         effectiveStatus: "syncing" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Pending Upload");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Saved on your device");
   });
 
-  it("shows 'Pending Upload' title for offline status", () => {
+  it("shows 'Saved on your device' title for offline status", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
         effectiveStatus: "offline" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-title")).toHaveTextContent("Pending Upload");
+    expect(screen.getByTestId("work-title")).toHaveTextContent("Saved on your device");
   });
 
-  it("shows upload info for syncing/uploading statuses", () => {
+  it("shows the warm sending info for syncing/uploading statuses", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
         effectiveStatus: "uploading" as WorkDisplayStatus,
       })
     );
-    expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "This work is being uploaded to the blockchain."
-    );
+    expect(screen.getByTestId("work-info")).toHaveTextContent("Sending to the garden record...");
   });
 
-  it("shows offline info for offline status", () => {
+  it("shows the offline-saved info for offline status", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
@@ -135,11 +133,11 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "This work is saved locally and will be uploaded when connected."
+      "Saved on your device — we'll send it to the garden record when you're online."
     );
   });
 
-  it("shows retry info for sync_failed status", () => {
+  it("shows the retry info for sync_failed status", () => {
     render(
       createElement(WorkViewSection, {
         ...baseProps,
@@ -147,7 +145,7 @@ describe("WorkViewSection — all WorkDisplayStatus values (#405)", () => {
       })
     );
     expect(screen.getByTestId("work-info")).toHaveTextContent(
-      "This work could not be uploaded. Please retry when connected."
+      "We couldn't send this just now. We'll keep trying when you're online."
     );
   });
 

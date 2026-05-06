@@ -113,8 +113,6 @@ export { serviceWorkerManager } from "./app/service-worker";
 // AUTH / SESSION
 // ============================================================================
 export {
-  // Storage keys
-  AUTH_MODE_STORAGE_KEY,
   // Auth mode
   type AuthMode,
   clearAllAuth,
@@ -123,7 +121,6 @@ export {
   // Username (Pimlico server)
   clearStoredUsername,
   getAuthMode,
-  getStoredRpId,
   getStoredUsername,
   hasStoredUsername,
   // RP ID (Android passkey compatibility)
@@ -167,14 +164,17 @@ export {
   GQLClient,
   GRAPHQL_TIMEOUT_MS,
   greenGoodsIndexer,
-  TimeoutError,
   withTimeout,
 } from "./data/graphql-client";
 // ============================================================================
 // DATA / GREENGOODS
 // ============================================================================
 export {
-  Capital,
+  getCampaignCookieJarCampaigns,
+  getCampaignCookieJarTrustedCreators,
+  getIndexedCampaignCookieJars,
+} from "./data/campaign-cookie-jars";
+export {
   getActions,
   getGardeners,
   getGardens,
@@ -194,7 +194,7 @@ export {
   prefillMetadataFromAssessment,
 } from "./data/hypercerts";
 // ============================================================================
-// DATA / IPFS (Storacha)
+// DATA / IPFS
 // ============================================================================
 export {
   // Upload context types
@@ -314,5 +314,4 @@ export {
   formatJobError,
   getSubmissionStatusText,
   validateApprovalDraft,
-  validateWorkDraft,
 } from "./work/work-submission";

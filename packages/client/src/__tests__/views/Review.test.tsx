@@ -193,6 +193,31 @@ describe("WorkReview", () => {
     expect(screen.getByTestId("detail-Description")).toHaveTextContent("Good progress today");
   });
 
+  it("displays localized option labels without changing submitted canonical values", () => {
+    renderReview({
+      action: {
+        ...baseAction,
+        inputs: [
+          {
+            key: "soilType",
+            title: "Tipo de suelo",
+            placeholder: "",
+            type: "select",
+            required: true,
+            options: ["clay", "loam"],
+            optionLabels: {
+              clay: "Arcilla",
+              loam: "Franco",
+            },
+          },
+        ],
+      },
+      values: { soilType: "clay" },
+    });
+
+    expect(screen.getByTestId("detail-Tipo de suelo")).toHaveTextContent("Arcilla");
+  });
+
   it("renders audio note players when audioNotes are provided", () => {
     const audioFile = new File(["audio"], "note.webm", { type: "audio/webm" });
 

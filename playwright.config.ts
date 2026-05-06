@@ -16,6 +16,68 @@ const environments = {
 
 const currentEnv = environments.local;
 
+function envFlag(name: string): boolean {
+  return process.env[name]?.toLowerCase() === "true";
+}
+
+const playwrightApp = process.env.PLAYWRIGHT_APP;
+const shouldStartClient = playwrightApp !== "admin";
+const shouldStartAdmin = playwrightApp !== "client";
+
+// CI smoke / production-flows tests mock indexer GraphQL calls via Playwright
+// route interception, so the live envio indexer (which needs Docker) is not
+// required. SKIP_INDEXER=true (default in CI) keeps the webServer list lean.
+const skipIndexer = envFlag("SKIP_INDEXER") || (!!process.env.CI && !envFlag("REQUIRE_INDEXER"));
+
+const webServers = [
+  // Indexer (GraphQL)
+  ...(skipIndexer
+    ? []
+    : [
+        {
+          command: "bun dev:indexer",
+          port: 8080,
+          reuseExistingServer: !process.env.CI,
+          timeout: 60000,
+          env: { NODE_ENV: "test" },
+        },
+      ]),
+  // Client (PWA) — `url` (not `port`) so Playwright waits for an actual HTTP
+  // 200 before running tests; Vite binds the TCP socket before the HTTP route
+  // handler is ready, which causes flaky page.goto timeouts in CI.
+  ...(shouldStartClient
+    ? [
+        {
+          command: "bun dev:client",
+          url: `${protocol}://localhost:3001`,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120000,
+          env: {
+            NODE_ENV: "test",
+            VITE_CHAIN_ID: "11155111",
+            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
+          },
+        },
+      ]
+    : []),
+  // Admin (Dashboard)
+  ...(shouldStartAdmin
+    ? [
+        {
+          command: "bun dev:admin",
+          url: `${protocol}://localhost:3002`,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120000,
+          env: {
+            NODE_ENV: "test",
+            VITE_CHAIN_ID: "11155111",
+            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
+          },
+        },
+      ]
+    : []),
+];
+
 export default defineConfig({
   testDir: "./tests/specs",
   testMatch: "**/*.spec.ts",
@@ -60,6 +122,20 @@ export default defineConfig({
   // Browser matrix - streamlined for reliable CI testing
   // Mobile projects disabled by default - enable with --project flag for cross-browser testing
   projects: [
+    // Client CI - smoke plus critical client flows owned by the client lane
+    {
+      name: "client-ci",
+      testMatch: [/client\.smoke\.spec\.ts$/, /client\..*\.ci\.spec\.ts$/],
+      use: { ...devices["Desktop Chrome"] },
+    },
+
+    // Admin CI - smoke plus production-flow checks owned by the admin lane
+    {
+      name: "admin-ci",
+      testMatch: [/admin\.smoke\.spec\.ts$/, /admin\.production-flows\.ci\.spec\.ts$/],
+      use: { ...devices["Desktop Chrome"] },
+    },
+
     // Desktop Chrome - admin tests only
     {
       name: "chromium",
@@ -123,6 +199,18 @@ export default defineConfig({
       },
     },
 
+    // iPhone 16 Pro diagnostic — layout/safe-area investigation via WebKit
+    // Run with: bun x playwright test --project=iphone-16-pro
+    {
+      name: "iphone-16-pro",
+      testMatch: /\.diagnostic\.spec\.ts$/,
+      use: {
+        ...devices["iPhone 15 Pro"],
+        viewport: { width: 402, height: 874 },
+        deviceScaleFactor: 3,
+      },
+    },
+
     // ========================================================================
     // INTEGRATION TESTING PROJECTS
     // ========================================================================
@@ -158,42 +246,7 @@ export default defineConfig({
   ],
 
   // WebServer configuration - starts services if not running
-  webServer: process.env.SKIP_WEBSERVER
-    ? undefined
-    : [
-        // Indexer (GraphQL)
-        {
-          command: "bun dev:indexer",
-          port: 8080,
-          reuseExistingServer: !process.env.CI,
-          timeout: 60000,
-          env: { NODE_ENV: "test" },
-        },
-        // Client (PWA)
-        {
-          command: "bun dev:client",
-          port: 3001,
-          reuseExistingServer: !process.env.CI,
-          timeout: 120000,
-          env: {
-            NODE_ENV: "test",
-            VITE_CHAIN_ID: "11155111",
-            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
-          },
-        },
-        // Admin (Dashboard)
-        {
-          command: "bun dev:admin",
-          port: 3002,
-          reuseExistingServer: !process.env.CI,
-          timeout: 120000,
-          env: {
-            NODE_ENV: "test",
-            VITE_CHAIN_ID: "11155111",
-            VITE_ENVIO_INDEXER_URL: currentEnv.indexer,
-          },
-        },
-      ],
+  webServer: envFlag("SKIP_WEBSERVER") ? undefined : webServers,
 
   // Global setup/teardown (ESM-compatible paths)
   globalSetup: "./tests/global-setup.ts",

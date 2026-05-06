@@ -10,7 +10,7 @@ import {
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { STALE_TIME_MEDIUM } from "../query-keys";
+import { STALE_TIME_MEDIUM } from "../../config/query-keys";
 
 interface UseGardenCookieJarsOptions {
   enabled?: boolean;
@@ -77,11 +77,17 @@ export function useGardenCookieJars(
     error: detailsError,
   } = useReadContracts({
     contracts: jarContracts,
+    allowFailure: true,
     query: {
       enabled: validJarAddresses.length > 0,
       staleTime: STALE_TIME_MEDIUM,
     },
   });
+
+  const detailErrorCount = useMemo(
+    () => (multicallResults ?? []).filter((result) => result?.status !== "success").length,
+    [multicallResults]
+  );
 
   // Step 3: Read decimals for each jar's currency (depends on step 2 results)
   const currencyAddresses = useMemo(() => {
@@ -107,11 +113,17 @@ export function useGardenCookieJars(
 
   const { data: decimalsResults, isLoading: isLoadingDecimals } = useReadContracts({
     contracts: decimalsContracts,
+    allowFailure: true,
     query: {
       enabled: decimalsContracts.length > 0,
       staleTime: STALE_TIME_MEDIUM,
     },
   });
+
+  const decimalsErrorCount = useMemo(
+    () => (decimalsResults ?? []).filter((result) => result?.status !== "success").length,
+    [decimalsResults]
+  );
 
   // Step 4: Transform multicall results into CookieJar[]
   const jars = useMemo<CookieJar[]>(() => {
@@ -130,11 +142,13 @@ export function useGardenCookieJars(
         const emergencyEnabled = multicallResults[offset + 5]?.result as boolean | undefined;
         const minDeposit = multicallResults[offset + 6]?.result as bigint | undefined;
 
+        const tokenDecimals =
+          currency !== undefined
+            ? ((decimalsResults?.[decimalsIdx++]?.result as number | undefined) ?? 18)
+            : 18;
+
         // Skip jars where critical data failed to load
         if (currency === undefined || balance === undefined) return null;
-
-        const tokenDecimals = (decimalsResults?.[decimalsIdx]?.result as number | undefined) ?? 18;
-        decimalsIdx++;
 
         return {
           jarAddress: jarAddr,
@@ -159,5 +173,9 @@ export function useGardenCookieJars(
     error: addressError || detailsError,
     jarCount: validJarAddresses.length,
     moduleConfigured,
+    detailErrorCount,
+    hasDetailReadFailure: detailErrorCount > 0,
+    decimalsErrorCount,
+    hasDecimalsReadFailure: decimalsErrorCount > 0,
   };
 }

@@ -15,53 +15,10 @@ const controlSizeClasses = {
   lg: "min-h-12 px-4 py-3 sm:text-paragraph-md",
 } as const;
 
-export const controlStyleSizes = {
-  sm: {
-    minHeight: 40,
-    paddingX: 12,
-    paddingY: 8,
-    gap: 8,
-    borderRadius: 12,
-  },
-  md: {
-    minHeight: 44,
-    paddingX: 14,
-    paddingY: 10,
-    gap: 10,
-    borderRadius: 12,
-  },
-  lg: {
-    minHeight: 48,
-    paddingX: 16,
-    paddingY: 12,
-    gap: 10,
-    borderRadius: 12,
-  },
-} as const;
-
 export const controlInputVariants = tv({
   base: [...controlSurfaceBase],
   variants: {
     size: controlSizeClasses,
-    invalid: {
-      true: "border-error-base focus-visible:border-error-base focus-visible:ring-error-light",
-      false: "",
-    },
-  },
-  defaultVariants: {
-    size: "md",
-    invalid: false,
-  },
-});
-
-export const controlTextareaVariants = tv({
-  base: [...controlSurfaceBase, "resize-y align-top"],
-  variants: {
-    size: {
-      sm: `${controlSizeClasses.sm} min-h-24`,
-      md: `${controlSizeClasses.md} min-h-28`,
-      lg: `${controlSizeClasses.lg} min-h-32`,
-    },
     invalid: {
       true: "border-error-base focus-visible:border-error-base focus-visible:ring-error-light",
       false: "",
@@ -145,7 +102,7 @@ export const cardShellVariants = tv({
       ghost: "border-transparent bg-transparent shadow-none",
     },
     interactive: {
-      true: "transition-[background-color,border-color,box-shadow,transform] duration-200 hover:border-stroke-sub-300 hover:shadow-regular-sm active:translate-y-px",
+      true: "transition-[background-color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] hover:border-stroke-sub-300 hover:shadow-regular-sm active:translate-y-px",
       false: "",
     },
   },
@@ -154,29 +111,3 @@ export const cardShellVariants = tv({
     interactive: false,
   },
 });
-
-export const cardSectionVariants = tv({
-  base: "flex flex-col",
-  variants: {
-    size: {
-      sm: "px-4 py-3",
-      md: "px-5 py-4 sm:px-6 sm:py-5",
-      lg: "px-6 py-5 sm:px-7 sm:py-6",
-    },
-    divider: {
-      top: "border-t border-stroke-soft-200",
-      bottom: "border-b border-stroke-soft-200",
-      none: "",
-    },
-  },
-  defaultVariants: {
-    size: "md",
-    divider: "none",
-  },
-});
-
-export const formLabelClassName = "text-label-sm text-text-strong-950";
-export const formHelperClassName = "text-paragraph-xs text-text-sub-600";
-export const formErrorClassName = "text-paragraph-xs text-error-base";
-export const cardTitleClassName = "text-label-md text-text-strong-950";
-export const cardDescriptionClassName = "text-paragraph-sm text-text-sub-600";

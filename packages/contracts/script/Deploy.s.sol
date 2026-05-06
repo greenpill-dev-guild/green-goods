@@ -23,8 +23,6 @@ import { IOctantFactory, IOctantVault } from "../src/interfaces/IOctantFactory.s
 import { GreenGoodsENSReceiver } from "../src/registries/ENSReceiver.sol";
 // GardensModule and YieldResolver deployed via inherited DeploymentBase
 import { AaveV3ERC4626 } from "../src/strategies/AaveV3ERC4626.sol";
-import { MockYDSStrategy } from "../src/mocks/YDSStrategy.sol";
-import { MockRegistryFactory } from "../src/mocks/GardensV2.sol";
 import { GardensV2Addresses } from "../test/fork/helpers/GardensV2Addresses.sol";
 import { MultistrategyVault } from "@octant/core/MultistrategyVault.sol";
 import { MultistrategyVaultFactory } from "@octant/factories/MultistrategyVaultFactory.sol";
@@ -750,17 +748,11 @@ contract Deploy is Script, DeploymentBase {
 
     /// @notice Ensure root garden has a community and at least one signaling pool.
     /// @dev Retries creation via GardensModule owner recovery functions.
-    ///      On Sepolia by default, can auto-fallback to a mock RegistryFactory when
-    ///      the configured Gardens V2 factory is deployed but lacks community facets.
     function _ensureRootGardenCommunityAndPoolsReady() internal {
         if (rootGardenAddress == address(0)) revert RootGardenCommunityNotCreated();
 
         address community = gardensModule.getGardenCommunity(rootGardenAddress);
         if (community == address(0)) {
-            if (_shouldAutoDeployMockGardensFactory()) {
-                _deployAndSetMockGardensFactory();
-            }
-
             // solhint-disable-next-line no-empty-blocks
             try gardensModule.retryCreateCommunity(rootGardenAddress) returns (address retriedCommunity) {
                 community = retriedCommunity;
@@ -830,21 +822,6 @@ contract Deploy is Script, DeploymentBase {
     function _requireRootGardenPool() internal view returns (bool) {
         bool defaultValue = block.chainid != ARBITRUM_CHAIN_ID;
         return _envBoolOrDefault("REQUIRE_ROOT_GARDEN_POOL", defaultValue);
-    }
-
-    /// @notice Should we auto-deploy a mock Gardens registry factory for recovery.
-    /// @dev Sepolia defaults to true because public Gardens V2 factory frequently lacks
-    ///      configured community facets. Override with AUTO_DEPLOY_MOCK_GARDENS_FACTORY.
-    function _shouldAutoDeployMockGardensFactory() internal view returns (bool) {
-        bool fallbackDefault = block.chainid == SEPOLIA_CHAIN_ID;
-        return _envBoolOrDefault("AUTO_DEPLOY_MOCK_GARDENS_FACTORY", fallbackDefault);
-    }
-
-    /// @notice Deploy and set a mock registry factory used only as a recovery fallback.
-    function _deployAndSetMockGardensFactory() internal {
-        if (address(gardensModule) == address(0)) return;
-        MockRegistryFactory mockFactory = new MockRegistryFactory();
-        gardensModule.setRegistryFactory(address(mockFactory));
     }
 
     /// @notice Deploy gardens from config/gardens.json.

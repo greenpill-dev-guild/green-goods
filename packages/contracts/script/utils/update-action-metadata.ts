@@ -3,7 +3,7 @@
 /**
  * Update Action Metadata — Instructions + Images
  *
- * Uploads action images to IPFS (Storacha), loads instruction CIDs from cache,
+ * Uploads action images to IPFS via Pinata, loads instruction CIDs from cache,
  * checks on-chain state, and generates a single Forge batch script to update
  * all actions in one keystore prompt.
  *
@@ -20,14 +20,22 @@
  * Environment:
  *   ARBITRUM_RPC_URL or VITE_ALCHEMY_API_KEY — Arbitrum RPC endpoint
  *   FOUNDRY_KEYSTORE_ACCOUNT — Foundry keystore name (default: green-goods-deployer)
- *   VITE_STORACHA_KEY — ed25519 signing key for Storacha uploads
- *   VITE_STORACHA_PROOF — UCAN delegation proof for Storacha uploads
+ *   PINATA_JWT — Pinata JWT for IPFS uploads
  */
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import {
+  CONFIG_ROOT,
+  CONTRACTS_ROOT,
+  DEPLOYMENTS_ROOT,
+  IPFS_CACHE_PATH,
+  IPFS_MEDIA_CACHE_PATH,
+  ensureParentDir,
+} from "./paths";
+import { loadPinataConfigFromEnv, uploadBufferWithPinata } from "../../../../scripts/lib/ipfs-hybrid";
 
 // ---------------------------------------------------------------------------
 // Env loading (same approach as ipfs-uploader.ts)
@@ -66,12 +74,11 @@ loadEnvFile(path.join(__dirname, "../../../../", ".env"));
 // Constants
 // ---------------------------------------------------------------------------
 const CHAIN_ID = 42161; // Arbitrum One
-const CONTRACTS_DIR = path.resolve(__dirname, "../..");
-const DEPLOYMENT_FILE = path.join(CONTRACTS_DIR, `deployments/${CHAIN_ID}-latest.json`);
-const INSTRUCTIONS_CACHE = path.join(CONTRACTS_DIR, ".ipfs-cache.json");
-const MEDIA_CACHE = path.join(CONTRACTS_DIR, ".ipfs-media-cache.json");
-const ACTIONS_FILE = path.join(CONTRACTS_DIR, "config", "actions.json");
-const IMAGES_DIR = path.join(CONTRACTS_DIR, "config", "action-images");
+const DEPLOYMENT_FILE = path.join(DEPLOYMENTS_ROOT, `${CHAIN_ID}-latest.json`);
+const INSTRUCTIONS_CACHE = IPFS_CACHE_PATH;
+const MEDIA_CACHE = IPFS_MEDIA_CACHE_PATH;
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
+const IMAGES_DIR = path.join(CONFIG_ROOT, "action-images");
 const TEMP_DIR = path.join(__dirname, "../temp");
 
 // ---------------------------------------------------------------------------
@@ -167,61 +174,6 @@ function loadJsonFile<T>(filePath: string, defaultValue: T): T {
 }
 
 // ---------------------------------------------------------------------------
-// Storacha client (lazy-initialized)
-// ---------------------------------------------------------------------------
-interface StorachaClient {
-  uploadFile: (file: File) => Promise<{ toString(): string }>;
-  setCurrentSpace: (did: string) => Promise<void>;
-  addSpace: (proof: unknown) => Promise<{ did(): string }>;
-}
-
-async function initStoracha(): Promise<StorachaClient> {
-  const storachaKey = process.env.VITE_STORACHA_KEY;
-  const storachaProof = process.env.VITE_STORACHA_PROOF;
-
-  if (!storachaKey || !storachaProof) {
-    throw new Error("VITE_STORACHA_KEY and VITE_STORACHA_PROOF required for uploads");
-  }
-
-  const Client = await import("@storacha/client");
-  const Proof = await import("@storacha/client/proof");
-  const { Signer } = await import("@storacha/client/principal/ed25519");
-  const { StoreMemory } = await import("@storacha/client/stores/memory");
-
-  const principal = Signer.parse(storachaKey);
-  const client = await Client.create({ principal, store: new StoreMemory() });
-  const proof = await Proof.parse(storachaProof);
-  const space = await client.addSpace(proof);
-  await client.setCurrentSpace(space.did());
-  console.log(`  Storacha space: ${space.did()}`);
-
-  return client as unknown as StorachaClient;
-}
-
-async function uploadFileToStoracha(
-  client: StorachaClient,
-  buffer: Buffer,
-  filename: string,
-  mimeType: string,
-  retries = 3,
-): Promise<string> {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const blob = new Blob([buffer], { type: mimeType });
-      const file = new File([blob], filename, { type: mimeType });
-      const cid = await client.uploadFile(file);
-      return cid.toString();
-    } catch (error) {
-      if (attempt === retries) throw error;
-      const waitMs = 1000 * attempt;
-      console.log(`    Retry ${attempt}/${retries} in ${waitMs}ms...`);
-      await new Promise((r) => setTimeout(r, waitMs));
-    }
-  }
-  throw new Error("Upload failed after all retries");
-}
-
-// ---------------------------------------------------------------------------
 // Phase 1: Upload images to IPFS
 // ---------------------------------------------------------------------------
 async function uploadImages(
@@ -272,9 +224,12 @@ async function uploadImages(
     return mediaCids;
   }
 
-  // Initialize Storacha
-  console.log(`\n  Initializing Storacha for ${toUpload.length} image uploads...`);
-  const client = await initStoracha();
+  const pinataConfig = loadPinataConfigFromEnv();
+  if (!pinataConfig?.jwt) {
+    throw new Error("PINATA_JWT required for uploads");
+  }
+
+  console.log(`\n  Using Pinata for ${toUpload.length} image uploads...`);
 
   // Upload sequentially with progress
   let uploaded = 0;
@@ -285,7 +240,15 @@ async function uploadImages(
     process.stdout.write(`  [${item.index}] ${item.filename} (${sizeMB} MB)... `);
 
     try {
-      const cid = await uploadFileToStoracha(client, imageBuffer, item.filename, "image/webp");
+      const cid = await uploadBufferWithPinata(pinataConfig, imageBuffer, {
+        filename: item.filename,
+        mimeType: "image/webp",
+        name: item.filename,
+        metadata: {
+          source: "action-image",
+          slug: item.slug,
+        },
+      });
       console.log(`✓ ${cid}`);
       mediaCids.set(item.index, cid);
 
@@ -305,7 +268,7 @@ async function uploadImages(
   }
 
   // Save cache
-  fs.writeFileSync(MEDIA_CACHE, JSON.stringify(mediaCache, null, 2));
+  fs.writeFileSync(ensureParentDir(MEDIA_CACHE), JSON.stringify(mediaCache, null, 2));
   console.log(
     `\n  Uploaded: ${uploaded}/${toUpload.length} (${failed} failed), Total cached: ${mediaCids.size}/${actions.length}`,
   );
@@ -331,7 +294,7 @@ function loadInstructionCids(actions: ActionConfig[]): Map<number, string> {
       instructionCids.set(i, entry.hash);
       found++;
     } else {
-      console.log(`  [${i}] ${actions[i].title} — MISSING from .ipfs-cache.json`);
+      console.log(`  [${i}] ${actions[i].title} — MISSING from ${path.relative(CONTRACTS_ROOT, INSTRUCTIONS_CACHE)}`);
       missing++;
     }
   }

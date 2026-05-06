@@ -13,6 +13,7 @@ interface IGreenGoodsENS {
     function claimName(string calldata slug) external payable; // user-funded (wallet users)
     function claimNameSponsored(string calldata slug) external; // contract-funded (passkey users)
     function releaseName() external payable;
+    function releaseNameSponsored() external;
     function available(string calldata slug) external view returns (bool);
     function getRegistrationFee(string calldata slug, address owner, NameType nameType) external view returns (uint256);
 }

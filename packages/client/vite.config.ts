@@ -4,19 +4,23 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command, mode }) => {
   const rootDir = resolve(__dirname, "../../");
-  // Resolve env schema from monorepo root even when this package script runs with a package cwd.
+  // Resolve .env from monorepo root even when this package script runs with a package cwd.
   process.chdir(rootDir);
-  const [{ varlockVitePlugin }, { ENV }] = await Promise.all([
-    import("@varlock/vite-integration"),
-    import("varlock/env"),
-  ]);
-  const enableRpcBgSync = String(ENV.VITE_ENABLE_RPC_BG_SYNC) === "true";
+
+  // Load .env from monorepo root (all keys, regardless of VITE_ prefix) into process.env
+  // so vite.config.ts can read VITE_* and SKIP_* values directly.
+  const rootEnv = loadEnv(mode, rootDir, "");
+  for (const [key, value] of Object.entries(rootEnv)) {
+    if (process.env[key] === undefined) process.env[key] = value;
+  }
+
+  const enableRpcBgSync = process.env.VITE_ENABLE_RPC_BG_SYNC === "true";
 
   const rpcBgSyncCaching: NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]> =
     enableRpcBgSync
@@ -47,7 +51,7 @@ export default defineConfig(async () => {
       : ([] as NonNullable<NonNullable<VitePWAOptions["workbox"]>["runtimeCaching"]>);
 
   // Use relative paths for IPFS builds
-  const isIPFSBuild = String(ENV.VITE_USE_HASH_ROUTER) === "true";
+  const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
   const appBasePath = isIPFSBuild ? "./" : "/";
   const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
 
@@ -56,6 +60,11 @@ export default defineConfig(async () => {
   const isDevContainer = process.env.DEVCONTAINER === "true";
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
+  const nodeEnv = command === "build" ? "production" : "development";
+  const isBunRuntime = "bun" in process.versions;
+  if (command === "build") {
+    process.env.NODE_ENV = "production";
+  }
 
   // Dev-only plugin: serves tunnel URL at /__dev/tunnel for the landing page QR code
   function devTunnelPlugin(): Plugin {
@@ -87,7 +96,6 @@ export default defineConfig(async () => {
 
   const plugins = [
     devTunnelPlugin(),
-    varlockVitePlugin(),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -123,9 +131,15 @@ export default defineConfig(async () => {
       injectRegister: "auto",
       registerType: "prompt",
       workbox: {
+        // Workbox's Rollup/Terser pass can exit early under Bun while writing the
+        // generated service worker. Keep the app build in production mode, but
+        // avoid SW minification on Bun so `bun run build` remains deterministic.
+        mode: isBunRuntime ? "development" : nodeEnv,
+        disableDevLogs: true,
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
         cleanupOutdatedCaches: true,
+        sourcemap: false,
         importScripts: ["sw-custom.js"],
         runtimeCaching: [
           {
@@ -156,7 +170,7 @@ export default defineConfig(async () => {
             // IPFS content is immutable (same CID = same bytes forever), so cache aggressively.
             // Matches dedicated Pinata gateway + public IPFS gateways.
             urlPattern:
-              /https:\/\/(greengoods\.mypinata\.cloud|gateway\.pinata\.cloud|storacha\.link|w3s\.link|ipfs\.io)\/ipfs\/.+/,
+              /https:\/\/(greengoods\.mypinata\.cloud|gateway\.pinata\.cloud|ipfs\.io)\/ipfs\/.+/,
             handler: "CacheFirst",
             options: {
               cacheName: "ipfs-cache",
@@ -255,7 +269,7 @@ export default defineConfig(async () => {
         ],
         categories: [],
       },
-      devOptions: { enabled: String(ENV.VITE_ENABLE_SW_DEV) === "true" },
+      devOptions: { enabled: process.env.VITE_ENABLE_SW_DEV === "true" },
     }),
   ];
 
@@ -263,18 +277,37 @@ export default defineConfig(async () => {
     root: __dirname,
     base: appBasePath,
     envDir: rootDir,
-    envPrefix: ["VITE_", "PINATA_", "SKIP_"],
-    build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
+    envPrefix: ["VITE_", "SKIP_"],
+    build: {
+      sourcemap: true,
+      chunkSizeWarningLimit: 2000,
+    },
+    define: {
+      "import.meta.env.DEV": JSON.stringify(nodeEnv !== "production"),
+      "import.meta.env.PROD": JSON.stringify(nodeEnv === "production"),
+      "process.env.NODE_ENV": JSON.stringify(nodeEnv),
+    },
+    esbuild: {
+      jsxDev: command !== "build",
+    },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances
     resolve: {
       dedupe: ["react", "react-dom", "posthog-js"],
       alias: {
         "@": resolve(__dirname, "./src"),
+        "@green-goods/shared/service-worker": resolve(
+          __dirname,
+          "../shared/src/modules/app/service-worker-registration.ts"
+        ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/components": resolve(__dirname, "../shared/src/components"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
         "@green-goods/shared/providers": resolve(__dirname, "../shared/src/providers"),
+        "@green-goods/shared/public-contracts": resolve(
+          __dirname,
+          "../shared/src/public-contracts"
+        ),
         "@green-goods/shared/modules": resolve(__dirname, "../shared/src/modules"),
         "@green-goods/shared/utils": resolve(__dirname, "../shared/src/utils"),
         "@green-goods/shared/config": resolve(__dirname, "../shared/src/config"),
@@ -288,7 +321,7 @@ export default defineConfig(async () => {
         "@green-goods/contracts/abis": resolve(__dirname, "../contracts/abis"),
       },
       // Add conditions for proper module resolution on Vercel
-      conditions: ["import", "module", "browser", "default"],
+      conditions: [nodeEnv, "import", "module", "browser", "default"],
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
@@ -301,18 +334,23 @@ export default defineConfig(async () => {
       port: 3001,
       strictPort: true,
       host: true,
-      open: true,
+      open: false,
       hmr: { overlay: true },
-      watch: { usePolling: true, interval: 100 },
+      // Polling is only required on Docker bind mounts and some network filesystems.
+      // On macOS native FSEvents the default watcher is much cheaper than polling
+      // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
+      watch:
+        process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : undefined,
       proxy: {
-        "/indexer": {
+        "/api/graphql": {
           target:
             process.env.NODE_ENV === "development"
               ? "http://localhost:8080/v1/graphql"
-              : (ENV.VITE_ENVIO_INDEXER_URL ?? "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql"),
+              : (process.env.VITE_ENVIO_INDEXER_URL ??
+                "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql"),
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => path.replace(/^\/indexer/, ""),
+          rewrite: (path) => path.replace(/^\/api\/graphql/, ""),
         },
       },
     },

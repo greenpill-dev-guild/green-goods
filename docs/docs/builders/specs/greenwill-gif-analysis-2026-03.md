@@ -2,10 +2,11 @@
 title: "GreenWill Badging + GIF Analysis (March 2026)"
 sidebar_label: GreenWill Badging
 slug: /builders/specs/greenwill-gif-analysis-2026-03
+unlisted: true
 audience: developer
 owner: docs
 last_verified: 2026-03-25
-feature_status: Proposed
+feature_status: Planned
 ---
 
 # GreenWill Badging + GIF Analysis
@@ -403,7 +404,7 @@ The next launch window should stay small and legible, but it now needs enough ro
 
 ### What I would intentionally leave out of the first launch
 
-- leaderboards
+- ranked comparison views
 - streak-heavy mechanics
 - cross-garden rank ladders
 - badge-based voting power
@@ -977,7 +978,7 @@ If GreenWill launches, I would watch these first:
 ### Metrics I would not over-index on initially
 
 - total badge count minted
-- leaderboard density
+- ranking density
 - badge rarity theater
 
 Those can look healthy while the actual system still feels flat or unfair.
@@ -1132,7 +1133,7 @@ GreenWill should not copy any one of them outright. It should combine the right 
 | Open Badges / Credly | proof and portability | issuer, criteria, evidence, metadata, shareability | sterile enterprise feel |
 | Stack Overflow / Discourse | healthy behavior shaping | onboarding badges, auto-awards, early adopter badges, repeatables where justified | optimizing only for raw counts |
 | GitHub / Google Developer Program | profile controls | favorites, hiding badges, optional visibility, removable membership badges | opaque criteria everywhere |
-| Strava / Garmin | seasonal energy | progress bars, limited-time campaigns, repeatables with caps, non-competitive group goals | leaderboard-first design |
+| Strava / Garmin | seasonal energy | progress bars, limited-time campaigns, repeatables with caps, non-competitive group goals | ranking-first design |
 | POAP / Galxe | web3 credential intuition | commemorative drops, onchain identity, issuer/verifier thinking, token-gating potential | quest farming |
 
 ### Scouting America

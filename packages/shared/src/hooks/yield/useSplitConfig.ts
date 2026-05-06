@@ -6,7 +6,7 @@ import { YIELD_SPLITTER_ABI } from "../../utils/blockchain/abis";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
 import { isZeroAddress } from "../../utils/blockchain/address";
 import { useCurrentChain } from "../blockchain/useChainConfig";
-import { STALE_TIME_RARE } from "../query-keys";
+import { STALE_TIME_RARE } from "../../config/query-keys";
 
 interface UseSplitConfigOptions {
   enabled?: boolean;

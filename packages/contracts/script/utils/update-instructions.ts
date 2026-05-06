@@ -3,12 +3,13 @@
 /**
  * Temporary script to update on-chain ActionRegistry instruction CIDs.
  *
- * After re-uploading IPFS instructions with the fixed Storacha client,
- * run this to call updateActionInstructions() for each action.
+ * After re-uploading IPFS instructions with the current Pinata uploader,
+ * run this to call batchUpdateActionInstructions() once for all pending actions.
  *
  * Features:
  * - Reads current on-chain CID via `cast call` before sending — skips already-updated actions
- * - Safe to re-run: only sends transactions for actions that still need updating
+ * - Safe to re-run: only sends CIDs for actions that still need updating
+ * - Uses a single transaction so the keystore password is entered once
  *
  * Usage:
  *   cd packages/contracts
@@ -17,12 +18,15 @@
  * Environment:
  *   ARBITRUM_RPC_URL or VITE_ALCHEMY_API_KEY — Arbitrum RPC endpoint
  *   FOUNDRY_KEYSTORE_ACCOUNT — Foundry keystore name (default: green-goods-deployer)
+ *   MIGRATION_PRIVATE_KEY — Optional non-interactive broadcast key
+ *   PRIVATE_KEY — Fallback non-interactive broadcast key
  */
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { CONFIG_ROOT, DEPLOYMENTS_ROOT, IPFS_CACHE_PATH } from "./paths";
 
 // --- env loading (same as ipfs-uploader.ts) ---
 function loadEnvFile(envPath: string): void {
@@ -57,9 +61,9 @@ loadEnvFile(path.join(__dirname, "../../../../", ".env"));
 
 // --- config ---
 const CHAIN_ID = 42161; // Arbitrum One
-const DEPLOYMENT_FILE = path.join(process.cwd(), `deployments/${CHAIN_ID}-latest.json`);
-const CACHE_FILE = path.join(process.cwd(), ".ipfs-cache.json");
-const ACTIONS_FILE = path.join(process.cwd(), "config", "actions.json");
+const DEPLOYMENT_FILE = path.join(DEPLOYMENTS_ROOT, `${CHAIN_ID}-latest.json`);
+const CACHE_FILE = IPFS_CACHE_PATH;
+const ACTIONS_FILE = path.join(CONFIG_ROOT, "actions.json");
 
 interface ActionConfig {
   title: string;
@@ -117,6 +121,67 @@ function readOnChainCid(actionRegistry: string, uid: number, expectedCid: string
     console.warn(`  ⚠️  cast call failed for action ${uid}: ${reason}`);
     return false;
   }
+}
+
+function assertBatchInstructionUpdateSupported(actionRegistry: string, rpcUrl: string): void {
+  try {
+    execFileSync(
+      "cast",
+      ["call", actionRegistry, "batchUpdateActionInstructions(uint256[],string[])", "[]", "[]", "--rpc-url", rpcUrl],
+      {
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 30_000,
+      },
+    );
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      "ActionRegistry does not support batchUpdateActionInstructions on this network. " +
+        "Upgrade the ActionRegistry implementation before running the instruction update. " +
+        `Preflight failed: ${reason}`,
+    );
+  }
+}
+
+function formatUintArrayForCast(values: number[]): string {
+  return `[${values.map((value) => value.toString()).join(",")}]`;
+}
+
+function formatStringArrayForCast(values: string[]): string {
+  return `[${values.map((value) => JSON.stringify(value)).join(",")}]`;
+}
+
+function sendInstructionBatchUpdate(
+  actionRegistry: string,
+  pending: { uid: number; cid: string }[],
+  rpcUrl: string,
+): string {
+  const privateKey = process.env.MIGRATION_PRIVATE_KEY || process.env.PRIVATE_KEY;
+  const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
+  const args = [
+    "send",
+    actionRegistry,
+    "batchUpdateActionInstructions(uint256[],string[])",
+    formatUintArrayForCast(pending.map((u) => u.uid)),
+    formatStringArrayForCast(pending.map((u) => u.cid)),
+    "--rpc-url",
+    rpcUrl,
+  ];
+
+  if (privateKey) {
+    args.push("--private-key", privateKey);
+  } else {
+    args.push("--account", keystoreName);
+  }
+
+  const output = execFileSync("cast", args, {
+    stdio: ["inherit", "pipe", "pipe"],
+    timeout: 120_000,
+  })
+    .toString()
+    .trim();
+  const txHashMatch = output.match(/transactionHash\s+(0x[a-fA-F0-9]{64})/);
+  return txHashMatch ? txHashMatch[1] : output.slice(0, 80);
 }
 
 async function main() {
@@ -203,45 +268,15 @@ async function main() {
   const keystoreName = process.env.FOUNDRY_KEYSTORE_ACCOUNT || "green-goods-deployer";
   console.log(`\nRPC: ${rpcUrl.replace(/\/v2\/.*/, "/v2/***")}`);
   console.log(`Keystore: ${keystoreName}`);
-  console.log(`\nSending ${pending.length} transactions...\n`);
+  console.log(`\nPreflighting batch instruction update support...`);
+  assertBatchInstructionUpdateSupported(actionRegistry, rpcUrl);
+  console.log(`Sending 1 batchUpdateActionInstructions transaction for ${pending.length} action(s)...\n`);
 
-  let success = 0;
-  let failed = 0;
+  const txHash = sendInstructionBatchUpdate(actionRegistry, pending, rpcUrl);
 
-  for (const u of pending) {
-    const args = [
-      "send",
-      actionRegistry,
-      "updateActionInstructions(uint256,string)",
-      u.uid.toString(),
-      u.cid,
-      "--rpc-url",
-      rpcUrl,
-      "--account",
-      keystoreName,
-    ];
-
-    console.log(`[${u.uid}] ${u.title}...`);
-    try {
-      const output = execFileSync("cast", args, {
-        stdio: ["inherit", "pipe", "pipe"],
-        timeout: 120_000,
-      });
-      const txOutput = output.toString().trim();
-      const txHashMatch = txOutput.match(/transactionHash\s+(0x[a-fA-F0-9]{64})/);
-      const txHash = txHashMatch ? txHashMatch[1] : txOutput.slice(0, 80);
-      console.log(`  OK: ${txHash}`);
-      success++;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      console.error(`  FAILED: ${msg}`);
-      failed++;
-    }
-  }
-
-  console.log(`\nDone: ${success} succeeded, ${failed} failed out of ${pending.length} pending.`);
-  console.log(`Total: ${alreadyDone.length + success} / ${allUpdates.length} actions up-to-date.`);
-  if (failed > 0) process.exit(1);
+  console.log(`  OK batch: ${txHash}`);
+  console.log(`\nDone: ${pending.length}/${pending.length} pending instruction update(s) sent in one transaction.`);
+  console.log(`Total: ${allUpdates.length} / ${allUpdates.length} actions up-to-date after confirmation.`);
 }
 
 main().catch((err) => {

@@ -4,7 +4,7 @@ import { FormLayout } from "./FormLayout";
 import { FormTextarea } from "./FormTextarea";
 
 const meta: Meta<typeof FormLayout> = {
-  title: "Form Controls/FormLayout",
+  title: "Shared/Form/FormLayout",
   component: FormLayout,
   tags: ["autodocs"],
   argTypes: {

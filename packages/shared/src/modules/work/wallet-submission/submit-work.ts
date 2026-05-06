@@ -5,7 +5,7 @@ import type { EASWork } from "../../../types/eas-responses";
 import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
 import { queryClient } from "../../../config/react-query";
-import { queryKeys } from "../../../hooks/query-keys";
+import { queryKeys } from "../../../config/query-keys";
 import { trackWalletSubmissionTiming } from "../../../modules/app/analytics-events";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
@@ -154,7 +154,7 @@ export async function submitWorkDirectly(
   const userAddress = walletClient.account?.address;
   if (userAddress) {
     queryClient.invalidateQueries({
-      queryKey: queryKeys.works.mine(userAddress),
+      queryKey: queryKeys.works.mineByUser(userAddress),
       exact: false,
     });
   }

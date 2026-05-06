@@ -33,90 +33,53 @@ const sidebars: SidebarsConfig = {
       id: 'community/where-were-headed',
       label: "Where We're Headed",
     },
-    // ── Gardener Guide (5 items) ──
+    // ── Gardener Guide ──
+    // Current guide focus: join + submit. Other pages remain in the repo for
+    // reference and can return to the sidebar after this week's user-guide pass.
     {
       type: 'category',
       label: 'Gardener Guide',
       link: {
-        type: 'generated-index',
-        description:
-          'Gardeners document real-world conservation and regenerative work using the Green Goods mobile app. Follow these guides to join a garden, submit work, earn payouts, and build your on-chain reputation. Learn how the MDR workflow captures evidence and how verified work builds your on-chain reputation.',
+        type: 'doc',
+        id: 'community/gardener-guide/index',
       },
       items: [
-        {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Joining A Garden'},
-        {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Uploading Your Work'},
-        {type: 'doc', id: 'community/gardener-guide/garden-payouts', label: 'Garden Payouts'},
-        {type: 'doc', id: 'community/gardener-guide/voting-governance', label: 'Voting & Governance'},
-        {type: 'doc', id: 'community/gardener-guide/earning-badges', label: 'Earning Badges & Rewards'},
+        {type: 'doc', id: 'community/gardener-guide/joining-a-garden', label: 'Join a Garden'},
+        {type: 'doc', id: 'community/gardener-guide/uploading-your-work', label: 'Submit Work'},
       ],
     },
 
-    // ── Operator Guide (9 items) ──
+    // ── Operator Guide ──
+    // Current guide focus: create/assess/approve/certify. Other operator pages stay in
+    // the repo and can be re-surfaced after this week's user-guide pass.
     {
       type: 'category',
       label: 'Operator Guide',
       link: {
-        type: 'generated-index',
-        description:
-          'Operators create and manage gardens — defining conservation actions, reviewing submitted work, minting impact certificates, and overseeing endowments and payouts. From garden setup to Hypercert minting and endowment management, these guides cover the full operator lifecycle.',
+        type: 'doc',
+        id: 'community/operator-guide/index',
       },
       items: [
-        {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Creating A Garden'},
-        {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Making An Assessment'},
-        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Reviewing Work'},
-        {type: 'doc', id: 'community/operator-guide/creating-impact-certificates', label: 'Creating Impact Certificates'},
-        {type: 'doc', id: 'community/operator-guide/managing-certificates', label: 'Managing Certificates & Work'},
-        {type: 'doc', id: 'community/operator-guide/managing-endowments', label: 'Managing Endowments'},
-        {type: 'doc', id: 'community/operator-guide/managing-payouts', label: 'Managing Payouts'},
-        {type: 'doc', id: 'community/operator-guide/managing-governance', label: 'Managing Governance'},
-        {type: 'doc', id: 'community/operator-guide/earning-recognition', label: 'Earning Recognition'},
+        {type: 'doc', id: 'community/operator-guide/creating-a-garden', label: 'Create a Garden'},
+        {type: 'doc', id: 'community/operator-guide/making-an-assessment', label: 'Make an Assessment'},
+        {type: 'doc', id: 'community/operator-guide/reviewing-work', label: 'Review and Approve Work'},
+        {type: 'doc', id: 'community/operator-guide/creating-impact-certificates', label: 'Mint Impact Certificate'},
       ],
     },
 
-    // ── Evaluator Guide (4 items) ──
-    {
-      type: 'category',
-      label: 'Evaluator Guide',
-      link: {
-        type: 'generated-index',
-        description:
-          'Evaluators verify conservation work and assess impact certificates. Learn how to join a garden as an evaluator, conduct assessments, and earn recognition for your expertise. Includes querying the indexer, exporting data for analysis, and understanding the attestation chain.',
-      },
-      items: [
-        {type: 'doc', id: 'community/evaluator-guide/joining-a-garden', label: 'Joining A Garden'},
-        {type: 'doc', id: 'community/evaluator-guide/making-assessments', label: 'Making Assessments'},
-        {type: 'doc', id: 'community/evaluator-guide/evaluating-certificates', label: 'Evaluating Impact Certificates'},
-        {type: 'doc', id: 'community/evaluator-guide/earning-badges', label: 'Earning Recognition'},
-      ],
-    },
-
-    // ── Funder Guide (2 items) ──
+    // ── Funder Guide ──
+    // Current guide focus: donate + endow + remove. Other funder pages stay in the repo.
     {
       type: 'category',
       label: 'Funder Guide',
       link: {
-        type: 'generated-index',
-        description:
-          'Funders support conservation gardens by depositing into endowment vaults and purchasing impact certificates. Discover how to fund a garden and track your impact. Understand how Octant Vaults generate yield for garden operations and how Hypercert purchases directly fund verified impact.',
+        type: 'doc',
+        id: 'community/funder-guide/index',
       },
       items: [
-        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Funding A Garden'},
-        {type: 'doc', id: 'community/funder-guide/earning-recognition', label: 'Earning Recognition'},
-      ],
-    },
-
-    // ── Community Guide (2 items) ──
-    {
-      type: 'category',
-      label: 'Community Guide',
-      link: {
-        type: 'generated-index',
-        description:
-          'Community members participate in garden governance through conviction voting and earn rewards for their engagement. Get started with voting and community participation. Conviction voting lets your support grow over time, prioritizing the work your community values most.',
-      },
-      items: [
-        {type: 'doc', id: 'community/community-member-guide/getting-involved', label: 'Voting In Gardens'},
-        {type: 'doc', id: 'community/community-member-guide/conviction-voting', label: 'Earning Rewards'},
+        {type: 'doc', id: 'community/funder-guide/donating-to-a-garden', label: 'Donate to a Garden'},
+        {type: 'doc', id: 'community/funder-guide/funding-a-garden', label: 'Endow a Garden'},
+        {type: 'doc', id: 'community/funder-guide/withdraw-from-a-vault', label: 'Remove an Endowment'},
       ],
     },
 
@@ -158,20 +121,38 @@ const sidebars: SidebarsConfig = {
       ],
     },
 
-    // ── Packages (7 items) ──
+    // ── User Journeys (canonical cross-package choreography) ──
+    {
+      type: 'category',
+      label: 'User Journeys',
+      link: {
+        type: 'generated-index',
+        description:
+          'Canonical user journeys + persona-surface map. Cross-package choreography for the five canonical Green Goods personas.',
+      },
+      items: [
+        {type: 'doc', id: 'builders/journeys/onboarding', label: 'Onboarding'},
+        {type: 'doc', id: 'builders/journeys/work-submission', label: 'Work Submission'},
+        {type: 'doc', id: 'builders/journeys/evaluation', label: 'Evaluation'},
+        {type: 'doc', id: 'builders/journeys/funding', label: 'Funding'},
+        {type: 'doc', id: 'builders/journeys/harvest', label: 'Harvest'},
+        {type: 'doc', id: 'builders/journeys/persona-surfaces', label: 'Persona Surfaces'},
+      ],
+    },
+
+    // ── Packages (6 items) ──
     {
       type: 'category',
       label: 'Packages',
       link: {
         type: 'generated-index',
         description:
-          'The 7 packages that make up the Green Goods monorepo.',
+          'The 6 packages that make up the Green Goods monorepo.',
       },
       items: [
         {type: 'doc', id: 'builders/packages/contracts', label: 'Contracts'},
         {type: 'doc', id: 'builders/packages/indexer', label: 'Indexer'},
         {type: 'doc', id: 'builders/packages/agent', label: 'Agent'},
-        {type: 'doc', id: 'builders/packages/ops', label: 'Ops'},
         {type: 'doc', id: 'builders/packages/admin', label: 'Admin'},
         {type: 'doc', id: 'builders/packages/client', label: 'Client'},
         {type: 'doc', id: 'builders/packages/shared', label: 'Shared'},
@@ -185,16 +166,17 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         description:
-          'Product specifications from v0.1 through v1.0.',
+          'Product specifications and strategy tools for Green Goods.',
       },
       items: [
         {type: 'doc', id: 'builders/specs/v0-1', label: 'v0.1 — Privy, EAS, Pimlico, Tokenbound'},
         {type: 'doc', id: 'builders/specs/v0-4', label: 'v0.4 — Passkey, EAS, Pimlico, Tokenbound, Karma'},
         {type: 'doc', id: 'builders/specs/v1-0', label: 'v1.0 — Hypercerts, Octant, Gardens, Cookie Jar'},
+        {type: 'doc', id: 'builders/specs/revenue-explorer', label: 'Protocol Revenue Explorer'},
       ],
     },
 
-    // ── Integrations (12 items) ──
+    // ── Integrations ──
     {
       type: 'category',
       label: 'Integrations',
@@ -204,7 +186,6 @@ const sidebars: SidebarsConfig = {
           'External protocols and services integrated into Green Goods.',
       },
       items: [
-        {type: 'doc', id: 'builders/integrations/entity-matrix', label: 'Entity Matrix'},
         {type: 'doc', id: 'builders/integrations/overview', label: 'Overview'},
         {type: 'doc', id: 'builders/integrations/eas', label: 'EAS'},
         {type: 'doc', id: 'builders/integrations/tokenbound', label: 'Tokenbound Accounts'},
@@ -230,6 +211,8 @@ const sidebars: SidebarsConfig = {
       },
       items: [
         {type: 'doc', id: 'builders/agentic/core-philosophies', label: 'Core Philosophies'},
+        {type: 'doc', id: 'builders/agentic/friction-engineering', label: 'Friction Engineering'},
+        {type: 'doc', id: 'builders/agentic/prompting-green-goods', label: 'Prompting Green Goods'},
         {type: 'doc', id: 'builders/agentic/prompt-engineering', label: 'Prompt Engineering'},
         {type: 'doc', id: 'builders/agentic/context-engineering', label: 'Context Engineering'},
         {type: 'doc', id: 'builders/agentic/intent-engineering', label: 'Intent Engineering'},
@@ -245,7 +228,6 @@ const sidebars: SidebarsConfig = {
           items: [
             {type: 'doc', id: 'builders/agentic/claude-code', label: 'Claude Code'},
             {type: 'doc', id: 'builders/agentic/codex', label: 'Codex'},
-            {type: 'doc', id: 'builders/agentic/openclaw', label: 'OpenClaw'},
             {type: 'doc', id: 'builders/agentic/gemini', label: 'Gemini'},
           ],
         },
@@ -311,6 +293,16 @@ const sidebars: SidebarsConfig = {
     {type: 'doc', id: 'builders/glossary', label: 'Builder Glossary'},
     {type: 'doc', id: 'reference/changelog', label: 'Changelog'},
     {type: 'doc', id: 'reference/design-research', label: 'Design & Research'},
+    {
+      type: 'doc',
+      id: 'reference/proposals/octant-green-goods-proposal-pack-2026-04-01',
+      label: 'Octant Proposal Pack',
+    },
+    {
+      type: 'doc',
+      id: 'reference/proposals/urban-greening-comment-package-2026-04-03',
+      label: 'Urban Greening Comment Pack',
+    },
     {type: 'doc', id: 'reference/credits', label: 'Credits & Licenses'},
   ],
 };

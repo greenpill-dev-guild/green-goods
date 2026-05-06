@@ -11,7 +11,7 @@
  */
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { trackContractError } from "../../modules/app/error-tracking";
@@ -23,10 +23,9 @@ import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugLog } from "../../utils/debug";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useUser } from "../auth/useUser";
-import { INDEXER_LAG_FOLLOWUP_MS, queryKeys } from "../query-keys";
-import { useBeforeUnloadWhilePending } from "../utils/useBeforeUnloadWhilePending";
-import { useMutationLock } from "../utils/useMutationLock";
-import { useTimeout } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
+import { useSafeMutation } from "../utils/useSafeMutation";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 interface BatchApprovalItem {
   draft: WorkApprovalDraft;
@@ -83,8 +82,16 @@ export function useBatchWorkApproval() {
   const { authMode, smartAccountClient } = useUser();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
-  const { set: scheduleInvalidation } = useTimeout();
-  const { runWithLock, isPending: isLockPending } = useMutationLock("approval");
+  const lastGardenAddressesRef = useRef<string[]>([]);
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
+    useCallback(() => {
+      for (const addr of lastGardenAddressesRef.current) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
+      }
+    }, [queryClient, chainId]),
+    INDEXER_LAG_SCHEDULE_MS
+  );
 
   const mutation = useMutation({
     mutationFn: async (items: BatchApprovalItem[]): Promise<BatchApprovalResult> => {
@@ -235,13 +242,9 @@ export function useBatchWorkApproval() {
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
 
-      // Schedule a follow-up invalidation for indexer lag (non-blocking)
-      scheduleInvalidation(() => {
-        for (const addr of gardenAddresses) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
-        }
-      }, INDEXER_LAG_FOLLOWUP_MS);
+      // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
+      lastGardenAddressesRef.current = gardenAddresses;
+      scheduleFollowUp();
 
       toastService.success({
         id: "batch-approval",
@@ -324,21 +327,5 @@ export function useBatchWorkApproval() {
     },
   });
 
-  const isPending = mutation.isPending || isLockPending;
-  useBeforeUnloadWhilePending(isPending);
-
-  const mutateAsync = useCallback(
-    (...args: Parameters<typeof mutation.mutateAsync>) =>
-      runWithLock(() => mutation.mutateAsync(...args)),
-    [mutation, runWithLock]
-  );
-
-  const mutate = useCallback(
-    (...args: Parameters<typeof mutation.mutate>) => {
-      void mutateAsync(...args).catch(() => undefined);
-    },
-    [mutateAsync]
-  );
-
-  return { ...mutation, mutate, mutateAsync, isPending };
+  return useSafeMutation(mutation, "approval");
 }

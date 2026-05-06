@@ -1,0 +1,57 @@
+# fly.toml — Green Goods agent deployment config
+#
+# Placed at repo root so the Docker build context is the full workspace.
+# The Dockerfile at packages/agent/Dockerfile COPYs workspace-root files
+# (package.json, bun.lock, packages/, docs/package.json, scripts/) which
+# only resolve when fly.toml — and therefore the build context — sits here.
+#
+# Deploy (from repo root):
+#
+#   flyctl volumes create agent_data --region ams --size 1
+#   flyctl secrets set \
+#       TELEGRAM_BOT_TOKEN=<botfather-token> \
+#       ENCRYPTION_SECRET=<32+-char-secret> \
+#       TELEGRAM_WEBHOOK_SECRET=<secret> \
+#       BOT_API_TOKEN=<routine-auth-bearer-token>
+#   flyctl deploy
+
+app = 'green-goods'
+primary_region = 'ams'
+kill_signal = 'SIGTERM'
+kill_timeout = '30s'
+
+[build]
+  dockerfile = 'packages/agent/Dockerfile'
+
+[env]
+  ANALYTICS_ENABLED = 'true'
+  BOT_MODE = 'webhook'
+  DB_PATH = '/data/agent.db'
+  HOST = '0.0.0.0'
+  NODE_ENV = 'production'
+  PORT = '8080'
+  WEBHOOK_URL = 'https://agent.greengoods.app'
+
+[[mounts]]
+  source = 'agent_data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '20s'
+    method = 'GET'
+    path = '/health'
+
+[[vm]]
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 1024

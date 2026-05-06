@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import {
+  Card,
   CardBase,
   CardContent,
   CardDescription,
@@ -9,7 +10,7 @@ import {
 } from "./CardBase";
 
 const meta: Meta<typeof CardBase> = {
-  title: "Cards/CardBase",
+  title: "Shared/Cards/CardBase",
   component: CardBase,
   tags: ["autodocs"],
   argTypes: {
@@ -185,4 +186,28 @@ export const DarkMode: Story = {
       </div>
     ),
   ],
+};
+
+export const AdminSurfaceCard: Story = {
+  render: () => (
+    <Card variant="interactive" className="group overflow-hidden max-w-md">
+      <div className="h-32 bg-success-lighter" />
+      <Card.Body>
+        <h3 className="text-lg font-medium text-text-strong group-hover:text-primary-dark">
+          Garden overview
+        </h3>
+        <p className="mt-2 text-sm text-text-sub">
+          Shared admin card shell for list pages, workbench surfaces, and operational panels.
+        </p>
+      </Card.Body>
+    </Card>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Material-style shared surface used by admin cards. Prefer this shell over repeating raw rounded-border-background-shadow recipes in admin pages.",
+      },
+    },
+  },
 };

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Address } from "../../types/domain";
+import { adminRoutes } from "../../utils/navigation/admin-routes";
 import {
   type GardenRole,
   GARDEN_ROLE_ORDER,
@@ -36,14 +37,14 @@ interface DerivedStateInput {
   }>;
   assessments: Array<{
     id: string;
-    title?: string;
-    assessmentType?: string;
+    title?: string | null;
+    assessmentType?: string | null;
     createdAt: number;
   }>;
   hypercerts: Array<{
     id: string;
-    title?: string;
-    mintedAt?: number;
+    title?: string | null;
+    mintedAt?: number | null;
   }>;
   allocations: Array<{
     txHash: string;
@@ -59,7 +60,7 @@ interface DerivedStateInput {
   activityFilter: ActivityFilter;
   memberSearch: string;
   section: string | undefined;
-  formatMessage: (descriptor: { id: string }, values?: Record<string, unknown>) => string;
+  formatMessage: (descriptor: { id: string }, values?: Record<string, any>) => string;
   openSection: (tab: GardenDetailTab, section: string, itemId?: string) => void;
 }
 
@@ -121,11 +122,6 @@ export function useGardenDerivedState({
       ? "critical"
       : "none";
 
-  const hasNoDomains = (garden.domainMask ?? 0) === 0;
-  const domainBadge: TabBadgeState = hasNoDomains
-    ? { severity: "warn", count: 1 }
-    : { severity: "none" };
-
   const workBadge: TabBadgeState =
     pendingCriticalCount > 0
       ? { severity: "critical", count: pendingCriticalCount }
@@ -139,6 +135,11 @@ export function useGardenDerivedState({
 
   const communityBadge: TabBadgeState =
     treasurySeverity === "none" ? { severity: "none" } : { severity: treasurySeverity, count: 1 };
+
+  const hasNoDomains = garden.domainMask === 0;
+  const domainBadge: TabBadgeState = hasNoDomains
+    ? { severity: "warn", count: 1 }
+    : { severity: "none" };
 
   const overviewBadge = aggregateBadges([impactBadge, workBadge, communityBadge, domainBadge]);
 
@@ -223,9 +224,6 @@ export function useGardenDerivedState({
           key: "domain-empty",
           severity: "warn" as const,
           label: formatMessage({ id: "app.garden.detail.alert.noDomains" }),
-          // Overview tab only renders "health" and "activity" sections; the
-          // hero banner (with the domain edit pencil) sits above all sections,
-          // so any valid section just lands the user on the page.
           onAction: () => openSection("overview", "health"),
         }
       : null,
@@ -240,6 +238,7 @@ export function useGardenDerivedState({
     } => entry !== null
   );
 
+  const gardenAddress = garden.id;
   const activityEvents: GardenActivityEvent[] = [
     ...works.map((work) => ({
       id: `work-${work.id}`,
@@ -253,7 +252,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(work.createdAt),
-      href: `/gardens/${garden.id}/work/${work.id}`,
+      href: adminRoutes.hubWorkDetail(work.id, { gardenAddress }),
       itemId: work.id,
     })),
     ...assessments.map((assessment) => ({
@@ -268,7 +267,11 @@ export function useGardenDerivedState({
         { date: formatDate(assessment.createdAt, { dateStyle: "medium" }) }
       ),
       timestamp: toMs(assessment.createdAt),
-      href: `/gardens/${garden.id}/assessments`,
+      href: adminRoutes.gardenImpact({
+        gardenAddress,
+        section: "assessments",
+        item: assessment.id,
+      }),
       itemId: assessment.id,
     })),
     ...hypercerts.map((hypercert) => ({
@@ -284,7 +287,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
-      href: `/gardens/${garden.id}/hypercerts/${hypercert.id}`,
+      href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenAddress }),
       itemId: hypercert.id,
     })),
     ...allocations.map((allocation) => ({
@@ -300,7 +303,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: `/gardens/${garden.id}?tab=community&section=yield`,
+      href: adminRoutes.communityTreasury({ gardenAddress, item: allocation.txHash }),
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);

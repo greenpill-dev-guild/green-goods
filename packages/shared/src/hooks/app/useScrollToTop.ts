@@ -3,12 +3,9 @@ import { useLayoutEffect } from "react";
 /**
  * Resets the #app-scroll container to scroll position 0 on mount.
  *
- * Uses useLayoutEffect so the reset runs synchronously after DOM mutations
- * but BEFORE the browser paints — making the scroll jump invisible.
- *
- * Use this in views that should always start at the top (e.g., Garden, Work detail).
- * This replaces scroll logic that was previously in useNavigateToTop, which caused
- * a visible flash because the old page scrolled to top before the new page rendered.
+ * Runs in useLayoutEffect so the reset happens before paint — prevents the
+ * flash that occurs when the outgoing page scrolls to 0 before the incoming
+ * page mounts.
  */
 export function useScrollToTop() {
   useLayoutEffect(() => {

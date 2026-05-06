@@ -3,11 +3,18 @@ import {
   debugError,
   hapticLight,
   toastService,
-  useAuth,
+  useAuthActions,
+  useAuthState,
   useEnsName,
   usePrimaryAddress,
 } from "@green-goods/shared";
-import { RiAlertLine, RiKeyLine, RiLogoutBoxRLine, RiWalletLine } from "@remixicon/react";
+import {
+  RiAlertLine,
+  RiKeyLine,
+  RiLogoutBoxRLine,
+  RiUserLine,
+  RiWalletLine,
+} from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/Actions";
@@ -16,7 +23,8 @@ import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
 
 export const AccountInfo: React.FC = () => {
-  const { authMode, signOut, credential, walletAddress, embeddedAddress } = useAuth();
+  const { authMode, credential, walletAddress, embeddedAddress } = useAuthState();
+  const { signOut } = useAuthActions();
   const primaryAddress = usePrimaryAddress();
   const { data: primaryEnsName } = useEnsName(primaryAddress);
   const navigate = useNavigate();
@@ -25,7 +33,7 @@ export const AccountInfo: React.FC = () => {
   const handleLogout = async () => {
     hapticLight();
     try {
-      await signOut?.();
+      await signOut();
       navigate("/login", { replace: true, state: { fromLogout: true }, viewTransition: true });
       toastService.success({
         title: intl.formatMessage({
@@ -73,24 +81,30 @@ export const AccountInfo: React.FC = () => {
             </div>
           </Avatar>
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="text-sm font-medium truncate">
+            <div className="truncate text-label-md font-medium">
               {authMode === "passkey"
                 ? intl.formatMessage({
                     id: "app.account.passkey",
-                    defaultMessage: "Passkey Wallet",
+                    defaultMessage: "Passkey",
                   })
                 : intl.formatMessage({
                     id: "app.account.wallet",
-                    defaultMessage: "External Wallet",
+                    defaultMessage: "Wallet",
                   })}
             </div>
             <div className="text-xs text-text-sub-600">
               {authMode === "passkey" && credential
-                ? "Active"
+                ? intl.formatMessage({ id: "app.account.statusActive", defaultMessage: "Active" })
                 : (authMode === "wallet" && walletAddress) ||
                     (authMode === "embedded" && embeddedAddress)
-                  ? "Connected"
-                  : "Not configured"}
+                  ? intl.formatMessage({
+                      id: "app.account.statusConnected",
+                      defaultMessage: "Connected",
+                    })
+                  : intl.formatMessage({
+                      id: "app.account.statusNotConfigured",
+                      defaultMessage: "Not configured",
+                    })}
             </div>
           </div>
         </div>
@@ -101,15 +115,14 @@ export const AccountInfo: React.FC = () => {
           <div className="flex items-center gap-3 w-full">
             <Avatar>
               <div className="flex items-center justify-center text-center mx-auto text-primary">
-                <RiWalletLine className="w-4" />
+                <RiUserLine className="w-4" />
               </div>
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="text-sm font-medium truncate">
+              <div className="truncate text-label-md font-medium">
                 {intl.formatMessage({
                   id: "app.account.address",
-                  defaultMessage:
-                    authMode === "passkey" ? "Smart Account Address" : "Wallet Address",
+                  defaultMessage: "Address",
                 })}
               </div>
             </div>
@@ -129,21 +142,20 @@ export const AccountInfo: React.FC = () => {
             <RiAlertLine className="w-3.5 h-3.5 shrink-0" />
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.title",
-              defaultMessage: "Passkey stored locally",
+              defaultMessage: "Save a backup before changing browsers",
             })}
           </p>
           <p className="mt-1 leading-relaxed">
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.message",
               defaultMessage:
-                "Your passkey is stored on this device's browser storage. Clearing browser data or uninstalling the app will permanently remove access to this account.",
+                "This sign-in lives on this device only. Clearing browser data or uninstalling the app will sign you out.",
             })}
           </p>
           <p className="mt-1 leading-relaxed">
             {intl.formatMessage({
               id: "app.identity.passkeyWarning.guidance",
-              defaultMessage:
-                "For persistent access across devices, consider switching to wallet-based login.",
+              defaultMessage: "Want access from another device? Sign in with a wallet instead.",
             })}
           </p>
         </div>

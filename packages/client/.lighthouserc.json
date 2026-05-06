@@ -3,7 +3,7 @@
   "ci": {
     "collect": {
       "numberOfRuns": 3,
-      "startServerCommand": "bun run preview",
+      "startServerCommand": "APP_ENV=test VITE_WALLETCONNECT_PROJECT_ID=test VITE_PIMLICO_API_KEY=test TELEGRAM_BOT_TOKEN=test ENCRYPTION_SECRET=test bun --bun vite preview --host 127.0.0.1 --port 4173",
       "startServerReadyPattern": "Local:",
       "url": ["http://localhost:4173", "http://localhost:4173/login"],
       "settings": {

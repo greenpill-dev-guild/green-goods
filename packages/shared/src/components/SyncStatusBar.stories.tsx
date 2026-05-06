@@ -20,7 +20,7 @@ import { SyncStatusBar } from "./SyncStatusBar";
  */
 
 const meta: Meta<typeof SyncStatusBar> = {
-  title: "Progress/SyncStatusBar",
+  title: "Shared/Progress/SyncStatusBar",
   component: SyncStatusBar,
   tags: ["autodocs"],
   parameters: {

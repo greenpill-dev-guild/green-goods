@@ -1,13 +1,14 @@
 ---
 name: debug
-description: Debugging & Troubleshooting - systematic root cause investigation with hypothesis testing, evidence collection, and production monitoring. Use when the user reports a bug, encounters an error, sees unexpected behavior, needs production diagnostics, or says 'debug this'.
+user-invocable: false
+description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to incident_hotfix mode on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
 argument-hint: "[error-description]"
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-03-18"
-last_verified: "2026-02-19"
+last_updated: "2026-04-24"
+last_verified: "2026-04-24"
 ---
 
 # Debug Skill
@@ -20,15 +21,35 @@ Systematic debugging: find root causes before fixes, verify with evidence before
 
 ## Activation
 
-| Trigger | Action |
-|---------|--------|
-| `/debug` | Start root cause investigation |
-| `/debug --mode incident_hotfix` | Emergency stabilization with minimal fixes |
-| `/debug --mode tdd_bugfix` | Test-first bugfix loop |
-| `/debug --panic` | Legacy alias routed to `incident_hotfix` mode |
-| Tests failing | Systematic debugging |
-| Build failures | Trace and fix |
-| Verifying completion | Evidence-based checks |
+This skill is **passive-only**. There is no `/debug` slash command. Fire automatically when the user's prompt matches any signal below.
+
+### Bug signals → Default root-cause mode
+
+- "debug this", "why is X failing?", "what's wrong with Y?"
+- Pasted stack trace, error message, or log snippet
+- Reported unexpected behavior ("X should do Y but does Z")
+- Test failures or build failures without a clear pattern
+
+### Incident signals → incident_hotfix mode
+
+- "production is down", "incident", "hotfix", "emergency", "urgent"
+- "we're bleeding", "customers can't..."
+- Focus: minimal stabilizing fix, not ideal root cause
+
+### Red-test signals → tdd_bugfix mode
+
+- "this test is failing", paste of red test output with a clear failing assertion
+- "write a failing test for X then fix it"
+- Focus: test-first loop — reproduce in a test, then fix
+
+### Verification signals
+
+- "verify this works", "prove completion", "evidence this is done"
+- Focus: evidence-based checks after implementation
+
+### Legacy slash (deprecated)
+
+`/debug`, `/debug --mode incident_hotfix`, `/debug --mode tdd_bugfix`, and `/debug --panic` are no longer advertised. If explicitly typed, honor them — but normal flow is passive activation.
 
 ## Progress Tracking (REQUIRED)
 
@@ -82,7 +103,7 @@ Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in t
 |----------|----------|--------|
 | **Simple** | <10 lines, single file | Fix directly |
 | **Complex** | >10 lines, multi-file, needs tests | Escalate to cracked-coder |
-| **Architectural** | Pattern change, refactor | cracked-coder + /plan |
+| **Architectural** | Pattern change, refactor | cracked-coder + planning |
 
 ### Handoff Format
 

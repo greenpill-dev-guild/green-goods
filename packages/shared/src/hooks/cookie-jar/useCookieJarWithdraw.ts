@@ -9,8 +9,8 @@ import { createMutationErrorHandler } from "../../utils/errors/mutation-error-ha
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
-import { INDEXER_LAG_FOLLOWUP_MS, queryInvalidation } from "../query-keys";
-import { useDelayedInvalidation } from "../utils/useTimeout";
+import { INDEXER_LAG_SCHEDULE_MS, queryInvalidation } from "../../config/query-keys";
+import { useProgressiveInvalidation } from "../utils/useTimeout";
 
 type TxErrorMode = "toast" | "inline" | "auto";
 
@@ -46,7 +46,7 @@ export function useCookieJarWithdraw(
     jarAddress: "",
     userAddress: undefined,
   });
-  const { start: scheduleFollowUp } = useDelayedInvalidation(
+  const { start: scheduleFollowUp } = useProgressiveInvalidation(
     useCallback(() => {
       if (lastParamsRef.current.gardenAddress && lastParamsRef.current.jarAddress) {
         queryInvalidation
@@ -59,7 +59,7 @@ export function useCookieJarWithdraw(
           .forEach((queryKey) => queryClient.invalidateQueries({ queryKey }));
       }
     }, [queryClient, chainId]),
-    INDEXER_LAG_FOLLOWUP_MS
+    INDEXER_LAG_SCHEDULE_MS
   );
 
   return useMutation({

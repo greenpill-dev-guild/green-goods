@@ -4,8 +4,12 @@
 
 import * as blockchain from "../services/blockchain";
 import * as db from "../services/db";
+import { classifyError } from "../services/errors";
+import { loggers } from "../services/logger";
 import type { CommandContent, HandlerResult, InboundMessage, User } from "../types";
 import { formatAddress } from "./utils";
+
+const log = loggers.handlers;
 
 export interface JoinDeps {
   isValidAddress: (address: string) => boolean;
@@ -41,30 +45,41 @@ export async function handleJoin(
     };
   }
 
-  const gardenInfo = await blockchain.getGardenInfo(gardenAddress);
+  try {
+    const gardenInfo = await blockchain.getGardenInfo(gardenAddress);
 
-  if (!gardenInfo?.exists) {
+    if (!gardenInfo?.exists) {
+      return {
+        response: {
+          text:
+            "❌ *Garden not found*\n\n" +
+            "This address doesn't appear to be a valid Green Goods garden contract.\n\n" +
+            "Please verify the address and try again.",
+          parseMode: "markdown",
+        },
+      };
+    }
+
+    await db.updateUser(platform, sender.platformId, { currentGarden: gardenAddress });
+
     return {
       response: {
         text:
-          "❌ *Garden not found*\n\n" +
-          "This address doesn't appear to be a valid Green Goods garden contract.\n\n" +
-          "Please verify the address and try again.",
+          `✅ *Joined garden successfully!*\n\n` +
+          `Garden: ${gardenInfo.name ? `*${gardenInfo.name}*` : ""}\n` +
+          `Address: \`${formatAddress(gardenAddress)}\`\n\n` +
+          `You can now submit work by sending me a text or voice message.`,
         parseMode: "markdown",
       },
     };
+  } catch (error) {
+    const { category, userMessage } = classifyError(error);
+    log.error({ err: error, category, gardenAddress }, "Garden join lookup error");
+
+    return {
+      response: {
+        text: `❌ ${userMessage}`,
+      },
+    };
   }
-
-  await db.updateUser(platform, sender.platformId, { currentGarden: gardenAddress });
-
-  return {
-    response: {
-      text:
-        `✅ *Joined garden successfully!*\n\n` +
-        `Garden: ${gardenInfo.name ? `*${gardenInfo.name}*` : ""}\n` +
-        `Address: \`${formatAddress(gardenAddress)}\`\n\n` +
-        `You can now submit work by sending me a text or voice message.`,
-      parseMode: "markdown",
-    },
-  };
 }
