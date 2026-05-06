@@ -1,6 +1,5 @@
 import { useApp, usePublicStats } from "@green-goods/shared";
 import { useIntl } from "react-intl";
-import { Navigate, useLocation } from "react-router-dom";
 import {
   EditorialGhostLink,
   EditorialPrimaryButton,
@@ -21,9 +20,8 @@ import { publicCuration } from "@/content/publicCuration";
 /**
  * Home — the editorial public homepage at browser `/`.
  *
- * PWA presentation users are redirected to `/home` (the auth'd dashboard).
- * Browser users see the editorial gateway under `PublicShell` (no bottom AppBar).
- * Honors `?redirectTo=` for PWA presentation users so deep links flow through.
+ * `/` is always the public website. Installed PWA sessions enter the app
+ * through the manifest `start_url` at `/home`.
  *
  * Composition order matches the editorial dialect:
  *   Hero → Featured Gardens → Living Public Record → Regenerative Loop →
@@ -31,14 +29,8 @@ import { publicCuration } from "@/content/publicCuration";
  */
 export default function Home() {
   const { formatMessage } = useIntl();
-  const { isPwaPresentation, isMobile } = useApp();
-  const location = useLocation();
+  const { isMobile } = useApp();
   const stats = usePublicStats();
-
-  if (isPwaPresentation) {
-    const redirectTo = new URLSearchParams(location.search).get("redirectTo");
-    return <Navigate to={redirectTo || "/home"} replace />;
-  }
 
   const counts = stats.data ?? {
     gardenCount: 0,
