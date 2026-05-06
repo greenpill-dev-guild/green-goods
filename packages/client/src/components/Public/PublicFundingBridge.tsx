@@ -7,6 +7,7 @@ import {
   EditorialLede,
   EditorialLinkArrow,
   EditorialNumeral,
+  EditorialReadDeeper,
 } from "./atoms";
 
 /**
@@ -115,6 +116,20 @@ export function PublicFundingBridge() {
             </div>
           </div>
         </div>
+
+        <EditorialReadDeeper
+          className="max-w-3xl"
+          community={{
+            labelId: "public.home.funding.readDeeper.community",
+            defaultLabel: "How funding flows",
+            href: "https://docs.greengoods.app/community/funder-guide",
+          }}
+          builder={{
+            labelId: "public.home.funding.readDeeper.builder",
+            defaultLabel: "Build with our funding contracts",
+            href: "https://docs.greengoods.app/builders/architecture",
+          }}
+        />
       </div>
     </section>
   );

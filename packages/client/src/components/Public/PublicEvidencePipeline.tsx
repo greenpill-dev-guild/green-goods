@@ -5,6 +5,7 @@ import {
   type EditorialDomain,
   EditorialKicker,
   EditorialNumeral,
+  EditorialReadDeeper,
   EditorialTermTooltip,
 } from "./atoms";
 
@@ -155,6 +156,20 @@ export function PublicEvidencePipeline({
             {footnote}
           </p>
         ) : null}
+
+        <EditorialReadDeeper
+          className="max-w-3xl"
+          community={{
+            labelId: "public.impact.pipeline.readDeeper.community",
+            defaultLabel: "How proof works",
+            href: "https://docs.greengoods.app/community/how-it-works",
+          }}
+          builder={{
+            labelId: "public.impact.pipeline.readDeeper.builder",
+            defaultLabel: "Why on-chain",
+            href: "https://docs.greengoods.app/builders/architecture",
+          }}
+        />
       </div>
     </section>
   );
