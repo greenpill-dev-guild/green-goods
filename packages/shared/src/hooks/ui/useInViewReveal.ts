@@ -1,7 +1,11 @@
 import { type RefObject, useEffect, useRef, useState } from "react";
 
 interface UseInViewRevealOptions {
-  /** Fraction of the element that must be visible to trigger. 0–1. Default 0.15. */
+  /** Fraction of the element that must be visible to trigger. 0–1. Default 0
+   * — any visibility triggers. The 0 default keeps the hook reliable for
+   * sections taller than the viewport (e.g. evidence ledgers, action grids),
+   * where a percentage-based threshold can be borderline-impossible to meet
+   * because the visible portion is capped by the viewport size. */
   threshold?: number;
   /** Root margin passed to IntersectionObserver (CSS shorthand). Default biases trigger toward earlier reveal. */
   rootMargin?: string;
@@ -18,7 +22,7 @@ interface UseInViewRevealOptions {
 export function useInViewReveal<T extends HTMLElement = HTMLElement>(
   options: UseInViewRevealOptions = {}
 ): { ref: RefObject<T | null>; revealed: boolean } {
-  const { threshold = 0.15, rootMargin = "0px 0px -10% 0px", once = true } = options;
+  const { threshold = 0, rootMargin = "0px 0px -10% 0px", once = true } = options;
   const ref = useRef<T | null>(null);
   const [revealed, setRevealed] = useState(false);
 
