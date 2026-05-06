@@ -153,6 +153,7 @@ export default defineConfig(async ({ command, mode }) => {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        navigateFallback: null,
         navigateFallbackDenylist: [
           /^\/$/,
           /^\/actions(?:[?#].*)?$/,

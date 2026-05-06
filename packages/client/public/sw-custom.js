@@ -1,4 +1,24 @@
 const GREEN_GOODS_SYNC_TAG = "green-goods-sync";
+const NAVIGATION_FALLBACK_URL = "/index.html";
+
+async function getNavigationResponse(request) {
+  try {
+    return await fetch(new Request(request, { cache: "reload" }));
+  } catch {
+    const fallback = await caches.match(NAVIGATION_FALLBACK_URL);
+    if (fallback) return fallback;
+    throw new Error("navigation-network-and-cache-miss");
+  }
+}
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.mode !== "navigate") return;
+
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  event.respondWith(getNavigationResponse(event.request));
+});
 
 async function notifyClients(payload) {
   const windowClients = await self.clients.matchAll({
@@ -20,11 +40,16 @@ async function notifyClients(payload) {
 // Clear stale runtime caches on activation to prevent serving old JS/data after update
 self.addEventListener("activate", (event) => {
   const STALE_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
+  const STALE_CACHE_PREFIXES = ["workbox-precache"];
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => STALE_CACHES.includes(key))
+          .filter(
+            (key) =>
+              STALE_CACHES.includes(key) ||
+              STALE_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix))
+          )
           .map((key) => caches.delete(key))
       )
     )

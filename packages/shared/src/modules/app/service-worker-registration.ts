@@ -132,7 +132,10 @@ export async function registerServiceWorkerFromEnv(
 
   if (!env.PROD && !enableDevServiceWorker) return false;
 
-  if (env.PROD && (await clearBrowserServiceWorkerForDeployment(version))) return false;
+  if (env.PROD && !isStandaloneMode()) {
+    await clearBrowserServiceWorkerForDeployment(version);
+    return false;
+  }
 
   return registerServiceWorker(version);
 }
