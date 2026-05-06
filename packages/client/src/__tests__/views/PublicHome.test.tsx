@@ -135,6 +135,25 @@ describe("Public Home — hero CTAs", () => {
     expect(labels).not.toContain("Open App");
   });
 
+  it("keeps the public homepage visible even when PWA presentation is detected", () => {
+    mockUseApp.mockReturnValue({
+      isPwaPresentation: true,
+      isMobile: false,
+      isInstalled: true,
+      wasInstalled: true,
+      platform: "unknown",
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+
+    renderHome();
+
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "From good intentions to green outcomes."
+    );
+    expect(screen.queryByText("Create your account")).not.toBeInTheDocument();
+  });
+
   it("accents both good and green in the homepage title", () => {
     mockUseApp.mockReturnValue({
       isPwaPresentation: false,
