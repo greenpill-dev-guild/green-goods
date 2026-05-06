@@ -137,8 +137,8 @@ function resolveLocalCli(command) {
   }
 
   const candidates = [
-    path.resolve(process.cwd(), "node_modules/.bin", command),
     path.resolve(projectRoot, "node_modules/.bin", command),
+    path.resolve(process.cwd(), "node_modules/.bin", command),
   ];
 
   for (const candidate of candidates) {

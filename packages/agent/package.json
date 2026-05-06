@@ -9,10 +9,10 @@
     "build": "tsc",
     "start": "APP_ENV=production bun --env-file=../../.env dist/index.js",
     "lint": "bun --bun run oxlint src",
-    "test": "APP_ENV=test vitest run",
-    "test:watch": "APP_ENV=test vitest",
+    "test": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run",
+    "test:watch": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest",
     "test:coverage": "APP_ENV=test bun scripts/run-coverage.mjs",
-    "test:ui": "APP_ENV=test vitest --ui",
+    "test:ui": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest --ui",
     "format": "biome format --write src",
     "format:check": "biome format src",
     "typecheck": "tsc --noEmit"

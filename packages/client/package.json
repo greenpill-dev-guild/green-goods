@@ -6,9 +6,9 @@
   "scripts": {
     "predev": "lsof -t -iTCP:3001 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
     "dev": "APP_ENV=development node ../../scripts/dev/node-cli.js vite",
-    "test": "APP_ENV=test vitest run",
+    "test": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run",
     "test:watch": "APP_ENV=test vitest --standalone",
-    "coverage": "APP_ENV=test vitest run --coverage",
+    "coverage": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run --coverage",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "bun --bun run oxlint src",

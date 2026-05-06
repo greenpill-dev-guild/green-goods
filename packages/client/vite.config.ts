@@ -61,6 +61,7 @@ export default defineConfig(async ({ command, mode }) => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
   const nodeEnv = command === "build" ? "production" : "development";
+  const isBunRuntime = "bun" in process.versions;
   if (command === "build") {
     process.env.NODE_ENV = "production";
   }
@@ -130,9 +131,15 @@ export default defineConfig(async ({ command, mode }) => {
       injectRegister: "auto",
       registerType: "prompt",
       workbox: {
+        // Workbox's Rollup/Terser pass can exit early under Bun while writing the
+        // generated service worker. Keep the app build in production mode, but
+        // avoid SW minification on Bun so `bun run build` remains deterministic.
+        mode: isBunRuntime ? "development" : nodeEnv,
+        disableDevLogs: true,
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
         cleanupOutdatedCaches: true,
+        sourcemap: false,
         importScripts: ["sw-custom.js"],
         runtimeCaching: [
           {
