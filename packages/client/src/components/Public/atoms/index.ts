@@ -1,9 +1,9 @@
 export {
   EditorialDivider,
   type EditorialDividerProps,
+  type EditorialDomain,
   EditorialDomainChip,
   type EditorialDomainChipProps,
-  type EditorialDomain,
   EditorialGhostButton,
   type EditorialGhostButtonProps,
   EditorialGhostLink,
@@ -17,8 +17,6 @@ export {
   type EditorialLedeProps,
   EditorialLinkArrow,
   type EditorialLinkArrowProps,
-  EditorialTitleAccent,
-  type EditorialTitleAccentProps,
   type EditorialMetaItem,
   EditorialMetaRow,
   type EditorialMetaRowProps,
@@ -30,4 +28,16 @@ export {
   type EditorialPrimaryLinkProps,
   EditorialTermTooltip,
   type EditorialTermTooltipProps,
+  EditorialTitleAccent,
+  type EditorialTitleAccentProps,
 } from "./EditorialAtoms";
+export {
+  EditorialReadDeeper,
+  type EditorialReadDeeperProps,
+  type ReadDeeperLink,
+} from "./EditorialReadDeeper";
+export {
+  EditorialSelect,
+  type EditorialSelectOption,
+  type EditorialSelectProps,
+} from "./EditorialSelect";
