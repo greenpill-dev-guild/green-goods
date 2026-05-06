@@ -140,7 +140,7 @@ export default defineConfig(async ({ command, mode }) => {
         "images/ms-icon-144x144.png",
         "images/ms-icon-310x310.png",
       ],
-      injectRegister: "auto",
+      injectRegister: false,
       registerType: "prompt",
       workbox: {
         // Workbox's Rollup/Terser pass can exit early under Bun while writing the
