@@ -86,9 +86,18 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
       <TopNav onBackClick={() => window.history.back()} />
       <div className="padded flex flex-col gap-8 pt-16">
         <header className="space-y-3">
-          <p className="text-xs uppercase tracking-wide text-text-sub-600">{garden.name}</p>
-          <h1 className="text-2xl font-semibold text-text-strong-950">{assessment.title}</h1>
-          <p className="text-sm text-text-sub-600">{assessment.description}</p>
+          <p
+            className="truncate text-xs uppercase tracking-wide text-text-sub-600"
+            title={garden.name}
+          >
+            {garden.name}
+          </p>
+          <h1 className="title-screen line-clamp-3 text-text-strong-950" title={assessment.title}>
+            {assessment.title}
+          </h1>
+          <p className="line-clamp-4 text-sm text-text-sub-600" title={assessment.description}>
+            {assessment.description}
+          </p>
           <div className="flex flex-wrap gap-2">
             <Badge tint="primary" variant="pill">
               {assessment.assessmentType ||
@@ -100,7 +109,7 @@ export const GardenAssessment: FC<GardenAssessmentProps> = () => {
               </Badge>
             ))}
           </div>
-          <div className="text-xs text-text-sub-600">
+          <div className="break-words text-xs text-text-sub-600" title={assessment.location}>
             {startDate || endDate
               ? [startDate, endDate].filter(Boolean).join(" — ")
               : intl.formatMessage({

@@ -18,6 +18,13 @@
  */
 
 import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { queryKeys } from "../../config/query-keys";
+import { STALE_TIME_RARE } from "../../config/query-keys/constants";
+import { logger } from "../../modules/app/logger";
+import { getGardenAssessments, getWorks } from "../../modules/data/eas";
+import { getActions, getGardens } from "../../modules/data/greengoods";
+import { getGardenHypercerts } from "../../modules/data/hypercerts-fetch";
 import {
   createPublicImpactSlice,
   PUBLIC_IMPACT_DEFAULT_PAGE_SIZE,
@@ -25,13 +32,7 @@ import {
   type PublicImpactEvidenceRecord,
   type PublicImpactSlice,
 } from "../../public-contracts";
-import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
-import { queryKeys } from "../../config/query-keys";
-import { STALE_TIME_RARE } from "../../config/query-keys/constants";
-import { logger } from "../../modules/app/logger";
-import { getGardenAssessments, getWorks } from "../../modules/data/eas";
-import { getGardens } from "../../modules/data/greengoods";
-import { getGardenHypercerts } from "../../modules/data/hypercerts-fetch";
+import type { Domain } from "../../types/domain";
 
 export interface UsePublicImpactEvidenceOptions {
   page?: number;
@@ -86,15 +87,29 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
         })
         .slice(0, PUBLIC_IMPACT_GARDEN_FETCH_CAP);
 
-      // Second pass: fetch all three kinds in parallel for the capped Garden set.
-      const [assessmentResults, hypercertResults] = await Promise.all([
+      // Second pass: fetch assessments + certificates per capped Garden in
+      // parallel, plus the Action catalogue once. The Actions fetch lets us
+      // tag each Work record with its true domain — Work attestations carry
+      // `actionUID` but no `domain` field of their own.
+      const [assessmentResults, hypercertResults, actions] = await Promise.all([
         Promise.allSettled(
           cappedGardenSources.map((garden) => getGardenAssessments(garden.id, chainId))
         ),
         Promise.allSettled(
           cappedGardenSources.map((garden) => getGardenHypercerts(garden.id, chainId))
         ),
+        getActions().catch((error) => {
+          logger.warn("[usePublicImpactEvidence] action catalogue fetch failed", { error });
+          return [] as Awaited<ReturnType<typeof getActions>>;
+        }),
       ]);
+
+      // Action ids in the indexer are chainId-prefixed (`${chainId}-${actionUID}`)
+      // so we can't match Work.actionUID directly — the lookup key has to be
+      // assembled the same way the indexer keys its rows.
+      const actionDomainByCompositeId = new Map<string, Domain>(
+        actions.map((action) => [action.id, action.domain])
+      );
 
       const easFailed = assessmentResults.some((result) => result.status === "rejected");
       const certFailed = hypercertResults.some((result) => result.status === "rejected");
@@ -144,6 +159,7 @@ export function usePublicImpactEvidence(options: UsePublicImpactEvidenceOptions 
           gardenId: gardenContext.id,
           gardenName: gardenContext.name,
           title: work.title,
+          domain: actionDomainByCompositeId.get(`${chainId}-${work.actionUID}`),
           summary: work.feedback,
           media: work.media,
           easUid: work.id,

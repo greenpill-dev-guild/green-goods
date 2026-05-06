@@ -226,6 +226,15 @@ export {
   MAX_UINT256,
   validateDecimalInput,
 } from "./blockchain/vaults";
+export {
+  formatUsdCents,
+  formatUsdPrice,
+  getEthUsdFeedAddress,
+  parseUsdToCents,
+  PRICE_FEED_DECIMALS,
+  PRICE_FEED_STALE_THRESHOLD_S,
+  usdCentsToWei,
+} from "./blockchain/price-feeds";
 // ============================================================================
 // COMPRESSION (Native Compression Streams API)
 // ============================================================================

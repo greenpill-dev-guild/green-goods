@@ -77,6 +77,29 @@ describe("usePublicGardens", () => {
     expect(result.current.data).toEqual([]);
   });
 
+  it("refetches a fresh cached empty list on mount so public pages recover when the indexer has gardens", async () => {
+    const garden = createMockGarden({
+      id: MOCK_ADDRESSES.garden,
+      name: "Recovered Garden",
+      location: "Austin, TX",
+    });
+
+    queryClient.setQueryData(["greengoods", "public", "gardens", 11155111], []);
+    mockGetGardens.mockResolvedValue([garden]);
+    mockGetWorks.mockResolvedValue([]);
+
+    const { result } = renderHook(() => usePublicGardens(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(result.current.data).toEqual([]);
+
+    await waitFor(() => {
+      expect(result.current.data?.map((item) => item.name)).toEqual(["Recovered Garden"]);
+    });
+    expect(mockGetGardens).toHaveBeenCalledTimes(1);
+  });
+
   it("excludes uninitialized placeholder gardens", async () => {
     const realGarden = createMockGarden({
       id: MOCK_ADDRESSES.garden,

@@ -145,7 +145,7 @@ export function PublicEvidencePipeline({
                   definition="A bundle of the season's approved Work, evaluator-verified and anchored to a public blockchain so the record stays readable beyond any one platform."
                 />
               }
-              description="When the evidence is strong enough, the season's work is bundled into an Impact Certificate. This is the highest proof layer, public, verifiable, and recorded on a blockchain so the record outlasts any one platform."
+              description="When the evidence is strong enough, the season's Work bundles into an Impact Certificate — evaluator-verified and recorded on a blockchain so the record outlasts any one platform."
               closesCycle
             />
           </ol>

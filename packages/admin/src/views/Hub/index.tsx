@@ -1,24 +1,25 @@
 import {
-  Button,
   HUB_STAGE_RAIL_ID,
   NativeSelect,
   useHubWorkbenchController,
+  useMediaQuery,
 } from "@green-goods/shared";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminViewActions } from "@/components/AdminViewActions";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
-import { RiRefreshLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { HubSheetDescriptor, HubStageContent } from "./components";
 
 export default function HubView() {
   const { formatMessage } = useIntl();
   const hub = useHubWorkbenchController();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   return (
     <CanvasRouteFrame
@@ -61,34 +62,19 @@ export default function HubView() {
           aria-labelledby={`${HUB_STAGE_RAIL_ID}-tab-${hub.stage}`}
         >
           <CanvasRouteHeader
-            maxWidthClassName="max-w-[1400px]"
-            wrapperClassName="hub-route-content flex flex-col gap-3 sm:gap-4"
-            title={hub.stageTitle}
-            description={hub.headerDescription}
-            eyebrow={formatMessage({
-              id: "cockpit.hub.eyebrow",
-              defaultMessage: "Workbench",
+            wrapperClassName="hub-route-content flex flex-col gap-4 sm:gap-5"
+            title={formatMessage({ id: "cockpit.hub.title", defaultMessage: "Hub" })}
+            description={formatMessage({
+              id: "cockpit.hub.description",
+              defaultMessage:
+                "Review submitted work, run assessments, and certify impact across your gardens.",
             })}
             variant="canvas"
             sticky
             actions={
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={hub.handleRefresh}
-                title={`Last refreshed: ${hub.refreshAgoText}`}
-                aria-label={formatMessage({
-                  id: "app.common.refresh",
-                  defaultMessage: "Refresh",
-                })}
-                className={
-                  hub.worksFetching
-                    ? "hub-refresh-button h-10 min-h-10 w-10 rounded-full p-0 [&>svg]:animate-spin"
-                    : "hub-refresh-button h-10 min-h-10 w-10 rounded-full p-0"
-                }
-              >
-                <RiRefreshLine className="h-4 w-4" />
-              </Button>
+              isDesktop && hub.desktopActions.length > 0 ? (
+                <AdminViewActions items={hub.desktopActions} />
+              ) : undefined
             }
             toolbar={
               <AdminSearchToolbar
@@ -97,7 +83,7 @@ export default function HubView() {
                 placeholder={hub.searchPlaceholder}
               >
                 {(hub.stage === "work" || hub.stage === "history") && (
-                  <label className="flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+                  <label className="flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-body-md text-[rgb(var(--m3-on-surface-variant))]">
                     <span className="whitespace-nowrap">
                       {formatMessage({
                         id: "app.admin.sortSelect.sortBy",
@@ -113,7 +99,7 @@ export default function HubView() {
                         id: "app.admin.sortSelect.sortBy",
                         defaultMessage: "Sort by",
                       })}
-                      className="h-8 min-h-8 rounded-full border-0 bg-transparent py-0 pl-1 pr-8 shadow-none"
+                      className="h-full min-h-0 rounded-full border-0 bg-transparent py-0 pl-1 pr-8 text-body-md text-text-strong shadow-none"
                     >
                       {hub.sortOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -145,10 +131,9 @@ export default function HubView() {
 
           <CanvasRouteContent
             data-region="workspace-hub-content"
-            maxWidthClassName="max-w-[1400px]"
-            className="hub-route-content flex flex-col gap-3 sm:gap-4"
+            className="hub-route-content flex flex-col gap-4 sm:gap-5"
           >
-            <section className="hub-results-shell surface-section" aria-label={hub.stageTitle}>
+            <section className="hub-results-shell" aria-label={hub.stageTitle}>
               <div aria-live="polite" className="sr-only">
                 {hub.debouncedSearch &&
                   formatMessage(

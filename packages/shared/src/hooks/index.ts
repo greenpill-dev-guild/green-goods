@@ -128,6 +128,8 @@ export { useEnsAvatar } from "./blockchain/useEnsAvatar";
 export { useEnsName } from "./blockchain/useEnsName";
 export type { UseEnsQueryOptions, UseEnsQueryResult } from "./blockchain/useEnsQuery";
 export { useEnsQuery } from "./blockchain/useEnsQuery";
+export type { EthUsdPriceState } from "./blockchain/useEthUsdPrice";
+export { useEthUsdPrice } from "./blockchain/useEthUsdPrice";
 export { useTransactionSender } from "./blockchain/useTransactionSender";
 // Suspense-enabled hooks (for use with SuspenseBoundary)
 export {
@@ -333,6 +335,13 @@ export type { PublicStats } from "./public/usePublicStats";
 export { usePublicStats } from "./public/usePublicStats";
 export type { UsePublicImpactEvidenceOptions } from "./public/usePublicImpactEvidence";
 export { usePublicImpactEvidence } from "./public/usePublicImpactEvidence";
+export type {
+  PublicGardenVaultSummary,
+  PublicVaultSummary,
+  PublicVaultSummaryAsset,
+  PublicVaultSummaryAssetSymbol,
+} from "./public/usePublicVaultSummary";
+export { usePublicVaultSummary } from "./public/usePublicVaultSummary";
 export type { PublicVolume, PublicVolumeActiveGarden } from "./public/usePublicVolume";
 export {
   SEASON_ONE_VOLUME_ID,

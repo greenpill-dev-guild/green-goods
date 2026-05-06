@@ -1,4 +1,4 @@
-import { Surface, type useCommunityWorkspaceController } from "@green-goods/shared";
+import { type useCommunityWorkspaceController } from "@green-goods/shared";
 import {
   RiCheckboxCircleLine,
   RiGroupLine,
@@ -54,51 +54,47 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
   }
 
   return (
-    <div className="mt-4 px-4 sm:px-6">
-      <div className="mx-auto w-full max-w-[1400px]">
-        <Surface elevation="solid-raised" padding="none" className="overflow-hidden">
-          <CommunityTab
-            garden={{ id: workspace.garden.id, name: workspace.garden.name }}
-            gardenId={workspace.gardenId}
-            canManage={workspace.canManage}
-            isOwner={workspace.isOwner}
-            section={workspace.section}
-            showSectionStateCard={false}
-            clearSection={workspace.clearSection}
-            openSection={workspace.openSection}
-            community={workspace.community}
-            communityLoading={workspace.communityLoading}
-            pools={workspace.pools}
-            createPools={workspace.createPools}
-            isCreatingPools={workspace.isCreatingPools}
-            vaultsLoading={workspace.vaultsLoading}
-            hasVaults={workspace.derived.hasVaults}
-            vaultNetDeposited={workspace.vaultNetDeposited}
-            treasurySeverity={workspace.derived.treasurySeverity}
-            allocations={workspace.allocations}
-            allocationsLoading={workspace.allocationsLoading}
-            roleSummary={workspace.derived.roleSummary}
-            roleIcons={{
-              owner: RiShieldCheckLine,
-              operator: RiUserLine,
-              evaluator: RiCheckboxCircleLine,
-              gardener: RiSeedlingLine,
-              funder: RiMoneyDollarCircleLine,
-              community: RiGroupLine,
-            }}
-            filteredDirectory={workspace.derived.filteredDirectory}
-            visibleDirectory={
-              workspace.mode === "members"
-                ? workspace.derived.filteredDirectory
-                : workspace.derived.visibleDirectory
-            }
-            memberSearch={workspace.memberSearch}
-            setMemberSearch={workspace.setMemberSearch}
-            openMembersModal={workspace.openMembersModal}
-            scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
-          />
-        </Surface>
-      </div>
+    <div className="mt-4">
+      <CommunityTab
+        garden={{ id: workspace.garden.id, name: workspace.garden.name }}
+        gardenId={workspace.gardenId}
+        canManage={workspace.canManage}
+        isOwner={workspace.isOwner}
+        section={workspace.section}
+        showSectionStateCard={false}
+        clearSection={workspace.clearSection}
+        openSection={workspace.openSection}
+        community={workspace.community}
+        communityLoading={workspace.communityLoading}
+        pools={workspace.pools}
+        createPools={workspace.createPools}
+        isCreatingPools={workspace.isCreatingPools}
+        vaultsLoading={workspace.vaultsLoading}
+        hasVaults={workspace.derived.hasVaults}
+        vaultNetDeposited={workspace.vaultNetDeposited}
+        treasurySeverity={workspace.derived.treasurySeverity}
+        allocations={workspace.allocations}
+        allocationsLoading={workspace.allocationsLoading}
+        roleSummary={workspace.derived.roleSummary}
+        roleIcons={{
+          owner: RiShieldCheckLine,
+          operator: RiUserLine,
+          evaluator: RiCheckboxCircleLine,
+          gardener: RiSeedlingLine,
+          funder: RiMoneyDollarCircleLine,
+          community: RiGroupLine,
+        }}
+        filteredDirectory={workspace.derived.filteredDirectory}
+        visibleDirectory={
+          workspace.mode === "members"
+            ? workspace.derived.filteredDirectory
+            : workspace.derived.visibleDirectory
+        }
+        memberSearch={workspace.memberSearch}
+        setMemberSearch={workspace.setMemberSearch}
+        openMembersModal={workspace.openMembersModal}
+        scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
+      />
     </div>
   );
 }

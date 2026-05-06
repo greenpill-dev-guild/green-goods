@@ -138,7 +138,7 @@ describe("useEffectiveToolbarPermissions", () => {
     expect(result.current.isLoading).toBe(false);
   });
 
-  it("operator sees Work + Garden while team-only surfaces stay hidden", () => {
+  it("operator sees Work + Garden + Community; Actions stays deployer-only", () => {
     const gardenA = makeGarden("garden-a", {
       operators: [ADDR_USER],
     });
@@ -149,7 +149,8 @@ describe("useEffectiveToolbarPermissions", () => {
 
     expect(result.current.showWork).toBe(true);
     expect(result.current.showGarden).toBe(true);
-    expect(result.current.showCommunity).toBe(false);
+    // Operators participate in Community (role management, deposits, payouts).
+    expect(result.current.showCommunity).toBe(true);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
@@ -198,10 +199,11 @@ describe("useEffectiveToolbarPermissions", () => {
 
     const { result } = renderHook(() => useEffectiveToolbarPermissions());
 
-    // Union across all gardens: operator in A gives Garden, evaluator in B gives Work.
+    // Union across all gardens: operator in A gives Garden + Community,
+    // evaluator in B gives Work.
     expect(result.current.showWork).toBe(true);
     expect(result.current.showGarden).toBe(true);
-    expect(result.current.showCommunity).toBe(false);
+    expect(result.current.showCommunity).toBe(true);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });
@@ -261,7 +263,8 @@ describe("useEffectiveToolbarPermissions", () => {
 
     expect(result.current.showWork).toBe(true);
     expect(result.current.showGarden).toBe(true);
-    expect(result.current.showCommunity).toBe(false);
+    // Recovered garden has user as operator -> Community visible.
+    expect(result.current.showCommunity).toBe(true);
     expect(result.current.showActions).toBe(false);
     expect(result.current.isLoading).toBe(false);
   });

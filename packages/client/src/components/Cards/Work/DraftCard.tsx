@@ -74,7 +74,13 @@ export const DraftCard: React.FC<DraftCardProps> = ({
         <div className="flex-1 min-w-0 pl-2 pr-14 py-3">
           {/* Title row */}
           <div className="flex items-start justify-between">
-            <h4 className="font-medium text-sm text-text-strong-950 truncate pr-2">
+            <h4
+              className="truncate pr-2 text-label-md font-medium text-text-strong-950"
+              title={
+                actionTitle ||
+                intl.formatMessage({ id: "app.draft.untitled", defaultMessage: "Untitled Draft" })
+              }
+            >
               {actionTitle ||
                 intl.formatMessage({ id: "app.draft.untitled", defaultMessage: "Untitled Draft" })}
             </h4>
@@ -84,7 +90,10 @@ export const DraftCard: React.FC<DraftCardProps> = ({
           </div>
 
           {/* Subtitle */}
-          <div className="mt-0.5 text-xs text-text-sub-600 truncate">
+          <div
+            className="mt-0.5 text-xs text-text-sub-600 truncate"
+            title={[gardenName, timeAgo].filter(Boolean).join(" • ")}
+          >
             {gardenName && (
               <>
                 {gardenName}
@@ -116,7 +125,7 @@ export const DraftCard: React.FC<DraftCardProps> = ({
       <button
         type="button"
         onClick={handleDelete}
-        className="absolute top-1/2 right-2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full text-text-soft-400 transition-colors hover:bg-error-lighter hover:text-error-base focus:outline-none focus-visible:shadow-button-primary-focus"
+        className="absolute top-1/2 right-2 -translate-y-1/2 flex h-11 w-11 items-center justify-center rounded-full text-text-soft-400 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-error-lighter hover:text-error-base focus:outline-none focus-visible:shadow-button-primary-focus"
         aria-label={intl.formatMessage({
           id: "app.draft.delete",
           defaultMessage: "Delete draft",

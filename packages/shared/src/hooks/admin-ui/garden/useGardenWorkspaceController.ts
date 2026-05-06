@@ -5,11 +5,12 @@ import {
   parseGardenRange,
   useAdminGardenWorkspaceSelection,
   useCanvasSearchParams,
-  useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
   useGardenStateStore,
+  useMediaQuery,
   useSheetWidth,
+  useViewActions,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -18,7 +19,7 @@ import {
   resolveAdminWorkspaceSectionRoute,
   type AdminWorkspaceSectionTab,
 } from "../navigation/workspaceNavigation";
-import { buildGardenFabConfig, resolveGardenView } from "./garden.utils";
+import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
 import {
   bindCanvasScrollPositionPersistence,
   restoreCanvasScrollPosition,
@@ -105,15 +106,18 @@ export function useGardenWorkspaceController() {
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
-  useFabConfig(
-    useMemo(
-      () =>
-        buildGardenFabConfig(view, canManage, Boolean(selectedGarden), navigate, {
-          gardenAddress: selectedGardenAddress,
-        }),
-      [canManage, navigate, selectedGarden, selectedGardenAddress, view]
-    )
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const viewActions = useMemo(
+    () =>
+      buildGardenViewActions(view, canManage, Boolean(selectedGarden), navigate, {
+        gardenAddress: selectedGardenAddress,
+      }),
+    [canManage, navigate, selectedGarden, selectedGardenAddress, view]
   );
+  const { desktopActions } = useViewActions({
+    actions: viewActions,
+    isDesktop,
+  });
 
   const openSection = useCallback(
     (tab: AdminWorkspaceSectionTab, nextSection: string, itemId?: string) => {
@@ -256,6 +260,7 @@ export function useGardenWorkspaceController() {
     community,
     containerRef,
     derived,
+    desktopActions,
     error,
     fetching,
     fetchingAssessments,

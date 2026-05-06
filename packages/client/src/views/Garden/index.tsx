@@ -475,7 +475,7 @@ const Work: React.FC = () => {
               }
             }}
             label=""
-            className="w-10 px-0 shrink-0"
+            className="min-w-11 w-11 px-0 shrink-0"
             variant="neutral"
             type="button"
             shape="regular"
@@ -491,7 +491,7 @@ const Work: React.FC = () => {
               }
             }}
             label=""
-            className="w-10 px-0 shrink-0"
+            className="min-w-11 w-11 px-0 shrink-0"
             variant="neutral"
             type="button"
             shape="regular"
@@ -501,7 +501,7 @@ const Work: React.FC = () => {
           <Button
             onClick={toggleAudioRecording}
             label=""
-            className="w-10 px-0 shrink-0"
+            className="min-w-11 w-11 px-0 shrink-0"
             variant={isRecording ? "error" : "neutral"}
             type="button"
             shape="regular"

@@ -353,7 +353,7 @@ export const ProfileBadges: React.FC = () => {
               key={`${badge.profileStatus}-${badge.badgeId}`}
               type="button"
               onClick={() => setSelectedBadge(badge)}
-              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               aria-label={intl.formatMessage(
                 {
                   id: "app.profile.badges.viewDetails",

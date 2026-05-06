@@ -269,7 +269,10 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                   </div>
                 </Avatar>
                 <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                  <div className="font-mono text-sm font-medium text-text-strong-950">
+                  <div
+                    className="truncate font-mono text-sm font-medium text-text-strong-950"
+                    title={existingSlug}
+                  >
                     {existingSlug}
                   </div>
                   <div className="text-xs text-text-sub-600">

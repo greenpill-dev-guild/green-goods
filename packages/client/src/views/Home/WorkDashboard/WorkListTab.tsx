@@ -90,7 +90,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
                 <button
                   onClick={onRefresh}
                   disabled={isFetching}
-                  className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-sm font-medium text-primary transition-colors hover:bg-bg-weak-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-sm font-medium text-primary transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:opacity-50"
                 >
                   <RiRefreshLine className="h-4 w-4" />
                   {isFetching
@@ -116,7 +116,7 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
                 <button
                   onClick={onRefresh}
                   disabled={isFetching}
-                  className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:opacity-50"
                 >
                   <RiRefreshLine className="h-3.5 w-3.5" />
                   {isFetching
@@ -133,15 +133,14 @@ export const WorkListTab: React.FC<WorkListTabProps> = ({
             }
           />
         ) : (
-          <div className="space-y-3">
-            {items.map((work, index) => (
+          <div className="animate-stagger-in space-y-3">
+            {items.map((work) => (
               <MinimalWorkCard
                 key={work.id}
                 work={work}
                 onClick={() => onWorkClick(work)}
                 badges={renderBadges?.(work)}
-                className="stagger-item cv-work-card"
-                style={{ animationDelay: `${index * 30}ms` } as React.CSSProperties}
+                className="cv-work-card"
               />
             ))}
           </div>

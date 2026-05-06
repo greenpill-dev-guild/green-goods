@@ -35,6 +35,7 @@ vi.mock("@green-goods/shared", () => ({
   usePublicInstallHandler: mockUsePublicInstallHandler,
   usePublicStats: mockUsePublicStats,
   usePublicGardens: () => ({ data: [], isLoading: false }),
+  useInViewReveal: () => ({ ref: vi.fn(), revealed: true }),
 }));
 
 // Stub the heavy section components — this test only cares about the hero

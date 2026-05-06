@@ -139,6 +139,7 @@ export function usePublicGardens(chainId: number = DEFAULT_CHAIN_ID) {
       });
     },
     staleTime: STALE_TIME_RARE,
+    refetchOnMount: "always",
     placeholderData: (previousData) => previousData ?? undefined,
   });
 }

@@ -117,6 +117,13 @@ export {
   useCanvasPortal,
   useFabConfig,
   useFabConfigValue,
+  useViewActions,
+  type ViewAction,
+  type ViewActionsConfig,
+  RefreshActionProvider,
+  useRefreshAction,
+  useRefreshActionValue,
+  type RefreshActionConfig,
   useLeftSheetConfig,
   useLeftSheetConfigValue,
   useRouteBackedLeftSheetConfig,
@@ -466,6 +473,7 @@ export {
   useEnsAddress,
   useEnsAvatar,
   useEnsName,
+  useEthUsdPrice,
   useEventListener,
   useFilteredActions,
   useFilteredGardens,
@@ -605,18 +613,23 @@ export {
   usePublicStats,
   usePublicFieldNotes,
   usePublicImpactEvidence,
+  usePublicVaultSummary,
 } from "./hooks/index";
 export type {
   PublicGardenSummary,
   PublicGardenDetail,
   PublicStats,
   PublicFieldNote,
+  PublicGardenVaultSummary,
+  PublicVaultSummary,
+  PublicVaultSummaryAsset,
+  PublicVaultSummaryAssetSymbol,
 } from "./hooks/index";
 export type {
   PublicImpactEvidenceRecord,
   PublicImpactSlice,
 } from "./public-contracts";
-export { derivePublicGardenSlug } from "./public-contracts";
+export { derivePublicGardenSlug, PUBLIC_IMPACT_RECORD_FETCH_CAP } from "./public-contracts";
 // ============================================================================
 // I18N
 // ============================================================================
@@ -1092,6 +1105,13 @@ export {
   ERC20_ALLOWANCE_ABI,
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,
+  formatUsdCents,
+  formatUsdPrice,
+  getEthUsdFeedAddress,
+  parseUsdToCents,
+  PRICE_FEED_DECIMALS,
+  PRICE_FEED_STALE_THRESHOLD_S,
+  usdCentsToWei,
   getRoleColorClasses,
   getRoleLabel,
   getMedian,

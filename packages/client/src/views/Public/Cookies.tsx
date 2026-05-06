@@ -5,28 +5,40 @@ import {
   classifyTxError,
   formatTokenAmount,
   isMeaningfulTxErrorMessage,
+  type PublicGardenSummary,
   TxInlineFeedback,
+  truncateAddress,
   useAppKit,
   useCampaignCookieJar,
   useCampaignCookieJarCampaigns,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
   useInViewReveal,
+  usePublicGardens,
   useUser,
   validateDecimalInput,
 } from "@green-goods/shared";
 import { RiCloseLine } from "@remixicon/react";
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import { formatUnits, getAddress, isAddress, parseUnits } from "viem";
 import { useBalance } from "wagmi";
-import { EditorialTitleAccent } from "@/components/Public/atoms";
+import {
+  EditorialHeading,
+  EditorialKicker,
+  EditorialPrimaryButton,
+  EditorialTitleAccent,
+} from "@/components/Public/atoms";
+import {
+  classifyCookieJarStatus,
+  PublicCookieJarCard,
+} from "@/components/Public/PublicCookieJarCard";
+import { PublicCookieJarRow } from "@/components/Public/PublicCookieJarRow";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-
-const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
+import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 
 type CookieMode = "claim" | "deposit";
 
@@ -261,8 +273,8 @@ function CampaignCookieJarPanel({ jarAddress }: { jarAddress: Address }) {
                 onClick={() => setMode(option)}
                 className={
                   mode === option
-                    ? "rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground"
-                    : "rounded-full px-4 py-2 text-sm font-medium text-text-sub-600 hover:text-text-strong-950"
+                    ? "cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground"
+                    : "cursor-pointer rounded-full px-4 py-2 text-sm font-medium text-text-sub-600 hover:text-text-strong-950"
                 }
               >
                 {formatMessage({
@@ -601,155 +613,58 @@ function EligibilityNote({
   );
 }
 
-function CookieIndexStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0 border-b border-stroke-soft-200 py-4 last:border-b-0 sm:border-r sm:border-b-0 sm:px-6 sm:first:pl-0 sm:last:border-r-0 sm:last:pr-0">
-      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
-        {label}
-      </p>
-      <p className="mt-1 font-serif text-2xl text-text-strong-950">{value}</p>
-    </div>
-  );
-}
-
-function CampaignCookieJarCard({
-  campaign,
-  onOpen,
-}: {
-  campaign: CampaignCookieJarCampaign;
-  onOpen: (campaign: CampaignCookieJarCampaign) => void;
-}) {
-  const { formatMessage } = useIntl();
-  const { jar, isLoading, error, hasDetailReadFailure } = useCampaignCookieJar(campaign.address);
-  const title = jar?.metadata?.title ?? campaign.label;
-  const claimLabel =
-    jar?.withdrawalType === "fixed"
-      ? formatDisplayAmount(jar.fixedAmount, jar.decimals, jar.symbol)
-      : formatMessage({ id: "public.cookies.variable", defaultMessage: "Variable" });
-  const balanceLabel = jar
-    ? formatDisplayAmount(jar.balance, jar.decimals, jar.symbol)
-    : isLoading
-      ? formatMessage({ id: "public.cookies.loadingJar", defaultMessage: "Loading jar" })
-      : "—";
-  const statusLabel = error
-    ? formatMessage({
-        id: "public.cookies.cardUnavailable",
-        defaultMessage: "Needs link check",
-      })
-    : hasDetailReadFailure
-      ? formatMessage({
-          id: "public.cookies.partialReadShort",
-          defaultMessage: "Partial read",
-        })
-      : jar?.isPaused
-        ? formatMessage({
-            id: "public.cookies.paused",
-            defaultMessage: "This jar is paused for now.",
-          })
-        : formatMessage({
-            id: "public.cookies.cardStatusReady",
-            defaultMessage: "Ready",
-          });
-
-  return (
-    <article className="group rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-base/50 hover:shadow-md">
-      <div className="flex h-full flex-col">
-        <p className="text-xs font-medium uppercase text-text-soft-400">{campaign.slug}</p>
-        <h3 className="mt-3 font-serif text-2xl text-text-strong-950">{title}</h3>
-        <dl className="mt-5 grid gap-3 text-sm">
-          <div className="flex items-center justify-between gap-4 border-t border-stroke-soft-200 pt-3">
-            <dt className="text-text-soft-400">
-              {formatMessage({ id: "public.cookies.cardBalance", defaultMessage: "Balance" })}
-            </dt>
-            <dd className="text-right font-medium text-text-strong-950">{balanceLabel}</dd>
-          </div>
-          <div className="flex items-center justify-between gap-4 border-t border-stroke-soft-200 pt-3">
-            <dt className="text-text-soft-400">
-              {formatMessage({ id: "public.cookies.cardClaim", defaultMessage: "Claim" })}
-            </dt>
-            <dd className="text-right font-medium text-text-strong-950">{claimLabel}</dd>
-          </div>
-          <div className="flex items-center justify-between gap-4 border-t border-stroke-soft-200 pt-3">
-            <dt className="text-text-soft-400">
-              {formatMessage({ id: "public.cookies.cardStatus", defaultMessage: "Status" })}
-            </dt>
-            <dd className="text-right font-medium text-text-strong-950">{statusLabel}</dd>
-          </div>
-        </dl>
-        <button
-          type="button"
-          onClick={() => onOpen(campaign)}
-          className="mt-6 inline-flex w-full items-center justify-center rounded-full bg-primary-action px-4 py-2.5 text-sm font-semibold text-primary-action-foreground transition hover:bg-primary-action-hover"
-          aria-label={formatMessage(
-            { id: "public.cookies.openJarLabel", defaultMessage: "Open {title}" },
-            { title }
-          )}
-        >
-          {formatMessage({ id: "public.cookies.openJar", defaultMessage: "Open jar" })}
-        </button>
-      </div>
-    </article>
-  );
-}
-
-function CampaignCookieJarGrid({
-  campaigns,
-  isLoading,
-  registryError,
-  onOpen,
-}: {
-  campaigns: readonly CampaignCookieJarCampaign[];
+/**
+ * Per-jar state read used to bucket campaigns into For-you / Active / Past
+ * at the parent surface. Renders nothing — exists only so React Query can
+ * fetch each jar's on-chain state via `useCampaignCookieJar`. Cards in the
+ * sections re-call the same hook; the second call hits the React Query
+ * cache and never refetches.
+ */
+interface JarStateRead {
+  jar: NonNullable<ReturnType<typeof useCampaignCookieJar>["jar"]> | null;
   isLoading: boolean;
-  registryError: Error | null;
-  onOpen: (campaign: CampaignCookieJarCampaign) => void;
+  hasError: boolean;
+}
+
+function JarStateProbe({
+  address,
+  onState,
+}: {
+  address: Address;
+  onState: (address: Address, state: JarStateRead) => void;
+}) {
+  const { jar, isLoading, error } = useCampaignCookieJar(address);
+  useEffect(() => {
+    onState(address, { jar: jar ?? null, isLoading, hasError: Boolean(error) });
+  }, [address, jar, isLoading, error, onState]);
+  return null;
+}
+
+function ConnectionStatusLine({
+  primaryAddress,
+  onAction,
+}: {
+  primaryAddress: Address;
+  onAction: () => void;
 }) {
   const { formatMessage } = useIntl();
-
-  if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {[0, 1, 2].map((index) => (
-          <div
-            key={index}
-            className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-sm"
-          >
-            <div className="h-3 w-24 animate-pulse rounded bg-bg-soft-200" />
-            <div className="mt-4 h-8 w-3/4 animate-pulse rounded bg-bg-soft-200" />
-            <div className="mt-8 space-y-4">
-              <div className="h-4 animate-pulse rounded bg-bg-weak-50" />
-              <div className="h-4 animate-pulse rounded bg-bg-weak-50" />
-              <div className="h-4 animate-pulse rounded bg-bg-weak-50" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (campaigns.length === 0) {
-    return (
-      <div className="rounded-lg border border-dashed border-stroke-soft-200 bg-bg-white-0 p-8 text-sm text-text-sub-600">
-        {registryError
-          ? formatMessage({
-              id: "public.cookies.registryLoadFailed",
-              defaultMessage:
-                "The campaign jar list could not be loaded. Direct jar links still work.",
-            })
-          : formatMessage({
-              id: "public.cookies.emptyList",
-              defaultMessage:
-                "Campaign jars will appear here once the Green Goods team configures them.",
-            })}
-      </div>
-    );
-  }
-
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-      {campaigns.map((campaign) => (
-        <CampaignCookieJarCard key={campaign.address} campaign={campaign} onOpen={onOpen} />
-      ))}
-    </div>
+    <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+      <span>
+        {formatMessage(
+          { id: "public.cookies.connectedAs", defaultMessage: "Connected as {address}" },
+          { address: truncateAddress(primaryAddress) }
+        )}
+      </span>
+      <span aria-hidden="true">·</span>
+      <button
+        type="button"
+        onClick={onAction}
+        className="cursor-pointer border-b border-current pb-px text-text-sub-600 transition-colors hover:text-text-strong-950"
+      >
+        {formatMessage({ id: "public.cookies.disconnect", defaultMessage: "Disconnect" })}
+      </button>
+    </p>
   );
 }
 
@@ -814,7 +729,7 @@ function CampaignCookieJarDialog({
     >
       <button
         type="button"
-        className="absolute inset-0 bg-static-black/50"
+        className="absolute inset-0 cursor-pointer bg-static-black/50"
         onClick={onClose}
         aria-label={formatMessage({
           id: "public.cookies.closeDialog",
@@ -834,7 +749,7 @@ function CampaignCookieJarDialog({
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-stroke-soft-200 text-text-sub-600 transition hover:text-text-strong-950"
+            className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-stroke-soft-200 text-text-sub-600 transition hover:text-text-strong-950"
             aria-label={formatMessage({
               id: "public.cookies.closeDialog",
               defaultMessage: "Close jar dialog",
@@ -851,28 +766,99 @@ function CampaignCookieJarDialog({
   );
 }
 
+function CookiesSectionSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex flex-col gap-4 border-t border-stroke-soft-200 pt-5">
+          <div className="h-4 w-20 animate-pulse rounded-full bg-bg-weak-50" />
+          <div className="h-6 w-3/4 animate-pulse bg-stroke-soft-200/60" />
+          <div className="h-4 w-1/2 animate-pulse bg-stroke-soft-200/60" />
+          <div className="mt-2 h-8 w-1/2 animate-pulse bg-stroke-soft-200/60" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CookiesCampaignSurface() {
   const { formatMessage } = useIntl();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { ref: statsRef, revealed: statsRevealed } = useInViewReveal<HTMLElement>();
+  const { ref: ledgerRef, revealed: ledgerRevealed } = useInViewReveal<HTMLElement>();
+  const { primaryAddress } = useUser();
+  const { open: openWalletModal } = useAppKit();
+  const isConnected = Boolean(primaryAddress);
+
   const {
     campaigns,
     isLoading: isCampaignListLoading,
     error: campaignListError,
   } = useCampaignCookieJarCampaigns();
+  const { data: gardens = [] } = usePublicGardens();
+
+  const gardensByAddress = useMemo(() => {
+    const map = new Map<Address, PublicGardenSummary>();
+    for (const garden of gardens) {
+      map.set(garden.id.toLowerCase() as Address, garden);
+    }
+    return map;
+  }, [gardens]);
+
   const { jarAddress, campaignSlug, invalidJar, campaign } = useMemo(
     () => resolveCampaignJar(searchParams, campaigns),
     [campaigns, searchParams]
   );
 
-  // Lightweight registry-level proxy for "active this season" — campaigns
-  // whose metadata loaded and is marked valid. Per-jar paused/cooldown state
-  // requires N hook calls (`useCampaignCookieJar`) and is deferred to a
-  // follow-up that can aggregate cleanly without per-card duplication.
-  const activeThisSeasonCount = useMemo(
-    () => campaigns.filter((entry) => entry.metadata?.isValidCampaign === true).length,
-    [campaigns]
-  );
+  const [statesByAddress, setStatesByAddress] = useState<Map<Address, JarStateRead>>(new Map());
+  const reportJarState = useCallback((address: Address, state: JarStateRead) => {
+    setStatesByAddress((prev) => {
+      const existing = prev.get(address);
+      if (
+        existing &&
+        existing.jar === state.jar &&
+        existing.isLoading === state.isLoading &&
+        existing.hasError === state.hasError
+      ) {
+        return prev;
+      }
+      const next = new Map(prev);
+      next.set(address, state);
+      return next;
+    });
+  }, []);
+
+  const { forYou, active, past, unresolvedCount } = useMemo(() => {
+    const forYou: CampaignCookieJarCampaign[] = [];
+    const active: CampaignCookieJarCampaign[] = [];
+    const past: CampaignCookieJarCampaign[] = [];
+    let unresolved = 0;
+
+    for (const entry of campaigns) {
+      const state = statesByAddress.get(entry.address);
+      const status = classifyCookieJarStatus(state?.jar ?? null, {
+        hasError: Boolean(state?.hasError),
+        isConnected,
+      });
+      switch (status.bucket) {
+        case "for-you":
+          forYou.push(entry);
+          break;
+        case "active":
+          active.push(entry);
+          break;
+        case "past":
+          past.push(entry);
+          break;
+        default:
+          unresolved += 1;
+          // Until the on-chain read resolves, default to Active so the visitor
+          // sees the campaign somewhere instead of in a hidden bucket. The
+          // card's pill will show "Reading…" while loading.
+          active.push(entry);
+      }
+    }
+    return { forYou, active, past, unresolvedCount: unresolved };
+  }, [campaigns, statesByAddress, isConnected]);
 
   const openCampaign = useCallback(
     (nextCampaign: CampaignCookieJarCampaign) => {
@@ -899,106 +885,295 @@ function CookiesCampaignSurface() {
       defaultMessage: "Direct jar",
     });
 
+  const summaryLine = useMemo(() => {
+    if (isCampaignListLoading) return null;
+    return formatMessage(
+      {
+        id: "public.cookies.summary",
+        defaultMessage:
+          "{active, plural, one {# active drop} other {# active drops}} · {past, plural, =0 {nothing closed yet} one {# closed} other {# closed}}{forYouLine}",
+      },
+      {
+        active: active.length,
+        past: past.length,
+        forYouLine: isConnected
+          ? ` · ${forYou.length} ${forYou.length === 1 ? "on your wallet" : "on your wallet"}`
+          : "",
+      }
+    );
+  }, [
+    active.length,
+    past.length,
+    forYou.length,
+    isConnected,
+    isCampaignListLoading,
+    formatMessage,
+  ]);
+
   return (
-    <>
+    <main
+      ref={ledgerRef}
+      data-revealed={ledgerRevealed}
+      className="editorial-section-reveal mx-auto max-w-7xl px-6 sm:px-10"
+    >
+      {/* Probes — render one per campaign to feed `statesByAddress`. */}
+      {campaigns.map((entry) => (
+        <JarStateProbe key={entry.address} address={entry.address} onState={reportJarState} />
+      ))}
+
+      {invalidJar ? (
+        <div className="mb-8 max-w-2xl rounded-lg border border-error-light bg-error-lighter p-5 text-sm text-error-dark">
+          {formatMessage(
+            {
+              id: "public.cookies.invalidJar",
+              defaultMessage: '"{jar}" is not a valid jar address.',
+            },
+            { jar: invalidJar }
+          )}
+        </div>
+      ) : campaignSlug && !jarAddress && !isCampaignListLoading ? (
+        <div className="mb-8 max-w-2xl rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-5 text-sm text-text-sub-600">
+          {formatMessage(
+            {
+              id: "public.cookies.unknownCampaign",
+              defaultMessage:
+                'The "{campaign}" cookie jar is not configured yet. Use a direct jar link for now.',
+            },
+            { campaign: campaignSlug }
+          )}
+        </div>
+      ) : null}
+
+      {/* § 01 — For-you (connected, has eligible) OR connect prompt (not connected) */}
       <section
-        ref={statsRef}
-        data-revealed={statsRevealed}
-        className="editorial-section-reveal mx-auto max-w-7xl px-6 sm:px-10"
-        aria-label={formatMessage({
-          id: "public.cookies.statsLabel",
-          defaultMessage: "Cookie jar stats",
-        })}
+        aria-labelledby="public-cookies-foryou-title"
+        className="border-b border-stroke-soft-200 pb-12"
       >
-        <div className="editorial-cascade grid border-b border-stroke-soft-200 bg-bg-weak-50 sm:grid-cols-3">
-          <CookieIndexStat
-            label={formatMessage({
-              id: "public.cookies.stats.configured",
-              defaultMessage: "Configured jars",
-            })}
-            value={String(campaigns.length)}
-          />
-          <CookieIndexStat
-            label={formatMessage({
-              id: "public.cookies.stats.activeThisSeason",
-              defaultMessage: "Active this season",
-            })}
-            value={String(activeThisSeasonCount)}
-          />
-          <CookieIndexStat
-            label={formatMessage({
-              id: "public.cookies.stats.access",
-              defaultMessage: "Access model",
-            })}
-            value={formatMessage({
-              id: "public.cookies.stats.accessValue",
-              defaultMessage: "Garden operators",
-            })}
-          />
+        {!isConnected ? (
+          <div className="max-w-3xl">
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.cookies.connectKicker",
+                defaultMessage: "§ 01 — Sign in",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-cookies-foryou-title">
+              {formatMessage({
+                id: "public.cookies.connectTitle",
+                defaultMessage: "Connect a wallet to see what's been left for you.",
+              })}
+            </EditorialHeading>
+            <p className="mt-4 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
+              {formatMessage({
+                id: "public.cookies.connectLede",
+                defaultMessage:
+                  "Campaigns are usually shared via private link. We don't read your wallet until you connect — once you do, this section will list the jars you can claim from.",
+              })}
+            </p>
+            <div className="mt-6">
+              <EditorialPrimaryButton onClick={() => openWalletModal()}>
+                {formatMessage({
+                  id: "public.cookies.connectWallet",
+                  defaultMessage: "Connect wallet",
+                })}
+              </EditorialPrimaryButton>
+            </div>
+          </div>
+        ) : forYou.length > 0 ? (
+          <>
+            <header className="max-w-3xl">
+              <EditorialKicker className="mb-3">
+                {formatMessage({
+                  id: "public.cookies.forYouKicker",
+                  defaultMessage: "§ 01 — Available to you",
+                })}
+              </EditorialKicker>
+              <EditorialHeading id="public-cookies-foryou-title">
+                {formatMessage({
+                  id: "public.cookies.forYouTitle",
+                  defaultMessage: "Cookies on your wallet.",
+                })}
+              </EditorialHeading>
+              {primaryAddress ? (
+                <div className="mt-4">
+                  <ConnectionStatusLine
+                    primaryAddress={primaryAddress as Address}
+                    onAction={() => openWalletModal()}
+                  />
+                </div>
+              ) : null}
+            </header>
+            <div className="mt-10 grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
+              {forYou.map((entry) => (
+                <PublicCookieJarCard
+                  key={entry.address}
+                  campaign={entry}
+                  gardensByAddress={gardensByAddress}
+                  isConnected={isConnected}
+                  onOpen={openCampaign}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="max-w-3xl">
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.cookies.connectedKicker",
+                defaultMessage: "§ 01 — Connected",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-cookies-foryou-title">
+              {formatMessage({
+                id: "public.cookies.connectedTitle",
+                defaultMessage: "Nothing's waiting on this wallet right now.",
+              })}
+            </EditorialHeading>
+            <p className="mt-4 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
+              {formatMessage({
+                id: "public.cookies.connectedLede",
+                defaultMessage:
+                  "We didn't find any campaigns on your wallet's allowlist. Browse the active drops below — operators may add you ahead of the next round.",
+              })}
+            </p>
+            {primaryAddress ? (
+              <div className="mt-6">
+                <ConnectionStatusLine
+                  primaryAddress={primaryAddress as Address}
+                  onAction={() => openWalletModal()}
+                />
+              </div>
+            ) : null}
+          </div>
+        )}
+      </section>
+
+      {/* § 02 — Active campaigns */}
+      <section
+        aria-labelledby="public-cookies-active-title"
+        className="border-b border-stroke-soft-200 py-12"
+      >
+        <header className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-3xl">
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.cookies.activeKicker",
+                defaultMessage: "§ 02 — Active",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-cookies-active-title">
+              {formatMessage({
+                id: "public.cookies.activeTitle",
+                defaultMessage: "Live drops.",
+              })}
+            </EditorialHeading>
+          </div>
+          {summaryLine ? (
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+              {summaryLine}
+            </p>
+          ) : null}
+        </header>
+
+        <div className="mt-10">
+          {isCampaignListLoading ? (
+            <CookiesSectionSkeleton />
+          ) : active.length === 0 ? (
+            <div className="max-w-2xl border-t border-stroke-soft-200 pt-6">
+              <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+                {formatMessage({
+                  id: "public.cookies.activeEmptyKicker",
+                  defaultMessage: "Reading the registry",
+                })}
+              </p>
+              <p className="mt-2 font-serif text-xl italic text-text-sub-600 md:text-2xl">
+                {campaignListError
+                  ? formatMessage({
+                      id: "public.cookies.registryLoadFailed",
+                      defaultMessage:
+                        "The campaign jar list could not be loaded. Direct jar links still work.",
+                    })
+                  : formatMessage({
+                      id: "public.cookies.activeEmpty",
+                      defaultMessage:
+                        "No active drops at the moment. Past campaigns are listed below.",
+                    })}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-10 md:grid-cols-2 xl:grid-cols-3">
+              {active.map((entry) => (
+                <PublicCookieJarCard
+                  key={entry.address}
+                  campaign={entry}
+                  gardensByAddress={gardensByAddress}
+                  isConnected={isConnected}
+                  onOpen={openCampaign}
+                />
+              ))}
+            </div>
+          )}
+          {unresolvedCount > 0 && !isCampaignListLoading ? (
+            <p className="mt-6 font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+              {formatMessage(
+                {
+                  id: "public.cookies.unresolvedNote",
+                  defaultMessage:
+                    "Reading {count, plural, one {# jar} other {# jars}} on chain — sections may shift as data resolves.",
+                },
+                { count: unresolvedCount }
+              )}
+            </p>
+          ) : null}
         </div>
       </section>
 
-      <main className="mx-auto max-w-7xl px-6 py-10 sm:px-10 sm:py-14">
-        {invalidJar ? (
-          <div className="mb-6 rounded-lg border border-error-light bg-error-lighter p-5 text-sm text-error-dark">
-            {formatMessage(
-              {
-                id: "public.cookies.invalidJar",
-                defaultMessage: '"{jar}" is not a valid jar address.',
-              },
-              { jar: invalidJar }
-            )}
-          </div>
-        ) : campaignSlug && !jarAddress && !isCampaignListLoading ? (
-          <div className="mb-6 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-5 text-sm text-text-sub-600">
-            {formatMessage(
-              {
-                id: "public.cookies.unknownCampaign",
-                defaultMessage:
-                  'The "{campaign}" cookie jar is not configured yet. Use a direct jar link for now.',
-              },
-              { campaign: campaignSlug }
-            )}
-          </div>
-        ) : null}
-
-        <div className="mb-6 flex flex-col gap-3 border-b border-stroke-soft-200 pb-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="font-serif text-3xl text-text-strong-950">
+      {/* § 03 — Past campaigns */}
+      {past.length > 0 ? (
+        <section aria-labelledby="public-cookies-past-title" className="py-12">
+          <header className="max-w-3xl">
+            <EditorialKicker className="mb-3">
               {formatMessage({
-                id: "public.cookies.browseTitle",
-                defaultMessage: "Open a jar",
+                id: "public.cookies.pastKicker",
+                defaultMessage: "§ 03 — Past",
               })}
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm text-text-sub-600 md:text-base">
+            </EditorialKicker>
+            <EditorialHeading id="public-cookies-past-title">
               {formatMessage({
-                id: "public.cookies.browseDescription",
+                id: "public.cookies.pastTitle",
+                defaultMessage: "Closed drops.",
+              })}
+            </EditorialHeading>
+            <p className="mt-4 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
+              {formatMessage({
+                id: "public.cookies.pastLede",
                 defaultMessage:
-                  "Choose a campaign below. The claim and deposit tools open here, so the page stays easy to share.",
+                  "Sealed or empty jars from earlier rounds. Open one to see what was distributed.",
               })}
             </p>
-          </div>
-        </div>
+          </header>
+          <ul className="mt-8">
+            {past.map((entry) => (
+              <li key={entry.address}>
+                <PublicCookieJarRow
+                  campaign={entry}
+                  gardensByAddress={gardensByAddress}
+                  onOpen={openCampaign}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
-        {/* Reserve a stable height so the empty / single-campaign state does
-            not collapse the page and shift the footer up. */}
-        <div className="min-h-[60vh]">
-          <CampaignCookieJarGrid
-            campaigns={campaigns}
-            isLoading={isCampaignListLoading}
-            registryError={campaignListError}
-            onOpen={openCampaign}
-          />
-        </div>
-        {jarAddress ? (
-          <CampaignCookieJarDialog
-            jarAddress={jarAddress}
-            title={dialogTitle}
-            onClose={closeDialog}
-          />
-        ) : null}
-      </main>
-    </>
+      {jarAddress ? (
+        <CampaignCookieJarDialog
+          jarAddress={jarAddress}
+          title={dialogTitle}
+          onClose={closeDialog}
+        />
+      ) : null}
+    </main>
   );
 }
 
@@ -1025,16 +1200,14 @@ export default function CookiesPage() {
         lede={formatMessage({
           id: "public.cookies.description",
           defaultMessage:
-            "Shared jars hold campaign funds in one place. Operators from selected Gardens claim their share; supporters top up the jar for the next round.",
+            "Each jar holds funds for a specific campaign — a season's drop, an event reward, a working budget for a Garden cohort. If a jar is for you, connect your wallet to see what's been left.",
         })}
       />
 
       <div className="bg-bg-weak-50 pt-32 pb-16 sm:pt-36 sm:pb-20 md:pt-40">
-        <Suspense fallback={null}>
-          <WalletRuntimeProviders>
-            <CookiesCampaignSurface />
-          </WalletRuntimeProviders>
-        </Suspense>
+        <WalletRuntimeProviders>
+          <CookiesCampaignSurface />
+        </WalletRuntimeProviders>
       </div>
 
       <PublicFooter variant="soil" />

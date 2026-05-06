@@ -27,7 +27,7 @@ export function CanvasWorkspaceSelectionState({
 
   if (gardens.length === 0) {
     return (
-      <div className="px-4 py-8 sm:px-6">
+      <div className="py-8">
         <Card className="mx-auto max-w-xl">
           <Card.Body className="flex flex-col items-center py-12 text-center">
             <SeedlingIllustration className="h-24 w-24" />

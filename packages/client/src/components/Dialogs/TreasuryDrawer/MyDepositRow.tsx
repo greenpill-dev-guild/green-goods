@@ -75,16 +75,16 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
   };
 
   return (
-    <div className="rounded-lg border border-stroke-soft bg-bg-white p-3">
+    <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-text-strong">{assetSymbol}</p>
-        <p className="text-xs text-text-sub">
+        <p className="text-sm font-medium text-text-strong-950">{assetSymbol}</p>
+        <p className="text-xs text-text-sub-600">
           {formatMessage({ id: "app.treasury.availableBalance" })}:{" "}
           {formatTokenAmount(maxWithdrawable, assetDecimals)} {assetSymbol}
         </p>
       </div>
 
-      <p className="mb-2 text-xs text-text-soft">
+      <p className="mb-2 text-xs text-text-soft-400">
         {formatMessage({ id: "app.treasury.myShares" })}: {formatTokenAmount(deposit.shares, 18)}
       </p>
 
@@ -97,16 +97,16 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
           placeholder={`0.0 ${assetSymbol}`}
           aria-label={formatMessage({ id: "app.treasury.withdrawAmount" })}
           aria-invalid={Boolean(inputError)}
-          className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+          className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
             inputError
               ? "border-error-base focus:border-error-base"
-              : "border-stroke-sub bg-bg-white focus:border-primary-base"
+              : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
           }`}
         />
         <button
           type="button"
           onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
-          className="min-h-11 min-w-11 rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-xs font-medium text-text-sub hover:bg-bg-weak"
+          className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
         >
           {formatMessage({ id: "app.treasury.max" })}
         </button>
@@ -126,7 +126,7 @@ export function MyDepositRow({ deposit, vault, gardenAddress }: MyDepositRowProp
           parsedAmount > maxWithdrawable ||
           withdrawMutation.isPending
         }
-        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 transition hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {withdrawMutation.isPending
           ? formatMessage({ id: "app.treasury.withdrawing" })

@@ -1,31 +1,17 @@
 /* ============================================================================
  * Editorial tokens — browser dialect only.
  *
- * Adds the public-browser editorial palette on top of the shared Warm Earth
- * role tokens (canvas / ink / stone / accent green). Imported only by
+ * Adds editorial-specific surfaces (proof-band linen, walnut Get-In-Touch)
+ * on top of the shared Warm Earth role tokens. Imported only by
  * packages/client/src/index.css; admin and the installed PWA never see these.
  *
- * Two layers:
- *   1. Domain palette — per-domain ink + soft surface for filter chips and
- *      editorial plates on /actions, /impact, /gardens. Reserves the green
- *      accent for CTAs by giving each domain its own color identity.
- *   2. Editorial surfaces — warm linen (proof band) and walnut (Get In
- *      Touch). Browser editorial only; admin keeps solid surfaces.
+ * The action domain palette (solar / agro / education / waste) lives in
+ * packages/shared/src/styles/theme.css now, so admin work filters and the
+ * client PWA reach for the same per-domain ink + soft surfaces as these
+ * editorial pages do.
  * ============================================================================ */
 
 :root {
-  /* === Domain palette (RGB triplets) ===
-   * Used as foreground ink and as soft surface backgrounds for chips,
-   * plates, and accent rules. */
-  --domain-solar-rgb: 160 90 44; /* warm umber */
-  --domain-solar-soft-rgb: 248 237 224; /* pale amber */
-  --domain-agro-rgb: 62 85 50; /* deep moss */
-  --domain-agro-soft-rgb: 234 239 226; /* pale sage */
-  --domain-education-rgb: 74 69 100; /* slate violet */
-  --domain-education-soft-rgb: 235 232 240; /* pale violet */
-  --domain-waste-rgb: 46 79 107; /* harbour blue */
-  --domain-waste-soft-rgb: 226 234 240; /* pale harbour */
-
   /* === Editorial surfaces (RGB triplets) === */
   --editorial-warm-rgb: 241 236 226; /* proof band linen */
   --editorial-deep-rgb: 45 33 24; /* walnut */
@@ -49,19 +35,9 @@
 }
 
 @theme {
-  /* === Domain palette (Tailwind utilities) ===
-   * Generates: bg-domain-solar, text-domain-solar, border-domain-solar,
-   * bg-domain-solar-soft, etc., for each of solar / agro / education / waste. */
-  --color-domain-solar: rgb(var(--domain-solar-rgb));
-  --color-domain-solar-soft: rgb(var(--domain-solar-soft-rgb));
-  --color-domain-agro: rgb(var(--domain-agro-rgb));
-  --color-domain-agro-soft: rgb(var(--domain-agro-soft-rgb));
-  --color-domain-education: rgb(var(--domain-education-rgb));
-  --color-domain-education-soft: rgb(var(--domain-education-soft-rgb));
-  --color-domain-waste: rgb(var(--domain-waste-rgb));
-  --color-domain-waste-soft: rgb(var(--domain-waste-soft-rgb));
-
-  /* === Editorial surfaces (Tailwind utilities) === */
+  /* === Editorial surfaces (Tailwind utilities) ===
+   * The domain palette utilities (bg-domain-solar, etc.) come from the
+   * shared theme.css @theme block — see the comment at the top of the file. */
   --color-editorial-warm: rgb(var(--editorial-warm-rgb));
   --color-editorial-deep: rgb(var(--editorial-deep-rgb));
   --color-editorial-deep-fg: rgb(var(--editorial-deep-fg-rgb));

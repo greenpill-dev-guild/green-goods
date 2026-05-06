@@ -3,8 +3,15 @@ import {
   type AdminGardenRouteContext,
   type FabConfig,
   type MetaStripItem,
+  type ViewAction,
 } from "@green-goods/shared";
-import { RiAddLine, RiHandCoinLine, RiSettings3Line, RiUserAddLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiExternalLinkLine,
+  RiHandCoinLine,
+  RiSettings3Line,
+  RiUserAddLine,
+} from "@remixicon/react";
 
 /**
  * Inputs for the Garden header stats slot. Pulled directly off the values the
@@ -88,6 +95,66 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
   return "overview";
 }
 
+/**
+ * Garden view-level actions. Exposes the same set on every tab — view-specific
+ * gating happens via `visible`. The Settings tab disables gates that don't make
+ * sense alongside the Settings UI itself.
+ *
+ * Reference design (`design_handoff_admin-revamp/screenshots/02-garden.png`):
+ * View public (ghost) + Edit garden (primary) + Invite gardener (secondary).
+ *
+ * "View public" links to the client app via the admin's `/gardens/:id` redirect
+ * route, which resolves to the public garden page.
+ */
+export function buildGardenViewActions(
+  view: GardenWorkspaceView,
+  canManage: boolean,
+  hasSelectedGarden: boolean,
+  navigate: (path: string) => void,
+  routeContext?: AdminGardenRouteContext
+): ViewAction[] {
+  const gardenAddress = routeContext?.gardenAddress;
+  const communityRouteContext = { gardenAddress };
+  return [
+    {
+      id: "view-public",
+      label: "View public",
+      labelId: "cockpit.garden.action.viewPublic",
+      icon: RiExternalLinkLine,
+      onClick: () => {
+        if (!gardenAddress) return;
+        // The admin route `/gardens/:gardenId` redirects to the client app.
+        // Open in a new tab — public is a separate context.
+        const url = `/gardens/${encodeURIComponent(gardenAddress)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+      },
+      variant: "ghost",
+      visible: hasSelectedGarden && Boolean(gardenAddress),
+    },
+    {
+      id: "invite-gardener",
+      label: "Invite gardener",
+      labelId: "cockpit.garden.action.inviteGardener",
+      icon: RiUserAddLine,
+      onClick: () => navigate(adminRoutes.communityMembers(communityRouteContext)),
+      variant: "secondary",
+      visible: hasSelectedGarden && canManage,
+    },
+    {
+      id: "edit-garden",
+      label: "Edit garden",
+      labelId: "cockpit.garden.action.editGarden",
+      icon: RiSettings3Line,
+      onClick: () => navigate(adminRoutes.gardenSettings(routeContext)),
+      variant: "primary",
+      visible: hasSelectedGarden && canManage && view !== "settings",
+      primary: true,
+    },
+  ];
+}
+
+/** @deprecated Use `buildGardenViewActions` + `useViewActions` instead. Retained
+ *  during the transition until all consumers are migrated. */
 export function buildGardenFabConfig(
   view: GardenWorkspaceView,
   canManage: boolean,

@@ -4,9 +4,9 @@
  * @vitest-environment jsdom
  */
 
-import { renderWithProviders as render, screen, userEvent } from "../test-utils";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render, screen, userEvent } from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
 const TEST_TOKEN = "0x2222222222222222222222222222222222222222" as const;
@@ -19,6 +19,7 @@ const mockClaimReset = vi.fn();
 const mockDepositReset = vi.fn();
 const mockUseCampaignCookieJar = vi.fn();
 const mockUseCampaignCookieJarCampaigns = vi.fn();
+const mockUsePublicGardens = vi.fn();
 const mockUseUser = vi.fn();
 let claimError: Error | null = null;
 let depositError: Error | null = null;
@@ -95,6 +96,7 @@ vi.mock("@green-goods/shared", async () => {
       error: claimError,
       reset: mockClaimReset,
     }),
+    usePublicGardens: () => mockUsePublicGardens(),
     useUser: () => mockUseUser(),
   };
 });
@@ -116,6 +118,7 @@ describe("CookiesPage", () => {
     claimError = null;
     depositError = null;
     mockUseUser.mockReturnValue({ primaryAddress: TEST_WALLET });
+    mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
     mockUseCampaignCookieJarCampaigns.mockReturnValue({
       campaigns: [
         {
@@ -154,8 +157,12 @@ describe("CookiesPage", () => {
     expect(
       screen.getByRole("heading", { name: /Shared jars for campaign funds/i, level: 1 })
     ).toBeInTheDocument();
+    // Disconnected users see two connect buttons: the §01 inline prompt on
+    // the surface and the panel-level prompt inside the open jar dialog.
     expect(await screen.findByText("Connect your wallet to check the jar and take a cookie."));
-    expect(screen.getByRole("button", { name: "Connect wallet" }));
+    expect(screen.getAllByRole("button", { name: "Connect wallet" }).length).toBeGreaterThanOrEqual(
+      1
+    );
   });
 
   it("claims a fixed cookie amount for an eligible wallet", async () => {
@@ -187,8 +194,11 @@ describe("CookiesPage", () => {
 
     renderPage("/cookies");
 
-    expect(await screen.findByText("Configured jars"));
-    await user.click(await screen.findByRole("button", { name: "Open Earth Week Cookie Jar" }));
+    // The new section vocab uses "Live drops." for the §02 heading; the older
+    // "Configured jars" stat strip was retired as part of the editorial-dialect
+    // refresh.
+    expect(await screen.findByRole("heading", { name: /Live drops/i }));
+    await user.click(await screen.findByRole("button", { name: "Earth Week Cookie Jar" }));
 
     expect(await screen.findByRole("dialog", { name: "Earth Week" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Claim cookie" })).toBeInTheDocument();

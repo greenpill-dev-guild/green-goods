@@ -70,7 +70,7 @@ export default function ProfileView() {
       >
         <AccountTabList activeTab={activeTab} onTabChange={handleTabChange} />
       </CanvasRouteHeader>
-      <AccountTabPanels activeTab={activeTab} className="px-4 py-4 sm:px-5" />
+      <AccountTabPanels activeTab={activeTab} className="py-4" />
     </CanvasRouteFrame>
   );
 }

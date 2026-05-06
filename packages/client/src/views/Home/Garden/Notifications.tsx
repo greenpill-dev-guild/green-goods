@@ -47,15 +47,20 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
           })}
         </span>
       </div>
-      <p className="text-sm text-text-strong-950">
-        <span className="font-medium">
+      <p className="text-sm text-text-strong-950 break-words">
+        <span
+          className="font-medium"
+          title={formatAddress(work.gardenerAddress, { ensName: gardenerEnsName, variant: "card" })}
+        >
           {formatAddress(work.gardenerAddress, { ensName: gardenerEnsName, variant: "card" })}
         </span>{" "}
         {intl.formatMessage({
           id: "app.home.notifications.completedWorkApproval",
           defaultMessage: "completed work on",
         })}{" "}
-        <span className="font-medium">{garden.name}</span>
+        <span className="font-medium" title={garden.name}>
+          {garden.name}
+        </span>
       </p>
     </Link>
   );

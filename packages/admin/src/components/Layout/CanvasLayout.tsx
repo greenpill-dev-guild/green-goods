@@ -1,6 +1,7 @@
 import {
   BottomSheet,
   FabProvider,
+  RefreshActionProvider,
   GardenChip,
   LeftSheet,
   LeftSheetProvider,
@@ -288,84 +289,88 @@ export function CanvasLayout() {
 
   return (
     <FabProvider>
-      <LeftSheetProvider>
-        <div
-          data-component="CanvasLayout"
-          data-tone={workspaceId}
-          className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
-        >
-          {/* Skip to content */}
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]"
+      <RefreshActionProvider>
+        <LeftSheetProvider>
+          <div
+            data-component="CanvasLayout"
+            data-tone={workspaceId}
+            className="admin-m3 h-full min-h-0 workspace-canvas workspace-canvas-grid"
           >
-            {intl.formatMessage({
-              id: "app.admin.layout.skipToContent",
-              defaultMessage: "Skip to content",
-            })}
-          </a>
-
-          {/* ── Body 1: Persistent Chrome — Top Axis (Z3) ── */}
-          <div data-region="canvas-area-top" className="canvas-area-top">
-            <AppBar
-              gardenChip={gardenChipNode}
-              onOpenSearch={handleOpenSearch}
-              onOpenSettings={isDesktop ? openSettings : undefined}
-              onOpenNotifications={openNotifications}
-              onOpenProfile={isDesktop ? openProfile : undefined}
-            />
-          </div>
-
-          {/* ── Body 2: MainSheet — Content Zone (Z2) ── */}
-          <MainSheet isReceded={isReceded} overlayRef={overlayRootRef}>
-            <main
-              id="main-content"
-              data-region="main-scroll-area"
-              tabIndex={-1}
-              className="main-scroll-area h-full overflow-y-auto"
-              style={{
-                // Handoff sheet-system.css: floating NavigationBar at bottom: 20px
-                // with 56px height ⇒ ~100px clearance to keep last content row visible.
-                paddingBottom: isDesktop ? "6.25rem" : "calc(env(safe-area-inset-bottom) + 9.5rem)",
-                overscrollBehaviorY: "contain",
-                WebkitOverflowScrolling: "touch",
-              }}
+            {/* Skip to content */}
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-toast focus:rounded-lg focus:bg-[rgb(var(--tone-action,var(--primary-action)))] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]"
             >
-              <PageTransition />
-            </main>
-          </MainSheet>
+              {intl.formatMessage({
+                id: "app.admin.layout.skipToContent",
+                defaultMessage: "Skip to content",
+              })}
+            </a>
 
-          {/* ── Body 3: Persistent Chrome — Navigation Bar (Z3) ── */}
-          {/* Nav slots are role-based, not garden-based. Render as soon as auth is
+            {/* ── Body 1: Persistent Chrome — Top Axis (Z3) ── */}
+            <div data-region="canvas-area-top" className="canvas-area-top">
+              <AppBar
+                gardenChip={gardenChipNode}
+                onOpenSearch={handleOpenSearch}
+                onOpenSettings={isDesktop ? openSettings : undefined}
+                onOpenNotifications={openNotifications}
+                onOpenProfile={isDesktop ? openProfile : undefined}
+              />
+            </div>
+
+            {/* ── Body 2: MainSheet — Content Zone (Z2) ── */}
+            <MainSheet isReceded={isReceded} overlayRef={overlayRootRef}>
+              <main
+                id="main-content"
+                data-region="main-scroll-area"
+                tabIndex={-1}
+                className="main-scroll-area mx-auto h-full w-full max-w-[1400px] overflow-y-auto px-5 pt-2 sm:pt-3"
+                style={{
+                  // Handoff sheet-system.css: floating NavigationBar at bottom: 20px
+                  // with 56px height ⇒ ~100px clearance to keep last content row visible.
+                  paddingBottom: isDesktop
+                    ? "6.25rem"
+                    : "calc(env(safe-area-inset-bottom) + 9.5rem)",
+                  overscrollBehaviorY: "contain",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
+                <PageTransition />
+              </main>
+            </MainSheet>
+
+            {/* ── Body 3: Persistent Chrome — Navigation Bar (Z3) ── */}
+            {/* Nav slots are role-based, not garden-based. Render as soon as auth is
              resolved; slots fade in/out as role permissions resolve via FAIL_OPEN
              defaults in useEffectiveToolbarPermissions. */}
-          <div data-region="canvas-area-bottom" className="canvas-area-bottom">
-            {visibleSlotCount > 0 && (
-              <FabAwareNavigationBar
-                slots={slots}
-                activePath={activePath}
-                onNavigate={(path) => navigate(path)}
-              />
-            )}
+            <div data-region="canvas-area-bottom" className="canvas-area-bottom">
+              {visibleSlotCount > 0 && (
+                <FabAwareNavigationBar
+                  slots={slots}
+                  activePath={activePath}
+                  onNavigate={(path) => navigate(path)}
+                />
+              )}
+            </div>
+
+            {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
+            <RightSheet
+              open={activeSheet === "right" && rightSheetDescriptor !== null}
+              onClose={() => closeSheet()}
+              title={rightSheetDescriptor?.title}
+              container={overlayRoot}
+              width={rightSheetDescriptor?.width ?? "default"}
+            >
+              {rightSheetDescriptor?.content}
+            </RightSheet>
+
+            {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
+            <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRoot} />
+
+            <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
           </div>
-
-          {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
-          <RightSheet
-            open={activeSheet === "right" && rightSheetDescriptor !== null}
-            onClose={() => closeSheet()}
-            title={rightSheetDescriptor?.title}
-            container={overlayRoot}
-            width={rightSheetDescriptor?.width ?? "default"}
-          >
-            {rightSheetDescriptor?.content}
-          </RightSheet>
-
-          {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
-          <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRoot} />
-
-          <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
-        </div>
-      </LeftSheetProvider>
+        </LeftSheetProvider>
+      </RefreshActionProvider>
     </FabProvider>
   );
 }

@@ -46,16 +46,20 @@ export enum Domain {
 }
 
 /**
- * CSS color values for each action domain, referencing theme CSS variables.
- * Matches the domainConfig in actions.json (solar=amber, agro=green, edu=blue, waste=orange).
+ * CSS color values for each action domain, referencing the shared domain
+ * palette in `packages/shared/src/styles/theme.css`. Single source of truth
+ * for solar=amber, agro=moss, edu=harbour blue, waste=terracotta across
+ * public editorial, client PWA, and admin work filters.
  *
- * Use with inline styles: `style={{ borderLeftColor: DOMAIN_COLORS[domain] }}`
+ * Use with inline styles: `style={{ borderLeftColor: DOMAIN_COLORS[domain] }}`.
+ * For Tailwind utilities, prefer the matching `bg-domain-*`, `text-domain-*`,
+ * and `border-domain-*` classes generated from the same tokens.
  */
 export const DOMAIN_COLORS: Record<Domain, string> = {
-  [Domain.SOLAR]: "rgb(var(--yellow-500))",
-  [Domain.AGRO]: "rgb(var(--green-500))",
-  [Domain.EDU]: "rgb(var(--blue-500))",
-  [Domain.WASTE]: "rgb(var(--orange-500))",
+  [Domain.SOLAR]: "rgb(var(--domain-solar-rgb))",
+  [Domain.AGRO]: "rgb(var(--domain-agro-rgb))",
+  [Domain.EDU]: "rgb(var(--domain-education-rgb))",
+  [Domain.WASTE]: "rgb(var(--domain-waste-rgb))",
 };
 
 /**

@@ -68,7 +68,10 @@ const ActionCard = React.forwardRef<HTMLDivElement, ActionCardRootProps>(
           >
             {action.title}
           </h5>
-          <div className="line-clamp-3 h-[3.75rem] text-sm leading-5 text-text-sub-600">
+          <div
+            className="line-clamp-3 h-[3.75rem] text-sm leading-5 text-text-sub-600"
+            title={action.mediaInfo?.description}
+          >
             {action.mediaInfo?.description}
           </div>
         </div>

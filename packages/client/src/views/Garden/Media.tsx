@@ -527,13 +527,13 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                       },
                       { index: index + 1 }
                     )}
-                    className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                    className="flex items-center justify-center min-h-11 min-w-11 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                     onClick={() => {
                       if (playingVideoIndex === index) setPlayingVideoIndex(null);
                       removeMedia(index);
                     }}
                   >
-                    <RiCloseLine className="w-8 h-8" />
+                    <RiCloseLine className="w-4 h-4" />
                   </button>
                 </div>
               );
@@ -565,13 +565,13 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     { id: "app.garden.upload.removeMedia", defaultMessage: "Remove media {index}" },
                     { index: index + 1 }
                   )}
-                  className="flex items-center justify-center w-8 h-8 p-1 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
+                  className="flex items-center justify-center min-h-11 min-w-11 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                   onClick={(e) => {
                     e.stopPropagation();
                     removeMedia(index);
                   }}
                 >
-                  <RiCloseLine className="w-8 h-8" />
+                  <RiCloseLine className="w-4 h-4" />
                 </button>
               </div>
             );

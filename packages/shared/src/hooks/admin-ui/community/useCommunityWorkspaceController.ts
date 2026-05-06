@@ -3,11 +3,12 @@ import {
   toastService,
   useAdminGardenWorkspaceSelection,
   useCanvasSearchParams,
-  useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
   useGardenStateStore,
+  useMediaQuery,
   useSheetWidth,
+  useViewActions,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -17,7 +18,7 @@ import {
   type AdminWorkspaceSectionTab,
 } from "../navigation/workspaceNavigation";
 import {
-  buildCommunityFabConfig,
+  buildCommunityViewActions,
   communitySectionForMode,
   resolveCommunityMode,
 } from "./community.utils";
@@ -133,15 +134,18 @@ export function useCommunityWorkspaceController() {
     scheduleBackgroundRefetch,
   } = useGardenDetailData(selectedGarden?.id);
 
-  useFabConfig(
-    useMemo(
-      () =>
-        buildCommunityFabConfig(canManage, Boolean(selectedGarden), navigate, {
-          gardenAddress: selectedGardenAddress,
-        }),
-      [canManage, navigate, selectedGarden, selectedGardenAddress]
-    )
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const viewActions = useMemo(
+    () =>
+      buildCommunityViewActions(canManage, isOwner, Boolean(selectedGarden), navigate, {
+        gardenAddress: selectedGardenAddress,
+      }),
+    [canManage, isOwner, navigate, selectedGarden, selectedGardenAddress]
   );
+  const { desktopActions } = useViewActions({
+    actions: viewActions,
+    isDesktop,
+  });
 
   const openSection = useCallback(
     (tab: AdminWorkspaceSectionTab, section: string, itemId?: string) => {
@@ -220,6 +224,7 @@ export function useCommunityWorkspaceController() {
     containerRef,
     createPools: createPoolsAsync,
     derived,
+    desktopActions,
     error,
     fetching,
     garden,

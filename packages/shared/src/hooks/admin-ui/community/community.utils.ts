@@ -4,8 +4,16 @@ import {
   type FabConfig,
   formatTokenAmount,
   type MetaStripItem,
+  type ViewAction,
 } from "@green-goods/shared";
-import { RiAddLine, RiMoneyDollarCircleLine, RiUserLine, RiUserVoiceLine } from "@remixicon/react";
+import {
+  RiAddLine,
+  RiExternalLinkLine,
+  RiHandCoinLine,
+  RiMoneyDollarCircleLine,
+  RiUserLine,
+  RiUserVoiceLine,
+} from "@remixicon/react";
 
 /**
  * Inputs for the Community header stats slot.
@@ -87,6 +95,75 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
   return mode;
 }
 
+/**
+ * Community view-level actions. Reference design pairs a primary "New proposal"
+ * with a "View public" ghost button; we extend with role/treasury actions per
+ * user request (Manage roles, Deposit / withdraw, Manage payouts). On desktop
+ * AdminViewActions inlines the top 3 and folds the rest into an overflow kebab.
+ */
+export function buildCommunityViewActions(
+  canManage: boolean,
+  isOwner: boolean,
+  hasSelectedGarden: boolean,
+  navigate: (path: string) => void,
+  routeContext?: AdminCommunityRouteContext
+): ViewAction[] {
+  const gardenAddress = routeContext?.gardenAddress;
+  return [
+    {
+      id: "view-public",
+      label: "View public",
+      labelId: "cockpit.community.action.viewPublic",
+      icon: RiExternalLinkLine,
+      onClick: () => {
+        if (!gardenAddress) return;
+        const url = `/gardens/${encodeURIComponent(gardenAddress)}`;
+        window.open(url, "_blank", "noopener,noreferrer");
+      },
+      variant: "ghost",
+      visible: hasSelectedGarden && Boolean(gardenAddress),
+    },
+    {
+      id: "manage-roles",
+      label: "Manage roles",
+      labelId: "cockpit.community.action.manageRoles",
+      icon: RiUserLine,
+      onClick: () => navigate(adminRoutes.communityMembers(routeContext)),
+      variant: "secondary",
+      visible: hasSelectedGarden && canManage,
+    },
+    {
+      id: "deposit-withdraw",
+      label: "Deposit / withdraw",
+      labelId: "cockpit.community.action.depositWithdraw",
+      icon: RiMoneyDollarCircleLine,
+      onClick: () => navigate(adminRoutes.communityTreasuryVault(routeContext)),
+      variant: "secondary",
+      visible: hasSelectedGarden && isOwner,
+    },
+    {
+      id: "manage-payouts",
+      label: "Manage payouts",
+      labelId: "cockpit.community.action.managePayouts",
+      icon: RiHandCoinLine,
+      onClick: () => navigate(adminRoutes.communityPayouts(routeContext)),
+      variant: "secondary",
+      visible: hasSelectedGarden && canManage,
+    },
+    {
+      id: "new-proposal",
+      label: "New proposal",
+      labelId: "cockpit.community.action.newProposal",
+      icon: RiUserVoiceLine,
+      onClick: () => navigate(adminRoutes.communityGovernance(routeContext)),
+      variant: "primary",
+      visible: hasSelectedGarden && canManage,
+      primary: true,
+    },
+  ];
+}
+
+/** @deprecated Use `buildCommunityViewActions` + `useViewActions` instead. */
 export function buildCommunityFabConfig(
   canManage: boolean,
   hasSelectedGarden: boolean,

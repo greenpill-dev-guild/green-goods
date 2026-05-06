@@ -64,14 +64,14 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
   };
 
   return (
-    <div className="rounded-lg border border-stroke-soft bg-bg-white p-3">
+    <div className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
         className="flex w-full items-center justify-between gap-2"
       >
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-text-strong">{assetSymbol}</p>
+          <p className="text-sm font-medium text-text-strong-950">{assetSymbol}</p>
           <span
             className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium ${
               jar.isPaused
@@ -84,10 +84,10 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
               : formatMessage({ id: "app.cookieJar.active" })}
           </span>
         </div>
-        <p className="text-xs text-text-sub">{formatTokenAmount(jar.balance, decimals)}</p>
+        <p className="text-xs text-text-sub-600">{formatTokenAmount(jar.balance, decimals)}</p>
       </button>
 
-      <div className="mt-2 flex gap-3 text-xs text-text-soft">
+      <div className="mt-2 flex gap-3 text-xs text-text-soft-400">
         <span>
           {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}:{" "}
           {formatTokenAmount(jar.maxWithdrawal, decimals)}
@@ -98,7 +98,7 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
       </div>
 
       {expanded && !jar.isPaused && (
-        <div className="mt-3 space-y-2 border-t border-stroke-soft pt-3">
+        <div className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -108,10 +108,10 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
               placeholder={formatMessage({ id: "app.cookieJar.amount" })}
               aria-label={formatMessage({ id: "app.cookieJar.amount" })}
               aria-invalid={Boolean(inputError)}
-              className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+              className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
                 inputError
                   ? "border-error-base focus:border-error-base"
-                  : "border-stroke-sub bg-bg-white focus:border-primary-base"
+                  : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
               }`}
             />
             <button
@@ -120,7 +120,7 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
                 const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
                 setAmountInput(formatUnits(max, decimals));
               }}
-              className="min-h-11 min-w-11 rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-xs font-medium text-text-sub hover:bg-bg-weak"
+              className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
             >
               {formatMessage({ id: "app.treasury.max" })}
             </button>
@@ -136,7 +136,7 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
             onChange={(e) => setPurpose(e.target.value)}
             placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
             aria-label={formatMessage({ id: "app.cookieJar.purpose" })}
-            className="w-full rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
+            className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
             rows={2}
           />
 
@@ -151,7 +151,7 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
               !purpose.trim() ||
               withdrawMutation.isPending
             }
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub bg-bg-white px-3 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-weak disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 transition hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {withdrawMutation.isPending
               ? formatMessage({ id: "app.cookieJar.withdrawing" })

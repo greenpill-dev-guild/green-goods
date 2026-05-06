@@ -170,7 +170,7 @@ export class AppErrorBoundary extends Component<Props, State> {
                 {/* Development details */}
                 {this.state.error && (
                   <details className="mb-8 text-left w-full group">
-                    <summary className="cursor-pointer font-medium text-sm text-text-strong-950 hover:text-text-strong-950 transition-colors p-3 bg-bg-soft-200 rounded-lg border border-stroke-soft-200 group-open:rounded-b-none">
+                    <summary className="cursor-pointer font-medium text-sm text-text-strong-950 hover:text-text-strong-950 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] p-3 bg-bg-soft-200 rounded-lg border border-stroke-soft-200 group-open:rounded-b-none">
                       <span className="flex items-center justify-between">
                         {this.t("app.error.boundary.devMode.title")}
                         <span className="text-xs text-text-sub-600 group-open:hidden">

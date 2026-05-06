@@ -56,14 +56,19 @@ const AssessmentCard = memo(function AssessmentCard({
     <Card key={assessment.id} className="flex flex-col gap-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h6 className="truncate text-base font-semibold text-text-strong-950">
+          <h6
+            className="truncate text-base font-semibold text-text-strong-950"
+            title={assessment.title}
+          >
             {assessment.title}
           </h6>
           <p className="text-xs uppercase tracking-wide text-text-sub-600">
             {assessment.assessmentType ||
               intl.formatMessage({ id: "app.garden.assessments.title" })}
           </p>
-          <p className="mt-2 line-clamp-3 text-sm text-text-sub-600">{assessment.description}</p>
+          <p className="mt-2 line-clamp-3 text-sm text-text-sub-600" title={assessment.description}>
+            {assessment.description}
+          </p>
         </div>
         <Link
           to={`assessments/${assessment.id}`}
@@ -212,7 +217,9 @@ const ReportCard = memo(function ReportCard({ report, index }: { report: string;
           )}
         </h6>
       </div>
-      <p className="text-sm text-text-sub-600 line-clamp-2 break-all">{fileName}</p>
+      <p className="text-sm text-text-sub-600 line-clamp-2 break-all" title={fileName}>
+        {fileName}
+      </p>
       <a
         href={report}
         target="_blank"

@@ -108,10 +108,8 @@ export function MainSheet({ isReceded, children, overlayRef, className }: MainSh
   return (
     <CanvasPortalContext.Provider value={canvasPortalValue}>
       <div
-        className={cn("canvas-area-main relative flex-1 min-h-0", className)}
+        className={cn("canvas-area-main relative flex-1 min-h-0 w-full", className)}
         style={{
-          width: "min(calc(100% - 2rem), 1400px)",
-          justifySelf: "center",
           marginBottom: "1rem",
         }}
         data-component="MainSheet"

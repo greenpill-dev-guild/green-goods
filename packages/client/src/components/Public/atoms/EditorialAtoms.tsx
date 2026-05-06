@@ -1,11 +1,11 @@
 import { cn } from "@green-goods/shared";
 import {
+  type ButtonHTMLAttributes,
+  type ReactNode,
   useEffect,
   useId,
   useRef,
   useState,
-  type ButtonHTMLAttributes,
-  type ReactNode,
 } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 
@@ -254,6 +254,13 @@ const GHOST_CLASSES =
 const GHOST_DARK_CLASSES =
   "inline-flex items-center justify-center gap-2 rounded-full border border-editorial-deep-fg/40 bg-transparent px-6 py-3 text-sm font-medium text-editorial-deep-fg hover:bg-editorial-deep-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-editorial-deep-fg focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
 
+// Warm tonal capsule — `bg-editorial-warm` linen with walnut ink. Sits between
+// primary (green) and ghost (white): more presence than ghost, less authority
+// than primary. Use when a secondary action needs to feel paired with the
+// primary (e.g. Donate / Endow CTAs that are equally important).
+const GHOST_WARM_CLASSES =
+  "inline-flex items-center justify-center gap-2 rounded-full border border-editorial-deep/15 bg-editorial-warm px-6 py-3 text-sm font-medium text-text-strong-950 hover:bg-editorial-deep/10 hover:border-editorial-deep/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:scale-100 disabled:active:scale-100";
+
 export interface EditorialPrimaryButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
 }
@@ -272,9 +279,18 @@ export function EditorialPrimaryButton({
   );
 }
 
+export type EditorialGhostVariant = "ghost" | "warm";
+
 export interface EditorialGhostButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
   tone?: Tone;
+  /**
+   * Visual variant. `ghost` (default) is the quiet white capsule with a thin
+   * gray border. `warm` is a tonal linen capsule that pairs with primary CTAs
+   * when the secondary action carries similar weight (e.g. Donate / Endow).
+   * The `tone` prop only applies to `ghost` (default vs. dark walnut surface).
+   */
+  variant?: EditorialGhostVariant;
 }
 
 /** Capsule transparent secondary action. Default tone for linen, dark for walnut. */
@@ -282,19 +298,14 @@ export function EditorialGhostButton({
   children,
   className,
   tone = "default",
+  variant = "ghost",
   type = "button",
   ...rest
 }: EditorialGhostButtonProps) {
+  const baseClasses =
+    variant === "warm" ? GHOST_WARM_CLASSES : tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES;
   return (
-    <button
-      type={type}
-      className={cn(
-        tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES,
-        ACTION_MOTION_CLASSES,
-        className
-      )}
-      {...rest}
-    >
+    <button type={type} className={cn(baseClasses, ACTION_MOTION_CLASSES, className)} {...rest}>
       {children}
     </button>
   );
@@ -451,7 +462,7 @@ export function EditorialDomainChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "inline-flex cursor-pointer items-center gap-2 rounded-full border px-4 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
         active ? ACTIVE_DOMAIN_CLASSES[domain] : isEmpty ? emptyClasses : inactiveClasses,
         active && domain === "all"
           ? "focus-visible:ring-text-strong-950"

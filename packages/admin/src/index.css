@@ -292,52 +292,58 @@
  * Each defines 8 tonal roles consumed by --tone-* utilities across the admin UI
  * ============================================================================ */
 
-/* Hub — Blue */
+/* Hub — Blue. `--tone-action` shifted from blue-500 (vivid, "bad blue") to
+ * blue-700 (deeper, more grounded) so the primary button feels like a
+ * confident operator action rather than a default web-app blue. */
 [data-tone="hub"] {
-  --tone-primary: var(--blue-500);
+  --tone-primary: var(--blue-600);
   --tone-on-primary: 255 255 255;
-  --tone-action: var(--blue-500);
-  --tone-action-hover: var(--blue-700);
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-800);
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--blue-100);
   --tone-on-primary-container: var(--blue-900);
   --tone-secondary: var(--blue-300);
-  --tone-surface-tint: var(--blue-500) / 8%;
+  --tone-surface-tint: var(--blue-600) / 8%;
   --tone-outline: var(--blue-200);
   --tone-surface-variant: var(--blue-50);
-  --tone-surface-tint-color: rgb(var(--blue-500) / 8%);
+  --tone-surface-tint-color: rgb(var(--blue-600) / 8%);
 }
 
-/* Garden — Green */
+/* Garden — Green. Shifted action from green-800 (almost black) to green-700
+ * (forest green) so white text reads with stronger contrast and the button
+ * feels like a living accent instead of an abyss. */
 [data-tone="garden"] {
-  --tone-primary: var(--green-500);
+  --tone-primary: var(--green-600);
   --tone-on-primary: 255 255 255;
-  --tone-action: var(--green-800);
-  --tone-action-hover: var(--green-900);
+  --tone-action: var(--green-700);
+  --tone-action-hover: var(--green-800);
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--green-100);
   --tone-on-primary-container: var(--green-900);
   --tone-secondary: var(--green-300);
-  --tone-surface-tint: var(--green-500) / 8%;
+  --tone-surface-tint: var(--green-600) / 8%;
   --tone-outline: var(--green-200);
   --tone-surface-variant: var(--green-50);
-  --tone-surface-tint-color: rgb(var(--green-500) / 8%);
+  --tone-surface-tint-color: rgb(var(--green-600) / 8%);
 }
 
-/* Community — Orange */
+/* Community — Orange. Shifted from orange-800 (harsh near-burnt) to
+ * orange-700 (warm copper) so it reads as inviting community accent rather
+ * than warning. */
 [data-tone="community"] {
-  --tone-primary: var(--orange-500);
+  --tone-primary: var(--orange-600);
   --tone-on-primary: 255 255 255;
-  --tone-action: var(--orange-800);
-  --tone-action-hover: var(--orange-900);
+  --tone-action: var(--orange-700);
+  --tone-action-hover: var(--orange-800);
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--orange-100);
   --tone-on-primary-container: var(--orange-900);
   --tone-secondary: var(--orange-300);
-  --tone-surface-tint: var(--orange-500) / 8%;
+  --tone-surface-tint: var(--orange-600) / 8%;
   --tone-outline: var(--orange-200);
   --tone-surface-variant: var(--orange-50);
-  --tone-surface-tint-color: rgb(var(--orange-500) / 8%);
+  --tone-surface-tint-color: rgb(var(--orange-600) / 8%);
 }
 
 /* Actions — Red */
@@ -1056,6 +1062,49 @@
     --shape-2xl: 1.9rem;  /* 30.4px — navigation dock */
   }
 
+  /**
+   * Canvas route card — the single outer surface that wraps a workspace view
+   * (Hub, Garden, Community, Actions, Cookies, etc.). Mirrors the reference
+   * design `.mainsheet` from `design_handoff_admin-revamp/screens/hub.css`:
+   *   mobile  ~16px sides
+   *   tablet  ~28px sides
+   *   desktop ~40px sides
+   * Page header, tabs, search, and content all live inside it with breathing
+   * room from the card edge — no card-on-card stacking.
+   */
+  .canvas-route-card {
+    /* Slightly translucent + backdrop-blur so the workspace tone gradient
+     * bleeds subtly through the card edges. Keeps the M3 "card" feel while
+     * picking up the per-view atmosphere (blue / green / orange / red / stone).
+     * Falls back to opaque white when backdrop-filter isn't supported. */
+    background: rgb(var(--admin-surface-0) / 0.92);
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    border-radius: var(--shape-xl);
+    /* Horizontal padding mirrors the AppBar paddingInline (20px) so eyebrow,
+       title, tabs, and search align with AppBar text at any viewport. */
+    padding: 0.875rem 1rem 1.25rem;
+    box-shadow: var(--edge-rest), var(--elevation-2);
+  }
+
+  @supports not (backdrop-filter: blur(1px)) {
+    .canvas-route-card {
+      background: rgb(var(--admin-surface-0));
+    }
+  }
+
+  @media (min-width: 600px) {
+    .canvas-route-card {
+      padding: 1.125rem 1.25rem 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .canvas-route-card {
+      padding: 1.25rem 1.25rem 1.75rem;
+    }
+  }
+
   /** Full-width section: page-level grouping */
   .surface-section {
     @apply rounded-xl;
@@ -1143,7 +1192,7 @@
   }
 
   .hub-route-shell {
-    padding: 1rem 1rem 1.5rem;
+    /* Padding is owned by `.canvas-route-card` (applied by CanvasRouteFrame). */
   }
 
   .hub-route-stack {
@@ -1221,17 +1270,7 @@
       transform var(--spring-spatial-fast-duration) var(--spring-spatial-fast-easing);
   }
 
-  @media (max-width: 599px) {
-    .hub-route-shell {
-      padding: 0.75rem 0 0.5rem;
-    }
-
-    /* Mobile gutter for the results section only — PageHeader keeps its own
-     * px-4 inset and isn't shifted inward by this margin. */
-    .hub-results-shell {
-      margin-inline: 0.75rem;
-    }
-  }
+  /* `.hub-route-shell` mobile padding: now owned by `.canvas-route-card`. */
 }
 
 /* ============================================================================
@@ -1243,17 +1282,69 @@
  * Atmospheric radial-gradient backdrop + noise texture retired 2026-04-17
  * per D1 (strict M3 over hybrid visual system).
  * ============================================================================ */
+/* ============================================================================
+ * VIEW TRANSITIONS — scope cross-fade to content only
+ *
+ * `PageTransition` uses the View Transitions API on every route change. By
+ * default the API snapshots the entire viewport, so the AppBar and floating
+ * NavigationBar cross-fade along with the content — it looks like the chrome
+ * is "moving" when only a tab switched. Naming each chrome region as its own
+ * transition group with no animation keeps them visually stationary while the
+ * content area still gets the default cross-fade.
+ * ============================================================================ */
+.canvas-area-top {
+  view-transition-name: gg-canvas-top;
+}
+.canvas-area-bottom {
+  view-transition-name: gg-canvas-bottom;
+}
+::view-transition-group(gg-canvas-top),
+::view-transition-old(gg-canvas-top),
+::view-transition-new(gg-canvas-top),
+::view-transition-group(gg-canvas-bottom),
+::view-transition-old(gg-canvas-bottom),
+::view-transition-new(gg-canvas-bottom) {
+  animation: none !important;
+}
+
+/* Slow + soften the root transition so the workspace tone (canvas gradient)
+ * cross-fades gracefully on workspace switches instead of snapping. Default
+ * duration is 250ms; 380ms feels deliberate without dragging. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 1ms;
+  }
+}
+
 .workspace-canvas {
   --tone-tint: 59 130 246;
   --tone-tint-2: 125 211 252;
   --tone-accent: 37 99 235;
   position: relative;
   isolation: isolate;
+  /* Extends the workspace tone wash through the entire canvas: a top-anchored
+   * radial highlight stays bright, then a vertical fade keeps the tint visible
+   * all the way down (subtle, ~3-6% opacity). Previously the radial faded to
+   * transparent at 70% so anything past the AppBar reverted to plain
+   * `m3-surface-container-lowest`, breaking the gradient as you scrolled. */
   background:
     radial-gradient(
-      ellipse 100% 60% at 50% 0%,
+      ellipse 100% 70% at 50% 0%,
       var(--tone-surface-tint-color, transparent) 0%,
-      transparent 70%
+      transparent 80%
+    ),
+    linear-gradient(
+      180deg,
+      var(--tone-surface-tint-color, transparent) 0%,
+      rgb(var(--tone-tint, 59 130 246) / 0.025) 60%,
+      rgb(var(--tone-tint, 59 130 246) / 0.045) 100%
     ),
     rgb(var(--m3-surface-container-lowest));
   transition: background-color var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
@@ -1299,8 +1390,43 @@
   overflow-x: hidden;
 }
 
+/* Dark-mode workspace canvas. Reuses the same gradient stack with a darker
+ * base. `--tone-tint` lightens per-workspace below so the tone is still
+ * legible against the darker substrate (lifting ~25% of the way up the scale
+ * matches the on-action / on-primary inversions defined elsewhere). */
 [data-theme="dark"] .workspace-canvas {
-  background: rgb(var(--m3-surface-dim));
+  background:
+    radial-gradient(
+      ellipse 100% 70% at 50% 0%,
+      var(--tone-surface-tint-color, transparent) 0%,
+      transparent 80%
+    ),
+    linear-gradient(
+      180deg,
+      var(--tone-surface-tint-color, transparent) 0%,
+      rgb(var(--tone-tint, 147 197 253) / 0.045) 60%,
+      rgb(var(--tone-tint, 147 197 253) / 0.075) 100%
+    ),
+    rgb(var(--m3-surface-dim));
+}
+
+[data-theme="dark"] .workspace-canvas[data-tone="home"] {
+  --tone-tint: 168 162 158;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="hub"] {
+  --tone-tint: 147 197 253;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="garden"] {
+  --tone-tint: 110 231 183;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="community"] {
+  --tone-tint: 250 204 21;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="actions"] {
+  --tone-tint: 248 113 113;
+}
+[data-theme="dark"] .workspace-canvas[data-tone="profile"] {
+  --tone-tint: 196 181 253;
 }
 
 @media (prefers-reduced-motion: reduce) {

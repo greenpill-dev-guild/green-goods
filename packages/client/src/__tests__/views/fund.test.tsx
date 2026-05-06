@@ -2,12 +2,11 @@
  * Fund view behavior tests for the editorial public browser refresh.
  *
  * Locks the public-only contract:
- * - Donate / Endow intent selector launches before any wallet prompt.
- * - Wallet selection routes to the matching CookieJar / Vault deposit dialog.
- * - Card path is hidden by default (provider proof registry empty).
- * - `?garden=` resolution: exact id match scrolls and highlights.
- * - Stale `?garden=` renders the localized non-blocking message.
- * - No withdraw or admin controls.
+ * - Each Garden row exposes Donate + Endow CTAs (no intermediate intent picker).
+ * - Tapping Donate or Endow opens PublicFundingCard with the matching intent.
+ * - `?intent=` mounts the receipt UI.
+ * - `?garden=` stale resolution renders a non-blocking message.
+ * - The page stays support-only (no withdraw / admin controls).
  *
  * @vitest-environment jsdom
  */
@@ -51,11 +50,13 @@ const mockGardens = [
   },
 ];
 
-const { mockUsePublicGardens, mockOpenWalletModal, mockPrimaryAddress } = vi.hoisted(() => ({
-  mockUsePublicGardens: vi.fn(),
-  mockOpenWalletModal: vi.fn(),
-  mockPrimaryAddress: { current: null as Address | null },
-}));
+const { mockUsePublicGardens, mockUsePublicVaultSummary, mockOpenWalletModal, mockPrimaryAddress } =
+  vi.hoisted(() => ({
+    mockUsePublicGardens: vi.fn(),
+    mockUsePublicVaultSummary: vi.fn(),
+    mockOpenWalletModal: vi.fn(),
+    mockPrimaryAddress: { current: null as Address | null },
+  }));
 
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
@@ -63,36 +64,27 @@ vi.mock("@green-goods/shared", async () => {
     ...actual,
     useAppKit: () => ({ open: mockOpenWalletModal }),
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
+    usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
     useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
   };
 });
 
-vi.mock("@/components/Dialogs", () => ({
-  VaultDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
-    isOpen ? <div data-testid="vault-deposit-dialog">{gardenName}</div> : null,
-  CookieJarDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
-    isOpen ? <div data-testid="cookie-jar-dialog">{gardenName}</div> : null,
+vi.mock("@/components/Public/PublicFundingCard", () => ({
+  PublicFundingCard: ({
+    open,
+    intent,
+    garden,
+  }: {
+    open: boolean;
+    intent: "donate" | "endow";
+    garden: { name: string };
+  }) =>
+    open ? (
+      <div data-testid="public-funding-card" data-intent={intent}>
+        {garden.name}
+      </div>
+    ) : null,
 }));
-
-vi.mock("@/components/Dialogs/CookieJarDepositDialog", () => ({
-  CookieJarDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
-    isOpen ? <div data-testid="cookie-jar-dialog">{gardenName}</div> : null,
-}));
-
-vi.mock("@/components/Dialogs/VaultDepositDialog", () => ({
-  VaultDepositDialog: ({ isOpen, gardenName }: { isOpen: boolean; gardenName: string }) =>
-    isOpen ? <div data-testid="vault-deposit-dialog">{gardenName}</div> : null,
-}));
-
-vi.mock("@/components/Public", async () => {
-  const actual = await vi.importActual<typeof import("@/components/Public")>("@/components/Public");
-  return {
-    ...actual,
-    PublicFundingReceipt: ({ intentId }: { intentId: string }) => (
-      <div data-testid="public-funding-receipt">{intentId}</div>
-    ),
-  };
-});
 
 vi.mock("@/components/Public/PublicFundingReceipt", () => ({
   PublicFundingReceipt: ({ intentId }: { intentId: string }) => (
@@ -108,45 +100,11 @@ import FundPage from "../../views/Public/Fund";
 
 const messages: Record<string, string> = {
   "public.fund.title": "Fund",
-  "public.fund.description": "Support regenerative gardens by funding their vaults",
-  "public.fund.support": "Support",
-  "public.fund.supportShort": "Support",
-  "public.fund.taxDisclaimer": "tax disclaimer",
   "public.fund.heroTitle": "A small gesture today, growing over many seasons.",
   "public.fund.heroLede":
     "Donate to support a Garden's immediate work, or Endow a Vault designed so yield helps the Garden over time.",
-  "public.fund.paths.kicker": "§ 01 — Two paths of support",
-  "public.fund.paths.title": "Donate now, or Endow for many seasons.",
-  "public.fund.paths.donateTitle": "Donate",
-  "public.fund.paths.donateLede": "Direct support that reaches a Garden's Cookie Jar today.",
-  "public.fund.paths.donateRoutes": "The Garden's Cookie Jar.",
-  "public.fund.paths.donateBestFor": "Immediate needs and near-term work.",
-  "public.fund.paths.endowTitle": "Endow",
-  "public.fund.paths.endowLede":
-    "A Vault designed so the deposit can remain while yield supports the Garden over time.",
-  "public.fund.paths.endowRoutes": "A Vault held by the Garden.",
-  "public.fund.paths.endowBestFor": "Longer-term support that compounds.",
-  "public.fund.gardens.kicker": "§ 02 — Choose where to apply your support",
-  "public.fund.gardens.title": "Gardens accepting support this season.",
-  "public.fund.support.routes": "Routes through",
-  "public.fund.support.bestFor": "Best for",
-  "public.fund.endow.note":
-    "Vault support depends on token, provider, and wallet mechanics. Values and access can vary; review the details before continuing.",
-  "public.fund.dialog.intentTitle": "Support {garden}",
   "public.fund.dialog.donate.title": "Donate",
-  "public.fund.dialog.donate.description": "donate description",
   "public.fund.dialog.endow.title": "Endow",
-  "public.fund.dialog.endow.description": "endow description",
-  "public.fund.dialog.endow.risk": "endow risk",
-  "public.fund.dialog.taxDisclaimer": "dialog tax disclaimer",
-  "public.fund.dialog.methodTitle": "Choose how to pay",
-  "public.fund.dialog.wallet.title": "Wallet",
-  "public.fund.dialog.wallet.descriptionConnected": "wallet connected",
-  "public.fund.dialog.wallet.descriptionDisconnected": "wallet disconnected",
-  "public.fund.dialog.back": "Back",
-  "public.fund.dialog.close": "Close",
-  "public.fund.gardenQuery.stale": "We couldn't find a Garden matching {query}.",
-  "public.fund.gardenQuery.ambiguous": "Ambiguous Garden {query}.",
 };
 
 function renderView(initialEntries: string[] = ["/fund"]) {
@@ -164,65 +122,123 @@ describe("FundPage", () => {
     vi.clearAllMocks();
     mockPrimaryAddress.current = null;
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
+    mockUsePublicVaultSummary.mockReturnValue({
+      hasVaults: true,
+      isLoading: false,
+      isError: false,
+      isYieldLoading: false,
+      isYieldError: false,
+      isAllocationLoading: false,
+      isAllocationError: false,
+      gardensByAddress: {
+        "0x1111111111111111111111111111111111111111": {
+          garden: "0x1111111111111111111111111111111111111111",
+          hasVaults: true,
+          assets: [
+            {
+              symbol: "DAI",
+              asset: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+              chainId: 42161,
+              decimals: 18,
+              vaultCount: 1,
+              netDeposited: 2_000_000_000_000_000_000_000n,
+              accruingYield: 5_000_000_000_000_000_000n,
+              currentValue: 2_005_000_000_000_000_000_000n,
+              allocatedYield: 20_000_000_000_000_000_000n,
+              accruedYield: 25_000_000_000_000_000_000n,
+              apr: 5.1,
+              apy: undefined,
+              isAprLoading: false,
+              isAprError: false,
+            },
+            {
+              symbol: "ETH",
+              asset: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+              chainId: 42161,
+              decimals: 18,
+              vaultCount: 1,
+              netDeposited: 1_200_000_000_000_000_000n,
+              accruingYield: 50_000_000_000_000_000n,
+              currentValue: 1_250_000_000_000_000_000n,
+              allocatedYield: 100_000_000_000_000_000n,
+              accruedYield: 150_000_000_000_000_000n,
+              apr: 2.5,
+              apy: undefined,
+              isAprLoading: false,
+              isAprError: false,
+            },
+          ],
+        },
+      },
+      assets: [
+        {
+          symbol: "DAI",
+          asset: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1",
+          chainId: 42161,
+          decimals: 18,
+          vaultCount: 1,
+          netDeposited: 2_000_000_000_000_000_000_000n,
+          accruingYield: 5_000_000_000_000_000_000n,
+          currentValue: 2_005_000_000_000_000_000_000n,
+          allocatedYield: 20_000_000_000_000_000_000n,
+          accruedYield: 25_000_000_000_000_000_000n,
+          apr: 5.1,
+          apy: undefined,
+          isAprLoading: false,
+          isAprError: false,
+        },
+        {
+          symbol: "ETH",
+          asset: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+          chainId: 42161,
+          decimals: 18,
+          vaultCount: 1,
+          netDeposited: 1_200_000_000_000_000_000n,
+          accruingYield: 50_000_000_000_000_000n,
+          currentValue: 1_250_000_000_000_000_000n,
+          allocatedYield: 100_000_000_000_000_000n,
+          accruedYield: 150_000_000_000_000_000n,
+          apr: 2.5,
+          apy: undefined,
+          isAprLoading: false,
+          isAprError: false,
+        },
+      ],
+    });
   });
 
-  it("renders the editorial hero with the Donate/Endow narrative", () => {
+  it("renders the editorial hero", () => {
     renderView();
     expect(screen.getByRole("heading", { level: 1 }).textContent).toMatch(
       /a small gesture today, growing over many seasons/i
     );
-    expect(screen.getByText(/donate to support a garden/i)).toBeInTheDocument();
   });
 
-  it("each Garden gets a Support CTA — no Deposit/Cookie Jar/Connect Wallet on the page", () => {
+  it("each Garden row exposes Donate + Endow CTAs (no intermediate picker)", () => {
     renderView();
-    const supportButtons = screen.getAllByRole("button", { name: "Support" });
-    expect(supportButtons).toHaveLength(2);
-    expect(screen.queryByRole("button", { name: "Deposit" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Cookie Jar" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Connect Wallet" })).toBeNull();
+    const donateButtons = screen.getAllByRole("button", { name: "Donate" });
+    const endowButtons = screen.getAllByRole("button", { name: "Endow" });
+    expect(donateButtons).toHaveLength(2);
+    expect(endowButtons).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Support" })).toBeNull();
   });
 
-  it("Support CTA opens the Donate/Endow intent selector before any wallet prompt", async () => {
+  it("clicking Donate opens PublicFundingCard with intent=donate", async () => {
     const user = userEvent.setup();
     renderView();
-    await user.click(screen.getAllByRole("button", { name: "Support" })[0]);
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /donate/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /endow/i })).toBeInTheDocument();
-    // No wallet prompt yet.
-    expect(mockOpenWalletModal).not.toHaveBeenCalled();
+    await user.click(screen.getAllByRole("button", { name: "Donate" })[0]);
+    const card = await screen.findByTestId("public-funding-card");
+    expect(card).toHaveAttribute("data-intent", "donate");
+    expect(card).toHaveTextContent("Solar Community Garden");
   });
 
-  it("Donate → Wallet routes to the CookieJar deposit dialog when wallet is connected", async () => {
-    const user = userEvent.setup();
-    mockPrimaryAddress.current = "0x9999999999999999999999999999999999999999";
-    renderView();
-    await user.click(screen.getAllByRole("button", { name: "Support" })[0]);
-    await user.click(await screen.findByRole("button", { name: /donate/i }));
-    await user.click(screen.getByRole("button", { name: /wallet/i }));
-    expect(await screen.findByTestId("cookie-jar-dialog")).toHaveTextContent(
-      "Solar Community Garden"
-    );
-    expect(mockOpenWalletModal).not.toHaveBeenCalled();
-  });
-
-  it("Donate → Wallet opens AppKit at the wallet-required step when disconnected", async () => {
+  it("clicking Endow opens PublicFundingCard with intent=endow", async () => {
     const user = userEvent.setup();
     renderView();
-    await user.click(screen.getAllByRole("button", { name: "Support" })[0]);
-    await user.click(await screen.findByRole("button", { name: /donate/i }));
-    await user.click(screen.getByRole("button", { name: /wallet/i }));
-    expect(mockOpenWalletModal).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId("cookie-jar-dialog")).toBeNull();
-  });
-
-  it("hides the Card option by default — provider proof registry is empty", async () => {
-    const user = userEvent.setup();
-    renderView();
-    await user.click(screen.getAllByRole("button", { name: "Support" })[0]);
-    await user.click(await screen.findByRole("button", { name: /donate/i }));
-    expect(screen.queryByRole("button", { name: /^card$/i })).toBeNull();
+    await user.click(screen.getAllByRole("button", { name: "Endow" })[1]);
+    const card = await screen.findByTestId("public-funding-card");
+    expect(card).toHaveAttribute("data-intent", "endow");
+    expect(card).toHaveTextContent("Urban Composting Hub");
   });
 
   it("?intent= mounts the receipt UI", () => {
@@ -232,12 +248,76 @@ describe("FundPage", () => {
 
   it("renders a stale-query message for /fund?garden=missing", () => {
     renderView(["/fund?garden=missing"]);
-    expect(screen.getByRole("status")).toHaveTextContent(/missing/);
+    expect(screen.getByText(/Garden matching "missing"/)).toBeInTheDocument();
   });
 
   it("keeps the page support-only — no withdraw / admin controls", () => {
     renderView();
     expect(screen.queryByRole("button", { name: /withdraw/i })).toBeNull();
     expect(screen.queryByText(/withdraw/i)).toBeNull();
+  });
+
+  it("renders the standalone vault section between the hero and Donate/Endow context", () => {
+    renderView();
+
+    const hero = screen.getByRole("heading", { level: 1 });
+    const vaults = screen.getByRole("heading", { name: /Vaults currently at work/i });
+    const paths = screen.getByRole("heading", { name: /Donate now, or Endow/i });
+    const gardens = screen.getByRole("heading", { name: /Gardens accepting support/i });
+
+    expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText("§ 01 — Vaults at work")).toBeInTheDocument();
+    expect(screen.getByText("§ 02 — Ways to support")).toBeInTheDocument();
+    expect(screen.getByText("§ 03 — Choose where to apply your support")).toBeInTheDocument();
+  });
+
+  it("shows aggregate DAI and ETH totals, APR, accrued yield, allocated yield, and live accruing yield", () => {
+    renderView();
+
+    expect(screen.getByText("DAI in vaults")).toBeInTheDocument();
+    expect(screen.getByText("2,005 DAI")).toBeInTheDocument();
+    expect(screen.getByText("APR 5.10%")).toBeInTheDocument();
+    expect(screen.getByText("Yield accrued 25 DAI")).toBeInTheDocument();
+    expect(screen.getByText("Allocated 20 DAI")).toBeInTheDocument();
+    expect(screen.getByText("Accruing now 5 DAI")).toBeInTheDocument();
+
+    expect(screen.getByText("ETH in vaults")).toBeInTheDocument();
+    expect(screen.getByText("1.25 ETH")).toBeInTheDocument();
+    expect(screen.getByText("APR 2.50%")).toBeInTheDocument();
+    expect(screen.getByText("Yield accrued 0.15 ETH")).toBeInTheDocument();
+    expect(screen.getByText("Allocated 0.1 ETH")).toBeInTheDocument();
+    expect(screen.getByText("Accruing now 0.05 ETH")).toBeInTheDocument();
+  });
+
+  it("shows DAI, ETH, and yield accrued inside Garden cards", () => {
+    renderView();
+
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    expect(gardenCard).toHaveTextContent("2,005 DAI · 1.25 ETH");
+    expect(gardenCard).toHaveTextContent("Yield accrued 25 DAI / 0.15 ETH");
+  });
+
+  it("omits vault metrics when no indexed vaults exist", () => {
+    mockUsePublicVaultSummary.mockReturnValue({
+      hasVaults: false,
+      isLoading: false,
+      isError: false,
+      isYieldLoading: false,
+      isYieldError: false,
+      isAllocationLoading: false,
+      isAllocationError: false,
+      gardensByAddress: {},
+      assets: [],
+    });
+
+    renderView();
+
+    expect(screen.queryByRole("heading", { name: /Vaults currently at work/i })).toBeNull();
+    expect(screen.queryByText(/DAI in vaults/)).toBeNull();
+    expect(screen.queryByText(/Yield accrued/)).toBeNull();
   });
 });

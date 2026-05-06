@@ -26,10 +26,14 @@ export const adminButtonVariants = tv({
   ],
   variants: {
     variant: {
-      // Filled — highest emphasis
+      // Filled — highest emphasis. Uses the workspace's `--tone-action` so each
+      // view feels distinct (Hub blue / Garden green / Community orange /
+      // Actions red / Home stone). Hover lifts 1px with elevation-2 for the
+      // same tactile feel as the secondary outlined buttons.
       filled: [
         "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
-        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
+        "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
+        "hover:-translate-y-[1px] active:translate-y-0",
         "[--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
       ],
       // Tonal — medium emphasis

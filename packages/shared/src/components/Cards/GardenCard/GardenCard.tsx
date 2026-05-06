@@ -175,6 +175,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                   : "flex items-center text-lg font-semibold transition-colors line-clamp-1",
                 selected && "text-primary"
               )}
+              title={garden.name}
             >
               {garden.name}
             </h5>
@@ -209,7 +210,9 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                     className="border-0 p-0 text-xs font-medium leading-tight"
                   >
                     <RiMapPinFill className="h-4 w-4 text-primary" />
-                    {garden.location}
+                    <span className="max-w-[12rem] truncate" title={garden.location}>
+                      {garden.location}
+                    </span>
                   </Badge>
                 )}
               </div>
@@ -223,18 +226,26 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                   <span>{labels.operatorHeading}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600">
-                  {operatorAddresses.slice(0, 2).map((operator) => (
-                    <Badge
-                      key={operator}
-                      variant="outline"
-                      tint="none"
-                      className="border-0 p-0 text-xs font-medium leading-tight"
-                    >
-                      {renderOperatorName
-                        ? renderOperatorName(operator)
-                        : formatAddress(operator, { variant: "card" })}
-                    </Badge>
-                  ))}
+                  {operatorAddresses.slice(0, 2).map((operator) => {
+                    const operatorLabel = renderOperatorName
+                      ? renderOperatorName(operator)
+                      : formatAddress(operator, { variant: "card" });
+                    return (
+                      <Badge
+                        key={operator}
+                        variant="outline"
+                        tint="none"
+                        className="border-0 p-0 text-xs font-medium leading-tight"
+                      >
+                        <span
+                          className="max-w-[10rem] truncate"
+                          title={typeof operatorLabel === "string" ? operatorLabel : operator}
+                        >
+                          {operatorLabel}
+                        </span>
+                      </Badge>
+                    );
+                  })}
                   {operatorAddresses.length > 2 && (
                     <span className="text-xs text-text-sub-600">
                       {labels.andOthers.replace("{count}", String(operatorAddresses.length - 2))}
@@ -251,6 +262,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                   "text-sm text-text-sub-600 line-clamp-3",
                   isMinimalSelection ? "h-[3.75rem] leading-5" : "flex-1"
                 )}
+                title={garden.description}
               >
                 {garden.description}
               </p>

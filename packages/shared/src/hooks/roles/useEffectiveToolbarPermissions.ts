@@ -84,7 +84,10 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     return {
       showWork: hasAnyRole,
       showGarden: isOperatorOrOwner,
-      showCommunity: isDeployer || isOwner,
+      // Operators participate in Community: they manage roles, deposits, and
+      // payouts. Gating to deployer-or-owner only hid that surface from people
+      // who do most of the day-to-day work.
+      showCommunity: isDeployer || isOperatorOrOwner,
       showActions: isDeployer,
       isLoading: false,
     };

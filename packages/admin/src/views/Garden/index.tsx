@@ -2,9 +2,11 @@ import {
   buildGardenHeaderStats,
   MetaStrip,
   useGardenWorkspaceController,
+  useMediaQuery,
 } from "@green-goods/shared";
 import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminViewActions } from "@/components/AdminViewActions";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { GardenSheetDescriptor } from "./components/GardenSheetDescriptor";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
@@ -15,6 +17,7 @@ import { useIntl } from "react-intl";
 export default function GardenView() {
   const { formatMessage } = useIntl();
   const garden = useGardenWorkspaceController();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const headerStats = useMemo(
     () =>
@@ -46,7 +49,6 @@ export default function GardenView() {
       />
 
       <CanvasRouteHeader
-        maxWidthClassName="max-w-[1400px]"
         title={formatMessage({ id: "cockpit.garden.title", defaultMessage: "Garden" })}
         description={formatMessage({
           id: "cockpit.garden.description",
@@ -55,6 +57,11 @@ export default function GardenView() {
         })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
+        }
+        actions={
+          isDesktop && garden.desktopActions.length > 0 ? (
+            <AdminViewActions items={garden.desktopActions} />
+          ) : undefined
         }
         variant="canvas"
         sticky

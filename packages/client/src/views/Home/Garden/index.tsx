@@ -399,12 +399,16 @@ export const Garden: React.FC = () => {
 
               {/* Title and meta below banner */}
               <div className="px-4 sm:px-5 md:px-6 mt-3 flex flex-col gap-1.5 pb-3 bg-bg-white-0">
-                <h1 className="text-lg md:text-xl font-semibold line-clamp-2">{name}</h1>
+                <h1 className="title-section line-clamp-2" title={name}>
+                  {name}
+                </h1>
                 <div className="flex items-center gap-2">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 text-sm text-text-sub-600">
+                    <div className="flex min-w-0 items-center gap-1.5 text-sm text-text-sub-600">
                       <RiMapPin2Fill className="h-4 w-4 text-primary flex-shrink-0" />
-                      <span>{location}</span>
+                      <span className="truncate" title={location}>
+                        {location}
+                      </span>
                     </div>
                     <span className="hidden sm:inline text-text-soft-400">•</span>
                     <div className="flex items-center gap-1.5 text-sm text-text-sub-600">

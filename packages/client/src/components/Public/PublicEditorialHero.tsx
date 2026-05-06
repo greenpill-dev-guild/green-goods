@@ -87,7 +87,10 @@ export function PublicEditorialHero({
     <section
       className={cn(
         !disableViewTransition && "vt-header",
-        "relative isolate bg-editorial-deep",
+        // z-[1] keeps the banner card painting over the next section, whose
+        // `editorial-section-reveal` transform establishes its own stacking
+        // context and would otherwise eat the spill.
+        "relative isolate z-[1] bg-editorial-deep",
         isBanner ? "overflow-visible" : "min-h-screen min-h-[100svh] overflow-hidden"
       )}
       aria-labelledby={titleId}
