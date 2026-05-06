@@ -18,7 +18,7 @@
  *   --env <staging|production> Environment (default: staging)
  *   --help, -h                 Show this help message
  *
- * Required for production deploys and local uploads:
+ * Required for source-map uploads:
  *   POSTHOG_CLI_TOKEN          API token with error-tracking:write scope
  *   POSTHOG_CLIENT_ENV_ID      PostHog environment ID for client uploads
  *   POSTHOG_ADMIN_ENV_ID       PostHog environment ID for admin uploads
@@ -282,6 +282,32 @@ function deleteSourceMaps(dir) {
 }
 
 /**
+ * Remove source maps from deploy output when upload is intentionally skipped
+ */
+function stripSourceMapsForSkippedUpload() {
+  if (config.keepMaps) {
+    printWarning("--keep-maps is set; leaving source map files in deploy output.");
+    return;
+  }
+
+  let totalDeleted = 0;
+  for (const appName of config.apps) {
+    const appConfig = appConfigs[appName];
+    const mapCount = countSourceMaps(appConfig.dist);
+    if (mapCount === 0) {
+      printInfo(`No source maps found in ${appConfig.dist}`);
+      continue;
+    }
+
+    const deleted = deleteSourceMaps(appConfig.dist);
+    totalDeleted += deleted;
+    printInfo(`Deleted ${deleted} source map file(s) from ${appConfig.dist}`);
+  }
+
+  printSuccess(`Removed ${totalDeleted} source map file(s) before publish`);
+}
+
+/**
  * Check if the pinned local PostHog CLI is installed
  */
 function checkPosthogCli() {
@@ -307,9 +333,9 @@ function showHelp() {
   console.log("  --help, -h         Show this help message");
   console.log("");
   console.log("Environment variables:");
-  console.log("  POSTHOG_CLI_TOKEN       Required for production deploys and local uploads");
-  console.log("  POSTHOG_CLIENT_ENV_ID   Required for client production deploys and uploads");
-  console.log("  POSTHOG_ADMIN_ENV_ID    Required for admin production deploys and uploads");
+  console.log("  POSTHOG_CLI_TOKEN       Required for source-map uploads");
+  console.log("  POSTHOG_CLIENT_ENV_ID   Required for client source-map uploads");
+  console.log("  POSTHOG_ADMIN_ENV_ID    Required for admin source-map uploads");
   console.log("");
   console.log("Examples:");
   console.log("  node scripts/ops/upload-sourcemaps.js --app client --deploy  # Vercel deploy build");
@@ -523,10 +549,17 @@ async function main() {
       process.exit(0);
     }
 
+    if (config.deploy && isProductionDeploy()) {
+      printWarning(`Skipping source-map upload for production deploy; missing ${missingPosthogEnv.join(", ")}`);
+      stripSourceMapsForSkippedUpload();
+      printInfo("Configure POSTHOG_CLI_TOKEN and the selected app's POSTHOG_*_ENV_ID to re-enable uploads.");
+      process.exit(0);
+    }
+
     if (!config.dryRun) {
       printError(`Missing required PostHog environment variable(s): ${missingPosthogEnv.join(", ")}`);
       printInfo("Set POSTHOG_CLI_TOKEN and the selected app's POSTHOG_*_ENV_ID before uploading source maps.");
-      printInfo("Production deploy builds fail closed so Vercel cannot publish an unprocessed production bundle.");
+      printInfo("Manual source-map uploads fail closed so missing credentials are not ignored.");
       process.exit(1);
     }
 
