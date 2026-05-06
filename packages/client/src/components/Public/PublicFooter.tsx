@@ -2,26 +2,45 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { cn } from "@green-goods/shared";
 
-const FOOTER_LINKS = [
+type FooterLinkKind = "internal" | "external";
+
+interface FooterLink {
+  to: string;
+  labelId: string;
+  defaultLabel: string;
+  kind: FooterLinkKind;
+}
+
+const FOOTER_LINKS: readonly FooterLink[] = [
+  {
+    to: "/glossary",
+    labelId: "public.footer.glossary",
+    defaultLabel: "Glossary",
+    kind: "internal",
+  },
   {
     to: "https://x.com/greengoodsapp",
     labelId: "public.footer.twitter",
     defaultLabel: "Twitter",
+    kind: "external",
   },
   {
     to: "https://admin.greengoods.app",
     labelId: "public.footer.admin",
     defaultLabel: "Admin",
+    kind: "external",
   },
   {
     to: "https://docs.greengoods.app",
     labelId: "public.footer.docs",
     defaultLabel: "Docs",
+    kind: "external",
   },
   {
     to: "https://github.com/greenpill-dev-guild/green-goods",
     labelId: "public.footer.github",
     defaultLabel: "GitHub",
+    kind: "external",
   },
 ] as const;
 
@@ -97,16 +116,24 @@ export function PublicFooter({ variant = "default" }: PublicFooterProps) {
             defaultMessage: "Footer links",
           })}
         >
-          {FOOTER_LINKS.map(({ to, labelId, defaultLabel }) => {
+          {FOOTER_LINKS.map(({ to, labelId, defaultLabel, kind }) => {
             const linkClass = cn(
               "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
               isSoil
                 ? "text-static-white/85 hover:text-static-white focus-visible:ring-static-white/60 focus-visible:ring-offset-[rgb(var(--editorial-deep-rgb))]"
                 : "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"
             );
+            const label = formatMessage({ id: labelId, defaultMessage: defaultLabel });
+            if (kind === "internal") {
+              return (
+                <Link key={to} to={to} viewTransition className={linkClass}>
+                  {label}
+                </Link>
+              );
+            }
             return (
               <a key={to} href={to} target="_blank" rel="noreferrer noopener" className={linkClass}>
-                {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+                {label}
               </a>
             );
           })}
