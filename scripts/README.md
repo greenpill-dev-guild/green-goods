@@ -72,7 +72,7 @@ scripts/
 | `garden-rename-batch.ts` | `bun run garden:rename-batch[:dry:arbitrum/:arbitrum]` | Build Safe txs to rename gardens in batch |
 | `ipfs-repin.ts` | `bun run ipfs:repin[:audit]` | Re-pin / audit Pinata content |
 | `upload-action-images.ts` | `bun run upload:action-images[:dry-run]` | Upload action images to IPFS |
-| `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `packages/client build:deploy`, `packages/admin build:deploy` | Inject and upload built sourcemaps to PostHog with per-app env IDs |
+| `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
 
 ### `agents/` — agent query surfaces
 | Script | Caller | Purpose |

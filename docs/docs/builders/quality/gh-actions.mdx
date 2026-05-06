@@ -19,7 +19,7 @@ import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
-The CI/CD pipeline uses eight GitHub Actions lanes with path-based triggering and concurrency controls. Actions own deterministic execution: package tests/builds, CodeQL, focused Playwright projects, design/Storybook checks, docs deploy, trusted contract fork readiness, and advisory Lighthouse jobs. Source-map processing runs inside the Vercel deploy build so PostHog metadata is injected into the artifact that is actually published. Standalone Storybook publication is owned by Vercel, not a ninth Actions workflow.
+The CI/CD pipeline uses eight GitHub Actions lanes with path-based triggering and concurrency controls. Actions own deterministic execution: package tests/builds, CodeQL, focused Playwright projects, design/Storybook checks, docs deploy, trusted contract fork readiness, advisory Lighthouse jobs, and client/admin source-map uploads. Standalone Storybook publication is owned by Vercel, not a ninth Actions workflow.
 
 ```mermaid
 flowchart LR
@@ -138,7 +138,7 @@ The Storybook/design gate runs `check:design-md`, `check:design-generated`, `che
 
 Storybook publication is deliberately outside GitHub Actions. `design.yml` validates and uploads the Storybook artifact for PR review; the standalone public site is deployed by the Vercel project rooted at `packages/shared`, using `packages/shared/vercel.json` to build `@green-goods/shared` and serve `packages/shared/storybook-static`.
 
-Client and admin source maps are deliberately outside GitHub Actions as well. The Vercel projects run each package's `build:deploy` script, process `dist/` with `scripts/ops/upload-sourcemaps.js --deploy`, upload maps to the app-specific PostHog environment, and remove `.js.map` files before Vercel publishes the deployment.
+Client and admin source maps are handled by GitHub Actions, not Vercel. The `client.yml` and `admin.yml` workflows upload source maps to the app-specific PostHog environment on trusted `main` pushes. Vercel runs plain package builds only, and Vite emits source maps only when `GG_ENABLE_SOURCEMAPS=true` is set by the upload workflow.
 
 ## Running & Troubleshooting
 

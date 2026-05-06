@@ -13,7 +13,7 @@
     "format:check": "biome format .",
     "lint": "bun --bun run oxlint src",
     "build": "APP_ENV=production tsc --noEmit && bun --bun vite build",
-    "build:deploy": "bun run build && node ../../scripts/ops/upload-sourcemaps.js --app client --deploy",
+    "build:deploy": "bun run build",
     "preview": "APP_ENV=production bun --bun vite preview",
     "formatjs": "formatjs extract"
   },

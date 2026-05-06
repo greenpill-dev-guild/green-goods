@@ -61,6 +61,7 @@ export default defineConfig(async ({ command, mode }) => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
   const nodeEnv = command === "build" ? "production" : "development";
+  const enableSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
   const isBunRuntime = "bun" in process.versions;
   if (command === "build") {
     process.env.NODE_ENV = "production";
@@ -279,7 +280,7 @@ export default defineConfig(async ({ command, mode }) => {
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {
-      sourcemap: true,
+      sourcemap: enableSourceMaps,
       chunkSizeWarningLimit: 2000,
     },
     define: {

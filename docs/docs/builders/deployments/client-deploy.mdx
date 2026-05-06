@@ -148,16 +148,16 @@ The `client.yml` lane has a manual Lighthouse advisory job checking:
 
 ### Source Maps
 
-Vercel runs `bun run build:deploy`, which builds `packages/client/dist/` and then runs `scripts/ops/upload-sourcemaps.js --app client --deploy` before Vercel publishes the artifact. This means PostHog metadata is injected into the same bundle that is deployed.
+Vercel runs `bun run build` only. Source-map generation and PostHog upload run from the GitHub Actions `client.yml` lane on trusted `main` pushes, where `GG_ENABLE_SOURCEMAPS=true` enables map output for the upload job.
 
-Set these variables in the client Vercel project:
+Set these variables as GitHub repository secrets:
 
 | Variable | Purpose |
 |----------|---------|
 | `POSTHOG_CLIENT_ENV_ID` | PostHog environment ID for the client app |
 | `POSTHOG_CLI_TOKEN` | PostHog token with source-map upload permissions |
 
-Production deploys fail closed if the PostHog source-map variables are missing. Preview and staging deploys skip source-map upload when those variables are not configured.
+Production Vercel deploys do not require these variables. The GitHub Actions source-map upload job fails closed if the PostHog source-map variables are missing.
 
 ## Resources
 

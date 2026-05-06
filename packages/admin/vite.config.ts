@@ -30,6 +30,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
   const indexerProxyTarget = process.env.VITE_ENVIO_INDEXER_URL ?? DEFAULT_INDEXER_URL;
+  const enableSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
 
   // Dev-only plugin: serves admin's tunnel URL at /__dev/tunnel for QR-code testing
   // on real mobile devices. Mirrors the client-side plugin; reads .tunnel-url-admin
@@ -90,7 +91,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
-    build: { sourcemap: true, chunkSizeWarningLimit: 2000 },
+    build: { sourcemap: enableSourceMaps, chunkSizeWarningLimit: 2000 },
     plugins,
     // Deduplicate React and PostHog to prevent multiple instances
     resolve: {
