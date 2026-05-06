@@ -25,6 +25,7 @@ void registerServiceWorkerFromEnv({
   DEV: import.meta.env.MODE !== "production",
   PROD: import.meta.env.MODE === "production",
   VITE_ENABLE_SW_DEV: import.meta.env.VITE_ENABLE_SW_DEV,
+  VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION,
 });
 
 /**

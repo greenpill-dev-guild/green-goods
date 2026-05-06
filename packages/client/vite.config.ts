@@ -54,7 +54,17 @@ export default defineConfig(async ({ command, mode }) => {
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
   const appBasePath = isIPFSBuild ? "./" : "/";
   const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
-  const pwaStartUrl = shortcutUrl("/home");
+  const appVersion =
+    process.env.VITE_APP_VERSION ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    "dev";
+  const shortAppVersion = appVersion.slice(0, 12);
+  const versionedUrl = (url: string) =>
+    shortAppVersion && shortAppVersion !== "dev"
+      ? `${url}${url.includes("?") ? "&" : "?"}gg_v=${encodeURIComponent(shortAppVersion)}`
+      : url;
+  const pwaStartUrl = versionedUrl(shortcutUrl("/home"));
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
@@ -298,6 +308,7 @@ export default defineConfig(async ({ command, mode }) => {
     define: {
       "import.meta.env.DEV": JSON.stringify(nodeEnv !== "production"),
       "import.meta.env.PROD": JSON.stringify(nodeEnv === "production"),
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
     esbuild: {
