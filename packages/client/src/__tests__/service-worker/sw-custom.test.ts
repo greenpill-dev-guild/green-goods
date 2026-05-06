@@ -125,8 +125,8 @@ describe("client public service worker migration", () => {
     expect(clients.claim).toHaveBeenCalledTimes(1);
     expect(caches.delete).toHaveBeenCalledWith("js-cache");
     expect(caches.delete).toHaveBeenCalledWith("graphql-cache");
-    expect(caches.delete).toHaveBeenCalledWith("workbox-precache");
     expect(caches.delete).not.toHaveBeenCalledWith("image-cache");
+    expect(caches.delete).not.toHaveBeenCalledWith("workbox-precache");
     expect(publicClient.navigate).toHaveBeenCalledWith(publicClient.url);
     expect(publicDetailClient.navigate).toHaveBeenCalledWith(publicDetailClient.url);
     expect(pwaClient.navigate).not.toHaveBeenCalled();

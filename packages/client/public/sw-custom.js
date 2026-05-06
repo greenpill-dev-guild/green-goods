@@ -11,7 +11,6 @@ const PUBLIC_WEBSITE_PATHS = new Set([
 ]);
 const PUBLIC_WEBSITE_PREFIXES = ["/gardens/"];
 const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
-const STALE_RUNTIME_CACHE_PREFIXES = ["workbox-precache"];
 
 function normalizePathname(pathname) {
   const normalized = pathname.replace(/\/+$/, "");
@@ -62,11 +61,7 @@ async function clearStaleRuntimeCaches() {
   const keys = await caches.keys();
   await Promise.all(
     keys
-      .filter(
-        (key) =>
-          STALE_RUNTIME_CACHES.includes(key) ||
-          STALE_RUNTIME_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix))
-      )
+      .filter((key) => STALE_RUNTIME_CACHES.includes(key))
       .map((key) => caches.delete(key))
   );
 }
