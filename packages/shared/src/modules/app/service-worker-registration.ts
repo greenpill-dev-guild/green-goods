@@ -36,6 +36,12 @@ async function registerServiceWorker(): Promise<boolean> {
       scope: "/",
     });
 
+    try {
+      await registration.update();
+    } catch (error) {
+      logger.warn("[ServiceWorker] Failed to check for service worker update", { error });
+    }
+
     serviceWorkerManager.attachRegistration(registration);
     await navigator.serviceWorker.ready;
 
