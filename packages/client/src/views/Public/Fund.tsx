@@ -134,12 +134,15 @@ function SupportPath({
 
 function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
   const { formatMessage } = useIntl();
+  const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
   if (!summary.hasVaults && !summary.isLoading) return null;
 
   const assets = summary.assets;
 
   return (
     <section
+      ref={sectionRef}
+      data-revealed={revealed}
       className="editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
       aria-labelledby="public-fund-vaults-title"
     >
