@@ -34,9 +34,13 @@ async function registerServiceWorker(): Promise<boolean> {
   try {
     const registration = await navigator.serviceWorker.register("/sw.js", {
       scope: "/",
+      updateViaCache: "none",
     });
 
     serviceWorkerManager.attachRegistration(registration);
+    void registration.update().catch((error) => {
+      logger.warn("[ServiceWorker] Update check failed", { error });
+    });
     await navigator.serviceWorker.ready;
 
     track("service_worker_registered", {

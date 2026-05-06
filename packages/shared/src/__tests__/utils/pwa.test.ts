@@ -10,6 +10,7 @@ import {
   getMobileOperatingSystem,
   isLocalDevicePreviewMode,
   isMobilePlatform,
+  isStandaloneMode,
 } from "../../utils/app/pwa";
 
 // Mock navigator and window
@@ -378,6 +379,24 @@ describe("getMobileOperatingSystem", () => {
         matchMedia: createMatchMedia((query) => query === "(display-mode: standalone)"),
       });
 
+      expect(getClientPresentationMode()).toBe("pwa");
+    });
+
+    it("uses PWA mode for desktop window-controls-overlay display mode", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        maxTouchPoints: 0,
+        platform: "MacIntel",
+      });
+      mockWindow({
+        location: { hostname: "www.greengoods.app" },
+        matchMedia: createMatchMedia(
+          (query) => query === "(display-mode: window-controls-overlay)"
+        ),
+      });
+
+      expect(isStandaloneMode()).toBe(true);
       expect(getClientPresentationMode()).toBe("pwa");
     });
 

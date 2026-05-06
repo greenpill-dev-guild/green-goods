@@ -54,6 +54,7 @@ export default defineConfig(async ({ command, mode }) => {
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
   const appBasePath = isIPFSBuild ? "./" : "/";
   const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
+  const pwaStartUrl = shortcutUrl("/home");
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
@@ -140,6 +141,17 @@ export default defineConfig(async ({ command, mode }) => {
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
         cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        navigateFallbackDenylist: [
+          /^\/$/,
+          /^\/actions(?:[?#].*)?$/,
+          /^\/cookies(?:[?#].*)?$/,
+          /^\/fund(?:[?#].*)?$/,
+          /^\/gardens(?:\/.*)?(?:[?#].*)?$/,
+          /^\/glossary(?:[?#].*)?$/,
+          /^\/impact(?:[?#].*)?$/,
+        ],
         sourcemap: false,
         importScripts: ["sw-custom.js"],
         runtimeCaching: [
@@ -242,7 +254,7 @@ export default defineConfig(async ({ command, mode }) => {
             purpose: "maskable",
           },
         ],
-        start_url: appBasePath,
+        start_url: pwaStartUrl,
         scope: appBasePath,
         display: "standalone",
         orientation: "portrait-primary",
