@@ -74,7 +74,11 @@ export const WorkQueue: Story = {
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Work" })).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Hub" })).toBeVisible();
+    await expect(await canvas.findByRole("tab", { name: /Work/ })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
     await expect(await canvas.findByText("Canopy transect upload")).toBeVisible();
   },
 };
