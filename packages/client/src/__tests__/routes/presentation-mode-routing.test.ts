@@ -168,6 +168,16 @@ describe("presentation-mode route guards", () => {
     expect(requireWebsitePresentationLoader(loaderArgs("https://www.greengoods.app/"))).toBeNull();
   });
 
+  it("keeps production public routes on the website shell even in standalone mode", () => {
+    setStandaloneMode();
+
+    for (const path of ["/", "/gardens", "/gardens/decleanup", "/impact", "/fund", "/actions"]) {
+      expect(
+        requireWebsitePresentationLoader(loaderArgs(`https://www.greengoods.app${path}`))
+      ).toBeNull();
+    }
+  });
+
   it("allows localhost website override to render the public root", () => {
     setLocalDevicePreviewMode();
 
