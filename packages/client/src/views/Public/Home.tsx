@@ -15,6 +15,7 @@ import { PublicGetInTouch } from "@/components/Public/PublicGetInTouch";
 import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 import { PublicProofBand } from "@/components/Public/PublicProofBand";
 import { PublicRecordLoop } from "@/components/Public/PublicRecordLoop";
+import { PublicWhoTendsAGarden } from "@/components/Public/PublicWhoTendsAGarden";
 import { publicCuration } from "@/content/publicCuration";
 
 /**
@@ -103,6 +104,7 @@ export default function Home() {
         isLoading={stats.isLoading}
       />
       <PublicRecordLoop />
+      <PublicWhoTendsAGarden />
       <PublicFundingBridge />
       <PublicGetInTouch />
       <PublicFooter />
