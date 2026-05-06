@@ -50,19 +50,26 @@ const mockGardens = [
   },
 ];
 
-const { mockUsePublicGardens, mockUsePublicVaultSummary, mockOpenWalletModal, mockPrimaryAddress } =
-  vi.hoisted(() => ({
-    mockUsePublicGardens: vi.fn(),
-    mockUsePublicVaultSummary: vi.fn(),
-    mockOpenWalletModal: vi.fn(),
-    mockPrimaryAddress: { current: null as Address | null },
-  }));
+const {
+  mockUseInViewReveal,
+  mockUsePublicGardens,
+  mockUsePublicVaultSummary,
+  mockOpenWalletModal,
+  mockPrimaryAddress,
+} = vi.hoisted(() => ({
+  mockUseInViewReveal: vi.fn(),
+  mockUsePublicGardens: vi.fn(),
+  mockUsePublicVaultSummary: vi.fn(),
+  mockOpenWalletModal: vi.fn(),
+  mockPrimaryAddress: { current: null as Address | null },
+}));
 
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
   return {
     ...actual,
     useAppKit: () => ({ open: mockOpenWalletModal }),
+    useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
     usePublicVaultSummary: (...args: unknown[]) => mockUsePublicVaultSummary(...args),
     useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
@@ -121,6 +128,7 @@ describe("FundPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPrimaryAddress.current = null;
+    mockUseInViewReveal.mockReturnValue({ ref: { current: null }, revealed: true });
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
     mockUsePublicVaultSummary.mockReturnValue({
       hasVaults: true,
@@ -271,6 +279,16 @@ describe("FundPage", () => {
     expect(screen.getByText("§ 01 — Vaults at work")).toBeInTheDocument();
     expect(screen.getByText("§ 02 — Ways to support")).toBeInTheDocument();
     expect(screen.getByText("§ 03 — Choose where to apply your support")).toBeInTheDocument();
+  });
+
+  it("wires the vault stats section into the reveal lifecycle", () => {
+    renderView();
+
+    const vaultSection = screen
+      .getByRole("heading", { name: /Vaults currently at work/i })
+      .closest("section");
+
+    expect(vaultSection).toHaveAttribute("data-revealed", "true");
   });
 
   it("shows aggregate DAI and ETH totals, APR, accrued yield, allocated yield, and live accruing yield", () => {
