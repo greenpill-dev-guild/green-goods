@@ -113,7 +113,8 @@ jobs:
     name: Test Realism Audit
     if: github.event_name != 'workflow_dispatch' || inputs.operation == 'ci' || inputs.operation == 'all'
     runs-on: ubuntu-latest
-    needs: [unit]
+    # Static source/test audit; run beside unit tests so Contracts CI is not
+    # gated by unit duration plus a second setup/install pass.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
