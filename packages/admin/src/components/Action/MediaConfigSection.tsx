@@ -1,13 +1,8 @@
-import {
-  type ActionInstructionConfig,
-  Button,
-  FormField,
-  Textarea,
-  TextInput,
-} from "@green-goods/shared";
+import { type ActionInstructionConfig, FormField, Textarea, TextInput } from "@green-goods/shared";
 import { RiAddLine, RiCloseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
 
 interface MediaConfigSectionProps {
@@ -173,15 +168,15 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                 }}
                 className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
               />
-              <Button
+              <AdminButton
                 type="button"
-                variant="ghost"
+                variant="text"
                 size="sm"
                 onClick={() => removeNeeded(index)}
-                className="h-auto min-w-0 rounded p-2 text-error-base hover:bg-error-lighter"
+                className="h-8 w-8 min-w-0 px-0 text-error-base hover:bg-error-lighter"
               >
                 <RiCloseLine className="h-5 w-5" />
-              </Button>
+              </AdminButton>
             </div>
           ))}
           <div className="flex gap-2">
@@ -202,15 +197,9 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               })}
               className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
             />
-            <Button
-              type="button"
-              size="sm"
-              onClick={addNeeded}
-              className="px-3 py-2 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
-            >
-              <RiAddLine className="h-4 w-4" />
+            <AdminButton type="button" size="sm" onClick={addNeeded} leadingIcon={<RiAddLine />}>
               {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
-            </Button>
+            </AdminButton>
           </div>
         </fieldset>
       </FormField>
@@ -240,15 +229,15 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
                 }}
                 className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
               />
-              <Button
+              <AdminButton
                 type="button"
-                variant="ghost"
+                variant="text"
                 size="sm"
                 onClick={() => removeOptional(index)}
-                className="h-auto min-w-0 rounded p-2 text-error-base hover:bg-error-lighter"
+                className="h-8 w-8 min-w-0 px-0 text-error-base hover:bg-error-lighter"
               >
                 <RiCloseLine className="h-5 w-5" />
-              </Button>
+              </AdminButton>
             </div>
           ))}
           <div className="flex gap-2">
@@ -269,15 +258,9 @@ export function MediaConfigSection({ config, onChange }: MediaConfigSectionProps
               })}
               className="flex-1 rounded-md border border-stroke-soft px-3 py-2 text-sm"
             />
-            <Button
-              type="button"
-              size="sm"
-              onClick={addOptional}
-              className="px-3 py-2 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
-            >
-              <RiAddLine className="h-4 w-4" />
+            <AdminButton type="button" size="sm" onClick={addOptional} leadingIcon={<RiAddLine />}>
               {formatMessage({ id: "app.admin.actions.mediaConfig.add", defaultMessage: "Add" })}
-            </Button>
+            </AdminButton>
           </div>
         </fieldset>
       </FormField>

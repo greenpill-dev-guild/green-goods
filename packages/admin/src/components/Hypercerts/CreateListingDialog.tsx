@@ -1,7 +1,6 @@
 import {
   type Address,
   Alert,
-  Button,
   type CreateListingParams,
   DialogShell,
   LISTING_DEFAULTS,
@@ -12,6 +11,7 @@ import {
   useCreateListing,
 } from "@green-goods/shared";
 import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
+import { AdminButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -228,23 +228,15 @@ export function CreateListingDialog({
           />
 
           <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleClose}
-              className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
-            >
+            <AdminButton type="button" variant="text" onClick={handleClose}>
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </Button>
-            <Button
-              type="submit"
-              className="flex items-center gap-1.5 rounded-md bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))]"
-            >
+            </AdminButton>
+            <AdminButton type="submit">
               {formatMessage({
                 id: "app.listing.signAndList",
                 defaultMessage: "Sign & List",
               })}
-            </Button>
+            </AdminButton>
           </div>
         </form>
       ) : (
@@ -264,29 +256,23 @@ export function CreateListingDialog({
 
           <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
             {(step === "done" || isErrorState) && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleClose}
-                className="rounded-md px-4 py-2 text-sm font-medium text-text-sub transition hover:bg-bg-soft"
-              >
+              <AdminButton type="button" variant="text" onClick={handleClose}>
                 {step === "done"
                   ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
                   : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-              </Button>
+              </AdminButton>
             )}
             {isErrorState && (
-              <Button
+              <AdminButton
                 type="button"
                 onClick={() => {
                   setSubmissionError(null);
                   reset();
                   setPhase("configure");
                 }}
-                className="rounded-md bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))]"
               >
                 {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-              </Button>
+              </AdminButton>
             )}
           </div>
         </div>

@@ -3,13 +3,14 @@ import { useState } from "react";
 import { fn } from "storybook/test";
 import { GardenChip } from "@green-goods/shared";
 import { withAdminPrimitiveFrame } from "../../../../shared/.storybook/decorators";
+import { AdminButton } from "../AdminButton";
 import { AdminCard } from "../AdminCard";
 import { AdminTabRail } from "../AdminTabRail";
 
 /**
  * Tone gallery — verifies that the per-view `[data-tone]` scope wires through
- * GardenChip leaf, AdminTabRail active tab, AdminCard wash, and the page-header
- * bottom hairline. One cell per tone so designers can confirm at a glance.
+ * GardenChip leaf, filled actions, neutral AdminTabRail state, and the
+ * page-header bottom hairline. One cell per tone so designers can confirm at a glance.
  */
 const meta: Meta = {
   title: "Admin/Layouts/Tone Gallery",
@@ -25,9 +26,9 @@ const meta: Meta = {
           "",
           "1. Canvas background (the wash on `.workspace-canvas[data-tone]`)",
           "2. GardenChip leaf icon (tone-tinted)",
-          "3. AdminTabRail active tab (6% wash + count chip color flip)",
+          "3. Filled AdminButton action color",
           "4. PageHeader bottom hairline (`rgb(var(--tone-action) / 0.10)`)",
-          "5. AdminCard 3% `::before` wash",
+          "5. Neutral AdminTabRail and AdminCard surfaces",
           "",
           "Tone is supplemental — content readability and accessibility never",
           "depend on it. `var(--tone-action)` is a raw RGB triplet inside admin's",
@@ -95,27 +96,42 @@ const ToneCell = ({
       <TabsDemo tone={tone} />
 
       <AdminCard variant="elevated">
-        <div className="space-y-1">
-          <div className="text-sm font-semibold text-text-strong">Pending review</div>
-          <div className="text-xs text-text-sub">
-            14 submissions waiting, oldest 3 days. Tone wash sits on `::before`.
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <div className="text-sm font-semibold text-text-strong">Pending review</div>
+            <div className="text-xs text-text-sub">
+              14 submissions waiting, oldest 3 days. Card material stays neutral.
+            </div>
           </div>
+          <AdminButton size="sm">Review queue</AdminButton>
         </div>
       </AdminCard>
     </div>
   </section>
 );
 
-export const VariantGallery: Story = {
-  render: () => (
-    <div
-      className="grid gap-4 p-6 md:grid-cols-2"
-      style={{ background: "rgb(var(--neutral-100, 245 245 244))" }}
-    >
+const ToneGrid = ({ theme }: { theme: "light" | "dark" }) => (
+  <section
+    data-theme={theme}
+    className="admin-m3 space-y-3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
+  >
+    <div className="text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
+      {theme}
+    </div>
+    <div className="grid gap-4 md:grid-cols-2">
       <ToneCell tone="hub" name="Hub" />
       <ToneCell tone="garden" name="Garden" />
       <ToneCell tone="community" name="Community" />
       <ToneCell tone="actions" name="Actions" />
+    </div>
+  </section>
+);
+
+export const VariantGallery: Story = {
+  render: () => (
+    <div className="space-y-4 p-6">
+      <ToneGrid theme="light" />
+      <ToneGrid theme="dark" />
     </div>
   ),
 };

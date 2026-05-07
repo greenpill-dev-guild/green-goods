@@ -1,5 +1,6 @@
 import { DEFAULT_CHAIN_ID, DialogShell, type MintingState } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminButton } from "../AdminButton";
 import { MintProgress } from "./Steps/MintProgress";
 
 interface MintingDialogProps {
@@ -41,22 +42,14 @@ export function MintingDialog({
       {isFailed && (
         <div className="flex gap-3 border-t border-stroke-soft pt-4 mt-4">
           {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 rounded-full bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-light"
-            >
+            <AdminButton type="button" onClick={onCancel} variant="tonal" className="flex-1">
               {formatMessage({ id: "app.common.cancel" })}
-            </button>
+            </AdminButton>
           )}
           {onRetry && (
-            <button
-              type="button"
-              onClick={onRetry}
-              className="flex-1 rounded-full bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-3 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))]"
-            >
+            <AdminButton type="button" onClick={onRetry} className="flex-1">
               {formatMessage({ id: "app.hypercerts.mint.retry" })}
-            </button>
+            </AdminButton>
           )}
         </div>
       )}

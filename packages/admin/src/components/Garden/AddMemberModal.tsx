@@ -1,6 +1,5 @@
 import {
   type Address,
-  cn,
   DialogShell,
   FormField,
   formatAddress,
@@ -16,6 +15,7 @@ import { RiClipboardLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
+import { AdminButton } from "../AdminButton";
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -184,28 +184,18 @@ export function AddMemberModal({
         </FormField>
 
         <div className="flex items-center justify-end space-x-3 pt-6 border-t border-stroke-soft">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isLoading}
-            className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-lg text-text-sub bg-bg-white hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:opacity-50"
-          >
+          <AdminButton type="button" onClick={handleClose} disabled={isLoading} variant="outlined">
             {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
-          </button>
-          <button
+          </AdminButton>
+          <AdminButton
             type="submit"
             disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
-            className={cn(
-              "px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--tone-action,var(--primary-action)))] disabled:text-text-soft disabled:opacity-50",
-              isLoading || !trimmed || (shouldResolveEns && resolvingEns)
-                ? "bg-bg-surface cursor-not-allowed"
-                : "bg-[rgb(var(--tone-action,var(--primary-action)))] hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))]"
-            )}
+            loading={isLoading}
           >
             {isLoading
               ? formatMessage({ id: "admin.addMember.adding", defaultMessage: "Adding..." })
               : formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
-          </button>
+          </AdminButton>
         </div>
       </form>
     </DialogShell>

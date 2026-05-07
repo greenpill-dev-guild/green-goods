@@ -31,39 +31,39 @@ export const adminButtonVariants = tv({
       // Actions red / Home stone). Hover lifts 1px with elevation-2 for the
       // same tactile feel as the secondary outlined buttons.
       filled: [
-        "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
+        "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
         "hover:-translate-y-[1px] active:translate-y-0",
         "[--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
       ],
       // Tonal — medium emphasis
       tonal: [
-        "bg-[rgb(var(--m3-secondary-container))] text-[rgb(var(--m3-on-secondary-container))]",
+        "bg-[rgb(var(--m3-secondary-container))] [color:rgb(var(--m3-on-secondary-container))]",
         "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
         "[--state-layer-color:var(--m3-on-secondary-container)]",
       ],
       // Elevated — medium emphasis with surface tint
       elevated: [
-        "bg-[rgb(var(--m3-surface-container-low))] text-[rgb(var(--m3-primary))]",
+        "bg-[rgb(var(--m3-surface-container-low))] [color:rgb(var(--m3-primary))]",
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
       // Outlined — low emphasis with border
       outlined: [
-        "bg-transparent text-[rgb(var(--m3-primary))]",
+        "bg-transparent [color:rgb(var(--m3-primary))]",
         "border border-[rgb(var(--m3-outline))]",
         "shadow-[var(--m3-elevation-0)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
       // Text — lowest emphasis
       text: [
-        "bg-transparent text-[rgb(var(--m3-primary))]",
+        "bg-transparent [color:rgb(var(--m3-primary))]",
         "shadow-[var(--m3-elevation-0)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
       // Danger — destructive action
       danger: [
-        "bg-[rgb(var(--m3-error))] text-[rgb(var(--m3-on-error))]",
+        "bg-[rgb(var(--m3-error))] [color:rgb(var(--m3-on-error))]",
         "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
         "[--state-layer-color:var(--m3-on-error)]",
       ],

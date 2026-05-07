@@ -21,6 +21,251 @@
 @import "../../admin/src/styles/admin-m3-tokens.css";
 @import "../../admin/src/styles/admin-m3-overrides.css";
 
+/* Admin Storybook parity subset. The shared Storybook preview intentionally
+ * avoids importing the full admin app entrypoint because that file owns
+ * document-level shell resets. Keep the route tone/material roles here aligned
+ * with packages/admin/src/index.css so admin stories exercise the same color
+ * contract as the runtime app. */
+:root {
+  --admin-surface-0: 255 255 255;
+  --admin-surface-50: 251 249 244;
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --admin-surface-0: 22 25 33;
+  --admin-surface-50: 17 19 27;
+}
+
+[data-tone="hub"] {
+  --tone-primary: var(--blue-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--blue-100);
+  --tone-on-primary-container: var(--blue-900);
+  --tone-secondary: var(--blue-300);
+  --tone-surface-tint: var(--blue-600) / 8%;
+  --tone-outline: var(--blue-200);
+  --tone-surface-variant: var(--blue-50);
+  --tone-surface-tint-color: rgb(var(--blue-600) / 8%);
+}
+
+[data-tone="garden"] {
+  --tone-primary: var(--green-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--green-700);
+  --tone-action-hover: var(--green-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--green-100);
+  --tone-on-primary-container: var(--green-900);
+  --tone-secondary: var(--green-300);
+  --tone-surface-tint: var(--green-600) / 8%;
+  --tone-outline: var(--green-200);
+  --tone-surface-variant: var(--green-50);
+  --tone-surface-tint-color: rgb(var(--green-600) / 8%);
+}
+
+[data-tone="community"] {
+  --tone-primary: var(--orange-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--orange-700);
+  --tone-action-hover: var(--orange-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--orange-100);
+  --tone-on-primary-container: var(--orange-900);
+  --tone-secondary: var(--orange-300);
+  --tone-surface-tint: var(--orange-600) / 8%;
+  --tone-outline: var(--orange-200);
+  --tone-surface-variant: var(--orange-50);
+  --tone-surface-tint-color: rgb(var(--orange-600) / 8%);
+}
+
+[data-tone="actions"] {
+  --tone-primary: var(--red-500);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--red-100);
+  --tone-on-primary-container: var(--red-900);
+  --tone-secondary: var(--red-300);
+  --tone-surface-tint: var(--red-500) / 8%;
+  --tone-outline: var(--red-200);
+  --tone-surface-variant: var(--red-50);
+  --tone-surface-tint-color: rgb(var(--red-500) / 8%);
+}
+
+[data-tone="home"] {
+  --tone-primary: 120 113 108;
+  --tone-on-primary: 255 255 255;
+  --tone-action: 68 64 60;
+  --tone-action-hover: 41 37 36;
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: 231 229 228;
+  --tone-on-primary-container: 41 37 36;
+  --tone-secondary: 168 162 158;
+  --tone-surface-tint: 120 113 108 / 8%;
+  --tone-outline: 214 211 209;
+  --tone-surface-variant: 245 245 244;
+  --tone-surface-tint-color: rgb(120 113 108 / 8%);
+}
+
+[data-theme="dark"] [data-tone="hub"] {
+  --tone-primary: var(--blue-200);
+  --tone-on-primary: var(--blue-900);
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-600);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--blue-900);
+  --tone-on-primary-container: var(--blue-100);
+  --tone-secondary: var(--blue-400);
+  --tone-surface-tint: var(--blue-200) / 10%;
+  --tone-outline: var(--blue-700);
+  --tone-surface-variant: var(--blue-900);
+  --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="garden"] {
+  --tone-primary: var(--green-200);
+  --tone-on-primary: var(--green-900);
+  --tone-action: var(--green-800);
+  --tone-action-hover: var(--green-700);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--green-900);
+  --tone-on-primary-container: var(--green-100);
+  --tone-secondary: var(--green-400);
+  --tone-surface-tint: var(--green-200) / 10%;
+  --tone-outline: var(--green-700);
+  --tone-surface-variant: var(--green-900);
+  --tone-surface-tint-color: rgb(var(--green-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="community"] {
+  --tone-primary: var(--orange-200);
+  --tone-on-primary: var(--orange-900);
+  --tone-action: var(--orange-800);
+  --tone-action-hover: var(--orange-700);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--orange-900);
+  --tone-on-primary-container: var(--orange-100);
+  --tone-secondary: var(--orange-400);
+  --tone-surface-tint: var(--orange-200) / 10%;
+  --tone-outline: var(--orange-700);
+  --tone-surface-variant: var(--orange-900);
+  --tone-surface-tint-color: rgb(var(--orange-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="actions"] {
+  --tone-primary: var(--red-200);
+  --tone-on-primary: var(--red-900);
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-600);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--red-900);
+  --tone-on-primary-container: var(--red-100);
+  --tone-secondary: var(--red-400);
+  --tone-surface-tint: var(--red-200) / 10%;
+  --tone-outline: var(--red-700);
+  --tone-surface-variant: var(--red-900);
+  --tone-surface-tint-color: rgb(var(--red-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="home"] {
+  --tone-primary: 214 211 209;
+  --tone-on-primary: 41 37 36;
+  --tone-action: 68 64 60;
+  --tone-action-hover: 87 83 78;
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: 68 64 60;
+  --tone-on-primary-container: 231 229 228;
+  --tone-secondary: 168 162 158;
+  --tone-surface-tint: 214 211 209 / 10%;
+  --tone-outline: 87 83 78;
+  --tone-surface-variant: 68 64 60;
+  --tone-surface-tint-color: rgb(214 211 209 / 10%);
+}
+
+:root {
+  --tone-strength: 1;
+}
+
+[data-tone-strength="off"] {
+  --tone-strength: 0;
+}
+
+[data-tone-strength="subtle"] {
+  --tone-strength: 0.5;
+}
+
+[data-tone-strength="default"] {
+  --tone-strength: 1;
+}
+
+[data-theme="dark"] {
+  --tone-strength: 0.5;
+}
+
+[data-theme="dark"][data-tone-strength="off"] {
+  --tone-strength: 0;
+}
+
+[data-theme="dark"][data-tone-strength="default"] {
+  --tone-strength: 1;
+}
+
+[data-tone="hub"] {
+  --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 240);
+}
+
+[data-tone="garden"] {
+  --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 145);
+}
+
+[data-tone="community"] {
+  --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 50);
+}
+
+[data-tone="actions"] {
+  --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);
+}
+
+[data-theme="dark"][data-tone="hub"] {
+  --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240);
+}
+
+[data-theme="dark"][data-tone="garden"] {
+  --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145);
+}
+
+[data-theme="dark"][data-tone="community"] {
+  --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 50);
+}
+
+[data-theme="dark"][data-tone="actions"] {
+  --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);
+}
+
+.storybook-browser-preview .workspace-canvas {
+  background: var(--tone-canvas, rgb(var(--m3-surface-container-lowest)));
+}
+
+[data-theme="dark"] .storybook-browser-preview .workspace-canvas {
+  background: var(--tone-canvas, rgb(var(--m3-surface-dim)));
+}
+
+.storybook-browser-preview .canvas-route-card,
+.storybook-browser-preview .surface-section {
+  background: rgb(var(--admin-surface-0));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.storybook-browser-preview .canvas-stage-tab-rail-tint {
+  background: rgb(var(--m3-surface-container-low));
+}
+
 /* ============================================================================
  * ROOT STYLES
  * Base configuration for the Storybook preview

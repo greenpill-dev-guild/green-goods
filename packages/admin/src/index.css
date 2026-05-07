@@ -288,13 +288,13 @@
 
 /* ============================================================================
  * WORKSPACE TONAL PALETTES — M3-style per-workspace color roles
- * hub=blue, garden=green, community=orange, actions=red
- * Each defines 8 tonal roles consumed by --tone-* utilities across the admin UI
+ * hub=blue, garden=green, community=orange, actions=red.
+ *
+ * Route color is environmental: canvas tint, focus, hairlines, and one filled
+ * action role. Dense surfaces remain solid and readable.
  * ============================================================================ */
 
-/* Hub — Blue. `--tone-action` shifted from blue-500 (vivid, "bad blue") to
- * blue-700 (deeper, more grounded) so the primary button feels like a
- * confident operator action rather than a default web-app blue. */
+/* Hub — Blue. `--tone-action` stays deep so filled actions keep white text. */
 [data-tone="hub"] {
   --tone-primary: var(--blue-600);
   --tone-on-primary: 255 255 255;
@@ -310,9 +310,7 @@
   --tone-surface-tint-color: rgb(var(--blue-600) / 8%);
 }
 
-/* Garden — Green. Shifted action from green-800 (almost black) to green-700
- * (forest green) so white text reads with stronger contrast and the button
- * feels like a living accent instead of an abyss. */
+/* Garden — Green. Uses a forest action tone for the cockpit's strongest CTA. */
 [data-tone="garden"] {
   --tone-primary: var(--green-600);
   --tone-on-primary: 255 255 255;
@@ -328,9 +326,7 @@
   --tone-surface-tint-color: rgb(var(--green-600) / 8%);
 }
 
-/* Community — Orange. Shifted from orange-800 (harsh near-burnt) to
- * orange-700 (warm copper) so it reads as inviting community accent rather
- * than warning. */
+/* Community — Orange. The action tone is warm but still a filled-control role. */
 [data-tone="community"] {
   --tone-primary: var(--orange-600);
   --tone-on-primary: 255 255 255;
@@ -378,13 +374,14 @@
   --tone-surface-tint-color: rgb(120 113 108 / 8%);
 }
 
-/* Dark mode workspace overrides */
+/* Dark mode workspace overrides. Keep text, focus, and containers lighter, but
+ * filled actions remain deep with white text instead of pastel capsules. */
 [data-theme="dark"] [data-tone="hub"] {
   --tone-primary: var(--blue-200);
   --tone-on-primary: var(--blue-900);
-  --tone-action: var(--blue-200);
-  --tone-action-hover: var(--blue-100);
-  --tone-on-action: var(--blue-900);
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-600);
+  --tone-on-action: 255 255 255;
   --tone-primary-container: var(--blue-900);
   --tone-on-primary-container: var(--blue-100);
   --tone-secondary: var(--blue-400);
@@ -397,9 +394,9 @@
 [data-theme="dark"] [data-tone="garden"] {
   --tone-primary: var(--green-200);
   --tone-on-primary: var(--green-900);
-  --tone-action: var(--green-200);
-  --tone-action-hover: var(--green-100);
-  --tone-on-action: var(--green-900);
+  --tone-action: var(--green-800);
+  --tone-action-hover: var(--green-700);
+  --tone-on-action: 255 255 255;
   --tone-primary-container: var(--green-900);
   --tone-on-primary-container: var(--green-100);
   --tone-secondary: var(--green-400);
@@ -412,9 +409,9 @@
 [data-theme="dark"] [data-tone="community"] {
   --tone-primary: var(--orange-200);
   --tone-on-primary: var(--orange-900);
-  --tone-action: var(--orange-200);
-  --tone-action-hover: var(--orange-100);
-  --tone-on-action: var(--orange-900);
+  --tone-action: var(--orange-800);
+  --tone-action-hover: var(--orange-700);
+  --tone-on-action: 255 255 255;
   --tone-primary-container: var(--orange-900);
   --tone-on-primary-container: var(--orange-100);
   --tone-secondary: var(--orange-400);
@@ -427,9 +424,9 @@
 [data-theme="dark"] [data-tone="actions"] {
   --tone-primary: var(--red-200);
   --tone-on-primary: var(--red-900);
-  --tone-action: var(--red-200);
-  --tone-action-hover: var(--red-100);
-  --tone-on-action: var(--red-900);
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-600);
+  --tone-on-action: 255 255 255;
   --tone-primary-container: var(--red-900);
   --tone-on-primary-container: var(--red-100);
   --tone-secondary: var(--red-400);
@@ -442,9 +439,9 @@
 [data-theme="dark"] [data-tone="home"] {
   --tone-primary: 214 211 209;
   --tone-on-primary: 41 37 36;
-  --tone-action: 214 211 209;
-  --tone-action-hover: 231 229 228;
-  --tone-on-action: 41 37 36;
+  --tone-action: 68 64 60;
+  --tone-action-hover: 87 83 78;
+  --tone-on-action: 255 255 255;
   --tone-primary-container: 68 64 60;
   --tone-on-primary-container: 231 229 228;
   --tone-secondary: 168 162 158;
@@ -454,18 +451,19 @@
   --tone-surface-tint-color: rgb(214 211 209 / 10%);
 }
 
-/* Workspace-aware tab rail tint */
+/* Workspace-aware tab rail tint. Keep the rail neutral so route color does not
+ * turn routine navigation into a blue/red/orange panel. */
 [data-tone="hub"] .canvas-stage-tab-rail-tint {
-  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+  background: rgb(var(--m3-surface-container-low));
 }
 [data-tone="garden"] .canvas-stage-tab-rail-tint {
-  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+  background: rgb(var(--m3-surface-container-low));
 }
 [data-tone="community"] .canvas-stage-tab-rail-tint {
-  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+  background: rgb(var(--m3-surface-container-low));
 }
 [data-tone="actions"] .canvas-stage-tab-rail-tint {
-  background: linear-gradient(180deg, rgb(var(--tone-surface-variant) / 0.5) 0%, rgb(var(--bg-soft-200) / 0.7) 100%);
+  background: rgb(var(--m3-surface-container-low));
 }
 
 /* Workspace color cross-dissolve when switching views */
@@ -1073,13 +1071,11 @@
    * room from the card edge — no card-on-card stacking.
    */
   .canvas-route-card {
-    /* Slightly translucent + backdrop-blur so the workspace tone gradient
-     * bleeds subtly through the card edges. Keeps the M3 "card" feel while
-     * picking up the per-view atmosphere (blue / green / orange / red / stone).
-     * Falls back to opaque white when backdrop-filter isn't supported. */
-    background: rgb(var(--admin-surface-0) / 0.92);
-    backdrop-filter: blur(20px) saturate(1.1);
-    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    /* Solid M3 material for text-dense admin workspaces. Route tint belongs to
+     * the canvas behind this card, not to translucent content surfaces. */
+    background: rgb(var(--admin-surface-0));
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
     border-radius: var(--shape-xl);
     /* Horizontal padding mirrors the AppBar paddingInline (20px) so eyebrow,
        title, tabs, and search align with AppBar text at any viewport. */
@@ -1108,7 +1104,7 @@
   /** Full-width section: page-level grouping */
   .surface-section {
     @apply rounded-xl;
-    background: linear-gradient(180deg, rgb(var(--admin-surface-0)) 0%, rgb(var(--admin-surface-50) / 0.6) 100%);
+    background: rgb(var(--admin-surface-0));
     @apply p-4 sm:p-5;
     box-shadow: var(--edge-rest), var(--elevation-2);
   }
@@ -1276,11 +1272,8 @@
 /* ============================================================================
  * WORKSPACE CANVAS - M3 solid ground behind the main sheet
  *
- * Workspace identity travels via --tone-tint / --tone-tint-2 /
- * --tone-accent CSS vars, consumed by NavigationBar, UserAvatar,
- * PageHeader, AccountProfilePanel, AccountSettingsPanel, WorkbenchRow.
- * Atmospheric radial-gradient backdrop + noise texture retired 2026-04-17
- * per D1 (strict M3 over hybrid visual system).
+ * Workspace identity travels as a subtle canvas tint. Dense route surfaces stay
+ * solid, so the tint reads as atmosphere rather than colored content chrome.
  * ============================================================================ */
 /* ============================================================================
  * VIEW TRANSITIONS — scope cross-fade to content only
@@ -1329,25 +1322,8 @@
   --tone-accent: 37 99 235;
   position: relative;
   isolation: isolate;
-  /* Extends the workspace tone wash through the entire canvas: a top-anchored
-   * radial highlight stays bright, then a vertical fade keeps the tint visible
-   * all the way down (subtle, ~3-6% opacity). Previously the radial faded to
-   * transparent at 70% so anything past the AppBar reverted to plain
-   * `m3-surface-container-lowest`, breaking the gradient as you scrolled. */
-  background:
-    radial-gradient(
-      ellipse 100% 70% at 50% 0%,
-      var(--tone-surface-tint-color, transparent) 0%,
-      transparent 80%
-    ),
-    linear-gradient(
-      180deg,
-      var(--tone-surface-tint-color, transparent) 0%,
-      rgb(var(--tone-tint, 59 130 246) / 0.025) 60%,
-      rgb(var(--tone-tint, 59 130 246) / 0.045) 100%
-    ),
-    rgb(var(--m3-surface-container-lowest));
-  transition: background-color var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
+  background: var(--tone-canvas, rgb(var(--m3-surface-container-lowest)));
+  transition: background var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
 }
 
 .workspace-canvas[data-tone="home"] {
@@ -1390,24 +1366,8 @@
   overflow-x: hidden;
 }
 
-/* Dark-mode workspace canvas. Reuses the same gradient stack with a darker
- * base. `--tone-tint` lightens per-workspace below so the tone is still
- * legible against the darker substrate (lifting ~25% of the way up the scale
- * matches the on-action / on-primary inversions defined elsewhere). */
 [data-theme="dark"] .workspace-canvas {
-  background:
-    radial-gradient(
-      ellipse 100% 70% at 50% 0%,
-      var(--tone-surface-tint-color, transparent) 0%,
-      transparent 80%
-    ),
-    linear-gradient(
-      180deg,
-      var(--tone-surface-tint-color, transparent) 0%,
-      rgb(var(--tone-tint, 147 197 253) / 0.045) 60%,
-      rgb(var(--tone-tint, 147 197 253) / 0.075) 100%
-    ),
-    rgb(var(--m3-surface-dim));
+  background: var(--tone-canvas, rgb(var(--m3-surface-dim)));
 }
 
 [data-theme="dark"] .workspace-canvas[data-tone="home"] {
@@ -1551,7 +1511,8 @@
  *   - page-header bottom hairline (consumer-driven, Tier 2)
  *   - garden-pill leaf in AppBar (consumer-driven, Tier 2)
  * Tone does NOT touch: header background, title text, cards, status chips,
- * buttons, FAB. Action color (green) stays a single source.
+ * or FAB. Filled actions consume --tone-action; other controls stay M3
+ * neutral/semantic.
  *
  * Strength axis: off | subtle | default. Default for dark mode is subtle
  * per audit §5.4.3.

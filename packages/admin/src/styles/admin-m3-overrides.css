@@ -249,11 +249,9 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"].glass-
 }
 
 /* ============================================================================
- * AdminCard — per-view tone wash (handoff DESIGN_NOTES § Tone system)
- * The tint sits on a single ::before pseudo per card so the browser doesn't
- * pay a per-element `background-image` paint on dense lists (Hub queues,
- * action templates, payouts). Falls back to invisible black when no
- * [data-tone] ancestor is set.
+ * AdminCard — solid content material
+ * Route color stays on the workspace canvas and action/focus roles. Dense
+ * cards remain neutral so dark mode does not become a full-page color wash.
  * ============================================================================ */
 .admin-m3 [data-component="AdminCard"]::before {
   content: "";
@@ -261,7 +259,7 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"].glass-
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  background: rgb(var(--tone-action, 0 0 0) / 0.03);
+  background: transparent;
   z-index: 0;
 }
 .admin-m3 [data-component="AdminCard"] > * {

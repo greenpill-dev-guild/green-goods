@@ -1,6 +1,7 @@
 import { useMarketplaceApprovals } from "@green-goods/shared";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "../AdminButton";
 
 interface MarketplaceApprovalGateProps {
   children: React.ReactNode;
@@ -80,11 +81,11 @@ export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGatePro
 
           {error && <p className="mt-3 text-xs text-error-base">{error.message}</p>}
 
-          <button
+          <AdminButton
             type="button"
             onClick={() => grantApprovals()}
             disabled={isGranting}
-            className="mt-4 flex items-center gap-2 rounded-md bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-2 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-4"
           >
             {isGranting ? (
               <>
@@ -97,7 +98,7 @@ export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGatePro
                 {formatMessage({ id: "app.marketplace.approveAll", defaultMessage: "Approve All" })}
               </>
             )}
-          </button>
+          </AdminButton>
         </div>
       </div>
     </div>

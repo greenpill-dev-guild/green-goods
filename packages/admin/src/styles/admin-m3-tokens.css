@@ -61,8 +61,12 @@
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
   --m3-secondary-container: var(--neutral-200);
   --m3-on-secondary-container: var(--neutral-900);
+  --m3-tertiary-container: var(--warning-lighter);
+  --m3-on-tertiary-container: var(--warning-dark);
   --m3-error: var(--error-base);
   --m3-on-error: 255 255 255;
+  --m3-error-container: var(--error-lighter);
+  --m3-on-error-container: var(--error-dark);
 }
 
 /* --------------------------------------------------------------------------
@@ -92,6 +96,10 @@
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-100));
   --m3-secondary-container: var(--neutral-700);
   --m3-on-secondary-container: var(--neutral-100);
+  --m3-tertiary-container: var(--warning-light);
+  --m3-on-tertiary-container: var(--warning-dark);
+  --m3-error-container: var(--error-light);
+  --m3-on-error-container: var(--error-dark);
 }
 
 /* --------------------------------------------------------------------------

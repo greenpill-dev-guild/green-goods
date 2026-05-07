@@ -1,6 +1,7 @@
-import { Button, type ActionInstructionConfig } from "@green-goods/shared";
+import { type ActionInstructionConfig } from "@green-goods/shared";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "../AdminButton";
 import { DetailsConfigSection } from "./DetailsConfigSection";
 import { MediaConfigSection } from "./MediaConfigSection";
 import { ReviewConfigSection } from "./ReviewConfigSection";
@@ -33,14 +34,14 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
     <div className="border border-stroke-soft rounded-lg bg-bg-white">
       {/* Tab Navigation */}
       <div className="flex border-b border-stroke-soft">
-        <Button
+        <AdminButton
           type="button"
-          variant="ghost"
+          variant="text"
           size="sm"
           onClick={() => setActiveTab("media")}
           className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
             activeTab === "media"
-              ? "border-b-2 border-primary-base text-primary-base"
+              ? "border-b-2 border-[rgb(var(--m3-primary))] text-[rgb(var(--m3-primary))]"
               : "text-text-sub hover:text-text-strong"
           }`}
         >
@@ -48,15 +49,15 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
             id: "app.admin.actions.instructions.tabMedia",
             defaultMessage: "Media Configuration",
           })}
-        </Button>
-        <Button
+        </AdminButton>
+        <AdminButton
           type="button"
-          variant="ghost"
+          variant="text"
           size="sm"
           onClick={() => setActiveTab("details")}
           className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
             activeTab === "details"
-              ? "border-b-2 border-primary-base text-primary-base"
+              ? "border-b-2 border-[rgb(var(--m3-primary))] text-[rgb(var(--m3-primary))]"
               : "text-text-sub hover:text-text-strong"
           }`}
         >
@@ -64,15 +65,15 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
             id: "app.admin.actions.instructions.tabFormInputs",
             defaultMessage: "Form Inputs",
           })}
-        </Button>
-        <Button
+        </AdminButton>
+        <AdminButton
           type="button"
-          variant="ghost"
+          variant="text"
           size="sm"
           onClick={() => setActiveTab("review")}
           className={`h-auto min-w-0 rounded-none px-4 py-3 text-sm font-medium ${
             activeTab === "review"
-              ? "border-b-2 border-primary-base text-primary-base"
+              ? "border-b-2 border-[rgb(var(--m3-primary))] text-[rgb(var(--m3-primary))]"
               : "text-text-sub hover:text-text-strong"
           }`}
         >
@@ -80,7 +81,7 @@ export function InstructionsBuilder({ value, onChange }: InstructionsBuilderProp
             id: "app.admin.actions.instructions.tabReview",
             defaultMessage: "Review Screen",
           })}
-        </Button>
+        </AdminButton>
       </div>
 
       {/* Tab Content */}
