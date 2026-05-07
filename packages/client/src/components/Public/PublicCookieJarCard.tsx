@@ -24,6 +24,9 @@ import { useBalance } from "wagmi";
 
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
 
+const STRICT_PURPOSE_MIN_LENGTH = 27;
+const FALLBACK_CAMPAIGN_COOKIE_JAR_CLAIM_PURPOSE = "Green Goods campaign cookie claim";
+
 export type CookieJarStatus =
   | { kind: "for-you-claimable"; bucket: "for-you" }
   | { kind: "for-you-cooldown"; bucket: "for-you"; nextClaimAt: number }
@@ -73,6 +76,22 @@ export function classifyCookieJarStatus(
 
 function formatDisplayAmount(value: bigint, decimals: number, symbol: string): string {
   return `${formatTokenAmount(value, decimals, 4)} ${symbol}`;
+}
+
+function resolveCampaignCookieJarClaimPurpose(
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"],
+  strictPurpose: boolean
+): string {
+  const localizedPurpose = formatMessage({
+    id: "public.cookies.defaultPurpose",
+    defaultMessage: FALLBACK_CAMPAIGN_COOKIE_JAR_CLAIM_PURPOSE,
+  });
+
+  if (!strictPurpose || localizedPurpose.trim().length >= STRICT_PURPOSE_MIN_LENGTH) {
+    return localizedPurpose;
+  }
+
+  return FALLBACK_CAMPAIGN_COOKIE_JAR_CLAIM_PURPOSE;
 }
 
 function formatSourceGardens(
@@ -527,10 +546,7 @@ function CampaignCookieJarInlineActions({
       {
         jarAddress: jar.jarAddress,
         amount: parsedClaim,
-        purpose: formatMessage({
-          id: "public.cookies.defaultPurpose",
-          defaultMessage: "Campaign cookie claim",
-        }),
+        purpose: resolveCampaignCookieJarClaimPurpose(formatMessage, jar.strictPurpose),
       },
       {
         onSuccess: () => {

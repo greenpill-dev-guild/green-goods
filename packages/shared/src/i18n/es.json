@@ -3131,7 +3131,7 @@
   "public.cookies.connectedTitle": "Aún no hay jars reclamables para esta wallet.",
   "public.cookies.cooldown": "Cooldown",
   "public.cookies.days": "{count, plural, one {# día} other {# días}}",
-  "public.cookies.defaultPurpose": "Claim de cookie de campaña",
+  "public.cookies.defaultPurpose": "Claim de cookie de campaña Green Goods",
   "public.cookies.deposit": "Depositar",
   "public.cookies.depositAmount": "Monto de depósito",
   "public.cookies.description": "Las jars de campaña guardan fondos para trabajo estacional, recompensas de eventos y presupuestos de cohortes de Jardines. Conecta una wallet para reclamar de jars en tu allowlist, o agrega fondos para mantener la jar llena.",

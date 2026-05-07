@@ -181,10 +181,11 @@ describe("CookiesPage", () => {
       {
         jarAddress: TEST_JAR,
         amount: 10000000000000000000n,
-        purpose: "Campaign cookie claim",
+        purpose: "Green Goods campaign cookie claim",
       },
       expect.any(Object)
     );
+    expect(mockClaimMutate.mock.calls[0]?.[0].purpose.length).toBeGreaterThanOrEqual(27);
   });
 
   it("resolves campaign aliases from the indexed campaign list", async () => {
@@ -248,10 +249,11 @@ describe("CookiesPage", () => {
       {
         jarAddress: TEST_JAR,
         amount: 3000000000000000000n,
-        purpose: "Campaign cookie claim",
+        purpose: "Green Goods campaign cookie claim",
       },
       expect.any(Object)
     );
+    expect(mockClaimMutate.mock.calls[0]?.[0].purpose.length).toBeGreaterThanOrEqual(27);
   });
 
   it("keeps the claim action disabled for an ineligible wallet", async () => {

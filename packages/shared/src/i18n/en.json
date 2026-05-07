@@ -3131,7 +3131,7 @@
   "public.cookies.connectedTitle": "No claimable jars for this wallet yet.",
   "public.cookies.cooldown": "Cooldown",
   "public.cookies.days": "{count, plural, one {# day} other {# days}}",
-  "public.cookies.defaultPurpose": "Campaign cookie claim",
+  "public.cookies.defaultPurpose": "Green Goods campaign cookie claim",
   "public.cookies.deposit": "Deposit",
   "public.cookies.depositAmount": "Deposit amount",
   "public.cookies.description": "Campaign jars hold funds for seasonal work, event rewards, and Garden cohort budgets. Connect a wallet to claim from jars on your allowlist, or add funds to keep the jar full.",
