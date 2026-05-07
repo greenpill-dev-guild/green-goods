@@ -10,10 +10,10 @@
  * @vitest-environment jsdom
  */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { Link, MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mocks ---
@@ -69,26 +69,35 @@ const messages: Record<string, string> = {
 };
 
 const FundContent = () =>
-  createElement("div", { "data-testid": "fund-content" }, "Fund Page Content");
+  createElement(
+    "div",
+    { "data-testid": "fund-content" },
+    "Fund Page Content",
+    createElement(Link, { to: "/gardens" }, "Open gardens")
+  );
 const GardensContent = () =>
   createElement("div", { "data-testid": "gardens-content" }, "Gardens Page Content");
 
 function renderShellWithRoute(initialRoute: string) {
   return render(
     createElement(
-      MemoryRouter,
-      { initialEntries: [initialRoute] },
+      "div",
+      { id: "client-scroll-root" },
       createElement(
-        IntlProvider,
-        { locale: "en", messages },
+        MemoryRouter,
+        { initialEntries: [initialRoute] },
         createElement(
-          Routes,
-          null,
+          IntlProvider,
+          { locale: "en", messages },
           createElement(
-            Route,
-            { element: createElement(PublicShell) },
-            createElement(Route, { path: "fund", element: createElement(FundContent) }),
-            createElement(Route, { path: "gardens", element: createElement(GardensContent) })
+            Routes,
+            null,
+            createElement(
+              Route,
+              { element: createElement(PublicShell) },
+              createElement(Route, { path: "fund", element: createElement(FundContent) }),
+              createElement(Route, { path: "gardens", element: createElement(GardensContent) })
+            )
           )
         )
       )
@@ -137,6 +146,19 @@ describe("PublicShell", () => {
     // Gardens content rendered via Outlet
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
     expect(screen.getByText("Gardens Page Content")).toBeInTheDocument();
+  });
+
+  it("resets the public scroll container on route changes", () => {
+    renderShellWithRoute("/fund");
+
+    const scrollRoot = document.getElementById("client-scroll-root");
+    expect(scrollRoot).toBeInTheDocument();
+    scrollRoot!.scrollTop = 720;
+
+    fireEvent.click(screen.getByRole("link", { name: "Open gardens" }));
+
+    expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
+    expect(scrollRoot!.scrollTop).toBe(0);
   });
 
   it("no bottom nav (AppBar) visible in browser mode", () => {

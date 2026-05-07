@@ -9,13 +9,14 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../../shared/.storybook/decorators";
-import { DEFAULT_CHAIN_ID, queryKeys } from "@green-goods/shared";
-import { CampaignCookieJarPanel } from "./CampaignCookieJarPanel";
+import { DEFAULT_CHAIN_ID, queryKeys, type Address } from "@green-goods/shared";
+import { CampaignCookieJarCreateWorkspace, CampaignCookieJarPanel } from "./CampaignCookieJarPanel";
 
 const EMPTY_CAMPAIGN_PANEL_SEEDS = [
   ...STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   [queryKeys.cookieJar.campaigns(DEFAULT_CHAIN_ID), []] as const,
 ] as const;
+const STORYBOOK_CREATED_JAR = "0x7777777777777777777777777777777777777777" as Address;
 
 const meta: Meta<typeof CampaignCookieJarPanel> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJarPanel",
@@ -46,3 +47,21 @@ export default meta;
 type Story = StoryObj<typeof CampaignCookieJarPanel>;
 
 export const Default: Story = {};
+
+export const CreatedAfterSubmit: Story = {
+  render: () => (
+    <CampaignCookieJarCreateWorkspace
+      onCancel={() => undefined}
+      initialCreatedJarAddress={STORYBOOK_CREATED_JAR}
+    />
+  ),
+};
+
+export const SubmittedNeedsJarAddress: Story = {
+  render: () => (
+    <CampaignCookieJarCreateWorkspace
+      onCancel={() => undefined}
+      initialSubmittedHash="safe-tx-queued-1"
+    />
+  ),
+};
