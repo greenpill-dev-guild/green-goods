@@ -98,3 +98,18 @@ export const StateCatalog: Story = {
     </div>
   ),
 };
+
+export const OutlinedAtSectionTop: Story = {
+  render: () => (
+    <section className="max-w-sm overflow-hidden rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-0">
+      <AdminTextField
+        label="Long campaign operator payout token label"
+        variant="outlined"
+        defaultValue="0.25"
+      />
+      <div className="px-3 pb-3 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+        Focused and prefilled outlined labels reserve their own top label space.
+      </div>
+    </section>
+  ),
+};

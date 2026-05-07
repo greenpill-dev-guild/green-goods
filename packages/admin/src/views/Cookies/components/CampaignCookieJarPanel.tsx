@@ -6,14 +6,21 @@ import {
   ERC20_SYMBOL_ABI,
   extractErrorMessage,
   FileUploadField,
+  FormField,
   formatAddress,
   formatTokenAmount,
+  getCampaignCookieJarPayoutAssets,
+  getDefaultCampaignCookieJarPayoutAsset,
   logger,
   normalizeCampaignAddress,
   resolveIPFSUrl,
+  Textarea,
+  TextInput,
   toastService,
   type Address,
   type CampaignCookieJarCampaign,
+  type CampaignCookieJarPayoutAsset,
+  type CampaignCookieJarPayoutAssetId,
   type Garden,
   uploadFileToIPFS,
   useCampaignCookieJar,
@@ -27,13 +34,7 @@ import {
   useUpdateCampaignCookieJarMetadata,
   useUser,
 } from "@green-goods/shared";
-import {
-  RiAddLine,
-  RiExternalLinkLine,
-  RiImageLine,
-  RiRefreshLine,
-  RiSearchLine,
-} from "@remixicon/react";
+import { RiExternalLinkLine, RiImageLine, RiRefreshLine } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
@@ -42,15 +43,16 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminDialog } from "@/components/AdminDialog";
-import { AdminTextField } from "@/components/AdminTextField";
 import {
   buildCampaignCookieJarCreatePayload,
   canCreateCampaignCookieJar,
   canSyncCampaignCookieJarAllowlist,
   filterCampaignCookieJarCampaigns,
   filterCampaignCookieJarGardens,
+  getCampaignCookieJarPublicUrl,
   isValidCampaignCookieJarMetadataUrl,
   isUsableCampaignCookieJarTokenDecimals,
+  orderCampaignCookieJarGardensForSelection,
   resolveCampaignCookieJarCreateFollowUp,
   resolveCampaignCookieJarManageDraft,
 } from "../campaignCookieJarPanel.model";
@@ -116,36 +118,98 @@ function GardenSelector({
   gardens,
   selectedGardenIds,
   onToggle,
+  onSelectMany,
+  onClear,
   search,
   setSearch,
+  listClassName = "max-h-80 overflow-y-auto",
 }: {
   gardens: readonly Garden[];
   selectedGardenIds: readonly string[];
   onToggle: (gardenId: string) => void;
+  onSelectMany?: (gardenIds: string[]) => void;
+  onClear?: () => void;
   search: string;
   setSearch: (value: string) => void;
+  listClassName?: string;
 }) {
   const { formatMessage } = useIntl();
   const selectedSet = useMemo(
     () => new Set(selectedGardenIds.map((id) => id.toLowerCase())),
     [selectedGardenIds]
   );
+  const filteredGardens = useMemo(
+    () => filterCampaignCookieJarGardens(gardens, search),
+    [gardens, search]
+  );
   const visibleGardens = useMemo(() => {
-    return filterCampaignCookieJarGardens(gardens, search);
-  }, [gardens, search]);
+    return orderCampaignCookieJarGardensForSelection(gardens, selectedGardenIds, search);
+  }, [gardens, search, selectedGardenIds]);
+  const allVisibleSelected =
+    filteredGardens.length > 0 &&
+    filteredGardens.every((garden) => selectedSet.has(garden.id.toLowerCase()));
 
   return (
     <div className="space-y-3">
-      <AdminTextField
-        label={formatMessage({
-          id: "cockpit.community.cookies.searchGardens",
-          defaultMessage: "Search gardens",
-        })}
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        variant="outlined"
-      />
-      <div className="max-h-64 overflow-y-auto rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))]">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+        <FormField
+          label={formatMessage({
+            id: "cockpit.community.cookies.searchGardens",
+            defaultMessage: "Search gardens",
+          })}
+          htmlFor="campaign-cookie-jar-garden-search"
+        >
+          <TextInput
+            id="campaign-cookie-jar-garden-search"
+            surface="admin"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder={formatMessage({
+              id: "cockpit.community.cookies.searchGardensPlaceholder",
+              defaultMessage: "Search by name, slug, or address",
+            })}
+          />
+        </FormField>
+        <div className="flex flex-wrap gap-2">
+          <AdminButton
+            type="button"
+            variant="outlined"
+            size="sm"
+            onClick={() => onSelectMany?.(filteredGardens.map((garden) => garden.id))}
+            disabled={!onSelectMany || filteredGardens.length === 0 || allVisibleSelected}
+          >
+            {formatMessage({
+              id: "cockpit.community.cookies.selectVisibleGardens",
+              defaultMessage: "Select visible",
+            })}
+          </AdminButton>
+          <AdminButton
+            type="button"
+            variant="text"
+            size="sm"
+            onClick={onClear}
+            disabled={!onClear || selectedGardenIds.length === 0}
+          >
+            {formatMessage({
+              id: "cockpit.community.cookies.clearGardens",
+              defaultMessage: "Clear",
+            })}
+          </AdminButton>
+        </div>
+      </div>
+      <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+        {formatMessage(
+          {
+            id: "cockpit.community.cookies.gardenSelectorSummary",
+            defaultMessage:
+              "{selected, plural, one {# selected garden} other {# selected gardens}} - {visible, plural, one {# visible garden} other {# visible gardens}}",
+          },
+          { selected: selectedGardenIds.length, visible: filteredGardens.length }
+        )}
+      </p>
+      <div
+        className={`rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] ${listClassName}`}
+      >
         {visibleGardens.length === 0 ? (
           <p className="p-4 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
             {formatMessage({
@@ -306,16 +370,12 @@ function CampaignImageInput({
             })}
       </AdminButton>
       {showUrlFallback ? (
-        <AdminTextField
+        <FormField
           label={formatMessage({
             id: "cockpit.community.cookies.campaignImage",
             defaultMessage: "Campaign image URL",
           })}
-          value={value}
-          onChange={(event) => {
-            onFileChange(null);
-            onChange(event.target.value);
-          }}
+          htmlFor={`${source}-url`}
           error={
             value && !isValidCampaignCookieJarMetadataUrl(value)
               ? formatMessage({
@@ -324,8 +384,17 @@ function CampaignImageInput({
                 })
               : undefined
           }
-          variant="outlined"
-        />
+        >
+          <TextInput
+            id={`${source}-url`}
+            surface="admin"
+            value={value}
+            onChange={(event) => {
+              onFileChange(null);
+              onChange(event.target.value);
+            }}
+          />
+        </FormField>
       ) : null}
     </div>
   );
@@ -420,50 +489,827 @@ function CampaignJarListRow({
   );
 }
 
-interface CampaignCookieJarPanelProps {
-  initialCreateOpen?: boolean;
-  onCreateOpenChange?: (open: boolean) => void;
+function CampaignCookieJarAssetPicker({
+  assets,
+  selectedAssetId,
+  onSelect,
+}: {
+  assets: readonly CampaignCookieJarPayoutAsset[];
+  selectedAssetId: CampaignCookieJarPayoutAssetId | "custom";
+  onSelect: (assetId: CampaignCookieJarPayoutAssetId) => void;
+}) {
+  const { formatMessage } = useIntl();
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="radiogroup">
+      {assets.map((asset) => {
+        const selected = selectedAssetId === asset.id;
+        return (
+          <button
+            key={asset.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            disabled={!asset.supported}
+            onClick={() => onSelect(asset.id)}
+            className={[
+              "min-h-[6rem] rounded-[var(--m3-shape-md)] border p-4 text-left transition",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]",
+              selected
+                ? "border-[rgb(var(--m3-primary))] bg-[rgb(var(--m3-primary-container)/0.45)]"
+                : "border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))]",
+              asset.supported
+                ? "hover:border-[rgb(var(--m3-primary))]"
+                : "cursor-not-allowed opacity-55",
+            ].join(" ")}
+          >
+            <span className="flex items-start justify-between gap-3">
+              <span>
+                <span className="block text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+                  {asset.label}
+                </span>
+                <span className="mt-1 block text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  {formatMessage(
+                    {
+                      id: "cockpit.community.cookies.assetDecimals",
+                      defaultMessage: "{symbol} - {decimals} decimals",
+                    },
+                    { symbol: asset.symbol, decimals: asset.decimals }
+                  )}
+                </span>
+              </span>
+              {selected ? (
+                <span className="rounded-full bg-[rgb(var(--m3-primary))] px-2 py-0.5 text-label-sm text-[rgb(var(--m3-on-primary))]">
+                  {formatMessage({ id: "app.action.selected", defaultMessage: "Selected" })}
+                </span>
+              ) : null}
+            </span>
+            <span className="mt-3 block break-all text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+              {asset.supported
+                ? asset.address
+                : formatMessage(
+                    {
+                      id: "cockpit.community.cookies.assetUnavailable",
+                      defaultMessage: "{asset} is not available on this network yet.",
+                    },
+                    { asset: asset.label }
+                  )}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
-export function CampaignCookieJarPanel({
-  initialCreateOpen = false,
-  onCreateOpenChange,
-}: CampaignCookieJarPanelProps) {
+function ReviewLine({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="border-b border-[rgb(var(--m3-outline-variant))] py-3 last:border-b-0">
+      <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">{label}</p>
+      <p className="mt-1 break-words text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+interface CampaignCookieJarCreateWorkspaceProps {
+  onCancel: () => void;
+}
+
+export function CampaignCookieJarCreateWorkspace({
+  onCancel,
+}: CampaignCookieJarCreateWorkspaceProps) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
   const { primaryAddress } = useUser();
   const { isDeployer, loading: roleLoading } = useRole();
   const { data: gardens = [], isLoading: gardensLoading } = useGardens(chainId);
   const {
-    campaigns,
-    isLoading: campaignsLoading,
-    error: campaignsError,
-  } = useCampaignCookieJarCampaigns();
-  const {
     factoryAddress,
     moduleConfigured,
     isLoading: factoryLoading,
   } = useCookieJarFactoryAddress();
   const createJar = useCreateCampaignCookieJar({ errorMode: "inline" });
-  const syncAllowlist = useSyncCampaignCookieJarAllowlist({ errorMode: "inline" });
-  const updateMetadata = useUpdateCampaignCookieJarMetadata({ errorMode: "inline" });
 
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const payoutAssets = useMemo(() => getCampaignCookieJarPayoutAssets(chainId), [chainId]);
+  const defaultPayoutAsset = useMemo(
+    () => getDefaultCampaignCookieJarPayoutAsset(chainId),
+    [chainId]
+  );
+
   const [campaignTitle, setCampaignTitle] = useState("");
   const [campaignDescription, setCampaignDescription] = useState("");
   const [campaignImage, setCampaignImage] = useState("");
   const [campaignImageFile, setCampaignImageFile] = useState<File | null>(null);
-  const [campaignExternalUrl, setCampaignExternalUrl] = useState("");
-  const [tokenAddress, setTokenAddress] = useState("");
+  const [selectedAssetId, setSelectedAssetId] = useState<CampaignCookieJarPayoutAssetId | "custom">(
+    defaultPayoutAsset?.id ?? "usdc"
+  );
+  const [customTokenAddress, setCustomTokenAddress] = useState("");
   const [claimAmount, setClaimAmount] = useState("");
   const [withdrawalIntervalDays, setWithdrawalIntervalDays] = useState("0");
   const [jarOwner, setJarOwner] = useState("");
   const [selectedGardenIds, setSelectedGardenIds] = useState<string[]>([]);
   const [gardenSearch, setGardenSearch] = useState("");
   const [extraAddresses, setExtraAddresses] = useState("");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [createdJarAddress, setCreatedJarAddress] = useState<Address | null>(null);
   const [createdJarPendingHash, setCreatedJarPendingHash] = useState<string | null>(null);
   const [createdJarManualInput, setCreatedJarManualInput] = useState("");
+
+  useEffect(() => {
+    if (selectedAssetId === "custom") return;
+    const selectedAsset = payoutAssets.find((asset) => asset.id === selectedAssetId);
+    if (selectedAsset?.supported) return;
+    if (defaultPayoutAsset) setSelectedAssetId(defaultPayoutAsset.id);
+  }, [defaultPayoutAsset, payoutAssets, selectedAssetId]);
+
+  useEffect(() => {
+    setJarOwner((current) => current || primaryAddress || "");
+  }, [primaryAddress]);
+
+  const selectedRegistryAsset =
+    selectedAssetId === "custom"
+      ? null
+      : (payoutAssets.find((asset) => asset.id === selectedAssetId) ?? null);
+  const normalizedCustomTokenAddress = normalizeCampaignAddress(customTokenAddress);
+  const tokenInfoQuery = useReadContracts({
+    contracts:
+      selectedAssetId === "custom" && normalizedCustomTokenAddress
+        ? [
+            {
+              address: normalizedCustomTokenAddress,
+              abi: ERC20_DECIMALS_ABI,
+              functionName: "decimals" as const,
+            },
+            {
+              address: normalizedCustomTokenAddress,
+              abi: ERC20_SYMBOL_ABI,
+              functionName: "symbol" as const,
+            },
+          ]
+        : [],
+    allowFailure: true,
+    query: {
+      enabled: selectedAssetId === "custom" && Boolean(normalizedCustomTokenAddress),
+    },
+  });
+  const customTokenDecimalsValue = tokenInfoQuery.data?.[0]?.result;
+  const customTokenDecimalsConfirmed =
+    selectedAssetId === "custom" &&
+    isUsableCampaignCookieJarTokenDecimals(customTokenDecimalsValue);
+  const tokenDecimals =
+    selectedAssetId === "custom"
+      ? customTokenDecimalsConfirmed
+        ? customTokenDecimalsValue
+        : 18
+      : (selectedRegistryAsset?.decimals ?? 18);
+  const tokenSymbol =
+    selectedAssetId === "custom"
+      ? ((tokenInfoQuery.data?.[1]?.result as string | undefined) ?? "")
+      : (selectedRegistryAsset?.symbol ?? "");
+  const tokenAddress =
+    selectedAssetId === "custom"
+      ? normalizedCustomTokenAddress
+      : (selectedRegistryAsset?.address ?? null);
+  const tokenDecimalsConfirmed =
+    selectedAssetId === "custom"
+      ? customTokenDecimalsConfirmed
+      : Boolean(selectedRegistryAsset?.supported && selectedRegistryAsset.address);
+  const customTokenLoading =
+    selectedAssetId === "custom" &&
+    Boolean(normalizedCustomTokenAddress) &&
+    (tokenInfoQuery.isLoading || tokenInfoQuery.isFetching);
+  const customTokenError =
+    selectedAssetId === "custom" &&
+    Boolean(normalizedCustomTokenAddress) &&
+    !customTokenLoading &&
+    !customTokenDecimalsConfirmed;
+  const publicCampaignUrl = getCampaignCookieJarPublicUrl(campaignTitle);
+  const metadataUrlsValid = isValidCampaignCookieJarMetadataUrl(campaignImage);
+  const aggregation = useMemo(
+    () =>
+      aggregateCampaignCookieJarOperators({
+        gardens: gardensForAggregation(gardens),
+        selectedGardenIds,
+        extraAddressesInput: extraAddresses,
+      }),
+    [extraAddresses, gardens, selectedGardenIds]
+  );
+  const parsedClaimAmount = parseAmountInput(claimAmount, tokenDecimals);
+  const normalizedJarOwner = normalizeCampaignAddress(jarOwner);
+  const createdJarManualAddress = normalizeCampaignAddress(createdJarManualInput);
+  const canCreate = canCreateCampaignCookieJar({
+    factoryAddress,
+    tokenAddress,
+    tokenDecimalsConfirmed,
+    jarOwner: normalizedJarOwner,
+    campaignTitle,
+    hasValidClaimConfig: Boolean(parsedClaimAmount),
+    allowlistCount: aggregation.allowlist.length,
+    invalidAddressCount: aggregation.invalidAddresses.length,
+    metadataUrlsValid,
+    isDeployer,
+  });
+  const payoutLabel =
+    parsedClaimAmount && tokenSymbol
+      ? `${formatTokenAmount(parsedClaimAmount, tokenDecimals, 4)} ${tokenSymbol}`
+      : tokenSymbol || "--";
+
+  const toggleGarden = (gardenId: string) => {
+    setSelectedGardenIds((current) =>
+      current.some((id) => id.toLowerCase() === gardenId.toLowerCase())
+        ? current.filter((id) => id.toLowerCase() !== gardenId.toLowerCase())
+        : [...current, gardenId]
+    );
+  };
+
+  const selectGardens = (gardenIds: string[]) => {
+    setSelectedGardenIds((current) => {
+      const seen = new Set(current.map((id) => id.toLowerCase()));
+      const next = [...current];
+      for (const gardenId of gardenIds) {
+        const key = gardenId.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push(gardenId);
+      }
+      return next;
+    });
+  };
+
+  const applyCreatedJarAddress = (jarAddress: Address) => {
+    setCreatedJarAddress(jarAddress);
+    setCreatedJarPendingHash(null);
+    setCreatedJarManualInput("");
+  };
+
+  const handleCreate = () => {
+    if (
+      !canCreate ||
+      !factoryAddress ||
+      !tokenAddress ||
+      !normalizedJarOwner ||
+      !parsedClaimAmount
+    ) {
+      return;
+    }
+    const intervalDays = Number(withdrawalIntervalDays);
+    createJar.mutate(
+      buildCampaignCookieJarCreatePayload({
+        factoryAddress,
+        campaignTitle,
+        campaignDescription,
+        campaignImage,
+        campaignExternalUrl: publicCampaignUrl,
+        tokenAddress,
+        jarOwner: normalizedJarOwner,
+        allowlist: aggregation.allowlist,
+        sourceGardens: aggregation.sources.map((source) => source.gardenAddress),
+        extraAllowlist: aggregation.extraAllowlist,
+        fixedAmount: parsedClaimAmount,
+        withdrawalInterval:
+          Number.isFinite(intervalDays) && intervalDays > 0
+            ? BigInt(Math.floor(intervalDays * 86400))
+            : 0n,
+      }),
+      {
+        onSuccess: (result) => {
+          const followUp = resolveCampaignCookieJarCreateFollowUp(result);
+          if (followUp.kind === "ready") {
+            applyCreatedJarAddress(followUp.jarAddress);
+          } else {
+            setCreatedJarAddress(null);
+            setCreatedJarPendingHash(followUp.hash);
+          }
+        },
+      }
+    );
+  };
+
+  return (
+    <div className="relative pb-32 lg:pb-0">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+        <div className="space-y-5">
+          {!moduleConfigured ? (
+            <AdminCard
+              variant="outlined"
+              className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
+            >
+              {formatMessage({
+                id: "cockpit.community.cookies.factoryMissing",
+                defaultMessage:
+                  "Cookie Jar factory discovery is not configured on this network yet.",
+              })}
+            </AdminCard>
+          ) : null}
+
+          {!isDeployer && !roleLoading ? (
+            <AdminCard
+              variant="outlined"
+              className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]"
+            >
+              {formatMessage({
+                id: "cockpit.community.cookies.deployerOnly",
+                defaultMessage:
+                  "This surface is intended for deployer and ops wallets. Connect a deployer wallet to create and manage campaign cookie jars.",
+              })}
+            </AdminCard>
+          ) : null}
+
+          {createdJarAddress ? (
+            <AdminCard variant="outlined" className="space-y-2">
+              <p className="text-label-lg text-[rgb(var(--m3-on-surface))]">
+                {formatMessage({
+                  id: "cockpit.community.cookies.createdJar",
+                  defaultMessage: "Created jar",
+                })}
+              </p>
+              <p className="break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                {createdJarAddress}
+              </p>
+              <a
+                href={publicJarLink(createdJarAddress)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-label-md text-[rgb(var(--m3-primary))] underline-offset-4 hover:underline"
+              >
+                {publicJarLink(createdJarAddress)}
+                <RiExternalLinkLine className="h-4 w-4" aria-hidden />
+              </a>
+            </AdminCard>
+          ) : null}
+
+          {createdJarPendingHash ? (
+            <AdminCard variant="outlined" className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-label-lg text-[rgb(var(--m3-on-surface))]">
+                  {formatMessage({
+                    id: "cockpit.community.cookies.createSubmitted",
+                    defaultMessage: "Creation submitted",
+                  })}
+                </p>
+                <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  {formatMessage({
+                    id: "cockpit.community.cookies.createSubmittedDescription",
+                    defaultMessage:
+                      "The wallet returned a submitted transaction without a final jar address. Once the transaction is executed, paste the created jar address to generate the public link.",
+                  })}
+                </p>
+                <p className="break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  {formatMessage({
+                    id: "cockpit.community.cookies.submittedTransaction",
+                    defaultMessage: "Submitted transaction",
+                  })}
+                  {`: ${createdJarPendingHash}`}
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <FormField
+                  label={formatMessage({
+                    id: "cockpit.community.cookies.createdJarAddressInput",
+                    defaultMessage: "Created jar address",
+                  })}
+                  htmlFor="campaign-cookie-jar-created-address"
+                  error={
+                    createdJarManualInput && !createdJarManualAddress
+                      ? formatMessage({
+                          id: "cockpit.community.cookies.invalidAddress",
+                          defaultMessage: "Enter a valid Ethereum address.",
+                        })
+                      : undefined
+                  }
+                >
+                  <TextInput
+                    id="campaign-cookie-jar-created-address"
+                    surface="admin"
+                    value={createdJarManualInput}
+                    onChange={(event) => setCreatedJarManualInput(event.target.value)}
+                  />
+                </FormField>
+                <AdminButton
+                  type="button"
+                  onClick={() => {
+                    if (!createdJarManualAddress) return;
+                    applyCreatedJarAddress(createdJarManualAddress);
+                  }}
+                  disabled={!createdJarManualAddress}
+                >
+                  {formatMessage({
+                    id: "cockpit.community.cookies.useCreatedJar",
+                    defaultMessage: "Use jar address",
+                  })}
+                </AdminButton>
+              </div>
+            </AdminCard>
+          ) : null}
+
+          <section className="surface-section overflow-visible">
+            <div className="mb-4">
+              <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">01</p>
+              <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+                {formatMessage({
+                  id: "cockpit.community.cookies.createCampaignSection",
+                  defaultMessage: "Campaign",
+                })}
+              </h2>
+            </div>
+            <div className="grid gap-4">
+              <FormField
+                label={formatMessage({
+                  id: "cockpit.community.cookies.campaignName",
+                  defaultMessage: "Campaign name",
+                })}
+                htmlFor="campaign-cookie-jar-title"
+              >
+                <TextInput
+                  id="campaign-cookie-jar-title"
+                  surface="admin"
+                  value={campaignTitle}
+                  onChange={(event) => setCampaignTitle(event.target.value)}
+                />
+              </FormField>
+              <FormField
+                label={formatMessage({
+                  id: "cockpit.community.cookies.campaignDescription",
+                  defaultMessage: "Campaign description",
+                })}
+                htmlFor="campaign-cookie-jar-description"
+              >
+                <Textarea
+                  id="campaign-cookie-jar-description"
+                  surface="admin"
+                  value={campaignDescription}
+                  onChange={(event) => setCampaignDescription(event.target.value)}
+                />
+              </FormField>
+              <CampaignImageInput
+                value={campaignImage}
+                onChange={setCampaignImage}
+                file={campaignImageFile}
+                onFileChange={setCampaignImageFile}
+                disabled={createJar.isPending}
+                source="campaign-cookie-jar-create-image"
+              />
+              <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-3">
+                <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+                  {formatMessage({
+                    id: "cockpit.community.cookies.generatedCampaignLink",
+                    defaultMessage: "Campaign page",
+                  })}
+                </p>
+                <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  {publicCampaignUrl}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="surface-section overflow-visible">
+            <div className="mb-4">
+              <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">02</p>
+              <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+                {formatMessage({
+                  id: "cockpit.community.cookies.createPayoutSection",
+                  defaultMessage: "Payout",
+                })}
+              </h2>
+            </div>
+            <div className="space-y-4">
+              <CampaignCookieJarAssetPicker
+                assets={payoutAssets}
+                selectedAssetId={selectedAssetId}
+                onSelect={setSelectedAssetId}
+              />
+              <FormField
+                label={formatMessage({
+                  id: "cockpit.community.cookies.claimAmountPerOperator",
+                  defaultMessage: "Claim amount per operator",
+                })}
+                htmlFor="campaign-cookie-jar-claim-amount"
+              >
+                <div className="flex items-center gap-2">
+                  <TextInput
+                    id="campaign-cookie-jar-claim-amount"
+                    surface="admin"
+                    inputMode="decimal"
+                    value={claimAmount}
+                    onChange={(event) => setClaimAmount(event.target.value)}
+                    placeholder="0.00"
+                  />
+                  <span className="inline-flex min-h-11 items-center rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] px-3 text-label-md text-[rgb(var(--m3-on-surface-variant))]">
+                    {tokenSymbol || "TOKEN"}
+                  </span>
+                </div>
+              </FormField>
+            </div>
+          </section>
+
+          <section className="surface-section overflow-visible">
+            <div className="mb-4">
+              <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">03</p>
+              <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+                {formatMessage({
+                  id: "cockpit.community.cookies.createGardensSection",
+                  defaultMessage: "Eligible gardens",
+                })}
+              </h2>
+            </div>
+            <GardenSelector
+              gardens={gardens}
+              selectedGardenIds={selectedGardenIds}
+              onToggle={toggleGarden}
+              onSelectMany={selectGardens}
+              onClear={() => setSelectedGardenIds([])}
+              search={gardenSearch}
+              setSearch={setGardenSearch}
+              listClassName="overflow-visible"
+            />
+            {aggregation.missingOperatorGardens.length > 0 ? (
+              <p className="mt-3 text-body-sm text-[rgb(var(--m3-error))]">
+                {formatMessage(
+                  {
+                    id: "cockpit.community.cookies.missingOperatorsSummary",
+                    defaultMessage:
+                      "{count, plural, one {# selected garden has no operator} other {# selected gardens have no operator}}.",
+                  },
+                  { count: aggregation.missingOperatorGardens.length }
+                )}
+              </p>
+            ) : null}
+          </section>
+
+          <section className="surface-section overflow-visible">
+            <details
+              open={advancedOpen}
+              onToggle={(event) => setAdvancedOpen(event.currentTarget.open)}
+            >
+              <summary className="cursor-pointer text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
+                {formatMessage({
+                  id: "cockpit.community.cookies.advanced",
+                  defaultMessage: "Advanced",
+                })}
+              </summary>
+              {advancedOpen ? (
+                <div className="mt-4 grid gap-4">
+                  <div className="flex flex-wrap gap-2">
+                    <AdminButton
+                      type="button"
+                      variant={selectedAssetId === "custom" ? "tonal" : "outlined"}
+                      size="sm"
+                      onClick={() => setSelectedAssetId("custom")}
+                    >
+                      {formatMessage({
+                        id: "cockpit.community.cookies.useCustomToken",
+                        defaultMessage: "Use custom token",
+                      })}
+                    </AdminButton>
+                    {selectedAssetId === "custom" && defaultPayoutAsset ? (
+                      <AdminButton
+                        type="button"
+                        variant="text"
+                        size="sm"
+                        onClick={() => setSelectedAssetId(defaultPayoutAsset.id)}
+                      >
+                        {formatMessage({
+                          id: "cockpit.community.cookies.useDefaultAssets",
+                          defaultMessage: "Use default assets",
+                        })}
+                      </AdminButton>
+                    ) : null}
+                  </div>
+                  {selectedAssetId === "custom" ? (
+                    <FormField
+                      label={formatMessage({
+                        id: "cockpit.community.cookies.tokenAddress",
+                        defaultMessage: "ERC20 token address",
+                      })}
+                      htmlFor="campaign-cookie-jar-custom-token"
+                      hint={
+                        tokenSymbol
+                          ? formatMessage(
+                              {
+                                id: "cockpit.community.cookies.tokenInfo",
+                                defaultMessage: "{symbol}, {decimals} decimals",
+                              },
+                              { symbol: tokenSymbol, decimals: tokenDecimals }
+                            )
+                          : customTokenLoading
+                            ? formatMessage({
+                                id: "cockpit.community.cookies.tokenInfoLoading",
+                                defaultMessage: "Reading token decimals...",
+                              })
+                            : undefined
+                      }
+                      error={
+                        customTokenAddress && !normalizedCustomTokenAddress
+                          ? formatMessage({
+                              id: "cockpit.community.cookies.invalidAddress",
+                              defaultMessage: "Enter a valid Ethereum address.",
+                            })
+                          : customTokenError
+                            ? formatMessage({
+                                id: "cockpit.community.cookies.tokenDecimalsRequired",
+                                defaultMessage:
+                                  "Token decimals could not be read. Check the ERC20 address and try again.",
+                              })
+                            : undefined
+                      }
+                    >
+                      <TextInput
+                        id="campaign-cookie-jar-custom-token"
+                        surface="admin"
+                        value={customTokenAddress}
+                        onChange={(event) => setCustomTokenAddress(event.target.value)}
+                      />
+                    </FormField>
+                  ) : null}
+                  <FormField
+                    label={formatMessage({
+                      id: "cockpit.community.cookies.owner",
+                      defaultMessage: "Jar owner",
+                    })}
+                    htmlFor="campaign-cookie-jar-owner"
+                    error={
+                      jarOwner && !normalizedJarOwner
+                        ? formatMessage({
+                            id: "cockpit.community.cookies.invalidAddress",
+                            defaultMessage: "Enter a valid Ethereum address.",
+                          })
+                        : undefined
+                    }
+                  >
+                    <TextInput
+                      id="campaign-cookie-jar-owner"
+                      surface="admin"
+                      value={jarOwner}
+                      onChange={(event) => setJarOwner(event.target.value)}
+                    />
+                  </FormField>
+                  <FormField
+                    label={formatMessage({
+                      id: "cockpit.community.cookies.cooldownDays",
+                      defaultMessage: "Cooldown days",
+                    })}
+                    htmlFor="campaign-cookie-jar-cooldown"
+                  >
+                    <TextInput
+                      id="campaign-cookie-jar-cooldown"
+                      surface="admin"
+                      inputMode="numeric"
+                      value={withdrawalIntervalDays}
+                      onChange={(event) => setWithdrawalIntervalDays(event.target.value)}
+                    />
+                  </FormField>
+                  <FormField
+                    label={formatMessage({
+                      id: "cockpit.community.cookies.extraAddresses",
+                      defaultMessage: "Extra allowlist addresses",
+                    })}
+                    htmlFor="campaign-cookie-jar-extra-addresses"
+                    error={
+                      aggregation.invalidAddresses.length > 0
+                        ? formatMessage(
+                            {
+                              id: "cockpit.community.cookies.invalidExtras",
+                              defaultMessage: "Invalid addresses: {addresses}",
+                            },
+                            { addresses: aggregation.invalidAddresses.join(", ") }
+                          )
+                        : undefined
+                    }
+                  >
+                    <Textarea
+                      id="campaign-cookie-jar-extra-addresses"
+                      surface="admin"
+                      value={extraAddresses}
+                      onChange={(event) => setExtraAddresses(event.target.value)}
+                      placeholder={formatMessage({
+                        id: "cockpit.community.cookies.extraPlaceholder",
+                        defaultMessage: "Paste addresses separated by commas, spaces, or new lines",
+                      })}
+                    />
+                  </FormField>
+                </div>
+              ) : null}
+            </details>
+          </section>
+        </div>
+
+        <aside className="sticky top-20 hidden space-y-4 lg:block">
+          <AdminCard variant="outlined" className="space-y-2">
+            <h2 className="text-title-md font-semibold text-[rgb(var(--m3-on-surface))]">
+              {formatMessage({
+                id: "cockpit.community.cookies.review",
+                defaultMessage: "Review",
+              })}
+            </h2>
+            <ReviewLine
+              label={formatMessage({
+                id: "cockpit.community.cookies.reviewPayout",
+                defaultMessage: "Payout",
+              })}
+              value={payoutLabel}
+            />
+            <ReviewLine
+              label={formatMessage({
+                id: "cockpit.community.cookies.selectedGardens",
+                defaultMessage: "Selected gardens",
+              })}
+              value={aggregation.sources.length}
+            />
+            <ReviewLine
+              label={formatMessage({
+                id: "cockpit.community.cookies.generatedOperators",
+                defaultMessage: "Generated operators",
+              })}
+              value={aggregation.allowlist.length}
+            />
+            <ReviewLine
+              label={formatMessage({
+                id: "cockpit.community.cookies.missingOperators",
+                defaultMessage: "Missing operators",
+              })}
+              value={aggregation.missingOperatorGardens.length}
+            />
+            <ReviewLine
+              label={formatMessage({
+                id: "cockpit.community.cookies.generatedCampaignLink",
+                defaultMessage: "Campaign page",
+              })}
+              value={publicCampaignUrl}
+            />
+            <div className="pt-3">
+              <AdminButton
+                type="button"
+                className="w-full"
+                onClick={handleCreate}
+                disabled={!canCreate || createJar.isPending || gardensLoading || factoryLoading}
+                loading={createJar.isPending}
+              >
+                {formatMessage({
+                  id: "cockpit.community.cookies.create",
+                  defaultMessage: "Create cookie jar",
+                })}
+              </AdminButton>
+              <AdminButton type="button" variant="text" className="mt-2 w-full" onClick={onCancel}>
+                {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+              </AdminButton>
+            </div>
+            {createJar.error ? (
+              <p className="text-body-sm text-[rgb(var(--m3-error))]">{createJar.error.message}</p>
+            ) : null}
+          </AdminCard>
+        </aside>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-sticky border-t border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-high))] p-3 shadow-[var(--m3-elevation-3)] lg:hidden">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-label-md font-semibold text-[rgb(var(--m3-on-surface))]">
+              {payoutLabel}
+            </p>
+            <p className="text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+              {formatMessage(
+                {
+                  id: "cockpit.community.cookies.mobileReviewSummary",
+                  defaultMessage:
+                    "{gardens, plural, one {# garden} other {# gardens}} - {operators, plural, one {# operator} other {# operators}}",
+                },
+                { gardens: aggregation.sources.length, operators: aggregation.allowlist.length }
+              )}
+            </p>
+          </div>
+          <AdminButton
+            type="button"
+            onClick={handleCreate}
+            disabled={!canCreate || createJar.isPending || gardensLoading || factoryLoading}
+            loading={createJar.isPending}
+          >
+            {formatMessage({
+              id: "cockpit.community.cookies.create",
+              defaultMessage: "Create cookie jar",
+            })}
+          </AdminButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function CampaignCookieJarPanel() {
+  const { formatMessage } = useIntl();
+  const chainId = useCurrentChain();
+  const { isDeployer, loading: roleLoading } = useRole();
+  const { data: gardens = [] } = useGardens(chainId);
+  const {
+    campaigns,
+    isLoading: campaignsLoading,
+    error: campaignsError,
+  } = useCampaignCookieJarCampaigns();
+  const { factoryAddress, moduleConfigured } = useCookieJarFactoryAddress();
+  const syncAllowlist = useSyncCampaignCookieJarAllowlist({ errorMode: "inline" });
+  const updateMetadata = useUpdateCampaignCookieJarMetadata({ errorMode: "inline" });
 
   const [campaignSearch, setCampaignSearch] = useState("");
   const [selectedCampaign, setSelectedCampaign] = useState<CampaignCookieJarCampaign | null>(null);
@@ -473,22 +1319,10 @@ export function CampaignCookieJarPanel({
   const [syncCampaignDescription, setSyncCampaignDescription] = useState("");
   const [syncCampaignImage, setSyncCampaignImage] = useState("");
   const [syncCampaignImageFile, setSyncCampaignImageFile] = useState<File | null>(null);
-  const [syncCampaignExternalUrl, setSyncCampaignExternalUrl] = useState("");
   const selectedJarAddress = selectedCampaign?.address;
   const syncJar = useCampaignCookieJar(selectedJarAddress, {
     enabled: Boolean(selectedJarAddress),
   });
-
-  useEffect(() => {
-    if (initialCreateOpen) {
-      setDialogOpen(true);
-    }
-  }, [initialCreateOpen]);
-
-  useEffect(() => {
-    if (!dialogOpen) return;
-    setJarOwner((current) => current || primaryAddress || "");
-  }, [dialogOpen, primaryAddress]);
 
   useEffect(() => {
     if (!selectedCampaign) return;
@@ -497,7 +1331,6 @@ export function CampaignCookieJarPanel({
     setSyncExtraAddresses(draft.extraAddresses);
     setSyncCampaignDescription(draft.description);
     setSyncCampaignImage(draft.image);
-    setSyncCampaignExternalUrl(draft.externalUrl);
     setSyncCampaignImageFile(null);
   }, [selectedCampaign, syncJar.jar?.metadata]);
 
@@ -514,52 +1347,7 @@ export function CampaignCookieJarPanel({
     [campaignSearch, campaigns]
   );
 
-  const normalizedTokenAddress = normalizeCampaignAddress(tokenAddress);
-  const tokenInfoQuery = useReadContracts({
-    contracts: normalizedTokenAddress
-      ? [
-          {
-            address: normalizedTokenAddress,
-            abi: ERC20_DECIMALS_ABI,
-            functionName: "decimals" as const,
-          },
-          {
-            address: normalizedTokenAddress,
-            abi: ERC20_SYMBOL_ABI,
-            functionName: "symbol" as const,
-          },
-        ]
-      : [],
-    allowFailure: true,
-    query: {
-      enabled: Boolean(normalizedTokenAddress),
-    },
-  });
-  const tokenDecimalsResult = tokenInfoQuery.data?.[0];
-  const tokenDecimalsValue = tokenDecimalsResult?.result;
-  const tokenDecimalsConfirmed = isUsableCampaignCookieJarTokenDecimals(tokenDecimalsValue);
-  const tokenDecimals = tokenDecimalsConfirmed ? tokenDecimalsValue : 18;
-  const tokenSymbol = (tokenInfoQuery.data?.[1]?.result as string | undefined) ?? "";
-  const tokenDecimalsLoading =
-    Boolean(normalizedTokenAddress) && (tokenInfoQuery.isLoading || tokenInfoQuery.isFetching);
-  const tokenDecimalsError =
-    Boolean(normalizedTokenAddress) && !tokenDecimalsLoading && !tokenDecimalsConfirmed;
-  const createMetadataUrlsValid =
-    isValidCampaignCookieJarMetadataUrl(campaignImage) &&
-    isValidCampaignCookieJarMetadataUrl(campaignExternalUrl);
-  const syncMetadataUrlsValid =
-    isValidCampaignCookieJarMetadataUrl(syncCampaignImage) &&
-    isValidCampaignCookieJarMetadataUrl(syncCampaignExternalUrl);
-
-  const aggregation = useMemo(
-    () =>
-      aggregateCampaignCookieJarOperators({
-        gardens: gardensForAggregation(gardens),
-        selectedGardenIds,
-        extraAddressesInput: extraAddresses,
-      }),
-    [extraAddresses, gardens, selectedGardenIds]
-  );
+  const syncMetadataUrlsValid = isValidCampaignCookieJarMetadataUrl(syncCampaignImage);
   const syncAggregation = useMemo(
     () =>
       aggregateCampaignCookieJarOperators({
@@ -581,6 +1369,13 @@ export function CampaignCookieJarPanel({
     () => syncAggregation.sources.map((source) => source.gardenAddress),
     [syncAggregation.sources]
   );
+  const selectedCampaignSlug =
+    syncJar.jar?.metadata?.slug ?? selectedCampaign?.metadata?.slug ?? selectedCampaign?.slug ?? "";
+  const selectedCampaignPublicUrl = selectedCampaignSlug
+    ? `${PUBLIC_COOKIE_BASE_URL}?campaign=${selectedCampaignSlug}`
+    : selectedCampaign
+      ? getCampaignCookieJarPublicUrl(selectedCampaign.title ?? selectedCampaign.label)
+      : "";
   const syncMetadataChanged = useMemo(() => {
     if (!selectedCampaign || !syncJar.jar) return false;
     const currentMetadata = syncJar.jar.metadata ?? selectedCampaign.metadata;
@@ -593,14 +1388,14 @@ export function CampaignCookieJarPanel({
         normalizeMetadataField(syncCampaignDescription) ||
       normalizeMetadataField(currentMetadata.image) !== normalizeMetadataField(syncCampaignImage) ||
       normalizeMetadataField(currentMetadata.externalUrl) !==
-        normalizeMetadataField(syncCampaignExternalUrl)
+        normalizeMetadataField(selectedCampaignPublicUrl)
     );
   }, [
     selectedCampaign,
     syncAggregation.extraAllowlist,
     syncCampaignDescription,
-    syncCampaignExternalUrl,
     syncCampaignImage,
+    selectedCampaignPublicUrl,
     syncJar.jar,
     syncSourceGardens,
   ]);
@@ -620,7 +1415,7 @@ export function CampaignCookieJarPanel({
         slug: currentMetadata?.slug ?? selectedCampaign.slug,
         description: syncCampaignDescription,
         image: syncCampaignImage,
-        externalUrl: syncCampaignExternalUrl,
+        externalUrl: selectedCampaignPublicUrl,
         sourceGardens: syncSourceGardens,
         extraAllowlist: syncAggregation.extraAllowlist,
         chainId,
@@ -634,36 +1429,12 @@ export function CampaignCookieJarPanel({
     selectedCampaign,
     syncAggregation.extraAllowlist,
     syncCampaignDescription,
-    syncCampaignExternalUrl,
     syncCampaignImage,
+    selectedCampaignPublicUrl,
     syncJar.jar,
     syncMetadataChanged,
     syncSourceGardens,
   ]);
-
-  const parsedClaimAmount = parseAmountInput(claimAmount, tokenDecimals);
-  const normalizedJarOwner = normalizeCampaignAddress(jarOwner);
-  const createdJarManualAddress = normalizeCampaignAddress(createdJarManualInput);
-  const canCreate = canCreateCampaignCookieJar({
-    factoryAddress,
-    tokenAddress: normalizedTokenAddress,
-    tokenDecimalsConfirmed,
-    jarOwner: normalizedJarOwner,
-    campaignTitle,
-    hasValidClaimConfig: Boolean(parsedClaimAmount),
-    allowlistCount: aggregation.allowlist.length,
-    invalidAddressCount: aggregation.invalidAddresses.length,
-    metadataUrlsValid: createMetadataUrlsValid,
-    isDeployer,
-  });
-
-  const toggleGarden = (gardenId: string) => {
-    setSelectedGardenIds((current) =>
-      current.some((id) => id.toLowerCase() === gardenId.toLowerCase())
-        ? current.filter((id) => id.toLowerCase() !== gardenId.toLowerCase())
-        : [...current, gardenId]
-    );
-  };
 
   const toggleSyncGarden = (gardenId: string) => {
     setSyncGardenIds((current) =>
@@ -673,59 +1444,18 @@ export function CampaignCookieJarPanel({
     );
   };
 
-  const setCreateDialogOpen = (open: boolean) => {
-    setDialogOpen(open);
-    onCreateOpenChange?.(open);
-  };
-
-  const applyCreatedJarAddress = (jarAddress: Address) => {
-    setCreatedJarAddress(jarAddress);
-    setCreatedJarPendingHash(null);
-    setCreatedJarManualInput("");
-  };
-
-  const handleCreate = () => {
-    if (
-      !canCreate ||
-      !factoryAddress ||
-      !normalizedTokenAddress ||
-      !normalizedJarOwner ||
-      !parsedClaimAmount
-    ) {
-      return;
-    }
-    const intervalDays = Number(withdrawalIntervalDays);
-    createJar.mutate(
-      buildCampaignCookieJarCreatePayload({
-        factoryAddress,
-        campaignTitle,
-        campaignDescription,
-        campaignImage,
-        campaignExternalUrl,
-        tokenAddress: normalizedTokenAddress,
-        jarOwner: normalizedJarOwner,
-        allowlist: aggregation.allowlist,
-        sourceGardens: aggregation.sources.map((source) => source.gardenAddress),
-        extraAllowlist: aggregation.extraAllowlist,
-        fixedAmount: parsedClaimAmount,
-        withdrawalInterval:
-          Number.isFinite(intervalDays) && intervalDays > 0
-            ? BigInt(Math.floor(intervalDays * 86400))
-            : 0n,
-      }),
-      {
-        onSuccess: (result) => {
-          const followUp = resolveCampaignCookieJarCreateFollowUp(result);
-          if (followUp.kind === "ready") {
-            applyCreatedJarAddress(followUp.jarAddress);
-          } else {
-            setCreatedJarAddress(null);
-            setCreatedJarPendingHash(followUp.hash);
-          }
-          setCreateDialogOpen(false);
-        },
+  const selectSyncGardens = (gardenIds: string[]) => {
+    setSyncGardenIds((current) => {
+      const seen = new Set(current.map((id) => id.toLowerCase()));
+      const next = [...current];
+      for (const gardenId of gardenIds) {
+        const key = gardenId.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        next.push(gardenId);
       }
-    );
+      return next;
+    });
   };
 
   const canSync = canSyncCampaignCookieJarAllowlist({
@@ -782,7 +1512,7 @@ export function CampaignCookieJarPanel({
     });
 
   return (
-    <div className="space-y-5">
+    <div className="flex min-h-[calc(100dvh-16rem)] flex-col gap-5">
       {!moduleConfigured ? (
         <AdminCard
           variant="outlined"
@@ -808,89 +1538,10 @@ export function CampaignCookieJarPanel({
         </AdminCard>
       ) : null}
 
-      {createdJarAddress ? (
-        <AdminCard variant="outlined" className="space-y-2">
-          <p className="text-label-lg text-[rgb(var(--m3-on-surface))]">
-            {formatMessage({
-              id: "cockpit.community.cookies.createdJar",
-              defaultMessage: "Created jar",
-            })}
-          </p>
-          <p className="break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-            {createdJarAddress}
-          </p>
-          <a
-            href={publicJarLink(createdJarAddress)}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-label-md text-[rgb(var(--m3-primary))] underline-offset-4 hover:underline"
-          >
-            {publicJarLink(createdJarAddress)}
-            <RiExternalLinkLine className="h-4 w-4" aria-hidden />
-          </a>
-        </AdminCard>
-      ) : null}
-
-      {createdJarPendingHash ? (
-        <AdminCard variant="outlined" className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-label-lg text-[rgb(var(--m3-on-surface))]">
-              {formatMessage({
-                id: "cockpit.community.cookies.createSubmitted",
-                defaultMessage: "Creation submitted",
-              })}
-            </p>
-            <p className="text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-              {formatMessage({
-                id: "cockpit.community.cookies.createSubmittedDescription",
-                defaultMessage:
-                  "The wallet returned a submitted transaction without a final jar address. Once the transaction is executed, paste the created jar address to generate the public link.",
-              })}
-            </p>
-            <p className="break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-              {formatMessage({
-                id: "cockpit.community.cookies.submittedTransaction",
-                defaultMessage: "Submitted transaction",
-              })}
-              {`: ${createdJarPendingHash}`}
-            </p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-            <AdminTextField
-              label={formatMessage({
-                id: "cockpit.community.cookies.createdJarAddressInput",
-                defaultMessage: "Created jar address",
-              })}
-              value={createdJarManualInput}
-              onChange={(event) => setCreatedJarManualInput(event.target.value)}
-              error={
-                createdJarManualInput && !createdJarManualAddress
-                  ? formatMessage({
-                      id: "cockpit.community.cookies.invalidAddress",
-                      defaultMessage: "Enter a valid Ethereum address.",
-                    })
-                  : undefined
-              }
-              variant="outlined"
-            />
-            <AdminButton
-              type="button"
-              onClick={() => {
-                if (!createdJarManualAddress) return;
-                applyCreatedJarAddress(createdJarManualAddress);
-              }}
-              disabled={!createdJarManualAddress}
-            >
-              {formatMessage({
-                id: "cockpit.community.cookies.useCreatedJar",
-                defaultMessage: "Use jar address",
-              })}
-            </AdminButton>
-          </div>
-        </AdminCard>
-      ) : null}
-
-      <AdminCard variant="outlined" className="overflow-hidden p-0">
+      <AdminCard
+        variant="outlined"
+        className="flex min-h-[32rem] flex-1 flex-col overflow-hidden p-0"
+      >
         <div className="border-b border-[rgb(var(--m3-outline-variant))] p-4 sm:p-5">
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_16rem] md:items-end">
             <div>
@@ -911,21 +1562,29 @@ export function CampaignCookieJarPanel({
                 )}
               </p>
             </div>
-            <AdminTextField
+            <FormField
               label={formatMessage({
                 id: "cockpit.community.cookies.searchCampaigns",
                 defaultMessage: "Search cookie jars",
               })}
-              value={campaignSearch}
-              onChange={(event) => setCampaignSearch(event.target.value)}
-              leadingIcon={RiSearchLine}
-              variant="outlined"
-            />
+              htmlFor="campaign-cookie-jar-search"
+            >
+              <TextInput
+                id="campaign-cookie-jar-search"
+                surface="admin"
+                value={campaignSearch}
+                onChange={(event) => setCampaignSearch(event.target.value)}
+                placeholder={formatMessage({
+                  id: "cockpit.community.cookies.searchCampaignsPlaceholder",
+                  defaultMessage: "Search by name, slug, or address",
+                })}
+              />
+            </FormField>
           </div>
         </div>
 
         {campaignsLoading ? (
-          <div className="space-y-3 p-4 sm:p-5" role="status" aria-live="polite">
+          <div className="flex-1 space-y-3 p-4 sm:p-5" role="status" aria-live="polite">
             <span className="sr-only">
               {formatMessage({
                 id: "cockpit.community.cookies.loadingCampaigns",
@@ -942,7 +1601,7 @@ export function CampaignCookieJarPanel({
         ) : null}
 
         {!campaignsLoading && campaignsError ? (
-          <div className="p-5 text-body-sm text-[rgb(var(--m3-error))]">
+          <div className="flex-1 p-5 text-body-sm text-[rgb(var(--m3-error))]">
             {formatMessage({
               id: "cockpit.community.cookies.loadFailed",
               defaultMessage: "Could not load campaign cookie jars. Direct jar links still work.",
@@ -951,7 +1610,7 @@ export function CampaignCookieJarPanel({
         ) : null}
 
         {!campaignsLoading && !campaignsError && campaigns.length === 0 ? (
-          <div className="flex flex-col items-start gap-3 p-5">
+          <div className="flex flex-1 flex-col items-start justify-center gap-3 p-5">
             <p className="text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
               {formatMessage({
                 id: "cockpit.community.cookies.emptyTitle",
@@ -965,17 +1624,6 @@ export function CampaignCookieJarPanel({
                   "Create the first campaign jar, then it will appear here once the indexer sees it.",
               })}
             </p>
-            <AdminButton
-              type="button"
-              leadingIcon={<RiAddLine />}
-              onClick={() => setCreateDialogOpen(true)}
-              disabled={!isDeployer || !factoryAddress || factoryLoading || roleLoading}
-            >
-              {formatMessage({
-                id: "cockpit.community.cookies.create",
-                defaultMessage: "Create cookie jar",
-              })}
-            </AdminButton>
           </div>
         ) : null}
 
@@ -983,7 +1631,7 @@ export function CampaignCookieJarPanel({
         !campaignsError &&
         campaigns.length > 0 &&
         visibleCampaigns.length === 0 ? (
-          <div className="p-5 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+          <div className="flex-1 p-5 text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
             {formatMessage({
               id: "cockpit.community.cookies.noCampaignMatches",
               defaultMessage: "No cookie jars match that search.",
@@ -1004,228 +1652,6 @@ export function CampaignCookieJarPanel({
           </div>
         ) : null}
       </AdminCard>
-
-      <AdminDialog
-        open={dialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        title={formatMessage({
-          id: "cockpit.community.cookies.dialogTitle",
-          defaultMessage: "Create cookie jar",
-        })}
-        description={formatMessage({
-          id: "cockpit.community.cookies.dialogDescription",
-          defaultMessage:
-            "Create a campaign jar from the deployed factory. Jar ownership defaults to this wallet; production should use the ops Safe.",
-        })}
-        className="sm:max-w-3xl"
-        actions={
-          <>
-            <AdminButton type="button" variant="text" onClick={() => setCreateDialogOpen(false)}>
-              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton
-              type="button"
-              onClick={handleCreate}
-              disabled={!canCreate || createJar.isPending || gardensLoading}
-              loading={createJar.isPending}
-            >
-              {formatMessage({
-                id: "cockpit.community.cookies.create",
-                defaultMessage: "Create cookie jar",
-              })}
-            </AdminButton>
-          </>
-        }
-      >
-        <div className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2">
-            <AdminTextField
-              label={formatMessage({
-                id: "cockpit.community.cookies.campaignName",
-                defaultMessage: "Campaign name",
-              })}
-              value={campaignTitle}
-              onChange={(event) => setCampaignTitle(event.target.value)}
-              variant="outlined"
-            />
-            <AdminTextField
-              label={formatMessage({
-                id: "cockpit.community.cookies.campaignExternalUrl",
-                defaultMessage: "Campaign page URL",
-              })}
-              value={campaignExternalUrl}
-              onChange={(event) => setCampaignExternalUrl(event.target.value)}
-              error={
-                campaignExternalUrl && !isValidCampaignCookieJarMetadataUrl(campaignExternalUrl)
-                  ? formatMessage({
-                      id: "cockpit.community.cookies.invalidMetadataUrl",
-                      defaultMessage: "Use an http(s), IPFS, or site-relative URL.",
-                    })
-                  : undefined
-              }
-              variant="outlined"
-            />
-            <label className="block md:col-span-2">
-              <span className="text-label-md text-[rgb(var(--m3-on-surface))]">
-                {formatMessage({
-                  id: "cockpit.community.cookies.campaignDescription",
-                  defaultMessage: "Campaign description",
-                })}
-              </span>
-              <textarea
-                value={campaignDescription}
-                onChange={(event) => setCampaignDescription(event.target.value)}
-                className="mt-2 min-h-20 w-full rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline))] bg-[rgb(var(--m3-surface))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] outline-none focus:ring-2 focus:ring-[rgb(var(--m3-primary))]"
-              />
-            </label>
-            <CampaignImageInput
-              value={campaignImage}
-              onChange={setCampaignImage}
-              file={campaignImageFile}
-              onFileChange={setCampaignImageFile}
-              disabled={createJar.isPending}
-              source="campaign-cookie-jar-create-image"
-            />
-            <AdminTextField
-              label={formatMessage({
-                id: "cockpit.community.cookies.tokenAddress",
-                defaultMessage: "ERC20 token address",
-              })}
-              value={tokenAddress}
-              onChange={(event) => setTokenAddress(event.target.value)}
-              helperText={
-                tokenSymbol
-                  ? formatMessage(
-                      {
-                        id: "cockpit.community.cookies.tokenInfo",
-                        defaultMessage: "{symbol}, {decimals} decimals",
-                      },
-                      { symbol: tokenSymbol, decimals: tokenDecimals }
-                    )
-                  : tokenDecimalsLoading
-                    ? formatMessage({
-                        id: "cockpit.community.cookies.tokenInfoLoading",
-                        defaultMessage: "Reading token decimals...",
-                      })
-                    : undefined
-              }
-              error={
-                tokenAddress && !normalizedTokenAddress
-                  ? formatMessage({
-                      id: "cockpit.community.cookies.invalidAddress",
-                      defaultMessage: "Enter a valid Ethereum address.",
-                    })
-                  : tokenDecimalsError
-                    ? formatMessage({
-                        id: "cockpit.community.cookies.tokenDecimalsRequired",
-                        defaultMessage:
-                          "Token decimals could not be read. Check the ERC20 address and try again.",
-                      })
-                    : undefined
-              }
-              variant="outlined"
-            />
-            <AdminTextField
-              label={formatMessage({
-                id: "cockpit.community.cookies.owner",
-                defaultMessage: "Jar owner",
-              })}
-              value={jarOwner}
-              onChange={(event) => setJarOwner(event.target.value)}
-              error={
-                jarOwner && !normalizedJarOwner
-                  ? formatMessage({
-                      id: "cockpit.community.cookies.invalidAddress",
-                      defaultMessage: "Enter a valid Ethereum address.",
-                    })
-                  : undefined
-              }
-              variant="outlined"
-            />
-            <AdminTextField
-              label={formatMessage({
-                id: "cockpit.community.cookies.claimAmount",
-                defaultMessage: "Fixed claim amount",
-              })}
-              value={claimAmount}
-              onChange={(event) => setClaimAmount(event.target.value)}
-              variant="outlined"
-              type="number"
-            />
-            <AdminTextField
-              label={formatMessage({
-                id: "cockpit.community.cookies.cooldownDays",
-                defaultMessage: "Cooldown days",
-              })}
-              value={withdrawalIntervalDays}
-              onChange={(event) => setWithdrawalIntervalDays(event.target.value)}
-              variant="outlined"
-              type="number"
-            />
-          </div>
-          <GardenSelector
-            gardens={gardens}
-            selectedGardenIds={selectedGardenIds}
-            onToggle={toggleGarden}
-            search={gardenSearch}
-            setSearch={setGardenSearch}
-          />
-          <label className="block">
-            <span className="text-label-md text-[rgb(var(--m3-on-surface))]">
-              {formatMessage({
-                id: "cockpit.community.cookies.extraAddresses",
-                defaultMessage: "Extra allowlist addresses",
-              })}
-            </span>
-            <textarea
-              value={extraAddresses}
-              onChange={(event) => setExtraAddresses(event.target.value)}
-              placeholder={formatMessage({
-                id: "cockpit.community.cookies.extraPlaceholder",
-                defaultMessage: "Paste addresses separated by commas, spaces, or new lines",
-              })}
-              className="mt-2 min-h-24 w-full rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline))] bg-[rgb(var(--m3-surface))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] outline-none focus:ring-2 focus:ring-[rgb(var(--m3-primary))]"
-            />
-          </label>
-          <div className="grid gap-3 md:grid-cols-3">
-            <DiffStat
-              label={formatMessage({
-                id: "cockpit.community.cookies.selectedGardens",
-                defaultMessage: "Selected gardens",
-              })}
-              value={aggregation.sources.length}
-            />
-            <DiffStat
-              label={formatMessage({
-                id: "cockpit.community.cookies.generatedOperators",
-                defaultMessage: "Generated operators",
-              })}
-              value={aggregation.allowlist.length}
-            />
-            <DiffStat
-              label={formatMessage({
-                id: "cockpit.community.cookies.missingOperators",
-                defaultMessage: "Missing operators",
-              })}
-              value={aggregation.missingOperatorGardens.length}
-            />
-          </div>
-          {aggregation.invalidAddresses.length > 0 ? (
-            <p className="text-body-sm text-[rgb(var(--m3-error))]">
-              {formatMessage(
-                {
-                  id: "cockpit.community.cookies.invalidExtras",
-                  defaultMessage: "Invalid addresses: {addresses}",
-                },
-                { addresses: aggregation.invalidAddresses.join(", ") }
-              )}
-            </p>
-          ) : null}
-          {createJar.error ? (
-            <p className="text-body-sm text-[rgb(var(--m3-error))]">{createJar.error.message}</p>
-          ) : null}
-        </div>
-      </AdminDialog>
 
       <AdminDialog
         open={Boolean(selectedCampaign)}
@@ -1291,19 +1717,21 @@ export function CampaignCookieJarPanel({
               </a>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="block md:col-span-2">
-                <span className="text-label-md text-[rgb(var(--m3-on-surface))]">
-                  {formatMessage({
-                    id: "cockpit.community.cookies.campaignDescription",
-                    defaultMessage: "Campaign description",
-                  })}
-                </span>
-                <textarea
+              <FormField
+                label={formatMessage({
+                  id: "cockpit.community.cookies.campaignDescription",
+                  defaultMessage: "Campaign description",
+                })}
+                htmlFor="campaign-cookie-jar-manage-description"
+                className="md:col-span-2"
+              >
+                <Textarea
+                  id="campaign-cookie-jar-manage-description"
+                  surface="admin"
                   value={syncCampaignDescription}
                   onChange={(event) => setSyncCampaignDescription(event.target.value)}
-                  className="mt-2 min-h-20 w-full rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline))] bg-[rgb(var(--m3-surface))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] outline-none focus:ring-2 focus:ring-[rgb(var(--m3-primary))]"
                 />
-              </label>
+              </FormField>
               <CampaignImageInput
                 value={syncCampaignImage}
                 onChange={setSyncCampaignImage}
@@ -1312,45 +1740,41 @@ export function CampaignCookieJarPanel({
                 disabled={syncAllowlist.isPending || updateMetadata.isPending}
                 source="campaign-cookie-jar-manage-image"
               />
-              <AdminTextField
-                label={formatMessage({
-                  id: "cockpit.community.cookies.campaignExternalUrl",
-                  defaultMessage: "Campaign page URL",
-                })}
-                value={syncCampaignExternalUrl}
-                onChange={(event) => setSyncCampaignExternalUrl(event.target.value)}
-                error={
-                  syncCampaignExternalUrl &&
-                  !isValidCampaignCookieJarMetadataUrl(syncCampaignExternalUrl)
-                    ? formatMessage({
-                        id: "cockpit.community.cookies.invalidMetadataUrl",
-                        defaultMessage: "Use an http(s), IPFS, or site-relative URL.",
-                      })
-                    : undefined
-                }
-                variant="outlined"
-              />
+              <div className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))] p-3">
+                <p className="text-label-md text-[rgb(var(--m3-on-surface))]">
+                  {formatMessage({
+                    id: "cockpit.community.cookies.generatedCampaignLink",
+                    defaultMessage: "Campaign page",
+                  })}
+                </p>
+                <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
+                  {selectedCampaignPublicUrl}
+                </p>
+              </div>
             </div>
             <GardenSelector
               gardens={gardens}
               selectedGardenIds={syncGardenIds}
               onToggle={toggleSyncGarden}
+              onSelectMany={selectSyncGardens}
+              onClear={() => setSyncGardenIds([])}
               search={syncGardenSearch}
               setSearch={setSyncGardenSearch}
             />
-            <label className="block">
-              <span className="text-label-md text-[rgb(var(--m3-on-surface))]">
-                {formatMessage({
-                  id: "cockpit.community.cookies.extraAddresses",
-                  defaultMessage: "Extra allowlist addresses",
-                })}
-              </span>
-              <textarea
+            <FormField
+              label={formatMessage({
+                id: "cockpit.community.cookies.extraAddresses",
+                defaultMessage: "Extra allowlist addresses",
+              })}
+              htmlFor="campaign-cookie-jar-manage-extra-addresses"
+            >
+              <Textarea
+                id="campaign-cookie-jar-manage-extra-addresses"
+                surface="admin"
                 value={syncExtraAddresses}
                 onChange={(event) => setSyncExtraAddresses(event.target.value)}
-                className="mt-2 min-h-24 w-full rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline))] bg-[rgb(var(--m3-surface))] px-3 py-2 text-body-md text-[rgb(var(--m3-on-surface))] outline-none focus:ring-2 focus:ring-[rgb(var(--m3-primary))]"
               />
-            </label>
+            </FormField>
             <div className="grid gap-3 sm:grid-cols-3">
               <DiffStat
                 label={formatMessage({

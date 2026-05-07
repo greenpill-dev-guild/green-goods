@@ -304,7 +304,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
       <div
         data-component="AdminTextField"
         data-variant="outlined"
-        className={cn("flex flex-col", className)}
+        className={cn("flex flex-col pt-2", className)}
       >
         {/* Container with outline ring */}
         <div

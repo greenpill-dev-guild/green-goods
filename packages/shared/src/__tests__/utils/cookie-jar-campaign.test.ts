@@ -5,6 +5,8 @@ import {
   buildCampaignCookieJarMetadata,
   deriveCampaignCookieJarClaimState,
   diffCampaignCookieJarAllowlist,
+  getCampaignCookieJarPayoutAssets,
+  getDefaultCampaignCookieJarPayoutAsset,
   parseCampaignAddressList,
   parseCampaignCookieJarFallbacks,
   parseCampaignCookieJarMetadata,
@@ -49,6 +51,38 @@ function indexedJar(overrides: Partial<IndexedCampaignCookieJar> = {}): IndexedC
 }
 
 describe("cookie jar campaign utilities", () => {
+  it("prefers GoodDollar for campaign payouts when the current chain supports it", () => {
+    const options = getCampaignCookieJarPayoutAssets(42220);
+    const defaultAsset = getDefaultCampaignCookieJarPayoutAsset(42220);
+
+    expect(options.map((asset) => asset.id)).toEqual(["gooddollar", "usdc", "dai", "weth"]);
+    expect(defaultAsset).toMatchObject({
+      id: "gooddollar",
+      symbol: "G$",
+      decimals: 18,
+      address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+      supported: true,
+    });
+  });
+
+  it("falls back to USDC when GoodDollar is unavailable on the current chain", () => {
+    const options = getCampaignCookieJarPayoutAssets(42161);
+    const defaultAsset = getDefaultCampaignCookieJarPayoutAsset(42161);
+
+    expect(options[0]).toMatchObject({
+      id: "gooddollar",
+      supported: false,
+      disabledReason: "Unavailable on this network",
+    });
+    expect(defaultAsset).toMatchObject({
+      id: "usdc",
+      symbol: "USDC",
+      decimals: 6,
+      address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      supported: true,
+    });
+  });
+
   it("parses comma, whitespace, and CSV-style address lists with invalid tokens", () => {
     const result = parseCampaignAddressList(`${OPERATOR_A}, ${OPERATOR_A}\n${EXTRA}; nope`);
 

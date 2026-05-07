@@ -8,6 +8,8 @@ import {
   type Garden,
 } from "@green-goods/shared";
 
+const PUBLIC_COOKIE_BASE_URL = "https://greengoods.app/cookies";
+
 export interface CampaignCookieJarCreateResult {
   hash: string;
   jarAddress?: Address;
@@ -18,18 +20,36 @@ export function filterCampaignCookieJarGardens(
   search: string
 ) {
   const query = search.trim().toLowerCase();
-  const limit = query ? 20 : 12;
-  if (!query) return gardens.slice(0, limit);
+  if (!query) return [...gardens];
 
-  return gardens
-    .filter(
-      (garden) =>
-        garden.name.toLowerCase().includes(query) ||
-        derivePublicGardenSlug(garden.name, garden.id).includes(query) ||
-        garden.id.toLowerCase().includes(query) ||
-        garden.tokenAddress.toLowerCase().includes(query)
-    )
-    .slice(0, limit);
+  return gardens.filter(
+    (garden) =>
+      garden.name.toLowerCase().includes(query) ||
+      derivePublicGardenSlug(garden.name, garden.id).includes(query) ||
+      garden.id.toLowerCase().includes(query) ||
+      garden.tokenAddress.toLowerCase().includes(query)
+  );
+}
+
+export function orderCampaignCookieJarGardensForSelection(
+  gardens: readonly Pick<Garden, "id" | "name" | "tokenAddress">[],
+  selectedGardenIds: readonly string[],
+  search: string
+) {
+  const selectedKeys = new Set(selectedGardenIds.map((id) => id.toLowerCase()));
+  const filteredGardens = filterCampaignCookieJarGardens(gardens, search);
+  const filteredKeys = new Set(filteredGardens.map((garden) => garden.id.toLowerCase()));
+  const pinnedSelectedGardens = gardens.filter((garden) =>
+    selectedKeys.has(garden.id.toLowerCase())
+  );
+  const unselectedFilteredGardens = filteredGardens.filter(
+    (garden) => !selectedKeys.has(garden.id.toLowerCase())
+  );
+
+  return [
+    ...pinnedSelectedGardens,
+    ...unselectedFilteredGardens.filter((garden) => filteredKeys.has(garden.id.toLowerCase())),
+  ];
 }
 
 export function filterCampaignCookieJarCampaigns(
@@ -101,6 +121,10 @@ export function deriveCampaignCookieJarSlug(value: string): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 64) || "campaign-cookie-jar"
   );
+}
+
+export function getCampaignCookieJarPublicUrl(value: string): string {
+  return `${PUBLIC_COOKIE_BASE_URL}?campaign=${deriveCampaignCookieJarSlug(value)}`;
 }
 
 export function buildCampaignCookieJarCreatePayload(params: {

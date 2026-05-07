@@ -5,8 +5,10 @@ import {
   canCreateCampaignCookieJar,
   canSyncCampaignCookieJarAllowlist,
   deriveCampaignCookieJarSlug,
+  getCampaignCookieJarPublicUrl,
   filterCampaignCookieJarCampaigns,
   filterCampaignCookieJarGardens,
+  orderCampaignCookieJarGardensForSelection,
   resolveCampaignCookieJarManageDraft,
   isValidCampaignCookieJarMetadataUrl,
   isUsableCampaignCookieJarTokenDecimals,
@@ -35,6 +37,27 @@ describe("campaign cookie jar admin model", () => {
     );
 
     expect(result.map((entry) => entry.id)).toEqual([GARDEN_A]);
+  });
+
+  it("does not hide valid gardens behind a hard result cap", () => {
+    const manyGardens = Array.from({ length: 25 }, (_, index) =>
+      garden(`0x${String(index + 1).padStart(40, "0")}` as Address, `Garden ${index + 1}`, TOKEN_A)
+    );
+
+    expect(filterCampaignCookieJarGardens(manyGardens, "")).toHaveLength(25);
+    expect(filterCampaignCookieJarGardens(manyGardens, "garden")).toHaveLength(25);
+  });
+
+  it("pins selected gardens above the filtered list", () => {
+    const gardens = [
+      garden(GARDEN_A, "North Garden", TOKEN_A),
+      garden(GARDEN_B, "South Garden", TOKEN_B),
+      garden(JAR, "East Garden", TOKEN_A),
+    ];
+
+    const result = orderCampaignCookieJarGardensForSelection(gardens, [GARDEN_B], "north");
+
+    expect(result.map((entry) => entry.id)).toEqual([GARDEN_B, GARDEN_A]);
   });
 
   it("turns noncanonical creation results into a pending manual-address follow-up", () => {
@@ -139,6 +162,12 @@ describe("campaign cookie jar admin model", () => {
   it("derives a stable metadata slug from the campaign name", () => {
     expect(deriveCampaignCookieJarSlug(" Earth Week / GoodDollar! ")).toBe("earth-week-gooddollar");
     expect(deriveCampaignCookieJarSlug("")).toBe("campaign-cookie-jar");
+  });
+
+  it("derives the campaign cookie page URL from the campaign name", () => {
+    expect(getCampaignCookieJarPublicUrl(" Earth Week / GoodDollar! ")).toBe(
+      "https://greengoods.app/cookies?campaign=earth-week-gooddollar"
+    );
   });
 
   it("builds campaign creation params with hidden one-time purpose defaults", () => {

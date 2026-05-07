@@ -9,7 +9,13 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../../shared/.storybook/decorators";
+import { DEFAULT_CHAIN_ID, queryKeys } from "@green-goods/shared";
 import { CampaignCookieJarPanel } from "./CampaignCookieJarPanel";
+
+const EMPTY_CAMPAIGN_PANEL_SEEDS = [
+  ...STORYBOOK_ADMIN_DEPLOYER_SEEDS,
+  [queryKeys.cookieJar.campaigns(DEFAULT_CHAIN_ID), []] as const,
+] as const;
 
 const meta: Meta<typeof CampaignCookieJarPanel> = {
   title: "Admin/Workspaces/Cookies/CampaignCookieJarPanel",
@@ -26,7 +32,7 @@ const meta: Meta<typeof CampaignCookieJarPanel> = {
   },
   decorators: [
     withAdminIdentityRole("deployer"),
-    withSeededQueryClient(STORYBOOK_ADMIN_DEPLOYER_SEEDS),
+    withSeededQueryClient(EMPTY_CAMPAIGN_PANEL_SEEDS),
     withSelectedAdminGarden(STORYBOOK_PRIMARY_ADMIN_GARDEN),
     withCanvasFrame({
       className: "p-0",

@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo } from "react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -20,6 +21,7 @@ import {
   queryKeys,
   type Address,
   type CampaignCookieJarCampaign,
+  type Garden,
 } from "@green-goods/shared";
 
 const STORYBOOK_CAMPAIGN_JAR = "0x7777777777777777777777777777777777777777" as Address;
@@ -57,6 +59,28 @@ const COOKIE_CAMPAIGN_SEEDS = [
 const EMPTY_COOKIE_CAMPAIGN_SEEDS = [
   ...STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   [queryKeys.cookieJar.campaigns(DEFAULT_CHAIN_ID), []] as const,
+] as const;
+
+const MANY_COOKIE_GARDENS: Garden[] = Array.from({ length: 24 }, (_, index) => {
+  const address = `0x${(0x2000 + index).toString(16).padStart(40, "0")}` as Address;
+  const operators = index % 7 === 0 ? [] : STORYBOOK_PRIMARY_ADMIN_GARDEN.operators;
+
+  return {
+    ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
+    id: address,
+    tokenAddress: address,
+    tokenID: BigInt(index + 100),
+    name:
+      index % 7 === 0
+        ? `Campaign Garden ${index + 1} - operator missing`
+        : `Campaign Garden ${index + 1}`,
+    operators,
+  };
+});
+
+const MANY_COOKIE_GARDEN_SEEDS = [
+  ...EMPTY_COOKIE_CAMPAIGN_SEEDS,
+  [queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), MANY_COOKIE_GARDENS] as const,
 ] as const;
 
 function CookiesCanvasStory({ initialPath = "/cookies" }: { initialPath?: string }) {
@@ -108,9 +132,36 @@ export const Empty: Story = {
   tags: ["visual-harness"],
   args: { initialPath: "/cookies" },
   decorators: [withSeededQueryClient(EMPTY_COOKIE_CAMPAIGN_SEEDS)],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const createActions = await canvas.findAllByRole("button", { name: "Create cookie jar" });
+    await expect(createActions).toHaveLength(1);
+  },
 };
 
 export const DeployRoute: Story = {
   tags: ["visual-harness"],
   args: { initialPath: "/cookies/deploy" },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByLabelText("Campaign name")).toBeVisible();
+    await expect(await canvas.findByLabelText("Claim amount per operator")).toBeVisible();
+    await expect(await canvas.findByText("Review")).toBeVisible();
+    await expect(canvas.queryByText("Campaign page URL")).toBeNull();
+    await expect(canvas.queryByLabelText("ERC20 token address")).toBeNull();
+  },
+};
+
+export const DeployRouteManyGardens: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/cookies/deploy" },
+  decorators: [withSeededQueryClient(MANY_COOKIE_GARDEN_SEEDS)],
+};
+
+export const DeployRouteMobile: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/cookies/deploy" },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
 };

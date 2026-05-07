@@ -1034,6 +1034,9 @@ export {
   aggregateCampaignCookieJarOperators,
   buildCampaignCookieJarCampaigns,
   deriveCampaignCookieJarClaimState,
+  getCampaignCookieJarPayoutAsset,
+  getCampaignCookieJarPayoutAssets,
+  getDefaultCampaignCookieJarPayoutAsset,
   convertJobsToWorks,
   copyToClipboard,
   createDraftErrorHandler,
@@ -1164,6 +1167,7 @@ export {
   resolveEnsAddress,
   saveFormDraft,
   buildCampaignCookieJarMetadata,
+  CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS,
   CAMPAIGN_COOKIE_JAR_METADATA_KIND,
   diffCampaignCookieJarAllowlist,
   shareWork,
@@ -1178,6 +1182,10 @@ export {
   validateSlug,
   ZERO_ADDRESS,
 } from "./utils/index";
+export type {
+  CampaignCookieJarPayoutAsset,
+  CampaignCookieJarPayoutAssetId,
+} from "./utils/cookie-jar-campaign";
 
 // ============================================================================
 // WORKFLOWS
