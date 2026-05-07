@@ -4,7 +4,7 @@ import {
   useInViewReveal,
   usePublicGardens,
 } from "@green-goods/shared";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { publicCuration } from "@/content/publicCuration";
 import { EditorialHeading, EditorialKicker, EditorialLinkArrow } from "./atoms";
@@ -13,53 +13,53 @@ import { PublicGardenCard } from "./PublicGardenCard";
 const FEATURED_FALLBACK_LIMIT = 4;
 const PLACEHOLDER_BANNER = "/images/no-image-placeholder.png";
 
-function isImageBacked(garden: PublicGardenSummary): boolean {
-  return Boolean(garden.bannerImage) && garden.bannerImage !== PLACEHOLDER_BANNER;
+function getGardenImageKey(garden: PublicGardenSummary): string {
+  return `${garden.id.toLowerCase()}::${garden.bannerImage}`;
 }
 
-function preferImageBacked(
-  gardens: readonly PublicGardenSummary[]
-): readonly PublicGardenSummary[] {
-  const imaged = gardens.filter(isImageBacked);
-  const imageless = gardens.filter((garden) => !isImageBacked(garden));
-  return [...imaged, ...imageless];
+function isImageBacked(garden: PublicGardenSummary, failedImageKeys: ReadonlySet<string>): boolean {
+  return (
+    Boolean(garden.bannerImage) &&
+    garden.bannerImage !== PLACEHOLDER_BANNER &&
+    !failedImageKeys.has(getGardenImageKey(garden))
+  );
 }
 
 function pickFeatured(
   all: readonly PublicGardenSummary[],
-  curatedKeys: readonly string[]
+  curatedKeys: readonly string[],
+  failedImageKeys: ReadonlySet<string> = new Set()
 ): readonly PublicGardenSummary[] {
   if (all.length === 0) return [];
 
+  const imageBacked = all.filter((garden) => isImageBacked(garden, failedImageKeys));
+  if (imageBacked.length === 0) return [];
+
   if (curatedKeys.length > 0) {
     const indexById = new Map<string, PublicGardenSummary>();
-    for (const garden of all) {
+    for (const garden of imageBacked) {
       indexById.set(garden.id.toLowerCase(), garden);
       indexById.set(garden.address.toLowerCase(), garden);
     }
     const matched = curatedKeys
       .map((key) => indexById.get(key.toLowerCase()))
       .filter((garden): garden is PublicGardenSummary => garden !== undefined);
-    const orderedMatched = preferImageBacked(matched);
-    if (orderedMatched.length >= FEATURED_FALLBACK_LIMIT) {
-      return orderedMatched.slice(0, FEATURED_FALLBACK_LIMIT);
+    if (matched.length >= FEATURED_FALLBACK_LIMIT) {
+      return matched.slice(0, FEATURED_FALLBACK_LIMIT);
     }
-    if (orderedMatched.length > 0) {
-      const matchedIds = new Set(orderedMatched.map((g) => g.id.toLowerCase()));
-      const remaining = all.filter((garden) => !matchedIds.has(garden.id.toLowerCase()));
+    if (matched.length > 0) {
+      const matchedIds = new Set(matched.map((g) => g.id.toLowerCase()));
+      const remaining = imageBacked.filter((garden) => !matchedIds.has(garden.id.toLowerCase()));
       const sortedRemaining = [...remaining].sort(
         (left, right) => right.lastActivityAt - left.lastActivityAt
       );
-      return [...orderedMatched, ...preferImageBacked(sortedRemaining)].slice(
-        0,
-        FEATURED_FALLBACK_LIMIT
-      );
+      return [...matched, ...sortedRemaining].slice(0, FEATURED_FALLBACK_LIMIT);
     }
   }
 
-  // No curation, or zero matches: prefer image-backed within most recently active.
-  const sorted = [...all].sort((left, right) => right.lastActivityAt - left.lastActivityAt);
-  return preferImageBacked(sorted).slice(0, FEATURED_FALLBACK_LIMIT);
+  // No curation, or zero matches: use most recently active image-backed Gardens only.
+  const sorted = [...imageBacked].sort((left, right) => right.lastActivityAt - left.lastActivityAt);
+  return sorted.slice(0, FEATURED_FALLBACK_LIMIT);
 }
 
 /**
@@ -77,10 +77,11 @@ export function PublicFeaturedGardens() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = usePublicGardens();
   const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
+  const [failedImageKeys, setFailedImageKeys] = useState<ReadonlySet<string>>(() => new Set());
 
   const featured = useMemo(
-    () => pickFeatured(gardens, publicCuration.featuredGardens as string[]),
-    [gardens]
+    () => pickFeatured(gardens, publicCuration.featuredGardens as string[], failedImageKeys),
+    [gardens, failedImageKeys]
   );
 
   return (
@@ -152,6 +153,15 @@ export function PublicFeaturedGardens() {
                 <PublicGardenCard
                   garden={garden}
                   variant={index === 0 || index === 3 ? "lead" : "default"}
+                  onImageError={() => {
+                    const imageKey = getGardenImageKey(garden);
+                    setFailedImageKeys((current) => {
+                      if (current.has(imageKey)) return current;
+                      const next = new Set(current);
+                      next.add(imageKey);
+                      return next;
+                    });
+                  }}
                 />
               </div>
             ))}

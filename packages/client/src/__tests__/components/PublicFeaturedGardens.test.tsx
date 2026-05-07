@@ -10,7 +10,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
@@ -29,8 +29,12 @@ vi.mock("@green-goods/shared", () => ({
 }));
 
 vi.mock("@/components/Display", () => ({
-  ImageWithFallback: ({ alt }: { alt: string }) =>
-    createElement("img", { alt, "data-testid": "garden-image" }),
+  ImageWithFallback: ({ alt, onErrorCallback }: { alt: string; onErrorCallback?: () => void }) =>
+    createElement("img", {
+      alt,
+      "data-testid": "garden-image",
+      onError: () => onErrorCallback?.(),
+    }),
 }));
 
 import { PublicFeaturedGardens } from "../../components/Public/PublicFeaturedGardens";
@@ -154,6 +158,78 @@ describe("PublicFeaturedGardens", () => {
     );
     expect(labels).not.toContain("Placeholder One");
     expect(labels).not.toContain("Placeholder Two");
+  });
+
+  it("does not pad the featured grid with placeholder-only gardens", () => {
+    mockUsePublicGardens.mockReturnValue({
+      data: [
+        makeGarden({ id: "0xa", bannerImage: PLACEHOLDER_BANNER, name: "Placeholder One" }),
+        makeGarden({ id: "0xb", bannerImage: "", name: "Missing Image" }),
+        makeGarden({ id: "0xc", bannerImage: "https://example.test/c.jpg", name: "Imaged C" }),
+        makeGarden({ id: "0xd", bannerImage: "https://example.test/d.jpg", name: "Imaged D" }),
+      ],
+      isLoading: false,
+    });
+
+    renderSection();
+
+    const grid = screen.getByTestId("public-featured-grid");
+    const labels = Array.from(grid.querySelectorAll("a")).map((node) =>
+      node.getAttribute("aria-label")
+    );
+    expect(labels).toEqual(["Imaged C", "Imaged D"]);
+  });
+
+  it("replaces a featured garden when its banner fails to load", async () => {
+    mockUsePublicGardens.mockReturnValue({
+      data: [
+        makeGarden({
+          id: "0xa",
+          bannerImage: "https://example.test/broken.jpg",
+          lastActivityAt: 600,
+          name: "Broken Featured",
+        }),
+        makeGarden({
+          id: "0xb",
+          bannerImage: "https://example.test/b.jpg",
+          lastActivityAt: 500,
+          name: "Imaged B",
+        }),
+        makeGarden({
+          id: "0xc",
+          bannerImage: "https://example.test/c.jpg",
+          lastActivityAt: 400,
+          name: "Imaged C",
+        }),
+        makeGarden({
+          id: "0xd",
+          bannerImage: "https://example.test/d.jpg",
+          lastActivityAt: 300,
+          name: "Imaged D",
+        }),
+        makeGarden({
+          id: "0xe",
+          bannerImage: "https://example.test/e.jpg",
+          lastActivityAt: 200,
+          name: "Replacement E",
+        }),
+      ],
+      isLoading: false,
+    });
+
+    renderSection();
+
+    expect(screen.getByLabelText("Broken Featured")).toBeInTheDocument();
+
+    fireEvent.error(screen.getByAltText("Broken Featured"));
+
+    await waitFor(() => {
+      const grid = screen.getByTestId("public-featured-grid");
+      const labels = Array.from(grid.querySelectorAll("a")).map((node) =>
+        node.getAttribute("aria-label")
+      );
+      expect(labels).toEqual(["Imaged B", "Imaged C", "Imaged D", "Replacement E"]);
+    });
   });
 
   it("renders fewer cards (no padding) when the data set is small", () => {
