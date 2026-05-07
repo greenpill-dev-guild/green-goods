@@ -343,6 +343,7 @@ output/
 
 # Dev tunnel URL (written by scripts/dev-tunnel.js)
 .tunnel-url
+.tunnel-url-admin
 
 # Docs build output (Docusaurus)
 docs/build/
