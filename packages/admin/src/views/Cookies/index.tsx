@@ -17,9 +17,9 @@ export default function CookiesView() {
   const viewActions = useMemo<ViewAction[]>(
     () => [
       {
-        id: "deploy-cookie-jar",
-        label: "Deploy cookie jar",
-        labelId: "cockpit.cookies.action.deploy",
+        id: "create-cookie-jar",
+        label: "Create cookie jar",
+        labelId: "cockpit.community.cookies.create",
         icon: RiAddLine,
         onClick: () => navigate(adminRoutes.cookiesDeploy()),
         variant: "primary",
@@ -51,7 +51,14 @@ export default function CookiesView() {
         sticky
       />
       <div className="mt-4">
-        <CampaignCookieJarPanel initialCreateOpen={shouldOpenCreateDialog} />
+        <CampaignCookieJarPanel
+          initialCreateOpen={shouldOpenCreateDialog}
+          onCreateOpenChange={(open) => {
+            if (!open && shouldOpenCreateDialog) {
+              navigate(adminRoutes.cookies(), { replace: true });
+            }
+          }}
+        />
       </div>
     </CanvasRouteFrame>
   );

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Address, Garden } from "@green-goods/shared";
 import {
+  buildCampaignCookieJarCreatePayload,
   canCreateCampaignCookieJar,
   canSyncCampaignCookieJarAllowlist,
+  deriveCampaignCookieJarSlug,
+  filterCampaignCookieJarCampaigns,
   filterCampaignCookieJarGardens,
+  resolveCampaignCookieJarManageDraft,
   isValidCampaignCookieJarMetadataUrl,
   isUsableCampaignCookieJarTokenDecimals,
   resolveCampaignCookieJarCreateFollowUp,
@@ -110,7 +114,6 @@ describe("campaign cookie jar admin model", () => {
       tokenDecimalsConfirmed: true,
       jarOwner: JAR,
       campaignTitle: "Earth Week",
-      campaignSlug: "earth-week",
       hasValidClaimConfig: true,
       allowlistCount: 1,
       invalidAddressCount: 0,
@@ -131,6 +134,105 @@ describe("campaign cookie jar admin model", () => {
         metadataUrlsValid: false,
       })
     ).toBe(false);
+  });
+
+  it("derives a stable metadata slug from the campaign name", () => {
+    expect(deriveCampaignCookieJarSlug(" Earth Week / GoodDollar! ")).toBe("earth-week-gooddollar");
+    expect(deriveCampaignCookieJarSlug("")).toBe("campaign-cookie-jar");
+  });
+
+  it("builds campaign creation params with hidden one-time purpose defaults", () => {
+    const payload = buildCampaignCookieJarCreatePayload({
+      factoryAddress: GARDEN_A,
+      campaignTitle: "Earth Week",
+      campaignDescription: "Operator rewards",
+      campaignImage: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd",
+      campaignExternalUrl: "https://greengoods.app/cookies?campaign=earth-week",
+      tokenAddress: TOKEN_A,
+      jarOwner: JAR,
+      allowlist: [GARDEN_B],
+      sourceGardens: [GARDEN_A],
+      extraAllowlist: [],
+      fixedAmount: 10n,
+      withdrawalInterval: 0n,
+    });
+
+    expect(payload).toMatchObject({
+      title: "Earth Week",
+      slug: "earth-week",
+      description: "Operator rewards",
+      oneTimeWithdrawal: true,
+      strictPurpose: true,
+      withdrawalType: "fixed",
+      fixedAmount: 10n,
+      maxWithdrawal: 10n,
+      minDeposit: 0n,
+    });
+  });
+
+  it("prefills management drafts from selected campaign metadata", () => {
+    const draft = resolveCampaignCookieJarManageDraft({
+      address: JAR,
+      jarAddress: JAR,
+      slug: "earth-week",
+      label: "Earth Week",
+      title: "Earth Week",
+      rawMetadata: "",
+      source: "indexed",
+      metadata: {
+        kind: "green-goods.campaign-cookie-jar",
+        version: 1,
+        slug: "earth-week",
+        title: "Earth Week",
+        description: "Campaign details",
+        image: "https://cdn.greengoods.app/cookie.webp",
+        externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
+        sourceGardens: [GARDEN_A],
+        operatorPolicy: "one-operator-per-garden",
+        extraAllowlist: [GARDEN_B],
+        chainId: 11155111,
+        createdAt: 1770000000,
+      },
+    });
+
+    expect(draft).toEqual({
+      jarAddress: JAR,
+      description: "Campaign details",
+      image: "https://cdn.greengoods.app/cookie.webp",
+      externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
+      selectedGardenIds: [GARDEN_A],
+      extraAddresses: GARDEN_B,
+    });
+  });
+
+  it("filters campaign jars by title, slug, and jar address", () => {
+    const campaigns = [
+      {
+        address: JAR,
+        jarAddress: JAR,
+        slug: "earth-week",
+        label: "Earth Week",
+        title: "Earth Week",
+        metadata: null,
+        rawMetadata: "",
+        source: "indexed" as const,
+      },
+      {
+        address: GARDEN_B,
+        jarAddress: GARDEN_B,
+        slug: "good-dollar",
+        label: "GoodDollar",
+        title: "GoodDollar",
+        metadata: null,
+        rawMetadata: "",
+        source: "indexed" as const,
+      },
+    ];
+
+    expect(filterCampaignCookieJarCampaigns(campaigns, "earth")).toEqual([campaigns[0]]);
+    expect(filterCampaignCookieJarCampaigns(campaigns, GARDEN_B.slice(0, 10))).toEqual([
+      campaigns[1],
+    ]);
   });
 
   it("accepts only positive integer token decimals for create flow scaling", () => {
