@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-02",
-    "updated_at": "2026-05-05T03:50:00.000Z",
+    "updated_at": "2026-05-07T23:03:02.877Z",
     "target_date": "2026-05-16"
   },
   "links": {
@@ -103,7 +103,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "in_progress",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/admin-design-revamp",
@@ -353,6 +353,14 @@
       "status": "ready",
       "branch": "release/1.1.0",
       "note": "Flipped qa_pass_1 from blocked to ready after cleanup A1-A6 landed and B1-B3 were properly deferred. Updated eval.md checkboxes (A1-A6 ticked with commit anchors; B1-B3 + C1 marked deferred with cross-reference to handoff investigation). Recorded UI verification gap: A4/A5/A6 changed live admin surfaces but Chrome MCP smoke could not reach the dev server during the cleanup window because a concurrent agent had vite.config.ts in flux. QA inherits the visual smoke for those three surfaces."
+    },
+    {
+      "timestamp": "2026-05-07T23:03:02.880Z",
+      "actor": "human",
+      "lane": "qa_pass_1",
+      "status": "in_progress",
+      "branch": "claude/qa-pass-1/admin-design-revamp",
+      "note": "Provisional pass on cleanup A1-A6. Two pre-merge actions: concurrent agent must resolve GardenWorkspaceContent.tsx useState import drift; file three follow-up backlog plans for B1-B3. Full handoff in handoffs/claude-qa-pass-1.md."
     }
   ],
   "taxonomy": {
