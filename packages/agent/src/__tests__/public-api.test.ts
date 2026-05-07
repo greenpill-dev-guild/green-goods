@@ -55,13 +55,21 @@ function jsonHeaders(extra: Record<string, string> = {}) {
 }
 
 describe("Hono Agent API compatibility", () => {
-  it("serves health, readiness, and platform webhook allowlist responses", async () => {
+  it("serves health and readiness responses", async () => {
     const app = createServer({ isAIReady: () => true }, { logger: false });
 
     expect((await app.request("/health")).status).toBe(200);
     expect((await app.request("/ready")).status).toBe(200);
-    expect((await app.request("/webhook/telegram", { method: "POST" })).status).toBe(200);
-    expect((await app.request("/webhook/not-real", { method: "POST" })).status).toBe(400);
+  });
+
+  it("does not shadow the runtime Telegram webhook handler", async () => {
+    const app = createServer({ isAIReady: () => true }, { logger: false });
+    app.post("/webhook/telegram", (c) => c.json({ ok: true, handledBy: "telegram" }));
+
+    const response = await app.request("/webhook/telegram", { method: "POST" });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ ok: true, handledBy: "telegram" });
   });
 
   it("keeps /api/* bearer auth semantics", async () => {

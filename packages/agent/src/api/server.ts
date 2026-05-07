@@ -72,21 +72,6 @@ import {
 const log = loggers.api;
 
 // ============================================================================
-// SECURITY: Platform Allowlist
-// ============================================================================
-
-/**
- * Allowed platform identifiers for webhook endpoints.
- * Only these platforms can receive webhooks.
- */
-const ALLOWED_PLATFORMS = ["telegram", "whatsapp", "sms", "discord"] as const;
-type AllowedPlatform = (typeof ALLOWED_PLATFORMS)[number];
-
-function isAllowedPlatform(platform: string): platform is AllowedPlatform {
-  return ALLOWED_PLATFORMS.includes(platform as AllowedPlatform);
-}
-
-// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -839,32 +824,6 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       );
     }
     return c.json({ status: "ready", timestamp: Date.now() });
-  });
-
-  // Generic webhook endpoint for future platforms.
-  // SECURITY: Platform parameter is validated against allowlist.
-  app.post("/webhook/:platform", (c) => {
-    const platform = c.req.param("platform");
-
-    if (!isAllowedPlatform(platform)) {
-      log.warn({ platform }, "Rejected webhook request for unknown platform");
-      return c.json({ error: "Invalid platform" }, 400);
-    }
-
-    switch (platform) {
-      case "telegram":
-        // Handled by bot.handleUpdate in main index.ts when webhook mode is active.
-        return c.json({ ok: true });
-
-      case "whatsapp":
-        return c.json({ error: "WhatsApp webhooks not yet implemented" }, 501);
-
-      case "sms":
-        return c.json({ error: "SMS webhooks not yet implemented" }, 501);
-
-      case "discord":
-        return c.json({ error: "Discord webhooks not yet implemented" }, 501);
-    }
   });
 
   app.options(PUBLIC_AGENT_ROUTES.uploadSign, (c) => {
