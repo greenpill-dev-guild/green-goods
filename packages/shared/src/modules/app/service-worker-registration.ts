@@ -94,6 +94,12 @@ async function registerServiceWorker(version: string): Promise<boolean> {
       updateViaCache: "none",
     });
 
+    try {
+      await registration.update();
+    } catch (error) {
+      logger.warn("[ServiceWorker] Failed to check for service worker update", { error });
+    }
+
     serviceWorkerManager.attachRegistration(registration);
     void registration.update().catch((error) => {
       logger.warn("[ServiceWorker] Update check failed", { error });
