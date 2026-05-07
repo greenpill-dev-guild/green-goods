@@ -116,7 +116,7 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 - Lint check: `bun run format:check && bun lint`
 - Lint fix: `bun format && bun lint`
 - Full tests: `bun run test`
-- Full build: `VITE_CHAIN_ID=11155111 bun run build` _(Sepolia is the deterministic validation chain — overrides whatever is in your local `.env` so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
+- Full build: `VITE_CHAIN_ID=11155111 bun run build` _(Sepolia is the deterministic validation chain — overrides local environment files so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
 
 ## Package Guides
 

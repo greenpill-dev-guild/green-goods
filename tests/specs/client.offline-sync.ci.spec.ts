@@ -44,6 +44,7 @@ test.describe("Offline Sync CI Tests", () => {
     // Skipped for v1.1.0 — same headless-CI auth/SW timing as the other
     // client e2e tests; tracked for v1.1.1 alongside the smoke skips
     // (commit 722ee975).
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
     test.skip("shows offline indicator when network is disconnected", async ({ page, context }) => {
       const helper = await setupMockedEnvironment(page);
       await page.goto("/home");
@@ -136,6 +137,7 @@ test.describe("Offline Sync CI Tests", () => {
   });
 
   test.describe("PWA Service Worker", () => {
+    // SKIP: #338 owner:afo expiry:2026-08-17 — needs HTTPS plus service worker registration.
     test.skip("client app loads and registers service worker", async ({ page }) => {
       await page.goto("/login");
       await page.waitForLoadState("domcontentloaded");

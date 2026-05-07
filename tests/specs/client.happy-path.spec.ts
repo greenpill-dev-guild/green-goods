@@ -90,7 +90,7 @@ async function authOrSkip(
 ) {
   await helper.waitForPageLoad();
   if (page.url().includes("/login")) {
-    // SKIP: auth injection unstable in headless CI; piece-wise specs cover.
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI; piece-wise specs cover.
     test.skip(true, skipReason);
   }
 }

@@ -178,6 +178,7 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
+  // SKIP: #312 owner:afo expiry:2026-06-01 — mock auth is unstable in headless CI.
   test.skip("renders the work cockpit for a mocked operator", async ({ page }) => {
     const helper = await setupMockOperator(page);
 
@@ -203,6 +204,7 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByPlaceholder("Search submissions")).toBeVisible();
   });
 
+  // SKIP: #312 owner:afo expiry:2026-06-01 — mock auth is unstable in headless CI.
   test.skip("keeps mock auth active across full reloads on other cockpit routes", async ({
     page,
   }) => {
@@ -226,6 +228,7 @@ test.describe("Admin Cockpit", () => {
     ).toBeVisible({ timeout: 15000 });
   });
 
+  // SKIP: #312 owner:afo expiry:2026-06-01 — mock auth is unstable in headless CI.
   test.skip("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
     page,
   }) => {
@@ -252,6 +255,7 @@ test.describe("Admin Cockpit", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe(null);
   });
 
+  // SKIP: #312 owner:afo expiry:2026-06-01 — mock auth is unstable in headless CI.
   test.skip("redirects desktop profile deep links back to hub while opening the settings sheet", async ({
     page,
   }) => {

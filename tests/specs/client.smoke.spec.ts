@@ -34,6 +34,7 @@ test.describe("Client PWA", () => {
   // reproduce locally. Tracked for v1.1.1. The Service Health subgroup
   // below still asserts the dev server responds with HTML.
   test.describe("Authentication", () => {
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
     test.skip("redirects unauthenticated /home -> /login", async ({ page }) => {
       await page.goto("/home");
 
@@ -56,6 +57,7 @@ test.describe("Client PWA", () => {
       expect(hasWalletLink || (await page.getByTestId("login-button").isVisible())).toBeTruthy();
     });
 
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
     test.skip("shows login page with correct branding", async ({ page }) => {
       await page.goto("/login");
       await page.waitForLoadState("domcontentloaded");
@@ -128,6 +130,7 @@ test.describe("Client PWA", () => {
   });
 
   test.describe("Gardens Data", () => {
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
     test.skip("displays gardens list when authenticated", async ({ page }) => {
       const helper = new ClientTestHelper(page);
 
@@ -161,6 +164,7 @@ test.describe("Client PWA", () => {
       }
     });
 
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
     test.skip("can access garden detail page", async ({ page }) => {
       const helper = new ClientTestHelper(page);
 
@@ -252,6 +256,7 @@ test.describe("Client PWA", () => {
     // live indexer (see ci(playwright): skip live indexer webServer in CI,
     // 28a74a26). Tests in this stack mock GraphQL via route interception;
     // the live-indexer health check is exercised by the Indexer workflow.
+    // SKIP: #312 owner:afo expiry:2026-06-01 — live indexer is not part of the CI webServer stack.
     test.skip("indexer responds to GraphQL queries", async ({ request }) => {
       const response = await request.post(TEST_URLS.indexer, {
         data: { query: "query { __typename }" },

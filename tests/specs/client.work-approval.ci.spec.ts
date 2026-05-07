@@ -43,6 +43,7 @@ test.describe("Work Approval CI Tests", () => {
     // Skipped for v1.1.0 — login splash never paints `login-button` in
     // headless CI shell; tracked for v1.1.1 alongside other client e2e
     // skips (commit 722ee975).
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
     test.skip("protected pages redirect unauthenticated users to login", async ({ page }) => {
       // Try to access authenticated page without auth
       await page.goto("/home");
@@ -50,6 +51,7 @@ test.describe("Work Approval CI Tests", () => {
       expect(page.url()).toContain("/login");
     });
 
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
     test.skip("login page renders approval-relevant auth UI", async ({ page }) => {
       await page.goto("/login");
       await page.waitForLoadState("domcontentloaded");
