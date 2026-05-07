@@ -151,15 +151,22 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.fund.vaults.kicker",
-              defaultMessage: "§ 01 — Vaults at work",
+              defaultMessage: "§ 01 — Endowment engine",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-fund-vaults-title">
             {formatMessage({
               id: "public.fund.vaults.title",
-              defaultMessage: "Vaults currently at work.",
+              defaultMessage: "Endowment capital already supporting Gardens.",
             })}
           </EditorialHeading>
+          <p className="mt-5 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
+            {formatMessage({
+              id: "public.fund.vaults.lede",
+              defaultMessage:
+                "Endow adds long-term capital to these vaults; Donate sends support directly to a Garden's Cookie Jar.",
+            })}
+          </p>
         </header>
 
         {assets.length > 0 ? (
@@ -171,10 +178,15 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
         ) : (
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2" aria-hidden="true">
             {[0, 1].map((index) => (
-              <div key={index} className="border-t border-stroke-soft-200 pt-5">
+              <div
+                key={index}
+                className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]"
+              >
                 <div className="h-3 w-28 animate-pulse bg-stroke-soft-200/60" />
                 <div className="mt-4 h-8 w-36 animate-pulse bg-stroke-soft-200/60" />
                 <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
+                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
                   <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
                   <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
                 </div>
@@ -189,65 +201,109 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
 
 function VaultAssetCard({ asset }: { asset: PublicVaultSummaryAsset }) {
   const { formatMessage } = useIntl();
+  const aprValue =
+    typeof asset.apr === "number"
+      ? formatApy(asset.apr)
+      : formatMessage({
+          id: "public.fund.vaults.aprUnavailable",
+          defaultMessage: "APR unavailable",
+        });
+  const readyToHarvestValue =
+    asset.accruingYield !== undefined
+      ? formatVaultAssetAmount(asset.accruingYield, asset)
+      : formatMessage({
+          id: "public.fund.vaults.liveYieldUnavailable",
+          defaultMessage: "Live yield unavailable",
+        });
+  const routedValue =
+    asset.allocatedYield !== undefined
+      ? formatVaultAssetAmount(asset.allocatedYield, asset)
+      : formatMessage({
+          id: "public.fund.vaults.routedUnavailable",
+          defaultMessage: "Routed data unavailable",
+        });
 
   return (
-    <article className="border-t border-stroke-soft-200 pt-5">
+    <article className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]">
       <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
         {formatMessage(
           {
             id: "public.fund.vaults.assetTitle",
-            defaultMessage: "{asset} in vaults",
+            defaultMessage: "{asset} endowment balance",
           },
           { asset: asset.symbol }
         )}
       </p>
-      <p className="mt-3 font-serif text-3xl font-normal leading-none tracking-[-0.018em] text-text-strong-950 md:text-4xl">
-        {formatVaultAssetAmount(asset.currentValue, asset)}
-      </p>
-      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm leading-[1.5] text-text-sub-600">
-        {typeof asset.apr === "number" ? (
-          <span>
-            {formatMessage(
-              { id: "public.fund.vaults.apr", defaultMessage: "APR {rate}" },
-              { rate: formatApy(asset.apr) }
-            )}
-          </span>
-        ) : null}
-        {asset.accruedYield !== undefined ? (
-          <span>
-            {formatMessage(
-              {
-                id: "public.fund.vaults.accrued",
-                defaultMessage: "Yield accrued {amount}",
-              },
-              { amount: formatVaultAssetAmount(asset.accruedYield, asset) }
-            )}
-          </span>
-        ) : null}
-        {asset.allocatedYield !== undefined ? (
-          <span>
-            {formatMessage(
-              {
-                id: "public.fund.vaults.allocated",
-                defaultMessage: "Allocated {amount}",
-              },
-              { amount: formatVaultAssetAmount(asset.allocatedYield, asset) }
-            )}
-          </span>
-        ) : null}
-        {asset.accruingYield !== undefined ? (
-          <span>
-            {formatMessage(
-              {
-                id: "public.fund.vaults.accruing",
-                defaultMessage: "Accruing now {amount}",
-              },
-              { amount: formatVaultAssetAmount(asset.accruingYield, asset) }
-            )}
-          </span>
-        ) : null}
+      <div className="mt-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+          {formatMessage({
+            id: "public.fund.vaults.currentBalance",
+            defaultMessage: "Current balance",
+          })}
+        </p>
+        <p className="mt-2 font-serif text-3xl font-normal leading-none tracking-[-0.018em] text-text-strong-950 md:text-4xl">
+          {formatVaultAssetAmount(asset.currentValue, asset)}
+        </p>
       </div>
+      <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <VaultMetric
+          label={formatMessage({ id: "public.fund.vaults.apr", defaultMessage: "APR" })}
+          value={aprValue}
+        />
+        <VaultMetric
+          label={formatMessage({
+            id: "public.fund.vaults.readyToHarvest",
+            defaultMessage: "Ready to harvest",
+          })}
+          value={readyToHarvestValue}
+        />
+        <VaultMetric
+          label={formatMessage({
+            id: "public.fund.vaults.routed",
+            defaultMessage: "Routed to Gardens",
+          })}
+          value={routedValue}
+        />
+        <VaultMetric
+          label={formatMessage({
+            id: "public.fund.vaults.vaultCountLabel",
+            defaultMessage: "Vaults",
+          })}
+          value={formatMessage(
+            {
+              id: "public.fund.vaults.vaultCount",
+              defaultMessage: "{count, plural, one {# vault} other {# vaults}}",
+            },
+            { count: asset.vaultCount }
+          )}
+        />
+        <VaultMetric
+          label={formatMessage({
+            id: "public.fund.vaults.fundingPositionsLabel",
+            defaultMessage: "Funding positions",
+          })}
+          value={formatMessage(
+            {
+              id: "public.fund.vaults.fundingPositions",
+              defaultMessage:
+                "{count, plural, one {# funding position} other {# funding positions}}",
+            },
+            { count: asset.depositorCount }
+          )}
+        />
+      </dl>
     </article>
+  );
+}
+
+function VaultMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-t border-stroke-soft-200 pt-3">
+      <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+        {label}
+      </dt>
+      <dd className="mt-1 text-sm leading-[1.5] text-text-sub-600">{value}</dd>
+    </div>
   );
 }
 

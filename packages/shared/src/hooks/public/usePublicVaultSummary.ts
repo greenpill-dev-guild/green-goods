@@ -23,6 +23,7 @@ export interface PublicVaultSummaryAsset {
   chainId: number;
   decimals: number;
   vaultCount: number;
+  depositorCount: number;
   netDeposited: bigint;
   accruingYield: bigint | undefined;
   currentValue: bigint;
@@ -58,8 +59,10 @@ interface AssetAccumulator {
   chainId: number;
   decimals: number;
   vaultCount: number;
+  depositorCount: number;
   netDeposited: bigint;
   accruingYield: bigint | undefined;
+  liveYieldComplete: boolean;
 }
 
 interface YieldTotals {
@@ -112,9 +115,11 @@ export function usePublicVaultSummary(): PublicVaultSummary {
       const symbol = getPublicVaultAssetSymbol(vault.asset, vault.chainId);
       if (!symbol) continue;
 
-      const liveYield = canUseLiveYield
-        ? (harvestableByVault.get(vault.vaultAddress.toLowerCase()) ?? 0n)
-        : undefined;
+      const vaultKey = vault.vaultAddress.toLowerCase();
+      const liveYield =
+        canUseLiveYield && harvestableByVault.has(vaultKey)
+          ? harvestableByVault.get(vaultKey)
+          : undefined;
 
       upsertVaultAccumulator(networkBySymbol, vault, symbol, liveYield);
 
@@ -124,15 +129,21 @@ export function usePublicVaultSummary(): PublicVaultSummary {
       gardenByAddress.set(gardenKey, gardenAssets);
     }
 
-    const networkAssets = finalizeAssets(networkBySymbol, yieldTotals?.network, (symbol) =>
-      symbol === "ETH" ? ethRate : daiRate
+    const networkAssets = finalizeAssets(
+      networkBySymbol,
+      yieldTotals?.network,
+      hasAllocationData,
+      (symbol) => (symbol === "ETH" ? ethRate : daiRate)
     );
 
     const gardens: Record<string, PublicGardenVaultSummary> = {};
     for (const [garden, assetMap] of gardenByAddress.entries()) {
       const allocatedBySymbol = yieldTotals?.gardens.get(garden);
-      const gardenAssets = finalizeAssets(assetMap, allocatedBySymbol, (symbol) =>
-        symbol === "ETH" ? ethRate : daiRate
+      const gardenAssets = finalizeAssets(
+        assetMap,
+        allocatedBySymbol,
+        hasAllocationData,
+        (symbol) => (symbol === "ETH" ? ethRate : daiRate)
       );
       gardens[garden] = {
         garden: garden as Address,
@@ -179,14 +190,19 @@ function upsertVaultAccumulator(
     chainId: vault.chainId,
     decimals: getVaultAssetDecimals(vault.asset, vault.chainId),
     vaultCount: 0,
+    depositorCount: 0,
     netDeposited: 0n,
     accruingYield: liveYield === undefined ? undefined : 0n,
+    liveYieldComplete: liveYield !== undefined,
   };
 
   existing.vaultCount += 1;
+  existing.depositorCount += vault.depositorCount;
   existing.netDeposited += getNetDeposited(vault.totalDeposited, vault.totalWithdrawn);
   if (liveYield !== undefined) {
     existing.accruingYield = (existing.accruingYield ?? 0n) + liveYield;
+  } else {
+    existing.liveYieldComplete = false;
   }
   bySymbol.set(symbol, existing);
 }
@@ -194,21 +210,24 @@ function upsertVaultAccumulator(
 function finalizeAssets(
   bySymbol: Map<PublicVaultSummaryAssetSymbol, AssetAccumulator>,
   allocatedBySymbol: Map<PublicVaultSummaryAssetSymbol, bigint> | undefined,
+  hasAllocationData: boolean,
   getRate: (symbol: PublicVaultSummaryAssetSymbol) => ReturnType<typeof useStrategyRate>
 ): PublicVaultSummaryAsset[] {
   return ASSET_ORDER.flatMap((symbol) => {
     const entry = bySymbol.get(symbol);
     if (!entry) return [];
 
-    const allocatedYield = allocatedBySymbol?.get(symbol);
-    const accruingYield = entry.accruingYield;
+    const allocatedYield = hasAllocationData ? (allocatedBySymbol?.get(symbol) ?? 0n) : undefined;
+    const accruingYield = entry.liveYieldComplete ? entry.accruingYield : undefined;
     const accruedYield =
       allocatedYield === undefined ? undefined : allocatedYield + (accruingYield ?? 0n);
     const rate = getRate(symbol);
+    const { liveYieldComplete: _liveYieldComplete, ...asset } = entry;
 
     return {
-      ...entry,
+      ...asset,
       currentValue: entry.netDeposited + (accruingYield ?? 0n),
+      accruingYield,
       allocatedYield,
       accruedYield,
       apr: rate.apr,

@@ -124,6 +124,7 @@ describe("usePublicVaultSummary", () => {
           vaultAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           totalDeposited: 1_000n,
           totalWithdrawn: 100n,
+          depositorCount: 2,
         }),
         vault({
           id: "dai-vault-a",
@@ -131,6 +132,7 @@ describe("usePublicVaultSummary", () => {
           asset: DAI,
           vaultAddress: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           totalDeposited: 2_000n,
+          depositorCount: 3,
         }),
         vault({
           id: "dai-vault-b",
@@ -138,6 +140,7 @@ describe("usePublicVaultSummary", () => {
           asset: DAI,
           vaultAddress: "0xcccccccccccccccccccccccccccccccccccccccc",
           totalDeposited: 1_000n,
+          depositorCount: 4,
         }),
       ],
       isLoading: false,
@@ -154,6 +157,11 @@ describe("usePublicVaultSummary", () => {
           vaultAddress: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           assetAddress: DAI,
           harvestable: 3n,
+        },
+        {
+          vaultAddress: "0xcccccccccccccccccccccccccccccccccccccccc",
+          assetAddress: DAI,
+          harvestable: 0n,
         },
       ],
       total: 8n,
@@ -180,6 +188,8 @@ describe("usePublicVaultSummary", () => {
     expect(result.current.assets.map((asset) => asset.symbol)).toEqual(["DAI", "ETH"]);
     expect(result.current.assets[0]).toMatchObject({
       symbol: "DAI",
+      vaultCount: 2,
+      depositorCount: 7,
       netDeposited: 3_000n,
       accruingYield: 3n,
       currentValue: 3_003n,
@@ -189,6 +199,8 @@ describe("usePublicVaultSummary", () => {
     });
     expect(result.current.assets[1]).toMatchObject({
       symbol: "ETH",
+      vaultCount: 1,
+      depositorCount: 2,
       netDeposited: 900n,
       accruingYield: 5n,
       currentValue: 905n,
@@ -199,15 +211,67 @@ describe("usePublicVaultSummary", () => {
 
     expect(result.current.gardensByAddress[GARDEN_A.toLowerCase()].assets[0]).toMatchObject({
       symbol: "DAI",
+      vaultCount: 1,
+      depositorCount: 3,
       currentValue: 2_003n,
       allocatedYield: 11n,
       accruedYield: 14n,
     });
     expect(result.current.gardensByAddress[GARDEN_A.toLowerCase()].assets[1]).toMatchObject({
       symbol: "ETH",
+      vaultCount: 1,
+      depositorCount: 2,
       currentValue: 905n,
       allocatedYield: 7n,
       accruedYield: 12n,
+    });
+  });
+
+  it("does not report partial live yield reads as zero", async () => {
+    mockUseGardenVaults.mockReturnValue({
+      vaults: [
+        vault({
+          id: "dai-vault-a",
+          asset: DAI,
+          vaultAddress: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          totalDeposited: 2_000n,
+          depositorCount: 2,
+        }),
+        vault({
+          id: "dai-vault-b",
+          asset: DAI,
+          vaultAddress: "0xcccccccccccccccccccccccccccccccccccccccc",
+          totalDeposited: 1_000n,
+          depositorCount: 1,
+        }),
+      ],
+      isLoading: false,
+      isError: false,
+    });
+    mockUseHarvestableYield.mockReturnValue({
+      entries: [
+        {
+          vaultAddress: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          assetAddress: DAI,
+          harvestable: 7n,
+        },
+      ],
+      total: 7n,
+      isLoading: false,
+      isError: false,
+    });
+
+    const { result } = renderHook(() => usePublicVaultSummary(), { wrapper: createWrapper() });
+
+    await waitFor(() => expect(result.current.isAllocationLoading).toBe(false));
+
+    expect(result.current.assets[0]).toMatchObject({
+      symbol: "DAI",
+      vaultCount: 2,
+      depositorCount: 3,
+      netDeposited: 3_000n,
+      accruingYield: undefined,
+      currentValue: 3_000n,
     });
   });
 
@@ -217,6 +281,7 @@ describe("usePublicVaultSummary", () => {
         vault({
           asset: WETH,
           totalDeposited: 1_000n,
+          depositorCount: 1,
         }),
       ],
       isLoading: false,
@@ -244,6 +309,8 @@ describe("usePublicVaultSummary", () => {
 
     expect(result.current.assets[0]).toMatchObject({
       symbol: "ETH",
+      vaultCount: 1,
+      depositorCount: 1,
       netDeposited: 1_000n,
       accruingYield: undefined,
       currentValue: 1_000n,
@@ -260,6 +327,7 @@ describe("usePublicVaultSummary", () => {
         vault({
           asset: DAI,
           totalDeposited: 2_000n,
+          depositorCount: 1,
         }),
       ],
       isLoading: false,
@@ -285,6 +353,8 @@ describe("usePublicVaultSummary", () => {
 
     expect(result.current.assets[0]).toMatchObject({
       symbol: "DAI",
+      vaultCount: 1,
+      depositorCount: 1,
       netDeposited: 2_000n,
       accruingYield: 4n,
       currentValue: 2_004n,

@@ -13,8 +13,10 @@
 
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
+import { http } from "viem";
 import { ENV } from "../lib/env";
 import { logger } from "../modules/app/logger";
+import { getRpcUrl } from "../utils/blockchain/chain-registry";
 import { getResolvedTheme } from "../utils/styles/theme";
 import { DEFAULT_CHAIN_ID } from "./blockchain";
 import { getChain, SUPPORTED_CHAINS } from "./chains";
@@ -69,6 +71,14 @@ const defaultProjectId = normalizeOptionalProjectId(ENV.VITE_WALLETCONNECT_PROJE
 let appKitInstance: ReturnType<typeof createAppKit> | null = null;
 let wagmiAdapterInstance: WagmiAdapter | null = null;
 
+export function createAppKitTransports(
+  chains: Array<{ id: number }> = Object.values(SUPPORTED_CHAINS)
+): Record<number, ReturnType<typeof http>> {
+  return Object.fromEntries(
+    chains.map((chain) => [chain.id, http(getRpcUrl(chain.id, ENV.VITE_ALCHEMY_API_KEY))])
+  );
+}
+
 /**
  * Initialize (or return) the singleton AppKit + Wagmi config.
  * Accepts optional overrides but will not re-initialize once created.
@@ -107,10 +117,12 @@ export function ensureAppKit(options?: AppKitInitOptions) {
   // Type assertion needed due to viem version mismatch between main dependency
   // and @reown/appkit-common's bundled viem. Runtime compatible.
   const networks = chains as unknown as Parameters<typeof createAppKit>[0]["networks"];
+  const transports = createAppKitTransports(chains);
 
   wagmiAdapterInstance = new WagmiAdapter({
     networks,
     projectId,
+    transports,
   });
 
   // Get initial theme from system/localStorage

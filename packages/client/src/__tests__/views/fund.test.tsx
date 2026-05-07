@@ -149,6 +149,7 @@ describe("FundPage", () => {
               chainId: 42161,
               decimals: 18,
               vaultCount: 1,
+              depositorCount: 2,
               netDeposited: 2_000_000_000_000_000_000_000n,
               accruingYield: 5_000_000_000_000_000_000n,
               currentValue: 2_005_000_000_000_000_000_000n,
@@ -165,6 +166,7 @@ describe("FundPage", () => {
               chainId: 42161,
               decimals: 18,
               vaultCount: 1,
+              depositorCount: 3,
               netDeposited: 1_200_000_000_000_000_000n,
               accruingYield: 50_000_000_000_000_000n,
               currentValue: 1_250_000_000_000_000_000n,
@@ -185,6 +187,7 @@ describe("FundPage", () => {
           chainId: 42161,
           decimals: 18,
           vaultCount: 1,
+          depositorCount: 2,
           netDeposited: 2_000_000_000_000_000_000_000n,
           accruingYield: 5_000_000_000_000_000_000n,
           currentValue: 2_005_000_000_000_000_000_000n,
@@ -201,6 +204,7 @@ describe("FundPage", () => {
           chainId: 42161,
           decimals: 18,
           vaultCount: 1,
+          depositorCount: 3,
           netDeposited: 1_200_000_000_000_000_000n,
           accruingYield: 50_000_000_000_000_000n,
           currentValue: 1_250_000_000_000_000_000n,
@@ -269,14 +273,16 @@ describe("FundPage", () => {
     renderView();
 
     const hero = screen.getByRole("heading", { level: 1 });
-    const vaults = screen.getByRole("heading", { name: /Vaults currently at work/i });
+    const vaults = screen.getByRole("heading", {
+      name: /Endowment capital already supporting Gardens/i,
+    });
     const paths = screen.getByRole("heading", { name: /Donate now, or Endow/i });
     const gardens = screen.getByRole("heading", { name: /Gardens accepting support/i });
 
     expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText("§ 01 — Vaults at work")).toBeInTheDocument();
+    expect(screen.getByText("§ 01 — Endowment engine")).toBeInTheDocument();
     expect(screen.getByText("§ 02 — Ways to support")).toBeInTheDocument();
     expect(screen.getByText("§ 03 — Choose where to apply your support")).toBeInTheDocument();
   });
@@ -285,28 +291,59 @@ describe("FundPage", () => {
     renderView();
 
     const vaultSection = screen
-      .getByRole("heading", { name: /Vaults currently at work/i })
+      .getByRole("heading", { name: /Endowment capital already supporting Gardens/i })
       .closest("section");
 
     expect(vaultSection).toHaveAttribute("data-revealed", "true");
   });
 
-  it("shows aggregate DAI and ETH totals, APR, accrued yield, allocated yield, and live accruing yield", () => {
+  it("shows aggregate DAI and ETH current balance, APR, harvestable yield, routing, vaults, and positions", () => {
     renderView();
 
-    expect(screen.getByText("DAI in vaults")).toBeInTheDocument();
-    expect(screen.getByText("2,005 DAI")).toBeInTheDocument();
-    expect(screen.getByText("APR 5.10%")).toBeInTheDocument();
-    expect(screen.getByText("Yield accrued 25 DAI")).toBeInTheDocument();
-    expect(screen.getByText("Allocated 20 DAI")).toBeInTheDocument();
-    expect(screen.getByText("Accruing now 5 DAI")).toBeInTheDocument();
+    const daiCard = screen.getByText("DAI endowment balance").closest("article");
+    expect(daiCard).toHaveTextContent("Current balance");
+    expect(daiCard).toHaveTextContent("2,005 DAI");
+    expect(daiCard).toHaveTextContent("APR");
+    expect(daiCard).toHaveTextContent("5.10%");
+    expect(daiCard).toHaveTextContent("Ready to harvest");
+    expect(daiCard).toHaveTextContent("5 DAI");
+    expect(daiCard).toHaveTextContent("Routed to Gardens");
+    expect(daiCard).toHaveTextContent("20 DAI");
+    expect(daiCard).toHaveTextContent("Vaults");
+    expect(daiCard).toHaveTextContent("1 vault");
+    expect(daiCard).toHaveTextContent("Funding positions");
+    expect(daiCard).toHaveTextContent("2 funding positions");
 
-    expect(screen.getByText("ETH in vaults")).toBeInTheDocument();
-    expect(screen.getByText("1.25 ETH")).toBeInTheDocument();
-    expect(screen.getByText("APR 2.50%")).toBeInTheDocument();
-    expect(screen.getByText("Yield accrued 0.15 ETH")).toBeInTheDocument();
-    expect(screen.getByText("Allocated 0.1 ETH")).toBeInTheDocument();
-    expect(screen.getByText("Accruing now 0.05 ETH")).toBeInTheDocument();
+    const ethCard = screen.getByText("ETH endowment balance").closest("article");
+    expect(ethCard).toHaveTextContent("Current balance");
+    expect(ethCard).toHaveTextContent("1.25 ETH");
+    expect(ethCard).toHaveTextContent("APR");
+    expect(ethCard).toHaveTextContent("2.50%");
+    expect(ethCard).toHaveTextContent("Ready to harvest");
+    expect(ethCard).toHaveTextContent("0.05 ETH");
+    expect(ethCard).toHaveTextContent("Routed to Gardens");
+    expect(ethCard).toHaveTextContent("0.1 ETH");
+    expect(ethCard).toHaveTextContent("Vaults");
+    expect(ethCard).toHaveTextContent("1 vault");
+    expect(ethCard).toHaveTextContent("Funding positions");
+    expect(ethCard).toHaveTextContent("3 funding positions");
+  });
+
+  it("shows live yield unavailable instead of a false zero", () => {
+    const defaultSummary = mockUsePublicVaultSummary();
+    mockUsePublicVaultSummary.mockReturnValue({
+      ...defaultSummary,
+      assets: defaultSummary.assets.map((asset) =>
+        asset.symbol === "DAI" ? { ...asset, accruingYield: undefined } : asset
+      ),
+    });
+
+    renderView();
+
+    const daiCard = screen.getByText("DAI endowment balance").closest("article");
+    expect(daiCard).toHaveTextContent("Live yield unavailable");
+    expect(daiCard).not.toHaveTextContent("Ready to harvest 0 DAI");
+    expect(screen.queryByText("Accruing now 0 DAI")).toBeNull();
   });
 
   it("shows DAI, ETH, and yield accrued inside Garden cards", () => {
@@ -334,8 +371,10 @@ describe("FundPage", () => {
 
     renderView();
 
-    expect(screen.queryByRole("heading", { name: /Vaults currently at work/i })).toBeNull();
-    expect(screen.queryByText(/DAI in vaults/)).toBeNull();
+    expect(
+      screen.queryByRole("heading", { name: /Endowment capital already supporting Gardens/i })
+    ).toBeNull();
+    expect(screen.queryByText(/DAI endowment balance/)).toBeNull();
     expect(screen.queryByText(/Yield accrued/)).toBeNull();
   });
 });
