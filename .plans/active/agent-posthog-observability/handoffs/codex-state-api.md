@@ -9,7 +9,7 @@ Implemented the Stage 1 durable script surface for read-only PostHog access:
 - `.env.schema` root PostHog query env contract
 - `scripts/README.md` inventory entry
 
-No MCP server was added. The Stage 2 trigger has not been met.
+No MCP server was added. The 2026-05-06 plan revision makes connector-first Claude Code usage the primary path and removes PostHog MCP from this plan.
 
 ## Behavior
 
@@ -89,13 +89,20 @@ Covered behavior:
 - snippet/user filter shaping
 - dry-run without API key
 - 300-second cache reuse for identical queries
-- public issue body privacy redaction
+- public/Linear body privacy redaction
 - `--privacy public` private-context suppression
 
 ## Remaining Work
 
-This pass does not wire the bug-intake routine or debug skill text yet. The script and
-privacy-safe JSON contract are ready for those consumers to call in a follow-up pass.
+2026-05-06 plan revision: Claude Code PostHog and Linear connectors are now the
+primary path. This means the script is fallback-only for Codex, cron, or another
+non-connector runtime. Do not build PostHog MCP.
+
+Remaining work is now policy/routine wiring:
+
+- update `docs/routines/bug-intake.md` to query PostHog through the Claude Code connector before writing Linear records
+- update `.claude/skills/debug/posthog.md` and `.agents/skills/debug/posthog.md` for connector-first private debugging
+- validate that Linear Customer Need / Issue bodies only receive safe summaries and never replay links, session IDs, distinct IDs, wallet/user identifiers, or reporter identifiers
 
 ## Validation
 

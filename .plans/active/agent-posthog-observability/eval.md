@@ -2,9 +2,10 @@
 
 | Acceptance Check | Lane | Evidence |
 |---|---|---|
-| Curated PostHog query commands return JSON for recent errors, detail, user sessions, recurring patterns, and bug matching | `state_api` | Dry-run or mocked command output |
-| Identical queries use a 5-minute local cache | `state_api` | Focused script test or dry-run evidence |
-| Bug-intake can include counts in issue bodies without public replay links | `state_api` | Routine diff and privacy check |
-| `/debug` can pull matching telemetry into private agent context | `state_api` | Skill/routine handoff proof |
+| Bug-intake guidance uses Claude Code PostHog + Linear connectors as the primary path | `state_api` | Routine diff |
+| Bug-intake can include safe PostHog summaries in Linear bodies without replay links or identifiers | `state_api` | Routine diff and privacy grep |
+| Recurring PostHog patterns over 50 sessions roll up into one Linear Issue | `state_api` | Routine diff |
+| `/debug` can pull matching telemetry into private Claude Code context | `state_api` | Skill diff |
+| Fallback script remains available for non-connector contexts | `state_api` | Existing script tests / dry-run evidence |
 
-Validation: targeted script tests, privacy grep for replay-link placement, `node scripts/harness/plan-hub.mjs validate`.
+Validation: routine/skill privacy grep, connector dry-run or documented connector proof, targeted script tests if fallback script changes, `node scripts/harness/plan-hub.mjs validate`.

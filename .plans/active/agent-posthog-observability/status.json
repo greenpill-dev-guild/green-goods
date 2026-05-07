@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-25T00:00:00.000Z",
-    "updated_at": "2026-05-04T22:34:43.886Z"
+    "updated_at": "2026-05-06T17:00:02.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -22,12 +22,13 @@
     "initiative": "agent-platform",
     "tracks": ["agent", "ops"],
     "work_types": ["observability", "implementation"],
-    "surfaces": ["scripts/agents", "docs/routines", "packages/agent", ".claude/skills/debug"],
+    "surfaces": ["docs/routines", ".claude/skills/debug", ".agents/skills/debug", "scripts/agents"],
     "depends_on_features": []
   },
   "notes": [
     "Formalized from an active loose plan during the validated-taxonomy cleanup.",
-    "Replay links remain private-context evidence and must not be placed in public issue bodies."
+    "Replay links remain private-context evidence and must not be placed in public Linear bodies.",
+    "2026-05-06 revision: Claude Code PostHog and Linear connectors are the primary path; the script is fallback-only and PostHog MCP is explicitly out of scope."
   ],
   "lanes": {
     "ui": {
@@ -140,6 +141,14 @@
       "status": "in_progress",
       "branch": "codex/state-api/agent-posthog-observability",
       "note": "Durable PostHog query script, cache, env schema, docs entry, and TDD proof recorded; bug-intake/debug consumer wiring remains open."
+    },
+    {
+      "timestamp": "2026-05-06T17:00:02.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "plan_revised",
+      "branch": "codex/state-api/agent-posthog-observability",
+      "note": "Revised plan to connector-first PostHog and Linear usage through Claude Code; script is fallback-only and PostHog MCP is out of scope."
     }
   ]
 }
