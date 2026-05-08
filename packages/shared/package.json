@@ -52,7 +52,7 @@
     "build-storybook": "bun run storybook:prepare-design-assets && STORYBOOK_STATIC_BUILD=true bun --bun ./node_modules/.bin/storybook build -o storybook-static && node .storybook/copy-static-assets.mjs",
     "check:stories": "bun run ../../scripts/quality/check-story-coverage.ts",
     "check:story-quality": "bun run ../../scripts/quality/check-story-quality.ts",
-    "test:stories:ci": "bun run storybook:prepare-design-assets && node ../../scripts/dev/node-cli.js vitest run --config vitest.storybook.config.ts --project=storybook",
+    "test:stories:ci": "node ../../scripts/dev/run-storybook-vitest-ci.mjs",
     "chromatic": "chromatic --storybook-build-dir storybook-static"
   },
   "dependencies": {
