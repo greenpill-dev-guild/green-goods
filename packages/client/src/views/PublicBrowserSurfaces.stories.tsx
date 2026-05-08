@@ -188,7 +188,7 @@ export const CookiesRouteShell: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("navigation", { name: "Main navigation" })).toBeVisible();
     await expect(
-      await canvas.findByRole("heading", { name: /jars.*for campaign funds/i })
+      await canvas.findByRole("heading", { name: /shared.*cookie jars.*seasonal campaign work/i })
     ).toBeVisible();
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   },

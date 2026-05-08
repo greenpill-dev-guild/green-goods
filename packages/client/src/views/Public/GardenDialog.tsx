@@ -3,12 +3,32 @@ import {
   publicGardenHelpers,
   useHypercerts,
   usePublicGardenDetail,
+  useTimeout,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
+
+// Reverse stagger evacuates the dialog body before navigation triggers the
+// hero's reverse view-transition. Worst case = `:nth-last-child(n+7)` delay
+// (300ms) + per-child duration (`--spring-effects-fast-duration` = 180ms) =
+// 480ms. Mirrors the `[data-closing="true"]` rules in editorial.css; keep in
+// sync.
+const CLOSE_STAGGER_DURATION_MS = 480;
+
+// Defer close-button focus past the card → dialog hero morph so the focus
+// ring does not visually compete with the snapshot interpolation. The
+// per-card morph runs at the browser default ~250ms today (no override in
+// view-transitions.css), so 350ms covers it with a small breathing margin.
+const FOCUS_AFTER_MORPH_MS = 350;
+
+function prefersReducedMotion(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 /**
  * GardenDialog — public Garden detail surface as a modal that morphs from the
@@ -29,7 +49,55 @@ export default function GardenDialog() {
     gardenId: garden?.id,
   });
 
-  const close = () => navigate("/gardens", { viewTransition: true });
+  const [closing, setClosing] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const { set: scheduleClose, clear: cancelClose } = useTimeout();
+  const { set: scheduleFocus } = useTimeout();
+
+  const close = useCallback(() => {
+    if (closing) return;
+    // Reduced-motion users (and the not-found branch with no body to
+    // evacuate) skip the stagger and navigate directly. The view-transition
+    // itself snaps to 0.01ms via the @media block in view-transitions.css.
+    if (prefersReducedMotion() || !garden) {
+      navigate("/gardens", { viewTransition: true });
+      return;
+    }
+    setClosing(true);
+  }, [closing, garden, navigate]);
+
+  // Reset closing state when the garden id changes mid-flight (user clicks a
+  // different card while a close is animating). Without this the queued
+  // navigate would steal the user away from the new garden.
+  useEffect(() => {
+    setClosing(false);
+    cancelClose();
+  }, [id, cancelClose]);
+
+  // Once `closing` flips, evacuate the body via `[data-closing="true"]` in
+  // editorial.css, then navigate so the View Transitions API can morph the
+  // hero back to its originating card.
+  useEffect(() => {
+    if (!closing) return;
+    return scheduleClose(
+      () => navigate("/gardens", { viewTransition: true }),
+      CLOSE_STAGGER_DURATION_MS
+    );
+  }, [closing, navigate, scheduleClose]);
+
+  const handleOpenAutoFocus = useCallback(
+    (event: Event) => {
+      // Suppress Radix's default first-focusable focus so the focus ring
+      // doesn't paint during the card → dialog hero morph; defer to the
+      // close button after the morph settles.
+      event.preventDefault();
+      const delay = prefersReducedMotion() ? 0 : FOCUS_AFTER_MORPH_MS;
+      scheduleFocus(() => {
+        closeButtonRef.current?.focus({ preventScroll: true });
+      }, delay);
+    },
+    [scheduleFocus]
+  );
 
   if (!garden) {
     return (
@@ -40,6 +108,7 @@ export default function GardenDialog() {
             className="public-garden-dialog"
             aria-describedby={undefined}
             onOpenAutoFocus={(event) => event.preventDefault()}
+            data-closing={closing ? "true" : undefined}
           >
             <Dialog.Title className="sr-only">
               {detailLoading
@@ -92,10 +161,11 @@ export default function GardenDialog() {
         <Dialog.Overlay className="public-garden-dialog-overlay" />
         <Dialog.Content
           className="public-garden-dialog"
-          aria-describedby="public-garden-dialog-description"
-          onOpenAutoFocus={(event) => event.preventDefault()}
+          onOpenAutoFocus={handleOpenAutoFocus}
+          data-closing={closing ? "true" : undefined}
         >
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={close}
             className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-static-black/45 text-static-white backdrop-blur-md transition-colors hover:bg-static-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-static-white/80 focus-visible:ring-offset-2"
@@ -130,16 +200,13 @@ export default function GardenDialog() {
                 >
                   {garden.name}
                 </Dialog.Title>
-                <p
-                  id="public-garden-dialog-description"
-                  className="mt-4 max-w-2xl text-sm text-text-sub-600 md:text-base"
-                >
+                <Dialog.Description className="mt-4 max-w-2xl text-sm text-text-sub-600 md:text-base">
                   {garden.description ||
                     formatMessage({
                       id: "public.gardenDetail.place.empty",
                       defaultMessage: "Garden narrative will appear here as it is published.",
                     })}
-                </p>
+                </Dialog.Description>
               </header>
 
               <dl className="grid grid-cols-2 gap-x-8 gap-y-5 border-y border-stroke-soft-200 py-6 sm:grid-cols-4">

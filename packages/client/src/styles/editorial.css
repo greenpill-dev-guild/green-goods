@@ -72,6 +72,19 @@
   }
 }
 
+/*
+ * No `from` keyframe — when a close starts mid-open, the animation picks up
+ * from the children's current computed opacity / translate so they don't
+ * snap to opacity:1 before fading. CSS spec: an omitted 0% keyframe is
+ * synthesized from the element's current computed values.
+ */
+@keyframes editorial-fade-down {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
 @keyframes public-install-overlay-in {
   from {
     opacity: 0;
@@ -349,6 +362,48 @@
     animation-delay: 620ms;
   }
 
+  /*
+   * Close choreography — driven by GardenDialog setting `data-closing="true"`
+   * on the Content while we wait for body content to evacuate before
+   * navigating (route change + reverse view-transition). Reverses stagger
+   * direction (bottom-up) so the action row leaves first and the title
+   * settles out last; faster cadence (50ms) and shorter per-child duration
+   * (180ms via `--spring-effects-fast-duration`) so the close reads as
+   * snappier than the deliberate open. Same specificity as the open rules
+   * above — these MUST stay below them so cascade order applies.
+   *
+   * Worst-case total = `:nth-last-child(n+7)` delay + duration =
+   * 300 + 180 = 480ms. `CLOSE_STAGGER_DURATION_MS` in `GardenDialog.tsx`
+   * mirrors that and must stay in sync.
+   */
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > * {
+    animation: editorial-fade-down var(--spring-effects-fast-duration, 180ms)
+      var(--spring-effects-fast-easing, ease-in) both;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(1) {
+    animation-delay: 0ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(2) {
+    animation-delay: 50ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(3) {
+    animation-delay: 100ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(4) {
+    animation-delay: 150ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(5) {
+    animation-delay: 200ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(6) {
+    animation-delay: 250ms;
+  }
+  .public-garden-dialog[data-closing="true"]
+    .public-garden-dialog-stagger
+    > *:nth-last-child(n + 7) {
+    animation-delay: 300ms;
+  }
+
   .public-install-overlay[data-state="open"] {
     animation: public-install-overlay-in var(--spring-effects-fast-duration, 150ms)
       var(--spring-effects-fast-easing, ease-out) forwards;
@@ -385,7 +440,8 @@
     .editorial-fade-up-2,
     .editorial-fade-up-3,
     .public-install-overlay[data-state],
-    .public-install-sheet[data-state] {
+    .public-install-sheet[data-state],
+    .public-garden-dialog-overlay[data-state] {
       animation: none;
       opacity: 1;
     }

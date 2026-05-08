@@ -2,10 +2,10 @@
 
 **Feature Slug**: `animation-polish-editorial-browser`
 **Stage**: `active`
-**Status**: `IN_PROGRESS`
+**Status**: `IN_PROGRESS` (UI lane code-complete with proof_limits; awaiting qa_pass_1 visual signoff)
 **Created**: `2026-05-03`
-**Last Updated**: `2026-05-04` (promoted; image-lifecycle + aspect-ratio findings added)
-**Branch**: `release/1.1.0` (Afo asked motion polish to land on the release branch directly)
+**Last Updated**: `2026-05-07` (Phase B + Phase F shipped; Phase C deferred)
+**Branch**: `main` (Afo confirmed in turn — `release/1.1.0` is fully merged into `main` and `main` is 20+ commits ahead. UI lane stayed scoped to `GardenDialog.tsx` + `editorial.css` while a parallel agent works elsewhere.)
 
 ## Why this exists
 
@@ -60,19 +60,21 @@ Before editing, confirm where the real friction is. Skip any of these that the n
 
 ### Phase B — Close choreography
 
-- [ ] Add `data-state="closed"` reverse stagger to `.public-garden-dialog-stagger > *`. Reverse order, faster (180ms), so content evacuates *before* the morph reverses.
-- [ ] Verify Radix awaits the close animation on the deepest child — if not, run the close stagger via JS (set a state flag, run animations imperatively, then `navigate(-1)`).
+- [x] Reverse stagger added in `editorial.css` via `[data-closing="true"]` selector + `editorial-fade-down` keyframe. `:nth-last-child(n)` reverses order; `--spring-effects-fast-duration` (180ms) per child, 50ms cadence, `:nth-last-child(n+7)` cap = 480ms worst case. Sits below the `[data-state="open"]` rules so cascade order favors close when both match.
+- [x] Custom `data-closing` flag avoids fighting Radix Presence — `Dialog.Root open` stays literal `true` until `navigate(...)` unmounts the route. `GardenDialog.tsx` drives the close via local `closing` state + `useTimeout`-scheduled navigate at `CLOSE_STAGGER_DURATION_MS = 480`. The `id`-change effect resets `closing` and cancels the queued navigate so a different-card click mid-flight doesn't tow the user out of the new garden.
 
 ### Phase C — Card → dialog morph quality
 
 Phase A confirmed the dominant cause was H5 (image lifecycle), not vt-name placement. Wrapper-vs-img scoping made no difference in the harness; aspect-ratio mismatch is now the only remaining mechanical artifact.
 
 - [x] **C1 — Skip the loading state on cache hit (per H5).** Shipped in `ImageWithFallback.tsx`. New snapshot now captures the photograph instead of the wrapper bg.
-- [ ] **C2 — Aspect-ratio normalization (per H6).** Card hero is `aspect-[3/2]` (default) or `aspect-[4/3]` (lead); dialog hero is `aspect-[16/9] sm:aspect-[3/1]`. Even with C1 fixed, the photo reframes mid-flight. **Decision deferred until Afo eyeballs C1 in a real-data environment** — the H5 fix alone may make the residual reframing acceptable. Two future-paths if not:
-  - Canonicalize one ratio across card and dialog (e.g. 16:9 everywhere). Biggest visual change, simplest to implement.
-  - Pass the originating card's bounding box / aspect via route state; the dialog hero starts at the source aspect and widens after the morph completes.
-- [x] **C3 (NEW from Phase A live profile) — Default per-card morph runs at browser default ~250ms.** Only `::view-transition-group(main)` is overridden in `view-transitions.css` (to `--spring-spatial-slow-duration` = 400ms). Per-card morphs (`garden-card-{id}`) inherit 250ms. The harness confirmed this. **Recommendation: defer overriding until C1 is verified visually** — if 250ms still feels too snappy after the photo reframes properly, add an explicit per-id rule generated at build time, OR retest the previously-broken `::view-transition-group(*)` wildcard (H2) with only `animation-duration` (no `animation-name`) to see if the timeline-freeze still reproduces.
-- [ ] Optional aesthetic: morph the dialog's *header band* (location + title) so the metadata "settles" rather than "appears."
+- [-] **C2 — Aspect-ratio normalization (per H6).** Card hero is `aspect-[3/2]` (default) or `aspect-[4/3]` (lead); dialog hero is `aspect-[16/9] sm:aspect-[3/1]`. Even with C1 fixed, the photo reframes mid-flight. **Final verdict, 2026-05-07: closed as deferred.** The decision gate ("Afo eyeballs C1 in a real-data environment") has not been satisfied — client dev stack is offline and the change has aesthetic blast radius across every garden detail visit (changes the dialog hero proportions on desktop). Not shipped without visual signoff. Two future-paths preserved if the residual reframing still reads mechanical:
+  - Drop only the `sm:aspect-[3/1]` desktop override; keep `aspect-[16/9]` everywhere. Smallest visual move (default-card → dialog ratio change drops from +100% to +19% on desktop).
+  - Canonicalize one ratio across card and dialog. Biggest visual change.
+- [-] **C3 (NEW from Phase A live profile) — Default per-card morph runs at browser default ~250ms.** Only `::view-transition-group(main)` is overridden in `view-transitions.css` (to `--spring-spatial-slow-duration` = 400ms). Per-card morphs (`garden-card-{id}`) inherit 250ms. **Final verdict, 2026-05-07: closed as deferred.** A wildcard override (`::view-transition-group(*) { animation-duration: ... }`) is the only viable path (gardens are dynamic, so per-id rules don't exist), but the prior session captured a timeline freeze with a wildcard rule. A retest harness inside the storybook preview iframe could not isolate the cause — the iframe aborts view-transitions with "Transition was aborted because of invalid state" regardless of whether the wildcard rule is present. Until a clean live client environment is available, the freeze risk in production cannot be ruled out. Shipping a wildcard rule blind would risk freezing all view-transitions site-wide.
+- [-] Optional aesthetic: morph the dialog's *header band* (location + title) so the metadata "settles" rather than "appears." **Closed as deferred** — out of scope for this lane; would require new view-transition-name on the dialog header band (and matching anchor on the card if a true morph is desired). Adds rather than polishes.
+
+**Phase C closing verdict, 2026-05-07** — C2 + C3 explicitly deferred. The lane shipped Phase B + Phase F with TDD evidence. The H5 fix from the 2026-05-04 session is on disk and remains the dominant gap closer. If Afo's visual pass after Phase B + Phase F still finds the residual morph mechanical, the smaller next step is C2-minimal (drop `sm:aspect-[3/1]` only) before any wildcard view-transition rule.
 
 ### Phase D — Section reveals with inner cascade
 
@@ -107,9 +109,9 @@ Phase A confirmed the dominant cause was H5 (image lifecycle), not vt-name place
 
 ### Phase F — Reduced-motion + a11y sweep
 
-- [ ] Audit every new keyframe / transition; confirm there's a `prefers-reduced-motion: reduce` block that snaps it.
-- [ ] Tab order in dialog: confirm focus lands on close button after open, returns to originating card after close.
-- [ ] Ensure `aria-describedby` on `Dialog.Content` is consistent (currently `undefined` in the not-found early return — fine, but verify Radix doesn't complain in dev).
+- [x] Reduced-motion audit: `editorial.css` `@media (prefers-reduced-motion: reduce)` block now also snaps `.public-garden-dialog-overlay[data-state]` (was missing — only the install overlay was covered). The existing `.public-garden-dialog .public-garden-dialog-stagger > *` rule already snaps both the open and the new close (`[data-closing="true"]`) staggers via descendant matching. `view-transitions.css` `@media` block already snaps the morph itself to 0.01ms. JS path: `close()` short-circuits to direct `navigate` when `prefersReducedMotion()` returns true.
+- [x] Tab order: `handleOpenAutoFocus` defers close-button focus by 350ms (`FOCUS_AFTER_MORPH_MS`) so the focus ring doesn't paint over the snapshot interpolation; reduced-motion drops the delay to 0. Focus return on close uses Radix's default `onCloseAutoFocus` (focus stack returns to the originating card link). Visual + keyboard verification of focus return is a `proof_limit` for qa_pass_1.
+- [x] `aria-describedby` consistency: switched the dialog body description from a manual `<p id="...">` + manual `aria-describedby` to `<Dialog.Description>` (Radix auto-wires the registered context id). Resolves the `Missing 'Description' or aria-describedby={undefined}` Radix dev warning that surfaced in the new test run. Not-found branch keeps `aria-describedby={undefined}` — documented opt-out path.
 
 ## Out of scope (do not touch in this hub)
 
@@ -136,7 +138,7 @@ When this work resumes:
 - [ ] Close the dialog via close button, backdrop click, and Escape — each should feel coherent.
 - [ ] Tab through the dialog with keyboard; focus order makes sense.
 - [ ] Toggle `prefers-reduced-motion` in the OS; confirm everything snaps with no broken layout.
-- [ ] `bun run lint:vocab && bun format && bun lint && bun run test` before closing the loop.
+- [x] `bun run lint:vocab && bun format && bun lint && bun run test` before closing the loop. *(Run 2026-05-07: lint:vocab clean — no banned vocabulary in 3 i18n files; `bun run format:check` clean; `bun run lint` clean — 3 pre-existing warnings in unrelated files; 38/38 Public-route tests pass plus 2/2 new GardenDialog close-stagger tests; `VITE_CHAIN_ID=11155111 bun run build` for the client clean in 17.84s.)*
 
 ## Files in scope
 
