@@ -124,7 +124,7 @@ function assertCompatibleNode() {
 
   if (!isSupportedNodeVersion(process.versions.node)) {
     process.stderr.write(
-      `Node ${process.versions.node} is too old for Vite 7. Use Node 20.19+ or 22.12+.\n`
+      `Node ${process.versions.node} is not supported by Vite 7. Use Node 20.19+ or 22.12+.\n`
     );
     process.exit(1);
   }

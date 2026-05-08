@@ -228,7 +228,7 @@ export function BottomSheet({
         ref={contentRef}
         className={cn(
           "absolute bottom-0 left-0 right-0 flex w-full flex-col",
-          "glass-floating",
+          "rounded-t-xl glass-floating",
           "focus:outline-none will-change-transform"
         )}
         style={{
