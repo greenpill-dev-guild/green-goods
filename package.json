@@ -199,7 +199,7 @@
     "wait-port": "1.1.0"
   },
   "engines": {
-    "node": ">=22.x",
+    "node": "22.x",
     "bun": ">=1.x"
   },
   "packageManager": "bun@1.3.10",
