@@ -1,7 +1,7 @@
 ---
 routine-name: bug-intake
 trigger:
-  schedule: "0 4 * * 1-5"  # 04:00 local, Mon-Fri. 2h buffer before plan-executor (06:30).
+  schedule: "0 4 * * 1,3,5"  # 04:00 local, Mon/Wed/Fri. Reduced 2026-05-07 from daily M-F to give triage time between runs.
 max-duration: 1h  # intake is lightweight — no audit phase
 repos:
   - green-goods
@@ -83,7 +83,7 @@ Linked Issues created from actionable Customer Needs carry the right combination
 | Idea or feature request | yes (Customer Need only) | no |
 | Question, "me too", emoji reaction | no | no |
 | Drive doc that's actually grant/strategy/partnership | no — reject (out of scope) | no |
-| Audit-style finding the user noticed in passing | no — drift-watch territory | no |
+| Audit-style finding the user noticed in passing | no — engineering-pulse territory (was `drift-watch`) | no |
 
 The default is **Customer Need only**. Issue creation is the exception; it requires both an actionable description and a clear surface to edit.
 

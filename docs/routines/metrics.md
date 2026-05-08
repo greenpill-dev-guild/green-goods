@@ -21,9 +21,17 @@ connectors:
   - google-drive
 model: claude-opus-4-7[1m]
 allow-unrestricted-branch-pushes: true  # needs to push claude/metrics/YYYY-WW branches
+status: paused  # 2026-05-07 — split into growth-pulse (Mon weekly) + engineering-pulse (Sun weekly)
 ---
 
 # Prompt
+
+> **PAUSED — 2026-05-07.** This routine has been split:
+> - The `develop` digest PR + growth/BD numbers (PostHog funnels, Dune growth queries) → new `growth-pulse` routine (Monday 09:00 weekly, `#product` + `#funding` cross-post).
+> - The anomaly Issue creation + on-chain trend watch + Dune query maintenance → new `engineering-pulse` routine (Sunday 02:00 weekly, `#engineering`).
+> Anomaly Issues that are growth/strategy signals (not code-local) now go to **Linear**, not GitHub Project #4 — see `growth-pulse`. The cloud cron for this routine has been dropped. This prompt remains as reference for the consolidation handoff.
+>
+> **If you are an agent reading this prompt, exit immediately.** Do not run any phase below. Post a single message to `#product` (channel-guarded by `DISCORD_PRODUCT_CHANNEL_ID`) reading `metrics fired but is paused — see growth-pulse and engineering-pulse` and stop. A stale cron should not be possible (the cloud cron was deleted via `/schedule delete`); if you are running anyway, report the unexpected fire and let the human re-check the schedule registry.
 
 You are the weekly metrics routine for Green Goods. Three write-back channels: Dune API (queries), a PR to `develop` (digest), and GitHub issues (anomalies). Discord posts go to `#product` (primary) with a cross-post to `#funding` only when something is grant-relevant.
 

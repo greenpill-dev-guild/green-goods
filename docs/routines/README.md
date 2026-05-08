@@ -4,15 +4,25 @@ Source-of-truth prompts and configurations for Claude Code routines operating on
 
 Guild-level routines (research-synthesis, design-synthesis, routine-issue-cleanup, routine-self-audit, plus the four `guild-*` routines) live in [`greenpill-dev-guild/.github/routines/claude/`](https://github.com/greenpill-dev-guild/.github/tree/main/routines/claude). This directory holds only the green-goods-scoped routines.
 
-## Files (7 routines)
+## Portfolio (post-2026-05-07 reset)
 
-- `pr-review.md` — GitHub-triggered inline PR review (event)
-- `bug-intake.md` — Daily 04:00 weekday: harvests user-reported bugs/ideas from Discord/Telegram/Drive → **Linear `Green Goods` project** as Customer Needs (and linked Issues when actionable) → @mentions Afo when the Customer Need triage queue grows
-- `plan-executor.md` — Daily 06:30 weekday: picks up GitHub issues labeled `plan-task` → bundled PRs to `develop`. Linear dispatch (`Ready` + `automation:claude`) is documented as a future follow-up, not active yet
-- `health-watch.md` — Daily 07:30 weekday: indexer + 8-lane CI + contracts health → board #4 issues, auto-closes on recovery
-- `hotfix.md` — Twice weekday (10:00 + 16:00 PT): user-reported p2 in legacy Bug Board #18 `Ready` → solo PR to `main` → @mentions on PR open + CI green. Linear dispatch is documented as a future follow-up; expect mostly-empty runs during the intake migration
-- `drift-watch.md` — Weekly Sunday 02:00: code drift vs CLAUDE.md/AGENTS.md invariants, retired workflow guardrails, and package boundaries → one rolling issue per package
-- `metrics.md` — Weekly Sunday 22:00: Dune + PostHog + indexer → digest PR + anomaly issues, primary post #product, grant cross-post #funding
+The portfolio was reset on 2026-05-07 from 7 → 5 active routines + 1 event-driven + 2 on-demand + 2 paused. Goal: reduce noise so the surviving routines can be tuned to consistent quality.
+
+| File | Status | Cadence | Channel | Issue surface |
+|---|---|---|---|---|
+| `bug-intake.md` | active | M/W/F 04:00 (was daily) | `#product` + Linear | Linear `Green Goods` Customer Need + linked Issue |
+| `health-watch.md` | active | Daily M-F 07:30 | `#product` (red only) | GitHub Project #4 |
+| `engineering-pulse.md` | active (NEW) | Sun 02:00 weekly | `#engineering` | GitHub Project #4 (rolling drift + ops + anomaly) |
+| `growth-pulse.md` | active (NEW) | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear (anomalies) + `develop` digest PR |
+| `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
+| `plan-executor.md` | on-demand | (no cron) | `#product` on aborts | reads GitHub `plan-task` label |
+| `hotfix.md` | on-demand | (no cron) | `#product` on PR open + CI result | reads GitHub Bug Board #18 `Ready` |
+| `drift-watch.md` | **paused** | (cron dropped) | (was `#engineering`) | (folded into `engineering-pulse`) |
+| `metrics.md` | **paused** | (cron dropped) | (was `#product` + `#funding`) | (split: digest+growth → `growth-pulse`, anomaly → `engineering-pulse`) |
+
+Paused prompts remain in the repo as reference. Their cloud crons have been dropped via `/schedule delete`. Do not re-enable without coordinating with the consolidating routine to avoid duplicate findings.
+
+Guild-level routines (research-synthesis, design-synthesis, routine-issue-cleanup, routine-self-audit, plus the four `guild-*` routines) live in [`greenpill-dev-guild/.github/routines/claude/`](https://github.com/greenpill-dev-guild/.github/tree/main/routines/claude). That portfolio is being reshaped on the same 2026-05-07 reset — see the guild README for status.
 
 > `dream-on` is a **local Claude Code skill** (`/dream-on`), not a cloud routine — invoke it manually from Claude Code when you want overnight exploration. Not scheduled.
 
@@ -26,22 +36,22 @@ order and routine hardening backlog.
 
 | Channel | Used by | Why |
 |---|---|---|
-| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake, hotfix, plan-executor, health-watch, metrics (primary) | user-facing concerns |
-| `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | drift-watch | internal code quality |
-| `#funding` (DISCORD_FUNDING_CHANNEL_ID) | metrics (cross-post for grant context) | grant relevance only |
+| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake, health-watch (red only), growth-pulse, hotfix (on-demand), plan-executor (on-demand) | user-facing concerns |
+| `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | engineering-pulse | internal code quality + ops + code-local anomalies |
+| `#funding` (DISCORD_FUNDING_CHANNEL_ID) | growth-pulse (cross-post when grant-relevant) | grant relevance only |
 | inline on PR | pr-review | review surface |
 
 ## Notification policy
 
 Routines @mention Afo only when his action is required:
 - `bug-intake` — when unlinked/unreviewed Linear Customer Needs plus linked Issues needing triage exceed 3, or when a Linear setup failure (missing project, missing label, auth error) needs attention
-- `hotfix` — on PR open AND on CI green/red
-- `plan-executor` — only on aborts/blockers
 - `health-watch` — on real (🔴) anomalies only
-- `metrics` — on metric anomalies
-- `drift-watch` — only when total findings escalated this week
+- `engineering-pulse` — when at least one weekly finding is red (indexer red, CI red, anomaly above the user-count threshold)
+- `growth-pulse` — when an anomaly is opened in Linear OR a setup failure needs attention
+- `hotfix` (on-demand) — on PR open AND on CI green/red
+- `plan-executor` (on-demand) — only on aborts/blockers
 
-Daily/weekly heartbeats with no anomalies = no @mention. Discord notifications stay signal-heavy.
+Weekly heartbeats with no anomalies = no @mention. Discord notifications stay signal-heavy. The 2026-05-07 reset specifically removed daily-cadence noise from `guild-daily-synthesis` (paused), `metrics` (folded), and `drift-watch` (folded) — the surviving weekly post should feel like a useful read, not a noise stream.
 
 The env var `DISCORD_USER_ID_AFO` holds Afo's Discord snowflake ID. Use `<@${DISCORD_USER_ID_AFO}>` syntax in messages.
 
@@ -54,7 +64,7 @@ The env var `DISCORD_USER_ID_AFO` holds Afo's Discord snowflake ID. Use `<@${DIS
 
 ## Scope discipline (Drive + channel guards)
 
-Routines that read Google Drive (`bug-intake`, `metrics`) carry an explicit folder allow-list and reject docs outside it — content keywords alone are too loose. Drive is enrichment, not a substitute when the primary on-chain or Discord source is quiet.
+`bug-intake` is the only active routine that reads Google Drive. It carries an explicit folder allow-list and rejects docs outside it — content keywords alone are too loose. Drive is enrichment, not a substitute when the primary on-chain or Discord source is quiet. `growth-pulse` intentionally does not read Drive (calendar enrichment alone is enough; meeting notes are owned by `guild-weekly-synthesis`). The paused `metrics` routine previously read Drive — that surface is gone post-2026-05-07 and `growth-pulse` did not inherit it.
 
 Every Discord post in a routine is preceded by a `Channel guard` that pins the post target to one env-var-driven channel. If the env var is unset, the routine logs and skips that post — it does not pick an alternate channel. The guild-side routines (in [`greenpill-dev-guild/.github/routines/claude/`](https://github.com/greenpill-dev-guild/.github/tree/main/routines/claude)) follow the same discipline; see that README for the dev-guild scope-contract template.
 
@@ -78,18 +88,16 @@ Labels live in two places now: GitHub (still the home for code-local issues, dri
 | `health:ci` | Recent CI failures on main |
 | `health:contracts` | On-chain state drift (vaults, yield split, garden activity) |
 
-**`metrics`**:
+**`engineering-pulse`** — code-local engineering health (drift + ops + anomaly), one rolling issue per category:
 
 | Label | Purpose |
 |---|---|
-| `metrics:anomaly` | Metric anomaly in Dune or PostHog |
+| `drift-snapshot` | One rolling issue per package, weekly refresh (was `drift-watch`) |
+| `metrics:anomaly` | Code-local PostHog/Dune anomaly that doesn't fit the user/strategy lens |
+| `area:client` / `area:admin` / `area:shared` / `area:contracts` / `area:indexer` / `area:agent` | Package scope |
+| `health:indexer` / `health:contracts` / `health:ci` | Runtime health categories (deduped across routines) |
 
-**`drift-watch`** (per-package rolling snapshot):
-
-| Label | Purpose |
-|---|---|
-| `drift-snapshot` | One rolling issue per package, weekly refresh |
-| `client` / `admin` / `shared` / `contracts` / `indexer` | Package scope |
+> User-facing growth/strategy anomalies (funnel breakage, retention cliffs, dormant-garden surges) belong to **Linear**, written by `growth-pulse`. They do not appear here.
 
 **`plan-executor` dispatch (active GitHub path)**:
 
@@ -133,7 +141,7 @@ Linked Issues use the Linear lane structure: `Backlog → Todo → Ready → In 
 
 | Project | Purpose | Starting column | Used by |
 |---|---|---|---|
-| **#4 "Green Goods"** | General kanban — drift snapshots, health, metrics, plan tasks | `Backlog` | health-watch, drift-watch, metrics |
+| **#4 "Green Goods"** | General kanban — drift snapshots, runtime health, code-local anomalies, plan tasks | `Backlog` | health-watch, engineering-pulse |
 | **#18 "Bug Board"** | Legacy user-reported bug triage — read-only during the Linear crossover; `hotfix` still drains any `Ready` items here | `To triage` (no new entries from bug-intake) | (none for new entries — `hotfix` reads-only) |
 
 Both share the lane structure `{starting} → Ready → In progress → In review → Done`.
@@ -142,14 +150,15 @@ Both share the lane structure `{starting} → Ready → In progress → In revie
 
 1. **Producer creates + attaches**:
    - `bug-intake` creates a Customer Need in the Linear `Green Goods` project and, when actionable, an optional linked Issue in `Backlog`/`Todo`. No GitHub write.
-   - `drift-watch`, `health-watch`, `metrics` attach GitHub issues to Project #4 in `Backlog` with `Sprints = active iteration`.
+   - `growth-pulse` creates Linear Issues in the `Green Goods` project for user/strategy anomalies (funnel breakage, retention cliffs, dormant-garden surges). Also opens a digest PR to `develop`.
+   - `engineering-pulse`, `health-watch` attach GitHub issues to Project #4 in `Backlog` with `Sprints = active iteration`.
 2. **Human triages (the only manual step)** —
    - For Linear Customer Needs: review the Customer Need, decide whether the linked Issue is worth doing, and keep the Customer Need as the user-facing context. Future Linear dispatch will use the linked Issue: move it to `Ready` and add `automation:claude` or `automation:codex` when that later pass is enabled.
    - For Project #4 audits: label GitHub issues with `plan-task` to dispatch them to `plan-executor`.
    - Bug Board #18 is dormant for new bugs; only items left in `Ready` from the pre-migration window are still drained by `hotfix`.
-3. **Implementer dispatches + implements + opens PR** —
-   - `plan-executor` (06:30 weekday): picks `plan-task`-labeled GitHub issues, bundles, opens PRs against `develop`. Linear pickup (`Ready` + `automation:claude`) is a documented follow-up and is not active yet.
-   - `hotfix` (10:00 + 16:00 weekday): picks legacy Bug Board #18 `Ready` items at p2 today; this queue stays mostly empty during the migration. Linear pickup is a documented follow-up and is not active yet.
+3. **Implementer dispatches + implements + opens PR** (both on-demand as of 2026-05-07 — manually triggered, no cron) —
+   - `plan-executor`: picks `plan-task`-labeled GitHub issues, bundles, opens PRs against `develop`. Trigger via `/schedule run plan-executor` or the cloud routines surface when labels exist. Linear pickup (`Ready` + `automation:claude`) is a documented follow-up and is not active yet.
+   - `hotfix`: picks legacy Bug Board #18 `Ready` items at p2 today; this queue stays mostly empty during the migration. Trigger manually only when a user-reported p2 needs a same-day fix. Linear pickup is a documented follow-up and is not active yet.
    - Both apply `agent:assigned:claude` (GitHub label) and move GitHub Status to `In progress`. GitHub project automation flips to `In review` when the PR opens.
 4. **Human reviews the PR** — merge, request changes, or close on GitHub.
 5. **Done** — GitHub issue auto-closes on merge via `Closes #N`; the future Linear dispatch pass will handle Linear Issue closure through Linear's GitHub integration. Customer Needs remain the feedback context attached to the Issue/project rather than the workflow-status driver.
@@ -195,7 +204,12 @@ Used by: `bug-intake` (read + respond), `health-watch` (read-only).
 
 ## Linear environment
 
-`bug-intake` writes to the existing `Green Goods` project in Linear. The cloud routine env exposes Linear access via whichever of these the harness provides:
+Two routines write to the existing `Green Goods` project in Linear:
+
+- `bug-intake` writes Customer Needs (user feedback) and linked Issues (actionable subset).
+- `growth-pulse` writes Issues for user/strategy anomalies (funnel, retention, dormancy).
+
+Both share the same auth surface. The cloud routine env exposes Linear access via whichever of these the harness provides:
 
 | Variable / surface | Description |
 |---|---|

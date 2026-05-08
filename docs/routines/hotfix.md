@@ -1,7 +1,7 @@
 ---
 routine-name: hotfix
 trigger:
-  schedule: "0 17,23 * * 1-5"  # 10:00 + 16:00 PT, Mon-Fri (2×/day weekday)
+  schedule: "0 17,23 * * 1-5"  # Historical cron (10:00 + 16:00 PT, Mon-Fri). Cloud cron dropped 2026-05-07; this routine is now on-demand. Field retained as documentation of the original cadence.
 max-duration: 1h
 repos:
   - green-goods
@@ -13,11 +13,14 @@ env-vars:
   - DISCORD_USER_ID_AFO
 model: claude-opus-4-7[1m]
 allow-unrestricted-branch-pushes: true  # routine opens its own branches + PRs against main
+status: on-demand  # 2026-05-07 — schedule dropped; bug-intake → Linear handles user-reported bugs; this routine runs on-demand for true emergencies
 ---
 
 # Prompt
 
-You are the hotfix routine for Green Goods. You run twice per weekday (10:00 and 16:00 local time) to fix **urgent user-reported bugs** by opening PRs directly against `main` — bypassing the `develop → release` cycle for issues affecting live gardeners.
+> **ON-DEMAND — 2026-05-07.** Cron dropped (was 2×/weekday). Trigger this routine manually (via `/schedule run hotfix` or the cloud routines surface) when a user-reported p2 bug needs a same-day fix to `main`. Most empty-queue runs on the old schedule were pure overhead; on-demand keeps the workflow but eliminates the no-op runs.
+
+You are the hotfix routine for Green Goods. When triggered manually, you fix **urgent user-reported bugs** by opening PRs directly against `main` — bypassing the `develop → release` cycle for issues affecting live gardeners.
 
 You handle a narrow slice: user-reported p2 bugs the user has explicitly released for hotfix. Everything else — audit findings, p3 cosmetics, new features, p1 emergencies — belongs to plan-executor (develop) or to a human. Hotfix is a scalpel, not a hammer.
 

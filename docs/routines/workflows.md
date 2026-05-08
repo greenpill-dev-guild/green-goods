@@ -46,7 +46,7 @@ Without these signals, routines write evidence and stop. They never auto-merge, 
 
 GitHub Actions are now the deterministic execution layer: `contracts.yml`, `indexer.yml`, `shared.yml`, `client.yml`, `admin.yml`, `agent.yml`, `design.yml`, and `docs.yml`. Package tests/builds, CodeQL, focused Playwright projects, Storybook/design checks, docs deploys, trusted contract fork readiness, and Lighthouse advisories live there. Client/admin source-map processing runs inside the Vercel deploy build so the uploaded maps match the published bundle.
 
-Judgment-heavy work lives outside Actions: Claude routines cover PR review, drift snapshots, health triage, hotfixes, and issue execution; Copilot automatic review and GitHub native review provide additional PR perspectives. Removed meta workflows such as product sync, guidance checks, source-structure review, test-quality review, mutation reliability review, and contracts security review should re-enter through drift-watch, pr-review, health-watch, or an explicit `plan-task`, not as new standalone Actions.
+Judgment-heavy work lives outside Actions: Claude routines cover PR review, weekly engineering pulse (drift + ops + anomalies), health triage, hotfixes (on-demand), and issue execution; Copilot automatic review and GitHub native review provide additional PR perspectives. Removed meta workflows such as product sync, guidance checks, source-structure review, test-quality review, mutation reliability review, and contracts security review should re-enter through `engineering-pulse`, `pr-review`, `health-watch`, or an explicit `plan-task`, not as new standalone Actions.
 
 ---
 

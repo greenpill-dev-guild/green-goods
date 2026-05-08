@@ -1,6 +1,17 @@
 # Product Development Harness Improvement Notes
 
 Captured: 2026-05-02 PT
+Partially superseded: 2026-05-07 routine-portfolio reset
+
+> **Update 2026-05-07.** A routine-portfolio reset on 2026-05-07 superseded several specific decisions in this note. The current portfolio is captured in [`README.md`](./README.md) and the guild [`README.md`](https://github.com/greenpill-dev-guild/.github/blob/main/routines/claude/README.md). High-level changes:
+>
+> - `metrics` paused — split into `growth-pulse` (Mon weekly, Linear anomalies + `develop` digest PR) and `engineering-pulse` (Sun weekly, GitHub Project #4).
+> - `drift-watch` paused — folded into `engineering-pulse`.
+> - `bug-intake` cadence reduced from daily M-F to M/W/F.
+> - `plan-executor` and `hotfix` moved to on-demand (no cron).
+> - Guild routines: `guild-daily-synthesis`, `guild-product-development-synthesis`, `guild-weekly-checkin`, `research-synthesis`, `design-synthesis`, `routine-issue-cleanup` are being paused/folded; replacements are `guild-weekly-synthesis` (Mon), `weekly-insights` (Fri), and an upgraded `routine-self-audit`.
+>
+> The Linear-migration framing in this note still stands as **direction** (Linear for product/strategy, GitHub for code-local audit). The specific routine names referenced below should be re-read with the consolidations above in mind. Future authors: when this note's body conflicts with the README, the README wins.
 
 This note preserves the post-hardening routine insights for evolving the Green Goods and
 Greenpill Dev Guild automation system across Linear, GitHub, Codex, and Claude. The
