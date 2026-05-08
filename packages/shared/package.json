@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "22.x",
+    "node": ">=22.12.0 <23",
     "bun": ">=1.x"
   },
   "main": "./src/index.ts",

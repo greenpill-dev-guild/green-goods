@@ -43,8 +43,24 @@ function stripAnsi(value) {
   return value.replace(ansiPattern, "");
 }
 
-function killProcessGroup(child, signal) {
+function killProcessTree(child, signal) {
   if (!child.pid) return;
+
+  if (process.platform === "win32") {
+    const args = ["/PID", String(child.pid), "/T"];
+    if (signal === "SIGKILL") {
+      args.push("/F");
+    }
+
+    const result = spawnSync("taskkill", args, { stdio: "ignore" });
+    if (result.error && result.error.code !== "ENOENT") {
+      process.stderr.write(
+        `Failed to send ${signal} to Storybook Vitest process tree: ${result.error.message}\n`,
+      );
+    }
+    return;
+  }
+
   try {
     process.kill(-child.pid, signal);
   } catch (error) {
@@ -74,6 +90,7 @@ let sawPassingTests = false;
 let successTimer;
 let forceKillTimer;
 let settled = false;
+let shutdownExitCode;
 let outputTail = "";
 
 function successDetected() {
@@ -89,16 +106,28 @@ function finish(exitCode) {
   process.exit(exitCode);
 }
 
+function terminateChildThenFinish(exitCode, message) {
+  if (shutdownExitCode !== undefined) return;
+
+  shutdownExitCode = exitCode;
+  clearTimeout(successTimer);
+  clearTimeout(overallTimer);
+  process.stderr.write(message);
+  killProcessTree(child, "SIGTERM");
+  forceKillTimer = setTimeout(() => {
+    killProcessTree(child, "SIGKILL");
+    finish(exitCode);
+  }, 5_000);
+}
+
 function scheduleSuccessExit() {
   if (successTimer || !successDetected()) return;
 
   successTimer = setTimeout(() => {
-    process.stderr.write(
+    terminateChildThenFinish(
+      0,
       `Storybook Vitest reported a passing summary but did not exit after ${successGraceMs}ms; terminating leftover browser/test processes.\n`,
     );
-    killProcessGroup(child, "SIGTERM");
-    forceKillTimer = setTimeout(() => killProcessGroup(child, "SIGKILL"), 5_000);
-    finish(0);
   }, successGraceMs);
 }
 
@@ -119,12 +148,10 @@ function handleOutput(chunk, stream) {
 }
 
 const overallTimer = setTimeout(() => {
-  process.stderr.write(
+  terminateChildThenFinish(
+    1,
     `Storybook Vitest CI exceeded ${overallTimeoutMs}ms without a passing summary.\n`,
   );
-  killProcessGroup(child, "SIGTERM");
-  forceKillTimer = setTimeout(() => killProcessGroup(child, "SIGKILL"), 5_000);
-  finish(1);
 }, overallTimeoutMs);
 
 child.stdout.on("data", (chunk) => handleOutput(chunk, process.stdout));
@@ -136,6 +163,11 @@ child.on("error", (error) => {
 });
 
 child.on("exit", (status, signal) => {
+  if (shutdownExitCode !== undefined) {
+    finish(shutdownExitCode);
+    return;
+  }
+
   if (status === 0) {
     finish(0);
     return;
