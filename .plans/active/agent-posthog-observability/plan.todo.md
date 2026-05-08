@@ -102,8 +102,8 @@ Do not build a PostHog MCP server for this plan.
 - [x] Add 5-min file cache for identical queries.
 - [x] Add `scripts/agents/posthog-query.ts` entry to `scripts/README.md`.
 - [x] Revise plan to connector-first and explicitly remove PostHog MCP as a future lane.
-- [ ] Extend `docs/routines/bug-intake.md` to use Claude Code PostHog + Linear connectors for safe telemetry enrichment.
-- [ ] Extend bug-intake routine guidance to detect recurring patterns ≥50 sessions and roll up into a parent Linear Issue.
-- [ ] Extend `.claude/skills/debug/posthog.md` and `.agents/skills/debug/posthog.md` to use connector-first PostHog lookup during bug debugging.
-- [ ] Verify on at least one real Discord-sourced bug (e.g., #481) through connector access.
-- [ ] Validate privacy by confirming replay links and identifiers are not instructed into Linear Customer Need / Issue bodies.
+- [x] Extend `docs/routines/bug-intake.md` to use Claude Code PostHog + Linear connectors for safe telemetry enrichment.
+- [x] Extend bug-intake routine guidance to detect recurring patterns ≥50 sessions and roll up into a parent Linear Issue.
+- [x] Extend `.claude/skills/debug/posthog.md` and `.agents/skills/debug/posthog.md` to use connector-first PostHog lookup during bug debugging.
+- [ ] Verify on at least one real Discord-sourced bug (e.g., #481) through connector access. (Blocked: real-bug verification requires the routine running with live connector access; not attempted in repo-guidance pass — see handoffs/codex-state-api.md.)
+- [x] Validate privacy by confirming replay links and identifiers are not instructed into Linear Customer Need / Issue bodies. (Doc-level validation: Phase 5 privacy grep + allowlist + caps + summary rule + read-side hard rule.)

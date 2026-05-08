@@ -17,6 +17,7 @@ env-vars:
 connectors:
   - google-drive
   - linear  # use whichever Linear surface the harness provides (MCP, native connector, or LINEAR_API_KEY)
+  - posthog  # read-only PostHog connector; primary path for telemetry enrichment
 model: claude-opus-4-7[1m]
 allow-unrestricted-branch-pushes: false  # Linear records only, no PRs, no GitHub issues
 ---
@@ -90,7 +91,56 @@ The default is **Customer Need only**. Issue creation is the exception; it requi
 
 When the Discord/Linear native integration is enabled, prefer the integration's link surface (it preserves the message reference). When it isn't available, fall back to including the source URL in the record body. Either way, the source URL must appear in the Customer Need body so the original report is one click away.
 
-> Linear's native Discord integration does not currently surface project-update notifications. The daily `#product` summary in Phase 5 handles that gap and is the only place this routine reaches into Discord.
+> Linear's native Discord integration does not currently surface project-update notifications. The daily `#product` summary in Phase 6 handles that gap and is the only place this routine reaches into Discord.
+
+## PostHog telemetry enrichment
+
+Use the **Claude Code PostHog connector** as the primary path for matching reports against real production telemetry before writing Linear records. Treat this as a privacy-tiered lookup: most fields stay in private routine context; only a small allowlist crosses into shared Linear bodies.
+
+### When to query PostHog
+
+A report is enrichable when it contains at least one of: an error message or stack-trace fragment, a specific surface (route/view/component name), a clear behavioral description ("X stops working when I tap Y"), or a reporter identifier (Discord username, garden name, wallet, distinct ID) that can be matched server-side. Pure feature requests, ideas, and "looks weird" feedback are not enrichable — skip the lookup.
+
+### Curated questions (use the connector for each report)
+
+Issue these against the PostHog connector and keep the responses in private routine context only:
+
+1. **Recent JS errors matching the report** — group by message and URL, return affected-session count, first/last seen, and the canonical error hash. Window: 7 days unless the report names an older incident.
+2. **Error detail for the matching hash** — top-line message, normalized stack frame, first/last seen, affected-session count, affected-user count, app surface inferred from URL host (`client` vs `admin`), and the replay link (private).
+3. **Reporter session lookup** — only when the reporter identifier is known and consented. Returns recent sessions (private), distinct ID (private), and any errors observed in those sessions.
+4. **Recurring-pattern probe** — for each candidate match, ask "how many distinct sessions has this error hit in the last 30 days?" Used by Phase 4 below.
+5. **Free-text fuzzy match** — when there is no stack trace, match the verbatim quote against recent error messages and against `event` names (`work_submitted`, `sync_failed`, etc.) from `.claude/skills/debug/posthog.md`.
+
+### Privacy boundary (strict)
+
+| Field | Allowed in Linear Customer Need / Issue body | Stays in private routine context only |
+|---|---|---|
+| Error message (top line) | ✅ | |
+| Normalized top stack frame | ✅ | |
+| Affected-session count | ✅ | |
+| Affected-user count | ✅ | |
+| First seen / last seen (UTC) | ✅ | |
+| App surface (`client` / `admin`) | ✅ | |
+| Confidence (`high` / `medium` / `low`) | ✅ | |
+| Recurring-pattern flag + session count | ✅ | |
+| PostHog error hash | ✅ | |
+| Replay URL | | ✅ — never paste into a Linear body, Discord summary, PR, or any shared surface |
+| Session ID | | ✅ |
+| Distinct ID | | ✅ |
+| Wallet / smart-account address | | ✅ |
+| Reporter identifier (Discord username, Telegram handle, email) | | ✅ — even though the source URL appears in `## Source`, do not duplicate the identifier into the PostHog evidence block |
+| Full stack frames (paths, query strings, search params) | | ✅ — they can re-identify a user via deep-link state |
+| Any field not listed above that could fingerprint a user (IP, UA, geo) | | ✅ |
+
+> **Hard rule.** If a field is not in the "Allowed" column, it does not enter a Linear body, Discord summary, or any other shared surface. Do not fall back to "I'll redact later" — never write it in the first place.
+
+### Linking private replay evidence
+
+Replay URLs, session IDs, and distinct IDs are useful for the human triaging the Customer Need and for `/debug` later. Hand them off via Linear's **private** comment surface (Slack-equivalent if Linear's Discord/Slack integration exposes a private channel mirror) **or** via the routine's daily Discord summary as a private DM to `<@${DISCORD_USER_ID_AFO}>` — never as a public message. If neither private surface is available, drop the link from the routine output entirely and let `/debug` re-query PostHog by the public error hash.
+
+### Fallback when the connector is unavailable
+
+If the cloud environment exposes neither a PostHog connector nor PostHog MCP, fall back to `scripts/agents/posthog-query.ts` (root env: `POSTHOG_PROJECT_API_KEY`, `POSTHOG_PROJECT_ID`, `POSTHOG_HOST`). The script's `--privacy public` mode applies the same allowlist. If the script is also unavailable, log a `posthog: unreachable` line in the Discord summary's `⚠ Failures this run` block and continue without enrichment — never invent telemetry.
 
 ## Phase 1: Discord bug reports
 
@@ -114,7 +164,12 @@ When the Discord/Linear native integration is enabled, prefer the integration's 
 
    When a duplicate exists, add a Linear comment on the existing record with the new reporter, message URL, and a one-sentence quote. Acknowledge the reporter on Discord with a link to the existing Linear record. Do not create a new record.
 
-4. **Create Customer Need** for every validated unique report. Body template:
+4. **Enrich with PostHog (private context)** — for every report that survives dedupe and is enrichable per `## PostHog telemetry enrichment`, run the curated questions through the PostHog connector. Carry the results forward as private context for step 5 and step 6:
+   - The error hash, affected-session count, affected-user count, first/last seen, and app surface go into the Linear Customer Need body's `## PostHog evidence (safe summary)` block.
+   - The replay URL, session IDs, distinct ID, and any other identifier listed in the "private" column stay out of the body. Hand them off via the private surface described in `## PostHog telemetry enrichment` only.
+   - When the PostHog connector returns no match, record `confidence: low` and skip the evidence block — never invent fields.
+
+5. **Create Customer Need** for every validated unique report. Body template:
 
    ```markdown
    ## Source
@@ -139,13 +194,26 @@ When the Discord/Linear native integration is enabled, prefer the integration's 
    ## Dedupe notes
    {what was checked and why this is unique vs existing Linear records}
 
+   ## PostHog evidence (safe summary)
+   {only emit this block when step 4 returned a match; otherwise omit entirely}
+   - Error hash: `{posthog-error-hash}`
+   - Top-line message: `{redacted-error-message}`
+   - Top stack frame: `{normalized-frame-without-query-or-paths}`
+   - Affected sessions (last 7d): {N}
+   - Affected users (last 7d): {M}
+   - First seen: {YYYY-MM-DDTHH:MM:SSZ}
+   - Last seen: {YYYY-MM-DDTHH:MM:SSZ}
+   - App surface: {client | admin}
+   - Recurring pattern: {yes ({S} sessions / 30d) | no}
+   - Confidence: {high | medium | low}
+
    ## Privacy-safe summary
-   {one sentence Afo can paste into a public update without exposing PII; no usernames, garden addresses, or identifying screenshots}
+   {one sentence Afo can paste into a public update without exposing PII; no usernames, garden addresses, replay URLs, session IDs, distinct IDs, wallet addresses, or identifying screenshots}
    ```
 
-   Associate the Customer Need with the `Green Goods` project and customer/garden when known. Do not apply Issue labels or workflow status to the Customer Need; keep source and triage metadata in the body.
+   Associate the Customer Need with the `Green Goods` project and customer/garden when known. Do not apply Issue labels or workflow status to the Customer Need; keep source and triage metadata in the body. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
-5. **Create linked Issue** only when the report is actionable per the table above. Issue title is a concise verb-led summary. Body:
+6. **Create linked Issue** only when the report is actionable per the table above. Issue title is a concise verb-led summary. Body:
 
    ```markdown
    ## What
@@ -167,9 +235,9 @@ When the Discord/Linear native integration is enabled, prefer the integration's 
    {Discord message URL — same as the Customer Need}
    ```
 
-   Apply labels: `source:discord` + `work:polish` + `area:<inferred>` + `automation:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes).
+   Apply labels: `source:discord` + `work:polish` + `area:<inferred>` + `automation:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
-6. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
+7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
    ```
    POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages
@@ -197,7 +265,9 @@ If `BOT_API_URL` is not configured, skip this phase silently.
 
 3. **Dedupe against Linear** — same logic as Discord: list open Customer Needs in `Green Goods` whose body/source URL indicates Telegram, match on platform ID, garden context, and described behavior.
 
-4. **Create Customer Need** associated with the `Green Goods` project and customer/garden when known. Body uses the same template as Discord, with `## Source` set to:
+4. **Enrich with PostHog (private context)** — same procedure as Discord step 4. Telegram reports usually carry `feedback.gardenAddress` and `feedback.platformId`; treat both as private identifiers and use them only for the connector's session lookup. Neither lands in the Customer Need body.
+
+5. **Create Customer Need** associated with the `Green Goods` project and customer/garden when known. Body uses the same template as Discord (including the `## PostHog evidence (safe summary)` block when step 4 returned a match), with `## Source` set to:
 
    ```markdown
    ## Source
@@ -209,16 +279,16 @@ If `BOT_API_URL` is not configured, skip this phase silently.
 
    Include the garden context block if `feedback.gardenAddress` is set (resolve garden name from the existing Linear customer records when available; otherwise just include the address).
 
-5. **Create linked Issue** when the feedback is actionable (clear bug + clear surface). Idea-type feedback stays Customer-Need-only.
+6. **Create linked Issue** when the feedback is actionable (clear bug + clear surface). Idea-type feedback stays Customer-Need-only. Apply the same privacy boundary to the Issue body as in Phase 1 step 6.
 
-6. **Mark as triaged** on the Telegram bot:
+7. **Mark as triaged** on the Telegram bot:
    ```
    PATCH ${BOT_API_URL}/api/feedback/{feedback.id}
    Authorization: Bearer ${BOT_API_TOKEN}
    { "status": "triaged" }
    ```
 
-7. **Respond to gardener** via the bot — link the Customer Need:
+8. **Respond to gardener** via the bot — link the Customer Need:
    ```
    POST ${BOT_API_URL}/api/notify
    { "platform": "{feedback.platform}", "platformId": "{feedback.platformId}",
@@ -254,7 +324,9 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
 4. **Dedupe against Linear** — list open Customer Needs across all sources in `Green Goods`. Match on described behavior + affected surface.
 
-5. **Create Customer Need** associated with the `Green Goods` project and customer/garden when known. Body uses the same template, with `## Source` set to:
+5. **Enrich with PostHog (private context, fuzzy only)** — Drive notes rarely contain stack traces, so use only the free-text fuzzy match (curated question 5 in `## PostHog telemetry enrichment`) against verbatim quotes. If a high-confidence match comes back, include the safe-summary block in the Customer Need body. Skip the reporter session lookup — meeting attendees are not consenting telemetry subjects.
+
+6. **Create Customer Need** associated with the `Green Goods` project and customer/garden when known. Body uses the same template (including the `## PostHog evidence (safe summary)` block when step 5 returned a match), with `## Source` set to:
 
    ```markdown
    ## Source
@@ -267,22 +339,54 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
    Drive notes are mixed-source so judgment is required: include the meeting attendees in `## Reporter context` and prefer the privacy-safe summary over verbatim quotes when in doubt.
 
-6. **Create linked Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first).
+7. **Create linked Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same privacy boundary to the Issue body as in Phase 1 step 6.
 
-7. **Reporter acknowledgement** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
+8. **Reporter acknowledgement** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
 
-## Phase 4: Always-create umbrella check
+## Phase 4: Recurring-pattern roll-up
 
-After Phases 1–3, before posting the summary:
+After Phases 1–3, before the umbrella check, fold every PostHog match collected this run (across Discord, Telegram, and Drive) into one set keyed by error hash. For each unique hash:
+
+1. **Re-run the recurring-pattern probe** (curated question 4 in `## PostHog telemetry enrichment`) over the last 30 days, including matches from before this run.
+2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
+3. **Find or create the parent Issue** in the `Green Goods` project:
+   - Look for an open Issue carrying both `automation:routine` and a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 6 summary and skip aggregation rather than inventing a parent.
+   - If none exists and the threshold is met, create one Issue with title `Recurring: {top-line-error-message-redacted}` (verb-led when possible). Status `Todo`, labels `work:polish` + `area:<inferred>` + `automation:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
+
+     ```markdown
+     ## Recurring pattern
+
+     - Error hash: `{posthog-error-hash}`
+     - Top-line message: `{redacted-error-message}`
+     - Distinct sessions (last 30d): {S}
+     - Distinct users (last 30d): {U}
+     - First seen: {YYYY-MM-DDTHH:MM:SSZ}
+     - Last seen: {YYYY-MM-DDTHH:MM:SSZ}
+     - App surface: {client | admin}
+
+     ## Linked Customer Needs
+     {bullet list of Linear URLs for every Customer Need this routine has ever associated with this error hash}
+     ```
+
+   - If a parent Issue already exists, append any new Customer Need URLs to its `## Linked Customer Needs` list and refresh the safe-summary numbers in place.
+4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.
+5. **Cap**: at most **2 new parent Issues per run** to keep human triage from drowning. Carry overflow into the next run.
+
+The parent Issue body never carries replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers. The same privacy boundary that governs Customer Needs governs the recurring-pattern parent.
+
+## Phase 5: Always-create umbrella check
+
+After Phases 1–4, before posting the summary:
 
 1. List every Customer Need this run created and confirm it is associated with the expected project/customer context and includes source, evidence, dedupe notes, and privacy-safe summary.
-2. List every linked Issue this run created and confirm it has the expected labels, status, source URL, and Customer Need link.
+2. List every linked Issue this run created (per-report and recurring-pattern parent) and confirm it has the expected labels, status, source URL, and Customer Need link.
 3. List every duplicate detection — every existing Customer Need or Issue this run commented on — and confirm the comment landed.
 4. List every rejection — every signal you read but did not act on — and the reason.
+5. Run a privacy grep across every body created or edited this run for the strings `replay`, `session_id`, `distinct_id`, `0x`, the reporter identifiers seen this run, and any other token from the "private" column of the privacy-boundary table. Any hit means the routine leaked private context — fail loud in Phase 6's `⚠ Failures this run` block and edit the offending body in place to redact before the run completes.
 
-Carry these into Phase 5 so the summary is verifiable.
+Carry these into Phase 6 so the summary is verifiable.
 
-## Phase 5: Daily summary to #product
+## Phase 6: Daily summary to #product
 
 Post one summary message to `#product`:
 
@@ -308,6 +412,7 @@ Message format:
 • Discord: {N} reports → {M} Customer Needs, {I} linked Issues, {K} duplicates merged
 • Telegram: {N} feedback items → {M} Customer Needs, {I} linked Issues, {G} gardeners notified
 • Drive notes: {N} docs reviewed, {M} Customer Needs, {I} linked Issues, {R} rejected (out-of-scope)
+• PostHog enrichment: {E} reports matched, {P} recurring-pattern parents created or refreshed
 
 📋 **Triage queue**: {needs_triage_count} Customer Needs need review · {issue_triage_count} linked Issues are in `Backlog`/`Todo`
 {if needs_triage_count + issue_triage_count > 3: "→ open the Linear `Green Goods` project, decide which Customer Needs are worth shipping, create or review the linked Issue, then move the Issue to `Ready` only when a later dispatch pass is enabled."}
@@ -317,15 +422,20 @@ Message format:
 2. [{title}]({customer_need_url}) — {source} · {area}
 3. [{title}]({customer_need_url}) — {source} · {area}
 
-{if any_failure: "⚠ Failures this run: {short list — e.g. Linear project lookup failed, label missing}"}
+{if any_failure: "⚠ Failures this run: {short list — e.g. Linear project lookup failed, label missing, posthog: unreachable, privacy grep flagged a body}"}
 ```
+
+This summary message is **public**. Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers must not appear here. If a private replay link needs to reach Afo, send it via DM to `<@${DISCORD_USER_ID_AFO}>` in a separate message — never inline in this `#product` summary.
 
 The @mention only fires when triage is piling up OR a setup failure needs human attention. This keeps Discord notifications signal-heavy and matches the existing notification policy.
 
 ## Caps and guardrails
 
 - **Cap: 8 new Customer Needs per run** across all phases. If you find more, prioritize by signal strength (clear bug > operator pain > idea) and save the rest for tomorrow's run.
-- **Cap: 4 new Issues per run.** Issues are the actionable subset; over-creating them buries the human triage signal.
+- **Cap: 4 new Issues per run.** Issues are the actionable subset; over-creating them buries the human triage signal. The Phase 4 recurring-pattern parents do not count against this cap (they have their own cap of 2).
+- **PostHog connector is read-only.** Never call any mutating PostHog endpoint (cohorts, dashboards, feature flags) from this routine. Telemetry queries only.
+- **Privacy boundary is non-negotiable.** Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers never appear in any Linear body, the public Discord summary, GitHub, or any other shared surface. If you cannot tell whether a field is safe, treat it as private.
+- **No PostHog MCP wiring.** Do not add PostHog entries to `.mcp.json` or stand up a PostHog MCP server from this routine. Connector access is the path; the script in `scripts/agents/posthog-query.ts` is the only fallback.
 - **Read-only on the codebase.** Do not edit files, do not open PRs, do not branch.
 - **No GitHub writes.** Bug Board #18 and the GitHub `polish`/`source:*` labels are the previous regime; do not re-create them. `plan-executor` and `hotfix` stay GitHub-driven until a later dispatch pass enables Linear pickup; do not re-file new bugs into either GitHub queue from here.
 - **No code audit.** If you notice something while reading docs that looks like a code issue, do NOT create a Customer Need. Drift-watch handles audit findings — that's a different routine.

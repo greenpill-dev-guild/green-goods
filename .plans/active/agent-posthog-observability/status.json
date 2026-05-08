@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-25T00:00:00.000Z",
-    "updated_at": "2026-05-06T17:00:02.000Z"
+    "updated_at": "2026-05-07T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -149,6 +149,14 @@
       "status": "plan_revised",
       "branch": "codex/state-api/agent-posthog-observability",
       "note": "Revised plan to connector-first PostHog and Linear usage through Claude Code; script is fallback-only and PostHog MCP is out of scope."
+    },
+    {
+      "timestamp": "2026-05-07T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "guidance_shipped",
+      "branch": "main",
+      "note": "Connector-first repo guidance landed on bug-intake routine, debug skill (.claude + .agents), and plan checklist. Recurring-pattern roll-up added as Phase 4 with >=50-session threshold. Privacy boundary made explicit with allowlist, runtime privacy grep in Phase 5, and read-side hard rule in /debug. Real-bug verification and cloud connector wiring confirmation remain blockers; see handoffs/codex-state-api.md."
     }
   ]
 }
