@@ -4,13 +4,13 @@
     "slug": "admin-design-revamp",
     "title": "Admin Design Revamp",
     "kind": "feature",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "closing",
+    "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-05-02",
-    "updated_at": "2026-05-08T00:22:28.194Z",
+    "updated_at": "2026-05-08T00:36:57.746Z",
     "target_date": "2026-05-16"
   },
   "links": {
@@ -377,6 +377,14 @@
       "status": "completed",
       "branch": "codex/qa-pass-2/admin-design-revamp",
       "note": "Pass: regression scan clean across full admin (407 passed) and shared (3000 passed; 1 pre-existing BottomSheet.test failure from commit 5827ac62 unrelated to cleanup). Build, design-token, and vocab validators clean. Backlog plans filed for B1-B3. Full handoff in handoffs/claude-qa-pass-2.md."
+    },
+    {
+      "timestamp": "2026-05-08T00:36:57.748Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
     }
   ],
   "taxonomy": {

@@ -47,16 +47,17 @@
 - [x] **A5** (handoff catalog item beyond eval scope) Garden Members tab role chips beyond operator — commit `47c4de59`, 9 unit cases. Owner / operator / evaluator / gardener / funder chips per row.
 - [x] **A6** (handoff catalog item beyond eval scope) Stats slot for Garden + Community headers — commit `49d61acf`, 9 unit cases. `MetaStrip density="inline"` with three at-a-glance stats per surface; honors Frontend Rule 17.
 
-## Cleanup — deferred (not release-blocking)
+## Cleanup — deferred (durable backlog)
 
-- [ ] **B1** Pool config hook consumed by `useConvictionProposalsForPool`; `FALLBACK_POOL_CONFIG` retired. **Deferred** — see B1–B3 investigation in [`handoffs/claude-cleanup.md`](handoffs/claude-cleanup.md). `decay()` + `pointsPerVoter()` are readable but `memberCount` has no on-chain enumeration; partial fix would regress conviction-percent math.
-- [ ] **B2** Per-member supporter count surfaced via new hook; `countSupporters` 1-or-0 placeholder retired. **Deferred** — needs new contract view OR new Envio entity.
-- [ ] **B3** Threshold formula ported into `deriveThreshold`. **Deferred** — `HYPERCERT_SIGNAL_POOL_ABI` exposes neither `threshold()` nor `minThresholdPoints()`.
+- [x] **B1** Pool config hook consumed by `useConvictionProposalsForPool`; `FALLBACK_POOL_CONFIG` retired. **Deferred** to [`.plans/backlog/conviction-pool-config-onchain/`](../../backlog/conviction-pool-config-onchain/brief.md) — `decay()` + `pointsPerVoter()` are readable but `memberCount` has no on-chain enumeration; partial fix would regress conviction-percent math.
+- [x] **B2** Per-member supporter count surfaced via new hook; `countSupporters` 1-or-0 placeholder retired. **Deferred** to [`.plans/backlog/conviction-supporter-count-indexer/`](../../backlog/conviction-supporter-count-indexer/brief.md) — needs new `Allocation` Envio entity OR new contract view.
+- [x] **B3** Threshold formula ported into `deriveThreshold`. **Deferred** to [`.plans/backlog/conviction-threshold-formula-port/`](../../backlog/conviction-threshold-formula-port/brief.md) — `HYPERCERT_SIGNAL_POOL_ABI` exposes neither `threshold()` nor `minThresholdPoints()`.
 - [ ] **C1** 21 client-homepage test failures (commit `0b4a67e8`). **Deferred** — out of scope for `admin-design-revamp` branch boundary; file as separate `/audit-then-ship --lens=review --no-ship` pass.
 
-## UI verification gap
+## QA
 
-A4 / A5 / A6 changed live UI surfaces (FAB dial composition, Members role chips, header stats slot). `tsc --noEmit -p packages/admin/tsconfig.json` clean and 9 + 16 + 9 unit cases pin the data layer, but **rendered DOM was not verified via Chrome MCP** — the admin dev server was in flux from a concurrent agent's `packages/admin/vite.config.ts` edit during the smoke window. QA inherits the visual smoke for these three surfaces.
+- [x] **qa_pass_1** Provisional pass: A4/A5/A6 desktop browser verified, targeted vitest 88+9 passed, plan-hub clean. See [`handoffs/claude-qa-pass-1.md`](handoffs/claude-qa-pass-1.md). Anchored in commit `518f6c96`.
+- [x] **qa_pass_2** Pass: full regression scan (admin 407 passed / 0 failed; shared 3000 passed / 1 pre-existing unrelated failure), production build clean, design-token + vocab validators clean. See [`handoffs/claude-qa-pass-2.md`](handoffs/claude-qa-pass-2.md). Anchored in commit `c9dc575e`.
 
 ## Validation Commands
 
