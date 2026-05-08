@@ -10,7 +10,7 @@ import {
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
 import { RiPulseLine, RiTeamLine } from "@remixicon/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";

@@ -1,5 +1,4 @@
-import type { RouteObject } from "react-router-dom";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { createMemoryRouter, RouterProvider, type RouteObject } from "react-router-dom";
 import { useMemo } from "react";
 import { CanvasLayout } from "@/components/Layout/CanvasLayout";
 import { adminCanvasRoutes } from "@/routes/views";
