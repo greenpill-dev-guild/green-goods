@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "website-ux-flow-optimization",
+    "title": "Website UX Flow Optimization",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-05-08T00:00:00.000Z",
+    "updated_at": "2026-05-08T00:00:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["client-browser", "client", "shared"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/client", "packages/shared"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Formalized from an active loose plan so it participates in plan-hub validation and summary grouping.",
+    "The existing plan.todo.md remains the detailed flow audit and phase breakdown.",
+    "Phase 1 is ready to dispatch independently; Phase 2 and Phase 3 should follow unless the human explicitly changes the order.",
+    "Do not expand this hub into installed PWA, admin, contracts, or indexer work."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "ready",
+      "branch": "claude/ui/website-ux-flow-optimization",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Start with Phase 1 unless the human changes the order. Keep the work public-browser-only and record RED/GREEN or proof-limit evidence.",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react", "testing"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/website-ux-flow-optimization",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "No separate state/API lane is planned. Reopen only if implementation discovers shared data or query behavior changes.",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "This hub is scoped to public browser UX flow implementation and visual/browser QA; no state/API lane is planned."
+      },
+      "skill_tags": ["react", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/website-ux-flow-optimization",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "No contract work is planned.",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contracts are changed by this public-browser UX flow plan."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/website-ux-flow-optimization",
+      "depends_on": ["ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Review the seven visitor flows on desktop and mobile with emphasis on plain language, recovery states, reachability, accessibility, and i18n.",
+      "skill_tags": ["testing", "review", "ui"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/website-ux-flow-optimization",
+      "branch_trigger": "claude/qa-pass-1/website-ux-flow-optimization",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Re-run targeted validation, verify plan-hub state, and confirm no unrelated public-browser work was pulled in.",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-08T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized",
+      "branch": "main",
+      "note": "Converted active loose website UX flow plan into a formal feature hub with validated taxonomy and proof-gated lanes."
+    }
+  ]
+}

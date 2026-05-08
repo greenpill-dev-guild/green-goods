@@ -1,5 +1,10 @@
 # Website UX Flow Optimization
 
+**Feature Slug**: `website-ux-flow-optimization`
+**Stage**: `active`
+**Status**: `ACTIVE — ui READY`
+**Formalized**: `2026-05-08`
+
 ## Why this plan
 
 The visitor-facing website has been polished at the surface level (rounds 1–4: copy, hero parity, four-domain parity, footer links, install dialog flatten, plain-blockchain phrasing, EditorialLinkArrow color, Fund-empty + Impact-filter wayfinding, GardenDetail "Work entry" rewrite, GardenCoverFallback tokens, /cookies dialog focus + corner). Surfaces look good. Now the goal is FLOW-level quality: simple, optimal, friendly for a first-time visitor who doesn't speak web3.
@@ -100,12 +105,13 @@ Make the seven flows reachable. Introduce vocabulary the first time a visitor en
 
 ---
 
-## Open questions for you (please answer before I start)
+## Open questions for Phase 3
 
-1. **Phase order**: ship Phase 1 → 2 → 3, or pick a different order? (Recommended: 1 → 2 → 3, but if you'd rather ship discovery (3) before honesty (2), say so.)
-2. **Glossary tooltip pattern (P3-3)**: do you want a hover/click popover, or an inline parenthetical first-mention ("Cookie Jar — a Garden's open jar for everyday gifts") that doesn't add a new component? Tooltip = cleaner; parenthetical = less code.
-3. **Loop CTAs (P3-5)**: arrow-on-title (subtle), or end-of-row "Read more →" link (explicit)?
-4. **Rolling shipping**: should I push each phase as a separate set of commits, or land them as one big diff and verify together?
+Phase 1 is ready to start with the default order below. These questions remain before Phase 3:
+
+1. **Glossary tooltip pattern (P3-3)**: hover/click popover, or an inline parenthetical first-mention ("Cookie Jar — a Garden's open jar for everyday gifts") that doesn't add a new component? Tooltip = cleaner; parenthetical = less code.
+2. **Loop CTAs (P3-5)**: arrow-on-title (subtle), or end-of-row "Read more →" link (explicit)?
+3. **Rolling shipping after Phase 1**: continue one phase per commit, or batch Phase 2 + Phase 3 after Phase 1 proves the flow direction?
 
 ---
 
