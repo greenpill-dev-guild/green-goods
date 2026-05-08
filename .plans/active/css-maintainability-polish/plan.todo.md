@@ -1,10 +1,10 @@
 # CSS Maintainability Polish Plan
 
 **Feature Slug**: `css-maintainability-polish`
-**Stage**: `backlog`
-**Status**: `BACKLOG`
+**Stage**: `active`
+**Status**: `ACTIVE — state_api COMPLETED on main, ui READY, qa BLOCKED`
 **Created**: `2026-04-28`
-**Last Updated**: `2026-04-28`
+**Last Updated**: `2026-05-07`
 
 ## Decision Log
 
@@ -23,7 +23,8 @@
 - [x] Keep `design-system-alignment-review` as the read-only design review source.
 - [x] Define out-of-scope redesign/framework work.
 - [x] Choose validation commands future implementation must run.
-- [ ] Refresh CSS inventory when this hub is promoted to active.
+- [x] Confirm prerequisite PWA QA is complete (`client-pwa-gardener-audit` archived)
+- [ ] Refresh CSS inventory now that this hub is active.
 - [ ] Reconfirm current active UI/design plan state before source cleanup.
 
 ## Requirements Coverage
@@ -39,10 +40,11 @@
 
 ## Phase 0 - Preconditions
 
-- [ ] Confirm `public-read-side-journal` is archived, completed, or paused with stable CSS ownership.
-- [ ] Confirm `client-pwa-design-system-transition` has produced the protected PWA baseline census and any implementation-scope updates.
+- [x] Confirm `public-read-side-journal` is archived (`.plans/archive/public-read-side-journal/`).
+- [x] Confirm `client-pwa-gardener-audit` has completed QA and moved to archive.
 - [ ] Confirm `design-system-alignment-review` has either run or has been explicitly skipped by the human.
-- [ ] Re-run `node scripts/harness/plan-hub.mjs validate` before starting source changes.
+- [x] State/API lane: re-run `node scripts/harness/plan-hub.mjs validate` (passes; 22 hubs).
+- [ ] UI lane: re-run `node scripts/harness/plan-hub.mjs validate` before starting source changes.
 
 ## Phase 1 - CSS ownership inventory
 
@@ -55,10 +57,10 @@
 
 ## Phase 2 - Guardrail design
 
-- [ ] Review existing design validators and generated-token checks before adding anything new.
-- [ ] Design the smallest undefined custom property check that fits the repo validation ladder.
-- [ ] Decide whether raw color/radius/motion enforcement belongs in existing scripts, Biome/oxlint, or a focused repo script.
-- [ ] Capture false-positive handling and any allowlist policy before implementation.
+- [x] Review existing design validators and generated-token checks before adding anything new (admin M3 variable guard, admin Controlled Chrome guard, raw-value baseline already in `check-tokens.sh`).
+- [x] Design the smallest undefined custom property check that fits the repo validation ladder (`scripts/design/check-css-custom-properties.mjs`, wired into `check-tokens.sh` after the admin Controlled Chrome guard).
+- [x] Decide whether raw color/radius/motion enforcement belongs in existing scripts, Biome/oxlint, or a focused repo script — extended the existing `check-tokens.sh` rather than creating a new entry point.
+- [x] Capture false-positive handling and any allowlist policy before implementation: external runtime prefixes (`--radix-*`, `--breakpoint-*`, `--tw-*`) bypass the check; legacy/migration debt routes through `scripts/data/css-custom-property-baseline.tsv` with required category, owner, expiry, and note fields.
 
 ## Phase 3 - Cleanup implementation
 
@@ -78,11 +80,17 @@
 
 ## Phase 5 - Regression proof
 
-- [ ] Run `node scripts/harness/plan-hub.mjs validate`.
-- [ ] Run `bun run check:design-generated`.
-- [ ] Run `bun run check:design-tokens`.
-- [ ] Run `bun run lint:vocab`.
-- [ ] Run targeted tests for touched shared/client/admin surfaces.
+State/API lane (complete on main):
+
+- [x] `node --test scripts/design/check-css-custom-properties.test.mjs` (3/3 pass; RED reproduced by removing the script).
+- [x] `node scripts/harness/plan-hub.mjs validate` (22 hubs validated).
+- [x] `bun run check:design-generated`.
+- [x] `bun run check:design-tokens` (now includes the new CSS custom property guard; 64 audited unresolved entries after pruning four now-defined admin M3 container roles).
+- [x] `bun run lint:vocab`.
+
+Still required after UI source cleanup:
+
+- [ ] Targeted tests for touched shared/client/admin surfaces.
 - [ ] Build or smoke-test client/admin where CSS changes affect runtime surfaces.
 - [ ] Capture before/after visual evidence for representative browser, installed PWA, admin, and Storybook surfaces.
 
@@ -98,10 +106,10 @@
 
 ### State / API (`codex/state-api/css-maintainability-polish`)
 
-- [ ] Review existing validators before adding scripts.
-- [ ] Add or refine the undefined custom property guard only if existing checks do not cover it.
-- [ ] Keep work limited to tooling/quality checks; do not change runtime data/API behavior.
-- [ ] Write `handoffs/codex-state-api.md`.
+- [x] Review existing validators before adding scripts (existing `check-tokens.sh` covered admin M3 vars and admin Controlled Chrome but not general undefined `var(--*)`).
+- [x] Add or refine the undefined custom property guard only if existing checks do not cover it (`scripts/design/check-css-custom-properties.mjs` + `scripts/data/css-custom-property-baseline.tsv`, wired into `bun run check:design-tokens`).
+- [x] Keep work limited to tooling/quality checks; do not change runtime data/API behavior.
+- [x] Write `handoffs/codex-state-api.md` (records provenance, scope, RED/GREEN proof, and ported-from-`release/1.1.0` reconciliation).
 
 ### Contracts (`codex/contracts/css-maintainability-polish`)
 
@@ -125,9 +133,16 @@
 
 ## Validation
 
-- [ ] `node scripts/harness/plan-hub.mjs validate`
-- [ ] Future implementation: `bun run check:design-generated`
-- [ ] Future implementation: `bun run check:design-tokens`
-- [ ] Future implementation: `bun run lint:vocab`
-- [ ] Future implementation: targeted tests for touched shared/client/admin surfaces
-- [ ] Future implementation: client/admin build or smoke test when runtime CSS changes
+State/API lane completed (this pass, on `main`):
+
+- [x] `node --test scripts/design/check-css-custom-properties.test.mjs`
+- [x] `node scripts/harness/plan-hub.mjs validate`
+- [x] `bun run check:design-generated`
+- [x] `bun run check:design-tokens`
+- [x] `bun run lint:vocab`
+
+Still required after UI cleanup:
+
+- [ ] Targeted tests for touched shared/client/admin surfaces
+- [ ] Client/admin build or smoke test when runtime CSS changes
+- [ ] Before/after visual evidence for representative browser, installed PWA, admin, and Storybook surfaces

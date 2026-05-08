@@ -1,10 +1,10 @@
 # Docs Freshness Routine Plan
 
 **Feature Slug**: `docs-freshness-routine`
-**Stage**: `backlog`
-**Status**: `BACKLOG`
+**Stage**: `active`
+**Status**: `ACTIVE — state_api READY`
 **Created**: `2026-04-25`
-**Last Updated**: `2026-05-01`
+**Last Updated**: `2026-05-07`
 
 ## Decision Log
 
@@ -25,7 +25,8 @@
 - [x] List human judgment points before implementation
 - [x] Define what is out of scope
 - [x] Choose the lightest honest validation commands
-- [ ] Confirm the UI update is stable enough for screenshot recapture
+- [x] Confirm prerequisite PWA QA is complete (`client-pwa-gardener-audit` archived)
+- [ ] Confirm current admin/client UI is stable enough for screenshot recapture
 
 ## Requirements Coverage
 

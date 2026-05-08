@@ -4,13 +4,13 @@
     "slug": "client-pwa-gardener-audit",
     "title": "Client PWA Gardener Audit",
     "kind": "quality",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-04-30T00:00:00.000Z",
-    "updated_at": "2026-05-04T22:48:07.000Z"
+    "updated_at": "2026-05-07T20:56:24.558Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,7 +27,8 @@
   },
   "notes": [
     "Formalized from active loose audit/fixes notes during the validated-taxonomy cleanup.",
-    "Implementation predates the 2026-05-01 TDD policy; remaining work is browser QA."
+    "Implementation predates the 2026-05-01 TDD policy; remaining work is browser QA.",
+    "Archived after UI/state completion and QA pass 1 + QA pass 2 passed."
   ],
   "lanes": {
     "ui": {
@@ -39,8 +40,14 @@
       "tdd": {
         "mode": "legacy_unrecorded",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "Gardener-facing UI fixes were completed before the TDD proof policy; do not invent historical RED/GREEN evidence."
       },
       "skill_tags": ["ui", "testing", "review"]
@@ -54,8 +61,14 @@
       "tdd": {
         "mode": "legacy_unrecorded",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "Shared/client gating and copy-support changes were completed before the TDD proof policy; do not invent historical RED/GREEN evidence."
       },
       "skill_tags": ["react", "testing", "review"]
@@ -69,8 +82,14 @@
       "tdd": {
         "mode": "not_applicable",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "No contract lane is planned for the gardener-first PWA audit."
       },
       "skill_tags": ["testing"]
@@ -161,6 +180,22 @@
       "status": "passed",
       "branch": "release/1.1.0",
       "note": "Resolved: disclosure removal was intentional in commit d6e0bd69 (PWA UX audit — pre-release hardening across 4 tiers, 2026-05-04). qa_pass_1 evidence predated the removal. The 'blocked_repros' from the prior qa_pass_2 entry document the new IA, not a regression. Lane reclassified passed."
+    },
+    {
+      "timestamp": "2026-05-07T20:55:46.978Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    },
+    {
+      "timestamp": "2026-05-07T20:56:24.558Z",
+      "branch": null,
+      "actor": "codex",
+      "lane": "system",
+      "status": "archive_closeout_recorded",
+      "note": "Archived after UI/state completion and QA pass 1 + QA pass 2 passed."
     }
   ]
 }

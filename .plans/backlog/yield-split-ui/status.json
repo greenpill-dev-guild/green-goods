@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-03-16",
-    "updated_at": "2026-05-03T19:17:16.238Z"
+    "updated_at": "2026-05-07T20:56:24.558Z"
   },
   "links": {
     "brief": "brief.md",
@@ -28,7 +28,8 @@
   "notes": [
     "Downstream UI backlog item after signal-pool-yield-wiring.",
     "Shared hooks and admin/client surfaces only; no contract work in this hub.",
-    "Keep hardcoded split defaults out of the live operator and client surfaces."
+    "Keep hardcoded split defaults out of the live operator and client surfaces.",
+    "signal-pool-yield-wiring prerequisite completed and archived; this hub is unblocked but remains backlog until current post-release UX cleanup settles."
   ],
   "lanes": {
     "ui": {
@@ -101,6 +102,14 @@
       "status": "backlog_normalized",
       "branch": null,
       "note": "Reclassified as a shared/admin/client backlog feature downstream from signal-pool-yield-wiring."
+    },
+    {
+      "timestamp": "2026-05-07T20:56:24.558Z",
+      "branch": null,
+      "actor": "codex",
+      "lane": "system",
+      "status": "prerequisite_archived",
+      "note": "signal-pool-yield-wiring completed and moved to archive; removed taxonomy dependency while leaving yield-split-ui in backlog."
     }
   ],
   "taxonomy": {
@@ -108,6 +117,6 @@
     "tracks": ["admin", "client", "shared"],
     "work_types": ["implementation", "qa"],
     "surfaces": ["packages/admin", "packages/client", "packages/shared"],
-    "depends_on_features": ["signal-pool-yield-wiring"]
+    "depends_on_features": []
   }
 }

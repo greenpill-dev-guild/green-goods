@@ -4,13 +4,13 @@
     "slug": "css-maintainability-polish",
     "title": "CSS Maintainability Polish",
     "kind": "quality",
-    "stage": "backlog"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-28T00:00:00.000Z",
-    "updated_at": "2026-05-03T19:17:16.238Z"
+    "updated_at": "2026-05-08T00:41:20.357Z"
   },
   "links": {
     "brief": "brief.md",
@@ -25,24 +25,53 @@
     "Consume the protected PWA baseline census and implementation-scope updates from client-pwa-design-system-transition instead of duplicating that work.",
     "Primary focus: CSS ownership, undefined custom properties, global selector scope, raw-value/token drift, flexible CSS patterns, and lightweight guardrails.",
     "Public browser components stay client-local and component-authored; installed PWA and admin dialects remain separate.",
-    "Contracts lane is n/a; state_api owns only durable scripts/checks, not runtime data/API behavior."
+    "Contracts lane is n/a; state_api owns only durable scripts/checks, not runtime data/API behavior.",
+    "client-pwa-gardener-audit prerequisite completed and archived; CSS maintainability polish is now active as post-release design-system cleanup.",
+    "state_api complete on main: scripts/design/check-css-custom-properties.{mjs,test.mjs}, scripts/data/css-custom-property-baseline.tsv (64 audited unresolved entries), and check-tokens.sh wiring. Broad CSS source cleanup and visual QA remain owned by the ui and qa lanes."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "ready",
       "branch": "claude/ui/css-maintainability-polish",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "skill_tags": ["ui", "design", "css", "review"]
+      "skill_tags": ["ui", "design", "css", "review"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      }
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "completed",
       "branch": "codex/state-api/css-maintainability-polish",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "skill_tags": ["tooling", "quality", "review"]
+      "skill_tags": ["tooling", "quality", "review"],
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "node --test scripts/design/check-css-custom-properties.test.mjs (with scripts/design/check-css-custom-properties.mjs absent)",
+          "evidence": "3 tests failed: 0 pass / 3 fail; failures cite missing scripts/design/check-css-custom-properties.mjs (ERR_ASSERTION on missing-token output)."
+        },
+        "green": {
+          "command": "node --test scripts/design/check-css-custom-properties.test.mjs",
+          "evidence": "3/3 tests pass: undefined custom property fails, fallbacks/external/baselined references pass, stale baseline entries fail."
+        },
+        "note": "Ported state_api guard from release/1.1.0 prototype to main; RED reproduced by temporarily moving the checker out of scripts/design/, GREEN restored after putting it back."
+      },
+      "manual_blocked": false
     },
     "contracts": {
       "owner": "codex",
@@ -50,7 +79,20 @@
       "branch": "codex/contracts/css-maintainability-polish",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "skill_tags": ["review"]
+      "skill_tags": ["review"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract lane is planned for CSS maintainability polish."
+      }
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -98,6 +140,38 @@
       "status": "review-updated",
       "branch": null,
       "note": "Reviewed the hub after concurrent worktree churn and corrected stale PWA dependency wording in status.json so machine-readable notes match the plan artifacts."
+    },
+    {
+      "timestamp": "2026-05-07T20:55:47.010Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-05-07T20:56:24.558Z",
+      "branch": null,
+      "actor": "codex",
+      "lane": "system",
+      "status": "prerequisite_archived",
+      "note": "client-pwa-gardener-audit completed and moved to archive; removed taxonomy dependency and added active-lane TDD metadata."
+    },
+    {
+      "timestamp": "2026-05-08T00:39:15.267Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/css-maintainability-polish",
+      "note": "Ported state_api guard from release/1.1.0 prototype to main; RED reproduced by temporarily moving the checker out of scripts/design/, GREEN restored after putting it back."
+    },
+    {
+      "timestamp": "2026-05-08T00:41:20.359Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/css-maintainability-polish",
+      "note": "State/API tooling lane complete on main: undefined CSS custom property guard, audited baseline (64 unresolved entries after pruning four now-defined admin M3 container roles), focused fixture tests, and check:design-tokens wiring. UI source cleanup and visual QA remain open."
     }
   ],
   "taxonomy": {
@@ -105,6 +179,6 @@
     "tracks": ["admin", "client", "shared"],
     "work_types": ["cleanup", "maintenance"],
     "surfaces": ["packages/admin", "packages/client", "packages/shared"],
-    "depends_on_features": ["client-pwa-gardener-audit"]
+    "depends_on_features": []
   }
 }

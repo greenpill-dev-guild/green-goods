@@ -4,13 +4,13 @@
     "slug": "signal-pool-yield-wiring",
     "title": "Signal Pool → Yield Wiring Supplement",
     "kind": "feature",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
     "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-03-16",
-    "updated_at": "2026-05-03T23:25:22.464Z",
+    "updated_at": "2026-05-07T20:56:24.558Z",
     "target_date": "2026-05-15"
   },
   "links": {
@@ -32,7 +32,8 @@
     "Current code evidence: GardensModule has no yieldResolver wiring; YieldResolver still keeps setGardenHypercertPool owner-only; garden treasury fallback remains incomplete.",
     "Do not implement without an explicit migration/backfill checklist.",
     "Delivery target: complete by 2026-05-15, with contracts landing first and state_api/ui/QA following sequentially.",
-    "Strengthened 2026-04-26: typed HypercertSignal pool state, no array-index pool classification, bidirectional resolver verification, reset cleanup, upgrade-script cross-wiring, and lane handoffs are required."
+    "Strengthened 2026-04-26: typed HypercertSignal pool state, no array-index pool classification, bidirectional resolver verification, reset cleanup, upgrade-script cross-wiring, and lane handoffs are required.",
+    "Archived after contracts, state/API, UI, QA pass 1, and QA pass 2 completed with recorded evidence."
   ],
   "lanes": {
     "ui": {
@@ -258,6 +259,22 @@
       "status": "completed",
       "branch": "codex/qa-pass-2/signal-pool-yield-wiring",
       "note": "Owner override (claude executed for codex). All AC validations passed: GardensModule 106/106, YieldSplitter 77/77, UpgradeSafety 16/16, StorageLayout 6/6, migrate-vaults dry-run on Arbitrum reports 0 no-pool gardens, post-deploy verify shows yield-wiring surface clean, admin 388/388 + shared 2898/2898, repo build OK."
+    },
+    {
+      "timestamp": "2026-05-07T20:55:46.978Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    },
+    {
+      "timestamp": "2026-05-07T20:56:24.558Z",
+      "branch": null,
+      "actor": "codex",
+      "lane": "system",
+      "status": "archive_closeout_recorded",
+      "note": "Archived after contracts, state/API, UI, QA pass 1, and QA pass 2 completed with recorded evidence."
     }
   ],
   "taxonomy": {

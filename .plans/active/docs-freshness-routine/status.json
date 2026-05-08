@@ -4,13 +4,13 @@
     "slug": "docs-freshness-routine",
     "title": "Docs Freshness Routine",
     "kind": "quality",
-    "stage": "backlog"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-25T08:53:00.019Z",
-    "updated_at": "2026-05-03T19:17:16.238Z"
+    "updated_at": "2026-05-07T20:56:24.558Z"
   },
   "links": {
     "brief": "brief.md",
@@ -25,7 +25,8 @@
     "Generated visual assets must come from real docs/client/admin surfaces.",
     "2026-05-01 update: community docs copy remediation is complete; next concrete work is a targeted media refresh after active UI updates stabilize.",
     "Known refresh candidates: admin-create-garden.png, admin-work-queue.png, admin-work-detail.png, admin-garden-impact.png, client-work-dashboard.png, and a distinct Donate social image.",
-    "Do not touch app UI/i18n/contracts/shared/indexer surfaces from this hub unless the user explicitly starts a separate UI alignment pass."
+    "Do not touch app UI/i18n/contracts/shared/indexer surfaces from this hub unless the user explicitly starts a separate UI alignment pass.",
+    "client-pwa-gardener-audit prerequisite completed and archived; docs refresh is now active for post-release media/doc accuracy."
   ],
   "lanes": {
     "ui": {
@@ -35,16 +36,42 @@
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "Docs component UI is out of scope unless a rendered docs layout regression appears.",
-      "skill_tags": ["docs", "review"]
+      "skill_tags": ["docs", "review"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Docs component UI is out of scope unless a rendered docs layout regression appears."
+      }
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "ready",
       "branch": "codex/state-api/docs-freshness-routine",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Concrete next lane: after UI stabilization, replace scoped docs screenshots/social assets, update MDX references/alt text, and run docs audit/build/vocab plus rendered desktop/mobile checks.",
-      "skill_tags": ["docs", "tooling", "testing", "visual-qa"]
+      "skill_tags": ["docs", "tooling", "testing", "visual-qa"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      }
     },
     "contracts": {
       "owner": "codex",
@@ -53,7 +80,20 @@
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "handoff_note": "No contract work. Keep this lane n/a.",
-      "skill_tags": ["review"]
+      "skill_tags": ["review"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract lane is planned for docs freshness work."
+      }
     },
     "qa_pass_1": {
       "owner": "claude",
@@ -103,6 +143,22 @@
       "status": "community_docs_media_plan_added",
       "branch": null,
       "note": "Expanded hub with the post-Matt-review community docs media refresh plan: preserve completed copy pass, wait for UI stabilization, then refresh stale admin screenshots, Work Dashboard screenshot, and Donate social image."
+    },
+    {
+      "timestamp": "2026-05-07T20:55:47.010Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-05-07T20:56:24.558Z",
+      "branch": null,
+      "actor": "codex",
+      "lane": "system",
+      "status": "prerequisite_archived",
+      "note": "client-pwa-gardener-audit completed and moved to archive; removed taxonomy dependency and added active-lane TDD metadata."
     }
   ],
   "taxonomy": {
@@ -110,6 +166,6 @@
     "tracks": ["docs", "admin", "client"],
     "work_types": ["maintenance", "review"],
     "surfaces": ["docs", "packages/admin", "packages/client"],
-    "depends_on_features": ["client-pwa-gardener-audit"]
+    "depends_on_features": []
   }
 }

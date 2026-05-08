@@ -1,9 +1,16 @@
 # Yield & Split Management UI
 
 **Branch**: `feature/yield-split-ui`
-**Status**: ACTIVE
+**Status**: BACKLOG — UNBLOCKED
 **Created**: 2026-03-16
-**Last Updated**: 2026-03-16
+**Last Updated**: 2026-05-07
+
+## Current State — 2026-05-07
+
+`signal-pool-yield-wiring` is complete and archived, so this hub is no longer
+blocked by the routing prerequisite. Keep it in backlog until the current
+post-release UX cleanup lanes settle, then promote when yield operations UI
+becomes the next product focus.
 
 ## Problem Statement
 

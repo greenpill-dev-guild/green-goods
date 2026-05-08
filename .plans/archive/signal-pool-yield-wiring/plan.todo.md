@@ -1,11 +1,17 @@
 # Signal Pool → Yield Wiring Supplement
 
 **Parent Plan**: `vault-strategy-autoallocate-fix.todo.md`
-**Status**: ACTIVE
+**Status**: ARCHIVED — DONE
 **Created**: 2026-03-16
-**Last Updated**: 2026-05-03 (Tier-5 conviction wiring coordination notes added — see new "Coordination" section before Problem Statement)
+**Last Updated**: 2026-05-07
 **Target**: 2026-05-15 (complete by the second week of May)
 **Depends on**: Octant fix Phase 2 (YieldResolver upgrade)
+
+## Archive Closeout — 2026-05-07
+
+All implementation and QA lanes completed with recorded proof: contracts,
+state/API, UI, QA pass 1, and QA pass 2. This hub is archived and `yield-split-ui`
+is unblocked from a planning perspective.
 
 ## Current Reassessment — 2026-04-25
 
