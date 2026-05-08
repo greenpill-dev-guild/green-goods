@@ -51,7 +51,7 @@ test.describe("Offline Sync CI Tests", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
         test.skip(true, "Auth injection did not persist — expected in headless CI");
         return;
@@ -100,7 +100,7 @@ test.describe("Offline Sync CI Tests", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
         test.skip(true, "Auth injection did not persist — expected in headless CI");
         return;
@@ -139,7 +139,7 @@ test.describe("Offline Sync CI Tests", () => {
   test.describe("PWA Service Worker", () => {
     // SKIP: #338 owner:afo expiry:2026-08-17 — needs HTTPS plus service worker registration.
     test.skip("client app loads and registers service worker", async ({ page }) => {
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(3000);
 
@@ -175,7 +175,7 @@ test.describe("Offline Sync CI Tests", () => {
       context,
     }) => {
       // Load the app initially (cache service worker assets)
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(3000);
 
@@ -217,7 +217,7 @@ test.describe("Offline Sync CI Tests", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
         test.skip(true, "Auth injection did not persist — expected in headless CI");
         return;

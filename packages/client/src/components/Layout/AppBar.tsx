@@ -10,10 +10,15 @@ import {
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useLocation } from "react-router-dom";
+import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwa-routing";
 
 export const AppBar = () => {
   const { pathname } = useLocation();
-  const isGarden = pathname.startsWith("/garden");
+  const isGarden =
+    pathname === APP_ROUTES.garden ||
+    pathname.startsWith(`${APP_ROUTES.garden}/`) ||
+    pathname === LEGACY_APP_ROUTES.garden ||
+    pathname.startsWith(`${LEGACY_APP_ROUTES.garden}/`);
   const isWorkDetail = pathname.includes("/work/");
   const intl = useIntl();
   const { data: pendingCount = 0 } = usePendingWorksCount();
@@ -34,19 +39,19 @@ export const AppBar = () => {
     InactiveIcon: RemixiconComponentType;
   }[] = [
     {
-      path: "/home",
+      path: APP_ROUTES.home,
       title: intl.formatMessage({ id: "app.home" }),
       ActiveIcon: RiHomeFill,
       InactiveIcon: RiHomeLine,
     },
     {
-      path: "/garden",
+      path: APP_ROUTES.garden,
       title: intl.formatMessage({ id: "app.garden" }),
       ActiveIcon: RiPlantFill,
       InactiveIcon: RiPlantLine,
     },
     {
-      path: "/profile",
+      path: APP_ROUTES.profile,
       title: intl.formatMessage({ id: "app.profile" }),
       ActiveIcon: RiUserFill,
       InactiveIcon: RiUserLine,
@@ -71,8 +76,14 @@ export const AppBar = () => {
         )}
       >
         {tabs.map(({ path, ActiveIcon, InactiveIcon, title }) => {
-          const isActive = pathname.startsWith(path);
-          const isHome = path === "/home";
+          const isHome = path === APP_ROUTES.home;
+          const isActive = isHome
+            ? pathname === APP_ROUTES.home ||
+              (pathname.startsWith(`${APP_ROUTES.home}/`) &&
+                pathname !== APP_ROUTES.garden &&
+                pathname !== APP_ROUTES.profile &&
+                pathname !== APP_ROUTES.login)
+            : pathname === path || pathname.startsWith(`${path}/`);
           const showBadge = isHome && pendingCount > 0;
           return (
             <Link

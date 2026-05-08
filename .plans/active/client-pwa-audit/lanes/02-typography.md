@@ -1,6 +1,6 @@
 # Lane 02 — Typography & Text-Overflow Audit (Client PWA)
 
-**Scope**: `/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/garden`, `/profile`. PWA chrome (`@green-goods/shared` Canvas/Cards/Display) and consuming `packages/client/src/{views,components}` (excluding `Public/**`).
+**Scope**: `/home/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/home/garden`, `/home/profile`. PWA chrome (`@green-goods/shared` Canvas/Cards/Display) and consuming `packages/client/src/{views,components}` (excluding `Public/**`).
 
 **Read-only.** Findings only — no fixes proposed.
 

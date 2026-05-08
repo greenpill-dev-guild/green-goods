@@ -4,10 +4,10 @@ import { RiCloseLine } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import type { MouseEventHandler } from "react";
 import { useIntl } from "react-intl";
+import { PUBLIC_PWA_LAUNCH_URL } from "@/config/pwa-routing";
 
 export type PublicInstallDialogMode = "desktopQr" | "mobileSteps";
-
-export const PUBLIC_PWA_LAUNCH_URL = "https://www.greengoods.app/";
+export { PUBLIC_PWA_LAUNCH_URL };
 
 export interface PublicInstallDialogProps {
   open: boolean;

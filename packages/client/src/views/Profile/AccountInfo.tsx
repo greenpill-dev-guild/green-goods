@@ -21,6 +21,7 @@ import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
+import { APP_ROUTES } from "@/config/pwa-routing";
 
 export const AccountInfo: React.FC = () => {
   const { authMode, credential, walletAddress, embeddedAddress } = useAuthState();
@@ -34,7 +35,11 @@ export const AccountInfo: React.FC = () => {
     hapticLight();
     try {
       await signOut();
-      navigate("/login", { replace: true, state: { fromLogout: true }, viewTransition: true });
+      navigate(APP_ROUTES.login, {
+        replace: true,
+        state: { fromLogout: true },
+        viewTransition: true,
+      });
       toastService.success({
         title: intl.formatMessage({
           id: "app.account.sessionClosed",

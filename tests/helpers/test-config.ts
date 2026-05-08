@@ -60,7 +60,7 @@ export const SELECTORS = {
   authenticatedNav: [
     '[data-testid="authenticated-nav"]',
     '[data-testid="work-dashboard-button"]',
-    'nav:has(a[href="/profile"])',
+    'nav:has(a[href="/home/profile"])',
     'button[aria-label="Menu"]',
   ],
 

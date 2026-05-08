@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import App from "@/App.tsx";
 import { AppErrorBoundary } from "@/components/Errors";
+import { createPwaRoutingConfig, PWA_APP_SCOPE } from "@/config/pwa-routing";
 
 import "@/index.css";
 import "@/config";
@@ -15,12 +16,21 @@ initTheme();
 // Initialize global error handlers for PostHog exception tracking
 // This catches unhandled errors and promise rejections that escape Error Boundaries
 initGlobalErrorHandlers();
-void registerServiceWorkerFromEnv({
-  DEV: import.meta.env.MODE !== "production",
-  PROD: import.meta.env.MODE === "production",
-  VITE_ENABLE_SW_DEV: import.meta.env.VITE_ENABLE_SW_DEV,
-  VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION,
-});
+
+const pwaRouting = createPwaRoutingConfig(import.meta.env.VITE_USE_HASH_ROUTER === "true");
+void registerServiceWorkerFromEnv(
+  {
+    DEV: import.meta.env.MODE !== "production",
+    PROD: import.meta.env.MODE === "production",
+    VITE_ENABLE_SW_DEV: import.meta.env.VITE_ENABLE_SW_DEV,
+    VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION,
+  },
+  {
+    scriptUrl: pwaRouting.serviceWorkerScriptUrl,
+    scope: pwaRouting.manifestScope,
+    legacyScopes: pwaRouting.manifestScope === PWA_APP_SCOPE ? ["/"] : [],
+  }
+);
 
 export const Root = () => (
   <HelmetProvider>

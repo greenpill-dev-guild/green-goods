@@ -19,7 +19,7 @@ dialect: installed-pwa
 
 **Hard rule:** Installed PWA = app. Use bottom `AppBar`; never show the browser `SiteHeader` or hamburger chrome.
 
-**Routing:** `PlatformRouter` checks `isInstalled`. Installed PWA routes to `/home`.
+**Routing:** `PlatformRouter` checks `isInstalled`. Installed PWA routes live under `/home`.
 
 ---
 
@@ -30,7 +30,7 @@ dialect: installed-pwa
 **Layout philosophy:**
 - Mobile-first, thumb-zone optimized
 - AppBar: 3 tabs — Home (with notification badge), Garden, Profile
-- AppBar hides on `/garden` and `/work/:id` routes for immersive work capture
+- AppBar hides on `/home/garden` and `/home/:id/work/:workId` routes for immersive work capture
 - SyncStatusBar sits above AppBar
 - Content height: `calc(100lvh - 69px)` minus AppBar
 - Safe areas: `env(safe-area-inset-bottom)` for notched devices
@@ -70,7 +70,7 @@ The PWA inherits the Warm Earth core. The current green rhythm is protected:
 
 **Do:**
 - Test PWA layouts at 375px and on a real phone when layout or navigation changes
-- Preserve the bright green accent rhythm in `/home`, `/garden`, and `/profile`
+- Preserve the bright green accent rhythm in `/home`, `/home/garden`, and `/home/profile`
 - Use container queries for components that can appear in both client modes
 - Keep copy warm, personal, and community-facing
 

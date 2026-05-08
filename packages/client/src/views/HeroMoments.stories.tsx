@@ -49,7 +49,7 @@ const HERO_MOMENTS: HeroMoment[] = [
   },
   {
     name: "First work submission",
-    surface: "`/garden/:id/work/:workId` capture-verify-submit",
+    surface: "`/home/garden` capture-verify-submit",
     expression: "High",
     amplification: {
       shape: "Capsule expand into chain link",

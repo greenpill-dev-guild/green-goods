@@ -18,14 +18,14 @@ test.describe("Client Navigation", () => {
 
   test.describe("Protected Routes", () => {
     test("redirects unauthenticated users from protected routes", async ({ page }) => {
-      const protectedRoutes = ["/home", "/profile", "/gardens/123", "/work/submit", "/settings"];
+      const protectedRoutes = ["/home?presentation=pwa", "/home/profile", "/home/garden"];
 
       for (const route of protectedRoutes) {
         await page.goto(route);
         await page.waitForLoadState("domcontentloaded");
 
         // Should redirect to login
-        expect(page.url()).toContain("/login");
+        expect(page.url()).toContain("/home/login");
 
         // Login page should be functional
         await expect(page.getByTestId("login-button")).toBeVisible({
@@ -39,11 +39,11 @@ test.describe("Client Navigation", () => {
 
       // Use wallet injection for all platforms
       await helper.injectWalletAuth();
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa");
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         console.log("Auth injection not persisted - skipping protected route test");
         return;
       }
@@ -52,7 +52,7 @@ test.describe("Client Navigation", () => {
       const routes = [
         { path: "/home", selector: "body" },
         {
-          path: "/profile",
+          path: "/home/profile",
           selector: '[data-testid="profile-page"], h1:has-text("Profile"), body',
         },
       ];
@@ -63,7 +63,7 @@ test.describe("Client Navigation", () => {
 
         // Should not redirect to login (if auth persisted)
         const currentUrl = page.url();
-        if (!currentUrl.includes("/login")) {
+        if (!currentUrl.includes("/home/login")) {
           // Page content should load
           await expect(page.locator(route.selector.split(", ")[0]).first())
             .toBeVisible({
@@ -96,11 +96,11 @@ test.describe("Client Navigation", () => {
 
       // Use wallet injection
       await helper.injectWalletAuth();
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa");
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         console.log("Auth injection not persisted - skipping navigation menu test");
         return;
       }
@@ -116,7 +116,7 @@ test.describe("Client Navigation", () => {
         await expect(navMenu.first()).toBeVisible({ timeout: TIMEOUTS.modalAppear });
 
         // Should have navigation links
-        const profileLink = page.locator('a[href="/profile"]');
+        const profileLink = page.locator('a[href="/home/profile"]');
         await expect(profileLink.first()).toBeVisible();
       } else {
         // No mobile menu visible - test passes (may be desktop view)
@@ -129,11 +129,11 @@ test.describe("Client Navigation", () => {
 
       // Use wallet injection
       await helper.injectWalletAuth();
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa");
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         console.log("Auth injection not persisted - skipping breadcrumbs test");
         return;
       }
@@ -172,27 +172,27 @@ test.describe("Client Navigation", () => {
 
       // Use wallet injection
       await helper.injectWalletAuth();
-      await page.goto("/home");
+      await page.goto("/home?presentation=pwa");
       await helper.waitForPageLoad();
 
       const homeUrl = page.url();
-      if (homeUrl.includes("/login")) {
+      if (homeUrl.includes("/home/login")) {
         console.log("Auth injection not persisted - skipping back navigation test");
         return;
       }
 
       // Navigate to profile
-      await page.goto("/profile");
+      await page.goto("/home/profile");
       await helper.waitForPageLoad();
       const profileUrl = page.url();
 
-      if (profileUrl.includes("/login")) {
+      if (profileUrl.includes("/home/login")) {
         // Auth didn't persist for second navigation
         console.log("Auth not persisted across navigation - skipping test");
         return;
       }
 
-      expect(profileUrl).toContain("/profile");
+      expect(profileUrl).toContain("/home/profile");
 
       // Go back
       await page.goBack();
@@ -223,7 +223,10 @@ test.describe("Client Navigation", () => {
       const isNotFound = await notFoundText
         .isVisible({ timeout: TIMEOUTS.elementVisible })
         .catch(() => false);
-      const isRedirected = page.url().includes("/login") || page.url().includes("/home");
+      const isRedirected =
+        page.url().includes("/home/login") ||
+        page.url().includes("/home") ||
+        page.url().endsWith("/");
 
       // For a SPA, any unmatched route might just stay on the same URL but show different content
       // or redirect to a default route

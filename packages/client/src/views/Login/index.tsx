@@ -15,6 +15,7 @@ import { type IntlShape, useIntl } from "react-intl";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { type LoadingState, Splash } from "@/components/Layout";
+import { APP_ROUTES } from "@/config/pwa-routing";
 import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
 
 /** Get the browser guidance label based on scenario and platform */
@@ -165,13 +166,13 @@ export function Login() {
   }, [guidance.openInBrowserUrl, intl]);
 
   // Check if nested route or came from logout
-  const isNestedRoute = location.pathname !== "/login";
+  const isNestedRoute = location.pathname !== APP_ROUTES.login;
   const fromLogout = (location.state as { fromLogout?: boolean } | null)?.fromLogout === true;
 
   // Redirect destination
   const redirectTo = fromLogout
-    ? "/home"
-    : new URLSearchParams(location.search).get("redirectTo") || "/home";
+    ? APP_ROUTES.home
+    : new URLSearchParams(location.search).get("redirectTo") || APP_ROUTES.home;
 
   // Existing account detection (check localStorage for stored credential)
   // Always show login option if credential exists - even after logout

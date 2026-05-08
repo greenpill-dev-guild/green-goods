@@ -5,6 +5,8 @@ import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { useToastAction } from "../app/useToastAction";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 
+const WORK_SUBMISSION_ROUTE = "/home/garden";
+
 export interface GardenInvite {
   id: string;
   garden: string;
@@ -40,8 +42,10 @@ export function useGardenInvites(gardenAddress: Address) {
    * Generates an invite link from invite code
    */
   const generateInviteLink = (inviteCode: Hex): string => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/garden/join?invite=${inviteCode}&garden=${gardenAddress}`;
+    const inviteUrl = new URL(WORK_SUBMISSION_ROUTE, window.location.origin);
+    inviteUrl.searchParams.set("invite", inviteCode);
+    inviteUrl.searchParams.set("garden", gardenAddress);
+    return inviteUrl.toString();
   };
 
   /**

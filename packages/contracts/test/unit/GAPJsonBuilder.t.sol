@@ -169,7 +169,7 @@ contract JsonBuilderTest is Test {
 
         string memory json = wrapper.buildImpact("Work", "Desc", "QmProof", workUID, garden, 1_700_000_000, "");
 
-        assertTrue(_contains(json, "https://greengoods.app/#/home/0x"), "Should use app domain + hash route");
+        assertTrue(_contains(json, "https://www.greengoods.app/home/0x"), "Should use canonical app route");
         assertTrue(_contains(json, "/work/0x"), "Should include work route with UID");
         assertTrue(_contains(json, "\"label\":\"View in Green Goods\""), "Should have link label");
     }

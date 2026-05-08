@@ -17,6 +17,7 @@ import { expect, test } from "@playwright/test";
 import { ClientTestHelper, hasGardens, TEST_URLS } from "../helpers/test-utils";
 
 const CLIENT_URL = TEST_URLS.client;
+const APP_GARDEN_DETAIL_URL = /\/home\/(?!garden(?:\/|$)|login(?:\/|$)|profile(?:\/|$))[^/?#]+/;
 
 // Skip entire file - these tests require real auth infrastructure
 test.describe("Offline Sync Flows", () => {
@@ -178,7 +179,7 @@ test.describe("Offline Sync Flows", () => {
       const gardenCard = page.locator('[data-testid="garden-card"]').first();
       if (await gardenCard.isVisible({ timeout: 5000 })) {
         await gardenCard.click();
-        await page.waitForURL(/\/gardens\//);
+        await page.waitForURL(APP_GARDEN_DETAIL_URL);
 
         const actionCard = page.locator('[data-testid="action-card"]').first();
         if (await actionCard.isVisible({ timeout: 5000 })) {
@@ -295,7 +296,7 @@ test.describe("Offline Sync Flows", () => {
       const gardenCard = page.locator('[data-testid="garden-card"]').first();
       if (await gardenCard.isVisible({ timeout: 5000 })) {
         await gardenCard.click();
-        await page.waitForURL(/\/gardens\//);
+        await page.waitForURL(APP_GARDEN_DETAIL_URL);
 
         const actionCard = page.locator('[data-testid="action-card"]').first();
         if (await actionCard.isVisible({ timeout: 5000 })) {
@@ -352,7 +353,7 @@ test.describe("Offline Sync Flows", () => {
       const gardenCard = page.locator('[data-testid="garden-card"]').first();
       if (await gardenCard.isVisible({ timeout: 5000 })) {
         await gardenCard.click();
-        await page.waitForURL(/\/gardens\//);
+        await page.waitForURL(APP_GARDEN_DETAIL_URL);
 
         const actionCard = page.locator('[data-testid="action-card"]').first();
         if (await actionCard.isVisible({ timeout: 5000 })) {
@@ -446,7 +447,7 @@ test.describe("Offline Sync Flows", () => {
       const gardenCard = page.locator('[data-testid="garden-card"]').first();
       if (await gardenCard.isVisible({ timeout: 5000 })) {
         await gardenCard.click();
-        await page.waitForURL(/\/gardens\//);
+        await page.waitForURL(APP_GARDEN_DETAIL_URL);
 
         const actionCard = page.locator('[data-testid="action-card"]').first();
         if (await actionCard.isVisible({ timeout: 5000 })) {

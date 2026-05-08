@@ -1,7 +1,7 @@
 # Client PWA Deep Audit — Synthesis
 
 **Posture**: Read-only. Findings only. No fixes proposed.
-**Scope**: PWA app routes — `/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/garden`, `/profile`. **Not** the editorial `Public/*` website, **not** admin.
+**Scope**: PWA app routes — `/home/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/home/garden`, `/home/profile`. **Not** the editorial `Public/*` website, **not** admin.
 **Method**: 5 parallel lanes (translations, typography/overflow, color palette, motion/touch, component structure) — each lane is durable on disk:
 
 - [01-translations.md](lanes/01-translations.md)
@@ -77,7 +77,7 @@ PT/ES strings run 20–40% longer than EN. The PWA has a systemic Rule 4 gap: ev
 - **`isGreenWillDeployed()` used exactly once in PWA scope (lane 05 C3, P1)** — `Profile/Badges.tsx:298`. Other gates use `vaults.length > 0` / `strategies.length > 0`, masking deployment gaps as data gaps — exactly the failure mode CLAUDE.md flags.
 - **`bg-primary-action` button styling hand-rolled in 11 sites (lane 05 B4, P1)** — each with slightly different padding (`px-4 py-2` / `py-2.5` / `py-3` / `py-4`), radius (`rounded-md` / `rounded-lg` / `rounded-full`), and motion. Meanwhile the typed `<Button>` exists. Every variant is a future-migration miss.
 - **Form rule (Rule 8) leaks (lane 05 E3, P1)** — `views/Garden/Details.tsx:4` imports `Control`, `UseFormRegister`, `UseFormSetValue` directly from `react-hook-form`. Only form in the PWA, only place the rule could be tested, and it leaks RHF as a public client dependency.
-- **`/profile` lacks per-tab loading and error states (lane 05 C2, P1)** — top-level boundary catches runtime errors only; data-fetch errors for ENS/profile/badges have no UI.
+- **`/home/profile` lacks per-tab loading and error states (lane 05 C2, P1)** — top-level boundary catches runtime errors only; data-fetch errors for ENS/profile/badges have no UI.
 - **Provider tree deviates from Rule 13 (lane 05 D2a, P1)** — `AppProvider > [router] > AppKitProvider > AuthGate` instead of `AppKitProvider > AuthProvider > AppProvider`. Sensible (lazy `WalletRuntimeProviders`) but undocumented exception.
 
 ---

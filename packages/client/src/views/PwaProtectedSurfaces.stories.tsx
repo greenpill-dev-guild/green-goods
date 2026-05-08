@@ -107,7 +107,7 @@ export const Home: Story = {
 
 export const GardenWorkCapture: Story = {
   render: () => (
-    <PwaRouteFrame route="/garden">
+    <PwaRouteFrame route="/home/garden">
       <div className="px-4 py-6">
         <h1 className="text-lg font-semibold">Garden</h1>
         <div className="mt-5">
@@ -144,7 +144,7 @@ export const GardenWorkCapture: Story = {
 
 export const Profile: Story = {
   render: () => (
-    <PwaRouteFrame route="/profile">
+    <PwaRouteFrame route="/home/profile">
       <div className="px-4 py-6">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">

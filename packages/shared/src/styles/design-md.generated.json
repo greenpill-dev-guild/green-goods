@@ -91,6 +91,6 @@
     "primaryRole": "DesignMD colors.primary is ink/charcoal and must not be mapped to --color-primary.",
     "tertiaryRole": "DesignMD colors.tertiary is the existing bright PWA green accent implementation.",
     "actionRole": "DesignMD colors.tertiary-action is reserved for filled text actions that need white foreground contrast.",
-    "shellFreeze": "Token generation must not change AppShell height, bottom AppBar behavior, safe-area padding, or /garden and /work/:id AppBar hiding."
+    "shellFreeze": "Token generation must not change AppShell height, bottom AppBar behavior, safe-area padding, or /home/garden and /home/:id/work/:workId AppBar hiding."
   }
 }

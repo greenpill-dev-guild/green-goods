@@ -4,14 +4,15 @@ sidebar_label: Client PWA
 slug: /builders/deployments/client-deploy
 audience: developer
 owner: docs
-last_verified: 2026-03-08
+last_verified: 2026-05-08
 feature_status: Live
 source_of_truth:
   - packages/client/package.json
   - packages/client/vite.config.ts
   - packages/client/vercel.json
+  - packages/client/src/config/pwa-routing.ts
   - scripts/ops/upload-sourcemaps.js
-  - packages/shared/src/modules/app/service-worker.ts
+  - packages/shared/src/modules/app/service-worker-registration.ts
 keywords: [client, PWA, Vite, service worker, offline, deployment]
 ---
 
@@ -52,7 +53,7 @@ The client is an offline-first Progressive Web App built with Vite and React. De
 4. Build the client: `VITE_CHAIN_ID=42161 bun run build:client`
 5. Deploy static output from `packages/client/dist/` to your CDN or static hosting provider
 6. Configure cache-busting headers for `index.html` and long-lived caching for hashed static assets
-7. Verify the service worker registers and precaches assets correctly
+7. Verify the service worker registers under `/home`, preserves the Workbox precache, and serves the app shell for `/home` routes.
 8. Run Lighthouse audit to check Performance, Accessibility, PWA readiness, and SEO
 
 ## Build Environments
@@ -94,6 +95,10 @@ VITE_CHAIN_ID=42161 bun run build:client
 
 The client build outputs to `packages/client/dist/`. This is a fully static site deployable to any CDN or static hosting provider.
 
+For browser-origin deploys such as `www.greengoods.app`, the static asset base remains `/`, while the PWA
+manifest scope and service worker scope are `/home`. Public/editorial routes remain browser-owned at `/`,
+`/gardens`, `/fund`, `/impact`, and `/actions`.
+
 ### CI Build
 
 The `client.yml` lane builds the client with test configuration:
@@ -106,16 +111,24 @@ The `client.yml` lane builds the client with test configuration:
     VITE_CHAIN_ID: "11155111"
 ```
 
-`VITE_USE_HASH_ROUTER` enables hash-based routing for environments where server-side routing is not available (e.g., IPFS hosting).
+`VITE_USE_HASH_ROUTER` enables hash-based routing for environments where server-side routing is not available
+(e.g., IPFS hosting). In that build, app routes are represented as `./#/home`, `./#/home/garden`, and
+`./#/home/profile` while assets stay relative.
 
 ### Service Worker
 
 The PWA service worker enables offline functionality -- the core differentiator of the client app. Key behaviors:
 
 - **Precaching** -- Static assets are cached at install time
+- **App shell fallback** -- `/home` navigations fall back to the precached app shell when offline
 - **Runtime caching** -- API responses are cached with stale-while-revalidate
 - **Background sync** -- Work submissions queue when offline and sync when connectivity returns
 - **Update detection** -- The `useServiceWorkerUpdate` hook detects new versions and prompts users
+
+Production browser-origin builds register the service worker with scope `/home` and run one-time cleanup for older
+root-scoped Green Goods registrations. The custom worker preserves Workbox precaches, clears stale runtime caches,
+and forces public/editorial navigations to reload from the network so old app-shell caches do not capture browser
+pages.
 
 #### Service Worker Update Flow
 

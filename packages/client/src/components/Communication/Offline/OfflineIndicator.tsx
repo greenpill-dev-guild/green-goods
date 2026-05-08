@@ -3,6 +3,7 @@ import { RiCheckLine, RiCloudOffLine, RiDownloadLine, RiUserLine } from "@remixi
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { APP_ROUTES } from "@/config/pwa-routing";
 
 interface OfflineIndicatorProps {
   className?: string;
@@ -102,7 +103,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             </span>
             <button
               type="button"
-              onClick={() => navigate("/profile", { viewTransition: true })}
+              onClick={() => navigate(APP_ROUTES.profile, { viewTransition: true })}
               className="ml-1 inline-flex items-center gap-1 rounded-full border border-stroke-sub-300 bg-bg-white-0 px-2 py-0.5 text-[10px] hover:bg-bg-weak-50 active:scale-95 transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]"
             >
               <RiUserLine className="h-3 w-3" />

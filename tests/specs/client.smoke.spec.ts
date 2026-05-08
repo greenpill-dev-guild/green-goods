@@ -35,12 +35,12 @@ test.describe("Client PWA", () => {
   // below still asserts the dev server responds with HTML.
   test.describe("Authentication", () => {
     // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
-    test.skip("redirects unauthenticated /home -> /login", async ({ page }) => {
+    test.skip("redirects unauthenticated /home -> /home/login", async ({ page }) => {
       await page.goto("/home");
 
       // Should redirect to login
-      await page.waitForURL(/\/login/);
-      expect(page.url()).toContain("/login");
+      await page.waitForURL(/\/home\/login/);
+      expect(page.url()).toContain("/home/login");
 
       // Should show login UI with passkey option
       await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
@@ -59,7 +59,7 @@ test.describe("Client PWA", () => {
 
     // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI.
     test.skip("shows login page with correct branding", async ({ page }) => {
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
 
       // Should have Green Goods branding
@@ -124,7 +124,7 @@ test.describe("Client PWA", () => {
         // Auth injection didn't persist - this is expected in some cases
         // iOS Safari has stricter localStorage rules
         console.log("Auth injection not persisted on iOS - wallet flow would be needed");
-        expect(url).toContain("/login");
+        expect(url).toContain("/home/login");
       }
     });
   });
@@ -142,7 +142,7 @@ test.describe("Client PWA", () => {
 
       // Check if we're authenticated (wallet injection may not persist)
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         console.log("Auth not persisted - skipping gardens test");
         return;
       }
@@ -176,7 +176,7 @@ test.describe("Client PWA", () => {
 
       // Check if we're authenticated
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         console.log("Auth not persisted - skipping detail page test");
         return;
       }

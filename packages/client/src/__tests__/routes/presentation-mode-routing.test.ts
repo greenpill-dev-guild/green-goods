@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import type { LoaderFunctionArgs, RouteObject } from "react-router-dom";
+import { matchRoutes, type LoaderFunctionArgs, type RouteObject } from "react-router-dom";
 import { afterEach, describe, expect, it } from "vitest";
 import { appRoutes, CLIENT_ROUTE_IDS } from "../../router.config";
 import {
@@ -98,6 +98,16 @@ function findRouteById(routes: RouteObject[], id: string): RouteObject | undefin
   for (const route of routes) {
     if (route.id === id) return route;
     const childMatch = route.children ? findRouteById(route.children, id) : undefined;
+    if (childMatch) return childMatch;
+  }
+
+  return undefined;
+}
+
+function findRouteByPath(routes: RouteObject[], path: string): RouteObject | undefined {
+  for (const route of routes) {
+    if (route.path === path) return route;
+    const childMatch = route.children ? findRouteByPath(route.children, path) : undefined;
     if (childMatch) return childMatch;
   }
 
@@ -209,11 +219,11 @@ describe("presentation-mode route guards", () => {
 
     const result = requireWebsitePresentationLoader(
       loaderArgs(
-        `http://localhost:3001/?redirectTo=${encodeURIComponent("/garden?draft=1#upload")}`
+        `http://localhost:3001/?redirectTo=${encodeURIComponent("/home/garden?draft=1#upload")}`
       )
     );
 
-    expectRedirect(result, "/garden?draft=1#upload");
+    expectRedirect(result, "/home/garden?draft=1#upload");
   });
 
   it.each([
@@ -235,6 +245,9 @@ describe("presentation-mode route guards", () => {
   it.each([
     "/login",
     "/home",
+    "/home/login",
+    "/home/garden",
+    "/home/profile",
     "/garden",
     "/profile",
   ])("redirects website mode %s to the public website", (path) => {
@@ -256,14 +269,46 @@ describe("presentation-mode route guards", () => {
   });
 
   it.each([
-    "/login",
     "/home",
-    "/garden",
-    "/profile",
+    "/home/login",
+    "/home/garden",
+    "/home/profile",
   ])("allows local device-preview PWA route %s", (path) => {
     setLocalDevicePreviewMode();
 
     expect(requirePwaPresentationLoader(loaderArgs(`http://localhost:3001${path}`))).toBeNull();
+  });
+
+  it.each([
+    ["/login", "/home/login"],
+    ["/login/reset?step=1", "/home/login?step=1"],
+    ["/garden?draftId=d1#upload", "/home/garden?draftId=d1#upload"],
+    ["/garden/join?invite=abc&garden=0x123", "/home/garden?invite=abc&garden=0x123"],
+    ["/profile", "/home/profile"],
+    ["/profile/settings#account", "/home/profile#account"],
+  ])("redirects legacy PWA route %s to canonical route %s", (legacyPath, canonicalPath) => {
+    setLocalDevicePreviewMode();
+
+    const legacyUrl = new URL(`http://localhost:3001${legacyPath}`);
+    const legacyRoute = matchRoutes(appRoutes, legacyUrl.pathname)?.at(-1)?.route;
+    expect(legacyRoute?.loader).toBeTypeOf("function");
+
+    const result = (legacyRoute!.loader as (args: LoaderFunctionArgs) => unknown)(
+      loaderArgs(legacyUrl.toString())
+    );
+
+    expectRedirect(result, canonicalPath);
+  });
+
+  it.each([
+    ["/home/garden", CLIENT_ROUTE_IDS.gardenSubmit],
+    ["/home/profile", CLIENT_ROUTE_IDS.profile],
+    ["/home/login", CLIENT_ROUTE_IDS.login],
+  ])("routes canonical app path %s to %s", (path, expectedRouteId) => {
+    const matches = matchRoutes(appRoutes, path);
+    const leaf = matches?.at(-1)?.route;
+
+    expect(leaf?.id).toBe(expectedRouteId);
   });
 
   it("allows standalone PWA routes", () => {

@@ -1,6 +1,6 @@
 # Lane 03 — Color & Token Audit (Client PWA)
 
-**Scope.** Routes `/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/garden`, `/profile`. Files: `packages/client/src/views/{Login,Home,Garden,Profile}/**`, `packages/client/src/routes/**`, `packages/client/src/components/**` (excluding `Public/**`), `packages/client/src/styles/**`, plus `@green-goods/shared` components imported transitively. Out of scope: `views/Public/**`, `views/Landing/**`, admin package.
+**Scope.** Routes `/home/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/home/garden`, `/home/profile`. Files: `packages/client/src/views/{Login,Home,Garden,Profile}/**`, `packages/client/src/routes/**`, `packages/client/src/components/**` (excluding `Public/**`), `packages/client/src/styles/**`, plus `@green-goods/shared` components imported transitively. Out of scope: `views/Public/**`, `views/Landing/**`, admin package.
 
 **Method.** `grep` + targeted file reads against `packages/shared/src/styles/theme.css`, `packages/shared/src/styles/design-md.generated.css`, the five client style files, and every PWA-scope `.tsx`/`.ts`. Spot-checked the 10 most-imported shared components.
 
@@ -34,7 +34,7 @@ The PWA-scope code is in remarkably good shape on the literal-hex front — only
 
 - **File:** `packages/client/src/styles/editorial.css:255`, `:291`
 - **Literal:** `var(--color-overlay, rgba(0, 0, 0, 0.45))` and `var(--shadow-editorial-panel, 0 24px 64px rgba(0, 0, 0, 0.18))`
-- **Context:** Both are fallbacks inside `.public-garden-dialog-*` rules — these target Public's GardenDialog only. Not consumed by `/home`, `/garden`, `/profile`, `/login`. Both have the canonical token as the first `var()` argument; the rgba is a fallback. **No fix needed for PWA scope.**
+- **Context:** Both are fallbacks inside `.public-garden-dialog-*` rules — these target Public's GardenDialog only. Not consumed by `/home`, `/home/garden`, `/home/profile`, `/home/login`. Both have the canonical token as the first `var()` argument; the rgba is a fallback. **No fix needed for PWA scope.**
 
 ### A4. `rgb(var(--neutral-…) / N%)` in animation.css — Acceptable
 

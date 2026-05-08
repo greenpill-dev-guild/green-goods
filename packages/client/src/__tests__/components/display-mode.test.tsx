@@ -143,6 +143,27 @@ describe("Display mode — AppBar visibility", () => {
     expect(nav.className).toMatch(/translate-y-full/);
   });
 
+  it("standalone PWA: /home/garden keeps Garden active and hides the bottom nav", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+
+    renderAppBar("/home/garden");
+
+    const nav = screen.getByTestId("authenticated-nav");
+    expect(nav.className).toMatch(/translate-y-full/);
+
+    expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
+    expect(screen.getByRole("link", { name: /garden/i }).className).toContain("tab-active");
+  });
+
+  it("standalone PWA: /home/profile keeps Profile active", () => {
+    mockUseApp.mockReturnValue({ isInstalled: true, isPwaPresentation: true });
+
+    renderAppBar("/home/profile");
+
+    expect(screen.getByRole("link", { name: /home/i }).className).not.toContain("tab-active");
+    expect(screen.getByRole("link", { name: /profile/i }).className).toContain("tab-active");
+  });
+
   it("browser mode + authenticated: SiteHeader renders (top nav, not bottom)", () => {
     mockUseApp.mockReturnValue({ isInstalled: false, isPwaPresentation: false });
 

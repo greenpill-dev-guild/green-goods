@@ -1,6 +1,6 @@
 # Client PWA i18n Audit — Lane 01: Translations
 
-**Scope**: PWA routes `/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/garden`, `/profile`. Source dirs: `packages/client/src/views/{Login,Home,Garden,Profile,Landing}/**`, `packages/client/src/routes/**`, `packages/client/src/components/**` (excluding `Public/**`), and shared chain via `packages/shared/src/{components,hooks,providers}/**`. Out of scope: `packages/client/src/views/Public/**`, `packages/admin/**`.
+**Scope**: PWA routes `/home/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/home/garden`, `/home/profile`. Source dirs: `packages/client/src/views/{Login,Home,Garden,Profile,Landing}/**`, `packages/client/src/routes/**`, `packages/client/src/components/**` (excluding `Public/**`), and shared chain via `packages/shared/src/{components,hooks,providers}/**`. Out of scope: `packages/client/src/views/Public/**`, `packages/admin/**`.
 
 **i18n stack**: `react-intl` (FormatJS), wired by `packages/shared/src/providers/App.tsx` (lines 5-7, 19-23, 224). `IntlProvider` is mounted in `App.tsx:224`. Locale switch via `gg-language` in `localStorage` and browser-language fallback (`App.tsx:96-98`). Locale files at `packages/shared/src/i18n/{en,es,pt}.json` re-exported from `packages/shared/src/i18n/index.ts:2-4`.
 

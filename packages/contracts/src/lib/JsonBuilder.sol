@@ -102,7 +102,7 @@ library JsonBuilder {
 
         // Part 4: links
         bytes memory part4 = abi.encodePacked(
-            ",\"links\":[{\"type\":\"other\",\"url\":\"https://greengoods.app/#/home/0x",
+            ",\"links\":[{\"type\":\"other\",\"url\":\"https://www.greengoods.app/home/0x",
             StringUtils.addressToHexString(garden),
             "/work/0x",
             StringUtils.bytes32ToHexString(workUID),

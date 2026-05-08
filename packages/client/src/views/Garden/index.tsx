@@ -37,6 +37,7 @@ import { FormProgress } from "@/components/Communication";
 import { DraftDialog } from "@/components/Dialogs";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
+import { APP_ROUTES } from "@/config/pwa-routing";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
@@ -205,7 +206,7 @@ const Work: React.FC = () => {
     });
 
     const cancelNavigation = scheduleNavigation(() => {
-      navigate("/home", { replace: true, viewTransition: true });
+      navigate(APP_ROUTES.home, { replace: true, viewTransition: true });
       requestAnimationFrame(() => {
         useWorkFlowStore.getState().reset();
         form.reset();
@@ -427,7 +428,7 @@ const Work: React.FC = () => {
             id: "app.profile",
             defaultMessage: "Profile",
           }),
-          onClick: () => navigate("/profile"),
+          onClick: () => navigate(APP_ROUTES.profile),
           dismissOnClick: true,
         },
       });
@@ -442,7 +443,7 @@ const Work: React.FC = () => {
   // Handle exit from garden flow - save draft if there's meaningful progress
   const handleExitFlow = async () => {
     await saveOnExit();
-    navigate("/home", { viewTransition: true });
+    navigate(APP_ROUTES.home, { viewTransition: true });
   };
 
   // Tab configuration

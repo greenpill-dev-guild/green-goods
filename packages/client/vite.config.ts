@@ -7,6 +7,7 @@ import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
+import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
 
 export default defineConfig(async ({ command, mode }) => {
   const rootDir = resolve(__dirname, "../../");
@@ -52,8 +53,7 @@ export default defineConfig(async ({ command, mode }) => {
 
   // Use relative paths for IPFS builds
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
-  const appBasePath = isIPFSBuild ? "./" : "/";
-  const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
+  const pwaRouting = createPwaRoutingConfig(isIPFSBuild);
   const appVersion =
     process.env.VITE_APP_VERSION ||
     process.env.VERCEL_GIT_COMMIT_SHA ||
@@ -64,7 +64,7 @@ export default defineConfig(async ({ command, mode }) => {
     shortAppVersion && shortAppVersion !== "dev"
       ? `${url}${url.includes("?") ? "&" : "?"}gg_v=${encodeURIComponent(shortAppVersion)}`
       : url;
-  const pwaStartUrl = versionedUrl(shortcutUrl("/home"));
+  const pwaStartUrl = versionedUrl(pwaRouting.startUrl);
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
@@ -153,16 +153,17 @@ export default defineConfig(async ({ command, mode }) => {
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        // The browser-origin worker is scoped to /home, so the app shell fallback
+        // only owns installed-app routes while public/editorial routes stay in the browser.
         navigateFallback: "index.html",
         navigateFallbackDenylist: [
-          /^\/(?:[?#].*)?$/,
+          /^\/$/,
           /^\/actions(?:[?#].*)?$/,
           /^\/cookies(?:[?#].*)?$/,
           /^\/fund(?:[?#].*)?$/,
           /^\/gardens(?:\/.*)?(?:[?#].*)?$/,
           /^\/glossary(?:[?#].*)?$/,
           /^\/impact(?:[?#].*)?$/,
-          /^\/landing(?:[?#].*)?$/,
         ],
         sourcemap: false,
         importScripts: ["sw-custom.js"],
@@ -248,7 +249,7 @@ export default defineConfig(async ({ command, mode }) => {
         ],
       },
       manifest: {
-        id: appBasePath,
+        id: pwaRouting.manifestId,
         name: "Green Goods",
         short_name: "Green Goods",
         // Window Controls Overlay: Native desktop app feel (removes browser titlebar)
@@ -267,7 +268,7 @@ export default defineConfig(async ({ command, mode }) => {
           },
         ],
         start_url: pwaStartUrl,
-        scope: appBasePath,
+        scope: pwaRouting.manifestScope,
         display: "standalone",
         orientation: "portrait-primary",
         theme_color: "#fff",
@@ -276,19 +277,19 @@ export default defineConfig(async ({ command, mode }) => {
           {
             name: "Home",
             description: "View Gardens",
-            url: shortcutUrl("/home"),
+            url: pwaRouting.shortcutUrl(APP_ROUTES.home),
             icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Garden",
             description: "Upload your work",
-            url: shortcutUrl("/garden"),
+            url: pwaRouting.shortcutUrl(APP_ROUTES.garden),
             icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Profile",
             description: "View your profile",
-            url: shortcutUrl("/profile"),
+            url: pwaRouting.shortcutUrl(APP_ROUTES.profile),
             icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
         ],
@@ -300,7 +301,7 @@ export default defineConfig(async ({ command, mode }) => {
 
   return {
     root: __dirname,
-    base: appBasePath,
+    base: pwaRouting.assetBasePath,
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {

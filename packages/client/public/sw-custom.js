@@ -154,7 +154,7 @@ self.addEventListener("message", (event) => {
         icon: "/icon-192.png",
         badge: "/images/android-icon-72x72.png",
         tag: `ens-complete-${slug}`,
-        data: { url: "/profile", slug },
+        data: { url: "/home/profile", slug },
       })
     );
   }
@@ -162,7 +162,7 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/";
+  const url = event.notification.data?.url || "/home";
   event.waitUntil(
     self.clients.matchAll({ type: "window" }).then((windowClients) => {
       // Focus existing window if available

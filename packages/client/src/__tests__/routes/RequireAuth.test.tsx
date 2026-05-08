@@ -6,7 +6,7 @@
 
 import { cleanup, render, screen } from "@testing-library/react";
 import { createElement } from "react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock the current shared auth state hook
@@ -20,7 +20,14 @@ vi.mock("@green-goods/shared", () => ({
 import RequireAuth from "../../routes/RequireAuth";
 
 const ProtectedContent = () => createElement("div", null, "Protected Content");
-const LoginPage = () => createElement("div", null, "Login Page");
+const LoginPage = () => {
+  const location = useLocation();
+  return createElement(
+    "div",
+    { "data-location": `${location.pathname}${location.search}` },
+    "Login Page"
+  );
+};
 
 const renderWithRouter = (initialRoute = "/protected") => {
   return render(
@@ -30,7 +37,7 @@ const renderWithRouter = (initialRoute = "/protected") => {
       createElement(
         Routes,
         null,
-        createElement(Route, { path: "/login", element: createElement(LoginPage) }),
+        createElement(Route, { path: "/home/login", element: createElement(LoginPage) }),
         createElement(
           Route,
           { element: createElement(RequireAuth) },
@@ -97,7 +104,9 @@ describe("RequireAuth", () => {
 
     renderWithRouter("/protected?foo=bar");
 
-    // Redirect happens - we land on login page
-    expect(screen.getByText("Login Page")).toBeInTheDocument();
+    expect(screen.getByText("Login Page")).toHaveAttribute(
+      "data-location",
+      "/home/login?redirectTo=%2Fprotected%3Ffoo%3Dbar"
+    );
   });
 });

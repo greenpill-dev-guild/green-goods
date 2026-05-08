@@ -366,7 +366,7 @@ export function useAutoJoinRootGarden() {
           action: {
             label: "Go to Profile",
             onClick: () => {
-              window.location.href = "/profile";
+              window.location.href = "/home/profile";
             },
             dismissOnClick: true,
             testId: "go-to-profile-action",
@@ -382,7 +382,7 @@ export function useAutoJoinRootGarden() {
           action: {
             label: "Go to Profile",
             onClick: () => {
-              window.location.href = "/profile";
+              window.location.href = "/home/profile";
             },
             dismissOnClick: true,
           },

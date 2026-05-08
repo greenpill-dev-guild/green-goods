@@ -207,7 +207,7 @@ test.describe("Fork Integration Tests", () => {
 
       // Check if we're authenticated
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         // Auth injection didn't persist - expected in some environments
         console.log("   Auth injection not persisted - test skipped");
         return;

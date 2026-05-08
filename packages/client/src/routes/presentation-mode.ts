@@ -1,7 +1,8 @@
 import { getClientPresentationMode } from "@green-goods/shared/utils";
 import { redirect, type LoaderFunctionArgs } from "react-router-dom";
+import { APP_ROUTES, LEGACY_APP_ROUTES } from "@/config/pwa-routing";
 
-const PWA_ENTRY_ROUTE = "/home";
+const PWA_ENTRY_ROUTE = APP_ROUTES.home;
 const WEBSITE_ENTRY_ROUTE = "/";
 const PUBLIC_WEBSITE_PATHS = new Set([
   "/",
@@ -49,7 +50,15 @@ function getSafeInternalRedirect(value: string | null): string | null {
     const url = new URL(value, "https://greengoods.local");
     if (url.origin !== "https://greengoods.local") return null;
     if (url.pathname === WEBSITE_ENTRY_ROUTE) return null;
-    return `${url.pathname}${url.search}${url.hash}`;
+    const pathname =
+      url.pathname === LEGACY_APP_ROUTES.login
+        ? APP_ROUTES.login
+        : url.pathname === LEGACY_APP_ROUTES.garden
+          ? APP_ROUTES.garden
+          : url.pathname === LEGACY_APP_ROUTES.profile
+            ? APP_ROUTES.profile
+            : url.pathname;
+    return `${pathname}${url.search}${url.hash}`;
   } catch {
     return null;
   }

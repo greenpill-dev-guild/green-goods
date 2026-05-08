@@ -1,6 +1,6 @@
 # Lane 04 — Motion / Touch / Animation Audit (Client PWA)
 
-**Scope.** PWA routes only: `/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/garden`, `/profile`. Source-truth is the code; no live DOM measurement. Editorial `Public/**`, `Hero.tsx`, `SiteHeader.tsx`, and `editorial.css` are explicitly **out of scope** and not audited here.
+**Scope.** PWA routes only: `/home/login`, `/home`, `/home/:id`, `/home/:id/work/:workId`, `/home/:id/assessments/:assessmentId`, `/home/garden`, `/home/profile`. Source-truth is the code; no live DOM measurement. Editorial `Public/**`, `Hero.tsx`, `SiteHeader.tsx`, and `editorial.css` are explicitly **out of scope** and not audited here.
 
 ## Top-level summary
 
@@ -257,7 +257,7 @@ No `onContextMenu` or `pointerdown`-and-timer long-press pattern in PWA scope. (
 
 ### D.4 — Pull-to-refresh — **OK**
 
-`packages/client/src/components/Inputs/PullToRefresh.tsx` is a single canonical implementation: native non-passive touch listeners, `prefersReducedMotion.current` short-circuits the visual reveal (lines 84, 287-298, 306-315), gestures resist + cap (`RESISTANCE = 2.5`, `MAX_PULL_DISTANCE = 120`), and the indicator respects an accessible `role="status"` + `aria-live="polite"` (line 268-276). Deployed only on `Home/index.tsx:179-189`. Garden detail (`/home/:id`), `/profile`, and `/garden` (submit) do **not** mount `PullToRefresh`. That's a structural choice (those screens have local refresh buttons or refetching-on-mount), not a bug — flagging only so the reader knows the PWA has no inconsistent ptr behaviour because it has only one ptr surface.
+`packages/client/src/components/Inputs/PullToRefresh.tsx` is a single canonical implementation: native non-passive touch listeners, `prefersReducedMotion.current` short-circuits the visual reveal (lines 84, 287-298, 306-315), gestures resist + cap (`RESISTANCE = 2.5`, `MAX_PULL_DISTANCE = 120`), and the indicator respects an accessible `role="status"` + `aria-live="polite"` (line 268-276). Deployed only on `Home/index.tsx:179-189`. Garden detail (`/home/:id`), `/home/profile`, and `/home/garden` (submit) do **not** mount `PullToRefresh`. That's a structural choice (those screens have local refresh buttons or refetching-on-mount), not a bug — flagging only so the reader knows the PWA has no inconsistent ptr behaviour because it has only one ptr surface.
 
 ### D.5 — `touch-action: manipulation` coverage — **P2**
 

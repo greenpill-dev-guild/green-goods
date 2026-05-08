@@ -217,7 +217,7 @@ const messages = {
   "app.action.selected": "Selected Action",
 };
 
-const renderWithProviders = (initialRoute = "/garden") => {
+const renderWithProviders = (initialRoute = "/home/garden") => {
   return render(
     createElement(
       MemoryRouter,
@@ -228,7 +228,7 @@ const renderWithProviders = (initialRoute = "/garden") => {
         createElement(
           Routes,
           null,
-          createElement(Route, { path: "/garden", element: createElement(Work) }),
+          createElement(Route, { path: "/home/garden", element: createElement(Work) }),
           createElement(Route, { path: "/home", element: createElement("div", null, "Home") })
         )
       )

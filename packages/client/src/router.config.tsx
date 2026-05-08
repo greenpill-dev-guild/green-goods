@@ -4,6 +4,7 @@ import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
 } from "./routes/presentation-mode";
+import { APP_ROUTES, LEGACY_APP_ROUTES } from "./config/pwa-routing";
 
 export const CLIENT_ROUTE_IDS = {
   root: "root",
@@ -16,9 +17,11 @@ export const CLIENT_ROUTE_IDS = {
   publicImpact: "public-impact",
   publicActions: "public-actions",
   publicGlossary: "public-glossary",
+  login: "login",
   home: "home",
   garden: "garden",
   gardenSubmit: "garden-submit",
+  profile: "profile",
 } as const;
 
 // Prefetch base lists before rendering home (non-blocking).
@@ -29,6 +32,16 @@ const homeLoader = (args: LoaderFunctionArgs) => {
   ensureBaseLists();
   return null;
 };
+
+const legacyPwaRouteLoader =
+  (canonicalRoute: string) =>
+  (args: LoaderFunctionArgs): Response | null => {
+    const modeRedirect = requirePwaPresentationLoader(args);
+    if (modeRedirect) return modeRedirect;
+
+    const url = new URL(args.request.url);
+    return redirect(`${canonicalRoute}${url.search}${url.hash}`);
+  };
 
 export const appRoutes = [
   {
@@ -111,8 +124,33 @@ export const appRoutes = [
         lazy: async () => ({ Component: (await import("@/routes/PwaRuntime")).default }),
         children: [
           {
-            path: "login",
+            id: CLIENT_ROUTE_IDS.login,
+            path: APP_ROUTES.login.slice(1),
             lazy: async () => ({ Component: (await import("@/views/Login")).Login }),
+          },
+          {
+            path: LEGACY_APP_ROUTES.login.slice(1),
+            loader: legacyPwaRouteLoader(APP_ROUTES.login),
+          },
+          {
+            path: `${LEGACY_APP_ROUTES.login.slice(1)}/*`,
+            loader: legacyPwaRouteLoader(APP_ROUTES.login),
+          },
+          {
+            path: LEGACY_APP_ROUTES.garden.slice(1),
+            loader: legacyPwaRouteLoader(APP_ROUTES.garden),
+          },
+          {
+            path: `${LEGACY_APP_ROUTES.garden.slice(1)}/*`,
+            loader: legacyPwaRouteLoader(APP_ROUTES.garden),
+          },
+          {
+            path: LEGACY_APP_ROUTES.profile.slice(1),
+            loader: legacyPwaRouteLoader(APP_ROUTES.profile),
+          },
+          {
+            path: `${LEGACY_APP_ROUTES.profile.slice(1)}/*`,
+            loader: legacyPwaRouteLoader(APP_ROUTES.profile),
           },
 
           // Auth-protected routes.
@@ -123,8 +161,18 @@ export const appRoutes = [
                 lazy: async () => ({ Component: (await import("@/routes/AppShell")).default }),
                 children: [
                   {
+                    id: CLIENT_ROUTE_IDS.gardenSubmit,
+                    path: APP_ROUTES.garden.slice(1),
+                    lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
+                  },
+                  {
+                    id: CLIENT_ROUTE_IDS.profile,
+                    path: APP_ROUTES.profile.slice(1),
+                    lazy: async () => ({ Component: (await import("@/views/Profile")).default }),
+                  },
+                  {
                     id: CLIENT_ROUTE_IDS.home,
-                    path: "home",
+                    path: APP_ROUTES.home.slice(1),
                     loader: homeLoader,
                     lazy: async () => ({ Component: (await import("@/views/Home")).default }),
                     children: [
@@ -151,15 +199,6 @@ export const appRoutes = [
                         ],
                       },
                     ],
-                  },
-                  {
-                    id: CLIENT_ROUTE_IDS.gardenSubmit,
-                    path: "garden",
-                    lazy: async () => ({ Component: (await import("@/views/Garden")).default }),
-                  },
-                  {
-                    path: "profile",
-                    lazy: async () => ({ Component: (await import("@/views/Profile")).default }),
                   },
                 ],
               },
