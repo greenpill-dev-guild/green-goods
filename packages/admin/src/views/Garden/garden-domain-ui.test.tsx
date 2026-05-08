@@ -66,27 +66,25 @@ describe("garden domain recovery UI", () => {
     mockCanManageGarden.mockReturnValue(true);
   });
 
-  it("shows the empty-domain affordance and edit CTA for managers", () => {
-    const onEditDomains = vi.fn();
-
+  it("shows the empty-domain status without an inline edit action", () => {
     render(
       <TestProviders>
-        <GardenDomainSummaryRow domainMask={0} canManage onEditDomains={onEditDomains} />
+        <GardenDomainSummaryRow domainMask={0} />
       </TestProviders>
     );
 
     expect(screen.getByText("No domains configured")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit domains" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Edit domains" })).not.toBeInTheDocument();
   });
 
-  it("keeps the empty-domain label visible for read-only users", () => {
+  it("keeps configured domain labels status-only", () => {
     render(
       <TestProviders>
-        <GardenDomainSummaryRow domainMask={0} canManage={false} />
+        <GardenDomainSummaryRow domainMask={1} />
       </TestProviders>
     );
 
-    expect(screen.getByText("No domains configured")).toBeVisible();
+    expect(screen.queryByText("No domains configured")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Edit domains" })).not.toBeInTheDocument();
   });
 

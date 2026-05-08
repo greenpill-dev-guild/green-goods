@@ -1,6 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useMemo } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
@@ -13,8 +11,10 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
-import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { adminCanvasRoutes } from "@/routes/views";
+import {
+  ADMIN_ROUTE_STORY_QUERY_OPTIONS,
+  StorybookAdminCanvasRoute,
+} from "../storybookCanvasHarness";
 import {
   buildCampaignCookieJarMetadata,
   DEFAULT_CHAIN_ID,
@@ -84,21 +84,7 @@ const MANY_COOKIE_GARDEN_SEEDS = [
 ] as const;
 
 function CookiesCanvasStory({ initialPath = "/cookies" }: { initialPath?: string }) {
-  const router = useMemo(
-    () =>
-      createMemoryRouter(
-        [
-          {
-            element: <CanvasLayout />,
-            children: adminCanvasRoutes,
-          },
-        ],
-        { initialEntries: [initialPath] }
-      ),
-    [initialPath]
-  );
-
-  return <RouterProvider router={router} />;
+  return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
 const meta: Meta<typeof CookiesCanvasStory> = {
@@ -134,7 +120,11 @@ export const Empty: Story = {
   decorators: [withSeededQueryClient(EMPTY_COOKIE_CAMPAIGN_SEEDS)],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const createActions = await canvas.findAllByRole("button", { name: "Create cookie jar" });
+    const createActions = await canvas.findAllByRole(
+      "button",
+      { name: "Create cookie jar" },
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
     await expect(createActions).toHaveLength(1);
   },
 };
@@ -144,9 +134,19 @@ export const DeployRoute: Story = {
   args: { initialPath: "/cookies/deploy" },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByLabelText("Campaign name")).toBeVisible();
-    await expect(await canvas.findByLabelText("Claim amount per operator")).toBeVisible();
-    await expect(await canvas.findByText("Review")).toBeVisible();
+    await expect(
+      await canvas.findByLabelText("Campaign name", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findByLabelText(
+        "Claim amount per operator",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
+    await expect(
+      await canvas.findByText("Review", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
     await expect(canvas.queryByText("Campaign page URL")).toBeNull();
     await expect(canvas.queryByLabelText("ERC20 token address")).toBeNull();
   },

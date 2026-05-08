@@ -11,6 +11,8 @@ import { cn } from "../../utils";
 import { SheetErrorBoundary } from "./SheetErrorBoundary";
 import { SPRING_CONFIGS, DISMISS_VELOCITY_THRESHOLD } from "./springConfig";
 
+export type LeftSheetWidth = "default" | "wide";
+
 export interface LeftSheetProps {
   open: boolean;
   onClose: () => void;
@@ -22,6 +24,8 @@ export interface LeftSheetProps {
    * bounded to the container (canvas overlay root).
    */
   container?: HTMLElement | null;
+  /** Width variant. Mirrors RightSheet sizing for consistent side-sheet anatomy. */
+  width?: LeftSheetWidth;
 }
 
 /**
@@ -37,10 +41,15 @@ export function LeftSheet({
   description,
   children,
   container,
+  width = "default",
 }: LeftSheetProps) {
   const isBounded = container !== undefined && container !== null;
   const sheetState = open ? "open" : "closed";
   const sheetBoundary = isBounded ? "bounded" : "viewport";
+  const widthVar =
+    width === "wide"
+      ? "var(--canvas-left-sheet-width-wide, clamp(420px, 36vw, 640px))"
+      : "var(--canvas-left-sheet-width, clamp(320px, 28vw, 480px))";
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -236,7 +245,7 @@ export function LeftSheet({
         )}
         style={{
           width: "100%",
-          maxWidth: "clamp(320px, 35vw, 480px)",
+          maxWidth: widthVar,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           touchAction: "none",
           // Handoff: closed sits at translateX(calc(-100% - 24px)); open at translateX(0)
@@ -248,6 +257,7 @@ export function LeftSheet({
         data-slot="surface"
         data-state={sheetState}
         data-boundary={sheetBoundary}
+        data-width={width}
         data-testid="left-sheet"
         {...bind()}
       >

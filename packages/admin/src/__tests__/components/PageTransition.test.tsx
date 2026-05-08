@@ -3,8 +3,18 @@
  * @vitest-environment jsdom
  */
 
-import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
-import { act, beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { act } from "react";
+import {
+  createMemoryRouter,
+  MemoryRouter,
+  Route,
+  RouterProvider,
+  Routes,
+  useNavigate,
+} from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, userEvent, waitFor } from "../test-utils";
 
 /* ------------------------------------------------------------------ */
@@ -59,6 +69,10 @@ function PageB() {
   return <div data-testid="page-b">Page B</div>;
 }
 
+function LazyPage() {
+  return <div data-testid="lazy-page">Lazy Page</div>;
+}
+
 function NavButton({ to }: { to: string }) {
   const navigate = useNavigate();
   return (
@@ -87,6 +101,38 @@ function renderPageTransition(initialPath = "/page-a", navTargets = ["/page-a", 
   );
 }
 
+function renderLazyPageTransition() {
+  let resolveLazyRoute: ((module: { Component: typeof LazyPage }) => void) | undefined;
+  const lazyRoute = new Promise<{ Component: typeof LazyPage }>((resolveLazy) => {
+    resolveLazyRoute = resolveLazy;
+  });
+  const router = createMemoryRouter(
+    [
+      {
+        element: <PageTransition />,
+        children: [
+          {
+            path: "/lazy",
+            lazy: () => lazyRoute,
+          },
+        ],
+      },
+    ],
+    { initialEntries: ["/lazy"] }
+  );
+
+  renderWithProviders(<RouterProvider router={router} />);
+
+  return {
+    resolveLazyRoute: () => {
+      if (!resolveLazyRoute) {
+        throw new Error("Lazy route resolver was not initialized");
+      }
+      resolveLazyRoute({ Component: LazyPage });
+    },
+  };
+}
+
 /* ------------------------------------------------------------------ */
 /* Tests                                                               */
 /* ------------------------------------------------------------------ */
@@ -104,6 +150,19 @@ describe("PageTransition", () => {
   it("renders the outlet content", () => {
     renderPageTransition();
     expect(screen.getByTestId("page-a")).toBeInTheDocument();
+  });
+
+  it("renders lazy route content when the outlet resolves without a pathname change", async () => {
+    const { resolveLazyRoute } = renderLazyPageTransition();
+
+    expect(screen.queryByTestId("lazy-page")).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveLazyRoute();
+    });
+
+    expect(await screen.findByTestId("lazy-page")).toBeInTheDocument();
+    expect(mockStartViewTransition).not.toHaveBeenCalled();
   });
 
   it("triggers startViewTransition on pathname change when no sheet is open", async () => {
@@ -267,6 +326,17 @@ describe("PageTransition", () => {
     const outlet = screen.getByTestId("page-a");
     // The parent div should NOT have the old slide animation
     expect(outlet.parentElement?.className).not.toContain("animate-page-slide-in");
+  });
+
+  it("keeps route transition animation scoped to named content", () => {
+    const css = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
+
+    expect(css).toContain("view-transition-name: gg-route-content");
+    expect(css).toContain("::view-transition-old(root)");
+    expect(css).toContain("animation: none !important");
+    expect(css).toContain("::view-transition-new(gg-route-content)");
+    expect(css).toContain("--admin-motion-route-content-duration");
+    expect(css).toContain("--admin-motion-route-content-easing");
   });
 
   it("does not fire transition when pathname stays the same", async () => {

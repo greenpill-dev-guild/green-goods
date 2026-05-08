@@ -6,8 +6,6 @@ import {
   type Address,
   type Garden as SharedGarden,
 } from "@green-goods/shared";
-import { useMemo } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_GARDENS,
@@ -21,31 +19,17 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
-import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { adminCanvasRoutes } from "@/routes/views";
+import {
+  ADMIN_ROUTE_STORY_QUERY_OPTIONS,
+  StorybookAdminCanvasRoute,
+} from "../storybookCanvasHarness";
 
 interface GardenCanvasStoryProps {
   initialPath?: string;
 }
 
 function GardenCanvasStory({ initialPath = "/garden/overview" }: GardenCanvasStoryProps) {
-  const router = useMemo(
-    () =>
-      createMemoryRouter(
-        [
-          {
-            element: <CanvasLayout />,
-            children: adminCanvasRoutes,
-          },
-        ],
-        {
-          initialEntries: [initialPath],
-        }
-      ),
-    [initialPath]
-  );
-
-  return <RouterProvider router={router} />;
+  return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
 const meta: Meta<typeof GardenCanvasStory> = {
@@ -115,8 +99,13 @@ export const Overview: Story = {
   decorators: gardenDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Garden" })).toBeVisible();
-    await expect((await canvas.findAllByText("Rio Rainforest Lab")).length).toBeGreaterThan(0);
+    await expect(
+      await canvas.findByRole("heading", { name: "Garden" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      (await canvas.findAllByText("Rio Rainforest Lab", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS))
+        .length
+    ).toBeGreaterThan(0);
   },
 };
 
@@ -144,8 +133,12 @@ export const CreateGardenRoute: Story = {
   decorators: gardenDecorators({ seeds: STORYBOOK_DEPLOYER_SEEDS }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Create Garden" })).toBeVisible();
-    await expect(await canvas.findByText(/Set the garden profile/i)).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Create Garden" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findByText(/Set the garden profile/i, undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
   },
 };
 
@@ -155,8 +148,12 @@ export const CreateGardenRouteUnauthorized: Story = {
   decorators: gardenDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByTestId("unauthorized")).toBeVisible();
-    await expect(await canvas.findByRole("heading", { name: "Unauthorized" })).toBeVisible();
+    await expect(
+      await canvas.findByTestId("unauthorized", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Unauthorized" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
   },
 };
 
@@ -169,7 +166,15 @@ export const EmptyDomains: Story = {
   }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByText("No domains configured")).toBeVisible();
-    await expect(await canvas.findAllByRole("button", { name: "Edit domains" })).toHaveLength(1);
+    await expect(
+      await canvas.findByText("No domains configured", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findAllByRole(
+        "button",
+        { name: "Edit domains" },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toHaveLength(1);
   },
 };

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import type { LeftSheetWidth } from "./LeftSheet";
 
 // ----------------------------------------------------------------------------
 // Types
@@ -20,6 +21,8 @@ export interface LeftSheetConfig {
   content: ReactNode;
   /** Called when the sheet is closed (e.g., navigate back) */
   onClose: () => void;
+  /** Width hint for desktop side sheets. */
+  width?: LeftSheetWidth;
 }
 
 export interface RouteBackedLeftSheetConfig {
@@ -27,6 +30,7 @@ export interface RouteBackedLeftSheetConfig {
   content: ReactNode;
   closeTo: string;
   onBeforeClose?: () => void;
+  width?: LeftSheetWidth;
 }
 
 // ----------------------------------------------------------------------------
@@ -110,6 +114,7 @@ export function useRouteBackedLeftSheetConfig(config: RouteBackedLeftSheetConfig
             title: config.title,
             content: config.content,
             onClose: handleClose,
+            width: config.width,
           }
         : null,
     [config, handleClose]

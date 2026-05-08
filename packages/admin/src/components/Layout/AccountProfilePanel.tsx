@@ -62,7 +62,7 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
     <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
       <Surface elevation="raised" padding="default" className="space-y-4">
         <div className="flex items-center gap-4">
-          <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[1.1rem] bg-[linear-gradient(135deg,rgba(var(--tone-tint,124_58_237),0.2),rgba(var(--tone-accent,124_58_237),0.36))] text-[rgb(var(--tone-accent,124_58_237))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.5),0_18px_32px_rgba(15,23,42,0.16)]">
+          <div className="account-avatar-tile relative flex h-14 w-14 items-center justify-center overflow-hidden">
             {avatarUrl ? (
               <img
                 src={avatarUrl}

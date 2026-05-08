@@ -9,6 +9,7 @@ import {
   RiAddLine,
   RiExternalLinkLine,
   RiHandCoinLine,
+  RiPencilLine,
   RiSettings3Line,
   RiUserAddLine,
 } from "@remixicon/react";
@@ -111,7 +112,8 @@ export function buildGardenViewActions(
   canManage: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
-  routeContext?: AdminGardenRouteContext
+  routeContext?: AdminGardenRouteContext,
+  onEditDomains?: () => void
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
   const communityRouteContext = { gardenAddress };
@@ -130,6 +132,16 @@ export function buildGardenViewActions(
       },
       variant: "ghost",
       visible: hasSelectedGarden && Boolean(gardenAddress),
+    },
+    {
+      id: "edit-domains",
+      label: "Edit domains",
+      labelId: "cockpit.garden.action.editDomains",
+      icon: RiPencilLine,
+      onClick: () => onEditDomains?.(),
+      variant: "secondary",
+      visible: hasSelectedGarden && canManage && Boolean(onEditDomains),
+      primary: view === "settings",
     },
     {
       id: "invite-gardener",

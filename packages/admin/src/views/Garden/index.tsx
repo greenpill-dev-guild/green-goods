@@ -60,7 +60,7 @@ export default function GardenView() {
         }
         actions={
           isDesktop && garden.desktopActions.length > 0 ? (
-            <AdminViewActions items={garden.desktopActions} />
+            <AdminViewActions items={garden.desktopActions} maxInline={4} />
           ) : undefined
         }
         variant="canvas"

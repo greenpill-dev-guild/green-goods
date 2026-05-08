@@ -178,14 +178,18 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                 onClick={() => handleAction(action.id)}
                 className={cn(
                   "flex cursor-pointer items-center gap-2 rounded-full px-3 py-2",
-                  "border border-white/72 bg-[linear-gradient(180deg,rgba(255,255,255,0.92)_0%,rgba(248,250,252,0.86)_100%)] shadow-[0_16px_30px_rgba(15,23,42,0.14)]",
-                  "dark:border-stroke-soft dark:bg-[linear-gradient(180deg,rgb(var(--bg-soft-200)/0.92)_0%,rgb(var(--bg-weak-50)/0.86)_100%)] dark:shadow-[0_16px_30px_rgba(0,0,0,0.3)]",
+                  "border",
                   "text-sm font-medium text-text-strong",
-                  "transition-all hover:shadow-[0_20px_34px_rgba(15,23,42,0.18)]",
+                  "transition-all",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-tint,59_130_246))]",
                   "speed-dial-item",
                   "motion-reduce:animate-none"
                 )}
+                style={{
+                  background: "var(--admin-speed-dial-bg, var(--color-material-regular))",
+                  borderColor: "var(--admin-speed-dial-border, rgb(var(--stroke-soft-200)))",
+                  boxShadow: "var(--admin-speed-dial-shadow, var(--elevation-3))",
+                }}
                 aria-label={formatMessage({ id: action.labelId })}
                 data-slot="speed-dial-item"
                 data-item-id={action.id}
@@ -376,7 +380,6 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
             "canvas-navigation-bar flex w-max items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
             "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-2)]",
-            "dark:border-stroke-soft dark:bg-bg-sub dark:shadow-[var(--edge-rest),_var(--elevation-3)]",
             "animate-[nav-bar-enter_var(--spring-spatial)_both]",
             "motion-reduce:animate-none"
           )}
@@ -407,7 +410,6 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           className={cn(
             "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-2xl px-2 py-2",
             "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-3)]",
-            "dark:border-stroke-soft dark:bg-bg-sub",
             "animate-[nav-bar-enter_var(--spring-spatial)_both]",
             "motion-reduce:animate-none"
           )}

@@ -184,24 +184,37 @@
 }
 
 /* ============================================================================
- * VIEW TRANSITIONS API - Cross-fade + scale morph (Three-Body System)
- * Old view fades out + scales down, new view fades in + scales up.
- * Duration: 400ms with spatial-slow spring. No directional slide.
+ * VIEW TRANSITIONS API — content-only route fade
+ * Persistent chrome stays still; route content gets the short transition.
  * ============================================================================ */
 @media (prefers-reduced-motion: no-preference) {
-  ::view-transition-old(root) {
-    animation: var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing) both view-fade-out;
-  }
+  ::view-transition-old(root),
   ::view-transition-new(root) {
-    animation: var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing) both view-fade-in;
+    animation: none;
+  }
+
+  ::view-transition-old(root) {
+    opacity: 1;
+  }
+
+  ::view-transition-new(root) {
+    opacity: 1;
+  }
+
+  ::view-transition-old(gg-route-content) {
+    animation: var(--admin-motion-route-content-duration) var(--admin-motion-route-content-easing) both route-content-fade-out;
+  }
+
+  ::view-transition-new(gg-route-content) {
+    animation: var(--admin-motion-route-content-duration) var(--admin-motion-route-content-easing) both route-content-fade-in;
   }
 }
 
-@keyframes view-fade-out {
-  to { opacity: 0; transform: scale(var(--canvas-scale-receded)); }
+@keyframes route-content-fade-out {
+  to { opacity: 0; transform: translateY(var(--admin-motion-route-content-offset)); }
 }
-@keyframes view-fade-in {
-  from { opacity: 0; transform: scale(var(--canvas-scale-receded)); }
+@keyframes route-content-fade-in {
+  from { opacity: 0; transform: translateY(var(--admin-motion-route-content-offset)); }
 }
 
 /* Hub pipeline tab crossfade */
@@ -264,6 +277,65 @@
   --admin-surface-50: 251 249 244;
   --warm-shadow: 133 109 70;
   --warm-shadow-deep: 38 28 18;
+
+  /* Controlled Chrome — subtle liquid material reserved for AppBar,
+   * Navigation/FAB, and sheet shells. Dense route content stays solid. */
+  --admin-chrome-bg: linear-gradient(
+    180deg,
+    rgb(var(--admin-surface-0) / 0.78) 0%,
+    rgb(var(--admin-surface-50) / 0.68) 100%
+  );
+  --admin-chrome-border: rgb(var(--neutral-800) / 0.08);
+  --admin-chrome-shadow: 0 18px 44px rgb(var(--warm-shadow) / 0.12), var(--edge-rest);
+  --admin-chrome-blur: var(--blur-material-regular, 12px);
+  --admin-appbar-shadow: 0 1px 0 rgb(var(--neutral-800) / 0.06);
+  --admin-sheet-bg: linear-gradient(
+    180deg,
+    rgb(var(--admin-surface-0) / 0.86) 0%,
+    rgb(var(--admin-surface-50) / 0.76) 100%
+  );
+  --admin-speed-dial-bg: var(--admin-chrome-bg);
+  --admin-speed-dial-border: var(--admin-chrome-border);
+  --admin-speed-dial-shadow: 0 16px 30px rgb(var(--warm-shadow) / 0.14), var(--edge-rest);
+  --admin-domain-fallback-soft-alpha: 1;
+  --admin-domain-fallback-ink-alpha: 0.18;
+  --admin-work-fallback-bg: linear-gradient(
+    135deg,
+    rgb(var(--admin-surface-50)) 0%,
+    rgb(var(--admin-surface-0)) 100%
+  );
+  --admin-empty-state-bg: linear-gradient(
+    180deg,
+    rgb(var(--admin-surface-0) / 0.62) 0%,
+    rgb(var(--admin-surface-50) / 0.82) 100%
+  );
+  --admin-workbench-icon-bg: rgb(var(--bg-soft-200));
+  --admin-skeleton-shimmer: linear-gradient(
+    90deg,
+    rgb(var(--bg-soft-200)) 25%,
+    rgb(var(--bg-weak-50)) 50%,
+    rgb(var(--bg-soft-200)) 75%
+  );
+  --admin-confirmed-shimmer: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--success-base) / 0.08) 45%,
+    transparent 100%
+  );
+  --admin-appbar-height: 3.5rem;
+  --admin-main-bottom-clearance-desktop: 6.25rem;
+  --admin-main-bottom-clearance-mobile: calc(env(safe-area-inset-bottom) + 9.5rem);
+  --admin-main-content-min-height: calc(
+    100dvh - var(--admin-appbar-height, 3.5rem) - var(--admin-main-bottom-clearance-desktop)
+  );
+  --admin-motion-route-content-duration: var(--spring-effects-fast-duration);
+  --admin-motion-route-content-easing: var(--spring-effects-fast-easing);
+  --admin-motion-route-content-offset: 4px;
+  --admin-motion-canvas-tone-duration: var(--spring-spatial-slow-duration);
+  --admin-motion-canvas-tone-easing: var(--spring-spatial-slow-easing);
+  --admin-motion-fab-menu: var(--spring-spatial-fast);
+  --admin-motion-sheet: var(--spring-spatial-fast);
+  --admin-motion-state: var(--spring-effects-fast);
 }
 
 [data-theme="dark"] {
@@ -277,6 +349,46 @@
   --admin-surface-50: 17 19 27;
   --warm-shadow: 0 0 0;
   --warm-shadow-deep: 0 0 0;
+
+  --admin-chrome-bg: linear-gradient(
+    180deg,
+    rgb(var(--neutral-925) / 0.82) 0%,
+    rgb(var(--neutral-950) / 0.72) 100%
+  );
+  --admin-chrome-border: rgb(var(--neutral-50) / 0.1);
+  --admin-chrome-shadow: 0 20px 48px rgb(var(--warm-shadow) / 0.44), var(--edge-rest);
+  --admin-appbar-shadow: 0 1px 0 rgb(var(--neutral-50) / 0.08);
+  --admin-sheet-bg: linear-gradient(
+    180deg,
+    rgb(var(--neutral-900) / 0.86) 0%,
+    rgb(var(--neutral-950) / 0.76) 100%
+  );
+  --admin-speed-dial-shadow: 0 16px 30px rgb(var(--warm-shadow) / 0.42), var(--edge-rest);
+  --admin-domain-fallback-soft-alpha: 0.14;
+  --admin-domain-fallback-ink-alpha: 0.28;
+  --admin-work-fallback-bg: linear-gradient(
+    135deg,
+    rgb(var(--neutral-900)) 0%,
+    rgb(var(--neutral-950)) 100%
+  );
+  --admin-empty-state-bg: linear-gradient(
+    180deg,
+    rgb(var(--neutral-900) / 0.72) 0%,
+    rgb(var(--neutral-950) / 0.86) 100%
+  );
+  --admin-workbench-icon-bg: rgb(var(--bg-sub-300));
+  --admin-skeleton-shimmer: linear-gradient(
+    90deg,
+    rgb(var(--neutral-900)) 25%,
+    rgb(var(--neutral-850)) 50%,
+    rgb(var(--neutral-900)) 75%
+  );
+  --admin-confirmed-shimmer: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--success-light) / 0.14) 45%,
+    transparent 100%
+  );
 }
 
 /* Animatable workspace tint — enables color cross-dissolve between views */
@@ -608,7 +720,12 @@
 .garden-hero-banner-gradient {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.4) 50%, transparent);
+  background: linear-gradient(
+    to top,
+    rgb(var(--static-black) / 0.7),
+    rgb(var(--static-black) / 0.4) 50%,
+    transparent
+  );
 }
 
 .garden-hero-banner-fallback {
@@ -964,7 +1081,7 @@
   }
 
   .skeleton-shimmer {
-    background: linear-gradient(90deg, rgb(var(--bg-soft-200)) 25%, rgb(var(--bg-weak-50)) 50%, rgb(var(--bg-soft-200)) 75%);
+    background: var(--admin-skeleton-shimmer);
     background-size: 200% 100%;
     animation: shimmer var(--spring-effects-slow-duration) var(--spring-effects-easing) infinite;
   }
@@ -982,13 +1099,13 @@
   }
 
   .animate-confirmed-shimmer {
-    background-image: linear-gradient(90deg, transparent 0%, rgb(var(--success-base) / 0.08) 45%, transparent 100%);
+    background-image: var(--admin-confirmed-shimmer);
     background-size: 200% 100%;
     animation: confirmedShimmer var(--spring-effects-slow-duration) var(--spring-effects-easing);
   }
 
   .speed-dial-item {
-    animation: speed-dial-in var(--spring-spatial-fast) both;
+    animation: speed-dial-in var(--admin-motion-fab-menu) both;
   }
 
   /* ── CSS-only Tooltip ── */
@@ -1083,6 +1200,69 @@
     box-shadow: var(--edge-rest), var(--elevation-2);
   }
 
+  .domain-gradient-fallback {
+    background: linear-gradient(
+      135deg,
+      rgb(
+          var(--domain-fallback-soft-rgb, var(--admin-surface-50)) /
+            var(--admin-domain-fallback-soft-alpha)
+        )
+        0%,
+      rgb(
+          var(--domain-fallback-ink-rgb, var(--tone-accent)) /
+            var(--admin-domain-fallback-ink-alpha)
+        )
+        100%
+    );
+    color: rgb(var(--domain-fallback-ink-rgb, var(--tone-accent)));
+  }
+
+  .admin-media-readability-overlay {
+    background: linear-gradient(
+      to top,
+      rgb(var(--static-black) / 0.18) 0%,
+      rgb(var(--static-black) / 0.04) 54%,
+      transparent 100%
+    );
+  }
+
+  .account-avatar-tile {
+    border-radius: var(--r-lg);
+    background: linear-gradient(
+      135deg,
+      rgb(var(--tone-tint) / 0.16),
+      rgb(var(--tone-accent) / 0.24)
+    );
+    color: rgb(var(--tone-accent));
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--admin-surface-0) / 0.58),
+      0 18px 32px rgb(var(--warm-shadow-deep) / 0.14);
+  }
+
+  .account-theme-option {
+    background: rgb(var(--admin-surface-0));
+    box-shadow: var(--edge-rest), var(--e2);
+  }
+
+  .account-theme-option:hover {
+    background: rgb(var(--tone-tint, 59 130 246) / 0.06);
+  }
+
+  .account-theme-option[data-state="active"] {
+    background: rgb(var(--tone-tint, 59 130 246) / 0.14);
+    box-shadow:
+      inset 0 0 0 1px rgb(var(--tone-tint, 59 130 246) / 0.18),
+      0 18px 32px rgb(var(--tone-tint, 59 130 246) / 0.18);
+  }
+
+  [data-theme="dark"] .workbench-row-clickable:hover {
+    background: rgb(var(--bg-sub-300) / 0.6);
+  }
+
+  [data-theme="dark"] .workbench-row-clickable:active {
+    background: rgb(var(--bg-sub-300));
+  }
+
   @supports not (backdrop-filter: blur(1px)) {
     .canvas-route-card {
       background: rgb(var(--admin-surface-0));
@@ -1129,7 +1309,8 @@
   }
 
   /* ── Glass Surface ── Shared frosted treatment
-   * In admin, only AppBar keeps glass; M3 overrides neutralize other chrome/content.
+   * In admin, Controlled Chrome owns glass surfaces; M3 overrides neutralize
+   * dense chrome/content where glass would reduce readability.
    * Solid fallback for prefers-contrast: more.
    */
   .glass-surface {
@@ -1283,13 +1464,16 @@
  * NavigationBar cross-fade along with the content — it looks like the chrome
  * is "moving" when only a tab switched. Naming each chrome region as its own
  * transition group with no animation keeps them visually stationary while the
- * content area still gets the default cross-fade.
+ * content area gets a short named cross-fade.
  * ============================================================================ */
 .canvas-area-top {
   view-transition-name: gg-canvas-top;
 }
 .canvas-area-bottom {
   view-transition-name: gg-canvas-bottom;
+}
+.canvas-route-card {
+  view-transition-name: gg-route-content;
 }
 ::view-transition-group(gg-canvas-top),
 ::view-transition-old(gg-canvas-top),
@@ -1300,19 +1484,19 @@
   animation: none !important;
 }
 
-/* Slow + soften the root transition so the workspace tone (canvas gradient)
- * cross-fades gracefully on workspace switches instead of snapping. Default
- * duration is 250ms; 380ms feels deliberate without dragging. */
+/* Root snapshots are disabled so AppBar, navigation, and canvas do not cross-fade
+ * during route or tab changes. Only `gg-route-content` animates above. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 380ms;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  animation: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 1ms;
+  ::view-transition-new(root),
+  ::view-transition-old(gg-route-content),
+  ::view-transition-new(gg-route-content) {
+    animation: none !important;
   }
 }
 
@@ -1323,7 +1507,7 @@
   position: relative;
   isolation: isolate;
   background: var(--tone-canvas, rgb(var(--m3-surface-container-lowest)));
-  transition: background var(--spring-spatial-slow-duration) var(--spring-spatial-slow-easing);
+  transition: background var(--admin-motion-canvas-tone-duration) var(--admin-motion-canvas-tone-easing);
 }
 
 .workspace-canvas[data-tone="home"] {
@@ -1364,6 +1548,15 @@
 
 .main-scroll-area {
   overflow-x: hidden;
+  min-block-size: min(100%, var(--admin-main-content-min-height));
+}
+
+@media (max-width: 599px) {
+  :root {
+    --admin-main-content-min-height: calc(
+      100dvh - var(--admin-appbar-height, 3.5rem) - var(--admin-main-bottom-clearance-mobile)
+    );
+  }
 }
 
 [data-theme="dark"] .workspace-canvas {
@@ -1372,21 +1565,33 @@
 
 [data-theme="dark"] .workspace-canvas[data-tone="home"] {
   --tone-tint: 168 162 158;
+  --tone-tint-2: 120 113 108;
+  --tone-accent: 214 211 209;
 }
 [data-theme="dark"] .workspace-canvas[data-tone="hub"] {
   --tone-tint: 147 197 253;
+  --tone-tint-2: 59 130 246;
+  --tone-accent: 191 219 254;
 }
 [data-theme="dark"] .workspace-canvas[data-tone="garden"] {
   --tone-tint: 110 231 183;
+  --tone-tint-2: 34 197 94;
+  --tone-accent: 187 247 208;
 }
 [data-theme="dark"] .workspace-canvas[data-tone="community"] {
   --tone-tint: 250 204 21;
+  --tone-tint-2: 245 158 11;
+  --tone-accent: 254 240 138;
 }
 [data-theme="dark"] .workspace-canvas[data-tone="actions"] {
   --tone-tint: 248 113 113;
+  --tone-tint-2: 239 68 68;
+  --tone-accent: 254 202 202;
 }
 [data-theme="dark"] .workspace-canvas[data-tone="profile"] {
   --tone-tint: 196 181 253;
+  --tone-tint-2: 168 85 247;
+  --tone-accent: 221 214 254;
 }
 
 @media (prefers-reduced-motion: reduce) {

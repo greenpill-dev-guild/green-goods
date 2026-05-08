@@ -55,6 +55,8 @@ scripts/
 | `check-tokens.sh` | `bun run check:design-tokens` | DesignMD ↔ `theme.css` drift + `data/design-token-usage-baseline.tsv` audit |
 | `check-vocab.sh` | `bun run lint:vocab` | Banned-vocabulary scan over i18n strings |
 | `md-generate.mjs` | `bun run design:generate` / `check:design-generated` | Regenerate `design-md.generated.css` from DesignMD |
+| `check-css-custom-properties.mjs` | `check-tokens.sh` | Undefined `var(--*)` guard with audited baseline support |
+| `check-css-custom-properties.test.mjs` | `node --test scripts/design/check-css-custom-properties.test.mjs` | Fixture tests for undefined custom-property guard behavior |
 
 ### `contracts/` — contract audits + verification
 | Script | Caller | Purpose |
@@ -98,6 +100,7 @@ scripts/
 
 ### `data/`
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.
+- `css-custom-property-baseline.tsv` — audited baseline of unresolved legacy CSS custom properties; consumed by `design/check-css-custom-properties.mjs`.
 
 ## Companion locations
 

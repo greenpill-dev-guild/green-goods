@@ -228,7 +228,7 @@ export function BottomSheet({
         ref={contentRef}
         className={cn(
           "absolute bottom-0 left-0 right-0 flex w-full flex-col",
-          "rounded-t-xl glass-floating",
+          "glass-floating",
           "focus:outline-none will-change-transform"
         )}
         style={{
@@ -259,17 +259,31 @@ export function BottomSheet({
         {/* Header */}
         {renderedTitle ? (
           <div
-            className="flex items-center justify-between border-b border-stroke-soft/80 px-4 pb-3"
+            className="flex items-center justify-between"
+            style={{
+              padding: "16px 16px 14px",
+              borderBottom: "1px solid var(--hairline, rgb(var(--m3-outline-variant) / 0.6))",
+              flexShrink: 0,
+            }}
             data-slot="header"
           >
-            <h2 className="text-lg font-semibold text-text-strong" data-slot="title">
+            <h2
+              data-slot="title"
+              style={{
+                fontSize: "15px",
+                lineHeight: "1.2",
+                fontWeight: 700,
+                color: "var(--ink, rgb(var(--m3-on-surface)))",
+                margin: 0,
+              }}
+            >
               {renderedTitle}
             </h2>
             <button
               type="button"
               onClick={onClose}
               className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg",
+                "flex h-9 w-9 items-center justify-center rounded-lg",
                 "text-text-soft transition-colors hover:bg-bg-soft",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
               )}
@@ -277,7 +291,7 @@ export function BottomSheet({
               data-slot="close-button"
               data-testid="bottom-sheet-close"
             >
-              <RiCloseLine className="h-5 w-5" />
+              <RiCloseLine className="h-[18px] w-[18px]" />
             </button>
           </div>
         ) : (
@@ -285,7 +299,7 @@ export function BottomSheet({
         )}
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto" data-slot="body">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" data-slot="body">
           <SheetErrorBoundary onClose={onClose}>{renderedChildren}</SheetErrorBoundary>
         </div>
       </animated.div>

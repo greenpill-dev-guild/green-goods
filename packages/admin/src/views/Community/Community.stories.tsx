@@ -1,6 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useMemo } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -12,29 +10,17 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
-import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { adminCanvasRoutes } from "@/routes/views";
+import {
+  ADMIN_ROUTE_STORY_QUERY_OPTIONS,
+  StorybookAdminCanvasRoute,
+} from "../storybookCanvasHarness";
 
 interface CommunityCanvasStoryProps {
   initialPath?: string;
 }
 
 function CommunityCanvasStory({ initialPath = "/community/treasury" }: CommunityCanvasStoryProps) {
-  const router = useMemo(
-    () =>
-      createMemoryRouter(
-        [
-          {
-            element: <CanvasLayout />,
-            children: adminCanvasRoutes,
-          },
-        ],
-        { initialEntries: [initialPath] }
-      ),
-    [initialPath]
-  );
-
-  return <RouterProvider router={router} />;
+  return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
 const meta: Meta<typeof CommunityCanvasStory> = {
@@ -74,8 +60,13 @@ export const Treasury: Story = {
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Community" })).toBeVisible();
-    await expect((await canvas.findAllByText("Rio Rainforest Lab")).length).toBeGreaterThan(0);
+    await expect(
+      await canvas.findByRole("heading", { name: "Community" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      (await canvas.findAllByText("Rio Rainforest Lab", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS))
+        .length
+    ).toBeGreaterThan(0);
   },
 };
 
@@ -96,9 +87,19 @@ export const GovernanceStrategiesInspector: Story = {
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId("left-sheet");
+    const leftSheet = await canvas.findByTestId(
+      "left-sheet",
+      undefined,
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(await within(leftSheet).findByText("Conviction Voting")).toBeVisible();
+    await expect(
+      await within(leftSheet).findByText(
+        "Conviction Voting",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
   },
 };
 

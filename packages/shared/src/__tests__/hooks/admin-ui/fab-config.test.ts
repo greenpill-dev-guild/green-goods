@@ -11,7 +11,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { buildCommunityFabConfig } from "../../../hooks/admin-ui/community/community.utils";
-import { buildGardenFabConfig } from "../../../hooks/admin-ui/garden/garden.utils";
+import {
+  buildGardenFabConfig,
+  buildGardenViewActions,
+} from "../../../hooks/admin-ui/garden/garden.utils";
 
 const GARDEN = "0xabcabcabcabcabcabcabcabcabcabcabcabcabca";
 
@@ -92,6 +95,49 @@ describe("buildGardenFabConfig", () => {
     });
     config?.onAction("not-a-real-action");
     expect(navigate).not.toHaveBeenCalled();
+  });
+});
+
+describe("buildGardenViewActions", () => {
+  it("exposes domain editing through the shared view-action path", () => {
+    const editDomains = vi.fn();
+    const actions = buildGardenViewActions(
+      "overview",
+      true,
+      true,
+      vi.fn(),
+      {
+        gardenAddress: GARDEN,
+      },
+      editDomains
+    ).filter((action) => action.visible !== false);
+
+    expect(actions.map((action) => action.id)).toEqual([
+      "view-public",
+      "edit-domains",
+      "invite-gardener",
+      "edit-garden",
+    ]);
+    expect(actions.map((action) => action.labelId)).toContain("cockpit.garden.action.editDomains");
+
+    actions.find((action) => action.id === "edit-domains")?.onClick();
+    expect(editDomains).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not expose domain editing without a selected manageable garden", () => {
+    const editDomains = vi.fn();
+    const actions = buildGardenViewActions(
+      "overview",
+      false,
+      true,
+      vi.fn(),
+      {
+        gardenAddress: GARDEN,
+      },
+      editDomains
+    );
+
+    expect(actions.find((action) => action.id === "edit-domains")?.visible).toBe(false);
   });
 });
 

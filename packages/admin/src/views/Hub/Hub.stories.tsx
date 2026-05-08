@@ -1,6 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useMemo } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -12,29 +10,17 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
-import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { adminCanvasRoutes } from "@/routes/views";
+import {
+  ADMIN_ROUTE_STORY_QUERY_OPTIONS,
+  StorybookAdminCanvasRoute,
+} from "../storybookCanvasHarness";
 
 interface HubCanvasStoryProps {
   initialPath?: string;
 }
 
 function HubCanvasStory({ initialPath = "/hub/work" }: HubCanvasStoryProps) {
-  const router = useMemo(
-    () =>
-      createMemoryRouter(
-        [
-          {
-            element: <CanvasLayout />,
-            children: adminCanvasRoutes,
-          },
-        ],
-        { initialEntries: [initialPath] }
-      ),
-    [initialPath]
-  );
-
-  return <RouterProvider router={router} />;
+  return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
 const meta: Meta<typeof HubCanvasStory> = {
@@ -74,12 +60,15 @@ export const WorkQueue: Story = {
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Hub" })).toBeVisible();
-    await expect(await canvas.findByRole("tab", { name: /Work/ })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-    await expect(await canvas.findByText("Canopy transect upload")).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Hub" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findByRole("tab", { name: /Work/ }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(
+      await canvas.findByText("Canopy transect upload", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
   },
 };
 
@@ -94,9 +83,15 @@ export const SubmitWorkSheet: Story = {
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId("left-sheet");
+    const leftSheet = await canvas.findByTestId(
+      "left-sheet",
+      undefined,
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(await within(leftSheet).findByText("Submit Work")).toBeVisible();
+    await expect(
+      await within(leftSheet).findByText("Submit Work", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
   },
 };
 
@@ -111,7 +106,13 @@ export const CreateAssessmentRoute: Story = {
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Submit assessment" })).toBeVisible();
+    await expect(
+      await canvas.findByRole(
+        "heading",
+        { name: "Submit assessment" },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
   },
 };
 
@@ -126,7 +127,13 @@ export const CreateHypercertRoute: Story = {
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Create Hypercert" })).toBeVisible();
+    await expect(
+      await canvas.findByRole(
+        "heading",
+        { name: "Create Hypercert" },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
   },
 };
 

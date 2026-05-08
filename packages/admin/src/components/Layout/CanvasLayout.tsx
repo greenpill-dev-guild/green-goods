@@ -48,7 +48,8 @@ import { RiUserLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AccountSurface } from "./AccountSurface";
+import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
 
@@ -107,24 +108,16 @@ export function CanvasLayout() {
     },
     [activeContentId, activeSheet, closeSheet, openSheet]
   );
-  const renderAccountSurface = useCallback(
-    ({
-      activeTab,
-      onTabChange,
-    }: {
-      activeTab: AccountSheetTab;
-      onTabChange: (tab: AccountSheetTab) => void;
-    }) => <AccountSurface activeTab={activeTab} onTabChange={onTabChange} />,
-    []
-  );
+  const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
+  const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
   const renderNotifications = useCallback(
     () => <AdminNotificationPanel onCloseSheet={closeSheet} />,
     [closeSheet]
   );
   const rightSheetDescriptor = useAdminRightSheetDescriptor({
     contentId: activeContentId,
-    onOpenContent: openRightSheetContent,
-    renderAccountSurface,
+    renderAccountProfile,
+    renderAccountSettings,
     renderNotifications,
   });
 
@@ -329,8 +322,8 @@ export function CanvasLayout() {
                   // Handoff sheet-system.css: floating NavigationBar at bottom: 20px
                   // with 56px height ⇒ ~100px clearance to keep last content row visible.
                   paddingBottom: isDesktop
-                    ? "6.25rem"
-                    : "calc(env(safe-area-inset-bottom) + 9.5rem)",
+                    ? "var(--admin-main-bottom-clearance-desktop, 6.25rem)"
+                    : "var(--admin-main-bottom-clearance-mobile, calc(env(safe-area-inset-bottom) + 9.5rem))",
                   overscrollBehaviorY: "contain",
                   WebkitOverflowScrolling: "touch",
                 }}
@@ -505,6 +498,7 @@ function CanvasLeftSheet({
         onClose={config?.onClose ?? (() => {})}
         title={config?.title}
         container={overlayRoot}
+        width={config?.width ?? "default"}
       >
         {config?.content}
       </LeftSheet>

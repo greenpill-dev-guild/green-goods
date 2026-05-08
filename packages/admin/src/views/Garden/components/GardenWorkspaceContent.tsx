@@ -10,7 +10,7 @@ import {
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
 import { RiPulseLine, RiTeamLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
@@ -29,7 +29,6 @@ interface GardenWorkspaceContentProps {
 
 export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProps) {
   const { formatMessage } = useIntl();
-  const [domainModalOpen, setDomainModalOpen] = useState(false);
 
   if (!workspace.selectedGarden) {
     return (
@@ -61,11 +60,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
 
   return (
     <div className="mt-4 space-y-4">
-      <GardenDomainSummaryRow
-        domainMask={workspace.garden.domainMask}
-        canManage={workspace.canManage}
-        onEditDomains={workspace.canManage ? () => setDomainModalOpen(true) : undefined}
-      />
+      <GardenDomainSummaryRow domainMask={workspace.garden.domainMask} />
       {workspace.view === "overview" ? (
         <OverviewTab
           section={workspace.section}
@@ -176,8 +171,8 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
       ) : null}
       {workspace.canManage ? (
         <GardenDomainModal
-          isOpen={domainModalOpen}
-          onClose={() => setDomainModalOpen(false)}
+          isOpen={workspace.domainEditorOpen}
+          onClose={workspace.closeDomainEditor}
           gardenAddress={workspace.garden.id as Address}
         />
       ) : null}

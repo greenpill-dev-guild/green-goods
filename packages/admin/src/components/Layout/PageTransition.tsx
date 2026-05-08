@@ -19,7 +19,10 @@ export function PageTransition() {
     const prevPath = prevPathRef.current;
     const newPath = location.pathname;
 
-    if (prevPath === newPath) return;
+    if (prevPath === newPath) {
+      setRenderedOutlet((currentOutlet) => (currentOutlet === outlet ? currentOutlet : outlet));
+      return;
+    }
 
     const transitionToken = ++transitionTokenRef.current;
     let isCancelled = false;

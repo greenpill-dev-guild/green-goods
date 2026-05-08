@@ -18,7 +18,8 @@ import {
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
-import { AccountSurface } from "./AccountSurface";
+import { AccountProfilePanel } from "./AccountProfilePanel";
+import { AccountSettingsPanel } from "./AccountSettingsPanel";
 
 interface RightSheetRegistryHarnessProps {
   initialContentId: AdminRightSheetContentId | null;
@@ -33,23 +34,12 @@ const SHEET_OPTIONS: Array<{ id: AdminRightSheetContentId; label: string }> = [
 function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarnessProps) {
   const [contentId, setContentId] = useState<AdminRightSheetContentId | null>(initialContentId);
   const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null);
-  const openContent = useCallback((nextContentId: AdminRightSheetContentId) => {
-    setContentId(nextContentId);
-  }, []);
-  const renderAccountSurface = useCallback(
-    ({
-      activeTab,
-      onTabChange,
-    }: {
-      activeTab: "profile" | "settings";
-      onTabChange: (tab: "profile" | "settings") => void;
-    }) => <AccountSurface activeTab={activeTab} onTabChange={onTabChange} />,
-    []
-  );
+  const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
+  const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
   const descriptor = useAdminRightSheetDescriptor({
     contentId,
-    onOpenContent: openContent,
-    renderAccountSurface,
+    renderAccountProfile,
+    renderAccountSettings,
   });
 
   const openRegisteredContent = (nextContentId: string) => {
@@ -113,6 +103,7 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
         onClose={() => setContentId(null)}
         title={descriptor?.title}
         container={overlayRoot}
+        width={descriptor?.width ?? "default"}
       >
         {descriptor?.content}
       </RightSheet>
@@ -130,7 +121,7 @@ const meta: Meta<typeof RightSheetRegistryHarness> = {
     docs: {
       description: {
         component:
-          "Composition story for the admin right-sheet registry. It exercises the real descriptor hook, account surface tab switching, notification panel, and bounded RightSheet orchestration used by CanvasLayout.",
+          "Composition story for the admin right-sheet registry. It exercises the real descriptor hook, separated profile/settings account panels, notification panel, and bounded RightSheet orchestration used by CanvasLayout.",
       },
     },
   },
@@ -191,13 +182,15 @@ export const StateCatalog: Story = {
 
     const profileSheet = await body.findByTestId("right-sheet");
     await expect(within(profileSheet).getByRole("heading", { name: "Profile" })).toBeVisible();
+    await expect(within(profileSheet).queryByRole("tab")).not.toBeInTheDocument();
 
-    await userEvent.click(within(profileSheet).getByRole("tab", { name: "Settings" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open Settings" }));
     const settingsSheet = await body.findByTestId("right-sheet");
     await expect(within(settingsSheet).getByRole("heading", { name: "Settings" })).toBeVisible();
     await expect(within(settingsSheet).getByRole("heading", { name: "Theme" })).toBeVisible();
+    await expect(within(settingsSheet).queryByRole("tab")).not.toBeInTheDocument();
 
-    await userEvent.click(within(settingsSheet).getByRole("tab", { name: "Profile" }));
+    await userEvent.click(canvas.getByRole("button", { name: "Open Profile" }));
     const reopenedProfileSheet = await body.findByTestId("right-sheet");
     await expect(
       within(reopenedProfileSheet).getByRole("heading", { name: "Profile" })

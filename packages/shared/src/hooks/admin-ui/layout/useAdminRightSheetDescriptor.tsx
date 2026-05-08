@@ -31,15 +31,10 @@ export interface AdminRightSheetDescriptor {
   width?: "default" | "wide";
 }
 
-export interface AdminAccountSurfaceRenderProps {
-  activeTab: AccountSheetTab;
-  onTabChange: (tab: AccountSheetTab) => void;
-}
-
 export interface UseAdminRightSheetDescriptorOptions {
   contentId: string | null;
-  onOpenContent: (contentId: AdminRightSheetContentId) => void;
-  renderAccountSurface: (props: AdminAccountSurfaceRenderProps) => ReactNode;
+  renderAccountProfile: () => ReactNode;
+  renderAccountSettings: () => ReactNode;
   renderNotifications?: () => ReactNode;
 }
 
@@ -144,18 +139,11 @@ function AdminNotificationPanel() {
 
 export function useAdminRightSheetDescriptor({
   contentId,
-  onOpenContent,
-  renderAccountSurface,
+  renderAccountProfile,
+  renderAccountSettings,
   renderNotifications,
 }: UseAdminRightSheetDescriptorOptions): AdminRightSheetDescriptor | null {
   const { formatMessage } = useIntl();
-
-  const handleAccountTabChange = useCallback(
-    (tab: AccountSheetTab) => {
-      onOpenContent(tab === "settings" ? SETTINGS_SHEET_CONTENT_ID : PROFILE_SHEET_CONTENT_ID);
-    },
-    [onOpenContent]
-  );
 
   return useMemo(() => {
     const entry = getRightSheetRegistryEntry(contentId);
@@ -172,15 +160,12 @@ export function useAdminRightSheetDescriptor({
       entry.id === SETTINGS_SHEET_CONTENT_ID ? "settings" : "profile";
     return {
       title: formatMessage(entry.title),
-      content: renderAccountSurface({
-        activeTab,
-        onTabChange: handleAccountTabChange,
-      }),
+      content: activeTab === "settings" ? renderAccountSettings() : renderAccountProfile(),
       // Settings holds form rows (toasts, addresses, key ops); profile is mostly
       // read-only identity. Settings widens to fit two-column field rows.
       width: activeTab === "settings" ? "wide" : "default",
     };
-  }, [contentId, formatMessage, handleAccountTabChange, renderAccountSurface, renderNotifications]);
+  }, [contentId, formatMessage, renderAccountProfile, renderAccountSettings, renderNotifications]);
 }
 
 export function toAccountSheetContentId(tab: AccountSheetTab): AdminRightSheetContentId {

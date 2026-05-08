@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DEFAULT_CHAIN_ID, queryKeys, type Action } from "@green-goods/shared";
-import { useMemo } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_ACTIONS,
@@ -12,8 +10,10 @@ import {
   withCanvasFrame,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
-import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { adminCanvasRoutes } from "@/routes/views";
+import {
+  ADMIN_ROUTE_STORY_QUERY_OPTIONS,
+  StorybookAdminCanvasRoute,
+} from "../storybookCanvasHarness";
 
 interface RouteBackedActionsInspectorStoryProps {
   initialPath?: string;
@@ -22,21 +22,7 @@ interface RouteBackedActionsInspectorStoryProps {
 function RouteBackedActionsInspectorStory({
   initialPath = "/actions",
 }: RouteBackedActionsInspectorStoryProps) {
-  const router = useMemo(
-    () =>
-      createMemoryRouter(
-        [
-          {
-            element: <CanvasLayout />,
-            children: adminCanvasRoutes,
-          },
-        ],
-        { initialEntries: [initialPath] }
-      ),
-    [initialPath]
-  );
-
-  return <RouterProvider router={router} />;
+  return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
 const meta: Meta<typeof RouteBackedActionsInspectorStory> = {
@@ -85,9 +71,19 @@ export const RouteBackedDetail: Story = {
   decorators: actionsDescriptorDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId("left-sheet");
+    const leftSheet = await canvas.findByTestId(
+      "left-sheet",
+      undefined,
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(await within(leftSheet).findByText("Canopy baseline")).toBeVisible();
+    await expect(
+      await within(leftSheet).findByText(
+        "Canopy baseline",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
   },
 };
 
@@ -96,10 +92,18 @@ export const RouteBackedCreate: Story = {
   decorators: actionsDescriptorDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId("left-sheet");
+    const leftSheet = await canvas.findByTestId(
+      "left-sheet",
+      undefined,
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
     await expect(
-      await within(leftSheet).findByRole("heading", { name: "Create action" })
+      await within(leftSheet).findByRole(
+        "heading",
+        { name: "Create action" },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
     ).toBeVisible();
   },
 };
@@ -109,8 +113,18 @@ export const RouteBackedEdit: Story = {
   decorators: actionsDescriptorDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId("left-sheet");
+    const leftSheet = await canvas.findByTestId(
+      "left-sheet",
+      undefined,
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(await within(leftSheet).findByText("Edit Canopy baseline")).toBeVisible();
+    await expect(
+      await within(leftSheet).findByText(
+        "Edit Canopy baseline",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
   },
 };

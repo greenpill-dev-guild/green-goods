@@ -45,6 +45,7 @@ export function useGardenWorkspaceController() {
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [activityFilter, setActivityFilterState] = useState<ActivityFilter>("all");
+  const [domainEditorOpen, setDomainEditorOpen] = useState(false);
 
   const view = resolveGardenView(location.pathname);
   const range = parseGardenRange(searchParams.get("range"));
@@ -107,12 +108,21 @@ export function useGardenWorkspaceController() {
   } = useGardenDetailData(selectedGarden?.id);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const openDomainEditor = useCallback(() => setDomainEditorOpen(true), []);
+  const closeDomainEditor = useCallback(() => setDomainEditorOpen(false), []);
   const viewActions = useMemo(
     () =>
-      buildGardenViewActions(view, canManage, Boolean(selectedGarden), navigate, {
-        gardenAddress: selectedGardenAddress,
-      }),
-    [canManage, navigate, selectedGarden, selectedGardenAddress, view]
+      buildGardenViewActions(
+        view,
+        canManage,
+        Boolean(selectedGarden),
+        navigate,
+        {
+          gardenAddress: selectedGardenAddress,
+        },
+        openDomainEditor
+      ),
+    [canManage, navigate, openDomainEditor, selectedGarden, selectedGardenAddress, view]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
@@ -261,6 +271,7 @@ export function useGardenWorkspaceController() {
     containerRef,
     derived,
     desktopActions,
+    domainEditorOpen,
     error,
     fetching,
     fetchingAssessments,
@@ -272,6 +283,8 @@ export function useGardenWorkspaceController() {
     hypercertId,
     hypercerts,
     isOwner,
+    closeDomainEditor,
+    openDomainEditor,
     openSection,
     range,
     section,

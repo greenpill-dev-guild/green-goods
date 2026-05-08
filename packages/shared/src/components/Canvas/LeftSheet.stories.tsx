@@ -47,6 +47,12 @@ const meta: Meta<typeof LeftSheet> = {
       control: "text",
       description: "Optional screen-reader description.",
     },
+    width: {
+      control: "select",
+      options: ["default", "wide"],
+      description:
+        "Width preset. `default` (320-480) for read-mostly panels; `wide` (420-640) for forms or two-column workflows.",
+    },
     children: {
       control: false,
       description: "Sheet body content.",
@@ -76,6 +82,12 @@ export const NoTitle: Story = {
   args: {
     title: undefined,
     children: sampleContent,
+  },
+};
+
+export const Wide: Story = {
+  args: {
+    width: "wide",
   },
 };
 

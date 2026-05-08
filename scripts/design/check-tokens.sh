@@ -302,8 +302,37 @@ if [[ -n "$STALE_BASELINE" ]]; then
   exit 1
 fi
 
+ADMIN_CHROME_ALLOWLIST_REGEX='(packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-overrides\.css|packages/admin/src/styles/admin-m3-tokens\.css)'
+ADMIN_CHROME_PATTERN='glass-(ground|raised|floating|overlay|surface)|backdrop-blur|backdrop-filter|linear-gradient\('
+
+collect_admin_chrome_violations() {
+  grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude='*.stories.tsx' --exclude='*.stories.ts' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+    --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
+    "$ADMIN_CHROME_PATTERN" packages/admin/src 2>/dev/null \
+    | grep -Ev "$ADMIN_CHROME_ALLOWLIST_REGEX" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+}
+
+ADMIN_CHROME_VIOLATIONS="$(collect_admin_chrome_violations || true)"
+if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
+  echo "❌ Admin Controlled Chrome violation found:"
+  echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
+  echo
+  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: AppBar, Navigation/FAB, and sheet shells via packages/admin/src/index.css or admin-m3-overrides.css."
+  echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
+  exit 1
+fi
+
+node scripts/design/check-css-custom-properties.mjs
+
 echo "✅ check-design-tokens: ${#EXPECTED_TOKENS[@]} runtime tokens present in theme.css."
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
+echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
 echo "✅ token_version coupled across design skill, ui skill, and registry (${DESIGN_VER})."

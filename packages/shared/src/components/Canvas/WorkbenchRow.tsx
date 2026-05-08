@@ -55,7 +55,10 @@ export function WorkbenchRow({
             className="h-14 w-14 rounded-2xl object-cover shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl"
           />
         ) : (
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-soft dark:bg-bg-sub text-primary-base shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl">
+          <div
+            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl text-primary-base shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl"
+            style={{ background: "var(--admin-workbench-icon-bg, rgb(var(--bg-soft-200)))" }}
+          >
             <LeadingIcon className="h-5 w-5" />
           </div>
         )}
@@ -103,7 +106,7 @@ export function WorkbenchRow({
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&
       !disabled &&
-      "cursor-pointer hover:-translate-y-0.5 hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-1)] dark:hover:bg-bg-sub/60 active:translate-y-0 active:bg-bg-soft active:shadow-[var(--edge-rest)] dark:active:bg-bg-sub focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+      "workbench-row-clickable cursor-pointer hover:-translate-y-0.5 hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-1)] active:translate-y-0 active:bg-bg-soft active:shadow-[var(--edge-rest)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
     className
   );
 
