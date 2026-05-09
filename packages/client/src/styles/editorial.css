@@ -299,7 +299,6 @@
       transform: translate(-50%, -50%);
       width: min(calc(100vw - 4rem), 56rem);
       max-height: calc(100vh - 4rem);
-      border-radius: 0.5rem;
       overflow: hidden;
       box-shadow: var(--shadow-editorial-panel, 0 24px 64px rgba(0, 0, 0, 0.18));
     }
