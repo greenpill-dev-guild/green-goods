@@ -29,7 +29,7 @@ RED/GREEN proof from the prior pass.
 | P2-2  | Shipped (refactor)      | The old jar/vault deposit dialogs were replaced by `PublicFundingCard`, which renders a dedicated `LoadingBody` skeleton while `useGardenCookieJars` / `useGardenVaults` resolve. |
 | P2-3  | Shipped + locked here   | Receipt fetch retry button lives at `PublicFundingReceipt.tsx:111-123`. New test `PublicFundingReceipt.test.tsx > renders a Try again button on network error and re-fires the fetch when clicked` mocks fetch to reject once then resolve, asserts the retry button surfaces, simulates the click, and asserts the second fetch + the receipt body landing. |
 | P2-4  | Shipped + locked here   | Empty-state explanatory line in `PublicProofBand.tsx:105-120`. New test `PublicProofBand.test.tsx` covers all-zero, any-non-zero, and loading variants (3 tests). |
-| P2-5  | **Implemented here**    | Stale / ambiguous `?garden=` lookup converted from inline section banner (was `Fund.tsx:425-448`) to a non-blocking `toastService.info` keyed off `resolved.rawQuery` so it fires once per query. The pure resolution logic was extracted to `views/Public/garden-query-resolution.ts` and locked by `garden-query-resolution.test.ts` (5 tests, covering absent/match-by-id/match-by-slug/ambiguous/stale). |
+| P2-5  | **Rejected by human, reverted** | The plan asked for the stale `?garden=` banner to move to a toast. A toast was implemented and pushed in 876c4804, then rejected on review: toasts are an app affordance, not editorial, and the position/animation/dismiss model fights the editorial site's static voice. The original inline banner at `Fund.tsx` was restored unchanged. The pure resolution logic stays extracted in `views/Public/garden-query-resolution.ts` and is still covered by `garden-query-resolution.test.ts` (5 tests, absent/match-by-id/match-by-slug/ambiguous/stale) — the extraction does not depend on the toast and the test contract still applies to whatever UI surface consumes the resolution. P2-5 itself is dropped from this lane; the inline banner is the accepted treatment for the rare external-link/bookmarked-link stale case (in-app navigation almost never produces it because GardenDetail's "Support this Garden" link is built from the same `usePublicGardens` data that `Fund.tsx` reads). |
 | P2-6  | Shipped in 70161031     | Gardens search `aria-live="polite"` announcement at `views/Public/Gardens.tsx:112`. Not test-covered in this pass — see proof limit below. |
 
 ## Phase 3 — discovery + first-time mental model
@@ -44,16 +44,17 @@ RED/GREEN proof from the prior pass.
 
 ## RED / GREEN proof
 
-### Phase 2 P2-5 — RED → GREEN (this turn)
+### Phase 2 P2-5 — toast attempt rejected, banner restored
 
-RED: the inline `<section role="status">` banner at `Fund.tsx:425-448` stole
-vertical space between the hero and § 02 even when the visitor was mid-funnel.
-The BEFORE state was a banner, not a toast.
+The plan asked to move the stale `?garden=` banner into a toast. A toast was
+implemented in 876c4804 and rejected on review. It introduced an app
+affordance into the editorial site that did not match the static, typographic
+voice of the rest of the public surface. The toast was deleted and the
+original inline banner at `Fund.tsx` was restored unchanged.
 
-GREEN: replaced with `toastService.info` driven by a `useEffect` keyed off
-`resolved.rawQuery` so the toast fires once per query and never refires on
-unrelated re-renders. Logic extracted to `garden-query-resolution.ts` and
-exercised by 5 unit tests:
+The pure resolution logic was extracted into `garden-query-resolution.ts` for
+unit testing and stays extracted (no behavioural difference to Fund.tsx,
+just a small testable seam):
 
 ```
 $ bun run test --run src/__tests__/views/garden-query-resolution.test.ts
@@ -87,7 +88,7 @@ Repo guards:
 ## Files touched in Phase 2 + Phase 3 batch
 
 ### Production
-- `packages/client/src/views/Public/Fund.tsx` — added `toastService` import and the new `useEffect` for stale/ambiguous query toast. Removed the inline banner section. Updated the next section's padding condition because the banner above it is gone. Replaced the inline `resolveGardenQuery` definition with an import from the new sibling module.
+- `packages/client/src/views/Public/Fund.tsx` — replaced the inline `resolveGardenQuery` definition with an import from the new sibling module. The original inline stale/ambiguous banner JSX and section padding are unchanged from `28768a18`. (The toast attempt was added in 876c4804 and reverted — see P2-5 row.)
 - `packages/client/src/views/Public/garden-query-resolution.ts` — extracted the pure resolution logic + types so the test transformer can exercise it without pulling the wallet runtime barrel.
 
 ### Tests
@@ -130,7 +131,8 @@ Repo guards:
   main).
 - ✅ Subscription success clears the email field (Phase 1 — already on main).
 - ✅ The `?garden=` resolution distinguishes absent / match / ambiguous / stale
-  (Phase 2 P2-5 — locked here).
+  — pure-function lock applies regardless of presentation. Toast presentation
+  itself was rejected; the original inline banner is the accepted treatment.
 - ✅ The proof band collapses to a single explanatory line when every count is
   zero (Phase 2 P2-4 — locked here).
 - ✅ The receipt fetch error surfaces a Try again button that re-fires the
