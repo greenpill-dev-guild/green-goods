@@ -52,7 +52,11 @@ describe("components/Cards/GardenCard", () => {
       </Wrapper>
     );
 
+    const card = screen.getByTestId("garden-card");
+    const selectedOverlay = card.querySelector(".opacity-100");
     expect(container.querySelector("[data-selected='true']")).toBeInTheDocument();
+    expect(card).toHaveStyle({ width: "100%" });
+    expect(selectedOverlay?.getAttribute("style")).toContain("--color-primary");
     await user.click(screen.getByText("Community Garden"));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });

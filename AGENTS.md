@@ -70,6 +70,28 @@ This repo runs multiple concurrent Codex/Claude sessions on the same tree and `d
 
 Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
 
+## User-Observed UI Regression Debugging
+
+Bug reports trigger the repo debug skill automatically. When the reported symptom is something the
+user can see or touch — cannot click, cannot select, missing selected border/state, collapsed or
+blank cards, invisible content, broken scroll/refresh, visible-but-unusable controls — start from
+the rendered surface before tracing data flow.
+
+Required first pass:
+
+1. Reproduce or simulate the exact visible/clickable symptom using the real component path.
+2. Inspect DOM geometry and computed styles: bounding rect, width/height, opacity, display,
+   pointer-events, z-index, overflow, disabled state, selected classes, and border/ring styles.
+3. Verify whether the interaction changes state after click/tap.
+4. Trace visible element → card/button/input → wrapper/carousel/sheet/dialog → state setter.
+5. Check recent commits for the affected component and wrapper with `git log --follow` or focused
+   `git show`.
+
+Only move into providers, query hooks, auth, or indexer/data explanations after proving the
+rendered surface is intact. If text/data exists in the DOM but the control is collapsed,
+invisible, untappable, or lacks selected visual state, treat it as a component/CSS regression until
+browser or DOM evidence proves otherwise.
+
 ## Admin UI Defaults
 
 - For `packages/admin`, read `docs/docs/builders/packages/admin.mdx` alongside `packages/admin/AGENTS.md`; it is the active UI contract.

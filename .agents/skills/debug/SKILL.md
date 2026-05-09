@@ -3,12 +3,12 @@ name: debug
 user-invocable: false
 description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to incident_hotfix mode on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
 argument-hint: "[error-description]"
-version: "1.1.0"
+version: "1.1.1"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-04-24"
-last_verified: "2026-04-24"
+last_updated: "2026-05-09"
+last_verified: "2026-05-09"
 ---
 
 # Debug Skill
@@ -28,6 +28,8 @@ This skill is **passive-only**. There is no `/debug` slash command. Fire automat
 - "debug this", "why is X failing?", "what's wrong with Y?"
 - Pasted stack trace, error message, or log snippet
 - Reported unexpected behavior ("X should do Y but does Z")
+- User-visible UI regressions: cannot click/select/tap, missing selected state, missing border,
+  collapsed/blank cards, invisible content, broken scroll/refresh, or visible-but-unusable controls
 - Test failures or build failures without a clear pattern
 
 ### Incident signals → incident_hotfix mode
@@ -68,6 +70,7 @@ Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in t
 
 > ALWAYS find root cause before attempting fixes.
 > Evidence before claims, always.
+> For user-observed UI bugs, start from the rendered surface before tracing data flow.
 
 ---
 
@@ -80,7 +83,30 @@ Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in t
 1. **Read error messages thoroughly**
 2. **Reproduce consistently** — exact steps
 3. **Check recent changes**: `git log --oneline -20`
-4. **Trace data flow backward** — where does error manifest?
+4. **Choose the right entrypoint**:
+   - User-visible UI regression: inspect the rendered component first (DOM, geometry, computed styles, event target, state change).
+   - Data/API/contract symptom: trace data flow backward from the failing output.
+
+### User-Observed UI Regression Protocol
+
+When the user describes what they can see or touch in the UI, do not start with providers,
+queries, auth, or indexer hypotheses. First prove the rendered surface.
+
+1. **Reproduce or simulate the exact visible symptom** using the real component path when possible.
+   Click/tap the real element, not a mocked child component.
+2. **Inspect rendered DOM geometry and styles**: bounding rect, width/height, opacity, display,
+   pointer-events, z-index, overflow, disabled state, selected classes, and computed border/ring.
+3. **Verify whether interaction state changes**: component state, Zustand store, router state,
+   form state, or DOM data attributes after click/tap.
+4. **Trace the component stack outward-in**: visible element → card/button/input → wrapper
+   (carousel/sheet/dialog) → state setter. Only then inspect hooks/providers/query/data.
+5. **Check recent component history** with `git log --follow` or focused `git show` on the
+   visible component and wrapper files before proposing a fix.
+6. **For shared-component layout bugs, check the Tailwind v4 shared JSX scanning gotcha**
+   in `AGENTS.md` before chasing data-layer hypotheses.
+7. **Separate rendered-but-unusable from missing data**. If text/data exists in the DOM but the
+   control is collapsed, invisible, untappable, or lacks visual selected state, treat it as a
+   component/CSS regression until browser or DOM evidence proves otherwise.
 
 ### Phase 2: Hypothesis Testing
 
