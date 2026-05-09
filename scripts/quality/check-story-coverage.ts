@@ -153,10 +153,6 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
 
 const NON_VISUAL_SHARED_COMPONENTS = new Set([
   "Canvas/LeftSheetContext.tsx",
-  // Side-effect-only bridge mounted inside `IntlProvider`; renders null. It
-  // wires `intl.formatMessage` into the toast preset registry so static
-  // `xxxToasts` calls localize. There is no visible UI to review in Storybook.
-  "Toast/LocalizedToastsBridge.tsx",
 ]);
 
 /**

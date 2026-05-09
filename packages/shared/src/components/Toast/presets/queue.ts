@@ -1,5 +1,4 @@
 import { toastService } from "../toast.service";
-import { getLocalizedToastFamily } from "./registry";
 import { type FormatMessageFn, toastMessageIds } from "./types";
 
 /** Default (English) fallback messages for queue toasts */
@@ -18,6 +17,74 @@ const queueDefaults = {
   },
   stillQueued: { title: "Still queued" },
   queueClear: { title: "Queue is clear", message: "No pending jobs to sync." },
+};
+
+export const queueToasts = {
+  /** Show success when job completed */
+  jobCompleted: (kind: "work" | "approval") =>
+    toastService.success({
+      id: `job-processing`,
+      title:
+        kind === "work" ? queueDefaults.workCompleted.title : queueDefaults.approvalCompleted.title,
+      message:
+        kind === "work"
+          ? queueDefaults.workCompleted.message
+          : queueDefaults.approvalCompleted.message,
+      context: kind === "work" ? "work upload" : "approval submission",
+      suppressLogging: true,
+    }),
+
+  /** Show success when queue flush completes */
+  syncSuccess: (processed: number) =>
+    toastService.success({
+      id: "job-queue-flush",
+      title: queueDefaults.syncSuccess.title,
+      message: `Processed ${processed} item${processed === 1 ? "" : "s"}.`,
+      context: "job queue",
+      suppressLogging: true,
+    }),
+
+  /** Show error when sync fails */
+  syncError: () =>
+    toastService.error({
+      id: "job-queue-flush",
+      title: queueDefaults.syncError.title,
+      message: queueDefaults.syncError.message,
+      context: "job queue",
+    }),
+
+  /** Show error when an individual queued job fails */
+  jobFailed: (kind: "work" | "approval", detail?: string) =>
+    toastService.error({
+      id: `job-failed-${kind}`,
+      title: queueDefaults.jobFailed.title,
+      message:
+        detail ??
+        (kind === "work"
+          ? queueDefaults.jobFailed.workMessage
+          : queueDefaults.jobFailed.approvalMessage),
+      context: "job queue",
+    }),
+
+  /** Show info when jobs are still queued */
+  stillQueued: (reason: string) =>
+    toastService.info({
+      id: "job-queue-flush",
+      title: queueDefaults.stillQueued.title,
+      message: reason,
+      context: "job queue",
+      suppressLogging: true,
+    }),
+
+  /** Show info when queue is empty */
+  queueClear: () =>
+    toastService.info({
+      id: "job-queue-flush",
+      title: queueDefaults.queueClear.title,
+      message: queueDefaults.queueClear.message,
+      context: "job queue",
+      suppressLogging: true,
+    }),
 };
 
 /**
@@ -138,87 +205,3 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
       }),
   };
 }
-
-function localized() {
-  return getLocalizedToastFamily("queue", createQueueToasts);
-}
-
-export const queueToasts = {
-  jobCompleted: (kind: "work" | "approval") => {
-    const bound = localized();
-    if (bound) return bound.jobCompleted(kind);
-    return toastService.success({
-      id: `job-processing`,
-      title:
-        kind === "work" ? queueDefaults.workCompleted.title : queueDefaults.approvalCompleted.title,
-      message:
-        kind === "work"
-          ? queueDefaults.workCompleted.message
-          : queueDefaults.approvalCompleted.message,
-      context: kind === "work" ? "work upload" : "approval submission",
-      suppressLogging: true,
-    });
-  },
-
-  syncSuccess: (processed: number) => {
-    const bound = localized();
-    if (bound) return bound.syncSuccess(processed);
-    return toastService.success({
-      id: "job-queue-flush",
-      title: queueDefaults.syncSuccess.title,
-      message: `Processed ${processed} item${processed === 1 ? "" : "s"}.`,
-      context: "job queue",
-      suppressLogging: true,
-    });
-  },
-
-  syncError: () => {
-    const bound = localized();
-    if (bound) return bound.syncError();
-    return toastService.error({
-      id: "job-queue-flush",
-      title: queueDefaults.syncError.title,
-      message: queueDefaults.syncError.message,
-      context: "job queue",
-    });
-  },
-
-  jobFailed: (kind: "work" | "approval", detail?: string) => {
-    const bound = localized();
-    if (bound) return bound.jobFailed(kind, detail);
-    return toastService.error({
-      id: `job-failed-${kind}`,
-      title: queueDefaults.jobFailed.title,
-      message:
-        detail ??
-        (kind === "work"
-          ? queueDefaults.jobFailed.workMessage
-          : queueDefaults.jobFailed.approvalMessage),
-      context: "job queue",
-    });
-  },
-
-  stillQueued: (reason: string) => {
-    const bound = localized();
-    if (bound) return bound.stillQueued(reason);
-    return toastService.info({
-      id: "job-queue-flush",
-      title: queueDefaults.stillQueued.title,
-      message: reason,
-      context: "job queue",
-      suppressLogging: true,
-    });
-  },
-
-  queueClear: () => {
-    const bound = localized();
-    if (bound) return bound.queueClear();
-    return toastService.info({
-      id: "job-queue-flush",
-      title: queueDefaults.queueClear.title,
-      message: queueDefaults.queueClear.message,
-      context: "job queue",
-      suppressLogging: true,
-    });
-  },
-};

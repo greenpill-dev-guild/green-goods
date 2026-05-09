@@ -99,14 +99,6 @@ export {
   setHapticsEnabled,
 } from "./app/haptics";
 // ============================================================================
-// ROUTE TRANSITIONS (typed view-transitions API)
-// ============================================================================
-export type {
-  NavigateWithTransitionOptions,
-  RouteTransitionDirection,
-} from "./app/route-transitions";
-export { navigateWithTransition } from "./app/route-transitions";
-// ============================================================================
 // FILES
 // ============================================================================
 export type { NormalizeToFileOptions } from "./app/normalizeToFile";

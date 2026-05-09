@@ -40,6 +40,18 @@ These are still available, but they are not the default starting points anymore.
 
 ---
 
+## Linear Awareness
+
+Linear is the durable backlog (see `CLAUDE.md` § Linear Workspace). Skills that interact with Linear:
+
+- **status, review, ship** — read Linear context when the branch matches `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`). They do not write.
+- **audit, principles, architecture, clean, debug, plan** — route accepted findings to Linear Issues with the user's explicit OK. They prompt before writing; they never auto-write.
+- All other skills — Linear-agnostic.
+
+Privacy boundary applies on every Linear write: replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out of Linear bodies.
+
+---
+
 ## Defaults
 
 If you are unsure where to start:

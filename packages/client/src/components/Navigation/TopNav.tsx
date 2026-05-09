@@ -89,10 +89,7 @@ const NotificationCenter: React.FC<TopNavProps & { garden: Garden }> = ({ works,
         type="button"
         onClick={() => setIsOpen(true)}
         className={styles.button}
-        aria-label={formatMessage({
-          id: "app.home.topNav.notifications.ariaLabel",
-          defaultMessage: "View notifications",
-        })}
+        aria-label="View notifications"
       >
         {hasNotifications && <NotificationBadge count={workNotifications.length} />}
         <NotificationIcon className={styles.icon} />
@@ -227,10 +224,7 @@ export const TopNav: React.FC<TopNavProps> = ({
             e.currentTarget.blur();
           }}
           className={cn(backButtonStyles.button, "z-1")}
-          aria-label={formatMessage({
-            id: "app.home.topNav.back.ariaLabel",
-            defaultMessage: "Go back",
-          })}
+          aria-label="Go back"
         >
           <RiArrowLeftFill className={backButtonStyles.icon} />
         </button>

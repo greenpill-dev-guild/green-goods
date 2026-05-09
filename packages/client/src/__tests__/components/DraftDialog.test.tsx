@@ -24,40 +24,9 @@ vi.mock("react-intl", () => ({
   }),
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const { createElement } = await import("react");
-  return {
-    cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-    DialogShell: ({
-      open,
-      onOpenChange,
-      title,
-      children,
-    }: {
-      open: boolean;
-      onOpenChange: (open: boolean) => void;
-      title: string;
-      children: unknown;
-    }) =>
-      open
-        ? createElement(
-            "div",
-            { "data-testid": "dialog-shell" },
-            createElement("h2", null, title),
-            createElement(
-              "button",
-              {
-                type: "button",
-                "aria-label": "Close",
-                onClick: () => onOpenChange(false),
-              },
-              "X"
-            ),
-            children
-          )
-        : null,
-  };
-});
+vi.mock("@green-goods/shared", () => ({
+  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+}));
 
 vi.mock("@/components/Actions", () => ({
   Button: ({ label, onClick }: { label: string; onClick?: () => void }) =>

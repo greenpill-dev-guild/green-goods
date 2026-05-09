@@ -2,7 +2,6 @@ import { PostHogProvider } from "posthog-js/react";
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
 
-import { LocalizedToastsBridge } from "../components/Toast/LocalizedToastsBridge";
 import enMessages from "../i18n/en.json";
 import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
@@ -223,7 +222,6 @@ export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
   const appContent = (
     <AppContext.Provider value={contextValue}>
       <IntlProvider locale={locale} messages={messages[locale]}>
-        <LocalizedToastsBridge />
         {children}
       </IntlProvider>
     </AppContext.Provider>
