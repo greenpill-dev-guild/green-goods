@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "public-endowment-withdrawal-recovery",
+    "title": "Public Endowment Withdrawal Recovery",
+    "kind": "feature",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p0",
+    "created_at": "2026-05-09T21:35:46.781Z",
+    "updated_at": "2026-05-09T21:35:46.781Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["client-browser", "client", "shared", "agent", "docs"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/client", "packages/shared", "packages/agent", "docs/docs"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Backlog by request: this hub records the plan for later implementation and must be moved to active before automation starts.",
+    "Wallet Endow remains visible while the public /fund management panel is built.",
+    "Card Donate may recover first after real checkout and webhook proof; Card Endow remains gated until email-wallet ownership plus public withdrawal are proven.",
+    "No existing-position migration, public address lookup, fiat off-ramp, contract work, or indexer schema work is planned.",
+    "status.json is authoritative; branch names are automation signals.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/public-endowment-withdrawal-recovery",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Implement /fund My Endowments UI only after the shared public endowment-position shape is available. Keep visibility account-gated and add i18n.",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react", "web3", "testing"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/public-endowment-withdrawal-recovery",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "Own the shared public endowment-position hook/type, public withdraw reuse boundaries, and Thirdweb/card Donate proof path. Keep Card Endow gated.",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer", "web3", "agent", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/public-endowment-withdrawal-recovery",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "No Solidity, deployment, or indexer schema work is planned for this recovery hub.",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "The plan uses existing vault deposit reads and withdrawal mechanics; no contract lane is planned."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/public-endowment-withdrawal-recovery",
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Review public /fund withdrawal UX, account-gated visibility, receipt return path, mobile layout, i18n, and Card Endow hidden state.",
+      "skill_tags": ["testing", "review", "ui"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/public-endowment-withdrawal-recovery",
+      "branch_trigger": "claude/qa-pass-1/public-endowment-withdrawal-recovery",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Re-run targeted validation, inspect provider proof gates, and confirm no unrelated funding/PWA/admin work was pulled in.",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-09T21:35:46.784Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-05-09T21:35:46.785Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planned",
+      "branch": "main",
+      "note": "Recorded the public endowment withdrawal recovery plan, card Donate recovery lane, Card Endow gate, and no-contract boundary."
+    }
+  ]
+}
