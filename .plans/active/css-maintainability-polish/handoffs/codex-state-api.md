@@ -76,14 +76,15 @@ CSS ownership by surface:
 - Public browser/editorial: `packages/client/src/styles/editorial.css` owns public browser editorial tokens, section reveal animations, public dialog animation, and install-sheet CSS. It is imported client-side only and should remain out of admin/shared cleanup.
 - Storybook parity: `packages/shared/.storybook/storybook.css` owns Storybook-only browser/PWA/admin preview frames and imports the same shared/admin token surfaces for parity.
 
-Current unresolved baseline:
+Current unresolved baseline (on `main`, after reconciliation):
 
-- 68 audited unresolved token/path entries.
+- 64 audited unresolved token/path entries (down from the 68 captured on the `release/1.1.0` prototype).
 - 59 entries in `packages/client/src/styles/typography.css`: legacy expanded text token names such as `--text-title-screen-font-size`.
-- 4 entries in `packages/admin/src/components/Action/ActionTranslationEditor.tsx`: missing M3 error/tertiary container roles.
 - 2 entries in `packages/admin/src/components/Hypercerts/DistributionChart.tsx`: stale `--color-info-*` aliases; live aliases appear to use `information`.
 - 2 entries in `packages/shared/src/components/Toast/toast.service.tsx`: stale primary/text token aliases.
 - 1 entry in `packages/shared/.storybook/storybook.css`: old `--font-family-sans` alias.
+
+Reconciliation note: four admin M3 error/tertiary container roles previously baselined under `packages/admin/src/components/Action/ActionTranslationEditor.tsx` are now defined on `main`, so those entries were pruned from the baseline before completing the lane.
 
 Known external runtime variables intentionally not baselined:
 
@@ -128,7 +129,7 @@ Evidence:
 ## Follow-Up For UI Lane
 
 - Do not do broad CSS cleanup in this state/API lane.
-- Start UI cleanup from the 68-entry baseline, especially client typography and missing admin M3 container roles.
+- Start UI cleanup from the 64-entry baseline on `main`, especially client typography and the remaining stale admin chart / shared toast aliases.
 - Keep public browser/editorial CSS local to `packages/client/src/styles/editorial.css`.
 - Keep admin cockpit CSS in the admin M3 and override surfaces; avoid moving admin-only rules into shared unless shared primitives truly own the behavior.
 - The overall feature is still active: `state_api` is complete, `ui` remains ready, and QA lanes remain blocked until UI cleanup lands.
