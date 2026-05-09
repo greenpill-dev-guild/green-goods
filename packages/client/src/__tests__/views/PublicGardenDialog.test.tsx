@@ -122,11 +122,18 @@ describe("GardenDialog close choreography", () => {
 
   afterEach(() => {
     cleanup();
+    document.querySelectorAll("[data-testid='origin-card']").forEach((node) => node.remove());
     vi.useRealTimers();
   });
 
   it("defers navigate by the close-stagger window after clicking close", () => {
-    renderDialog();
+    const origin = document.createElement("a");
+    origin.href = "/gardens/test-garden";
+    origin.textContent = "Test Garden";
+    origin.dataset.testid = "origin-card";
+    document.body.appendChild(origin);
+
+    const { unmount } = renderDialog();
 
     const closeButton = screen.getByRole("button", { name: /close/i });
     fireEvent.click(closeButton);
@@ -149,19 +156,47 @@ describe("GardenDialog close choreography", () => {
       vi.advanceTimersByTime(1);
     });
     expect(navigateSpy).toHaveBeenCalledWith("/gardens", { viewTransition: true });
+
+    // The real route change unmounts the dialog and Radix removes aria-hidden
+    // from the background card before the retry focus lands.
+    unmount();
+    origin.removeAttribute("aria-hidden");
+    origin.removeAttribute("data-aria-hidden");
+
+    act(() => {
+      vi.advanceTimersByTime(200);
+    });
+    expect(origin).toHaveFocus();
   });
 
   it("bypasses the stagger and navigates immediately under reduced motion", () => {
     mockMatchMedia(true);
 
-    renderDialog();
+    const origin = document.createElement("a");
+    origin.href = "/gardens/test-garden";
+    origin.textContent = "Test Garden";
+    origin.dataset.testid = "origin-card";
+    document.body.appendChild(origin);
+
+    const { unmount } = renderDialog();
 
     const closeButton = screen.getByRole("button", { name: /close/i });
+    expect(closeButton).toHaveFocus();
+
     fireEvent.click(closeButton);
 
     // No data-closing flag, no deferral — navigate fires synchronously.
     const content = document.querySelector(".public-garden-dialog");
     expect(content?.getAttribute("data-closing")).toBeNull();
     expect(navigateSpy).toHaveBeenCalledWith("/gardens", { viewTransition: true });
+
+    unmount();
+    origin.removeAttribute("aria-hidden");
+    origin.removeAttribute("data-aria-hidden");
+
+    act(() => {
+      vi.advanceTimersByTime(520);
+    });
+    expect(origin).toHaveFocus();
   });
 });

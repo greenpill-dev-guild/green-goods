@@ -7,7 +7,7 @@ import {
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
@@ -28,6 +28,26 @@ const FOCUS_AFTER_MORPH_MS = 350;
 function prefersReducedMotion(): boolean {
   if (typeof window === "undefined") return false;
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function focusGardenCardAfterNavigation(href: string | null): void {
+  if (!href || typeof window === "undefined") return;
+
+  const focusCard = () => {
+    const link = Array.from(
+      document.querySelectorAll<HTMLAnchorElement>('a[href^="/gardens/"]')
+    ).find((candidate) => candidate.getAttribute("href") === href);
+    link?.focus({ preventScroll: true });
+  };
+
+  window.setTimeout(focusCard, 0);
+  window.setTimeout(focusCard, 80);
+  window.setTimeout(focusCard, 200);
+  window.setTimeout(focusCard, 360);
+  window.setTimeout(focusCard, 520);
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(focusCard);
+  });
 }
 
 /**
@@ -53,6 +73,20 @@ export default function GardenDialog() {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const { set: scheduleClose, clear: cancelClose } = useTimeout();
   const { set: scheduleFocus } = useTimeout();
+  const focusReturnHref = garden
+    ? `/gardens/${publicGardenHelpers.deriveSlug(garden.name ?? "", garden.id)}`
+    : null;
+  const focusGardenId = garden?.id;
+
+  const navigateToGardens = useCallback(() => {
+    navigate("/gardens", { viewTransition: true });
+    focusGardenCardAfterNavigation(focusReturnHref);
+  }, [focusReturnHref, navigate]);
+
+  useLayoutEffect(() => {
+    if (!focusGardenId || !prefersReducedMotion()) return;
+    closeButtonRef.current?.focus({ preventScroll: true });
+  }, [focusGardenId]);
 
   const close = useCallback(() => {
     if (closing) return;
@@ -60,11 +94,11 @@ export default function GardenDialog() {
     // evacuate) skip the stagger and navigate directly. The view-transition
     // itself snaps to 0.01ms via the @media block in view-transitions.css.
     if (prefersReducedMotion() || !garden) {
-      navigate("/gardens", { viewTransition: true });
+      navigateToGardens();
       return;
     }
     setClosing(true);
-  }, [closing, garden, navigate]);
+  }, [closing, garden, navigateToGardens]);
 
   // Reset closing state when the garden id changes mid-flight (user clicks a
   // different card while a close is animating). Without this the queued
@@ -79,11 +113,8 @@ export default function GardenDialog() {
   // hero back to its originating card.
   useEffect(() => {
     if (!closing) return;
-    return scheduleClose(
-      () => navigate("/gardens", { viewTransition: true }),
-      CLOSE_STAGGER_DURATION_MS
-    );
-  }, [closing, navigate, scheduleClose]);
+    return scheduleClose(navigateToGardens, CLOSE_STAGGER_DURATION_MS);
+  }, [closing, navigateToGardens, scheduleClose]);
 
   const handleOpenAutoFocus = useCallback(
     (event: Event) => {
@@ -91,10 +122,16 @@ export default function GardenDialog() {
       // doesn't paint during the card → dialog hero morph; defer to the
       // close button after the morph settles.
       event.preventDefault();
-      const delay = prefersReducedMotion() ? 0 : FOCUS_AFTER_MORPH_MS;
+      if (prefersReducedMotion()) {
+        closeButtonRef.current?.focus({ preventScroll: true });
+        scheduleFocus(() => {
+          closeButtonRef.current?.focus({ preventScroll: true });
+        }, 0);
+        return;
+      }
       scheduleFocus(() => {
         closeButtonRef.current?.focus({ preventScroll: true });
-      }, delay);
+      }, FOCUS_AFTER_MORPH_MS);
     },
     [scheduleFocus]
   );
@@ -178,7 +215,7 @@ export default function GardenDialog() {
           </button>
 
           <div
-            className="aspect-[16/9] w-full overflow-hidden bg-bg-weak-50 sm:aspect-[3/1]"
+            className="aspect-[16/9] w-full shrink-0 overflow-hidden bg-bg-weak-50 sm:aspect-[3/1]"
             style={{ viewTransitionName: heroVtName }}
           >
             <ImageWithFallback
@@ -456,7 +493,7 @@ function formatRelativeDate(secondsSinceEpoch: number): string {
 function GardenDialogSkeleton() {
   return (
     <div aria-hidden="true">
-      <div className="aspect-[16/9] w-full animate-pulse bg-editorial-warm sm:aspect-[3/1]" />
+      <div className="aspect-[16/9] w-full shrink-0 animate-pulse bg-editorial-warm sm:aspect-[3/1]" />
       <div className="space-y-6 px-6 py-8 sm:px-10 sm:py-10">
         <div className="space-y-3">
           <div className="h-3 w-24 animate-pulse rounded-sm bg-stroke-soft-200" />

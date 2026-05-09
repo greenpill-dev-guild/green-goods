@@ -157,6 +157,8 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   const [hasError, setHasError] = useState(!safeSrc);
   const [isLoading, setIsLoading] = useState(!!safeSrc && !hasResolvedCache);
   const [isLoaded, setIsLoaded] = useState(hasResolvedCache);
+  const [cacheHitForCurrentSrc, setCacheHitForCurrentSrc] = useState(hasResolvedCache);
+  const [shouldAnimateReveal, setShouldAnimateReveal] = useState(false);
 
   // Re-sync state when the `src` prop changes. `useState` only consumes its
   // initializer on first mount, so without this effect a single component
@@ -167,10 +169,12 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
     setHasError(!safeSrc);
     setIsLoading(!!safeSrc && !hasResolvedCache);
     setIsLoaded(hasResolvedCache);
+    setCacheHitForCurrentSrc(hasResolvedCache);
+    setShouldAnimateReveal(false);
     // initialSrc / hasResolvedCache are fully derived from
     // safeSrc/ipfsPath/cachedUrl/needsRace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [safeSrc, ipfsPath, cachedUrl, needsRace]);
+  }, [safeSrc, ipfsPath]);
 
   // Stable ref for onErrorCallback to avoid re-triggering the race effect
   const onErrorRef = useRef(onErrorCallback);
@@ -194,6 +198,7 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
         // Cache the base URL (without optimization params) for future instances
         const baseUrl = winnerUrl.split("?")[0];
         resolvedUrlCache.set(ipfsPath, baseUrl);
+        setCacheHitForCurrentSrc(false);
         setCurrentSrc(winnerUrl);
       })
       .catch(() => {
@@ -212,6 +217,7 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
   const handleLoad = () => {
     setIsLoading(false);
     setIsLoaded(true);
+    setShouldAnimateReveal(!cacheHitForCurrentSrc);
     // Update cache with the URL that actually worked
     if (ipfsPath && currentSrc) {
       const baseUrl = currentSrc.split("?")[0];
@@ -266,7 +272,11 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({
           src={currentSrc}
           alt={alt}
           loading={loading}
-          className={cn(className, isLoading && "opacity-0", isLoaded && "image-reveal")}
+          className={cn(
+            className,
+            isLoading && "opacity-0",
+            isLoaded && shouldAnimateReveal && "image-reveal"
+          )}
           onError={handleError}
           onLoad={handleLoad}
           {...props}
