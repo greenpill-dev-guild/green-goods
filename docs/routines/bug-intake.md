@@ -98,7 +98,21 @@ Use the **Claude Code PostHog connector** as the primary path for matching repor
 
 ### Multi-project structure
 
-Green Goods uses multiple PostHog projects: a **client** project (gardener/operator PWA + editorial website — where all `$exception` and consumer-side events fire) and an **admin** project (operator cockpit — where `admin_*` events fire). A bug-intake report may resolve to either project depending on the reporter's surface. The routine should query the client project first (most reports come from gardeners), and fall back to the admin project when the report names an admin route/component (`/dashboard`, `Hub`, `MainSheet`, `LeftSheet`, etc.) or comes from an operator. If only one PostHog project is wired into the routine env, query what is available and note the missing-surface gap in the run summary's `⚠ Failures this run` block — never invent telemetry to fill the gap.
+Green Goods uses **three PostHog projects**:
+
+| Project | ID | Surfaces |
+|---|---|---|
+| **App** | `163591` | Client + PWA + editorial website. Where 95%+ of bug-intake telemetry lives — `$exception`, `error_tracked`, all auth/garden/work events, `offline_connection_*`, `upload_*`, `media_upload_*`. |
+| **Admin** | `262122` | Operator cockpit. `admin_*` events plus admin-side `$exception` for the admin app. |
+| **Agent** | `262124` | Bot/messaging runtime. Telegram/WhatsApp/SMS-channel errors and lifecycle events. |
+
+A bug-intake report may resolve to any of the three projects depending on the reporter's surface. The routine should:
+
+1. Switch to project **163591 (App)** for any report from a gardener/operator using the consumer surface, the PWA, or the editorial website. This catches the bulk of reports.
+2. Switch to project **262122 (Admin)** when the report names an admin route/component (e.g., `Hub`, `MainSheet`, `LeftSheet`, an `Admin*` component, `/dashboard`).
+3. Switch to project **262124 (Agent)** when the report cites a Telegram/WhatsApp/SMS interaction or a bot-side failure.
+
+Use the connector's `switch-project` between enrichment passes. If one of the three projects is out of the connector's scope, query what is reachable and note the missing-surface gap in the run summary's `⚠ Failures this run` block — never invent telemetry to fill the gap.
 
 ### When to query PostHog
 

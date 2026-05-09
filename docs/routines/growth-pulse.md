@@ -55,24 +55,44 @@ It does NOT read from: any other repo (no Coop, no network-website, no cookie-ja
 
 ### Multi-project structure (read first)
 
-Green Goods uses multiple PostHog projects, partitioned by product surface:
+Green Goods uses **three PostHog projects**, partitioned by product surface:
 
-- **client / PWA / editorial website** — consumer-facing analytics for the gardener/operator client app, the PWA, and the editorial website (these three share one project because they're a single shipped surface from the user's perspective). This is where `auth_passkey_register_success`, `garden_join_success`, `work_submission_success`, and the rest of the funnel/retention/garden events fire. **growth-pulse's primary PostHog project**.
-- **admin** — operator-cockpit analytics for the admin app (`admin_action_create_success`, `admin_garden_create_success`, `work_approval_success`, etc.).
-- (Possible additional projects per Vercel surface as the portfolio grows.)
+| Project | ID | Surfaces emitting | Used by this routine |
+|---|---|---|---|
+| **App** | `163591` | Client app + PWA + editorial website (single ingest target — editorial-to-PWA lineage is a within-project query, not cross-project) | **Primary** — funnel, retention, gardens, errors |
+| **Admin** | `262122` | Operator cockpit (admin web app) | `actions.template-creation-rate` and admin-side anomalies only |
+| **Agent** | `262124` | Bot/messaging runtime (Telegram, future WhatsApp/SMS) | Future agent-channel adoption metrics |
 
-The PostHog API key on a single project cannot list other projects — `POSTHOG_PROJECT_ID` (or the connector's bound project) decides which project this routine reads. Configure two `POSTHOG_*_CLIENT` and `POSTHOG_*_ADMIN` env-var pairs (or two named connector bindings) and reference them explicitly per question:
+Switch projects with the connector's `switch-project` (or set `POSTHOG_PROJECT_ID` per project). When the connector is bound to one project at a time, use `switch-project` between phases:
 
-| Question | Project |
-|---|---|
-| `funnel.onboarding`, `funnel.work-repeat`, `gardens.engagement-summary`, `gardens.dormant`, `gardens.operator-activity` | client (consumer surface) |
-| `actions.template-creation-rate` | admin |
+| Phase | Project ID | Why |
+|---|---|---|
+| Phase 1 questions: `funnel.onboarding`, `funnel.work-repeat`, `gardens.engagement-summary`, `gardens.dormant`, `gardens.operator-activity` | `163591` (App) | Consumer events fire here |
+| Phase 1 question: `actions.template-creation-rate` | `262122` (Admin) | `admin_action_create_success` fires only on admin |
 
-If the routine env exposes only one PostHog project, **the single-project run drops the other surface's questions and notes the gap in `⚠ Failures this run`** rather than producing zeroed numbers as if telemetry were broken. A run that returns zero events on the client project should be treated as a wiring failure, not a real anomaly — emit `⚠ Failures this run: client PostHog project returned zero events for {window} — wiring suspect, anomaly thresholds skipped`. Real production zero days are rare enough that they should be confirmed by a human before this routine fires anomaly Issues.
+If a query against project 163591 returns zero events for a 30d window, that's a **wiring failure, not a real anomaly** — emit `⚠ Failures this run: App PostHog project returned zero events — wiring suspect, anomaly thresholds skipped`. Real production zero days at GG's volume are vanishingly rare; treat them as setup drift and surface for the human, do not fire false-positive anomaly Issues.
 
-### Cross-project lineage (editorial website → PWA)
+### Known SKILL bugs to flag during runs
 
-Lineage between editorial-website visitors and PWA app users is a known gap: PostHog projects don't share `distinct_id` namespaces by default. When the team needs that handoff metric, options are (a) merge the surfaces into one PostHog project (preferred), (b) emit a stable cross-surface user ID (e.g., wallet or passkey credential ID) and stitch via `read-data-warehouse-schema` joins, or (c) use PostHog Group analytics with a shared organization/garden group. Document the chosen approach here before wiring it into a curated question; for now, lineage is out of scope for growth-pulse.
+The current `posthog-questions/SKILL.md` has two bugs in `funnel.onboarding` that this routine should work around (and that should be fixed in the SKILL itself in a follow-up):
+
+1. **Joins by `distinct_id`, not `person_id`.** PostHog assigns an anonymous UUID `distinct_id` on first page-load and switches to the wallet address after `posthog.identify()` in the auth flow. Joining funnel steps by raw `distinct_id` breaks across the auth boundary — register events (UUID-tagged) and join events (wallet-tagged) never match. Use `person_id` joins instead. (Confirmed empirically 2026-05-09: 7 person registrations + 6 person joins in 30d, but 0 overlap in the funnel because of this.)
+2. **30d window misses returning-user joins.** Garden joiners are typically returning users who registered earlier than 30d ago. The funnel as written excludes them and reports 0% conversion when actual conversion is happening on a different cohort timing. The "register → join" funnel needs a wider register lookback (e.g., 90d) or a separate "returning-users join garden" metric.
+
+Until the SKILL is fixed, **do not file an "onboarding funnel breakage" anomaly Issue based solely on `funnel.onboarding` returning 0%** — verify against the underlying event counts (register, garden_join_success) first. If the raw event counts look normal but the funnel is 0%, the funnel HogQL is at fault, not production.
+
+### Failure-event signal (not in current SKILL)
+
+Production data shows `*_failed` events are firing at meaningful rates:
+
+| Failure event | 30d count | Companion success | Pseudo-failure rate |
+|---|---|---|---|
+| `garden_join_failed` | 18 | `garden_join_success` 6 | ~75% |
+| `work_submission_failed` | 21 | `work_submission_success` 9 | ~70% |
+| `work_approval_failed` | 11 | `work_approval_success` (admin project) | (cross-project) |
+| `auth_passkey_register_failed` | 3 | `auth_passkey_register_success` 8 | ~27% |
+
+These are conversion-killing failures and likely the most actionable growth signal in the dataset — far more so than the success-only funnel. Add a `failures.conversion-kill` curated question to the SKILL in a follow-up: per failure event, count over 7d, compare WoW, fire an anomaly when failure rate > 50% AND absolute count ≥ 5. Document this here so the SKILL update knows what shape it should take.
 
 ### Curated questions
 

@@ -87,6 +87,18 @@ Routines that consume Telegram feedback need:
 
 Used by: `bug-intake` (read + respond), `health-watch` (read-only).
 
+## PostHog environment
+
+Green Goods uses three PostHog projects (org-level connector scope, switch-project between them):
+
+| Project | ID | Surfaces | Used by |
+|---|---|---|---|
+| **App** | `163591` | Client + PWA + editorial website (single ingest target — editorial-to-PWA lineage stays a within-project query) | `growth-pulse` (primary), `bug-intake` (primary), `health-watch` (errors) |
+| **Admin** | `262122` | Operator cockpit / admin web app | `growth-pulse` (`actions.template-creation-rate` only), `bug-intake` (admin-route reports) |
+| **Agent** | `262124` | Bot/messaging runtime (Telegram + future WhatsApp/SMS) | `bug-intake` (Telegram-source reports) |
+
+The connector key has a project scope set per-project at OAuth time — confirm with `switch-project` + a 1-event test query before assuming a routine can read a given project. A routine that returns zero events on a known-busy project (e.g., App over 30d) should treat the result as a wiring failure (out-of-scope or wrong project ID), not a real anomaly. Cloud routines should set `POSTHOG_PROJECT_ID_APP`, `POSTHOG_PROJECT_ID_ADMIN`, `POSTHOG_PROJECT_ID_AGENT` env vars and reference the right one per query.
+
 ## Linear environment
 
 Three routines write to Linear:
