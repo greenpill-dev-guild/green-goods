@@ -2,13 +2,17 @@ import {
   capitalize,
   ConfirmDialog,
   hapticLight,
+  isHapticsEnabled,
+  isHapticsSupported,
   type Locale,
   logger,
+  setHapticsEnabled,
+  Switch,
   toastService,
   useApp,
   useTheme,
 } from "@green-goods/shared";
-import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
+import { RiEarthFill, RiPulseFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
@@ -29,6 +33,17 @@ export const AppSettings: React.FC = () => {
   const intl = useIntl();
   const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hapticsEnabled, setHapticsEnabledState] = useState(() => isHapticsEnabled());
+  const hapticsSupported = isHapticsSupported();
+
+  const handleHapticsToggle = (next: boolean) => {
+    setHapticsEnabled(next);
+    setHapticsEnabledState(next);
+    if (next) {
+      // Fire one feedback as confirmation when re-enabling.
+      hapticLight();
+    }
+  };
 
   const themeOptions = useMemo(
     () => [
@@ -214,6 +229,45 @@ export const AppSettings: React.FC = () => {
           </div>
         </Card>
       ))}
+
+      <Card>
+        <div className="flex flex-row items-center gap-3 w-full">
+          <Avatar>
+            <div className="flex items-center justify-center text-center mx-auto text-primary">
+              <RiPulseFill className="w-4" />
+            </div>
+          </Avatar>
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="text-sm font-medium truncate">
+              {intl.formatMessage({
+                id: "app.profile.settings.haptics.label",
+                defaultMessage: "Haptic feedback",
+              })}
+            </div>
+            <div className="text-xs text-text-sub-600 line-clamp-2">
+              {hapticsSupported
+                ? intl.formatMessage({
+                    id: "app.profile.settings.haptics.description",
+                    defaultMessage: "Subtle vibrations when you tap key actions on Android.",
+                  })
+                : intl.formatMessage({
+                    id: "app.profile.settings.haptics.unsupported",
+                    defaultMessage: "Haptic feedback isn’t available on this device.",
+                  })}
+            </div>
+          </div>
+          <Switch
+            checked={hapticsSupported && hapticsEnabled}
+            onCheckedChange={handleHapticsToggle}
+            disabled={!hapticsSupported}
+            aria-label={intl.formatMessage({
+              id: "app.profile.settings.haptics.toggleAria",
+              defaultMessage: "Toggle haptic feedback",
+            })}
+            data-testid="haptics-toggle"
+          />
+        </div>
+      </Card>
 
       <Card>
         <div className="flex flex-row items-center gap-3 w-full">

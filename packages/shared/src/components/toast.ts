@@ -10,16 +10,25 @@ export {
   createApprovalToasts,
   createLocalizedToasts,
   createQueueToasts,
+  createUpdateToasts,
   createValidationToasts,
   createWalletProgressToasts,
   createWorkToasts,
   queueToasts,
   showWalletProgress,
   toastMessageIds,
+  toastMessageIdsUpdate,
+  updateToasts,
   validationToasts,
   walletProgressToasts,
   workToasts,
 } from "./Toast/presets";
+export {
+  clearLocalizedToastsFormatter,
+  getLocalizedToastsFormatter,
+  setLocalizedToastsFormatter,
+} from "./Toast/presets/registry";
+export { LocalizedToastsBridge } from "./Toast/LocalizedToastsBridge";
 export type {
   ToastAction,
   ToastDescriptor,

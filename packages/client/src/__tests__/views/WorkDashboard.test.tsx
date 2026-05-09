@@ -30,6 +30,24 @@ vi.mock("@green-goods/shared", () => ({
   isUserAddress: (address?: string, activeAddress?: string) =>
     Boolean(address && activeAddress && address.toLowerCase() === activeAddress.toLowerCase()),
   logger: { error: vi.fn() },
+  PwaSheet: ({
+    open,
+    children,
+    panelClassName,
+    testId,
+  }: {
+    open: boolean;
+    children: unknown;
+    panelClassName?: string;
+    testId?: string;
+  }) =>
+    open
+      ? createElement(
+          "div",
+          { "data-testid": testId ?? "pwa-sheet", className: panelClassName ?? "" },
+          children
+        )
+      : null,
   queryKeys: {
     approvals: {
       byMyWorkGardens: (...args: unknown[]) => ["approvals", "mine", ...args],
