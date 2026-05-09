@@ -1,10 +1,10 @@
 # Animation & Interaction Polish — Editorial Browser + Garden Detail
 
 **Feature Slug**: `animation-polish-editorial-browser`
-**Stage**: `active`
-**Status**: `IN_PROGRESS` (UI lane code-complete with proof_limits; awaiting qa_pass_1 visual signoff)
+**Stage**: `archive`
+**Status**: `DONE` (QA pass 2 complete; C3 global view-transition followup shipped with Afo approval)
 **Created**: `2026-05-03`
-**Last Updated**: `2026-05-07` (Phase B + Phase F shipped; Phase C deferred)
+**Last Updated**: `2026-05-09` (QA pass 2 complete; C3 wildcard duration shipped; hub archived)
 **Branch**: `main` (Afo confirmed in turn — `release/1.1.0` is fully merged into `main` and `main` is 20+ commits ahead. UI lane stayed scoped to `GardenDialog.tsx` + `editorial.css` while a parallel agent works elsewhere.)
 
 ## Why this exists
@@ -71,10 +71,10 @@ Phase A confirmed the dominant cause was H5 (image lifecycle), not vt-name place
 - [-] **C2 — Aspect-ratio normalization (per H6).** Card hero is `aspect-[3/2]` (default) or `aspect-[4/3]` (lead); dialog hero is `aspect-[16/9] sm:aspect-[3/1]`. Even with C1 fixed, the photo reframes mid-flight. **Final verdict, 2026-05-07: closed as deferred.** The decision gate ("Afo eyeballs C1 in a real-data environment") has not been satisfied — client dev stack is offline and the change has aesthetic blast radius across every garden detail visit (changes the dialog hero proportions on desktop). Not shipped without visual signoff. Two future-paths preserved if the residual reframing still reads mechanical:
   - Drop only the `sm:aspect-[3/1]` desktop override; keep `aspect-[16/9]` everywhere. Smallest visual move (default-card → dialog ratio change drops from +100% to +19% on desktop).
   - Canonicalize one ratio across card and dialog. Biggest visual change.
-- [-] **C3 (NEW from Phase A live profile) — Default per-card morph runs at browser default ~250ms.** Only `::view-transition-group(main)` is overridden in `view-transitions.css` (to `--spring-spatial-slow-duration` = 400ms). Per-card morphs (`garden-card-{id}`) inherit 250ms. **Final verdict, 2026-05-07: closed as deferred.** A wildcard override (`::view-transition-group(*) { animation-duration: ... }`) is the only viable path (gardens are dynamic, so per-id rules don't exist), but the prior session captured a timeline freeze with a wildcard rule. A retest harness inside the storybook preview iframe could not isolate the cause — the iframe aborts view-transitions with "Transition was aborted because of invalid state" regardless of whether the wildcard rule is present. Until a clean live client environment is available, the freeze risk in production cannot be ruled out. Shipping a wildcard rule blind would risk freezing all view-transitions site-wide.
+- [x] **C3 (NEW from Phase A live profile) — Default per-card morph runs at browser default ~250ms.** Only `::view-transition-group(main)` was overridden in `view-transitions.css` (to `--spring-spatial-slow-duration` = 400ms), so per-card morphs (`garden-card-{id}`) inherited the browser default. **Final verdict, 2026-05-09: shipped with Afo approval.** QA pass 2 tested the wildcard live in Chromium (`finished: true`, elapsed ~494ms, no timeline freeze), then Afo approved shipping the global rule. `view-transitions.css` now sets `::view-transition-group(*)` to `--spring-spatial-slow-duration` + `--spring-spatial-easing`, so dynamic Garden morph names inherit the same 400ms editorial cadence without per-id CSS.
 - [-] Optional aesthetic: morph the dialog's *header band* (location + title) so the metadata "settles" rather than "appears." **Closed as deferred** — out of scope for this lane; would require new view-transition-name on the dialog header band (and matching anchor on the card if a true morph is desired). Adds rather than polishes.
 
-**Phase C closing verdict, 2026-05-07** — C2 + C3 explicitly deferred. The lane shipped Phase B + Phase F with TDD evidence. The H5 fix from the 2026-05-04 session is on disk and remains the dominant gap closer. If Afo's visual pass after Phase B + Phase F still finds the residual morph mechanical, the smaller next step is C2-minimal (drop `sm:aspect-[3/1]` only) before any wildcard view-transition rule.
+**Phase C closing verdict, 2026-05-09** — C2 remains intentionally unshipped because the real-data desktop hero read coherent after QA pass 2's mobile `shrink-0` fix, and changing `sm:aspect-[3/1]` would alter the dialog aesthetic. C3 is shipped: the global wildcard view-transition group now inherits the 400ms spatial-slow cadence that QA pass 2 verified live.
 
 ### Phase D — Section reveals with inner cascade
 
@@ -139,6 +139,7 @@ When this work resumes:
 - [ ] Tab through the dialog with keyboard; focus order makes sense.
 - [ ] Toggle `prefers-reduced-motion` in the OS; confirm everything snaps with no broken layout.
 - [x] `bun run lint:vocab && bun format && bun lint && bun run test` before closing the loop. *(Run 2026-05-07: lint:vocab clean — no banned vocabulary in 3 i18n files; `bun run format:check` clean; `bun run lint` clean — 3 pre-existing warnings in unrelated files; 38/38 Public-route tests pass plus 2/2 new GardenDialog close-stagger tests; `VITE_CHAIN_ID=11155111 bun run build` for the client clean in 17.84s.)*
+- [x] C3 post-approval ship check (2026-05-09): `bun run format:check` clean, `node scripts/harness/plan-hub.mjs validate` clean (`Validated 23 feature hubs.` after archive), `VITE_CHAIN_ID=11155111 bun run build` clean, and a Chromium probe against `https://127.0.0.1:3001/gardens` confirmed the shipped `::view-transition-group(*)` rule loaded and `document.startViewTransition()` finished without freezing.
 
 ## Files in scope
 

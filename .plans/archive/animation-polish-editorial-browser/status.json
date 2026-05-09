@@ -4,13 +4,13 @@
     "slug": "animation-polish-editorial-browser",
     "title": "Animation & Interaction Polish — Editorial Browser + Garden Detail",
     "kind": "feature",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
     "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-05-03T00:00:00.000Z",
-    "updated_at": "2026-05-09T21:55:02.414Z"
+    "updated_at": "2026-05-09T22:09:59.174Z"
   },
   "links": {
     "brief": "brief.md",
@@ -173,6 +173,22 @@
       "status": "completed",
       "branch": "codex/qa-pass-2/animation-polish-editorial-browser",
       "note": "QA pass 2 pass-with-followups: dependency layout fixed, browser evidence captured, H5/focus/mobile defects fixed; validation ladder clean, C3 duration awaits Afo approval."
+    },
+    {
+      "timestamp": "2026-05-09T22:09:48.885Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "codex/qa-pass-2/animation-polish-editorial-browser",
+      "note": "C3 wildcard duration shipped with Afo approval; qa_pass_2 verdict upgraded to pass before archive."
+    },
+    {
+      "timestamp": "2026-05-09T22:09:59.174Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
     }
   ]
 }

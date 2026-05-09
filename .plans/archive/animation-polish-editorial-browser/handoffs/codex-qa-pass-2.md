@@ -3,7 +3,7 @@
 **Owner**: codex (qa_pass_2)  
 **Closing turn**: 2026-05-09  
 **Working branch**: `main` (no worktree, direct-to-main)  
-**Verdict**: `pass-with-followups`
+**Verdict**: `pass`
 
 ## Scope
 
@@ -139,11 +139,11 @@ Key browser checks:
   the dialog hero honoring the existing `sm:aspect-[3/1]` (`896x298.65625`, aspect ~3.0) and mobile
   honoring `aspect-[16/9]`. The real garden image morph reads coherent in the live client, so I did
   not drop `sm:aspect-[3/1]`.
-- **C3 wildcard duration**: tested only in the browser, not on disk. Injecting
-  `::view-transition-group(*) { animation-duration: 400ms !important; }` completed cleanly:
-  `supported: true`, `finished: true`, elapsed ~494ms, `timelineAdvanced: true`, no error. If Afo
-  wants the global wildcard duration revisited, `400ms` is the live-tested candidate, but this pass
-  intentionally did not ship it without explicit approval.
+- **C3 wildcard duration**: shipped after Afo approved the followup. QA pass 2's browser-only
+  injection of `::view-transition-group(*) { animation-duration: 400ms !important; }` completed
+  cleanly: `supported: true`, `finished: true`, elapsed ~494ms, `timelineAdvanced: true`, no error.
+  The committed rule uses `--spring-spatial-slow-duration` and `--spring-spatial-easing` so dynamic
+  per-Garden morphs inherit the same 400ms editorial cadence without per-id CSS.
 
 ## Validation ladder
 
@@ -159,13 +159,12 @@ Key browser checks:
 | 6 | `bunx tsc --noEmit --project packages/client/tsconfig.json` | pass |
 | 7 | `VITE_CHAIN_ID=11155111 bun run build` in `packages/client` | pass — built in 1m 7s; existing Rollup/chunk warnings only |
 | 8 | `node scripts/harness/plan-hub.mjs validate` | pass — `Validated 24 feature hubs.` The count is 24 instead of the prompt's expected 23 because the worktree contains an unrelated untracked `.plans/backlog/public-endowment-withdrawal-recovery/` hub; I did not touch it. |
+| 9 | Post-approval C3 Chromium probe against `https://127.0.0.1:3001/gardens` | pass — shipped wildcard rule loaded; `document.startViewTransition()` finished; elapsed 571ms; `timelineAdvanced: true`; no error |
 
-## Followups
+## External Notes
 
-1. Decide whether to ship the C3 global wildcard view-transition duration. The browser-only test was
-   clean at `400ms`, but this needs Afo approval because the blast radius is global.
-2. Separately reconcile the repo lint warning budget. The requested handoff expected 3
+1. Separately reconcile the repo lint warning budget. The requested handoff expected 3
    pre-existing warnings, but the actual root lint output is much larger (`730` oxlint + `165`
    solhint warnings) while still exiting 0. This pass introduced 0 touched-file warnings.
-3. Separately reconcile the plan-hub count drift if needed. The final validate run is clean, but it
+2. Separately reconcile the plan-hub count drift if needed. The final validate run is clean, but it
    reports 24 hubs because another untracked backlog hub is present in the shared worktree.
