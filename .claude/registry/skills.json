@@ -57,6 +57,25 @@
       "sub_files": ["monitoring.md", "posthog.md", "health-diagnostics.md"]
     },
     {
+      "name": "posthog-questions",
+      "status": "active",
+      "listed_in_index": false,
+      "default_mode": "passive",
+      "user_invocable": false,
+      "intent": "Canonical curated-question library for PostHog reads across Green Goods routines and debugging skills, including privacy boundaries and concrete invocation paths",
+      "entry_file": ".claude/skills/posthog-questions/SKILL.md",
+      "owned_skills": [],
+      "triggers": [
+        "PostHog question",
+        "PostHog routine",
+        "curated question",
+        "HogQL",
+        "routine PostHog",
+        "privacy boundary"
+      ],
+      "dependencies": ["debug", "ops"]
+    },
+    {
       "name": "review",
       "status": "active",
       "listed_in_index": true,
