@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-05-09T21:35:46.781Z"
+    "updated_at": "2026-05-09T21:55:49.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,8 +27,15 @@
   },
   "notes": [
     "Backlog by request: this hub records the plan for later implementation and must be moved to active before automation starts.",
+    "Public withdrawal is the first implementation slice; do not let Card Donate recovery block the /fund management fix.",
     "Wallet Endow remains visible while the public /fund management panel is built.",
     "Card Donate may recover first after real checkout and webhook proof; Card Endow remains gated until email-wallet ownership plus public withdrawal are proven.",
+    "Funding lane matrix is explicit: Wallet Donate and Wallet Endow remain wallet-owned; Manage Endowments is public account-gated; Card Donate is proof-gated; Card Endow is ownership/share/withdrawal-gated.",
+    "Card Donate proof must verify the Garden Cookie Jar support path or postcondition, not only provider success or a generic token transfer.",
+    "Provider proof entries must be exact by intent, Garden destination, token, chain, and method; Card Donate proof never unlocks Card Endow.",
+    "/fund?manage=endowments must not carry receipt tokens, wallet addresses, emails, or provider identifiers.",
+    "Endowment management deeplink is /fund?manage=endowments.",
+    "Public withdraw preview must use the same 1% max-loss default as the withdraw mutation.",
     "No existing-position migration, public address lookup, fiat off-ramp, contract work, or indexer schema work is planned.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
@@ -38,9 +45,9 @@
       "owner": "claude",
       "status": "todo",
       "branch": "claude/ui/public-endowment-withdrawal-recovery",
-      "depends_on": ["state_api"],
+      "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Implement /fund My Endowments UI only after the shared public endowment-position shape is available. Keep visibility account-gated and add i18n.",
+      "handoff_note": "Implement /fund My Endowments UI after the public position hook shape is agreed. Do not wait on Card Donate recovery. Keep visibility account-gated, wire /fund?manage=endowments, and add i18n.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -62,7 +69,7 @@
       "branch": "codex/state-api/public-endowment-withdrawal-recovery",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Own the shared public endowment-position hook/type, public withdraw reuse boundaries, and Thirdweb/card Donate proof path. Keep Card Endow gated.",
+      "handoff_note": "Own the shared public endowment-position hook/type, safe max-loss preview parity, public withdraw reuse boundaries, Thirdweb/card Donate proof path, and Card Endow receiver-address gate.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -108,7 +115,7 @@
       "branch": "claude/qa-pass-1/public-endowment-withdrawal-recovery",
       "depends_on": ["ui", "state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Review public /fund withdrawal UX, account-gated visibility, receipt return path, mobile layout, i18n, and Card Endow hidden state.",
+      "handoff_note": "Review public /fund withdrawal UX, account-gated visibility, /fund?manage=endowments receipt return path, mobile layout, i18n, and Card Endow hidden state.",
       "skill_tags": ["testing", "review", "ui"]
     },
     "qa_pass_2": {
@@ -140,6 +147,22 @@
       "status": "planned",
       "branch": "main",
       "note": "Recorded the public endowment withdrawal recovery plan, card Donate recovery lane, Card Endow gate, and no-contract boundary."
+    },
+    {
+      "timestamp": "2026-05-09T21:50:37.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "reviewed",
+      "branch": "main",
+      "note": "Deep review tightened public management deeplink, safe withdraw preview parity, Thirdweb webhook/current-docs requirement, and Card Endow receiver-address gate."
+    },
+    {
+      "timestamp": "2026-05-09T21:55:49.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "reviewed",
+      "branch": "main",
+      "note": "Second deep audit tightened funding lane matrix, Card Donate Cookie Jar proof, exact provider-proof scope, Card Endow share verification, receipt privacy, and stale docs/design truth targets."
     }
   ]
 }

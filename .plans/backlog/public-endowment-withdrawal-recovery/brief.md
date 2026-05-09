@@ -22,17 +22,23 @@ withdrawal are proven end to end.
 
 - `/fund` includes a connected-account "My Endowments" panel where wallet and recovered email-wallet
   users can see and withdraw their own endowment positions.
+- Endowment receipts and success states return to a public management deeplink on `/fund`, not to an
+  app install prompt.
 - Wallet Endow remains available while this public withdrawal management work is built.
 - Card Donate has a clear recovery path through real Thirdweb checkout/webhook proof.
+- Card Donate proves the actual Cookie Jar funding effect, not only a generic provider payment or
+  token transfer.
 - Card Endow remains hidden until it deposits to a user-owned email/social wallet and that position is
-  visible and withdrawable from `/fund`.
+  visible, share-verified, and withdrawable from `/fund`.
 - PWA Treasury remains an alternate management surface, not the required withdrawal path.
 
 ## Scope Notes
 
-- In scope: public `/fund` endowment management UI, shared public endowment-position data layer,
-  reuse of existing vault withdraw mechanics, receipt return path, Thirdweb/card Donate proof path,
-  card Endow gating, public funding docs/design truth cleanup, targeted tests.
+- In scope: public `/fund` endowment management UI and deeplink, shared public endowment-position data
+  layer, reuse of existing vault withdraw mechanics with the safe withdrawal limit, receipt return
+  path, explicit public funding lane availability, Thirdweb/card Donate proof path, card Endow
+  receiver-account and share-verification gating, public funding docs/design truth cleanup, targeted
+  tests.
 - Out of scope: migrating existing positions, fiat/card off-ramp on withdrawal, public address lookup,
   new contract logic, indexer schema changes, PWA shell redesign, admin UI, deployment broadcasts.
 
