@@ -34,9 +34,9 @@ You are the growth-pulse routine for Green Goods. Once a week you produce a sing
 
 - **`#product`** Discord channel — primary post. Cross-post to **`#funding`** when grant-relevant.
 - **`develop`** branch — a digest PR (`claude/growth-pulse/YYYY-WW` → `develop`) with the full week-over-week numbers and commentary.
-- **Linear `Green Goods` project** — anomaly Issues for funnel breakage, retention cliffs, dormant-garden surges. Code-local engineering anomalies do **not** belong here; they go to `engineering-pulse`'s GitHub issue surface.
+- **Linear Product team (unprojected)** — accepted-anomaly Issues for funnel breakage, retention cliffs, dormant-garden surges. The legacy `Green Goods` umbrella project is no longer the routing destination — every anomaly Issue this routine creates lives unprojected on the Product team and carries `protocol:green-goods` + `activity:qa` as the canonical scope. Issues only graduate into a bounded active project when one already exists for the work.
 
-This routine does NOT touch GitHub Project #4. Audit findings, drift snapshots, ops health, and code-local anomalies are owned by `engineering-pulse` (Sunday). If a growth-side anomaly clearly stems from a code defect, mention it in the digest's `⚠ Failures this run` block and trust `engineering-pulse` to pick it up next Sunday.
+This routine does NOT write GitHub Issues, does NOT touch any GitHub Project, and does NOT carry forward the retired `Project #4` flow. The growth-side digest PR is the only GitHub artifact; everything else lives in Linear.
 
 ## Scope contract
 
@@ -47,7 +47,7 @@ This routine reads from:
 - **Chain**: `ARBITRUM_RPC_URL` for raw on-chain reads when the indexer is lagging.
 - **Dune API** for queries tagged `[routine]` only — never modify user-owned queries.
 - **Google Calendar** for context (demos, grant milestones, holidays) that explains WoW deltas.
-- **Linear `Green Goods` project** for existing anomaly Customer Needs/Issues to dedupe against.
+- **Linear Product team** (unprojected `protocol:green-goods` view) for existing anomaly Customer Needs/Issues to dedupe against.
 
 It does NOT read from: any other repo (no Coop, no network-website, no cookie-jar, no TAS-Hub, no Public Staking Protocol, no `.github`). Anything from outside `green-goods` is rejected up-front with a `scope: rejected <source>` log line and never appears in the digest. Drive is intentionally not in the connector list — calendar enrichment alone is enough; meeting notes are owned by `guild-weekly-synthesis`.
 
@@ -145,11 +145,11 @@ Branch `claude/growth-pulse/YYYY-WW`. File `docs/metrics/growth-YYYY-WW.md`. Bod
 {any plain-English observations the routine wants to surface — at most 3 sentences}
 ```
 
-PR title: `growth-pulse: week YYYY-WW digest`. Labels: `automated/claude` + `area:client` (or `area:shared` if the digest spans the whole product). No GitHub project attachment for this PR — the digest is a docs-only artifact.
+PR title: `growth-pulse: week YYYY-WW digest`. GitHub PR labels (GitHub-only, separate from the Linear taxonomy): `automated/claude`. No GitHub project attachment for this PR — the digest is a docs-only artifact.
 
 ### Linear anomaly Issue body
 
-When a growth-side metric crosses an anomaly threshold, open a Linear Issue in the `Green Goods` project with `automation:routine` + `work:polish` + the inferred `area:*` label. Body:
+When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `agent:claude`. Add the relevant `task:*` (`task:evidence`, `task:funding-pathway`, `task:access-participation`) only when the anomaly clearly maps to one of those user-task pathways; otherwise omit. Body:
 
 ```markdown
 ## Anomaly type
@@ -197,12 +197,12 @@ Apply these thresholds to the question outputs:
 - **Funnel breakage**: `register_to_join_pct` drops > 25% absolute WoW (e.g., 60% → 40%) OR `join_to_first_work_pct` drops > 25% absolute WoW. Open one Linear anomaly per affected step.
 - **Retention cliff**: `repeat_pct` drops > 15% absolute MoM. Use the 30-day window comparison; opens one Linear anomaly.
 - **Dormant-garden surge**: number of gardens in the `30d+` dormancy band increases by ≥ 3 since last week. Opens one Linear anomaly summarizing the affected gardens.
-- **Action template stall**: zero `admin_action_create_success` events in the last 14 days. Opens one Linear anomaly tagged `area:admin`.
+- **Action template stall**: zero `admin_action_create_success` events in the last 14 days. Opens one Linear anomaly tagged `package:admin`.
 
 For each anomaly:
 
-1. **Dedupe** against existing open Linear Customer Needs/Issues in `Green Goods`. Match by `## Anomaly type` + affected scope. If a duplicate exists, **append a comment** with the new numbers and refresh the date — do not create a parallel Issue.
-2. **Create** the Linear Issue per the body schema above. Status: `Backlog` (exploratory) or `Todo` (well-scoped, e.g., funnel breakage with a clear culprit step).
+1. **Dedupe** against existing open Linear Customer Needs/Issues on the Product team filtered by `protocol:green-goods` + `activity:qa`. Match by `## Anomaly type` + affected scope. If a duplicate exists, **append a comment** with the new numbers and refresh the date — do not create a parallel Issue.
+2. **Create** the Linear Issue per the body schema above, **unprojected** on the Product team. Status: `Backlog` (exploratory) or `Todo` (well-scoped, e.g., funnel breakage with a clear culprit step).
 3. **Cap**: at most **3 new Linear Issues per run**. If more anomalies exist, surface them in the digest body and let the human triage which to escalate next week.
 
 ## Phase 3: Digest PR
@@ -217,8 +217,8 @@ If the PR creation fails (auth, branch already exists, etc.), surface in the `�
 
 Before posting:
 
-1. List every Linear Issue this run created/refreshed and confirm: `Green Goods` project, expected labels, body matches schema, no private fields.
-2. List the digest PR and confirm: title, branch, label, no `area:*` mismatch.
+1. List every Linear Issue this run created/refreshed and confirm: unprojected on the Product team, expected canonical labels (`protocol:green-goods`, `activity:qa`, `package:*`, `agent:claude`, optional `task:*`), body matches schema, no private fields.
+2. List the digest PR and confirm: title, branch, GitHub `automated/claude` label.
 3. **Privacy grep** across every Linear body, the PR description, and the Discord post for the strings `replay`, `session_id`, `distinct_id`, `0x` (wallet addresses are public on-chain, but treat as suspect — confirm each one is a deliberate `garden_address` reference, not a `distinct_id`), full stack URLs with query strings, and any reporter identifiers. Any unintended hit means the routine leaked private context — fail loud in the `⚠ Failures this run` block and edit the offending body in place to redact before saving.
 4. Confirm the Discord post and `#funding` cross-post fit the schema. Drop excess content rather than expanding sections.
 
@@ -233,7 +233,8 @@ Post the primary message to `#product` per the schema. If grant-relevance criter
 - **Cap: 3 new Linear Issues per run** (anomaly cap). Carry overflow to next week.
 - **Cap: 1 PR per run** to `develop` (the digest). No other PRs.
 - **Cap: 2 hours runtime**. Timeout → write partial digest with `⚠ Failures this run: timed out at phase X`.
-- **No GitHub Project #4 writes**. Code-local engineering anomalies belong to `engineering-pulse`.
+- **No GitHub Issue or GitHub Project writes**. Linear is the durable backlog; the only GitHub artifact is the docs-only digest PR. Do not file or update GitHub Issues, Project items, or iteration/Sprints fields.
+- **Project routing discipline**. Anomaly Issues stay unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
 - **No raw HogQL** in the routine prompt. Every PostHog read goes through a curated question name. Adding a new question requires editing `.claude/skills/posthog-questions/SKILL.md` first.
 - **Privacy boundary is non-negotiable**. See `posthog-questions/SKILL.md` allowlist. If unsure, treat as private.
 - **Channel guards** at every Discord post. Fail loud, never silently substitute.

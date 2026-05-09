@@ -8,9 +8,9 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 
 | File | Status | Cadence | Channel | Issue surface |
 |---|---|---|---|---|
-| `bug-intake.md` | active | M/W/F 04:00 | `#product` | Linear `Green Goods` Customer Need + linked Issue |
-| `health-watch.md` | active | Daily M-F 07:30 | `#product` (red only) | GitHub Project #4 |
-| `growth-pulse.md` | active | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear (anomalies) + `develop` digest PR |
+| `bug-intake.md` | active | M/W/F 04:00 | `#product` | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
+| `health-watch.md` | active | Daily M-F 07:30 | `#product` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
+| `growth-pulse.md` | active | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + `develop` digest PR |
 | `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
 
 That's it — three scheduled cadences plus one event-driven. Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
@@ -19,9 +19,9 @@ That's it — three scheduled cadences plus one event-driven. Anything else prev
 
 | Routine | MCP connectors | Why each |
 |---|---|---|
-| `bug-intake` | Google Drive, Linear, PostHog, Vercel | Drive = meeting-note intake · Linear = Customer Need + Issue surface · PostHog = telemetry enrichment for bug correlation · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
-| `health-watch` | Google Drive, Google Calendar, Linear, PostHog, Vercel | Drive/Calendar = context that adjusts severity · Linear = future incident-to-Issue link · PostHog = error spike correlation · Vercel = `health:vercel` category (deploy state, runtime errors, web vitals) |
-| `growth-pulse` | Google Drive, Google Calendar, Linear, Miro | Drive/Calendar = WoW context · Linear = anomaly Issue surface · Miro = roadmap context. **PostHog access via env vars (no MCP).** Vercel intentionally NOT wired — Vercel Web Analytics overlaps with PostHog, would create dual-source drift. |
+| `bug-intake` | Google Drive, Linear, PostHog, Vercel | Drive = meeting-note intake · Linear = Customer Need (raw signal) + accepted-bug Issue surface · PostHog = telemetry enrichment for bug correlation · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
+| `health-watch` | Google Drive, Google Calendar, Linear, PostHog, Vercel | Drive/Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = error spike correlation · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues |
+| `growth-pulse` | Google Drive, Google Calendar, Linear, Miro | Drive/Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · Miro = roadmap context. **PostHog access via env vars (no MCP).** Vercel intentionally NOT wired — Vercel Web Analytics overlaps with PostHog, would create dual-source drift. |
 | `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
 
 Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution risk).
@@ -51,7 +51,7 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 - All routine PRs target `develop`. Hotfix-style flows (same-day p2 fixes to `main`) live in the `/debug` skill, not in this folder.
 - All routine branches use `claude/<routine-name>/<topic>`.
 - Loop prevention on `pr-review`: filter on `head_branch` starting with `claude/` (NOT on author — routine PRs carry the user's GitHub author per the docs).
-- **Sprints field is mandatory** on every issue created on Project #4. Without it, issues are invisible in the user's filtered view of the active iteration.
+- **Linear is the durable backlog.** GitHub is for PRs and code review only — routines never file GitHub Issues, never write to GitHub Projects, and never apply GitHub Project iteration/Sprints fields. The retired GitHub Project #4 / Bug Board flows (and the `Sprints` field they depended on) are out of scope for any active routine.
 
 ## Scope discipline
 
@@ -61,27 +61,20 @@ Every Discord post in a routine is preceded by a `Channel guard` that pins the p
 
 ## Labels in use
 
-### Linear (primary intake — `Green Goods` project)
+All routine writes use the canonical Linear label scheme. Old vocabularies (`area:*`, `work:*`, `migration:*`, `automation:*`, `health:*`, `grant:*`, `source:linear`) are retired — do not reintroduce them.
 
-| Label | Purpose |
-|---|---|
-| `source:discord` | Reported via Discord |
-| `source:telegram` | Reported via Telegram bot |
-| `source:drive` | Surfaced from Drive meeting notes |
-| `work:customer-need` | Optional label for triage Issues that group feedback |
-| `work:polish` | Applied to every linked Linear Issue created from a Customer Need |
-| `area:client` / `area:admin` / `area:shared` / `area:contracts` / `area:indexer` / `area:agent` | Affected surface |
-| `automation:routine` | Umbrella for any routine-authored Linear record |
-| `agent:claude` | Authored by a Claude routine |
+### Canonical Linear labels
 
-### GitHub (Project #4 — health-watch only)
+| Label family | Values used by GG routines | Purpose |
+|---|---|---|
+| `protocol:*` | `protocol:green-goods` | Protocol/product — every routine record carries this |
+| `package:*` | `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent` | Affected code surface (replaces old `area:*`) |
+| `activity:*` | `activity:qa`, `activity:maintenance` | Activity type — `activity:qa` for bug fixes, anomaly review, operational health validation; `activity:maintenance` for polish/cleanup work that isn't a user-visible defect |
+| `task:*` | `task:evidence`, `task:funding-pathway`, `task:access-participation` | User-task semantics — applied only when the bug/anomaly/research clearly maps to one of these task pathways; otherwise omit |
+| `source:*` | `source:discord`, `source:telegram`, `source:drive` | Provenance of the originating signal (Customer Needs always carry this; Issues carry it when the originating provenance still matters) |
+| `agent:*` | `agent:claude` | Routine-authored provenance — marks that the Issue/Customer Need was created or last-touched by a Claude routine. Provenance only, not human priority. |
 
-| Label | Purpose |
-|---|---|
-| `automated/claude` | Authored by a Claude automation |
-| `health:indexer` | Envio indexer is lagging or unreachable |
-| `health:ci` | Recent CI failures on main |
-| `health:contracts` | On-chain state drift (vaults, yield split, garden activity) |
+The dispatch labels `automation:claude` / `automation:codex` (legacy GitHub-era handoff flags) and the `work:polish` / `work:customer-need` / `area:*` / `health:*` / `grant:*` labels are not used. GitHub Project #4 and its `automated/claude` + `health:*` label set are retired entirely; no active routine writes to a GitHub Issue surface.
 
 ## Bot API environment
 
@@ -96,12 +89,21 @@ Used by: `bug-intake` (read + respond), `health-watch` (read-only).
 
 ## Linear environment
 
-Two routines write to the existing `Green Goods` project in Linear:
+Three routines write to Linear:
 
-- `bug-intake` writes Customer Needs (user feedback) and linked Issues (actionable subset).
-- `growth-pulse` writes Issues for user/strategy anomalies (funnel, retention, dormancy).
+- `bug-intake` writes **Customer Needs** (raw signal — every validated user/community report) and creates linked **Issues** only when the report is accepted as committed product work.
+- `growth-pulse` writes **Issues** for accepted growth/strategy anomalies (funnel, retention, dormancy) once they cross the anomaly threshold.
+- `health-watch` writes **Issues** for accepted operational health work (indexer, CI, Vercel deploy/runtime, contracts) once a 🔴 anomaly is confirmed.
 
-Both share the same auth surface. The cloud routine env exposes Linear access via:
+### Project routing
+
+- **Customer Needs** are unprojected raw signal — they carry `source:*` for provenance and live on the Product team without a project.
+- **Issues** are unprojected by default on the Product team. Graduate an Issue into a bounded active project only when one already exists for the work; the retired staging/completed projects (`Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, `Story Board`) are not roadmap destinations — never route new Issues into them.
+- Green Goods `.plans/` remains the per-feature execution truth for agent implementation work; Linear is the upstream Issue surface, `.plans/` is the implementation plan.
+
+### Auth
+
+All three routines share the same auth surface. The cloud routine env exposes Linear access via:
 
 | Variable / surface | Description |
 |---|---|
@@ -109,7 +111,7 @@ Both share the same auth surface. The cloud routine env exposes Linear access vi
 | Linear connector | Native Linear connector wired into the cloud routine environment |
 | Linear MCP | Linear MCP server exposed to the routine |
 
-Whichever surface is wired up, the routine resolves project/team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in the daily `#product` summary instead of skipping records silently.
+Whichever surface is wired up, the routine resolves team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in the daily `#product` summary instead of skipping records silently.
 
 ## Rebuilding a routine
 
