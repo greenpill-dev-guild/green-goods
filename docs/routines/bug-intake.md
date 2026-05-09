@@ -18,6 +18,7 @@ connectors:
   - google-drive
   - linear  # use whichever Linear surface the harness provides (MCP, native connector, or LINEAR_API_KEY)
   - posthog  # read-only PostHog connector; primary path for telemetry enrichment
+  - vercel  # read-only deploy correlation — surface deploy timing + diff in Customer Need bodies when a recent prod deploy temporally aligns with the report
 model: claude-opus-4-7[1m]
 allow-unrestricted-branch-pushes: false  # Linear records only, no PRs, no GitHub issues
 ---
@@ -142,6 +143,21 @@ Replay URLs, session IDs, and distinct IDs are useful for the human triaging the
 
 If the cloud environment exposes neither a PostHog connector nor PostHog MCP, fall back to `scripts/agents/posthog-query.ts` (root env: `POSTHOG_PROJECT_API_KEY`, `POSTHOG_PROJECT_ID`, `POSTHOG_HOST`). The script's `--privacy public` mode applies the same allowlist. If the script is also unavailable, log a `posthog: unreachable` line in the Discord summary's `⚠ Failures this run` block and continue without enrichment — never invent telemetry.
 
+## Vercel deploy correlation (per-report enrichment)
+
+For every report being turned into a Customer Need, query Vercel for production deploys that completed within **48 hours before the report timestamp**. The goal is to surface obvious deploy↔bug correlation so triage starts with a plausible cause already identified.
+
+For each project (`client`, `admin`, and any other guild Vercel projects):
+
+1. **List recent prod deploys**: state `READY`, target=`production`, finished in the [report_timestamp − 48h, report_timestamp] window.
+2. **Pick the most recent** of those (the one that was live at the time of the report).
+3. **Fetch its metadata**: deploy URL, commit SHA, commit message, deploy author, finishedAt timestamp, the previous successful prod deploy's commit SHA (so we can build a compare URL).
+4. **Build the diff URL**: `https://github.com/greenpill-dev-guild/green-goods/compare/{prev_sha}...{current_sha}`. This is the diff that shipped between the last-known-good and the deploy that was live when the report came in.
+
+If no production deploys hit the window, omit the correlation block entirely. Do not invent deploys.
+
+**Privacy**: deploy metadata is public on-chain-equivalent (commits, SHAs, deploy URLs, authors are GitHub-public). Safe for Customer Need bodies. Runtime log content from Vercel is NOT pulled here — that's `health-watch` territory. Don't paste log lines.
+
 ## Phase 1: Discord bug reports
 
 1. **Fetch messages** — last 24h from `#product`:
@@ -206,6 +222,15 @@ If the cloud environment exposes neither a PostHog connector nor PostHog MCP, fa
    - App surface: {client | admin}
    - Recurring pattern: {yes ({S} sessions / 30d) | no}
    - Confidence: {high | medium | low}
+
+   ## Deploy correlation
+   {only emit this block when the Vercel correlation step found a production deploy within 48h before the report; otherwise omit entirely}
+   - Project: `{vercel_project_name}` ({client | admin})
+   - Deploy URL: <{deploy_url}>
+   - Deployed at: {YYYY-MM-DDTHH:MM:SSZ} ({N hours} before report)
+   - Commit: `{short_sha}` — {commit_message_first_line}
+   - Author: {commit_author_name}
+   - Diff that shipped: <{compare_url}>  ({prev_sha}…{current_sha})
 
    ## Privacy-safe summary
    {one sentence Afo can paste into a public update without exposing PII; no usernames, garden addresses, replay URLs, session IDs, distinct IDs, wallet addresses, or identifying screenshots}

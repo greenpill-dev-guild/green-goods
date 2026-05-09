@@ -17,6 +17,9 @@ env-vars:
 connectors:
   - google-calendar
   - google-drive
+  - linear
+  - posthog
+  - vercel
 model: claude-opus-4-7[1m]
 ---
 
@@ -37,6 +40,7 @@ The previous spec used a 50-block indexer threshold (~12.5s at Arbitrum's 250ms 
 - **Garden dormancy** — only flag if indexer is healthy AND ≥7 days have actually passed since the last action. If indexer is unhealthy, skip this check entirely (zero indexed actions ≠ zero real activity).
 - **Vault deltas** — only flag drift >30% in 24h AND indexer is healthy.
 - **CI** — flag any `main` branch failure in last 24h.
+- **Vercel** — flag any failed production deploy in last 24h OR runtime-error spike (>50% increase vs prior 24h baseline) on a guild-deployed Vercel project.
 
 ## Categories and checks
 
@@ -61,7 +65,25 @@ If the indexer endpoint returns 5xx, treat as 🔴 anomaly (`indexer unreachable
 Use `gh run list --branch main --status failure --created ">1 day ago" --limit 20`.
 If any failures exist in the eight-lane Actions surface (`contracts`, `indexer`, `shared`, `client`, `admin`, `agent`, `design`, `docs`) → anomaly. Issue body should list failing workflow names, run URLs, and whether the same workflow failed before. Treat Copilot automatic review, GitHub native review, and Claude routine output as advisory context, not CI failure sources.
 
-### 3. `health:contracts`
+### 3. `health:vercel`
+
+Query the Vercel connector for the projects deployed by Green Goods (typically `client`, `admin`; expand to other guild projects as they're added).
+
+For each project:
+
+1. **Latest production deploy state** — fetch the most recent deploy targeting the production environment.
+   - State `READY` and finished within last 24h → 🟢 OK.
+   - State `READY` but finished >7 days ago → 🟡 informational (no fresh deploys; possibly stale, but not necessarily broken).
+   - State `ERROR`, `CANCELED`, or `BUILD_FAILED` → 🔴 anomaly. Surface the build/deploy URL and the failing commit SHA.
+   - State `BUILDING` for >30 min → 🟡 informational; flag as 🔴 only if it's been stuck >2h.
+
+2. **Runtime error rate** — fetch the runtime error count from Vercel logs over the last 24h, compared to the prior 24h baseline. If error count increased >50% AND absolute count > 10 → 🔴 anomaly. Below those thresholds → 🟢 (transient errors are normal).
+
+3. **Web vitals trend** — Web Vitals from Vercel Analytics. If LCP p75 degraded >25% vs prior 7d baseline → 🟡 informational (note in summary, no issue). LCP/INP/CLS catastrophic regressions (>50% worse) → 🔴 anomaly with a separate issue (`health:vercel` + `area:performance`).
+
+**Issue body** must include the project name, latest deploy state + URL, the offending commit SHA, error counts (current + baseline), and any web-vitals deltas. Privacy: never paste user-identifying paths from runtime logs — strip query strings, IDs, and addresses before quoting log lines.
+
+### 4. `health:contracts`
 
 **Indexer-health gate**: if check #1 is 🔴 (delta > 2000 OR unreachable), **skip both sub-checks below entirely**. Note in Discord summary: "Contracts checks deferred — indexer unhealthy". Do not open or update `health:contracts` issues. Garden dormancy and vault deltas both depend on indexer data; running them while the indexer is broken produces false positives (this is what produced issue #498 incorrectly).
 
@@ -87,6 +109,9 @@ For `health:indexer` specifically:
 
 For `health:ci`:
 - If today shows zero failures AND the issue's most recent comment is also "zero failures" within the last 48h → close the issue.
+
+For `health:vercel`:
+- If today's deploy state is `READY` AND error counts are at-or-below baseline AND the prior 2 daily checks were also clean → close the issue with `Vercel recovered: 3 consecutive checks green. Closing.` Otherwise append a dated comment with current state.
 
 For `health:contracts`:
 - Manual close only — drift conditions don't auto-recover.
@@ -163,6 +188,7 @@ Message format:
 **Health Watch — {YYYY-MM-DD}**
 🟢 Indexer: OK (lag: {N} blocks)         # or 🟡 if 500-2000, 🔴 if >2000 or unreachable
 🟢 CI: clean                              # or 🔴 with workflow names
+🟢 Vercel: {N}/{M} projects ready         # or 🔴 with project name(s) + deploy/runtime issue
 🟢 Contracts: vaults stable · {N}/13 gardens active   # or "deferred — indexer unhealthy"
 
 {if any anomaly created/updated: "→ {N} issue(s) created/updated"}
@@ -178,7 +204,7 @@ If Discord is unreachable, continue — GitHub issues are the primary output.
 End the session with a one-line summary:
 
 ```
-health-watch: indexer={status}, ci={status}, contracts={status_or_deferred}, opened={N}, closed={M}
+health-watch: indexer={status}, ci={status}, vercel={status}, contracts={status_or_deferred}, opened={N}, closed={M}
 ```
 
 ## Guardrails

@@ -15,6 +15,17 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 
 That's it — three scheduled cadences plus one event-driven. Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
 
+## Connector matrix
+
+| Routine | MCP connectors | Why each |
+|---|---|---|
+| `bug-intake` | Google Drive, Linear, PostHog, Vercel | Drive = meeting-note intake · Linear = Customer Need + Issue surface · PostHog = telemetry enrichment for bug correlation · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
+| `health-watch` | Google Drive, Google Calendar, Linear, PostHog, Vercel | Drive/Calendar = context that adjusts severity · Linear = future incident-to-Issue link · PostHog = error spike correlation · Vercel = `health:vercel` category (deploy state, runtime errors, web vitals) |
+| `growth-pulse` | Google Drive, Google Calendar, Linear, Miro | Drive/Calendar = WoW context · Linear = anomaly Issue surface · Miro = roadmap context. **PostHog access via env vars (no MCP).** Vercel intentionally NOT wired — Vercel Web Analytics overlaps with PostHog, would create dual-source drift. |
+| `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
+
+Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution risk).
+
 ## Channel mapping
 
 | Channel | Used by | Why |
