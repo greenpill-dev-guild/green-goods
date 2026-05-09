@@ -48,6 +48,10 @@ Always resolve scope **before** inspecting code, and state the resolved scope in
 2. **Natural-language scope** — "review the shared package", "review admin changes", "review PR 42". Resolve the same way as positional.
 3. **Working-copy auto-inference** — when no scope given, run `git diff --name-only` against the merge-base and infer packages touched. Print the inferred scope. If nothing is staged/modified, ask the user what to review instead of guessing.
 
+### Linear context (when branch matches the Linear convention)
+
+After scope resolution, if the current branch matches `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`, `afo/resr-3-...`), pull the linked Issue via the Linear MCP and surface its title, acceptance criteria (if present in the body), and any `task:*` / `activity:*` labels in the Summary. Use this to focus the review — a branch tied to `activity:qa` should weight correctness; one tied to `activity:architecture` should weight boundaries; one tied to `task:funding-pathway` should weight funder-legibility of any user-facing copy. If the branch does not parse to a Linear ID, skip — do not block on it.
+
 ### Valid package scopes
 
 | Scope | Paths |

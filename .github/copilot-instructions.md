@@ -16,6 +16,7 @@ Repo-wide invariants:
 - Use Remixicon (`Ri*Line`), never lucide.
 - Add every new user-facing string to `en`, `es`, and `pt`.
 - Respect build dependency order: `contracts -> shared -> indexer -> client/admin/agent`.
+- Linear is the durable backlog (see `AGENTS.md` § Linear Workspace and `docs/routines/README.md`). Never open GitHub Issues for backlog work; PRs and code review only on GitHub.
 
 For ambiguous, multi-package, or high-risk work, follow the same research-plan-implement loop as other agents: read the relevant source and package guidance, record evidence and open assumptions, surface human judgment points, then implement the smallest scoped change.
 

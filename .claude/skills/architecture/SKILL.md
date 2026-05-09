@@ -182,6 +182,18 @@ Avoid these failure modes:
 - confusing "different from my preference" with "architecturally wrong"
 - using generic scorecards without repo evidence
 
+## Linear Routing After Acceptance
+
+This skill is read-only. Do not create or mutate Linear records while producing an architecture report. After the user accepts a finding for tracking:
+
+- Accepted structural refactors, boundary fixes, or placement changes that are implementation-shaped → Linear Issue on **Product** team. Apply `protocol:green-goods` (or relevant `protocol:*`), `activity:architecture`, and the affected `package:*` label(s). Use `activity:build` only when the work is mostly mechanical implementation rather than structural decision-making.
+- Accepted ADR-style decisions, structural research, or scope-shaping work that needs to be answered before implementation can proceed → Linear Issue on **Research** team. Apply `protocol:*`, `activity:architecture` + `activity:research`, and the most relevant `task:*` if applicable.
+- Architecture findings that originated in a `.plans` item → include the `.plans` link and label the Linear issue `source:plans`.
+- Attach to an active bounded project only when the scope clearly matches; otherwise leave unprojected. Do not route into projects whose status is Completed.
+- Privacy boundary applies to Linear bodies — keep replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out.
+
+Prompt the user before creating any Linear records: "Found N architecture findings ready to track in Linear. Create Issues for these accepted findings? [y/n]"
+
 ## Related Skills
 
 - `principles` — design judgment on simplicity, duplication, and boundary clarity

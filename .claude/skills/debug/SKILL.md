@@ -428,8 +428,19 @@ After debugging provide:
 ## Reference Files
 
 - **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
-- **[posthog.md](./posthog.md)** -- PostHog setup, event tracking, error tracking integration, feature flags
+- **[posthog.md](./posthog.md)** -- PostHog setup, event tracking, error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog↔Linear privacy boundary.
 - **[health-diagnostics.md](./health-diagnostics.md)** -- Service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
+
+## Linear Routing
+
+This skill is read-only on Linear. After a bug is reproduced and root-caused:
+
+- Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
+- Accepted fixes, QA follow-ups, or product investigations → Linear **Issue** (Product team), labels: `activity:qa` + relevant `package:*` + `protocol:*`.
+- Accepted research questions or evidence-gathering → Linear **Issue** (Research team), labels: `activity:research`.
+- If the bug originated in a `.plans` item, link it and label the Linear record `source:plans`.
+- Detailed routing rules + PostHog↔Linear privacy boundary live in [posthog.md](./posthog.md).
+- Always prompt the user before creating any Linear record — never auto-write.
 
 ## Anti-Patterns
 
