@@ -2,12 +2,12 @@
 name: posthog-questions
 user-invocable: false
 description: Canonical curated-question library for PostHog reads across Green Goods routines and skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer per question. Routines reference questions by name; the connector or fallback script resolves them.
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-05-07"
-last_verified: "2026-05-07"
+last_updated: "2026-05-09"
+last_verified: "2026-05-09"
 ---
 
 # PostHog Curated Questions
@@ -342,31 +342,32 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: passkey register → garden join → first work submission funnel over a window.
+- **Identity stitching note**: PostHog assigns an anonymous UUID `distinct_id` on first page-load and switches it to the wallet/passkey-credential `distinct_id` after `posthog.identify()` in the auth flow. **Joins must be by `person_id`** (which stitches anonymous + identified IDs at the person level), not raw `distinct_id` — joining by `distinct_id` produces 0% conversion across the auth boundary even when conversions are happening. Verified empirically 2026-05-09 against the App project (163591): 7 person registers + 6 person joins in 30d, 0 overlap when joined by `distinct_id`; correct number when joined by `person_id`.
 - **HogQL**:
   ```sql
   WITH
     register_users AS (
-      SELECT DISTINCT distinct_id, min(timestamp) AS register_at
+      SELECT person_id, min(timestamp) AS register_at
       FROM events
       WHERE event = 'auth_passkey_register_success'
         AND timestamp > now() - interval {window:String}
-      GROUP BY distinct_id
+      GROUP BY person_id
     ),
     join_users AS (
-      SELECT DISTINCT r.distinct_id, min(e.timestamp) AS join_at
+      SELECT r.person_id, min(e.timestamp) AS join_at
       FROM register_users r
-      JOIN events e ON e.distinct_id = r.distinct_id
+      JOIN events e ON e.person_id = r.person_id
       WHERE e.event IN ('garden_join_success', 'garden_auto_join_success')
         AND e.timestamp >= r.register_at
-      GROUP BY r.distinct_id
+      GROUP BY r.person_id
     ),
     first_work AS (
-      SELECT DISTINCT j.distinct_id, min(e.timestamp) AS first_work_at
+      SELECT j.person_id, min(e.timestamp) AS first_work_at
       FROM join_users j
-      JOIN events e ON e.distinct_id = j.distinct_id
+      JOIN events e ON e.person_id = j.person_id
       WHERE e.event = 'work_submission_success'
         AND e.timestamp >= j.join_at
-      GROUP BY j.distinct_id
+      GROUP BY j.person_id
     )
   SELECT
     (SELECT count() FROM register_users) AS registered,
@@ -378,31 +379,33 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: `{ window: "30d" }`
 - **Output schema**: every field public.
 - **Required emit-side events**: `auth_passkey_register_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success` (all present today, `packages/shared/src/modules/app/analytics-events.ts`).
-- **Used by**: `metrics`, `guild-weekly-checkin`, `guild-product-development-synthesis`.
+- **Cohort caveat**: this funnel only tracks the new-user cohort within `{window}`. Returning users (registered before the window) who join gardens during the window are intentionally excluded — that's a different question. If `registered > 0` but `register_to_join_pct == 0`, verify by comparing to the raw `garden_join_success` count over the same window: a non-zero raw count with a zero funnel percentage usually means joiners are returning users from outside the window, not a product breakage.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `funnel.work-repeat`
 
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: of users whose first work submission was in the past 30 days, what percentage submitted a second work within 7 days?
+- **Identity stitching note**: same as `funnel.onboarding` — joins are by `person_id` so anonymous→identified transitions don't break the cohort.
 - **HogQL**:
   ```sql
   WITH first_subs AS (
-    SELECT distinct_id, min(timestamp) AS first_at
+    SELECT person_id, min(timestamp) AS first_at
     FROM events
     WHERE event = 'work_submission_success'
       AND timestamp > now() - interval 60 day
-    GROUP BY distinct_id
+    GROUP BY person_id
     HAVING first_at > now() - interval 30 day
   ),
   repeat_subs AS (
-    SELECT f.distinct_id
+    SELECT f.person_id
     FROM first_subs f
-    JOIN events e ON e.distinct_id = f.distinct_id
+    JOIN events e ON e.person_id = f.person_id
     WHERE e.event = 'work_submission_success'
       AND e.timestamp > f.first_at
       AND e.timestamp <= f.first_at + interval 7 day
-    GROUP BY f.distinct_id
+    GROUP BY f.person_id
   )
   SELECT
     (SELECT count() FROM first_subs) AS first_time_users,
@@ -412,7 +415,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: none (window is fixed at 30d / 7d to keep the metric stable across runs).
 - **Output schema**: every field public.
 - **Required emit-side events**: `work_submission_success`.
-- **Used by**: `guild-product-development-synthesis`, `metrics`.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `retention.curve`
 
@@ -562,6 +565,47 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Output schema**: all public.
 - **Required emit-side events**: `admin_action_create_success`.
 - **Used by**: `metrics`, `guild-product-development-synthesis`.
+
+### `failures.conversion-kill`
+
+- **Lens**: growth-bd
+- **Default privacy**: public-safe
+- **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`). Surfaces product breakages that vanish from a success-only funnel. Empirically (2026-05-09, App project) the strongest growth signal in the dataset: `garden_join` ~75% failure rate, `work_submission` ~70%, `work_approval` 100% (zero successes), `auth_passkey_register` ~27%.
+- **HogQL**:
+  ```sql
+  SELECT
+    multiIf(
+      event LIKE 'garden_join_%', 'garden_join',
+      event LIKE 'work_submission_%', 'work_submission',
+      event LIKE 'work_approval_%', 'work_approval',
+      event LIKE 'auth_passkey_register_%', 'auth_passkey_register',
+      NULL
+    ) AS step,
+    countIf(event LIKE '%_success') AS success_count,
+    countIf(event LIKE '%_failed') AS failed_count,
+    countIf(event LIKE '%_success' OR event LIKE '%_failed') AS total_attempts,
+    if(
+      countIf(event LIKE '%_success' OR event LIKE '%_failed') > 0,
+      countIf(event LIKE '%_failed') * 100.0 / countIf(event LIKE '%_success' OR event LIKE '%_failed'),
+      0
+    ) AS failure_pct
+  FROM events
+  WHERE timestamp > now() - interval {window:String}
+    AND event IN (
+      'garden_join_success', 'garden_join_failed',
+      'work_submission_success', 'work_submission_failed',
+      'work_approval_success', 'work_approval_failed',
+      'auth_passkey_register_success', 'auth_passkey_register_failed'
+    )
+  GROUP BY step
+  HAVING step IS NOT NULL
+  ORDER BY failure_pct DESC
+  ```
+- **Bind variables**: `{ window: "7d" }` (default; `30d` for monthly digest, `1d` for hot triage).
+- **Output schema**: every field public.
+- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
+- **Anomaly thresholds (consumer)**: failure rate > 50% AND absolute failed count ≥ 5 over the window → file a Linear anomaly Issue. 100% failure with absolute count ≥ 5 → P2/urgent. The thresholds catch real product breakage rather than tiny-N noise.
+- **Used by**: `growth-pulse` (anomaly detection, replaces sole reliance on `funnel.onboarding`).
 
 ### `web.acquisition-summary`
 

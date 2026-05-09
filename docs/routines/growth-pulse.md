@@ -67,39 +67,27 @@ Switch projects with the connector's `switch-project` (or set `POSTHOG_PROJECT_I
 
 | Phase | Project ID | Why |
 |---|---|---|
-| Phase 1 questions: `funnel.onboarding`, `funnel.work-repeat`, `gardens.engagement-summary`, `gardens.dormant`, `gardens.operator-activity` | `163591` (App) | Consumer events fire here |
-| Phase 1 question: `actions.template-creation-rate` | `262122` (Admin) | `admin_action_create_success` fires only on admin |
+| Phase 1 questions: `funnel.onboarding`, `funnel.work-repeat`, `failures.conversion-kill`, `gardens.engagement-summary`, `gardens.dormant`, `gardens.operator-activity` | `163591` (App) | Consumer events fire here. `failures.conversion-kill` runs against App for `garden_join`, `work_submission`, `auth_passkey_register` failures. |
+| Phase 1 question: `failures.conversion-kill` (work_approval segment) + `actions.template-creation-rate` | `262122` (Admin) | `admin_action_create_success` and the bulk of `work_approval_success` fire on admin. Run `failures.conversion-kill` against Admin too and merge the work_approval segment with the App-side counts; the App project sees `work_approval_failed` but not most successes. |
 
 If a query against project 163591 returns zero events for a 30d window, that's a **wiring failure, not a real anomaly** — emit `⚠ Failures this run: App PostHog project returned zero events — wiring suspect, anomaly thresholds skipped`. Real production zero days at GG's volume are vanishingly rare; treat them as setup drift and surface for the human, do not fire false-positive anomaly Issues.
 
-### Known SKILL bugs to flag during runs
+### SKILL v1.1.0 (2026-05-09): person_id stitching + failures question
 
-The current `posthog-questions/SKILL.md` has two bugs in `funnel.onboarding` that this routine should work around (and that should be fixed in the SKILL itself in a follow-up):
+The funnel HogQL was rewritten in `posthog-questions/SKILL.md` v1.1.0 to:
 
-1. **Joins by `distinct_id`, not `person_id`.** PostHog assigns an anonymous UUID `distinct_id` on first page-load and switches to the wallet address after `posthog.identify()` in the auth flow. Joining funnel steps by raw `distinct_id` breaks across the auth boundary — register events (UUID-tagged) and join events (wallet-tagged) never match. Use `person_id` joins instead. (Confirmed empirically 2026-05-09: 7 person registrations + 6 person joins in 30d, but 0 overlap in the funnel because of this.)
-2. **30d window misses returning-user joins.** Garden joiners are typically returning users who registered earlier than 30d ago. The funnel as written excludes them and reports 0% conversion when actual conversion is happening on a different cohort timing. The "register → join" funnel needs a wider register lookback (e.g., 90d) or a separate "returning-users join garden" metric.
+1. **Join by `person_id`** instead of `distinct_id`. PostHog assigns an anonymous UUID `distinct_id` before `posthog.identify()` and switches to the wallet/passkey identifier after auth. The previous SKILL joined by raw `distinct_id` and produced 0% conversion across the auth boundary even when conversions were happening (verified empirically 2026-05-09: 7 person registers + 6 person joins in 30d, 0 overlap with the old query, correct numbers with the new one).
+2. **Document the cohort caveat**: `funnel.onboarding` legitimately reports 0% when the new-user cohort within `{window}` hasn't completed the next step yet, even though returning users (registered > window ago) are joining gardens fine. Verify against raw `garden_join_success` counts before filing a "funnel breakage" anomaly — see Phase 2 thresholds below.
 
-Until the SKILL is fixed, **do not file an "onboarding funnel breakage" anomaly Issue based solely on `funnel.onboarding` returning 0%** — verify against the underlying event counts (register, garden_join_success) first. If the raw event counts look normal but the funnel is 0%, the funnel HogQL is at fault, not production.
-
-### Failure-event signal (not in current SKILL)
-
-Production data shows `*_failed` events are firing at meaningful rates:
-
-| Failure event | 30d count | Companion success | Pseudo-failure rate |
-|---|---|---|---|
-| `garden_join_failed` | 18 | `garden_join_success` 6 | ~75% |
-| `work_submission_failed` | 21 | `work_submission_success` 9 | ~70% |
-| `work_approval_failed` | 11 | `work_approval_success` (admin project) | (cross-project) |
-| `auth_passkey_register_failed` | 3 | `auth_passkey_register_success` 8 | ~27% |
-
-These are conversion-killing failures and likely the most actionable growth signal in the dataset — far more so than the success-only funnel. Add a `failures.conversion-kill` curated question to the SKILL in a follow-up: per failure event, count over 7d, compare WoW, fire an anomaly when failure rate > 50% AND absolute count ≥ 5. Document this here so the SKILL update knows what shape it should take.
+The new `failures.conversion-kill` question makes the failure-rate signal first-class. Production data on the App project (2026-05-09 verified) shows `garden_join` ~75% failure rate, `work_submission` ~70%, `work_approval` 100% (zero successes on App; some successes likely on Admin). These are the strongest growth signals and the new primary anomaly threshold.
 
 ### Curated questions
 
 This routine references the following curated questions from `.claude/skills/posthog-questions/SKILL.md`:
 
-- `funnel.onboarding` — passkey register → garden join → first work submission. Drives the conversion narrative.
-- `funnel.work-repeat` — first work → second work within 7d. Drives the early-retention signal.
+- `funnel.onboarding` — passkey register → garden join → first work submission. Drives the conversion narrative. (Person_id-stitched as of SKILL v1.1.0.)
+- `funnel.work-repeat` — first work → second work within 7d. Drives the early-retention signal. (Person_id-stitched.)
+- `failures.conversion-kill` — per-step failure rate for `garden_join_*`, `work_submission_*`, `work_approval_*`, `auth_passkey_register_*`. **The strongest growth signal in production today** — surfaces conversion breakage that the success-only funnel misses. Drives the bulk of anomaly Issues.
 - `gardens.engagement-summary` — per-garden 7d active members + 7d work submitted/approved. Drives the per-garden table.
 - `gardens.dormant` — gardens with zero work in 7d/14d/30d. Drives the dormancy alert and any anomaly Linear Issues.
 - `gardens.operator-activity` — work approvals per operator per week, aggregated. Drives the operator-load section.
@@ -222,14 +210,19 @@ The Issue body **never** carries replay URLs, session IDs, distinct IDs, wallet 
 
 ## Phase 1: Pull the curated questions
 
-Run all six PostHog questions in parallel where the connector supports it:
+Switch to project `163591` (App) first, run the consumer questions, then switch to `262122` (Admin) for the admin-side queries:
 
+**On App (163591):**
 1. `funnel.onboarding` — `{ window: "30d" }`. Use 30 days, not 7, to keep the cohort large enough that small WoW noise doesn't dominate.
 2. `funnel.work-repeat` — no bind variables.
-3. `gardens.engagement-summary` — no bind variables.
-4. `gardens.dormant` — no bind variables.
-5. `gardens.operator-activity` — no bind variables.
-6. `actions.template-creation-rate` — no bind variables.
+3. `failures.conversion-kill` — `{ window: "7d" }`. **Primary anomaly signal.**
+4. `gardens.engagement-summary` — no bind variables.
+5. `gardens.dormant` — no bind variables.
+6. `gardens.operator-activity` — no bind variables.
+
+**Switch to Admin (262122):**
+7. `failures.conversion-kill` — `{ window: "7d" }`. Merge the `work_approval` row with the App-side row (App typically sees the `_failed` events, Admin sees the `_success` events) before applying anomaly thresholds.
+8. `actions.template-creation-rate` — no bind variables.
 
 Cache the JSON outputs for the run; pass the same data into Phase 2 (digest), Phase 3 (PR body), and Phase 4 (anomaly detection).
 
@@ -237,10 +230,11 @@ Cache the JSON outputs for the run; pass the same data into Phase 2 (digest), Ph
 
 Apply these thresholds to the question outputs:
 
-- **Funnel breakage**: `register_to_join_pct` drops > 25% absolute WoW (e.g., 60% → 40%) OR `join_to_first_work_pct` drops > 25% absolute WoW. Open one Linear anomaly per affected step.
+- **Conversion-kill failure (PRIMARY signal — replaces the old success-only funnel breakage threshold)**: any step in `failures.conversion-kill` with `failure_pct > 50%` AND `failed_count >= 5` over the 7d window opens one Linear anomaly Issue per failing step. `failure_pct >= 100%` with `failed_count >= 5` is P2/urgent. This is the threshold that catches real product breakage; the success-only funnel can show flat numbers while the failure rate is exploding.
+- **Funnel breakage (secondary, success-side)**: `register_to_join_pct` drops > 25% absolute WoW OR `join_to_first_work_pct` drops > 25% absolute WoW. Before filing, **verify against raw counts** — `funnel.onboarding` legitimately reports 0% when the new-user cohort within the window hasn't completed the next step yet, even though returning users are doing fine. If the raw `garden_join_success` count is non-zero but the funnel pct is zero, the signal is "new-user cohort hasn't progressed yet" not "product is broken" — surface in the digest commentary, do not file an Issue.
 - **Retention cliff**: `repeat_pct` drops > 15% absolute MoM. Use the 30-day window comparison; opens one Linear anomaly.
 - **Dormant-garden surge**: number of gardens in the `30d+` dormancy band increases by ≥ 3 since last week. Opens one Linear anomaly summarizing the affected gardens.
-- **Action template stall**: zero `admin_action_create_success` events in the last 14 days. Opens one Linear anomaly tagged `package:admin`.
+- **Action template stall**: zero `admin_action_create_success` events in the last 14 days. Opens one Linear anomaly tagged `package:admin`. (Query on Admin project 262122.)
 
 For each anomaly:
 
