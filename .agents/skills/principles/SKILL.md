@@ -5,12 +5,12 @@ description: Internal principles lens for Green Goods. Prefer this inside `/revi
 argument-hint: "[package-name] [--focus cohesion|boundaries|simplicity|duplication|reliability|data]"
 context: fork
 effort: high
-version: "2.0.0"
+version: "2.0.1"
 status: active
 packages: ["all"]
 dependencies: ["architecture"]
-last_updated: "2026-04-18"
-last_verified: "2026-04-18"
+last_updated: "2026-05-09"
+last_verified: "2026-05-09"
 ---
 
 # Principles Skill
@@ -180,6 +180,30 @@ Use these labels only:
 - `watch` — worth monitoring, not yet strong enough to change
 
 Avoid giant scorecards across every named principle. They create noise and encourage weak findings.
+
+## Linear Routing After Acceptance
+
+This skill is read-only. Do not create or mutate Linear records while producing a principles
+report. After the user accepts a finding for tracking:
+
+- Accepted implementation, refactor, QA, or maintenance work becomes a Linear Issue using the
+  Accepted Product Work structure. Team: Product.
+- Accepted research questions, evidence gathering, or recommendations become a Linear Issue using
+  the Accepted Research Task structure. Team: Research.
+- Raw user or partner signal belongs in Customer Needs until it is accepted as product work or
+  research.
+
+Routing rules:
+
+- `.plans` remains the Green Goods execution truth. If a principles finding is mirrored from a
+  `.plans` item, include the `.plans` link and label the Linear issue `source:plans`.
+- Attach to an active bounded project only when the scope clearly matches. Do not route new work
+  into completed/staging umbrella projects such as `Green Goods`, `Coop`, `Network Website`, or
+  `Cookie Jar`; otherwise leave the issue unprojected.
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+  `funding:*`, `source:*`, `agent:*`.
+- Keep private, security-sensitive, user-identifying, replay, wallet, email, and session details
+  out of public Linear issue bodies.
 
 ## Green Goods Heuristics
 

@@ -189,7 +189,7 @@ Tasks can depend on other tasks — a pending task with unresolved dependencies 
 
 ## Part 7: Quality Gates (Hooks)
 
-Two hook types enforce quality when teammates finish work:
+Two hook types enforce quality when teammates finish their assigned work.
 
 ### TeammateIdle Hook
 Runs when a teammate is about to go idle. Exit code 2 sends feedback and keeps them working.

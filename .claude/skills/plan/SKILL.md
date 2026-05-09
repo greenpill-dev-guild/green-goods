@@ -3,12 +3,12 @@ name: plan
 user-invocable: false
 description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed codex and claude', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
-version: "1.2.0"
+version: "1.2.2"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-04-24"
-last_verified: "2026-04-24"
+last_updated: "2026-05-09"
+last_verified: "2026-05-09"
 ---
 
 # Plan Skill
@@ -98,7 +98,9 @@ Minimum files:
 ```markdown
 # [Feature Name] Plan
 
-**GitHub Issue**: #[number]
+**Linear Issue**: PRD-### (optional)
+**Linear Project**: [bounded project name] (optional)
+**Linear Source**: source:plans (only when mirrored to Linear)
 **Feature Slug**: `feature-slug`
 **Status**: ACTIVE | BLOCKED | IMPLEMENTED | SUPERSEDED
 **Supersedes**: [link to old plan if applicable]
@@ -146,6 +148,12 @@ Minimum files:
 - [ ] Tests pass
 - [ ] Build succeeds
 ```
+
+Linear metadata is optional. Do not create or require a Linear issue for every plan. Add
+`Linear Issue`, `Linear Project`, and `Linear Source` only when the `.plans` item needs
+roadmap visibility, cross-functional coordination, stakeholder tracking, or accepted
+execution/research tracking. When a `.plans` item is mirrored to Linear, the Linear record
+must use `source:plans`.
 
 Machine-readable lane state belongs in `.plans/active/<feature-slug>/status.json`, for example:
 
@@ -238,27 +246,55 @@ LOAD → EXECUTE BATCH → REPORT → PAUSE → CONTINUE/FINISH
 
 ---
 
-## Part 4: GitHub Integration
+## Part 4: Linear and PR Integration
 
-### Link Issue to Plan
+`.plans` remains the Green Goods execution truth. Linear is a visibility and coordination mirror,
+not a replacement for the feature hub. Do not use GitHub's issue tracker for backlog work; GitHub
+PRs remain valid for code review and implementation discussion.
+
+### When to Mirror a Plan to Linear
+
+Mirror only when the work needs one or more of:
+
+- roadmap visibility
+- cross-functional coordination
+- stakeholder tracking
+- accepted execution tracking
+- accepted research tracking
+
+Do not mirror small local fixes, exploratory notes, or implementation details that can live only
+in `.plans`.
+
+### Linear Metadata
 
 ```markdown
 # Plan Header
-**GitHub Issue**: #123
-**Closes**: #123
+**Linear Issue**: PRD-123
+**Linear Project**: GreenWill Reputation & Identity
+**Linear Source**: source:plans
 ```
 
-### Update Progress
+Rules:
 
-```bash
-gh issue comment [NUMBER] --body "## Progress: Steps 1-3 complete"
-```
+- Use `source:plans` whenever the Linear record mirrors a `.plans` item.
+- Attach a bounded active Linear project only when the plan scope clearly matches it.
+- Do not route new work into completed/staging umbrella projects such as `Green Goods`,
+  `Coop`, `Network Website`, or `Cookie Jar`.
+- If no active bounded project clearly matches, leave the Linear issue unprojected and correctly
+  labeled.
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+  `funding:*`, `source:*`, `agent:*`.
 
-### On Completion
+### Progress Updates
 
-```bash
-gh issue close [NUMBER] --comment "All steps complete, PR ready"
-```
+Update `.plans/.../status.json` and the plan files first. If a Linear issue exists, mirror only
+the safe, stakeholder-relevant status. Do not paste private identifiers, debugging links, replay
+URLs, wallet addresses, or sensitive security detail into public Linear bodies or comments.
+
+### PR Linkage
+
+PR descriptions may link the `.plans` hub and the Linear issue. Use neutral references such as
+`Refs PRD-123` or a Links section. Do not use issue-closing footers for backlog closure.
 
 ---
 
@@ -287,9 +323,9 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or delete it.
 
-6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/` or issue comments, not `.plans/`. Plans must be actionable specs.
+6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear/PR records, not `.plans/`. Plans must be actionable specs.
 
-7. **No audit reports in `.plans/`**: Point-in-time audit findings go in issue comments or a separate `audits/` directory if needed for record-keeping, not mixed with implementation plans.
+7. **No audit reports in implementation hubs**: Point-in-time audit findings go in `.plans/audits/` or accepted Linear records after approval, not mixed with feature implementation plans.
 
 ### Scope Discipline
 
@@ -297,7 +333,7 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 
 | Document Type | Decision Count | Location |
 |---------------|---------------|----------|
-| Architecture spec | Unlimited | `docs/specs/` or issue |
+| Architecture spec | Unlimited | `docs/specs/` or Linear project/issue document |
 | Implementation plan | 5-15 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Task checklist | 0 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Evaluation plan | 0-10 gates | `.plans/active/<feature-slug>/eval.md` |
