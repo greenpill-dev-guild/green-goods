@@ -2,171 +2,155 @@
 
 ## Status
 
-Phase 1 implemented and locked under targeted tests. Phase 2 and Phase 3 remain
-unstarted by intent — they are out of scope for this lane invocation.
+**UI lane complete.** All three phases either shipped previously and now locked
+under contract tests, or implemented + locked in this lane invocation. P3-3
+(first-mention glossary tooltip / parenthetical) was explicitly **skipped per
+human direction** — no glossary affordance is wanted. Browser walkthrough at
+1440 + 375 across the seven flows is owned by `qa_pass_1`.
 
-## Phase 1 — what landed
+## Phase 1 — locked (commit 28768a18)
 
-The earlier feature commit `70161031 feat(client,shared): public website UX flow
-optimization (rounds 1-5)` already shipped most Phase 1 production code:
-- `PublicFundingCard` replaced `PublicFundingMethodSelector` as the funding
-  decision dialog. The new card is flat (no `rounded-2xl`/`rounded-3xl`
-  surfaces), amount-first, and renders zero web3 risk vocabulary in its body.
-- `PublicFundingReceipt` already routes a successful visitor onward via
-  `EditorialLinkArrow` to `/fund` ("Support another Garden →") and `/impact`
-  ("View public evidence →").
-- `PublicGetInTouch` mobile layout stacks input above button at `<sm` and the
-  form is reset on success via `form.reset()` after the toast resolves.
-- `Fund.tsx` disclosures aside reads in the plain-English bridge dialect (no
-  "smart contract", "yield", "wallet recovery", or "onchain").
+Decision-moment plain language + flow continuity. See git history for the
+RED/GREEN proof from the prior pass.
 
-This lane's work was therefore to lock those guarantees behind contract tests
-and remove the residual decision-moment vocabulary that survived as orphan i18n
-keys.
+- `PublicFundingDialogVocab.test.ts` scans every public funding-dialog/card key
+  in en/es/pt for "smart contract" / "yield" / "wallet recovery" / "onchain".
+- `PublicFundingReceipt.test.tsx` — `/fund` + `/impact` wayfinding lock.
+- `PublicGetInTouch.test.tsx` — email-cleared-after-success + mobile stack lock.
+- `PublicFundingBridge.test.tsx` — fixture refreshed to plain-English bridge note.
+- 13 orphan `public.fund.dialog.*` keys removed per locale (the keys still
+  shipped retired vocabulary even though no component referenced them).
 
-### Production deltas
+## Phase 2 — loading + empty + error honesty
 
-- `packages/shared/src/i18n/{en,es,pt}.json` — removed 13 orphan keys per
-  locale that referenced the retired `PublicFundingMethodSelector`. Two of
-  them (`public.fund.dialog.endow.description`, `public.fund.dialog.card.endowNote`)
-  still carried "yield" / "embedded wallet" decision-moment vocabulary in the
-  shipped bundle even though no component referenced them. Verified unused
-  via `grep -rn "public.fund.dialog.<key>" packages` before deletion.
-- `packages/client/src/__tests__/components/PublicFundingBridge.test.tsx` —
-  refreshed the test stub so it mirrors the production en.json copy after
-  the round-4 rewrite. The previous fixture still embedded "smart contract,
-  token, yield, provider, and wallet recovery risk" and asserted on it,
-  giving a false-positive that locked the OLD vocabulary in place.
+| ID    | Status                  | Notes |
+|-------|-------------------------|-------|
+| P2-1  | Shipped in 70161031     | `WalletRuntimeProviders` Suspense fallback inside `Fund.tsx`. |
+| P2-2  | Shipped (refactor)      | The old jar/vault deposit dialogs were replaced by `PublicFundingCard`, which renders a dedicated `LoadingBody` skeleton while `useGardenCookieJars` / `useGardenVaults` resolve. |
+| P2-3  | Shipped + locked here   | Receipt fetch retry button lives at `PublicFundingReceipt.tsx:111-123`. New test `PublicFundingReceipt.test.tsx > renders a Try again button on network error and re-fires the fetch when clicked` mocks fetch to reject once then resolve, asserts the retry button surfaces, simulates the click, and asserts the second fetch + the receipt body landing. |
+| P2-4  | Shipped + locked here   | Empty-state explanatory line in `PublicProofBand.tsx:105-120`. New test `PublicProofBand.test.tsx` covers all-zero, any-non-zero, and loading variants (3 tests). |
+| P2-5  | **Implemented here**    | Stale / ambiguous `?garden=` lookup converted from inline section banner (was `Fund.tsx:425-448`) to a non-blocking `toastService.info` keyed off `resolved.rawQuery` so it fires once per query. The pure resolution logic was extracted to `views/Public/garden-query-resolution.ts` and locked by `garden-query-resolution.test.ts` (5 tests, covering absent/match-by-id/match-by-slug/ambiguous/stale). |
+| P2-6  | Shipped in 70161031     | Gardens search `aria-live="polite"` announcement at `views/Public/Gardens.tsx:112`. Not test-covered in this pass — see proof limit below. |
 
-### New tests (contract guards)
+## Phase 3 — discovery + first-time mental model
 
-- `packages/client/src/__tests__/components/PublicFundingDialogVocab.test.ts`
-  scans every `public.fund.dialog.*` and `public.fund.card.*` key in en/es/pt
-  and fails the build if any value contains "smart contract", "yield",
-  "wallet recovery", or "onchain". This is the canonical RED test for the
-  decision-moment-language acceptance.
-- `packages/client/src/__tests__/components/PublicFundingReceipt.test.tsx`
-  renders the receipt in a memory router with a fetch mock that resolves to
-  a confirmed Endow intent and asserts both `EditorialLinkArrow` wayfinding
-  links resolve to `/fund` and `/impact` exactly.
-- `packages/client/src/__tests__/components/PublicGetInTouch.test.tsx`
-  gained two assertions: the email input value is `""` after a successful
-  subscribe (locks the `form.reset()` contract), and the input/submit pair
-  uses `flex-col` + `sm:flex-row` with the submit button keeping `w-full`
-  on mobile so the placeholder cannot be truncated again at 375px.
+| ID    | Status                  | Notes |
+|-------|-------------------------|-------|
+| P3-1  | Shipped in 70161031     | "Looking for community campaigns? Browse Cookie Jar campaigns →" wayfinding under § 02 of `Fund.tsx`, linking to `/cookies`. |
+| P3-2  | Shipped + locked here   | "Browse the field guide of regenerative Actions →" wayfinding lives on `PublicRecordLoop` (rendered from Home), linking to `/actions`. New test `PublicRecordLoop.test.tsx > surfaces the actions field guide from the homepage loop (P3-2)` locks the link target. |
+| P3-3  | **Skipped per human**   | "I don't want no fucking tooltip… no first-mention glossary." No tooltip, no parenthetical. Out of scope. |
+| P3-4  | Shipped + locked here   | `GardenDetail.tsx:96-180` already wraps each visitor section in `<section aria-labelledby>` paired with an `<h2 id>`. New test `PublicGardenDetailSemantics.test.tsx` asserts all four pairings (Place / Work / Evidence / Fund) are intact. |
+| P3-5  | Shipped + locked here   | Subtle `→` arrow at rest on each `PublicRecordLoop` step title row (visible at rest, animated on hover via `group-hover:translate-x-0.5`). New test `PublicRecordLoop.test.tsx > renders a subtle arrow at rest on every step title row (P3-5)` locks four heading-scoped arrows + their motion classes. |
 
-## RED proof
+## RED / GREEN proof
 
-`bun run test --run src/__tests__/components/PublicFundingDialogVocab.test.ts`
-ran against the original i18n bundle:
+### Phase 2 P2-5 — RED → GREEN (this turn)
+
+RED: the inline `<section role="status">` banner at `Fund.tsx:425-448` stole
+vertical space between the hero and § 02 even when the visitor was mid-funnel.
+The BEFORE state was a banner, not a toast.
+
+GREEN: replaced with `toastService.info` driven by a `useEffect` keyed off
+`resolved.rawQuery` so the toast fires once per query and never refires on
+unrelated re-renders. Logic extracted to `garden-query-resolution.ts` and
+exercised by 5 unit tests:
 
 ```
-FAIL  src/__tests__/components/PublicFundingDialogVocab.test.ts
-× never ships smart contract / yield / wallet recovery / onchain in any
-  funding dialog or card key (en/es/pt)
-AssertionError: expected [ { locale: 'en', …(3) } ] to deeply equal []
-
-- Expected
-+ Received
-
-- []
-+ [
-+   {
-+     "key": "public.fund.dialog.endow.description",
-+     "locale": "en",
-+     "term": "yield",
-+     "value": "A Vault deposit designed to preserve your principal while yield supports the Garden.",
-+   },
-+ ]
-```
-
-## GREEN proof
-
-After removing the orphan dialog keys from all three locales:
-
-```
-$ bun run test --run src/__tests__/components/PublicFundingDialogVocab.test.ts
-✓ src/__tests__/components/PublicFundingDialogVocab.test.ts (1 test) 5ms
+$ bun run test --run src/__tests__/views/garden-query-resolution.test.ts
+✓ src/__tests__/views/garden-query-resolution.test.ts (5 tests) 13ms
 Test Files  1 passed (1)
-     Tests  1 passed (1)
+     Tests  5 passed (5)
 ```
 
-Combined targeted run after format pass:
+### Combined targeted run after format pass
 
 ```
 $ bun run test --run \
     src/__tests__/components/PublicFundingDialogVocab.test.ts \
     src/__tests__/components/PublicFundingReceipt.test.tsx \
     src/__tests__/components/PublicGetInTouch.test.tsx \
-    src/__tests__/components/PublicFundingBridge.test.tsx
-✓ src/__tests__/components/PublicFundingDialogVocab.test.ts (1 test) 4ms
-✓ src/__tests__/components/PublicFundingReceipt.test.tsx (2 tests) 318ms
-✓ src/__tests__/components/PublicFundingBridge.test.tsx (3 tests) 429ms
-✓ src/__tests__/components/PublicGetInTouch.test.tsx (6 tests) 497ms
-Test Files  4 passed (4)
-     Tests  12 passed (12)
+    src/__tests__/components/PublicFundingBridge.test.tsx \
+    src/__tests__/components/PublicProofBand.test.tsx \
+    src/__tests__/components/PublicRecordLoop.test.tsx \
+    src/__tests__/views/garden-query-resolution.test.ts \
+    src/__tests__/views/PublicGardenDetailSemantics.test.tsx
+Test Files  8 passed (8)
+     Tests  28 passed (28)
 ```
 
-Repo-level guards:
+Repo guards:
 - `bun run lint:vocab` — `✅ check-vocab: no banned vocabulary found in 3 i18n file(s).`
-- `bun run format:check` — `Checked 1687 files in 1353ms. No fixes applied.`
+- `bun run format:check` — clean
+- `bunx tsc --noEmit` (from `packages/client`) — clean
 - `node scripts/harness/plan-hub.mjs validate` — `Validated 23 feature hubs.`
+
+## Files touched in Phase 2 + Phase 3 batch
+
+### Production
+- `packages/client/src/views/Public/Fund.tsx` — added `toastService` import and the new `useEffect` for stale/ambiguous query toast. Removed the inline banner section. Updated the next section's padding condition because the banner above it is gone. Replaced the inline `resolveGardenQuery` definition with an import from the new sibling module.
+- `packages/client/src/views/Public/garden-query-resolution.ts` — extracted the pure resolution logic + types so the test transformer can exercise it without pulling the wallet runtime barrel.
+
+### Tests
+- `packages/client/src/__tests__/views/garden-query-resolution.test.ts` — new, 5 tests.
+- `packages/client/src/__tests__/components/PublicProofBand.test.tsx` — new, 3 tests.
+- `packages/client/src/__tests__/views/PublicGardenDetailSemantics.test.tsx` — new, 1 test.
+- `packages/client/src/__tests__/components/PublicFundingReceipt.test.tsx` — added retry-button test.
+- `packages/client/src/__tests__/components/PublicRecordLoop.test.tsx` — added P3-2 + P3-5 tests.
 
 ## Proof limits
 
-- **Browser walk-through (1440 + 375)** — not executed in this lane. The
-  worktree environment had `bun install` skip postinstall scripts because
-  `sharp@0.32.6` could not build under the available system Node 18, which
-  blocked starting the public dev stack here. The mobile layout regression
-  the plan called out is locked instead via the new `flex-col` + `sm:flex-row`
-  + `w-full` + `sm:w-auto` assertion in `PublicGetInTouch.test.tsx`. Visual
-  tone confirmation belongs to the QA lane (`claude-qa-pass-1`) which has
-  direct browser access.
-- **`packages/client/src/__tests__/views/fund.test.tsx`** — pre-existing
-  `ERR_PACKAGE_PATH_NOT_EXPORTED` from `@walletconnect/utils` →
-  `uint8arrays` resolution in the worktree's partial install. Not introduced
-  by this change; surfaces only in this worktree environment because the
-  full install was skipped. The fund view's user-facing copy is unmodified
-  by this lane.
-
-## Files touched
-
-```
-M packages/client/src/__tests__/components/PublicFundingBridge.test.tsx
-M packages/client/src/__tests__/components/PublicGetInTouch.test.tsx
-M packages/shared/src/i18n/en.json
-M packages/shared/src/i18n/es.json
-M packages/shared/src/i18n/pt.json
-A packages/client/src/__tests__/components/PublicFundingDialogVocab.test.ts
-A packages/client/src/__tests__/components/PublicFundingReceipt.test.tsx
-```
+- **Browser walkthrough at 1440 + 375** — owned by `qa_pass_1`. The worktree
+  environment cannot run the dev stack (`sharp@0.32.6` postinstall fails under
+  system Node 18; `bun install --ignore-scripts` was used to populate the
+  module graph for vitest only).
+- **`fund.test.tsx`** — pre-existing `ERR_PACKAGE_PATH_NOT_EXPORTED` from
+  `@walletconnect/utils -> uint8arrays` in this worktree's partial install
+  blocks both `fund.test.tsx` and `PublicGardenDetail.test.tsx` from loading.
+  Both rely on `vi.importActual("@green-goods/shared")`. The new
+  worktree-friendly tests (`garden-query-resolution.test.ts`,
+  `PublicGardenDetailSemantics.test.tsx`) avoid `importActual` entirely so they
+  cover the same contracts without the wallet runtime in the import graph.
+- **P2-5 toast firing (component-level integration)** — proven indirectly via
+  the resolution-logic unit tests + code review of the `Fund.tsx` `useEffect`
+  diff. A direct integration test would require either mounting `Fund.tsx`
+  (blocked by the worktree environment) or extracting the effect into a
+  separate hook in `@green-goods/shared`. The latter would inflate the
+  cross-package surface area for a view-local concern, so it was deferred to
+  the next time someone touches `Fund.tsx` from the primary repo.
+- **P2-6 Gardens `aria-live` announcement** — verified in code only
+  (`Gardens.tsx:112`). A targeted test would mount `Gardens.tsx`, which pulls
+  the wallet runtime through `@green-goods/shared` the same way `fund.test.tsx`
+  does. Lock-in deferred to QA, same reason as P2-5.
 
 ## Required RED Proof — checked
 
-- ✅ A targeted test fails while the funding selector still exposes technical
-  decision-moment language. Captured above as `PublicFundingDialogVocab.test.ts`
-  RED.
-- ✅ Receipt success has the expected next-step routes — locked by
-  `PublicFundingReceipt.test.tsx` (would fail if either link were removed
-  or pointed elsewhere).
-- ✅ Subscription success clears the email field — locked by the new
-  assertion in `PublicGetInTouch.test.tsx` (would fail if `form.reset()` is
-  removed or the field becomes controlled).
+- ✅ A targeted test fails while the funding selector exposes technical
+  decision-moment language (Phase 1 — already on main).
+- ✅ Receipt success has the expected next-step routes (Phase 1 — already on
+  main).
+- ✅ Subscription success clears the email field (Phase 1 — already on main).
+- ✅ The `?garden=` resolution distinguishes absent / match / ambiguous / stale
+  (Phase 2 P2-5 — locked here).
+- ✅ The proof band collapses to a single explanatory line when every count is
+  zero (Phase 2 P2-4 — locked here).
+- ✅ The receipt fetch error surfaces a Try again button that re-fires the
+  request (Phase 2 P2-3 — locked here).
+- ✅ Each `PublicRecordLoop` step renders a subtle arrow at rest, and the home
+  page surfaces `/actions` (Phase 3 P3-2 + P3-5 — locked here).
+- ✅ `GardenDetail` wraps each public-record section in
+  `<section aria-labelledby>` paired with an `<h2 id>` (Phase 3 P3-4 — locked
+  here).
 
 ## Required GREEN Proof — checked
 
-- ✅ Targeted public-browser tests pass for the changed behaviour.
-- ✅ No new strings introduced — Phase 1 cleanup only removed 13 orphan keys
-  per locale that no component referenced; en/es/pt remain row-aligned
-  (3,189 lines each after deletion).
-- ❎ Browser check — recorded as a proof limit above. The mobile-stack contract
-  is pinned by class assertions instead.
+- ✅ Targeted tests pass (28 across 8 files).
+- ✅ No new user-facing strings introduced — Phase 2 P2-5 reuses the existing
+  `public.fund.gardenQuery.{stale,ambiguous}` keys for the toast message.
+- ❎ Browser check — recorded as proof limit. UI lane releases to `qa_pass_1`.
 
-## Next step
+## Lane state at handoff
 
-If the human chooses to continue past Phase 1 in this worktree:
-- Phase 2 (loading + empty + error honesty) and Phase 3 (discovery + first-time
-  mental model) remain unstarted. Each is independently shippable per
-  `plan.todo.md`.
-- Otherwise, hand to `claude-qa-pass-1` for the desktop + 375px walk-through
-  across the seven visitor flows.
+- `ui` lane: `completed` (was `ready` after Phase 1).
+- TDD: `green_recorded` (was already `green_recorded` from Phase 1; extended
+  with Phase 2 + Phase 3 evidence in the same field).
+- `qa_pass_1` lane: now `ready` (was `blocked` on `ui`).

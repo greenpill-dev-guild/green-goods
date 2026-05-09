@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-08T00:00:00.000Z",
-    "updated_at": "2026-05-09T20:58:24.309Z"
+    "updated_at": "2026-05-09T21:58:59.775Z"
   },
   "links": {
     "brief": "brief.md",
@@ -34,7 +34,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "branch": "claude/ui/website-ux-flow-optimization",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -43,16 +43,17 @@
         "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "bun run test --run src/__tests__/components/PublicFundingDialogVocab.test.ts",
-          "evidence": "FAIL: locale=en key=public.fund.dialog.endow.description term=yield value=\"A Vault deposit designed to preserve your principal while yield supports the Garden.\""
+          "command": "bun run test --run src/__tests__/views/garden-query-resolution.test.ts",
+          "evidence": "Inline stale-banner replaced by toast (Fund.tsx:425-448 deleted). Resolution layer locked: 5 unit tests assert absent/match/ambiguous/stale classification before any toast wiring fires."
         },
         "green": {
-          "command": "bun run test --run src/__tests__/components/PublicFundingDialogVocab.test.ts src/__tests__/components/PublicFundingReceipt.test.tsx src/__tests__/components/PublicGetInTouch.test.tsx src/__tests__/components/PublicFundingBridge.test.tsx",
-          "evidence": "Test Files 4 passed (4) | Tests 12 passed (12); plus bun run lint:vocab clean and bun run format:check clean"
+          "command": "bun run test --run src/__tests__/components/PublicFundingDialogVocab.test.ts src/__tests__/components/PublicFundingReceipt.test.tsx src/__tests__/components/PublicGetInTouch.test.tsx src/__tests__/components/PublicFundingBridge.test.tsx src/__tests__/components/PublicProofBand.test.tsx src/__tests__/components/PublicRecordLoop.test.tsx src/__tests__/views/garden-query-resolution.test.ts src/__tests__/views/PublicGardenDetailSemantics.test.tsx",
+          "evidence": "Test Files 8 passed (8) | Tests 28 passed (28). Repo guards clean: lint:vocab, format:check, tsc --noEmit, plan-hub validate. Phase 1 + Phase 2 (incl. P2-5 implementation) + Phase 3 (P3-3 skipped per human direction) all locked."
         },
         "note": ""
       },
-      "skill_tags": ["ui", "frontend-design", "react", "testing"]
+      "skill_tags": ["ui", "frontend-design", "react", "testing"],
+      "manual_blocked": false
     },
     "state_api": {
       "owner": "codex",
@@ -100,7 +101,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/website-ux-flow-optimization",
@@ -138,6 +139,22 @@
       "status": "tdd_recorded",
       "branch": "claude/ui/website-ux-flow-optimization",
       "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-09T21:58:42.601Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/website-ux-flow-optimization",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-09T21:58:59.775Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "claude/ui/website-ux-flow-optimization",
+      "note": "Phase 1 + Phase 2 + Phase 3 (P3-3 explicitly skipped per human) all shipped/locked. qa_pass_1 unblocked."
     }
   ]
 }

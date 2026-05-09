@@ -135,4 +135,50 @@ describe("PublicFundingReceipt success state", () => {
 
     expect(fetchMock).toHaveBeenCalled();
   });
+
+  it("renders a Try again button on network error and re-fires the fetch when clicked", async () => {
+    fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ ok: true, publicReceipt: baseReceipt }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const messagesWithRetry = {
+      ...messages,
+      "public.fund.receipt.error.network":
+        "Couldn't reach the receipt service. Check your connection and try again.",
+      "public.fund.receipt.errorTitle": "We couldn't load this receipt",
+      "public.fund.receipt.tryAgain": "Try again",
+      "public.fund.receipt.backToFund": "Back to Fund",
+    };
+
+    const { container } = render(
+      createElement(
+        MemoryRouter,
+        null,
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: messagesWithRetry },
+          createElement(PublicFundingReceipt, { intentId: "intent-123" })
+        )
+      )
+    );
+
+    const retry = await screen.findByRole("button", { name: /try again/i });
+    expect(retry).toBeInTheDocument();
+
+    retry.click();
+
+    await waitFor(
+      () => {
+        expect(container.textContent).toContain("Aiyeloja Family Garden");
+      },
+      { timeout: 3000 }
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

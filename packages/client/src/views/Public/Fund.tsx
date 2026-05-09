@@ -5,7 +5,7 @@ import {
   type PublicGardenSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
-  publicGardenHelpers,
+  toastService,
   useInViewReveal,
   usePublicGardens,
   usePublicVaultSummary,
@@ -27,46 +27,13 @@ import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import { resolveGardenQuery } from "@/views/Public/garden-query-resolution";
 
 const PublicFundingCard = lazy(() =>
   import("@/components/Public/PublicFundingCard").then((module) => ({
     default: module.PublicFundingCard,
   }))
 );
-
-type ResolutionStatus = "absent" | "match" | "stale" | "ambiguous";
-
-interface ResolvedGarden {
-  status: ResolutionStatus;
-  garden?: PublicGardenSummary;
-  rawQuery?: string;
-}
-
-function resolveGardenQuery(
-  rawQuery: string | null,
-  gardens: readonly PublicGardenSummary[]
-): ResolvedGarden {
-  if (!rawQuery) return { status: "absent" };
-  const trimmed = rawQuery.trim();
-  if (trimmed.length === 0) return { status: "absent" };
-
-  const lower = trimmed.toLowerCase();
-  const exact = gardens.find(
-    (garden) => garden.id.toLowerCase() === lower || garden.address.toLowerCase() === lower
-  );
-  if (exact) return { status: "match", garden: exact, rawQuery: trimmed };
-
-  const slugMatches = gardens.filter(
-    (garden) => publicGardenHelpers.deriveSlug(garden.name, garden.id) === lower
-  );
-  if (slugMatches.length === 1) {
-    return { status: "match", garden: slugMatches[0], rawQuery: trimmed };
-  }
-  if (slugMatches.length > 1) {
-    return { status: "ambiguous", rawQuery: trimmed };
-  }
-  return { status: "stale", rawQuery: trimmed };
-}
 
 interface SupportPathProps {
   numeral: string;
@@ -379,6 +346,39 @@ function FundPageContent() {
     return () => cancelAnimationFrame(handle);
   }, [matchedGardenId]);
 
+  // Stale / ambiguous `?garden=` lookups used to render an inline banner that
+  // stole vertical space between the hero and § 02 even when the visitor was
+  // mid-funnel. Surface the same wording as a non-blocking toast keyed off the
+  // raw query so it fires once per query, not on every render.
+  const lastToastedQueryRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (intentId) return;
+    if (resolved.status !== "stale" && resolved.status !== "ambiguous") {
+      lastToastedQueryRef.current = null;
+      return;
+    }
+    if (!resolved.rawQuery) return;
+    if (lastToastedQueryRef.current === resolved.rawQuery) return;
+    lastToastedQueryRef.current = resolved.rawQuery;
+    toastService.info({
+      message: formatMessage(
+        {
+          id:
+            resolved.status === "ambiguous"
+              ? "public.fund.gardenQuery.ambiguous"
+              : "public.fund.gardenQuery.stale",
+          defaultMessage:
+            resolved.status === "ambiguous"
+              ? 'We couldn\'t tell which Garden you meant by "{query}". Pick one below.'
+              : 'We couldn\'t find a Garden matching "{query}". Browse the list below.',
+        },
+        { query: resolved.rawQuery }
+      ),
+      context: "public.fund.gardenQuery",
+      suppressLogging: true,
+    });
+  }, [resolved.status, resolved.rawQuery, intentId, formatMessage]);
+
   const closeSelector = useCallback(() => setSelectorState(null), []);
 
   const handleSupport = useCallback(
@@ -422,41 +422,12 @@ function FundPageContent() {
         </section>
       ) : null}
 
-      {!intentId && (resolved.status === "stale" || resolved.status === "ambiguous") ? (
-        <section className="bg-bg-weak-50 px-6 pt-32 pb-4 sm:px-10 sm:pt-36 md:pt-40">
-          <div className="mx-auto max-w-3xl">
-            <p
-              role="status"
-              className="border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600"
-            >
-              {formatMessage(
-                {
-                  id:
-                    resolved.status === "ambiguous"
-                      ? "public.fund.gardenQuery.ambiguous"
-                      : "public.fund.gardenQuery.stale",
-                  defaultMessage:
-                    resolved.status === "ambiguous"
-                      ? 'We couldn\'t tell which Garden you meant by "{query}". Pick one below.'
-                      : 'We couldn\'t find a Garden matching "{query}". Browse the list below.',
-                },
-                { query: resolved.rawQuery ?? "" }
-              )}
-            </p>
-          </div>
-        </section>
-      ) : null}
-
       {/* § 01 — Donate vs Endow editorial diptych */}
       <section
         ref={pathsRef}
         data-revealed={pathsRevealed}
         className={
-          vaultSummary.hasVaults ||
-          vaultSummary.isLoading ||
-          intentId ||
-          resolved.status === "stale" ||
-          resolved.status === "ambiguous"
+          vaultSummary.hasVaults || vaultSummary.isLoading || intentId
             ? "editorial-section-reveal bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
             : "editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         }
