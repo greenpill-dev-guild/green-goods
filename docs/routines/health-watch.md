@@ -33,7 +33,7 @@ The retired GitHub Project #4 / Bug Board / Sprints flow is no longer the routin
 
 - All env vars are loaded; do not read `.env`.
 - `DISCORD_USER_ID_AFO` is Afo's Discord snowflake ID (numeric). Use `<@${DISCORD_USER_ID_AFO}>` in messages to @mention him only on real anomalies.
-- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:qa` + `package:*` + `agent:claude`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary.
+- **Linear is the canonical surface for accepted operational health work.** Issues live unprojected on the Product team and carry the canonical scheme (`protocol:green-goods` + `activity:qa` + `package:*` + `agent:routine`). The deprecated `Green Goods` umbrella project is no longer a routing destination. Resolve team/label/status IDs by name at the start of every run; on lookup failure, fail loud in the Discord summary.
 
 ## Threshold philosophy
 
@@ -49,7 +49,7 @@ The previous spec used a 50-block indexer threshold (~12.5s at Arbitrum's 250ms 
 
 Each category maps to a Linear label combination — old `health:*` GitHub labels are retired. Issues are unprojected on the Product team and use the canonical scheme:
 
-| Check | Linear labels (in addition to `protocol:green-goods` + `activity:qa` + `agent:claude`) |
+| Check | Linear labels (in addition to `protocol:green-goods` + `activity:qa` + `agent:routine`) |
 |---|---|
 | Indexer lag/unreachable | `package:indexer` |
 | CI failures on `main` | (no `package:*` — CI spans the workspace; carry the failing workflow name in the body) |
@@ -115,7 +115,7 @@ Before opening a new Issue or appending a comment, query Linear for an existing 
 ```
 Linear query (read-only):
   team = Product, type = Issue, state in [Backlog, Todo, In Progress],
-  labels include protocol:green-goods + activity:qa + agent:claude,
+  labels include protocol:green-goods + activity:qa + agent:routine,
   title contains <category marker>
 ```
 
@@ -142,7 +142,7 @@ if no open Linear Issue matching the canonical labels + category marker:
     team        = Product
     project     = (none — unprojected)
     title       = "<category marker>: <one-line summary>"
-    labels      = protocol:green-goods, activity:qa, agent:claude,
+    labels      = protocol:green-goods, activity:qa, agent:routine,
                   package:<inferred> (when applicable)
     status      = Backlog (exploratory) or Todo (well-scoped)
     body        = <findings>

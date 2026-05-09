@@ -64,7 +64,7 @@ Accepted-bug Issues created from Customer Needs carry the canonical scheme below
 | `activity:*` | `activity:qa` for confirmed bugs / behavioral defects; `activity:maintenance` for cleanup/polish that isn't a user-visible defect | Issue (not Customer Need) |
 | `task:*` | `task:evidence`, `task:funding-pathway`, `task:access-participation` | Issue, only when the bug clearly falls inside one of these task pathways; otherwise omit |
 | `source:*` | `source:discord`, `source:telegram`, `source:drive` | Customer Need always; Issue when the originating provenance still matters for triage |
-| `agent:claude` | always | Customer Need + Issue this routine creates (provenance only — not human priority) |
+| `agent:routine` | always | Customer Need + Issue this routine creates (provenance only — not human priority) |
 
 ### Workflow state
 
@@ -95,6 +95,10 @@ When the Discord/Linear native integration is enabled, prefer the integration's 
 ## PostHog telemetry enrichment
 
 Use the **Claude Code PostHog connector** as the primary path for matching reports against real production telemetry before writing Linear records. Treat this as a privacy-tiered lookup: most fields stay in private routine context; only a small allowlist crosses into shared Linear bodies.
+
+### Multi-project structure
+
+Green Goods uses multiple PostHog projects: a **client** project (gardener/operator PWA + editorial website — where all `$exception` and consumer-side events fire) and an **admin** project (operator cockpit — where `admin_*` events fire). A bug-intake report may resolve to either project depending on the reporter's surface. The routine should query the client project first (most reports come from gardeners), and fall back to the admin project when the report names an admin route/component (`/dashboard`, `Hub`, `MainSheet`, `LeftSheet`, etc.) or comes from an operator. If only one PostHog project is wired into the routine env, query what is available and note the missing-surface gap in the run summary's `⚠ Failures this run` block — never invent telemetry to fill the gap.
 
 ### When to query PostHog
 
@@ -234,7 +238,7 @@ If no production deploys hit the window, omit the correlation block entirely. Do
    {one sentence Afo can paste into a public update without exposing PII; no usernames, garden addresses, replay URLs, session IDs, distinct IDs, wallet addresses, or identifying screenshots}
    ```
 
-   Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. Apply only `protocol:green-goods`, the relevant `source:*` provenance label, and `agent:claude`; keep source and triage metadata in the body. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
+   Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. Apply only `protocol:green-goods`, the relevant `source:*` provenance label, and `agent:routine`; keep source and triage metadata in the body. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
 6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led summary. Body:
 
@@ -258,7 +262,7 @@ If no production deploys hit the window, omit the correlation block entirely. Do
    {Discord message URL — same as the Customer Need}
    ```
 
-   Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:qa` + `package:<inferred>` (omit if unknown) + `source:discord` + `agent:claude` + the relevant `task:*` if the bug clearly maps to one of the canonical task pathways (`task:evidence`, `task:funding-pathway`, `task:access-participation`). Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
+   Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:qa` + `package:<inferred>` (omit if unknown) + `source:discord` + `agent:routine` + the relevant `task:*` if the bug clearly maps to one of the canonical task pathways (`task:evidence`, `task:funding-pathway`, `task:access-participation`). Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
 7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
@@ -302,7 +306,7 @@ If `BOT_API_URL` is not configured, skip this phase silently.
 
    Include the garden context block if `feedback.gardenAddress` is set (resolve garden name from the existing Linear customer records when available; otherwise just include the address).
 
-6. **Create accepted-bug Issue** when the feedback is actionable (clear bug + clear surface). Idea-type feedback stays Customer-Need-only. Apply the same canonical labels (`protocol:green-goods` + `activity:qa` + `package:<inferred>` + `source:telegram` + `agent:claude` + relevant `task:*`) and privacy boundary as in Phase 1 step 6.
+6. **Create accepted-bug Issue** when the feedback is actionable (clear bug + clear surface). Idea-type feedback stays Customer-Need-only. Apply the same canonical labels (`protocol:green-goods` + `activity:qa` + `package:<inferred>` + `source:telegram` + `agent:routine` + relevant `task:*`) and privacy boundary as in Phase 1 step 6.
 
 7. **Mark as triaged** on the Telegram bot:
    ```
@@ -362,7 +366,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
    Drive notes are mixed-source so judgment is required: include the meeting attendees in `## Reporter context` and prefer the privacy-safe summary over verbatim quotes when in doubt.
 
-7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:qa` + `package:<inferred>` + `source:drive` + `agent:claude` + relevant `task:*`) and privacy boundary as in Phase 1 step 6.
+7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:qa` + `package:<inferred>` + `source:drive` + `agent:routine` + relevant `task:*`) and privacy boundary as in Phase 1 step 6.
 
 8. **Reporter acknowledgement** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
 
@@ -373,8 +377,8 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 1. **Re-run the recurring-pattern probe** (curated question 4 in `## PostHog telemetry enrichment`) over the last 30 days, including matches from before this run.
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
 3. **Find or create the parent Issue** unprojected on the Product team:
-   - Look for an open Issue carrying `protocol:green-goods` + `agent:claude` + `activity:qa` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 6 summary and skip aggregation rather than inventing a parent.
-   - If none exists and the threshold is met, create one Issue with title `Recurring: {top-line-error-message-redacted}` (verb-led when possible). Status `Todo`, labels `protocol:green-goods` + `activity:qa` + `package:<inferred>` + `agent:claude` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
+   - Look for an open Issue carrying `protocol:green-goods` + `agent:routine` + `activity:qa` + a `pattern:posthog-{error-hash-prefix}` label. If the label set is missing on the team, fail loud in the Phase 6 summary and skip aggregation rather than inventing a parent.
+   - If none exists and the threshold is met, create one Issue with title `Recurring: {top-line-error-message-redacted}` (verb-led when possible). Status `Todo`, labels `protocol:green-goods` + `activity:qa` + `package:<inferred>` + `agent:routine` + `pattern:posthog-{error-hash-prefix}`. The parent Issue body uses the safe-summary fields only:
 
      ```markdown
      ## Recurring pattern
@@ -424,7 +428,7 @@ needs_triage_count = Linear query: team=Product, type=Customer Need,
                      label protocol:green-goods, no linked Issue,
                      no human follow-up in 7d
 issue_triage_count = Linear query: team=Product, type=Issue,
-                     label protocol:green-goods + agent:claude,
+                     label protocol:green-goods + agent:routine,
                      state in [Backlog, Todo]
 ```
 

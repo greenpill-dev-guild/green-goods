@@ -67,12 +67,12 @@ All routine writes use the canonical Linear label scheme. Old vocabularies (`are
 
 | Label family | Values used by GG routines | Purpose |
 |---|---|---|
-| `protocol:*` | `protocol:green-goods` | Protocol/product — every routine record carries this |
-| `package:*` | `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent` | Affected code surface (replaces old `area:*`) |
-| `activity:*` | `activity:qa`, `activity:maintenance` | Activity type — `activity:qa` for bug fixes, anomaly review, operational health validation; `activity:maintenance` for polish/cleanup work that isn't a user-visible defect |
-| `task:*` | `task:evidence`, `task:funding-pathway`, `task:access-participation` | User-task semantics — applied only when the bug/anomaly/research clearly maps to one of these task pathways; otherwise omit |
-| `source:*` | `source:discord`, `source:telegram`, `source:drive` | Provenance of the originating signal (Customer Needs always carry this; Issues carry it when the originating provenance still matters) |
-| `agent:*` | `agent:claude` | Routine-authored provenance — marks that the Issue/Customer Need was created or last-touched by a Claude routine. Provenance only, not human priority. |
+| `protocol:*` | `protocol:green-goods` | Protocol/product — every routine record carries this. (Cookie Jar work routes here too — Cookie Jar is a completed Linear project and not a separate protocol.) |
+| `package:*` | `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs` | Affected code surface (replaces old `area:*`). Use the inferred package only when the surface is known; omit if unclear. |
+| `activity:*` | Routines apply: `activity:qa` (bug fixes, anomaly review, operational health validation), `activity:maintenance` (polish/cleanup that isn't a user-visible defect). The full Linear taxonomy also includes `activity:research`, `activity:architecture`, `activity:build`, `activity:design` — those are human-applied and not used by GG routines. |
+| `task:*` | Routines apply when clear: `task:evidence`, `task:funding-pathway`, `task:access-participation`, `task:reputation-identity`, `task:data-input`, `task:local-onboarding`, `task:evaluator-review`. Omit if the work doesn't clearly map to one of these task pathways. |
+| `source:*` | `source:discord`, `source:telegram`, `source:drive` | Provenance of the originating signal (Customer Needs always carry this; Issues carry it when the originating provenance still matters). |
+| `agent:*` | `agent:routine` (always) | Routine-authored provenance. Optionally pair with `agent:claude` to identify the agent that ran the routine when that distinction matters. Provenance only, not human priority. |
 
 The dispatch labels `automation:claude` / `automation:codex` (legacy GitHub-era handoff flags) and the `work:polish` / `work:customer-need` / `area:*` / `health:*` / `grant:*` labels are not used. GitHub Project #4 and its `automated/claude` + `health:*` label set are retired entirely; no active routine writes to a GitHub Issue surface.
 
