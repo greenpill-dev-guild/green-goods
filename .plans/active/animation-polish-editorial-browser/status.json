@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-05-03T00:00:00.000Z",
-    "updated_at": "2026-05-09T20:49:15.548Z"
+    "updated_at": "2026-05-09T21:14:16.678Z"
   },
   "links": {
     "brief": "brief.md",
@@ -109,7 +109,7 @@
       "owner": "codex",
       "status": "blocked",
       "ready_when_dependencies_met": true,
-      "manual_blocked": false,
+      "manual_blocked": true,
       "branch": "codex/qa-pass-2/animation-polish-editorial-browser",
       "branch_trigger": "claude/qa-pass-1/animation-polish-editorial-browser",
       "depends_on": ["qa_pass_1"],
@@ -157,6 +157,14 @@
       "status": "completed",
       "branch": "claude/qa-pass-1/animation-polish-editorial-browser",
       "note": "QA pass 1 — pass-with-followups. Code on disk matches UI handoff; lint:vocab + format:check + plan-hub validate green. Targeted dialog tests + client build blocked by env-gated node_modules symlink issue at main repo (off-by-one .bun store path); browser visual evidence inherits the lane handoff's proof_limit. No defects found. Followups: bun install refresh, then qa_pass_2 captures browser evidence and re-runs validation ladder."
+    },
+    {
+      "timestamp": "2026-05-09T21:14:16.678Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": "codex/qa-pass-2/animation-polish-editorial-browser",
+      "note": "QA pass 2 blocked at repo-health gate: bun install completed but root node_modules symlinks still resolve one level too far up; no browser or validation ladder per stop instruction."
     }
   ]
 }
