@@ -139,6 +139,7 @@ export {
 export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
 export { DialogShell, type DialogShellProps } from "./Dialog";
 export { ImagePreviewDialog, type ImagePreviewDialogProps } from "./Dialog";
+export { PwaSheet, type PwaSheetProps } from "./Dialog";
 // Display Components
 export {
   ActionBannerFallback,
@@ -285,6 +286,12 @@ export type {
   ToastTranslator,
 } from "./Toast/toast.service";
 export { setToastTranslator, toastService } from "./Toast/toast.service";
+export { LocalizedToastsBridge } from "./Toast/LocalizedToastsBridge";
+export {
+  clearLocalizedToastsFormatter,
+  getLocalizedToastsFormatter,
+  setLocalizedToastsFormatter,
+} from "./Toast/presets/registry";
 export { TranslationBadge } from "./TranslationBadge";
 // Vault Components
 export type { AssetSelectorProps } from "./Vault/AssetSelector";

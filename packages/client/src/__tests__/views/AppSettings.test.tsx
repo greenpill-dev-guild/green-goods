@@ -35,6 +35,30 @@ vi.mock("@green-goods/shared", () => ({
       ? createElement("div", { role: "dialog", "data-testid": "confirm-dialog" }, title, children)
       : null,
   hapticLight: vi.fn(),
+  isHapticsEnabled: vi.fn(() => true),
+  isHapticsSupported: vi.fn(() => false),
+  setHapticsEnabled: vi.fn(),
+  Switch: ({
+    checked,
+    onCheckedChange,
+    disabled,
+    "aria-label": ariaLabel,
+    ...rest
+  }: {
+    checked: boolean;
+    onCheckedChange?: (next: boolean) => void;
+    disabled?: boolean;
+    "aria-label"?: string;
+    [key: string]: unknown;
+  }) =>
+    createElement("button", {
+      role: "switch",
+      "aria-checked": checked,
+      "aria-label": ariaLabel,
+      disabled,
+      onClick: () => onCheckedChange?.(!checked),
+      ...rest,
+    }),
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
   toastService: { info: vi.fn(), loading: vi.fn(), success: vi.fn(), error: vi.fn() },
   useApp: () => mockAppState,
@@ -46,6 +70,7 @@ vi.mock("@remixicon/react", () => ({
   RiEarthFill: (props: any) => createElement("span", props),
   RiRefreshLine: (props: any) => createElement("span", props),
   RiSettings2Line: (props: any) => createElement("span", props),
+  RiPulseFill: (props: any) => createElement("span", props),
 }));
 
 // Mock client components
