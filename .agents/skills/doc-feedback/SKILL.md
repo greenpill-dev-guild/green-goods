@@ -3,12 +3,12 @@ name: doc-feedback
 user-invocable: true
 description: Process review feedback on any Green Goods Google Doc downloaded as `.docx` — `docs/` drafts, research notes, grant proposals, product feedback. Parses comments and tracked-changes into a triage-able markdown record, then walks through addressing each item with a scope-lock gate between phases and an in-repo or out-of-repo address mode (auto-inferred from doc title/filename). Use when the team has finished reviewing a doc and you have (or can produce) a `.docx` export.
 argument-hint: "[<docx-path>] [--mode in-repo|out-of-repo] [--parse-only|--triage|--address]"
-version: "1.1.0"
+version: "1.1.1"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-04-26"
-last_verified: "2026-04-26"
+last_updated: "2026-05-09"
+last_verified: "2026-05-09"
 ---
 
 # Doc Feedback Skill
@@ -181,6 +181,16 @@ When all accepted items are addressed:
 - **No `word/comments.xml`** → no comments existed, only tracked changes. Parser handles this; surface "no comments, N tracked-change runs" and pivot to suggestion-only triage.
 - **Comment anchor text doesn't match `docs/` content** → the doc has drifted from the repo. Flag as a research item; don't guess at a target file.
 - **Parser regex breaks on unusual XML** → Word XML for headings/runs is stable but new constructs (e.g. `<w:sdt>` content controls) may show up. If a paragraph renders empty in `feedback.md`, escalate the parser fix rather than working around it.
+
+## Anti-Patterns
+
+| Don't | Why |
+|-------|-----|
+| Start addressing comments before parse output and triage are locked | The parsed feedback and user-approved checklist are the source of truth |
+| Commit the downloaded `.docx` into the repo | The export stays external; `feedback.md` is the durable repo record |
+| Guess at repo targets when anchors do not match current files | Drift should be flagged instead of patched into the wrong surface |
+| Batch unrelated comments into a broad rewrite | One-comment-at-a-time edits keep review and rollback possible |
+| Auto-commit or run `/ship` from this skill | The skill ends with verification and suggested grouping; the user controls shipping |
 
 ## Related Skills
 

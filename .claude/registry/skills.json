@@ -1,6 +1,14 @@
 {
   "source": ".claude/skills/*/SKILL.md",
-  "canonical_commands": ["plan", "debug", "review", "status", "clean", "doc-feedback"],
+  "canonical_commands": [
+    "plan",
+    "debug",
+    "audit-then-ship",
+    "review",
+    "status",
+    "clean",
+    "doc-feedback"
+  ],
   "skills": [
     {
       "name": "plan",
@@ -55,6 +63,25 @@
       ],
       "dependencies": [],
       "sub_files": ["monitoring.md", "posthog.md", "health-diagnostics.md"]
+    },
+    {
+      "name": "audit-then-ship",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Two-phase scope-locked workflow that investigates read-only, records user-approved findings, fixes only the locked scope, and runs the ship pipeline with evidence.",
+      "entry_file": ".claude/skills/audit-then-ship/SKILL.md",
+      "owned_skills": ["audit", "review", "principles", "architecture", "ship"],
+      "modes": ["default", "audit", "review", "principles", "architecture", "design", "no-ship"],
+      "triggers": [
+        "/audit-then-ship",
+        "audit then ship",
+        "audit X then fix Y",
+        "review X and apply",
+        "scope-lock"
+      ],
+      "dependencies": ["audit", "review", "principles", "architecture", "ship"]
     },
     {
       "name": "posthog-questions",

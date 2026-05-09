@@ -1,6 +1,6 @@
 # Skills Quick Reference
 
-> Start with one of five verbs, or just describe planning / orchestration intent and `plan` will fire passively.
+> Start with a command skill when the workflow is explicit, or just describe planning/debugging intent and the passive skills will fire.
 
 ---
 

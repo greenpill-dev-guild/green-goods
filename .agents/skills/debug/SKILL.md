@@ -3,7 +3,7 @@ name: debug
 user-invocable: false
 description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to incident_hotfix mode on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
 argument-hint: "[error-description]"
-version: "1.1.1"
+version: "1.1.2"
 status: active
 packages: ["all"]
 dependencies: []
@@ -107,6 +107,26 @@ queries, auth, or indexer hypotheses. First prove the rendered surface.
 7. **Separate rendered-but-unusable from missing data**. If text/data exists in the DOM but the
    control is collapsed, invisible, untappable, or lacks visual selected state, treat it as a
    component/CSS regression until browser or DOM evidence proves otherwise.
+
+### Data/API/Contract Regression Protocol
+
+When the symptom is missing or wrong data, failed writes, failed reads, RPC errors, indexer drift,
+deployment artifacts, or contract behavior, do not spend the first pass on CSS or component
+geometry. Start at the failing output and trace backward through the data path.
+
+1. **Capture the failing evidence**: request/response body, query key, log line, tx hash, receipt,
+   revert reason, deployment artifact, failing test, or build output.
+2. **Classify the failing layer** before proposing a fix: component state/query cache, shared hook,
+   shared module, API/indexer, RPC/provider, deployment config, contract ABI/address, or on-chain
+   contract state.
+3. **Trace the data path backward**: visible output or failing assertion → hook/query key → shared
+   module → provider/indexer/RPC → contract address/ABI/event/schema.
+4. **Verify environment truth first**: chain ID, deployment JSON, indexer config, schema UID,
+   contract address, RPC URL, and package guide for the touched surface.
+5. **Use repo wrappers for contract/indexer checks**. Do not invoke Forge directly for build
+   or test commands; use the bun scripts in `AGENTS.md` and the package guides.
+6. **Do not convert confirmed data/API/contract failures into UI styling investigations** unless
+   the data is present and the rendered control is still collapsed, invisible, or unusable.
 
 ### Phase 2: Hypothesis Testing
 
