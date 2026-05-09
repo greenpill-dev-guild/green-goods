@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-05-03T00:00:00.000Z",
-    "updated_at": "2026-05-07T00:00:00.000Z"
+    "updated_at": "2026-05-09T20:49:15.548Z"
   },
   "links": {
     "brief": "brief.md",
@@ -62,8 +62,14 @@
       "tdd": {
         "mode": "not_applicable",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "No state/API lane is planned; this backlog hub is scoped to public browser animation and interaction polish."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"]
@@ -77,15 +83,21 @@
       "tdd": {
         "mode": "not_applicable",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "No contract lane is planned; this backlog hub is scoped to public browser UI polish."
       },
       "skill_tags": ["contracts"]
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/animation-polish-editorial-browser",
@@ -137,6 +149,14 @@
       "status": "completed",
       "branch": "main",
       "note": "Phase C closing verdict — C2 + C3 explicitly closed as deferred. C3 retest: synthetic harness in storybook iframe could not isolate wildcard-rule freeze risk (control test aborts identically); shipping wildcard blind would risk freezing all view-transitions site-wide. C2: minimal fix (drop sm:aspect-[3/1]) is aesthetic-judgment-heavy without Afo's visual pass — the 3/1 desktop hero may be intentional editorial drama. Verification plan's automated bullet (lint:vocab + format + lint + test + build) all green; visual items remain qa_pass_1 scope."
+    },
+    {
+      "timestamp": "2026-05-09T20:49:15.548Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "claude/qa-pass-1/animation-polish-editorial-browser",
+      "note": "QA pass 1 — pass-with-followups. Code on disk matches UI handoff; lint:vocab + format:check + plan-hub validate green. Targeted dialog tests + client build blocked by env-gated node_modules symlink issue at main repo (off-by-one .bun store path); browser visual evidence inherits the lane handoff's proof_limit. No defects found. Followups: bun install refresh, then qa_pass_2 captures browser evidence and re-runs validation ladder."
     }
   ]
 }
