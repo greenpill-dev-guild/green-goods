@@ -4,14 +4,14 @@
 **Stage**: `active`
 **Status**: `ACTIVE — state_api COMPLETED on main, ui READY, qa BLOCKED`
 **Created**: `2026-04-28`
-**Last Updated**: `2026-05-07`
+**Last Updated**: `2026-05-10`
 
 ## Decision Log
 
 | # | Decision | Rationale |
 |---|---|---|
 | 1 | Create a new backlog hub instead of expanding `client-pwa-design-system-transition` | The PWA hub owns installed-client migration; this hub owns later cross-frontend CSS architecture polish. |
-| 2 | Keep this hub in backlog until active UI/design plans stabilize | Broad CSS cleanup should not fight ongoing browser/editorial or PWA implementation work. |
+| 2 | Run this before the broader design-system alignment review | The alignment review should evaluate the cleaner post-release CSS surface rather than known stale drift. |
 | 3 | Allow read-only inventory and guardrail design before broad cleanup | Inventory can reduce risk without forcing source edits too early. |
 | 4 | Mark contracts `n/a` | This is frontend CSS/tooling work, not Solidity or deployment-adjacent behavior. |
 | 5 | Use `state_api` only for tooling/quality checks | The plan hub has a fixed lane shape; guardrail scripts fit best in Codex's non-UI lane, but no runtime API work is intended. |
@@ -42,7 +42,7 @@
 
 - [x] Confirm `public-read-side-journal` is archived (`.plans/archive/public-read-side-journal/`).
 - [x] Confirm `client-pwa-gardener-audit` has completed QA and moved to archive.
-- [ ] Confirm `design-system-alignment-review` has either run or has been explicitly skipped by the human.
+- [x] Confirm `design-system-alignment-review` remains downstream of this cleanup.
 - [x] State/API lane: re-run `node scripts/harness/plan-hub.mjs validate` (passes; 22 hubs).
 - [ ] UI lane: re-run `node scripts/harness/plan-hub.mjs validate` before starting source changes.
 

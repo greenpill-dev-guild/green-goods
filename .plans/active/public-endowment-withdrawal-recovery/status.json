@@ -4,13 +4,13 @@
     "slug": "public-endowment-withdrawal-recovery",
     "title": "Public Endowment Withdrawal Recovery",
     "kind": "feature",
-    "stage": "backlog"
+    "stage": "active"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-05-10T23:05:15.718Z"
+    "updated_at": "2026-05-10T23:16:43.672Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,7 @@
     "depends_on_features": []
   },
   "notes": [
-    "Backlog by request: this hub records the plan for later implementation and must be moved to active before automation starts.",
+    "Promoted to active on 2026-05-10; start with public position data and /fund management before card recovery work.",
     "Public withdrawal is the first implementation slice; do not let Card Donate recovery block the /fund management fix.",
     "Wallet Endow remains visible while the public /fund management panel is built.",
     "Card Donate may recover first after real checkout and webhook proof; Card Endow remains gated until email-wallet ownership plus public withdrawal are proven.",
@@ -43,7 +43,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "ready",
       "branch": "claude/ui/public-endowment-withdrawal-recovery",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -65,7 +65,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "ready",
       "branch": "codex/state-api/public-endowment-withdrawal-recovery",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -179,11 +179,35 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:12:43.028Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-05-10T23:13:14.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refreshed",
+      "branch": "main",
+      "note": "Updated Markdown plan truth after active promotion and verified Linear sync manifest has no warnings."
+    },
+    {
+      "timestamp": "2026-05-10T23:16:43.672Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
+    "lastSyncedAt": "2026-05-10T23:16:43.672Z",
     "parentIssue": "PRD-435",
     "lanes": {
       "state_api": {

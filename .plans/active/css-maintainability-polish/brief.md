@@ -1,7 +1,7 @@
 # CSS Maintainability Polish
 
 **Slug**: `css-maintainability-polish`
-**Stage**: `backlog`
+**Stage**: `active`
 **Priority**: `p2`
 **Created**: `2026-04-28`
 
@@ -51,13 +51,14 @@ Out of scope:
 
 ## Plan Flow Position
 
-This is a backlog follow-up plan. It should run after the current public browser, installed PWA, and design-system alignment work has produced stable artifacts.
+This is now the active post-release CSS architecture cleanup. It should run before the broader
+`design-system-alignment-review`, so that review evaluates a cleaner and more current CSS surface.
 
 Read-only inventory and guardrail design may start earlier. Broad CSS cleanup should wait until:
 
 - `public-read-side-journal` is archived, completed, or paused with stable browser/editorial CSS ownership.
 - `client-pwa-design-system-transition` has completed its protected PWA baseline census and any implementation-scope updates.
-- `design-system-alignment-review` has produced its source-grounded findings, or the human confirms that review is no longer needed before this cleanup.
+- `design-system-alignment-review` remains downstream of this cleanup.
 - Active admin/client visual plans have either merged, paused, or published their CSS implications.
 
 ## Success Signal

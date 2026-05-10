@@ -2,7 +2,8 @@
 
 ## Release Gates
 
-1. Plan integrity: this hub remains in backlog until maintainers intentionally promote it.
+1. Plan integrity: this hub remains active, scoped to CSS architecture polish, and does not expand
+   into a redesign pass.
 2. Architecture fit: CSS ownership, global selectors, and guardrails follow the plan hub contract and existing design-system validation posture.
 3. Dialect safety: public browser, installed PWA, and admin styles remain separate.
 4. Token compliance: design-system values use existing tokens, aliases, or component variables instead of repeated raw values where intent is clear.

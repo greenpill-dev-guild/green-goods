@@ -1,7 +1,7 @@
 # Public Endowment Withdrawal Recovery
 
 **Slug**: `public-endowment-withdrawal-recovery`
-**Stage**: `backlog`
+**Stage**: `active`
 **Priority**: `p0`
 **Created**: `2026-05-09T21:35:46.781Z`
 

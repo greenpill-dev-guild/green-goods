@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-25T08:53:00.019Z",
-    "updated_at": "2026-05-10T22:34:34.860Z"
+    "updated_at": "2026-05-10T23:13:14.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,8 @@
     "2026-05-01 update: community docs copy remediation is complete; next concrete work is a targeted media refresh after active UI updates stabilize.",
     "Known refresh candidates: admin-create-garden.png, admin-work-queue.png, admin-work-detail.png, admin-garden-impact.png, client-work-dashboard.png, and a distinct Donate social image.",
     "Do not touch app UI/i18n/contracts/shared/indexer surfaces from this hub unless the user explicitly starts a separate UI alignment pass.",
-    "client-pwa-gardener-audit prerequisite completed and archived; docs refresh is now active for post-release media/doc accuracy."
+    "client-pwa-gardener-audit prerequisite completed and archived; docs refresh is now active for post-release media/doc accuracy.",
+    "2026-05-10 direction: do CSS maintainability first, then run a deeper docs freshness pass once current UI surfaces are stable enough for screenshots."
   ],
   "lanes": {
     "ui": {
@@ -53,11 +54,11 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "ready",
+      "status": "blocked",
       "branch": "codex/state-api/docs-freshness-routine",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Concrete next lane: after UI stabilization, replace scoped docs screenshots/social assets, update MDX references/alt text, and run docs audit/build/vocab plus rendered desktop/mobile checks.",
+      "handoff_note": "Concrete next lane: after CSS maintainability and UI stabilization, run a deep docs freshness pass, replace scoped docs screenshots/social assets, update MDX references/alt text, and run docs audit/build/vocab plus rendered desktop/mobile checks.",
       "skill_tags": ["docs", "tooling", "testing", "visual-qa"],
       "tdd": {
         "mode": "required",
@@ -71,7 +72,8 @@
           "evidence": ""
         },
         "note": ""
-      }
+      },
+      "manual_blocked": true
     },
     "contracts": {
       "owner": "codex",
@@ -167,6 +169,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:13:14.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refreshed",
+      "branch": "main",
+      "note": "Updated docs freshness to run after CSS maintainability/current UI stabilization; state_api is blocked until that readiness gate clears."
     }
   ],
   "taxonomy": {

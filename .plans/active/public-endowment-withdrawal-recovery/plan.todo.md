@@ -1,10 +1,10 @@
 # Public Endowment Withdrawal Recovery Plan
 
 **Feature Slug**: `public-endowment-withdrawal-recovery`
-**Stage**: `backlog`
-**Status**: `BACKLOG`
+**Stage**: `active`
+**Status**: `ACTIVE — ui/state_api READY, qa BLOCKED`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-05-09T21:55:49.000Z`
+**Last Updated**: `2026-05-10T23:13:14.000Z`
 
 ## Decision Log
 
@@ -28,6 +28,7 @@
 - [x] List human judgment points before implementation
 - [x] Define what is out of scope
 - [x] Choose the lightest honest validation commands
+- [x] Promoted to active and verified Linear parent/lane mirror has no sync warnings
 
 ## Requirements Coverage
 

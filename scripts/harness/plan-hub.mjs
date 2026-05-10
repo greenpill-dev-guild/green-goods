@@ -120,7 +120,7 @@ const TRACK_TO_PACKAGE_LABEL = {
 };
 const LANE_PACKAGE_TRACK_PRIORITIES = {
   ui: ["admin", "client-browser", "client-pwa", "client"],
-  state_api: ["shared", "indexer", "agent", "contracts", "admin", "client-browser", "client-pwa", "client"],
+  state_api: ["shared", "indexer", "agent", "contracts", "docs", "admin", "client-browser", "client-pwa", "client"],
   contracts: ["contracts"],
 };
 const INITIATIVE_TO_TASK_LABEL = {

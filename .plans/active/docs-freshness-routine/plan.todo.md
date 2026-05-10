@@ -2,9 +2,9 @@
 
 **Feature Slug**: `docs-freshness-routine`
 **Stage**: `active`
-**Status**: `ACTIVE — state_api READY`
+**Status**: `ACTIVE — state_api BLOCKED pending CSS/UI readiness`
 **Created**: `2026-04-25`
-**Last Updated**: `2026-05-07`
+**Last Updated**: `2026-05-10`
 
 ## Decision Log
 
@@ -27,6 +27,7 @@
 - [x] Choose the lightest honest validation commands
 - [x] Confirm prerequisite PWA QA is complete (`client-pwa-gardener-audit` archived)
 - [ ] Confirm current admin/client UI is stable enough for screenshot recapture
+- [ ] Confirm CSS maintainability polish has landed or the human explicitly starts docs first
 
 ## Requirements Coverage
 
@@ -102,6 +103,7 @@ Validation evidence already recorded in chat:
 
 Do not capture screenshots until this phase is satisfied.
 
+- [ ] Confirm CSS maintainability polish has either completed its UI cleanup or is explicitly paused.
 - [ ] Confirm the Donate / Endow / Remove UI work has landed or reached a stable review point.
 - [ ] Confirm admin Create Garden, Work review, and Certify surfaces are stable enough for docs captures.
 - [ ] Confirm whether captures should use local seeded data, staging data, or manually prepared demo data.

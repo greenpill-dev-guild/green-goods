@@ -135,7 +135,8 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
   - Any Max/available-balance UI that previews with more permissive max-loss settings than the
     withdraw transaction will actually use.
 - Tradeoffs to keep visible during review:
-  - Backlog vs active scheduling. This hub is intentionally backlog until the human promotes it.
+  - Active scheduling. This hub is now active; start with public position data and `/fund`
+    management before card recovery work.
   - Public withdrawal must not wait for Card Donate recovery if the implementation is split into
     separate PRs.
   - Card Donate and public withdrawal can ship before the later Card Endow lane.

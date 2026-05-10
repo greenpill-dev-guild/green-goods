@@ -1,10 +1,10 @@
 # Docs Freshness Routine
 
 **Slug**: `docs-freshness-routine`
-**Stage**: `backlog`
+**Stage**: `active`
 **Priority**: `p2`
 **Created**: `2026-04-25`
-**Last Updated**: `2026-05-01`
+**Last Updated**: `2026-05-10`
 
 ## Problem
 
@@ -20,7 +20,8 @@ The latest visual pass found that all referenced images exist and the built docs
 ## Desired Outcome
 
 - Keep the completed community docs copy pass stable.
-- After the UI update lands, refresh only the media needed for the scoped community paths.
+- After CSS maintainability and current UI surfaces are stable enough to capture, refresh only the
+  media needed for the scoped community paths.
 - Use real client/admin/docs surfaces for screenshots and social assets, not fabricated placeholders.
 - Preserve the current narrowed sidebar and docs structure.
 - Leave a clear QA trail that proves images exist, render correctly, and match the revised copy.
@@ -51,4 +52,7 @@ The latest visual pass found that all referenced images exist and the built docs
 
 ## Success Signal
 
-The next media refresh can be run as one contained docs PR after the UI settles: updated screenshots/social images are wired into the scoped pages, the generated docs render cleanly on desktop and mobile, and `bun run docs:audit`, `bun run build:docs`, and `bun run lint:vocab` pass with no new warnings from the touched community docs.
+The next media refresh can run as one contained docs PR after CSS maintainability and current UI
+surfaces settle: updated screenshots/social images are wired into the scoped pages, the generated docs
+render cleanly on desktop and mobile, and `bun run docs:audit`, `bun run build:docs`, and
+`bun run lint:vocab` pass with no new warnings from the touched community docs.

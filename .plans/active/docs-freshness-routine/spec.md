@@ -2,7 +2,11 @@
 
 ## Summary
 
-This backlog hub now captures the concrete follow-up from the Green Goods community docs audit remediation. The copy pass for the six reviewed flows plus Gardener, Operator, and Funder overviews is complete. The remaining work is a targeted media refresh after the active UI updates land, focused on screenshots and illustrations that no longer line up cleanly with the revised docs.
+This active hub captures the concrete follow-up from the Green Goods community docs audit remediation.
+The copy pass for the six reviewed flows plus Gardener, Operator, and Funder overviews is complete.
+The remaining work is a targeted media refresh after CSS maintainability and active UI surfaces are
+stable enough for screenshots, focused on screenshots and illustrations that no longer line up
+cleanly with the revised docs.
 
 This is a docs/media quality plan, not an app-code plan.
 
@@ -15,7 +19,7 @@ This is a docs/media quality plan, not an app-code plan.
 ## Functional Requirements
 
 1. Preserve the completed copy remediation for the scoped community docs.
-2. Wait for the active UI updates before replacing UI screenshots.
+2. Wait for CSS maintainability and active UI updates before replacing UI screenshots.
 3. Recapture stale admin screenshots for Create Garden, Review Work, and Mint Impact Certificate.
 4. Recapture or replace the Submit Work dashboard screenshot so it shows the Work Dashboard state described by the page.
 5. Add a distinct Donate to a Garden social/hero image instead of reusing the Endow image for both Donate and Endow.
@@ -127,7 +131,8 @@ This is a docs/media quality plan, not an app-code plan.
 ## Risks
 
 - Risk: Screenshots are captured before UI labels/routes settle.
-  - Mitigation: keep this hub in backlog until the UI work is declared ready for docs alignment.
+  - Mitigation: keep the implementation lane blocked until CSS maintainability and current UI surfaces
+    are declared ready for docs alignment.
 - Risk: Admin screenshots stay too zoomed out to be useful.
   - Mitigation: crop or capture the specific panel/state named by the docs step.
 - Risk: Docs start teaching UI details that are still changing.

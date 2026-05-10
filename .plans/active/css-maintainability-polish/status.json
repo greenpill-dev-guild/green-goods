@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-28T00:00:00.000Z",
-    "updated_at": "2026-05-10T22:34:34.860Z"
+    "updated_at": "2026-05-10T23:13:14.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -27,7 +27,8 @@
     "Public browser components stay client-local and component-authored; installed PWA and admin dialects remain separate.",
     "Contracts lane is n/a; state_api owns only durable scripts/checks, not runtime data/API behavior.",
     "client-pwa-gardener-audit prerequisite completed and archived; CSS maintainability polish is now active as post-release design-system cleanup.",
-    "state_api complete on main: scripts/design/check-css-custom-properties.{mjs,test.mjs}, scripts/data/css-custom-property-baseline.tsv (64 audited unresolved entries), and check-tokens.sh wiring. Broad CSS source cleanup and visual QA remain owned by the ui and qa lanes."
+    "state_api complete on main: scripts/design/check-css-custom-properties.{mjs,test.mjs}, scripts/data/css-custom-property-baseline.tsv (64 audited unresolved entries), and check-tokens.sh wiring. Broad CSS source cleanup and visual QA remain owned by the ui and qa lanes.",
+    "2026-05-10 direction: run CSS maintainability before docs freshness and before the broader design-system alignment review."
   ],
   "lanes": {
     "ui": {
@@ -180,6 +181,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:13:14.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_refreshed",
+      "branch": "main",
+      "note": "Updated active plan truth: CSS maintainability runs before docs freshness and design-system alignment review."
     }
   ],
   "taxonomy": {

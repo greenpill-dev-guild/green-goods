@@ -395,6 +395,42 @@ test("linear-sync chooses package labels by lane for cross-package plans", () =>
     );
   }));
 
+test("linear-sync labels docs-owned state lanes as docs work", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "docs-lane-fixture", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "docs-lane-fixture");
+    status.taxonomy = {
+      initiative: "public-experience",
+      tracks: ["docs", "admin", "client"],
+      work_types: ["maintenance", "review"],
+      surfaces: ["docs", "packages/admin", "packages/client"],
+      depends_on_features: [],
+    };
+    status.lanes.ui.status = "n/a";
+    status.lanes.ui.tdd = {
+      mode: "not_applicable",
+      status: "pending",
+      red: { command: "", evidence: "" },
+      green: { command: "", evidence: "" },
+      note: "Docs lane fixture has no UI lane.",
+    };
+    status.lanes.contracts.status = "n/a";
+    status.lanes.contracts.tdd = {
+      mode: "not_applicable",
+      status: "pending",
+      red: { command: "", evidence: "" },
+      green: { command: "", evidence: "" },
+      note: "Docs lane fixture has no contracts lane.",
+    };
+    writeStatus(root, "active", "docs-lane-fixture", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "docs-lane-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.equal(manifest.lanes[0].lane, "state_api");
+    assert.equal(manifest.lanes[0].labels.find((label) => label.startsWith("package:")), "package:docs");
+  }));
+
 test("linear-sync excludes QA lanes until dependencies are done or manually blocked", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "qa-linear-fixture", "--stage", "active"]).status, 0);

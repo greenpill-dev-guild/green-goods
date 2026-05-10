@@ -2,7 +2,11 @@
 
 ## Summary
 
-Run a post-stabilization CSS architecture polish pass that turns the recent design-system work into maintainable frontend practice. The work should inventory CSS ownership, define global selector boundaries, add or refine guardrails for repeatable drift, and clean up verified token/raw-value issues without changing the intended visual direction of public browser, installed PWA, or admin surfaces.
+Run the active post-release CSS architecture polish pass that turns the recent design-system work into
+maintainable frontend practice. The work should inventory CSS ownership, define global selector
+boundaries, add or refine guardrails for repeatable drift, and clean up verified token/raw-value
+issues without changing the intended visual direction of public browser, installed PWA, or admin
+surfaces.
 
 ## Users
 
@@ -14,8 +18,10 @@ Run a post-stabilization CSS architecture polish pass that turns the recent desi
 
 - `.plans/README.md` defines feature hubs, lane ownership, lifecycle, backlog quality bar, and `status.json` as the machine-readable source of truth.
 - `client-pwa-design-system-transition` already owns the installed PWA design-system migration and protected PWA baseline census; this hub consumes that output rather than duplicating it.
-- `design-system-alignment-review` is a read-only review hub; this hub is the later implementation/polish follow-up if CSS architecture drift needs cleanup.
-- `public-read-side-journal` is currently the browser/editorial implementation lane; broad CSS cleanup should wait until that surface is stable or explicitly paused.
+- `design-system-alignment-review` is a read-only review hub; this CSS cleanup now runs first so that
+  review is not dominated by known stale maintainability drift.
+- `public-read-side-journal` and the initial PWA audit are no longer blockers for this active cleanup;
+  refresh source inventory before touching runtime CSS.
 - Repo guidance requires DesignMD/Warm Earth token validation, `check:design-generated`, `check:design-tokens`, and `lint:vocab` for frontend design-system work.
 
 Open assumptions:
@@ -138,7 +144,8 @@ Durable guidance should answer:
 - Risk: guardrails create noisy failures.
   Mitigation: start with undefined variable detection and explicit false-positive handling.
 - Risk: cleanup fights active work.
-  Mitigation: keep broad source cleanup blocked until active UI/design plans stabilize.
+  Mitigation: refresh the source inventory first and keep runtime edits scoped to confirmed CSS
+    ownership/token drift.
 
 ## Acceptance Criteria
 
