@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p3",
     "created_at": "2026-05-03T00:00:00.000Z",
-    "updated_at": "2026-05-03T00:00:00.000Z"
+    "updated_at": "2026-05-10T22:34:44.627Z"
   },
   "links": {
     "brief": "brief.md",
@@ -32,31 +32,43 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "n/a",
       "branch": "claude/ui/environmental-data-inputs",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
-        "mode": "required",
+        "mode": "not_applicable",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
-        "note": ""
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "This is a consolidated Research parent; no UI behavior is planned until the idea is promoted."
       },
       "skill_tags": ["ui", "research"]
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "n/a",
       "branch": "codex/state-api/environmental-data-inputs",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
-        "mode": "required",
+        "mode": "not_applicable",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
-        "note": ""
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "This is a consolidated Research parent; no shared data/API behavior is planned until provider scope is promoted."
       },
       "skill_tags": ["research", "data-layer"]
     },
@@ -69,31 +81,39 @@
       "tdd": {
         "mode": "not_applicable",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "No contract implementation is planned while this remains discovery-only."
       },
       "skill_tags": ["research"]
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "n/a",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/environmental-data-inputs",
       "depends_on": ["ui", "state_api", "contracts"],
       "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "No QA lane is active while this remains a consolidated Research parent.",
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "n/a",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/environmental-data-inputs",
       "branch_trigger": "claude/qa-pass-1/environmental-data-inputs",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "No second QA lane is active while this remains a consolidated Research parent.",
       "skill_tags": ["testing", "review"]
     }
   },
@@ -105,6 +125,20 @@
       "status": "consolidated",
       "branch": null,
       "note": "Merged locale.network and Sylvie environmental input ideas into one formal environmental-data hub."
+    },
+    {
+      "timestamp": "2026-05-10T22:34:44.627Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
-  ]
+  ],
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T22:34:44.626Z",
+    "parentIssue": "RESR-10",
+    "lanes": {}
+  }
 }

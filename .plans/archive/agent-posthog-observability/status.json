@@ -4,13 +4,13 @@
     "slug": "agent-posthog-observability",
     "title": "Agent PostHog Observability",
     "kind": "feature",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-04-25T00:00:00.000Z",
-    "updated_at": "2026-05-07T00:00:00.000Z"
+    "updated_at": "2026-05-10T06:37:51.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -28,7 +28,8 @@
   "notes": [
     "Formalized from an active loose plan during the validated-taxonomy cleanup.",
     "Replay links remain private-context evidence and must not be placed in public Linear bodies.",
-    "2026-05-06 revision: Claude Code PostHog and Linear connectors are the primary path; the script is fallback-only and PostHog MCP is explicitly out of scope."
+    "2026-05-06 revision: Claude Code PostHog and Linear connectors are the primary path; the script is fallback-only and PostHog MCP is explicitly out of scope.",
+    "2026-05-10 archive: implementation and connector-first guidance are complete; live routine connector verification remains an operational follow-up, not active product implementation."
   ],
   "lanes": {
     "ui": {
@@ -54,7 +55,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "codex/state-api/agent-posthog-observability",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -63,11 +64,11 @@
         "status": "green_recorded",
         "red": {
           "command": "bunx vitest run scripts/agents/posthog-query.test.ts",
-          "evidence": ".plans/active/agent-posthog-observability/handoffs/codex-state-api.md#red"
+          "evidence": ".plans/archive/agent-posthog-observability/handoffs/codex-state-api.md#red"
         },
         "green": {
           "command": "bunx vitest run scripts/agents/posthog-query.test.ts",
-          "evidence": ".plans/active/agent-posthog-observability/handoffs/codex-state-api.md#green"
+          "evidence": ".plans/archive/agent-posthog-observability/handoffs/codex-state-api.md#green"
         },
         "note": ""
       },
@@ -97,7 +98,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "skipped",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/agent-posthog-observability",
@@ -107,7 +108,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "skipped",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/agent-posthog-observability",
@@ -157,6 +158,14 @@
       "status": "guidance_shipped",
       "branch": "main",
       "note": "Connector-first repo guidance landed on bug-intake routine, debug skill (.claude + .agents), and plan checklist. Recurring-pattern roll-up added as Phase 4 with >=50-session threshold. Privacy boundary made explicit with allowlist, runtime privacy grep in Phase 5, and read-side hard rule in /debug. Real-bug verification and cloud connector wiring confirmation remain blockers; see handoffs/codex-state-api.md."
+    },
+    {
+      "timestamp": "2026-05-10T06:37:51.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "archived",
+      "branch": "main",
+      "note": "Archived after connector-first routine guidance and fallback PostHog query script were completed. Remaining live connector/routine verification is tracked as operational follow-up rather than active implementation."
     }
   ]
 }

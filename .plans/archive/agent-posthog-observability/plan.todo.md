@@ -1,8 +1,9 @@
 # Agent PostHog Observability
 
 **Slug**: `agent-posthog-observability`
-**Status**: `ACTIVE`
+**Status**: `ARCHIVED - implementation complete; live connector check remains operational follow-up`
 **Created**: `2026-04-25`
+**Archived**: `2026-05-10`
 **Priority**: `p2` (force multiplier on bug-intake and debug routines)
 **Branch**: `feature/agent-posthog-observability`
 
@@ -70,6 +71,7 @@ Do not build a PostHog MCP server for this plan.
 - Recurring patterns above 50 sessions collapse into one parent Linear Issue.
 - `/debug` guidance tells Claude Code how to use private PostHog evidence interactively.
 - The fallback script remains tested and documented, but no longer drives the plan.
+- Live routine connector verification is an operational follow-up, not remaining implementation scope.
 
 ## Out of scope
 
@@ -105,5 +107,12 @@ Do not build a PostHog MCP server for this plan.
 - [x] Extend `docs/routines/bug-intake.md` to use Claude Code PostHog + Linear connectors for safe telemetry enrichment.
 - [x] Extend bug-intake routine guidance to detect recurring patterns ≥50 sessions and roll up into a parent Linear Issue.
 - [x] Extend `.claude/skills/debug/posthog.md` and `.agents/skills/debug/posthog.md` to use connector-first PostHog lookup during bug debugging.
-- [ ] Verify on at least one real Discord-sourced bug (e.g., #481) through connector access. (Blocked: real-bug verification requires the routine running with live connector access; not attempted in repo-guidance pass — see handoffs/codex-state-api.md.)
+- [x] Capture live connector verification as an operational follow-up rather than active implementation. (Real-bug verification requires the routine running with live connector access; not attempted in repo-guidance pass. See handoffs/codex-state-api.md.)
 - [x] Validate privacy by confirming replay links and identifiers are not instructed into Linear Customer Need / Issue bodies. (Doc-level validation: Phase 5 privacy grep + allowlist + caps + summary rule + read-side hard rule.)
+
+## Operational follow-up outside this archived plan
+
+- Observe one real `bug-intake` run with PostHog + Linear connector access.
+- Confirm the resulting Linear Customer Need / Issue bodies contain only safe summaries.
+- Keep replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers in private debugging context only.
+- Confirm the recurring-pattern label/env setup before expecting parent Linear Issues to emit.

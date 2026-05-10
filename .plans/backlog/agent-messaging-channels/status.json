@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-05-03T19:17:16.238Z"
+    "updated_at": "2026-05-10T23:05:15.719Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,8 @@
     "No indexer changes — messaging state is off-chain per spec and CLAUDE.md indexer boundary.",
     "Branch strategy: feature/agent-messaging-channels with phase commits for independent rollback.",
     "Afo deferred this out of active product work on 2026-04-26 because May is not planned for large product implementation after the current closeout set.",
-    "Agent package hardening completed and archived on 2026-05-04; no longer listed as an open feature dependency."
+    "Agent package hardening completed and archived on 2026-05-04; no longer listed as an open feature dependency.",
+    "Agent PostHog Observability completed and archived on 2026-05-10; routine telemetry remains available as completed prerequisite context, not an open feature dependency."
   ],
   "lanes": {
     "ui": {
@@ -104,6 +105,30 @@
       "status": "moved_to_backlog",
       "branch": null,
       "note": "Moved feature hub from active to backlog"
+    },
+    {
+      "timestamp": "2026-05-10T06:37:51.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "dependency_closed",
+      "branch": "main",
+      "note": "Removed agent-posthog-observability from depends_on_features after it was archived as completed connector-first routine guidance."
+    },
+    {
+      "timestamp": "2026-05-10T22:34:39.903Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:05:15.719Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ],
   "taxonomy": {
@@ -111,6 +136,13 @@
     "tracks": ["agent", "client", "contracts", "shared"],
     "work_types": ["implementation", "qa"],
     "surfaces": ["packages/agent", "packages/client", "packages/contracts", "packages/shared"],
-    "depends_on_features": ["agent-posthog-observability"]
+    "depends_on_features": []
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
+    "parentIssue": "PRD-339",
+    "lanes": {},
+    "project": "Agent Messaging Channels (WhatsApp + SMS)"
   }
 }

@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-03-16",
-    "updated_at": "2026-05-07T20:56:24.558Z"
+    "updated_at": "2026-05-10T23:05:15.718Z"
   },
   "links": {
     "brief": "brief.md",
@@ -20,10 +20,11 @@
   },
   "linear": {
     "initiative": "02b1504f-8aa1-475d-aeff-5d181a918cae",
-    "project": "49fe6466-06cb-41f5-a4ee-d8da62420929",
-    "issue": "CRBT-351",
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-05-03T01:35:00.000Z"
+    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
+    "parentIssue": "PRD-351",
+    "lanes": {},
+    "project": "Signal Pool to Yield Wiring"
   },
   "notes": [
     "Downstream UI backlog item after signal-pool-yield-wiring.",
@@ -110,6 +111,22 @@
       "lane": "system",
       "status": "prerequisite_archived",
       "note": "signal-pool-yield-wiring completed and moved to archive; removed taxonomy dependency while leaving yield-split-ui in backlog."
+    },
+    {
+      "timestamp": "2026-05-10T22:34:34.860Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:05:15.719Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ],
   "taxonomy": {

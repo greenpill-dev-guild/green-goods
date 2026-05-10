@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-05-09T21:55:49.000Z"
+    "updated_at": "2026-05-10T23:05:15.718Z"
   },
   "links": {
     "brief": "brief.md",
@@ -163,6 +163,39 @@
       "status": "reviewed",
       "branch": "main",
       "note": "Second deep audit tightened funding lane matrix, Card Donate Cookie Jar proof, exact provider-proof scope, Card Endow share verification, receipt privacy, and stale docs/design truth targets."
+    },
+    {
+      "timestamp": "2026-05-10T22:34:39.899Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:05:15.718Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
-  ]
+  ],
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
+    "parentIssue": "PRD-435",
+    "lanes": {
+      "state_api": {
+        "issue": "PRD-437"
+      },
+      "ui": {
+        "issue": "PRD-438"
+      },
+      "qa_pass_1": {
+        "issue": "PRD-441"
+      }
+    },
+    "project": "NYC Vault Crowdfunding"
+  }
 }

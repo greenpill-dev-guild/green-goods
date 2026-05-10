@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-28T00:00:00.000Z",
-    "updated_at": "2026-05-08T00:41:20.357Z"
+    "updated_at": "2026-05-10T22:34:34.860Z"
   },
   "links": {
     "brief": "brief.md",
@@ -172,6 +172,14 @@
       "status": "completed",
       "branch": "codex/state-api/css-maintainability-polish",
       "note": "State/API tooling lane complete on main: undefined CSS custom property guard, audited baseline (64 unresolved entries after pruning four now-defined admin M3 container roles), focused fixture tests, and check:design-tokens wiring. UI source cleanup and visual QA remain open."
+    },
+    {
+      "timestamp": "2026-05-10T22:34:34.860Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ],
   "taxonomy": {
@@ -180,5 +188,15 @@
     "work_types": ["cleanup", "maintenance"],
     "surfaces": ["packages/admin", "packages/client", "packages/shared"],
     "depends_on_features": []
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T22:34:34.859Z",
+    "parentIssue": "PRD-451",
+    "lanes": {
+      "ui": {
+        "issue": "PRD-452"
+      }
+    }
   }
 }

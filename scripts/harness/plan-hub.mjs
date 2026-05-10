@@ -118,6 +118,11 @@ const TRACK_TO_PACKAGE_LABEL = {
   indexer: "package:indexer",
   shared: "package:shared",
 };
+const LANE_PACKAGE_TRACK_PRIORITIES = {
+  ui: ["admin", "client-browser", "client-pwa", "client"],
+  state_api: ["shared", "indexer", "agent", "contracts", "admin", "client-browser", "client-pwa", "client"],
+  contracts: ["contracts"],
+};
 const INITIATIVE_TO_TASK_LABEL = {
   "environmental-data": "task:data-input",
   reputation: "task:reputation-identity",
@@ -372,9 +377,11 @@ function refreshLaneStatuses(status) {
     }
   }
 
-  const allDone = Object.values(status.lanes).every((lane) => DONE_LANE_STATUSES.has(lane.status));
+  const lanes = Object.values(status.lanes);
+  const allDone = lanes.every((lane) => DONE_LANE_STATUSES.has(lane.status));
+  const hasCompletedWork = lanes.some((lane) => lane.status === "passed" || lane.status === "completed");
   if (allDone) {
-    status.workflow.overall_status = "done";
+    status.workflow.overall_status = hasCompletedWork ? "done" : STAGE_TO_STATUS[stage];
     return status;
   }
 
@@ -434,23 +441,40 @@ function uniqueSorted(values) {
   return Array.from(new Set(values.filter((value) => hasText(value)))).sort();
 }
 
-function packageLabelsForTracks(tracks) {
+function packageLabelsForTracks(tracks, laneName = null) {
   if (!Array.isArray(tracks)) {
     return [];
   }
 
-  return uniqueSorted(tracks.map((track) => TRACK_TO_PACKAGE_LABEL[track]));
+  const lanePriorities = LANE_PACKAGE_TRACK_PRIORITIES[laneName] || [];
+  for (const track of lanePriorities) {
+    if (tracks.includes(track)) {
+      const label = TRACK_TO_PACKAGE_LABEL[track];
+      if (hasText(label)) {
+        return [label];
+      }
+    }
+  }
+
+  for (const track of tracks) {
+    const label = TRACK_TO_PACKAGE_LABEL[track];
+    if (hasText(label)) {
+      return [label];
+    }
+  }
+
+  return [];
 }
 
 function taskLabelForStatus(status) {
   return INITIATIVE_TO_TASK_LABEL[status.taxonomy?.initiative] || null;
 }
 
-function linearLabelsForStatus(status, activityLabel) {
+function linearLabelsForStatus(status, activityLabel, laneName = null) {
   return uniqueSorted([
     ...LINEAR_BASE_LABELS,
     activityLabel,
-    ...packageLabelsForTracks(status.taxonomy?.tracks),
+    ...packageLabelsForTracks(status.taxonomy?.tracks, laneName),
     taskLabelForStatus(status),
   ]);
 }
@@ -599,6 +623,7 @@ function buildLinearSyncManifest(status) {
         labels: linearLabelsForStatus(
           normalized,
           laneName === "qa_pass_1" || laneName === "qa_pass_2" ? "activity:qa" : "activity:build",
+          laneName,
         ),
         project,
         description: buildLinearLaneDescription(normalized, laneName, lane),

@@ -14,6 +14,10 @@
 
 Afo deferred this out of the current active product-development push. Keep it in backlog for later sequencing after the current closeout set and the May product-development pause.
 
+## Dependency Update — 2026-05-10
+
+`agent-posthog-observability` has been completed and archived as connector-first routine guidance plus fallback script support. Messaging channels no longer depends on an open PostHog feature hub; treat PostHog routine telemetry as completed prerequisite context.
+
 > **For agentic workers:** Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
 ## Decision Log

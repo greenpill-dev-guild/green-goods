@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-29T05:49:32.687Z",
-    "updated_at": "2026-05-03T19:17:16.238Z"
+    "updated_at": "2026-05-10T23:05:15.718Z"
   },
   "links": {
     "brief": "brief.md",
@@ -79,6 +79,22 @@
       "status": "scaffolded",
       "branch": null,
       "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-05-10T22:34:39.903Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T23:05:15.718Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ],
   "taxonomy": {
@@ -87,5 +103,12 @@
     "work_types": ["research", "implementation", "review"],
     "surfaces": ["packages/client", "packages/shared"],
     "depends_on_features": []
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T23:05:15.718Z",
+    "parentIssue": "PRD-347",
+    "lanes": {},
+    "project": "Green Goods Seasons & Campaigns"
   }
 }

@@ -1,20 +1,26 @@
-# RWA Yield Expansion Plan
+# RWA Yield Expansion Research Plan
 
 **Feature Slug**: `rwa-yield-expansion`
 **Epic**: [#463](https://github.com/greenpill-dev-guild/green-goods/issues/463)
 **Outcome Milestone**: [Outcome: Octant Vault APY >= 5% sustained](https://github.com/greenpill-dev-guild/green-goods/milestone/13) (#13)
 **Spec**: [spec.md](./spec.md)
-**Status**: `BACKLOG`
+**Linear Issue**: `RESR-9`
+**Linear Source**: `source:plans`
+**Status**: `BACKLOG / RESEARCH-FIRST`
 **Created**: `2026-04-17`
-**Last Updated**: `2026-04-17` (initial plan)
-**Hard Deadline**: Contract freeze **2026-05-30**; mainnet deploy **2026-06-30**
-**Branch Strategy**: `feature/rwa-yield-expansion` with phase commits for independent rollback
+**Last Updated**: `2026-05-10`
+**Current Boundary**: Research-first exploration of Arbitrum environmental and solar yield assets. No contracts, state/API, or UI implementation is active until asset source, custody/compliance boundary, yield path, risk model, and proof requirements are locked.
+**Branch Strategy**: no implementation branch until promoted from research
 
 ## Scheduling Update — 2026-04-26
 
 Afo deferred this out of the current active product-development push. Keep it as a June implementation candidate/backlog item; do not pull it into April closeout work.
 
-> **For agentic workers:** Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
+## Linear Framing Update — 2026-05-10
+
+This hub is now mirrored as Research issue `RESR-9` and should be framed around Arbitrum environmental and solar yield assets. The Conservative/Balanced preset implementation below remains historical context, not current build-ready execution order.
+
+> **For agentic workers:** Do not implement task-by-task yet. First produce research evidence and decision criteria for asset eligibility, custody/compliance, yield source, risk, and proof requirements.
 
 ## Decision Log
 

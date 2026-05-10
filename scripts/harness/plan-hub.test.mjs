@@ -255,6 +255,37 @@ test("summary filters hubs by initiative and track", () =>
     );
   }));
 
+test("summary preserves stage status for research-only hubs with no implementation lanes", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "research-only", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "research-only");
+    status.taxonomy = {
+      initiative: "environmental-data",
+      tracks: ["docs"],
+      work_types: ["research"],
+      surfaces: [],
+      depends_on_features: [],
+    };
+    for (const laneName of ["ui", "state_api", "contracts"]) {
+      status.lanes[laneName].status = "n/a";
+      status.lanes[laneName].tdd = {
+        mode: "not_applicable",
+        status: "pending",
+        red: { command: "", evidence: "" },
+        green: { command: "", evidence: "" },
+        note: "Research-only hub with no behavior-changing implementation lane.",
+      };
+    }
+    status.lanes.qa_pass_1.status = "n/a";
+    status.lanes.qa_pass_2.status = "n/a";
+    writeStatus(root, "backlog", "research-only", status);
+
+    const summary = runPlanHub(root, ["summary", "--json"]);
+    assert.equal(summary.status, 0, summary.stderr);
+    const item = JSON.parse(summary.stdout).find((entry) => entry.slug === "research-only");
+    assert.equal(item.overall_status, "backlog");
+  }));
+
 test("archive hubs do not require taxonomy", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "archived-hub", "--stage", "active"]).status, 0);
@@ -300,7 +331,6 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
     assert.deepEqual(manifest.parent.labels, [
       "activity:architecture",
       "package:client",
-      "package:shared",
       "protocol:green-goods",
       "source:plans",
       "task:funding-pathway",
@@ -315,6 +345,12 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
     assert.deepEqual(manifest.lanes[0].labels, [
       "activity:build",
       "package:client",
+      "protocol:green-goods",
+      "source:plans",
+      "task:funding-pathway",
+    ]);
+    assert.deepEqual(manifest.lanes[1].labels, [
+      "activity:build",
       "package:shared",
       "protocol:green-goods",
       "source:plans",
@@ -323,6 +359,40 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
     assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
     assert.match(manifest.warnings.join("\n"), /missing Linear issue for lane ui/);
     assert.match(manifest.warnings.join("\n"), /unprojected/);
+  }));
+
+test("linear-sync chooses package labels by lane for cross-package plans", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "lane-label-fixture");
+    status.taxonomy = {
+      initiative: "agent-platform",
+      tracks: ["agent", "client", "contracts", "shared"],
+      work_types: ["implementation", "qa"],
+      surfaces: ["packages/agent", "packages/client", "packages/contracts", "packages/shared"],
+      depends_on_features: [],
+    };
+    writeStatus(root, "backlog", "lane-label-fixture", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "lane-label-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.deepEqual(manifest.parent.labels, [
+      "activity:architecture",
+      "package:agent",
+      "protocol:green-goods",
+      "source:plans",
+    ]);
+    assert.deepEqual(
+      Object.fromEntries(
+        manifest.lanes.map((lane) => [lane.lane, lane.labels.find((label) => label.startsWith("package:"))]),
+      ),
+      {
+        ui: "package:client",
+        state_api: "package:shared",
+        contracts: "package:contracts",
+      },
+    );
   }));
 
 test("linear-sync excludes QA lanes until dependencies are done or manually blocked", () =>
