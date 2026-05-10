@@ -1,7 +1,7 @@
 ---
 routine-name: growth-pulse
 trigger:
-  schedule: "0 9 * * 1"  # Monday 09:00 — start of week, after engineering-pulse landed Sunday night
+  schedule: "0 9 * * 1"  # Monday 09:00 — start of week after weekend data settles
 max-duration: 2h
 repos:
   - green-goods
@@ -9,9 +9,9 @@ environment: green-goods-routines-extended
 network-access: full
 env-vars:
   - DUNE_API_KEY
-  - POSTHOG_PROJECT_API_KEY
-  - POSTHOG_PROJECT_ID
-  - POSTHOG_HOST
+  - POSTHOG_PROJECT_ID_APP
+  - POSTHOG_PROJECT_ID_ADMIN
+  - POSTHOG_PROJECT_ID_AGENT
   - ENVIO_INDEXER_URL
   - ARBITRUM_RPC_URL
   - DISCORD_BOT_TOKEN
@@ -42,7 +42,7 @@ This routine does NOT write GitHub Issues, does NOT touch any GitHub Project, an
 
 This routine reads from:
 
-- **PostHog** via the connector, using only named questions from `.claude/skills/posthog-questions/SKILL.md`.
+- **PostHog** via the connector, using only named questions from `.claude/skills/posthog-questions/SKILL.md` and the `POSTHOG_PROJECT_ID_*` env vars for project selection.
 - **Indexer**: `ENVIO_INDEXER_URL` for on-chain action volume, garden activity, vault history.
 - **Chain**: `ARBITRUM_RPC_URL` for raw on-chain reads when the indexer is lagging.
 - **Dune API** for queries tagged `[routine]` only — never modify user-owned queries.
@@ -63,14 +63,14 @@ Green Goods uses **three PostHog projects**, partitioned by product surface:
 | **Admin** | `262122` | Operator cockpit (admin web app) | `actions.template-creation-rate` and admin-side anomalies only |
 | **Agent** | `262124` | Bot/messaging runtime (Telegram, future WhatsApp/SMS) | Future agent-channel adoption metrics |
 
-Switch projects with the connector's `switch-project` (or set `POSTHOG_PROJECT_ID` per project). When the connector is bound to one project at a time, use `switch-project` between phases:
+Switch projects with the connector's `switch-project`, using the routine env project IDs as the source of truth. When the connector is bound to one project at a time, use `switch-project` between phases:
 
 | Phase | Project ID | Why |
 |---|---|---|
-| Phase 1 questions: `funnel.onboarding`, `funnel.work-repeat`, `failures.conversion-kill`, `gardens.engagement-summary`, `gardens.dormant`, `gardens.operator-activity` | `163591` (App) | Consumer events fire here. `failures.conversion-kill` runs against App for `garden_join`, `work_submission`, `auth_passkey_register` failures. |
-| Phase 1 question: `failures.conversion-kill` (work_approval segment) + `actions.template-creation-rate` | `262122` (Admin) | `admin_action_create_success` and the bulk of `work_approval_success` fire on admin. Run `failures.conversion-kill` against Admin too and merge the work_approval segment with the App-side counts; the App project sees `work_approval_failed` but not most successes. |
+| Phase 1 questions: `funnel.onboarding`, `funnel.work-repeat`, `failures.conversion-kill`, `gardens.engagement-summary`, `gardens.dormant`, `gardens.operator-activity` | `${POSTHOG_PROJECT_ID_APP}` (App, currently `163591`) | Consumer events fire here. `failures.conversion-kill` runs against App for `garden_join`, `work_submission`, `auth_passkey_register` failures. |
+| Phase 1 question: `failures.conversion-kill` (work_approval segment) + `actions.template-creation-rate` | `${POSTHOG_PROJECT_ID_ADMIN}` (Admin, currently `262122`) | `admin_action_create_success` and the bulk of `work_approval_success` fire on admin. Run `failures.conversion-kill` against Admin too and merge the work_approval segment with the App-side counts; the App project sees `work_approval_failed` but not most successes. |
 
-If a query against project 163591 returns zero events for a 30d window, that's a **wiring failure, not a real anomaly** — emit `⚠ Failures this run: App PostHog project returned zero events — wiring suspect, anomaly thresholds skipped`. Real production zero days at GG's volume are vanishingly rare; treat them as setup drift and surface for the human, do not fire false-positive anomaly Issues.
+If a query against the App project returns zero events for a 30d window, that's a **wiring failure, not a real anomaly** — emit `⚠ Failures this run: App PostHog project returned zero events — wiring suspect, anomaly thresholds skipped`. Real production zero days at GG's volume are vanishingly rare; treat them as setup drift and surface for the human, do not fire false-positive anomaly Issues.
 
 ### SKILL v1.1.0 (2026-05-09): person_id stitching + failures question
 
@@ -93,11 +93,11 @@ This routine references the following curated questions from `.claude/skills/pos
 - `gardens.operator-activity` — work approvals per operator per week, aggregated. Drives the operator-load section.
 - `actions.template-creation-rate` — `admin_action_create_success` over time. Drives the action-template trend.
 
-All six are public-safe-default. The digest, the `develop` PR body, the Discord posts, and the Linear anomaly bodies receive only allowlisted fields per the SKILL's privacy boundary table — never replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers.
+All seven are public-safe-default. The digest, the `develop` PR body, the Discord posts, and the Linear anomaly bodies receive only allowlisted fields per the SKILL's privacy boundary table — never replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers.
 
 **Concrete invocation**: there is no `posthog.run_question(name, vars)` RPC yet. For each question above, paste the HogQL block from `posthog-questions/SKILL.md` for that question into the PostHog connector's `query-run` call with privacy mode `public`. Reference the question by name in the routine's reasoning ("running `funnel.onboarding` over a 30d window"); reference the actual HogQL block by its location in the SKILL file. The HogQL must match verbatim — any divergence is a `routine-self-audit` violation.
 
-If the PostHog connector is unavailable, the script (`scripts/agents/posthog-query.ts`) does not yet support growth/BD questions. There is no fallback today; log `posthog: growth questions unreachable` in the digest's `⚠ Failures this run` block and drop the affected sections rather than fabricating numbers.
+If the PostHog connector is unavailable or the expected project ID env vars are missing, there is no API-key fallback for growth/BD questions in the Claude routine today; log `posthog: growth questions unreachable` in the digest's `⚠ Failures this run` block and drop the affected sections rather than fabricating numbers.
 
 ## Output schema (fixed — `routine-self-audit` enforces drift)
 
@@ -272,18 +272,18 @@ Post the primary message to `#product` per the schema. If grant-relevance criter
 - **Cap: 2 hours runtime**. Timeout → write partial digest with `⚠ Failures this run: timed out at phase X`.
 - **No GitHub Issue or GitHub Project writes**. Linear is the durable backlog; the only GitHub artifact is the docs-only digest PR. Do not file or update GitHub Issues, Project items, or iteration/Sprints fields.
 - **Project routing discipline**. Anomaly Issues stay unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects.
-- **No raw HogQL** in the routine prompt. Every PostHog read goes through a curated question name. Adding a new question requires editing `.claude/skills/posthog-questions/SKILL.md` first.
+- **No ad hoc HogQL** in the routine prompt. Every PostHog read goes through a curated question name and the canonical HogQL block in `.claude/skills/posthog-questions/SKILL.md`. Adding a new question requires editing that library first.
 - **Privacy boundary is non-negotiable**. See `posthog-questions/SKILL.md` allowlist. If unsure, treat as private.
 - **Channel guards** at every Discord post. Fail loud, never silently substitute.
 - **Mention rule**: `<@${DISCORD_USER_ID_AFO}>` only on red anomalies or setup failures.
-- **Acknowledge dependencies**: this routine assumes `engineering-pulse` ran clean Sunday night. If `engineering-pulse` failed, growth-pulse can still run but should note in the digest that the engineering-side context is missing.
+- **Acknowledge dependencies**: if PostHog, Dune, the indexer, chain RPC, Calendar, or Linear is unavailable, growth-pulse can still run but must note the missing context in the digest instead of filling gaps with guesses.
 
 ## Failure modes
 
 The digest's `⚠ Failures this run` block surfaces, never hides:
 
 - Missing env var or unset Discord channel ID.
-- PostHog connector unreachable AND the script fallback didn't help (the growth questions are connector-only today).
+- PostHog connector unreachable, missing project ID env vars, or connector project scope mismatch.
 - Linear API auth failure or missing project/label/status lookups.
 - Privacy grep hit (a body had to be redacted in-flight).
 - Anomaly cap hit (3 new Issues; more anomalies surfaced in digest body for human triage).

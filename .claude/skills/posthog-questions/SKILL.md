@@ -49,18 +49,18 @@ Each question has:
 
 ## Calling pattern (for routines and skills)
 
-**Today (2026-05-07): there is no `posthog.run_question(name, vars)` RPC and no `script ask <name>` subcommand yet.** Both are aspirational targets a follow-up plan will build. Until they exist, this is the concrete invocation a routine actually writes:
+**Today (2026-05-09): there is no `posthog.run_question(name, vars)` RPC and no `script ask <name>` subcommand yet.** Both are aspirational targets a follow-up plan will build. Until they exist, this is the concrete invocation a routine actually writes:
 
-- **Product/quality questions that match a script command** (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`): call the existing script subcommand. The script already implements the question's HogQL, output schema, and `--privacy` redaction.
-  ```bash
-  bun scripts/agents/posthog-query.ts errors --recent 24h --privacy public
-  bun scripts/agents/posthog-query.ts error-detail <error-hash> --window 7d
-  ```
-- **Everything else (every growth/BD question, plus `release.*` and `quality.top-failures` from the product/quality lens)**: paste the HogQL from this file verbatim into a PostHog connector `query-run` call. The routine prompt should reference the question by name in its `## PostHog usage` section but copy the actual HogQL into the connector call so the runtime has something to execute.
+- **Claude routines and interactive Claude Code work**: use the PostHog connector as the primary path. Switch to the right project (`POSTHOG_PROJECT_ID_APP`, `POSTHOG_PROJECT_ID_ADMIN`, or `POSTHOG_PROJECT_ID_AGENT`) and run the HogQL block from this file verbatim through connector `query-run`. The routine prompt should reference the question by name in its `## PostHog usage` section and point to this file as the source of the HogQL.
   ```
   Run question `funnel.onboarding` (window 30d) via the PostHog connector's
   query-run, using the HogQL block defined under that name in
   .claude/skills/posthog-questions/SKILL.md. Privacy mode: public.
+  ```
+- **Local/Codex/non-Claude fallback only**: product/quality questions that match a script command (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`) may use `scripts/agents/posthog-query.ts` when the connector is unavailable and the local environment explicitly provides `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`.
+  ```bash
+  bun scripts/agents/posthog-query.ts errors --recent 24h --privacy public
+  bun scripts/agents/posthog-query.ts error-detail <error-hash> --window 7d
   ```
 
 **Aspirational target (build in a follow-up plan):**
@@ -71,7 +71,7 @@ posthog.run_question("funnel.onboarding", { window: "30d" })
 
 The eventual connector wrapper resolves the name against this file: if a Saved-Insight ID is present, it fetches that; otherwise it runs the HogQL string with the named bind variables. The script gains an `ask <name>` mode that reads the same library. Privacy stays the same: pass `privacy: "public"` to suppress private fields up-front rather than redacting after the fact.
 
-Until that wrapper exists, the concrete invocations above are what a routine should actually contain. Reviewing a routine: any HogQL block must match a HogQL block in this file verbatim, or it's a `routine-self-audit` violation.
+Until that wrapper exists, the connector invocation above is what a Claude routine should actually contain. Reviewing a routine: any HogQL block must match a HogQL block in this file verbatim, or it's a `routine-self-audit` violation.
 
 ## Privacy boundary
 
@@ -329,7 +329,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Bind variables**: `{ window: "7d" }`
 - **Output schema**: every field public.
 - **Required emit-side events**: `$exception`
-- **Used by**: deferred (`release-health`, `metrics` digest).
+- **Used by**: deferred (`health-watch` or a future release-health digest).
 
 ---
 
@@ -483,7 +483,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Output schema**:
   - `garden_address`, `garden_name`, `active_members_7d`, `work_submitted_7d`, `work_approved_7d` — public
 - **Required emit-side events**: `work_submission_success`, `work_approval_success`, `garden_join_success`, `garden_auto_join_success` (all present; all carry `garden_address`).
-- **Used by**: `metrics`, `guild-weekly-checkin`.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `gardens.dormant`
 
@@ -520,7 +520,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: none.
 - **Output schema**: all public.
 - **Required emit-side events**: `admin_garden_create_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success`.
-- **Used by**: `metrics`, `guild-weekly-checkin`.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `gardens.operator-activity`
 
@@ -543,7 +543,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: none.
 - **Output schema**: all public. (Per-operator detail must be queried with `replay.user-sessions` and stays private.)
 - **Required emit-side events**: `work_approval_success`, `work_rejection_success`.
-- **Used by**: `guild-weekly-checkin`, future `season-one-pulse`.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `actions.template-creation-rate`
 
@@ -564,7 +564,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: none.
 - **Output schema**: all public.
 - **Required emit-side events**: `admin_action_create_success`.
-- **Used by**: `metrics`, `guild-product-development-synthesis`.
+- **Used by**: `growth-pulse` (Admin project, id 262122).
 
 ### `failures.conversion-kill`
 
@@ -647,7 +647,7 @@ Do not write a question for these until the underlying events ship — referenci
 A routine wiring this library should:
 
 1. List the question names it consumes in a `## PostHog usage` section near the top of its prompt.
-2. State each call with bind variables: `posthog.run_question("funnel.onboarding", { window: "30d" })`.
+2. State each connector call with the named question, project env var, bind variables, and privacy mode, e.g. `funnel.onboarding` on `POSTHOG_PROJECT_ID_APP` with `{ window: "30d" }`, privacy `public`.
 3. Map output fields to the routine's Discord post / Linear body / Drive doc, **only** using fields marked public in the question's output schema (or pass `privacy: "public"` to the call).
 4. State a fail-soft behavior: if the question returns an error or no data, log it in the routine's failure block and continue rather than aborting the run.
 5. Never inline raw HogQL; never invent a question name not in this file. Both are `routine-self-audit` violations once Phase 3 lands.

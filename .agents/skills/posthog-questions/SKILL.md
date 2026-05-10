@@ -2,12 +2,12 @@
 name: posthog-questions
 user-invocable: false
 description: Canonical curated-question library for PostHog reads across Green Goods routines and skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer per question. Routines reference questions by name; the connector or fallback script resolves them.
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-05-07"
-last_verified: "2026-05-07"
+last_updated: "2026-05-09"
+last_verified: "2026-05-09"
 ---
 
 # PostHog Curated Questions
@@ -49,18 +49,18 @@ Each question has:
 
 ## Calling pattern (for routines and skills)
 
-**Today (2026-05-07): there is no `posthog.run_question(name, vars)` RPC and no `script ask <name>` subcommand yet.** Both are aspirational targets a follow-up plan will build. Until they exist, this is the concrete invocation a routine actually writes:
+**Today (2026-05-09): there is no `posthog.run_question(name, vars)` RPC and no `script ask <name>` subcommand yet.** Both are aspirational targets a follow-up plan will build. Until they exist, this is the concrete invocation a routine actually writes:
 
-- **Product/quality questions that match a script command** (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`): call the existing script subcommand. The script already implements the question's HogQL, output schema, and `--privacy` redaction.
-  ```bash
-  bun scripts/agents/posthog-query.ts errors --recent 24h --privacy public
-  bun scripts/agents/posthog-query.ts error-detail <error-hash> --window 7d
-  ```
-- **Everything else (every growth/BD question, plus `release.*` and `quality.top-failures` from the product/quality lens)**: paste the HogQL from this file verbatim into a PostHog connector `query-run` call. The routine prompt should reference the question by name in its `## PostHog usage` section but copy the actual HogQL into the connector call so the runtime has something to execute.
+- **Claude routines and interactive Claude Code work**: use the PostHog connector as the primary path. Switch to the right project (`POSTHOG_PROJECT_ID_APP`, `POSTHOG_PROJECT_ID_ADMIN`, or `POSTHOG_PROJECT_ID_AGENT`) and run the HogQL block from this file verbatim through connector `query-run`. The routine prompt should reference the question by name in its `## PostHog usage` section and point to this file as the source of the HogQL.
   ```
   Run question `funnel.onboarding` (window 30d) via the PostHog connector's
   query-run, using the HogQL block defined under that name in
   .claude/skills/posthog-questions/SKILL.md. Privacy mode: public.
+  ```
+- **Local/Codex/non-Claude fallback only**: product/quality questions that match a script command (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`) may use `scripts/agents/posthog-query.ts` when the connector is unavailable and the local environment explicitly provides `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`.
+  ```bash
+  bun scripts/agents/posthog-query.ts errors --recent 24h --privacy public
+  bun scripts/agents/posthog-query.ts error-detail <error-hash> --window 7d
   ```
 
 **Aspirational target (build in a follow-up plan):**
@@ -71,7 +71,7 @@ posthog.run_question("funnel.onboarding", { window: "30d" })
 
 The eventual connector wrapper resolves the name against this file: if a Saved-Insight ID is present, it fetches that; otherwise it runs the HogQL string with the named bind variables. The script gains an `ask <name>` mode that reads the same library. Privacy stays the same: pass `privacy: "public"` to suppress private fields up-front rather than redacting after the fact.
 
-Until that wrapper exists, the concrete invocations above are what a routine should actually contain. Reviewing a routine: any HogQL block must match a HogQL block in this file verbatim, or it's a `routine-self-audit` violation.
+Until that wrapper exists, the connector invocation above is what a Claude routine should actually contain. Reviewing a routine: any HogQL block must match a HogQL block in this file verbatim, or it's a `routine-self-audit` violation.
 
 ## Privacy boundary
 
@@ -329,7 +329,7 @@ Private-default. The eight bug-intake / debug / release-health questions.
 - **Bind variables**: `{ window: "7d" }`
 - **Output schema**: every field public.
 - **Required emit-side events**: `$exception`
-- **Used by**: deferred (`release-health`, `metrics` digest).
+- **Used by**: deferred (`health-watch` or a future release-health digest).
 
 ---
 
@@ -342,31 +342,32 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: passkey register → garden join → first work submission funnel over a window.
+- **Identity stitching note**: PostHog assigns an anonymous UUID `distinct_id` on first page-load and switches it to the wallet/passkey-credential `distinct_id` after `posthog.identify()` in the auth flow. **Joins must be by `person_id`** (which stitches anonymous + identified IDs at the person level), not raw `distinct_id` — joining by `distinct_id` produces 0% conversion across the auth boundary even when conversions are happening. Verified empirically 2026-05-09 against the App project (163591): 7 person registers + 6 person joins in 30d, 0 overlap when joined by `distinct_id`; correct number when joined by `person_id`.
 - **HogQL**:
   ```sql
   WITH
     register_users AS (
-      SELECT DISTINCT distinct_id, min(timestamp) AS register_at
+      SELECT person_id, min(timestamp) AS register_at
       FROM events
       WHERE event = 'auth_passkey_register_success'
         AND timestamp > now() - interval {window:String}
-      GROUP BY distinct_id
+      GROUP BY person_id
     ),
     join_users AS (
-      SELECT DISTINCT r.distinct_id, min(e.timestamp) AS join_at
+      SELECT r.person_id, min(e.timestamp) AS join_at
       FROM register_users r
-      JOIN events e ON e.distinct_id = r.distinct_id
+      JOIN events e ON e.person_id = r.person_id
       WHERE e.event IN ('garden_join_success', 'garden_auto_join_success')
         AND e.timestamp >= r.register_at
-      GROUP BY r.distinct_id
+      GROUP BY r.person_id
     ),
     first_work AS (
-      SELECT DISTINCT j.distinct_id, min(e.timestamp) AS first_work_at
+      SELECT j.person_id, min(e.timestamp) AS first_work_at
       FROM join_users j
-      JOIN events e ON e.distinct_id = j.distinct_id
+      JOIN events e ON e.person_id = j.person_id
       WHERE e.event = 'work_submission_success'
         AND e.timestamp >= j.join_at
-      GROUP BY j.distinct_id
+      GROUP BY j.person_id
     )
   SELECT
     (SELECT count() FROM register_users) AS registered,
@@ -378,31 +379,33 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: `{ window: "30d" }`
 - **Output schema**: every field public.
 - **Required emit-side events**: `auth_passkey_register_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success` (all present today, `packages/shared/src/modules/app/analytics-events.ts`).
-- **Used by**: `metrics`, `guild-weekly-checkin`, `guild-product-development-synthesis`.
+- **Cohort caveat**: this funnel only tracks the new-user cohort within `{window}`. Returning users (registered before the window) who join gardens during the window are intentionally excluded — that's a different question. If `registered > 0` but `register_to_join_pct == 0`, verify by comparing to the raw `garden_join_success` count over the same window: a non-zero raw count with a zero funnel percentage usually means joiners are returning users from outside the window, not a product breakage.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `funnel.work-repeat`
 
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: of users whose first work submission was in the past 30 days, what percentage submitted a second work within 7 days?
+- **Identity stitching note**: same as `funnel.onboarding` — joins are by `person_id` so anonymous→identified transitions don't break the cohort.
 - **HogQL**:
   ```sql
   WITH first_subs AS (
-    SELECT distinct_id, min(timestamp) AS first_at
+    SELECT person_id, min(timestamp) AS first_at
     FROM events
     WHERE event = 'work_submission_success'
       AND timestamp > now() - interval 60 day
-    GROUP BY distinct_id
+    GROUP BY person_id
     HAVING first_at > now() - interval 30 day
   ),
   repeat_subs AS (
-    SELECT f.distinct_id
+    SELECT f.person_id
     FROM first_subs f
-    JOIN events e ON e.distinct_id = f.distinct_id
+    JOIN events e ON e.person_id = f.person_id
     WHERE e.event = 'work_submission_success'
       AND e.timestamp > f.first_at
       AND e.timestamp <= f.first_at + interval 7 day
-    GROUP BY f.distinct_id
+    GROUP BY f.person_id
   )
   SELECT
     (SELECT count() FROM first_subs) AS first_time_users,
@@ -412,7 +415,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: none (window is fixed at 30d / 7d to keep the metric stable across runs).
 - **Output schema**: every field public.
 - **Required emit-side events**: `work_submission_success`.
-- **Used by**: `guild-product-development-synthesis`, `metrics`.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `retention.curve`
 
@@ -480,7 +483,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Output schema**:
   - `garden_address`, `garden_name`, `active_members_7d`, `work_submitted_7d`, `work_approved_7d` — public
 - **Required emit-side events**: `work_submission_success`, `work_approval_success`, `garden_join_success`, `garden_auto_join_success` (all present; all carry `garden_address`).
-- **Used by**: `metrics`, `guild-weekly-checkin`.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `gardens.dormant`
 
@@ -517,7 +520,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: none.
 - **Output schema**: all public.
 - **Required emit-side events**: `admin_garden_create_success`, `garden_join_success`, `garden_auto_join_success`, `work_submission_success`.
-- **Used by**: `metrics`, `guild-weekly-checkin`.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `gardens.operator-activity`
 
@@ -540,7 +543,7 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: none.
 - **Output schema**: all public. (Per-operator detail must be queried with `replay.user-sessions` and stays private.)
 - **Required emit-side events**: `work_approval_success`, `work_rejection_success`.
-- **Used by**: `guild-weekly-checkin`, future `season-one-pulse`.
+- **Used by**: `growth-pulse` (App project, id 163591).
 
 ### `actions.template-creation-rate`
 
@@ -561,7 +564,48 @@ Public-safe-default. Aggregates only — never names a single user.
 - **Bind variables**: none.
 - **Output schema**: all public.
 - **Required emit-side events**: `admin_action_create_success`.
-- **Used by**: `metrics`, `guild-product-development-synthesis`.
+- **Used by**: `growth-pulse` (Admin project, id 262122).
+
+### `failures.conversion-kill`
+
+- **Lens**: growth-bd
+- **Default privacy**: public-safe
+- **What it answers**: per-step failure rate for the conversion-killing events (`*_failed` paired with `*_success`). Surfaces product breakages that vanish from a success-only funnel. Empirically (2026-05-09, App project) the strongest growth signal in the dataset: `garden_join` ~75% failure rate, `work_submission` ~70%, `work_approval` 100% (zero successes), `auth_passkey_register` ~27%.
+- **HogQL**:
+  ```sql
+  SELECT
+    multiIf(
+      event LIKE 'garden_join_%', 'garden_join',
+      event LIKE 'work_submission_%', 'work_submission',
+      event LIKE 'work_approval_%', 'work_approval',
+      event LIKE 'auth_passkey_register_%', 'auth_passkey_register',
+      NULL
+    ) AS step,
+    countIf(event LIKE '%_success') AS success_count,
+    countIf(event LIKE '%_failed') AS failed_count,
+    countIf(event LIKE '%_success' OR event LIKE '%_failed') AS total_attempts,
+    if(
+      countIf(event LIKE '%_success' OR event LIKE '%_failed') > 0,
+      countIf(event LIKE '%_failed') * 100.0 / countIf(event LIKE '%_success' OR event LIKE '%_failed'),
+      0
+    ) AS failure_pct
+  FROM events
+  WHERE timestamp > now() - interval {window:String}
+    AND event IN (
+      'garden_join_success', 'garden_join_failed',
+      'work_submission_success', 'work_submission_failed',
+      'work_approval_success', 'work_approval_failed',
+      'auth_passkey_register_success', 'auth_passkey_register_failed'
+    )
+  GROUP BY step
+  HAVING step IS NOT NULL
+  ORDER BY failure_pct DESC
+  ```
+- **Bind variables**: `{ window: "7d" }` (default; `30d` for monthly digest, `1d` for hot triage).
+- **Output schema**: every field public.
+- **Required emit-side events**: the four `*_started/_success/_failed` event triplets above (all present in `packages/shared/src/modules/app/analytics-events.ts`). Note that `work_approval_success` may live primarily on the Admin project (262122) — when this question runs against the App project, `work_approval` will report 100% failure even when admin successes exist. Run the query separately against project 262122 for the admin-side success counts and merge in the routine.
+- **Anomaly thresholds (consumer)**: failure rate > 50% AND absolute failed count ≥ 5 over the window → file a Linear anomaly Issue. 100% failure with absolute count ≥ 5 → P2/urgent. The thresholds catch real product breakage rather than tiny-N noise.
+- **Used by**: `growth-pulse` (anomaly detection, replaces sole reliance on `funnel.onboarding`).
 
 ### `web.acquisition-summary`
 
@@ -603,7 +647,7 @@ Do not write a question for these until the underlying events ship — referenci
 A routine wiring this library should:
 
 1. List the question names it consumes in a `## PostHog usage` section near the top of its prompt.
-2. State each call with bind variables: `posthog.run_question("funnel.onboarding", { window: "30d" })`.
+2. State each connector call with the named question, project env var, bind variables, and privacy mode, e.g. `funnel.onboarding` on `POSTHOG_PROJECT_ID_APP` with `{ window: "30d" }`, privacy `public`.
 3. Map output fields to the routine's Discord post / Linear body / Drive doc, **only** using fields marked public in the question's output schema (or pass `privacy: "public"` to the call).
 4. State a fail-soft behavior: if the question returns an error or no data, log it in the routine's failure block and continue rather than aborting the run.
 5. Never inline raw HogQL; never invent a question name not in this file. Both are `routine-self-audit` violations once Phase 3 lands.

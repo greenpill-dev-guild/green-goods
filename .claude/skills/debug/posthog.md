@@ -88,7 +88,7 @@ track("sync_completed", { jobs_synced: count, duration_ms: elapsed });
 
 ## Read-side: PostHog lookup during bug debugging
 
-> **Question library**: the canonical curated-question library lives at `.claude/skills/posthog-questions/SKILL.md` (mirrored at `.agents/skills/posthog-questions/SKILL.md`). It covers both the product/quality lens used here and the growth/BD lens used by `metrics`, `guild-weekly-checkin`, and `guild-product-development-synthesis`. Reference questions by name (`errors.recent`, `errors.detail`, `errors.recurring`, `errors.match-bug-report`, `replay.user-sessions`) — never inline raw HogQL.
+> **Question library**: the canonical curated-question library lives at `.claude/skills/posthog-questions/SKILL.md` (mirrored at `.agents/skills/posthog-questions/SKILL.md`). It covers both the product/quality lens used here and the growth/BD lens used by `growth-pulse`. Reference questions by name (`errors.recent`, `errors.detail`, `errors.recurring`, `errors.match-bug-report`, `replay.user-sessions`) — never inline raw HogQL.
 
 When you start work on a reported bug, query PostHog for matching telemetry **before** forming a hypothesis. Production replay and error data is the cheapest "did the user actually hit the path I think they did?" check available, and PostHog has it for both client and admin.
 
@@ -132,7 +132,7 @@ Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter id
 
 ### Fallback path: `scripts/agents/posthog-query.ts`
 
-When the connector is unavailable (Codex worktree, cron, non-Claude runtime), fall back to the durable script. Root env reads only:
+When the connector is unavailable in a local/Codex/non-Claude runtime, fall back to the durable script only if the environment explicitly provides the API-key vars below. Active Claude routines should prefer the connector plus `POSTHOG_PROJECT_ID_APP`, `POSTHOG_PROJECT_ID_ADMIN`, and `POSTHOG_PROJECT_ID_AGENT`.
 
 - `POSTHOG_PROJECT_API_KEY`
 - `POSTHOG_PROJECT_ID`
