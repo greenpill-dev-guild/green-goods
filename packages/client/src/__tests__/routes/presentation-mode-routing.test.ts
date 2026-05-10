@@ -181,7 +181,15 @@ describe("presentation-mode route guards", () => {
   it("keeps production public routes on the website shell even in standalone mode", () => {
     setStandaloneMode();
 
-    for (const path of ["/", "/gardens", "/gardens/decleanup", "/impact", "/fund", "/actions"]) {
+    for (const path of [
+      "/",
+      "/gardens",
+      "/gardens/decleanup",
+      "/impact",
+      "/fund",
+      "/actions",
+      "/cookies",
+    ]) {
       expect(
         requireWebsitePresentationLoader(loaderArgs(`https://www.greengoods.app${path}`))
       ).toBeNull();

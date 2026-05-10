@@ -8,6 +8,7 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
+import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 
 export default defineConfig(async ({ command, mode }) => {
   const rootDir = resolve(__dirname, "../../");
@@ -119,6 +120,7 @@ export default defineConfig(async ({ command, mode }) => {
         plugins: [["babel-plugin-react-compiler", {}]],
       },
     }),
+    createPublicSocialPreviewPlugin(isIPFSBuild),
     VitePWA({
       includeAssets: [
         "favicon.ico",

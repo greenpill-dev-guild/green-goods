@@ -155,6 +155,30 @@
   ],
   "rewrites": [
     {
+      "source": "/fund",
+      "destination": "/fund/index.html"
+    },
+    {
+      "source": "/impact",
+      "destination": "/impact/index.html"
+    },
+    {
+      "source": "/actions",
+      "destination": "/actions/index.html"
+    },
+    {
+      "source": "/gardens",
+      "destination": "/gardens/index.html"
+    },
+    {
+      "source": "/gardens/:path*",
+      "destination": "/gardens/index.html"
+    },
+    {
+      "source": "/cookies",
+      "destination": "/cookies/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
