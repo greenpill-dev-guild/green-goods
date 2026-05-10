@@ -2,7 +2,7 @@
 
 ## Status
 
-Blocked until the UI lane completes.
+Completed before QA Pass 2. The original checked-in file was a pre-pass placeholder; the current closeout evidence and explicit proof limits are recorded in `handoffs/codex-qa-pass-2.md`.
 
 ## Review Focus
 
@@ -16,10 +16,5 @@ Blocked until the UI lane completes.
 
 ## Required Browser/Mobile Proof
 
-- Mobile viewport or real-device drawer drag-to-dismiss.
-- AppBar and SyncStatusBar safe-area spacing.
-- Keyboard focus path inside sheet/dialog.
-- Forward/back/fade transition direction.
-- Reduced-motion snap behavior.
-- Haptics support state and toggle behavior.
-
+- Human-confirmed complete before QA Pass 2.
+- See `handoffs/codex-qa-pass-2.md` for the current validation rerun, consumer coverage, and remaining proof limits at closeout.

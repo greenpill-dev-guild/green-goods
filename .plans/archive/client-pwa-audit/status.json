@@ -4,13 +4,13 @@
     "slug": "client-pwa-audit",
     "title": "Client PWA Native Feel Remediation",
     "kind": "hardening",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-05-07T22:23:47Z",
-    "updated_at": "2026-05-09T21:10:45.071Z",
+    "updated_at": "2026-05-10T00:34:58.377Z",
     "target_date": null
   },
   "links": {
@@ -101,7 +101,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/client-pwa-audit",
@@ -112,7 +112,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/client-pwa-audit",
@@ -147,6 +147,30 @@
       "status": "completed",
       "branch": "claude/ui/client-pwa-audit",
       "note": "UI implementation complete on worktree branch claude/gracious-gates-393542. Shared registry+bridge for localized toasts; shared PwaSheet with drag-dismiss + reduced-motion immediate close; ModalDrawer + WorkDashboard migrated; DraftDialog + Gardeners on DialogShell; navigateWithTransition typed helper; haptics via shared helpers + Profile setting; PWA aria labels localized; DESIGN.pwa.md routing corrected. Targeted shared+client tests + design gates green; mobile/device proof deferred to QA Pass 1."
+    },
+    {
+      "timestamp": "2026-05-10T00:31:37.355Z",
+      "actor": "human",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "claude/qa-pass-1/client-pwa-audit",
+      "note": "Human confirmed QA Pass 1 was already complete before Codex QA Pass 2; current closeout proof and remaining proof limits are recorded in handoffs/codex-qa-pass-2.md."
+    },
+    {
+      "timestamp": "2026-05-10T00:31:41.483Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "codex/qa-pass-2/client-pwa-audit",
+      "note": "QA Pass 2 closeout completed on main: validation ladder rerun, scoped source proof checked, no blocker defects found, remaining proof limits recorded in handoff."
+    },
+    {
+      "timestamp": "2026-05-10T00:34:58.377Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
     }
   ],
   "taxonomy": {
