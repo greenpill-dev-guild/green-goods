@@ -17,7 +17,13 @@ import path from "path";
 import { type Context, session, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
 import { loggers } from "../services/logger";
-import type { InboundMessage, MessageContent, OutboundResponse, Platform } from "../types";
+import type {
+  ChatType,
+  InboundMessage,
+  MessageContent,
+  OutboundResponse,
+  Platform,
+} from "../types";
 
 const log = loggers.platform;
 
@@ -49,11 +55,29 @@ export type MessageHandler = (message: InboundMessage) => Promise<OutboundRespon
 // MESSAGE TRANSFORMATION
 // ============================================================================
 
+function toChatContext(ctx: Context): { id: string; type: ChatType; threadId?: string } | null {
+  const chat = ctx.chat;
+  if (!chat) return null;
+  const type = chat.type as ChatType;
+  if (type !== "private" && type !== "group" && type !== "supergroup" && type !== "channel") {
+    return null;
+  }
+  const msg = ctx.message;
+  const threadId =
+    msg && "message_thread_id" in msg && typeof msg.message_thread_id === "number"
+      ? String(msg.message_thread_id)
+      : undefined;
+  return { id: String(chat.id), type, threadId };
+}
+
 /**
  * Transform Telegraf context to platform-agnostic InboundMessage
  */
 export function toInboundMessage(ctx: Context): InboundMessage | null {
   if (!ctx.from) return null;
+
+  const chat = toChatContext(ctx);
+  if (!chat) return null;
 
   const platform: Platform = "telegram";
   const sender = {
@@ -66,6 +90,7 @@ export function toInboundMessage(ctx: Context): InboundMessage | null {
     return {
       id: String(ctx.callbackQuery.message?.message_id || "callback"),
       platform,
+      chat,
       sender,
       content: {
         type: "callback",
@@ -82,10 +107,16 @@ export function toInboundMessage(ctx: Context): InboundMessage | null {
 
   const content = extractContent(ctx);
   if (!content) return null;
+  const replyToMessageId =
+    "reply_to_message" in msg && msg.reply_to_message
+      ? String(msg.reply_to_message.message_id)
+      : undefined;
 
   return {
     id: String(msg.message_id),
     platform,
+    chat,
+    replyToMessageId,
     sender,
     content,
     locale: ctx.from.language_code,
@@ -103,6 +134,33 @@ function extractContent(ctx: Context): MessageContent | null {
       type: "image",
       imageUrl: largestPhoto.file_id,
       mimeType: "image/jpeg", // Telegram converts all photos to JPEG
+      fileSize: largestPhoto.file_size,
+      width: largestPhoto.width,
+      height: largestPhoto.height,
+      caption: "caption" in msg ? (msg.caption as string) : undefined,
+    };
+  }
+
+  if ("video" in msg && msg.video) {
+    return {
+      type: "video",
+      videoUrl: msg.video.file_id,
+      mimeType: msg.video.mime_type || "video/mp4",
+      fileSize: msg.video.file_size,
+      duration: msg.video.duration,
+      width: msg.video.width,
+      height: msg.video.height,
+      caption: "caption" in msg ? (msg.caption as string) : undefined,
+    };
+  }
+
+  if ("document" in msg && msg.document) {
+    return {
+      type: "document",
+      documentUrl: msg.document.file_id,
+      mimeType: msg.document.mime_type || "application/octet-stream",
+      fileSize: msg.document.file_size,
+      filename: msg.document.file_name,
       caption: "caption" in msg ? (msg.caption as string) : undefined,
     };
   }
@@ -113,6 +171,7 @@ function extractContent(ctx: Context): MessageContent | null {
       audioUrl: msg.voice.file_id,
       mimeType: msg.voice.mime_type || "audio/ogg",
       duration: msg.voice.duration,
+      fileSize: msg.voice.file_size,
     };
   }
 
@@ -380,7 +439,52 @@ export function createPhotoProcessor(bot: Telegraf): PhotoProcessor {
 // BOT CREATION
 // ============================================================================
 
-export function createTelegramBot(config: TelegramConfig, handleMessage: MessageHandler): Telegraf {
+/**
+ * Pick the right handler for an inbound message based on chat type and content.
+ *
+ * Returns `null` to ignore the message entirely (no handler dispatch, no reply).
+ *
+ * Routing rules:
+ *   - channel: ignored.
+ *   - private DM: text / voice / image / command / callback go through
+ *     `handleMessage` (full session-aware dispatch). Video and document are
+ *     ignored — they're not part of the work-submission flow and would
+ *     otherwise hit the "Unsupported message type" fall-through.
+ *   - group / supergroup: command + callback content is ignored. Other content
+ *     (text, photo, video, document, voice) goes through `handleGroupCapture`
+ *     for silent persistence — bot does NOT reply.
+ */
+export function chooseHandler(
+  inbound: InboundMessage,
+  handleMessage: MessageHandler,
+  handleGroupCapture: MessageHandler
+): MessageHandler | null {
+  if (inbound.chat.type === "channel") return null;
+
+  const isGroup = inbound.chat.type === "group" || inbound.chat.type === "supergroup";
+
+  if (!isGroup) {
+    // Private DM. Video and document aren't part of any DM flow today —
+    // ignore rather than fall through to "Unsupported message type".
+    if (inbound.content.type === "video" || inbound.content.type === "document") {
+      return null;
+    }
+    return handleMessage;
+  }
+
+  if (inbound.content.type === "command" || inbound.content.type === "callback") {
+    // Operator commands/callbacks can expose work IDs, addresses, tx hashes, or
+    // wallet state. In groups, the topic-capture bot is intentionally silent.
+    return null;
+  }
+  return handleGroupCapture;
+}
+
+export function createTelegramBot(
+  config: TelegramConfig,
+  handleMessage: MessageHandler,
+  handleGroupCapture: MessageHandler
+): Telegraf {
   const bot = new Telegraf(config.token);
 
   bot.use(session());
@@ -392,7 +496,13 @@ export function createTelegramBot(config: TelegramConfig, handleMessage: Message
       return;
     }
 
-    const response = await handleMessage(inbound);
+    const handler = chooseHandler(inbound, handleMessage, handleGroupCapture);
+    if (!handler) {
+      await ctx.answerCbQuery();
+      return;
+    }
+
+    const response = await handler(inbound);
     const { text, options } = toTelegramReply(response);
 
     await ctx.answerCbQuery();
@@ -407,49 +517,59 @@ export function createTelegramBot(config: TelegramConfig, handleMessage: Message
     }
   });
 
-  bot.on(message("voice"), async (ctx) => {
+  const dispatchMessage = async (ctx: Context): Promise<void> => {
     const inbound = toInboundMessage(ctx);
     if (!inbound) return;
 
-    const response = await handleMessage(inbound);
+    const handler = chooseHandler(inbound, handleMessage, handleGroupCapture);
+    if (!handler) return;
+
+    const response = await handler(inbound);
+    if (!response.text) return; // silent capture path
+
     const { text, options } = toTelegramReply(response);
+    await ctx.reply(text, options as Parameters<typeof ctx.reply>[1]);
+  };
 
-    if (text) {
-      await ctx.reply(text, options as Parameters<typeof ctx.reply>[1]);
-    }
-  });
+  bot.on(message("voice"), dispatchMessage);
+  bot.on(message("text"), dispatchMessage);
+  bot.on(message("photo"), dispatchMessage);
+  bot.on(message("video"), dispatchMessage);
+  bot.on(message("document"), dispatchMessage);
 
-  bot.on(message("text"), async (ctx) => {
-    const inbound = toInboundMessage(ctx);
-    if (!inbound) return;
-
-    const response = await handleMessage(inbound);
-    const { text, options } = toTelegramReply(response);
-
-    if (text) {
-      await ctx.reply(text, options as Parameters<typeof ctx.reply>[1]);
-    }
-  });
-
-  bot.on(message("photo"), async (ctx) => {
-    const inbound = toInboundMessage(ctx);
-    if (!inbound) return;
-
-    const response = await handleMessage(inbound);
-    const { text, options } = toTelegramReply(response);
-
-    if (text) {
-      await ctx.reply(text, options as Parameters<typeof ctx.reply>[1]);
-    }
-  });
-
-  // Error handling
+  // Error handling — only reply with an error in private chats. In groups we
+  // stay silent on capture failures so we never spam the support topic.
   bot.catch((err, ctx) => {
-    log.error({ err, chatId: ctx.chat?.id }, "Bot error");
+    log.error({ err, chatId: ctx.chat?.id, chatType: ctx.chat?.type }, "Bot error");
+    if (ctx.chat?.type !== "private") return;
     ctx.reply("❌ An error occurred. Please try again.").catch((replyErr) => {
       log.warn({ replyErr, chatId: ctx.chat?.id }, "Failed to send error message to user");
     });
   });
 
   return bot;
+}
+
+/**
+ * Register slash commands for **private DMs only**. The autocomplete menu in
+ * groups stays empty so reporters discover the topic-based capture path
+ * instead of looking for `/bug` and `/idea` commands that no longer exist.
+ */
+const PRIVATE_DM_COMMANDS: Array<{ command: string; description: string }> = [
+  { command: "start", description: "Create wallet and get started" },
+  { command: "join", description: "Join a garden by contract address" },
+  { command: "status", description: "View your current status and wallet" },
+  { command: "pending", description: "(Operators) View pending work submissions" },
+  { command: "approve", description: "(Operators) Approve a work submission" },
+  { command: "reject", description: "(Operators) Reject a work submission" },
+  { command: "help", description: "Show available commands" },
+];
+
+export async function registerSlashCommands(bot: Telegraf): Promise<void> {
+  await bot.telegram.setMyCommands(PRIVATE_DM_COMMANDS, {
+    scope: { type: "all_private_chats" },
+  });
+  // Explicitly clear the group autocomplete menu so retired /bug + /idea
+  // commands and any historical state are removed.
+  await bot.telegram.setMyCommands([], { scope: { type: "all_group_chats" } });
 }

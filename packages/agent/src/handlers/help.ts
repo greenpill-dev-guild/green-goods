@@ -19,9 +19,8 @@ export async function handleHelp(
     `*Submitting Work:*\n` +
     `Simply send a text or voice message describing your work!\n` +
     `Example: "I planted 5 trees today"\n\n` +
-    `*Feedback:*\n` +
-    `/bug <description> - Report a bug or problem\n` +
-    `/idea <description> - Share a feature idea\n\n`;
+    `*Reporting Bugs and Ideas:*\n` +
+    `Post freely in the Bug Reports or Ideas/Feedback topics in the Green Goods chat — the team picks them up automatically.\n\n`;
 
   if (isOperator) {
     helpText +=

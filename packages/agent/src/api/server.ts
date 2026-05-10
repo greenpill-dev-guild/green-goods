@@ -25,6 +25,7 @@ import {
   type ThirdwebNormalizedFundingEvent,
 } from "@green-goods/shared/public-contracts";
 import { type Context, Hono, type MiddlewareHandler } from "hono";
+import type { Telegraf } from "telegraf";
 import {
   confirmFundingTransaction,
   type FundingConfirmationResult,
@@ -59,7 +60,7 @@ import {
   PinataUploadSignerConfigError,
   type PinataUploadSignerConfig,
 } from "../services/pinata-upload-signer";
-import type { FeedbackStatus, FeedbackType, Platform } from "../types";
+import type { ChatMessageStatus } from "../types";
 import {
   InMemoryPublicRateLimiter,
   isOriginAllowed,
@@ -84,9 +85,12 @@ export interface ServerConfig {
 export interface ServerDeps {
   isAIReady: () => boolean;
   botApiToken?: string;
-  notifier?: {
-    notify: (platform: string, platformId: string, message: string) => Promise<void>;
-  };
+  /**
+   * The live Telegraf instance. Required for the `/api/messages/:id/attachments/:ordinal`
+   * proxy, which calls `bot.telegram.getFileLink(file_id)` and returns bytes
+   * back without exposing the bot token.
+   */
+  telegramBot?: Telegraf;
   lumaClient?: LumaClient;
   fundingIntents?: FundingIntentStore;
   /**
@@ -95,6 +99,16 @@ export interface ServerDeps {
    * `sweepFundingIntents` directly.
    */
   fundingSweepIntervalMs?: number;
+  /**
+   * How often the chat_messages sweep runs in ms (defaults to 24 hours).
+   * Set to `0` to disable scheduling — useful in tests.
+   */
+  chatMessageSweepIntervalMs?: number;
+  /**
+   * How old a terminal chat_messages row must be before it's pruned (ms).
+   * Defaults to 30 days.
+   */
+  chatMessageRetentionMs?: number;
   publicRateLimiter?: InMemoryPublicRateLimiter;
   providerProofRegistry?: ReturnType<typeof createProviderProofRegistry>;
   allowedOrigins?: Set<string>;
@@ -129,9 +143,23 @@ export type AgentServer = Hono & {
 // AUTH MIDDLEWARE
 // ============================================================================
 
-const VALID_FEEDBACK_TYPES = new Set<string>(["bug", "idea"]);
-const VALID_FEEDBACK_STATUSES = new Set<string>(["triaged", "responded"]);
-const VALID_NOTIFY_PLATFORMS = new Set<string>(["telegram", "discord", "whatsapp", "sms"]);
+const VALID_CHAT_MESSAGE_QUERY_STATUSES = new Set<string>([
+  "new",
+  "processing",
+  "triaged",
+  "rejected",
+  "all",
+]);
+const VALID_CHAT_MESSAGE_PATCH_STATUSES = new Set<ChatMessageStatus>([
+  "new",
+  "processing",
+  "triaged",
+  "rejected",
+]);
+const VALID_CAPTURE_TYPES = new Set<string>(["bug", "idea"]);
+const MAX_ATTACHMENT_PROXY_BYTES = 25 * 1024 * 1024; // 25MB — Telegram document/video limit for bots
+const ATTACHMENT_DOWNLOAD_TIMEOUT_MS = 30_000;
+const CHAT_MESSAGE_PROCESSING_LOCK_MS = 6 * 60 * 60 * 1000;
 
 const runningServers = new WeakMap<AgentServer, ReturnType<typeof Bun.serve>>();
 const ADDRESS_RE = /^0x[a-fA-F0-9]{40}$/;
@@ -199,6 +227,39 @@ async function readJsonBody<T>(request: Request): Promise<T | undefined> {
   } catch {
     return undefined;
   }
+}
+
+async function readBodyWithLimit(
+  body: ReadableStream<Uint8Array>,
+  maxBytes: number
+): Promise<Uint8Array | null> {
+  const reader = body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel("attachment too large").catch(() => undefined);
+        return null;
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const combined = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    combined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return combined;
 }
 
 function payloadTooLargeError(maxBytes: number): PublicApiError {
@@ -789,10 +850,45 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     }
   }
 
+  // Scheduled chat_messages sweep — prunes triaged/rejected rows older than
+  // the retention window (default 30 days). Stale `new` / `processing` rows
+  // are surfaced via a log line so routine outages or crashed claims stay visible.
+  const chatSweepIntervalMs =
+    deps.chatMessageSweepIntervalMs === undefined
+      ? 24 * 60 * 60 * 1000
+      : deps.chatMessageSweepIntervalMs;
+  const chatRetentionMs =
+    deps.chatMessageRetentionMs === undefined
+      ? 30 * 24 * 60 * 60 * 1000
+      : deps.chatMessageRetentionMs;
+  let chatSweepTimer: ReturnType<typeof setInterval> | null = null;
+  if (chatSweepIntervalMs > 0) {
+    chatSweepTimer = setInterval(() => {
+      const cutoff = (deps.now?.() ?? Date.now()) - chatRetentionMs;
+      void db
+        .sweepStaleChatMessages(cutoff)
+        .then((result) => {
+          if (result.pruned > 0 || result.staleNew > 0 || result.staleProcessing > 0) {
+            log.info(result, "chat_messages sweep complete");
+          }
+        })
+        .catch((err) => {
+          log.warn({ err }, "Scheduled chat_messages sweep failed");
+        });
+    }, chatSweepIntervalMs);
+    if (typeof chatSweepTimer === "object" && chatSweepTimer && "unref" in chatSweepTimer) {
+      (chatSweepTimer as { unref?: () => void }).unref?.();
+    }
+  }
+
   app.close = async () => {
     if (sweepTimer) {
       clearInterval(sweepTimer);
       sweepTimer = null;
+    }
+    if (chatSweepTimer) {
+      clearInterval(chatSweepTimer);
+      chatSweepTimer = null;
     }
     const server = runningServers.get(app);
     if (server) {
@@ -900,86 +996,197 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
   const authHook = requireApiAuth(deps);
 
-  // GET /api/feedback - Read new feedback for routine consumption
-  app.get("/api/feedback", authHook, async (c) => {
+  // GET /api/messages — read captured topic messages for routine consumption.
+  //
+  // Returns rows with embedded attachment metadata. Each attachment carries a
+  // same-origin `downloadUrl` pointing at the proxy endpoint below, so the
+  // routine can download bytes back without ever seeing the bot token.
+  app.get("/api/messages", authHook, async (c) => {
+    const chatId = c.req.query("chat_id");
+    const threadId = c.req.query("thread_id");
+    const status = c.req.query("status");
     const since = c.req.query("since");
-    const type = c.req.query("type");
+    const inferredType = c.req.query("inferred_type");
+    const limit = c.req.query("limit");
 
-    const parsed = since ? parseInt(since, 10) : undefined;
-    const sinceMs = parsed !== undefined && !Number.isNaN(parsed) ? parsed : undefined;
-    const feedbackType =
-      type && VALID_FEEDBACK_TYPES.has(type) ? (type as FeedbackType) : undefined;
+    if (status && !VALID_CHAT_MESSAGE_QUERY_STATUSES.has(status)) {
+      return c.json(
+        {
+          error: `Invalid status. Must be one of: ${[...VALID_CHAT_MESSAGE_QUERY_STATUSES].join(", ")}`,
+        },
+        400
+      );
+    }
 
-    const feedback = await db.getNewFeedback(sinceMs, feedbackType);
+    if (inferredType && !VALID_CAPTURE_TYPES.has(inferredType)) {
+      return c.json(
+        {
+          error: `Invalid inferred_type. Must be one of: ${[...VALID_CAPTURE_TYPES].join(", ")}`,
+        },
+        400
+      );
+    }
+
+    const parsedSince = since ? parseInt(since, 10) : undefined;
+    const sinceMs =
+      parsedSince !== undefined && !Number.isNaN(parsedSince) ? parsedSince : undefined;
+
+    const parsedLimit = limit ? parseInt(limit, 10) : undefined;
+    const limitValue =
+      parsedLimit !== undefined && !Number.isNaN(parsedLimit) ? parsedLimit : undefined;
+
+    const messages = await db.getNewChatMessages({
+      chatId: chatId || undefined,
+      threadId: threadId || undefined,
+      status: status === "all" ? "all" : ((status as ChatMessageStatus | undefined) ?? "new"),
+      since: sinceMs,
+      inferredType: inferredType
+        ? (inferredType as Parameters<typeof db.getNewChatMessages>[0]["inferredType"])
+        : undefined,
+      limit: limitValue,
+    });
+
+    const enriched = messages.map((message) => ({
+      ...message,
+      attachments: (message.attachments ?? []).map((attachment) => ({
+        ordinal: attachment.ordinal,
+        kind: attachment.kind,
+        mimeType: attachment.mimeType,
+        fileSize: attachment.fileSize,
+        duration: attachment.duration,
+        width: attachment.width,
+        height: attachment.height,
+        downloadUrl: `/api/messages/${message.id}/attachments/${attachment.ordinal}`,
+      })),
+    }));
 
     return c.json({
-      feedback,
-      count: feedback.length,
+      messages: enriched,
+      count: enriched.length,
     });
   });
 
-  // PATCH /api/feedback/:id - Update feedback status
-  app.patch("/api/feedback/:id", authHook, async (c) => {
+  // PATCH /api/messages/:id — claim or update captured-message status.
+  // `processing` is an atomic claim from `new` (or stale processing); final
+  // statuses are `triaged` / `rejected`. `new` is only for explicit recovery.
+  app.patch("/api/messages/:id", authHook, async (c) => {
     const id = c.req.param("id");
     const body = await readJsonBody<{ status?: string }>(c.req.raw);
     const status = body?.status;
 
-    if (!status || !VALID_FEEDBACK_STATUSES.has(status)) {
+    if (!status || !VALID_CHAT_MESSAGE_PATCH_STATUSES.has(status as ChatMessageStatus)) {
       return c.json(
         {
-          error: "Invalid status. Must be one of: triaged, responded",
+          error: `Invalid status. Must be one of: ${[...VALID_CHAT_MESSAGE_PATCH_STATUSES].join(", ")}`,
         },
         400
       );
     }
 
-    const existing = await db.getFeedback(id);
+    const existing = await db.getChatMessage(id);
     if (!existing) {
-      return c.json({ error: "Feedback not found" }, 404);
+      return c.json({ error: "Chat message not found" }, 404);
     }
 
-    await db.updateFeedbackStatus(id, status as FeedbackStatus);
+    if (status === "processing") {
+      const now = deps.now?.() ?? Date.now();
+      const claimed = await db.claimChatMessage(id, now - CHAT_MESSAGE_PROCESSING_LOCK_MS, now);
+      if (!claimed) {
+        return c.json({ error: "Chat message already claimed", status: existing.status }, 409);
+      }
+      return c.json({ ok: true, status: "processing" });
+    }
+
+    if (status === "new" && existing.status !== "processing") {
+      return c.json(
+        { error: "Only processing messages can be returned to new", status: existing.status },
+        409
+      );
+    }
+
+    await db.updateChatMessageStatus(id, status as ChatMessageStatus);
     return c.json({ ok: true });
   });
 
-  // POST /api/notify - Send a message to a user via the bot
-  app.post("/api/notify", authHook, async (c) => {
-    if (!deps.notifier) {
-      return c.json({ error: "Notifier not available" }, 503);
+  // GET /api/messages/:id/attachments/:ordinal — proxy media bytes from
+  // Telegram. We never redirect (the redirect URL contains the bot token);
+  // we download the body server-side with a hard byte limit and forward only
+  // safe response headers.
+  app.get("/api/messages/:id/attachments/:ordinal", authHook, async (c) => {
+    if (!deps.telegramBot) {
+      return c.json({ error: "Telegram bot not available" }, 503);
     }
 
-    const body = await readJsonBody<{
-      platform?: string;
-      platformId?: string;
-      message?: string;
-      feedbackId?: string;
-    }>(c.req.raw);
-
-    const { platform, platformId, message, feedbackId } = body ?? {};
-
-    if (!platform || !platformId || !message) {
-      return c.json({ error: "Required fields: platform, platformId, message" }, 400);
+    const id = c.req.param("id");
+    const ordinalRaw = c.req.param("ordinal");
+    const ordinal = parseInt(ordinalRaw, 10);
+    if (Number.isNaN(ordinal) || ordinal < 0) {
+      return c.json({ error: "Invalid ordinal" }, 400);
     }
 
-    if (!VALID_NOTIFY_PLATFORMS.has(platform)) {
-      return c.json(
-        {
-          error: `Invalid platform. Must be one of: ${[...VALID_NOTIFY_PLATFORMS].join(", ")}`,
-        },
-        400
+    const attachment = await db.getChatMessageAttachment(id, ordinal);
+    if (!attachment) {
+      return c.json({ error: "Attachment not found" }, 404);
+    }
+
+    let fileLink: URL;
+    try {
+      fileLink = await deps.telegramBot.telegram.getFileLink(attachment.telegramFileId);
+    } catch (error) {
+      log.warn(
+        { err: error, id, ordinal, telegramFileId: attachment.telegramFileId },
+        "Failed to resolve Telegram file link"
       );
+      return c.json({ error: "Upstream file unavailable" }, 502);
     }
 
-    await deps.notifier.notify(platform as Platform, platformId, message);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), ATTACHMENT_DOWNLOAD_TIMEOUT_MS);
 
-    if (feedbackId) {
-      const existing = await db.getFeedback(feedbackId);
-      if (existing) {
-        await db.updateFeedbackStatus(feedbackId, "responded");
+    try {
+      const upstream = await fetch(fileLink.toString(), {
+        signal: controller.signal,
+        redirect: "manual",
+      });
+      if (!upstream.ok || !upstream.body) {
+        log.warn(
+          { id, ordinal, status: upstream.status },
+          "Telegram returned non-OK for file download"
+        );
+        return c.json({ error: "Upstream file unavailable" }, 502);
       }
-    }
 
-    return c.json({ ok: true });
+      const declaredLength = upstream.headers.get("content-length");
+      if (declaredLength) {
+        const declared = Number(declaredLength);
+        if (Number.isFinite(declared) && declared > MAX_ATTACHMENT_PROXY_BYTES) {
+          return c.json({ error: "Attachment too large" }, 413);
+        }
+      }
+
+      const contentType =
+        attachment.mimeType ?? upstream.headers.get("content-type") ?? "application/octet-stream";
+      const bytes = await readBodyWithLimit(upstream.body, MAX_ATTACHMENT_PROXY_BYTES);
+      if (!bytes) {
+        return c.json({ error: "Attachment too large" }, 413);
+      }
+
+      const headers = new Headers({
+        "Content-Type": contentType,
+        "Cache-Control": "no-store",
+      });
+      headers.set("Content-Length", String(bytes.byteLength));
+
+      const responseBody = new ArrayBuffer(bytes.byteLength);
+      new Uint8Array(responseBody).set(bytes);
+      return new Response(responseBody, { status: 200, headers });
+    } catch (error) {
+      const isAbort = error instanceof Error && error.name === "AbortError";
+      log.warn({ err: error, id, ordinal, isAbort }, "Failed to proxy Telegram attachment");
+      return c.json({ error: isAbort ? "Upstream timeout" : "Upstream file unavailable" }, 502);
+    } finally {
+      clearTimeout(timeout);
+    }
   });
 
   // ==========================================================================

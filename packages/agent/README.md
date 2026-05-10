@@ -25,7 +25,7 @@ bun run build && bun run start
 **Prereqs**
 - Telegram token (`TELEGRAM_BOT_TOKEN`) from BotFather
 - 32+ char `ENCRYPTION_SECRET`
-- 32+ char `BOT_API_TOKEN` (bearer token that routines use to call `/api/feedback` and `/api/notify`)
+- 32+ char `BOT_API_TOKEN` (bearer token that routines use to call `/api/messages` and its attachments proxy)
 - Pinata JWT (`PINATA_JWT`) when the deployed agent should sign browser upload URLs
 - [`flyctl`](https://fly.io/docs/flyctl/install/) installed and authenticated
 - Config file: `fly.toml` at the repo root. Keep it there so the Docker build context includes the workspace root `package.json`, `bun.lock`, `packages/`, `docs/`, and `scripts/`.
@@ -117,14 +117,20 @@ Expected result: `ok: true`, `url: "https://agent.greengoods.app/webhook/telegra
 
 **Plug into routines**
 
-In `claude.ai/code/routines` under the `green-goods-routines-extended` environment, set:
+In `claude.ai/code/routines` under the `green-goods` environment, the `bug-intake` routine already has `BOT_API_URL`, `BOT_API_TOKEN`, and `DISCORD_BUGS_CHANNEL_ID` wired. No new env vars are needed for the topic-capture flow.
+
+On the Fly.io secret store (deployed agent), set one secret per topic type:
 
 ```
-BOT_API_URL = https://agent.greengoods.app
-BOT_API_TOKEN = <same value as the deployed secret>
+TELEGRAM_BUGS_TOPIC = <chat_id>_<thread_id>      # e.g. -1002847752257_311
+TELEGRAM_IDEAS_TOPIC = <chat_id>_<thread_id>     # e.g. -1002847752257_312
 ```
 
-The Green Goods `bug-intake` routine consumes `/bug` and `/idea` reports from `/api/feedback`, creates Linear Customer Needs for validated signals, and uses `/api/notify` to acknowledge gardeners after intake.
+The agent's mapping from env-var name to `inferredType` lives in `CAPTURE_TYPE_ENV_VARS` in [`config.ts`](src/config.ts). The routine reads `/api/messages?inferred_type=bug|idea`, claims each row with `PATCH { "status": "processing" }`, then marks it `triaged` or `rejected` — it never hardcodes chat or thread ids. Adding a new topic type later is a one-line code change in the agent + a new Fly secret.
+
+The Green Goods `bug-intake` routine consumes captured topic messages from `/api/messages`, creates Linear Customer Needs for validated signals (with attachments uploaded to Linear via the `/api/messages/:id/attachments/:ordinal` proxy), and acknowledges each accepted record by posting in Discord — `#bugs` for bug-source captures, `#product` for idea-source captures. The bot stays silent in the Green Goods chat itself: no DMs, no group replies, no reactions on capture.
+
+Deploys: pushing to `main` ships the agent via Fly's GitHub integration. The `flyctl deploy` command above is for the cold-start / disconnected setup path, not the day-to-day flow.
 
 ## Deploy to Railway (legacy)
 

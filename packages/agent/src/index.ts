@@ -11,12 +11,13 @@
 import { createServer, startServer } from "./api/server";
 import { parseAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
-import { handleMessage, setHandlerContext } from "./handlers";
+import { createGroupCaptureHandler, handleMessage, setHandlerContext } from "./handlers";
 import {
   createNotifier,
   createPhotoProcessor,
   createTelegramBot,
   createVoiceProcessor,
+  registerSlashCommands,
 } from "./platforms/telegram";
 import { initAI, isAIModelLoaded } from "./services/ai";
 import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
@@ -57,12 +58,17 @@ async function main(): Promise<void> {
     tagName: config.lumaGreenGoodsTagName,
   });
 
-  const bot = createTelegramBot({ token: config.telegramToken }, handleMessage);
+  const groupCapture = createGroupCaptureHandler(config.captureTopics);
+  const bot = createTelegramBot({ token: config.telegramToken }, handleMessage, groupCapture);
 
   const voiceProcessor = createVoiceProcessor(bot, (audioPath) => ai.transcribe(audioPath));
   const photoProcessor = createPhotoProcessor(bot);
   const notifier = createNotifier(bot);
   setHandlerContext({ voiceProcessor, photoProcessor, notifier });
+
+  await registerSlashCommands(bot).catch((err) => {
+    logger.warn({ err }, "Failed to register slash commands; continuing");
+  });
 
   // ============================================================================
   // LAUNCH
@@ -72,7 +78,7 @@ async function main(): Promise<void> {
   const server = createServer({
     isAIReady: isAIModelLoaded,
     botApiToken: config.botApiToken,
-    notifier,
+    telegramBot: bot,
     lumaClient,
     fundingIntents: createSqliteFundingIntentStore(),
     allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),

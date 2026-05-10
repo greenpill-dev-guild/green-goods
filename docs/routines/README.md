@@ -8,20 +8,20 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 
 | File | Status | Cadence | Channel | Issue surface |
 |---|---|---|---|---|
-| `bug-intake.md` | active | M/W/F 04:00 | `#product` | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
+| `bug-intake.md` | active | M/W/F 04:00 | `#bugs` (per-capture acks for bug-source) + `#product` (idea-source acks + daily summary) | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
 | `health-watch.md` | active | Daily M-F 07:30 | `#product` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
 | `growth-pulse.md` | active | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + `develop` digest PR |
 | `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
 
 That's it — three scheduled cadences plus one event-driven. Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
 
-## Connector matrix
+## Connector Matrix
 
-| Routine | MCP connectors | Why each |
+| Routine | Connectors | Why each |
 |---|---|---|
 | `bug-intake` | Google Drive, Linear, PostHog, Vercel | Drive = meeting-note intake · Linear = Customer Need (raw signal) + accepted-bug Issue surface · PostHog = telemetry enrichment for bug correlation · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
 | `health-watch` | Google Drive, Google Calendar, Linear, PostHog, Vercel | Drive/Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = error spike correlation · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues |
-| `growth-pulse` | Google Drive, Google Calendar, Linear, Miro | Drive/Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · Miro = roadmap context. **PostHog access via env vars (no MCP).** Vercel intentionally NOT wired — Vercel Web Analytics overlaps with PostHog, would create dual-source drift. |
+| `growth-pulse` | Google Calendar, Linear, PostHog | Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · PostHog = product/growth metrics via curated questions. Drive and Miro are intentionally not wired here; Vercel is also intentionally not wired because Vercel Web Analytics overlaps with PostHog and would create dual-source drift. |
 | `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
 
 Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution risk).
@@ -30,7 +30,8 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 
 | Channel | Used by | Why |
 |---|---|---|
-| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake, health-watch (red only), growth-pulse | user-facing concerns |
+| `#bugs` (DISCORD_BUGS_CHANNEL_ID) | bug-intake (Phase 1 ingest source + per-capture acks for bug-source records) | dedicated bug-report feed; reporter ack surface for Telegram bug-topic captures |
+| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake (idea-source per-capture acks + daily summary), health-watch (red only), growth-pulse | user-facing concerns + ideas |
 | `#funding` (DISCORD_FUNDING_CHANNEL_ID) | growth-pulse cross-post (when grant-relevant) | grant relevance only |
 | inline on PR | pr-review | review surface |
 
@@ -78,14 +79,23 @@ The dispatch labels `automation:claude` / `automation:codex` (legacy GitHub-era 
 
 ## Bot API environment
 
-Routines that consume Telegram feedback need:
+Routines that consume Telegram captures need the agent API surface only:
 
 | Variable | Description |
 |---|---|
 | `BOT_API_URL` | Public URL of the Green Goods agent (e.g., `https://agent.greengoods.app`) |
 | `BOT_API_TOKEN` | Bearer token for authenticating API requests to the agent |
 
-Used by: `bug-intake` (read + respond), `health-watch` (read-only).
+Used by: `bug-intake` (read + claim + status updates via `/api/messages?inferred_type=bug|idea`; no Telegram-side ack — reporters get acknowledged via the per-capture Discord post in `#bugs` or `#product`). `health-watch` is read-only against `/api/messages?inferred_type=bug&status=all` for clustering; it must never PATCH captures.
+
+Capture scope is **agent-side only** (two Fly.io secrets — one per topic type):
+
+```
+TELEGRAM_BUGS_TOPIC=<chat_id>_<thread_id>      # e.g. -1002847752257_311
+TELEGRAM_IDEAS_TOPIC=<chat_id>_<thread_id>     # e.g. -1002847752257_312
+```
+
+The routine never sees these — it queries `/api/messages?inferred_type=bug|idea` and the agent's mapping (env-var name → `inferredType`) decides which threads contribute. Adding a new topic type later is a one-line code change in the agent's `CAPTURE_TYPE_ENV_VARS` map plus a new Fly secret; nothing changes on the routine side.
 
 ## PostHog environment
 
@@ -97,7 +107,17 @@ Green Goods uses three PostHog projects (org-level connector scope, switch-proje
 | **Admin** | `262122` | Operator cockpit / admin web app | `growth-pulse` (`actions.template-creation-rate` only), `bug-intake` (admin-route reports) |
 | **Agent** | `262124` | Bot/messaging runtime (Telegram + future WhatsApp/SMS) | `bug-intake` (Telegram-source reports) |
 
-The connector key has a project scope set per-project at OAuth time — confirm with `switch-project` + a 1-event test query before assuming a routine can read a given project. A routine that returns zero events on a known-busy project (e.g., App over 30d) should treat the result as a wiring failure (out-of-scope or wrong project ID), not a real anomaly. Cloud routines should set `POSTHOG_PROJECT_ID_APP`, `POSTHOG_PROJECT_ID_ADMIN`, `POSTHOG_PROJECT_ID_AGENT` env vars and reference the right one per query.
+The PostHog connector is the primary access path. The connector key has a project scope set per-project at OAuth time — confirm with `switch-project` + a 1-event test query before assuming a routine can read a given project. A routine that returns zero events on a known-busy project (e.g., App over 30d) should treat the result as a wiring failure (out-of-scope or wrong project ID), not a real anomaly.
+
+Cloud routines set the project ID env vars below and reference the right one per query:
+
+| Variable | Value | Used for |
+|---|---|---|
+| `POSTHOG_PROJECT_ID_APP` | `163591` | App/client/PWA/editorial queries |
+| `POSTHOG_PROJECT_ID_ADMIN` | `262122` | Admin cockpit queries |
+| `POSTHOG_PROJECT_ID_AGENT` | `262124` | Agent/bot-channel queries |
+
+Do not add `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, or `POSTHOG_HOST` to the active Claude routine env unless you are deliberately enabling the local fallback script. Those variables belong to `scripts/agents/posthog-query.ts` for non-Claude/Codex/local fallback reads; connector-backed routines should only need the connector plus the three project IDs above.
 
 ## Linear environment
 

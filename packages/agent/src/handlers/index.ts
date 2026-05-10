@@ -30,7 +30,6 @@ import {
   type VoiceContent,
 } from "../types";
 import { handleApprove } from "./approve";
-import { handleFeedback } from "./feedback";
 import { handleHelp } from "./help";
 import { getExistingIdempotencyResponse } from "./idempotency";
 import { handleJoin } from "./join";
@@ -185,26 +184,6 @@ async function handleCommand(
 
       const result = await handleReject(message, user, {
         notifyGardener: _context.notifier?.notify.bind(_context.notifier),
-      });
-      return result.response;
-    }
-
-    case "bug": {
-      const feedbackRateCheck = checkRateLimit(sender.platformId, "feedback");
-      if (feedbackRateCheck) return feedbackRateCheck;
-
-      const result = await handleFeedback(message, user, "bug", {
-        generateId: generateSecureId,
-      });
-      return result.response;
-    }
-
-    case "idea": {
-      const feedbackRateCheck = checkRateLimit(sender.platformId, "feedback");
-      if (feedbackRateCheck) return feedbackRateCheck;
-
-      const result = await handleFeedback(message, user, "idea", {
-        generateId: generateSecureId,
       });
       return result.response;
     }
@@ -488,7 +467,8 @@ async function applySessionUpdates(
 // ============================================================================
 
 export { handleApprove } from "./approve";
-export { handleFeedback } from "./feedback";
+export { createGroupCaptureHandler } from "./group-capture";
+export type { GroupCaptureHandler } from "./group-capture";
 export { handleHelp } from "./help";
 export { handleJoin } from "./join";
 export { handlePending } from "./pending";

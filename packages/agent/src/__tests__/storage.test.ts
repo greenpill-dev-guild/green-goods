@@ -8,7 +8,7 @@ import fs from "fs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 // We'll use direct DB access instead of the adapter pattern
 import { closeDB, getDB, initDB } from "../services/db";
-import type { CreateUserInput, Session, WorkDraftData } from "../types";
+import type { CreateUserInput, NewChatMessageInput, Session, WorkDraftData } from "../types";
 
 // Test database path
 const TEST_DB_DIR = "data/test";
@@ -232,5 +232,239 @@ describe("Pending Work Management", () => {
     const removed = await db.getPendingWork(workId);
 
     expect(removed).toBeUndefined();
+  });
+});
+
+// ============================================================================
+// CHAT MESSAGE TESTS
+// ============================================================================
+
+describe("Chat Message Capture", () => {
+  function buildChatMessageInput(
+    overrides: Partial<NewChatMessageInput> = {}
+  ): NewChatMessageInput {
+    const seed = Date.now();
+    return {
+      id: `telegram:-100:${seed}`,
+      platform: "telegram",
+      chatId: "-1002847752257",
+      threadId: "311",
+      messageId: String(seed),
+      senderPlatformId: "user-1",
+      senderDisplayName: "Test Reporter",
+      text: "the map keeps freezing on my phone",
+      inferredType: "bug",
+      postedAt: seed,
+      ...overrides,
+    };
+  }
+
+  it("persists a chat message with no attachments", async () => {
+    const db = getDB();
+    const input = buildChatMessageInput();
+
+    const stored = await db.addChatMessage(input);
+
+    expect(stored.id).toBe(input.id);
+    expect(stored.inferredType).toBe("bug");
+    expect(stored.status).toBe("new");
+    expect(stored.attachments).toEqual([]);
+  });
+
+  it("persists attachments atomically with the message", async () => {
+    const db = getDB();
+    const input = buildChatMessageInput({
+      id: `chat-with-attach-${Date.now()}`,
+      messageId: `${Date.now()}`,
+    });
+
+    const stored = await db.addChatMessage(input, [
+      {
+        ordinal: 0,
+        kind: "photo",
+        telegramFileId: "file-photo-1",
+        mimeType: "image/jpeg",
+        fileSize: 12345,
+        width: 800,
+        height: 600,
+      },
+      {
+        ordinal: 1,
+        kind: "video",
+        telegramFileId: "file-video-1",
+        mimeType: "video/mp4",
+        fileSize: 1024 * 1024,
+        duration: 12,
+      },
+    ]);
+
+    expect(stored.attachments).toHaveLength(2);
+    const fetched = await db.getChatMessage(input.id);
+    expect(fetched?.attachments).toHaveLength(2);
+
+    const photo = await db.getChatMessageAttachment(input.id, 0);
+    expect(photo?.kind).toBe("photo");
+    expect(photo?.telegramFileId).toBe("file-photo-1");
+
+    const video = await db.getChatMessageAttachment(input.id, 1);
+    expect(video?.kind).toBe("video");
+    expect(video?.duration).toBe(12);
+  });
+
+  it("filters new messages by chat, thread, and inferred type", async () => {
+    const db = getDB();
+    const seed = Date.now();
+    const bug = await db.addChatMessage(
+      buildChatMessageInput({
+        id: `bug-${seed}`,
+        messageId: `${seed}-bug`,
+        threadId: "311",
+        inferredType: "bug",
+      })
+    );
+    const idea = await db.addChatMessage(
+      buildChatMessageInput({
+        id: `idea-${seed}`,
+        messageId: `${seed}-idea`,
+        threadId: "312",
+        inferredType: "idea",
+      })
+    );
+
+    const bugs = await db.getNewChatMessages({
+      chatId: "-1002847752257",
+      threadId: "311",
+      inferredType: "bug",
+    });
+
+    const ids = bugs.map((message) => message.id);
+    expect(ids).toContain(bug.id);
+    expect(ids).not.toContain(idea.id);
+    // All returned rows must have inferredType=bug and the right thread.
+    expect(bugs.every((message) => message.inferredType === "bug")).toBe(true);
+    expect(bugs.every((message) => message.threadId === "311")).toBe(true);
+  });
+
+  it("transitions status and reflects it in subsequent reads", async () => {
+    const db = getDB();
+    const stored = await db.addChatMessage(
+      buildChatMessageInput({ id: `triage-${Date.now()}`, messageId: `${Date.now()}-triage` })
+    );
+
+    await db.updateChatMessageStatus(stored.id, "triaged");
+
+    const newOnly = await db.getNewChatMessages({ chatId: stored.chatId, status: "new" });
+    expect(newOnly.find((message) => message.id === stored.id)).toBeUndefined();
+
+    const triagedOnly = await db.getNewChatMessages({
+      chatId: stored.chatId,
+      status: "triaged",
+    });
+    expect(triagedOnly.find((message) => message.id === stored.id)).toBeDefined();
+  });
+
+  it("atomically claims new messages for processing", async () => {
+    const db = getDB();
+    const stored = await db.addChatMessage(
+      buildChatMessageInput({ id: `claim-${Date.now()}`, messageId: `${Date.now()}-claim` })
+    );
+
+    await expect(db.claimChatMessage(stored.id, Date.now() - 1)).resolves.toBe(true);
+    await expect(db.claimChatMessage(stored.id, Date.now() - 1)).resolves.toBe(false);
+
+    const processing = await db.getNewChatMessages({
+      chatId: stored.chatId,
+      status: "processing",
+    });
+    expect(processing.find((message) => message.id === stored.id)).toBeDefined();
+  });
+
+  it("can read all statuses for read-only clustering", async () => {
+    const db = getDB();
+    const seed = Date.now();
+    const newMessage = await db.addChatMessage(
+      buildChatMessageInput({ id: `all-new-${seed}`, messageId: `${seed}-all-new` })
+    );
+    const triagedMessage = await db.addChatMessage(
+      buildChatMessageInput({ id: `all-triaged-${seed}`, messageId: `${seed}-all-triaged` })
+    );
+    await db.updateChatMessageStatus(triagedMessage.id, "triaged");
+
+    const all = await db.getNewChatMessages({
+      chatId: newMessage.chatId,
+      inferredType: "bug",
+      status: "all",
+    });
+    const ids = all.map((message) => message.id);
+    expect(ids).toContain(newMessage.id);
+    expect(ids).toContain(triagedMessage.id);
+  });
+
+  it("rolls back the message when attachment persistence fails", async () => {
+    const db = getDB();
+    const id = `rollback-${Date.now()}`;
+
+    await expect(
+      db.addChatMessage(buildChatMessageInput({ id, messageId: `${Date.now()}-rollback` }), [
+        {
+          ordinal: 0,
+          kind: "photo",
+          telegramFileId: "file-photo-dup-a",
+          mimeType: "image/jpeg",
+        },
+        {
+          ordinal: 0,
+          kind: "photo",
+          telegramFileId: "file-photo-dup-b",
+          mimeType: "image/jpeg",
+        },
+      ])
+    ).rejects.toThrow();
+
+    expect(await db.getChatMessage(id)).toBeUndefined();
+  });
+
+  it("sweeps non-new rows older than the cutoff and cascades attachments", async () => {
+    const db = getDB();
+    const old = await db.addChatMessage(
+      buildChatMessageInput({
+        id: `sweep-${Date.now()}`,
+        messageId: `${Date.now()}-sweep`,
+        postedAt: Date.now() - 40 * 24 * 60 * 60 * 1000,
+      }),
+      [
+        {
+          ordinal: 0,
+          kind: "photo",
+          telegramFileId: "file-old-photo",
+          mimeType: "image/jpeg",
+        },
+      ]
+    );
+    await db.updateChatMessageStatus(old.id, "triaged");
+
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const result = await db.sweepStaleChatMessages(cutoff);
+
+    expect(result.pruned).toBeGreaterThanOrEqual(1);
+    expect(await db.getChatMessage(old.id)).toBeUndefined();
+    expect(await db.getChatMessageAttachment(old.id, 0)).toBeUndefined();
+  });
+
+  it("does not prune rows still flagged 'new' regardless of age", async () => {
+    const db = getDB();
+    const stale = await db.addChatMessage(
+      buildChatMessageInput({
+        id: `stale-new-${Date.now()}`,
+        messageId: `${Date.now()}-stale-new`,
+        postedAt: Date.now() - 60 * 24 * 60 * 60 * 1000,
+      })
+    );
+
+    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const result = await db.sweepStaleChatMessages(cutoff);
+
+    expect(result.staleNew).toBeGreaterThanOrEqual(1);
+    expect(await db.getChatMessage(stale.id)).toBeDefined();
   });
 });

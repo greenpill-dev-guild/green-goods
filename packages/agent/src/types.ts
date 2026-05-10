@@ -18,13 +18,23 @@ import type { Hex } from "viem";
 
 export type Platform = "telegram" | "discord" | "whatsapp" | "sms";
 
+export type ChatType = "private" | "group" | "supergroup" | "channel";
+
 // ============================================================================
 // MESSAGES (Inbound)
 // ============================================================================
 
+export interface ChatContext {
+  id: string;
+  type: ChatType;
+  threadId?: string;
+}
+
 export interface InboundMessage {
   id: string;
   platform: Platform;
+  chat: ChatContext;
+  replyToMessageId?: string;
   sender: {
     platformId: string;
     displayName?: string;
@@ -39,7 +49,9 @@ export type MessageContent =
   | CommandContent
   | VoiceContent
   | CallbackContent
-  | ImageContent;
+  | ImageContent
+  | VideoContent
+  | DocumentContent;
 
 export interface TextContent {
   type: "text";
@@ -57,6 +69,7 @@ export interface VoiceContent {
   audioUrl: string;
   mimeType: string;
   duration?: number;
+  fileSize?: number;
 }
 
 export interface CallbackContent {
@@ -69,6 +82,29 @@ export interface ImageContent {
   type: "image";
   imageUrl: string;
   mimeType: string;
+  fileSize?: number;
+  width?: number;
+  height?: number;
+  caption?: string;
+}
+
+export interface VideoContent {
+  type: "video";
+  videoUrl: string;
+  mimeType: string;
+  fileSize?: number;
+  duration?: number;
+  width?: number;
+  height?: number;
+  caption?: string;
+}
+
+export interface DocumentContent {
+  type: "document";
+  documentUrl: string;
+  mimeType: string;
+  fileSize?: number;
+  filename?: string;
   caption?: string;
 }
 
@@ -78,6 +114,8 @@ export const isCommandContent = (c: MessageContent): c is CommandContent => c.ty
 export const isVoiceContent = (c: MessageContent): c is VoiceContent => c.type === "voice";
 export const isCallbackContent = (c: MessageContent): c is CallbackContent => c.type === "callback";
 export const isImageContent = (c: MessageContent): c is ImageContent => c.type === "image";
+export const isVideoContent = (c: MessageContent): c is VideoContent => c.type === "video";
+export const isDocumentContent = (c: MessageContent): c is DocumentContent => c.type === "document";
 
 // ============================================================================
 // RESPONSES (Outbound)
@@ -192,23 +230,73 @@ export interface WorkDraftData {
 }
 
 // ============================================================================
-// FEEDBACK
+// CHAT MESSAGES (silent group capture)
 // ============================================================================
 
-export type FeedbackType = "bug" | "idea";
-export type FeedbackStatus = "new" | "triaged" | "responded";
+export type CaptureType = "bug" | "idea";
+export type ChatMessageStatus = "new" | "processing" | "triaged" | "rejected";
+export type AttachmentKind = "photo" | "video" | "document" | "voice";
 
-export interface Feedback {
+export interface TopicAllowlistEntry {
+  chatId: string;
+  threadId: string;
+  inferredType: CaptureType;
+}
+
+export interface ChatMessageAttachment {
   id: string;
-  type: FeedbackType;
-  status: FeedbackStatus;
-  text: string;
-  platform: Platform;
-  platformId: string;
-  displayName?: string;
-  gardenAddress?: string;
+  chatMessageId: string;
+  ordinal: number;
+  kind: AttachmentKind;
+  telegramFileId: string;
+  mimeType?: string;
+  fileSize?: number;
+  duration?: number;
+  width?: number;
+  height?: number;
   createdAt: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  platform: Platform;
+  chatId: string;
+  threadId?: string;
+  messageId: string;
+  senderPlatformId: string;
+  senderDisplayName?: string;
+  text: string;
+  replyToMessageId?: string;
+  inferredType: CaptureType;
+  status: ChatMessageStatus;
+  postedAt: number;
   updatedAt: number;
+  attachments?: ChatMessageAttachment[];
+}
+
+export interface NewChatMessageInput {
+  id: string;
+  platform: Platform;
+  chatId: string;
+  threadId?: string;
+  messageId: string;
+  senderPlatformId: string;
+  senderDisplayName?: string;
+  text: string;
+  replyToMessageId?: string;
+  inferredType: CaptureType;
+  postedAt: number;
+}
+
+export interface NewChatMessageAttachmentInput {
+  ordinal: number;
+  kind: AttachmentKind;
+  telegramFileId: string;
+  mimeType?: string;
+  fileSize?: number;
+  duration?: number;
+  width?: number;
+  height?: number;
 }
 
 // ============================================================================

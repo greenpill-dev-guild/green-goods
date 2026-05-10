@@ -98,13 +98,6 @@ export const RATE_LIMITS = {
     windowMs: 300_000, // 5 per 5 minutes
     message: "Too many wallet operations. Please wait.",
   },
-
-  /** Feedback submissions (/bug, /idea) */
-  feedback: {
-    maxRequests: 5,
-    windowMs: 300_000, // 5 per 5 minutes
-    message: "Too many feedback submissions. Please wait a few minutes.",
-  },
 } as const satisfies Record<string, RateLimitConfig>;
 
 export type RateLimitType = keyof typeof RATE_LIMITS;

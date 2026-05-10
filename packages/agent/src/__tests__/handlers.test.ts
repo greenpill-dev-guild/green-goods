@@ -67,6 +67,7 @@ function createMockMessage(overrides: Partial<InboundMessage> = {}): InboundMess
   return {
     id: "msg-123",
     platform: "telegram",
+    chat: { id: "chat-private", type: "private" },
     sender: { platformId: "user-123", displayName: "Test User" },
     content: { type: "text", text: "test message" },
     locale: "en",

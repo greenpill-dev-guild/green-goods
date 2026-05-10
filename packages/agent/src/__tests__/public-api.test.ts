@@ -74,11 +74,12 @@ describe("Hono Agent API compatibility", () => {
 
   it("keeps /api/* bearer auth semantics", async () => {
     const app = createServer({ isAIReady: () => true, botApiToken: "secret" }, { logger: false });
-    expect((await app.request("/api/feedback")).status).toBe(401);
+    // Missing bearer → 401
+    expect((await app.request("/api/messages?chat_id=-100")).status).toBe(401);
+    // Bearer present but the bot dep isn't wired → attachments proxy returns 503
     expect(
       (
-        await app.request("/api/notify", {
-          method: "POST",
+        await app.request("/api/messages/missing/attachments/0", {
           headers: { authorization: "Bearer secret" },
         })
       ).status

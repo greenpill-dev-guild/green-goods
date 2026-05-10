@@ -14,6 +14,9 @@ env-vars:
   - DISCORD_USER_ID_AFO
   - BOT_API_URL
   - BOT_API_TOKEN
+  - POSTHOG_PROJECT_ID_APP
+  - POSTHOG_PROJECT_ID_ADMIN
+  - POSTHOG_PROJECT_ID_AGENT
 connectors:
   - google-calendar
   - google-drive
@@ -176,14 +179,14 @@ Authorization: Bot ${DISCORD_BOT_TOKEN}
 
 ### Read: Telegram support signals (optional)
 
-If `BOT_API_URL` is configured, fetch recent feedback:
+If `BOT_API_URL` is configured, fetch recent topic captures from the Green Goods chat (bug-intake's ingest path):
 
 ```
-GET ${BOT_API_URL}/api/feedback?since=<24h_ago_unix_ms>
+GET ${BOT_API_URL}/api/messages?inferred_type=bug&status=all&since=<24h_ago_unix_ms>
 Authorization: Bearer ${BOT_API_TOKEN}
 ```
 
-Look for clusters that correlate with health signals (multiple "can't submit work" reports → blockchain or indexer Issue). Use for context only; do not respond to gardeners (that's bug-intake's job).
+Look for clusters that correlate with health signals (multiple "can't submit work" reports → blockchain or indexer Issue). Use for context only; do not respond to reporters and do not flip `status` on the captures (that's `bug-intake`'s job).
 
 ### Write: morning health summary
 
